@@ -55,6 +55,7 @@ impl FieldKey {
     ) -> Result<Self> {
         Self::verify_name(name)?;
 
+        // TODO: Use metadata on `FieldSpec` instead?
         let scope_prefix = match scope {
             FieldScope::Private | FieldScope::Hidden => scope.prefix(),
             FieldScope::Agent => {

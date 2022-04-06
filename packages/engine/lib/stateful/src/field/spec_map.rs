@@ -18,6 +18,7 @@ pub struct FieldSpecMap<S> {
     field_specs: HashMap<FieldKey, RootFieldSpec<S>>,
 }
 
+// Can't be derived because of `S`
 impl<S> Default for FieldSpecMap<S> {
     fn default() -> Self {
         Self {
@@ -152,13 +153,16 @@ impl<S: FieldSource + Clone> FieldSpecMap<S> {
 
         let mut metadata = HashMap::with_capacity(1);
         // TODO: this can be simplified when we update arrow-rs (beyond 1.0.1), we can set this on
-        // Field's custom metadata instead of the schema
+        //   Field's custom metadata instead of the schema
         metadata.insert("any_type_fields".into(), any_types.join(","));
         metadata.insert("nullable".into(), nullabilities.join(","));
         Ok(Schema::new_with_metadata(
             partitioned_fields
                 .into_iter()
                 .map(|(field_spec, _)| Field::try_from(field_spec.clone()))
+                // TODO: Can this ever fail? `Field::try_from` fails, if it has an invalid 
+                //   `FieldKey`. Possible solution: Use `name: FieldKey` in `FieldSpec` rather than 
+                //   `String` 
                 .collect::<Result<_>>()?,
             metadata,
         ))
