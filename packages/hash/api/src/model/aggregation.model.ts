@@ -397,6 +397,7 @@ class __Aggregation {
     client: DbClient,
   ): Promise<UnresolvedGQLLinkedAggregation> {
     return {
+      aggregationId: this.aggregationId,
       sourceAccountId: this.sourceAccountId,
       sourceEntityId: this.sourceEntityId,
       path: this.stringifiedPath,
