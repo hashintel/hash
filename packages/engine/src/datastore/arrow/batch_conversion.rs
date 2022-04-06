@@ -46,7 +46,7 @@ pub trait IntoRecordBatch {
     fn into_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch>;
     fn into_empty_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch>;
     /// TODO: DOC describe, explain self is initialization data
-    fn into_agent_batch(&self, schema: &Arc<AgentSchema<EngineComponent>>) -> Result<RecordBatch>;
+    fn into_agent_batch<S>(&self, schema: &Arc<AgentSchema<S>>) -> Result<RecordBatch>;
 }
 
 fn builder_add_id(builder: &mut array::FixedSizeBinaryBuilder, id: &str) -> Result<()> {
@@ -167,7 +167,7 @@ impl IntoRecordBatch for &[Agent] {
             .into_empty_message_batch(schema)
     }
 
-    fn into_agent_batch(&self, schema: &Arc<AgentSchema<EngineComponent>>) -> Result<RecordBatch> {
+    fn into_agent_batch<S>(&self, schema: &Arc<AgentSchema<S>>) -> Result<RecordBatch> {
         self.iter()
             .collect::<Vec<_>>()
             .as_slice()
@@ -197,7 +197,7 @@ impl IntoRecordBatch for &[&Agent] {
         message::batch_from_json(schema, ids, None)
     }
 
-    fn into_agent_batch(&self, schema: &Arc<AgentSchema<EngineComponent>>) -> Result<RecordBatch> {
+    fn into_agent_batch<S>(&self, schema: &Arc<AgentSchema<S>>) -> Result<RecordBatch> {
         let mut cols = Vec::with_capacity(schema.arrow.fields().len());
 
         for field in schema.arrow.fields() {
