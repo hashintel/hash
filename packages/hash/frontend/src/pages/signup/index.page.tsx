@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useReducer } from "react";
-import { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 import { useUser } from "../../components/hooks/useUser";
@@ -42,6 +41,10 @@ import {
 } from "../shared/auth-utils";
 import { AuthLayout } from "../shared/auth-layout";
 import { useGetInvitationInfo } from "../../components/hooks/useGetInvitationInfo";
+import {
+  getDefaultLayoutWithoutHeader,
+  NextPageWithLayout,
+} from "../../shared/layout";
 
 enum Screen {
   Intro,
@@ -122,7 +125,7 @@ function reducer(state: State, action: Actions): State {
   }
 }
 
-const SignupPage: NextPage = () => {
+const Page: NextPageWithLayout = () => {
   const { user, refetch: refetchUser } = useUser();
   const router = useRouter();
   const [
@@ -517,4 +520,6 @@ const SignupPage: NextPage = () => {
   );
 };
 
-export default SignupPage;
+Page.getLayout = getDefaultLayoutWithoutHeader;
+
+export default Page;

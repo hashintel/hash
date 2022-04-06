@@ -1,4 +1,3 @@
-import { NextPage } from "next";
 import { tw } from "twind";
 import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
@@ -21,9 +20,13 @@ import {
   SYNTHETIC_LOADING_TIME_MS,
 } from "../components/auth/utils";
 import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
+import {
+  getDefaultLayoutWithoutHeader,
+  NextPageWithLayout,
+} from "../shared/layout";
 
 // @todo add error component for invalid links
-const InvitePage: NextPage = () => {
+const Page: NextPageWithLayout = () => {
   const { user, loading: fetchingUser } = useUser();
   const router = useRouter();
 
@@ -179,4 +182,6 @@ const InvitePage: NextPage = () => {
   );
 };
 
-export default InvitePage;
+Page.getLayout = getDefaultLayoutWithoutHeader;
+
+export default Page;

@@ -2,9 +2,8 @@
 // @todo have webpack polyfill this
 require("setimmediate");
 
-import { NextPage } from "next";
 import { ApolloProvider } from "@apollo/client/react";
-import { ReactElement, ReactNode, useEffect } from "react";
+import { useEffect } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
@@ -15,7 +14,11 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "../shared/ui";
-import { getDefaultLayout, SidebarContextProvider } from "../shared/layout";
+import {
+  getDefaultLayout,
+  NextPageWithLayout,
+  SidebarContextProvider,
+} from "../shared/layout";
 
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
@@ -28,10 +31,6 @@ import {
 export const apolloClient = createApolloClient();
 
 const clientSideEmotionCache = createEmotionCache();
-
-type NextPageWithLayout = NextPage & {
-  getLayout?: (page: ReactElement) => ReactNode;
-};
 
 type CustomAppProps = {
   emotionCache?: EmotionCache;
