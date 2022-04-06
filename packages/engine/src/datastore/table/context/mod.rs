@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
+use stateful::agent::AgentSchema;
 
 use crate::{
     config::StoreConfig,
     datastore::{
         batch::{context::ContextBatch, AgentBatch},
         error::{Error, Result},
-        schema::state::AgentSchema,
+        schema::EngineComponent,
         table::{
             pool::{agent::AgentPool, message::MessagePool, BatchPool},
             state::{view::StatePools, State},
@@ -16,7 +17,6 @@ use crate::{
     proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
-use crate::datastore::schema::EngineComponent;
 
 /// The context is global, consistent data about the simulation at a single point in time, which is
 /// shared between all agents.

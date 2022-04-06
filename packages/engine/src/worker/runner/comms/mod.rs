@@ -6,14 +6,12 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
+use stateful::agent::AgentSchema;
 use tracing::Span;
 
 use crate::{
     config::{EngineConfig, Globals},
-    datastore::{
-        schema::{state::AgentSchema, EngineComponent},
-        shared_store::SharedStore,
-    },
+    datastore::{schema::EngineComponent, shared_store::SharedStore},
     language::Language,
     proto::{ExperimentId, SimulationShortId},
     simulation::{

@@ -1,13 +1,10 @@
 use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
 use serde::{Deserialize, Serialize};
-use stateful::field::FieldSpecMapAccessor;
+use stateful::{agent::AgentSchema, field::FieldSpecMapAccessor};
 
 use crate::{
-    datastore::{
-        batch::AgentBatch,
-        schema::{state::AgentSchema, EngineComponent},
-    },
+    datastore::{batch::AgentBatch, schema::EngineComponent},
     simulation::package::output::packages::analysis::{
         index_iter,
         output::{AnalysisFinalOutput, AnalysisSingleOutput},

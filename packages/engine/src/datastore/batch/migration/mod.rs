@@ -7,16 +7,16 @@ use memory::{
     arrow::meta::{self, Buffer, Node, NodeMapping},
     shared_memory::{padding, Segment},
 };
+use stateful::agent::AgentSchema;
 
 use crate::{
     datastore::{
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        schema::state::{AgentSchema, MessageSchema},
+        schema::{state::MessageSchema, EngineComponent},
     },
     proto::ExperimentId,
 };
-use crate::datastore::schema::EngineComponent;
 
 type Offset = i32;
 

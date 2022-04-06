@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
+use stateful::agent::AgentSchema;
+
 use crate::{
     config::{globals::Globals, Result},
-    datastore::schema::{
-        context::ContextSchema,
-        state::{AgentSchema, MessageSchema},
-        EngineComponent,
-    },
+    datastore::schema::{context::ContextSchema, state::MessageSchema, EngineComponent},
     simulation::package::creator::PackageCreators,
 };
 

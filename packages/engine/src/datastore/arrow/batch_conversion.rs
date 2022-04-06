@@ -18,14 +18,17 @@ use memory::arrow::{
     json_vals_to_col, json_vals_to_primitive, json_vals_to_utf8, new_zero_bits,
 };
 use serde_json::value::Value;
-use stateful::field::{FieldScope, FieldTypeVariant, RootFieldKey};
+use stateful::{
+    agent::AgentSchema,
+    field::{FieldScope, FieldTypeVariant, RootFieldKey},
+};
 
 use crate::{
     datastore::{
         arrow::{message, message::messages_column_from_serde_values},
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        schema::{state::AgentSchema, EngineComponent, IsRequired},
+        schema::{EngineComponent, IsRequired},
         UUID_V4_LEN,
     },
     hash_types::{
@@ -575,7 +578,10 @@ fn set_states_serialized(
 }
 
 impl IntoAgents for (&AgentBatch, &MessageBatch) {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema<EngineComponent>>>) -> Result<Vec<Agent>> {
+    fn into_agent_states(
+        &self,
+        agent_schema: Option<&Arc<AgentSchema<EngineComponent>>>,
+    ) -> Result<Vec<Agent>> {
         let agents = self.0.batch.record_batch()?;
         let messages = self.1.batch.record_batch()?;
         let mut states = agents.into_agent_states(agent_schema)?;
@@ -583,7 +589,10 @@ impl IntoAgents for (&AgentBatch, &MessageBatch) {
         Ok(states)
     }
 
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema<EngineComponent>>) -> Result<Vec<Agent>> {
+    fn into_filtered_agent_states(
+        &self,
+        agent_schema: &Arc<AgentSchema<EngineComponent>>,
+    ) -> Result<Vec<Agent>> {
         let agents = self.0.batch.record_batch()?;
         let messages = self.1.batch.record_batch()?;
         let mut states = agents.into_filtered_agent_states(agent_schema)?;
@@ -593,7 +602,10 @@ impl IntoAgents for (&AgentBatch, &MessageBatch) {
 }
 
 impl IntoAgents for (&RecordBatch, &RecordBatch) {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema<EngineComponent>>>) -> Result<Vec<Agent>> {
+    fn into_agent_states(
+        &self,
+        agent_schema: Option<&Arc<AgentSchema<EngineComponent>>>,
+    ) -> Result<Vec<Agent>> {
         let agents = &self.0;
         let messages = &self.1;
         let mut states = agents.into_agent_states(agent_schema)?;
@@ -601,7 +613,10 @@ impl IntoAgents for (&RecordBatch, &RecordBatch) {
         Ok(states)
     }
 
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema<EngineComponent>>) -> Result<Vec<Agent>> {
+    fn into_filtered_agent_states(
+        &self,
+        agent_schema: &Arc<AgentSchema<EngineComponent>>,
+    ) -> Result<Vec<Agent>> {
         let agents = &self.0;
         let messages = &self.1;
         let mut states = agents.into_filtered_agent_states(agent_schema)?;
@@ -611,7 +626,10 @@ impl IntoAgents for (&RecordBatch, &RecordBatch) {
 }
 
 impl IntoAgents for RecordBatch {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema<EngineComponent>>>) -> Result<Vec<Agent>> {
+    fn into_agent_states(
+        &self,
+        agent_schema: Option<&Arc<AgentSchema<EngineComponent>>>,
+    ) -> Result<Vec<Agent>> {
         let agents = self;
 
         let mut states: Vec<Agent> = std::iter::repeat(Agent::empty())
@@ -661,7 +679,10 @@ impl IntoAgents for RecordBatch {
         Ok(states)
     }
 
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema<EngineComponent>>) -> Result<Vec<Agent>> {
+    fn into_filtered_agent_states(
+        &self,
+        agent_schema: &Arc<AgentSchema<EngineComponent>>,
+    ) -> Result<Vec<Agent>> {
         let agent_states = self.into_agent_states(Some(agent_schema))?;
 
         let group_field_names = agent_schema

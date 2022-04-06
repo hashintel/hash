@@ -27,17 +27,17 @@ use memory::{
     },
     shared_memory::{BufferChange, MemoryId, Metaversion, Segment},
 };
+use stateful::agent::AgentSchema;
 
 use crate::{
     datastore::{
         arrow::batch_conversion::IntoRecordBatch,
         error::{Error, Result},
-        schema::state::AgentSchema,
+        schema::EngineComponent,
     },
     proto::ExperimentId,
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
-use crate::datastore::schema::EngineComponent;
 
 /// An Arrow batch with agent state columns
 // TODO: Maybe rename to AgentGroup
