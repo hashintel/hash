@@ -532,6 +532,10 @@ export interface DbClient {
     operation: object;
   }): Promise<DbAggregation>;
 
+  getAggregation(params: {
+    aggregationId: string;
+  }): Promise<DbAggregation | null>;
+
   getEntityAggregationByPath(params: {
     sourceAccountId: string;
     sourceEntityId: string;

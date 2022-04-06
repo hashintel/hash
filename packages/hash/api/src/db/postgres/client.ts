@@ -444,6 +444,12 @@ export class PostgresClient implements DbClient {
     return await updateAggregationOperation(this.conn, params);
   }
 
+  async getAggregation(
+    params: Parameters<DbClient["getAggregation"]>[0],
+  ): ReturnType<DbClient["getAggregation"]> {
+    return await getAggregation(this.conn, params);
+  }
+
   async getEntityAggregationByPath(
     params: Parameters<DbClient["getEntityAggregationByPath"]>[0],
   ): ReturnType<DbClient["getEntityAggregationByPath"]> {
