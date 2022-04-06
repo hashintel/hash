@@ -25,7 +25,7 @@ use crate::{
         arrow::{message, message::messages_column_from_serde_values},
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        schema::{state::AgentSchema, IsRequired},
+        schema::{state::AgentSchema, EngineComponent, IsRequired},
         UUID_V4_LEN,
     },
     hash_types::{
@@ -42,7 +42,7 @@ pub trait IntoRecordBatch {
     fn into_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch>;
     fn into_empty_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch>;
     /// TODO: DOC describe, explain self is initialization data
-    fn into_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch>;
+    fn into_agent_batch(&self, schema: &Arc<AgentSchema<EngineComponent>>) -> Result<RecordBatch>;
 }
 
 fn builder_add_id(builder: &mut array::FixedSizeBinaryBuilder, id: &str) -> Result<()> {
@@ -163,7 +163,7 @@ impl IntoRecordBatch for &[Agent] {
             .into_empty_message_batch(schema)
     }
 
-    fn into_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch> {
+    fn into_agent_batch(&self, schema: &Arc<AgentSchema<EngineComponent>>) -> Result<RecordBatch> {
         self.iter()
             .collect::<Vec<_>>()
             .as_slice()
@@ -193,7 +193,7 @@ impl IntoRecordBatch for &[&Agent] {
         message::batch_from_json(schema, ids, None)
     }
 
-    fn into_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch> {
+    fn into_agent_batch(&self, schema: &Arc<AgentSchema<EngineComponent>>) -> Result<RecordBatch> {
         let mut cols = Vec::with_capacity(schema.arrow.fields().len());
 
         for field in schema.arrow.fields() {
@@ -258,11 +258,17 @@ impl IntoRecordBatch for &[&Agent] {
 
 /// Conversion into `Agent`, which can be converted to JSON
 pub trait IntoAgents {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>>;
+    fn into_agent_states(
+        &self,
+        agent_schema: Option<&Arc<AgentSchema<EngineComponent>>>,
+    ) -> Result<Vec<Agent>>;
 
     // Conversion into `Agent` where certain built-in fields and
     // null values are selectively ignored
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>>;
+    fn into_filtered_agent_states(
+        &self,
+        agent_schema: &Arc<AgentSchema<EngineComponent>>,
+    ) -> Result<Vec<Agent>>;
 }
 
 // `array.null_count() > 0` can be moved out of loops by the compiler:
@@ -569,7 +575,7 @@ fn set_states_serialized(
 }
 
 impl IntoAgents for (&AgentBatch, &MessageBatch) {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>> {
+    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema<EngineComponent>>>) -> Result<Vec<Agent>> {
         let agents = self.0.batch.record_batch()?;
         let messages = self.1.batch.record_batch()?;
         let mut states = agents.into_agent_states(agent_schema)?;
@@ -577,7 +583,7 @@ impl IntoAgents for (&AgentBatch, &MessageBatch) {
         Ok(states)
     }
 
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>> {
+    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema<EngineComponent>>) -> Result<Vec<Agent>> {
         let agents = self.0.batch.record_batch()?;
         let messages = self.1.batch.record_batch()?;
         let mut states = agents.into_filtered_agent_states(agent_schema)?;
@@ -587,7 +593,7 @@ impl IntoAgents for (&AgentBatch, &MessageBatch) {
 }
 
 impl IntoAgents for (&RecordBatch, &RecordBatch) {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>> {
+    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema<EngineComponent>>>) -> Result<Vec<Agent>> {
         let agents = &self.0;
         let messages = &self.1;
         let mut states = agents.into_agent_states(agent_schema)?;
@@ -595,7 +601,7 @@ impl IntoAgents for (&RecordBatch, &RecordBatch) {
         Ok(states)
     }
 
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>> {
+    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema<EngineComponent>>) -> Result<Vec<Agent>> {
         let agents = &self.0;
         let messages = &self.1;
         let mut states = agents.into_filtered_agent_states(agent_schema)?;
@@ -605,7 +611,7 @@ impl IntoAgents for (&RecordBatch, &RecordBatch) {
 }
 
 impl IntoAgents for RecordBatch {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>> {
+    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema<EngineComponent>>>) -> Result<Vec<Agent>> {
         let agents = self;
 
         let mut states: Vec<Agent> = std::iter::repeat(Agent::empty())
@@ -655,7 +661,7 @@ impl IntoAgents for RecordBatch {
         Ok(states)
     }
 
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>> {
+    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema<EngineComponent>>) -> Result<Vec<Agent>> {
         let agent_states = self.into_agent_states(Some(agent_schema))?;
 
         let group_field_names = agent_schema

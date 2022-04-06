@@ -37,6 +37,7 @@ use crate::{
     proto::ExperimentId,
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
+use crate::datastore::schema::EngineComponent;
 
 /// An Arrow batch with agent state columns
 // TODO: Maybe rename to AgentGroup
@@ -54,7 +55,7 @@ impl AgentBatch {
     /// should be run on.
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
-        schema: &Arc<AgentSchema>,
+        schema: &Arc<AgentSchema<EngineComponent>>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let record_batch = agents.into_agent_batch(schema)?;
@@ -63,7 +64,7 @@ impl AgentBatch {
 
     pub fn duplicate_from(
         agent_batch: &Self,
-        schema: &AgentSchema,
+        schema: &AgentSchema<EngineComponent>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         if agent_batch.batch.loaded_metaversion().memory()
@@ -88,7 +89,7 @@ impl AgentBatch {
     /// Copy contents from RecordBatch and create a memory-backed Batch
     pub fn from_record_batch(
         record_batch: &RecordBatch,
-        schema: &AgentSchema,
+        schema: &AgentSchema<EngineComponent>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let ipc_data_generator = IpcDataGenerator::default();
@@ -121,7 +122,7 @@ impl AgentBatch {
 
     pub fn from_segment(
         segment: Segment,
-        schema: Option<&AgentSchema>,
+        schema: Option<&AgentSchema<EngineComponent>>,
         worker_index: Option<usize>,
     ) -> Result<Self> {
         let persisted = segment.try_read_persisted_metaversion()?;
@@ -161,7 +162,7 @@ impl AgentBatch {
     }
 
     pub fn get_prepared_memory_for_data(
-        schema: &Arc<AgentSchema>,
+        schema: &Arc<AgentSchema<EngineComponent>>,
         dynamic_meta: &meta::Dynamic,
         experiment_id: &ExperimentId,
     ) -> Result<Segment> {

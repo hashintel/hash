@@ -296,7 +296,7 @@ impl PackageCreators {
         &self,
         exp_config: &ExperimentConfig,
         globals: &Globals,
-    ) -> Result<AgentSchema> {
+    ) -> Result<AgentSchema<EngineComponent>> {
         let mut field_spec_map = FieldSpecMap::empty();
 
         // TODO: should we use enum_dispatch here to remove some duplication

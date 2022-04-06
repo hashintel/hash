@@ -16,6 +16,7 @@ use crate::{
     proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
+use crate::datastore::schema::EngineComponent;
 
 /// The context is global, consistent data about the simulation at a single point in time, which is
 /// shared between all agents.
@@ -111,7 +112,7 @@ impl Context {
     pub fn update_agent_snapshot(
         &mut self,
         state: &mut State,
-        agent_schema: &AgentSchema,
+        agent_schema: &AgentSchema<EngineComponent>,
         experiment_id: &ExperimentId,
     ) -> Result<()> {
         let mut previous_agent_batch_proxies = self.previous_state.agent_pool.write_proxies()?;

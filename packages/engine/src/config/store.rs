@@ -5,12 +5,13 @@ use crate::{
     datastore::schema::{
         context::ContextSchema,
         state::{AgentSchema, MessageSchema},
+        EngineComponent,
     },
     simulation::package::creator::PackageCreators,
 };
 
 pub struct Config {
-    pub agent_schema: Arc<AgentSchema>,
+    pub agent_schema: Arc<AgentSchema<EngineComponent>>,
     pub message_schema: Arc<MessageSchema>,
     pub context_schema: Arc<ContextSchema>,
 }

@@ -43,7 +43,7 @@ pub struct Analyzer {
 impl Analyzer {
     pub fn from_analysis_source(
         analysis_source: &str,
-        _agent_schema: &AgentSchema,
+        _agent_schema: &AgentSchema<EngineComponent>,
         accessor: &FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Analyzer> {
         let repr = AnalysisSourceRepr::try_from(analysis_source)?;

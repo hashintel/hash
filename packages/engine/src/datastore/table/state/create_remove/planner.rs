@@ -12,7 +12,7 @@ use crate::{
             AgentBatch,
         },
         error::Result,
-        schema::state::AgentSchema,
+        schema::{state::AgentSchema, EngineComponent},
         table::{
             proxy::StateReadProxy,
             state::create_remove::{
@@ -152,7 +152,7 @@ fn buffer_actions_from_pending_batch<'a>(
     state_proxy: &StateReadProxy,
     pending_batch: &PendingBatch,
     inbound_agents: &Option<&'a RecordBatch>,
-    schema: &Arc<AgentSchema>,
+    schema: &Arc<AgentSchema<EngineComponent>>,
     inbound_taken_count: &mut usize,
 ) -> Result<BufferActions<'a>> {
     let remove = RangeActions::collect_indices(pending_batch.get_remove_actions());

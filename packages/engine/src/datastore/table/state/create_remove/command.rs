@@ -5,7 +5,7 @@ use arrow::record_batch::RecordBatch;
 use crate::{
     datastore::{
         error::{Error, Result},
-        schema::state::AgentSchema,
+        schema::{state::AgentSchema, EngineComponent},
         UUID_V4_LEN,
     },
     simulation::command::CreateRemoveCommands,
@@ -20,7 +20,7 @@ pub struct ProcessedCommands {
 impl ProcessedCommands {
     pub fn new(
         commands: CreateRemoveCommands,
-        schema: &Arc<AgentSchema>,
+        schema: &Arc<AgentSchema<EngineComponent>>,
     ) -> Result<ProcessedCommands> {
         commands
             .try_into_processed_commands(schema)

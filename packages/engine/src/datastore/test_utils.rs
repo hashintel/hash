@@ -298,7 +298,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
 pub fn gen_schema_and_test_agents(
     num_agents: usize,
     seed: u64,
-) -> Result<(Arc<AgentSchema>, Vec<Agent>), Error> {
+) -> Result<(Arc<AgentSchema<EngineComponent>>, Vec<Agent>), Error> {
     let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
     let mut field_spec_map = FieldSpecMap::empty();
     field_spec_map.try_extend([field_spec_creator.create(

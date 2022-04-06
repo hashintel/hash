@@ -16,6 +16,7 @@ use crate::{
     },
     proto::ExperimentId,
 };
+use crate::datastore::schema::EngineComponent;
 
 type Offset = i32;
 
@@ -149,7 +150,7 @@ struct NextState {
 impl<'a> BufferActions<'a> {
     pub fn new_batch(
         &self,
-        agent_schema: &Arc<AgentSchema>,
+        agent_schema: &Arc<AgentSchema<EngineComponent>>,
         message_schema: &Arc<MessageSchema>,
         experiment_id: &ExperimentId,
         worker_index: usize,

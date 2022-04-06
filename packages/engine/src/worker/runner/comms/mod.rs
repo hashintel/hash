@@ -10,7 +10,10 @@ use tracing::Span;
 
 use crate::{
     config::{EngineConfig, Globals},
-    datastore::{schema::state::AgentSchema, shared_store::SharedStore},
+    datastore::{
+        schema::{state::AgentSchema, EngineComponent},
+        shared_store::SharedStore,
+    },
     language::Language,
     proto::{ExperimentId, SimulationShortId},
     simulation::{
@@ -191,7 +194,7 @@ pub struct NewSimulationRun {
 
 #[derive(derive_new::new, Clone)]
 pub struct DatastoreSimulationPayload {
-    pub agent_batch_schema: Arc<AgentSchema>,
+    pub agent_batch_schema: Arc<AgentSchema<EngineComponent>>,
     pub message_batch_schema: Arc<Schema>,
     pub context_batch_schema: Arc<Schema>,
     pub shared_store: Arc<SharedStore>,
