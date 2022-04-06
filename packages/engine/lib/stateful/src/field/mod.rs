@@ -11,8 +11,6 @@
 //! corresponding field and encodes the [`FieldScope`] and a [`FieldSource`] to be used for looking
 //! up Arrow columns.
 //!
-//!
-//!
 //! For more information on these types please the the corresponding documentation.
 //!
 //! [`DataType`]: arrow::datatypes::DataType

@@ -18,14 +18,18 @@ impl<S: FieldSource> FieldSpecMapAccessor<S> {
         }
     }
 
-    /// Get a FieldSpec stored under a given field name with FieldScope::Agent
+    /// Get a [`FieldSpec`] stored under a given field name with [`FieldScope::Agent`].
+    ///
+    /// [`FieldSpec`]: crate::field::FieldSpec
     pub fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec<S>> {
         let key = RootFieldKey::new_agent_scoped(field_name)?;
         self.field_spec_map.get_field_spec(&key)
     }
 
-    /// Get a FieldSpec stored under a given field name with FieldScope::Hidden and belonging to a
-    /// given FieldSource
+    /// Get a [`FieldSpec`] stored under a given field name with [`FieldScope::Hidden`] and
+    /// belonging to a given [`FieldSource`].
+    ///
+    /// [`FieldSpec`]: crate::field::FieldSpec
     pub fn get_hidden_scoped_field_spec(
         &self,
         field_name: &str,
@@ -39,8 +43,10 @@ impl<S: FieldSource> FieldSpecMapAccessor<S> {
         self.field_spec_map.get_field_spec(&key)
     }
 
-    /// Get a FieldSpec stored under a given field name with FieldScope::Private that belongs to the
-    /// FieldSource of the accessor
+    /// Get a [`FieldSpec`] stored under a given field name with [`FieldScope::Private`] that
+    /// belongs to the [`FieldSource`] of the accessor.
+    ///
+    /// [`FieldSpec`]: crate::field::FieldSpec
     pub fn get_local_private_scoped_field_spec(
         &self,
         field_name: &str,
@@ -53,8 +59,10 @@ impl<S: FieldSource> FieldSpecMapAccessor<S> {
         self.field_spec_map.get_field_spec(&key)
     }
 
-    /// Get a FieldSpec stored under a given field name with FieldScope::Hidden that belongs to the
-    /// FieldSource of the accessor
+    /// Get a [`FieldSpec`] stored under a given field name with [`FieldScope::Hidden`] that belongs
+    /// to the [`FieldSource`] of the accessor.
+    ///
+    /// [`FieldSpec`]: crate::field::FieldSpec
     pub fn get_local_hidden_scoped_field_spec(
         &self,
         field_name: &str,
@@ -68,11 +76,11 @@ impl<S: FieldSource> FieldSpecMapAccessor<S> {
     }
 }
 
-/// A non-scoped Accessor object used to look-up `FieldSpec`s without regard for scoping rules.
+/// A non-scoped Accessor object used to look-up [`FieldSpec`]s without regard for scoping rules.
+///
 /// This Accessor is **only** intended for use by the Engine, i.e. something with root access.
-/// Due to this it does not implement GetFieldSpec. This is because methods using this should not
-/// require a generic interface through dynamic dispatch and should be explicit in needing root
-/// access.
+///
+/// [`FieldSpec`]: crate::field::FieldSpec
 pub struct RootFieldSpecMapAccessor<S> {
     pub field_spec_map: Arc<FieldSpecMap<S>>,
 }

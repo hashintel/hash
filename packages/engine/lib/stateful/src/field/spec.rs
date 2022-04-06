@@ -55,8 +55,8 @@ impl fmt::Debug for FieldSpec {
     }
 }
 
-/// A single specification of a root field, for instance in the case of a struct field it's the top
-/// level struct field and the children are all FieldSpec
+/// A single specification of a root field., for instance in the case of a struct field it's the top
+/// level struct field and the children are all [`FieldSpec`].
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RootFieldSpec<S> {
     pub inner: FieldSpec,

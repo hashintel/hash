@@ -11,6 +11,11 @@ use crate::{
 pub struct RootFieldKey(String);
 
 impl RootFieldKey {
+    /// Creates a key from a [`String`].
+    pub fn new(key: String) -> Self {
+        Self(key)
+    }
+
     fn verify_name(name: &str) -> Result<()> {
         const PRIVATE_PREFIX: &str = FieldScope::Private.prefix();
         const HIDDEN_PREFIX: &str = FieldScope::Hidden.prefix();
@@ -31,7 +36,7 @@ impl RootFieldKey {
     ///
     /// # Errors
     ///
-    /// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
+    /// - Returns [`Error`] if `name` starts with a prefixed pre-defined by [`FieldScope`].
     #[inline]
     pub fn new_agent_scoped(name: &str) -> Result<Self> {
         Self::verify_name(name)?;
@@ -45,8 +50,8 @@ impl RootFieldKey {
     ///
     /// # Errors
     ///
-    /// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
-    /// - Returns [`Error`] if `scope` is [`FieldScope::Agent`]
+    /// - Returns [`Error`] if `name` starts with a prefixed pre-defined by [`FieldScope`], and
+    /// - Returns [`Error`] if `scope` is [`FieldScope::Agent`].
     #[inline]
     pub fn new_private_or_hidden_scoped<S: FieldSource>(
         name: &str,
@@ -72,14 +77,9 @@ impl RootFieldKey {
         )))
     }
 
-    /// Returns the key as string
+    /// Returns the key as [`String`].
     pub fn value(&self) -> &str {
         &self.0
-    }
-
-    /// Returns a string as key
-    pub fn new(key: String) -> Self {
-        Self(key)
     }
 }
 
