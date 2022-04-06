@@ -23,7 +23,7 @@ pub const UUID_V4_LEN: usize = 16;
 pub use self::{
     accessor::{FieldSpecMapAccessor, RootFieldSpecMapAccessor},
     field_type::{FieldType, FieldTypeVariant, PresetFieldType},
-    key::{FieldKey, HIDDEN_PREFIX, PRIVATE_PREFIX},
+    key::FieldKey,
     scope::FieldScope,
     source::FieldSource,
     spec::{FieldSpec, RootFieldSpec, RootFieldSpecCreator},

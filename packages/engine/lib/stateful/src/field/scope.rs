@@ -1,3 +1,6 @@
+const HIDDEN_PREFIX: &str = "_HIDDEN_";
+const PRIVATE_PREFIX: &str = "_PRIVATE_";
+
 /// Defines scope of access to Fields, where the order of the variants of this enum define an
 /// ordering of the scopes, where being defined lower implies a wider scope where more things can
 /// access it.
@@ -10,4 +13,14 @@ pub enum FieldScope {
     Hidden,
     /// Agents, packages and engine have access
     Agent,
+}
+
+impl FieldScope {
+    pub const fn prefix(self) -> &'static str {
+        match self {
+            Self::Private => PRIVATE_PREFIX,
+            Self::Hidden => HIDDEN_PREFIX,
+            Self::Agent => "",
+        }
+    }
 }

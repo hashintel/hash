@@ -5,14 +5,15 @@ use crate::{
     Error, Result,
 };
 
-pub const HIDDEN_PREFIX: &str = "_HIDDEN_";
-pub const PRIVATE_PREFIX: &str = "_PRIVATE_";
-
+// TODO: Use a struct containing the name, the scope, and the source instead?
+// TODO: OPTIM (follow-up of the above): Use string interning for faster column name lookup
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct FieldKey(String);
 
 impl FieldKey {
     fn verify_name(name: &str) -> Result<()> {
+        const PRIVATE_PREFIX: &str = FieldScope::Private.prefix();
+        const HIDDEN_PREFIX: &str = FieldScope::Hidden.prefix();
         // TODO: do we want these checks to only be present on debug builds
         if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
             Err(Error::from(format!(
@@ -55,8 +56,7 @@ impl FieldKey {
         Self::verify_name(name)?;
 
         let scope_prefix = match scope {
-            FieldScope::Private => PRIVATE_PREFIX,
-            FieldScope::Hidden => HIDDEN_PREFIX,
+            FieldScope::Private | FieldScope::Hidden => scope.prefix(),
             FieldScope::Agent => {
                 return Err(Error::from(
                     "Use new_agent_scoped to create a key with FieldScope::Agent",

@@ -2,7 +2,7 @@ mod config;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{HIDDEN_PREFIX, PRIVATE_PREFIX};
+use stateful::field::FieldScope;
 
 pub use self::config::JsonStateOutputConfig;
 use crate::{
@@ -100,9 +100,9 @@ impl Package for JsonState {
             .flatten()
             .map(|mut agent| {
                 agent.custom.retain(|key, _| {
-                    if key.starts_with(HIDDEN_PREFIX) {
+                    if key.starts_with(FieldScope::Hidden.prefix()) {
                         self.output_config.retain_hidden
-                    } else if key.starts_with(PRIVATE_PREFIX) {
+                    } else if key.starts_with(FieldScope::Private.prefix()) {
                         self.output_config.retain_private
                     } else {
                         true
