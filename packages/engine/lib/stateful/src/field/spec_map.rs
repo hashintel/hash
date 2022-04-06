@@ -4,7 +4,9 @@ use std::collections::HashMap;
 use arrow::datatypes::{Field, Schema};
 
 use crate::{
-    field::{FieldKey, FieldScope, FieldSource, FieldTypeVariant, IsFixedSize, RootFieldSpec},
+    field::{
+        fixed_size::IsFixedSize, FieldKey, FieldScope, FieldSource, FieldTypeVariant, RootFieldSpec,
+    },
     Error, Result,
 };
 
