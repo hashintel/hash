@@ -20,10 +20,10 @@ export const DefaultLayout: VFC<{
   );
 };
 
-export const getDefaultLayout = () => (page: ReactElement) => {
+export const getDefaultLayout = (page: ReactElement) => {
   return <DefaultLayout>{page}</DefaultLayout>;
 };
 
-export const getDefaultLayoutWithoutHeader = () => (page: ReactElement) => {
+export const getDefaultLayoutWithoutHeader = (page: ReactElement) => {
   return <DefaultLayout hidePageHeader>{page}</DefaultLayout>;
 };
