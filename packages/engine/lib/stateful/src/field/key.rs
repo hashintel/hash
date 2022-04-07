@@ -74,7 +74,7 @@ impl RootFieldKey {
         Ok(Self(format!(
             "{}{}_{}",
             scope_prefix,
-            source.unique_id()?,
+            source.unique_id(),
             name
         )))
     }

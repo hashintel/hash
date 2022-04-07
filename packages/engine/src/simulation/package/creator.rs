@@ -183,7 +183,7 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Init),
                     FieldSpecMapAccessor::new(
-                        EngineComponent::Package(*package_name),
+                        EngineComponent::Package(*package_id),
                         state_field_spec_map.clone(),
                     ),
                 )?;
@@ -206,11 +206,11 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Context),
                     FieldSpecMapAccessor::new(
-                        EngineComponent::Package(*package_name),
+                        EngineComponent::Package(*package_id),
                         Arc::clone(state_field_spec_map),
                     ),
                     FieldSpecMapAccessor::new(
-                        EngineComponent::Package(*package_name),
+                        EngineComponent::Package(*package_id),
                         Arc::clone(context_field_spec_map),
                     ),
                 )?;
@@ -233,7 +233,7 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::State),
                     FieldSpecMapAccessor::new(
-                        EngineComponent::Package(*package_name),
+                        EngineComponent::Package(*package_id),
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
@@ -256,7 +256,7 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Output),
                     FieldSpecMapAccessor::new(
-                        EngineComponent::Package(*package_name),
+                        EngineComponent::Package(*package_id),
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
@@ -303,9 +303,9 @@ impl PackageCreators {
 
         // TODO: should we use enum_dispatch here to remove some duplication
         self.init.iter().try_for_each::<_, Result<()>>(
-            |(_package_id, package_name, creator)| {
+            |(package_id, _package_name, creator)| {
                 let field_spec_creator =
-                    RootFieldSpecCreator::new(EngineComponent::Package(*package_name));
+                    RootFieldSpecCreator::new(EngineComponent::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -316,9 +316,9 @@ impl PackageCreators {
         )?;
 
         self.context.iter().try_for_each::<_, Result<()>>(
-            |(_package_id, package_name, creator)| {
+            |(package_id, _package_name, creator)| {
                 let field_spec_creator =
-                    RootFieldSpecCreator::new(EngineComponent::Package(*package_name));
+                    RootFieldSpecCreator::new(EngineComponent::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -329,9 +329,9 @@ impl PackageCreators {
         )?;
 
         self.state.iter().try_for_each::<_, Result<()>>(
-            |(_package_id, package_name, creator)| {
+            |(package_id, _package_name, creator)| {
                 let field_spec_creator =
-                    RootFieldSpecCreator::new(EngineComponent::Package(*package_name));
+                    RootFieldSpecCreator::new(EngineComponent::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -342,9 +342,9 @@ impl PackageCreators {
         )?;
 
         self.output.iter().try_for_each::<_, Result<()>>(
-            |(_package_id, package_name, creator)| {
+            |(package_id, _package_name, creator)| {
                 let field_spec_creator =
-                    RootFieldSpecCreator::new(EngineComponent::Package(*package_name));
+                    RootFieldSpecCreator::new(EngineComponent::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -367,9 +367,9 @@ impl PackageCreators {
         let mut field_spec_map = FieldSpecMap::empty();
 
         self.context.iter().try_for_each::<_, Result<()>>(
-            |(_package_id, package_name, creator)| {
+            |(package_id, _package_name, creator)| {
                 let field_spec_creator =
-                    RootFieldSpecCreator::new(EngineComponent::Package(*package_name));
+                    RootFieldSpecCreator::new(EngineComponent::Package(*package_id));
                 field_spec_map.try_extend(creator.get_context_field_specs(
                     exp_config,
                     globals,

@@ -19,19 +19,16 @@ use crate::{
     },
     language::Language,
     simulation::{
-        package::{
-            name::PackageName,
-            state::{
-                packages::behavior_execution::{
-                    config::BehaviorIds,
-                    fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
-                    tasks::ExecuteBehaviorsTask,
-                },
-                Arc, DatastoreResult, Error, ExperimentConfig, FieldSpecMapAccessor,
-                GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals, IntoArrowChange, Name,
-                Package, PackageComms, PackageCreator, Result, SimRunConfig, Span, State,
-                StateColumn, StateTask,
+        package::state::{
+            packages::behavior_execution::{
+                config::BehaviorIds,
+                fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
+                tasks::ExecuteBehaviorsTask,
             },
+            Arc, DatastoreResult, Error, ExperimentConfig, FieldSpecMapAccessor,
+            GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals, IntoArrowChange, Name, Package,
+            PackageComms, PackageCreator, Result, SimRunConfig, Span, State, StateColumn,
+            StateTask,
         },
         task::{active::ActiveTask, Task},
     },
@@ -84,9 +81,8 @@ impl GetWorkerExpStartMsg for Creator {
 impl PackageCreator for Creator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         // TODO: Packages shouldn't have to set the source
-        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Package(
-            PackageName::State(Name::BehaviorExecution),
-        ));
+        let field_spec_creator =
+            RootFieldSpecCreator::new(EngineComponent::Package(Name::BehaviorExecution.id()?));
         let behavior_map =
             BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;

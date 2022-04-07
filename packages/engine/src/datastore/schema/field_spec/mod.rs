@@ -1,11 +1,8 @@
 use std::cmp::Ordering;
 
-use stateful::{
-    field::{FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType},
-    Result,
-};
+use stateful::field::{FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType};
 
-use crate::simulation::package::name::PackageName;
+use crate::simulation::package::id::PackageId;
 
 pub mod built_in;
 
@@ -15,17 +12,14 @@ pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum EngineComponent {
     Engine,
-    Package(PackageName),
+    Package(PackageId),
 }
 
 impl FieldSource for EngineComponent {
-    fn unique_id(&self) -> Result<usize> {
+    fn unique_id(&self) -> usize {
         match self {
-            EngineComponent::Engine => Ok(0),
-            EngineComponent::Package(package_name) => Ok(package_name
-                .get_id()
-                .map_err(|err| stateful::Error::from(err.to_string()))?
-                .as_usize()),
+            EngineComponent::Engine => 0,
+            EngineComponent::Package(package_id) => package_id.as_usize(),
         }
     }
 
@@ -82,7 +76,7 @@ pub mod tests {
     use stateful::{
         agent::AgentStateField,
         field::{FieldScope, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
-        Error,
+        Error, Result,
     };
 
     use super::*;
