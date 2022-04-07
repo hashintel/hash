@@ -65,6 +65,13 @@ export const typography: ThemeOptions["typography"] = {
     color: customColors.gray[80],
     textTransform: "uppercase",
   },
+  hashMediumCaps: {
+    fontWeight: 600,
+    fontSize: "var(--step--2)",
+    lineHeight: 1.4,
+    color: customColors.gray[70],
+    textTransform: "uppercase",
+  },
   hashFooterHeading: {
     fontSize: "var(--step--1)",
     fontWeight: 600,
