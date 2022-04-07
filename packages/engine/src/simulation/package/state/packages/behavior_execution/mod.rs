@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::field::{RootFieldSpec, RootFieldSpecCreator};
 
 use self::{
     config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
@@ -7,7 +8,7 @@ use self::{
 use crate::{
     datastore::{
         batch::AgentBatch,
-        schema::{accessor::GetFieldSpec, FieldSource},
+        schema::EngineComponent,
         table::{
             context::Context, pool::proxy::PoolWriteProxy, proxy::StateWriteProxy,
             task_shared_store::TaskSharedStoreBuilder,
@@ -25,8 +26,8 @@ use crate::{
                 },
                 Arc, DatastoreResult, Error, ExperimentConfig, FieldSpecMapAccessor,
                 GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals, IntoArrowChange, Name,
-                Package, PackageComms, PackageCreator, Result, RootFieldSpec, RootFieldSpecCreator,
-                SimRunConfig, Span, State, StateColumn, StateTask,
+                Package, PackageComms, PackageCreator, Result, SimRunConfig, Span, State,
+                StateColumn, StateTask,
             },
         },
         task::{active::ActiveTask, Task},
@@ -80,7 +81,7 @@ impl GetWorkerExpStartMsg for Creator {
 impl PackageCreator for Creator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         // TODO: Packages shouldn't have to set the source
-        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(
+        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Package(
             PackageName::State(Name::BehaviorExecution),
         ));
         let behavior_map =
@@ -97,12 +98,12 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         comms: PackageComms,
-        accessor: FieldSpecMapAccessor,
+        accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn Package>> {
-        let behavior_ids_col_data_types = fields::id_column_data_types()?;
+        let behavior_ids_col_data_types = fields::id_column_data_types();
         let behavior_ids_col = accessor
             .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
 
         let behavior_ids_col_index = config
             .sim
@@ -113,7 +114,7 @@ impl PackageCreator for Creator {
 
         let behavior_index_col = accessor
             .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
         let behavior_index_col_index = config
             .sim
             .store
@@ -134,8 +135,8 @@ impl PackageCreator for Creator {
         &self,
         config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         fields::get_state_field_specs(config, field_spec_creator)
     }
 }

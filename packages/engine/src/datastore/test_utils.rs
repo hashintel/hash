@@ -2,6 +2,10 @@ use std::sync::Arc;
 
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
+use stateful::field::{
+    FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
+    RootFieldSpecCreator,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -11,30 +15,27 @@ use crate::{
     },
     datastore::{
         error::Error,
-        schema::{
-            state::AgentSchema, FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType,
-            FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
-        },
+        schema::{last_state_index_key, state::AgentSchema, EngineComponent},
     },
     hash_types::state::{Agent, AgentStateField},
     proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
-fn test_field_specs() -> FieldSpecMap {
+fn test_field_specs() -> FieldSpecMap<EngineComponent> {
     let mut map = FieldSpecMap::default();
-    map.add(RootFieldSpec {
-        inner: FieldSpec::last_state_index_key(),
-        source: FieldSource::Engine,
+    map.try_extend([RootFieldSpec {
+        inner: last_state_index_key(),
+        source: EngineComponent::Engine,
         scope: FieldScope::Hidden,
-    })
+    }])
     .unwrap();
-    map.add(RootFieldSpec {
+    map.try_extend([RootFieldSpec {
         inner: FieldSpec {
             name: "fixed_of_variable".to_string(),
             field_type: FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
-                    kind: Box::new(FieldType::new(
+                    field_type: Box::new(FieldType::new(
                         FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
                             FieldTypeVariant::Number,
                             false,
@@ -47,19 +48,19 @@ fn test_field_specs() -> FieldSpecMap {
             ),
         },
         scope: FieldScope::Agent,
-        source: FieldSource::Engine,
-    })
+        source: EngineComponent::Engine,
+    }])
     .unwrap();
-    map.add(RootFieldSpec {
+    map.try_extend([RootFieldSpec {
         inner: FieldSpec {
             name: "seed".to_string(),
             field_type: FieldType::new(FieldTypeVariant::Number, false),
         },
         scope: FieldScope::Agent,
-        source: FieldSource::Engine,
-    })
+        source: EngineComponent::Engine,
+    }])
     .unwrap();
-    map.add(RootFieldSpec {
+    map.try_extend([RootFieldSpec {
         inner: FieldSpec {
             name: "complex".to_string(),
             field_type: FieldType::new(
@@ -68,7 +69,10 @@ fn test_field_specs() -> FieldSpecMap {
                         name: "position".to_string(),
                         field_type: FieldType::new(
                             FieldTypeVariant::FixedLengthArray {
-                                kind: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
+                                field_type: Box::new(FieldType::new(
+                                    FieldTypeVariant::Number,
+                                    false,
+                                )),
                                 len: 2,
                             },
                             false,
@@ -79,7 +83,7 @@ fn test_field_specs() -> FieldSpecMap {
                         field_type: FieldType::new(
                             FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
                                 FieldTypeVariant::FixedLengthArray {
-                                    kind: Box::new(FieldType::new(
+                                    field_type: Box::new(FieldType::new(
                                         FieldTypeVariant::Struct(vec![
                                             FieldSpec {
                                                 name: "bar".to_string(),
@@ -104,7 +108,7 @@ fn test_field_specs() -> FieldSpecMap {
                                                 name: "qux".to_string(),
                                                 field_type: FieldType::new(
                                                     FieldTypeVariant::FixedLengthArray {
-                                                        kind: Box::new(FieldType::new(
+                                                        field_type: Box::new(FieldType::new(
                                                             FieldTypeVariant::Number,
                                                             false,
                                                         )),
@@ -117,7 +121,7 @@ fn test_field_specs() -> FieldSpecMap {
                                                 name: "quux".to_string(),
                                                 field_type: FieldType::new(
                                                     FieldTypeVariant::FixedLengthArray {
-                                                        kind: Box::new(FieldType::new(
+                                                        field_type: Box::new(FieldType::new(
                                                             FieldTypeVariant::String,
                                                             false,
                                                         )),
@@ -141,8 +145,8 @@ fn test_field_specs() -> FieldSpecMap {
             ),
         },
         scope: FieldScope::Agent,
-        source: FieldSource::Engine,
-    })
+        source: EngineComponent::Engine,
+    }])
     .unwrap();
     map
 }
@@ -295,22 +299,22 @@ pub fn gen_schema_and_test_agents(
     num_agents: usize,
     seed: u64,
 ) -> Result<(Arc<AgentSchema>, Vec<Agent>), Error> {
-    let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+    let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
     let mut field_spec_map = FieldSpecMap::empty();
-    field_spec_map.add(field_spec_creator.create(
+    field_spec_map.try_extend([field_spec_creator.create(
         "age".to_string(),
         FieldType {
             variant: FieldTypeVariant::Number,
             nullable: false,
         },
         FieldScope::Agent,
-    ))?;
+    )])?;
     field_spec_map
-        .add_multiple(get_base_agent_fields().map_err(|err| {
+        .try_extend(get_base_agent_fields().map_err(|err| {
             Error::from(format!("Failed to add base agent field specs: {err}"))
         })?)?;
 
-    field_spec_map.union(test_field_specs())?;
+    field_spec_map.try_extend(test_field_specs().drain_field_specs())?;
 
     let schema = Arc::new(AgentSchema::new(field_spec_map)?);
 
