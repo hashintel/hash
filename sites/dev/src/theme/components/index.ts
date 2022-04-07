@@ -1,4 +1,5 @@
 import { ThemeOptions } from "@mui/material";
+import { MuiAvatarThemeOptions } from "./dataDisplay/MuiAvatarThemeOptions";
 
 import { MuiFormControlThemeOptions } from "./inputs/MuiFormControlThemeOptions";
 import { MuiInputBaseThemeOptions } from "./inputs/MuiInputBaseThemeOptions";
@@ -17,7 +18,7 @@ import { MuiLinkThemeOptions } from "./navigation/MuiLinkThemeOptions";
 import { MuiCssBaselineThemeOptions } from "./utils/MuiCssBaselineThemeOptions";
 
 export const components: ThemeOptions["components"] = {
-  /** ===== INPUTS ==== */
+  MuiAvatar: MuiAvatarThemeOptions,
   MuiButton: MuiButtonThemeOptions,
   MuiTextField: MuiTextFieldThemeOptions,
   MuiFormControl: MuiFormControlThemeOptions,
