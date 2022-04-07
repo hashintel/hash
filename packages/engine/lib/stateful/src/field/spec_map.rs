@@ -17,10 +17,15 @@ use crate::{
     Error, Result,
 };
 
-/// A mapping to [`RootFieldSpec`]s identified by a unique [`RootFieldKey`].
+/// A mapping to [`RootFieldSpec`]s identified by unique [`RootFieldKey`]s.
 ///
-/// Each [`RootFieldKey`] corresponds to one Arrow data columns mapped to the specification of the
+/// Each [`RootFieldKey`] corresponds to an Arrow data column defined by the specification of the
 /// mapped [`RootFieldSpec`].
+///
+/// A `FieldSpecMap` is used to directly generate an Arrow [`Schema`] by calling
+/// [`create_arrow_schema()`].
+///
+/// [`create_arrow_schema()`]: Self::create_arrow_schema
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct FieldSpecMap<S> {
     field_specs: HashMap<RootFieldKey, RootFieldSpec<S>>,
