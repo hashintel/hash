@@ -1,7 +1,10 @@
 use core::fmt;
-use std::collections::{
-    hash_map::{Iter, Values},
-    HashMap,
+use std::{
+    cmp::Ordering,
+    collections::{
+        hash_map::{Iter, Values},
+        HashMap,
+    },
 };
 
 use arrow::datatypes::{Field, Schema};
@@ -86,14 +89,37 @@ impl<S: FieldSource + Clone> FieldSpecMap<S> {
             if existing_field.scope == FieldScope::Agent
                 && new_field.scope == FieldScope::Agent
                 && existing_field.inner.field_type == new_field.inner.field_type
-                && existing_field.source > new_field.source
             {
-                tracing::warn!(
-                    "Key clash when a package attempted to insert a new agent-scoped field with \
-                     key: {field_key:?}, the existing field was created by a source with a higher \
-                     precedence, the new field will be ignored",
-                );
-                return Ok(());
+                match existing_field.source.partial_cmp(&new_field.source) {
+                    Some(Ordering::Greater) => {
+                        tracing::warn!(
+                            "Key clash when a package attempted to insert a new agent-scoped \
+                             field with key: {field_key:?}, the existing field was created by a \
+                             source with a higher precedence, the new field will be ignored",
+                        );
+                        return Ok(());
+                    }
+                    Some(Ordering::Less) => {
+                        tracing::warn!(
+                            "Key clash when a package attempted to insert a new agent-scoped \
+                             field with key: {field_key:?}, the existing field was created by a \
+                             source with a lower precedence, the existing field will be \
+                             overwritten",
+                        );
+                        self.field_specs.insert(field_key, new_field);
+                        return Ok(());
+                    }
+                    Some(Ordering::Equal) => {
+                        unreachable!("This is expected to be matched before for full equality")
+                    }
+                    None => {
+                        tracing::error!(
+                            "Key clash when a package attempted to insert a new agent-scoped \
+                             field with key: {field_key:?}, the existing field was created by a \
+                             source with equal precedence",
+                        );
+                    }
+                }
             }
 
             Err(Error::FieldKeyClash(
