@@ -11,7 +11,7 @@ use crate::{
         continuation::{arrow_continuation, buffer_without_continuation, CONTINUATION},
         markers::{Buffer, Markers, Val},
         ptr::MemoryPtr,
-        BufferChange, Memory,
+        BufferChange, Segment,
     },
 };
 
@@ -136,7 +136,7 @@ impl<'a> Visitor<'a> {
 pub(in crate::shared_memory) struct VisitorMut<'mem> {
     ptr: MemoryPtr,
     markers: &'mem mut Markers,
-    memory: &'mem mut Memory,
+    memory: &'mem mut Segment,
 }
 
 impl<'mem: 'v, 'v> Visit<'mem, 'v> for VisitorMut<'mem> {
@@ -150,7 +150,7 @@ impl<'mem: 'v, 'v> Visit<'mem, 'v> for VisitorMut<'mem> {
 }
 
 impl<'mem: 'v, 'v> VisitorMut<'mem> {
-    pub fn new(ptr: MemoryPtr, memory: &'mem mut Memory) -> VisitorMut<'mem> {
+    pub fn new(ptr: MemoryPtr, memory: &'mem mut Segment) -> VisitorMut<'mem> {
         let markers = Markers::new_mut(&ptr);
         VisitorMut {
             ptr,

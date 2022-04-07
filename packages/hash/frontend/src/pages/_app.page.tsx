@@ -8,29 +8,32 @@ import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloC
 import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
 import { configureScope } from "@sentry/nextjs";
-import { AppProps } from "next/app";
+import { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "../shared/ui";
-import { PageLayout } from "../components/layout/PageLayout/PageLayout";
+import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
-import { SidebarContextProvider } from "../components/layout/SidebarContext";
-import { CurrentWorkspaceContextProvider } from "../contexts/CurrentWorkspaceContext";
+import {
+  RouteAccountInfoProvider,
+  RoutePageInfoProvider,
+} from "../shared/routing";
 
 export const apolloClient = createApolloClient();
 
 const clientSideEmotionCache = createEmotionCache();
 
-type CustomAppProps = {
+type AppProps = {
   emotionCache?: EmotionCache;
-} & AppProps;
+  Component: NextPageWithLayout;
+} & NextAppProps;
 
-const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
+const App: React.VoidFunctionComponent<AppProps> = ({
   Component,
   pageProps,
   emotionCache = clientSideEmotionCache,
@@ -58,19 +61,27 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
     }
   }, [user, router]);
 
+  // App UI often depends on [account-slug] and other query params. However,
+  // router.query is empty during server-side rendering for pages that don’t use
+  // getServerSideProps. By showing app skeleton on the server, we avoid UI
+  // mismatches during rehydration and improve type-safety of param extraction.
+  if (!router.isReady) {
+    return null; // Replace with app skeleton
+  }
+
+  const getLayout = Component.getLayout || getPlainLayout;
+
   return (
     <ApolloProvider client={apolloClient}>
       <CacheProvider value={emotionCache}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <ModalProvider>
-            <CurrentWorkspaceContextProvider>
-              <SidebarContextProvider>
-                <PageLayout>
-                  <Component {...pageProps} />
-                </PageLayout>
-              </SidebarContextProvider>
-            </CurrentWorkspaceContextProvider>
+            <RouteAccountInfoProvider>
+              <RoutePageInfoProvider>
+                {getLayout(<Component {...pageProps} />)}
+              </RoutePageInfoProvider>
+            </RouteAccountInfoProvider>
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>
@@ -78,4 +89,4 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
   );
 };
 
-export default withTwindApp(twindConfig, MyApp);
+export default withTwindApp(twindConfig, App);

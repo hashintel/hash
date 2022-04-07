@@ -14,22 +14,18 @@ export interface BlockSuggesterProps {
   sx?: SxProps<Theme>;
 }
 
-// @todo remove this when API returns actual icon URL
 export const getVariantIcon = (option: {
   variant: BlockVariant;
   meta: RemoteBlockMetadata;
 }): string | undefined => {
-  if (option.variant.icon?.startsWith("/")) {
-    return `https://blockprotocol.org${option.variant.icon}`;
+  const iconPath = option.variant.icon;
+
+  const regex = /^(?:[a-z]+:)?\/\//i;
+  if (!iconPath || regex.test(iconPath)) {
+    return iconPath;
   }
 
-  if (option.variant.icon?.startsWith("public/")) {
-    return `https://blockprotocol.org${
-      option.meta.icon!.split("public/")[0]
-    }public/${option.variant.icon.split("public/")[1]}`;
-  }
-
-  return option.variant.icon;
+  return `${option.meta.componentId}/${iconPath.replace(/^\//, "")}`;
 };
 
 /**

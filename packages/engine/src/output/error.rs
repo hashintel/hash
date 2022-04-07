@@ -6,6 +6,9 @@ pub enum Error {
     #[error("Output error: {0}")]
     Unique(String),
 
+    #[error("Memory error: {0}")]
+    Memory(#[from] memory::Error),
+
     #[error("Deserialization error: {0}")]
     FromSerde(#[from] serde_json::Error),
 

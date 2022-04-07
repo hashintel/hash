@@ -152,7 +152,6 @@ impl Context {
                         .remove(remove_index)
                         .batch
                         .segment()
-                        .memory()
                         .id()
                         .to_string()
                 })
