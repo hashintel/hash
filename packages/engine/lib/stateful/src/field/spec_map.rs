@@ -51,7 +51,6 @@ impl<S> FieldSpecMap<S> {
         self.field_specs.values()
     }
 
-    #[cfg(test)]
     pub fn drain_field_specs(&mut self) -> impl Iterator<Item = RootFieldSpec<S>> + '_ {
         self.field_specs.drain().map(|(_, field_spec)| field_spec)
     }
