@@ -150,7 +150,7 @@ fn inbound_to_nng(
             let msg = flatbuffers_gen::task_msg_generated::TaskMsg::create(
                 fbb,
                 &flatbuffers_gen::task_msg_generated::TaskMsgArgs {
-                    package_sid: msg.package_id.as_usize() as u64,
+                    package_sid: msg.package_id.as_usize().get() as u64,
                     task_id: Some(&task_id),
                     target: MessageTarget::Python.into(),
                     group_index: group_index.as_ref(),

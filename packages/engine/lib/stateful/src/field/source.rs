@@ -1,14 +1,14 @@
 use core::fmt;
-use std::cmp::Ordering;
+use std::{cmp::Ordering, num::NonZeroUsize};
 
 use serde::Serialize;
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize)]
-pub struct PackageId(usize);
+pub struct PackageId(NonZeroUsize);
 
 impl PackageId {
     #[inline]
-    pub fn as_usize(&self) -> usize {
+    pub fn as_usize(&self) -> NonZeroUsize {
         self.0
     }
 }
@@ -21,7 +21,7 @@ impl fmt::Display for PackageId {
 
 impl From<usize> for PackageId {
     fn from(id: usize) -> Self {
-        Self(id)
+        Self(NonZeroUsize::new(id).expect("Package ids with id `0` are reserved"))
     }
 }
 
@@ -37,7 +37,7 @@ impl FieldSource {
     pub fn unique_id(&self) -> usize {
         match self {
             FieldSource::Engine => 0,
-            FieldSource::Package(package_id) => package_id.as_usize(),
+            FieldSource::Package(package_id) => package_id.as_usize().get(),
         }
     }
 

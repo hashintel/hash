@@ -416,7 +416,7 @@ fn sim_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, sim_id: SimulationShortId) 
 }
 
 fn pkg_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, pkg_id: PackageId) -> Value<'s> {
-    v8::Number::new(scope, pkg_id.as_usize() as f64).into()
+    v8::Number::new(scope, pkg_id.as_usize().get() as f64).into()
 }
 
 fn new_js_array_from_usizes<'s>(
