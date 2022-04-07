@@ -26,6 +26,7 @@ use memory::{
     arrow::{ArrowBatch, ColumnChange},
     shared_memory::{arrow_continuation, Metaversion, Segment},
 };
+use stateful::field::PackageId;
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
@@ -46,10 +47,7 @@ use crate::{
     },
     language::Language,
     proto::SimulationShortId,
-    simulation::{
-        package::{id::PackageId, PackageType},
-        task::msg::TaskMessage,
-    },
+    simulation::{package::PackageType, task::msg::TaskMessage},
     types::TaskId,
     worker::{
         runner::comms::{

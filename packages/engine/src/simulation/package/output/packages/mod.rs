@@ -9,6 +9,7 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use stateful::field::PackageId;
 
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use crate::{
@@ -19,10 +20,8 @@ use crate::{
             TaskSharedStore, WorkerHandler, WorkerPoolHandler,
         },
         package::{
-            id::{PackageId, PackageIdGenerator},
-            name::PackageName,
-            output::PackageCreator,
-            PackageMetadata, PackageType,
+            id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
+            PackageType,
         },
         Error, Result,
     },

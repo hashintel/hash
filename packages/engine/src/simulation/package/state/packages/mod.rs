@@ -9,17 +9,14 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use stateful::field::PackageId;
 
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use crate::{
     config::ExperimentConfig,
     simulation::{
         enum_dispatch::{enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore},
-        package::{
-            id::{PackageId, PackageIdGenerator},
-            state::PackageCreator,
-            PackageMetadata, PackageType,
-        },
+        package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
         Error, Result,
     },
 };

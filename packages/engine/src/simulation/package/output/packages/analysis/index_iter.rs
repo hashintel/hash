@@ -2,15 +2,12 @@ use std::cmp::Ordering;
 
 use arrow::datatypes::DataType;
 use float_cmp::approx_eq;
-use stateful::field::{FieldSpecMapAccessor, FieldTypeVariant};
+use stateful::field::{EngineComponent, FieldSpecMapAccessor, FieldTypeVariant};
 
 use crate::{
-    datastore::{
-        batch::iterators::agent::{
-            bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols,
-            str_iter,
-        },
-        schema::EngineComponent,
+    datastore::batch::iterators::agent::{
+        bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols,
+        str_iter,
     },
     simulation::package::output::packages::analysis::{
         analyzer::{

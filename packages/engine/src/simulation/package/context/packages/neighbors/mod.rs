@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
+use stateful::field::{
+    EngineComponent, FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator,
+};
 use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
@@ -10,7 +12,7 @@ use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig, TopologyConfig},
     datastore::{
         batch::{iterators, AgentBatch},
-        schema::{context::ContextSchema, EngineComponent},
+        schema::context::ContextSchema,
         table::{proxy::StateReadProxy, state::view::StateSnapshot},
     },
     simulation::{

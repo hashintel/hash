@@ -8,12 +8,11 @@ use async_trait::async_trait;
 pub use packages::{InitTask, InitTaskMessage, Name, PACKAGE_CREATORS};
 use stateful::{
     agent::Agent,
-    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    field::{EngineComponent, FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
 };
 
 use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
-    datastore::schema::EngineComponent,
     simulation::{
         comms::package::PackageComms,
         package::{

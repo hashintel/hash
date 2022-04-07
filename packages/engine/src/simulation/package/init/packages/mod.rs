@@ -10,6 +10,7 @@ use std::{
 use js_py::{js::JsInitTask, py::PyInitTask};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use stateful::field::PackageId;
 
 use crate::{
     config::ExperimentConfig,
@@ -18,11 +19,7 @@ use crate::{
             enum_dispatch, JsPyInitTaskMessage, RegisterWithoutTrait, StoreAccessVerify,
             TaskSharedStore,
         },
-        package::{
-            id::{PackageId, PackageIdGenerator},
-            init::PackageCreator,
-            PackageMetadata, PackageType,
-        },
+        package::{id::PackageIdGenerator, init::PackageCreator, PackageMetadata, PackageType},
         Error, Result,
     },
 };

@@ -28,7 +28,7 @@ pub use self::{
     field_type::{FieldType, FieldTypeVariant, PresetFieldType},
     key::RootFieldKey,
     scope::FieldScope,
-    source::FieldSource,
+    source::{EngineComponent, FieldSource, PackageId},
     spec::{FieldSpec, RootFieldSpec, RootFieldSpecCreator},
     spec_map::FieldSpecMap,
 };

@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use stateful::{
     agent::{Agent, AgentSchema, AgentStateField},
     field::{
-        FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
-        RootFieldSpecCreator,
+        EngineComponent, FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
+        RootFieldSpec, RootFieldSpecCreator,
     },
 };
 use uuid::Uuid;
@@ -16,10 +16,7 @@ use crate::{
         EngineConfig, ExperimentConfig, Globals, PackageConfig, PersistenceConfig, SimRunConfig,
         SimulationConfig, StoreConfig, WorkerPoolConfig,
     },
-    datastore::{
-        error::Error,
-        schema::{last_state_index_key, EngineComponent},
-    },
+    datastore::{error::Error, schema::last_state_index_key},
     proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };

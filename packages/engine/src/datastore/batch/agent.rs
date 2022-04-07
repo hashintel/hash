@@ -27,13 +27,12 @@ use memory::{
     },
     shared_memory::{BufferChange, MemoryId, Metaversion, Segment},
 };
-use stateful::agent::AgentSchema;
+use stateful::{agent::AgentSchema, field::EngineComponent};
 
 use crate::{
     datastore::{
         arrow::batch_conversion::IntoRecordBatch,
         error::{Error, Result},
-        schema::EngineComponent,
     },
     proto::ExperimentId,
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,

@@ -4,14 +4,16 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use memory::arrow::meta::ColumnDynamicMetadata;
-use stateful::field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
+use stateful::field::{
+    EngineComponent, FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator,
+};
 use tracing::Span;
 
 pub use self::packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
 use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::{
-        schema::{context::ContextSchema, EngineComponent},
+        schema::context::ContextSchema,
         table::{proxy::StateReadProxy, state::view::StateSnapshot},
         Result as DatastoreResult,
     },

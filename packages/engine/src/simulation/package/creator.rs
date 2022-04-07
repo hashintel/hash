@@ -3,20 +3,18 @@ use std::{collections::HashMap, sync::Arc};
 use stateful::{
     agent::AgentSchema,
     field::{
-        FieldScope, FieldSpecMap, FieldSpecMapAccessor, FieldType, RootFieldSpec,
-        RootFieldSpecCreator,
+        EngineComponent, FieldScope, FieldSpecMap, FieldSpecMapAccessor, FieldType, PackageId,
+        RootFieldSpec, RootFieldSpecCreator,
     },
 };
 
 use crate::{
     config::{ExperimentConfig, Globals, PackageConfig, SimRunConfig},
-    datastore::schema::{context::ContextSchema, last_state_index_key, EngineComponent},
+    datastore::schema::{context::ContextSchema, last_state_index_key},
     simulation::{
         comms::{package::PackageComms, Comms},
         package::{
-            context,
-            id::PackageId,
-            init,
+            context, init,
             name::PackageName,
             output,
             output::packages::OutputPackagesSimConfig,

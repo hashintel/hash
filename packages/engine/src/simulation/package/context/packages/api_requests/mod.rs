@@ -7,7 +7,7 @@ use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
-use stateful::field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
+use stateful::field::{EngineComponent, RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
 use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
@@ -16,7 +16,6 @@ use crate::{
     config::{ExperimentConfig, Globals},
     datastore::{
         batch::iterators,
-        schema::EngineComponent,
         table::pool::{message, BatchPool},
     },
     simulation::{

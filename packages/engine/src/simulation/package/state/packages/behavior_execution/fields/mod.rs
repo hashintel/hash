@@ -2,13 +2,13 @@ pub mod behavior;
 
 use arrow::datatypes::DataType;
 use stateful::field::{
-    FieldScope, FieldType, FieldTypeVariant, PresetFieldType, RootFieldSpec, RootFieldSpecCreator,
+    EngineComponent, FieldScope, FieldType, FieldTypeVariant, PresetFieldType, RootFieldSpec,
+    RootFieldSpecCreator,
 };
 
 use self::behavior::BehaviorMap;
 use crate::{
     config::ExperimentConfig,
-    datastore::schema::EngineComponent,
     simulation::{
         package::state::packages::behavior_execution::BEHAVIOR_INDEX_INNER_COUNT, Result,
     },

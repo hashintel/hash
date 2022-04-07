@@ -1,11 +1,11 @@
 use arrow::{datatypes::DataType, error::ArrowError};
+use stateful::field::PackageId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 use tracing::Span;
 
 use crate::{
     proto::SimulationShortId,
-    simulation::package::id::PackageId,
     worker::runner::comms::{
         inbound::InboundToRunnerMsgPayload,
         outbound::{OutboundFromRunnerMsg, PackageError, UserError},

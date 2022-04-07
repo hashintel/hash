@@ -1,8 +1,8 @@
 use stateful::field::{
-    FieldScope, FieldType, FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
+    EngineComponent, FieldScope, FieldType, FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
 };
 
-use crate::{datastore::schema::EngineComponent, simulation::Result};
+use crate::simulation::Result;
 
 pub(super) fn get_pos_corrected_field_spec(
     field_spec_creator: &RootFieldSpecCreator<EngineComponent>,

@@ -1,9 +1,8 @@
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::agent::Agent;
+use stateful::{agent::Agent, field::EngineComponent};
 
 use crate::{
-    datastore::schema::EngineComponent,
     proto::{ExperimentRunTrait, InitialStateName},
     simulation::{
         package::init::{

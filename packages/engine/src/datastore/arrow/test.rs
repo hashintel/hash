@@ -3,12 +3,13 @@ use std::collections::HashMap;
 use arrow::datatypes::{DataType, Field, Schema};
 use stateful::{
     agent::AgentStateField,
-    field::{FieldScope, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpecCreator},
+    field::{
+        EngineComponent, FieldScope, FieldSpecMap, FieldType, FieldTypeVariant,
+        RootFieldSpecCreator,
+    },
 };
 
-use crate::datastore::{
-    error::Result, schema::EngineComponent, test_utils::root_field_spec_from_agent_field,
-};
+use crate::datastore::{error::Result, test_utils::root_field_spec_from_agent_field};
 
 #[test]
 fn get_schema() -> Result<()> {

@@ -10,6 +10,7 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use stateful::field::PackageId;
 
 use crate::{
     config::ExperimentConfig,
@@ -18,11 +19,7 @@ use crate::{
             enum_dispatch, GetTaskArgs, GetTaskName, RegisterWithoutTrait, StoreAccessVerify,
             TaskDistributionConfig, TaskSharedStore, WorkerHandler, WorkerPoolHandler,
         },
-        package::{
-            context::PackageCreator,
-            id::{PackageId, PackageIdGenerator},
-            PackageMetadata, PackageType,
-        },
+        package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
         Error, Result,
     },
 };

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use arrow::datatypes::Schema as ArrowSchema;
-use stateful::field::FieldSpecMap;
+use stateful::field::{EngineComponent, FieldSpecMap};
 
-use crate::datastore::{error::Result, schema::EngineComponent};
+use crate::datastore::error::Result;
 
 pub struct ContextSchema {
     pub arrow: Arc<ArrowSchema>,

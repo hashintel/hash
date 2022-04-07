@@ -7,13 +7,12 @@ use memory::{
     arrow::meta::{self, Buffer, Node, NodeMapping},
     shared_memory::{padding, Segment},
 };
-use stateful::{agent::AgentSchema, message::MessageSchema};
+use stateful::{agent::AgentSchema, field::EngineComponent, message::MessageSchema};
 
 use crate::{
     datastore::{
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        schema::EngineComponent,
     },
     proto::ExperimentId,
 };

@@ -6,11 +6,10 @@ use std::{
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use stateful::agent::Agent;
+use stateful::{agent::Agent, field::EngineComponent};
 
 use crate::{
     config::ExperimentConfig,
-    datastore::schema::EngineComponent,
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         enum_dispatch::{enum_dispatch, RegisterWithoutTrait, TaskSharedStore},

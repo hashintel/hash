@@ -31,8 +31,9 @@ pub mod run;
 pub mod worker_init;
 
 use serde::Serialize;
+use stateful::field::PackageId;
 
-use crate::simulation::package::{deps::Dependencies, id::PackageId};
+use crate::simulation::package::deps::Dependencies;
 
 #[derive(Clone, Copy, Debug)]
 pub enum PackageType {

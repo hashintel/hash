@@ -10,7 +10,7 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterato
 use serde::{Deserialize, Serialize};
 use stateful::{
     agent::{Agent, AgentSchema},
-    field::RootFieldKey,
+    field::{EngineComponent, RootFieldKey},
     message::payload::OutboundRemoveAgentData as RemoveAgentPayload,
     proxy::PoolReadProxy,
 };
@@ -20,7 +20,6 @@ use crate::{
     datastore::{
         arrow::batch_conversion::IntoRecordBatch,
         batch::MessageBatch,
-        schema::EngineComponent,
         table::{pool::message, references::MessageMap, state::create_remove::ProcessedCommands},
         UUID_V4_LEN,
     },

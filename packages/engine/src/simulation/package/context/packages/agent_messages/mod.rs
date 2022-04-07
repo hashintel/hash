@@ -6,13 +6,13 @@ mod writer;
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
+use stateful::field::{EngineComponent, RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
 use tracing::Span;
 
 use self::collected::Messages;
 use crate::{
     config::ExperimentConfig,
-    datastore::{batch::iterators, schema::EngineComponent},
+    datastore::batch::iterators,
     simulation::{
         comms::package::PackageComms,
         package::context::{

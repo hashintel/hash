@@ -1,45 +1,8 @@
-use std::cmp::Ordering;
-
-use stateful::field::{FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType};
-
-use crate::simulation::package::id::PackageId;
+use stateful::field::{FieldSpec, FieldType, FieldTypeVariant, PresetFieldType};
 
 pub mod built_in;
 
 pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
-
-/// Defines the source from which a Field was specified, useful for resolving clashes
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum EngineComponent {
-    Engine,
-    Package(PackageId),
-}
-
-impl FieldSource for EngineComponent {
-    fn unique_id(&self) -> usize {
-        match self {
-            EngineComponent::Engine => 0,
-            EngineComponent::Package(package_id) => package_id.as_usize(),
-        }
-    }
-
-    fn can_guarantee_null(&self) -> bool {
-        *self == EngineComponent::Engine
-    }
-}
-
-impl PartialOrd for EngineComponent {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // TODO: We only do a partial ordering as we currently don't have a defined precedence of
-        //   packages. When `PartialOrd` for `PackageName` is implemented, derive it instead.
-        match (self, other) {
-            (Self::Engine, Self::Engine) => Some(Ordering::Equal),
-            (Self::Engine, Self::Package(_)) => Some(Ordering::Greater),
-            (Self::Package(_), Self::Engine) => Some(Ordering::Less),
-            (Self::Package(_), Self::Package(_)) => None,
-        }
-    }
-}
 
 /// This key is required for accessing neighbors' outboxes (new inboxes).
 /// Since the neighbor agent state is always the previous step state of the
@@ -75,7 +38,7 @@ pub fn last_state_index_key() -> FieldSpec {
 pub mod tests {
     use stateful::{
         agent::AgentStateField,
-        field::{FieldScope, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
+        field::{EngineComponent, FieldScope, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
         Error, Result,
     };
 

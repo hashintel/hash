@@ -3,15 +3,15 @@ use std::{collections::HashMap, convert::TryFrom};
 use stateful::{
     agent::AgentStateField,
     field::{
-        FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
-        RootFieldSpecCreator,
+        EngineComponent, FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
+        RootFieldSpec, RootFieldSpecCreator,
     },
 };
 
 // use crate::worker::runner::rust;
 use crate::{
     config::ExperimentConfig,
-    datastore::{schema::EngineComponent, Error, Result},
+    datastore::{Error, Result},
     experiment::SharedBehavior,
     proto::ExperimentRunTrait,
 };

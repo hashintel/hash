@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
-    field::{RootFieldSpec, RootFieldSpecCreator},
+    field::{EngineComponent, RootFieldSpec, RootFieldSpecCreator},
     proxy::PoolWriteProxy,
 };
 
@@ -11,7 +11,6 @@ use self::{
 use crate::{
     datastore::{
         batch::AgentBatch,
-        schema::EngineComponent,
         table::{
             context::Context, pool::agent, proxy::StateWriteProxy,
             task_shared_store::TaskSharedStoreBuilder,

@@ -1,11 +1,9 @@
 use stateful::field::{
-    FieldScope, FieldSpec, FieldType, FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
+    EngineComponent, FieldScope, FieldSpec, FieldType, FieldTypeVariant, RootFieldSpec,
+    RootFieldSpecCreator,
 };
 
-use crate::{
-    datastore::schema::EngineComponent,
-    simulation::package::context::packages::api_requests::Result,
-};
+use crate::simulation::package::context::packages::api_requests::Result;
 
 pub(super) const FROM_FIELD_NAME: &str = "from";
 pub(super) const TYPE_FIELD_NAME: &str = "type";
