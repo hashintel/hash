@@ -55,8 +55,10 @@ impl fmt::Debug for FieldSpec {
     }
 }
 
-/// A single specification of a root field, for instance in the case of a struct field it's the top
-/// level struct field and the children are all [`FieldSpec`].
+/// A single specification of a root field.
+///
+/// For instance in the case of a struct field it's the top level struct field and the children
+/// fields are defined by nested [`FieldSpec`]s.
 ///
 /// [`RootFieldSpec`] associates a [`FieldSpec`] with a [`FieldScope`] and a [`FieldSource`]. It's
 /// uniquely identifiable by a [`RootFieldKey`].

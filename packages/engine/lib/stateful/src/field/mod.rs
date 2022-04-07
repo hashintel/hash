@@ -1,11 +1,12 @@
 //! Provides datastructures to organize field specifications and data types.
 //!
-//! Each supported data type is represented by a [`FieldType`]. It's associated with a name in
-//! [`FieldSpec`]. Depending on the underlying [`FieldTypeVariant`], types may be nested.
+//! Fields are defined by their [`FieldSpec`], which encapsulates their name and [`FieldType`].
+//! They can be nested depending on their [`FieldTypeVariant`]
 //!
-//! In order to store a [`FieldSpec`] into memory, a unique name is required, which is encapsulated
-//! in [`RootFieldKey`]. This is mapped to a [`RootFieldSpec`] inside a [`FieldSpecMap`]. A
-//! [`FieldSpecMap`] can be converted to an Arrow [`Schema`] to be stored in memory.
+//! Top-level [`FieldSpec`]s (i.e. non-nested ones) have additional specification, defined in
+//! [RootFieldSpec]. These have associated unique identifiers, [`RootFieldKey`]s, which are mapped
+//! against their [`RootFieldSpec`] in a [`FieldSpecMap`]. The [`FieldSpecMap`] is then used to
+//! generate an Arrow [`Schema`] to outline how the data is stored in memory.
 //!
 //! For more information on these types please the the corresponding documentation.
 //!

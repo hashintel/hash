@@ -5,8 +5,8 @@ use crate::{
     Error, Result,
 };
 
-/// Contains the name of a [`RootFieldSpec`] and encodes the [`FieldScope`] and a [`FieldSource`] to
-/// uniquely identify it.
+/// A unique identifier for a [`RootFieldSpec`], encoding its name, [`FieldScope`], and
+/// [`FieldSource`].
 ///
 /// [`RootFieldSpec`]: crate::field::RootFieldSpec
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
