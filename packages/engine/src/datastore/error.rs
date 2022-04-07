@@ -1,10 +1,10 @@
 use std::fmt;
 
 use arrow::{datatypes::DataType, error::ArrowError};
-use stateful::field::RootFieldKey;
+use stateful::{agent::AgentStateField, field::RootFieldKey};
 use thiserror::Error as ThisError;
 
-use crate::hash_types::{self, state::AgentStateField};
+use crate::hash_types::{self};
 
 #[derive(Debug)]
 pub enum SupportedType {
@@ -37,12 +37,6 @@ pub enum Error {
 
     #[error("Stateful error: {0}")]
     Stateful(#[from] stateful::Error),
-
-    #[error("Couldn't acquire shared lock on object")]
-    ProxySharedLock,
-
-    #[error("Couldn't acquire exclusive lock on object")]
-    ProxyExclusiveLock,
 
     #[error("Arrow Error: {0}")]
     Arrow(#[from] ArrowError),

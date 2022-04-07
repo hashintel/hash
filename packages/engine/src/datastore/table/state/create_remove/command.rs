@@ -1,11 +1,12 @@
 use std::{collections::HashSet, sync::Arc};
 
 use arrow::record_batch::RecordBatch;
+use stateful::agent::AgentSchema;
 
 use crate::{
     datastore::{
         error::{Error, Result},
-        schema::state::AgentSchema,
+        schema::EngineComponent,
         UUID_V4_LEN,
     },
     simulation::command::CreateRemoveCommands,
@@ -20,7 +21,7 @@ pub struct ProcessedCommands {
 impl ProcessedCommands {
     pub fn new(
         commands: CreateRemoveCommands,
-        schema: &Arc<AgentSchema>,
+        schema: &Arc<AgentSchema<EngineComponent>>,
     ) -> Result<ProcessedCommands> {
         commands
             .try_into_processed_commands(schema)

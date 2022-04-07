@@ -2,12 +2,11 @@ mod config;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::FieldScope;
+use stateful::{agent::Agent, field::FieldScope};
 
 pub use self::config::JsonStateOutputConfig;
 use crate::{
     datastore::{arrow::batch_conversion::IntoAgents, schema::EngineComponent},
-    hash_types::Agent,
     simulation::package::{
         name::PackageName,
         output,

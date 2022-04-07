@@ -3,6 +3,8 @@ pub mod view;
 
 use std::sync::Arc;
 
+use stateful::agent::Agent;
+
 use self::create_remove::CreateRemovePlanner;
 use crate::{
     config::SimRunConfig,
@@ -16,7 +18,6 @@ use crate::{
             state::view::StatePools,
         },
     },
-    hash_types::Agent as AgentState,
     proto::ExperimentRunTrait,
     simulation::command::CreateRemoveCommands,
 };
@@ -50,7 +51,7 @@ impl State {
     /// Effectively converts the `agent_state_groups` from Array-of-Structs into a
     /// Struct-of-Arrays.
     pub fn from_agent_groups(
-        agent_state_groups: &[&[AgentState]],
+        agent_state_groups: &[&[Agent]],
         num_agents: usize,
         sim_config: Arc<SimRunConfig>,
     ) -> Result<Self> {
@@ -95,7 +96,7 @@ impl State {
     /// the agent and message batches. The agent batches are created by splitting up the
     /// `agent_states` into groups based on the number of workers specified in `sim_config`.
     pub fn from_agent_states(
-        agent_states: &[AgentState],
+        agent_states: &[Agent],
         sim_config: Arc<SimRunConfig>,
     ) -> Result<State> {
         let num_workers = sim_config.sim.engine.num_workers;

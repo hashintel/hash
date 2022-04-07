@@ -19,16 +19,15 @@ use memory::{
     },
     shared_memory::{MemoryId, Metaversion, Segment},
 };
+use stateful::{agent::AgentStateField, message::MessageSchema};
 
 use crate::{
     datastore::{
         arrow::{batch_conversion::IntoRecordBatch, message},
         batch::{iterators::column_with_name, AgentBatch},
         error::{Error, Result},
-        schema::state::MessageSchema,
         UUID_V4_LEN,
     },
-    hash_types::state::AgentStateField,
     proto::ExperimentId,
 };
 
@@ -267,20 +266,16 @@ pub mod record_batch {
         record_batch::RecordBatch,
     };
     use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+    use stateful::message::{Outbound, MESSAGE_COLUMN_NAME};
 
-    use crate::{
-        datastore::{
-            arrow::message::{
-                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
-            },
-            batch::message::MessageLoader,
-            error::{Error, Result},
-            table::references::AgentMessageReference,
-        },
-        hash_types::message::Outbound as OutboundMessage,
+    use crate::datastore::{
+        arrow::message::{self, get_column_from_list_array, MESSAGE_COLUMN_INDEX},
+        batch::message::MessageLoader,
+        error::{Error, Result},
+        table::references::AgentMessageReference,
     };
 
-    pub fn get_native_messages(record_batch: &RecordBatch) -> Result<Vec<Vec<OutboundMessage>>> {
+    pub fn get_native_messages(record_batch: &RecordBatch) -> Result<Vec<Vec<Outbound>>> {
         let reference = record_batch
             .column(MESSAGE_COLUMN_INDEX)
             .as_any()

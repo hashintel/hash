@@ -2,9 +2,12 @@ use std::sync::Arc;
 
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use stateful::field::{
-    FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
-    RootFieldSpecCreator,
+use stateful::{
+    agent::{Agent, AgentSchema, AgentStateField},
+    field::{
+        FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
+        RootFieldSpecCreator,
+    },
 };
 use uuid::Uuid;
 
@@ -15,9 +18,8 @@ use crate::{
     },
     datastore::{
         error::Error,
-        schema::{last_state_index_key, state::AgentSchema, EngineComponent},
+        schema::{last_state_index_key, EngineComponent},
     },
-    hash_types::state::{Agent, AgentStateField},
     proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
@@ -149,6 +151,19 @@ fn test_field_specs() -> FieldSpecMap<EngineComponent> {
     }])
     .unwrap();
     map
+}
+
+pub fn root_field_spec_from_agent_field(
+    field: AgentStateField,
+) -> Result<RootFieldSpec<EngineComponent>, Error> {
+    Ok(RootFieldSpec {
+        inner: FieldSpec {
+            name: field.name().into(),
+            field_type: field.try_into()?,
+        },
+        scope: FieldScope::Agent,
+        source: EngineComponent::Engine,
+    })
 }
 
 #[derive(Serialize, Deserialize)]
@@ -298,7 +313,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
 pub fn gen_schema_and_test_agents(
     num_agents: usize,
     seed: u64,
-) -> Result<(Arc<AgentSchema>, Vec<Agent>), Error> {
+) -> Result<(Arc<AgentSchema<EngineComponent>>, Vec<Agent>), Error> {
     let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
     let mut field_spec_map = FieldSpecMap::empty();
     field_spec_map.try_extend([field_spec_creator.create(

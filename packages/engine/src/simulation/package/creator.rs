@@ -1,14 +1,16 @@
 use std::{collections::HashMap, sync::Arc};
 
-use stateful::field::{
-    FieldScope, FieldSpecMap, FieldSpecMapAccessor, FieldType, RootFieldSpec, RootFieldSpecCreator,
+use stateful::{
+    agent::AgentSchema,
+    field::{
+        FieldScope, FieldSpecMap, FieldSpecMapAccessor, FieldType, RootFieldSpec,
+        RootFieldSpecCreator,
+    },
 };
 
 use crate::{
     config::{ExperimentConfig, Globals, PackageConfig, SimRunConfig},
-    datastore::schema::{
-        context::ContextSchema, last_state_index_key, state::AgentSchema, EngineComponent,
-    },
+    datastore::schema::{context::ContextSchema, last_state_index_key, EngineComponent},
     simulation::{
         comms::{package::PackageComms, Comms},
         package::{
@@ -296,7 +298,7 @@ impl PackageCreators {
         &self,
         exp_config: &ExperimentConfig,
         globals: &Globals,
-    ) -> Result<AgentSchema> {
+    ) -> Result<AgentSchema<EngineComponent>> {
         let mut field_spec_map = FieldSpecMap::empty();
 
         // TODO: should we use enum_dispatch here to remove some duplication
@@ -424,11 +426,11 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec<EngineComponent>>> {
     let mut field_specs = Vec::with_capacity(13);
     let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
 
-    use crate::hash_types::state::AgentStateField::{
-        AgentId, AgentName, Color, Direction, Height, Hidden, Position, Scale, Shape, Velocity, RGB,
+    use stateful::agent::AgentStateField::{
+        AgentId, AgentName, Color, Direction, Height, Hidden, Position, Rgb, Scale, Shape, Velocity,
     };
     let used = [
-        AgentId, AgentName, Position, Direction, Velocity, Shape, Height, Scale, Color, RGB, Hidden,
+        AgentId, AgentName, Position, Direction, Velocity, Shape, Height, Scale, Color, Rgb, Hidden,
     ];
     for field in used {
         let field_type: FieldType = field.clone().try_into()?;
