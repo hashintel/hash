@@ -33,7 +33,10 @@ pub enum FieldSource {
 }
 
 impl FieldSource {
-    /// A unique static identifier of the field source, used in building Keys for fields.
+    /// A unique static identifier of the field source, used in building [`RootFieldKey`]s for
+    /// fields.
+    ///
+    /// [`RootFieldKey`]: crate::field::RootFieldKey
     pub fn unique_id(&self) -> usize {
         match self {
             FieldSource::Engine => 0,
