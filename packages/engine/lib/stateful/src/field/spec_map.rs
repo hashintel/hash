@@ -191,9 +191,6 @@ impl<S: FieldSource + Clone> FieldSpecMap<S> {
             partitioned_fields
                 .into_iter()
                 .map(|(field_spec, _)| Field::try_from(field_spec.clone()))
-                // TODO: Can this ever fail? `Field::try_from` fails, if it has an invalid 
-                //   `FieldKey`. Possible solution: Use `name: FieldKey` in `FieldSpec` rather than 
-                //   `String` 
                 .collect::<Result<_>>()?,
             metadata,
         ))
