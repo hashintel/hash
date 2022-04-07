@@ -4,7 +4,7 @@
 //! They can be nested depending on their [`FieldTypeVariant`]
 //!
 //! Top-level [`FieldSpec`]s (i.e. non-nested ones) have additional specification, defined in
-//! [RootFieldSpec]. These have associated unique identifiers, [`RootFieldKey`]s, which are mapped
+//! [`RootFieldSpec`]. These have associated unique identifiers, [`RootFieldKey`]s, which are mapped
 //! against their [`RootFieldSpec`] in a [`FieldSpecMap`]. The [`FieldSpecMap`] is then used to
 //! generate an Arrow [`Schema`] to outline how the data is stored in memory.
 //!
