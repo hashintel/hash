@@ -2,6 +2,7 @@
   "private": true,
   "description": "HASH monorepo",
   "workspaces": [
+    "sites/dev",
     "packages/blocks/*",
     "packages/engine/apache-arrow-js-bundle",
     "packages/hash/api",
@@ -57,7 +58,9 @@
     ]
   },
   "resolutions": {
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.6.7",
+    "prettier": "2.5.1",
+    "webpack": "^5"
   },
   "devDependencies": {
     "algoliasearch": "4.12.1",
