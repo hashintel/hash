@@ -4307,19 +4307,6 @@
     prop-types "^15.7.2"
     react-is "^17.0.2"
 
-"@mui/base@5.0.0-alpha.71":
-  version "5.0.0-alpha.71"
-  resolved "https://registry.yarnpkg.com/@mui/base/-/base-5.0.0-alpha.71.tgz#628f5ae10a8c015d61d3d1e6f04d66afc7500b90"
-  integrity sha512-LinacyjmZOS+roUqCyhrcbNIW7TlRf1U+15ETGwMn6biNXI9YEVgcc1Kak08CRtjM0yczxxzLWetiAjHMCVSjQ==
-  dependencies:
-    "@babel/runtime" "^7.17.2"
-    "@emotion/is-prop-valid" "^1.1.2"
-    "@mui/utils" "^5.4.4"
-    "@popperjs/core" "^2.11.2"
-    clsx "^1.1.1"
-    prop-types "^15.7.2"
-    react-is "^17.0.2"
-
 "@mui/icons-material@5.4.2", "@mui/icons-material@^5.0.0":
   version "5.4.2"
   resolved "https://registry.yarnpkg.com/@mui/icons-material/-/icons-material-5.4.2.tgz#b2fd2c6c81d2d275e17ce40bd50c63cb197d324b"
@@ -4346,7 +4333,7 @@
     react-transition-group "^4.4.2"
     rifm "^0.12.1"
 
-"@mui/material@5.4.3":
+"@mui/material@5.4.3", "@mui/material@^5.0.0":
   version "5.4.3"
   resolved "https://registry.yarnpkg.com/@mui/material/-/material-5.4.3.tgz#cc0af7192a856796bd82955c5317722916d02bc1"
   integrity sha512-E2K402xjz3U09mTgrVYj+vUACeOppV41uEcu9GSkm7QSg4Nzy48WkdaiGL7TRCyH0T8HsonFSMJvCpwyQbD6iw==
@@ -4359,24 +4346,6 @@
     "@types/react-transition-group" "^4.4.4"
     clsx "^1.1.1"
     csstype "^3.0.10"
-    hoist-non-react-statics "^3.3.2"
-    prop-types "^15.7.2"
-    react-is "^17.0.2"
-    react-transition-group "^4.4.2"
-
-"@mui/material@^5.0.0":
-  version "5.5.0"
-  resolved "https://registry.yarnpkg.com/@mui/material/-/material-5.5.0.tgz#e1a531cdde71019b4375e086c9ce82ca49b389c4"
-  integrity sha512-E12rxqLaWBrebJCxKxBtyRrzJgpPIQSCt4MUHns2Yl9gxOx4c7vDDKuks7Qc6S36wTQf+FP4aiey72Z2WKdYgQ==
-  dependencies:
-    "@babel/runtime" "^7.17.2"
-    "@mui/base" "5.0.0-alpha.71"
-    "@mui/system" "^5.5.0"
-    "@mui/types" "^7.1.2"
-    "@mui/utils" "^5.4.4"
-    "@types/react-transition-group" "^4.4.4"
-    clsx "^1.1.1"
-    csstype "^3.0.11"
     hoist-non-react-statics "^3.3.2"
     prop-types "^15.7.2"
     react-is "^17.0.2"
@@ -4423,7 +4392,7 @@
     jss-plugin-vendor-prefixer "^10.8.2"
     prop-types "^15.7.2"
 
-"@mui/system@5.5.1", "@mui/system@^5.4.3", "@mui/system@^5.4.4", "@mui/system@^5.5.0":
+"@mui/system@5.5.1", "@mui/system@^5.4.3", "@mui/system@^5.4.4":
   version "5.5.1"
   resolved "https://registry.yarnpkg.com/@mui/system/-/system-5.5.1.tgz#1f2b2a8c5542db6176e3b5a8ed12aea602cdeb81"
   integrity sha512-2hynI4hN8304hOCT8sc4knJviwUUYJ7XK3mXwQ0nagVGOPnWSOad/nYADm7K0vdlCeUXLIbDbe7oNN3Kaiu2kA==
@@ -4658,7 +4627,7 @@
   resolved "https://registry.yarnpkg.com/@polka/url/-/url-1.0.0-next.21.tgz#5de5a2385a35309427f6011992b544514d559aa1"
   integrity sha512-a5Sab1C4/icpTZVzZc5Ghpz88yQtGOyNqYXcZgOssB2uuAr+wF/MvN6bgtW32q7HHrvBki+BsZ0OuNv6EV3K9g==
 
-"@popperjs/core@^2.11.2", "@popperjs/core@^2.4.4":
+"@popperjs/core@^2.4.4":
   version "2.11.4"
   resolved "https://registry.yarnpkg.com/@popperjs/core/-/core-2.11.4.tgz#d8c7b8db9226d2d7664553a0741ad7d0397ee503"
   integrity sha512-q/ytXxO5NKvyT37pmisQAItCFqA7FD/vNb8dgaJy3/630Fsc+Mz9/9f2SziBoIZ30TJooXyTwZmhi1zjXmObYg==
