@@ -4,6 +4,7 @@ use hash_engine_lib::{
     env::env,
     experiment::controller::run::run_experiment,
     fetch::FetchDependencies,
+    output::buffer::cleanup_experiment,
     proto::{ExperimentRun, ExperimentRunTrait},
     utils::init_logger,
 };
@@ -37,7 +38,11 @@ async fn main() -> Result<()> {
         config.run.base().name
     );
 
-    run_experiment(config, env)
+    let experiment_result = run_experiment(config, env)
         .await
-        .wrap_err("Could not run experiment")
+        .wrap_err("Could not run experiment");
+
+    cleanup_experiment(&args.experiment_id).wrap_err("Could not cleanup shared memory")?;
+
+    experiment_result
 }
