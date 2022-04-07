@@ -91,7 +91,7 @@ impl Vec3 {
     // TODO: UNUSED: Needs triage
     #[allow(clippy::cast_possible_truncation)]
     #[must_use]
-    pub fn to_grid(&self) -> [i64; 3] {
+    pub fn as_grid(&self) -> [i64; 3] {
         [self.0 as i64, self.1 as i64, self.2 as i64]
     }
 }

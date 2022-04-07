@@ -272,7 +272,7 @@ impl Engine {
     /// packages.
     fn handle_messages(&mut self, state: &mut State, message_map: &MessageMap) -> Result<()> {
         let message_proxies = state.message_pool().read_proxies()?;
-        let mut commands = Commands::from_hash_messages(message_map, message_proxies)?;
+        let mut commands = Commands::from_hash_messages(message_map, &message_proxies)?;
         commands.merge(self.comms.take_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
         self.stop_messages = commands.stop;

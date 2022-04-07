@@ -2,6 +2,7 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
+use stateful::{agent::AgentSchema, proxy::PoolReadProxy};
 
 use crate::{
     config::SimRunConfig,
@@ -11,9 +12,8 @@ use crate::{
             AgentBatch,
         },
         error::Result,
-        schema::state::AgentSchema,
+        schema::EngineComponent,
         table::{
-            pool::proxy::PoolReadProxy,
             proxy::StateReadProxy,
             state::create_remove::{
                 action::{CreateActions, ExistingGroupBufferActions},
@@ -152,7 +152,7 @@ fn buffer_actions_from_pending_batch<'a>(
     state_proxy: &StateReadProxy,
     pending_batch: &PendingBatch,
     inbound_agents: &Option<&'a RecordBatch>,
-    schema: &Arc<AgentSchema>,
+    schema: &Arc<AgentSchema<EngineComponent>>,
     inbound_taken_count: &mut usize,
 ) -> Result<BufferActions<'a>> {
     let remove = RangeActions::collect_indices(pending_batch.get_remove_actions());

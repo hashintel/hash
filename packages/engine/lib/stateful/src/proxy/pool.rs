@@ -1,18 +1,18 @@
-//! Provides structs that behave as *thread-sendable* guards for the read/write locks on the batches
-//! in pools.
+//! Provides structs that behave as *thread-`Send`able* guards for the read/write locks on the
+//! batches in pools.
 
 use std::{
     ops::{Deref, DerefMut, Index, IndexMut},
     slice::SliceIndex,
 };
 
-use crate::datastore::table::proxy::{BatchReadProxy, BatchWriteProxy};
+use crate::proxy::{BatchReadProxy, BatchWriteProxy};
 
 /// Collects [`BatchReadProxy`] for all the batches within the pool.
 #[derive(Default)]
 pub struct PoolReadProxy<B> {
     // TODO: Remove `pub(super)` by providing parallel iterator
-    pub(super) batches: Vec<BatchReadProxy<B>>,
+    pub batches: Vec<BatchReadProxy<B>>,
 }
 
 impl<B> PoolReadProxy<B> {

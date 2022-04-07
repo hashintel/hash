@@ -1,8 +1,11 @@
 use std::{collections::HashMap, convert::TryFrom};
 
-use stateful::field::{
-    FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
-    RootFieldSpecCreator,
+use stateful::{
+    agent::AgentStateField,
+    field::{
+        FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
+        RootFieldSpecCreator,
+    },
 };
 
 // use crate::worker::runner::rust;
@@ -10,7 +13,6 @@ use crate::{
     config::ExperimentConfig,
     datastore::{schema::EngineComponent, Error, Result},
     experiment::SharedBehavior,
-    hash_types::state::AgentStateField,
     proto::ExperimentRunTrait,
 };
 

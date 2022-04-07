@@ -1,9 +1,7 @@
+use stateful::agent::Agent;
 use thiserror::Error as ThisError;
 
-use crate::{
-    datastore::table::task_shared_store::{SharedContext, SharedState},
-    hash_types::Agent,
-};
+use crate::datastore::table::task_shared_store::{SharedContext, SharedState};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
