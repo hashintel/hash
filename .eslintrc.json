@@ -188,28 +188,13 @@
           },
           {
             "name": "@mui/material",
-            "importNames": ["Button", "Popover", "Avatar", "IconButton"],
+            "importNames": ["Button"],
             "message": "Please use the custom wrapper component in src/component instead."
           },
           {
             "name": "@mui/material/Button",
             "importNames": ["default"],
             "message": "Please use the custom src/components/Button component instead."
-          },
-          {
-            "name": "@mui/material/Popover",
-            "importNames": ["default"],
-            "message": "Please use the custom src/components/Popover component instead."
-          },
-          {
-            "name": "@mui/material/Avatar",
-            "importNames": ["default"],
-            "message": "Please use the custom src/components/Avatar component instead."
-          },
-          {
-            "name": "@mui/material/IconButton",
-            "importNames": ["default"],
-            "message": "Please use the custom src/components/IconButton component instead."
           }
         ]
       }
