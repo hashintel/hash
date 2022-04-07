@@ -9,7 +9,7 @@ use crate::{
 pub struct RootFieldKey(String);
 
 impl RootFieldKey {
-    /// Creates a key from a [`String`].
+    /// Creates a new `RootFieldKey` from a [`String`].
     pub fn new(key: String) -> Self {
         Self(key)
     }
