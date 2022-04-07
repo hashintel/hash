@@ -1,15 +1,16 @@
-//! Provides an hEngine-specific representation of Arrows `Field`, `DataType`, and `Schema`.
+//! Provides a memory format similar to Arrows `Field`, `DataType`, and `Schema`.
 //!
-//! As only a selection of Arrow [`DataType`]s is supported at hEngine, this module defines
-//! [`FieldType`], which uses Arrow types underneath and adds an `Any` type, which can represent
-//! arbitrary data. As [`FieldType`] can't be used in Arrows [`Field`], this module provides
+//! As only a selection of Arrow [`DataType`]s is supported at hEngine and additional constraints on
+//! the Arrow column names are required to distinguish the different [`FieldSource`]s and
+//! [`FieldScope`]s, this module abstracts over Arrow types. It defines [`FieldType`], which uses
+//! Arrow types underneath and adds an `Any` type, which can represent arbitrary data and
 //! [`FieldSpec`] to associate a name with the [`FieldType`].
 //!
-//! To create an Arrow [`Schema`], this module provides a [`FieldSpecMap`], which maps a
-//! [`RootFieldKey`]s to [`RootFieldSpec`]s. A [`RootFieldSpec`] associates a [`FieldSpec`] with a
-//! [`FieldScope`] and a [`FieldSource`]. The [`RootFieldKey`] contains the name of the
-//! corresponding field and encodes the [`FieldScope`] and a [`FieldSource`] to be used for looking
-//! up Arrow columns.
+//! In order to use Arrows [`RecordBatch`] to use its memory format internally, an Arrow [`Schema`]
+//! can be created from a [`FieldSpecMap`], which maps a [`RootFieldKey`]s to [`RootFieldSpec`]s. A
+//! [`RootFieldSpec`] associates a [`FieldSpec`] with a [`FieldScope`] and a [`FieldSource`] and can
+//! only nest [`FieldSpec`]s. The [`RootFieldKey`] contains the name of the corresponding field and
+//! encodes the [`FieldScope`] and a [`FieldSource`] to be used for looking up Arrow columns.
 //!
 //! For more information on these types please the the corresponding documentation.
 //!
