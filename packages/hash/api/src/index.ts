@@ -41,7 +41,7 @@ import { logger } from "./logger";
 import { getRequiredEnv } from "./util";
 import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
-import { setupTelemtry } from "./telemetry/snowplow-setup";
+import { setupTelemetry } from "./telemetry/snowplow-setup";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -51,7 +51,7 @@ const main = async () => {
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
 
-    const [spEmitter, spTracker] = setupTelemtry();
+    const [spEmitter, spTracker] = setupTelemetry();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     tracker = spTracker;
 
