@@ -15,10 +15,10 @@ import {
   Stack,
   Switch,
   Typography,
+  Container,
 } from "@mui/material";
 import { GetStaticProps } from "next";
-import { VFC } from "react";
-import { MainContentWrapper } from "../components/layout/MainContentWrapper";
+import { NextPageWithLayout } from "../shared/layout";
 import { isProduction } from "../lib/config";
 import { FontAwesomeIcon } from "../shared/icons";
 import {
@@ -40,9 +40,12 @@ export const getStaticProps: GetStaticProps<PageProps> = () => {
   };
 };
 
-const Playground: VFC<PageProps> = () => {
+const Page: NextPageWithLayout<PageProps> = () => {
   return (
-    <MainContentWrapper>
+    <Container sx={{ pt: 10 }}>
+      <Typography mb={4} variant="h1">
+        Playground
+      </Typography>
       {/* BUTTONS */}
       <Accordion>
         <AccordionSummary>
@@ -415,8 +418,8 @@ const Playground: VFC<PageProps> = () => {
       </Accordion>
 
       <br />
-    </MainContentWrapper>
+    </Container>
   );
 };
 
-export default Playground;
+export default Page;
