@@ -2,10 +2,7 @@ mod config;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::{
-    agent::Agent,
-    field::{EngineComponent, FieldScope},
-};
+use stateful::{agent::Agent, field::FieldScope};
 
 pub use self::config::JsonStateOutputConfig;
 use crate::{
@@ -35,7 +32,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _accessor: FieldSpecMapAccessor<EngineComponent>,
+        _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let value = config
             .sim

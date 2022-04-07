@@ -27,7 +27,7 @@ use memory::{
     },
     shared_memory::{BufferChange, MemoryId, Metaversion, Segment},
 };
-use stateful::{agent::AgentSchema, field::EngineComponent};
+use stateful::agent::AgentSchema;
 
 use crate::{
     datastore::{
@@ -54,7 +54,7 @@ impl AgentBatch {
     /// should be run on.
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
-        schema: &Arc<AgentSchema<EngineComponent>>,
+        schema: &Arc<AgentSchema>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let record_batch = agents.into_agent_batch(schema)?;
@@ -63,7 +63,7 @@ impl AgentBatch {
 
     pub fn duplicate_from(
         agent_batch: &Self,
-        schema: &AgentSchema<EngineComponent>,
+        schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         if agent_batch.batch.loaded_metaversion().memory()
@@ -88,7 +88,7 @@ impl AgentBatch {
     /// Copy contents from RecordBatch and create a memory-backed Batch
     pub fn from_record_batch(
         record_batch: &RecordBatch,
-        schema: &AgentSchema<EngineComponent>,
+        schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let ipc_data_generator = IpcDataGenerator::default();
@@ -121,7 +121,7 @@ impl AgentBatch {
 
     pub fn from_segment(
         segment: Segment,
-        schema: Option<&AgentSchema<EngineComponent>>,
+        schema: Option<&AgentSchema>,
         worker_index: Option<usize>,
     ) -> Result<Self> {
         let persisted = segment.try_read_persisted_metaversion()?;
@@ -161,7 +161,7 @@ impl AgentBatch {
     }
 
     pub fn get_prepared_memory_for_data(
-        schema: &Arc<AgentSchema<EngineComponent>>,
+        schema: &Arc<AgentSchema>,
         dynamic_meta: &meta::Dynamic,
         experiment_id: &ExperimentId,
     ) -> Result<Segment> {

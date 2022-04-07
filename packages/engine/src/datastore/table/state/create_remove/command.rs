@@ -1,7 +1,7 @@
 use std::{collections::HashSet, sync::Arc};
 
 use arrow::record_batch::RecordBatch;
-use stateful::{agent::AgentSchema, field::EngineComponent};
+use stateful::agent::AgentSchema;
 
 use crate::{
     datastore::{
@@ -20,7 +20,7 @@ pub struct ProcessedCommands {
 impl ProcessedCommands {
     pub fn new(
         commands: CreateRemoveCommands,
-        schema: &Arc<AgentSchema<EngineComponent>>,
+        schema: &Arc<AgentSchema>,
     ) -> Result<ProcessedCommands> {
         commands
             .try_into_processed_commands(schema)

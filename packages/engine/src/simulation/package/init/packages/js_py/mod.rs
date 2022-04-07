@@ -6,7 +6,7 @@ use std::{
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use stateful::{agent::Agent, field::EngineComponent};
+use stateful::agent::Agent;
 
 use crate::{
     config::ExperimentConfig,
@@ -37,7 +37,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         comms: PackageComms,
-        _accessor: FieldSpecMapAccessor<EngineComponent>,
+        _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &config.exp.run.base().project_base.initial_state.name {
             InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(Package {

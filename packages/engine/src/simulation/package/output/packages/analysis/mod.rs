@@ -12,7 +12,7 @@ use std::sync::Arc;
 use analyzer::Analyzer;
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{EngineComponent, FieldSpecMapAccessor};
+use stateful::field::FieldSpecMapAccessor;
 use tracing::Span;
 
 pub use self::{
@@ -48,7 +48,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        accessor: FieldSpecMapAccessor<EngineComponent>,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and
         // make this unnecessary

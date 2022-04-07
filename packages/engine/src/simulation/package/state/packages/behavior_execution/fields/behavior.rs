@@ -3,8 +3,8 @@ use std::{collections::HashMap, convert::TryFrom};
 use stateful::{
     agent::AgentStateField,
     field::{
-        EngineComponent, FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
-        RootFieldSpec, RootFieldSpecCreator,
+        FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
+        RootFieldSpecCreator,
     },
 };
 
@@ -18,7 +18,7 @@ use crate::{
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct BehaviorKeys {
-    pub inner: FieldSpecMap<EngineComponent>,
+    pub inner: FieldSpecMap,
     pub built_in_key_use: Option<Vec<String>>,
     pub dyn_access: bool,
 }
@@ -26,14 +26,14 @@ pub struct BehaviorKeys {
 impl BehaviorKeys {
     pub fn from_json_str<K: AsRef<str>>(
         json_str: K,
-        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+        field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<BehaviorKeys> {
         Self::_from_json_str(json_str.as_ref(), field_spec_creator)
     }
 
     pub fn _from_json_str(
         json_str: &str,
-        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+        field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<BehaviorKeys> {
         let json: serde_json::Value = serde_json::from_str(json_str)?;
         let map = match json {
@@ -130,7 +130,7 @@ impl BehaviorKeys {
     }
 
     // add all of the fields within self into builder
-    fn get_field_specs(&self) -> impl Iterator<Item = &RootFieldSpec<EngineComponent>> {
+    fn get_field_specs(&self) -> impl Iterator<Item = &RootFieldSpec> {
         self.inner.field_specs()
     }
 }
@@ -154,17 +154,14 @@ impl Behavior {
 #[derive(Clone)]
 pub struct BehaviorMap {
     pub(in super::super) inner: HashMap<String, Behavior>,
-    pub(in super::super) all_field_specs: FieldSpecMap<EngineComponent>,
+    pub(in super::super) all_field_specs: FieldSpecMap,
 }
 
-impl TryFrom<(&ExperimentConfig, &RootFieldSpecCreator<EngineComponent>)> for BehaviorMap {
+impl TryFrom<(&ExperimentConfig, &RootFieldSpecCreator)> for BehaviorMap {
     type Error = Error;
 
     fn try_from(
-        (experiment_config, field_spec_creator): (
-            &ExperimentConfig,
-            &RootFieldSpecCreator<EngineComponent>,
-        ),
+        (experiment_config, field_spec_creator): (&ExperimentConfig, &RootFieldSpecCreator),
     ) -> Result<Self> {
         let mut meta = HashMap::new();
         let mut field_spec_map = FieldSpecMap::empty();
@@ -206,7 +203,7 @@ impl TryFrom<(&ExperimentConfig, &RootFieldSpecCreator<EngineComponent>)> for Be
                 field_spec_map.try_extend(
                     keys.get_field_specs()
                         .cloned()
-                        .collect::<Vec<RootFieldSpec<EngineComponent>>>(),
+                        .collect::<Vec<RootFieldSpec>>(),
                 )?;
                 let behavior = Behavior {
                     shared: b.clone(),

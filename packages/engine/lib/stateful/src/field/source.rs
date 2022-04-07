@@ -3,22 +3,6 @@ use std::cmp::Ordering;
 
 use serde::Serialize;
 
-pub trait FieldSource {
-    /// A unique static identifier of the field source, used in building Keys for fields.
-    fn unique_id(&self) -> usize;
-
-    /// Returns if the `FieldSource` can guarantee nullability.
-    ///
-    /// This implies, that a [`FieldSpec`], which has `nullable` set to `false`, is guaranteed to
-    /// have a non-null value.
-    ///
-    /// [`FieldSpec`]: crate::field::FieldSpec
-    // TODO: We only need this because we may not set values on initialization, thus only a
-    //   `FieldSpec` with `Engine` as source returns `true` here. We probably want to get around
-    //   this.
-    fn can_guarantee_null(&self) -> bool;
-}
-
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize)]
 pub struct PackageId(usize);
 
@@ -43,25 +27,35 @@ impl From<usize> for PackageId {
 
 /// Defines the source from which a Field was specified, useful for resolving clashes
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum EngineComponent {
+pub enum FieldSource {
     Engine,
     Package(PackageId),
 }
 
-impl FieldSource for EngineComponent {
-    fn unique_id(&self) -> usize {
+impl FieldSource {
+    /// A unique static identifier of the field source, used in building Keys for fields.
+    pub fn unique_id(&self) -> usize {
         match self {
-            EngineComponent::Engine => 0,
-            EngineComponent::Package(package_id) => package_id.as_usize(),
+            FieldSource::Engine => 0,
+            FieldSource::Package(package_id) => package_id.as_usize(),
         }
     }
 
-    fn can_guarantee_null(&self) -> bool {
-        *self == EngineComponent::Engine
+    /// Returns if the `FieldSource` can guarantee nullability.
+    ///
+    /// This implies, that a [`FieldSpec`], which has `nullable` set to `false`, is guaranteed to
+    /// have a non-null value.
+    ///
+    /// [`FieldSpec`]: crate::field::FieldSpec
+    // TODO: We only need this because we may not set values on initialization, thus only a
+    //   `FieldSpec` with `Engine` as source returns `true` here. We probably want to get around
+    //   this.
+    pub fn can_guarantee_null(&self) -> bool {
+        *self == FieldSource::Engine
     }
 }
 
-impl PartialOrd for EngineComponent {
+impl PartialOrd for FieldSource {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // TODO: We only do a partial ordering as we currently don't have a defined precedence of
         //   packages. When `PartialOrd` for `PackageName` is implemented, derive it instead.

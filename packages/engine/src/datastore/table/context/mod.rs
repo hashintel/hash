@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
-use stateful::{agent::AgentSchema, field::EngineComponent};
+use stateful::agent::AgentSchema;
 
 use crate::{
     config::StoreConfig,
@@ -111,7 +111,7 @@ impl Context {
     pub fn update_agent_snapshot(
         &mut self,
         state: &mut State,
-        agent_schema: &AgentSchema<EngineComponent>,
+        agent_schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<()> {
         let mut previous_agent_batch_proxies = self.previous_state.agent_pool.write_proxies()?;

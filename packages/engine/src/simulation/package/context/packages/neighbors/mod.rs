@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{
-    EngineComponent, FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator,
-};
+use stateful::field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
 use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
@@ -50,8 +48,8 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _state_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
-        context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+        _state_field_spec_accessor: FieldSpecMapAccessor,
+        context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let neighbors = Neighbors {
             topology: Arc::new(TopologyConfig::from_globals(&config.sim.globals)?),
@@ -64,8 +62,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
-    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![fields::get_neighbors_field_spec(field_spec_creator)?])
     }
 
@@ -73,8 +71,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
-    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![fields::get_search_radius_field_spec(
             field_spec_creator,
         )?])
@@ -89,7 +87,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 struct Neighbors {
     topology: Arc<TopologyConfig>,
-    context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+    context_field_spec_accessor: FieldSpecMapAccessor,
 }
 
 impl Neighbors {

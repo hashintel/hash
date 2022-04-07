@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
-    field::{EngineComponent, RootFieldSpec, RootFieldSpecCreator},
+    field::{FieldSource, RootFieldSpec, RootFieldSpecCreator},
     proxy::PoolWriteProxy,
 };
 
@@ -81,7 +81,7 @@ impl PackageCreator for Creator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         // TODO: Packages shouldn't have to set the source
         let field_spec_creator =
-            RootFieldSpecCreator::new(EngineComponent::Package(Name::BehaviorExecution.id()?));
+            RootFieldSpecCreator::new(FieldSource::Package(Name::BehaviorExecution.id()?));
         let behavior_map =
             BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
@@ -96,7 +96,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         comms: PackageComms,
-        accessor: FieldSpecMapAccessor<EngineComponent>,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let behavior_ids_col_data_types = fields::id_column_data_types();
         let behavior_ids_col = accessor
@@ -133,8 +133,8 @@ impl PackageCreator for Creator {
         &self,
         config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
-    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
         fields::get_state_field_specs(config, field_spec_creator)
     }
 }

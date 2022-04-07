@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{EngineComponent, RootFieldSpec, RootFieldSpecCreator};
+use stateful::field::{RootFieldSpec, RootFieldSpecCreator};
 
 use crate::{
     config::{ExperimentConfig, TopologyConfig},
@@ -37,7 +37,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _accessor: FieldSpecMapAccessor<EngineComponent>,
+        _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let topology = Topology {
             config: Arc::new(TopologyConfig::from_globals(&config.sim.globals)?),
@@ -49,8 +49,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
-    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![fields::get_pos_corrected_field_spec(
             field_spec_creator,
         )?])

@@ -6,10 +6,7 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
-use stateful::{
-    agent::AgentSchema,
-    field::{EngineComponent, PackageId},
-};
+use stateful::{agent::AgentSchema, field::PackageId};
 use tracing::Span;
 
 use crate::{
@@ -194,7 +191,7 @@ pub struct NewSimulationRun {
 
 #[derive(derive_new::new, Clone)]
 pub struct DatastoreSimulationPayload {
-    pub agent_batch_schema: Arc<AgentSchema<EngineComponent>>,
+    pub agent_batch_schema: Arc<AgentSchema>,
     pub message_batch_schema: Arc<Schema>,
     pub context_batch_schema: Arc<Schema>,
     pub shared_store: Arc<SharedStore>,

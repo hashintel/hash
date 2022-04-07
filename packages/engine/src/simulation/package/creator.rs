@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use stateful::{
     agent::AgentSchema,
     field::{
-        EngineComponent, FieldScope, FieldSpecMap, FieldSpecMapAccessor, FieldType, PackageId,
+        FieldScope, FieldSource, FieldSpecMap, FieldSpecMapAccessor, FieldType, PackageId,
         RootFieldSpec, RootFieldSpecCreator,
     },
 };
@@ -181,7 +181,7 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Init),
                     FieldSpecMapAccessor::new(
-                        EngineComponent::Package(*package_id),
+                        FieldSource::Package(*package_id),
                         state_field_spec_map.clone(),
                     ),
                 )?;
@@ -204,11 +204,11 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Context),
                     FieldSpecMapAccessor::new(
-                        EngineComponent::Package(*package_id),
+                        FieldSource::Package(*package_id),
                         Arc::clone(state_field_spec_map),
                     ),
                     FieldSpecMapAccessor::new(
-                        EngineComponent::Package(*package_id),
+                        FieldSource::Package(*package_id),
                         Arc::clone(context_field_spec_map),
                     ),
                 )?;
@@ -231,7 +231,7 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::State),
                     FieldSpecMapAccessor::new(
-                        EngineComponent::Package(*package_id),
+                        FieldSource::Package(*package_id),
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
@@ -254,7 +254,7 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Output),
                     FieldSpecMapAccessor::new(
-                        EngineComponent::Package(*package_id),
+                        FieldSource::Package(*package_id),
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
@@ -296,14 +296,14 @@ impl PackageCreators {
         &self,
         exp_config: &ExperimentConfig,
         globals: &Globals,
-    ) -> Result<AgentSchema<EngineComponent>> {
+    ) -> Result<AgentSchema> {
         let mut field_spec_map = FieldSpecMap::empty();
 
         // TODO: should we use enum_dispatch here to remove some duplication
         self.init.iter().try_for_each::<_, Result<()>>(
             |(package_id, _package_name, creator)| {
                 let field_spec_creator =
-                    RootFieldSpecCreator::new(EngineComponent::Package(*package_id));
+                    RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -316,7 +316,7 @@ impl PackageCreators {
         self.context.iter().try_for_each::<_, Result<()>>(
             |(package_id, _package_name, creator)| {
                 let field_spec_creator =
-                    RootFieldSpecCreator::new(EngineComponent::Package(*package_id));
+                    RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -329,7 +329,7 @@ impl PackageCreators {
         self.state.iter().try_for_each::<_, Result<()>>(
             |(package_id, _package_name, creator)| {
                 let field_spec_creator =
-                    RootFieldSpecCreator::new(EngineComponent::Package(*package_id));
+                    RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -342,7 +342,7 @@ impl PackageCreators {
         self.output.iter().try_for_each::<_, Result<()>>(
             |(package_id, _package_name, creator)| {
                 let field_spec_creator =
-                    RootFieldSpecCreator::new(EngineComponent::Package(*package_id));
+                    RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -367,7 +367,7 @@ impl PackageCreators {
         self.context.iter().try_for_each::<_, Result<()>>(
             |(package_id, _package_name, creator)| {
                 let field_spec_creator =
-                    RootFieldSpecCreator::new(EngineComponent::Package(*package_id));
+                    RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_context_field_specs(
                     exp_config,
                     globals,
@@ -420,9 +420,9 @@ impl PackageCreators {
 //      something like `get_hidden_column_name(PREVIOUS_INDEX_FIELD_NAME)`
 pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
-pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     let mut field_specs = Vec::with_capacity(13);
-    let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+    let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
 
     use stateful::agent::AgentStateField::{
         AgentId, AgentName, Color, Direction, Height, Hidden, Position, Rgb, Scale, Shape, Velocity,
@@ -450,8 +450,8 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec<EngineComponent>>> {
     Ok(field_specs)
 }
 
-fn get_base_context_fields() -> Result<Vec<RootFieldSpec<EngineComponent>>> {
-    let _field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+fn get_base_context_fields() -> Result<Vec<RootFieldSpec>> {
+    let _field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
     // TODO: previous index and other fields that make sense
     // Doesn't do anything for now
     Ok(vec![])

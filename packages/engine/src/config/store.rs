@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use stateful::{agent::AgentSchema, field::EngineComponent, message::MessageSchema};
+use stateful::{agent::AgentSchema, message::MessageSchema};
 
 use crate::{
     config::{globals::Globals, Result},
@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub struct Config {
-    pub agent_schema: Arc<AgentSchema<EngineComponent>>,
+    pub agent_schema: Arc<AgentSchema>,
     pub message_schema: Arc<MessageSchema>,
     pub context_schema: Arc<ContextSchema>,
 }

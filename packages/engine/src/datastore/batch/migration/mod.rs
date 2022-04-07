@@ -7,7 +7,7 @@ use memory::{
     arrow::meta::{self, Buffer, Node, NodeMapping},
     shared_memory::{padding, Segment},
 };
-use stateful::{agent::AgentSchema, field::EngineComponent, message::MessageSchema};
+use stateful::{agent::AgentSchema, message::MessageSchema};
 
 use crate::{
     datastore::{
@@ -149,7 +149,7 @@ struct NextState {
 impl<'a> BufferActions<'a> {
     pub fn new_batch(
         &self,
-        agent_schema: &Arc<AgentSchema<EngineComponent>>,
+        agent_schema: &Arc<AgentSchema>,
         message_schema: &Arc<MessageSchema>,
         experiment_id: &ExperimentId,
         worker_index: usize,

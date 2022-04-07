@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 pub use packages::{Name, OutputTask, OutputTaskMessage, PACKAGE_CREATORS};
-use stateful::field::{EngineComponent, FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator};
+use stateful::field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator};
 use tracing::Span;
 
 use self::packages::Output;
@@ -33,7 +33,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         config: &Arc<SimRunConfig>,
         system: PackageComms,
-        accessor: FieldSpecMapAccessor<EngineComponent>,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
     fn dependencies() -> Dependencies
@@ -55,8 +55,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_map_builder: &RootFieldSpecCreator<EngineComponent>,
-    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+        _field_spec_map_builder: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![])
     }
 }

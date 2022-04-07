@@ -38,7 +38,7 @@ pub fn last_state_index_key() -> FieldSpec {
 pub mod tests {
     use stateful::{
         agent::AgentStateField,
-        field::{EngineComponent, FieldScope, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
+        field::{FieldScope, FieldSource, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
         Error, Result,
     };
 
@@ -50,7 +50,7 @@ pub mod tests {
 
     #[test]
     fn name_collision_built_in() {
-        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -69,7 +69,7 @@ pub mod tests {
 
     #[test]
     fn name_collision_custom() {
-        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -96,7 +96,7 @@ pub mod tests {
 
     #[test]
     fn unchanged_size_built_in() {
-        let _field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+        let _field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -114,7 +114,7 @@ pub mod tests {
 
     #[test]
     fn unchanged_size_custom() {
-        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -163,7 +163,7 @@ pub mod tests {
                 ),
             },
             scope: FieldScope::Private,
-            source: EngineComponent::Engine,
+            source: FieldSource::Engine,
         }])?;
 
         keys.create_arrow_schema()?;
