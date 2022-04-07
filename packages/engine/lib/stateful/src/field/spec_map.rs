@@ -1,5 +1,8 @@
 use core::fmt;
-use std::collections::HashMap;
+use std::collections::{
+    hash_map::{Iter, Values},
+    HashMap,
+};
 
 use arrow::datatypes::{Field, Schema};
 
@@ -40,14 +43,15 @@ impl<S> FieldSpecMap<S> {
         self.field_specs.contains_key(key)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&RootFieldKey, &RootFieldSpec<S>)> {
+    pub fn iter(&self) -> Iter<'_, RootFieldKey, RootFieldSpec<S>> {
         self.field_specs.iter()
     }
 
-    pub fn field_specs(&self) -> impl Iterator<Item = &RootFieldSpec<S>> {
+    pub fn field_specs(&self) -> Values<'_, RootFieldKey, RootFieldSpec<S>> {
         self.field_specs.values()
     }
 
+    #[cfg(test)]
     pub fn drain_field_specs(&mut self) -> impl Iterator<Item = RootFieldSpec<S>> + '_ {
         self.field_specs.drain().map(|(_, field_spec)| field_spec)
     }
