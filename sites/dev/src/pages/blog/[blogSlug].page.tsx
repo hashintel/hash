@@ -1,4 +1,4 @@
-import { Container, Stack, Typography } from "@mui/material";
+import { Avatar, Container, Stack, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import { NextPage } from "next";
 import Head from "next/head";
@@ -24,7 +24,7 @@ const BlogPostPage: NextPage = () => {
                 brownie cake. Chocolate sugar plum brownie cupcake.
               </Typography>
               <Stack direction="row">
-                <Box>Test</Box>
+                <Avatar>NH</Avatar>
                 <Box>Test</Box>
               </Stack>
             </Box>
