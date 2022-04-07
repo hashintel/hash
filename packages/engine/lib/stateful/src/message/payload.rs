@@ -63,6 +63,7 @@ impl OutboundStopSim {
     pub const KIND: &'static str = "stop";
 }
 
+/// Payload for arbitrary JSON data.
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Generic {
     pub r#type: String,
