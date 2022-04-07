@@ -1,11 +1,10 @@
 use serde::Serialize;
-use stateful::{agent::Agent, globals::Globals};
+use stateful::{agent::Agent, dataset::DatasetMap, globals::Globals};
 
 use crate::hash_types::message::Incoming;
 
 #[allow(clippy::module_name_repetitions)]
 pub type SimulationState = Vec<Agent>;
-pub type DatasetMap = serde_json::Map<String, serde_json::Value>;
 
 /// The context is global, consistent data about the simulation at a single point in time, which is
 /// shared between all agents.
