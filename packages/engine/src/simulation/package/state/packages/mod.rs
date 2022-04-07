@@ -15,7 +15,11 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         enum_dispatch::{enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore},
-        package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
+        package::{
+            id::{PackageId, PackageIdGenerator},
+            state::PackageCreator,
+            PackageMetadata, PackageType,
+        },
         Error, Result,
     },
 };
@@ -26,6 +30,19 @@ use crate::{
 pub enum Name {
     BehaviorExecution,
     Topology,
+}
+
+impl Name {
+    pub fn id(self) -> Result<PackageId> {
+        Ok(METADATA
+            .get(&self)
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "Package Metadata not registered for package: {self}"
+                ))
+            })?
+            .id)
+    }
 }
 
 impl std::fmt::Display for Name {

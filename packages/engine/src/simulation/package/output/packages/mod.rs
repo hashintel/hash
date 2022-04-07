@@ -19,8 +19,10 @@ use crate::{
             TaskSharedStore, WorkerHandler, WorkerPoolHandler,
         },
         package::{
-            id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
-            PackageType,
+            id::{PackageId, PackageIdGenerator},
+            name::PackageName,
+            output::PackageCreator,
+            PackageMetadata, PackageType,
         },
         Error, Result,
     },
@@ -32,6 +34,19 @@ use crate::{
 pub enum Name {
     Analysis,
     JsonState,
+}
+
+impl Name {
+    pub fn id(self) -> Result<PackageId> {
+        Ok(METADATA
+            .get(&self)
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "Package Metadata not registered for package: {self}"
+                ))
+            })?
+            .id)
+    }
 }
 
 impl std::fmt::Display for Name {

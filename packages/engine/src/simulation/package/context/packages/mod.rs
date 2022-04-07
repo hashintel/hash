@@ -18,7 +18,11 @@ use crate::{
             enum_dispatch, GetTaskArgs, GetTaskName, RegisterWithoutTrait, StoreAccessVerify,
             TaskDistributionConfig, TaskSharedStore, WorkerHandler, WorkerPoolHandler,
         },
-        package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
+        package::{
+            context::PackageCreator,
+            id::{PackageId, PackageIdGenerator},
+            PackageMetadata, PackageType,
+        },
         Error, Result,
     },
 };
@@ -30,6 +34,19 @@ pub enum Name {
     AgentMessages,
     ApiRequests,
     Neighbors,
+}
+
+impl Name {
+    pub fn id(self) -> Result<PackageId> {
+        Ok(METADATA
+            .get(&self)
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "Package Metadata not registered for package: {self}"
+                ))
+            })?
+            .id)
+    }
 }
 
 // TODO: Reduce code duplication between Name enums of different package types.

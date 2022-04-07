@@ -18,7 +18,11 @@ use crate::{
             enum_dispatch, JsPyInitTaskMessage, RegisterWithoutTrait, StoreAccessVerify,
             TaskSharedStore,
         },
-        package::{id::PackageIdGenerator, init::PackageCreator, PackageMetadata, PackageType},
+        package::{
+            id::{PackageId, PackageIdGenerator},
+            init::PackageCreator,
+            PackageMetadata, PackageType,
+        },
         Error, Result,
     },
 };
@@ -29,6 +33,19 @@ use crate::{
 pub enum Name {
     Json,
     JsPy,
+}
+
+impl Name {
+    pub fn id(self) -> Result<PackageId> {
+        Ok(METADATA
+            .get(&self)
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "Package Metadata not registered for package: {self}"
+                ))
+            })?
+            .id)
+    }
 }
 
 impl std::fmt::Display for Name {
