@@ -6,11 +6,12 @@ pub trait FieldSource {
 
     /// Returns if the `FieldSource` can guarantee nullability.
     ///
-    /// This implies, that a [`FieldSpec`], which is set to `nullable`, is guaranteed to be
-    /// nullable.
+    /// This implies, that a [`FieldSpec`], which has `nullable` set to `false`, is guaranteed to
+    /// have a non-null value.
     ///
     /// [`FieldSpec`]: crate::field::FieldSpec
-    // TODO: We only need this because of different nullable expectations than arrow.
-    //   see https://app.asana.com/0/1199548034582004/1201892904543625/f
+    // TODO: We only need this because we may not set values on initialization, thus only a
+    //   `FieldSpec` with `Engine` as source returns `true` here. We probably want to get around
+    //   this.
     fn can_guarantee_null(&self) -> bool;
 }
