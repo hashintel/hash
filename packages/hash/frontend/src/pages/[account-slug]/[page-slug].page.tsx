@@ -146,29 +146,15 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
                 }}
               />
             </div>
-            <div className={tw`mr-4`}>
-              <label>Version</label>
-              <div>
-                <VersionDropdown
-                  value={data.page.entityVersionId}
-                  versions={data.page.history ?? []}
-                  onChange={(changedVersionId) => {
-                    void router.push(
-                      `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
-                    );
-                  }}
-                />
-              </div>
-            </div>
+          </div>
+          <div>
+            <label>Transfer Page</label>
             <div>
-              <label>Transfer Page</label>
-              <div>
-                <PageTransferDropdown
-                  accountId={accountId}
-                  pageEntityId={pageEntityId}
-                  setPageState={setPageState}
-                />
-              </div>
+              <PageTransferDropdown
+                accountId={accountId}
+                pageEntityId={pageEntityId}
+                setPageState={setPageState}
+              />
             </div>
           </div>
         </div>

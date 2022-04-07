@@ -5,7 +5,7 @@ import { tw } from "twind";
 
 import { useBlockView } from "../../blocks/page/BlockViewContext";
 import { useUserBlocks } from "../../blocks/userBlocks";
-import { Button } from "../../shared/ui";
+import { Button, TextField } from "../../shared/ui";
 
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
@@ -72,17 +72,13 @@ export const BlockLoaderInput: React.VFC = () => {
 
   return (
     <form onSubmit={loadBlockFromUrl}>
-      <input
-        ref={blockUrlRef}
+      <TextField
+        size="xs"
         type="url"
+        placeholder="Load Block From URL"
+        required
         value={blockUrl}
         onChange={(event) => setBlockUrl(event.target.value)}
-        onKeyDown={(event) => {
-          event.stopPropagation();
-        }}
-        placeholder="Load Block from URL..."
-        className={tw`mt-2 block w-full px-2 py-1 bg-gray-50 border-1 text-sm rounded-sm `}
-        required
       />
       <Collapse in={!!blockUrl}>
         <Button

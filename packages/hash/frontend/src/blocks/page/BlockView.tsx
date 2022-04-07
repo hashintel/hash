@@ -45,8 +45,6 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
       popupId: "block-context-menu",
     });
 
-    useOutsideClick(blockMenuRef, () => popupState.close());
-
     const blockSuggesterProps: BlockSuggesterProps = useMemo(
       () => ({
         onChange: (variant, block) => {
