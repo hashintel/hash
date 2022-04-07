@@ -2,7 +2,6 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import { ThemeProvider } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProviderProps } from "@mui/material/styles/ThemeProvider";
-import { Head } from "next/document";
 import { FC, useEffect } from "react";
 import { createEmotionCache } from "../util/createEmotionCache";
 

@@ -53,7 +53,7 @@ const FooterLinkWithLabel: FC<
           ]}
           component="span"
         >
-          {type[0].toUpperCase() + type.slice(1)} Source
+          {type[0]!.toUpperCase() + type.slice(1)} Source
         </Typography>
       </Box>
     </FooterLink>

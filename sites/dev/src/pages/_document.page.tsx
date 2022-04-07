@@ -29,6 +29,7 @@ class MyDocument extends Document {
             src="https://www.googletagmanager.com/gtag/js?id=G-2JDBVXSZV8"
           />
           <script
+            // eslint-disable-next-line react/no-danger
             dangerouslySetInnerHTML={{
               __html: `
             window.dataLayer = window.dataLayer || [];
