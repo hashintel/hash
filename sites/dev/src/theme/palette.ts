@@ -52,6 +52,8 @@ export const customColors = {
 
 export const palette: ThemeOptions["palette"] = {
   ...customColors,
+  // @todo figure out how not to need this – Avatar
+  grey: customColors.gray,
   primary: {
     main: customColors.yellow[300],
   },

@@ -59,6 +59,7 @@ declare module "@mui/material/styles" {
     hashSmallTextMedium: React.CSSProperties;
     hashFooterHeading: React.CSSProperties;
     hashSmallCaps: React.CSSProperties;
+    hashMediumCaps: React.CSSProperties;
     hashSocialIconLink?: React.CSSProperties;
   }
 
@@ -73,6 +74,7 @@ declare module "@mui/material/styles" {
     hashSmallTextMedium?: React.CSSProperties;
     hashFooterHeading?: React.CSSProperties;
     hashSmallCaps?: React.CSSProperties;
+    hashMediumCaps?: React.CSSProperties;
     hashSocialIconLink?: React.CSSProperties;
   }
 }
@@ -89,6 +91,7 @@ declare module "@mui/material/Typography" {
     hashSmallTextMedium: true;
     hashFooterHeading: true;
     hashSmallCaps: true;
+    hashMediumCaps: true;
     hashSocialIconLink: true;
   }
 }

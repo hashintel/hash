@@ -23,9 +23,30 @@ const BlogPostPage: NextPage = () => {
                 Chocolate sugar plum brownie cupcake chocolate bar toffee
                 brownie cake. Chocolate sugar plum brownie cupcake.
               </Typography>
-              <Stack direction="row">
-                <Avatar>NH</Avatar>
-                <Box>Test</Box>
+              <Stack
+                direction="row"
+                alignItems="center"
+                sx={{ fontSize: "var(--step--2)" }}
+              >
+                <Avatar>CK</Avatar>
+                <Stack ml={2} direction="column" flex={1} spacing={0.5}>
+                  <Typography variant="hashMediumCaps" color="purple.600">
+                    Chris Kingle
+                  </Typography>
+                  <Stack direction="row" alignItems="center">
+                    <Typography variant="hashMediumCaps">
+                      Platform Engineer at HASH
+                    </Typography>
+                    <Typography
+                      ml="auto"
+                      variant="hashSmallText"
+                      fontStyle="italic"
+                      color="gray.80"
+                    >
+                      January 24th, 2022
+                    </Typography>
+                  </Stack>
+                </Stack>
               </Stack>
             </Box>
           </Container>
