@@ -1,21 +1,17 @@
 import { Components } from "@mui/material";
 
+const size = (padding: number) => ({
+  maxWidth: `${1200 + padding * 2}px`,
+  paddingLeft: `${padding}px`,
+  paddingRight: `${padding}px`,
+});
+
 export const MuiContainerThemeOptions: Components["MuiContainer"] = {
   styleOverrides: {
     root: {
-      maxWidth: "1260px",
-      paddingLeft: "16px",
-      paddingRight: "16px",
-      "@media (min-width: 600px)": {
-        maxWidth: "1276px",
-        paddingLeft: "24px",
-        paddingRight: "24px",
-      },
-      "@media (min-width: 1536px)": {
-        maxWidth: "1292px",
-        paddingLeft: "32px",
-        paddingRight: "32px",
-      },
+      ...size(16),
+      "@media (min-width: 600px)": size(24),
+      "@media (min-width: 1536px)": size(32),
     },
   },
 };
