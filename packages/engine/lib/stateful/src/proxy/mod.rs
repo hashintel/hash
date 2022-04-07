@@ -1,4 +1,4 @@
-//! Guards without lifetimes, which can be sent between threads.
+//! Guards without lifetimes, which implements [`Send`] and [`Sync`].
 //!
 //! Usually locking a [`RwLock`] would give a guard that has a lifetime depending on the [`RwLock`],
 //! but for a `Proxy`, this isn’t necessary, because as long as the `Proxy` exists, the underlying
