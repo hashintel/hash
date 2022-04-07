@@ -5,8 +5,6 @@ use crate::{
     Error, Result,
 };
 
-// TODO: Use a struct containing the name, the scope, and the source instead?
-// TODO: OPTIM (follow-up of the above): Use string interning for faster column name lookup
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct RootFieldKey(String);
 
