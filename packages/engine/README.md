@@ -236,7 +236,7 @@ As a first step, you can provide a larger heap size to the runner:
 cargo run --bin cli -- --js-runner-max-heap-size <NEW-SIZE-IN-MB> <YOUR-CLI-ARGUMENTS>
 ```
 
-This will increase the heap size, but you may still run into limitations.
+This will increase the heap size, but you may still run into limitations beyond 4GB.
 The next step is to recompile V8, the underlying JavaScript engine, and set flags for it:
 
 ```shell
