@@ -64,7 +64,7 @@ fn get_columns_from_struct_array(
 pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<message::Outbound> {
     let to_clone = to.iter().map(|v| (*v).to_string()).collect();
 
-    Ok(message::Outbound::new(message::GenericPayload {
+    Ok(message::Outbound::new(message::payload::Generic {
         to: to_clone,
         r#type: r#type.to_string(),
         data: if data_string.is_empty() {
@@ -94,7 +94,7 @@ pub fn outbound_messages_to_arrow_column(
                     messages_builder
                         .field_builder::<array::StringBuilder>(1)
                         .unwrap()
-                        .append_value(message::OutboundCreateAgentPayload::KIND)?;
+                        .append_value(message::payload::OutboundCreateAgent::KIND)?;
                     messages_builder
                         .field_builder::<array::StringBuilder>(2)
                         .unwrap()
@@ -114,7 +114,7 @@ pub fn outbound_messages_to_arrow_column(
                     messages_builder
                         .field_builder::<array::StringBuilder>(1)
                         .unwrap()
-                        .append_value(message::OutboundRemoveAgentPayload::KIND)?;
+                        .append_value(message::payload::OutboundRemoveAgent::KIND)?;
                     messages_builder
                         .field_builder::<array::StringBuilder>(2)
                         .unwrap()
@@ -134,7 +134,7 @@ pub fn outbound_messages_to_arrow_column(
                     messages_builder
                         .field_builder::<array::StringBuilder>(1)
                         .unwrap()
-                        .append_value(message::OutboundStopSimPayload::KIND)?;
+                        .append_value(message::payload::OutboundStopSim::KIND)?;
                     if let Some(data) = &outbound.data {
                         messages_builder
                             .field_builder::<array::StringBuilder>(2)

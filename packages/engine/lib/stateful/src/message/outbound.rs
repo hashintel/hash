@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     agent::Agent,
-    message,
-    message::{CREATE_AGENT, REMOVE_AGENT, SYSTEM_MESSAGE},
+    message::{payload, SYSTEM_MESSAGE},
 };
 
 /// This error represents the prettified display string of any internal errors
@@ -113,25 +112,25 @@ pub enum Outbound {
         }
 
     */
-    CreateAgent(message::OutboundCreateAgentPayload),
-    RemoveAgent(message::OutboundRemoveAgentPayload),
-    StopSim(message::OutboundStopSimPayload),
-    Generic(message::GenericPayload),
+    CreateAgent(payload::OutboundCreateAgent),
+    RemoveAgent(payload::OutboundRemoveAgent),
+    StopSim(payload::OutboundStopSim),
+    Generic(payload::Generic),
 }
 
 fn is_system_message(kind: &str) -> bool {
-    kind == CREATE_AGENT || kind == REMOVE_AGENT
+    kind == payload::OutboundCreateAgent::KIND || kind == payload::OutboundRemoveAgent::KIND
 }
 
 impl Outbound {
     #[must_use]
-    pub fn new(msg: message::GenericPayload) -> Outbound {
+    pub fn new(msg: payload::Generic) -> Outbound {
         Outbound::Generic(msg)
     }
 
     fn is_json_message_remove_agent(value: &serde_json::Value) -> bool {
         if let Some(serde_json::Value::String(kind)) = value.get("type") {
-            return kind == REMOVE_AGENT;
+            return kind == payload::OutboundRemoveAgent::KIND;
         }
         false
     }
@@ -143,7 +142,7 @@ impl Outbound {
         if value.get("data").is_none() {
             if let Some(obj) = value.as_object_mut() {
                 let agent_id = state.agent_id.clone();
-                match serde_json::to_value(message::RemoveAgentPayload { agent_id }) {
+                match serde_json::to_value(payload::OutboundRemoveAgentData { agent_id }) {
                     Ok(value) => {
                         obj.insert(String::from("data"), value);
                     }

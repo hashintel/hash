@@ -57,7 +57,7 @@ mod tests {
         }
         "#,
         )?;
-        if let Some(message::Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
+        if let Some(message::Outbound::RemoveAgent(message::payload::OutboundRemoveAgent {
             data,
             ..
         })) = state.messages.get(0)

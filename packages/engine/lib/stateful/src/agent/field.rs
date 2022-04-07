@@ -401,6 +401,7 @@ fn to_vec3_default(val: serde_json::Value, default: f64) -> Result<Option<Vec3>,
 fn generate_agent_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
+
 #[test]
 /// This test describes the scenario in which a message is parsed before the agent_id key
 /// when enumerating over the MapAccess entries when deserializing JSON
@@ -416,8 +417,9 @@ fn deserialize_messages_before_agent_id() {
         "#,
     )
     .expect("Should be valid AgentState");
-    if let Some(message::Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
-        data, ..
+    if let Some(message::Outbound::RemoveAgent(message::payload::OutboundRemoveAgent {
+        data,
+        ..
     })) = agent.messages.get(0)
     {
         assert_eq!(agent.agent_id, data.agent_id);
@@ -583,8 +585,8 @@ impl Agent {
         data: Option<serde_json::Value>,
     ) -> Result<()> {
         self.messages.push(match kind {
-            message::REMOVE_AGENT => {
-                message::Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
+            message::payload::OutboundRemoveAgent::KIND => {
+                message::Outbound::RemoveAgent(message::payload::OutboundRemoveAgent {
                     r#type: message::RemoveAgent::Type,
                     to: to.to_vec(),
                     data: serde_json::from_value(
@@ -601,8 +603,8 @@ impl Agent {
                     )?,
                 })
             }
-            message::CREATE_AGENT => {
-                message::Outbound::CreateAgent(message::OutboundCreateAgentPayload {
+            message::payload::OutboundCreateAgent::KIND => {
+                message::Outbound::CreateAgent(message::payload::OutboundCreateAgent {
                     r#type: message::CreateAgent::Type,
                     to: to.to_vec(),
                     data: serde_json::from_value(
@@ -610,12 +612,14 @@ impl Agent {
                     )?,
                 })
             }
-            message::STOP_SIM => message::Outbound::StopSim(message::OutboundStopSimPayload {
-                r#type: message::StopSim::Type,
-                to: to.to_vec(),
-                data,
-            }),
-            _ => message::Outbound::Generic(message::GenericPayload {
+            message::payload::OutboundStopSim::KIND => {
+                message::Outbound::StopSim(message::payload::OutboundStopSim {
+                    r#type: message::StopSim::Type,
+                    to: to.to_vec(),
+                    data,
+                })
+            }
+            _ => message::Outbound::Generic(message::payload::Generic {
                 r#type: kind.to_string(),
                 to: to.to_vec(),
                 data,
@@ -931,7 +935,7 @@ mod tests {
 
     #[test]
     fn test_create_agent_message() {
-        let msg = message::Outbound::CreateAgent(message::OutboundCreateAgentPayload {
+        let msg = message::Outbound::CreateAgent(message::payload::OutboundCreateAgent {
             r#type: message::CreateAgent::Type,
             to: vec!["hash".to_string()],
             data: Agent::default(),
@@ -949,10 +953,10 @@ mod tests {
 
     #[test]
     fn test_remove_agent_message() {
-        let msg = message::Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
+        let msg = message::Outbound::RemoveAgent(message::payload::OutboundRemoveAgent {
             r#type: message::RemoveAgent::Type,
             to: vec!["hash".to_string()],
-            data: message::RemoveAgentPayload {
+            data: message::payload::OutboundRemoveAgentData {
                 agent_id: "old_agent".to_string(),
             },
         });
@@ -969,7 +973,7 @@ mod tests {
 
     #[test]
     fn test_stop_message() {
-        let msg = message::Outbound::StopSim(message::OutboundStopSimPayload {
+        let msg = message::Outbound::StopSim(message::payload::OutboundStopSim {
             r#type: message::StopSim::Type,
             to: vec!["hash".to_string()],
             data: Some(json!({
@@ -989,7 +993,7 @@ mod tests {
 
     #[test]
     fn test_generic_message() {
-        let msg = message::Outbound::Generic(message::GenericPayload {
+        let msg = message::Outbound::Generic(message::payload::Generic {
             r#type: "custom_message".to_string(),
             to: vec!["some_other_agent".to_string()],
             data: Some(json!({
@@ -1017,7 +1021,7 @@ mod tests {
             .add_message(&"alice", "custom_message", data.clone())
             .unwrap();
         assert_eq!(agent.messages, vec![message::Outbound::Generic(
-            message::GenericPayload {
+            message::payload::Generic {
                 data,
                 to: vec!["alice".to_string()],
                 r#type: "custom_message".to_string(),
@@ -1034,7 +1038,7 @@ mod tests {
             .add_message(&to, "custom_message", data.clone())
             .unwrap();
         assert_eq!(agent.messages, vec![message::Outbound::Generic(
-            message::GenericPayload {
+            message::payload::Generic {
                 data,
                 to,
                 r#type: "custom_message".to_string(),

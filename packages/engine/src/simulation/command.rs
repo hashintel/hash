@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use stateful::{
     agent::{Agent, AgentSchema},
     field::RootFieldKey,
-    message::RemoveAgentPayload,
+    message::payload::OutboundRemoveAgentData as RemoveAgentPayload,
     proxy::PoolReadProxy,
 };
 use uuid::Uuid;
@@ -170,11 +170,17 @@ impl Commands {
                     message_reader
                         .type_iter(refs)
                         .map(|type_str| match type_str {
-                            stateful::message::CREATE_AGENT => Ok(HashMessageType::Create),
-                            stateful::message::REMOVE_AGENT => Ok(HashMessageType::Remove),
+                            stateful::message::payload::OutboundCreateAgent::KIND => {
+                                Ok(HashMessageType::Create)
+                            }
+                            stateful::message::payload::OutboundRemoveAgent::KIND => {
+                                Ok(HashMessageType::Remove)
+                            }
                             // TODO: When implementing "mapbox" don't forget to update module docs.
                             "mapbox" => todo!(),
-                            stateful::message::STOP_SIM => Ok(HashMessageType::Stop),
+                            stateful::message::payload::OutboundStopSim::KIND => {
+                                Ok(HashMessageType::Stop)
+                            }
                             _ => Err(Error::UnexpectedSystemMessage {
                                 message_type: type_str.into(),
                             }),
