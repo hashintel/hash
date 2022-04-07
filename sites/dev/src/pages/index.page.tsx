@@ -325,9 +325,7 @@ const EMAIL_REGEX =
 const Subscribe: VFC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [userStatus, setUserStatus] = useState<null | "joined" | "tagged">(
-    null,
-  );
+  const [userJoined, setUserJoined] = useState<boolean>(false);
 
   return (
     <Container
@@ -383,7 +381,7 @@ const Subscribe: VFC = () => {
           }),
         ]}
       >
-        {userStatus ? (
+        {userJoined ? (
           <>
             <Box
               sx={{
@@ -399,12 +397,6 @@ const Subscribe: VFC = () => {
             <Typography variant="hashHeading2" component="h3">
               Success! You’re on the list
             </Typography>
-            {userStatus === "joined" ? (
-              <Typography>
-                Check your inbox for a confirmation email and click the link
-                inside.
-              </Typography>
-            ) : null}
           </>
         ) : (
           <>
@@ -443,11 +435,7 @@ const Subscribe: VFC = () => {
                     setLoading(false);
 
                     if (data.response.status === "subscribed") {
-                      setUserStatus(
-                        data.response.title === "Already subscribed"
-                          ? "tagged"
-                          : "joined",
-                      );
+                      setUserJoined(true);
                     } else if (
                       data.response?.title?.includes("Invalid Resource")
                     ) {
