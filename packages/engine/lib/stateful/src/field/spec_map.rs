@@ -11,11 +11,12 @@ use crate::{
     Error, Result,
 };
 
-/// A wrapper struct around a hashmap of field-keys (unique identifiers used to name/label Arrow
-/// data columns mapped to the specification of those fields
+/// A mapping to [`RootFieldSpec`]s identified by a unique [`RootFieldKey`].
+///
+/// Each [`RootFieldKey`] corresponds to one Arrow data columns mapped to the specification of the
+/// mapped [`RootFieldSpec`].
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct FieldSpecMap<S> {
-    /// A mapping of field unique identifiers to the fields themselves.
     field_specs: HashMap<RootFieldKey, RootFieldSpec<S>>,
 }
 
