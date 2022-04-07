@@ -2,6 +2,7 @@ import { Box } from "@mui/material";
 import { FC } from "react";
 import { Footer } from "./Footer";
 import { Navbar } from "./Navbar";
+import { PreFooter } from "./PreFooter";
 
 export const PageLayout: FC = ({ children }) => (
   <Box display="flex" flexDirection="column" sx={{ minHeight: "100vh" }}>
@@ -10,6 +11,7 @@ export const PageLayout: FC = ({ children }) => (
       {children}
     </Box>
     <Box sx={{ flex: 1 }} />
+    <PreFooter />
     <Footer />
   </Box>
 );

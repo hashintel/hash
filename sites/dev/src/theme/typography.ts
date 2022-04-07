@@ -40,6 +40,12 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: 1.75,
     color: customColors.gray[80],
   },
+  hashLargeText: {
+    fontSize: "var(--step-1)",
+    fontWeight: 400,
+    color: customColors.gray[90],
+    lineHeight: 1.4,
+  },
   hashSmallText: {
     fontSize: "var(--step--1)",
     fontWeight: 400,
