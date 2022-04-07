@@ -6,9 +6,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
+use stateful::globals::Globals;
 use uuid::Uuid;
 
-use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status::SimStatus};
+use crate::{hash_types::worker::RunnerError, simulation::status::SimStatus};
 
 // TODO: UNUSED: Needs triage
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;

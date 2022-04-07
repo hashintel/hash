@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
     field::{FieldSource, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
     proxy::PoolWriteProxy,
 };
 
@@ -25,7 +26,7 @@ use crate::{
                 tasks::ExecuteBehaviorsTask,
             },
             Arc, DatastoreResult, Error, ExperimentConfig, FieldSpecMapAccessor,
-            GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals, IntoArrowChange, Name, Package,
+            GetWorkerExpStartMsg, GetWorkerSimStartMsg, IntoArrowChange, Name, Package,
             PackageComms, PackageCreator, Result, SimRunConfig, Span, State, StateColumn,
             StateTask,
         },

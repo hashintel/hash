@@ -6,11 +6,11 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
-use stateful::{agent::AgentSchema, field::PackageId};
+use stateful::{agent::AgentSchema, field::PackageId, globals::Globals};
 use tracing::Span;
 
 use crate::{
-    config::{EngineConfig, Globals},
+    config::EngineConfig,
     datastore::shared_store::SharedStore,
     language::Language,
     proto::{ExperimentId, SimulationShortId},

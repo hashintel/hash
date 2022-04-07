@@ -1,7 +1,7 @@
 use serde::Serialize;
-use stateful::agent::Agent;
+use stateful::{agent::Agent, globals::Globals};
 
-use crate::{config::Globals, hash_types::message::Incoming};
+use crate::hash_types::message::Incoming;
 
 #[allow(clippy::module_name_repetitions)]
 pub type SimulationState = Vec<Agent>;

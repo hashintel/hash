@@ -4,12 +4,15 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 pub use packages::{Name, OutputTask, OutputTaskMessage, PACKAGE_CREATORS};
-use stateful::field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator};
+use stateful::{
+    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
+};
 use tracing::Span;
 
 use self::packages::Output;
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
+    config::{ExperimentConfig, SimRunConfig},
     datastore::table::{context::Context, state::State},
     simulation::{
         comms::package::PackageComms,
