@@ -18,13 +18,14 @@ use memory::arrow::{
     json_vals_to_col, json_vals_to_primitive, json_vals_to_utf8, new_zero_bits,
 };
 use serde_json::value::Value;
+use stateful::field::{FieldScope, FieldTypeVariant, RootFieldKey};
 
 use crate::{
     datastore::{
         arrow::{message, message::messages_column_from_serde_values},
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        schema::{state::AgentSchema, FieldKey, FieldScope, FieldTypeVariant, IsRequired},
+        schema::{state::AgentSchema, IsRequired},
         UUID_V4_LEN,
     },
     hash_types::{
@@ -238,7 +239,7 @@ impl IntoRecordBatch for &[&Agent] {
             } else if matches!(
                 schema
                     .field_spec_map
-                    .get_field_spec(&FieldKey::new(&name))?
+                    .get_field_spec(&RootFieldKey::new(name))?
                     .inner
                     .field_type
                     .variant,

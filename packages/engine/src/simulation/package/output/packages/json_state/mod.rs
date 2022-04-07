@@ -2,13 +2,11 @@ mod config;
 
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::field::FieldScope;
 
 pub use self::config::JsonStateOutputConfig;
 use crate::{
-    datastore::{
-        arrow::batch_conversion::IntoAgents,
-        schema::{HIDDEN_PREFIX, PRIVATE_PREFIX},
-    },
+    datastore::{arrow::batch_conversion::IntoAgents, schema::EngineComponent},
     hash_types::Agent,
     simulation::package::{
         name::PackageName,
@@ -35,7 +33,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _accessor: FieldSpecMapAccessor,
+        _accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn Package>> {
         let value = config
             .sim
@@ -102,9 +100,9 @@ impl Package for JsonState {
             .flatten()
             .map(|mut agent| {
                 agent.custom.retain(|key, _| {
-                    if key.starts_with(HIDDEN_PREFIX) {
+                    if key.starts_with(FieldScope::Hidden.prefix()) {
                         self.output_config.retain_hidden
-                    } else if key.starts_with(PRIVATE_PREFIX) {
+                    } else if key.starts_with(FieldScope::Private.prefix()) {
                         self.output_config.retain_private
                     } else {
                         true

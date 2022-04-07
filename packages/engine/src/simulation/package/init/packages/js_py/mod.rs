@@ -9,6 +9,7 @@ use serde_json::Value;
 
 use crate::{
     config::ExperimentConfig,
+    datastore::schema::EngineComponent,
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         enum_dispatch::{enum_dispatch, RegisterWithoutTrait, TaskSharedStore},
@@ -36,7 +37,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         comms: PackageComms,
-        _accessor: FieldSpecMapAccessor,
+        _accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn InitPackage>> {
         match &config.exp.run.base().project_base.initial_state.name {
             InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(Package {

@@ -1,13 +1,10 @@
 use std::fmt;
 
 use arrow::{datatypes::DataType, error::ArrowError};
+use stateful::field::RootFieldKey;
 use thiserror::Error as ThisError;
 
-use crate::{
-    datastore::schema::{FieldKey, FieldType, RootFieldSpec},
-    hash_types,
-    hash_types::state::AgentStateField,
-};
+use crate::hash_types::{self, state::AgentStateField};
 
 #[derive(Debug)]
 pub enum SupportedType {
@@ -37,6 +34,9 @@ pub enum Error {
 
     #[error("Memory error: {0}")]
     Memory(#[from] memory::Error),
+
+    #[error("Stateful error: {0}")]
+    Stateful(#[from] stateful::Error),
 
     #[error("Couldn't acquire shared lock on object")]
     ProxySharedLock,
@@ -147,16 +147,10 @@ pub enum Error {
     UnexpectedUndefinedCommand,
 
     #[error(
-        "Key clash when attempting to insert a new agent-scoped field with key: {0:?}. The new \
-         field has a differing type: {1:?} to the existing field: {2:?}"
+        "Attempting to insert a new field under key:{0:?} which clashes. New field: {1} Existing \
+         field: {2}"
     )]
-    AgentScopedFieldKeyClash(FieldKey, FieldType, FieldType),
-
-    #[error(
-        "Attempting to insert a new field under key:{0:?} which clashes. New field: {1:?} \
-         Existing field: {2:?}"
-    )]
-    FieldKeyClash(FieldKey, RootFieldSpec, RootFieldSpec),
+    FieldKeyClash(RootFieldKey, String, String),
 
     #[error(
         "Can't take multiple write access to shared state, e.g. by cloning writable task shared \

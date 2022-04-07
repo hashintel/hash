@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 use crate::{
+    datastore::schema::EngineComponent,
     proto::{ExperimentRunTrait, InitialStateName},
     simulation::{
         package::init::{
@@ -24,7 +25,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _accessor: FieldSpecMapAccessor,
+        _accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn InitPackage>> {
         match &config.exp.run.base().project_base.initial_state.name {
             InitialStateName::InitJson => Ok(Box::new(Package {
