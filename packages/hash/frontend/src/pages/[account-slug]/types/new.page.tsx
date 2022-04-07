@@ -5,7 +5,6 @@ import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 import { tw } from "twind";
 
-import { NextPage } from "next";
 import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import {
   CreateEntityTypeMutation,
@@ -13,11 +12,14 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { TextInput } from "../../../components/forms/TextInput";
 import { Button } from "../../../shared/ui";
-import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
+import {
+  NextPageWithLayout,
+  getLayoutWithSidebar,
+} from "../../../shared/layout";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 import { useRouteAccountInfo } from "../../../shared/routing";
 
-export const NewEntityType: NextPage = () => {
+const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { accountId } = useRouteAccountInfo();
 
@@ -50,7 +52,7 @@ export const NewEntityType: NextPage = () => {
   };
 
   return (
-    <MainContentWrapper>
+    <>
       <header className={tw`mb-12`}>
         <h1>
           Create new <strong>entity type</strong>
@@ -84,8 +86,10 @@ export const NewEntityType: NextPage = () => {
           </div>
         </form>
       </section>
-    </MainContentWrapper>
+    </>
   );
 };
 
-export default NewEntityType;
+Page.getLayout = getLayoutWithSidebar;
+
+export default Page;

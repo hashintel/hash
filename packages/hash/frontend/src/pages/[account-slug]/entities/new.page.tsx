@@ -4,17 +4,19 @@ import { tw } from "twind";
 import { useRouter } from "next/router";
 
 import { BlockProtocolCreateEntitiesFunction } from "blockprotocol";
-import { NextPage } from "next";
 import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 
 import { UnknownEntity } from "../../../graphql/apiTypes.gen";
 import { useBlockProtocolCreateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateEntitities";
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
-import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
+import {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../shared/layout";
 import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 import { useRouteAccountInfo } from "../../../shared/routing";
 
-const NewEntityPage: NextPage = () => {
+const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { query } = router;
   const { accountId } = useRouteAccountInfo();
@@ -63,7 +65,7 @@ const NewEntityPage: NextPage = () => {
   }, [selectedTypeId, typeOptions]);
 
   return (
-    <MainContentWrapper>
+    <>
       <header>
         <h1>Create an entity</h1>
       </header>
@@ -97,8 +99,10 @@ const NewEntityPage: NextPage = () => {
           />
         )}
       </div>
-    </MainContentWrapper>
+    </>
   );
 };
 
-export default NewEntityPage;
+Page.getLayout = getLayoutWithSidebar;
+
+export default Page;

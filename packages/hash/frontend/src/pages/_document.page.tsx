@@ -1,12 +1,12 @@
 import React from "react";
 import createEmotionServer from "@emotion/server/create-instance";
 import withTwindDocument from "@twind/next/document";
-import Document, { Html, Head, Main, NextScript } from "next/document";
+import NextDocument, { Html, Head, Main, NextScript } from "next/document";
 
 import twindConfig from "../../twind.config";
 import { createEmotionCache } from "../shared/ui";
 
-class MyDocument extends Document {
+class Document extends NextDocument {
   render() {
     return (
       <Html lang="en">
@@ -24,7 +24,7 @@ class MyDocument extends Document {
 // @see https://github.com/mui/material-ui/blob/master/examples/nextjs/pages/_document.js
 // `getInitialProps` belongs to `_document` (instead of `_app`),
 // it's compatible with static-site generation (SSG).
-MyDocument.getInitialProps = async (ctx) => {
+Document.getInitialProps = async (ctx) => {
   // Resolution order
   //
   // On the server:
@@ -63,7 +63,7 @@ MyDocument.getInitialProps = async (ctx) => {
         },
     });
 
-  const initialProps = await Document.getInitialProps(ctx);
+  const initialProps = await NextDocument.getInitialProps(ctx);
   // This is important. It prevents emotion to render invalid HTML.
   // See https://github.com/mui-org/material-ui/issues/26561#issuecomment-855286153
   const emotionStyles = extractCriticalToChunks(initialProps.html);
@@ -88,4 +88,4 @@ MyDocument.getInitialProps = async (ctx) => {
 
 // @todo remove twind when we have completely switched to MUI
 // NB: Some blocks set twind as a peer-dependency
-export default withTwindDocument(twindConfig, MyDocument);
+export default withTwindDocument(twindConfig, Document);
