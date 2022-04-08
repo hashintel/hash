@@ -13,7 +13,6 @@ use crate::{
     datastore::{
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        schema::EngineComponent,
     },
     proto::ExperimentId,
 };
@@ -150,7 +149,7 @@ struct NextState {
 impl<'a> BufferActions<'a> {
     pub fn new_batch(
         &self,
-        agent_schema: &Arc<AgentSchema<EngineComponent>>,
+        agent_schema: &Arc<AgentSchema>,
         message_schema: &Arc<MessageSchema>,
         experiment_id: &ExperimentId,
         worker_index: usize,

@@ -8,7 +8,6 @@ use crate::{
     datastore::{
         batch::{context::ContextBatch, AgentBatch},
         error::{Error, Result},
-        schema::EngineComponent,
         table::{
             pool::{agent::AgentPool, message::MessagePool, BatchPool},
             state::{view::StatePools, State},
@@ -112,7 +111,7 @@ impl Context {
     pub fn update_agent_snapshot(
         &mut self,
         state: &mut State,
-        agent_schema: &AgentSchema<EngineComponent>,
+        agent_schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<()> {
         let mut previous_agent_batch_proxies = self.previous_state.agent_pool.write_proxies()?;

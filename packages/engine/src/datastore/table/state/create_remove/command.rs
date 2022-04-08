@@ -6,7 +6,6 @@ use stateful::agent::AgentSchema;
 use crate::{
     datastore::{
         error::{Error, Result},
-        schema::EngineComponent,
         UUID_V4_LEN,
     },
     simulation::command::CreateRemoveCommands,
@@ -21,7 +20,7 @@ pub struct ProcessedCommands {
 impl ProcessedCommands {
     pub fn new(
         commands: CreateRemoveCommands,
-        schema: &Arc<AgentSchema<EngineComponent>>,
+        schema: &Arc<AgentSchema>,
     ) -> Result<ProcessedCommands> {
         commands
             .try_into_processed_commands(schema)

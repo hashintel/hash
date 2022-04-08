@@ -6,7 +6,7 @@ use stateful::{agent::Agent, field::FieldScope};
 
 pub use self::config::JsonStateOutputConfig;
 use crate::{
-    datastore::{arrow::batch_conversion::IntoAgents, schema::EngineComponent},
+    datastore::arrow::batch_conversion::IntoAgents,
     simulation::package::{
         name::PackageName,
         output,
@@ -32,7 +32,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _accessor: FieldSpecMapAccessor<EngineComponent>,
+        _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let value = config
             .sim
