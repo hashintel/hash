@@ -12,40 +12,38 @@ import {
   ListItemText,
   MenuItem,
   MenuList,
-  Typography,
 } from "@mui/material";
-import { useEffect, useRef, VFC } from "react";
+import { useCallback, useEffect, VFC } from "react";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
 import { FontAwesomeIcon } from "../../shared/icons";
 import { useRouteAccountInfo } from "../../shared/routing";
-import { TextField } from "../../shared/ui";
+import { LoadingSpinner, TextField } from "../../shared/ui";
 import { useAccountEntities } from "../hooks/useAccountEntities";
 
 type LoadEntityMenuContentProps = {
-  entityId: string;
+  entityId: string | null;
   entityStore: EntityStore;
 };
 
 export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   entityId,
-  entityStore,
+  // entityStore,
 }) => {
   const { accountId } = useRouteAccountInfo();
-  const { data: entities, fetchEntities } = useAccountEntities();
+  const { data: entities, fetchEntities, loading } = useAccountEntities();
   const blockView = useBlockView();
+  const entityStore = entityStorePluginStateFromTransaction(
+    blockView.view.state.tr,
+    blockView.view.state,
+  ).store;
+  // console.log("entityId --> ", entityId);
   const blockData = entityId ? entityStore.saved[entityId] : null;
 
-  const entityStoreRef = useRef(entityStore);
-
-  useEffect(() => {
-    entityStoreRef.current = entityStore;
-  });
+  console.log("block Data ==> ", blockData);
 
   const blockEntity = isBlockEntity(blockData)
     ? blockData.properties.entity
     : null;
-
-  console.log(Object.keys(entityStore.draft));
 
   useEffect(() => {
     if (isBlockEntity(blockData) && accountId) {
@@ -55,82 +53,125 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
     }
   }, [blockData, accountId, fetchEntities]);
 
-  const handleClick = (id: string) => {
-    const targetData = entities.find((item) => item.entityId === id)!;
-    const targetEntity = isBlockEntity(targetData)
-      ? targetData.properties.entity
-      : null;
+  const handleClick = useCallback(
+    (id: string) => {
+      const targetData = entities.find((item) => item.entityId === id)!;
+      const targetEntity = isBlockEntity(targetData)
+        ? targetData.properties.entity
+        : null;
 
-    if (!blockEntity) return;
+      if (
+        !targetEntity ||
+        !blockEntity ||
+        targetEntity.entityId === blockEntity.entityId
+      ) {
+        return;
+      }
 
-    debugger;
-    if (targetEntity.entityId === blockEntity.entityId) return;
+      const tr = blockView.view.state.tr;
+      let currentEntityStore = entityStorePluginStateFromTransaction(
+        tr,
+        blockView.view.state,
+      ).store;
 
-    const currentEntityStore = entityStoreRef.current;
-    const tr = blockView.view.state.tr;
+      // check if entity exists in draft
+      let draftEntity = Object.values(currentEntityStore.draft).find(
+        (entity) => entity.entityId === targetEntity?.entityId,
+      );
 
-    // check if entity exists in draft
-    const draftEntity = Object.values(currentEntityStore.draft).find(
-      (entity) => entity.entityId === targetEntity?.entityId,
-    );
+      let draftId = "";
 
-    console.log("draftEntity ==> ", draftEntity);
+      // 3. If it is not, put it in the entity store
+      if (!draftEntity) {
+        draftId = newDraftId();
+        addEntityStoreAction(blockView.view.state, tr, {
+          type: "newDraftEntity",
+          payload: {
+            accountId: targetEntity.accountId,
+            draftId,
+            entityId: targetEntity.entityId,
+          },
+        });
+        addEntityStoreAction(blockView.view.state, tr, {
+          type: "updateEntityProperties",
+          payload: {
+            draftId,
+            merge: false,
+            properties: targetEntity.properties,
+          },
+        });
 
-    if (!draftEntity) {
-      const draftId = newDraftId();
-      addEntityStoreAction(blockView.view.state, tr, {
-        type: "newDraftEntity",
-        payload: {
-          accountId: targetEntity.accountId,
-          draftId,
-          entityId: targetEntity.entityId,
-        },
-      });
+        blockView.view.dispatch(tr);
+      } else {
+        draftId = draftEntity.draftId;
+      }
+
+      currentEntityStore = entityStorePluginStateFromTransaction(
+        tr,
+        blockView.view.state,
+      ).store;
+
+      draftEntity = currentEntityStore.draft[draftId];
+
+      //  4. Update the block entity in the entity store to point to this entity
       addEntityStoreAction(blockView.view.state, tr, {
         type: "updateEntityProperties",
         payload: {
-          draftId,
+          draftId: `draft-${blockData!.entityId}`,
           merge: false,
-          properties: targetEntity.properties,
+          properties: {
+            componentId: blockData?.properties.componentId,
+            entity: draftEntity!,
+            __typename: "BlockProperties",
+          },
         },
       });
 
-      blockView.view.dispatch(tr);
-
-      const updatedStore = entityStorePluginStateFromTransaction(
+      currentEntityStore = entityStorePluginStateFromTransaction(
         tr,
         blockView.view.state,
-      );
-      console.log("updatedStore ==> ", updatedStore.store);
-      console.log(Object.keys(updatedStore.store.draft));
+      ).store;
 
+      // console.log("updated store ==> ", currentEntityStore);
+
+      // console.log(
+      //   "updated block ==> ",
+      //   currentEntityStore.draft[`draft-${blockData?.entityId}`],
+      // );
+
+      const pos = blockView.getPos();
+      /**
+       * 5. Update the prosemirror tree to reflect this
+       * For now just insert the new block,
+       * can handle replacing once this works
+       */
       // blockView.manager
       //   .createRemoteBlock(
       //     blockData?.properties.componentId!,
-      //     updatedStore.store,
-      //     `draft-${blockEntity.entityId}`,
+      //     currentEntityStore,
+      //     `draft-${blockData.entityId}`,
       //   )
-      //   .then(() => {})
-      //   .catch(() => {});
-      // 3. If it is not, put it in the entity store
-    }
+      //   .then((node) => {
+      //     tr.replaceRangeWith(pos, pos + node.nodeSize, node);
+      //     blockView.view.dispatch(tr);
+      //   })
+      //   .catch((error) => {
+      //     console.log(error);
+      //   });
 
-    //  4. Update the block entity in the entity store to point to this entity
+      const node = blockView.manager.createLocalBlock(
+        blockData?.properties.componentId!,
+        currentEntityStore,
+        `draft-${blockData!.entityId}`,
+      );
 
-    addEntityStoreAction(blockView.view.state, tr, {
-      type: "updateEntityProperties",
-      payload: {
-        draftId: `draft-${blockEntity.entityId}`,
-        merge: false,
-        properties: targetEntity.properties,
-      },
-    });
+      tr.replaceRangeWith(pos, pos + node.nodeSize, node);
+      blockView.view.dispatch(tr);
 
-    /**
-     * 5. Update the prosemirror tree to reflect this
-     */
-    blockView.view.dispatch(tr);
-  };
+      // blockView.view.dispatch(tr);
+    },
+    [blockView, blockData, entities],
+  );
 
   return (
     <MenuList>
@@ -148,6 +189,14 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
                 <FontAwesomeIcon icon={faSearch} />
               </InputAdornment>
             ),
+            endAdornment: loading ? (
+              <InputAdornment
+                position="start"
+                sx={{ visibility: loading ? "visible" : "hidden" }}
+              >
+                <LoadingSpinner size={12} thickness={4} />
+              </InputAdornment>
+            ) : null,
           }}
         />
       </Box>

@@ -263,6 +263,34 @@ export class ProsemirrorSchemaManager {
   }
 
   /**
+   * @todo update comment
+   *  Assumes the block info has already been fetched
+   */
+  createLocalBlock(
+    targetComponentId: string,
+    entityStore?: EntityStore,
+    // @todo this needs to be mandatory otherwises properties may get lost
+    draftBlockId?: string | null,
+  ) {
+    debugger;
+    const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
+
+    return this.schema.nodes.block!.create({}, [
+      this.schema.nodes.entity!.create(
+        { draftId: draftBlockId },
+        this.schema.nodes.entity!.create(
+          {
+            draftId: isDraftBlockEntity(blockEntity)
+              ? blockEntity.properties.entity.draftId
+              : null,
+          },
+          [this.schema.nodes[targetComponentId]!.create({}, [])],
+        ),
+      ),
+    ]);
+  }
+
+  /**
    * Creating a new type of block in prosemirror, without necessarily having
    * requested the block metadata yet.
    */

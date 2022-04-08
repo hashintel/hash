@@ -40,29 +40,17 @@ import {
 } from "@fortawesome/free-regular-svg-icons";
 import { getBlockDomId } from "../../blocks/page/BlockView";
 import {
-  BlockSuggester,
   BlockSuggesterProps,
   getVariantIcon,
 } from "../../blocks/page/createSuggester/BlockSuggester";
-import { NormalView } from "./NormalView";
-import { SearchView } from "./SearchView";
-import {
-  MenuItemType,
-  MenuState,
-  FilteredMenuItems,
-  ItemClickMethod,
-  iconStyles,
-} from "./BlockContextMenuUtils";
+
 import { BlockLoaderInput } from "./BlockLoaderInput";
 import { useUserBlocks } from "../../blocks/userBlocks";
 import { useFilteredBlocks } from "../../blocks/page/createSuggester/useFilteredBlocks";
-import { useAccountEntities } from "../hooks/useAccountEntities";
-import { useBlockView } from "../../blocks/page/BlockViewContext";
 import { useUsers } from "../hooks/useUsers";
 import { FontAwesomeIcon } from "../../shared/icons";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
 import { LoadEntityMenuContent } from "./LoadEntityMenuContent";
-import { useRouteAccountInfo } from "../../shared/routing";
 
 type BlockContextMenuProps = {
   popupState: PopupState;
@@ -79,94 +67,14 @@ export const BlockContextMenu = forwardRef<
   const blockData = entityId ? entityStore.saved[entityId] : null;
   const { data: users } = useUsers();
   const { value: userBlocks } = useUserBlocks();
-  const { accountId } = useRouteAccountInfo();
-  const { fetchEntities } = useAccountEntities();
-  const blockView = useBlockView();
 
   const blocks = useFilteredBlocks("", userBlocks);
-
-  // console.log("blockView => ", blockView);
 
   const entityStoreRef = useRef(entityStore);
 
   useEffect(() => {
     entityStoreRef.current = entityStore;
   });
-
-  // const blockEntity = isBlockEntity(blockData)
-  //   ? blockData.properties.entity
-  //   : null;
-
-  useEffect(() => {
-    // if (isBlockEntity(blockData) && accountId) {
-    //   const blockEntity = blockData.properties.entity;
-    //   fetchEntities(accountId, {
-    //     componentId: blockData.properties.componentId,
-    //   })
-    //     .then((entities) => {
-    //       // debugger;
-    //       if (entities.length === 0) return;
-    //       const currentEntityStore = entityStoreRef.current;
-    //       // @todo UI for picking the entity
-    //       const targetEntity = entities[0]!;
-    //       if (targetEntity.entityId === blockEntity.entityId) return;
-    //       const tr = blockView.view.state.tr;
-    //       const draftEntity = Object.values(currentEntityStore.draft).find(
-    //         (entity) => entity.entityId === targetEntity.entityId,
-    //       );
-    //       if (!draftEntity) {
-    //         const draftId = newDraftId();
-    //         addEntityStoreAction(blockView.view.state, tr, {
-    //           type: "newDraftEntity",
-    //           payload: {
-    //             accountId: targetEntity.accountId,
-    //             draftId,
-    //             entityId: targetEntity.entityId,
-    //           },
-    //         });
-    //         addEntityStoreAction(blockView.view.state, tr, {
-    //           type: "updateEntityProperties",
-    //           payload: {
-    //             draftId,
-    //             merge: false,
-    //             properties: targetEntity.properties,
-    //           },
-    //         });
-    //         blockView.view.dispatch(tr);
-    //         const updatedStore = entityStorePluginStateFromTransaction(
-    //           tr,
-    //           blockView.view.state,
-    //         );
-    //         console.log("updatedStore ==> ", updatedStore);
-    //         blockView.manager
-    //           .createRemoteBlock(
-    //             blockData.properties.componentId,
-    //             updatedStore.store,
-    //             `draft-${blockEntity.entityId}`,
-    //           )
-    //           .then(() => {})
-    //           .catch(() => {});
-    //         // 3. If it is not, put it in the entity store
-    //       }
-    //       /**
-    //        * 4. Update the block entity in the entity store to point to this entity
-    //        */
-    //       // addEntityStoreAction(blockView.view.state, tr, {
-    //       //   type: "updateEntityProperties",
-    //       //   payload: {
-    //       //     draftId: `draft-${blockEntity.entityId}`,
-    //       //     merge: false,
-    //       //     properties: targetEntity.properties,
-    //       //   },
-    //       // });
-    //       /**
-    //        * 5. Update the prosemirror tree to reflect this
-    //        */
-    //       blockView.view.dispatch(tr);
-    //     })
-    //     .catch(() => {});
-    // }
-  }, [blockData, accountId, blockView, fetchEntities]);
 
   if (blockData && !isBlockEntity(blockData)) {
     throw new Error("BlockContextMenu linked to non-block entity");
@@ -210,6 +118,7 @@ export const BlockContextMenu = forwardRef<
         key: "swap-block",
         title: "Swap block type",
         icon: <FontAwesomeIcon icon={faRefresh} />,
+        // move to it's own component
         subMenu: (
           <MenuList>
             {blocks.map((option) => (
@@ -276,6 +185,7 @@ export const BlockContextMenu = forwardRef<
       }}
     >
       <Box
+        component="li"
         sx={{
           px: 2,
           pt: 1.5,
@@ -296,7 +206,7 @@ export const BlockContextMenu = forwardRef<
               onClick={onClick}
               subMenu={subMenu}
               subMenuWidth={subMenuWidth}
-              parentPopupState={popupState}
+              // parentPopupState={popupState}
             />
           );
         },
@@ -313,7 +223,7 @@ export const BlockContextMenu = forwardRef<
         <Typography
           variant="microText"
           sx={({ palette }) => ({
-            color: palette.gray[70],
+            color: palette.gray[60],
             display: "block",
           })}
         >
@@ -331,7 +241,7 @@ export const BlockContextMenu = forwardRef<
           <Typography
             variant="microText"
             sx={({ palette }) => ({
-              color: palette.gray[70],
+              color: palette.gray[60],
             })}
           >
             {format(new Date(blockData.properties.entity.updatedAt), "hh.mm a")}

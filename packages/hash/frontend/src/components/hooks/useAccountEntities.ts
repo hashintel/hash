@@ -1,3 +1,4 @@
+import { unstable_batchedUpdates } from "react-dom";
 import { useCallback, useState } from "react";
 import { useApolloClient } from "@apollo/client";
 import { getEntities } from "../../graphql/queries/entity.queries";
@@ -26,6 +27,7 @@ export const useAccountEntities = () => {
 
   const fetchEntities = useCallback(
     async (accountId: string, entityTypeFilter: EntityTypeChoice) => {
+      setLoading(true);
       const response = await client.query<
         GetEntitiesQuery,
         GetEntitiesQueryVariables
@@ -39,11 +41,10 @@ export const useAccountEntities = () => {
         },
       });
 
-      console.log("res => ", response.data.entities);
-
-      setData(response.data.entities);
-
-      return response.data.entities;
+      unstable_batchedUpdates(() => {
+        setLoading(false);
+        setData(response.data.entities);
+      });
     },
     [client],
   );
