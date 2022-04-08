@@ -1,5 +1,5 @@
 // TODO: DOC: Describing this crate containing stateful things like agents, context, etc. and the
-//            `field` interface
+//            `field` and `proxy` interface
 pub mod agent;
 pub mod dataset;
 pub mod field;

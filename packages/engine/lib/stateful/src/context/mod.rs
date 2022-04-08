@@ -1,3 +1,6 @@
+// TODO: DOC: Add module level docs for describing the high level concept of the context, what they
+//   are and why they exist
+
 use serde::Serialize;
 
 use crate::{agent::Agent, dataset::DatasetMap, globals::Globals, message::Inbound};
