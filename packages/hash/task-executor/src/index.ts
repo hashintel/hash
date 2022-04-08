@@ -16,11 +16,11 @@ const requestHandler = async (
   } catch (err: any) {
     console.log(err);
     response.statusCode = 500;
-    response.end(err.toString());
+    response.end(JSON.stringify(err));
     return;
   }
 
-  response.end(result);
+  response.end(JSON.stringify(result));
 };
 
 // eslint-disable-next-line @typescript-eslint/no-misused-promises -- createServer doesn't accept a `Promise<void>` as it expects just a void return signature but we don't want to block
