@@ -1,7 +1,5 @@
 use serde::Serialize;
-use stateful::{agent::Agent, dataset::DatasetMap, globals::Globals};
-
-use crate::hash_types::message::Incoming;
+use stateful::{agent::Agent, dataset::DatasetMap, globals::Globals, message::Inbound};
 
 #[allow(clippy::module_name_repetitions)]
 pub type SimulationState = Vec<Agent>;
@@ -22,6 +20,6 @@ pub type SimulationState = Vec<Agent>;
 pub struct Context<'a> {
     pub globals: &'a Globals,
     pub neighbors: Vec<&'a Agent>,
-    pub messages: Vec<&'a Incoming>,
+    pub messages: Vec<&'a Inbound>,
     pub datasets: &'a DatasetMap,
 }

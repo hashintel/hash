@@ -1,11 +1,13 @@
 pub mod payload;
 
+mod inbound;
 mod kind;
 mod outbound;
 mod schema;
 
 pub(in crate) use self::outbound::Error as OutboundError;
 pub use self::{
+    inbound::Inbound,
     kind::{CreateAgent, RemoveAgent, StopSim},
     outbound::Outbound,
     schema::{MessageSchema, MESSAGE_ARROW_FIELDS, MESSAGE_BATCH_SCHEMA, MESSAGE_COLUMN_NAME},

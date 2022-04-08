@@ -1,5 +1,4 @@
 mod error;
-pub mod message;
 pub mod state;
 pub mod worker;
 
