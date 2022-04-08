@@ -196,6 +196,7 @@ const main = async () => {
     db,
     search,
     cache: redis,
+    taskExecutor,
     emailTransporter,
     logger,
     statsd,
