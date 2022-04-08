@@ -3,6 +3,7 @@ import { Box } from "@mui/system";
 import { NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
+import postImage from "../../../public/temp.png";
 
 const BlogPostPage: NextPage = () => {
   return (
@@ -18,30 +19,35 @@ const BlogPostPage: NextPage = () => {
             <Box
               sx={[
                 {
-                  background: "black",
-                  aspectRatio: "654 / 445",
                   width: "100%",
+                  height: "100%",
                   position: "relative",
-                  borderRadius: 4,
                   overflow: "hidden",
                 },
                 (theme) => ({
                   [theme.breakpoints.up("md")]: {
-                    borderRadius: "4px 0 0 4px",
                     position: "absolute",
                     top: "50%",
                     transform: "translateY(-50%)",
                     right: 0,
                     width: "45vw",
                     maxHeight: "100%",
+
+                    ".image": {
+                      borderRadius: "4px 0 0 4px",
+                    },
                   },
                   [theme.breakpoints.down("md")]: {
                     mb: 3,
+
+                    ".image": {
+                      borderRadius: "4px",
+                    },
                   },
                 }),
               ]}
             >
-              <Image src="/temp.png" layout="fill" />
+              <Image src={postImage} layout="responsive" className="image" />
             </Box>
             <Box width={{ xs: 1, md: "49.25%" }}>
               <Typography variant="hashHeading1" mb={3}>
