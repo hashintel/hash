@@ -1,9 +1,10 @@
-import { Avatar, Container, Stack, Typography } from "@mui/material";
-import { Box } from "@mui/system";
+import { Container, Stack, Typography } from "@mui/material";
+import { Box, styled } from "@mui/system";
 import { NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
 import postImage from "../../../public/temp.png";
+import postAvatar from "../../../public/david.png";
 
 const BlogPostPage: NextPage = () => {
   return (
@@ -83,7 +84,15 @@ const BlogPostPage: NextPage = () => {
                   January 24th, 2022
                 </Typography>
                 <Stack direction="row">
-                  <Avatar>CK</Avatar>
+                  <Box
+                    width={48}
+                    height={48}
+                    borderRadius={48}
+                    overflow="hidden"
+                    position="relative"
+                  >
+                    <Image src={postAvatar} layout="fill" />
+                  </Box>
                   <Stack ml={2} direction="column" spacing={0.5}>
                     <Typography variant="hashMediumCaps" color="purple.600">
                       Chris Kingle
