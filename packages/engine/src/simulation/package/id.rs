@@ -28,7 +28,7 @@ impl From<usize> for PackageId {
 }
 
 pub struct PackageIdGenerator {
-    cur: usize,
+    cur: u32,
     multiplier: usize,
 }
 
@@ -45,7 +45,7 @@ impl PackageIdGenerator {
     }
 
     pub fn next(&mut self) -> PackageId {
-        let id = PackageId(self.multiplier * (2 ^ self.cur));
+        let id = PackageId(self.multiplier * usize::pow(2, self.cur));
         self.cur += 1;
         id
     }
