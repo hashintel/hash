@@ -55,9 +55,9 @@ impl RootFieldKey {
     /// - Returns [`Error`] if `name` starts with a prefix pre-defined by [`FieldScope`], and
     /// - Returns [`Error`] if `scope` is [`FieldScope::Agent`].
     #[inline]
-    pub fn new_private_or_hidden_scoped<S: FieldSource>(
+    pub fn new_private_or_hidden_scoped(
         name: &str,
-        source: &S,
+        source: FieldSource,
         scope: FieldScope,
     ) -> Result<Self> {
         Self::verify_name(name)?;
@@ -74,7 +74,7 @@ impl RootFieldKey {
         Ok(Self(format!(
             "{}{}_{}",
             scope_prefix,
-            source.unique_id()?,
+            source.unique_id(),
             name
         )))
     }

@@ -6,17 +6,16 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
-use stateful::agent::AgentSchema;
+use stateful::{agent::AgentSchema, field::PackageId};
 use tracing::Span;
 
 use crate::{
     config::{EngineConfig, Globals},
-    datastore::{schema::EngineComponent, shared_store::SharedStore},
+    datastore::shared_store::SharedStore,
     language::Language,
     proto::{ExperimentId, SimulationShortId},
     simulation::{
-        enum_dispatch::TaskSharedStore,
-        package::{id::PackageId, worker_init::PackageInitMsgForWorker},
+        enum_dispatch::TaskSharedStore, package::worker_init::PackageInitMsgForWorker,
         task::msg::TaskMessage,
     },
     types::{TaskId, WorkerIndex},
@@ -192,7 +191,7 @@ pub struct NewSimulationRun {
 
 #[derive(derive_new::new, Clone)]
 pub struct DatastoreSimulationPayload {
-    pub agent_batch_schema: Arc<AgentSchema<EngineComponent>>,
+    pub agent_batch_schema: Arc<AgentSchema>,
     pub message_batch_schema: Arc<Schema>,
     pub context_batch_schema: Arc<Schema>,
     pub shared_store: Arc<SharedStore>,

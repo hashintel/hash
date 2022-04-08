@@ -3,16 +3,16 @@ use std::collections::HashMap;
 use arrow::datatypes::{DataType, Field, Schema};
 use stateful::{
     agent::AgentStateField,
-    field::{FieldScope, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpecCreator},
+    field::{
+        FieldScope, FieldSource, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpecCreator,
+    },
 };
 
-use crate::datastore::{
-    error::Result, schema::EngineComponent, test_utils::root_field_spec_from_agent_field,
-};
+use crate::datastore::{error::Result, test_utils::root_field_spec_from_agent_field};
 
 #[test]
 fn get_schema() -> Result<()> {
-    let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+    let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
     let mut field_spec_map = FieldSpecMap::empty();
 
     field_spec_map.try_extend([field_spec_creator.create(

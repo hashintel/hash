@@ -21,10 +21,7 @@ pub use self::{
 };
 use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
-    datastore::{
-        schema::EngineComponent,
-        table::{context::Context, pool::BatchPool, state::State},
-    },
+    datastore::table::{context::Context, pool::BatchPool, state::State},
     experiment::SimPackageArgs,
     proto::ExperimentRunTrait,
     simulation::{
@@ -51,7 +48,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        accessor: FieldSpecMapAccessor<EngineComponent>,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and
         // make this unnecessary

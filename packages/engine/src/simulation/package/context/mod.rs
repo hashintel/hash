@@ -11,7 +11,7 @@ pub use self::packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS
 use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::{
-        schema::{context::ContextSchema, EngineComponent},
+        schema::context::ContextSchema,
         table::{proxy::StateReadProxy, state::view::StateSnapshot},
         Result as DatastoreResult,
     },
@@ -59,8 +59,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         config: &Arc<SimRunConfig>,
         system: PackageComms,
-        state_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
-        context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+        state_field_spec_accessor: FieldSpecMapAccessor,
+        context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
     fn dependencies() -> Dependencies
@@ -76,8 +76,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
-    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+        _field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![])
     }
 
@@ -85,8 +85,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
-    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+        _field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![])
     }
 }

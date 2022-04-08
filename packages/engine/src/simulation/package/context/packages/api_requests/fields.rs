@@ -2,10 +2,7 @@ use stateful::field::{
     FieldScope, FieldSpec, FieldType, FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
 };
 
-use crate::{
-    datastore::schema::EngineComponent,
-    simulation::package::context::packages::api_requests::Result,
-};
+use crate::simulation::package::context::packages::api_requests::Result;
 
 pub(super) const FROM_FIELD_NAME: &str = "from";
 pub(super) const TYPE_FIELD_NAME: &str = "type";
@@ -38,8 +35,8 @@ fn api_responses() -> FieldType {
 }
 
 pub(super) fn get_api_responses_field_spec(
-    field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
-) -> Result<RootFieldSpec<EngineComponent>> {
+    field_spec_creator: &RootFieldSpecCreator,
+) -> Result<RootFieldSpec> {
     let api_responses = api_responses();
     Ok(field_spec_creator.create(
         API_RESPONSES_FIELD_NAME.into(),
