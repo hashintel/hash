@@ -15,11 +15,12 @@ export type Config = {
 export type TaskExecutor = ReturnType<typeof connectToTaskExecutor> &
   DataSource;
 
-// A pretty dumb method at the moment, but provides a clean boundary where we can slot in logic for a more complex task-execution mechanism later on
+
 /**
- *
  * @param config The connection config for connecting to the Task-Executor
  * @returns a connection object with a run_task method
+ *
+ * Note: a pretty dumb method at the moment, but provides a clean boundary where we can slot in logic for a more complex task-execution mechanism later on
  */
 export const connectToTaskExecutor = (config: Config) => {
   return {
