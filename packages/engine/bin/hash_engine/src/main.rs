@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
         .await
         .wrap_err("Could not run experiment");
 
-    cleanup_experiment(&args.experiment_id).wrap_err("Could not cleanup shared memory")?;
+    cleanup_experiment(&args.experiment_id).wrap_err("Could not cleanup experiment")?;
 
     experiment_result
 }
