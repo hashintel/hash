@@ -12,7 +12,8 @@ const BlogPostPage: NextPage = () => {
         <title>Holding down the fort – HASH for Developers</title>
       </Head>
       <Box pt={8}>
-        <Box position="relative">
+        {/** @todo check these spacings */}
+        <Box position="relative" mb={{ xs: 9.25, md: 15.5 }}>
           <Container>
             <Box
               sx={[
@@ -91,6 +92,14 @@ const BlogPostPage: NextPage = () => {
           </Container>
         </Box>
       </Box>
+      <Container>
+        <Typography component="p">
+          The computer only knows you've added a bunch of &lt;p&gt; tags to a
+          page, but doesn't understand the contents or shape of what you've
+          written inside (at least without any fancy natural language
+          processing).
+        </Typography>
+      </Container>
     </>
   );
 };
