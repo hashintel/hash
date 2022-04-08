@@ -8,12 +8,13 @@ use stateful::{
         FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
         RootFieldSpec, RootFieldSpecCreator,
     },
+    globals::Globals,
 };
 use uuid::Uuid;
 
 use crate::{
     config::{
-        EngineConfig, ExperimentConfig, Globals, PackageConfig, PersistenceConfig, SimRunConfig,
+        EngineConfig, ExperimentConfig, PackageConfig, PersistenceConfig, SimRunConfig,
         SimulationConfig, StoreConfig, WorkerPoolConfig,
     },
     datastore::{error::Error, schema::last_state_index_key},
@@ -261,7 +262,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         id: Uuid::new_v4(),
         project_base,
     };
-    let globals: Globals = Default::default();
+    let globals = Globals::default();
 
     let exp_config = Arc::new(ExperimentConfig {
         packages: Arc::new(PackageConfig {

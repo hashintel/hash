@@ -9,10 +9,11 @@ pub use packages::{InitTask, InitTaskMessage, Name, PACKAGE_CREATORS};
 use stateful::{
     agent::Agent,
     field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
 };
 
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
+    config::{ExperimentConfig, SimRunConfig},
     simulation::{
         comms::package::PackageComms,
         package::{

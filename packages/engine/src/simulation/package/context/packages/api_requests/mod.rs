@@ -7,13 +7,16 @@ use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
-use stateful::field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
+use stateful::{
+    field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
+};
 use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
-    config::{ExperimentConfig, Globals},
+    config::ExperimentConfig,
     datastore::{
         batch::iterators,
         table::pool::{message, BatchPool},

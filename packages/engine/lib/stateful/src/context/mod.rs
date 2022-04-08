@@ -1,11 +1,9 @@
+// TODO: DOC: Add module level docs for describing the high level concept of the context, what they
+//   are and why they exist
+
 use serde::Serialize;
-use stateful::agent::Agent;
 
-use crate::{config::Globals, hash_types::message::Incoming};
-
-#[allow(clippy::module_name_repetitions)]
-pub type SimulationState = Vec<Agent>;
-pub type DatasetMap = serde_json::Map<String, serde_json::Value>;
+use crate::{agent::Agent, dataset::DatasetMap, globals::Globals, message::Inbound};
 
 /// The context is global, consistent data about the simulation at a single point in time, which is
 /// shared between all agents.
@@ -23,6 +21,6 @@ pub type DatasetMap = serde_json::Map<String, serde_json::Value>;
 pub struct Context<'a> {
     pub globals: &'a Globals,
     pub neighbors: Vec<&'a Agent>,
-    pub messages: Vec<&'a Incoming>,
+    pub messages: Vec<&'a Inbound>,
     pub datasets: &'a DatasetMap,
 }

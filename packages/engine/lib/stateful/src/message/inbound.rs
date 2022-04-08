@@ -1,19 +1,15 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
-use stateful::message;
 
-// TODO: UNUSED: Needs triage
-pub type Map = HashMap<String, Vec<Incoming>>;
+use crate::message;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Incoming {
+pub struct Inbound {
     pub from: String,
     #[serde(flatten)]
     pub message: message::Outbound,
 }
 
-impl Incoming {
+impl Inbound {
     // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn r#type(&self) -> String {
@@ -38,7 +34,7 @@ impl Incoming {
 
 #[cfg(test)]
 mod tests {
-    use stateful::{agent::Agent, message, Result};
+    use crate::{agent::Agent, message, Result};
 
     #[test]
     // the goal of this test is to check whether or not 'remove_agent' messages automatically

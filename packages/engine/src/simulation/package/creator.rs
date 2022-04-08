@@ -6,10 +6,11 @@ use stateful::{
         FieldScope, FieldSource, FieldSpecMap, FieldSpecMapAccessor, FieldType, PackageId,
         RootFieldSpec, RootFieldSpecCreator,
     },
+    globals::Globals,
 };
 
 use crate::{
-    config::{ExperimentConfig, Globals, PackageConfig, SimRunConfig},
+    config::{ExperimentConfig, PackageConfig, SimRunConfig},
     datastore::schema::{context::ContextSchema, last_state_index_key},
     simulation::{
         comms::{package::PackageComms, Comms},
