@@ -1,9 +1,7 @@
+use stateful::agent::Agent;
 use thiserror::Error as ThisError;
 
-use crate::{
-    datastore::table::task_shared_store::{SharedContext, SharedState},
-    hash_types::Agent,
-};
+use crate::datastore::table::task_shared_store::{SharedContext, SharedState};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -14,6 +12,9 @@ pub enum Error {
 
     #[error("Memory Error: {0}")]
     Memory(#[from] memory::Error),
+
+    #[error("Stateful error: {0}")]
+    Stateful(#[from] stateful::Error),
 
     #[error("Env error: {0}")]
     Env(#[from] crate::env::Error),

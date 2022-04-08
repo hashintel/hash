@@ -1,7 +1,5 @@
 use std::error::Error as StdError;
 
-use crate::hash_types::message;
-
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug)]
@@ -9,13 +7,10 @@ pub enum Error {
     Thread,
     Message(String),
     Inner(Box<dyn StdError + Send + Sync + 'static>),
-
-    // more specialized errors
-    OutboundMessageParse(message::Error),
     UnknownBehavior(String),
 }
 
-use Error::{Inner, Message, OutboundMessageParse, Thread, UnknownBehavior};
+use Error::{Inner, Message, Thread, UnknownBehavior};
 
 impl Error {
     // TODO: UNUSED: Needs triage
@@ -30,7 +25,6 @@ impl std::fmt::Display for Error {
         match self {
             Thread => write!(f, "Thread error"),
             Message(msg) => write!(f, "Simulation error: {}", msg),
-            OutboundMessageParse(err) => write!(f, "{}", err),
             UnknownBehavior(behavior_name) => write!(f, "Unknown behavior '{}'", behavior_name),
             Inner(err) => write!(f, "Simulation error: {}", err),
         }
@@ -40,17 +34,10 @@ impl std::fmt::Display for Error {
 impl StdError for Error {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
-            OutboundMessageParse(message::Error::UnknownSerdeError(err)) => Some(err),
-            Thread | Message(_) | OutboundMessageParse(_) | UnknownBehavior(_) => None,
+            Thread | Message(_) | UnknownBehavior(_) => None,
             // dereference twice because err is a reference to a box
             Inner(err) => Some(&**err),
         }
-    }
-}
-
-impl From<message::Error> for Error {
-    fn from(err: message::Error) -> Error {
-        OutboundMessageParse(err)
     }
 }
 

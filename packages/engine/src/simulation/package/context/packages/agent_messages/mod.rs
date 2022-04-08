@@ -6,22 +6,20 @@ mod writer;
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
 use tracing::Span;
 
 use self::collected::Messages;
 use crate::{
     config::ExperimentConfig,
-    datastore::{
-        batch::iterators,
-        schema::{accessor::GetFieldSpec, RootFieldSpec},
-    },
+    datastore::{batch::iterators, schema::EngineComponent},
     simulation::{
         comms::package::PackageComms,
         package::context::{
             packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextColumn,
-            ContextSchema, FieldKey, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, Globals, MaybeCpuBound, Package as ContextPackage, Package,
-            PackageCreator, RootFieldSpecCreator, SimRunConfig, StateReadProxy, StateSnapshot,
+            ContextSchema, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
+            Globals, MaybeCpuBound, Package as ContextPackage, Package, PackageCreator,
+            SimRunConfig, StateReadProxy, StateSnapshot,
         },
         Result,
     },
@@ -44,8 +42,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _state_field_spec_accessor: FieldSpecMapAccessor,
-        context_field_spec_accessor: FieldSpecMapAccessor,
+        _state_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+        context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn ContextPackage>> {
         Ok(Box::new(AgentMessages {
             context_field_spec_accessor,
@@ -56,8 +54,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![fields::get_messages_field_spec(field_spec_creator)?])
     }
 }
@@ -69,7 +67,7 @@ impl GetWorkerExpStartMsg for Creator {
 }
 
 struct AgentMessages {
-    context_field_spec_accessor: FieldSpecMapAccessor,
+    context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
 }
 
 impl MaybeCpuBound for AgentMessages {
@@ -104,7 +102,7 @@ impl Package for AgentMessages {
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
 
         Ok(vec![ContextColumn {
             field_key,
@@ -117,7 +115,7 @@ impl Package for AgentMessages {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
         let loc_builder = FixedSizeListBuilder::new(index_builder, 3);
         let mut messages_builder = ListBuilder::new(loc_builder);
@@ -127,7 +125,7 @@ impl Package for AgentMessages {
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
 
         Ok(vec![(field_key, Arc::new(messages_builder.finish()))])
     }

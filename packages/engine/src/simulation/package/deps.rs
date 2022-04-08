@@ -80,7 +80,7 @@ impl PackageName {
     pub fn get_all_dependencies(&self) -> Result<Dependencies> {
         let mut merged = Dependencies::new();
         for dependency in self.get_dependencies()?.into_iter_deps() {
-            merged.add_dependency_with_ignore(dependency.clone())?;
+            merged.add_dependency_with_ignore(dependency)?;
             let deps = dependency.get_all_dependencies()?;
             for dep in deps.into_iter_deps() {
                 merged.add_dependency_with_ignore(dep)?;
@@ -159,6 +159,8 @@ pub mod tests {
             }),
             target_max_group_size: 100_000,
             base_globals: Default::default(),
+            js_runner_initial_heap_constraint: None,
+            js_runner_max_heap_size: None,
         });
         validate!(context, experiment_config, PackageName::Context);
         validate!(init, experiment_config, PackageName::Init);

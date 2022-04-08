@@ -226,7 +226,10 @@ export const Table: BlockComponent<AppProps> = ({
             data: results as TableData["data"],
             linkedAggregation: {
               ...tableData.linkedAggregation,
-              operation,
+              operation: {
+                ...linkedData.operation,
+                ...operation,
+              },
             },
           });
         })

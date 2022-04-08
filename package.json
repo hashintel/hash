@@ -2,6 +2,7 @@
   "private": true,
   "description": "HASH monorepo",
   "workspaces": [
+    "sites/dev",
     "packages/blocks/*",
     "packages/engine/apache-arrow-js-bundle",
     "packages/hash/api",
@@ -12,7 +13,8 @@
     "packages/hash/playwright",
     "packages/hash/realtime",
     "packages/hash/search-loader",
-    "packages/hash/shared"
+    "packages/hash/shared",
+    "packages/hash/task-executor"
   ],
   "scripts": {
     "codegen": "yarn workspace @hashintel/hash-api codegen && yarn workspace @hashintel/hash-frontend codegen && yarn workspace @hashintel/hash-integration codegen && yarn workspace @hashintel/hash-shared codegen",
@@ -56,7 +58,9 @@
     ]
   },
   "resolutions": {
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.6.7",
+    "prettier": "2.5.1",
+    "webpack": "^5"
   },
   "devDependencies": {
     "algoliasearch": "4.12.1",

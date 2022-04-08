@@ -1,40 +1,36 @@
 import { Box, Typography } from "@mui/material";
-import { NextPage } from "next";
-import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
+import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
 import { useRouteAccountInfo } from "../../shared/routing";
 
-export const AccountHome: NextPage = () => {
+const Page: NextPageWithLayout = () => {
   const { user } = useUser();
   const { data: orgs } = useOrgs();
   const { accountId } = useRouteAccountInfo();
 
   if (!user) {
     return (
-      <MainContentWrapper>
-        <h2>
-          You must be{" "}
-          <Link href="/login" noLinkStyle>
-            <Box
-              component="strong"
-              sx={{
-                paddingBottom: "3px",
-                borderBottom: `3px solid transparent`,
+      <h2>
+        You must be{" "}
+        <Link href="/login" noLinkStyle>
+          <Box
+            component="strong"
+            sx={{
+              paddingBottom: "3px",
+              borderBottom: `3px solid transparent`,
 
-                "&:hover": {
-                  borderBottom: ({ palette }) =>
-                    `3px solid ${palette.blue[70]}`,
-                },
-              }}
-            >
-              logged in
-            </Box>
-          </Link>{" "}
-          to access this workspace.
-        </h2>
-      </MainContentWrapper>
+              "&:hover": {
+                borderBottom: ({ palette }) => `3px solid ${palette.blue[70]}`,
+              },
+            }}
+          >
+            logged in
+          </Box>
+        </Link>{" "}
+        to access this workspace.
+      </h2>
     );
   }
 
@@ -46,16 +42,14 @@ export const AccountHome: NextPage = () => {
 
   if (!ownWorkspace && !thisOrg) {
     return (
-      <MainContentWrapper>
-        <h2>This workspace does not exist or you do not have access to it.</h2>
-      </MainContentWrapper>
+      <h2>This workspace does not exist or you do not have access to it.</h2>
     );
   }
 
   const workspaceName = ownWorkspace ? "your" : `${thisOrg!.name}'s`;
 
   return (
-    <MainContentWrapper>
+    <>
       <Box component="header" mt={1.5}>
         <Typography mb={2} variant="h1">
           Hi, {user.properties.preferredName}!
@@ -67,8 +61,10 @@ export const AccountHome: NextPage = () => {
       <Typography>
         Please select a page from the list, or create a new page.
       </Typography>
-    </MainContentWrapper>
+    </>
   );
 };
 
-export default AccountHome;
+Page.getLayout = getLayoutWithSidebar;
+
+export default Page;

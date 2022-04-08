@@ -7,6 +7,7 @@ use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
+use stateful::field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
 use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
@@ -15,17 +16,16 @@ use crate::{
     config::{ExperimentConfig, Globals},
     datastore::{
         batch::iterators,
-        schema::{accessor::GetFieldSpec, FieldKey},
-        table::pool::BatchPool,
+        schema::EngineComponent,
+        table::pool::{message, BatchPool},
     },
     simulation::{
         comms::package::PackageComms,
         package::context::{
             packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextColumn,
-            ContextSchema, Error, FieldSpec, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, MaybeCpuBound, Package, Package as ContextPackage,
-            PackageCreator, RootFieldSpec, RootFieldSpecCreator, SimRunConfig, StateReadProxy,
-            StateSnapshot,
+            ContextSchema, Error, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
+            MaybeCpuBound, Package, Package as ContextPackage, PackageCreator, SimRunConfig,
+            StateReadProxy, StateSnapshot,
         },
         Result,
     },
@@ -44,8 +44,8 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _state_field_spec_accessor: FieldSpecMapAccessor,
-        context_field_spec_accessor: FieldSpecMapAccessor,
+        _state_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+        context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn ContextPackage>> {
         let custom_message_handlers = custom_message_handlers_from_globals(&config.sim.globals)?;
         Ok(Box::new(ApiRequests {
@@ -58,8 +58,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![fields::get_api_responses_field_spec(
             field_spec_creator,
         )?])
@@ -74,7 +74,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 struct ApiRequests {
     custom_message_handlers: Option<Vec<String>>,
-    context_field_spec_accessor: FieldSpecMapAccessor,
+    context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
 }
 
 impl MaybeCpuBound for ApiRequests {
@@ -127,7 +127,7 @@ impl Package for ApiRequests {
         let field_key = self
             .context_field_spec_accessor
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
 
         Ok(vec![ContextColumn {
             field_key,
@@ -140,7 +140,7 @@ impl Package for ApiRequests {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
         let from_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let type_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let data_builder = Box::new(arrow::array::StringBuilder::new(1024));
@@ -148,7 +148,7 @@ impl Package for ApiRequests {
         let field_key = self
             .context_field_spec_accessor
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
         let arrow_fields = context_schema
             .arrow
             .field_with_name(field_key.value())
@@ -205,7 +205,7 @@ async fn build_api_response_maps(
     let mut futs = FuturesOrdered::new();
     {
         let message_proxies = &snapshot.state.message_pool.read_proxies()?;
-        let reader = message_proxies.get_reader()?;
+        let reader = message::get_reader(message_proxies)?;
 
         handlers.iter().try_for_each::<_, Result<()>>(|handler| {
             let messages = snapshot.message_map.get_msg_refs(handler);

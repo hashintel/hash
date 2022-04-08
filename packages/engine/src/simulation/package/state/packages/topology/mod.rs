@@ -1,17 +1,18 @@
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::field::{RootFieldSpec, RootFieldSpecCreator};
 
 use crate::{
     config::{ExperimentConfig, TopologyConfig},
     datastore::{
         batch::{iterators::record_batch::topology_mut_iter, AgentBatch},
+        schema::EngineComponent,
         table::{context::Context, pool::BatchPool, state::State},
     },
     simulation::{
         package::state::{
             Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals,
-            Package, PackageComms, PackageCreator, RootFieldSpec, RootFieldSpecCreator,
-            SimRunConfig, Span,
+            Package, PackageComms, PackageCreator, SimRunConfig, Span,
         },
         Result,
     },
@@ -37,7 +38,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _accessor: FieldSpecMapAccessor,
+        _accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn Package>> {
         let topology = Topology {
             config: Arc::new(TopologyConfig::from_globals(&config.sim.globals)?),
@@ -49,8 +50,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![fields::get_pos_corrected_field_spec(
             field_spec_creator,
         )?])

@@ -18,4 +18,6 @@ impl Default for SpawnConfig {
 #[derive(Debug, Default, Clone)]
 pub struct Config {
     pub spawn: SpawnConfig,
+    pub js_runner_initial_heap_constraint: Option<usize>,
+    pub js_runner_max_heap_size: Option<usize>,
 }
