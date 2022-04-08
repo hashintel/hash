@@ -15,7 +15,6 @@ export type Config = {
 export type TaskExecutor = ReturnType<typeof connectToTaskExecutor> &
   DataSource;
 
-
 /**
  * @param config The connection config for connecting to the Task-Executor
  * @returns a connection object with a run_task method
