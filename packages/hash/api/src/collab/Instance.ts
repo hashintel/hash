@@ -1,6 +1,6 @@
 import { ApolloClient } from "@apollo/client";
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
-import { CollabPosition } from "@hashintel/hash-shared/collab";
+import { CollabPosition, DocumentChange } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import {
   BlockEntity,
@@ -69,12 +69,39 @@ type ActionUpdate = {
 
 type Update = StepUpdate | StoreUpdate | ActionUpdate;
 
+const updatesToDocumentUpdate = (
+  updates: Update[],
+  clientIds: WeakMap<Step, string>,
+): DocumentChange => {
+  const steps = updates
+    .filter((update): update is StepUpdate => update.type === "step")
+    .map((update) => update.payload);
+
+  const store =
+    [...updates]
+      .reverse()
+      .find((update): update is StoreUpdate => update.type === "store")
+      ?.payload ?? null;
+
+  const actions = updates
+    .filter((update): update is ActionUpdate => update.type === "action")
+    .map((update) => update.payload);
+
+  return {
+    steps,
+    // not the best assertions here
+    clientIDs: steps.map((step) => clientIds.get(step)!),
+    store: store!,
+    actions,
+  };
+};
+
 /**
  * Subscription manages the life-time of a subscription to *something*
  */
 export type Subscription = {
   oneshot: boolean;
-  notify: () => void;
+  notify: (update: DocumentChange) => void;
 };
 
 // A collaborative editing document instance.
@@ -135,7 +162,7 @@ export class Instance {
     }
 
     this.stopped = true;
-    this.sendUpdates();
+    this.sendUpdates([]);
 
     clearInterval(this.positionCleanupInterval);
 
@@ -167,7 +194,7 @@ export class Instance {
 
     this.errored = true;
     this.updates = [];
-    this.sendUpdates();
+    this.sendUpdates([]);
     this.stop();
   }
 
@@ -311,7 +338,6 @@ export class Instance {
         payload: entityStorePluginState(this.state).store,
       },
     ]);
-    this.sendUpdates();
   }
 
   addEvents =
@@ -353,13 +379,15 @@ export class Instance {
 
         this.state = this.state.apply(tr);
 
-        this.addUpdates(steps.map((step) => ({ type: "step", payload: step })));
+        const updates: Update[] = [
+          ...steps.map((step) => ({ type: "step" as const, payload: step })),
+          ...actions.map((action) => ({
+            type: "action" as const,
+            payload: action,
+          })),
+        ];
 
-        for (const action of actions) {
-          this.addUpdates([{ type: "action", payload: action }]);
-        }
-
-        this.sendUpdates();
+        this.addUpdates(updates);
 
         if (apolloClient) {
           // @todo offload saves to a separate process / debounce them
@@ -560,22 +588,30 @@ export class Instance {
       }
     };
 
-  waitForUpdate(callback: () => void) {
+  waitForUpdate(notify: () => void) {
     this.subscriptions.push({
       oneshot: true,
-      notify: callback,
+      notify,
     });
   }
-  // subscribe(callback)
 
-  private sendUpdates() {
+  subscribe(notify: Subscription["notify"]) {
+    this.subscriptions.push({
+      oneshot: false,
+      notify,
+    });
+  }
+
+  private sendUpdates(updates: Update[]) {
+    const documentChange = updatesToDocumentUpdate(updates, this.clientIds);
+
     // Race condition here.
     // if a new user were to join as this mapping was happening,
     // they wouldn't be added as a subscriber.
     this.subscriptions = this.subscriptions.flatMap((sub) => {
       // If the Subscription for whatever reason fails, remove it as a subscriber.
       try {
-        sub.notify();
+        sub.notify(documentChange);
       } catch (_err) {
         // eslint-disable-next-line no-param-reassign
         sub.oneshot = true;
@@ -614,27 +650,8 @@ export class Instance {
       if (startIndex < 0) return false;
 
       const updates = this.updates.slice(startIndex);
-      const steps = updates
-        .filter((update): update is StepUpdate => update.type === "step")
-        .map((update) => update.payload);
-
-      const store =
-        [...updates]
-          .reverse()
-          .find((update): update is StoreUpdate => update.type === "store")
-          ?.payload ?? null;
-
-      const actions = updates
-        .filter((update): update is ActionUpdate => update.type === "action")
-        .map((update) => update.payload);
-
-      return {
-        steps,
-        clientIDs: steps.map((step) => this.clientIds.get(step)),
-        store,
-        actions,
-        shouldRespondImmediately: updates.length > 0,
-      };
+      const result = updatesToDocumentUpdate(updates, this.clientIds);
+      return { ...result, shouldRespondImmediately: updates.length > 0 };
     } catch (err) {
       this.error(err);
       return false;
@@ -751,6 +768,8 @@ export class Instance {
     if (this.updates.length > MAX_STEP_HISTORY) {
       this.updates = this.updates.slice(this.updates.length - MAX_STEP_HISTORY);
     }
+
+    this.sendUpdates(updates);
   }
 }
 

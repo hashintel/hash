@@ -1,7 +1,15 @@
 import { EntityStore } from "./entityStore";
 import { EntityStorePluginAction } from "./entityStorePlugin";
 
-type ProsemirrorJson = { [key: string]: any };
+export type ProsemirrorJson = { [key: string]: any };
+export type ClientId = string | number;
+
+export type DocumentChange = {
+  steps: ProsemirrorJson[];
+  clientIDs: ClientId[];
+  store: EntityStore;
+  actions: EntityStorePluginAction[];
+};
 
 /**
  * Represents user position within a page, sent to collab clients
@@ -28,7 +36,16 @@ export type InitialDocumentEvent = {
   version: number;
 };
 
-export type ServerEvent = ErrorEvent | InitialDocumentEvent;
+export const DOCUMENT_UPDATED = "documentUpdated" as const;
+export type DocumentUpdatedEvent = {
+  type: typeof DOCUMENT_UPDATED;
+  version: number;
+} & DocumentChange;
+
+export type ServerEvent =
+  | ErrorEvent
+  | InitialDocumentEvent
+  | DocumentUpdatedEvent;
 
 // Client action are requests that the user sends to the server
 export const UPDATE_DOCUMENT = "updateDocument" as const;
@@ -36,7 +53,7 @@ export type UpdateAction = {
   type: typeof UPDATE_DOCUMENT;
   version: number;
   steps: ProsemirrorJson[];
-  clientId: string | number;
+  clientId: ClientId;
   blockIds: string[];
   actions: EntityStorePluginAction[];
 };

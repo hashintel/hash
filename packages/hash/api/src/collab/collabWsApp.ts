@@ -7,6 +7,8 @@ import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import {
   checkInitialConnectionDataValues,
+  DocumentChange,
+  DOCUMENT_UPDATED,
   InitialConnectionData,
   INITIAL_DOCUMENT,
   parseVersion,
@@ -153,7 +155,7 @@ const prepareSessionSupportWithInstance = async (
  */
 const initializeCollabSession = async (
   connection: Connection,
-): Promise<boolean> => {
+): Promise<Instance | null> => {
   const { socket } = connection;
 
   try {
@@ -174,12 +176,11 @@ const initializeCollabSession = async (
         version: instance.version,
       });
     }
+    return instance;
   } catch (error) {
     emitServerError(socket, error);
-    return false;
+    return null;
   }
-
-  return true;
 };
 
 const handleUpdateDocument = async (
@@ -248,9 +249,18 @@ export const createCollabWsApp = async (
 
     // Initializing the session will also emit the initial document to the user
     // over the socket.
-    if (!(await initializeCollabSession(connection))) {
+    const instance = await initializeCollabSession(connection);
+    if (!instance) {
       return;
     }
+
+    instance.subscribe((document: DocumentChange) => {
+      emitServerEvent(socket, {
+        type: DOCUMENT_UPDATED,
+        version: instance.version,
+        ...document,
+      });
+    });
 
     // Collaborators are identified by a room, which is constructed as accountId:pageEntityId
     // these rooms will allow us to push events to all participants, simplifying routing.
