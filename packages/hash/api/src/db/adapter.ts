@@ -61,7 +61,23 @@ export type EntityWithOutgoingEntityIds = DbEntity & {
 export type DbLink = {
   linkId: string;
   linkVersionId: string;
+
+  /**
+   * Path into the source entity's properties.
+   *
+   * @example
+   * "$.contents"
+   * "$.parentPage"
+   */
   path: string;
+
+  /**
+   * Defines order between multiple link entities.
+   *
+   * @todo: consider using a fractional index so we don't need to update
+   * multiple links when re-ordering. Then occasionally, you can do a re-balance
+   * when re-ordering between two items with too low of a distance.
+   */
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
@@ -73,7 +89,13 @@ export type DbLink = {
   removedFromSourceByAccountId?: string;
 
   destinationAccountId: string;
+
   destinationEntityId: string;
+
+  /**
+   * Optional way to pin the link to a specific
+   * version of the destination entity.
+   */
   destinationEntityVersionId?: string;
 
   updatedAt: Date;
@@ -448,6 +470,7 @@ export interface DbClient {
     sourceEntityVersionIds: Set<string>;
     destinationAccountId: string;
     destinationEntityId: string;
+    /** See docs for {@link DbLink.destinationEntityVersionId} */
     destinationEntityVersionId?: string;
   }): Promise<DbLink>;
 
