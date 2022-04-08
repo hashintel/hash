@@ -73,3 +73,10 @@ export const checkInitialConnectionDataValues = (
   const _ = assertInitialValues(values);
   return values;
 };
+
+export const parseVersion = (rawValue: any) => {
+  const num = Number(rawValue);
+  if (!Number.isNaN(num) && Math.floor(num) === num && num >= 0) return num;
+
+  throw new Error(`Invalid version ${rawValue}`);
+};

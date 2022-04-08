@@ -9,8 +9,11 @@ import {
   checkInitialConnectionDataValues,
   InitialConnectionData,
   INITIAL_DOCUMENT,
+  parseVersion,
   ServerEvent,
   SERVER_ERROR,
+  UpdateAction,
+  UPDATE_DOCUMENT,
 } from "@hashintel/hash-shared/collab";
 import { Server as HttpServer } from "http";
 import { Server as SocketIoServer, Socket } from "socket.io";
@@ -26,7 +29,7 @@ import { EntityWatcher } from "./EntityWatcher";
 const roomFromInitialConnectionData = (data: InitialConnectionData) =>
   `${data.accountId}:${data.pageEntityId}`;
 
-const emitServerAction = (socket: Socket, action: ServerEvent) => {
+const emitServerEvent = (socket: Socket, action: ServerEvent) => {
   socket.emit(action.type, action);
 };
 
@@ -37,7 +40,7 @@ const emitServerError = (socket: Socket, error: unknown): void => {
   } else if (typeof error === "string") {
     errorMessage = error;
   }
-  emitServerAction(socket, { type: SERVER_ERROR, error: errorMessage });
+  emitServerEvent(socket, { type: SERVER_ERROR, error: errorMessage });
   socket.disconnect();
 };
 
@@ -164,7 +167,7 @@ const initializeCollabSession = async (
     if (instance.errored) {
       emitServerError(socket, "Collab instance is erroring.");
     } else {
-      emitServerAction(socket, {
+      emitServerEvent(socket, {
         type: INITIAL_DOCUMENT,
         doc: instance.state.doc.toJSON(),
         store: entityStorePluginState(instance.state).store,
@@ -177,6 +180,46 @@ const initializeCollabSession = async (
   }
 
   return true;
+};
+
+const handleUpdateDocument = async (
+  connection: Connection,
+  data: UpdateAction,
+  callback: (...args: any[]) => void,
+): Promise<void> => {
+  const { socket } = connection;
+
+  try {
+    const { apolloClient, instance } = await prepareSessionSupportWithInstance(
+      connection,
+    );
+
+    if (instance.errored) {
+      emitServerError(socket, "Collab instance is erroring.");
+    }
+
+    const version = parseVersion(data.version);
+
+    const result = await instance.addJsonEvents(apolloClient)(
+      version,
+      data.steps,
+      `${data.clientId}`,
+      data.blockIds,
+      // @todo these need to be validated
+      data.actions,
+    );
+    if (!result) {
+      if (instance.errored) {
+        emitServerError(socket, "Collab instance is erroring.");
+      } else {
+        emitServerError(socket, "Version not current.");
+      }
+    } else {
+      callback(result);
+    }
+  } catch (error) {
+    emitServerError(socket, error);
+  }
 };
 
 export const createCollabWsApp = async (
@@ -214,6 +257,12 @@ export const createCollabWsApp = async (
     socket.join(roomFromInitialConnectionData(initialConnectionData));
 
     logger.info("User in rooms:", [...socket.rooms]);
+
+    socket.on(
+      UPDATE_DOCUMENT,
+      async (data: UpdateAction, callback: (...args: any[]) => void) =>
+        await handleUpdateDocument(connection, data, callback),
+    );
   });
 
   return io;
