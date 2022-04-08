@@ -23,6 +23,7 @@ import {
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
 import { createCollabApp } from "./collab/collabApp";
+import { createCollabWsApp } from "./collab/collabWsApp";
 import { PostgresAdapter, setupCronJobs } from "./db";
 import {
   AwsSesEmailTransporter,
@@ -248,6 +249,9 @@ const main = async () => {
   const collabApp = await createCollabApp(collabRedisQueue);
   shutdown.addCleanup("collabApp", async () => collabApp.stop());
   app.use("/collab-backend", collabApp.router);
+
+  const collabWsApp = createCollabWsApp(httpServer, collabRedisQueue);
+  shutdown.addCleanup("collabWs", async () => (await collabWsApp).close());
 
   // Start the HTTP server
   await new Promise<void>((resolve) => {

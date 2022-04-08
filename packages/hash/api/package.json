@@ -69,6 +69,7 @@
     "redis": "3.1.2",
     "rword": "3.2.0",
     "slonik": "24.1.2",
+    "socket.io": "4.4.1",
     "ts-node": "10.4.0",
     "typescript": "4.6.2",
     "ua-parser-js": "1.0.2"
