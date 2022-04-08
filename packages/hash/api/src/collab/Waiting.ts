@@ -17,14 +17,12 @@ export class Waiting {
     this.userId = userId;
     this.finish = finish;
     resp.setTimeout(1000 * 60 * 5, () => {
-      this.abort();
       this.send({});
     });
   }
 
   abort() {
-    const found = this.inst.waiting.indexOf(this);
-    if (found > -1) this.inst.waiting.splice(found, 1);
+    this.send({});
   }
 
   send(data: any, status = 200) {

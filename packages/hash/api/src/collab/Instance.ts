@@ -40,7 +40,6 @@ import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
 import { CollabPositionPoller, TimedCollabPosition } from "./types";
-import { Waiting } from "./Waiting";
 
 const MAX_STEP_HISTORY = 10000;
 
@@ -70,12 +69,22 @@ type ActionUpdate = {
 
 type Update = StepUpdate | StoreUpdate | ActionUpdate;
 
+/**
+ * Subscription manages the life-time of a subscription to *something*
+ */
+export type Subscription = {
+  oneshot: boolean;
+  notify: () => void;
+};
+
 // A collaborative editing document instance.
 export class Instance {
   // The version number of the document instance.
   version = 0;
   lastActive = Date.now();
-  waiting: Waiting[] = [];
+  // Subscriptions for the current instance
+  subscriptions: Subscription[] = [];
+  // waiting: Waiting[] = [];
   saveChain = Promise.resolve();
   clientIds = new WeakMap<Step, string>();
 
@@ -551,8 +560,34 @@ export class Instance {
       }
     };
 
+  waitForUpdate(callback: () => void) {
+    this.subscriptions.push({
+      oneshot: true,
+      notify: callback,
+    });
+  }
+  // subscribe(callback)
+
   private sendUpdates() {
-    while (this.waiting.length) this.waiting.pop()?.finish();
+    // Race condition here.
+    // if a new user were to join as this mapping was happening,
+    // they wouldn't be added as a subscriber.
+    this.subscriptions = this.subscriptions.flatMap((sub) => {
+      // If the Subscription for whatever reason fails, remove it as a subscriber.
+      try {
+        sub.notify();
+      } catch (_err) {
+        // eslint-disable-next-line no-param-reassign
+        sub.oneshot = true;
+      }
+
+      if (sub.oneshot) {
+        return [];
+      } else {
+        return [sub];
+      }
+    });
+    // while (this.waiting.length) this.waiting.pop()?.finish();
   }
 
   // : (Number)

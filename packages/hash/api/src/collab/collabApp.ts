@@ -219,7 +219,8 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
             wait.send(formatGetEventsResponse(instance, events));
           }
         });
-        instance.waiting.push(wait);
+        instance.waitForUpdate(wait.finish);
+        // instance.waiting.push(wait);
         response.on("close", () => wait.abort());
       } catch (error) {
         next(error);
