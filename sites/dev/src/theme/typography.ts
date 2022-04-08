@@ -39,6 +39,9 @@ export const typography: ThemeOptions["typography"] = {
     fontWeight: 400,
     lineHeight: 1.75,
     color: customColors.gray[80],
+    // @todo check this against other uses
+    maxWidth: "65ch",
+    margin: "0 auto",
   },
   hashLargeText: {
     fontSize: "var(--step-1)",
