@@ -14,7 +14,35 @@ const BlogPostPage: NextPage = () => {
       <Box pt={8}>
         <Box position="relative">
           <Container>
-            <Box width="49.25%">
+            <Box
+              sx={[
+                {
+                  background: "black",
+                  aspectRatio: "654 / 445",
+                  width: "100%",
+                  position: "relative",
+                  borderRadius: 4,
+                  overflow: "hidden",
+                },
+                (theme) => ({
+                  [theme.breakpoints.up("md")]: {
+                    borderRadius: "4px 0 0 4px",
+                    position: "absolute",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    right: 0,
+                    width: "45vw",
+                    maxHeight: "100%",
+                  },
+                  [theme.breakpoints.down("md")]: {
+                    mb: 3,
+                  },
+                }),
+              ]}
+            >
+              <Image src="/temp.png" layout="fill" />
+            </Box>
+            <Box width={{ xs: 1, md: "49.25%" }}>
               <Typography variant="hashHeading1" mb={3}>
                 Holding down the fort: security and permissioning in block-based
                 systems
@@ -23,48 +51,44 @@ const BlogPostPage: NextPage = () => {
                 Chocolate sugar plum brownie cupcake chocolate bar toffee
                 brownie cake. Chocolate sugar plum brownie cupcake.
               </Typography>
-              <Stack
-                direction="row"
-                alignItems="center"
-                sx={{ fontSize: "var(--step--2)" }}
-              >
-                <Avatar>CK</Avatar>
-                <Stack ml={2} direction="column" flex={1} spacing={0.5}>
-                  <Typography variant="hashMediumCaps" color="purple.600">
-                    Chris Kingle
-                  </Typography>
-                  <Stack direction="row" alignItems="center">
+              <Stack direction={{ xs: "column", md: "row" }}>
+                <Typography
+                  variant="hashSmallText"
+                  fontStyle="italic"
+                  color="gray.80"
+                  order={{ xs: 0, md: 1 }}
+                  sx={[
+                    {
+                      order: 0,
+                    },
+                    (theme) => ({
+                      [theme.breakpoints.down("md")]: {
+                        mb: 3,
+                      },
+                      [theme.breakpoints.up("md")]: {
+                        order: 1,
+                        ml: "auto",
+                        alignSelf: "end",
+                      },
+                    }),
+                  ]}
+                >
+                  January 24th, 2022
+                </Typography>
+                <Stack direction="row">
+                  <Avatar>CK</Avatar>
+                  <Stack ml={2} direction="column" spacing={0.5}>
+                    <Typography variant="hashMediumCaps" color="purple.600">
+                      Chris Kingle
+                    </Typography>
                     <Typography variant="hashMediumCaps">
                       Platform Engineer at HASH
-                    </Typography>
-                    <Typography
-                      ml="auto"
-                      variant="hashSmallText"
-                      fontStyle="italic"
-                      color="gray.80"
-                    >
-                      January 24th, 2022
                     </Typography>
                   </Stack>
                 </Stack>
               </Stack>
             </Box>
           </Container>
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              transform: "translateY(-50%)",
-              right: 0,
-              width: "45%",
-              maxHeight: "100%",
-              background: "black",
-              aspectRatio: "654 / 445",
-              borderRadius: 4,
-            }}
-          >
-            <Image src="/temp.png" layout="fill" />
-          </Box>
         </Box>
       </Box>
     </>
