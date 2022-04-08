@@ -3,25 +3,34 @@ mod fields;
 mod indices;
 mod writer;
 
-use arrow::array::{FixedSizeListBuilder, ListBuilder};
+use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
+use async_trait::async_trait;
 use serde_json::Value;
+use stateful::{
+    field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
+};
 use tracing::Span;
 
 use self::collected::Messages;
-use super::super::*;
 use crate::{
-    datastore::{
-        batch::iterators,
-        schema::{accessor::GetFieldSpec, RootFieldSpec},
-    },
+    config::ExperimentConfig,
+    datastore::batch::iterators,
     simulation::{
         comms::package::PackageComms,
-        package::context::{packages::agent_messages::fields::MESSAGES_FIELD_NAME, Package},
+        package::context::{
+            packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextColumn,
+            ContextSchema, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
+            MaybeCpuBound, Package as ContextPackage, Package, PackageCreator, SimRunConfig,
+            StateReadProxy, StateSnapshot,
+        },
+        Result,
     },
 };
 
 const CPU_BOUND: bool = true;
 pub const MESSAGE_INDEX_COUNT: usize = 3;
+
 pub type IndexType = u32;
 pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
@@ -96,7 +105,7 @@ impl Package for AgentMessages {
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
 
         Ok(vec![ContextColumn {
             field_key,
@@ -109,7 +118,7 @@ impl Package for AgentMessages {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn ArrowArray>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
         let loc_builder = FixedSizeListBuilder::new(index_builder, 3);
         let mut messages_builder = ListBuilder::new(loc_builder);
@@ -119,7 +128,7 @@ impl Package for AgentMessages {
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
 
         Ok(vec![(field_key, Arc::new(messages_builder.finish()))])
     }

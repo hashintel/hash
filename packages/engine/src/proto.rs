@@ -6,9 +6,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
+use stateful::globals::Globals;
 use uuid::Uuid;
 
-use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status::SimStatus};
+use crate::simulation::status::SimStatus;
 
 // TODO: UNUSED: Needs triage
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
@@ -49,14 +50,17 @@ impl From<String> for ExperimentName {
 impl FromStr for ExperimentName {
     type Err = Infallible;
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(s.to_string()))
     }
 }
 
 use crate::{
-    simulation::enum_dispatch::*,
-    worker::runner::comms::outbound::{PackageError, UserError, UserWarning},
+    simulation::enum_dispatch::enum_dispatch,
+    worker::{
+        runner::comms::outbound::{PackageError, UserError, UserWarning},
+        RunnerError,
+    },
 };
 
 /// The message type sent from the engine to the orchestrator.
@@ -256,7 +260,7 @@ pub enum MetricObjective {
 }
 
 impl Serialize for MetricObjective {
-    fn serialize<S: serde::Serializer>(&self, ser: S) -> std::result::Result<S::Ok, S::Error> {
+    fn serialize<S: serde::Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
         ser.serialize_str(match self {
             MetricObjective::Max => "max",
             MetricObjective::Min => "min",
@@ -266,9 +270,7 @@ impl Serialize for MetricObjective {
 }
 
 impl<'de> Deserialize<'de> for MetricObjective {
-    fn deserialize<D: ::serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> std::result::Result<Self, D::Error> {
+    fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = <String>::deserialize(deserializer)?;
         match s.as_str() {
             "max" => Ok(MetricObjective::Max),

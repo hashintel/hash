@@ -1,15 +1,17 @@
+import { Box, SxProps, Theme } from "@mui/material";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
-import { SpinnerIcon } from "../../../components/icons";
+import { SpinnerIcon } from "../../../shared/icons";
 
 export interface SuggesterProps<T> {
-  className?: string;
   options: T[];
   renderItem(item: T): ReactElement;
+  error?: ReactElement | null;
   onChange(item: T): void;
   loading?: boolean;
   itemKey(option: T): string;
+  sx?: SxProps<Theme>;
 }
 
 /**
@@ -17,11 +19,12 @@ export interface SuggesterProps<T> {
  */
 export const Suggester = <T,>({
   onChange,
-  className,
   options,
-  renderItem,
   loading,
   itemKey,
+  renderItem,
+  error,
+  sx = [],
 }: SuggesterProps<T>): ReactElement => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -56,29 +59,55 @@ export const Suggester = <T,>({
   });
 
   return (
-    <ul
-      className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md ${
-        className ?? ""
-      }`}
+    <Box
+      sx={[
+        ({ palette }) => ({
+          position: "absolute",
+          width: "340px",
+          maxHeight: 400,
+          borderRadius: "6px",
+          boxShadow:
+            "0px 20px 41px rgba(61, 78, 133, 0.07), 0px 16px 25px rgba(61, 78, 133, 0.0531481), 0px 12px 12px rgba(61, 78, 133, 0.0325), 0px 2px 3.13px rgba(61, 78, 133, 0.02)",
+          borderWidth: `1px`,
+          borderStyle: "solid",
+          borderColor: palette.gray[20],
+          display: "grid",
+          gridTemplateRows: "1fr auto",
+          overflow: "hidden",
+          textAlign: "left",
+        }),
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
     >
-      {loading && (
-        <li className={tw`flex justify-center py-1`}>
-          <SpinnerIcon className={tw`h-3 w-3 text-gray-500 animate-spin`} />
-        </li>
-      )}
-      {options.map((option, index) => (
-        /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
-        <li
-          ref={index === selectedIndex ? selectedRef : undefined}
-          key={itemKey(option)}
-          className={tw`flex border border-gray-100 ${
-            index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
-          } hover:bg-gray-100`}
-          onClick={() => onChange(option)}
-        >
-          {renderItem(option)}
-        </li>
-      ))}
-    </ul>
+      <Box component="ul" sx={{ overflow: "auto" }}>
+        {loading && (
+          <li className={tw`flex justify-center py-1`}>
+            <SpinnerIcon className={tw`h-3 w-3 text-gray-500 animate-spin`} />
+          </li>
+        )}
+        {options.map((option, index) => (
+          /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
+          <Box
+            component="li"
+            ref={index === selectedIndex ? selectedRef : undefined}
+            key={itemKey(option)}
+            sx={({ palette }) => ({
+              backgroundColor:
+                index !== selectedIndex
+                  ? palette.common.white
+                  : palette.gray[20],
+              display: "flex",
+              "&:hover": {
+                backgroundColor: palette.gray[20],
+              },
+            })}
+            onClick={() => onChange(option)}
+          >
+            {renderItem(option)}
+          </Box>
+        ))}
+      </Box>
+      {error}
+    </Box>
   );
 };

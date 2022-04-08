@@ -1,6 +1,6 @@
 use serde::Serialize;
+use stateful::field::PackageId;
 
-use super::id::PackageId;
 use crate::simulation::package::{name::PackageName, PackageType};
 
 /// Initialization message for language runners

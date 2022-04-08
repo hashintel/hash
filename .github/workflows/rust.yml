@@ -93,8 +93,6 @@ jobs:
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.rustfmt) }}
         toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
-    env:
-      V8_PATH: ${{ github.workspace }}/.v8
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -140,8 +138,6 @@ jobs:
         toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
         flags:
           - --all-features
-    env:
-      V8_PATH: ${{ github.workspace }}/.v8
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -167,25 +163,15 @@ jobs:
             ~/.cargo/bin
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
+            ~/.cargo/git/checkouts
             **/target/
           key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
             ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
 
-      - name: Install v8
-        run: |
-          mkdir -p ${V8_PATH}/tmp
-          cd ${V8_PATH}/tmp
-          curl -L -o libv8.tar.gz https://github.com/rubyjs/libv8/releases/download/v8.4.255.0/libv8-8.4.255.0-x86_64-linux.gem
-          tar xf libv8.tar.gz # Extract the gem
-          tar xf data.tar.gz # Extract the data folder
-          mv -v vendor/v8/* .. # Move out the wanted files
-          cd ..
-          rm -rf tmp # Delete the tmp folder
-
       - name: Run clippy
-        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps ${{ matrix.flags }} -- -D warnings
+        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} -- -D warnings
 
       - name: Annotate
         if: ${{ failure() }}
@@ -195,7 +181,7 @@ jobs:
           name: clippy (${{ matrix.directory }})
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: ${{ matrix.directory }}
-          args: --no-deps ${{ matrix.flags }}
+          args: --no-deps --tests ${{ matrix.flags }}
 
   test:
     name: test
@@ -211,7 +197,6 @@ jobs:
           - --all-features
           - ""
     env:
-      V8_PATH: ${{ github.workspace }}/.v8
       OUTPUT_DIRECTORY: test-results
     steps:
       - name: Checkout source code
@@ -242,22 +227,12 @@ jobs:
             ~/.cargo/bin
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
+            ~/.cargo/git/checkouts
             **/target/
           key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
             ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}
-
-      - name: Install v8
-        run: |
-          mkdir -p ${V8_PATH}/tmp
-          cd ${V8_PATH}/tmp
-          curl -L -o libv8.tar.gz https://github.com/rubyjs/libv8/releases/download/v8.4.255.0/libv8-8.4.255.0-x86_64-linux.gem
-          tar xf libv8.tar.gz # Extract the gem
-          tar xf data.tar.gz # Extract the data folder
-          mv -v vendor/v8/* .. # Move out the wanted files
-          cd ..
-          rm -rf tmp # Delete the tmp folder
 
       - name: Build tests
         if: matrix.directory == 'packages/engine'
@@ -287,7 +262,6 @@ jobs:
         flags:
           - --release
     env:
-      V8_PATH: ${{ github.workspace }}/.v8
       OUTPUT_DIRECTORY: test-results
       SAMPLES: ${{ needs.setup.outputs.samples }}
     steps:
@@ -316,22 +290,12 @@ jobs:
             ~/.cargo/bin
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
+            ~/.cargo/git/checkouts
             **/target/
           key: ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
             ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}
-
-      - name: Install v8
-        run: |
-          mkdir -p ${V8_PATH}/tmp
-          cd ${V8_PATH}/tmp
-          curl -L -o libv8.tar.gz https://github.com/rubyjs/libv8/releases/download/v8.4.255.0/libv8-8.4.255.0-x86_64-linux.gem
-          tar xf libv8.tar.gz # Extract the gem
-          tar xf data.tar.gz # Extract the data folder
-          mv -v vendor/v8/* .. # Move out the wanted files
-          cd ..
-          rm -rf tmp # Delete the tmp folder
 
       - name: Build tests
         if: matrix.directory == 'packages/engine'

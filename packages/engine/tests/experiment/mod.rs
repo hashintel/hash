@@ -9,9 +9,9 @@ use std::{
 
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine_lib::{
+    language::Language,
     proto::ExperimentName,
     utils::{LogFormat, LogLevel, OutputLocation},
-    Language,
 };
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -167,6 +167,9 @@ pub async fn run_test_suite(
     for (experiment_type, expected_outputs) in experiments {
         // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's `OUT_DIR` is
         // used.
+        //
+        // `env!("OUT_DIR")` is currently the only reason we have an empty `build.rs`. If it is
+        // removed, consider deleting the `build.rs` file.
         let mut output_folder = PathBuf::from(
             std::env::var("OUTPUT_DIRECTORY").unwrap_or_else(|_| env!("OUT_DIR").to_string()),
         );
@@ -199,6 +202,8 @@ pub async fn run_test_suite(
                     output_location: OutputLocation::File("output.log".into()),
                     start_timeout,
                     wait_timeout,
+                    js_runner_initial_heap_constraint: None,
+                    js_runner_max_heap_size: None,
                 };
 
                 let test_result = run_test(

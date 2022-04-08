@@ -1,13 +1,14 @@
 use std::fmt::Display;
 
 use serde::Serialize;
+use stateful::field::PackageId;
 
 use crate::simulation::{
-    package::{context, deps::Dependencies, id::PackageId, init, output, state, PackageMetadata},
+    package::{context, deps::Dependencies, init, output, state, PackageMetadata},
     Error, Result,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PackageName {
     Context(context::Name),
     Init(init::Name),
@@ -30,7 +31,7 @@ impl Display for PackageName {
 }
 
 impl Serialize for PackageName {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {

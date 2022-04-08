@@ -1,14 +1,12 @@
-import { NextPage } from "next";
 import { tw } from "twind";
 import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useUser } from "../components/hooks/useUser";
 
-import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
+import { AuthLayout } from "./shared/auth-layout";
 
-import Logo from "../assets/svg/logo.svg";
-import { SpinnerIcon } from "../components/icons";
+import { SpinnerIcon, LogoIcon } from "../shared/icons";
 import { SelectInput } from "../components/forms/SelectInput";
 import {
   JoinOrgMutation,
@@ -20,11 +18,12 @@ import {
   isParsedInvitationLinkQuery,
   ORG_ROLES,
   SYNTHETIC_LOADING_TIME_MS,
-} from "../components/auth/utils";
-import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
+} from "./shared/auth-utils";
+import { useGetInvitationInfo } from "./shared/use-get-invitation-info";
+import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 // @todo add error component for invalid links
-const InvitePage: NextPage = () => {
+const Page: NextPageWithLayout = () => {
   const { user, loading: fetchingUser } = useUser();
   const router = useRouter();
 
@@ -131,7 +130,7 @@ const InvitePage: NextPage = () => {
   return (
     <AuthLayout loading={invitationInfoLoading || initialLoading}>
       <div className={tw`w-9/12 max-w-3xl`}>
-        <Logo className={tw`mb-16`} />
+        <LogoIcon className={tw`mb-16`} />
         <div className={tw`mb-9`}>
           <h1 className={tw`text-3xl font-bold mb-4`}>{title}</h1>
           <p className={tw`text-2xl mb-14 font-light`}>{subtitle}</p>
@@ -180,4 +179,6 @@ const InvitePage: NextPage = () => {
   );
 };
 
-export default InvitePage;
+Page.getLayout = getPlainLayout;
+
+export default Page;

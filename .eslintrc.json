@@ -188,30 +188,14 @@
           },
           {
             "name": "@mui/material",
-            "importNames": ["Button", "Popover", "Avatar", "IconButton"],
+            "importNames": ["Button"],
             "message": "Please use the custom wrapper component in src/component instead."
           },
           {
             "name": "@mui/material/Button",
             "importNames": ["default"],
-            "message": "Please use the custom src/components/MuiButton component instead."
-          },
-          {
-            "name": "@mui/material/Popover",
-            "importNames": ["default"],
-            "message": "Please use the custom src/components/Popover component instead."
-          },
-          {
-            "name": "@mui/material/Avatar",
-            "importNames": ["default"],
-            "message": "Please use the custom src/components/Avatar component instead."
+            "message": "Please use the custom src/components/Button component instead."
           }
-          // @todo-mui uncomment when styles are completed
-          // {
-          //   "name": "@mui/material/IconButton",
-          //   "importNames": ["default"],
-          //   "message": "Please use the custom src/components/IconButton component instead."
-          // }
         ]
       }
     ],
@@ -222,6 +206,10 @@
     "@typescript-eslint/no-shadow": "error",
     "@typescript-eslint/no-meaningless-void-operator": "error",
     "no-use-before-define": "off",
+    "@typescript-eslint/no-misused-promises": [
+      "error", // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn
+      { "checksVoidReturn": { "attributes": false, "properties": false } }
+    ],
     "@typescript-eslint/no-use-before-define": ["error"],
 
     // Part of @typescript-eslint/recommended-requiring-type-checking

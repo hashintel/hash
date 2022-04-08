@@ -1,6 +1,5 @@
 import { BlockMetadata, BlockVariant } from "blockprotocol";
 import { Schema as JSONSchema } from "jsonschema";
-import { blockPaths } from "./paths";
 
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
 // eslint-disable-next-line global-require
@@ -44,15 +43,8 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
  */
 const blockCache = new Map<string, Promise<BlockMeta>>();
 
-/** @todo don't special-case @hash's blocks */
-const toDisplayName = (name = "Unnamed") =>
-  name.startsWith("@hashintel/block-")
-    ? name.substring("@hashintel/block-".length)
-    : name.split("/").pop()!;
-
-/** @todo the blockPaths mappings are not useful anymore they should be removed and changed to an array of 'default blocks' instead */
 export const componentIdToUrl = (componentId: string) =>
-  ((blockPaths as any)[componentId] as string | undefined) ?? componentId;
+  componentId.replace(/\/$/, "");
 
 /**
  * transform mere options into a useable block configuration
@@ -63,9 +55,7 @@ const toBlockConfig = (
 ): BlockConfig => {
   const defaultVariant: BlockVariant = {
     description: options.description ?? "",
-    displayName:
-      options.displayName ?? toDisplayName(options.name ?? "Unnamed Block"),
-    name: options.name,
+    name: options.displayName ?? options.name,
     icon: options.icon ?? "",
     properties: {},
   };
@@ -96,16 +86,42 @@ export const fetchBlockMeta = async (
   }
 
   const promise = (async () => {
-    const metadata: BlockMetadata = await (
-      await fetch(`${url}/block-metadata.json`)
-    ).json();
+    // the spec requires a metadata file called `block-metadata.json`
+    const metadataUrl = `${url}/block-metadata.json`;
+    let metadata: BlockMetadata;
+    try {
+      metadata = await (await fetch(metadataUrl)).json();
+    } catch (err) {
+      blockCache.delete(url);
+      throw new Error(
+        `Could not fetch and parse block metadata at url ${metadataUrl}: ${
+          (err as Error).message
+        }`,
+      );
+    }
 
-    const schema: Block["componentSchema"] = await (
-      await fetch(`${url}/${metadata.schema}`)
-    ).json();
+    const schemaPath = metadata.schema;
+
+    // schema urls may be absolute, as blocks may rely on schemas they do not define
+    let schema: BlockMeta["componentSchema"];
+    let schemaUrl;
+    try {
+      schemaUrl =
+        schemaPath && schemaPath.match(/^(?:[a-z]+:)?\/\//)
+          ? schemaPath
+          : `${url}/${schemaPath.replace(/^\//, "")}`;
+      schema = schemaUrl ? await (await fetch(schemaUrl)).json() : {};
+    } catch (err) {
+      blockCache.delete(url);
+      throw new Error(
+        `Could not fetch and parse block schema at url ${schemaUrl}: ${
+          (err as Error).message
+        }`,
+      );
+    }
 
     const result: BlockMeta = {
-      componentMetadata: toBlockConfig(metadata, componentId),
+      componentMetadata: toBlockConfig(metadata, url),
       componentSchema: schema,
     };
 

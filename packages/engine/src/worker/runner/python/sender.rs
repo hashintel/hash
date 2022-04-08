@@ -4,25 +4,25 @@ use arrow::{
 };
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
+use memory::shared_memory::arrow_continuation;
 use nng::{options::Options, Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
-use super::{
-    error::{Error, Result},
-    fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
-};
 use crate::{
-    datastore::{
-        arrow::util::arrow_continuation,
-        table::{
-            proxy::StateReadProxy,
-            task_shared_store::{PartialSharedState, SharedState},
-        },
+    datastore::table::{
+        proxy::StateReadProxy,
+        task_shared_store::{PartialSharedState, SharedState},
     },
     proto::{ExperimentId, SimulationShortId},
     simulation::enum_dispatch::TaskSharedStore,
     types::WorkerIndex,
-    worker::runner::comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
+    worker::runner::{
+        comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
+        python::{
+            error::{Error, Result},
+            fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
+        },
+    },
 };
 
 /// Only used for sending messages to the Python process
@@ -150,7 +150,7 @@ fn inbound_to_nng(
             let msg = flatbuffers_gen::task_msg_generated::TaskMsg::create(
                 fbb,
                 &flatbuffers_gen::task_msg_generated::TaskMsgArgs {
-                    package_sid: msg.package_id.as_usize() as u64,
+                    package_sid: msg.package_id.as_usize().get() as u64,
                     task_id: Some(&task_id),
                     target: MessageTarget::Python.into(),
                     group_index: group_index.as_ref(),

@@ -2,33 +2,31 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::{
+    field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
+};
 use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
-    config::{Globals, TopologyConfig},
+    config::{ExperimentConfig, SimRunConfig, TopologyConfig},
     datastore::{
         batch::{iterators, AgentBatch},
-        schema::{
-            accessor::{FieldSpecMapAccessor, GetFieldSpec},
-            context::ContextSchema,
-            FieldKey, RootFieldSpec, RootFieldSpecCreator,
-        },
+        schema::context::ContextSchema,
         table::{proxy::StateReadProxy, state::view::StateSnapshot},
     },
     simulation::{
         comms::package::PackageComms,
         package::{
             context::{
-                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextColumn, Package,
-                PackageCreator,
+                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextColumn, ContextPackage,
+                Package, PackageCreator,
             },
             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
-            prelude::ContextPackage,
         },
         Result,
     },
-    ExperimentConfig, SimRunConfig,
 };
 
 mod adjacency;
@@ -136,7 +134,7 @@ impl Package for Neighbors {
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
 
         Ok(vec![ContextColumn {
             field_key,
@@ -149,7 +147,7 @@ impl Package for Neighbors {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
 
         let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 2);
@@ -162,7 +160,7 @@ impl Package for Neighbors {
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec("neighbors")?
-            .to_key()?;
+            .create_key()?;
 
         Ok(vec![(field_key, Arc::new(neighbors_builder.finish()))])
     }

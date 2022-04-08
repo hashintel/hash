@@ -20,18 +20,18 @@ use tokio::{
 
 pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};
-use super::comms::{
-    inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
-    RunnerTaskMsg, SentTask,
-};
 use crate::{
+    language::Language,
     proto::SimulationShortId,
     types::TaskId,
     worker::{
-        runner::comms::outbound::OutboundFromRunnerMsgPayload, Error as WorkerError,
-        Result as WorkerResult,
+        runner::comms::{
+            inbound::InboundToRunnerMsgPayload,
+            outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
+            ExperimentInitRunnerMsg, RunnerTaskMsg, SentTask,
+        },
+        Error as WorkerError, Result as WorkerResult,
     },
-    Language,
 };
 
 pub struct PythonRunner {

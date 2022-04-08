@@ -9,24 +9,43 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use stateful::field::PackageId;
 
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
-use super::PackageCreator;
 use crate::{
+    config::ExperimentConfig,
     simulation::{
-        enum_dispatch::*,
-        package::{id::PackageIdGenerator, name::PackageName, PackageMetadata, PackageType},
+        enum_dispatch::{
+            enum_dispatch, GetTaskArgs, GetTaskName, StoreAccessVerify, TaskDistributionConfig,
+            TaskSharedStore, WorkerHandler, WorkerPoolHandler,
+        },
+        package::{
+            id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
+            PackageType,
+        },
         Error, Result,
     },
-    ExperimentConfig,
 };
 
 /// All output package names are registered in this enum
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Name {
     Analysis,
     JsonState,
+}
+
+impl Name {
+    pub fn id(self) -> Result<PackageId> {
+        Ok(METADATA
+            .get(&self)
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "Package Metadata not registered for package: {self}"
+                ))
+            })?
+            .id)
+    }
 }
 
 impl std::fmt::Display for Name {
@@ -106,7 +125,7 @@ impl PackageCreators {
         experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
         tracing::debug!("Initializing Output Package Creators");
-        use Name::*;
+        use Name::{Analysis, JsonState};
         let mut m = HashMap::new();
         m.insert(Analysis, analysis::Creator::new(experiment_config)?);
         m.insert(JsonState, json_state::Creator::new(experiment_config)?);
@@ -141,7 +160,7 @@ impl PackageCreators {
 
 lazy_static! {
     pub static ref METADATA: HashMap<Name, PackageMetadata> = {
-        use Name::*;
+        use Name::{Analysis, JsonState};
         let mut id_creator = PackageIdGenerator::new(PackageType::Output);
         let mut m = HashMap::new();
         m.insert(Analysis, PackageMetadata {

@@ -1,18 +1,21 @@
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 
-import { Button } from "../../components/Button";
-import { BlocksMetaMap, BlocksMetaProvider } from "../blocksMeta";
+import { Button } from "../../shared/ui";
+import { BlockLoadedProvider } from "../onBlockLoaded";
+import { RemoteBlockMetadata, UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
-import { createEditorView } from "./createEditorView";
+import { BlocksMetaMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
   blocksMeta: BlocksMetaMap;
+  initialUserBlocks: RemoteBlockMetadata[];
   accountId: string;
   entityId: string;
 };
@@ -24,7 +27,10 @@ type PageBlockProps = {
  * do that
  */
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
+  // @todo consolidate blocksMeta and initialUserBlocks as they share properties
+  // @see - https://app.asana.com/0/1200211978612931/1202023490862451/f
   blocksMeta,
+  initialUserBlocks,
   accountId,
   entityId,
 }) => {
@@ -39,6 +45,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     connection: EditorConnection | null;
     manager: ProsemirrorSchemaManager;
   }>(null);
+
+  const router = useRouter();
+  const routeHash = router.asPath.split("#")[1] ?? "";
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -76,35 +85,37 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [accountId, blocksMeta, entityId, renderPortal]);
 
   return (
-    <BlocksMetaProvider value={blocksMeta}>
-      <div id="root" ref={root} />
-      {portals}
-      {/**
-       * @todo position this better
-       */}
-      {(
-        typeof debugging === "boolean"
-          ? debugging
-          : debugging.restartCollabButton
-      ) ? (
-        <Button
-          sx={{
-            position: "fixed",
-            bottom: 2.5,
-            right: 2.5,
-            opacity: 0.3,
+    <UserBlocksProvider value={initialUserBlocks}>
+      <BlockLoadedProvider routeHash={routeHash}>
+        <div id="root" ref={root} />
+        {portals}
+        {/**
+         * @todo position this better
+         */}
+        {(
+          typeof debugging === "boolean"
+            ? debugging
+            : debugging.restartCollabButton
+        ) ? (
+          <Button
+            sx={{
+              position: "fixed",
+              bottom: 2.5,
+              right: 2.5,
+              opacity: 0.3,
 
-            "&:hover": {
-              opacity: 1,
-            },
-          }}
-          onClick={() => {
-            prosemirrorSetup.current?.connection?.restart();
-          }}
-        >
-          Restart Collab Instance
-        </Button>
-      ) : null}
-    </BlocksMetaProvider>
+              "&:hover": {
+                opacity: 1,
+              },
+            }}
+            onClick={() => {
+              prosemirrorSetup.current?.connection?.restart();
+            }}
+          >
+            Restart Collab Instance
+          </Button>
+        ) : null}
+      </BlockLoadedProvider>
+    </UserBlocksProvider>
   );
 };

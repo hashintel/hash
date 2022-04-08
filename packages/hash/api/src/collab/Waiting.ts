@@ -27,9 +27,9 @@ export class Waiting {
     if (found > -1) this.inst.waiting.splice(found, 1);
   }
 
-  send(data: any) {
+  send(data: any, status = 200) {
     if (this.done) return;
-    this.resp.json(data);
+    this.resp.status(status).json(data);
     this.done = true;
   }
 }

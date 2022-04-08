@@ -1,11 +1,15 @@
 use arrow::{array::ArrayRef, record_batch::RecordBatch};
 
-use crate::datastore::{Error, Result};
+use crate::datastore::error::{Error, Result};
 
 pub mod agent {
     use arrow::datatypes::DataType;
 
-    use crate::datastore::{batch::iterators::record_batch, prelude::*, POSITION_DIM, UUID_V4_LEN};
+    use crate::datastore::{
+        batch::{agent::AgentBatch, context::AgentIndex, iterators::record_batch},
+        error::Result,
+        POSITION_DIM, UUID_V4_LEN,
+    };
 
     pub fn agent_id_iter<'b: 'a, 'a>(
         agent_pool: &'a [&'b AgentBatch],
@@ -204,18 +208,13 @@ pub fn column_with_name<'a>(record_batch: &'a RecordBatch, name: &str) -> Result
 pub mod record_batch {
     use std::borrow::Cow;
 
-    use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch};
+    use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch, util::bit_util};
+    use memory::arrow::{col_to_json_vals, ColumnChange};
+    use stateful::agent::AgentStateField;
 
-    use crate::{
-        datastore::{
-            arrow::batch_conversion::col_to_json_vals,
-            batch::{
-                boolean::Column as BooleanColumn, change::ColumnChange, iterators::column_with_name,
-            },
-            prelude::arrow_bit_util,
-            Error, Result, POSITION_DIM, UUID_V4_LEN,
-        },
-        hash_types::state::AgentStateField,
+    use crate::datastore::{
+        batch::{boolean::Column as BooleanColumn, iterators::column_with_name},
+        Error, Result, POSITION_DIM, UUID_V4_LEN,
     };
 
     // TODO: Use in Rust runner, and look up column without using PREVIOUS_INDEX_COLUMN_INDEX
@@ -244,7 +243,7 @@ pub mod record_batch {
         if let Some(nulls) = nulls {
             // This column is nullable.
             let nulls = nulls.as_slice();
-            if arrow_bit_util::get_bit(nulls, row_index) {
+            if bit_util::get_bit(nulls, row_index) {
                 // The null buffer contains a 1 for this row, so this row isn't null.
                 Ok(Some(old_message_location))
             } else {
@@ -626,7 +625,7 @@ pub mod record_batch {
         data_type: &DataType,
     ) -> Result<Vec<serde_json::Value>> {
         let column = column_with_name(record_batch, column_name)?;
-        col_to_json_vals(column, data_type)
+        Ok(col_to_json_vals(column, data_type)?)
     }
 }
 

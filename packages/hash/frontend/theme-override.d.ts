@@ -59,6 +59,8 @@ declare module "@mui/material/styles" {
     pink: PaletteValue;
     teal: PaletteValue;
     mint: PaletteValue;
+    white: string;
+    black: string;
   }
 
   interface TypographyVariants {
@@ -161,6 +163,39 @@ declare module "@mui/material/Button" {
     medium: true;
     small: true;
     xs: true;
+  }
+}
+
+declare module "@mui/material/IconButton" {
+  interface IconButtonPropsSizeOverrides {
+    large: true;
+    medium: true;
+    small: true;
+    xs: true;
+  }
+}
+
+declare module "@mui/lab/TreeItem" {
+  interface TreeItemContentProps {
+    expandable: boolean;
+    url: string;
+    depth: number;
+  }
+}
+
+declare module "@mui/material/TextField" {
+  interface TextFieldPropsSizeOverrides {
+    small: true;
+    medium: true;
+    large: true;
+  }
+}
+
+declare module "@mui/material/InputBase" {
+  interface InputBasePropsSizeOverrides {
+    small: true;
+    medium: true;
+    large: true;
   }
 }
 

@@ -4,23 +4,32 @@ mod response;
 mod writer;
 
 use arrow::datatypes::DataType;
+use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
-pub use handlers::CustomApiMessageError;
-use response::{ApiResponseMap, ApiResponses};
 use serde_json::Value;
+use stateful::{
+    field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
+};
 use tracing::{Instrument, Span};
 
-use super::super::*;
+pub use self::handlers::CustomApiMessageError;
+use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
-    config::Globals,
+    config::ExperimentConfig,
     datastore::{
         batch::iterators,
-        schema::{accessor::GetFieldSpec, FieldKey},
-        table::pool::BatchPool,
+        table::pool::{message, BatchPool},
     },
     simulation::{
         comms::package::PackageComms,
-        package::context::{packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Package},
+        package::context::{
+            packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextColumn,
+            ContextSchema, Error, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
+            MaybeCpuBound, Package, Package as ContextPackage, PackageCreator, SimRunConfig,
+            StateReadProxy, StateSnapshot,
+        },
+        Result,
     },
 };
 
@@ -120,7 +129,7 @@ impl Package for ApiRequests {
         let field_key = self
             .context_field_spec_accessor
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
 
         Ok(vec![ContextColumn {
             field_key,
@@ -133,7 +142,7 @@ impl Package for ApiRequests {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
         let from_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let type_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let data_builder = Box::new(arrow::array::StringBuilder::new(1024));
@@ -141,7 +150,7 @@ impl Package for ApiRequests {
         let field_key = self
             .context_field_spec_accessor
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
         let arrow_fields = context_schema
             .arrow
             .field_with_name(field_key.value())
@@ -198,7 +207,7 @@ async fn build_api_response_maps(
     let mut futs = FuturesOrdered::new();
     {
         let message_proxies = &snapshot.state.message_pool.read_proxies()?;
-        let reader = message_proxies.get_reader()?;
+        let reader = message::get_reader(message_proxies)?;
 
         handlers.iter().try_for_each::<_, Result<()>>(|handler| {
             let messages = snapshot.message_map.get_msg_refs(handler);

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { tw } from "twind";
 
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
@@ -10,9 +10,8 @@ import { unstable_batchedUpdates } from "react-dom";
 
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 
-import { blockDomId } from "../../blocks/page/BlockView";
+import { getBlockDomId } from "../../blocks/page/BlockView";
 import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
-import { useBlocksMeta } from "../../blocks/blocksMeta";
 import { NormalView } from "./NormalView";
 import { SearchView } from "./SearchView";
 import {
@@ -23,6 +22,8 @@ import {
   iconStyles,
 } from "./BlockContextMenuUtils";
 import { BlockLoaderInput } from "./BlockLoaderInput";
+import { useUserBlocks } from "../../blocks/userBlocks";
+import { useFilteredBlocks } from "../../blocks/page/createSuggester/useFilteredBlocks";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -83,16 +84,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     }));
   };
 
-  const { value: blocksMeta } = useBlocksMeta();
-
-  const blockOptions = useMemo(() => {
-    return Object.values(blocksMeta).flatMap((blockMeta) =>
-      blockMeta.componentMetadata.variants.map((variant) => ({
-        variant,
-        meta: blockMeta,
-      })),
-    );
-  }, [blocksMeta]);
+  const { value: userBlocks } = useUserBlocks();
 
   const usableMenuItems = MENU_ITEMS.filter(({ key }) => {
     return key !== "copyLink" || entityId;
@@ -108,13 +100,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     item.title.toLocaleLowerCase().includes(lowerCaseSearchText),
   );
 
-  const filteredBlocks = blockOptions.filter(
-    (block) =>
-      block.variant.displayName &&
-      block.variant.displayName
-        ?.toLocaleLowerCase()
-        .includes(lowerCaseSearchText),
-  );
+  const filteredBlocks = useFilteredBlocks(lowerCaseSearchText, userBlocks);
 
   const filteredMenuItems: FilteredMenuItems = {
     actions: filteredActions,
@@ -188,7 +174,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         break;
       case "copyLink": {
         const url = new URL(document.location.href);
-        url.hash = blockDomId(entityId!);
+        url.hash = getBlockDomId(entityId!);
         void navigator.clipboard.writeText(url.toString());
         break;
       }

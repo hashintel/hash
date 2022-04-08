@@ -1,7 +1,9 @@
 use arrow::{array::ArrayData, datatypes::DataType};
+use memory::arrow::{new_buffer, ColumnChange};
 
-use super::*;
-use crate::datastore::arrow::batch_conversion::new_buffer;
+use crate::simulation::package::state::packages::behavior_execution::{
+    BehaviorIndexInnerDataType, DatastoreResult, IntoArrowChange, Result, StateColumn,
+};
 
 pub fn reset_index_col(behavior_index_col_index: usize) -> Result<StateColumn> {
     Ok(StateColumn::new(Box::new(ResetIndexCol {

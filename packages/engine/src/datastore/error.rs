@@ -1,14 +1,8 @@
 use std::fmt;
 
 use arrow::{datatypes::DataType, error::ArrowError};
+use stateful::{agent::AgentStateField, field::RootFieldKey};
 use thiserror::Error as ThisError;
-
-use super::prelude::*;
-use crate::{
-    datastore::schema::{FieldKey, FieldType, RootFieldSpec},
-    hash_types,
-    hash_types::state::AgentStateField,
-};
 
 #[derive(Debug)]
 pub enum SupportedType {
@@ -36,20 +30,17 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
-    #[error("Couldn't acquire shared lock on object")]
-    ProxySharedLock,
+    #[error("Memory error: {0}")]
+    Memory(#[from] memory::Error),
 
-    #[error("Couldn't acquire exclusive lock on object")]
-    ProxyExclusiveLock,
+    #[error("Stateful error: {0}")]
+    Stateful(#[from] stateful::Error),
 
     #[error("Arrow Error: {0}")]
     Arrow(#[from] ArrowError),
 
     #[error("Invalid Arrow object downcast. Field name: {name}")]
     InvalidArrowDowncast { name: String },
-
-    #[error("Memory Error: {0}")]
-    Memory(String),
 
     #[error("Not implemented: {0}")]
     NotImplemented(SupportedType),
@@ -65,9 +56,6 @@ pub enum Error {
 
     #[error("Failed to interpret a sequence of u8's (bytes) as a string: {0}")]
     Utf8(#[from] std::str::Utf8Error),
-
-    #[error("Simulation error: {0}")]
-    Simulation(#[from] hash_types::error::Error),
 
     #[error("Shared memory error: {0}")]
     SharedMemory(#[from] shared_memory::ShmemError),
@@ -94,7 +82,7 @@ pub enum Error {
     UnexpectedVectorLength { len: usize, expected: usize },
 
     #[error("Unsupported Arrow datatype: {d_type:?}")]
-    UnsupportedArrowDataType { d_type: ArrowDataType },
+    UnsupportedArrowDataType { d_type: DataType },
 
     #[error("Did not expect to resize Shared Memory")]
     UnexpectedAgentBatchMemoryResize,
@@ -148,16 +136,10 @@ pub enum Error {
     UnexpectedUndefinedCommand,
 
     #[error(
-        "Key clash when attempting to insert a new agent-scoped field with key: {0:?}. The new \
-         field has a differing type: {1:?} to the existing field: {2:?}"
+        "Attempting to insert a new field under key:{0:?} which clashes. New field: {1} Existing \
+         field: {2}"
     )]
-    AgentScopedFieldKeyClash(FieldKey, FieldType, FieldType),
-
-    #[error(
-        "Attempting to insert a new field under key:{0:?} which clashes. New field: {1:?} \
-         Existing field: {2:?}"
-    )]
-    FieldKeyClash(FieldKey, RootFieldSpec, RootFieldSpec),
+    FieldKeyClash(RootFieldKey, String, String),
 
     #[error(
         "Can't take multiple write access to shared state, e.g. by cloning writable task shared \

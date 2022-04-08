@@ -85,28 +85,11 @@ Depending on your needs, different dependencies are required. Building this proj
 
 - a C++ compiler, pkg-config, openssl development files (see [Possible Dependencies and Debugging](#possible-dependencies-and-debugging))
 
-- For now, you need a pre-compiled _libv8_monolith.a_ accessible under the `$V8_PATH` environment variable
-
-  - The following will produce the necessary files under `~/.v8/vendor` by downloading a precompiled library from a Ruby Gem. The `<URL TO GEM>` should be the link to the relevant gem on the [rubyjs/libv8 releases page](https://github.com/rubyjs/libv8/releases/tag/v8.4.255.0)
-
-    ```shell
-    mkdir -p ~/.v8/tmp # Create the .v8 directory and a tmp folder
-    cd ~/.v8/tmp
-    curl -L -o libv8.tar.gz <URL TO GEM> # Download the Ruby gem
-    tar xf libv8.tar.gz # Extract the gem
-    tar xf data.tar.gz # Extract the data folder
-    mv -v vendor/v8/* .. # Move out the wanted files
-    cd ..
-    rm -rf tmp # Delete the tmp folder
-    ```
-
-  - With the V8 folder containing `include` and `out.gn` you can then set the variable for your terminal session with `export V8_PATH=<path to folder>` or you can set it permanently by [adding it to your shell's environment](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
-
-  - Please also see [macOS Developer Specific Instructions](#macos-developer-specific-instructions) if you are running macOS
-
 - Python [3.7.x]
 
   - Python installation guidance from [their website](https://www.python.org/downloads/)
+
+- Please also see [macOS Developer Specific Instructions](#macos-developer-specific-instructions) if you are running macOS
 
 ### Optional dependencies
 
@@ -145,8 +128,6 @@ Due to limitations in Cargo at the moment we can't properly check if it's being 
 
   - The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
 
-- If the V8 monolith is failing to link due to symbol errors, it might be necessary to download the gem for the "darwin_universal" version.
-
 ### Possible Dependencies and Debugging
 
 Depending on how lightweight your OS install is, you may be missing some low level dependencies, so try the following (examples given for Ubuntu/Debian-based Unix systems):
@@ -162,6 +143,8 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 - Setup a Python environment by running `./src/worker/runner/python/setup.sh` and follow the instructions from the help.
 
 > **WIP** - In the future, setting up Python will only be required if Python behaviors are present, but for now it is always required.
+
+The initial setup time may be long at the moment. We need to use a fork of `rusty_v8` but expect significant improvement after [rusty_v8#926](https://github.com/denoland/rusty_v8/pull/926) is merged and a new crates.io release is made.
 
 ### Running for development
 
@@ -245,6 +228,26 @@ In order to see more logging information while the simulation is running, you ca
 ```shell
 export RUST_LOG=debug
 ```
+
+If your simulation requires a lot of memory and uses JavaScript behaviors, the JavaScript runner may run out of memory.
+As a first step, you can provide a larger heap size to the runner:
+
+```shell
+cargo run --bin cli -- --js-runner-max-heap-size <NEW-SIZE-IN-MB> <YOUR-CLI-ARGUMENTS>
+```
+
+This will increase the heap size, but you may still run into limitations beyond 4GB.
+The next step is to recompile V8, the underlying JavaScript engine, and set flags for it:
+
+```shell
+export V8_FROM_SOURCE = "1"
+export GN_ARGS = "v8_enable_pointer_compression=false v8_enable_shared_ro_heap=true"
+```
+
+- `V8_FROM_SOURCE` will force the V8 engine to be compiled from source and not use a pre-compiled version.
+  This will take quite a long time, expect at least 15 minutes. This can be mitigated in subsequent compiles by using [sccache](https://github.com/mozilla/sccache) or [ccache](https://ccache.dev/). Our build scripts will detect and use them. Set the environment variable `$SCCACHE` or `$CCACHE` if the binary is not in your `$PATH`.
+- `v8_enable_pointer_compression` is an optimization reducing RAM usage but limits the heap size to 4 gigabytes.
+- `v8_enable_shared_ro_heap` enables read-only memory sharing by V8 isolates. This means, that read-only memory may be shared across different workers for JavaScript. Enabling this is required to compile V8 without pointer compression.
 
 [docs]: https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine
 

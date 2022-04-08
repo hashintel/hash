@@ -14,13 +14,13 @@ Agents send messages by adding JSON objects to their `messages` array. The objec
 {
     to: "string" || "string"[]// an agent_id or agent_name
     type: "string" // a string that defines the type of the message
-    data: {} // an object that serves as the payload
+    data: "any" // an object that serves as the payload
 }
 ```
 
 - **to:** An agent id or an agent name. The agent with the corresponding `agent_id` field or the agent\(s\) with the corresponding `agent_name` field will receive the message in the next time step. If you want to send a message to multiple agents -- multicasting -- you can do so in one of two ways:
   - The "to" field of a message is an array, so you can include multiple agent names and IDs.
-  - When sending a message to an `agent_name` that is shared by multiple agents, they will all receive the message. For instance, if five agents have the field `agent_name` set to`"forklift"`, they will all receive a message defined with `to: "forklift"`
+  - When sending a message to an `agent_name` that is shared by multiple agents, they will all receive the message. For instance, if five agents have the field `agent_name` set to `"forklift"`, they will all receive a message defined with `to: "forklift"`
 - **type:** A user-defined string that serves as metadata for the object, describing the message and/or its purpose.
 - **data:** A user-defined object that can contain any arbitrary data.
 

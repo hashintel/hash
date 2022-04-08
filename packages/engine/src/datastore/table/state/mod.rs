@@ -3,24 +3,23 @@ pub mod view;
 
 use std::sync::Arc;
 
+use stateful::agent::Agent;
+
 use self::create_remove::CreateRemovePlanner;
-use super::{
-    pool::{agent::AgentPool, message::MessagePool},
-    references::MessageMap,
-};
 use crate::{
+    config::SimRunConfig,
     datastore::{
-        prelude::*,
-        schema::state::AgentSchema,
+        batch::{AgentBatch, MessageBatch},
+        error::Result,
         table::{
-            pool::BatchPool,
+            pool::{agent::AgentPool, message::MessagePool, BatchPool},
             proxy::{StateReadProxy, StateWriteProxy},
+            references::MessageMap,
             state::view::StatePools,
         },
     },
     proto::ExperimentRunTrait,
     simulation::command::CreateRemoveCommands,
-    SimRunConfig,
 };
 
 pub const MIN_AGENTS_PER_GROUP: usize = 10;
@@ -52,7 +51,7 @@ impl State {
     /// Effectively converts the `agent_state_groups` from Array-of-Structs into a
     /// Struct-of-Arrays.
     pub fn from_agent_groups(
-        agent_state_groups: &[&[AgentState]],
+        agent_state_groups: &[&[Agent]],
         num_agents: usize,
         sim_config: Arc<SimRunConfig>,
     ) -> Result<Self> {
@@ -97,7 +96,7 @@ impl State {
     /// the agent and message batches. The agent batches are created by splitting up the
     /// `agent_states` into groups based on the number of workers specified in `sim_config`.
     pub fn from_agent_states(
-        agent_states: &[AgentState],
+        agent_states: &[Agent],
         sim_config: Arc<SimRunConfig>,
     ) -> Result<State> {
         let num_workers = sim_config.sim.engine.num_workers;

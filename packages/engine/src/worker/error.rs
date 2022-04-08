@@ -1,7 +1,8 @@
+use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-use super::runner::{javascript::Error as JavaScriptError, python::Error as PythonError};
+use crate::worker::runner::{javascript::Error as JavaScriptError, python::Error as PythonError};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -62,4 +63,17 @@ where
     fn from(e: SendError<T>) -> Self {
         Error::Unique(format!("Tokio Send Error: {:?}", e))
     }
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
+pub struct RunnerError {
+    // TODO: Rename, because "runner errors" should always be internal,
+    //       but this might not be.
+    pub message: Option<String>,
+    pub code: Option<i32>,
+    pub line_number: Option<i32>,
+    pub file_name: Option<String>,
+    pub details: Option<String>,
+    pub is_warning: bool,
+    pub is_internal: bool,
 }

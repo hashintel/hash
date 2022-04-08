@@ -1,7 +1,6 @@
 mod engine;
 mod error;
 mod experiment;
-pub mod globals;
 mod package;
 mod persistence;
 mod simulation;
@@ -13,11 +12,12 @@ mod worker_pool;
 
 use std::sync::Arc;
 
+use stateful::globals::Globals;
+
 pub use self::{
     engine::{Config as EngineConfig, Worker, WorkerAllocation},
     error::{Error, Result},
     experiment::Config as ExperimentConfig,
-    globals::Globals,
     package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
     persistence::Config as PersistenceConfig,
     simulation::Config as SimulationConfig,
@@ -27,7 +27,7 @@ pub use self::{
     worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig},
     worker_pool::Config as WorkerPoolConfig,
 };
-use crate::{proto::SimulationShortId, Args, Environment};
+use crate::{env::Environment, proto::SimulationShortId, Args};
 
 #[derive(Clone)]
 pub struct SimRunConfig {
@@ -40,6 +40,8 @@ pub async fn experiment_config(args: &Args, env: &Environment) -> Result<Experim
         env.experiment.clone(),
         args.num_workers,
         args.target_max_group_size,
+        args.js_runner_initial_heap_constraint,
+        args.js_runner_max_heap_size,
     )
 }
 

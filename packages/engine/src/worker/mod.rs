@@ -5,7 +5,7 @@
 //! [communication module](runner::comms). The [`task`] module defines tasks executed in the
 //! runners.
 
-pub mod error;
+mod error;
 mod pending;
 pub mod runner;
 pub mod task;
@@ -19,7 +19,7 @@ use futures::{
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
-pub use self::error::{Error, Result};
+pub use self::error::{Error, Result, RunnerError};
 use self::{
     pending::PendingWorkerTasks,
     runner::{
@@ -36,6 +36,7 @@ use self::{
 use crate::{
     config::{WorkerConfig, WorkerSpawnConfig},
     datastore::table::{sync::SyncPayload, task_shared_store::SharedState},
+    language::Language,
     proto::SimulationShortId,
     simulation::{
         enum_dispatch::TaskSharedStore,
@@ -53,7 +54,6 @@ use crate::{
         WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
         WorkerToWorkerPoolMsg,
     },
-    Language,
 };
 
 /// A task worker.
@@ -302,7 +302,10 @@ impl WorkerController {
     /// [`Dynamic`]: MessageTarget::Dynamic
     /// [`Main`]: MessageTarget::Main
     async fn handle_runner_msg(&mut self, msg: OutboundFromRunnerMsg) -> Result<()> {
-        use OutboundFromRunnerMsgPayload::*;
+        use OutboundFromRunnerMsgPayload::{
+            PackageError, RunnerError, RunnerErrors, RunnerLog, RunnerLogs, RunnerWarning,
+            RunnerWarnings, SyncCompletion, TaskCancelled, TaskMsg, UserErrors, UserWarnings,
+        };
         let sim_id = msg.sim_id;
         match msg.payload {
             TaskMsg(task) => match task.target {

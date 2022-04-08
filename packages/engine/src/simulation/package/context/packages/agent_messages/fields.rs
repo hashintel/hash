@@ -1,14 +1,18 @@
-use super::*;
-use crate::datastore::schema::{
-    FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType, RootFieldSpec,
+use stateful::field::{
+    FieldScope, FieldType, FieldTypeVariant, PresetFieldType, RootFieldSpec, RootFieldSpecCreator,
 };
+
+use crate::simulation::package::context::packages::agent_messages::{Result, MESSAGE_INDEX_COUNT};
 
 pub(super) const MESSAGES_FIELD_NAME: &str = "messages";
 
 fn agent_messages() -> FieldType {
-    let variant = VariableLengthArray(Box::new(FieldType::new(
-        FixedLengthArray {
-            kind: Box::new(FieldType::new(Preset(PresetFieldType::Uint32), false)),
+    let variant = FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
+        FieldTypeVariant::FixedLengthArray {
+            field_type: Box::new(FieldType::new(
+                FieldTypeVariant::Preset(PresetFieldType::Uint32),
+                false,
+            )),
             len: MESSAGE_INDEX_COUNT,
         },
         false,

@@ -1,12 +1,12 @@
+use stateful::{agent::Agent, field::PackageId};
 use tracing::Instrument;
 use uuid::Uuid;
 
-use super::{Comms, Result};
 use crate::{
     datastore::table::task_shared_store::TaskSharedStore,
-    hash_types::Agent,
     simulation::{
-        package::{id::PackageId, PackageType},
+        comms::{Comms, Result},
+        package::PackageType,
         task::{active::ActiveTask, GetTaskName, Task},
     },
 };

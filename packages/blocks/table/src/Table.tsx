@@ -9,10 +9,12 @@ import { TableOptions, useSortBy, useTable } from "react-table";
 import {
   BlockProtocolLinkedAggregation,
   BlockProtocolEntityType,
-  BlockProtocolUpdateLinksAction,
   BlockProtocolAggregateEntitiesPayload,
   BlockProtocolAggregateEntitiesResult,
   BlockProtocolEntity,
+  BlockProtocolAggregateOperationInput,
+  BlockProtocolSort,
+  BlockProtocolUpdateLinkedAggregationActionFragment,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
@@ -87,12 +89,20 @@ const getLinkedAggregation = (params: {
 };
 
 const cleanUpdateLinkedAggregationAction = (
-  action: BlockProtocolUpdateLinksAction & {
-    data: Partial<BlockProtocolLinkedAggregation>;
+  action: BlockProtocolUpdateLinkedAggregationActionFragment & {
+    data: Omit<BlockProtocolAggregateOperationInput, "multiSort"> & {
+      __typename?: string;
+      pageCount?: number | null;
+      multiSort?: (BlockProtocolSort & { __typename?: string })[] | null;
+    };
   },
 ) => {
   return produce(action, (draftAction) => {
-    delete draftAction.data.operation?.pageCount;
+    delete draftAction.data.pageCount;
+    delete draftAction.data.__typename;
+    for (const sort of draftAction.data.multiSort ?? []) {
+      delete sort?.__typename;
+    }
   });
 };
 
@@ -216,7 +226,10 @@ export const Table: BlockComponent<AppProps> = ({
             data: results as TableData["data"],
             linkedAggregation: {
               ...tableData.linkedAggregation,
-              operation,
+              operation: {
+                ...linkedData.operation,
+                ...operation,
+              },
             },
           });
         })
@@ -311,12 +324,7 @@ export const Table: BlockComponent<AppProps> = ({
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (
-      !entityId ||
-      !updateLinks ||
-      !updateEntities ||
-      !matchingLinkedAggregation
-    ) {
+    if (!entityId || !updateEntities) {
       return;
     }
 
@@ -340,15 +348,6 @@ export const Table: BlockComponent<AppProps> = ({
           entityTypeVersionId,
         },
       ]);
-
-      void updateLinks([
-        cleanUpdateLinkedAggregationAction({
-          sourceAccountId: matchingLinkedAggregation.sourceAccountId,
-          sourceEntityId: matchingLinkedAggregation.sourceEntityId,
-          path,
-          data: { ...tableData.linkedAggregation.operation },
-        }),
-      ]);
     }
   };
 
@@ -360,6 +359,7 @@ export const Table: BlockComponent<AppProps> = ({
 
   const doesNotNeedInitialColumns =
     initialState?.columns || !tableData.data?.length;
+
   const defaultColumnData = tableData?.data?.[0];
 
   const defaultColumnDataRef = useRef(defaultColumnData);
@@ -426,7 +426,7 @@ export const Table: BlockComponent<AppProps> = ({
     setHiddenColumns(newHiddenColumns);
 
     // @todo throttle this call
-    updateRemoteColumns({ hiddenColumns: newHiddenColumns });
+    updateRemoteColumnsRef.current({ hiddenColumns: newHiddenColumns });
   };
 
   const [entityTypes, setEntityTypes] = useState<BlockProtocolEntityType[]>();

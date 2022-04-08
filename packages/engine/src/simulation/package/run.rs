@@ -4,6 +4,7 @@ use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use tracing::{Instrument, Span};
 
 use crate::{
+    config::SimRunConfig,
     datastore::table::{
         context::{Context, PreContext},
         proxy::StateReadProxy,
@@ -11,16 +12,10 @@ use crate::{
     },
     proto::ExperimentRunTrait,
     simulation::{
-        package::{
-            context,
-            context::ContextColumn,
-            init, output,
-            prelude::{Error, Result},
-            state,
-        },
+        error::{Error, Result},
+        package::{context, context::ContextColumn, init, output, state},
         step_output::SimulationStepOutput,
     },
-    SimRunConfig,
 };
 
 /// Represents the packages of a simulation engine.

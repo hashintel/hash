@@ -1,29 +1,22 @@
 use std::cmp::Ordering;
 
+use arrow::datatypes::DataType;
 use float_cmp::approx_eq;
+use stateful::field::{FieldSpecMapAccessor, FieldTypeVariant};
 
-use super::{
-    analyzer::{
-        IndexIterator, OutputCreator, OutputRunner, OutputRunnerCreator, ValueIterator,
-        ValueIteratorCreator, ULPS,
-    },
-    output::AnalysisSingleOutput,
-    value_iter::{value_iterator_filter, value_iterator_mapper},
-    Error, Result,
-};
 use crate::{
-    datastore::{
-        batch::iterators::agent::{
-            bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols,
-            str_iter,
-        },
-        schema::{
-            accessor::{FieldSpecMapAccessor, GetFieldSpec},
-            FieldTypeVariant,
-        },
+    datastore::batch::iterators::agent::{
+        bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols,
+        str_iter,
     },
-    simulation::package::output::packages::analysis::analyzer::{
-        AnalysisOperationRepr, ComparisonRepr,
+    simulation::package::output::packages::analysis::{
+        analyzer::{
+            AnalysisOperationRepr, ComparisonRepr, IndexIterator, OutputCreator, OutputRunner,
+            OutputRunnerCreator, ValueIterator, ValueIteratorCreator, ULPS,
+        },
+        output::AnalysisSingleOutput,
+        value_iter::{value_iterator_filter, value_iterator_mapper},
+        Error, Result,
     },
 };
 
@@ -697,11 +690,14 @@ fn default_first_getter(
     accessor: &FieldSpecMapAccessor,
     first_field: &str,
 ) -> Result<ValueIteratorCreator> {
-    let data_type = accessor
-        .get_agent_scoped_field_spec(first_field)?
-        .inner
-        .field_type
-        .get_arrow_data_type()?;
+    let data_type = DataType::from(
+        accessor
+            .get_agent_scoped_field_spec(first_field)?
+            .inner
+            .field_type
+            .variant
+            .clone(),
+    );
 
     let first_field = first_field.to_string();
     let a: ValueIteratorCreator = Box::new(move |agents: &_| {

@@ -1,3 +1,6 @@
+pub mod js_py;
+pub mod json;
+
 use std::{
     collections::{hash_map::Iter, HashMap},
     lazy::SyncOnceCell,
@@ -7,25 +10,39 @@ use std::{
 use js_py::{js::JsInitTask, py::PyInitTask};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use stateful::field::PackageId;
 
-use super::PackageCreator;
 use crate::{
+    config::ExperimentConfig,
     simulation::{
-        enum_dispatch::*,
-        package::{id::PackageIdGenerator, PackageMetadata, PackageType},
+        enum_dispatch::{
+            enum_dispatch, JsPyInitTaskMessage, RegisterWithoutTrait, StoreAccessVerify,
+            TaskSharedStore,
+        },
+        package::{id::PackageIdGenerator, init::PackageCreator, PackageMetadata, PackageType},
         Error, Result,
     },
-    ExperimentConfig,
 };
-pub mod js_py;
-pub mod json;
 
 /// All init package names are registered in this enum
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Name {
     Json,
     JsPy,
+}
+
+impl Name {
+    pub fn id(self) -> Result<PackageId> {
+        Ok(METADATA
+            .get(&self)
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "Package Metadata not registered for package: {self}"
+                ))
+            })?
+            .id)
+    }
 }
 
 impl std::fmt::Display for Name {
@@ -75,7 +92,7 @@ impl PackageCreators {
         experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
         tracing::debug!("Initializing Init Package Creators");
-        use Name::*;
+        use Name::{JsPy, Json};
         let mut m = HashMap::new();
         m.insert(Json, json::Creator::new(experiment_config)?);
         m.insert(JsPy, js_py::Creator::new(experiment_config)?);
@@ -110,7 +127,7 @@ impl PackageCreators {
 
 lazy_static! {
     pub static ref METADATA: HashMap<Name, PackageMetadata> = {
-        use Name::*;
+        use Name::{JsPy, Json};
         let mut id_creator = PackageIdGenerator::new(PackageType::Init);
         let mut m = HashMap::new();
         m.insert(Json, PackageMetadata {

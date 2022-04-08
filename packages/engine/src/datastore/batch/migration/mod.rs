@@ -2,13 +2,17 @@
 
 use std::{borrow::Cow, mem, sync::Arc};
 
-use arrow::util::bit_util;
+use arrow::{self, array::Array, record_batch::RecordBatch, util::bit_util};
+use memory::{
+    arrow::meta::{self, Buffer, Node, NodeMapping},
+    shared_memory::{padding, Segment},
+};
+use stateful::{agent::AgentSchema, message::MessageSchema};
 
 use crate::{
     datastore::{
-        batch::AgentBatch,
-        prelude::*,
-        schema::state::{AgentSchema, MessageSchema},
+        batch::{AgentBatch, MessageBatch},
+        error::{Error, Result},
     },
     proto::ExperimentId,
 };
@@ -131,7 +135,7 @@ pub struct BufferAction<'a> {
 #[derive(Debug, Clone)]
 pub struct BufferActions<'a> {
     pub actions: Vec<BufferAction<'a>>,
-    pub new_dynamic_meta: DynamicMeta,
+    pub new_dynamic_meta: meta::Dynamic,
 }
 
 #[derive(Debug, Clone)]
@@ -158,7 +162,7 @@ impl<'a> BufferActions<'a> {
         self.flush_memory(&mut memory)?;
 
         let agent_batch =
-            AgentBatch::from_memory(memory, Some(agent_schema.as_ref()), Some(worker_index))?;
+            AgentBatch::from_segment(memory, Some(agent_schema.as_ref()), Some(worker_index))?;
         let message_batch = MessageBatch::empty_from_agent_batch(
             &agent_batch,
             &message_schema.arrow,
@@ -170,7 +174,7 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn flush_memory(&self, memory: &mut Memory) -> Result<()> {
+    pub fn flush_memory(&self, memory: &mut Segment) -> Result<()> {
         let buffer_count = self.new_dynamic_meta.buffers.len();
         debug_assert_eq!(buffer_count, self.actions.len());
         let data_buffer = memory.get_mut_data_buffer()?;
@@ -423,30 +427,25 @@ impl<'a> BufferActions<'a> {
             "Can't flush migration changes when haven't loaded latest persisted agent batch"
         );
         debug_assert!(
-            offsets_start_at_zero(
-                batch.segment.memory(),
-                batch.static_meta(),
-                batch.dynamic_meta(),
-            )
-            .is_ok(),
+            offsets_start_at_zero(batch.segment(), batch.static_meta(), batch.dynamic_meta(),)
+                .is_ok(),
             "Can't flush migration changes, because agent batch already contains invalid offsets"
         );
 
         let change = batch
-            .segment
-            .memory_mut()
+            .segment_mut()
             .set_data_length(self.new_dynamic_meta.data_length)?;
         batch.loaded_metaversion_mut().increment_with(&change);
-        self.flush_memory(batch.segment.memory_mut())?;
+        self.flush_memory(batch.segment_mut())?;
         let loaded = batch.loaded_metaversion();
-        batch.segment.set_persisted_metaversion(loaded);
+        batch.segment_mut().persist_metaversion(loaded);
 
         // Overwrite the Arrow Batch Metadata in memory
         let change = agent_batch.flush_dynamic_meta_unchecked(&self.new_dynamic_meta)?;
         debug_assert!(!change.resized() && !change.shifted());
         debug_assert!(
             offsets_start_at_zero(
-                agent_batch.batch.segment.memory(),
+                agent_batch.batch.segment(),
                 agent_batch.batch.static_meta(),
                 agent_batch.batch.dynamic_meta(),
             )?,
@@ -462,9 +461,9 @@ impl<'a> BufferActions<'a> {
     fn traverse_nodes<'b>(
         mut next_state: NextState,
         children_meta: &NodeMapping,
-        column_meta: &ColumnMeta,
-        static_meta: &StaticMeta,
-        dynamic_meta: Option<&DynamicMeta>,
+        column_meta: &meta::Column,
+        static_meta: &meta::Static,
+        dynamic_meta: Option<&meta::Dynamic>,
         parent_range_actions: &RangeActions,
         agent_batch: Option<&AgentBatch>,
         agent_batches: &[&AgentBatch],
@@ -509,7 +508,7 @@ impl<'a> BufferActions<'a> {
 
             let buffer_data_type = &node_static_meta.get_data_types()[i];
             let buffer_size = match buffer_data_type {
-                super::super::meta::BufferType::BitMap { is_null_bitmap } => {
+                meta::BufferType::BitMap { is_null_bitmap } => {
                     // Here we don't modify range actions
                     let range_actions = updated_range_actions
                         .as_ref()
@@ -533,8 +532,8 @@ impl<'a> BufferActions<'a> {
                     let mut cur_length = if let Some(agent_batch) = agent_batch {
                         let start_index = buffer_meta.offset;
                         let end_index = start_index + buffer_meta.length;
-                        let data = &agent_batch.batch.segment.memory().get_data_buffer()?
-                            [start_index..end_index];
+                        let data =
+                            &agent_batch.batch.segment().get_data_buffer()?[start_index..end_index];
                         debug_assert_eq!(data, agent_batch.get_buffer(buffer_index).unwrap());
                         debug_assert!(range_actions.is_well_ordered_remove());
                         let mut removed_count = 0;
@@ -650,7 +649,7 @@ impl<'a> BufferActions<'a> {
                     target_buffer_size
                 }
 
-                super::super::meta::BufferType::Offset => {
+                meta::BufferType::Offset => {
                     // Here we modify range_actions
                     let mut range_actions =
                         updated_range_actions.unwrap_or_else(|| parent_range_actions.clone());
@@ -858,7 +857,7 @@ impl<'a> BufferActions<'a> {
 
                     target_buffer_size
                 }
-                super::super::meta::BufferType::Data { unit_byte_size } => {
+                meta::BufferType::Data { unit_byte_size } => {
                     // Here we don't modify range actions
                     let range_actions = updated_range_actions
                         .as_ref()
@@ -969,7 +968,7 @@ impl<'a> BufferActions<'a> {
 
                     target_buffer_size
                 }
-                super::super::meta::BufferType::LargeOffset => unimplemented!(),
+                meta::BufferType::LargeOffset => unimplemented!(),
             };
 
             let old_next_offset = dynamic_meta.map_or(0, |meta| {
@@ -1030,7 +1029,7 @@ impl<'a> BufferActions<'a> {
         agent_batches: &[&AgentBatch],
         batch_index: Option<usize>,
         base_range_actions: RangeActions,
-        static_meta: &StaticMeta,
+        static_meta: &meta::Static,
         new_agents: Option<&'a RecordBatch>,
     ) -> Result<BufferActions<'a>> {
         let agent_batch = batch_index.map(|index| agent_batches[index]);
@@ -1084,7 +1083,8 @@ impl<'a> BufferActions<'a> {
                 val
             })
         });
-        let new_dynamic_meta = DynamicMeta::new(num_agents, data_length, node_metas, buffer_metas);
+        let new_dynamic_meta =
+            meta::Dynamic::new(num_agents, data_length, node_metas, buffer_metas);
 
         let bufferactions = BufferActions {
             actions,
@@ -1305,18 +1305,18 @@ impl From<&RowActions> for RangeActions {
 /// # Errors
 /// `memory` doesn't have a data buffer, so it can't contain an Arrow record batch.
 fn offsets_start_at_zero(
-    memory: &Memory,
-    static_meta: &StaticMeta,
-    dynamic_meta: &DynamicMeta,
+    segment: &Segment,
+    static_meta: &meta::Static,
+    dynamic_meta: &meta::Dynamic,
 ) -> Result<bool> {
-    let data = memory.get_data_buffer()?;
+    let data = segment.get_data_buffer()?;
 
     let mut buffer_index = 0;
     let mut starts_at_zero = true;
     static_meta.get_node_meta().iter().for_each(|meta| {
         meta.get_data_types().iter().for_each(|data_type| {
             match data_type {
-                super::super::meta::BufferType::Offset => {
+                meta::BufferType::Offset => {
                     let buffer_meta = &dynamic_meta.buffers[buffer_index];
                     let offset_of_offsets = buffer_meta.offset;
 
@@ -1336,7 +1336,7 @@ fn offsets_start_at_zero(
                     }
                     starts_at_zero = starts_at_zero && offset_starts_at_zero;
                 }
-                super::super::meta::BufferType::LargeOffset => unimplemented!(),
+                meta::BufferType::LargeOffset => unimplemented!(),
                 _ => (),
             }
             buffer_index += 1;
@@ -1349,11 +1349,12 @@ fn offsets_start_at_zero(
 pub(super) mod test {
     use rand::Rng;
     use serde::{Deserialize, Serialize};
+    use stateful::message::MessageSchema;
     use uuid::Uuid;
 
     use super::*;
     use crate::{
-        datastore::{schema::state::MessageSchema, test_utils::gen_schema_and_test_agents},
+        datastore::{arrow::batch_conversion::IntoAgents, test_utils::gen_schema_and_test_agents},
         simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
     };
 
@@ -1530,7 +1531,7 @@ pub(super) mod test {
             batch_index,
             (&row_actions).into(),
             &schema.static_meta,
-            Some(&create_agents.batch.record_batch),
+            Some(create_agents.batch.record_batch()?),
         )?;
         buffer_actions.flush(&mut pool[0])?;
         println!("Migration took: {} us", now.elapsed().as_micros());
@@ -1715,7 +1716,7 @@ pub(super) mod test {
             batch_index,
             (&row_actions).into(),
             &schema.static_meta,
-            Some(&create_agents.batch.record_batch),
+            Some(create_agents.batch.record_batch()?),
         )?;
         buffer_actions.flush(&mut pool[0])?;
         println!("Migration took: {} us", now.elapsed().as_micros());

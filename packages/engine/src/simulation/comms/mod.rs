@@ -26,15 +26,15 @@ pub mod package;
 
 use std::sync::{Arc, RwLock};
 
+use stateful::{agent::Agent, field::PackageId};
 use uuid::Uuid;
 
 use self::message::{EngineToWorkerPoolMsg, WrappedTask};
 use super::{
     command::Commands,
-    package::id::PackageId,
     task::{access::StoreAccessVerify, active::ActiveTask, Task},
+    Error, Result,
 };
-pub use super::{Error, Result};
 use crate::{
     datastore::table::{
         context::Context,
@@ -42,7 +42,6 @@ use crate::{
         sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
         task_shared_store::TaskSharedStore,
     },
-    hash_types::Agent,
     proto::SimulationShortId,
     simulation::comms::message::SyncCompletionReceiver,
     types::TaskId,

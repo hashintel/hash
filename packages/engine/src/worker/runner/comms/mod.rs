@@ -5,20 +5,21 @@ use std::{
     sync::Arc,
 };
 
+use arrow::datatypes::Schema;
+use stateful::{agent::AgentSchema, field::PackageId, globals::Globals};
 use tracing::Span;
 
 use crate::{
-    config::{EngineConfig, Globals},
-    datastore::{prelude::ArrowSchema, schema::state::AgentSchema, shared_store::SharedStore},
+    config::EngineConfig,
+    datastore::shared_store::SharedStore,
+    language::Language,
     proto::{ExperimentId, SimulationShortId},
     simulation::{
-        enum_dispatch::TaskSharedStore,
-        package::{id::PackageId, worker_init::PackageInitMsgForWorker},
+        enum_dispatch::TaskSharedStore, package::worker_init::PackageInitMsgForWorker,
         task::msg::TaskMessage,
     },
     types::{TaskId, WorkerIndex},
     worker::{Error, Result},
-    Language,
 };
 
 pub mod inbound;
@@ -191,8 +192,8 @@ pub struct NewSimulationRun {
 #[derive(derive_new::new, Clone)]
 pub struct DatastoreSimulationPayload {
     pub agent_batch_schema: Arc<AgentSchema>,
-    pub message_batch_schema: Arc<ArrowSchema>,
-    pub context_batch_schema: Arc<ArrowSchema>,
+    pub message_batch_schema: Arc<Schema>,
+    pub context_batch_schema: Arc<Schema>,
     pub shared_store: Arc<SharedStore>,
 }
 
@@ -207,6 +208,8 @@ pub struct ExperimentInitRunnerMsgBase {
     pub experiment_id: ExperimentId,
     pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
+    pub js_runner_initial_heap_constraint: Option<usize>,
+    pub js_runner_max_heap_size: Option<usize>,
 }
 
 #[derive(Clone)]
@@ -215,6 +218,8 @@ pub struct ExperimentInitRunnerMsg {
     pub worker_index: WorkerIndex,
     pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
+    pub js_runner_initial_heap_constraint: Option<usize>,
+    pub js_runner_max_heap_size: Option<usize>,
 }
 
 impl ExperimentInitRunnerMsg {
@@ -226,12 +231,16 @@ impl ExperimentInitRunnerMsg {
             experiment_id,
             shared_context,
             package_config,
+            js_runner_initial_heap_constraint,
+            js_runner_max_heap_size,
         } = base.clone();
         ExperimentInitRunnerMsg {
             experiment_id,
             worker_index,
             shared_context,
             package_config,
+            js_runner_initial_heap_constraint,
+            js_runner_max_heap_size,
         }
     }
 }

@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
+use arrow::record_batch::RecordBatch;
+use stateful::agent::AgentSchema;
+
 use crate::{
     config::StoreConfig,
     datastore::{
-        batch::context::ContextBatch,
-        prelude::*,
-        schema::state::AgentSchema,
+        batch::{context::ContextBatch, AgentBatch},
+        error::{Error, Result},
         table::{
             pool::{agent::AgentPool, message::MessagePool, BatchPool},
-            state::view::StatePools,
+            state::{view::StatePools, State},
         },
     },
     proto::ExperimentId,
@@ -150,7 +152,6 @@ impl Context {
                         .remove(remove_index)
                         .batch
                         .segment()
-                        .memory()
                         .id()
                         .to_string()
                 })

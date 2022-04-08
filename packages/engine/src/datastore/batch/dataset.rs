@@ -1,5 +1,7 @@
+use memory::shared_memory::{MemoryId, Metaversion, Segment};
+
 use crate::{
-    datastore::{batch::Segment, prelude::*},
+    datastore::error::Result,
     proto::{ExperimentId, SharedDataset},
 };
 
@@ -26,12 +28,18 @@ impl Dataset {
             .map(|data| data.len())
             .unwrap_or_default();
 
-        let mut memory =
-            Memory::from_sizes(experiment_id, 0, header.len(), 0, dataset_size, false)?;
-        let change = memory.set_header(&header)?;
+        let mut segment = Segment::from_sizes(
+            MemoryId::new(experiment_id),
+            0,
+            header.len(),
+            0,
+            dataset_size,
+            false,
+        )?;
+        let change = segment.set_header(&header)?;
         debug_assert!(!change.resized() && !change.shifted());
 
-        let buffer = memory.get_mut_data_buffer()?;
+        let buffer = segment.get_mut_data_buffer()?;
         buffer.copy_from_slice(
             dataset
                 .data
@@ -40,9 +48,7 @@ impl Dataset {
                 .unwrap_or_default(),
         );
 
-        Ok(Self {
-            segment: Segment(memory),
-        })
+        Ok(Self { segment })
     }
 
     /// Contents of the dataset, e.g. a JSON or CSV string.
@@ -53,7 +59,6 @@ impl Dataset {
     /// isn't supposed to be changed after creation), then it might not have a data buffer.
     pub fn data(&self) -> &[u8] {
         self.segment
-            .memory()
             .get_data_buffer()
             .expect("Dataset segment must have data buffer")
     }
