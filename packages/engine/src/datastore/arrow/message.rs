@@ -177,19 +177,21 @@ impl OutboundArray {
         Ok(Self(builder.finish()))
     }
 
-    pub fn from_array(array: &dyn Array) -> Result<&Self> {
-        let list = array.as_any().downcast_ref::<array::ListArray>().ok_or(
-            Error::InvalidArrowDowncast {
+    pub fn from_record_batch(batch: &RecordBatch) -> Result<&Self> {
+        let list = batch
+            .column(MESSAGE_COLUMN_INDEX)
+            .as_any()
+            .downcast_ref::<array::ListArray>()
+            .ok_or(Error::InvalidArrowDowncast {
                 name: MESSAGE_COLUMN_NAME.into(),
-            },
-        )?;
+            })?;
         // SAFETY: `OutboundArray` is marked as `#[repr(transparent)]`
         Ok(unsafe { &*(list as *const array::ListArray as *const Self) })
     }
 
-    pub fn from_column(column: &[Vec<Outbound>]) -> Result<Self> {
-        let mut builder = OutboundBuilder::new_list(column.len());
-        for messages in column {
+    pub fn from_column(column: &OutboundColumn) -> Result<Self> {
+        let mut builder = OutboundBuilder::new_list(column.0.len());
+        for messages in &column.0 {
             let messages_builder = builder.values();
             for message in messages {
                 messages_builder.append(message)?;
@@ -228,53 +230,58 @@ impl Array for OutboundArray {
     }
 }
 
-pub fn get_column_from_list_array(array: &OutboundArray) -> Result<Vec<Vec<message::Outbound>>> {
-    let mut result = Vec::with_capacity(array.0.len());
-    let vals = array.0.values();
-    let vals = vals
-        .as_any()
-        .downcast_ref()
-        .ok_or(Error::InvalidArrowDowncast {
-            name: MESSAGE_COLUMN_NAME.into(),
-        })?;
+pub struct OutboundColumn(Vec<Vec<Outbound>>);
 
-    let (to_column, r#type_column, data_column) = get_columns_from_struct_array(vals)?;
-    let _to_values = to_column.values();
-    let to_values = _to_values
-        .as_any()
-        .downcast_ref::<array::StringArray>()
-        .ok_or(Error::InvalidArrowDowncast { name: "to".into() })?;
+impl OutboundColumn {
+    fn from_array(array: &OutboundArray) -> Result<Self> {
+        let mut result = Vec::with_capacity(array.0.len());
+        let vals = array.0.values();
+        let vals = vals
+            .as_any()
+            .downcast_ref()
+            .ok_or(Error::InvalidArrowDowncast {
+                name: MESSAGE_COLUMN_NAME.into(),
+            })?;
 
-    let mut offset = 0;
-    let mut to_offset = 0;
+        let (to_column, r#type_column, data_column) = get_columns_from_struct_array(vals)?;
+        let _to_values = to_column.values();
+        let to_values = _to_values
+            .as_any()
+            .downcast_ref::<array::StringArray>()
+            .ok_or(Error::InvalidArrowDowncast { name: "to".into() })?;
 
-    for i in 0..array.0.len() {
-        let messages_len = array.0.value_length(i) as usize;
-        let mut messages: Vec<message::Outbound> = Vec::with_capacity(messages_len);
-        for j in 0..messages_len {
-            let to_len = to_column.value_length(offset + j) as usize;
-            let to: Vec<&str> = (0..to_len)
-                .map(|j| to_values.value(to_offset + j))
-                .collect();
-            let r#type = r#type_column.value(offset + j);
-            let data_string = data_column.value(offset + j);
-            messages.push(get_generic(&to, r#type, data_string)?);
-            to_offset += to_len;
+        let mut offset = 0;
+        let mut to_offset = 0;
+
+        for i in 0..array.0.len() {
+            let messages_len = array.0.value_length(i) as usize;
+            let mut messages: Vec<message::Outbound> = Vec::with_capacity(messages_len);
+            for j in 0..messages_len {
+                let to_len = to_column.value_length(offset + j) as usize;
+                let to: Vec<&str> = (0..to_len)
+                    .map(|j| to_values.value(to_offset + j))
+                    .collect();
+                let r#type = r#type_column.value(offset + j);
+                let data_string = data_column.value(offset + j);
+                messages.push(get_generic(&to, r#type, data_string)?);
+                to_offset += to_len;
+            }
+            result.push(messages);
+            offset += messages_len;
         }
-        result.push(messages);
-        offset += messages_len;
+        Ok(Self(result))
     }
-    Ok(result)
-}
 
-pub fn column_into_state(states: &mut [Agent], batch: &RecordBatch) -> Result<()> {
-    let array = OutboundArray::from_array(batch.column(MESSAGE_COLUMN_INDEX))?;
+    pub fn from_record_batch(batch: &RecordBatch) -> Result<Self> {
+        OutboundColumn::from_array(OutboundArray::from_record_batch(batch)?)
+    }
 
-    get_column_from_list_array(array)?
-        .into_iter()
-        .enumerate()
-        .try_for_each(|(i, v)| states[i].set(MESSAGE_COLUMN_NAME, v))?;
-    Ok(())
+    pub fn update_agents(&self, agents: &mut [Agent]) -> Result<()> {
+        for (agent_index, outbounds) in self.0.iter().enumerate() {
+            agents[agent_index].set(MESSAGE_COLUMN_NAME, outbounds)?;
+        }
+        Ok(())
+    }
 }
 
 pub fn batch_from_json(

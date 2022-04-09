@@ -261,24 +261,14 @@ pub struct Raw<'a> {
 
 // Iterators and getters
 pub mod record_batch {
-    use arrow::{
-        array::{self, Array},
-        record_batch::RecordBatch,
-    };
+    use arrow::{array::Array, record_batch::RecordBatch};
     use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
-    use stateful::message::{Outbound, MESSAGE_COLUMN_NAME};
 
     use crate::datastore::{
-        arrow::message::{self, get_column_from_list_array, OutboundArray, MESSAGE_COLUMN_INDEX},
+        arrow::message::{self, MESSAGE_COLUMN_INDEX},
         batch::message::MessageLoader,
-        error::{Error, Result},
         table::references::AgentMessageReference,
     };
-
-    pub fn get_native_messages(record_batch: &RecordBatch) -> Result<Vec<Vec<Outbound>>> {
-        let array = OutboundArray::from_array(record_batch.column(MESSAGE_COLUMN_INDEX))?;
-        get_column_from_list_array(array)
-    }
 
     pub fn message_loader(record_batch: &RecordBatch) -> MessageLoader<'_> {
         let column = record_batch.column(message::FROM_COLUMN_INDEX);

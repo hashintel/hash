@@ -26,7 +26,10 @@ use stateful::{
 
 use crate::{
     datastore::{
-        arrow::{message, message::OutboundArray},
+        arrow::{
+            message,
+            message::{OutboundArray, OutboundColumn},
+        },
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
         schema::IsRequired,
@@ -510,7 +513,8 @@ fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<(
         messages.schema(),
         std::sync::Arc::new(MESSAGE_BATCH_SCHEMA.clone())
     );
-    super::message::column_into_state(states, messages)
+    OutboundColumn::from_record_batch(messages)?.update_agents(states)?;
+    Ok(())
 }
 
 fn set_states_builtins(states: &mut [Agent], agents: &RecordBatch) -> Result<()> {
