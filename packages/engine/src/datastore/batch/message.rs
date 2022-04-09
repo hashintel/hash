@@ -80,7 +80,7 @@ impl MessageBatch {
         let agent_record_batch = agent_batch.batch.record_batch()?; // Agent batch must be up to date
         let column_name = AgentStateField::AgentId.name();
         let id_column = column_with_name(agent_record_batch, column_name)?;
-        let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
+        let empty_message_column = message::OutboundArray::new(agent_count).map(Arc::new)?;
 
         let record_batch = RecordBatch::try_new(self.arrow_schema.clone(), vec![
             Arc::clone(id_column),
@@ -155,7 +155,7 @@ impl MessageBatch {
         let agent_record_batch = agent_batch.batch.record_batch()?;
         let column_name = AgentStateField::AgentId.name();
         let id_column = column_with_name(agent_record_batch, column_name)?;
-        let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
+        let empty_message_column = message::OutboundArray::new(agent_count).map(Arc::new)?;
 
         let record_batch = RecordBatch::try_new(schema.clone(), vec![
             id_column.clone(),
@@ -269,21 +269,15 @@ pub mod record_batch {
     use stateful::message::{Outbound, MESSAGE_COLUMN_NAME};
 
     use crate::datastore::{
-        arrow::message::{self, get_column_from_list_array, MESSAGE_COLUMN_INDEX},
+        arrow::message::{self, get_column_from_list_array, OutboundArray, MESSAGE_COLUMN_INDEX},
         batch::message::MessageLoader,
         error::{Error, Result},
         table::references::AgentMessageReference,
     };
 
     pub fn get_native_messages(record_batch: &RecordBatch) -> Result<Vec<Vec<Outbound>>> {
-        let reference = record_batch
-            .column(MESSAGE_COLUMN_INDEX)
-            .as_any()
-            .downcast_ref::<array::ListArray>()
-            .ok_or(Error::InvalidArrowDowncast {
-                name: MESSAGE_COLUMN_NAME.into(),
-            })?;
-        get_column_from_list_array(reference)
+        let array = OutboundArray::from_array(record_batch.column(MESSAGE_COLUMN_INDEX))?;
+        get_column_from_list_array(array)
     }
 
     pub fn message_loader(record_batch: &RecordBatch) -> MessageLoader<'_> {

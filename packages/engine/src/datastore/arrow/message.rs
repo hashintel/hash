@@ -1,10 +1,11 @@
 use std::{any::Any, sync::Arc};
 
 use arrow::{
-    array::{self, Array, ArrayBuilder, ArrayRef},
+    array::{self, Array, ArrayBuilder, ArrayData, ArrayRef, JsonEqual},
     datatypes::Schema,
     record_batch::RecordBatch,
 };
+use serde_json::Value;
 use stateful::{
     agent::Agent,
     message::{self, Outbound, MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME},
@@ -163,43 +164,73 @@ impl ArrayBuilder for OutboundBuilder {
     }
 }
 
-pub fn outbound_messages_to_arrow_column(column: &[Vec<Outbound>]) -> Result<array::ListArray> {
-    let mut builder = OutboundBuilder::new_list(column.len());
-    for messages in column {
-        let messages_builder = builder.values();
-        for message in messages {
-            messages_builder.append(message)?;
+#[derive(Debug)]
+#[repr(transparent)] // Required for `&ListArray -> &OutboundArray`
+pub struct OutboundArray(array::ListArray);
+
+impl OutboundArray {
+    pub fn new(len: usize) -> Result<Self> {
+        let mut builder = OutboundBuilder::new_list(len);
+        for _ in 0..len {
+            builder.append(true)?;
         }
-        builder.append(true)?;
+        Ok(Self(builder.finish()))
     }
-    Ok(builder.finish())
-}
 
-pub fn empty_messages_column(len: usize) -> Result<array::ListArray> {
-    let mut builder = OutboundBuilder::new_list(len);
-    for _ in 0..len {
-        builder.append(true)?;
+    pub fn from_array(array: &dyn Array) -> Result<&Self> {
+        let list = array.as_any().downcast_ref::<array::ListArray>().ok_or(
+            Error::InvalidArrowDowncast {
+                name: MESSAGE_COLUMN_NAME.into(),
+            },
+        )?;
+        // SAFETY: `OutboundArray` is marked as `#[repr(transparent)]`
+        Ok(unsafe { &*(list as *const array::ListArray as *const Self) })
     }
-    Ok(builder.finish())
-}
 
-pub fn messages_column_from_serde_values(
-    column: Vec<serde_json::Value>,
-) -> Result<array::ListArray> {
-    let mut builder = OutboundBuilder::new_list(column.len());
-    for messages in column {
-        let messages_builder = builder.values();
-        for message in serde_json::from_value::<Vec<_>>(messages)? {
-            messages_builder.append(&message)?;
+    pub fn from_column(column: &[Vec<Outbound>]) -> Result<Self> {
+        let mut builder = OutboundBuilder::new_list(column.len());
+        for messages in column {
+            let messages_builder = builder.values();
+            for message in messages {
+                messages_builder.append(message)?;
+            }
+            builder.append(true)?;
         }
-        builder.append(true)?;
+        Ok(Self(builder.finish()))
     }
-    Ok(builder.finish())
+
+    pub fn from_json(column: Vec<serde_json::Value>) -> Result<Self> {
+        let mut builder = OutboundBuilder::new_list(column.len());
+        for messages in column {
+            let messages_builder = builder.values();
+            for message in serde_json::from_value::<Vec<_>>(messages)? {
+                messages_builder.append(&message)?;
+            }
+            builder.append(true)?;
+        }
+        Ok(Self(builder.finish()))
+    }
 }
 
-pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<message::Outbound>>> {
-    let mut result = Vec::with_capacity(array.len());
-    let vals = array.values();
+impl JsonEqual for OutboundArray {
+    fn equals_json(&self, json: &[&Value]) -> bool {
+        self.0.equals_json(json)
+    }
+}
+
+impl Array for OutboundArray {
+    fn as_any(&self) -> &dyn Any {
+        &self.0
+    }
+
+    fn data(&self) -> &ArrayData {
+        self.0.data()
+    }
+}
+
+pub fn get_column_from_list_array(array: &OutboundArray) -> Result<Vec<Vec<message::Outbound>>> {
+    let mut result = Vec::with_capacity(array.0.len());
+    let vals = array.0.values();
     let vals = vals
         .as_any()
         .downcast_ref()
@@ -217,8 +248,8 @@ pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<me
     let mut offset = 0;
     let mut to_offset = 0;
 
-    for i in 0..array.len() {
-        let messages_len = array.value_length(i) as usize;
+    for i in 0..array.0.len() {
+        let messages_len = array.0.value_length(i) as usize;
         let mut messages: Vec<message::Outbound> = Vec::with_capacity(messages_len);
         for j in 0..messages_len {
             let to_len = to_column.value_length(offset + j) as usize;
@@ -236,17 +267,10 @@ pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<me
     Ok(result)
 }
 
-pub fn column_into_state(states: &mut [Agent], batch: &RecordBatch, index: usize) -> Result<()> {
-    let reference = batch
-        .column(index)
-        .as_any()
-        .downcast_ref::<array::ListArray>()
-        .ok_or(Error::InvalidArrowDowncast {
-            name: MESSAGE_COLUMN_NAME.into(),
-        })?;
+pub fn column_into_state(states: &mut [Agent], batch: &RecordBatch) -> Result<()> {
+    let array = OutboundArray::from_array(batch.column(MESSAGE_COLUMN_INDEX))?;
 
-    let column = get_column_from_list_array(reference)?;
-    column
+    get_column_from_list_array(array)?
         .into_iter()
         .enumerate()
         .try_for_each(|(i, v)| states[i].set(MESSAGE_COLUMN_NAME, v))?;
@@ -262,8 +286,8 @@ pub fn batch_from_json(
     let ids = Arc::new(super::batch_conversion::get_agent_id_array(ids)?);
 
     let messages: Arc<dyn Array> = messages.map_or_else(
-        || empty_messages_column(agent_count).map(Arc::new),
-        |values| messages_column_from_serde_values(values).map(Arc::new),
+        || OutboundArray::new(agent_count).map(Arc::new),
+        |values| OutboundArray::from_json(values).map(Arc::new),
     )?;
 
     RecordBatch::try_new(schema.clone(), vec![ids, messages]).map_err(Error::from)

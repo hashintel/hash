@@ -26,7 +26,7 @@ use stateful::{
 
 use crate::{
     datastore::{
-        arrow::{message, message::messages_column_from_serde_values},
+        arrow::{message, message::OutboundArray},
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
         schema::IsRequired,
@@ -213,7 +213,7 @@ impl IntoRecordBatch for &[&Agent] {
             } else if name == AgentStateField::AgentName.name() {
                 Arc::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Messages.name() {
-                Arc::new(messages_column_from_serde_values(vals)?)
+                Arc::new(OutboundArray::from_json(vals)?)
             } else if name == AgentStateField::Position.name() {
                 Arc::new(agents_to_position_col(*self)?)
             } else if name == AgentStateField::Direction.name()
@@ -510,7 +510,7 @@ fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<(
         messages.schema(),
         std::sync::Arc::new(MESSAGE_BATCH_SCHEMA.clone())
     );
-    super::message::column_into_state(states, messages, super::message::MESSAGE_COLUMN_INDEX)
+    super::message::column_into_state(states, messages)
 }
 
 fn set_states_builtins(states: &mut [Agent], agents: &RecordBatch) -> Result<()> {
