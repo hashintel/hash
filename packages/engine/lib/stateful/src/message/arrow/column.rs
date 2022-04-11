@@ -5,7 +5,10 @@ use arrow::{
 
 use crate::{
     agent::Agent,
-    message::{arrow::array::MessageArray, payload, Message, MESSAGE_COLUMN_NAME},
+    message::{
+        arrow::{array::MessageArray, MESSAGE_COLUMN_NAME},
+        payload, Message,
+    },
     Error, Result,
 };
 

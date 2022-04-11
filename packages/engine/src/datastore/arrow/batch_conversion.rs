@@ -23,7 +23,7 @@ use stateful::{
     field::{FieldScope, FieldTypeVariant, RootFieldKey},
     message::{
         arrow::{array::MessageArray, column::MessageColumn},
-        MESSAGE_BATCH_SCHEMA,
+        MessageSchema,
     },
 };
 
@@ -509,10 +509,7 @@ fn set_states_previous_index(states: &mut [Agent], record_batch: &RecordBatch) -
 }
 
 fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<()> {
-    debug_assert_eq!(
-        messages.schema(),
-        std::sync::Arc::new(MESSAGE_BATCH_SCHEMA.clone())
-    );
+    debug_assert_eq!(messages.schema(), MessageSchema::default().arrow);
     MessageColumn::from_record_batch(messages)?.update_agents(states)?;
     Ok(())
 }
@@ -709,7 +706,7 @@ pub mod tests {
             let agent_batch = agents.as_slice().into_agent_batch(&schema)?;
             let message_batch = agents
                 .as_slice()
-                .into_message_batch(&Arc::new(MESSAGE_BATCH_SCHEMA.clone()))?;
+                .into_message_batch(&MessageSchema::default().arrow)?;
 
             let mut returned_agents =
                 (&agent_batch, &message_batch).into_agent_states(Some(&schema))?;

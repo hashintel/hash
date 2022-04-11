@@ -10,7 +10,8 @@ use arrow::{
 
 use crate::{
     message::{
-        arrow::column::MessageColumn, payload, Message, MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME,
+        arrow::{column::MessageColumn, MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME},
+        payload, Message,
     },
     Error, Result,
 };

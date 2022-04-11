@@ -15,7 +15,7 @@ pub use self::{
     inbound::Inbound,
     kind::{CreateAgent, RemoveAgent, StopSim},
     outbound::Message,
-    schema::{MessageSchema, MESSAGE_ARROW_FIELDS, MESSAGE_BATCH_SCHEMA, MESSAGE_COLUMN_NAME},
+    schema::MessageSchema,
 };
 
 // System-message recipient
