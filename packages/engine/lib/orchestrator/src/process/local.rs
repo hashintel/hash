@@ -32,9 +32,10 @@ pub struct LocalProcess {
 impl process::Process for LocalProcess {
     async fn exit_and_cleanup(mut self: Box<Self>, experiment_id: ExperimentId) -> Result<()> {
         // Leave some time for the engine to cleanup some resources
-        if let Err(_) =
-            tokio::time::timeout(tokio::time::Duration::from_millis(500), self.child.wait()).await
-        {
+        let hash_engine_result =
+            tokio::time::timeout(tokio::time::Duration::from_millis(500), self.child.wait()).await;
+
+        if hash_engine_result.is_err() {
             // Kill the child process as it didn't stop on its own
             self.child
                 .kill()
@@ -48,22 +49,27 @@ impl process::Process for LocalProcess {
                 .wrap_err("Could not kill the process")?;
         }
 
-        // Cleanup python socket files in case the engine didn't
-        let frompy_files =
-            glob::glob(&format!("{experiment_id}-frompy*")).wrap_err("cleanup glob error")?;
-        let topy_files =
-            glob::glob(&format!("{experiment_id}-topy*")).wrap_err("cleanup glob error")?;
+        match hash_engine_result {
+            Ok(Ok(exit_status)) if exit_status.success() => {}
+            _ => {
+                // Cleanup python socket files in case the engine didn't
+                let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"))
+                    .wrap_err("cleanup glob error")?;
+                let topy_files =
+                    glob::glob(&format!("{experiment_id}-topy*")).wrap_err("cleanup glob error")?;
 
-        frompy_files
-            .chain(topy_files)
-            .filter_map(std::result::Result::ok)
-            .for_each(|path| {
-                if let Err(err) = std::fs::remove_file(&path) {
-                    tracing::warn!("Could not clean up {path:?}: {err}");
-                }
-            });
+                frompy_files
+                    .chain(topy_files)
+                    .filter_map(std::result::Result::ok)
+                    .for_each(|path| {
+                        if let Err(err) = std::fs::remove_file(&path) {
+                            tracing::warn!("Could not clean up {path:?}: {err}");
+                        }
+                    });
 
-        MemoryId::clean_up(experiment_id)?;
+                MemoryId::clean_up(experiment_id)?;
+            }
+        }
 
         debug!("Cleaned up local engine process for experiment");
         Ok(())
