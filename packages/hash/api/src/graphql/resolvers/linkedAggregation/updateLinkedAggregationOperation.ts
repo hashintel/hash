@@ -27,7 +27,7 @@ export const updateLinkedAggregationOperation: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const aggregation = await source.getAggregation(client, {
+    const aggregation = await source.getAggregationByPath(client, {
       stringifiedPath: path,
     });
 

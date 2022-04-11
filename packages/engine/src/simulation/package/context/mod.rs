@@ -4,16 +4,17 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use memory::arrow::meta::ColumnDynamicMetadata;
+use stateful::{
+    field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
+};
 use tracing::Span;
 
 pub use self::packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
+    config::{ExperimentConfig, SimRunConfig},
     datastore::{
-        schema::{
-            accessor::FieldSpecMapAccessor, context::ContextSchema, FieldKey, FieldSpec,
-            RootFieldSpec, RootFieldSpecCreator,
-        },
+        schema::context::ContextSchema,
         table::{proxy::StateReadProxy, state::view::StateSnapshot},
         Result as DatastoreResult,
     },
@@ -39,7 +40,7 @@ pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>>;
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>>;
 
     fn span(&self) -> Span;
 }
@@ -100,7 +101,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
 /// if a context package's columns aren't next to one another in memory. (It's necessary to reorder
 /// by the FieldKey to match the schema for the batch)
 pub struct ContextColumn {
-    pub(crate) field_key: FieldKey,
+    pub(crate) field_key: RootFieldKey,
     inner: Box<dyn ContextColumnWriter + Send + Sync>,
     span: Span,
 }

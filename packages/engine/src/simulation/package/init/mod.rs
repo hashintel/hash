@@ -6,11 +6,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 pub use packages::{InitTask, InitTaskMessage, Name, PACKAGE_CREATORS};
+use stateful::{
+    agent::Agent,
+    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
+};
 
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
-    datastore::schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-    hash_types::Agent,
+    config::{ExperimentConfig, SimRunConfig},
     simulation::{
         comms::package::PackageComms,
         package::{

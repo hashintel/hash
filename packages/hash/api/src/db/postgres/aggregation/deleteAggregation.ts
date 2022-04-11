@@ -7,18 +7,24 @@ import {
 import { DbEntityNotFoundError } from "../..";
 import { deleteAggregationRow } from "./util";
 import { requireTransaction } from "../util";
+import { getAggregation } from "./getAggregation";
+import { DbClient } from "../../adapter";
+import { DbAggregationNotFoundError } from "../../errors";
 
 export const deleteAggregation = async (
   existingConnection: Connection,
-  params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
-    deletedByAccountId: string;
-  },
+  params: Parameters<DbClient["deleteAggregation"]>[0],
 ): Promise<void> =>
   requireTransaction(existingConnection)(async (conn) => {
-    const { sourceAccountId, sourceEntityId, deletedByAccountId } = params;
+    const { aggregationId, deletedByAccountId } = params;
+
+    const dbAggregation = await getAggregation(conn, { aggregationId });
+
+    if (!dbAggregation) {
+      throw new DbAggregationNotFoundError(params);
+    }
+
+    const { sourceAccountId, sourceEntityId } = dbAggregation;
 
     await acquireEntityLock(conn, { entityId: sourceEntityId });
 
@@ -47,7 +53,7 @@ export const deleteAggregation = async (
         entity: dbSourceEntity,
         /** @todo: re-implement method to not require updated `properties` */
         properties: dbSourceEntity.properties,
-        omittedAggregations: [params],
+        omittedAggregations: [{ aggregationId }],
       });
     } else {
       await deleteAggregationRow(conn, params);

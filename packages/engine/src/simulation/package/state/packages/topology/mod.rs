@@ -1,5 +1,9 @@
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::{
+    field::{RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
+};
 
 use crate::{
     config::{ExperimentConfig, TopologyConfig},
@@ -9,9 +13,8 @@ use crate::{
     },
     simulation::{
         package::state::{
-            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals,
-            Package, PackageComms, PackageCreator, RootFieldSpec, RootFieldSpecCreator,
-            SimRunConfig, Span,
+            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Package,
+            PackageComms, PackageCreator, SimRunConfig, Span,
         },
         Result,
     },

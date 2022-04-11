@@ -5,6 +5,7 @@ import { DbAggregation } from "../../adapter";
 import { mapColumnNamesToSQL } from "../util";
 
 export type DbAggregationRow = {
+  aggregation_id: string;
   source_account_id: string;
   source_entity_id: string;
   path: string;
@@ -17,6 +18,7 @@ export type DbAggregationRow = {
 export const mapRowToDbAggregation = (
   row: DbAggregationRow,
 ): DbAggregation => ({
+  aggregationId: row.aggregation_id,
   sourceAccountId: row.source_account_id,
   sourceEntityId: row.source_entity_id,
   path: row.path,
@@ -27,6 +29,7 @@ export const mapRowToDbAggregation = (
 });
 
 export const aggregationsColumnNames = [
+  "aggregation_id",
   "source_account_id",
   "source_entity_id",
   "path",
@@ -54,6 +57,7 @@ export const insertAggregation = async (
     insert into aggregations (${aggregationsColumnNamesSQL})
     values (${sql.join(
       [
+        aggregation.aggregationId,
         aggregation.sourceAccountId,
         aggregation.sourceEntityId,
         aggregation.path,
@@ -76,9 +80,7 @@ export const insertAggregation = async (
 export const updateAggregationRowOperation = async (
   conn: Connection,
   params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
+    aggregationId: string;
     operation: object;
   },
 ): Promise<void> => {
@@ -86,9 +88,7 @@ export const updateAggregationRowOperation = async (
     update aggregations
     set operation = ${JSON.stringify(params.operation)}
     where
-      source_account_id = ${params.sourceAccountId}
-      and source_entity_id = ${params.sourceEntityId}
-      and path = ${params.path}
+      aggregation_id = ${params.aggregationId}
     returning *;
   `);
 };
@@ -98,14 +98,11 @@ export const updateAggregationRowOperation = async (
  */
 export const deleteAggregationRow = async (
   conn: Connection,
-  params: { sourceAccountId: string; sourceEntityId: string; path: string },
+  params: { aggregationId: string },
 ): Promise<void> => {
   await conn.one(sql`
     delete from aggregations
-    where
-      source_account_id = ${params.sourceAccountId}
-      and source_entity_id = ${params.sourceEntityId}
-      and path = ${params.path}
+    where aggregation_id = ${params.aggregationId}
     returning *
   `);
 };
@@ -113,9 +110,7 @@ export const deleteAggregationRow = async (
 export const addSourceEntityVersionIdToAggregation = async (
   conn: Connection,
   params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
+    aggregationId: string;
     newSourceEntityVersionId: string;
   },
 ) => {
@@ -125,9 +120,7 @@ export const addSourceEntityVersionIdToAggregation = async (
       update aggregations
       set source_entity_version_ids = array_append(aggregations.source_entity_version_ids, ${params.newSourceEntityVersionId})
       where
-        source_account_id = ${params.sourceAccountId}
-        and source_entity_id = ${params.sourceEntityId}
-        and path = ${params.path}
+        aggregation_id = ${params.aggregationId}
         and not ${params.newSourceEntityVersionId} = ANY(aggregations.source_entity_version_ids)
       returning *
     ) select * from updated order by created_at desc limit 1;
