@@ -1,29 +1,11 @@
-import React, { useEffect, useState, useRef, forwardRef, useMemo } from "react";
-import { tw } from "twind";
+import React, { useRef, forwardRef, useMemo } from "react";
 
-import { useKey, useOutsideClick } from "rooks";
-import { unstable_batchedUpdates } from "react-dom";
-
+import { useKey } from "rooks";
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 
-import {
-  addEntityStoreAction,
-  entityStorePluginState,
-  entityStorePluginStateFromTransaction,
-  newDraftId,
-} from "@hashintel/hash-shared/entityStorePlugin";
 import { EditorView } from "prosemirror-view";
 import { Schema } from "prosemirror-model";
-import {
-  Box,
-  Divider,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  MenuList,
-  Typography,
-} from "@mui/material";
+import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
 import { format } from "date-fns";
@@ -39,18 +21,14 @@ import {
   faTrashCan,
 } from "@fortawesome/free-regular-svg-icons";
 import { getBlockDomId } from "../../blocks/page/BlockView";
-import {
-  BlockSuggesterProps,
-  getVariantIcon,
-} from "../../blocks/page/createSuggester/BlockSuggester";
+import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
 
 import { BlockLoaderInput } from "./BlockLoaderInput";
-import { useUserBlocks } from "../../blocks/userBlocks";
-import { useFilteredBlocks } from "../../blocks/page/createSuggester/useFilteredBlocks";
 import { useUsers } from "../hooks/useUsers";
 import { FontAwesomeIcon } from "../../shared/icons";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
 import { LoadEntityMenuContent } from "./LoadEntityMenuContent";
+import { BlockListMenuContent } from "./BlockListMenuContent";
 
 type BlockContextMenuProps = {
   popupState: PopupState;
@@ -63,18 +41,11 @@ type BlockContextMenuProps = {
 export const BlockContextMenu = forwardRef<
   HTMLDivElement,
   BlockContextMenuProps
->(({ popupState, blockSuggesterProps, entityId, entityStore, view }, ref) => {
+>(({ popupState, blockSuggesterProps, entityId, entityStore }, ref) => {
   const blockData = entityId ? entityStore.saved[entityId] : null;
   const { data: users } = useUsers();
-  const { value: userBlocks } = useUserBlocks();
-
-  const blocks = useFilteredBlocks("", userBlocks);
-
-  const entityStoreRef = useRef(entityStore);
-
-  useEffect(() => {
-    entityStoreRef.current = entityStore;
-  });
+  const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
+  const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
 
   if (blockData && !isBlockEntity(blockData)) {
     throw new Error("BlockContextMenu linked to non-block entity");
@@ -83,9 +54,14 @@ export const BlockContextMenu = forwardRef<
   const menuItems = useMemo(() => {
     return [
       {
-        key: "add",
+        key: "set-entity",
         title: "Add an entity",
         icon: <FontAwesomeIcon icon={faAdd} />,
+        // @todo fix this TS issue. all subMenu's require
+        // popupState and that's passed in through cloneElement
+        // in BlockContextMenuItem
+        // For now the temporary fix is to make popupState optional
+        // in LoadEntityMenuContent
         subMenu: (
           <LoadEntityMenuContent
             entityId={entityId}
@@ -95,7 +71,7 @@ export const BlockContextMenu = forwardRef<
         subMenuWidth: 280,
       },
       {
-        key: "copyLink",
+        key: "copy-link",
         title: "Copy Link",
         icon: <FontAwesomeIcon icon={faLink} />,
         onClick: () => {
@@ -118,30 +94,8 @@ export const BlockContextMenu = forwardRef<
         key: "swap-block",
         title: "Swap block type",
         icon: <FontAwesomeIcon icon={faRefresh} />,
-        // move to it's own component
         subMenu: (
-          <MenuList>
-            {blocks.map((option) => (
-              <MenuItem
-                onClick={() => {
-                  blockSuggesterProps.onChange(option.variant, option.meta);
-                }}
-                key={`${option.meta.name}/${option.variant.name}`}
-              >
-                <ListItemIcon>
-                  <Box
-                    component="img"
-                    width={16}
-                    height={16}
-                    overflow="hidden"
-                    alt={option.variant.name}
-                    src={getVariantIcon(option)}
-                  />
-                </ListItemIcon>
-                <ListItemText primary={option?.variant.name} />
-              </MenuItem>
-            ))}
-          </MenuList>
+          <BlockListMenuContent blockSuggesterProps={blockSuggesterProps} />
         ),
         subMenuWidth: 228,
       },
@@ -156,14 +110,22 @@ export const BlockContextMenu = forwardRef<
         icon: <FontAwesomeIcon icon={faMessage} />,
       },
     ];
-  }, [entityId, blockSuggesterProps, blocks, entityStore]);
-
-  const usableMenuItems = menuItems.filter(({ key }) => {
-    return key !== "copyLink" || entityId;
-  });
+  }, [entityId, blockSuggesterProps, entityStore]);
 
   useKey(["Escape"], () => {
     popupState.close();
+  });
+
+  useKey(["@"], () => {
+    if (popupState.isOpen) {
+      setEntityMenuItemRef.current?.focus();
+    }
+  });
+
+  useKey(["/"], () => {
+    if (popupState.isOpen) {
+      swapBlocksMenuItemRef.current?.focus();
+    }
   });
 
   return (
@@ -184,42 +146,39 @@ export const BlockContextMenu = forwardRef<
         },
       }}
     >
-      <Box
-        component="li"
-        sx={{
-          px: 2,
-          pt: 1.5,
-          mb: 1,
-        }}
-      >
+      <Box component="li" px={2} pt={1.5} mb={1}>
         <BlockLoaderInput />
       </Box>
 
-      {usableMenuItems.map(
-        ({ key, title, icon, onClick, subMenu, subMenuWidth }) => {
-          return (
-            <BlockContextMenuItem
-              key={key}
-              title={title}
-              itemKey={key}
-              icon={icon}
-              onClick={onClick}
-              subMenu={subMenu}
-              subMenuWidth={subMenuWidth}
-              // parentPopupState={popupState}
-            />
-          );
-        },
-      )}
+      {menuItems.map(({ key, title, icon, onClick, subMenu, subMenuWidth }) => {
+        if (key === "copy-link" && !entityId) {
+          return null;
+        }
+
+        let menuItemRef;
+        if (key === "set-entity") {
+          menuItemRef = setEntityMenuItemRef;
+        }
+        if (key === "swap-block") {
+          menuItemRef = swapBlocksMenuItemRef;
+        }
+
+        return (
+          <BlockContextMenuItem
+            key={key}
+            title={title}
+            itemKey={key}
+            icon={icon}
+            onClick={onClick}
+            subMenu={subMenu}
+            subMenuWidth={subMenuWidth}
+            {...(menuItemRef && { ref: menuItemRef })}
+          />
+        );
+      })}
 
       <Divider />
-      <Box
-        sx={{
-          px: 1.75,
-          pt: 1.25,
-          pb: 1.5,
-        }}
-      >
+      <Box px={1.75} pt={1.25} pb={1.5}>
         <Typography
           variant="microText"
           sx={({ palette }) => ({

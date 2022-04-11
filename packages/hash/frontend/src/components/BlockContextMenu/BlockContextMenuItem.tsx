@@ -7,26 +7,31 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import HoverPopover from "material-ui-popup-state/HoverPopover";
-import { useEffect, useRef, useState, VFC } from "react";
+import { cloneElement, forwardRef, RefObject, useRef, useState } from "react";
 import { FontAwesomeIcon } from "../../shared/icons";
 
-export const BlockContextMenuItem: VFC<{
+type BlockContextMenuItemProps = {
   itemKey: string;
-  onClick?: VoidFunction;
+  onClick?: () => void;
   icon: JSX.Element;
   title: JSX.Element | string;
   subMenu?: JSX.Element;
   subMenuWidth?: number;
-}> = ({ onClick, icon, title, itemKey, subMenu, subMenuWidth }) => {
+};
+
+export const BlockContextMenuItem = forwardRef<
+  HTMLLIElement,
+  BlockContextMenuItemProps
+>(({ onClick, icon, title, itemKey, subMenu, subMenuWidth }, ref) => {
   const subMenuPopupState = usePopupState({
     variant: "popper",
     popupId: `${itemKey}-submenu`,
-    // consider using parentPopupState
   });
   const [subMenuOffsetTop, setSubmenuOffsetTop] = useState<
     number | undefined
   >();
-  const menuItemRef = useRef<HTMLLIElement>(null);
+  const localRef = useRef<HTMLLIElement>(null);
+  const menuItemRef = (ref ?? localRef) as RefObject<HTMLLIElement>;
 
   if (subMenu && !subMenuOffsetTop && menuItemRef.current) {
     setSubmenuOffsetTop(menuItemRef.current.offsetTop);
@@ -79,10 +84,10 @@ export const BlockContextMenuItem: VFC<{
               },
             }}
           >
-            {subMenu}
+            {cloneElement(subMenu, { popupState: subMenuPopupState })}
           </HoverPopover>
         </>
       ) : null}
     </MenuItem>
   );
-};
+});

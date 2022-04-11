@@ -1,7 +1,6 @@
-import { Collapse } from "@mui/material";
+import { Box, Collapse } from "@mui/material";
 import React, { useState, useRef, FormEvent } from "react";
 import { unstable_batchedUpdates } from "react-dom";
-import { tw } from "twind";
 
 import { useBlockView } from "../../blocks/page/BlockViewContext";
 import { useUserBlocks } from "../../blocks/userBlocks";
@@ -71,13 +70,19 @@ export const BlockLoaderInput: React.VFC = () => {
   };
 
   return (
-    <form onSubmit={loadBlockFromUrl}>
+    <Box
+      component="form"
+      display="flex"
+      flexDirection="column"
+      onSubmit={loadBlockFromUrl}
+    >
       <TextField
         size="xs"
         type="url"
         placeholder="Load Block From URL"
         required
         value={blockUrl}
+        sx={{ flex: 1 }}
         onChange={(event) => setBlockUrl(event.target.value)}
       />
       <Collapse in={!!blockUrl}>
@@ -99,6 +104,6 @@ export const BlockLoaderInput: React.VFC = () => {
             : "Load Block"}
         </Button>
       </Collapse>
-    </form>
+    </Box>
   );
 };
