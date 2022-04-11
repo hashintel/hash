@@ -29,20 +29,67 @@ pub struct LocalProcess {
 
 #[async_trait]
 impl process::Process for LocalProcess {
-    async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
-        // Let the engine cleanup some resources
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    async fn exit_and_cleanup(mut self: Box<Self>, experiment_id: ExperimentId) -> Result<()> {
+        // Leave some time for the engine to cleanup some resources
+        if let Err(_) =
+            tokio::time::timeout(tokio::time::Duration::from_millis(500), self.child.wait()).await
+        {
+            // Kill the child process as it didn't stop on its own
+            self.child
+                .kill()
+                .await
+                .or_else(|e| match e.kind() {
+                    // From `Child::kill` docs: Forces the child process to exit. If the child has
+                    // already exited, an InvalidInput error is returned
+                    std::io::ErrorKind::InvalidInput => Ok(()),
+                    _ => Err(Report::new(e)),
+                })
+                .wrap_err("Could not kill the process")?;
+        }
 
-        self.child
-            .kill()
-            .await
-            .or_else(|e| match e.kind() {
-                // From `Child::kill` docs: Forces the child process to exit. If the child has
-                // already exited, an InvalidInput error is returned
-                std::io::ErrorKind::InvalidInput => Ok(()),
-                _ => Err(Report::new(e)),
-            })
-            .wrap_err("Could not kill the process")?;
+        // Cleanup python socket files in case the engine didn't
+        if let Ok(current_dir) = std::env::current_dir() {
+            if let Ok(dir) = std::fs::read_dir(current_dir) {
+                let frompy = format!("{experiment_id}-frompy");
+                let topy = format!("{experiment_id}-topy");
+                for entry in dir {
+                    if let Ok(entry) = entry {
+                        let entry_path = entry.path();
+                        let entry_path = entry_path.as_path().to_str();
+                        if let Some(entry_path) = entry_path {
+                            if entry_path.contains(&frompy) || entry_path.contains(&topy) {
+                                if let Err(io_err) = std::fs::remove_file(entry_path) {
+                                    match io_err.kind() {
+                                        std::io::ErrorKind::NotFound => {}
+                                        err => warn!("Could not delete {entry_path:?}: {err}"),
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Cleanup shared memory files in case the engine didn't
+        if let Ok(dir) = std::fs::read_dir("/dev/shm") {
+            let shared_memory_path = format!("shm_{experiment_id}");
+            for entry in dir {
+                if let Ok(entry) = entry {
+                    let entry_path = entry.path();
+                    let entry_path = entry_path.as_path().to_str();
+                    if let Some(entry_path) = entry_path {
+                        if entry_path.contains(&shared_memory_path) {
+                            if let Err(io_err) = std::fs::remove_file(entry_path) {
+                                match io_err.kind() {
+                                    std::io::ErrorKind::NotFound => {}
+                                    err => warn!("Could not delete {entry_path:?}: {err}"),
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         debug!("Cleaned up local engine process for experiment");
         Ok(())

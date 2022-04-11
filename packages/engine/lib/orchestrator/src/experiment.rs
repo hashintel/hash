@@ -256,7 +256,7 @@ impl Experiment {
             Err(e) => {
                 error!("Engine start timeout for experiment \"{experiment_name}\"");
                 engine_process
-                    .exit_and_cleanup()
+                    .exit_and_cleanup(experiment_run.base.id)
                     .await
                     .wrap_err("Failed to cleanup after failed start")?;
                 bail!(e);
@@ -408,7 +408,7 @@ impl Experiment {
         }
         debug!("Performing cleanup");
         engine_process
-            .exit_and_cleanup()
+            .exit_and_cleanup(experiment_run.base.id)
             .await
             .wrap_err("Could not cleanup after finish")?;
 
