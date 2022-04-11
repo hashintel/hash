@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
+    context::ContextColumn,
     field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
 };
@@ -20,8 +21,8 @@ use crate::{
         comms::package::PackageComms,
         package::{
             context::{
-                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextColumn, ContextPackage,
-                Package, PackageCreator,
+                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackage, Package,
+                PackageCreator,
             },
             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
         },
@@ -136,11 +137,7 @@ impl Package for Neighbors {
             .get_agent_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
             .create_key()?;
 
-        Ok(vec![ContextColumn {
-            field_key,
-            inner: Box::new(map),
-            span: pkg_span,
-        }])
+        Ok(vec![ContextColumn::new(field_key, Box::new(map), pkg_span)])
     }
 
     fn get_empty_arrow_columns(

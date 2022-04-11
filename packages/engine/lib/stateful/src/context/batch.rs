@@ -19,16 +19,10 @@ use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
-use crate::{
-    datastore::error::{Error, Result},
-    simulation::package::context::ContextColumn,
-};
+use crate::{context::ContextColumn, Error, Result};
 
 // If required data size is 3 times less than current data size then shmem size will be readjusted.
 const UPPER_BOUND_DATA_SIZE_MULTIPLIER: usize = 3;
-
-pub type AgentIndex = (u32, u32);
-pub type MessageIndex = (u32, u32, u32);
 
 /// Contains the information required to build the `context` object accessible in the language
 /// runners.
@@ -124,7 +118,7 @@ impl ContextBatch {
 
         let column_dynamic_meta_list = column_writers
             .iter()
-            .map(|column_writer| column_writer.get_dynamic_metadata())
+            .map(|column_writer| column_writer.dynamic_metadata())
             .collect::<Result<Vec<_>>>()?;
         let dynamic =
             meta::Dynamic::from_column_dynamic_meta_list(&column_dynamic_meta_list, num_agents);

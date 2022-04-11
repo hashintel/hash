@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use memory::shared_memory::MemoryId;
+use stateful::context::ContextColumn;
 use tracing::{Instrument, Span};
 
 use crate::{
@@ -14,7 +15,7 @@ use crate::{
     proto::ExperimentRunTrait,
     simulation::{
         error::{Error, Result},
-        package::{context, context::ContextColumn, init, output, state},
+        package::{context, init, output, state},
         step_output::SimulationStepOutput,
     },
 };
@@ -202,7 +203,10 @@ impl StepPackages {
                 Ok(package_column_writers?
                     .into_iter()
                     .map(|context_column| {
-                        (context_column.field_key.value().to_string(), context_column)
+                        (
+                            context_column.field_key().value().to_string(),
+                            context_column,
+                        )
                     })
                     .collect::<Vec<(String, ContextColumn)>>())
             })

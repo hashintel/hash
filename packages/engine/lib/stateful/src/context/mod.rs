@@ -5,6 +5,17 @@ use serde::Serialize;
 
 use crate::{agent::Agent, dataset::DatasetMap, globals::Globals, message::Inbound};
 
+mod batch;
+mod column;
+
+pub use self::{
+    batch::ContextBatch,
+    column::{ContextColumn, ContextColumnWriter},
+};
+
+pub type AgentIndex = (u32, u32);
+pub type MessageIndex = (u32, u32, u32);
+
 /// The context is global, consistent data about the simulation at a single point in time, which is
 /// shared between all agents.
 ///

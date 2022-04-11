@@ -4,6 +4,7 @@ use arrow::record_batch::RecordBatch;
 use memory::shared_memory::MemoryId;
 use stateful::{
     agent::{AgentPool, AgentSchema},
+    context::{ContextBatch, ContextColumn},
     message::MessagePool,
     proxy::BatchPool,
 };
@@ -11,11 +12,10 @@ use stateful::{
 use crate::{
     config::StoreConfig,
     datastore::{
-        batch::{context::ContextBatch, AgentBatch},
+        batch::AgentBatch,
         error::{Error, Result},
         table::state::{view::StatePools, State},
     },
-    simulation::package::context::ContextColumn,
 };
 
 /// The context is global, consistent data about the simulation at a single point in time, which is

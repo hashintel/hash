@@ -62,6 +62,9 @@ pub enum Error {
 
     #[error("No column found in batch with name: {0}")]
     ColumnNotFound(String),
+
+    #[error("Unable to read IPC message as record batch")]
+    InvalidRecordBatchIpcMessage,
 }
 
 impl From<&str> for Error {

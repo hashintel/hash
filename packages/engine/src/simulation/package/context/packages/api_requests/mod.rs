@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
 use stateful::{
+    context::ContextColumn,
     field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     message::MessageReader,
@@ -23,10 +24,10 @@ use crate::{
     simulation::{
         comms::package::PackageComms,
         package::context::{
-            packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextColumn,
-            ContextSchema, Error, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
-            MaybeCpuBound, Package, Package as ContextPackage, PackageCreator, SimRunConfig,
-            StateReadProxy, StateSnapshot,
+            packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextSchema, Error,
+            FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound,
+            Package, Package as ContextPackage, PackageCreator, SimRunConfig, StateReadProxy,
+            StateSnapshot,
         },
         Result,
     },
@@ -130,11 +131,11 @@ impl Package for ApiRequests {
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
             .create_key()?;
 
-        Ok(vec![ContextColumn {
+        Ok(vec![ContextColumn::new(
             field_key,
-            inner: Box::new(api_responses),
-            span: pkg_span,
-        }])
+            Box::new(api_responses),
+            pkg_span,
+        )])
     }
 
     fn get_empty_arrow_columns(

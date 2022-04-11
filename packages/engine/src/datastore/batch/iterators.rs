@@ -1,11 +1,9 @@
 pub mod agent {
     use arrow::datatypes::DataType;
-    use stateful::agent::AgentBatch;
+    use stateful::{agent::AgentBatch, context::AgentIndex};
 
     use crate::datastore::{
-        batch::{context::AgentIndex, iterators::record_batch},
-        error::Result,
-        POSITION_DIM, UUID_V4_LEN,
+        batch::iterators::record_batch, error::Result, POSITION_DIM, UUID_V4_LEN,
     };
 
     pub fn agent_id_iter<'b: 'a, 'a>(

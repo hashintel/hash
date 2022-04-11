@@ -7,6 +7,7 @@ use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
+    context::ContextColumn,
     field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
 };
@@ -19,10 +20,10 @@ use crate::{
     simulation::{
         comms::package::PackageComms,
         package::context::{
-            packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextColumn,
-            ContextSchema, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
-            MaybeCpuBound, Package as ContextPackage, Package, PackageCreator, SimRunConfig,
-            StateReadProxy, StateSnapshot,
+            packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextSchema,
+            FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound,
+            Package as ContextPackage, Package, PackageCreator, SimRunConfig, StateReadProxy,
+            StateSnapshot,
         },
         Result,
     },
@@ -107,11 +108,11 @@ impl Package for AgentMessages {
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
             .create_key()?;
 
-        Ok(vec![ContextColumn {
+        Ok(vec![ContextColumn::new(
             field_key,
-            inner: Box::new(messages),
-            span: pkg_span,
-        }])
+            Box::new(messages),
+            pkg_span,
+        )])
     }
 
     fn get_empty_arrow_columns(
