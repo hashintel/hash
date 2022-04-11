@@ -72,6 +72,10 @@ export type EntityStorePluginAction = { received?: boolean } & (
         entityId: string;
       };
     }
+  | {
+      type: "updateBlockEntityProperties";
+      payload: { draftId: string; targetEntity: BlockEntity };
+    }
 );
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
@@ -113,6 +117,8 @@ export const entityStorePluginStateFromTransaction = (
 ): EntityStorePluginState =>
   getMeta(tr)?.store ?? entityStorePluginState(state);
 
+export const newDraftId = () => `fake-${uuid()}`;
+
 /**
  * As we're not yet working with a totally flat entity store, the same
  * entity can exist in multiple places in a draft entity store. This
@@ -149,6 +155,49 @@ const updateEntitiesByDraftId = (
   for (const entity of entities) {
     updateHandler(entity);
   }
+};
+
+const updateBlockEntity = (
+  draftEntityStore: Draft<EntityStore["draft"]>,
+  draftId: string,
+  targetEntity: BlockEntity,
+) => {
+  let draftEntity = Object.values(draftEntityStore).find(
+    (entity) => entity.entityId === targetEntity?.entityId,
+  );
+
+  // Check if entity to load exists in store
+  // and add to store if it doesnt
+  if (!draftEntity) {
+    draftEntity = {
+      accountId: targetEntity.accountId,
+      draftId: newDraftId(),
+      entityId: targetEntity.entityId,
+      properties: targetEntity.properties,
+      entityVersionCreatedAt: new Date().toISOString(),
+    };
+
+    draftEntityStore[draftId] = draftEntity;
+  }
+
+  const draftBlockEntity = draftEntityStore[draftId];
+
+  if (!draftBlockEntity) {
+    throw new Error("Block to update not present in store");
+  }
+
+  // we shouldn't need to update this since the api is meant to
+  // handle it.
+  // @todo remove the need for this
+  draftBlockEntity.entityVersionCreatedAt = new Date().toISOString();
+
+  draftBlockEntity.properties = {
+    entity: draftEntity,
+  };
+
+  draftEntityStore[draftId] = draftBlockEntity;
+
+  return draftEntityStore;
 };
 
 /**
@@ -218,6 +267,28 @@ const entityStoreReducer = (
             : (draftEntity) => {
                 draftEntity.properties = action.payload.properties;
               },
+        );
+      });
+    }
+
+    case "updateBlockEntityProperties": {
+      if (!state.store.draft[action.payload.draftId]) {
+        throw new Error("Block missing to merge entity properties");
+      }
+
+      if (!action.payload.targetEntity) {
+        throw new Error("Entity missing to merge Block entity properties");
+      }
+
+      return produce(state, (draftState) => {
+        if (!action.received) {
+          draftState.trackedActions.push({ action, id: uuid() });
+        }
+
+        updateBlockEntity(
+          draftState.store.draft,
+          action.payload.draftId,
+          action.payload.targetEntity,
         );
       });
     }
@@ -352,8 +423,6 @@ const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
 
   return entityNode.attrs.draftId;
 };
-
-export const newDraftId = () => `fake-${uuid()}`;
 
 class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;

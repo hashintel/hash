@@ -272,7 +272,6 @@ export class ProsemirrorSchemaManager {
     // @todo this needs to be mandatory otherwises properties may get lost
     draftBlockId?: string | null,
   ) {
-    debugger;
     const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
 
     return this.schema.nodes.block!.create({}, [
