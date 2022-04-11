@@ -120,8 +120,6 @@ impl Drop for NngSender {
     fn drop(&mut self) {
         // Python has to close the socket on its side for the "-topy*" file to be deleted.
         let _ = self.send(None, &InboundToRunnerMsgPayload::TerminateRunner, &None);
-        // TODO: Check whether nng already does this when a socket is dropped
-        self.to_py.close();
     }
 }
 
