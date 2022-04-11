@@ -31,26 +31,24 @@ import {
   createNecessaryEntities,
   updatePageMutation,
 } from "@hashintel/hash-shared/save";
-import { Response } from "express";
 import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { logger } from "../logger";
+import { genId } from "../util";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
-import { CollabPositionPoller, TimedCollabPosition } from "./types";
+import {
+  CollabPositionSubscription,
+  DocumentChangeSubscription,
+  TimedCollabPosition,
+} from "./types";
 
 const MAX_STEP_HISTORY = 10000;
 
 const POSITION_EXPIRY_TIMEOUT = 1000 * 60;
 const POSITION_CLEANUP_INTERVAL = 1000 * 10;
-
-const isUnused = (response: Response): boolean => {
-  return (
-    !response.headersSent && !response.destroyed && !response.writableEnded
-  );
-};
 
 type StepUpdate = {
   type: "step";
@@ -96,27 +94,24 @@ const updatesToDocumentUpdate = (
   };
 };
 
-/**
- * Subscription manages the life-time of a subscription to *something*
- */
-export type Subscription = {
-  oneshot: boolean;
-  notify: (update: DocumentChange) => void;
-};
-
 // A collaborative editing document instance.
 export class Instance {
-  // The version number of the document instance.
+  /** The version number of the document instance. */
   version = 0;
+
   lastActive = Date.now();
-  // Subscriptions for the current instance
-  subscriptions: Subscription[] = [];
+
+  /** Subscriptions for the current instance */
+  subscriptions: DocumentChangeSubscription[] = [];
   // waiting: Waiting[] = [];
   saveChain = Promise.resolve();
   clientIds = new WeakMap<Step, string>();
 
-  positionPollers: CollabPositionPoller[] = [];
+  /** Active position subscribers */
+  positionSubscription: CollabPositionSubscription[] = [];
+  /** Positions in the instance */
   timedPositions: TimedCollabPosition[] = [];
+  /** Interval timeout to clean up positions */
   positionCleanupInterval: ReturnType<typeof setInterval>;
 
   errored = false;
@@ -148,7 +143,7 @@ export class Instance {
   ) {
     this.positionCleanupInterval = setInterval(() => {
       this.cleanupPositions();
-      this.cleanupPositionPollers();
+      this.cleanupPositionSubs();
     }, POSITION_CLEANUP_INTERVAL);
 
     this.unsubscribeFromEntityWatcher = this.entityWatcher.subscribe(
@@ -166,10 +161,8 @@ export class Instance {
 
     clearInterval(this.positionCleanupInterval);
 
-    for (const { response } of this.positionPollers) {
-      if (isUnused(response)) {
-        response.status(410).send("Collab instance was stopped");
-      }
+    for (const { error } of this.positionSubscription) {
+      error?.("Collab instance was stopped");
     }
     this.unsubscribeFromEntityWatcher();
   }
@@ -588,18 +581,30 @@ export class Instance {
       }
     };
 
-  waitForUpdate(notify: () => void) {
-    this.subscriptions.push({
-      oneshot: true,
-      notify,
-    });
+  /**
+   * Subscribe to document changes.
+   * Each subscriber is uniquely identified by an opaque ID
+   *
+   * @returns unqiue identifier used to remove subscription if instance hasn't errored
+   */
+  subscribeDocument(params: Omit<DocumentChangeSubscription, "identifier">) {
+    if (this.errored) {
+      return;
+    }
+
+    const sub = { ...params, identifier: genId() };
+    this.subscriptions.push(sub);
+
+    return sub.identifier;
   }
 
-  subscribe(notify: Subscription["notify"]) {
-    this.subscriptions.push({
-      oneshot: false,
-      notify,
-    });
+  /**
+   * Unsubscribe from changes to the document
+   */
+  unsubscribeDocument(identifier: DocumentChangeSubscription["identifier"]) {
+    this.subscriptions = this.subscriptions.filter(
+      (sub) => sub.identifier !== identifier,
+    );
   }
 
   private sendUpdates(updates: Update[]) {
@@ -608,22 +613,18 @@ export class Instance {
     // Race condition here.
     // if a new user were to join as this mapping was happening,
     // they wouldn't be added as a subscriber.
-    this.subscriptions = this.subscriptions.flatMap((sub) => {
+    this.subscriptions = this.subscriptions.filter((sub) => {
       // If the Subscription for whatever reason fails, remove it as a subscriber.
       try {
         sub.notify(documentChange);
       } catch (_err) {
         // eslint-disable-next-line no-param-reassign
-        sub.oneshot = true;
+        sub.persistent = false;
       }
 
-      if (sub.oneshot) {
-        return [];
-      } else {
-        return [sub];
-      }
+      // Only keep persistent document subscriptions
+      return sub.persistent;
     });
-    // while (this.waiting.length) this.waiting.pop()?.finish();
   }
 
   // : (Number)
@@ -704,7 +705,7 @@ export class Instance {
       });
     }
 
-    this.notifyPositionPollers();
+    this.notifyPositionSubs();
   }
 
   private cleanupPositions() {
@@ -717,35 +718,57 @@ export class Instance {
     );
 
     if (this.timedPositions.length !== previousNumberOfPositions) {
-      this.notifyPositionPollers();
+      this.notifyPositionSubs();
     }
   }
 
-  addPositionPoller(positionPoller: CollabPositionPoller) {
+  /**
+   * Subscribe to position changes.
+   * Each subscriber is uniquely identified by an opaque ID
+   *
+   * @returns unqiue identifier used to remove subscription if instance hasn't errored
+   */
+  subscribePosition(params: Omit<CollabPositionSubscription, "identifier">) {
     if (this.errored) {
       return;
     }
 
-    this.positionPollers.push(positionPoller);
+    const sub = { ...params, identifier: genId() };
+    this.positionSubscription.push(sub);
+
+    return sub.identifier;
   }
 
-  private notifyPositionPollers() {
-    for (const { baselinePositions, userIdToExclude, response } of this
-      .positionPollers) {
+  /**
+   * Unsubscribe from changes to the document
+   */
+  unsubscribePosition(identifier: CollabPositionSubscription["identifier"]) {
+    this.positionSubscription = this.positionSubscription.filter(
+      (sub) => sub.identifier !== identifier,
+    );
+  }
+
+  private notifyPositionSubs() {
+    this.positionSubscription.forEach((sub) => {
+      const { baselinePositions, userIdToExclude, notify } = sub;
+
       const positions = this.extractPositions(userIdToExclude);
-      if (!isEqual(baselinePositions, positions) && isUnused(response)) {
-        response.json(positions);
+
+      if (!isEqual(baselinePositions, positions)) {
+        notify(positions);
       }
-    }
+    });
 
     setImmediate(() => {
-      this.cleanupPositionPollers();
+      this.cleanupPositionSubs();
     });
   }
 
-  private cleanupPositionPollers() {
-    this.positionPollers = this.positionPollers.filter(({ response }) =>
-      isUnused(response),
+  private cleanupPositionSubs() {
+    // It is assumed that every non-persistent subscription
+    // can be cleaned up when this is called.
+    this.positionSubscription = this.positionSubscription.filter(
+      (sub) => sub.persistent,
     );
   }
 

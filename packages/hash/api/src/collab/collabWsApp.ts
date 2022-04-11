@@ -7,11 +7,15 @@ import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import {
   checkInitialConnectionDataValues,
+  CollabPosition,
   DocumentChange,
   DOCUMENT_UPDATED,
   InitialConnectionData,
   INITIAL_DOCUMENT,
   parseVersion,
+  POSITION_UPDATED,
+  ReportPositionAction,
+  REPORT_POSITION,
   ServerEvent,
   SERVER_ERROR,
   UpdateAction,
@@ -22,14 +26,13 @@ import { Server as SocketIoServer, Socket } from "socket.io";
 import LRU from "lru-cache";
 
 import { CORS_CONFIG } from "../lib/config";
-import { logger } from "../logger";
 
 import { AuthenticationError } from "./errors";
 import { getInstance, Instance } from "./Instance";
 import { EntityWatcher } from "./EntityWatcher";
 
-const roomFromInitialConnectionData = (data: InitialConnectionData) =>
-  `${data.accountId}:${data.pageEntityId}`;
+// const roomFromInitialConnectionData = (data: InitialConnectionData) =>
+//   `${data.accountId}:${data.pageEntityId}`;
 
 const emitServerEvent = (socket: Socket, action: ServerEvent) => {
   socket.emit(action.type, action);
@@ -155,28 +158,21 @@ const prepareSessionSupportWithInstance = async (
  */
 const initializeCollabSession = async (
   connection: Connection,
-): Promise<Instance | null> => {
+): Promise<{ instance: Instance; userInfo: UserInfo } | null> => {
   const { socket } = connection;
 
   try {
     // A session is a user's information along with an Apollo client.
     // This Apollo client will be used for various API calls on behalf of the user.
-    const { instance } = await prepareSessionSupportWithInstance(
+    const { instance, userInfo } = await prepareSessionSupportWithInstance(
       connection,
       socket.handshake.query?.forceNewInstance === "true",
     );
 
     if (instance.errored) {
       emitServerError(socket, "Collab instance is erroring.");
-    } else {
-      emitServerEvent(socket, {
-        type: INITIAL_DOCUMENT,
-        doc: instance.state.doc.toJSON(),
-        store: entityStorePluginState(instance.state).store,
-        version: instance.version,
-      });
     }
-    return instance;
+    return { instance, userInfo };
   } catch (error) {
     emitServerError(socket, error);
     return null;
@@ -223,6 +219,37 @@ const handleUpdateDocument = async (
   }
 };
 
+const handleReportPosition = async (
+  connection: Connection,
+  data: ReportPositionAction,
+): Promise<void> => {
+  const { socket } = connection;
+  try {
+    const { instance, userInfo } = await prepareSessionSupportWithInstance(
+      connection,
+    );
+
+    if (instance.errored) {
+      emitServerError(socket, "Collab instance is erroring.");
+    }
+
+    const { entityId } = data;
+
+    if (typeof entityId !== "string" && entityId !== null) {
+      emitServerError(socket, "Expected entityId to be a string or null.");
+    }
+
+    instance.registerPosition({
+      userId: userInfo.entityId,
+      userShortname: userInfo.shortname,
+      userPreferredName: userInfo.preferredName,
+      entityId,
+    });
+  } catch (error) {
+    emitServerError(socket, error);
+  }
+};
+
 export const createCollabWsApp = async (
   httpServer: HttpServer,
   queue: QueueExclusiveConsumer,
@@ -247,32 +274,82 @@ export const createCollabWsApp = async (
 
     const connection = { entityWatcher, socket, initialConnectionData };
 
-    // Initializing the session will also emit the initial document to the user
-    // over the socket.
-    const instance = await initializeCollabSession(connection);
-    if (!instance) {
+    const sessionInfo = await initializeCollabSession(connection);
+    if (!sessionInfo) {
       return;
     }
 
-    instance.subscribe((document: DocumentChange) => {
-      emitServerEvent(socket, {
-        type: DOCUMENT_UPDATED,
-        version: instance.version,
-        ...document,
-      });
+    const { instance, userInfo } = sessionInfo;
+
+    // after initializing the session will emit some initial data
+
+    // An initial document is emitted
+    emitServerEvent(socket, {
+      type: INITIAL_DOCUMENT,
+      doc: instance.state.doc.toJSON(),
+      store: entityStorePluginState(instance.state).store,
+      version: instance.version,
     });
 
-    // Collaborators are identified by a room, which is constructed as accountId:pageEntityId
-    // these rooms will allow us to push events to all participants, simplifying routing.
-    socket.join(roomFromInitialConnectionData(initialConnectionData));
+    // And the basline positions are emitted
+    const bastlinePositions = instance.extractPositions(userInfo.entityId);
+    emitServerEvent(socket, {
+      type: POSITION_UPDATED,
+      positions: bastlinePositions,
+    });
 
-    logger.info("User in rooms:", [...socket.rooms]);
+    // Websocket subscriptions for the instance are then created
+    const docSubId = instance.subscribeDocument({
+      notify: (document: DocumentChange) => {
+        emitServerEvent(socket, {
+          type: DOCUMENT_UPDATED,
+          version: instance.version,
+          ...document,
+        });
+      },
+      error: (error) => {
+        emitServerError(socket, error);
+      },
+      persistent: true,
+    });
 
+    const posSubId = instance.subscribePosition({
+      baselinePositions: bastlinePositions,
+      userIdToExclude: userInfo.entityId,
+      notify: (positions: CollabPosition[]) => {
+        emitServerEvent(socket, {
+          type: POSITION_UPDATED,
+          positions,
+        });
+      },
+      error: (error: string) => {
+        emitServerError(socket, error);
+      },
+      persistent: true,
+    });
+
+    // The socket then listens for user actions
     socket.on(
       UPDATE_DOCUMENT,
       async (data: UpdateAction, callback: (...args: any[]) => void) =>
         await handleUpdateDocument(connection, data, callback),
     );
+
+    socket.on(
+      REPORT_POSITION,
+      async (data: ReportPositionAction) =>
+        await handleReportPosition(connection, data),
+    );
+
+    // Whenever a socket disconnects, clean up instance subscriptions.
+    socket.on("disconnect", () => {
+      if (docSubId) {
+        instance.unsubscribeDocument(docSubId);
+      }
+      if (posSubId) {
+        instance.unsubscribePosition(posSubId);
+      }
+    });
   });
 
   return io;

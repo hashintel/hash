@@ -219,7 +219,9 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
             wait.send(formatGetEventsResponse(instance, events));
           }
         });
-        instance.waitForUpdate(wait.finish);
+
+        // Register a one-shot subscription
+        instance.subscribeDocument({ notify: wait.finish, persistent: false });
         // instance.waiting.push(wait);
         response.on("close", () => wait.abort());
       } catch (error) {
@@ -283,10 +285,17 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           return;
         }
 
-        instance.addPositionPoller({
+        instance.subscribePosition({
           baselinePositions: instance.extractPositions(userInfo.entityId),
           userIdToExclude: userInfo.entityId,
-          response,
+          notify: (positions) => {
+            response.json(positions);
+            response.end();
+          },
+          error: (error) => {
+            response.status(410).send(error);
+          },
+          persistent: false,
         });
       } catch (error) {
         next(error);

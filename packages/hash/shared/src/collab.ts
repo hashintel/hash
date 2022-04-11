@@ -1,3 +1,4 @@
+// import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EntityStore } from "./entityStore";
 import { EntityStorePluginAction } from "./entityStorePlugin";
 
@@ -28,6 +29,8 @@ export type ErrorEvent = {
   error: string;
 };
 
+// Used exclusively for sending a snapshot of the newest version
+// when connecting initially
 export const INITIAL_DOCUMENT = "initialDocument" as const;
 export type InitialDocumentEvent = {
   type: typeof INITIAL_DOCUMENT;
@@ -36,16 +39,25 @@ export type InitialDocumentEvent = {
   version: number;
 };
 
+// Any document update
 export const DOCUMENT_UPDATED = "documentUpdated" as const;
 export type DocumentUpdatedEvent = {
   type: typeof DOCUMENT_UPDATED;
   version: number;
 } & DocumentChange;
 
+// Any position updates
+export const POSITION_UPDATED = "positionUpdated" as const;
+export type PositionUpdatedEvent = {
+  type: typeof POSITION_UPDATED;
+  positions: CollabPosition[];
+};
+
 export type ServerEvent =
   | ErrorEvent
   | InitialDocumentEvent
-  | DocumentUpdatedEvent;
+  | DocumentUpdatedEvent
+  | PositionUpdatedEvent;
 
 // Client action are requests that the user sends to the server
 export const UPDATE_DOCUMENT = "updateDocument" as const;
@@ -58,7 +70,13 @@ export type UpdateAction = {
   actions: EntityStorePluginAction[];
 };
 
-export type ClientAction = UpdateAction;
+export const REPORT_POSITION = "reportPosition" as const;
+export type ReportPositionAction = {
+  type: typeof REPORT_POSITION;
+  entityId: string;
+};
+
+export type ClientAction = UpdateAction | ReportPositionAction;
 
 export const initialConnectionDataValues = [
   "accountId",
