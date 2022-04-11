@@ -70,6 +70,7 @@ import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationR
 import { orgEmailInvitationLinkedEntities } from "./orgEmailInvitation/linkedEntities";
 import { orgInvitationLinkLinkedEntities } from "./orgInvitationLink/linkedEntities";
 import { pageSearchResultConnection } from "./paginationConnection/pageSearchResultConnection";
+import { executeDemoTask } from "./taskExecutor";
 
 export const resolvers = {
   Query: {
@@ -131,6 +132,7 @@ export const resolvers = {
     verifyEmail,
     sendLoginCode,
     loginWithLoginCode,
+    executeDemoTask,
   },
 
   JSONObject: GraphQLJSON,

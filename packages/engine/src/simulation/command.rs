@@ -20,7 +20,6 @@ use crate::{
     datastore::{
         arrow::batch_conversion::IntoRecordBatch,
         batch::MessageBatch,
-        schema::EngineComponent,
         table::{pool::message, references::MessageMap, state::create_remove::ProcessedCommands},
         UUID_V4_LEN,
     },
@@ -122,7 +121,7 @@ impl Commands {
     ///
     /// Returns an error if a creation command is for an agent that has a field that hasn't been
     /// defined in the schema
-    pub fn verify(&self, schema: &Arc<AgentSchema<EngineComponent>>) -> Result<()> {
+    pub fn verify(&self, schema: &Arc<AgentSchema>) -> Result<()> {
         let field_spec_map = &schema.field_spec_map; // Fields for entire simulation.
 
         // TODO[2](optimization): Convert `fields` HashMap to perfect hash set here if it makes
@@ -216,7 +215,7 @@ impl CreateRemoveCommands {
     /// that alongside a set of Agent UUIDs to be removed from state.
     pub fn try_into_processed_commands(
         mut self,
-        schema: &Arc<AgentSchema<EngineComponent>>,
+        schema: &Arc<AgentSchema>,
     ) -> Result<ProcessedCommands> {
         let new_agents = if !self.create.is_empty() {
             Some(

@@ -1,3 +1,6 @@
+// TODO: DOC: Add module level docs for describing the high level concept of globals, what they are
+//   and why they exist
+
 use serde::{Deserialize, Serialize};
 
 /// Global constant values that are available within a simulation and are provided along with

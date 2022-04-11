@@ -1,6 +1,6 @@
 // TODO: Propagate field specs to runners and use in state and context objects
-const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_14_behavior_index";
-const BEHAVIOR_IDS_FIELD_KEY = "_PRIVATE_14_behavior_ids";
+const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_7_behavior_index";
+const BEHAVIOR_IDS_FIELD_KEY = "_PRIVATE_7_behavior_ids";
 
 // The `BEHAVIOR_INDEX_FIELD_KEY` column is reset to zero and the private `behavior_ids`
 // column is written to

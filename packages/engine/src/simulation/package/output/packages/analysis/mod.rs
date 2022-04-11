@@ -12,7 +12,7 @@ use std::sync::Arc;
 use analyzer::Analyzer;
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::FieldSpecMapAccessor;
+use stateful::{field::FieldSpecMapAccessor, globals::Globals};
 use tracing::Span;
 
 pub use self::{
@@ -20,11 +20,8 @@ pub use self::{
     output::{AnalysisOutput, AnalysisSingleOutput},
 };
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
-    datastore::{
-        schema::EngineComponent,
-        table::{context::Context, pool::BatchPool, state::State},
-    },
+    config::{ExperimentConfig, SimRunConfig},
+    datastore::table::{context::Context, pool::BatchPool, state::State},
     experiment::SimPackageArgs,
     proto::ExperimentRunTrait,
     simulation::{
@@ -51,7 +48,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        accessor: FieldSpecMapAccessor<EngineComponent>,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and
         // make this unnecessary

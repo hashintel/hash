@@ -2,8 +2,8 @@ import sys
 import traceback
 
 # TODO: Propagate field specs to runners and use in state and context objects
-BEHAVIOR_INDEX_FIELD_KEY = '_PRIVATE_14_behavior_index'
-BEHAVIOR_IDS_FIELD_KEY = '_PRIVATE_14_behavior_ids'
+BEHAVIOR_INDEX_FIELD_KEY = '_PRIVATE_7_behavior_index'
+BEHAVIOR_IDS_FIELD_KEY = '_PRIVATE_7_behavior_ids'
 
 
 def _hash_behavior_id(lang_index, id_within_lang):
