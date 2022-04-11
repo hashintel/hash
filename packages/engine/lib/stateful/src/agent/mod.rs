@@ -5,6 +5,9 @@ mod name;
 mod references;
 mod schema;
 
+// temporarily public
+pub mod arrow;
+
 pub use self::{
     field::{Agent, AgentStateField, BUILTIN_FIELDS},
     name::AgentName,

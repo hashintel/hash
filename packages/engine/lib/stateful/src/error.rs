@@ -1,6 +1,6 @@
 use thiserror::Error as ThisError;
 
-use crate::field::RootFieldKey;
+use crate::{agent::AgentStateField, field::RootFieldKey};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -8,6 +8,9 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum Error {
     #[error("{0}")]
     Unique(String),
+
+    #[error("Memory error: {0}")]
+    Memory(#[from] memory::Error),
 
     #[error(
         "Attempting to insert a new field under key:{0:?} which clashes. New field: {1} Existing \
@@ -35,6 +38,15 @@ pub enum Error {
 
     #[error("Unexpected vector length: was {len} but expected {expected}")]
     UnexpectedVectorLength { len: usize, expected: usize },
+
+    #[error("Agent id ({0}) is not a valid uuid")]
+    InvalidAgentId(String),
+
+    #[error("Built-in column missing: {0:?}")]
+    BuiltInColumnMissing(AgentStateField),
+
+    #[error("Uuid error: {0}")]
+    Uuid(#[from] uuid::Error),
 }
 
 impl From<&str> for Error {

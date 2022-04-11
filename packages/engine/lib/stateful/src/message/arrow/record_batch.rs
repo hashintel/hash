@@ -1,10 +1,13 @@
-use arrow::{array::Array, record_batch::RecordBatch};
+use std::sync::Arc;
+
+use arrow::{array::Array, datatypes::Schema, record_batch::RecordBatch};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 use crate::{
-    agent::MessageReference,
+    agent::{arrow::array::get_agent_id_array, MessageReference},
     field::UUID_V4_LEN,
-    message::arrow::array::{FieldIndex, FROM_COLUMN_INDEX, MESSAGE_COLUMN_INDEX},
+    message::arrow::array::{FieldIndex, MessageArray, FROM_COLUMN_INDEX, MESSAGE_COLUMN_INDEX},
+    Error, Result,
 };
 
 #[derive(Debug)]
@@ -188,6 +191,22 @@ fn get_message_field(record_batch: &RecordBatch, index: FieldIndex) -> (Vec<&[i3
     // Arrow string arrays hold utf-8 strings
     let field = std::str::from_utf8(field_data.as_slice()).unwrap();
     (buffers, field)
+}
+
+pub fn from_json(
+    schema: &Arc<Schema>,
+    ids: Vec<&str>,
+    messages: Option<Vec<serde_json::Value>>,
+) -> Result<RecordBatch> {
+    let agent_count = ids.len();
+    let ids = Arc::new(get_agent_id_array(ids)?);
+
+    let messages: Arc<dyn Array> = messages.map_or_else(
+        || MessageArray::new(agent_count).map(Arc::new),
+        |values| MessageArray::from_json(values).map(Arc::new),
+    )?;
+
+    RecordBatch::try_new(schema.clone(), vec![ids, messages]).map_err(Error::from)
 }
 
 pub struct MessageLoader<'a> {

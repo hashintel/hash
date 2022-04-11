@@ -417,10 +417,6 @@ impl PackageCreators {
     }
 }
 
-// TODO: this should be deleted, i.e. if this value is required use
-//      something like `get_hidden_column_name(PREVIOUS_INDEX_FIELD_NAME)`
-pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
-
 pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     let mut field_specs = Vec::with_capacity(13);
     let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);

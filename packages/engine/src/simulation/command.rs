@@ -12,7 +12,7 @@ use std::{
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use stateful::{
-    agent::{Agent, AgentSchema},
+    agent::{arrow::array::IntoRecordBatch, Agent, AgentSchema},
     field::RootFieldKey,
     message,
     proxy::PoolReadProxy,
@@ -21,7 +21,6 @@ use uuid::Uuid;
 
 use crate::{
     datastore::{
-        arrow::batch_conversion::IntoRecordBatch,
         batch::MessageBatch,
         table::{
             pool::message::get_reader, references::MessageMap,
@@ -224,7 +223,7 @@ impl CreateRemoveCommands {
                     .map(|create_cmd| create_cmd.agent)
                     .collect::<Vec<_>>()
                     .as_slice()
-                    .into_agent_batch(schema)?,
+                    .to_agent_batch(schema)?,
             )
         } else {
             None

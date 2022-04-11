@@ -20,12 +20,11 @@ use memory::{
     shared_memory::{MemoryId, Metaversion, Segment},
 };
 use stateful::{
-    agent::AgentStateField,
+    agent::{arrow::array::IntoRecordBatch, AgentStateField},
     message::{arrow::array::MessageArray, MessageSchema},
 };
 
 use crate::datastore::{
-    arrow::batch_conversion::IntoRecordBatch,
     batch::{iterators::column_with_name, AgentBatch},
     error::{Error, Result},
 };
@@ -186,7 +185,7 @@ impl MessageBatch {
         schema: &Arc<MessageSchema>,
         memory_id: MemoryId,
     ) -> Result<Self> {
-        let record_batch = agents.into_message_batch(&schema.arrow)?;
+        let record_batch = agents.to_message_batch(&schema.arrow)?;
         Self::from_record_batch(
             &record_batch,
             schema.arrow.clone(),

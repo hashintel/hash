@@ -27,15 +27,12 @@ use memory::{
     },
     shared_memory::{BufferChange, MemoryId, Metaversion, Segment},
 };
-use stateful::agent::AgentSchema;
-
-use crate::{
-    datastore::{
-        arrow::batch_conversion::IntoRecordBatch,
-        error::{Error, Result},
-    },
-    simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
+use stateful::agent::{
+    arrow::{array::IntoRecordBatch, PREVIOUS_INDEX_FIELD_KEY},
+    AgentSchema,
 };
+
+use crate::datastore::error::{Error, Result};
 
 /// An Arrow batch with agent state columns
 // TODO: Maybe rename to AgentGroup
@@ -56,7 +53,7 @@ impl AgentBatch {
         schema: &Arc<AgentSchema>,
         memory_id: MemoryId,
     ) -> Result<Self> {
-        let record_batch = agents.into_agent_batch(schema)?;
+        let record_batch = agents.to_agent_batch(schema)?;
         Self::from_record_batch(&record_batch, schema, memory_id)
     }
 

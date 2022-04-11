@@ -1347,13 +1347,12 @@ fn offsets_start_at_zero(
 pub(super) mod test {
     use rand::Rng;
     use serde::{Deserialize, Serialize};
-    use stateful::message::MessageSchema;
+    use stateful::{agent::arrow::PREVIOUS_INDEX_FIELD_KEY, message::MessageSchema};
     use uuid::Uuid;
 
     use super::*;
-    use crate::{
-        datastore::{arrow::batch_conversion::IntoAgents, test_utils::gen_schema_and_test_agents},
-        simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
+    use crate::datastore::{
+        arrow::batch_conversion::IntoAgents, test_utils::gen_schema_and_test_agents,
     };
 
     #[derive(Serialize, Deserialize)]

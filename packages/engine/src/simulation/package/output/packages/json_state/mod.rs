@@ -81,7 +81,7 @@ impl GetWorkerSimStartMsg for JsonState {
 impl Package for JsonState {
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         let state = state.read()?;
-        let agent_states: crate::datastore::Result<Vec<_>> = state
+        let agent_states: stateful::Result<Vec<_>> = state
             .agent_pool()
             .batches_iter()
             .zip(state.message_pool().batches_iter())
