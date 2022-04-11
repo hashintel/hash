@@ -1,6 +1,6 @@
 use arrow::array::ArrayData;
 
-use crate::arrow::flush::GrowableColumn;
+use crate::{arrow::flush::GrowableColumn, Result};
 
 /// When a mutable column is modified not in place, the change is recorded in this format.
 pub struct ColumnChange {
@@ -17,4 +17,8 @@ impl GrowableColumn<ArrayData> for ColumnChange {
     fn data(&self) -> &ArrayData {
         &self.data
     }
+}
+
+pub trait IntoArrowChange {
+    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> Result<ColumnChange>;
 }

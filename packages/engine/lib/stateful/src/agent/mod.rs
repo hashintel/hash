@@ -2,6 +2,7 @@
 
 mod field;
 mod name;
+mod pool;
 mod references;
 mod schema;
 
@@ -12,6 +13,7 @@ pub use self::{
     arrow::AgentBatch,
     field::{Agent, AgentStateField, BUILTIN_FIELDS},
     name::AgentName,
+    pool::{flush_pending_columns, modify_loaded_column, AgentPool},
     references::MessageReference,
     schema::AgentSchema,
 };

@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use parking_lot::RwLock;
-use stateful::proxy::{Pool, PoolWriteProxy};
 
 use crate::{
-    datastore::{batch::AgentBatch, error::Result},
-    simulation::package::state::StateColumn,
+    agent::AgentBatch,
+    proxy::{Pool, PoolWriteProxy},
+    state::StateColumn,
+    Result,
 };
 
 /// An ordered collection of similar [`AgentBatch`]es for each group within a simulation run.

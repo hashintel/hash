@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
+    agent::{flush_pending_columns, modify_loaded_column},
     field::{FieldSource, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     proxy::PoolWriteProxy,
@@ -13,8 +14,7 @@ use crate::{
     datastore::{
         batch::AgentBatch,
         table::{
-            context::Context, pool::agent, proxy::StateWriteProxy,
-            task_shared_store::TaskSharedStoreBuilder,
+            context::Context, proxy::StateWriteProxy, task_shared_store::TaskSharedStoreBuilder,
         },
     },
     language::Language,
@@ -25,10 +25,9 @@ use crate::{
                 fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
                 tasks::ExecuteBehaviorsTask,
             },
-            Arc, DatastoreResult, Error, ExperimentConfig, FieldSpecMapAccessor,
-            GetWorkerExpStartMsg, GetWorkerSimStartMsg, IntoArrowChange, Name, Package,
-            PackageComms, PackageCreator, Result, SimRunConfig, Span, State, StateColumn,
-            StateTask,
+            Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+            GetWorkerSimStartMsg, Name, Package, PackageComms, PackageCreator, Result,
+            SimRunConfig, Span, State, StateTask,
         },
         task::{active::ActiveTask, Task},
     },
@@ -169,7 +168,7 @@ impl BehaviorExecution {
             self.behavior_ids_col_index,
         )?;
 
-        agent::modify_loaded_column(agent_proxies, behavior_ids)?;
+        modify_loaded_column(agent_proxies, behavior_ids)?;
         Ok(())
     }
 
@@ -178,7 +177,7 @@ impl BehaviorExecution {
         agent_proxies: &mut PoolWriteProxy<AgentBatch>,
     ) -> Result<()> {
         let behavior_index_col = reset_index_col(self.behavior_index_col_index)?;
-        agent::modify_loaded_column(agent_proxies, behavior_index_col)?;
+        modify_loaded_column(agent_proxies, behavior_index_col)?;
 
         Ok(())
     }
@@ -240,7 +239,7 @@ impl Package for BehaviorExecution {
 
         self.fix_behavior_chains(agent_pool)?;
         self.reset_behavior_index_col(agent_pool)?;
-        agent::flush_pending_columns(agent_pool)?;
+        flush_pending_columns(agent_pool)?;
 
         // Have to reload state agent batches twice, because we just wrote the language ID of each
         // behavior into them, but now want to read it from them.

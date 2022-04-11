@@ -1,10 +1,10 @@
-use stateful::proxy::BatchPool;
+use stateful::{agent::AgentPool, proxy::BatchPool};
 
 use crate::datastore::{
     batch::{AgentBatch, MessageBatch},
     error::Result,
     table::{
-        pool::{agent::AgentPool, message::MessagePool},
+        pool::message::MessagePool,
         proxy::{StateReadProxy, StateWriteProxy},
         references::MessageMap,
     },
