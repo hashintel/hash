@@ -116,13 +116,6 @@ impl NngSender {
     }
 }
 
-impl Drop for NngSender {
-    fn drop(&mut self) {
-        // Python has to close the socket on its side for the "-topy*" file to be deleted.
-        let _ = self.send(None, &InboundToRunnerMsgPayload::TerminateRunner, &None);
-    }
-}
-
 // TODO: Make this function shorter.
 fn inbound_to_nng(
     sim_id: Option<SimulationShortId>,
