@@ -18,14 +18,12 @@ use stateful::{
     proxy::PoolReadProxy,
 };
 use uuid::Uuid;
+use stateful::message::MessageReader;
 
 use crate::{
     datastore::{
         batch::MessageBatch,
-        table::{
-            pool::message::get_reader, references::MessageMap,
-            state::create_remove::ProcessedCommands,
-        },
+        table::{references::MessageMap, state::create_remove::ProcessedCommands},
         UUID_V4_LEN,
     },
     simulation::{Error, Result},
@@ -158,7 +156,7 @@ impl Commands {
         message_map: &MessageMap,
         message_proxies: &PoolReadProxy<MessageBatch>,
     ) -> Result<Commands> {
-        let message_reader = get_reader(message_proxies)?;
+        let message_reader = MessageReader::from_message_pool(message_proxies)?;
 
         let mut refs = Vec::with_capacity(HASH.len());
         for hash_recipient in &HASH {

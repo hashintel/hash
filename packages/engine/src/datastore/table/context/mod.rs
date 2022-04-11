@@ -4,6 +4,7 @@ use arrow::record_batch::RecordBatch;
 use memory::shared_memory::MemoryId;
 use stateful::{
     agent::{AgentPool, AgentSchema},
+    message::MessagePool,
     proxy::BatchPool,
 };
 
@@ -12,10 +13,7 @@ use crate::{
     datastore::{
         batch::{context::ContextBatch, AgentBatch},
         error::{Error, Result},
-        table::{
-            pool::message::MessagePool,
-            state::{view::StatePools, State},
-        },
+        table::state::{view::StatePools, State},
     },
     simulation::package::context::ContextColumn,
 };

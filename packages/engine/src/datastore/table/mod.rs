@@ -2,7 +2,6 @@
 //! This is about a single simulation's data, conceptually we have Tables for agent state, context,
 //! message state
 pub mod context;
-pub mod pool;
 pub mod proxy;
 pub mod references;
 pub mod state;

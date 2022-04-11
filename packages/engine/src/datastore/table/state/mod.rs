@@ -6,6 +6,7 @@ use std::sync::Arc;
 use memory::shared_memory::MemoryId;
 use stateful::{
     agent::{Agent, AgentPool},
+    message::MessagePool,
     proxy::BatchPool,
 };
 
@@ -16,7 +17,6 @@ use crate::{
         batch::{AgentBatch, MessageBatch},
         error::Result,
         table::{
-            pool::message::MessagePool,
             proxy::{StateReadProxy, StateWriteProxy},
             references::MessageMap,
             state::view::StatePools,
@@ -219,7 +219,11 @@ impl State {
         sim_config: &SimRunConfig,
     ) -> Result<MessagePool> {
         let agent_proxies = self.agent_pool().read_proxies()?;
-        old_context_message_pool.reset(&agent_proxies, sim_config)?;
+        old_context_message_pool.reset(
+            &agent_proxies,
+            sim_config.exp.run.base().id,
+            &sim_config.sim.store.message_schema,
+        )?;
         Ok(std::mem::replace(
             &mut self.state.message_pool,
             old_context_message_pool,

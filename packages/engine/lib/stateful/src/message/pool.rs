@@ -1,24 +1,20 @@
-use std::sync::Arc;
+use std::{borrow::Borrow, sync::Arc};
 
 use memory::shared_memory::MemoryId;
 use parking_lot::RwLock;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
-use stateful::{
-    agent, message,
-    message::arrow::record_batch::MessageLoader,
-    proxy::{BatchPool, BatchWriteProxy, Pool, PoolReadProxy},
-};
+use uuid::Uuid;
 
 use crate::{
-    config::SimRunConfig,
-    datastore::{
-        batch::{AgentBatch, MessageBatch},
-        error::{Error, Result},
-        UUID_V4_LEN,
-    },
-    proto::ExperimentRunTrait,
+    agent,
+    agent::AgentBatch,
+    field::UUID_V4_LEN,
+    message,
+    message::{arrow::record_batch::MessageLoader, MessageBatch, MessageSchema},
+    proxy::{BatchPool, BatchWriteProxy, Pool, PoolReadProxy},
+    Error, Result,
 };
 
 /// A collection of [`Batch`]es which contain the current (outbound) messages of agents.
@@ -62,10 +58,11 @@ impl MessagePool {
     /// # Panics
     ///
     /// If batches in the message pool are currently borrowed elsewhere.
-    pub fn reset(
+    pub fn reset<Id: Borrow<Uuid>>(
         &mut self,
         agent_proxies: &PoolReadProxy<AgentBatch>,
-        sim_config: &SimRunConfig,
+        memory_id: Id,
+        message_schema: &MessageSchema,
     ) -> Result<()> {
         // Reversing sequence to remove from the back if there are fewer agent batches than message
         // batches
@@ -86,37 +83,19 @@ impl MessagePool {
 
         // Add message batches if there are more agent batches than message batches
         if agent_proxies.len() > self.len() {
-            let experiment_id = &sim_config.exp.run.base().id;
-            let message_schema = &sim_config.sim.store.message_schema;
-
             self.reserve(agent_proxies.len() - self.len());
             for agent_proxy in &agent_proxies[self.len()..] {
                 let inbox = MessageBatch::empty_from_agent_batch(
                     agent_proxy,
                     &message_schema.arrow,
                     message_schema.static_meta.clone(),
-                    MemoryId::new(*experiment_id),
+                    MemoryId::new(*memory_id.borrow()),
                 )?;
                 self.push(inbox);
             }
         }
         Ok(())
     }
-}
-
-pub fn get_reader(
-    message_pool_proxy: &PoolReadProxy<MessageBatch>,
-) -> memory::Result<MessageReader<'_>> {
-    let loaders: memory::Result<_> = message_pool_proxy
-        .batches_iter()
-        .map(|batch| {
-            batch
-                .batch
-                .record_batch()
-                .map(message::arrow::record_batch::message_loader)
-        })
-        .collect();
-    Ok(MessageReader { loaders: loaders? })
 }
 
 pub fn recipient_iter_all<'b: 'r, 'r>(
@@ -146,6 +125,19 @@ pub struct MessageReader<'a> {
 }
 
 impl<'a> MessageReader<'a> {
+    pub fn from_message_pool(message_pool_proxy: &'a PoolReadProxy<MessageBatch>) -> Result<Self> {
+        let loaders = message_pool_proxy
+            .batches_iter()
+            .map(|batch| {
+                batch
+                    .batch
+                    .record_batch()
+                    .map(message::arrow::record_batch::message_loader)
+            })
+            .collect::<memory::Result<_>>()?;
+        Ok(Self { loaders })
+    }
+
     pub fn get_loader(&self, batch_index: usize) -> Result<&MessageLoader<'a>> {
         self.loaders
             .get(batch_index)
@@ -174,6 +166,7 @@ impl MessageReader<'_> {
         })
     }
 
+    #[allow(clippy::wrong_self_convention)]
     pub fn from_iter<'b: 'r, 'r>(
         &'b self,
         message_references: &'r [agent::MessageReference],

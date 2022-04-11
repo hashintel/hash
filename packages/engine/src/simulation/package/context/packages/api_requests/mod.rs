@@ -10,6 +10,7 @@ use serde_json::Value;
 use stateful::{
     field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
+    message::MessageReader,
     proxy::BatchPool,
 };
 use tracing::{Instrument, Span};
@@ -18,7 +19,7 @@ pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
     config::ExperimentConfig,
-    datastore::{batch::iterators, table::pool::message},
+    datastore::batch::iterators,
     simulation::{
         comms::package::PackageComms,
         package::context::{
@@ -205,7 +206,7 @@ async fn build_api_response_maps(
     let mut futs = FuturesOrdered::new();
     {
         let message_proxies = &snapshot.state.message_pool.read_proxies()?;
-        let reader = message::get_reader(message_proxies)?;
+        let reader = MessageReader::from_message_pool(message_proxies)?;
 
         handlers.iter().try_for_each::<_, Result<()>>(|handler| {
             let messages = snapshot.message_map.get_msg_refs(handler);

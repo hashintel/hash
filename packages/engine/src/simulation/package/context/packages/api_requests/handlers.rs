@@ -1,9 +1,10 @@
 use serde_json::Value;
 use stateful::agent;
 use thiserror::Error as ThisError;
+use stateful::message::MessageReader;
 
 use crate::{
-    datastore::{table::pool::message::MessageReader, UUID_V4_LEN},
+    datastore::UUID_V4_LEN,
     simulation::package::context::packages::api_requests::{
         handlers, ApiResponseMap, Error, Result,
     },

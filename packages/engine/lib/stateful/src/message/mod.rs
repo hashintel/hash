@@ -9,6 +9,7 @@ mod batch;
 mod inbound;
 mod kind;
 mod outbound;
+mod pool;
 mod schema;
 
 pub(in crate) use self::outbound::Error as OutboundError;
@@ -17,6 +18,7 @@ pub use self::{
     inbound::Inbound,
     kind::{CreateAgent, RemoveAgent, StopSim},
     outbound::Message,
+    pool::{recipient_iter_all, MessagePool, MessageReader},
     schema::MessageSchema,
 };
 

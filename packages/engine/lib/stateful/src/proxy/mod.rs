@@ -15,8 +15,9 @@ mod batch;
 mod batch_pool;
 mod pool;
 
+pub(in crate) use self::batch_pool::Pool;
 pub use self::{
     batch::{BatchReadProxy, BatchWriteProxy},
-    batch_pool::{BatchPool, Pool},
+    batch_pool::BatchPool,
     pool::{PoolReadProxy, PoolWriteProxy},
 };

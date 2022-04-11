@@ -5,8 +5,9 @@ use std::{
 
 use rayon::iter::ParallelIterator;
 use stateful::{agent, proxy::PoolReadProxy};
+use stateful::message::recipient_iter_all;
 
-use crate::datastore::{batch::MessageBatch, error::Result, table::pool::message};
+use crate::datastore::{batch::MessageBatch, error::Result};
 
 /// A mapping from recipient to message reference.
 /// Used in combination with `MessageReader`.
@@ -16,7 +17,7 @@ pub struct MessageMap {
 
 impl MessageMap {
     pub fn new(pool: &PoolReadProxy<MessageBatch>) -> Result<MessageMap> {
-        let iter = message::recipient_iter_all(pool);
+        let iter = recipient_iter_all(pool);
         let inner = iter
             .fold(
                 HashMap::<String, Vec<agent::MessageReference>>::new,

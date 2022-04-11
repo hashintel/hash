@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// Internal trait to implement `BatchPool` without leaking `Arc<RwLock<B>>`
-pub trait Pool<B> {
+pub(in crate) trait Pool<B> {
     fn new(batches: Vec<Arc<RwLock<B>>>) -> Self;
     fn get_batches(&self) -> &[Arc<RwLock<B>>];
     fn get_batches_mut(&mut self) -> &mut Vec<Arc<RwLock<B>>>;
