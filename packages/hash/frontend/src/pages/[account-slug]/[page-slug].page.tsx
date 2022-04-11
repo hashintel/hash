@@ -12,7 +12,6 @@ import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { Container } from "@mui/material";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";

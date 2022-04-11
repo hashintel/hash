@@ -5,22 +5,13 @@ import {
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { Box, Menu } from "@mui/material";
+import { Box } from "@mui/material";
 import { BlockVariant } from "blockprotocol";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import {
-  createRef,
-  forwardRef,
-  RefObject,
-  RefObject,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { useOutsideClick } from "rooks";
+import { createRef, forwardRef, useMemo, useRef } from "react";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../shared/icons";
 import { RemoteBlockMetadata } from "../userBlocks";

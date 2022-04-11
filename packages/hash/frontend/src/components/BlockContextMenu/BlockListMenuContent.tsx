@@ -7,6 +7,7 @@ import {
   MenuItem,
   MenuList,
   TextField,
+  Typography,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
 import { useEffect, useRef, useState, VFC } from "react";
@@ -62,6 +63,19 @@ export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
           }}
         />
       </Box>
+      {blocks.length === 0 && (
+        <Box px={2.25}>
+          <Typography
+            variant="smallTextLabels"
+            sx={({ palette }) => ({
+              color: palette.gray[60],
+              fontWeight: 500,
+            })}
+          >
+            No results for `{searchQuery}`
+          </Typography>
+        </Box>
+      )}
       {blocks.map((option) => (
         <MenuItem
           onClick={() => {

@@ -167,7 +167,7 @@ const updateBlockEntity = (
   );
 
   // Check if entity to load exists in store
-  // and add to store if it doesnt
+  // and add to store if it doesn't exist
   if (!draftEntity) {
     draftEntity = {
       accountId: targetEntity.accountId,
@@ -194,10 +194,6 @@ const updateBlockEntity = (
   draftBlockEntity.properties = {
     entity: draftEntity,
   };
-
-  draftEntityStore[draftId] = draftBlockEntity;
-
-  return draftEntityStore;
 };
 
 /**

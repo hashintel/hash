@@ -1,6 +1,6 @@
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
+import { isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
   entityStorePluginStateFromTransaction,
@@ -23,7 +23,6 @@ import { useAccountEntities } from "../hooks/useAccountEntities";
 
 type LoadEntityMenuContentProps = {
   entityId: string | null;
-  entityStore: EntityStore;
   popupState?: PopupState;
 };
 

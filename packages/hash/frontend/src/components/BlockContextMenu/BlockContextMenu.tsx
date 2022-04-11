@@ -62,12 +62,7 @@ export const BlockContextMenu = forwardRef<
         // in BlockContextMenuItem
         // For now the temporary fix is to make popupState optional
         // in LoadEntityMenuContent
-        subMenu: (
-          <LoadEntityMenuContent
-            entityId={entityId}
-            entityStore={entityStore}
-          />
-        ),
+        subMenu: <LoadEntityMenuContent entityId={entityId} />,
         subMenuWidth: 280,
       },
       {
@@ -116,7 +111,7 @@ export const BlockContextMenu = forwardRef<
     }
 
     return items;
-  }, [entityId, blockSuggesterProps, entityStore]);
+  }, [entityId, blockSuggesterProps]);
 
   useKey(["Escape"], () => {
     popupState.close();

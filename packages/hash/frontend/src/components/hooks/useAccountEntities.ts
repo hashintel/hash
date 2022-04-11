@@ -9,10 +9,9 @@ import {
   UnknownEntity,
 } from "../../graphql/apiTypes.gen";
 
-// @todo properly type this
+// @todo handle error state
 export const useAccountEntities = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState();
   const [data, setData] = useState<
     Pick<
       UnknownEntity,
@@ -52,7 +51,6 @@ export const useAccountEntities = () => {
   return {
     fetchEntities,
     loading,
-    error,
     data,
   };
 };
