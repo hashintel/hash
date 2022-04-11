@@ -9,6 +9,7 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use stateful::field::PackageId;
 
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use crate::{
@@ -21,11 +22,24 @@ use crate::{
 };
 
 /// All state package names are registered in this enum
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Name {
     BehaviorExecution,
     Topology,
+}
+
+impl Name {
+    pub fn id(self) -> Result<PackageId> {
+        Ok(METADATA
+            .get(&self)
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "Package Metadata not registered for package: {self}"
+                ))
+            })?
+            .id)
+    }
 }
 
 impl std::fmt::Display for Name {

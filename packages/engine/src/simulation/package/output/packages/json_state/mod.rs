@@ -2,21 +2,18 @@ mod config;
 
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::{agent::Agent, field::FieldScope, globals::Globals};
 
 pub use self::config::JsonStateOutputConfig;
 use crate::{
-    datastore::{
-        arrow::batch_conversion::IntoAgents,
-        schema::{HIDDEN_PREFIX, PRIVATE_PREFIX},
-    },
-    hash_types::Agent,
+    datastore::arrow::batch_conversion::IntoAgents,
     simulation::package::{
         name::PackageName,
         output,
         output::{
             Arc, Context, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, Globals, MaybeCpuBound, Output, Package, PackageComms,
-            PackageCreator, Result, SimRunConfig, Span, State,
+            GetWorkerSimStartMsg, MaybeCpuBound, Output, Package, PackageComms, PackageCreator,
+            Result, SimRunConfig, Span, State,
         },
     },
 };
@@ -102,9 +99,9 @@ impl Package for JsonState {
             .flatten()
             .map(|mut agent| {
                 agent.custom.retain(|key, _| {
-                    if key.starts_with(HIDDEN_PREFIX) {
+                    if key.starts_with(FieldScope::Hidden.prefix()) {
                         self.output_config.retain_hidden
-                    } else if key.starts_with(PRIVATE_PREFIX) {
+                    } else if key.starts_with(FieldScope::Private.prefix()) {
                         self.output_config.retain_private
                     } else {
                         true
