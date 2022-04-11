@@ -262,7 +262,7 @@ impl PythonProcess {
         tracing::debug!("Started Python process {}", init_msg.worker_index);
 
         // Send init message to Python process.
-        nng_receiver.init(&init_msg)?;
+        nng_receiver.init(init_msg)?;
         // We waited for Python init message handling to finish,
         // so we know that sender init can be done now.
         nng_sender.init()?;
