@@ -79,7 +79,7 @@ export const BlockLoaderInput: React.VFC = () => {
       <TextField
         size="xs"
         type="url"
-        placeholder="Load Block From URL"
+        placeholder="Load Block from URL..."
         required
         value={blockUrl}
         sx={{ flex: 1 }}
