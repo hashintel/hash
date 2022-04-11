@@ -102,10 +102,8 @@ const toBlockConfig = ({
     .map((variant) => ({ ...defaultVariant, ...variant }))
     .map((variant) => ({
       ...variant,
-      icon: variant.icon
-        ? // the Block Protocol API is returning absolute URLs for icons, but this might be from elsewhere
-          getAbsoluteUrl({ baseUrl, path: variant.icon })
-        : "/format-font.svg",
+      // the Block Protocol API is returning absolute URLs for icons, but this might be from elsewhere
+      icon: getAbsoluteUrl({ baseUrl, path: variant.icon }),
       name: variant.name ?? variant.displayName, // fallback to handle deprecated 'variant[].displayName' field
     }));
 
