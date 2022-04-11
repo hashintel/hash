@@ -26,6 +26,15 @@ pub enum Error {
 
     #[error("Could not parse outbound message: {0}")]
     OutboundMessageParse(#[from] crate::message::OutboundError),
+
+    #[error("Arrow Error: {0}")]
+    Arrow(#[from] arrow::error::ArrowError),
+
+    #[error("Invalid Arrow object downcast. Field name: {name}")]
+    InvalidArrowDowncast { name: String },
+
+    #[error("Unexpected vector length: was {len} but expected {expected}")]
+    UnexpectedVectorLength { len: usize, expected: usize },
 }
 
 impl From<&str> for Error {

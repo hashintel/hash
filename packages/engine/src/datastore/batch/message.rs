@@ -19,10 +19,13 @@ use memory::{
     },
     shared_memory::{MemoryId, Metaversion, Segment},
 };
-use stateful::{agent::AgentStateField, message::MessageSchema};
+use stateful::{
+    agent::AgentStateField,
+    message::{arrow::array::OutboundArray, MessageSchema},
+};
 
 use crate::datastore::{
-    arrow::{batch_conversion::IntoRecordBatch, message},
+    arrow::batch_conversion::IntoRecordBatch,
     batch::{iterators::column_with_name, AgentBatch},
     error::{Error, Result},
     UUID_V4_LEN,
@@ -77,7 +80,7 @@ impl MessageBatch {
         let agent_record_batch = agent_batch.batch.record_batch()?; // Agent batch must be up to date
         let column_name = AgentStateField::AgentId.name();
         let id_column = column_with_name(agent_record_batch, column_name)?;
-        let empty_message_column = message::OutboundArray::new(agent_count).map(Arc::new)?;
+        let empty_message_column = OutboundArray::new(agent_count).map(Arc::new)?;
 
         let record_batch = RecordBatch::try_new(self.arrow_schema.clone(), vec![
             Arc::clone(id_column),
@@ -152,7 +155,7 @@ impl MessageBatch {
         let agent_record_batch = agent_batch.batch.record_batch()?;
         let column_name = AgentStateField::AgentId.name();
         let id_column = column_with_name(agent_record_batch, column_name)?;
-        let empty_message_column = message::OutboundArray::new(agent_count).map(Arc::new)?;
+        let empty_message_column = OutboundArray::new(agent_count).map(Arc::new)?;
 
         let record_batch = RecordBatch::try_new(schema.clone(), vec![
             id_column.clone(),
@@ -260,23 +263,23 @@ pub struct Raw<'a> {
 pub mod record_batch {
     use arrow::{array::Array, record_batch::RecordBatch};
     use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+    use stateful::message::arrow::array::{FieldIndex, MESSAGE_COLUMN_INDEX};
 
     use crate::datastore::{
-        arrow::message::{self, MESSAGE_COLUMN_INDEX},
-        batch::message::MessageLoader,
+        arrow::message::FROM_COLUMN_INDEX, batch::message::MessageLoader,
         table::references::AgentMessageReference,
     };
 
     pub fn message_loader(record_batch: &RecordBatch) -> MessageLoader<'_> {
-        let column = record_batch.column(message::FROM_COLUMN_INDEX);
+        let column = record_batch.column(FROM_COLUMN_INDEX);
         let data = column.data_ref();
         let from = unsafe { data.buffers()[0].typed_data::<u8>() };
 
-        let (to_bufs, to) = get_message_field(record_batch, message::FieldIndex::To);
+        let (to_bufs, to) = get_message_field(record_batch, FieldIndex::To);
         debug_assert_eq!(to_bufs.len(), 3);
-        let (typ_bufs, typ) = get_message_field(record_batch, message::FieldIndex::Type);
+        let (typ_bufs, typ) = get_message_field(record_batch, FieldIndex::Type);
         debug_assert_eq!(typ_bufs.len(), 2);
-        let (data_bufs, data) = get_message_field(record_batch, message::FieldIndex::Data);
+        let (data_bufs, data) = get_message_field(record_batch, FieldIndex::Data);
         debug_assert_eq!(data_bufs.len(), 2);
 
         MessageLoader {
@@ -317,7 +320,7 @@ pub mod record_batch {
         record_batch: &RecordBatch,
     ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = Vec<&str>>> {
         let num_agents = record_batch.num_rows();
-        let (bufs, to) = get_message_field(record_batch, message::FieldIndex::To);
+        let (bufs, to) = get_message_field(record_batch, FieldIndex::To);
         let (i32_offsets, to_list_i32_offsets, to_i32_offsets) = (bufs[0], bufs[1], bufs[2]);
         (0..num_agents).into_par_iter().map(move |j| {
             let row_index = i32_offsets[j] as usize;
@@ -349,7 +352,7 @@ pub mod record_batch {
     // TODO: UNUSED: Needs triage
     pub fn message_recipients_iter(record_batch: &RecordBatch) -> impl Iterator<Item = Vec<&str>> {
         let num_agents = record_batch.num_rows();
-        let (bufs, to) = get_message_field(record_batch, message::FieldIndex::To);
+        let (bufs, to) = get_message_field(record_batch, FieldIndex::To);
         let (i32_offsets, to_list_i32_offsets, to_i32_offsets) = (bufs[0], bufs[1], bufs[2]);
         (0..num_agents).flat_map(move |j| {
             let row_index = i32_offsets[j] as usize;
@@ -378,14 +381,11 @@ pub mod record_batch {
         })
     }
 
-    fn get_message_field(
-        record_batch: &RecordBatch,
-        index: message::FieldIndex,
-    ) -> (Vec<&[i32]>, &str) {
+    fn get_message_field(record_batch: &RecordBatch, index: FieldIndex) -> (Vec<&[i32]>, &str) {
         // The "to" field is the 0th field in MESSAGE_ARROW_FIELDS
         // The "type" field is the 1st field in MESSAGE_ARROW_FIELDS
         // The "data" field is the 2nd field in MESSAGE_ARROW_FIELDS
-        let is_nested_list = matches!(index, message::FieldIndex::To);
+        let is_nested_list = matches!(index, FieldIndex::To);
         let index_usize = index as usize;
         let i32_byte_len = 4;
         let mut buffers = Vec::with_capacity(3);

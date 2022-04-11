@@ -21,15 +21,15 @@ use serde_json::value::Value;
 use stateful::{
     agent::{Agent, AgentName, AgentSchema, AgentStateField, BUILTIN_FIELDS},
     field::{FieldScope, FieldTypeVariant, RootFieldKey},
-    message::MESSAGE_BATCH_SCHEMA,
+    message::{
+        arrow::{array::OutboundArray, column::OutboundColumn},
+        MESSAGE_BATCH_SCHEMA,
+    },
 };
 
 use crate::{
     datastore::{
-        arrow::{
-            message,
-            message::{OutboundArray, OutboundColumn},
-        },
+        arrow::message,
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
         schema::IsRequired,
