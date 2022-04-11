@@ -16,30 +16,7 @@ pub struct Raw<'a> {
     pub data: &'a str,
 }
 
-pub fn message_loader(record_batch: &RecordBatch) -> MessageLoader<'_> {
-    let column = record_batch.column(FROM_COLUMN_INDEX);
-    let data = column.data_ref();
-    let from = unsafe { data.buffers()[0].typed_data::<u8>() };
-
-    let (to_bufs, to) = get_message_field(record_batch, FieldIndex::To);
-    debug_assert_eq!(to_bufs.len(), 3);
-    let (typ_bufs, typ) = get_message_field(record_batch, FieldIndex::Type);
-    debug_assert_eq!(typ_bufs.len(), 2);
-    let (data_bufs, data) = get_message_field(record_batch, FieldIndex::Data);
-    debug_assert_eq!(data_bufs.len(), 2);
-
-    MessageLoader {
-        from,
-        to_bufs,
-        to,
-        typ_bufs,
-        typ,
-        data_bufs,
-        data,
-    }
-}
-
-pub fn message_usize_index_iter(
+pub(in crate) fn message_usize_index_iter(
     record_batch: &RecordBatch,
     batch_index: usize,
 ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = MessageReference>> {
@@ -61,7 +38,7 @@ pub fn message_usize_index_iter(
     })
 }
 
-pub fn message_recipients_par_iter(
+pub(in crate) fn message_recipients_iter(
     record_batch: &RecordBatch,
 ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = Vec<&str>>> {
     let num_agents = record_batch.num_rows();
@@ -74,38 +51,6 @@ pub fn message_recipients_par_iter(
 
         let to_list_indices = &to_list_i32_offsets[row_index..=next_row_index];
         (0..num_messages).into_par_iter().map(move |k| {
-            let to_list_index = to_list_indices[k] as usize;
-            let next_to_list_index = to_list_indices[k + 1] as usize;
-
-            let recipient_count = next_to_list_index - to_list_index;
-
-            let recipient_indices = &to_i32_offsets[to_list_index..=next_to_list_index];
-
-            let mut recipients = Vec::with_capacity(recipient_count);
-            for l in 0..recipient_count {
-                let recipient_index = recipient_indices[l] as usize;
-                let next_recipient_index = recipient_indices[l + 1] as usize;
-                let recipient_value = &to[recipient_index..next_recipient_index];
-                recipients.push(recipient_value);
-            }
-
-            recipients
-        })
-    })
-}
-
-// TODO: UNUSED: Needs triage
-pub fn message_recipients_iter(record_batch: &RecordBatch) -> impl Iterator<Item = Vec<&str>> {
-    let num_agents = record_batch.num_rows();
-    let (bufs, to) = get_message_field(record_batch, FieldIndex::To);
-    let (i32_offsets, to_list_i32_offsets, to_i32_offsets) = (bufs[0], bufs[1], bufs[2]);
-    (0..num_agents).flat_map(move |j| {
-        let row_index = i32_offsets[j] as usize;
-        let next_row_index = i32_offsets[j + 1] as usize;
-        let num_messages = next_row_index - row_index;
-
-        let to_list_indices = &to_list_i32_offsets[row_index..=next_row_index];
-        (0..num_messages).map(move |k| {
             let to_list_index = to_list_indices[k] as usize;
             let next_to_list_index = to_list_indices[k + 1] as usize;
 
@@ -220,6 +165,29 @@ pub struct MessageLoader<'a> {
 }
 
 impl<'a> MessageLoader<'a> {
+    pub fn from_record_batch(record_batch: &'a RecordBatch) -> Self {
+        let column = record_batch.column(FROM_COLUMN_INDEX);
+        let data = column.data_ref();
+        let from = unsafe { data.buffers()[0].typed_data::<u8>() };
+
+        let (to_bufs, to) = get_message_field(record_batch, FieldIndex::To);
+        debug_assert_eq!(to_bufs.len(), 3);
+        let (typ_bufs, typ) = get_message_field(record_batch, FieldIndex::Type);
+        debug_assert_eq!(typ_bufs.len(), 2);
+        let (data_bufs, data) = get_message_field(record_batch, FieldIndex::Data);
+        debug_assert_eq!(data_bufs.len(), 2);
+
+        Self {
+            from,
+            to_bufs,
+            to,
+            typ_bufs,
+            typ,
+            data_bufs,
+            data,
+        }
+    }
+
     pub fn get_from(&self, agent_index: usize) -> &'a [u8; UUID_V4_LEN] {
         let content_start = agent_index * UUID_V4_LEN;
         unsafe {

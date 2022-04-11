@@ -1,3 +1,5 @@
+//! Module for converting the Arrow representation of `Message`
+
 use std::any::Any;
 
 use arrow::{
@@ -123,7 +125,7 @@ impl ArrayBuilder for MessageBuilder {
 
 #[derive(Debug)]
 #[repr(transparent)] // Required for `&ListArray -> &OutboundArray`
-pub struct MessageArray(pub ListArray);
+pub(in crate) struct MessageArray(pub ListArray);
 
 impl MessageArray {
     pub fn new(len: usize) -> Result<Self> {
@@ -146,6 +148,7 @@ impl MessageArray {
         Ok(unsafe { &*(list as *const ListArray as *const Self) })
     }
 
+    #[allow(dead_code)] // Probably used for Rust runner
     pub fn from_column(column: &MessageColumn) -> Result<Self> {
         let mut builder = MessageBuilder::new_list(column.0.len());
         for messages in &column.0 {

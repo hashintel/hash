@@ -18,8 +18,7 @@ use memory::arrow::{
 use crate::{
     agent::{arrow::PREVIOUS_INDEX_FIELD_KEY, Agent, AgentSchema, AgentStateField},
     field::{FieldTypeVariant, RootFieldKey, UUID_V4_LEN},
-    message,
-    message::arrow::array::MessageArray,
+    message::{self, arrow::array::MessageArray},
     Error, Result,
 };
 

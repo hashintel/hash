@@ -107,7 +107,7 @@ pub fn recipient_iter_all<'b: 'r, 'r>(
         .enumerate()
         .flat_map(|(i, group)| {
             let record_batch = group.batch.record_batch().unwrap(); // TODO: unwrap --> err
-            message::arrow::record_batch::message_recipients_par_iter(record_batch)
+            message::arrow::record_batch::message_recipients_iter(record_batch)
                 .zip_eq(message::arrow::record_batch::message_usize_index_iter(
                     record_batch,
                     i,
@@ -132,7 +132,7 @@ impl<'a> MessageReader<'a> {
                 batch
                     .batch
                     .record_batch()
-                    .map(message::arrow::record_batch::message_loader)
+                    .map(MessageLoader::from_record_batch)
             })
             .collect::<memory::Result<_>>()?;
         Ok(Self { loaders })
