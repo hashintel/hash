@@ -114,6 +114,7 @@ export type DbLinkVersion = {
 };
 
 export type DbAggregation = {
+  aggregationId: string;
   sourceAccountId: string;
   sourceEntityId: string;
   sourceEntityVersionIds: Set<string>;
@@ -541,39 +542,80 @@ export interface DbClient {
     emailAddress: string;
   }): Promise<VerificationCode>;
 
+  /**
+   * Create an aggregation for an entity.
+   *
+   * @param params.sourceAccountId the account id of the source entity
+   * @param params.sourceEntityId the entity id of the source entity
+   * @param params.path the aggregation path
+   * @param params.operation the aggregation operation
+   * @param params.createdByAccountId the account id of the user that created the aggregation
+   */
   createAggregation(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    path: string;
+    operation: object;
     createdByAccountId: string;
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
-    operation: object;
   }): Promise<DbAggregation>;
 
+  /**
+   * Update the operation of an existing aggregation.
+   *
+   * @param params.aggregationId the id of the aggregation
+   * @param params.operation the updated aggregation operation
+   */
   updateAggregationOperation(params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
+    aggregationId: string;
     operation: object;
   }): Promise<DbAggregation>;
 
-  getEntityAggregation(params: {
+  /**
+   * Get an aggregation by its id.
+   *
+   * @param params.aggregationId the id of the aggregation
+   */
+  getAggregation(params: {
+    aggregationId: string;
+  }): Promise<DbAggregation | null>;
+
+  /**
+   * Get an aggregation by its source entity and path.
+   *
+   * @param params.sourceAccountId the account id of the source entity
+   * @param params.sourceEntityId the entity id of the source entity
+   * @param params.sourceEntityVersionId the entityVersionId of the source entity (optional)
+   * @param params.path the aggregation path
+   */
+  getEntityAggregationByPath(params: {
     sourceAccountId: string;
     sourceEntityId: string;
     sourceEntityVersionId?: string;
     path: string;
   }): Promise<DbAggregation | null>;
 
+  /**
+   * Get all aggregations for an entity.
+   *
+   * @param params.sourceAccountId the account id of the source entity
+   * @param params.sourceEntityId the entity id of the source entity
+   * @param params.sourceEntityVersionId the entityVersionId of the source entity (optional)
+   */
   getEntityAggregations(params: {
     sourceAccountId: string;
     sourceEntityId: string;
     sourceEntityVersionId?: string;
   }): Promise<DbAggregation[]>;
 
+  /**
+   * Delete an existing aggregation.
+   *
+   * @param params.aggregationId the id of the aggregation
+   * @param params.deletedByAccountId the account id of the user that deleted the aggregation
+   */
   deleteAggregation(params: {
+    aggregationId: string;
     deletedByAccountId: string;
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
   }): Promise<void>;
 
   /** Get a verification code (it may be invalid!) */
