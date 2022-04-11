@@ -1,7 +1,9 @@
 use std::{collections::HashSet, ops::Deref};
 
+use stateful::agent::AgentBatch;
+
 use crate::datastore::{
-    batch::{agent::AgentBatch, iterators::record_batch},
+    batch::iterators::record_batch,
     error::Result,
     table::state::create_remove::{AgentIndex, BatchIndex, WorkerIndex},
     UUID_V4_LEN,

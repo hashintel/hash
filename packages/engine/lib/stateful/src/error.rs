@@ -33,6 +33,12 @@ pub enum Error {
     #[error("Arrow Error: {0}")]
     Arrow(#[from] arrow::error::ArrowError),
 
+    #[error("Failed to read Arrow Schema from buffer")]
+    ArrowSchemaRead,
+
+    #[error("Arrow RecordBatch message error: {0}")]
+    ArrowBatch(String),
+
     #[error("Invalid Arrow object downcast. Field name: {name}")]
     InvalidArrowDowncast { name: String },
 
@@ -47,6 +53,15 @@ pub enum Error {
 
     #[error("Uuid error: {0}")]
     Uuid(#[from] uuid::Error),
+
+    #[error("{0}")]
+    InvalidFlatbuffer(#[from] flatbuffers::InvalidFlatbuffer),
+
+    #[error("Did not expect to resize Shared Memory")]
+    UnexpectedAgentBatchMemoryResize,
+
+    #[error("No column found in batch with name: {0}")]
+    ColumnNotFound(String),
 }
 
 impl From<&str> for Error {

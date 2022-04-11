@@ -9,6 +9,7 @@ mod schema;
 pub mod arrow;
 
 pub use self::{
+    arrow::AgentBatch,
     field::{Agent, AgentStateField, BUILTIN_FIELDS},
     name::AgentName,
     references::MessageReference,

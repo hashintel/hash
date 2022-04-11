@@ -7,6 +7,7 @@ edition = "2021"
 memory = { path = "../memory" }
 
 arrow = { version = "10.0.0", default-features = false }
+flatbuffers = "2.1.1"
 lazy_static = "1.4.0"
 parking_lot = "0.11.1"
 rayon = "1.4.1"

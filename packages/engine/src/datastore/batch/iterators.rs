@@ -4,9 +4,10 @@ use crate::datastore::error::{Error, Result};
 
 pub mod agent {
     use arrow::datatypes::DataType;
+    use stateful::agent::AgentBatch;
 
     use crate::datastore::{
-        batch::{agent::AgentBatch, context::AgentIndex, iterators::record_batch},
+        batch::{context::AgentIndex, iterators::record_batch},
         error::Result,
         POSITION_DIM, UUID_V4_LEN,
     };

@@ -14,19 +14,15 @@ use arrow::{
 use memory::arrow::{col_to_json_vals, json_utf8_json_vals};
 use stateful::{
     agent::{
-        arrow::PREVIOUS_INDEX_FIELD_KEY, Agent, AgentName, AgentSchema, AgentStateField,
-        BUILTIN_FIELDS,
+        arrow::PREVIOUS_INDEX_FIELD_KEY, Agent, AgentBatch, AgentName, AgentSchema,
+        AgentStateField, BUILTIN_FIELDS,
     },
     field::{FieldScope, FieldTypeVariant},
     message::{arrow::column::MessageColumn, MessageSchema},
     Error, Result,
 };
 
-use crate::datastore::{
-    batch::{AgentBatch, MessageBatch},
-    schema::IsRequired,
-    UUID_V4_LEN,
-};
+use crate::datastore::{batch::MessageBatch, schema::IsRequired, UUID_V4_LEN};
 
 // This file is here mostly to convert between RecordBatch and Vec<Agent>.
 
