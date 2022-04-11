@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
 use memory::shared_memory::MemoryId;
-use stateful::agent::AgentSchema;
+use stateful::{agent::AgentSchema, proxy::BatchPool};
 
 use crate::{
     config::StoreConfig,
@@ -10,7 +10,7 @@ use crate::{
         batch::{context::ContextBatch, AgentBatch},
         error::{Error, Result},
         table::{
-            pool::{agent::AgentPool, message::MessagePool, BatchPool},
+            pool::{agent::AgentPool, message::MessagePool},
             state::{view::StatePools, State},
         },
     },

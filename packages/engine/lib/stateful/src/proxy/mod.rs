@@ -12,9 +12,11 @@
 //! [`Pin`]: core::pin::Pin
 
 mod batch;
+mod batch_pool;
 mod pool;
 
 pub use self::{
     batch::{BatchReadProxy, BatchWriteProxy},
+    batch_pool::{BatchPool, Pool},
     pool::{PoolReadProxy, PoolWriteProxy},
 };

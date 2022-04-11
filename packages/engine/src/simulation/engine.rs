@@ -1,6 +1,7 @@
 use std::{mem, sync::Arc};
 
 use memory::shared_memory::MemoryId;
+use stateful::proxy::BatchPool;
 use tracing::Instrument;
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
         store::Store,
         table::{
             context::Context,
-            pool::{agent::AgentPool, message::MessagePool, BatchPool},
+            pool::{agent::AgentPool, message::MessagePool},
             references::MessageMap,
             state::{
                 view::{StatePools, StateSnapshot},

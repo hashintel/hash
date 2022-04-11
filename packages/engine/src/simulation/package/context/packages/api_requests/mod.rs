@@ -10,6 +10,7 @@ use serde_json::Value;
 use stateful::{
     field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
+    proxy::BatchPool,
 };
 use tracing::{Instrument, Span};
 
@@ -17,10 +18,7 @@ pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
     config::ExperimentConfig,
-    datastore::{
-        batch::iterators,
-        table::pool::{message, BatchPool},
-    },
+    datastore::{batch::iterators, table::pool::message},
     simulation::{
         comms::package::PackageComms,
         package::context::{

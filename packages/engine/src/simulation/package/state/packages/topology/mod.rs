@@ -3,13 +3,14 @@ use serde_json::Value;
 use stateful::{
     field::{RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
+    proxy::BatchPool,
 };
 
 use crate::{
     config::{ExperimentConfig, TopologyConfig},
     datastore::{
         batch::{iterators::record_batch::topology_mut_iter, AgentBatch},
-        table::{context::Context, pool::BatchPool, state::State},
+        table::{context::Context, state::State},
     },
     simulation::{
         package::state::{

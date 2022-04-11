@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use parking_lot::RwLock;
-use stateful::proxy::PoolWriteProxy;
+use stateful::proxy::{Pool, PoolWriteProxy};
 
 use crate::{
     datastore::{batch::AgentBatch, error::Result},
@@ -16,7 +16,7 @@ pub struct AgentPool {
     batches: Vec<Arc<RwLock<AgentBatch>>>,
 }
 
-impl super::Pool<AgentBatch> for AgentPool {
+impl Pool<AgentBatch> for AgentPool {
     fn new(batches: Vec<Arc<RwLock<AgentBatch>>>) -> Self {
         Self { batches }
     }

@@ -8,7 +8,7 @@ use rayon::iter::{
 use stateful::{
     agent, message,
     message::arrow::record_batch::MessageLoader,
-    proxy::{BatchWriteProxy, PoolReadProxy},
+    proxy::{BatchPool, BatchWriteProxy, Pool, PoolReadProxy},
 };
 
 use crate::{
@@ -16,7 +16,6 @@ use crate::{
     datastore::{
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        table::pool::BatchPool,
         UUID_V4_LEN,
     },
     proto::ExperimentRunTrait,
@@ -32,7 +31,7 @@ pub struct MessagePool {
     batches: Vec<Arc<RwLock<MessageBatch>>>,
 }
 
-impl super::Pool<MessageBatch> for MessagePool {
+impl Pool<MessageBatch> for MessagePool {
     fn new(batches: Vec<Arc<RwLock<MessageBatch>>>) -> Self {
         Self { batches }
     }

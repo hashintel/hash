@@ -12,7 +12,7 @@ use std::sync::Arc;
 use analyzer::Analyzer;
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::{field::FieldSpecMapAccessor, globals::Globals};
+use stateful::{field::FieldSpecMapAccessor, globals::Globals, proxy::BatchPool};
 use tracing::Span;
 
 pub use self::{
@@ -21,7 +21,7 @@ pub use self::{
 };
 use crate::{
     config::{ExperimentConfig, SimRunConfig},
-    datastore::table::{context::Context, pool::BatchPool, state::State},
+    datastore::table::{context::Context, state::State},
     experiment::SimPackageArgs,
     proto::ExperimentRunTrait,
     simulation::{

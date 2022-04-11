@@ -4,7 +4,7 @@ pub mod view;
 use std::sync::Arc;
 
 use memory::shared_memory::MemoryId;
-use stateful::agent::Agent;
+use stateful::{agent::Agent, proxy::BatchPool};
 
 use self::create_remove::CreateRemovePlanner;
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
         batch::{AgentBatch, MessageBatch},
         error::Result,
         table::{
-            pool::{agent::AgentPool, message::MessagePool, BatchPool},
+            pool::{agent::AgentPool, message::MessagePool},
             proxy::{StateReadProxy, StateWriteProxy},
             references::MessageMap,
             state::view::StatePools,
