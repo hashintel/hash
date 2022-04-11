@@ -9,6 +9,7 @@ use hash_engine_lib::{
     proto::{EngineMsg, ExperimentId},
     utils::{LogFormat, LogLevel, OutputLocation},
 };
+use memory::shared_memory::MemoryId;
 
 use crate::process;
 
@@ -48,48 +49,21 @@ impl process::Process for LocalProcess {
         }
 
         // Cleanup python socket files in case the engine didn't
-        if let Ok(current_dir) = std::env::current_dir() {
-            if let Ok(dir) = std::fs::read_dir(current_dir) {
-                let frompy = format!("{experiment_id}-frompy");
-                let topy = format!("{experiment_id}-topy");
-                for entry in dir {
-                    if let Ok(entry) = entry {
-                        let entry_path = entry.path();
-                        let entry_path = entry_path.as_path().to_str();
-                        if let Some(entry_path) = entry_path {
-                            if entry_path.contains(&frompy) || entry_path.contains(&topy) {
-                                if let Err(io_err) = std::fs::remove_file(entry_path) {
-                                    match io_err.kind() {
-                                        std::io::ErrorKind::NotFound => {}
-                                        err => warn!("Could not delete {entry_path:?}: {err}"),
-                                    }
-                                }
-                            }
-                        }
-                    }
+        let frompy_files =
+            glob::glob(&format!("{experiment_id}-frompy*")).wrap_err("cleanup glob error")?;
+        let topy_files =
+            glob::glob(&format!("{experiment_id}-topy*")).wrap_err("cleanup glob error")?;
+
+        frompy_files
+            .chain(topy_files)
+            .filter_map(std::result::Result::ok)
+            .for_each(|path| {
+                if let Err(err) = std::fs::remove_file(&path) {
+                    tracing::warn!("Could not clean up {path:?}: {err}");
                 }
-            }
-        }
-        // Cleanup shared memory files in case the engine didn't
-        if let Ok(dir) = std::fs::read_dir("/dev/shm") {
-            let shared_memory_path = format!("shm_{experiment_id}");
-            for entry in dir {
-                if let Ok(entry) = entry {
-                    let entry_path = entry.path();
-                    let entry_path = entry_path.as_path().to_str();
-                    if let Some(entry_path) = entry_path {
-                        if entry_path.contains(&shared_memory_path) {
-                            if let Err(io_err) = std::fs::remove_file(entry_path) {
-                                match io_err.kind() {
-                                    std::io::ErrorKind::NotFound => {}
-                                    err => warn!("Could not delete {entry_path:?}: {err}"),
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+            });
+
+        MemoryId::clean_up(experiment_id)?;
 
         debug!("Cleaned up local engine process for experiment");
         Ok(())
