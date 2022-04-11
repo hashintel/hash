@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use memory::shared_memory::MemoryId;
 use parking_lot::RwLock;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
@@ -91,7 +92,7 @@ impl MessagePool {
                     agent_proxy,
                     &message_schema.arrow,
                     message_schema.static_meta.clone(),
-                    experiment_id,
+                    MemoryId::new(*experiment_id),
                 )?;
                 self.push(inbox);
             }

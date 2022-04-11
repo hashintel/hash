@@ -21,7 +21,6 @@ use rayon::iter::{
 
 use crate::{
     datastore::error::{Error, Result},
-    proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
 
@@ -51,7 +50,7 @@ impl ContextBatch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Option<&Arc<Schema>>,
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
     ) -> Result<Self> {
         let ipc_data_generator = IpcDataGenerator::default();
         let mut dictionary_tracker = DictionaryTracker::new(true);
@@ -63,7 +62,7 @@ impl ContextBatch {
         )?;
 
         let segment = Segment::from_batch_buffers(
-            MemoryId::new(experiment_id),
+            memory_id,
             &[],
             &header,
             &encoded_data.ipc_message,

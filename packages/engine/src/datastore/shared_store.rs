@@ -1,5 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
+use memory::shared_memory::MemoryId;
+
 use crate::{
     config::ExperimentConfig,
     datastore::{batch::Dataset, error::Result},
@@ -20,7 +22,8 @@ impl SharedStore {
         let mut dataset_batches = HashMap::with_capacity(datasets.len());
         for dataset in &config.run.base().project_base.datasets {
             let dataset_name = dataset.shortname.clone();
-            let dataset_batch = Dataset::new_from_dataset(dataset, &config.run.base().id)?;
+            let dataset_batch =
+                Dataset::new_from_dataset(dataset, MemoryId::new(config.run.base().id))?;
             dataset_batches.insert(dataset_name, Arc::new(dataset_batch));
         }
 

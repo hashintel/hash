@@ -21,14 +21,11 @@ use memory::{
 };
 use stateful::{agent::AgentStateField, message::MessageSchema};
 
-use crate::{
-    datastore::{
-        arrow::{batch_conversion::IntoRecordBatch, message},
-        batch::{iterators::column_with_name, AgentBatch},
-        error::{Error, Result},
-        UUID_V4_LEN,
-    },
-    proto::ExperimentId,
+use crate::datastore::{
+    arrow::{batch_conversion::IntoRecordBatch, message},
+    batch::{iterators::column_with_name, AgentBatch},
+    error::{Error, Result},
+    UUID_V4_LEN,
 };
 
 // 1000 bytes per agent i.e. 10 MB for 10000 agents
@@ -149,7 +146,7 @@ impl MessageBatch {
         agent_batch: &AgentBatch,
         schema: &Arc<Schema>,
         meta: Arc<meta::Static>,
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
     ) -> Result<Self> {
         let agent_count = agent_batch.num_agents();
         let agent_record_batch = agent_batch.batch.record_batch()?;
@@ -165,7 +162,7 @@ impl MessageBatch {
         let header = Metaversion::default().to_le_bytes();
         let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&record_batch);
         let mut segment = Segment::from_sizes(
-            MemoryId::new(experiment_id),
+            memory_id,
             0,
             header.len(),
             meta_buffer.len(),
@@ -185,14 +182,14 @@ impl MessageBatch {
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
         schema: &Arc<MessageSchema>,
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
     ) -> Result<Self> {
         let record_batch = agents.into_message_batch(&schema.arrow)?;
         Self::from_record_batch(
             &record_batch,
             schema.arrow.clone(),
             schema.static_meta.clone(),
-            experiment_id,
+            memory_id,
         )
     }
 
@@ -200,7 +197,7 @@ impl MessageBatch {
         record_batch: &RecordBatch,
         schema: Arc<Schema>,
         meta: Arc<meta::Static>,
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
     ) -> Result<Self> {
         let ipc_data_generator = IpcDataGenerator::default();
         let mut dictionary_tracker = DictionaryTracker::new(true);
@@ -212,7 +209,7 @@ impl MessageBatch {
         )?;
 
         let segment = Segment::from_batch_buffers(
-            MemoryId::new(experiment_id),
+            memory_id,
             &[],
             &header,
             &encoded_data.ipc_message,

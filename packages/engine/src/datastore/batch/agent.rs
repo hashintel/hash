@@ -34,7 +34,6 @@ use crate::{
         arrow::batch_conversion::IntoRecordBatch,
         error::{Error, Result},
     },
-    proto::ExperimentId,
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
 
@@ -55,16 +54,16 @@ impl AgentBatch {
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
         schema: &Arc<AgentSchema>,
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
     ) -> Result<Self> {
         let record_batch = agents.into_agent_batch(schema)?;
-        Self::from_record_batch(&record_batch, schema, experiment_id)
+        Self::from_record_batch(&record_batch, schema, memory_id)
     }
 
     pub fn duplicate_from(
         agent_batch: &Self,
         schema: &AgentSchema,
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
     ) -> Result<Self> {
         if agent_batch.batch.loaded_metaversion().memory()
             != agent_batch
@@ -81,7 +80,7 @@ impl AgentBatch {
             )));
         }
 
-        let segment = Segment::duplicate(agent_batch.batch.segment(), experiment_id)?;
+        let segment = Segment::duplicate(agent_batch.batch.segment(), memory_id)?;
         Self::from_segment(segment, Some(schema), Some(agent_batch.worker_index))
     }
 
@@ -89,7 +88,7 @@ impl AgentBatch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: &AgentSchema,
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
     ) -> Result<Self> {
         let ipc_data_generator = IpcDataGenerator::default();
         let schema_buffer =
@@ -98,7 +97,7 @@ impl AgentBatch {
         let (ipc_message, data_len) = simulate_record_batch_to_bytes(record_batch);
 
         let mut segment = Segment::from_sizes(
-            MemoryId::new(experiment_id),
+            memory_id,
             schema_buffer.ipc_message.len(),
             header_buffer.len(),
             ipc_message.len(),
@@ -163,7 +162,7 @@ impl AgentBatch {
     pub fn get_prepared_memory_for_data(
         schema: &Arc<AgentSchema>,
         dynamic_meta: &meta::Dynamic,
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
     ) -> Result<Segment> {
         let ipc_data_generator = IpcDataGenerator::default();
         let schema_buffer =
@@ -172,7 +171,7 @@ impl AgentBatch {
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
 
         let mut memory = Segment::from_sizes(
-            MemoryId::new(experiment_id),
+            memory_id,
             schema_buffer.ipc_message.len(),
             header_buffer.len(),
             meta_buffer.len(),
@@ -274,8 +273,12 @@ mod tests {
         let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();
         let experiment_id = Uuid::new_v4();
         b.iter(|| {
-            let _agent_batch =
-                AgentBatch::from_agent_states(agents.as_slice(), &schema, &experiment_id).unwrap();
+            let _agent_batch = AgentBatch::from_agent_states(
+                agents.as_slice(),
+                &schema,
+                MemoryId::new(experiment_id),
+            )
+            .unwrap();
         });
     }
 }

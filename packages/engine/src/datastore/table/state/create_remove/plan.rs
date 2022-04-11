@@ -1,3 +1,4 @@
+use memory::shared_memory::MemoryId;
 use rayon::prelude::*;
 
 use crate::{
@@ -91,7 +92,8 @@ impl<'a> MigrationPlan<'a> {
                 action.actions.new_batch(
                     &config.sim.store.agent_schema,
                     &config.sim.store.message_schema,
-                    &config.exp.run.base().id,
+                    MemoryId::new(config.exp.run.base().id),
+                    MemoryId::new(config.exp.run.base().id),
                     action.worker_index,
                 )
             })

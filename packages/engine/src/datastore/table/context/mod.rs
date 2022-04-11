@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
+use memory::shared_memory::MemoryId;
 use stateful::agent::AgentSchema;
 
 use crate::{
@@ -13,7 +14,6 @@ use crate::{
             state::{view::StatePools, State},
         },
     },
-    proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
 
@@ -38,14 +38,14 @@ impl Context {
     pub fn from_columns(
         cols: Vec<Arc<dyn arrow::array::Array>>,
         config: Arc<StoreConfig>,
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
     ) -> Result<Context> {
         let context_record_batch = RecordBatch::try_new(config.context_schema.arrow.clone(), cols)?;
 
         let context_batch = ContextBatch::from_record_batch(
             &context_record_batch,
             Some(&config.context_schema.arrow),
-            experiment_id,
+            memory_id,
         )?;
         Ok(Self {
             batch: Arc::new(context_batch),
@@ -112,7 +112,7 @@ impl Context {
         &mut self,
         state: &mut State,
         agent_schema: &AgentSchema,
-        experiment_id: &ExperimentId,
+        memory_id: &MemoryId,
     ) -> Result<()> {
         let mut previous_agent_batch_proxies = self.previous_state.agent_pool.write_proxies()?;
         let current_agent_batch_proxies = state.agent_pool().read_proxies()?;
@@ -140,7 +140,7 @@ impl Context {
                 previous_agent_batches.push(AgentBatch::duplicate_from(
                     batch,
                     agent_schema,
-                    experiment_id,
+                    MemoryId::duplicate_from(memory_id),
                 )?);
             }
         } else if current_agent_batch_proxies.len() < previous_agent_batches.len() {

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
+use memory::shared_memory::MemoryId;
 use tracing::{Instrument, Span};
 
 use crate::{
@@ -137,7 +138,7 @@ impl StepPackages {
         let context = Context::from_columns(
             columns,
             sim_run_config.sim.store.clone(),
-            &sim_run_config.exp.run.base().id,
+            MemoryId::new(sim_run_config.exp.run.base().id),
         )?;
         Ok(context)
     }

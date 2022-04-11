@@ -1,5 +1,6 @@
 use std::{mem, sync::Arc};
 
+use memory::shared_memory::MemoryId;
 use tracing::Instrument;
 
 use crate::{
@@ -302,7 +303,7 @@ impl Engine {
         context.update_agent_snapshot(
             state,
             &self.config.sim.store.agent_schema,
-            &self.config.exp.run.base().id,
+            &MemoryId::new(self.config.exp.run.base().id),
         )?;
         Ok(context.take_agent_pool())
     }

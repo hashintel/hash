@@ -3,6 +3,7 @@ pub mod view;
 
 use std::sync::Arc;
 
+use memory::shared_memory::MemoryId;
 use stateful::agent::Agent;
 
 use self::create_remove::CreateRemovePlanner;
@@ -60,7 +61,7 @@ impl State {
 
         let agent_schema = &sim_config.sim.store.agent_schema;
         let message_schema = &sim_config.sim.store.message_schema;
-        let experiment_id = &sim_config.exp.run.base().id;
+        let experiment_id = sim_config.exp.run.base().id;
 
         let mut group_start_indices = Vec::new();
         let mut start = 0;
@@ -71,10 +72,18 @@ impl State {
             start += agent_state_group.len();
 
             agent_batches.push(Arc::new(parking_lot::RwLock::new(
-                AgentBatch::from_agent_states(*agent_state_group, agent_schema, experiment_id)?,
+                AgentBatch::from_agent_states(
+                    *agent_state_group,
+                    agent_schema,
+                    MemoryId::new(experiment_id),
+                )?,
             )));
             message_batches.push(Arc::new(parking_lot::RwLock::new(
-                MessageBatch::from_agent_states(*agent_state_group, message_schema, experiment_id)?,
+                MessageBatch::from_agent_states(
+                    *agent_state_group,
+                    message_schema,
+                    MemoryId::new(experiment_id),
+                )?,
             )));
         }
 

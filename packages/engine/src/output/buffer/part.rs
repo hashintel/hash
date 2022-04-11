@@ -12,8 +12,10 @@ use crate::{
 const MAX_BYTE_SIZE: usize = 5242880;
 const IN_MEMORY_SIZE: usize = MAX_BYTE_SIZE * 2;
 
-const CHAR_COMMA: u8 = 0x2C; // ,
-const CHAR_OPEN_LEFT_SQUARE_BRACKET: u8 = 0x5B; // [
+const CHAR_COMMA: u8 = 0x2C;
+// ,
+const CHAR_OPEN_LEFT_SQUARE_BRACKET: u8 = 0x5B;
+// [
 const CHAR_OPEN_RIGHT_SQUARE_BRACKET: u8 = 0x5D; // ]
 
 /// ### Buffer for list of outputs
