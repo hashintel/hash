@@ -15,30 +15,13 @@ export const useFilteredBlocks = (
 ) => {
   return useMemo(() => {
     const allOptions: Option[] = Object.values(userBlocks).flatMap(
-      (blockMeta) => {
-        if (blockMeta.variants?.length) {
-          return blockMeta.variants.map((variant) => ({
-            variant: {
-              ...variant,
-              name: variant.name ?? variant.displayName,
-            },
-            meta: blockMeta,
-          }));
-        }
-
-        return {
-          variant: {
-            description:
-              blockMeta.description ?? blockMeta.displayName ?? blockMeta.name,
-            displayName: blockMeta.displayName ?? blockMeta.name,
-            // @todo add a fallback icon
-            icon: blockMeta.icon ?? "",
-            name: blockMeta.displayName ?? blockMeta.name,
-            properties: blockMeta.default ?? {},
-          },
+      (blockMeta) =>
+        // Assumes that variants have been built for all blocks in toBlockConfig
+        // any required changes to block metadata should happen there
+        (blockMeta.variants ?? []).map((variant) => ({
+          variant,
           meta: blockMeta,
-        };
-      },
+        })),
     );
 
     return fuzzySearchBy(allOptions, searchText, (option) =>

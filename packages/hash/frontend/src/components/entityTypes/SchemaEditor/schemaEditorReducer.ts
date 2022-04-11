@@ -2,7 +2,7 @@ import produce from "immer";
 import { Schema } from "jsonschema";
 import { get } from "lodash";
 import { Reducer } from "react";
-import { JsonSchema } from "../../../lib/json-utils";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 
 type Action<S, T> = {
   type: S;
@@ -161,6 +161,8 @@ export const schemaEditorReducer: Reducer<
         return schemaState;
       }
       return produce(schemaState, (draftRootSchema) => {
+        // @ts-expect-error TS warns `Type instantiation is excessively deep`
+        // @todo figure out why here and not below, which uses the same code
         const schemaToEdit = selectSubSchema(draftRootSchema, pathToSubSchema);
         schemaToEdit.properties ??= {};
         schemaToEdit.properties[action.payload.newPropertyName] = {
