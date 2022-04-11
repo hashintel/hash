@@ -58,7 +58,7 @@ impl StdError for Error {}
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 #[allow(clippy::large_enum_variant)]
-pub enum Outbound {
+pub enum Message {
     /*
 
     TUTORIAL: ADD A NEW MESSAGE TYPE
@@ -112,25 +112,25 @@ pub enum Outbound {
         }
 
     */
-    CreateAgent(payload::OutboundCreateAgent),
-    RemoveAgent(payload::OutboundRemoveAgent),
-    StopSim(payload::OutboundStopSim),
+    CreateAgent(payload::CreateAgent),
+    RemoveAgent(payload::RemoveAgent),
+    StopSim(payload::StopSim),
     Generic(payload::Generic),
 }
 
 fn is_system_message(kind: &str) -> bool {
-    kind == payload::OutboundCreateAgent::KIND || kind == payload::OutboundRemoveAgent::KIND
+    kind == payload::CreateAgent::KIND || kind == payload::RemoveAgent::KIND
 }
 
-impl Outbound {
+impl Message {
     #[must_use]
-    pub fn new(msg: payload::Generic) -> Outbound {
-        Outbound::Generic(msg)
+    pub fn new(msg: payload::Generic) -> Message {
+        Message::Generic(msg)
     }
 
     fn is_json_message_remove_agent(value: &serde_json::Value) -> bool {
         if let Some(serde_json::Value::String(kind)) = value.get("type") {
-            return kind == payload::OutboundRemoveAgent::KIND;
+            return kind == payload::RemoveAgent::KIND;
         }
         false
     }
@@ -142,7 +142,7 @@ impl Outbound {
         if value.get("data").is_none() {
             if let Some(obj) = value.as_object_mut() {
                 let agent_id = state.agent_id.clone();
-                match serde_json::to_value(payload::OutboundRemoveAgentData { agent_id }) {
+                match serde_json::to_value(payload::RemoveAgentData { agent_id }) {
                     Ok(value) => {
                         obj.insert(String::from("data"), value);
                     }
@@ -172,12 +172,12 @@ impl Outbound {
     fn preprocess(value: &mut serde_json::Value, state: &Agent) -> Result<(), Error> {
         // if the message has a recipient, and the recipient is the hash engine, make sure its a
         // valid message type
-        Outbound::ensure_has_recipient(value);
-        if Outbound::is_hash_engine_message(value) {
-            Outbound::ensure_is_valid_hash_engine_message(value)?;
+        Message::ensure_has_recipient(value);
+        if Message::is_hash_engine_message(value) {
+            Message::ensure_is_valid_hash_engine_message(value)?;
         }
-        if Outbound::is_json_message_remove_agent(value) {
-            Outbound::infer_remove_agent_with_state(value, state)?;
+        if Message::is_json_message_remove_agent(value) {
+            Message::infer_remove_agent_with_state(value, state)?;
         }
         Ok(())
     }
@@ -221,8 +221,8 @@ impl Outbound {
     pub fn from_json_value_with_state(
         mut value: serde_json::Value,
         agent_state: &Agent,
-    ) -> Result<Outbound, Error> {
-        Outbound::preprocess(&mut value, agent_state)?;
+    ) -> Result<Message, Error> {
+        Message::preprocess(&mut value, agent_state)?;
         match serde_json::from_value(value) {
             Ok(msg) => Ok(msg),
             Err(serde_err) => Err(Error::UnknownSerdeError(serde_err)),
@@ -238,12 +238,12 @@ impl Outbound {
     pub fn from_json_array_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
-    ) -> Result<Vec<Outbound>, Error> {
+    ) -> Result<Vec<Message>, Error> {
         match value {
             serde_json::Value::Array(items) => {
                 let mut messages = Vec::with_capacity(items.len());
                 for json_value in items {
-                    messages.push(Outbound::from_json_value_with_state(
+                    messages.push(Message::from_json_value_with_state(
                         json_value,
                         agent_state,
                     )?);
@@ -260,8 +260,8 @@ impl Outbound {
     pub fn unchecked_from_json_value_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
-    ) -> Outbound {
-        match Outbound::from_json_value_with_state(value, agent_state) {
+    ) -> Message {
+        match Message::from_json_value_with_state(value, agent_state) {
             Ok(m) => m,
             Err(e) => panic!("{}", e),
         }

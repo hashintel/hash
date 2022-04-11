@@ -190,7 +190,7 @@ pub struct Agent {
 
     /// Messages to be sent at the next step. (The Agent's "Outbox")
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub messages: Vec<message::Outbound>,
+    pub messages: Vec<message::Message>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position: Option<Vec3>,
@@ -255,12 +255,10 @@ impl<'de> Deserialize<'de> for Agent {
                     fn consume<E: de::Error>(
                         self,
                         buffer_state: &Agent,
-                    ) -> Result<Vec<message::Outbound>, E> {
+                    ) -> Result<Vec<message::Message>, E> {
                         Ok(
-                            match message::Outbound::from_json_array_with_state(
-                                self.0,
-                                buffer_state,
-                            ) {
+                            match message::Message::from_json_array_with_state(self.0, buffer_state)
+                            {
                                 Ok(m) => m,
                                 Err(_) => {
                                     return Err(de::Error::invalid_value(
@@ -417,10 +415,8 @@ fn deserialize_messages_before_agent_id() {
         "#,
     )
     .expect("Should be valid AgentState");
-    if let Some(message::Outbound::RemoveAgent(message::payload::OutboundRemoveAgent {
-        data,
-        ..
-    })) = agent.messages.get(0)
+    if let Some(message::Message::RemoveAgent(message::payload::RemoveAgent { data, .. })) =
+        agent.messages.get(0)
     {
         assert_eq!(agent.agent_id, data.agent_id);
     }
@@ -585,8 +581,8 @@ impl Agent {
         data: Option<serde_json::Value>,
     ) -> Result<()> {
         self.messages.push(match kind {
-            message::payload::OutboundRemoveAgent::KIND => {
-                message::Outbound::RemoveAgent(message::payload::OutboundRemoveAgent {
+            message::payload::RemoveAgent::KIND => {
+                message::Message::RemoveAgent(message::payload::RemoveAgent {
                     r#type: message::RemoveAgent::Type,
                     to: to.to_vec(),
                     data: serde_json::from_value(
@@ -603,8 +599,8 @@ impl Agent {
                     )?,
                 })
             }
-            message::payload::OutboundCreateAgent::KIND => {
-                message::Outbound::CreateAgent(message::payload::OutboundCreateAgent {
+            message::payload::CreateAgent::KIND => {
+                message::Message::CreateAgent(message::payload::CreateAgent {
                     r#type: message::CreateAgent::Type,
                     to: to.to_vec(),
                     data: serde_json::from_value(
@@ -612,14 +608,14 @@ impl Agent {
                     )?,
                 })
             }
-            message::payload::OutboundStopSim::KIND => {
-                message::Outbound::StopSim(message::payload::OutboundStopSim {
+            message::payload::StopSim::KIND => {
+                message::Message::StopSim(message::payload::StopSim {
                     r#type: message::StopSim::Type,
                     to: to.to_vec(),
                     data,
                 })
             }
-            _ => message::Outbound::Generic(message::payload::Generic {
+            _ => message::Message::Generic(message::payload::Generic {
                 r#type: kind.to_string(),
                 to: to.to_vec(),
                 data,
@@ -756,7 +752,7 @@ impl Agent {
             "agent_id" => self.agent_id = serde_json::from_value(value)?,
             "agent_name" => self.agent_name = serde_json::from_value(value)?,
             "messages" => {
-                self.messages = message::Outbound::from_json_array_with_state(value, self)?
+                self.messages = message::Message::from_json_array_with_state(value, self)?
             }
             "position" => self.position = serde_json::from_value(value)?,
             "direction" => self.direction = serde_json::from_value(value)?,
@@ -935,7 +931,7 @@ mod tests {
 
     #[test]
     fn test_create_agent_message() {
-        let msg = message::Outbound::CreateAgent(message::payload::OutboundCreateAgent {
+        let msg = message::Message::CreateAgent(message::payload::CreateAgent {
             r#type: message::CreateAgent::Type,
             to: vec!["hash".to_string()],
             data: Agent::default(),
@@ -943,37 +939,37 @@ mod tests {
 
         let json = serde_json::to_string(&msg).unwrap();
 
-        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: message::Message = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            message::Outbound::CreateAgent(_) => (),
+            message::Message::CreateAgent(_) => (),
             _ => panic!("Expected CreateAgent message"),
         };
     }
 
     #[test]
     fn test_remove_agent_message() {
-        let msg = message::Outbound::RemoveAgent(message::payload::OutboundRemoveAgent {
+        let msg = message::Message::RemoveAgent(message::payload::RemoveAgent {
             r#type: message::RemoveAgent::Type,
             to: vec!["hash".to_string()],
-            data: message::payload::OutboundRemoveAgentData {
+            data: message::payload::RemoveAgentData {
                 agent_id: "old_agent".to_string(),
             },
         });
 
         let json = serde_json::to_string(&msg).unwrap();
 
-        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: message::Message = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            message::Outbound::RemoveAgent(_) => (),
+            message::Message::RemoveAgent(_) => (),
             _ => panic!("Expected RemoveAgent message"),
         };
     }
 
     #[test]
     fn test_stop_message() {
-        let msg = message::Outbound::StopSim(message::payload::OutboundStopSim {
+        let msg = message::Message::StopSim(message::payload::StopSim {
             r#type: message::StopSim::Type,
             to: vec!["hash".to_string()],
             data: Some(json!({
@@ -983,17 +979,17 @@ mod tests {
         });
 
         let json = serde_json::to_string(&msg).unwrap();
-        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: message::Message = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            message::Outbound::StopSim(_) => (),
+            message::Message::StopSim(_) => (),
             _ => panic!("Expected StopSim message"),
         };
     }
 
     #[test]
     fn test_generic_message() {
-        let msg = message::Outbound::Generic(message::payload::Generic {
+        let msg = message::Message::Generic(message::payload::Generic {
             r#type: "custom_message".to_string(),
             to: vec!["some_other_agent".to_string()],
             data: Some(json!({
@@ -1003,10 +999,10 @@ mod tests {
 
         let json = serde_json::to_string(&msg).unwrap();
 
-        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: message::Message = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            message::Outbound::Generic(msg) => {
+            message::Message::Generic(msg) => {
                 assert_eq!(msg.to, vec!["some_other_agent"]);
             }
             _ => panic!("Expected Generic message"),
@@ -1020,7 +1016,7 @@ mod tests {
         agent
             .add_message(&"alice", "custom_message", data.clone())
             .unwrap();
-        assert_eq!(agent.messages, vec![message::Outbound::Generic(
+        assert_eq!(agent.messages, vec![message::Message::Generic(
             message::payload::Generic {
                 data,
                 to: vec!["alice".to_string()],
@@ -1037,7 +1033,7 @@ mod tests {
         agent
             .add_message(&to, "custom_message", data.clone())
             .unwrap();
-        assert_eq!(agent.messages, vec![message::Outbound::Generic(
+        assert_eq!(agent.messages, vec![message::Message::Generic(
             message::payload::Generic {
                 data,
                 to,

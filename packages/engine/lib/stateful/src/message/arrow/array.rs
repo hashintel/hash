@@ -10,7 +10,7 @@ use arrow::{
 
 use crate::{
     message::{
-        arrow::column::OutboundColumn, payload, Outbound, MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME,
+        arrow::column::MessageColumn, payload, Message, MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME,
     },
     Error, Result,
 };
@@ -23,9 +23,9 @@ pub enum FieldIndex {
 
 pub const MESSAGE_COLUMN_INDEX: usize = 1;
 
-struct OutboundBuilder(StructBuilder);
+struct MessageBuilder(StructBuilder);
 
-impl OutboundBuilder {
+impl MessageBuilder {
     fn new() -> Self {
         Self(StructBuilder::new(MESSAGE_ARROW_FIELDS.clone(), vec![
             Box::new(ListBuilder::new(StringBuilder::new(64))),
@@ -35,27 +35,27 @@ impl OutboundBuilder {
     }
 
     fn new_list(capacity: usize) -> ListBuilder<Self> {
-        ListBuilder::with_capacity(OutboundBuilder::new(), capacity)
+        ListBuilder::with_capacity(MessageBuilder::new(), capacity)
     }
 
-    fn append(&mut self, message: &Outbound) -> Result<()> {
+    fn append(&mut self, message: &Message) -> Result<()> {
         let (recipients, kind, data) = match message {
-            Outbound::CreateAgent(outbound) => (
+            Message::CreateAgent(outbound) => (
                 &outbound.to,
-                payload::OutboundCreateAgent::KIND,
+                payload::CreateAgent::KIND,
                 Some(serde_json::to_string(&outbound.data).map_err(Error::from)?),
             ),
-            Outbound::RemoveAgent(outbound) => (
+            Message::RemoveAgent(outbound) => (
                 &outbound.to,
-                payload::OutboundRemoveAgent::KIND,
+                payload::RemoveAgent::KIND,
                 Some(serde_json::to_string(&outbound.data).map_err(Error::from)?),
             ),
-            Outbound::StopSim(outbound) => (
+            Message::StopSim(outbound) => (
                 &outbound.to,
-                payload::OutboundStopSim::KIND,
+                payload::StopSim::KIND,
                 outbound.data.as_ref().map(|data| data.to_string()),
             ),
-            Outbound::Generic(outbound) => (
+            Message::Generic(outbound) => (
                 &outbound.to,
                 outbound.r#type.as_str(),
                 outbound.data.as_ref().map(|data| data.to_string()),
@@ -93,7 +93,7 @@ impl OutboundBuilder {
     }
 }
 
-impl ArrayBuilder for OutboundBuilder {
+impl ArrayBuilder for MessageBuilder {
     fn len(&self) -> usize {
         self.0.len()
     }
@@ -121,11 +121,11 @@ impl ArrayBuilder for OutboundBuilder {
 
 #[derive(Debug)]
 #[repr(transparent)] // Required for `&ListArray -> &OutboundArray`
-pub struct OutboundArray(pub ListArray);
+pub struct MessageArray(pub ListArray);
 
-impl OutboundArray {
+impl MessageArray {
     pub fn new(len: usize) -> Result<Self> {
-        let mut builder = OutboundBuilder::new_list(len);
+        let mut builder = MessageBuilder::new_list(len);
         for _ in 0..len {
             builder.append(true)?;
         }
@@ -144,8 +144,8 @@ impl OutboundArray {
         Ok(unsafe { &*(list as *const ListArray as *const Self) })
     }
 
-    pub fn from_column(column: &OutboundColumn) -> Result<Self> {
-        let mut builder = OutboundBuilder::new_list(column.0.len());
+    pub fn from_column(column: &MessageColumn) -> Result<Self> {
+        let mut builder = MessageBuilder::new_list(column.0.len());
         for messages in &column.0 {
             let messages_builder = builder.values();
             for message in messages {
@@ -157,7 +157,7 @@ impl OutboundArray {
     }
 
     pub fn from_json(column: Vec<serde_json::Value>) -> Result<Self> {
-        let mut builder = OutboundBuilder::new_list(column.len());
+        let mut builder = MessageBuilder::new_list(column.len());
         for messages in column {
             let messages_builder = builder.values();
             for message in serde_json::from_value::<Vec<_>>(messages)? {
@@ -169,13 +169,13 @@ impl OutboundArray {
     }
 }
 
-impl JsonEqual for OutboundArray {
+impl JsonEqual for MessageArray {
     fn equals_json(&self, json: &[&serde_json::Value]) -> bool {
         self.0.equals_json(json)
     }
 }
 
-impl Array for OutboundArray {
+impl Array for MessageArray {
     fn as_any(&self) -> &dyn Any {
         &self.0
     }

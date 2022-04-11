@@ -6,7 +6,7 @@ use crate::message;
 pub struct Inbound {
     pub from: String,
     #[serde(flatten)]
-    pub message: message::Outbound,
+    pub message: message::Message,
 }
 
 impl Inbound {
@@ -14,7 +14,7 @@ impl Inbound {
     #[must_use]
     pub fn r#type(&self) -> String {
         match &self.message {
-            message::Outbound::Generic(msg) => msg.r#type.clone(),
+            message::Message::Generic(msg) => msg.r#type.clone(),
             _ => String::new(),
         }
     }
@@ -23,7 +23,7 @@ impl Inbound {
     #[must_use]
     pub fn data(&self) -> serde_json::Value {
         match &self.message {
-            message::Outbound::Generic(msg) => match &msg.data {
+            message::Message::Generic(msg) => match &msg.data {
                 Some(data) => data.clone(),
                 None => serde_json::Value::Null,
             },
@@ -53,10 +53,8 @@ mod tests {
         }
         "#,
         )?;
-        if let Some(message::Outbound::RemoveAgent(message::payload::OutboundRemoveAgent {
-            data,
-            ..
-        })) = state.messages.get(0)
+        if let Some(message::Message::RemoveAgent(message::payload::RemoveAgent { data, .. })) =
+            state.messages.get(0)
         {
             assert_eq!(state.agent_id, data.agent_id);
         }

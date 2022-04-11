@@ -5,14 +5,14 @@ use arrow::{
 
 use crate::{
     agent::Agent,
-    message::{arrow::array::OutboundArray, payload, Outbound, MESSAGE_COLUMN_NAME},
+    message::{arrow::array::MessageArray, payload, Message, MESSAGE_COLUMN_NAME},
     Error, Result,
 };
 
-pub struct OutboundColumn(pub Vec<Vec<Outbound>>);
+pub struct MessageColumn(pub Vec<Vec<Message>>);
 
-impl OutboundColumn {
-    fn from_array(array: &OutboundArray) -> Result<Self> {
+impl MessageColumn {
+    fn from_array(array: &MessageArray) -> Result<Self> {
         let mut result = Vec::with_capacity(array.0.len());
         let vals = array.0.values();
         let vals = vals
@@ -34,7 +34,7 @@ impl OutboundColumn {
 
         for i in 0..array.0.len() {
             let messages_len = array.0.value_length(i) as usize;
-            let mut messages: Vec<Outbound> = Vec::with_capacity(messages_len);
+            let mut messages: Vec<Message> = Vec::with_capacity(messages_len);
             for j in 0..messages_len {
                 let to_len = to_column.value_length(offset + j) as usize;
                 let to: Vec<&str> = (0..to_len)
@@ -52,7 +52,7 @@ impl OutboundColumn {
     }
 
     pub fn from_record_batch(batch: &RecordBatch) -> Result<Self> {
-        OutboundColumn::from_array(OutboundArray::from_record_batch(batch)?)
+        MessageColumn::from_array(MessageArray::from_record_batch(batch)?)
     }
 
     pub fn update_agents(&self, agents: &mut [Agent]) -> Result<()> {
@@ -94,10 +94,10 @@ fn get_columns_from_struct_array(
     Ok((to_column, type_column, data_column))
 }
 
-pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbound> {
+pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Message> {
     let to_clone = to.iter().map(|v| (*v).to_string()).collect();
 
-    Ok(Outbound::new(payload::Generic {
+    Ok(Message::new(payload::Generic {
         to: to_clone,
         r#type: r#type.to_string(),
         data: if data_string.is_empty() {

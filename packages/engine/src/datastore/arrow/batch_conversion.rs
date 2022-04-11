@@ -22,7 +22,7 @@ use stateful::{
     agent::{Agent, AgentName, AgentSchema, AgentStateField, BUILTIN_FIELDS},
     field::{FieldScope, FieldTypeVariant, RootFieldKey},
     message::{
-        arrow::{array::OutboundArray, column::OutboundColumn},
+        arrow::{array::MessageArray, column::MessageColumn},
         MESSAGE_BATCH_SCHEMA,
     },
 };
@@ -216,7 +216,7 @@ impl IntoRecordBatch for &[&Agent] {
             } else if name == AgentStateField::AgentName.name() {
                 Arc::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Messages.name() {
-                Arc::new(OutboundArray::from_json(vals)?)
+                Arc::new(MessageArray::from_json(vals)?)
             } else if name == AgentStateField::Position.name() {
                 Arc::new(agents_to_position_col(*self)?)
             } else if name == AgentStateField::Direction.name()
@@ -513,7 +513,7 @@ fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<(
         messages.schema(),
         std::sync::Arc::new(MESSAGE_BATCH_SCHEMA.clone())
     );
-    OutboundColumn::from_record_batch(messages)?.update_agents(states)?;
+    MessageColumn::from_record_batch(messages)?.update_agents(states)?;
     Ok(())
 }
 

@@ -21,7 +21,7 @@ use memory::{
 };
 use stateful::{
     agent::AgentStateField,
-    message::{arrow::array::OutboundArray, MessageSchema},
+    message::{arrow::array::MessageArray, MessageSchema},
 };
 
 use crate::datastore::{
@@ -80,7 +80,7 @@ impl MessageBatch {
         let agent_record_batch = agent_batch.batch.record_batch()?; // Agent batch must be up to date
         let column_name = AgentStateField::AgentId.name();
         let id_column = column_with_name(agent_record_batch, column_name)?;
-        let empty_message_column = OutboundArray::new(agent_count).map(Arc::new)?;
+        let empty_message_column = MessageArray::new(agent_count).map(Arc::new)?;
 
         let record_batch = RecordBatch::try_new(self.arrow_schema.clone(), vec![
             Arc::clone(id_column),
@@ -155,7 +155,7 @@ impl MessageBatch {
         let agent_record_batch = agent_batch.batch.record_batch()?;
         let column_name = AgentStateField::AgentId.name();
         let id_column = column_with_name(agent_record_batch, column_name)?;
-        let empty_message_column = OutboundArray::new(agent_count).map(Arc::new)?;
+        let empty_message_column = MessageArray::new(agent_count).map(Arc::new)?;
 
         let record_batch = RecordBatch::try_new(schema.clone(), vec![
             id_column.clone(),

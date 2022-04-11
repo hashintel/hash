@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arrow::{array::Array, datatypes::Schema, record_batch::RecordBatch};
-use stateful::message::arrow::array::OutboundArray;
+use stateful::message::arrow::array::MessageArray;
 
 use crate::datastore::error::{Error, Result};
 
@@ -16,8 +16,8 @@ pub fn batch_from_json(
     let ids = Arc::new(super::batch_conversion::get_agent_id_array(ids)?);
 
     let messages: Arc<dyn Array> = messages.map_or_else(
-        || OutboundArray::new(agent_count).map(Arc::new),
-        |values| OutboundArray::from_json(values).map(Arc::new),
+        || MessageArray::new(agent_count).map(Arc::new),
+        |values| MessageArray::from_json(values).map(Arc::new),
     )?;
 
     RecordBatch::try_new(schema.clone(), vec![ids, messages]).map_err(Error::from)
