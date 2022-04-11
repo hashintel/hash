@@ -125,8 +125,23 @@ async fn _run(
     mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
 ) -> WorkerResult<()> {
+    // Open sockets for Python process to connect to (i.e. start listening).
+    let mut nng_sender = NngSender::new(init_msg.experiment_id, init_msg.worker_index)?;
+    let mut nng_receiver = NngReceiver::new(init_msg.experiment_id, init_msg.worker_index)?;
+
     // Spawn Python process.
-    let mut process = PythonProcess::new(&init_msg)?;
+    let mut cmd = Command::new("sh");
+    cmd.arg("./src/worker/runner/python/run.sh")
+        .arg(&init_msg.experiment_id.to_string())
+        .arg(&init_msg.worker_index.to_string());
+    let _process = cmd.spawn().map_err(Error::Spawn)?;
+    tracing::debug!("Started Python process {}", init_msg.worker_index);
+
+    // Send init message to Python process.
+    nng_receiver.init(&init_msg)?;
+    // We waited for Python init message handling to finish,
+    // so we know that sender init can be done now.
+    nng_sender.init()?;
 
     tracing::debug!("Waiting for messages to Python runner");
     let mut sent_tasks: HashMap<TaskId, SentTask> = HashMap::new();
@@ -134,7 +149,7 @@ async fn _run(
     'select_loop: loop {
         // TODO: Send errors instead of immediately stopping?
         tokio::select! {
-            Some(nng_send_result) = process.nng_sender.get_send_result() => {
+            Some(nng_send_result) = nng_sender.get_send_result() => {
                 nng_send_result?;
             }
             Some((sim_id, inbound)) = inbound_receiver.recv() => {
@@ -161,7 +176,7 @@ async fn _run(
 
                 // Send nng first, because need inbound by reference for nng,
                 // but by value for saving sent task.
-                process.nng_sender.send(sim_id, &inbound, &task_payload_json)?;
+                nng_sender.send(sim_id, &inbound, &task_payload_json)?;
 
                 // Do Rust part of message handling, if any.
                 match inbound {
@@ -194,7 +209,7 @@ async fn _run(
                     _ => {}
                 }
             }
-            outbound = process.nng_receiver.get_recv_result() => {
+            outbound = nng_receiver.get_recv_result() => {
                 let outbound = outbound.map_err(WorkerError::from)?;
                 let outbound = OutboundFromRunnerMsg::try_from_nng(
                     outbound,
@@ -240,46 +255,4 @@ async fn _run(
     //     }
     // }
     Ok(())
-}
-
-struct PythonProcess {
-    _process: tokio::process::Child,
-    nng_receiver: NngReceiver,
-    nng_sender: NngSender,
-}
-
-impl PythonProcess {
-    fn new(init_msg: &ExperimentInitRunnerMsg) -> Result<PythonProcess> {
-        // Open sockets for Python process to connect to (i.e. start listening).
-        let nng_receiver = NngReceiver::new(init_msg.experiment_id, init_msg.worker_index)?;
-        let nng_sender = NngSender::new(init_msg.experiment_id, init_msg.worker_index)?;
-
-        let mut cmd = Command::new("sh");
-        cmd.arg("./src/worker/runner/python/run.sh")
-            .arg(&init_msg.experiment_id.to_string())
-            .arg(&init_msg.worker_index.to_string());
-        let process = cmd.spawn().map_err(Error::Spawn)?;
-        tracing::debug!("Started Python process {}", init_msg.worker_index);
-
-        // Send init message to Python process.
-        nng_receiver.init(init_msg)?;
-        // We waited for Python init message handling to finish,
-        // so we know that sender init can be done now.
-        nng_sender.init()?;
-
-        Ok(Self {
-            _process: process,
-            nng_receiver,
-            nng_sender,
-        })
-    }
-}
-
-impl Drop for PythonProcess {
-    fn drop(&mut self) {
-        // Python has to close the socket on its side for the "-topy*" file to be deleted.
-        let _ = self
-            .nng_sender
-            .send(None, &InboundToRunnerMsgPayload::TerminateRunner, &None);
-    }
 }
