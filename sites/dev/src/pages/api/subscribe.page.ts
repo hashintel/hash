@@ -26,36 +26,12 @@ const getIpAddress = (req: NextApiRequest): string | undefined => {
   }
 };
 
-const tagUser = async (email: string) => {
-  const memberHash = md5(email.toLowerCase());
-
-  await axios
-    .post(
-      `${baseURL}${mailchimpListID}/members/${memberHash}/tags`,
-      {
-        tags: [
-          {
-            name: "HASH Dev",
-            status: "active",
-          },
-        ],
-      },
-      {
-        headers,
-      },
-    )
-    .catch((err) =>
-      // eslint-disable-next-line no-console
-      console.log("Error tagging mailchimp user: ", err.response?.data?.errors),
-    );
-};
-
 // eslint-disable-next-line import/no-default-export
 export default (req: NextApiRequest, res: NextApiResponse) => {
   const email: string = req.body.email;
 
   const merge_fields = {
-    IPADDRESS: getIpAddress(req),
+    HASHDEV: "Yes",
   };
 
   axios
@@ -63,7 +39,10 @@ export default (req: NextApiRequest, res: NextApiResponse) => {
       `${baseURL}${mailchimpListID}/members/`,
       {
         email_address: email,
-        merge_fields,
+        merge_fields: {
+          ...merge_fields,
+          IPADDRESS: getIpAddress(req),
+        },
         status: "subscribed",
       },
       {
@@ -82,7 +61,19 @@ export default (req: NextApiRequest, res: NextApiResponse) => {
     })
     .then(async ({ data }) => {
       if (data.status === "subscribed") {
-        await tagUser(email);
+        if (data.title === "Already subscribed") {
+          const memberHash = md5(email.toLowerCase());
+
+          await axios.patch(
+            `${baseURL}${mailchimpListID}/members/${memberHash}`,
+            {
+              merge_fields,
+            },
+            {
+              headers,
+            },
+          );
+        }
 
         res.status(200).json({
           message: "Success",
