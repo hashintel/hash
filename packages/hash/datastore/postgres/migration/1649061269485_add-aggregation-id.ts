@@ -40,7 +40,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
    */
   pgm.dropConstraint("aggregations", "aggregations_pkey", { ifExists: true });
   pgm.addConstraint("aggregations", "aggregations_pkey", {
-    primaryKey: "aggregation_id",
+    primaryKey: ["source_account_id", "aggregation_id"],
   });
 }
 
