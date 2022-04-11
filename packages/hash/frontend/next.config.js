@@ -28,6 +28,8 @@ process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
   process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR ??
   process.env.BLOCK_BASED_ENTITY_EDITOR;
 
+process.env.NEXT_PUBLIC_LOAD_BLOCK_ENTITY_UI = process.env.LOAD_BLOCK_ENTITY_UI;
+
 /**
  * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5
  *    was not building with compose-plugins on next 10 w/ webpack 4.

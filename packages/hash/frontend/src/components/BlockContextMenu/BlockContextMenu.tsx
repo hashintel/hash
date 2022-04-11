@@ -52,7 +52,7 @@ export const BlockContextMenu = forwardRef<
   }
 
   const menuItems = useMemo(() => {
-    return [
+    const items = [
       {
         key: "set-entity",
         title: "Add an entity",
@@ -110,6 +110,12 @@ export const BlockContextMenu = forwardRef<
         icon: <FontAwesomeIcon icon={faMessage} />,
       },
     ];
+
+    if (!process.env.NEXT_PUBLIC_LOAD_BLOCK_ENTITY_UI) {
+      items.shift();
+    }
+
+    return items;
   }, [entityId, blockSuggesterProps, entityStore]);
 
   useKey(["Escape"], () => {
