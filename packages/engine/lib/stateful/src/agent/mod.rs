@@ -2,10 +2,12 @@
 
 mod field;
 mod name;
+mod references;
 mod schema;
 
 pub use self::{
     field::{Agent, AgentStateField, BUILTIN_FIELDS},
     name::AgentName,
+    references::MessageReference,
     schema::AgentSchema,
 };

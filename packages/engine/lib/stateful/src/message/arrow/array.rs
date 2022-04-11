@@ -21,6 +21,7 @@ pub enum FieldIndex {
     Data = 2,
 }
 
+pub const FROM_COLUMN_INDEX: usize = 0;
 pub const MESSAGE_COLUMN_INDEX: usize = 1;
 
 struct MessageBuilder(StructBuilder);

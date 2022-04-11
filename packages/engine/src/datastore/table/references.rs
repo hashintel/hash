@@ -4,35 +4,14 @@ use std::{
 };
 
 use rayon::iter::ParallelIterator;
-use stateful::proxy::PoolReadProxy;
+use stateful::{agent, proxy::PoolReadProxy};
 
 use crate::datastore::{batch::MessageBatch, error::Result, table::pool::message};
-
-#[derive(Clone, Debug)]
-pub struct AgentMessageReference {
-    pub batch_index: usize,
-    pub agent_index: usize,
-    pub message_index: usize,
-}
-
-impl AgentMessageReference {
-    pub fn new(
-        batch_index: usize,
-        agent_index: usize,
-        message_index: usize,
-    ) -> AgentMessageReference {
-        AgentMessageReference {
-            batch_index,
-            agent_index,
-            message_index,
-        }
-    }
-}
 
 /// A mapping from recipient to message reference.
 /// Used in combination with `MessageReader`.
 pub struct MessageMap {
-    inner: HashMap<String, Vec<AgentMessageReference>>,
+    inner: HashMap<String, Vec<agent::MessageReference>>,
 }
 
 impl MessageMap {
@@ -40,7 +19,7 @@ impl MessageMap {
         let iter = message::recipient_iter_all(pool);
         let inner = iter
             .fold(
-                HashMap::<String, Vec<AgentMessageReference>>::new,
+                HashMap::<String, Vec<agent::MessageReference>>::new,
                 |mut acc, (recipients, message_ref)| {
                     recipients.iter().for_each(|recipient| {
                         // TODO: OS - (decide) currently if message has duplicate recipients then
@@ -71,7 +50,7 @@ impl MessageMap {
         Ok(MessageMap { inner })
     }
 
-    pub fn get_msg_refs(&self, recipient: &str) -> &[AgentMessageReference] {
+    pub fn get_msg_refs(&self, recipient: &str) -> &[agent::MessageReference] {
         self.inner.get(recipient).map(Deref::deref).unwrap_or(&[])
     }
 }

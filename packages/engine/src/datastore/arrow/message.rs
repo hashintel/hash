@@ -5,8 +5,6 @@ use stateful::message::arrow::array::MessageArray;
 
 use crate::datastore::error::{Error, Result};
 
-pub const FROM_COLUMN_INDEX: usize = 0;
-
 pub fn batch_from_json(
     schema: &Arc<Schema>,
     ids: Vec<&str>,

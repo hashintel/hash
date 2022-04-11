@@ -5,14 +5,18 @@ use parking_lot::RwLock;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
-use stateful::proxy::{BatchWriteProxy, PoolReadProxy};
+use stateful::{
+    agent, message,
+    message::arrow::record_batch::MessageLoader,
+    proxy::{BatchWriteProxy, PoolReadProxy},
+};
 
 use crate::{
     config::SimRunConfig,
     datastore::{
-        batch::{self, message, AgentBatch, MessageBatch},
+        batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        table::{pool::BatchPool, references::AgentMessageReference},
+        table::pool::BatchPool,
         UUID_V4_LEN,
     },
     proto::ExperimentRunTrait,
@@ -110,7 +114,7 @@ pub fn get_reader(
             batch
                 .batch
                 .record_batch()
-                .map(message::record_batch::message_loader)
+                .map(message::arrow::record_batch::message_loader)
         })
         .collect();
     Ok(MessageReader { loaders: loaders? })
@@ -118,15 +122,15 @@ pub fn get_reader(
 
 pub fn recipient_iter_all<'b: 'r, 'r>(
     message_pool_proxy: &'b PoolReadProxy<MessageBatch>,
-) -> impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r {
+) -> impl ParallelIterator<Item = (Vec<&'b str>, agent::MessageReference)> + 'r {
     message_pool_proxy
         .batches
         .par_iter()
         .enumerate()
         .flat_map(|(i, group)| {
             let record_batch = group.batch.record_batch().unwrap(); // TODO: unwrap --> err
-            message::record_batch::message_recipients_par_iter(record_batch)
-                .zip_eq(message::record_batch::message_usize_index_iter(
+            message::arrow::record_batch::message_recipients_par_iter(record_batch)
+                .zip_eq(message::arrow::record_batch::message_usize_index_iter(
                     record_batch,
                     i,
                 ))
@@ -139,11 +143,11 @@ pub fn recipient_iter_all<'b: 'r, 'r>(
 }
 
 pub struct MessageReader<'a> {
-    loaders: Vec<batch::message::MessageLoader<'a>>,
+    loaders: Vec<MessageLoader<'a>>,
 }
 
 impl<'a> MessageReader<'a> {
-    pub fn get_loader(&self, batch_index: usize) -> Result<&batch::message::MessageLoader<'a>> {
+    pub fn get_loader(&self, batch_index: usize) -> Result<&MessageLoader<'a>> {
         self.loaders
             .get(batch_index)
             .ok_or_else(|| Error::from("Invalid batch index for message reader"))
@@ -153,7 +157,7 @@ impl<'a> MessageReader<'a> {
 impl MessageReader<'_> {
     pub fn type_iter<'b: 'r, 'r>(
         &'b self,
-        message_references: &'r [AgentMessageReference],
+        message_references: &'r [agent::MessageReference],
     ) -> impl IndexedParallelIterator<Item = &'b str> + 'r {
         message_references.par_iter().map(move |reference| {
             self.loaders[reference.batch_index]
@@ -163,7 +167,7 @@ impl MessageReader<'_> {
 
     pub fn data_iter<'b: 'r, 'r>(
         &'b self,
-        message_references: &'r [AgentMessageReference],
+        message_references: &'r [agent::MessageReference],
     ) -> impl IndexedParallelIterator<Item = &'b str> + 'r {
         message_references.par_iter().map(move |reference| {
             self.loaders[reference.batch_index]
@@ -173,7 +177,7 @@ impl MessageReader<'_> {
 
     pub fn from_iter<'b: 'r, 'r>(
         &'b self,
-        message_references: &'r [AgentMessageReference],
+        message_references: &'r [agent::MessageReference],
     ) -> impl IndexedParallelIterator<Item = &'b [u8; UUID_V4_LEN]> + 'r {
         message_references.par_iter().map(move |reference| {
             self.loaders[reference.batch_index].get_from(reference.agent_index)

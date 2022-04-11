@@ -1,8 +1,8 @@
-use crate::datastore::table::references::AgentMessageReference;
+use stateful::agent;
 
 #[derive(Debug)]
 pub struct AgentMessageIndices {
-    inner: Vec<AgentMessageReference>,
+    inner: Vec<agent::MessageReference>,
 }
 
 impl AgentMessageIndices {
@@ -10,7 +10,7 @@ impl AgentMessageIndices {
         AgentMessageIndices { inner: Vec::new() }
     }
 
-    pub fn add(&mut self, refs: &[AgentMessageReference]) {
+    pub fn add(&mut self, refs: &[agent::MessageReference]) {
         self.inner.extend_from_slice(refs);
     }
 
@@ -18,7 +18,7 @@ impl AgentMessageIndices {
         self.inner.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &AgentMessageReference> {
+    pub fn iter(&self) -> impl Iterator<Item = &agent::MessageReference> {
         self.inner.iter()
     }
 }
