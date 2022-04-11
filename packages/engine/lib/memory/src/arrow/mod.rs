@@ -13,7 +13,7 @@ mod conversion;
 mod ffi;
 
 pub use self::{
-    batch::ArrowBatch,
+    batch::{column_with_name, ArrowBatch},
     change::ColumnChange,
     conversion::{
         col_to_json_vals, json_utf8_json_vals, json_vals_to_any_type_col, json_vals_to_bool,

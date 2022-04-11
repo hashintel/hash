@@ -5,6 +5,7 @@ pub mod payload;
 //temporarily public
 pub mod arrow;
 
+mod batch;
 mod inbound;
 mod kind;
 mod outbound;
@@ -12,6 +13,7 @@ mod schema;
 
 pub(in crate) use self::outbound::Error as OutboundError;
 pub use self::{
+    batch::MessageBatch,
     inbound::Inbound,
     kind::{CreateAgent, RemoveAgent, StopSim},
     outbound::Message,

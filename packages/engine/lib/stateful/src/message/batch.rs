@@ -13,20 +13,18 @@ use arrow::{
 };
 use memory::{
     arrow::{
+        column_with_name,
         ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
         meta::{self, conversion::HashDynamicMeta},
         ArrowBatch,
     },
     shared_memory::{MemoryId, Metaversion, Segment},
 };
-use stateful::{
-    agent::{arrow::array::IntoRecordBatch, AgentStateField},
-    message::{arrow::array::MessageArray, MessageSchema},
-};
 
-use crate::datastore::{
-    batch::{iterators::column_with_name, AgentBatch},
-    error::{Error, Result},
+use crate::{
+    agent::{arrow::array::IntoRecordBatch, AgentBatch, AgentStateField},
+    message::{arrow::array::MessageArray, MessageSchema},
+    Error, Result,
 };
 
 // 1000 bytes per agent i.e. 10 MB for 10000 agents

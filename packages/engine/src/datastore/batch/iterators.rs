@@ -1,7 +1,3 @@
-use arrow::{array::ArrayRef, record_batch::RecordBatch};
-
-use crate::datastore::error::{Error, Result};
-
 pub mod agent {
     use arrow::datatypes::DataType;
     use stateful::agent::AgentBatch;
@@ -196,26 +192,16 @@ pub mod agent {
     }
 }
 
-pub fn column_with_name<'a>(record_batch: &'a RecordBatch, name: &str) -> Result<&'a ArrayRef> {
-    let (index, _) = record_batch
-        .schema()
-        .column_with_name(name)
-        .ok_or_else(|| Error::ColumnNotFound(name.into()))?;
-
-    Ok(record_batch.column(index))
-}
-
 // Special-case columns getters and setters
 pub mod record_batch {
     use std::borrow::Cow;
 
     use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch, util::bit_util};
-    use memory::arrow::{col_to_json_vals, ColumnChange};
+    use memory::arrow::{col_to_json_vals, column_with_name, ColumnChange};
     use stateful::agent::AgentStateField;
 
     use crate::datastore::{
-        batch::{boolean::Column as BooleanColumn, iterators::column_with_name},
-        Error, Result, POSITION_DIM, UUID_V4_LEN,
+        batch::boolean::Column as BooleanColumn, Error, Result, POSITION_DIM, UUID_V4_LEN,
     };
 
     // TODO: Use in Rust runner, and look up column without using PREVIOUS_INDEX_COLUMN_INDEX

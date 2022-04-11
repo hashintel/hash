@@ -18,11 +18,11 @@ use stateful::{
         AgentStateField, BUILTIN_FIELDS,
     },
     field::{FieldScope, FieldTypeVariant},
-    message::{arrow::column::MessageColumn, MessageSchema},
+    message::{arrow::column::MessageColumn, MessageBatch, MessageSchema},
     Error, Result,
 };
 
-use crate::datastore::{batch::MessageBatch, schema::IsRequired, UUID_V4_LEN};
+use crate::datastore::{schema::IsRequired, UUID_V4_LEN};
 
 // This file is here mostly to convert between RecordBatch and Vec<Agent>.
 
