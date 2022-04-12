@@ -33,8 +33,7 @@ pub fn cleanup_experiment(
         .for_each(|path| match std::fs::remove_file(&path) {
             Ok(_) => {
                 match exit_status {
-                    EngineExitStatus::Success => tracing::event!(
-                        tracing::Level::ERROR,
+                    EngineExitStatus::Success => tracing::error!(
                         "Removed file {path:?} that should've been cleanup by the engine."
                     ),
                     EngineExitStatus::Error => tracing::event!(
