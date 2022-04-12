@@ -8,6 +8,7 @@ import remarkMdx from "remark-mdx";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import remarkParse from "remark-parse";
 import slugify from "slugify";
+import { inspect } from "util";
 import { SiteMapPage, SiteMapPageSection } from "./sitemap";
 
 type Node = {
@@ -31,14 +32,22 @@ type Heading = {
   depth: number;
 } & Parent;
 
+type Image = {
+  type: "image";
+  title?: null | string;
+  url: string;
+  alt?: null | string;
+} & Parent;
+
 const isHeading = (node: Node): node is Heading => node.type === "heading";
+const isImage = (node: Node): node is Image => node.type === "image";
 
 type ParsedAST = {
   type: "root";
 } & Parent;
 
 // Parses the abstract syntax tree of a stringified MDX file
-const parseAST = (mdxFileContent: string) =>
+export const parseAST = (mdxFileContent: string) =>
   unified().use(remarkParse).use(remarkMdx).parse(mdxFileContent) as ParsedAST;
 
 // Recursively returns all the headings in an MDX AST
@@ -52,6 +61,19 @@ const getHeadingsFromParent = (parent: Parent): Heading[] =>
           .filter(isParent)
           .map(getHeadingsFromParent)
           .flat();
+      }
+      return [];
+    })
+    .flat();
+
+// Recursively returns all the headings in an MDX AST
+const getImagesFromParent = (parent: Parent): Image[] =>
+  parent.children
+    .map((child) => {
+      if (isImage(child)) {
+        return [child];
+      } else if (isParent(child)) {
+        return child.children.filter(isParent).map(getImagesFromParent).flat();
       }
       return [];
     })
@@ -92,6 +114,8 @@ export const getSerializedPage = async (params: {
     MDXRemoteSerializeResult<Record<string, unknown>>,
     // @todo type this as unknown
     Record<string, any>,
+    // @todo consider matching size here
+    Image[],
   ]
 > => {
   const { pathToDirectory, fileNameWithoutIndex } = params;
@@ -110,6 +134,10 @@ export const getSerializedPage = async (params: {
 
   const { content, data } = matter(source);
 
+  const ast = parseAST(content);
+
+  const images = getImagesFromParent(ast);
+
   const serializedMdx = await serialize(content, {
     // Optionally pass remark/rehype plugins
     mdxOptions: {
@@ -119,7 +147,7 @@ export const getSerializedPage = async (params: {
     scope: data,
   });
 
-  return [serializedMdx, data];
+  return [serializedMdx, data, images];
 };
 
 // Recursively construct the text from leaf text nodes in an MDX AST
