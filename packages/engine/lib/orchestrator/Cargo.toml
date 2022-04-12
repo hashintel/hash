@@ -8,11 +8,9 @@ error = { path = "../../lib/error", features = ["spantrace"] }
 nano = { path = "../nano", default-features = false }
 hash_engine_lib = { path = "../..", default-features = false }
 hash_engine = { path = "../../bin/hash_engine", default-features = false, artifact = "bin" }
-memory = { path = "../../lib/memory" }
 
 async-trait = "0.1.48"
 clap = { version = "3.0.13", optional = true }
-glob = "0.3.0"
 num_cpus = "1.13.1"
 rand = "0.8.3"
 rand_distr = "0.4.2"

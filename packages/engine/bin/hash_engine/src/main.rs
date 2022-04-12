@@ -4,7 +4,7 @@ use hash_engine_lib::{
     env::env,
     experiment::controller::run::run_experiment,
     fetch::FetchDependencies,
-    output::buffer::cleanup_experiment,
+    output::buffer::{cleanup_experiment, EngineExitStatus},
     proto::{ExperimentRun, ExperimentRunTrait},
     utils::init_logger,
 };
@@ -42,7 +42,14 @@ async fn main() -> Result<()> {
         .await
         .wrap_err("Could not run experiment");
 
-    cleanup_experiment(&args.experiment_id).wrap_err("Could not cleanup experiment")?;
+    let exit_status = if experiment_result.is_ok() {
+        EngineExitStatus::Success
+    } else {
+        EngineExitStatus::Error
+    };
+
+    cleanup_experiment(&args.experiment_id, exit_status)
+        .wrap_err("Could not cleanup experiment")?;
 
     experiment_result
 }

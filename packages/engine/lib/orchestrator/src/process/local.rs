@@ -6,10 +6,10 @@ use std::{
 use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine_lib::{
+    output::buffer::{cleanup_experiment, EngineExitStatus},
     proto::{EngineMsg, ExperimentId},
     utils::{LogFormat, LogLevel, OutputLocation},
 };
-use memory::shared_memory::MemoryId;
 
 use crate::process;
 
@@ -30,46 +30,24 @@ pub struct LocalProcess {
 
 #[async_trait]
 impl process::Process for LocalProcess {
-    async fn exit_and_cleanup(mut self: Box<Self>, experiment_id: ExperimentId) -> Result<()> {
-        // Leave some time for the engine to cleanup some resources
-        let hash_engine_result =
-            tokio::time::timeout(tokio::time::Duration::from_millis(500), self.child.wait()).await;
+    async fn exit_and_cleanup(
+        mut self: Box<Self>,
+        experiment_id: ExperimentId,
+        exit_status: EngineExitStatus,
+    ) -> Result<()> {
+        // Kill the child process as it didn't stop on its own
+        self.child
+            .kill()
+            .await
+            .or_else(|e| match e.kind() {
+                // From `Child::kill` docs: Forces the child process to exit. If the child has
+                // already exited, an InvalidInput error is returned
+                std::io::ErrorKind::InvalidInput => Ok(()),
+                _ => Err(Report::new(e)),
+            })
+            .wrap_err("Could not kill the process")?;
 
-        if hash_engine_result.is_err() {
-            // Kill the child process as it didn't stop on its own
-            self.child
-                .kill()
-                .await
-                .or_else(|e| match e.kind() {
-                    // From `Child::kill` docs: Forces the child process to exit. If the child has
-                    // already exited, an InvalidInput error is returned
-                    std::io::ErrorKind::InvalidInput => Ok(()),
-                    _ => Err(Report::new(e)),
-                })
-                .wrap_err("Could not kill the process")?;
-        }
-
-        match hash_engine_result {
-            Ok(Ok(exit_status)) if exit_status.success() => {}
-            _ => {
-                // Cleanup python socket files in case the engine didn't
-                let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"))
-                    .wrap_err("cleanup glob error")?;
-                let topy_files =
-                    glob::glob(&format!("{experiment_id}-topy*")).wrap_err("cleanup glob error")?;
-
-                frompy_files
-                    .chain(topy_files)
-                    .filter_map(std::result::Result::ok)
-                    .for_each(|path| {
-                        if let Err(err) = std::fs::remove_file(&path) {
-                            tracing::warn!("Could not clean up {path:?}: {err}");
-                        }
-                    });
-
-                MemoryId::clean_up(experiment_id)?;
-            }
-        }
+        cleanup_experiment(&experiment_id, exit_status)?;
 
         debug!("Cleaned up local engine process for experiment");
         Ok(())
