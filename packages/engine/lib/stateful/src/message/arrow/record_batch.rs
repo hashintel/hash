@@ -139,7 +139,7 @@ fn get_message_field(record_batch: &RecordBatch, index: FieldIndex) -> (Vec<&[i3
 }
 
 pub fn from_json(
-    schema: &Arc<Schema>,
+    schema: Arc<Schema>,
     ids: Vec<&str>,
     messages: Option<Vec<serde_json::Value>>,
 ) -> Result<RecordBatch> {
@@ -151,7 +151,7 @@ pub fn from_json(
         |values| MessageArray::from_json(values).map(Arc::new),
     )?;
 
-    RecordBatch::try_new(schema.clone(), vec![ids, messages]).map_err(Error::from)
+    RecordBatch::try_new(schema, vec![ids, messages]).map_err(Error::from)
 }
 
 pub struct MessageLoader<'a> {

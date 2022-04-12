@@ -71,7 +71,7 @@ impl InitPackages {
         }
 
         tracing::trace!("Init packages finished, building state");
-        let state = State::from_agent_states(&agents, sim_config)?;
+        let state = State::from_agent_states(&agents, &sim_config.to_state_create_parameters())?;
         Ok(state)
     }
 }

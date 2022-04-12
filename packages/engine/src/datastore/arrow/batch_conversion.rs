@@ -475,7 +475,7 @@ pub mod tests {
             let agent_batch = agents.as_slice().to_agent_batch(&schema)?;
             let message_batch = agents
                 .as_slice()
-                .to_message_batch(&MessageSchema::default().arrow)?;
+                .to_message_batch(MessageSchema::default().arrow)?;
 
             let mut returned_agents =
                 (&agent_batch, &message_batch).into_agent_states(Some(&schema))?;

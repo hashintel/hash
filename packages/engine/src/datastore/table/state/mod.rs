@@ -1,14 +1,15 @@
 pub mod create_remove;
 
-use std::sync::Arc;
+use std::{ops::Range, sync::Arc};
 
 use memory::shared_memory::MemoryId;
 use stateful::{
-    agent::{Agent, AgentPool},
-    message::{MessageMap, MessagePool},
+    agent::{Agent, AgentPool, AgentSchema},
+    message::{MessageMap, MessagePool, MessageSchema},
     proxy::BatchPool,
     state::{StatePools, StateReadProxy, StateWriteProxy},
 };
+use uuid::Uuid;
 
 use self::create_remove::CreateRemovePlanner;
 use crate::{
@@ -21,7 +22,18 @@ use crate::{
     simulation::command::CreateRemoveCommands,
 };
 
-pub const MIN_AGENTS_PER_GROUP: usize = 10;
+pub struct StateCreateParameters {
+    /// Minimum number of groups.
+    ///
+    /// This does take into account the bounds specified by `target_group_size`.
+    pub target_min_groups: usize,
+    /// Limits the number of agents per group.
+    pub target_group_size: Range<usize>,
+    /// Base id used for generating a [`MemoryId`] for new batches.
+    pub memory_base_id: Uuid,
+    pub agent_schema: Arc<AgentSchema>,
+    pub message_schema: Arc<MessageSchema>,
+}
 
 pub struct State {
     /// View into the current step's Agent state.
@@ -35,8 +47,6 @@ pub struct State {
     removed_batches: Vec<String>,
 
     num_agents: usize,
-
-    sim_config: Arc<SimRunConfig>,
 }
 
 impl State {
@@ -49,17 +59,13 @@ impl State {
     ///
     /// Effectively converts the `agent_state_groups` from Array-of-Structs into a
     /// Struct-of-Arrays.
-    pub fn from_agent_groups(
+    fn from_agent_groups(
         agent_state_groups: &[&[Agent]],
         num_agents: usize,
-        sim_config: Arc<SimRunConfig>,
+        create_parameters: &StateCreateParameters,
     ) -> Result<Self> {
         let mut agent_batches = Vec::with_capacity(agent_state_groups.len());
         let mut message_batches = Vec::with_capacity(agent_state_groups.len());
-
-        let agent_schema = &sim_config.sim.store.agent_schema;
-        let message_schema = &sim_config.sim.store.message_schema;
-        let experiment_id = sim_config.exp.run.base().id;
 
         let mut group_start_indices = Vec::new();
         let mut start = 0;
@@ -72,15 +78,15 @@ impl State {
             agent_batches.push(Arc::new(parking_lot::RwLock::new(
                 AgentBatch::from_agent_states(
                     *agent_state_group,
-                    agent_schema,
-                    MemoryId::new(experiment_id),
+                    &create_parameters.agent_schema,
+                    MemoryId::new(create_parameters.memory_base_id),
                 )?,
             )));
             message_batches.push(Arc::new(parking_lot::RwLock::new(
                 MessageBatch::from_agent_states(
                     *agent_state_group,
-                    message_schema,
-                    MemoryId::new(experiment_id),
+                    &create_parameters.message_schema,
+                    MemoryId::new(create_parameters.memory_base_id),
                 )?,
             )));
         }
@@ -93,7 +99,6 @@ impl State {
             removed_batches: Vec::new(),
             num_agents,
             group_start_indices: Arc::new(group_start_indices),
-            sim_config,
         })
     }
 
@@ -104,16 +109,18 @@ impl State {
     /// `agent_states` into groups based on the number of workers specified in `sim_config`.
     pub fn from_agent_states(
         agent_states: &[Agent],
-        sim_config: Arc<SimRunConfig>,
+        create_parameters: &StateCreateParameters,
     ) -> Result<State> {
-        let num_workers = sim_config.sim.engine.num_workers;
         let num_agents = agent_states.len();
 
-        // Ideally we can have one group per worker, so divide the agents evenly across them
-        let target_group_size = (num_agents as f64 / num_workers as f64).ceil() as usize;
-        // We may have lower or upper bounds on the size of an individual group so adjust for that
+        // Distribute agents over the expected minimum number of groups
         let target_group_size =
-            target_group_size.clamp(MIN_AGENTS_PER_GROUP, sim_config.exp.target_max_group_size);
+            (num_agents as f64 / create_parameters.target_min_groups as f64).ceil() as usize;
+        // We may have lower or upper bounds on the size of an individual group so adjust for that
+        let target_group_size = target_group_size.clamp(
+            create_parameters.target_group_size.start,
+            create_parameters.target_group_size.end,
+        );
 
         let mut agent_state_groups = vec![];
         let mut next_index = 0;
@@ -123,7 +130,7 @@ impl State {
             agent_state_groups.push(&agent_states[this_index..next_index]);
         }
 
-        Self::from_agent_groups(&agent_state_groups, num_agents, sim_config)
+        Self::from_agent_groups(&agent_state_groups, num_agents, create_parameters)
     }
 
     // TODO: OPTIM - We should be using these to release memory, this requires propagation to the
@@ -145,10 +152,6 @@ impl State {
         // Register all batches that were removed
         self.removed_batches().extend(removed_ids.into_iter());
         Ok(())
-    }
-
-    pub fn sim_config(&self) -> &Arc<SimRunConfig> {
-        &self.sim_config
     }
 
     pub fn message_map(&self) -> stateful::Result<MessageMap> {

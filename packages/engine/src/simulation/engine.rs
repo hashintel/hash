@@ -172,7 +172,7 @@ impl Engine {
                 snapshot,
                 pre_context,
                 state.num_agents(),
-                state.sim_config(),
+                &self.config,
             )
             .instrument(tracing::info_span!("run_context_packages"))
             .await?;

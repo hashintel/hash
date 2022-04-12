@@ -15,7 +15,7 @@ use memory::{
     arrow::{
         column_with_name,
         ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-        meta::{self, conversion::HashDynamicMeta},
+        meta::conversion::HashDynamicMeta,
         ArrowBatch,
     },
     shared_memory::{MemoryId, Metaversion, Segment},
@@ -143,8 +143,7 @@ impl MessageBatch {
 
     pub fn empty_from_agent_batch(
         agent_batch: &AgentBatch,
-        schema: &Arc<Schema>,
-        meta: Arc<meta::Static>,
+        schema: &MessageSchema,
         memory_id: MemoryId,
     ) -> Result<Self> {
         let agent_count = agent_batch.num_agents();
@@ -153,7 +152,7 @@ impl MessageBatch {
         let id_column = column_with_name(agent_record_batch, column_name)?;
         let empty_message_column = MessageArray::new(agent_count).map(Arc::new)?;
 
-        let record_batch = RecordBatch::try_new(schema.clone(), vec![
+        let record_batch = RecordBatch::try_new(Arc::clone(&schema.arrow), vec![
             id_column.clone(),
             empty_message_column,
         ])?;
@@ -175,27 +174,21 @@ impl MessageBatch {
         record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
         let change = segment.set_header(&header)?;
         debug_assert!(!change.resized() && !change.shifted());
-        Self::from_segment(segment, schema.clone(), meta)
+        Self::from_segment(segment, schema)
     }
 
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
-        schema: &Arc<MessageSchema>,
+        schema: &MessageSchema,
         memory_id: MemoryId,
     ) -> Result<Self> {
-        let record_batch = agents.to_message_batch(&schema.arrow)?;
-        Self::from_record_batch(
-            &record_batch,
-            schema.arrow.clone(),
-            schema.static_meta.clone(),
-            memory_id,
-        )
+        let record_batch = agents.to_message_batch(Arc::clone(&schema.arrow))?;
+        Self::from_record_batch(&record_batch, schema, memory_id)
     }
 
     pub fn from_record_batch(
         record_batch: &RecordBatch,
-        schema: Arc<Schema>,
-        meta: Arc<meta::Static>,
+        schema: &MessageSchema,
         memory_id: MemoryId,
     ) -> Result<Self> {
         let ipc_data_generator = IpcDataGenerator::default();
@@ -215,14 +208,10 @@ impl MessageBatch {
             &encoded_data.arrow_data,
             true,
         )?;
-        Self::from_segment(segment, schema, meta)
+        Self::from_segment(segment, schema)
     }
 
-    pub fn from_segment(
-        segment: Segment,
-        schema: Arc<Schema>,
-        static_meta: Arc<meta::Static>,
-    ) -> Result<Self> {
+    pub fn from_segment(segment: Segment, schema: &MessageSchema) -> Result<Self> {
         let buffers = segment.get_batch_buffers()?;
 
         let batch_message = ipc::root_as_message(buffers.meta())?
@@ -232,7 +221,9 @@ impl MessageBatch {
         let data_length = buffers.data().len();
         let dynamic_meta = batch_message.into_meta(data_length)?;
 
-        let record_batch = read_record_batch(buffers.data(), batch_message, schema.clone(), &[])?;
+        let record_batch =
+            read_record_batch(buffers.data(), batch_message, Arc::clone(&schema.arrow), &[
+            ])?;
 
         let persisted = segment.try_read_persisted_metaversion()?;
         Ok(Self {
@@ -240,11 +231,11 @@ impl MessageBatch {
                 segment,
                 record_batch,
                 dynamic_meta,
-                static_meta,
+                Arc::clone(&schema.static_meta),
                 Vec::with_capacity(3),
                 persisted,
             ),
-            arrow_schema: schema,
+            arrow_schema: Arc::clone(&schema.arrow),
         })
     }
 }

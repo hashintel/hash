@@ -87,8 +87,7 @@ impl MessagePool {
             for agent_proxy in &agent_proxies[self.len()..] {
                 let inbox = MessageBatch::empty_from_agent_batch(
                     agent_proxy,
-                    &message_schema.arrow,
-                    message_schema.static_meta.clone(),
+                    message_schema,
                     MemoryId::new(*memory_id.borrow()),
                 )?;
                 self.push(inbox);

@@ -27,7 +27,14 @@ pub use self::{
     worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig},
     worker_pool::Config as WorkerPoolConfig,
 };
-use crate::{env::Environment, proto::SimulationShortId, Args};
+use crate::{
+    datastore::table::state::StateCreateParameters,
+    env::Environment,
+    proto::{ExperimentRunTrait, SimulationShortId},
+    Args,
+};
+
+pub const MIN_AGENTS_PER_GROUP: usize = 10;
 
 #[derive(Clone)]
 pub struct SimRunConfig {
@@ -68,6 +75,16 @@ impl SimRunConfig {
             exp: global.clone(),
             sim: Arc::new(local),
         })
+    }
+
+    pub fn to_state_create_parameters(&self) -> StateCreateParameters {
+        StateCreateParameters {
+            target_min_groups: self.sim.engine.num_workers,
+            target_group_size: MIN_AGENTS_PER_GROUP..self.exp.target_max_group_size,
+            memory_base_id: self.exp.run.base().id,
+            agent_schema: Arc::clone(&self.sim.store.agent_schema),
+            message_schema: Arc::clone(&self.sim.store.message_schema),
+        }
     }
 }
 

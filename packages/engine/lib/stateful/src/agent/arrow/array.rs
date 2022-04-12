@@ -24,28 +24,28 @@ use crate::{
 
 /// Conversion into Arrow `RecordBatch`
 pub trait IntoRecordBatch {
-    fn to_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch>;
-    fn to_empty_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch>;
+    fn to_message_batch(&self, schema: Arc<Schema>) -> Result<RecordBatch>;
+    fn to_empty_message_batch(&self, schema: Arc<Schema>) -> Result<RecordBatch>;
     /// TODO: DOC describe, explain self is initialization data
-    fn to_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch>;
+    fn to_agent_batch(&self, schema: &AgentSchema) -> Result<RecordBatch>;
 }
 
 impl IntoRecordBatch for &[Agent] {
-    fn to_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch> {
+    fn to_message_batch(&self, schema: Arc<Schema>) -> Result<RecordBatch> {
         self.iter()
             .collect::<Vec<_>>()
             .as_slice()
             .to_message_batch(schema)
     }
 
-    fn to_empty_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch> {
+    fn to_empty_message_batch(&self, schema: Arc<Schema>) -> Result<RecordBatch> {
         self.iter()
             .collect::<Vec<_>>()
             .as_slice()
             .to_empty_message_batch(schema)
     }
 
-    fn to_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch> {
+    fn to_agent_batch(&self, schema: &AgentSchema) -> Result<RecordBatch> {
         self.iter()
             .collect::<Vec<_>>()
             .as_slice()
@@ -54,7 +54,7 @@ impl IntoRecordBatch for &[Agent] {
 }
 
 impl IntoRecordBatch for &[&Agent] {
-    fn to_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch> {
+    fn to_message_batch(&self, schema: Arc<Schema>) -> Result<RecordBatch> {
         let ids = self
             .iter()
             .map(|agent| agent.agent_id.as_ref())
@@ -67,7 +67,7 @@ impl IntoRecordBatch for &[&Agent] {
         message::arrow::record_batch::from_json(schema, ids, Some(messages))
     }
 
-    fn to_empty_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch> {
+    fn to_empty_message_batch(&self, schema: Arc<Schema>) -> Result<RecordBatch> {
         let ids = self
             .iter()
             .map(|agent| agent.agent_id.as_ref())
@@ -75,7 +75,7 @@ impl IntoRecordBatch for &[&Agent] {
         message::arrow::record_batch::from_json(schema, ids, None)
     }
 
-    fn to_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch> {
+    fn to_agent_batch(&self, schema: &AgentSchema) -> Result<RecordBatch> {
         let mut cols = Vec::with_capacity(schema.arrow.fields().len());
 
         for field in schema.arrow.fields() {

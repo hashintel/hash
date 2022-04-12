@@ -48,7 +48,7 @@ impl AgentBatch {
     /// should be run on.
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
-        schema: &Arc<AgentSchema>,
+        schema: &AgentSchema,
         memory_id: MemoryId,
     ) -> Result<Self> {
         let record_batch = agents.to_agent_batch(schema)?;

@@ -24,7 +24,7 @@ pub const POSITION_DIM: usize = 3;
 
 #[cfg(test)]
 pub mod tests {
-    use std::{borrow::Cow, sync::Arc};
+    use std::borrow::Cow;
 
     use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
     use rand::Rng;
@@ -80,8 +80,11 @@ pub mod tests {
 
         let (schema, agents) = gen_schema_and_test_agents(num_agents, 0)?;
 
-        let mut state = State::from_agent_states(&agents, Arc::new(dummy_sim_run_config()))
-            .expect("Couldn't turn `Vec<Agent>` into `State`");
+        let mut state = State::from_agent_states(
+            &agents,
+            &dummy_sim_run_config().to_state_create_parameters(),
+        )
+        .expect("Couldn't turn `Vec<Agent>` into `State`");
 
         // get the ID of the shared-memory segment for the first batch of agents
         let shmem_id = state

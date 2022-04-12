@@ -161,12 +161,8 @@ impl<'a> BufferActions<'a> {
 
         let agent_batch =
             AgentBatch::from_segment(memory, Some(agent_schema.as_ref()), Some(worker_index))?;
-        let message_batch = MessageBatch::empty_from_agent_batch(
-            &agent_batch,
-            &message_schema.arrow,
-            Arc::clone(&message_schema.static_meta),
-            message_memory_id,
-        )?;
+        let message_batch =
+            MessageBatch::empty_from_agent_batch(&agent_batch, message_schema, message_memory_id)?;
 
         Ok((agent_batch, message_batch))
     }
@@ -1462,8 +1458,7 @@ pub(super) mod test {
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
+            &msg_schema,
             MemoryId::new(experiment_id),
         )?;
 
@@ -1471,8 +1466,7 @@ pub(super) mod test {
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
+            &msg_schema,
             MemoryId::new(experiment_id),
         )?;
         let now = std::time::Instant::now();
@@ -1549,8 +1543,7 @@ pub(super) mod test {
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
+            &msg_schema,
             MemoryId::new(experiment_id),
         )?;
 
@@ -1558,8 +1551,7 @@ pub(super) mod test {
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
+            &msg_schema,
             MemoryId::new(experiment_id),
         )?;
         let now = std::time::Instant::now();
@@ -1644,8 +1636,7 @@ pub(super) mod test {
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
+            &msg_schema,
             MemoryId::new(experiment_id),
         )?;
 
@@ -1653,8 +1644,7 @@ pub(super) mod test {
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
+            &msg_schema,
             MemoryId::new(experiment_id),
         )?;
         let now = std::time::Instant::now();
@@ -1757,8 +1747,7 @@ pub(super) mod test {
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
+            &msg_schema,
             MemoryId::new(experiment_id),
         )?;
 
@@ -1766,8 +1755,7 @@ pub(super) mod test {
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
+            &msg_schema,
             MemoryId::new(experiment_id),
         )?;
         let now = std::time::Instant::now();
