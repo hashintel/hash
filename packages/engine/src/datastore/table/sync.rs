@@ -1,10 +1,9 @@
 use std::{fmt, sync::Arc};
 
 use futures::future::join_all;
-use stateful::context::ContextBatch;
+use stateful::{context::ContextBatch, state::StateReadProxy};
 
 use crate::{
-    datastore::table::proxy::StateReadProxy,
     simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender},
     worker::{
         runner::comms::inbound::InboundToRunnerMsgPayload, Error as WorkerError,

@@ -1,11 +1,11 @@
 use std::fmt::{Debug, Formatter};
 
-use stateful::proxy::{BatchPool, BatchReadProxy, BatchWriteProxy, PoolReadProxy, PoolWriteProxy};
-
-use crate::datastore::{
-    batch::{AgentBatch, MessageBatch},
-    error::Result,
-    table::state::view::StatePools,
+use crate::{
+    agent::AgentBatch,
+    message::MessageBatch,
+    proxy::{BatchPool, BatchReadProxy, BatchWriteProxy, PoolReadProxy, PoolWriteProxy},
+    state::StatePools,
+    Result,
 };
 
 #[derive(Clone)]

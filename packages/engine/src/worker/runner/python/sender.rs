@@ -6,13 +6,11 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use memory::shared_memory::arrow_continuation;
 use nng::{options::Options, Aio, Socket};
+use stateful::state::StateReadProxy;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 use crate::{
-    datastore::table::{
-        proxy::StateReadProxy,
-        task_shared_store::{PartialSharedState, SharedState},
-    },
+    datastore::table::task_shared_store::{PartialSharedState, SharedState},
     proto::{ExperimentId, SimulationShortId},
     simulation::enum_dispatch::TaskSharedStore,
     types::WorkerIndex,

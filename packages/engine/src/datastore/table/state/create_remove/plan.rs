@@ -1,15 +1,12 @@
 use memory::shared_memory::MemoryId;
 use rayon::prelude::*;
-use stateful::proxy::BatchPool;
+use stateful::{proxy::BatchPool, state::StatePools};
 
 use crate::{
     config::SimRunConfig,
     datastore::{
         error::{Error, Result},
-        table::state::{
-            create_remove::action::{CreateActions, ExistingGroupBufferActions},
-            view::StatePools,
-        },
+        table::state::create_remove::action::{CreateActions, ExistingGroupBufferActions},
     },
     proto::ExperimentRunTrait,
 };

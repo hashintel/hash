@@ -1,5 +1,4 @@
 pub mod create_remove;
-pub mod view;
 
 use std::sync::Arc;
 
@@ -8,6 +7,7 @@ use stateful::{
     agent::{Agent, AgentPool},
     message::{MessageMap, MessagePool},
     proxy::BatchPool,
+    state::{StatePools, StateReadProxy, StateWriteProxy},
 };
 
 use self::create_remove::CreateRemovePlanner;
@@ -16,10 +16,6 @@ use crate::{
     datastore::{
         batch::{AgentBatch, MessageBatch},
         error::Result,
-        table::{
-            proxy::{StateReadProxy, StateWriteProxy},
-            state::view::StatePools,
-        },
     },
     proto::ExperimentRunTrait,
     simulation::command::CreateRemoveCommands,
@@ -179,11 +175,11 @@ impl State {
         &mut self.state
     }
 
-    pub fn read(&self) -> Result<StateReadProxy> {
+    pub fn read(&self) -> stateful::Result<StateReadProxy> {
         self.state.read()
     }
 
-    pub fn write(&mut self) -> Result<StateWriteProxy> {
+    pub fn write(&mut self) -> stateful::Result<StateWriteProxy> {
         self.state.write()
     }
 

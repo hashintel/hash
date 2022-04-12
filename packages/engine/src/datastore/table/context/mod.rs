@@ -7,6 +7,7 @@ use stateful::{
     context::{ContextBatch, ContextColumn},
     message::MessagePool,
     proxy::BatchPool,
+    state::StatePools,
 };
 
 use crate::{
@@ -14,7 +15,7 @@ use crate::{
     datastore::{
         batch::AgentBatch,
         error::{Error, Result},
-        table::state::{view::StatePools, State},
+        table::state::State,
     },
 };
 

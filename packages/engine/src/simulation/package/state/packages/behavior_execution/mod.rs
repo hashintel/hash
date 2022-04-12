@@ -5,6 +5,7 @@ use stateful::{
     field::{FieldSource, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     proxy::PoolWriteProxy,
+    state::StateWriteProxy,
 };
 
 use self::{
@@ -13,9 +14,7 @@ use self::{
 use crate::{
     datastore::{
         batch::AgentBatch,
-        table::{
-            context::Context, proxy::StateWriteProxy, task_shared_store::TaskSharedStoreBuilder,
-        },
+        table::{context::Context, task_shared_store::TaskSharedStoreBuilder},
     },
     language::Language,
     simulation::{

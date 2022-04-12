@@ -1,13 +1,9 @@
-use stateful::{
-    agent::AgentPool,
-    message::{MessageMap, MessagePool},
+use crate::{
+    agent::{AgentBatch, AgentPool},
+    message::{MessageBatch, MessageMap, MessagePool},
     proxy::BatchPool,
-};
-
-use crate::datastore::{
-    batch::{AgentBatch, MessageBatch},
-    error::Result,
-    table::proxy::{StateReadProxy, StateWriteProxy},
+    state::{StateReadProxy, StateWriteProxy},
+    Result,
 };
 
 #[derive(Clone)]

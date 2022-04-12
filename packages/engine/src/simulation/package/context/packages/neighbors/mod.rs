@@ -6,6 +6,7 @@ use stateful::{
     context::ContextColumn,
     field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
+    state::{StateReadProxy, StateSnapshot},
 };
 use tracing::Span;
 
@@ -15,7 +16,6 @@ use crate::{
     datastore::{
         batch::{iterators, AgentBatch},
         schema::context::ContextSchema,
-        table::{proxy::StateReadProxy, state::view::StateSnapshot},
     },
     simulation::{
         comms::package::PackageComms,

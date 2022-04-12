@@ -1,8 +1,14 @@
 // TODO: DOC
 
 mod column;
+mod proxy;
+mod view;
 
-pub use self::column::StateColumn;
+pub use self::{
+    column::StateColumn,
+    proxy::{StateReadProxy, StateWriteProxy},
+    view::{StatePools, StateSnapshot},
+};
 use crate::agent::Agent;
 
 // TODO: Move to `agent::AgentColumn`?

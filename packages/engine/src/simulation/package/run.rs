@@ -2,15 +2,17 @@ use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use memory::shared_memory::MemoryId;
-use stateful::context::ContextColumn;
+use stateful::{
+    context::ContextColumn,
+    state::{StateReadProxy, StateSnapshot},
+};
 use tracing::{Instrument, Span};
 
 use crate::{
     config::SimRunConfig,
     datastore::table::{
         context::{Context, PreContext},
-        proxy::StateReadProxy,
-        state::{view::StateSnapshot, State},
+        state::State,
     },
     proto::ExperimentRunTrait,
     simulation::{

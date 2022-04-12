@@ -10,6 +10,7 @@ use stateful::{
     context::ContextColumn,
     field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
+    state::{StateReadProxy, StateSnapshot},
 };
 use tracing::Span;
 
@@ -22,8 +23,7 @@ use crate::{
         package::context::{
             packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextSchema,
             FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound,
-            Package as ContextPackage, Package, PackageCreator, SimRunConfig, StateReadProxy,
-            StateSnapshot,
+            Package as ContextPackage, Package, PackageCreator, SimRunConfig,
         },
         Result,
     },

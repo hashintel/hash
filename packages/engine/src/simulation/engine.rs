@@ -5,6 +5,7 @@ use stateful::{
     agent::AgentPool,
     message::{MessageMap, MessagePool},
     proxy::BatchPool,
+    state::{StatePools, StateSnapshot},
 };
 use tracing::Instrument;
 
@@ -12,13 +13,7 @@ use crate::{
     config::SimRunConfig,
     datastore::{
         store::Store,
-        table::{
-            context::Context,
-            state::{
-                view::{StatePools, StateSnapshot},
-                State,
-            },
-        },
+        table::{context::Context, state::State},
     },
     proto::ExperimentRunTrait,
     simulation::{

@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
-use stateful::{agent::AgentSchema, proxy::PoolReadProxy};
+use stateful::{agent::AgentSchema, proxy::PoolReadProxy, state::StateReadProxy};
 
 use crate::{
     config::SimRunConfig,
@@ -12,15 +12,12 @@ use crate::{
             AgentBatch,
         },
         error::Result,
-        table::{
-            proxy::StateReadProxy,
-            state::create_remove::{
-                action::{CreateActions, ExistingGroupBufferActions},
-                batch::PendingBatch,
-                command::ProcessedCommands,
-                distribution::BatchDistribution,
-                MigrationPlan,
-            },
+        table::state::create_remove::{
+            action::{CreateActions, ExistingGroupBufferActions},
+            batch::PendingBatch,
+            command::ProcessedCommands,
+            distribution::BatchDistribution,
+            MigrationPlan,
         },
     },
     simulation::command::CreateRemoveCommands,
