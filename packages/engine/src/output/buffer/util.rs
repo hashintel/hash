@@ -1,9 +1,6 @@
 use memory::shared_memory::MemoryId;
 
-use crate::{
-    output::{buffer::RELATIVE_PARTS_FOLDER, error::Result, Error},
-    proto::ExperimentId,
-};
+use crate::{output::buffer::RELATIVE_PARTS_FOLDER, proto::ExperimentId};
 
 // TODO: move this to top-level
 #[derive(PartialEq, Eq, Clone)]
@@ -15,21 +12,18 @@ pub enum EngineExitStatus {
 // TODO: move this to top-level
 /// Shared memory cleanup in the process hard crash case.
 /// Not required for pod instances.
-pub fn cleanup_experiment(
-    experiment_id: &ExperimentId,
-    exit_status: EngineExitStatus,
-) -> Result<()> {
-    MemoryId::clean_up(experiment_id)?;
+pub fn cleanup_experiment(experiment_id: &ExperimentId, exit_status: EngineExitStatus) {
+    MemoryId::clean_up(experiment_id);
 
     // Cleanup python socket files in case the engine didn't
-    let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"))
-        .map_err(|err| Error::Unique(format!("cleanup glob error: {err}")))?;
-    let topy_files = glob::glob(&format!("{experiment_id}-topy*"))
-        .map_err(|err| Error::Unique(format!("cleanup glob error: {err}")))?;
+    let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"));
+    let topy_files = glob::glob(&format!("{experiment_id}-topy*"));
 
     frompy_files
+        .into_iter()
         .chain(topy_files)
-        .filter_map(std::result::Result::ok)
+        .flatten()
+        .flatten()
         .for_each(|path| match std::fs::remove_file(&path) {
             Ok(_) => {
                 match exit_status {
@@ -52,8 +46,6 @@ pub fn cleanup_experiment(
         });
 
     remove_experiment_parts(experiment_id);
-
-    Ok(())
 }
 
 fn remove_experiment_parts(experiment_id: &ExperimentId) {

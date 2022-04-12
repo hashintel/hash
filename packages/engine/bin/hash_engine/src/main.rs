@@ -48,8 +48,7 @@ async fn main() -> Result<()> {
         EngineExitStatus::Error
     };
 
-    cleanup_experiment(&args.experiment_id, exit_status)
-        .wrap_err("Could not cleanup experiment")?;
+    cleanup_experiment(&args.experiment_id, exit_status);
 
     experiment_result
 }
