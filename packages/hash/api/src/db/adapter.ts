@@ -115,13 +115,26 @@ export type DbLinkVersion = {
 
 export type DbAggregation = {
   aggregationId: string;
+  aggregationVersionId: string;
   sourceAccountId: string;
   sourceEntityId: string;
-  sourceEntityVersionIds: Set<string>;
+  appliedToSourceAt: Date;
+  appliedToSourceByAccountId: string;
+  removedFromSourceAt?: Date;
+  removedFromSourceByAccountId?: string;
   path: string;
   operation: object;
-  createdByAccountId: string;
-  createdAt: Date;
+  updatedAt: Date;
+  updatedByAccountId: string;
+};
+
+export type DbAggregationVersion = {
+  sourceAccountId: string;
+  aggregationVersionId: string;
+  aggregationId: string;
+  operation: object;
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
 export type EntityTypeMeta = EntityMeta & {
@@ -545,11 +558,12 @@ export interface DbClient {
   /**
    * Create an aggregation for an entity.
    *
-   * @param params.sourceAccountId the account id of the source entity
-   * @param params.sourceEntityId the entity id of the source entity
-   * @param params.path the aggregation path
-   * @param params.operation the aggregation operation
-   * @param params.createdByAccountId the account id of the user that created the aggregation
+   * @param params.sourceAccountId - the account id of the source entity
+   * @param params.sourceEntityId - the entity id of the source entity
+   * @param params.path - the aggregation path
+   * @param params.operation - the aggregation operation
+   * @param params.createdByAccountId - the account id of the user that created the aggregation
+   * @returns {DbAggregation} the created aggregation
    */
   createAggregation(params: {
     sourceAccountId: string;
@@ -562,58 +576,70 @@ export interface DbClient {
   /**
    * Update the operation of an existing aggregation.
    *
-   * @param params.aggregationId the id of the aggregation
-   * @param params.operation the updated aggregation operation
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.aggregationId - the id of the aggregation
+   * @param {object} params.operation - the updated aggregation operation
+   * @param {string} params.updatedByAccountId - the account id of the user that is updating the aggregation
+   * @returns {DbAggregation} the updated aggregation
    */
   updateAggregationOperation(params: {
+    sourceAccountId: string;
     aggregationId: string;
-    operation: object;
+    updatedOperation: object;
+    updatedByAccountId: string;
   }): Promise<DbAggregation>;
 
   /**
-   * Get an aggregation by its id.
+   * Get an aggregation by its aggregation id.
    *
-   * @param params.aggregationId the id of the aggregation
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.aggregationId - the id of the aggregation
+   * @returns {DbAggregation | null} the aggregation with if found in the datastore, otherwise `null`
    */
   getAggregation(params: {
+    sourceAccountId: string;
     aggregationId: string;
   }): Promise<DbAggregation | null>;
 
   /**
    * Get an aggregation by its source entity and path.
    *
-   * @param params.sourceAccountId the account id of the source entity
-   * @param params.sourceEntityId the entity id of the source entity
-   * @param params.sourceEntityVersionId the entityVersionId of the source entity (optional)
-   * @param params.path the aggregation path
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.sourceEntityId - the entity id of the source entity
+   * @param {string} params.path - the aggregation path
+   * @param {Date} [params.activeAt] - the timestamp at which the aggregation was active, when the source entity is versioned
+   * @returns {DbAggregation | null} the aggregation if found in the datastore, otherwise `null`
    */
   getEntityAggregationByPath(params: {
     sourceAccountId: string;
     sourceEntityId: string;
-    sourceEntityVersionId?: string;
     path: string;
+    activeAt?: Date;
   }): Promise<DbAggregation | null>;
 
   /**
    * Get all aggregations for an entity.
    *
-   * @param params.sourceAccountId the account id of the source entity
-   * @param params.sourceEntityId the entity id of the source entity
-   * @param params.sourceEntityVersionId the entityVersionId of the source entity (optional)
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.sourceEntityId - the entity id of the source entity
+   * @param {Date} [params.activeAt] - the timestamp at which the aggregations were active, when the source entity is versioned
+   * @returns {DbAggregation[]} the aggregations of the entity
    */
   getEntityAggregations(params: {
     sourceAccountId: string;
     sourceEntityId: string;
-    sourceEntityVersionId?: string;
+    activeAt?: Date;
   }): Promise<DbAggregation[]>;
 
   /**
    * Delete an existing aggregation.
    *
-   * @param params.aggregationId the id of the aggregation
-   * @param params.deletedByAccountId the account id of the user that deleted the aggregation
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.aggregationId - the id of the aggregation
+   * @param {string} params.deletedByAccountId - the account id of the user that deleted the aggregation
    */
   deleteAggregation(params: {
+    sourceAccountId: string;
     aggregationId: string;
     deletedByAccountId: string;
   }): Promise<void>;

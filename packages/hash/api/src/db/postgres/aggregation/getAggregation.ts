@@ -1,22 +1,17 @@
-import { sql } from "slonik";
 import { DbAggregation, DbClient } from "../../adapter";
 
 import { Connection } from "../types";
 import {
-  DbAggregationRow,
-  aggregationsColumnNamesSQL,
-  mapRowToDbAggregation,
-} from "./util";
+  mapDbRowsToDbAggregation,
+  selectLatestVersionOfAggregation,
+} from "./sql/aggregations.util";
 
+/** See {@link DbClient.getAggregation} */
 export const getAggregation = async (
   conn: Connection,
   params: Parameters<DbClient["getAggregation"]>[0],
 ): Promise<DbAggregation | null> => {
-  const row = await conn.maybeOne<DbAggregationRow>(sql`
-    select ${aggregationsColumnNamesSQL}
-    from aggregations
-    where aggregation_id = ${params.aggregationId}
-  `);
+  const row = await conn.maybeOne(selectLatestVersionOfAggregation(params));
 
-  return row ? mapRowToDbAggregation(row) : null;
+  return row ? mapDbRowsToDbAggregation(row) : null;
 };
