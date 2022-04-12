@@ -38,6 +38,8 @@ type BlockContextMenuProps = {
   view: EditorView<Schema>;
 };
 
+const LOAD_BLOCK_ENTITY_UI = "hash-load-entity-ui";
+
 export const BlockContextMenu = forwardRef<
   HTMLDivElement,
   BlockContextMenuProps
@@ -106,7 +108,7 @@ export const BlockContextMenu = forwardRef<
       },
     ];
 
-    if (!process.env.NEXT_PUBLIC_LOAD_BLOCK_ENTITY_UI) {
+    if (!localStorage.getItem(LOAD_BLOCK_ENTITY_UI)) {
       items.shift();
     }
 
@@ -118,7 +120,7 @@ export const BlockContextMenu = forwardRef<
   });
 
   useKey(["@"], () => {
-    if (popupState.isOpen) {
+    if (popupState.isOpen && localStorage.getItem(LOAD_BLOCK_ENTITY_UI)) {
       setEntityMenuItemRef.current?.focus();
     }
   });

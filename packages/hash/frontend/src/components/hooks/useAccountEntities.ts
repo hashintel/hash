@@ -12,16 +12,7 @@ import {
 // @todo handle error state
 export const useAccountEntities = () => {
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<
-    Pick<
-      UnknownEntity,
-      | "accountId"
-      | "entityId"
-      | "entityTypeId"
-      | "entityTypeName"
-      | "properties"
-    >[]
-  >([]);
+  const [data, setData] = useState<UnknownEntity[]>([]);
   const client = useApolloClient();
 
   const fetchEntities = useCallback(

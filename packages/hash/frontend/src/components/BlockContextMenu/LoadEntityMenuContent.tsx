@@ -1,5 +1,4 @@
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
@@ -16,6 +15,7 @@ import {
 import { PopupState } from "material-ui-popup-state/core";
 import { useCallback, useEffect, useRef, VFC } from "react";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
+import { UnknownEntity } from "../../graphql/apiTypes.gen";
 import { FontAwesomeIcon } from "../../shared/icons";
 import { useRouteAccountInfo } from "../../shared/routing";
 import { LoadingSpinner, TextField } from "../../shared/ui";
@@ -56,7 +56,7 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   }, [blockView, entityId, accountId, fetchEntities]);
 
   const handleClick = useCallback(
-    (targetData: BlockEntity) => {
+    (targetData: UnknownEntity) => {
       let currentEntityStore = entityStorePluginStateFromTransaction(
         blockView.view.state.tr,
         blockView.view.state,
