@@ -3,6 +3,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
+    agent,
+    agent::AgentBatch,
     context::{ContextColumn, ContextSchema},
     field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
@@ -13,7 +15,6 @@ use tracing::Span;
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
     config::{ExperimentConfig, SimRunConfig, TopologyConfig},
-    datastore::batch::{iterators, AgentBatch},
     simulation::{
         comms::package::PackageComms,
         package::{
@@ -93,9 +94,9 @@ struct Neighbors {
 
 impl Neighbors {
     fn neighbor_vec<'a>(batches: &'a [&AgentBatch]) -> Result<Vec<NeighborRef<'a>>> {
-        Ok(iterators::agent::position_iter(batches)?
-            .zip(iterators::agent::index_iter(batches))
-            .zip(iterators::agent::search_radius_iter(batches)?)
+        Ok(agent::arrow::position_iter(batches)?
+            .zip(agent::arrow::index_iter(batches))
+            .zip(agent::arrow::search_radius_iter(batches)?)
             .collect())
     }
 }

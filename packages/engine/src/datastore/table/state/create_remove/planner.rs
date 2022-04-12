@@ -2,15 +2,16 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
-use stateful::{agent::AgentSchema, proxy::PoolReadProxy, state::StateReadProxy};
+use stateful::{
+    agent::{AgentBatch, AgentSchema},
+    proxy::PoolReadProxy,
+    state::StateReadProxy,
+};
 
 use crate::{
     config::SimRunConfig,
     datastore::{
-        batch::{
-            migration::{BufferActions, IndexRange, RangeActions},
-            AgentBatch,
-        },
+        batch::migration::{BufferActions, IndexRange, RangeActions},
         error::Result,
         table::state::create_remove::{
             action::{CreateActions, ExistingGroupBufferActions},

@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
+    agent,
+    agent::AgentBatch,
     field::{RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     proxy::BatchPool,
@@ -8,10 +10,7 @@ use stateful::{
 
 use crate::{
     config::{ExperimentConfig, TopologyConfig},
-    datastore::{
-        batch::{iterators::record_batch::topology_mut_iter, AgentBatch},
-        table::{context::Context, state::State},
-    },
+    datastore::table::{context::Context, state::State},
     simulation::{
         package::state::{
             Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Package,
@@ -77,7 +76,7 @@ impl Topology {
 
         let mut ret = false;
         let (pos_dir_mut_iter, mut position_was_corrected_col) =
-            topology_mut_iter(agent_batch.batch.record_batch_mut()?)?;
+            agent::arrow::record_batch::topology_mut_iter(agent_batch.batch.record_batch_mut()?)?;
         pos_dir_mut_iter.enumerate().for_each(|(i, (pos, dir))| {
             let corrected = adjacency::correct_agent(pos, dir, &self.config);
             unsafe { position_was_corrected_col.set(i, corrected) };

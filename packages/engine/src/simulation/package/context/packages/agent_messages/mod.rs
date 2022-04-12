@@ -7,6 +7,7 @@ use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
+    agent,
     context::{ContextColumn, ContextSchema},
     field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
@@ -17,7 +18,6 @@ use tracing::Span;
 use self::collected::Messages;
 use crate::{
     config::ExperimentConfig,
-    datastore::batch::iterators,
     simulation::{
         comms::package::PackageComms,
         package::context::{
@@ -99,8 +99,8 @@ impl Package for AgentMessages {
         let _run_entered = tracing::trace_span!("run").entered();
         let agent_pool = state_proxy.agent_pool();
         let batches = agent_pool.batches();
-        let id_name_iter = iterators::agent::agent_id_iter(&batches)?
-            .zip(iterators::agent::agent_name_iter(&batches)?);
+        let id_name_iter =
+            agent::arrow::agent_id_iter(&batches)?.zip(agent::arrow::agent_name_iter(&batches)?);
 
         let messages = Messages::gather(&snapshot.message_map, id_name_iter)?;
         let field_key = self

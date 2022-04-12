@@ -1,9 +1,8 @@
 use std::{collections::HashSet, ops::Deref};
 
-use stateful::agent::AgentBatch;
+use stateful::{agent, agent::AgentBatch};
 
 use crate::datastore::{
-    batch::iterators::record_batch,
     error::Result,
     table::state::create_remove::{AgentIndex, BatchIndex, WorkerIndex},
     UUID_V4_LEN,
@@ -46,7 +45,7 @@ impl PendingBatch {
         remove_ids: &mut HashSet<[u8; UUID_V4_LEN]>,
     ) -> Result<PendingBatch> {
         let mut remove_indices = vec![];
-        record_batch::agent_id_iter(agent_batch.batch.record_batch()?)?
+        agent::arrow::record_batch::agent_id_iter(agent_batch.batch.record_batch()?)?
             .enumerate()
             .try_for_each::<_, Result<()>>(|(row_index, id)| {
                 if remove_ids.remove(id) {

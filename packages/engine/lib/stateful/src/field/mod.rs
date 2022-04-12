@@ -22,6 +22,7 @@ mod spec;
 mod spec_map;
 
 pub const UUID_V4_LEN: usize = 16;
+pub const POSITION_DIM: usize = 3;
 
 pub use self::{
     accessor::{FieldSpecMapAccessor, RootFieldSpecMapAccessor},

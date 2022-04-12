@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
 use stateful::{
+    agent,
     context::ContextColumn,
     field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
@@ -20,7 +21,6 @@ pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
     config::ExperimentConfig,
-    datastore::batch::iterators,
     simulation::{
         comms::package::PackageComms,
         package::context::{
@@ -115,7 +115,7 @@ impl Package for ApiRequests {
 
         let agent_pool = state_proxy.agent_pool();
         let batches = agent_pool.batches();
-        let responses_per_agent = iterators::agent::agent_id_iter(&batches)?
+        let responses_per_agent = agent::arrow::agent_id_iter(&batches)?
             .map(move |agent_id| {
                 let mut ext_responses = vec![];
                 api_response_maps

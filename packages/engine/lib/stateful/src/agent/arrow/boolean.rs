@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use arrow::{array::Array as ArrowArray, util::bit_util};
+use arrow::{array::Array, util::bit_util};
 
-pub struct Column {
+pub struct BooleanColumn {
     data: *mut u8,
 }
 
-impl Column {
+impl BooleanColumn {
     // Assumes underlying array is a non-nullable boolean array
-    pub fn new_non_nullable(array: &Arc<dyn ArrowArray>) -> Column {
+    pub(in crate) fn new_non_nullable(array: &Arc<dyn Array>) -> Self {
         let data = array.data_ref();
         let bool_buffer = &data.buffers()[0];
-        Column {
+        Self {
             data: bool_buffer.as_ptr() as *mut _,
         }
     }
@@ -27,7 +27,7 @@ impl Column {
         if value {
             bit_util::set_bit_raw(self.data, index);
         } else {
-            unset_bit_raw(self.data, index);
+            bit_util::unset_bit_raw(self.data, index);
         }
     }
 
@@ -41,12 +41,6 @@ impl Column {
     pub unsafe fn get(&mut self, index: usize) -> bool {
         bit_util::get_bit_raw(self.data, index)
     }
-}
-
-static UNSET_BIT_MASK: [u8; 8] = [254, 253, 251, 247, 239, 223, 191, 127];
-
-unsafe fn unset_bit_raw(data: *mut u8, i: usize) {
-    *data.add(i >> 3) &= UNSET_BIT_MASK[i & 7]
 }
 
 #[cfg(test)]
@@ -63,8 +57,8 @@ mod tests {
         let size = 200;
         let mut bools = (0..size).map(|_| rng.gen_bool(0.5)).collect::<Vec<_>>();
         let boolean_array: Arc<BooleanArray> = Arc::new(bools.clone().into());
-        let any_array = boolean_array as Arc<dyn ArrowArray>;
-        let mut col = Column::new_non_nullable(&any_array);
+        let any_array = boolean_array as Arc<dyn Array>;
+        let mut col = BooleanColumn::new_non_nullable(&any_array);
 
         let mut indices = (0..size).collect::<Vec<_>>();
         indices.shuffle(&mut rng);
@@ -85,8 +79,8 @@ mod tests {
         let size = 200;
         let mut bools = (0..size).map(|_| rng.gen_bool(0.5)).collect::<Vec<_>>();
         let boolean_array: Arc<BooleanArray> = Arc::new(bools.clone().into());
-        let any_array = boolean_array as Arc<dyn ArrowArray>;
-        let mut col = Column::new_non_nullable(&any_array);
+        let any_array = boolean_array as Arc<dyn Array>;
+        let mut col = BooleanColumn::new_non_nullable(&any_array);
 
         let mut indices = (0..size).collect::<Vec<_>>();
         indices.shuffle(&mut rng);

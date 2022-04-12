@@ -1,9 +1,19 @@
-pub mod array;
+pub(in crate) mod array;
+pub(in crate) mod boolean;
+
 mod batch;
+mod iterator;
 mod pool;
+pub mod record_batch;
 
 pub use self::{
+    array::IntoRecordBatch,
     batch::AgentBatch,
+    iterator::{
+        agent_id_iter, agent_name_iter, bool_iter, exists_iter, f64_iter, index_iter,
+        json_serialized_value_iter, json_value_iter_cols, position_iter, search_radius_iter,
+        str_iter,
+    },
     pool::{flush_pending_columns, modify_loaded_column, AgentPool},
 };
 

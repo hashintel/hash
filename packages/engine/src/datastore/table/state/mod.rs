@@ -4,8 +4,8 @@ use std::{ops::Range, sync::Arc};
 
 use memory::shared_memory::MemoryId;
 use stateful::{
-    agent::{Agent, AgentPool, AgentSchema},
-    message::{MessageMap, MessagePool, MessageSchema},
+    agent::{Agent, AgentBatch, AgentPool, AgentSchema},
+    message::{MessageBatch, MessageMap, MessagePool, MessageSchema},
     proxy::BatchPool,
     state::{StatePools, StateReadProxy, StateWriteProxy},
 };
@@ -13,12 +13,7 @@ use uuid::Uuid;
 
 use self::create_remove::CreateRemovePlanner;
 use crate::{
-    config::SimRunConfig,
-    datastore::{
-        batch::{AgentBatch, MessageBatch},
-        error::Result,
-    },
-    proto::ExperimentRunTrait,
+    config::SimRunConfig, datastore::error::Result, proto::ExperimentRunTrait,
     simulation::command::CreateRemoveCommands,
 };
 

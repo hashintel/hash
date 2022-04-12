@@ -2166,6 +2166,7 @@ dependencies = [
  "lazy_static",
  "memory",
  "parking_lot",
+ "rand 0.8.4",
  "rayon",
  "serde",
  "serde-aux",

@@ -17,3 +17,6 @@ serde-aux = "0.6.1"
 thiserror = "1.0.21"
 tracing = "0.1.29"
 uuid = { version = "0.8.1", features = ["v4", "serde"] }
+
+[dev-dependencies]
+rand = "0.8.3"

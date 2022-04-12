@@ -458,7 +458,7 @@ impl IntoAgents for RecordBatch {
 
 #[cfg(test)]
 pub mod tests {
-    use stateful::agent::arrow::array::IntoRecordBatch;
+    use stateful::agent::arrow::IntoRecordBatch;
 
     use super::*;
     use crate::datastore::{test_utils::gen_schema_and_test_agents, Result};

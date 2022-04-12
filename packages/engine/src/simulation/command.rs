@@ -12,16 +12,16 @@ use std::{
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use stateful::{
-    agent::{arrow::array::IntoRecordBatch, Agent, AgentSchema},
+    agent::{arrow::IntoRecordBatch, Agent, AgentSchema},
     field::RootFieldKey,
     message,
-    message::{MessageMap, MessageReader},
+    message::{MessageBatch, MessageMap, MessageReader},
     proxy::PoolReadProxy,
 };
 use uuid::Uuid;
 
 use crate::{
-    datastore::{batch::MessageBatch, table::state::create_remove::ProcessedCommands, UUID_V4_LEN},
+    datastore::{table::state::create_remove::ProcessedCommands, UUID_V4_LEN},
     simulation::{Error, Result},
 };
 

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use arrow::record_batch::RecordBatch;
 use memory::shared_memory::MemoryId;
 use stateful::{
-    agent::{AgentPool, AgentSchema},
+    agent::{AgentBatch, AgentPool, AgentSchema},
     context::{ContextBatch, ContextColumn},
     message::MessagePool,
     proxy::BatchPool,
@@ -13,7 +13,6 @@ use stateful::{
 use crate::{
     config::StoreConfig,
     datastore::{
-        batch::AgentBatch,
         error::{Error, Result},
         table::state::State,
     },

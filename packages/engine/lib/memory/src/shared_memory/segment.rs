@@ -97,7 +97,7 @@ impl MemoryId {
         let shm_files = glob::glob(&format!("/dev/shm/{}_*", Self::prefix(id)))
             .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
 
-        shm_files.filter_map(Result::ok).for_each(|path| {
+        shm_files.flatten().for_each(|path| {
             if let Err(err) = std::fs::remove_file(&path) {
                 tracing::warn!("Could not clean up {path:?}: {err}");
             }
