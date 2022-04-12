@@ -1,5 +1,7 @@
+use stateful::message::MessageMap;
+
 use crate::{
-    datastore::{table::references::MessageMap, UUID_V4_LEN},
+    datastore::UUID_V4_LEN,
     simulation::package::context::packages::agent_messages::{
         indices::AgentMessageIndices, Result,
     },

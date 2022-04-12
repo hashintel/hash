@@ -1,9 +1,12 @@
 use std::{mem, sync::Arc};
 
 use memory::shared_memory::MemoryId;
-use stateful::{agent::AgentPool, proxy::BatchPool};
+use stateful::{
+    agent::AgentPool,
+    message::{MessageMap, MessagePool},
+    proxy::BatchPool,
+};
 use tracing::Instrument;
-use stateful::message::MessagePool;
 
 use crate::{
     config::SimRunConfig,
@@ -11,7 +14,6 @@ use crate::{
         store::Store,
         table::{
             context::Context,
-            references::MessageMap,
             state::{
                 view::{StatePools, StateSnapshot},
                 State,

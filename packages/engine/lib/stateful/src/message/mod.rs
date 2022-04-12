@@ -8,6 +8,7 @@ pub mod arrow;
 mod batch;
 mod inbound;
 mod kind;
+mod map;
 mod outbound;
 mod pool;
 mod schema;
@@ -17,6 +18,7 @@ pub use self::{
     batch::MessageBatch,
     inbound::Inbound,
     kind::{CreateAgent, RemoveAgent, StopSim},
+    map::MessageMap,
     outbound::Message,
     pool::{recipient_iter_all, MessagePool, MessageReader},
     schema::MessageSchema,

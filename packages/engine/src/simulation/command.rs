@@ -15,17 +15,13 @@ use stateful::{
     agent::{arrow::array::IntoRecordBatch, Agent, AgentSchema},
     field::RootFieldKey,
     message,
+    message::{MessageMap, MessageReader},
     proxy::PoolReadProxy,
 };
 use uuid::Uuid;
-use stateful::message::MessageReader;
 
 use crate::{
-    datastore::{
-        batch::MessageBatch,
-        table::{references::MessageMap, state::create_remove::ProcessedCommands},
-        UUID_V4_LEN,
-    },
+    datastore::{batch::MessageBatch, table::state::create_remove::ProcessedCommands, UUID_V4_LEN},
     simulation::{Error, Result},
 };
 

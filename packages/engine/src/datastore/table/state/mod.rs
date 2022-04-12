@@ -6,7 +6,7 @@ use std::sync::Arc;
 use memory::shared_memory::MemoryId;
 use stateful::{
     agent::{Agent, AgentPool},
-    message::MessagePool,
+    message::{MessageMap, MessagePool},
     proxy::BatchPool,
 };
 
@@ -18,7 +18,6 @@ use crate::{
         error::Result,
         table::{
             proxy::{StateReadProxy, StateWriteProxy},
-            references::MessageMap,
             state::view::StatePools,
         },
     },
@@ -156,7 +155,7 @@ impl State {
         &self.sim_config
     }
 
-    pub fn message_map(&self) -> Result<MessageMap> {
+    pub fn message_map(&self) -> stateful::Result<MessageMap> {
         MessageMap::new(&self.message_pool().read_proxies()?)
     }
 

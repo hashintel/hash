@@ -4,10 +4,13 @@ use std::{
 };
 
 use rayon::iter::ParallelIterator;
-use stateful::{agent, proxy::PoolReadProxy};
-use stateful::message::recipient_iter_all;
 
-use crate::datastore::{batch::MessageBatch, error::Result};
+use crate::{
+    agent,
+    error::Result,
+    message::{recipient_iter_all, MessageBatch},
+    proxy::PoolReadProxy,
+};
 
 /// A mapping from recipient to message reference.
 /// Used in combination with `MessageReader`.
