@@ -49,12 +49,12 @@ export const componentIdToUrl = (componentId: string) =>
 /**
  * Get an absolute url if the path is not already one.
  */
-function getAbsoluteUrl(args: { baseUrl: string; path: string }): string;
-function getAbsoluteUrl(args: {
+function deriveAbsoluteUrl(args: { baseUrl: string; path: string }): string;
+function deriveAbsoluteUrl(args: {
   baseUrl: string;
   path?: string | null | undefined;
 }): string | null | undefined;
-function getAbsoluteUrl({
+function deriveAbsoluteUrl({
   baseUrl,
   path,
 }: {
@@ -73,7 +73,7 @@ function getAbsoluteUrl({
  * Transform a block metadata and schema file into fully-defined block variants.
  * This would ideally be the one place we manipulate block metadata.
  */
-const toBlockConfig = ({
+const transformBlockConfig = ({
   componentId,
   metadata,
   schema,
@@ -103,7 +103,7 @@ const toBlockConfig = ({
     .map((variant) => ({
       ...variant,
       // the Block Protocol API is returning absolute URLs for icons, but this might be from elsewhere
-      icon: getAbsoluteUrl({ baseUrl, path: variant.icon }),
+      icon: deriveAbsoluteUrl({ baseUrl, path: variant.icon }),
       name: variant.name ?? variant.displayName, // fallback to handle deprecated 'variant[].displayName' field
     }));
 
@@ -111,10 +111,10 @@ const toBlockConfig = ({
     ...metadata,
     componentId,
     variants,
-    icon: getAbsoluteUrl({ baseUrl, path: metadata.image }),
-    image: getAbsoluteUrl({ baseUrl, path: metadata.icon }),
-    schema: getAbsoluteUrl({ baseUrl, path: metadata.schema }),
-    source: getAbsoluteUrl({ baseUrl, path: metadata.source }),
+    icon: deriveAbsoluteUrl({ baseUrl, path: metadata.image }),
+    image: deriveAbsoluteUrl({ baseUrl, path: metadata.icon }),
+    schema: deriveAbsoluteUrl({ baseUrl, path: metadata.schema }),
+    source: deriveAbsoluteUrl({ baseUrl, path: metadata.source }),
   };
 };
 
@@ -149,7 +149,7 @@ export const fetchBlockMeta = async (
     let schema: BlockMeta["componentSchema"];
     let schemaUrl;
     try {
-      schemaUrl = getAbsoluteUrl({ baseUrl, path: schemaPath });
+      schemaUrl = deriveAbsoluteUrl({ baseUrl, path: schemaPath });
       schema = schemaUrl ? await (await fetch(schemaUrl)).json() : {};
     } catch (err) {
       blockCache.delete(baseUrl);
@@ -161,7 +161,7 @@ export const fetchBlockMeta = async (
     }
 
     const result: BlockMeta = {
-      componentMetadata: toBlockConfig({
+      componentMetadata: transformBlockConfig({
         metadata,
         schema,
         componentId: baseUrl,
