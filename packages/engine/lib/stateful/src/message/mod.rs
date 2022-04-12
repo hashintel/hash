@@ -6,7 +6,6 @@ pub mod payload;
 pub mod arrow;
 
 mod batch;
-mod inbound;
 mod kind;
 mod map;
 mod outbound;
