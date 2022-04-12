@@ -20,12 +20,12 @@ import {
   faMessage,
   faTrashCan,
 } from "@fortawesome/free-regular-svg-icons";
-import { getBlockDomId } from "../../blocks/page/BlockView";
-import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
+import { getBlockDomId } from "../BlockView";
+import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 
 import { BlockLoaderInput } from "./BlockLoaderInput";
-import { useUsers } from "../hooks/useUsers";
-import { FontAwesomeIcon } from "../../shared/icons";
+import { useUsers } from "../../../components/hooks/useUsers";
+import { FontAwesomeIcon } from "../../../shared/icons";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
 import { LoadEntityMenuContent } from "./LoadEntityMenuContent";
 import { BlockListMenuContent } from "./BlockListMenuContent";

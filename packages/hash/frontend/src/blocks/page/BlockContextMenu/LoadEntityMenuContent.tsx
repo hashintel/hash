@@ -14,12 +14,12 @@ import {
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
 import { useCallback, useEffect, useRef, VFC } from "react";
-import { useBlockView } from "../../blocks/page/BlockViewContext";
-import { UnknownEntity } from "../../graphql/apiTypes.gen";
-import { FontAwesomeIcon } from "../../shared/icons";
-import { useRouteAccountInfo } from "../../shared/routing";
-import { LoadingSpinner, TextField } from "../../shared/ui";
-import { useAccountEntities } from "../hooks/useAccountEntities";
+import { useBlockView } from "../BlockViewContext";
+import { UnknownEntity } from "../../../graphql/apiTypes.gen";
+import { FontAwesomeIcon } from "../../../shared/icons";
+import { useRouteAccountInfo } from "../../../shared/routing";
+import { LoadingSpinner, TextField } from "../../../shared/ui";
+import { useAccountEntities } from "../../../components/hooks/useAccountEntities";
 
 type LoadEntityMenuContentProps = {
   entityId: string | null;

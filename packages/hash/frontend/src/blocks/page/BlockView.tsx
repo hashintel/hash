@@ -12,7 +12,7 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createRef, forwardRef, useMemo, useRef } from "react";
-import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
+import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../shared/icons";
 import { RemoteBlockMetadata } from "../userBlocks";
 import { BlockViewContext } from "./BlockViewContext";

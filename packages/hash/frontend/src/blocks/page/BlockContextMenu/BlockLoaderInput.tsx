@@ -2,9 +2,9 @@ import { Box, Collapse } from "@mui/material";
 import React, { useState, useRef, FormEvent } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
-import { useBlockView } from "../../blocks/page/BlockViewContext";
-import { useUserBlocks } from "../../blocks/userBlocks";
-import { Button, TextField } from "../../shared/ui";
+import { useBlockView } from "../BlockViewContext";
+import { useUserBlocks } from "../../userBlocks";
+import { Button, TextField } from "../../../shared/ui";
 
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");

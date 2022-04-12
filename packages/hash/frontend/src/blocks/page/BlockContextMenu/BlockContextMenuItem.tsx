@@ -8,7 +8,7 @@ import {
 } from "material-ui-popup-state/hooks";
 import HoverPopover from "material-ui-popup-state/HoverPopover";
 import { cloneElement, forwardRef, RefObject, useRef, useState } from "react";
-import { FontAwesomeIcon } from "../../shared/icons";
+import { FontAwesomeIcon } from "../../../shared/icons";
 
 type BlockContextMenuItemProps = {
   itemKey: string;

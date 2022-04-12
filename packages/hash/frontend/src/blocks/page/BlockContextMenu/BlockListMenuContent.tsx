@@ -14,10 +14,10 @@ import { useEffect, useRef, useState, VFC } from "react";
 import {
   BlockSuggesterProps,
   getVariantIcon,
-} from "../../blocks/page/createSuggester/BlockSuggester";
-import { useFilteredBlocks } from "../../blocks/page/createSuggester/useFilteredBlocks";
-import { useUserBlocks } from "../../blocks/userBlocks";
-import { FontAwesomeIcon } from "../../shared/icons";
+} from "../createSuggester/BlockSuggester";
+import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
+import { useUserBlocks } from "../../userBlocks";
+import { FontAwesomeIcon } from "../../../shared/icons";
 
 type BlockListMenuContentProps = {
   popupState?: PopupState;
