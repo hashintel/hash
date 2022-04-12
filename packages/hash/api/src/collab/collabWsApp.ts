@@ -11,7 +11,7 @@ import {
   DocumentChange,
   DOCUMENT_UPDATED,
   InitialConnectionData,
-  INITIAL_DOCUMENT,
+  INITIAL_STATE,
   parseVersion,
   POSITION_UPDATED,
   ReportPositionAction,
@@ -212,7 +212,7 @@ const handleUpdateDocument = async (
         emitServerError(socket, "Version not current.");
       }
     } else {
-      callback(result);
+      callback?.(result);
     }
   } catch (error) {
     emitServerError(socket, error);
@@ -285,7 +285,7 @@ export const createCollabWsApp = async (
 
     // An initial document is emitted
     emitServerEvent(socket, {
-      type: INITIAL_DOCUMENT,
+      type: INITIAL_STATE,
       doc: instance.state.doc.toJSON(),
       store: entityStorePluginState(instance.state).store,
       version: instance.version,

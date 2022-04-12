@@ -9,7 +9,7 @@ import { useLocalstorageState } from "rooks";
 import { Button } from "../../shared/ui";
 import { BlockLoadedProvider } from "../onBlockLoaded";
 import { RemoteBlockMetadata, UserBlocksProvider } from "../userBlocks";
-import { EditorConnection } from "./collab/EditorConnection";
+import { EditorConnectionInterface } from "./collab/EditorConnectionInterface";
 import { BlocksMetaMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
@@ -42,7 +42,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   const prosemirrorSetup = useRef<null | {
     view: EditorView<Schema>;
-    connection: EditorConnection | null;
+    connection: EditorConnectionInterface | null;
     manager: ProsemirrorSchemaManager;
   }>(null);
 

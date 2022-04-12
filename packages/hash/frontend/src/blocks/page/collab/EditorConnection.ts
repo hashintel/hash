@@ -11,6 +11,7 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
+import { State } from "./EditorConnectionInterface";
 import { AbortingPromise, GET, POST } from "./http";
 import { StatusError } from "./StatusError";
 
@@ -25,14 +26,6 @@ const repeat = <T>(val: T, count: number): T[] => {
   for (let i = 0; i < count; i++) result.push(val);
   return result;
 };
-
-class State {
-  constructor(
-    public edit: EditorState<Schema> | null,
-    public comm: string | null,
-    public version: number,
-  ) {}
-}
 
 type EditorConnectionAction =
   | {
@@ -88,7 +81,7 @@ export class EditorConnection {
   dispatch = (action: EditorConnectionAction) => {
     if (this.errored) {
       if (action.type === "update" && action.transaction) {
-        this.view.updateState(this.view.state.apply(action.transaction));
+        // this.view.updateState(this.view.state.apply(action.transaction));
       }
 
       return;
@@ -153,7 +146,7 @@ export class EditorConnection {
 
       let sendable;
       if (
-        (this.state.comm === "poll" || requestDone) &&
+        (this.state.mode === "poll" || requestDone) &&
         // eslint-disable-next-line no-cond-assign
         (sendable = this.sendable(newEditState))
       ) {
@@ -164,13 +157,13 @@ export class EditorConnection {
         this.state = new State(newEditState, "poll", nextVersion);
         this.poll();
       } else {
-        this.state = new State(newEditState, this.state.comm, nextVersion);
+        this.state = new State(newEditState, this.state.mode, nextVersion);
       }
     }
 
     // Sync the editor with this.state.edit
     if (this.state.edit) {
-      this.view.updateState(this.state.edit);
+      // this.view.updateState(this.state.edit);
     } else {
       // @todo disable
     }

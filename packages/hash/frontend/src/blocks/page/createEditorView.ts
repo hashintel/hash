@@ -7,7 +7,8 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { BlockView } from "./BlockView";
-import { EditorConnection } from "./collab/EditorConnection";
+import { EditorConnectionInterface } from "./collab/EditorConnectionInterface";
+import { EditorWsConnection } from "./collab/EditorWsConnection";
 import { ComponentView } from "./ComponentView";
 import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
@@ -37,7 +38,7 @@ export const createEditorView = (
 
   const state = createProseMirrorState({ accountId, plugins });
 
-  let connection: EditorConnection;
+  let connection: EditorConnectionInterface;
 
   const view = new EditorView<Schema>(renderNode, {
     state,
@@ -116,13 +117,22 @@ export const createEditorView = (
     },
   );
 
-  connection = new EditorConnection(
-    `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
-    view.state.schema,
-    view,
-    manager,
-    plugins,
-    accountId,
+  // connection = new EditorConnection(
+  //   `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
+  //   view.state.schema,
+  //   view,
+  //   manager,
+  //   plugins,
+  //   accountId,
+  //   () => {
+  //     view.dispatch(onError(view.state.tr));
+  //   },
+  // );
+
+  connection = new EditorWsConnection(
+    apiOrigin,
+    { schema: view.state.schema, view, manager, additionalPlugins: plugins },
+    { accountId, pageEntityId },
     () => {
       view.dispatch(onError(view.state.tr));
     },

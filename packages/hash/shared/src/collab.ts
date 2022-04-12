@@ -31,9 +31,9 @@ export type ErrorEvent = {
 
 // Used exclusively for sending a snapshot of the newest version
 // when connecting initially
-export const INITIAL_DOCUMENT = "initialDocument" as const;
-export type InitialDocumentEvent = {
-  type: typeof INITIAL_DOCUMENT;
+export const INITIAL_STATE = "initialDocument" as const;
+export type InitialStateEvent = {
+  type: typeof INITIAL_STATE;
   doc: ProsemirrorJson;
   store: EntityStore;
   version: number;
@@ -55,7 +55,7 @@ export type PositionUpdatedEvent = {
 
 export type ServerEvent =
   | ErrorEvent
-  | InitialDocumentEvent
+  | InitialStateEvent
   | DocumentUpdatedEvent
   | PositionUpdatedEvent;
 
