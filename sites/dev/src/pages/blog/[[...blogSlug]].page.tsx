@@ -8,7 +8,11 @@ import {
   BlogPostPhotosContext,
 } from "../../components/BlogPost";
 import { MdxPageContent } from "../../components/MdxPageContent";
-import { getAllPageHrefs, getSerializedPage } from "../../util/mdxUtil";
+import {
+  getAllPageHrefs,
+  getSerializedPage,
+  parseAST,
+} from "../../util/mdxUtil";
 
 const imageSize = promisify(legacyImageSize);
 
@@ -66,7 +70,7 @@ export const getStaticProps: GetStaticProps<
   //
   // Using try / catch prevents 500, but we might not need them in Next v12+.
   try {
-    const [serializedPage, data] = await getSerializedPage({
+    const [serializedPage, data, images] = await getSerializedPage({
       pathToDirectory: "blog",
       fileNameWithoutIndex,
     });
@@ -74,14 +78,21 @@ export const getStaticProps: GetStaticProps<
     const authorPhotoSrc: string | null = data?.authorPhoto ?? null;
     const postPhotoSrc: string | null = data?.postPhoto ?? null;
 
-    const [authorPhoto, postPhoto] = await Promise.all([
+    const [authorPhoto, postPhoto, bodyImages] = await Promise.all([
       getPhoto(authorPhotoSrc),
       getPhoto(postPhotoSrc),
+
+      Promise.all(
+        images.map(
+          async (image) => [image.url, await getPhoto(image.url)] as const,
+        ),
+      ).then((pairs) => Object.fromEntries(pairs)),
     ]);
 
     const photos: BlogPagePhotos = {
       author: authorPhoto,
       post: postPhoto,
+      body: bodyImages,
     };
 
     return {

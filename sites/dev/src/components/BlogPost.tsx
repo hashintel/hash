@@ -13,11 +13,12 @@ export type BlogPagePhoto = {
 export type BlogPagePhotos = {
   author: BlogPagePhoto | null;
   post: BlogPagePhoto | null;
+  body: Record<string, BlogPagePhoto | null>;
 };
 
 export const BlogPostPhotosContext = createContext<BlogPagePhotos | null>(null);
 
-const useBlogPostPhotos = () => {
+export const useBlogPostPhotos = () => {
   const context = useContext(BlogPostPhotosContext);
 
   if (!context) {

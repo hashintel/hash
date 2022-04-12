@@ -1,6 +1,25 @@
 import { Box, Typography, TypographyProps } from "@mui/material";
-import { ReactNode } from "react";
-import { BlogPostContent, BlogPostHead } from "../components/BlogPost";
+import Image from "next/image";
+import { ReactNode, VFC } from "react";
+import {
+  BlogPostContent,
+  BlogPostHead,
+  useBlogPostPhotos,
+} from "../components/BlogPost";
+
+const MdxImage: VFC<{ src: string; alt?: string; title?: string }> = ({
+  src,
+  ...props
+}) => {
+  const { body } = useBlogPostPhotos();
+  const details = body[src];
+
+  if (!details?.src) {
+    return null;
+  }
+
+  return <Image {...props} {...details} layout="responsive" />;
+};
 
 export const mdxComponents: Record<string, ReactNode> = {
   Box,
@@ -9,4 +28,5 @@ export const mdxComponents: Record<string, ReactNode> = {
   BlogPostContent,
 
   p: (props: TypographyProps<"p">) => <Typography {...props} component="p" />,
+  img: MdxImage,
 };
