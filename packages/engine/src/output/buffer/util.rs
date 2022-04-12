@@ -59,7 +59,7 @@ fn remove_experiment_parts(experiment_id: &ExperimentId) -> Result<()> {
         .filter_map(std::result::Result::ok)
         .for_each(|path| match std::fs::remove_dir_all(&path) {
             Ok(_) => {
-                tracing::trace!("Removed parts folder {path:?}.")
+                tracing::trace!("Removed parts folder for experiment {experiment_id}: {path:?}")
             }
             Err(err) => {
                 tracing::warn!("Could not clean up {path:?}: {err}");
