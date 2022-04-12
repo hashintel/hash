@@ -83,7 +83,13 @@ export const BlockLoaderInput: React.VFC = () => {
         required
         value={blockUrl}
         sx={{ flex: 1 }}
+        InputProps={{
+          inputRef: blockUrlRef,
+        }}
         onChange={(event) => setBlockUrl(event.target.value)}
+        onKeyDown={(evt) => {
+          evt.stopPropagation();
+        }}
       />
       <Collapse in={!!blockUrl}>
         <Button

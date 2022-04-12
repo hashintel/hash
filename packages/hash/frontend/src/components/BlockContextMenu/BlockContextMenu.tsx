@@ -146,6 +146,7 @@ export const BlockContextMenu = forwardRef<
           width: 228,
         },
       }}
+      data-testid="block-context-menu"
     >
       <Box component="li" px={2} pt={1.5} mb={1}>
         <BlockLoaderInput />
