@@ -7,10 +7,12 @@ use crate::{agent::Agent, dataset::DatasetMap, globals::Globals, message::Inboun
 
 mod batch;
 mod column;
+mod schema;
 
 pub use self::{
     batch::ContextBatch,
     column::{ContextColumn, ContextColumnWriter},
+    schema::ContextSchema,
 };
 
 pub type AgentIndex = (u32, u32);

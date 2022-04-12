@@ -7,7 +7,7 @@ use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
-    context::ContextColumn,
+    context::{ContextColumn, ContextSchema},
     field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     state::{StateReadProxy, StateSnapshot},
@@ -21,9 +21,9 @@ use crate::{
     simulation::{
         comms::package::PackageComms,
         package::context::{
-            packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextSchema,
-            FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound,
-            Package as ContextPackage, Package, PackageCreator, SimRunConfig,
+            packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, FieldSpecMapAccessor,
+            GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound, Package as ContextPackage,
+            Package, PackageCreator, SimRunConfig,
         },
         Result,
     },

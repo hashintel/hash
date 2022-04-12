@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
-    context::ContextColumn,
+    context::{ContextColumn, ContextSchema},
     field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     state::{StateReadProxy, StateSnapshot},
@@ -13,10 +13,7 @@ use tracing::Span;
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
     config::{ExperimentConfig, SimRunConfig, TopologyConfig},
-    datastore::{
-        batch::{iterators, AgentBatch},
-        schema::context::ContextSchema,
-    },
+    datastore::batch::{iterators, AgentBatch},
     simulation::{
         comms::package::PackageComms,
         package::{

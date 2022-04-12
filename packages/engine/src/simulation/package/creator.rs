@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use stateful::{
     agent::AgentSchema,
+    context::ContextSchema,
     field::{
         FieldScope, FieldSource, FieldSpecMap, FieldSpecMapAccessor, FieldType, PackageId,
         RootFieldSpec, RootFieldSpecCreator,
@@ -11,7 +12,7 @@ use stateful::{
 
 use crate::{
     config::{ExperimentConfig, PackageConfig, SimRunConfig},
-    datastore::schema::{context::ContextSchema, last_state_index_key},
+    datastore::schema::last_state_index_key,
     simulation::{
         comms::{package::PackageComms, Comms},
         package::{

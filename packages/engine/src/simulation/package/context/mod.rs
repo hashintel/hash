@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use stateful::{
-    context::ContextColumn,
+    context::{ContextColumn, ContextSchema},
     field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     state::{StateReadProxy, StateSnapshot},
@@ -14,7 +14,6 @@ use tracing::Span;
 pub use self::packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
 use crate::{
     config::{ExperimentConfig, SimRunConfig},
-    datastore::schema::context::ContextSchema,
     simulation::{
         comms::package::PackageComms,
         package::{
