@@ -51,12 +51,12 @@ pub fn cleanup_experiment(
             }
         });
 
-    remove_experiment_parts(experiment_id)?;
+    remove_experiment_parts(experiment_id);
 
     Ok(())
 }
 
-fn remove_experiment_parts(experiment_id: &ExperimentId) -> Result<()> {
+fn remove_experiment_parts(experiment_id: &ExperimentId) {
     let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
     match std::fs::remove_dir_all(&path) {
         Ok(_) => {
@@ -79,6 +79,4 @@ fn remove_experiment_parts(experiment_id: &ExperimentId) -> Result<()> {
             tracing::warn!("Could not remove the parts folder: {err}");
         }
     }
-
-    Ok(())
 }
