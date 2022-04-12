@@ -682,9 +682,7 @@ const addSourceEntityVersionIdToAggregations = async (
   params: {
     entity: DbEntity;
     omittedAggregations?: {
-      sourceAccountId: string;
-      sourceEntityId: string;
-      path: string;
+      aggregationId: string;
     }[];
     newSourceEntityVersionId: string;
   },
@@ -699,22 +697,18 @@ const addSourceEntityVersionIdToAggregations = async (
 
   const isDbAggregationInNextVersion = (aggregation: DbAggregation): boolean =>
     params.omittedAggregations?.find(
-      ({ path }) => path === aggregation.path,
+      ({ aggregationId }) => aggregationId === aggregation.aggregationId,
     ) === undefined;
 
   const { newSourceEntityVersionId } = params;
 
   await Promise.all(
-    aggregations
-      .filter(isDbAggregationInNextVersion)
-      .map(({ sourceAccountId, sourceEntityId, path }) =>
-        addSourceEntityVersionIdToAggregation(conn, {
-          sourceAccountId,
-          sourceEntityId,
-          path,
-          newSourceEntityVersionId,
-        }),
-      ),
+    aggregations.filter(isDbAggregationInNextVersion).map(({ aggregationId }) =>
+      addSourceEntityVersionIdToAggregation(conn, {
+        aggregationId,
+        newSourceEntityVersionId,
+      }),
+    ),
   );
 };
 
@@ -730,9 +724,7 @@ export const updateVersionedEntity = async (
     properties: any;
     updatedByAccountId: string;
     omittedAggregations?: {
-      sourceAccountId: string;
-      sourceEntityId: string;
-      path: string;
+      aggregationId: string;
     }[];
   },
 ) => {

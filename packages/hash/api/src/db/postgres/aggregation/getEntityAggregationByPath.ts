@@ -1,5 +1,5 @@
 import { sql } from "slonik";
-import { DbAggregation } from "../../adapter";
+import { DbAggregation, DbClient } from "../../adapter";
 
 import { Connection } from "../types";
 import {
@@ -8,14 +8,9 @@ import {
   mapRowToDbAggregation,
 } from "./util";
 
-export const getEntityAggregation = async (
+export const getEntityAggregationByPath = async (
   conn: Connection,
-  params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    sourceEntityVersionId?: string;
-    path: string;
-  },
+  params: Parameters<DbClient["getEntityAggregationByPath"]>[0],
 ): Promise<DbAggregation | null> => {
   const row = await conn.maybeOne<DbAggregationRow>(sql`
     select ${aggregationsColumnNamesSQL}
@@ -33,7 +28,7 @@ export const getEntityAggregation = async (
         sql` and `,
       )}
     order by created_at desc  
-    limit 1
+    limit 1 -- @todo: remove when aggregation versions are stored in separate table
   `);
 
   return row ? mapRowToDbAggregation(row) : null;
