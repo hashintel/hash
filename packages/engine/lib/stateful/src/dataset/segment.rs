@@ -1,6 +1,6 @@
 use memory::shared_memory::{MemoryId, Metaversion, Segment};
 
-use crate::{datastore::error::Result, proto::SharedDataset};
+use crate::{dataset::SharedDataset, Result};
 
 // TODO: Datasets are just data in memory segments, not really batches, so the parent module should
 //       be renamed or the `Dataset` struct should be moved.
@@ -13,7 +13,7 @@ impl Dataset {
         &self.segment
     }
 
-    pub fn new_from_dataset(dataset: &SharedDataset, memory_id: MemoryId) -> Result<Self> {
+    pub fn from_shared(dataset: &SharedDataset, memory_id: MemoryId) -> Result<Self> {
         let metaversion = Metaversion::default().to_le_bytes();
         let dataset_name = &dataset.shortname;
         let mut header = vec![0u8; metaversion.len() + dataset_name.len()];

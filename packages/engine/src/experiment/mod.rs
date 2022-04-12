@@ -18,7 +18,6 @@ use crate::{
     types::SpanId,
 };
 
-pub type SharedDataset = proto::SharedDataset;
 pub type SharedBehavior = proto::SharedBehavior;
 pub type SimPackageArgs = proto::SimPackageArgs;
 pub type Simulation = proto::ProjectBase;

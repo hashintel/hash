@@ -1614,6 +1614,7 @@ dependencies = [
  "rand_distr",
  "serde",
  "serde_json",
+ "stateful",
  "tokio",
  "tracing",
  "uuid",

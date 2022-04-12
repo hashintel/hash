@@ -3,7 +3,7 @@
 
 use serde::Serialize;
 
-use crate::{agent::Agent, dataset::DatasetMap, globals::Globals, message::Inbound};
+use crate::{agent::Agent, globals::Globals, message::Inbound};
 
 mod batch;
 mod column;
@@ -35,5 +35,5 @@ pub struct Context<'a> {
     pub globals: &'a Globals,
     pub neighbors: Vec<&'a Agent>,
     pub messages: Vec<&'a Inbound>,
-    pub datasets: &'a DatasetMap,
+    pub datasets: &'a serde_json::Map<String, serde_json::Value>,
 }
