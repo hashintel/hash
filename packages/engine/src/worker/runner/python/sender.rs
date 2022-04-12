@@ -114,13 +114,6 @@ impl NngSender {
     }
 }
 
-impl Drop for NngSender {
-    fn drop(&mut self) {
-        // TODO: Check whether nng already does this when a socket is dropped
-        self.to_py.close();
-    }
-}
-
 // TODO: Make this function shorter.
 fn inbound_to_nng(
     sim_id: Option<SimulationShortId>,

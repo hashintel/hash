@@ -1641,7 +1641,7 @@ describe("logged in user ", () => {
     });
     expect(gqlAggregation.results).toHaveLength(numberOfAggregateEntities);
 
-    const aggregation = (await sourceEntity.getAggregation(db, {
+    const aggregation = (await sourceEntity.getAggregationByPath(db, {
       stringifiedPath: variables.path,
     }))!;
 
@@ -1725,7 +1725,7 @@ describe("logged in user ", () => {
       pageCount: 0,
     });
 
-    const aggregation = (await sourceEntity.getAggregation(db, {
+    const aggregation = (await sourceEntity.getAggregationByPath(db, {
       stringifiedPath,
     }))!;
 
@@ -1760,7 +1760,7 @@ describe("logged in user ", () => {
       path: stringifiedPath,
     });
 
-    const aggregation = await sourceEntity.getAggregation(db, {
+    const aggregation = await sourceEntity.getAggregationByPath(db, {
       stringifiedPath,
     });
 

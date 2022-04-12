@@ -90,19 +90,17 @@ impl MemoryId {
     }
 
     /// Clean up generated shared memory segments associated with a given `MemoryId`.
-    pub fn clean_up<Id: Borrow<Uuid>>(id: Id) -> Result<()> {
+    pub fn clean_up<Id: Borrow<Uuid>>(id: Id) {
         // TODO: macOS does not store the shared memory FDs at `/dev/shm/`. Maybe it's not storing
         //   FDs at all. Find out if they are stored somewhere and remove them instead, otherwise we
         //   have to figure out a way to remove them without relying on the file-system.
-        let shm_files = glob::glob(&format!("/dev/shm/{}_*", Self::prefix(id)))
-            .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
+        let shm_files = glob::glob(&format!("/dev/shm/{}_*", Self::prefix(id)));
 
-        shm_files.flatten().for_each(|path| {
+        shm_files.into_iter().flatten().flatten().for_each(|path| {
             if let Err(err) = std::fs::remove_file(&path) {
                 tracing::warn!("Could not clean up {path:?}: {err}");
             }
         });
-        Ok(())
     }
 }
 

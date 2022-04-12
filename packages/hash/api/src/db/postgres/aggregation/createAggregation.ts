@@ -1,5 +1,5 @@
 import { Connection } from "../types";
-import { DbAggregation } from "../../adapter";
+import { DbAggregation, DbClient } from "../../adapter";
 import {
   acquireEntityLock,
   getEntityLatestVersion,
@@ -8,16 +8,11 @@ import {
 import { DbEntityNotFoundError } from "../..";
 import { insertAggregation } from "./util";
 import { requireTransaction } from "../util";
+import { genId } from "../../../util";
 
 export const createAggregation = async (
   existingConnection: Connection,
-  params: {
-    createdByAccountId: string;
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
-    operation: object;
-  },
+  params: Parameters<DbClient["createAggregation"]>[0],
 ): Promise<DbAggregation> =>
   requireTransaction(existingConnection)(async (conn) => {
     const { sourceAccountId, sourceEntityId, createdByAccountId } = params;
@@ -52,15 +47,16 @@ export const createAggregation = async (
 
     const now = new Date();
 
-    const createdAt = now;
+    const aggregation: DbAggregation = {
+      ...params,
+      aggregationId: genId(),
+      sourceEntityVersionIds,
+      createdAt: now,
+    };
 
     await insertAggregation(conn, {
-      aggregation: {
-        ...params,
-        sourceEntityVersionIds,
-        createdAt,
-      },
+      aggregation,
     });
 
-    return { ...params, sourceEntityVersionIds, createdAt };
+    return aggregation;
   });
