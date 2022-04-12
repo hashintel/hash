@@ -5,7 +5,10 @@ mod util;
 
 use serde::Serialize;
 
-pub use self::{part::OutputPartBuffer, util::cleanup_experiment};
+pub use self::{
+    part::OutputPartBuffer,
+    util::{cleanup_experiment, EngineExitStatus},
+};
 use crate::{
     output::error::{Error, Result},
     proto::{ExperimentId, SimulationShortId},
