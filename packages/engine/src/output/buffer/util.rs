@@ -34,15 +34,20 @@ pub fn cleanup_experiment(
             Ok(_) => {
                 match exit_status {
                     EngineExitStatus::Success => tracing::error!(
+                        experiment = %experiment_id,
                         "Removed file {path:?} that should've been cleanup by the engine."
                     ),
                     EngineExitStatus::Error => tracing::warn!(
+                        experiment = %experiment_id,
                         "Removed file {path:?} that should've been cleanup by the engine."
                     ),
                 };
             }
             Err(err) => {
-                tracing::warn!("Could not clean up {path:?}: {err}");
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Could not clean up {path:?}: {err}"
+                );
             }
         });
 
@@ -52,28 +57,26 @@ pub fn cleanup_experiment(
 }
 
 fn remove_experiment_parts(experiment_id: &ExperimentId) -> Result<()> {
-    let parts_fimes = glob::glob(&format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}"))
-        .map_err(|err| Error::Unique(format!("cleanup glob error: {err}")))?;
+    let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
+    match std::fs::remove_dir_all(&path) {
+        Ok(_) => {
+            tracing::trace!(
+                experiment = %experiment_id,
+                "Removed parts folder for experiment {experiment_id}: {path:?}"
+            );
+        }
+        Err(err) => {
+            tracing::warn!(
+                experiment = %experiment_id,
+                "Could not clean up {path:?}: {err}"
+            );
+        }
+    }
 
-    parts_fimes
-        .filter_map(std::result::Result::ok)
-        .for_each(|path| match std::fs::remove_dir_all(&path) {
-            Ok(_) => {
-                tracing::trace!("Removed parts folder for experiment {experiment_id}: {path:?}")
-            }
-            Err(err) => {
-                tracing::warn!("Could not clean up {path:?}: {err}");
-            }
-        });
-
-    // TODO: use ErrorKind::DirectoryNotEmpty when it's stable and remove the `if`
-    if std::fs::read_dir(RELATIVE_PARTS_FOLDER)?.next().is_none() {
-        match std::fs::remove_dir(RELATIVE_PARTS_FOLDER) {
-            Ok(_) => tracing::trace!("Removed parts folder."),
-            // Err(err) if err.kind() == std::io::ErrorKind::DirectoryNotEmpty => {}
-            Err(err) => {
-                return Err(err.into());
-            }
+    match std::fs::remove_dir(RELATIVE_PARTS_FOLDER) {
+        Ok(_) => tracing::trace!("Removed parts folder."),
+        Err(err) => {
+            tracing::warn!("Could not remove the parts folder: {err}");
         }
     }
 
