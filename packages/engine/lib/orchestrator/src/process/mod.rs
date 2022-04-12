@@ -6,7 +6,10 @@ use std::process::ExitStatus;
 
 use async_trait::async_trait;
 use error::Result;
-use hash_engine_lib::proto::EngineMsg;
+use hash_engine_lib::{
+    output::buffer::EngineExitStatus,
+    proto::{EngineMsg, ExperimentId},
+};
 pub use local::{LocalCommand, LocalProcess};
 
 /// The engine-subprocess running in the background.
@@ -15,7 +18,11 @@ pub use local::{LocalCommand, LocalProcess};
 #[async_trait]
 pub trait Process {
     /// Exits the subprocess and cleans up resources used for it.
-    async fn exit_and_cleanup(self: Box<Self>) -> Result<()>;
+    async fn exit_and_cleanup(
+        self: Box<Self>,
+        experiment_id: ExperimentId,
+        exit_status: EngineExitStatus,
+    ) -> Result<()>;
 
     /// Sends a message to the underlying process
     ///
