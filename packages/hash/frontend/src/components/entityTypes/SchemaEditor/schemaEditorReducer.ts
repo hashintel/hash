@@ -1,4 +1,4 @@
-import produce from "immer";
+import produce, { Draft } from "immer";
 import { Schema } from "jsonschema";
 import { get } from "lodash";
 import { Reducer } from "react";
@@ -35,10 +35,10 @@ export type SchemaEditorDispatcher = (
   action: SchemaEditorReducerAction,
 ) => void;
 
-const selectSubSchema = (
-  schema: JsonSchema,
+const selectSubSchema = <T extends JsonSchema | Draft<JsonSchema>>(
+  schema: T,
   pathToSubSchema: string | undefined,
-): JsonSchema => (pathToSubSchema ? get(schema, pathToSubSchema) : schema);
+): T => (pathToSubSchema ? get(schema, pathToSubSchema) : schema);
 
 const updatePropertyType = (
   schemaToEdit: JsonSchema,
@@ -108,8 +108,10 @@ const getDependentProperties = (
 };
 
 // returns propertyname as string or path to propertyname as string[]
-export const getSubschemaDependentProperties = (
-  schema: JsonSchema,
+export const getSubschemaDependentProperties = <
+  T extends JsonSchema | Draft<JsonSchema>,
+>(
+  schema: T,
   subSchemaNameToDelete: string,
 ): (string | string[])[] => {
   const { properties, $defs } = schema;
@@ -120,11 +122,12 @@ export const getSubschemaDependentProperties = (
     ...getDependentProperties(properties, subSchemaNameToDelete),
   );
 
-  for (const subSchemaName of Object.keys($defs ?? {})) {
+  for (const subSchemaName of Object.keys(($defs as T["$defs"]) ?? {})) {
     if (subSchemaName === subSchemaNameToDelete) {
       continue;
     }
 
+    // @ts-expect-error Recursive type checking issue - TODO figure out a better solution than ignoring
     const { properties: subschemaProperties } = $defs?.[subSchemaName] ?? {};
 
     dependentProperties.push(
@@ -161,8 +164,6 @@ export const schemaEditorReducer: Reducer<
         return schemaState;
       }
       return produce(schemaState, (draftRootSchema) => {
-        // @ts-expect-error TS warns `Type instantiation is excessively deep`
-        // @todo figure out why here and not below, which uses the same code
         const schemaToEdit = selectSubSchema(draftRootSchema, pathToSubSchema);
         schemaToEdit.properties ??= {};
         schemaToEdit.properties[action.payload.newPropertyName] = {
