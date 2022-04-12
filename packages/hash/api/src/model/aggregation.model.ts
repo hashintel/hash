@@ -38,17 +38,22 @@ export type CreateAggregationArgs = {
 
 export type AggregationConstructorArgs = {
   aggregationId: string;
+  aggregationVersionId: string;
 
   stringifiedPath: string;
 
   sourceAccountId: string;
   sourceEntityId: string;
-  sourceEntityVersionIds: Set<string>;
+
+  appliedToSourceAt: Date;
+  appliedToSourceByAccountId: string;
+  removedFromSourceAt?: Date;
+  removedFromSourceByAccountId?: string;
 
   operation: UnresolvedGQLAggregateOperation;
 
-  createdByAccountId: string;
-  createdAt: Date;
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
 const mapDbAggregationToModel = (dbAggregation: DbAggregation) =>
@@ -60,38 +65,51 @@ const mapDbAggregationToModel = (dbAggregation: DbAggregation) =>
 
 class __Aggregation {
   aggregationId: string;
+  aggregationVersionId: string;
 
   stringifiedPath: string;
   path: jp.PathComponent[];
 
   sourceAccountId: string;
   sourceEntityId: string;
-  sourceEntityVersionIds: Set<string>;
+
+  appliedToSourceAt: Date;
+  appliedToSourceByAccountId: string;
+  removedFromSourceAt?: Date;
+  removedFromSourceByAccountId?: string;
 
   operation: UnresolvedGQLAggregateOperation;
 
-  createdByAccountId: string;
-  createdAt: Date;
+  updatedAt: Date;
+  updatedByAccountId: string;
 
   constructor({
     aggregationId,
+    aggregationVersionId,
     stringifiedPath,
     operation,
     sourceAccountId,
     sourceEntityId,
-    sourceEntityVersionIds,
-    createdAt,
-    createdByAccountId,
+    appliedToSourceAt,
+    appliedToSourceByAccountId,
+    removedFromSourceAt,
+    removedFromSourceByAccountId,
+    updatedAt,
+    updatedByAccountId,
   }: AggregationConstructorArgs) {
     this.aggregationId = aggregationId;
+    this.aggregationVersionId = aggregationVersionId;
     this.stringifiedPath = stringifiedPath;
     this.path = Link.parseStringifiedPath(stringifiedPath);
     this.operation = operation;
     this.sourceAccountId = sourceAccountId;
     this.sourceEntityId = sourceEntityId;
-    this.sourceEntityVersionIds = sourceEntityVersionIds;
-    this.createdAt = createdAt;
-    this.createdByAccountId = createdByAccountId;
+    this.appliedToSourceAt = appliedToSourceAt;
+    this.appliedToSourceByAccountId = appliedToSourceByAccountId;
+    this.removedFromSourceAt = removedFromSourceAt;
+    this.removedFromSourceByAccountId = removedFromSourceByAccountId;
+    this.updatedAt = updatedAt;
+    this.updatedByAccountId = updatedByAccountId;
   }
 
   static isPathValid(path: string): boolean {
@@ -256,9 +274,6 @@ class __Aggregation {
     const dbAggregation = await client.getEntityAggregationByPath({
       sourceAccountId,
       sourceEntityId,
-      sourceEntityVersionId: source.metadata.versioned
-        ? source.entityVersionId
-        : undefined,
       path: stringifiedPath,
     });
 
@@ -268,6 +283,7 @@ class __Aggregation {
   static async getAggregationById(
     client: DbClient,
     params: {
+      sourceAccountId: string;
       aggregationId: string;
     },
   ): Promise<Aggregation | null> {
@@ -280,17 +296,16 @@ class __Aggregation {
     client: DbClient,
     params: {
       source: Entity;
+      activeAt?: Date;
     },
   ): Promise<Aggregation[]> {
-    const { source } = params;
+    const { source, activeAt } = params;
     const { accountId: sourceAccountId, entityId: sourceEntityId } = source;
 
     const dbAggregations = await client.getEntityAggregations({
       sourceAccountId,
       sourceEntityId,
-      sourceEntityVersionId: source.metadata.versioned
-        ? source.entityVersionId
-        : undefined,
+      activeAt,
     });
 
     return dbAggregations.map(mapDbAggregationToModel);
@@ -300,17 +315,18 @@ class __Aggregation {
     client: DbClient,
     params: {
       operation: AggregateOperationInput;
+      updatedByAccountId: string;
     },
   ): Promise<Aggregation> {
-    const operation: UnresolvedGQLAggregateOperation = {
-      ...params.operation,
-      itemsPerPage: params.operation.itemsPerPage ?? 10,
-      pageNumber: params.operation.pageNumber ?? 1,
-    };
-
     const updatedDbAggregation = await client.updateAggregationOperation({
+      sourceAccountId: this.sourceAccountId,
       aggregationId: this.aggregationId,
-      operation,
+      updatedOperation: {
+        ...params.operation,
+        itemsPerPage: params.operation.itemsPerPage ?? 10,
+        pageNumber: params.operation.pageNumber ?? 1,
+      },
+      updatedByAccountId: params.updatedByAccountId,
     });
 
     merge(this, mapDbAggregationToModel(updatedDbAggregation));
@@ -388,6 +404,7 @@ class __Aggregation {
   ): Promise<void> {
     const { deletedByAccountId } = params;
     await client.deleteAggregation({
+      sourceAccountId: this.sourceAccountId,
       aggregationId: this.aggregationId,
       deletedByAccountId,
     });
