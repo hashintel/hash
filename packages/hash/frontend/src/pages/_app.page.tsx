@@ -38,6 +38,7 @@ const App: React.VoidFunctionComponent<AppProps> = ({
   pageProps,
   emotionCache = clientSideEmotionCache,
 }) => {
+  // Helps prevent tree mismatch between server and client on initial render
   const [ssr, setSsr] = useState(true);
   const router = useRouter();
 
