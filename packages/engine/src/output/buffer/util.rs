@@ -36,8 +36,7 @@ pub fn cleanup_experiment(
                     EngineExitStatus::Success => tracing::error!(
                         "Removed file {path:?} that should've been cleanup by the engine."
                     ),
-                    EngineExitStatus::Error => tracing::event!(
-                        tracing::Level::TRACE,
+                    EngineExitStatus::Error => tracing::warn!(
                         "Removed file {path:?} that should've been cleanup by the engine."
                     ),
                 };
