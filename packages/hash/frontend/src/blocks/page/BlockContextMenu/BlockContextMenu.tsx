@@ -54,10 +54,12 @@ export const BlockContextMenu = forwardRef<
   }
 
   const menuItems = useMemo(() => {
+    const hasChildEntity =
+      Object.keys(blockData?.properties.entity?.properties ?? {}).length > 0;
     const items = [
       {
         key: "set-entity",
-        title: "Add an entity",
+        title: hasChildEntity ? "Swap Entity" : "Add an entity",
         icon: <FontAwesomeIcon icon={faAdd} />,
         // @todo fix this TS issue. all subMenu's require
         // popupState and that's passed in through cloneElement
@@ -113,7 +115,7 @@ export const BlockContextMenu = forwardRef<
     }
 
     return items;
-  }, [entityId, blockSuggesterProps]);
+  }, [blockData, entityId, blockSuggesterProps]);
 
   useKey(["Escape"], () => {
     popupState.close();

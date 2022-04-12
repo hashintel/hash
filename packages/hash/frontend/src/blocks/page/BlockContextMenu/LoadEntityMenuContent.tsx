@@ -20,6 +20,7 @@ import { FontAwesomeIcon } from "../../../shared/icons";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import { LoadingSpinner, TextField } from "../../../shared/ui";
 import { useAccountEntities } from "../../../components/hooks/useAccountEntities";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 
 type LoadEntityMenuContentProps = {
   entityId: string | null;
@@ -56,7 +57,7 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   }, [blockView, entityId, accountId, fetchEntities]);
 
   const handleClick = useCallback(
-    (targetData: UnknownEntity) => {
+    (targetData: BlockEntity) => {
       let currentEntityStore = entityStorePluginStateFromTransaction(
         blockView.view.state.tr,
         blockView.view.state,
@@ -83,6 +84,8 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
 
       addEntityStoreAction(blockView.view.state, tr, {
         type: "updateBlockEntityProperties",
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore -- @todo fix typings
         payload: {
           targetEntity,
           draftId: `draft-${blockData.entityId}`,
@@ -97,7 +100,9 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
       const pos = blockView.getPos();
 
       const node = blockView.manager.createLocalBlock(
-        blockData?.properties.componentId,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore -- @todo fix typings
+        blockData.properties.componentId,
         currentEntityStore,
         `draft-${blockData.entityId}`,
       );
@@ -143,11 +148,15 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
       </Box>
       {entities.map((entity) => {
         return (
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore -- @todo fix typings
           <MenuItem key={entity.entityId} onClick={() => handleClick(entity)}>
             <ListItemIcon>
               <FontAwesomeIcon icon={faAsterisk} />
             </ListItemIcon>
             <ListItemText
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore -- @todo fix typings
               primary={entity.properties.entity.entityId}
               primaryTypographyProps={{
                 noWrap: true,

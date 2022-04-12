@@ -6,13 +6,12 @@ import {
   GetEntitiesQuery,
   GetEntitiesQueryVariables,
   EntityTypeChoice,
-  UnknownEntity,
 } from "../../graphql/apiTypes.gen";
 
 // @todo handle error state
 export const useAccountEntities = () => {
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<UnknownEntity[]>([]);
+  const [data, setData] = useState<GetEntitiesQuery["entities"]>([]);
   const client = useApolloClient();
 
   const fetchEntities = useCallback(

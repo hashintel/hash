@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 
 const entityFieldsFragment = gql`
-  fragment EntityFields on Entity {
+  fragment EntityFields on UnknownEntity {
     accountId
     entityId
     entityTypeId
