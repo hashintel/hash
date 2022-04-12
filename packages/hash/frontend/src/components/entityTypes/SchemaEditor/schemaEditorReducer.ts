@@ -40,8 +40,8 @@ const selectSubSchema = <T extends JsonSchema | Draft<JsonSchema>>(
   pathToSubSchema: string | undefined,
 ): T => (pathToSubSchema ? get(schema, pathToSubSchema) : schema);
 
-const updatePropertyType = (
-  schemaToEdit: JsonSchema,
+const updatePropertyType = <T extends JsonSchema | Draft<JsonSchema>>(
+  schemaToEdit: T,
   propertyName: string,
   newType: string,
 ): Schema => {
