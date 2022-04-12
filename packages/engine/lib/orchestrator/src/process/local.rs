@@ -36,7 +36,8 @@ impl process::Process for LocalProcess {
         exit_status: EngineExitStatus,
     ) -> Result<()> {
         // Kill the child process as it didn't stop on its own
-        self.child
+        let kill_result = self
+            .child
             .kill()
             .await
             .or_else(|e| match e.kind() {
@@ -45,12 +46,12 @@ impl process::Process for LocalProcess {
                 std::io::ErrorKind::InvalidInput => Ok(()),
                 _ => Err(Report::new(e)),
             })
-            .wrap_err("Could not kill the process")?;
+            .wrap_err("Could not kill the process");
 
         cleanup_experiment(&experiment_id, exit_status)?;
 
         debug!("Cleaned up local engine process for experiment");
-        Ok(())
+        kill_result
     }
 
     /// Creates or reuses a [`nano::Client`] to send a message to the [`hash_engine`] subprocess.
