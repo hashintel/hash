@@ -35,6 +35,8 @@ import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
+import { promise as asyncQueue, queue as Queue } from "fastq";
+
 import { logger } from "../logger";
 import { genId } from "../util";
 import { EntityWatcher } from "./EntityWatcher";
@@ -94,6 +96,15 @@ const updatesToDocumentUpdate = (
   };
 };
 
+type CollabEvent = {
+  apolloClient?: ApolloClient<unknown>;
+  version: number;
+  steps: Step[];
+  clientID: string;
+  actions: EntityStorePluginAction[];
+  fromClient: boolean;
+};
+
 // A collaborative editing document instance.
 export class Instance {
   /** The version number of the document instance. */
@@ -124,6 +135,8 @@ export class Instance {
 
   private readonly unsubscribeFromEntityWatcher: () => void;
 
+  private eventQueue: Queue<CollabEvent>;
+
   constructor(
     public accountId: string,
     public pageEntityId: string,
@@ -149,7 +162,64 @@ export class Instance {
     this.unsubscribeFromEntityWatcher = this.entityWatcher.subscribe(
       (entityVersion) => this.processEntityVersion(entityVersion),
     );
+
+    // Single-worker queue for handling event updated serially.
+    const self = this;
+    this.eventQueue = asyncQueue(self, this.handleCollabEvent, 1);
   }
+
+  async drainCollabQueue() {
+    await this.eventQueue.drain();
+  }
+
+  handleCollabEvent = async (collabEvent: CollabEvent) => {
+    const { apolloClient, actions, clientID, fromClient, version, steps } =
+      collabEvent;
+    try {
+      this.checkVersion(version);
+      if (this.version !== version) return false;
+
+      const tr = this.state.tr;
+
+      if (fromClient) {
+        disableEntityStoreTransactionInterpretation(tr);
+      }
+
+      for (let i = 0; i < steps.length; i++) {
+        this.clientIds.set(steps[i]!, clientID);
+
+        const result = tr.maybeStep(steps[i]!);
+        if (!result.doc) {
+          logger.warn("Bad step", steps[i]);
+          throw new Error(`Could not apply step ${JSON.stringify(steps[i])}`);
+        }
+      }
+
+      for (const action of actions) {
+        addEntityStoreAction(this.state, tr, { ...action, received: true });
+      }
+
+      this.state = this.state.apply(tr);
+
+      const updates: Update[] = [
+        ...steps.map((step) => ({ type: "step" as const, payload: step })),
+        ...actions.map((action) => ({
+          type: "action" as const,
+          payload: action,
+        })),
+      ];
+
+      this.addUpdates(updates);
+
+      if (apolloClient) {
+        // @todo offload saves to a separate process / debounce them
+        await this.save(apolloClient)(clientID);
+      }
+    } catch (err) {
+      this.error(err);
+      return false;
+    }
+  };
 
   stop() {
     if (this.stopped) {
@@ -335,7 +405,7 @@ export class Instance {
 
   addEvents =
     (apolloClient?: ApolloClient<unknown>) =>
-    (
+    async (
       version: number,
       steps: Step[],
       clientID: string,
@@ -346,55 +416,19 @@ export class Instance {
         return false;
       }
 
-      try {
-        this.checkVersion(version);
-        if (this.version !== version) return false;
+      await this.eventQueue.push({
+        apolloClient,
+        version,
+        steps,
+        clientID,
+        actions,
+        fromClient,
+      });
 
-        const tr = this.state.tr;
-
-        if (fromClient) {
-          disableEntityStoreTransactionInterpretation(tr);
-        }
-
-        for (let i = 0; i < steps.length; i++) {
-          this.clientIds.set(steps[i]!, clientID);
-
-          const result = tr.maybeStep(steps[i]!);
-          if (!result.doc) {
-            logger.warn("Bad step", steps[i]);
-            throw new Error("Could not apply step");
-          }
-        }
-
-        for (const action of actions) {
-          addEntityStoreAction(this.state, tr, { ...action, received: true });
-        }
-
-        this.state = this.state.apply(tr);
-
-        const updates: Update[] = [
-          ...steps.map((step) => ({ type: "step" as const, payload: step })),
-          ...actions.map((action) => ({
-            type: "action" as const,
-            payload: action,
-          })),
-        ];
-
-        this.addUpdates(updates);
-
-        if (apolloClient) {
-          // @todo offload saves to a separate process / debounce them
-          this.save(apolloClient)(clientID);
-        }
-      } catch (err) {
-        this.error(err);
-        return false;
-      }
-
-      return { version: this.version };
+      // return { version: this.version };
     };
 
-  save = (apolloClient: ApolloClient<unknown>) => (clientID: string) => {
+  save = (apolloClient: ApolloClient<unknown>) => async (clientID: string) => {
     this.saveChain = this.saveChain
       .catch()
       .then(async () => {
@@ -409,7 +443,7 @@ export class Instance {
         );
 
         if (actions.length) {
-          this.addEvents(apolloClient)(
+          await this.addEvents(apolloClient)(
             this.version,
             [],
             `${clientID}-server`,
@@ -431,7 +465,7 @@ export class Instance {
           entityStorePluginState(this.state).store,
           apolloClient,
           createdEntities,
-        ).then((newPage) => {
+        ).then(async (newPage) => {
           const actions: EntityStorePluginAction[] = [];
 
           /**
@@ -502,7 +536,7 @@ export class Instance {
           });
 
           if (actions.length) {
-            this.addEvents(apolloClient)(
+            await this.addEvents(apolloClient)(
               this.version,
               [],
               `${clientID}-server`,
@@ -640,7 +674,9 @@ export class Instance {
    * Get events between a given document version and the current document
    * version.
    */
-  getEvents(version: number) {
+  getEvents(
+    version: number,
+  ): (DocumentChange & { shouldRespondImmediately: boolean }) | false {
     try {
       if (this.errored) {
         return false;

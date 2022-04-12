@@ -15,6 +15,7 @@ import {
   DocumentUpdatedEvent,
   PositionUpdatedEvent,
   ClientAction,
+  VERSION_CONFLICT,
 } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
@@ -203,30 +204,28 @@ export class EditorWsConnection extends EditorConnectionInterface {
   ) {
     const actions = this.unsentActions(editState);
 
-    for (const action of actions) {
-      this.sentActions.add(action.id);
-    }
-
-    // Not sure where to use this with the socket.io setup
-    // const removeActions = () => {
-    //   for (const action of actions) {
-    //     this.sentActions.delete(action.id);
-    //   }
-    // };
-
     const { steps: innerSteps, clientID: clientId } = steps;
 
-    emitClientAction(this.socket, {
-      type: "updateDocument",
-      version: this.state.version,
-      steps: innerSteps.map((step) => step.toJSON()),
-      clientId,
-      // @todo do something smarter
-      blockIds: Object.keys(editState.schema.nodes).filter((key) =>
-        key.startsWith("http"),
-      ),
-      actions: actions.map((action) => action.action),
-    });
+    emitClientAction(
+      this.socket,
+      {
+        type: "updateDocument",
+        version: this.state.version,
+        steps: innerSteps.map((step) => step.toJSON()),
+        clientId,
+        // @todo do something smarter
+        blockIds: Object.keys(editState.schema.nodes).filter((key) =>
+          key.startsWith("http"),
+        ),
+        actions: actions.map((action) => action.action),
+      },
+      // Callback for when the server has acknowledged
+      () => {
+        for (const action of actions) {
+          this.sentActions.add(action.id);
+        }
+      },
+    );
     if (!this.state.edit) {
       throw new Error("Cannot receive steps without state");
     }
@@ -385,8 +384,16 @@ export class EditorWsConnection extends EditorConnectionInterface {
     console.debug("pos update", positions);
   };
 
+  onVersionConflict = () => {
+    emitClientAction(this.socket, {
+      type: "fetchVersion",
+      currentVersion: this.state.version,
+    });
+  };
+
   setupListeners() {
     this.socket.on(SERVER_ERROR, this.onServerError);
+    this.socket.on(VERSION_CONFLICT, this.onVersionConflict);
     this.socket.on(INITIAL_STATE, this.onInitialState);
     this.socket.on(DOCUMENT_UPDATED, this.onDocumentUpdated);
     this.socket.on(POSITION_UPDATED, this.onPositionUpdate);

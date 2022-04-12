@@ -12,9 +12,7 @@ export type DocumentChange = {
   actions: EntityStorePluginAction[];
 };
 
-/**
- * Represents user position within a page, sent to collab clients
- */
+/** Represents user position within a page, sent to collab clients */
 export interface CollabPosition {
   userId: string;
   userShortname: string;
@@ -22,16 +20,23 @@ export interface CollabPosition {
   entityId: string;
 }
 
-// Server events are events that the server publishes
 export const SERVER_ERROR = "serverError" as const;
+/** Server events are events that the server publishes */
 export type ErrorEvent = {
   type: typeof SERVER_ERROR;
   error: string;
 };
 
-// Used exclusively for sending a snapshot of the newest version
-// when connecting initially
+export const VERSION_CONFLICT = "versionConflict" as const;
+/** Document version conflict */
+export type VersionConflictEvent = {
+  type: typeof VERSION_CONFLICT;
+};
+
 export const INITIAL_STATE = "initialDocument" as const;
+/**
+ * Used exclusively for sending a snapshot of the newest version when connecting initially
+ */
 export type InitialStateEvent = {
   type: typeof INITIAL_STATE;
   doc: ProsemirrorJson;
@@ -39,15 +44,15 @@ export type InitialStateEvent = {
   version: number;
 };
 
-// Any document update
 export const DOCUMENT_UPDATED = "documentUpdated" as const;
+/** Any document update */
 export type DocumentUpdatedEvent = {
   type: typeof DOCUMENT_UPDATED;
   version: number;
 } & DocumentChange;
 
-// Any position updates
 export const POSITION_UPDATED = "positionUpdated" as const;
+/** Any position updates */
 export type PositionUpdatedEvent = {
   type: typeof POSITION_UPDATED;
   positions: CollabPosition[];
@@ -55,11 +60,13 @@ export type PositionUpdatedEvent = {
 
 export type ServerEvent =
   | ErrorEvent
+  | VersionConflictEvent
   | InitialStateEvent
   | DocumentUpdatedEvent
   | PositionUpdatedEvent;
 
 // Client action are requests that the user sends to the server
+
 export const UPDATE_DOCUMENT = "updateDocument" as const;
 export type UpdateAction = {
   type: typeof UPDATE_DOCUMENT;
@@ -70,13 +77,22 @@ export type UpdateAction = {
   actions: EntityStorePluginAction[];
 };
 
+export const FETCH_VERSION = "fetchVersion" as const;
+export type FetchVersionAction = {
+  type: typeof FETCH_VERSION;
+  currentVersion: number;
+};
+
 export const REPORT_POSITION = "reportPosition" as const;
 export type ReportPositionAction = {
   type: typeof REPORT_POSITION;
   entityId: string;
 };
 
-export type ClientAction = UpdateAction | ReportPositionAction;
+export type ClientAction =
+  | UpdateAction
+  | FetchVersionAction
+  | ReportPositionAction;
 
 export const initialConnectionDataValues = [
   "accountId",

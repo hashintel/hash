@@ -10,6 +10,8 @@ import {
   CollabPosition,
   DocumentChange,
   DOCUMENT_UPDATED,
+  FetchVersionAction,
+  FETCH_VERSION,
   InitialConnectionData,
   INITIAL_STATE,
   parseVersion,
@@ -30,9 +32,6 @@ import { CORS_CONFIG } from "../lib/config";
 import { AuthenticationError } from "./errors";
 import { getInstance, Instance } from "./Instance";
 import { EntityWatcher } from "./EntityWatcher";
-
-// const roomFromInitialConnectionData = (data: InitialConnectionData) =>
-//   `${data.accountId}:${data.pageEntityId}`;
 
 const emitServerEvent = (socket: Socket, action: ServerEvent) => {
   socket.emit(action.type, action);
@@ -205,14 +204,48 @@ const handleUpdateDocument = async (
       // @todo these need to be validated
       data.actions,
     );
+
+    await instance.drainCollabQueue();
+
     if (!result) {
       if (instance.errored) {
         emitServerError(socket, "Collab instance is erroring.");
       } else {
-        emitServerError(socket, "Version not current.");
+        // If the result does not exist, but the instance hasn't errored,
+        // it means the updates were given at a wrong version.
+        // Tell the client it's behind
+        emitServerEvent(socket, {
+          type: "versionConflict",
+        });
       }
     } else {
       callback?.(result);
+    }
+  } catch (error) {
+    emitServerError(socket, error);
+  }
+};
+
+const handleFetchVersion = async (
+  connection: Connection,
+  data: FetchVersionAction,
+) => {
+  const { socket } = connection;
+  try {
+    const { instance } = await prepareSessionSupportWithInstance(connection);
+
+    if (instance.errored) {
+      emitServerError(socket, "Collab instance is erroring.");
+    }
+
+    const events = instance.getEvents(data.currentVersion);
+
+    if (events) {
+      emitServerEvent(socket, {
+        type: "documentUpdated",
+        version: instance.version,
+        ...events,
+      });
     }
   } catch (error) {
     emitServerError(socket, error);
@@ -333,6 +366,12 @@ export const createCollabWsApp = async (
       UPDATE_DOCUMENT,
       async (data: UpdateAction, callback: (...args: any[]) => void) =>
         await handleUpdateDocument(connection, data, callback),
+    );
+
+    socket.on(
+      FETCH_VERSION,
+      async (data: FetchVersionAction) =>
+        await handleFetchVersion(connection, data),
     );
 
     socket.on(
