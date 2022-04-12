@@ -10,7 +10,7 @@ use crate::{
 };
 
 // TODO: Use in Rust runner, and look up column without using PREVIOUS_INDEX_COLUMN_INDEX
-#[allow(unused, unreachable_code)]
+#[allow(unused, unreachable_code, clippy::diverging_sub_expression)]
 pub(in crate) fn get_old_message_index(
     record_batch: &RecordBatch,
     row_index: usize,
