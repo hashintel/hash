@@ -3,7 +3,7 @@
 require("setimmediate");
 
 import { ApolloProvider } from "@apollo/client/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
@@ -38,18 +38,19 @@ const App: React.VoidFunctionComponent<AppProps> = ({
   pageProps,
   emotionCache = clientSideEmotionCache,
 }) => {
+  // Helps prevent tree mismatch between server and client on initial render
+  const [ssr, setSsr] = useState(true);
   const router = useRouter();
 
   const { user } = useUser({ client: apolloClient });
 
-  useEffect(
-    () =>
-      configureScope((scope) =>
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.log(`Build: ${scope.getSession()?.release ?? "not set"}`),
-      ),
-    [],
-  );
+  useEffect(() => {
+    configureScope((scope) =>
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.log(`Build: ${scope.getSession()?.release ?? "not set"}`),
+    );
+    setSsr(false);
+  }, []);
 
   useEffect(() => {
     if (
@@ -65,7 +66,7 @@ const App: React.VoidFunctionComponent<AppProps> = ({
   // router.query is empty during server-side rendering for pages that don’t use
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
-  if (!router.isReady) {
+  if (ssr || !router.isReady) {
     return null; // Replace with app skeleton
   }
 
