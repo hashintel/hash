@@ -43,7 +43,7 @@ impl ContextBatch {
 
     pub fn from_record_batch(
         record_batch: &RecordBatch,
-        schema: Option<&Arc<Schema>>,
+        schema: Arc<Schema>,
         memory_id: MemoryId,
     ) -> Result<Self> {
         let ipc_data_generator = IpcDataGenerator::default();
@@ -66,20 +66,9 @@ impl ContextBatch {
         Self::from_segment(segment, schema)
     }
 
-    pub fn from_segment(segment: Segment, schema: Option<&Arc<Schema>>) -> Result<Self> {
+    pub fn from_segment(segment: Segment, schema: Arc<Schema>) -> Result<Self> {
         let persisted = segment.try_read_persisted_metaversion()?;
         let buffers = segment.get_batch_buffers()?;
-
-        let schema = if let Some(s) = schema {
-            s.clone()
-        } else {
-            let message = ipc::root_as_message(buffers.schema())?;
-            let ipc_schema = match message.header_as_schema() {
-                Some(s) => s,
-                None => return Err(Error::ArrowSchemaRead),
-            };
-            Arc::new(ipc::convert::fb_to_schema(ipc_schema))
-        };
 
         let rb_msg = ipc::root_as_message(buffers.meta())?
             .header_as_record_batch()

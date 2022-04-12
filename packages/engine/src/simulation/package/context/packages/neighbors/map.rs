@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use stateful::context::AgentIndex;
+use stateful::state::AgentIndex;
 
 use crate::simulation::{
     package::context::packages::neighbors::{Result, TopologyConfig},

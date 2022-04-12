@@ -3,6 +3,7 @@ use serde_json::Value;
 use stateful::{
     agent,
     agent::AgentBatch,
+    context::Context,
     field::{RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     proxy::BatchPool,
@@ -11,7 +12,6 @@ use stateful::{
 
 use crate::{
     config::{ExperimentConfig, TopologyConfig},
-    datastore::table::context::Context,
     simulation::{
         package::state::{
             Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Package,

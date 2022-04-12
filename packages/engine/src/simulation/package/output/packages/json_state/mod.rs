@@ -2,7 +2,7 @@ mod config;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::{agent::Agent, field::FieldScope, globals::Globals, state::State};
+use stateful::{agent::Agent, context::Context, field::FieldScope, globals::Globals, state::State};
 
 pub use self::config::JsonStateOutputConfig;
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
         name::PackageName,
         output,
         output::{
-            Arc, Context, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+            Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
             GetWorkerSimStartMsg, MaybeCpuBound, Output, Package, PackageComms, PackageCreator,
             Result, SimRunConfig, Span,
         },

@@ -3,6 +3,7 @@ use std::{mem, sync::Arc};
 use memory::shared_memory::MemoryId;
 use stateful::{
     agent::AgentPool,
+    context::Context,
     message::{MessageMap, MessagePool},
     proxy::BatchPool,
     state::{State, StatePools, StateSnapshot},
@@ -11,10 +12,7 @@ use tracing::Instrument;
 
 use crate::{
     config::SimRunConfig,
-    datastore::{
-        store::Store,
-        table::{context::Context, create_remove::CreateRemovePlanner},
-    },
+    datastore::{store::Store, table::create_remove::CreateRemovePlanner},
     proto::ExperimentRunTrait,
     simulation::{
         agent_control::AgentControl,

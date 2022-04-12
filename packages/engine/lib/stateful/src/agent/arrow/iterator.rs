@@ -2,8 +2,8 @@ use arrow::datatypes::DataType;
 
 use crate::{
     agent::{arrow::record_batch, AgentBatch},
-    context::AgentIndex,
     field::{POSITION_DIM, UUID_V4_LEN},
+    state::AgentIndex,
     Result,
 };
 

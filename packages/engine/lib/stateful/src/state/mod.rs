@@ -25,6 +25,9 @@ use crate::{
 #[allow(clippy::module_name_repetitions)]
 pub type SimulationState = Vec<Agent>;
 
+pub type AgentIndex = (u32, u32);
+pub type MessageIndex = (u32, u32, u32);
+
 pub struct StateCreateParameters {
     /// Minimum number of groups.
     ///

@@ -3,14 +3,13 @@ use std::{collections::HashMap, sync::Arc};
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use memory::shared_memory::MemoryId;
 use stateful::{
-    context::ContextColumn,
+    context::{Context, ContextColumn, PreContext},
     state::{State, StateReadProxy, StateSnapshot},
 };
 use tracing::{Instrument, Span};
 
 use crate::{
     config::SimRunConfig,
-    datastore::table::context::{Context, PreContext},
     proto::ExperimentRunTrait,
     simulation::{
         error::{Error, Result},
@@ -137,7 +136,7 @@ impl StepPackages {
 
         let context = Context::from_columns(
             columns,
-            sim_run_config.sim.store.clone(),
+            &sim_run_config.sim.store.context_schema,
             MemoryId::new(sim_run_config.exp.run.base().id),
         )?;
         Ok(context)

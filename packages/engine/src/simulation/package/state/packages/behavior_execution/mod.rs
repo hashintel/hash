@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
     agent::{flush_pending_columns, modify_loaded_column, AgentBatch},
+    context::Context,
     field::{FieldSource, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     proxy::PoolWriteProxy,
@@ -12,7 +13,7 @@ use self::{
     config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
 };
 use crate::{
-    datastore::table::{context::Context, task_shared_store::TaskSharedStoreBuilder},
+    datastore::table::task_shared_store::TaskSharedStoreBuilder,
     language::Language,
     simulation::{
         package::state::{
