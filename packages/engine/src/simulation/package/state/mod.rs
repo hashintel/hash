@@ -7,12 +7,13 @@ pub use packages::{Name, StateTask, StateTaskMessage, PACKAGE_CREATORS};
 use stateful::{
     field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
+    state::State,
 };
 use tracing::Span;
 
 use crate::{
     config::{ExperimentConfig, SimRunConfig},
-    datastore::table::{context::Context, state::State},
+    datastore::table::context::Context,
     simulation::{
         comms::package::PackageComms,
         package::{

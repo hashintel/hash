@@ -1,6 +1,8 @@
+use stateful::state::State;
+
 use crate::datastore::{
     error::{Error, Result},
-    table::{context::Context, state::State},
+    table::context::Context,
 };
 
 /// The underlying state of a simulation run.

@@ -28,13 +28,14 @@ pub mod tests {
 
     use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
     use rand::Rng;
-    use stateful::{agent, agent::AgentBatch};
+    use stateful::{
+        agent::{self, AgentBatch},
+        state::State,
+    };
 
     #[allow(clippy::wildcard_imports)] // Desigend as test-prelude
     use crate::datastore::test_utils::*;
-    use crate::datastore::{
-        arrow::batch_conversion::IntoAgents, error::Result, table::state::State, UUID_V4_LEN,
-    };
+    use crate::datastore::{arrow::batch_conversion::IntoAgents, error::Result, UUID_V4_LEN};
 
     #[test]
     pub fn growable_array_modification() -> Result<()> {

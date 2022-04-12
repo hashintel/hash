@@ -4,7 +4,7 @@ use stateful::{agent, agent::AgentBatch};
 
 use crate::datastore::{
     error::Result,
-    table::state::create_remove::{AgentIndex, BatchIndex, WorkerIndex},
+    table::create_remove::{AgentIndex, BatchIndex, WorkerIndex},
     UUID_V4_LEN,
 };
 

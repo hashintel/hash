@@ -4,16 +4,13 @@ use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use memory::shared_memory::MemoryId;
 use stateful::{
     context::ContextColumn,
-    state::{StateReadProxy, StateSnapshot},
+    state::{State, StateReadProxy, StateSnapshot},
 };
 use tracing::{Instrument, Span};
 
 use crate::{
     config::SimRunConfig,
-    datastore::table::{
-        context::{Context, PreContext},
-        state::State,
-    },
+    datastore::table::context::{Context, PreContext},
     proto::ExperimentRunTrait,
     simulation::{
         error::{Error, Result},

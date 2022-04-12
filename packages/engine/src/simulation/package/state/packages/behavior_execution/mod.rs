@@ -5,7 +5,7 @@ use stateful::{
     field::{FieldSource, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     proxy::PoolWriteProxy,
-    state::StateWriteProxy,
+    state::{State, StateWriteProxy},
 };
 
 use self::{
@@ -23,7 +23,7 @@ use crate::{
             },
             Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
             GetWorkerSimStartMsg, Name, Package, PackageComms, PackageCreator, Result,
-            SimRunConfig, Span, State, StateTask,
+            SimRunConfig, Span, StateTask,
         },
         task::{active::ActiveTask, Task},
     },

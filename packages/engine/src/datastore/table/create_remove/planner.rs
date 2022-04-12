@@ -13,7 +13,7 @@ use crate::{
     datastore::{
         batch::migration::{BufferActions, IndexRange, RangeActions},
         error::Result,
-        table::state::create_remove::{
+        table::create_remove::{
             action::{CreateActions, ExistingGroupBufferActions},
             batch::PendingBatch,
             command::ProcessedCommands,

@@ -12,7 +12,7 @@ mod worker_pool;
 
 use std::sync::Arc;
 
-use stateful::globals::Globals;
+use stateful::{globals::Globals, state::StateCreateParameters};
 
 pub use self::{
     engine::{Config as EngineConfig, Worker, WorkerAllocation},
@@ -28,7 +28,6 @@ pub use self::{
     worker_pool::Config as WorkerPoolConfig,
 };
 use crate::{
-    datastore::table::state::StateCreateParameters,
     env::Environment,
     proto::{ExperimentRunTrait, SimulationShortId},
     Args,

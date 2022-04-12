@@ -6,7 +6,7 @@ use crate::{
     config::SimRunConfig,
     datastore::{
         error::{Error, Result},
-        table::state::create_remove::action::{CreateActions, ExistingGroupBufferActions},
+        table::create_remove::action::{CreateActions, ExistingGroupBufferActions},
     },
     proto::ExperimentRunTrait,
 };

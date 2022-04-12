@@ -7,15 +7,12 @@ use stateful::{
     context::{ContextBatch, ContextColumn},
     message::MessagePool,
     proxy::BatchPool,
-    state::StatePools,
+    state::{State, StatePools},
 };
 
 use crate::{
     config::StoreConfig,
-    datastore::{
-        error::{Error, Result},
-        table::state::State,
-    },
+    datastore::error::{Error, Result},
 };
 
 /// The context is global, consistent data about the simulation at a single point in time, which is

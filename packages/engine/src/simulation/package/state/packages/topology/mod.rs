@@ -6,11 +6,12 @@ use stateful::{
     field::{RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
     proxy::BatchPool,
+    state::State,
 };
 
 use crate::{
     config::{ExperimentConfig, TopologyConfig},
-    datastore::table::{context::Context, state::State},
+    datastore::table::context::Context,
     simulation::{
         package::state::{
             Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Package,

@@ -21,7 +21,7 @@ use stateful::{
 use uuid::Uuid;
 
 use crate::{
-    datastore::{table::state::create_remove::ProcessedCommands, UUID_V4_LEN},
+    datastore::{table::create_remove::ProcessedCommands, UUID_V4_LEN},
     simulation::{Error, Result},
 };
 
