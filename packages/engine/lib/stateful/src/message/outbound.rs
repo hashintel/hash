@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     agent::Agent,
     message::{payload, SYSTEM_MESSAGE},
+    Result,
 };
 
 /// This error represents the prettified display string of any internal errors
@@ -123,9 +124,18 @@ fn is_system_message(kind: &str) -> bool {
 }
 
 impl Message {
-    #[must_use]
-    pub fn new(msg: payload::Generic) -> Message {
-        Message::Generic(msg)
+    pub(in crate::message) fn new(to: &[&str], r#type: &str, data_string: &str) -> Result<Message> {
+        let to_clone = to.iter().map(|v| (*v).to_string()).collect();
+
+        Ok(Self::Generic(payload::Generic {
+            to: to_clone,
+            r#type: r#type.to_string(),
+            data: if data_string.is_empty() {
+                None
+            } else {
+                Some(serde_json::Value::from(data_string))
+            },
+        }))
     }
 
     fn is_json_message_remove_agent(value: &serde_json::Value) -> bool {
@@ -218,7 +228,7 @@ impl Message {
     /// # Errors
     /// This function will error if the provided `value` is not valid json
     /// OR if the `Outbound::preprocess` function fails.
-    pub fn from_json_value_with_state(
+    fn from_json_value_with_state(
         mut value: serde_json::Value,
         agent_state: &Agent,
     ) -> Result<Message, Error> {
@@ -235,7 +245,7 @@ impl Message {
     ///
     /// This function will panic if `value` is not a valid JSON array.
     /// TODO: Make sure this function is named as unchecekd to prevent unknown panics
-    pub fn from_json_array_with_state(
+    pub(in crate) fn from_json_array_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
     ) -> Result<Vec<Message>, Error> {
@@ -252,18 +262,6 @@ impl Message {
             }
             // this should not happen
             _ => panic!("from_json_array_with_state() called with non array json value"),
-        }
-    }
-
-    #[must_use]
-    // TODO: UNUSED: Needs triage
-    pub fn unchecked_from_json_value_with_state(
-        value: serde_json::Value,
-        agent_state: &Agent,
-    ) -> Message {
-        match Message::from_json_value_with_state(value, agent_state) {
-            Ok(m) => m,
-            Err(e) => panic!("{}", e),
         }
     }
 }

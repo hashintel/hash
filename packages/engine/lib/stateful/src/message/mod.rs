@@ -2,8 +2,7 @@
 
 pub mod payload;
 
-//temporarily public
-pub mod arrow;
+pub(crate) mod arrow;
 
 mod batch;
 mod kind;
@@ -12,15 +11,16 @@ mod outbound;
 mod pool;
 mod schema;
 
-pub(in crate) use self::outbound::Error as OutboundError;
 pub use self::{
     batch::MessageBatch,
-    inbound::Inbound,
-    kind::{CreateAgent, RemoveAgent, StopSim},
     map::MessageMap,
     outbound::Message,
-    pool::{recipient_iter_all, MessagePool, MessageReader},
+    pool::{MessagePool, MessageReader},
     schema::MessageSchema,
+};
+pub(in crate) use self::{
+    kind::{CreateAgent, RemoveAgent, StopSim},
+    outbound::Error as OutboundError,
 };
 
 // System-message recipient

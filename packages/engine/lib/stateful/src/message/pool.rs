@@ -13,7 +13,7 @@ use crate::{
     field::UUID_V4_LEN,
     message,
     message::{arrow::record_batch::MessageLoader, MessageBatch, MessageSchema},
-    proxy::{BatchPool, BatchWriteProxy, Pool, PoolReadProxy},
+    proxy::{BatchPool, BatchReadProxy, BatchWriteProxy, PoolReadProxy, PoolWriteProxy},
     Error, Result,
 };
 
@@ -27,21 +27,23 @@ pub struct MessagePool {
     batches: Vec<Arc<RwLock<MessageBatch>>>,
 }
 
-impl Pool<MessageBatch> for MessagePool {
-    fn new(batches: Vec<Arc<RwLock<MessageBatch>>>) -> Self {
+impl MessagePool {
+    /// Creates a new pool from [`Batches`].
+    ///
+    /// Because of the way `BatchPools` are organized it's required that the [`Batch`]es are
+    /// stored inside an [`RwLock`] behind an [`Arc`]. This is subject to change.
+    pub fn new(batches: Vec<Arc<RwLock<MessageBatch>>>) -> Self {
         Self { batches }
     }
 
-    fn get_batches(&self) -> &[Arc<RwLock<MessageBatch>>] {
-        &self.batches
+    /// Creates a new empty pool.
+    pub fn empty() -> Self
+    where
+        Self: Sized,
+    {
+        Self::new(Vec::new())
     }
 
-    fn get_batches_mut(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
-        &mut self.batches
-    }
-}
-
-impl MessagePool {
     pub fn reserve(&mut self, additional: usize) {
         self.batches.reserve(additional);
     }
@@ -94,6 +96,58 @@ impl MessagePool {
             }
         }
         Ok(())
+    }
+}
+
+impl BatchPool for MessagePool {
+    type Batch = MessageBatch;
+
+    fn len(&self) -> usize {
+        self.batches.len()
+    }
+
+    fn push(&mut self, batch: MessageBatch) {
+        self.batches.push(Arc::new(RwLock::new(batch)))
+    }
+
+    fn remove(&mut self, index: usize) -> Self::Batch {
+        let batch_arc = self.batches.remove(index);
+        if let Ok(rw_lock) = Arc::try_unwrap(batch_arc) {
+            rw_lock.into_inner()
+        } else {
+            panic!("Failed to remove Batch at index {index}, other Arcs to the Batch existed")
+        }
+    }
+
+    fn swap_remove(&mut self, index: usize) -> Self::Batch {
+        let batch_arc = self.batches.swap_remove(index);
+        if let Ok(rw_lock) = Arc::try_unwrap(batch_arc) {
+            rw_lock.into_inner()
+        } else {
+            panic!("Failed to swap remove Batch at index {index}, other Arcs to the Batch existed")
+        }
+    }
+
+    fn read_proxies(&self) -> Result<PoolReadProxy<Self::Batch>> {
+        self.batches.iter().map(BatchReadProxy::new).collect()
+    }
+
+    fn partial_read_proxies(&self, indices: &[usize]) -> Result<PoolReadProxy<Self::Batch>> {
+        indices
+            .iter()
+            .map(|i| BatchReadProxy::new(&self.batches[*i]))
+            .collect()
+    }
+
+    fn write_proxies(&mut self) -> Result<PoolWriteProxy<Self::Batch>> {
+        self.batches.iter().map(BatchWriteProxy::new).collect()
+    }
+
+    fn partial_write_proxies(&mut self, indices: &[usize]) -> Result<PoolWriteProxy<Self::Batch>> {
+        indices
+            .iter()
+            .map(|i| BatchWriteProxy::new(&self.batches[*i]))
+            .collect()
     }
 }
 

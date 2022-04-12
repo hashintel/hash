@@ -1,7 +1,6 @@
 use crate::{
     agent::{AgentBatch, AgentPool},
     message::{MessageBatch, MessageMap, MessagePool},
-    proxy::BatchPool,
     state::{StateReadProxy, StateWriteProxy},
     Result,
 };
@@ -13,28 +12,12 @@ pub struct StatePools {
 }
 
 impl StatePools {
-    pub fn empty() -> Self {
-        Self {
-            agent_pool: AgentPool::empty(),
-            message_pool: MessagePool::empty(),
-        }
-    }
-
     pub fn read(&self) -> Result<StateReadProxy> {
         StateReadProxy::new(self)
     }
 
     pub fn write(&mut self) -> Result<StateWriteProxy> {
         StateWriteProxy::new(self)
-    }
-
-    pub fn len(&self) -> usize {
-        debug_assert_eq!(self.agent_pool.len(), self.message_pool.len());
-        self.agent_pool.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
     }
 }
 

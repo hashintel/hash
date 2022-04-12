@@ -41,7 +41,7 @@ impl ContextBatch {
         &self.segment
     }
 
-    pub fn from_record_batch(
+    pub(in crate::context) fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Arc<Schema>,
         memory_id: MemoryId,
@@ -66,7 +66,7 @@ impl ContextBatch {
         Self::from_segment(segment, schema)
     }
 
-    pub fn from_segment(segment: Segment, schema: Arc<Schema>) -> Result<Self> {
+    fn from_segment(segment: Segment, schema: Arc<Schema>) -> Result<Self> {
         let persisted = segment.try_read_persisted_metaversion()?;
         let buffers = segment.get_batch_buffers()?;
 
@@ -94,7 +94,7 @@ impl ContextBatch {
     ///
     /// The persisted metaversion is incremented after writing data and then the loaded metaversion
     /// is set to the new persisted metaversion after reloading.
-    pub fn write_from_context_datas(
+    pub(in crate::context) fn write_from_context_datas(
         &mut self,
         column_writers: &[&ContextColumn],
         num_agents: usize,

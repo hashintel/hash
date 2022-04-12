@@ -40,7 +40,7 @@ impl Debug for StateReadProxy {
 }
 
 impl StateReadProxy {
-    pub fn new(state: &StatePools) -> Result<Self> {
+    pub(crate) fn new(state: &StatePools) -> Result<Self> {
         Ok(StateReadProxy {
             agent_proxies: state.agent_pool.read_proxies()?,
             message_proxies: state.message_pool.read_proxies()?,
@@ -48,7 +48,8 @@ impl StateReadProxy {
     }
 
     // TODO: UNUSED: Needs triage
-    pub fn new_partial(state: &StatePools, group_indices: &[usize]) -> Result<Self> {
+    #[allow(dead_code)]
+    pub(crate) fn new_partial(state: &StatePools, group_indices: &[usize]) -> Result<Self> {
         Ok(StateReadProxy {
             agent_proxies: state.agent_pool.partial_read_proxies(group_indices)?,
             message_proxies: state.message_pool.partial_read_proxies(group_indices)?,
@@ -71,18 +72,8 @@ impl StateReadProxy {
         &self.agent_proxies
     }
 
-    // TODO: UNUSED: Needs triage
-    pub fn agent_pool_mut(&mut self) -> &mut PoolReadProxy<AgentBatch> {
-        &mut self.agent_proxies
-    }
-
     pub fn message_pool(&self) -> &PoolReadProxy<MessageBatch> {
         &self.message_proxies
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn message_pool_mut(&mut self) -> &mut PoolReadProxy<MessageBatch> {
-        &mut self.message_proxies
     }
 
     pub fn n_accessible_agents(&self) -> usize {
@@ -125,7 +116,7 @@ impl
 }
 
 impl StateWriteProxy {
-    pub fn new(state: &mut StatePools) -> Result<Self> {
+    pub(crate) fn new(state: &mut StatePools) -> Result<Self> {
         Ok(StateWriteProxy {
             agent_proxies: state.agent_pool.write_proxies()?,
             message_proxies: state.message_pool.write_proxies()?,
@@ -133,7 +124,8 @@ impl StateWriteProxy {
     }
 
     // TODO: UNUSED: Needs triage
-    pub fn new_partial(state: &mut StatePools, group_indices: &[usize]) -> Result<Self> {
+    #[allow(dead_code)]
+    pub(crate) fn new_partial(state: &mut StatePools, group_indices: &[usize]) -> Result<Self> {
         Ok(StateWriteProxy {
             agent_proxies: state.agent_pool.partial_write_proxies(group_indices)?,
             message_proxies: state.message_pool.partial_write_proxies(group_indices)?,

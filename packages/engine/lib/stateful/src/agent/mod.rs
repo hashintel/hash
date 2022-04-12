@@ -12,10 +12,10 @@ pub mod arrow;
 
 pub use self::{
     arrow::{flush_pending_columns, modify_loaded_column, AgentBatch, AgentPool},
-    field::{Agent, AgentStateField, BUILTIN_FIELDS},
+    field::{Agent, AgentStateField},
     into_agent::IntoAgents,
     name::AgentName,
     references::MessageReference,
-    required::IsRequired,
     schema::AgentSchema,
 };
+pub(crate) use self::{field::BUILTIN_FIELDS, required::IsRequired};

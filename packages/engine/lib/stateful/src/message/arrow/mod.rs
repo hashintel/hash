@@ -33,7 +33,7 @@ lazy_static! {
     );
     // It is important to keep this order unchanged. If changed
     // then the consts above must be updated
-    pub(in crate) static ref MESSAGE_BATCH_SCHEMA: Schema = Schema::new(vec![
+    pub(in crate::message) static ref MESSAGE_BATCH_SCHEMA: Schema = Schema::new(vec![
         SENDER_ARROW_FIELD.clone(),
         MESSAGE_LIST_ARROW_FIELD.clone()
     ]);

@@ -36,7 +36,11 @@ impl ContextColumn {
         &self.field_key
     }
 
-    pub fn write(&self, buffer: &mut [u8], meta: &ColumnDynamicMetadata) -> Result<()> {
+    pub(in crate::context) fn write(
+        &self,
+        buffer: &mut [u8],
+        meta: &ColumnDynamicMetadata,
+    ) -> Result<()> {
         let _pkg_span = self.span.enter();
         let _write_span = tracing::trace_span!("column_write").entered();
         self.writer.write(buffer, meta)

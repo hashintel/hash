@@ -7,7 +7,7 @@ use crate::{
     agent::Agent,
     message::{
         arrow::{array::MessageArray, MESSAGE_COLUMN_NAME},
-        payload, Message,
+        Message,
     },
     Error, Result,
 };
@@ -45,7 +45,7 @@ impl MessageColumn {
                     .collect();
                 let r#type = r#type_column.value(offset + j);
                 let data_string = data_column.value(offset + j);
-                messages.push(get_generic(&to, r#type, data_string)?);
+                messages.push(Message::new(&to, r#type, data_string)?);
                 to_offset += to_len;
             }
             result.push(messages);
@@ -95,18 +95,4 @@ fn get_columns_from_struct_array(
                 name: "data".into(),
             })?;
     Ok((to_column, type_column, data_column))
-}
-
-pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Message> {
-    let to_clone = to.iter().map(|v| (*v).to_string()).collect();
-
-    Ok(Message::new(payload::Generic {
-        to: to_clone,
-        r#type: r#type.to_string(),
-        data: if data_string.is_empty() {
-            None
-        } else {
-            Some(serde_json::Value::from(data_string))
-        },
-    }))
 }

@@ -8,7 +8,7 @@ use rayon::iter::ParallelIterator;
 use crate::{
     agent,
     error::Result,
-    message::{recipient_iter_all, MessageBatch},
+    message::{pool::recipient_iter_all, MessageBatch},
     proxy::PoolReadProxy,
 };
 

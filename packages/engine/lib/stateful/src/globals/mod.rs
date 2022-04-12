@@ -17,13 +17,6 @@ impl Globals {
         serde_json::from_value(value)
     }
 
-    // TODO: UNUSED: Needs triage
-    #[must_use]
-    pub fn from_json_unchecked(value: serde_json::Value) -> Globals {
-        Globals::from_json(value)
-            .expect("This should not happen (Globals is a free-flowing JSON object)")
-    }
-
     #[must_use]
     pub fn empty() -> Globals {
         Globals(serde_json::Value::Object(serde_json::Map::new()))

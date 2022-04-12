@@ -160,7 +160,7 @@ impl TryFrom<AgentStateField> for FieldType {
 /// Built-in fields -- by default, these are automatically added to Agent State by the engine.
 ///
 /// Also see [`AgentStateField`].
-pub const BUILTIN_FIELDS: [&str; 12] = [
+pub(crate) const BUILTIN_FIELDS: [&str; 12] = [
     AgentStateField::AgentId.name(),
     AgentStateField::AgentName.name(),
     AgentStateField::Messages.name(),

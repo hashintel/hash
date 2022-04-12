@@ -55,7 +55,10 @@ impl Context {
         )?;
         Ok(Self {
             batch: Arc::new(context_batch),
-            previous_state: StatePools::empty(),
+            previous_state: StatePools {
+                agent_pool: AgentPool::empty(),
+                message_pool: MessagePool::empty(),
+            },
             removed_batches: Vec::new(),
         })
     }
@@ -95,7 +98,7 @@ impl Context {
     ///
     /// Returns an error if the context batch is currently in use, e.g. due to cloning the [`Arc`]
     /// returned from [`global_batch()`](Self::global_batch).
-    pub fn global_batch_mut(&mut self) -> Result<&mut ContextBatch> {
+    fn global_batch_mut(&mut self) -> Result<&mut ContextBatch> {
         Arc::get_mut(&mut self.batch)
             .ok_or_else(|| Error::from("Could not acquire write access to the `ContextBatch`"))
     }

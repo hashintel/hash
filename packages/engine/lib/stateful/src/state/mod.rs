@@ -21,12 +21,7 @@ use crate::{
     Result,
 };
 
-// TODO: Move to `agent::AgentColumn`?
-#[allow(clippy::module_name_repetitions)]
-pub type SimulationState = Vec<Agent>;
-
 pub type AgentIndex = (u32, u32);
-pub type MessageIndex = (u32, u32, u32);
 
 pub struct StateCreateParameters {
     /// Minimum number of groups.
@@ -168,10 +163,6 @@ impl State {
         &self.state.message_pool
     }
 
-    pub fn message_pool_mut(&mut self) -> &mut MessagePool {
-        &mut self.state.message_pool
-    }
-
     pub fn state_mut(&mut self) -> &mut StatePools {
         &mut self.state
     }
@@ -192,7 +183,7 @@ impl State {
         &self.group_start_indices
     }
 
-    pub fn set_group_start_indices(&mut self, group_start_indices: Arc<Vec<usize>>) {
+    pub(crate) fn set_group_start_indices(&mut self, group_start_indices: Arc<Vec<usize>>) {
         self.group_start_indices = group_start_indices;
     }
 
