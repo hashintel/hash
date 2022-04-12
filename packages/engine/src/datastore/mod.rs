@@ -77,11 +77,9 @@ pub mod tests {
 
         let (schema, agents) = gen_schema_and_test_agents(num_agents, 0)?;
 
-        let mut state = State::from_agent_states(
-            &agents,
-            &dummy_sim_run_config().to_state_create_parameters(),
-        )
-        .expect("Couldn't turn `Vec<Agent>` into `State`");
+        let mut state =
+            State::from_agent_states(&agents, dummy_sim_run_config().to_state_create_parameters())
+                .expect("Couldn't turn `Vec<Agent>` into `State`");
 
         // get the ID of the shared-memory segment for the first batch of agents
         let shmem_id = state

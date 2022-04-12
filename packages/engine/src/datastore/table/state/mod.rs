@@ -8,14 +8,9 @@ use stateful::{
     message::{MessageBatch, MessageMap, MessagePool, MessageSchema},
     proxy::BatchPool,
     state::{StatePools, StateReadProxy, StateWriteProxy},
+    Result,
 };
 use uuid::Uuid;
-
-use self::create_remove::CreateRemovePlanner;
-use crate::{
-    config::SimRunConfig, datastore::error::Result, proto::ExperimentRunTrait,
-    simulation::command::CreateRemoveCommands,
-};
 
 pub struct StateCreateParameters {
     /// Minimum number of groups.
@@ -42,6 +37,8 @@ pub struct State {
     removed_batches: Vec<String>,
 
     num_agents: usize,
+
+    create_parameters: StateCreateParameters,
 }
 
 impl State {
@@ -57,7 +54,7 @@ impl State {
     fn from_agent_groups(
         agent_state_groups: &[&[Agent]],
         num_agents: usize,
-        create_parameters: &StateCreateParameters,
+        create_parameters: StateCreateParameters,
     ) -> Result<Self> {
         let mut agent_batches = Vec::with_capacity(agent_state_groups.len());
         let mut message_batches = Vec::with_capacity(agent_state_groups.len());
@@ -94,6 +91,7 @@ impl State {
             removed_batches: Vec::new(),
             num_agents,
             group_start_indices: Arc::new(group_start_indices),
+            create_parameters,
         })
     }
 
@@ -104,7 +102,7 @@ impl State {
     /// `agent_states` into groups based on the number of workers specified in `sim_config`.
     pub fn from_agent_states(
         agent_states: &[Agent],
-        create_parameters: &StateCreateParameters,
+        create_parameters: StateCreateParameters,
     ) -> Result<State> {
         let num_agents = agent_states.len();
 
@@ -134,22 +132,11 @@ impl State {
         &mut self.removed_batches
     }
 
-    pub fn create_remove(
-        &mut self,
-        commands: CreateRemoveCommands,
-        config: &Arc<SimRunConfig>,
-    ) -> Result<()> {
-        let mut planner = CreateRemovePlanner::new(commands, config.clone())?;
-        let plan = planner.run(&self.read()?)?;
-        self.num_agents = plan.num_agents_after_execution;
-        let removed_ids = plan.execute(self.state_mut(), config)?;
-
-        // Register all batches that were removed
-        self.removed_batches().extend(removed_ids.into_iter());
-        Ok(())
+    pub fn set_num_agents(&mut self, num_agents: usize) {
+        self.num_agents = num_agents;
     }
 
-    pub fn message_map(&self) -> stateful::Result<MessageMap> {
+    pub fn message_map(&self) -> Result<MessageMap> {
         MessageMap::new(&self.message_pool().read_proxies()?)
     }
 
@@ -173,11 +160,11 @@ impl State {
         &mut self.state
     }
 
-    pub fn read(&self) -> stateful::Result<StateReadProxy> {
+    pub fn read(&self) -> Result<StateReadProxy> {
         self.state.read()
     }
 
-    pub fn write(&mut self) -> stateful::Result<StateWriteProxy> {
+    pub fn write(&mut self) -> Result<StateWriteProxy> {
         self.state.write()
     }
 
@@ -209,13 +196,12 @@ impl State {
     pub fn reset_messages(
         &mut self,
         mut old_context_message_pool: MessagePool,
-        sim_config: &SimRunConfig,
     ) -> Result<MessagePool> {
         let agent_proxies = self.agent_pool().read_proxies()?;
         old_context_message_pool.reset(
             &agent_proxies,
-            sim_config.exp.run.base().id,
-            &sim_config.sim.store.message_schema,
+            self.create_parameters.memory_base_id,
+            &self.create_parameters.message_schema,
         )?;
         Ok(std::mem::replace(
             &mut self.state.message_pool,
