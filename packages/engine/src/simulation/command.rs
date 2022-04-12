@@ -13,7 +13,7 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterato
 use serde::{Deserialize, Serialize};
 use stateful::{
     agent::{arrow::IntoRecordBatch, Agent, AgentSchema},
-    field::RootFieldKey,
+    field::{RootFieldKey, UUID_V4_LEN},
     message,
     message::{MessageBatch, MessageMap, MessageReader},
     proxy::PoolReadProxy,
@@ -21,7 +21,7 @@ use stateful::{
 use uuid::Uuid;
 
 use crate::{
-    datastore::{table::create_remove::ProcessedCommands, UUID_V4_LEN},
+    datastore::table::create_remove::ProcessedCommands,
     simulation::{Error, Result},
 };
 

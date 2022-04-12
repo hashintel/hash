@@ -1,11 +1,10 @@
 use std::{collections::HashSet, ops::Deref};
 
-use stateful::{agent, agent::AgentBatch};
+use stateful::{agent, agent::AgentBatch, field::UUID_V4_LEN};
 
 use crate::datastore::{
     error::Result,
     table::create_remove::{AgentIndex, BatchIndex, WorkerIndex},
-    UUID_V4_LEN,
 };
 
 #[derive(Debug, Clone)]

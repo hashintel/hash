@@ -1,8 +1,8 @@
 // These are columns that are included in the schema even if the user opts out
 
-use stateful::agent::AgentStateField;
+use crate::agent::AgentStateField;
 
-pub const REQUIRED: [AgentStateField; 4] = [
+const REQUIRED: [AgentStateField; 4] = [
     AgentStateField::AgentId,
     AgentStateField::AgentName,
     AgentStateField::Position,

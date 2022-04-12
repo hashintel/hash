@@ -17,11 +17,6 @@ pub mod test_utils;
 
 pub use self::error::{Error, Result};
 
-/// We store Agent IDs in the UUID-byte format (not string bytes).
-/// This means their length is 128 bits i.e. 16 bytes
-pub const UUID_V4_LEN: usize = 16;
-pub const POSITION_DIM: usize = 3;
-
 #[cfg(test)]
 pub mod tests {
     use std::borrow::Cow;
@@ -29,13 +24,14 @@ pub mod tests {
     use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
     use rand::Rng;
     use stateful::{
-        agent::{self, AgentBatch},
+        agent::{self, AgentBatch, IntoAgents},
+        field::UUID_V4_LEN,
         state::State,
     };
 
+    use crate::datastore::error::Result;
     #[allow(clippy::wildcard_imports)] // Desigend as test-prelude
     use crate::datastore::test_utils::*;
-    use crate::datastore::{arrow::batch_conversion::IntoAgents, error::Result, UUID_V4_LEN};
 
     #[test]
     pub fn growable_array_modification() -> Result<()> {
@@ -113,7 +109,7 @@ pub mod tests {
         let record_batch = batch_proxy.batch.record_batch()?;
 
         let names = agent::arrow::record_batch::get_agent_name(record_batch)?;
-        let agent_states = record_batch.into_agent_states(Some(&schema))?;
+        let agent_states = record_batch.to_agent_states(Some(&schema))?;
 
         targets.into_iter().enumerate().for_each(|(i, t)| match t {
             Some(v) => {

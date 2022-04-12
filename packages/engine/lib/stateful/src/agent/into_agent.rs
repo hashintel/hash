@@ -1,10 +1,4 @@
-#![allow(
-    clippy::too_many_lines,
-    clippy::cast_possible_wrap,
-    clippy::cast_sign_loss
-)]
-
-use std::{collections::HashSet, sync::Arc};
+use std::collections::HashSet;
 
 use arrow::{
     array::{self, Array, FixedSizeListArray, StringArray},
@@ -12,28 +6,153 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use memory::arrow::{col_to_json_vals, json_utf8_json_vals};
-use stateful::{
+
+use crate::{
     agent::{
         arrow::PREVIOUS_INDEX_FIELD_KEY, Agent, AgentBatch, AgentName, AgentSchema,
-        AgentStateField, BUILTIN_FIELDS,
+        AgentStateField, IsRequired, BUILTIN_FIELDS,
     },
-    field::{FieldScope, FieldTypeVariant},
+    field::{FieldScope, FieldTypeVariant, UUID_V4_LEN},
     message::{arrow::column::MessageColumn, MessageBatch, MessageSchema},
     Error, Result,
 };
 
-use crate::datastore::{schema::IsRequired, UUID_V4_LEN};
-
-// This file is here mostly to convert between RecordBatch and Vec<Agent>.
-
 /// Conversion into `Agent`, which can be converted to JSON
 pub trait IntoAgents {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>>;
+    fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>>;
 
     // Conversion into `Agent` where certain built-in fields and
     // null values are selectively ignored
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>>;
+    fn to_filtered_agent_states(&self, agent_schema: &AgentSchema) -> Result<Vec<Agent>>;
 }
+
+impl IntoAgents for (&AgentBatch, &MessageBatch) {
+    fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>> {
+        let agents = self.0.batch.record_batch()?;
+        let messages = self.1.batch.record_batch()?;
+        let mut states = agents.to_agent_states(agent_schema)?;
+        set_states_messages(&mut states, messages)?;
+        Ok(states)
+    }
+
+    fn to_filtered_agent_states(&self, agent_schema: &AgentSchema) -> Result<Vec<Agent>> {
+        let agents = self.0.batch.record_batch()?;
+        let messages = self.1.batch.record_batch()?;
+        let mut states = agents.to_filtered_agent_states(agent_schema)?;
+        set_states_messages(&mut states, messages)?;
+        Ok(states)
+    }
+}
+
+impl IntoAgents for (&RecordBatch, &RecordBatch) {
+    fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>> {
+        let agents = &self.0;
+        let messages = &self.1;
+        let mut states = agents.to_agent_states(agent_schema)?;
+        set_states_messages(&mut states, messages)?;
+        Ok(states)
+    }
+
+    fn to_filtered_agent_states(&self, agent_schema: &AgentSchema) -> Result<Vec<Agent>> {
+        let agents = &self.0;
+        let messages = &self.1;
+        let mut states = agents.to_filtered_agent_states(agent_schema)?;
+        set_states_messages(&mut states, messages)?;
+        Ok(states)
+    }
+}
+
+impl IntoAgents for RecordBatch {
+    fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>> {
+        let agents = self;
+
+        let mut states: Vec<Agent> = std::iter::repeat(Agent::empty())
+            .take(agents.num_rows())
+            .collect();
+
+        set_states_builtins(&mut states, agents)?;
+
+        let any_types = &agent_schema
+            .map(|v| {
+                v.field_spec_map
+                    .iter()
+                    .filter_map(|(key, field_spec)| {
+                        if matches!(
+                            field_spec.inner.field_type.variant,
+                            FieldTypeVariant::AnyType
+                        ) {
+                            Some(key.value().to_string())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<HashSet<String>>()
+            })
+            .unwrap_or_else(|| {
+                self.schema()
+                    .metadata()
+                    .get("any_type_fields")
+                    .expect("Should always contain `any_type_fields` in metadata")
+                    .split(',')
+                    .map(|v| v.to_string())
+                    .collect()
+            });
+
+        for (i_field, field) in agents.schema().fields().iter().enumerate() {
+            // TODO: remove the need for this
+            if BUILTIN_FIELDS.contains(&field.name().as_str()) {
+                continue; // Skip builtins, because they were already
+            } // set in `set_states_builtins`.
+            if any_types.contains(field.name()) {
+                // We need to use "from_str" and not "to_value" when converting to serde_json::Value
+                set_states_serialized(&mut states, agents, i_field, field)?;
+            } else {
+                set_states_custom(&mut states, agents, i_field, field)?;
+            }
+        }
+        Ok(states)
+    }
+
+    fn to_filtered_agent_states(&self, agent_schema: &AgentSchema) -> Result<Vec<Agent>> {
+        let agent_states = self.to_agent_states(Some(agent_schema))?;
+
+        let group_field_names = agent_schema
+            .field_spec_map
+            .iter()
+            .filter_map(|(key, spec)| {
+                if spec.scope == FieldScope::Agent {
+                    Some(key.value())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        // Use `reserve_exact` instead of `reserve` to minimize max memory usage.
+        let mut filtered_states = Vec::with_capacity(agent_states.len());
+
+        // Remove custom fields which are (1) null and (2) not in behavior keys of
+        // any of agent's behaviors. Also remove previous index column.
+        for mut state in agent_states {
+            // This function consumes `agent_states`, so it's ok to change `state` in-place.
+            state.custom.retain(|field, value| {
+                !value.is_null() ||                    // Cheap check.
+                    group_field_names.contains(&field.as_str())
+                // Expensive check.
+            });
+            filtered_states.push(state);
+        }
+        Ok(filtered_states)
+    }
+}
+
+fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<()> {
+    debug_assert_eq!(messages.schema(), MessageSchema::default().arrow);
+    MessageColumn::from_record_batch(messages)?.update_agents(states)?;
+    Ok(())
+}
+
+// This file is here mostly to convert between RecordBatch and Vec<Agent>.
 
 // `array.null_count() > 0` can be moved out of loops by the compiler:
 // https://llvm.org/doxygen/LoopUnswitch_8cpp_source.html
@@ -173,7 +292,7 @@ macro_rules! set_states_opt_vec3_gen {
 
                 for (i_state, state) in states.iter_mut().enumerate() {
                     state.$field_name = if vec3_array.is_valid(i_state) {
-                        Some(stateful::Vec3(
+                        Some(crate::Vec3(
                             coord_array.value(i_state * 3),
                             coord_array.value(i_state * 3 + 1),
                             coord_array.value(i_state * 3 + 2),
@@ -275,12 +394,6 @@ fn set_states_previous_index(states: &mut [Agent], record_batch: &RecordBatch) -
     Ok(())
 }
 
-fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<()> {
-    debug_assert_eq!(messages.schema(), MessageSchema::default().arrow);
-    MessageColumn::from_record_batch(messages)?.update_agents(states)?;
-    Ok(())
-}
-
 fn set_states_builtins(states: &mut [Agent], agents: &RecordBatch) -> Result<()> {
     set_states_agent_id(states, agents)?;
     set_states_agent_name(states, agents)?;
@@ -334,176 +447,4 @@ fn set_states_serialized(
         }
     }
     Ok(())
-}
-
-impl IntoAgents for (&AgentBatch, &MessageBatch) {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>> {
-        let agents = self.0.batch.record_batch()?;
-        let messages = self.1.batch.record_batch()?;
-        let mut states = agents.into_agent_states(agent_schema)?;
-        set_states_messages(&mut states, messages)?;
-        Ok(states)
-    }
-
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>> {
-        let agents = self.0.batch.record_batch()?;
-        let messages = self.1.batch.record_batch()?;
-        let mut states = agents.into_filtered_agent_states(agent_schema)?;
-        set_states_messages(&mut states, messages)?;
-        Ok(states)
-    }
-}
-
-impl IntoAgents for (&RecordBatch, &RecordBatch) {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>> {
-        let agents = &self.0;
-        let messages = &self.1;
-        let mut states = agents.into_agent_states(agent_schema)?;
-        set_states_messages(&mut states, messages)?;
-        Ok(states)
-    }
-
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>> {
-        let agents = &self.0;
-        let messages = &self.1;
-        let mut states = agents.into_filtered_agent_states(agent_schema)?;
-        set_states_messages(&mut states, messages)?;
-        Ok(states)
-    }
-}
-
-impl IntoAgents for RecordBatch {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>> {
-        let agents = self;
-
-        let mut states: Vec<Agent> = std::iter::repeat(Agent::empty())
-            .take(agents.num_rows())
-            .collect();
-
-        set_states_builtins(&mut states, agents)?;
-
-        let any_types = &agent_schema
-            .map(|v| {
-                v.field_spec_map
-                    .iter()
-                    .filter_map(|(key, field_spec)| {
-                        if matches!(
-                            field_spec.inner.field_type.variant,
-                            FieldTypeVariant::AnyType
-                        ) {
-                            Some(key.value().to_string())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<HashSet<String>>()
-            })
-            .unwrap_or_else(|| {
-                self.schema()
-                    .metadata()
-                    .get("any_type_fields")
-                    .expect("Should always contain `any_type_fields` in metadata")
-                    .split(',')
-                    .map(|v| v.to_string())
-                    .collect()
-            });
-
-        for (i_field, field) in agents.schema().fields().iter().enumerate() {
-            // TODO: remove the need for this
-            if BUILTIN_FIELDS.contains(&field.name().as_str()) {
-                continue; // Skip builtins, because they were already
-            } // set in `set_states_builtins`.
-            if any_types.contains(field.name()) {
-                // We need to use "from_str" and not "to_value" when converting to serde_json::Value
-                set_states_serialized(&mut states, agents, i_field, field)?;
-            } else {
-                set_states_custom(&mut states, agents, i_field, field)?;
-            }
-        }
-        Ok(states)
-    }
-
-    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>> {
-        let agent_states = self.into_agent_states(Some(agent_schema))?;
-
-        let group_field_names = agent_schema
-            .field_spec_map
-            .iter()
-            .filter_map(|(key, spec)| {
-                if spec.scope == FieldScope::Agent {
-                    Some(key.value())
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-
-        // Use `reserve_exact` instead of `reserve` to minimize max memory usage.
-        let mut filtered_states = Vec::with_capacity(agent_states.len());
-
-        // Remove custom fields which are (1) null and (2) not in behavior keys of
-        // any of agent's behaviors. Also remove previous index column.
-        for mut state in agent_states {
-            // This function consumes `agent_states`, so it's ok to change `state` in-place.
-            state.custom.retain(|field, value| {
-                !value.is_null() ||                    // Cheap check.
-                    group_field_names.contains(&field.as_str())
-                // Expensive check.
-            });
-            filtered_states.push(state);
-        }
-        Ok(filtered_states)
-    }
-}
-
-#[cfg(test)]
-pub mod tests {
-    use stateful::agent::arrow::IntoRecordBatch;
-
-    use super::*;
-    use crate::datastore::{test_utils::gen_schema_and_test_agents, Result};
-
-    #[test]
-    fn agent_state_into_record_batch() -> Result<()> {
-        let mut failed_agent_seeds = vec![];
-
-        for round in 0..3 {
-            let num_agents = 150;
-            let initial_seed = round * num_agents;
-            let (schema, mut agents) = gen_schema_and_test_agents(num_agents, initial_seed as u64)?;
-
-            let agent_batch = agents.as_slice().to_agent_batch(&schema)?;
-            let message_batch = agents
-                .as_slice()
-                .to_message_batch(MessageSchema::default().arrow)?;
-
-            let mut returned_agents =
-                (&agent_batch, &message_batch).into_agent_states(Some(&schema))?;
-
-            agents.iter_mut().for_each(|v| {
-                v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-            });
-            returned_agents.iter_mut().for_each(|v| {
-                v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-            });
-
-            agents
-                .iter()
-                .zip(returned_agents.iter())
-                .for_each(|(agent, returned_agent)| {
-                    if agent != returned_agent {
-                        failed_agent_seeds.push(agent.get_custom::<f64>("seed").unwrap())
-                    }
-                });
-        }
-
-        assert_eq!(
-            failed_agent_seeds.len(),
-            0,
-            "Some agents failed to be properly converted, their seeds were: {:?}",
-            failed_agent_seeds
-        );
-
-        Ok(())
-    }
 }

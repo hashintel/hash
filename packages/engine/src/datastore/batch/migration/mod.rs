@@ -1343,13 +1343,14 @@ fn offsets_start_at_zero(
 pub(super) mod test {
     use rand::Rng;
     use serde::{Deserialize, Serialize};
-    use stateful::{agent::arrow::PREVIOUS_INDEX_FIELD_KEY, message::MessageSchema};
+    use stateful::{
+        agent::{arrow::PREVIOUS_INDEX_FIELD_KEY, IntoAgents},
+        message::MessageSchema,
+    };
     use uuid::Uuid;
 
     use super::*;
-    use crate::datastore::{
-        arrow::batch_conversion::IntoAgents, test_utils::gen_schema_and_test_agents,
-    };
+    use crate::datastore::test_utils::gen_schema_and_test_agents;
 
     #[derive(Serialize, Deserialize)]
     pub struct Foo {
@@ -1462,7 +1463,7 @@ pub(super) mod test {
             MemoryId::new(experiment_id),
         )?;
 
-        let new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+        let new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
@@ -1471,7 +1472,7 @@ pub(super) mod test {
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
-        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         remove_indices.iter().rev().for_each(|i| {
             json_agents.remove(*i);
         });
@@ -1547,7 +1548,7 @@ pub(super) mod test {
             MemoryId::new(experiment_id),
         )?;
 
-        let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+        let mut new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
@@ -1556,7 +1557,7 @@ pub(super) mod test {
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
-        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         json_agents.append(&mut json_create_agents);
         let agents = AgentBatch::from_agent_states(
             json_agents.as_slice(),
@@ -1640,7 +1641,7 @@ pub(super) mod test {
             MemoryId::new(experiment_id),
         )?;
 
-        let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+        let mut new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
@@ -1649,7 +1650,7 @@ pub(super) mod test {
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
-        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         select_indices
             .iter()
             .for_each(|i| json_agents.push(json_agents_2[*i].clone()));
@@ -1751,7 +1752,7 @@ pub(super) mod test {
             MemoryId::new(experiment_id),
         )?;
 
-        let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+        let mut new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
@@ -1760,7 +1761,7 @@ pub(super) mod test {
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
-        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         remove_indices.iter().rev().for_each(|i| {
             json_agents.remove(*i);
         });

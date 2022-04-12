@@ -2,19 +2,22 @@ mod config;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::{agent::Agent, context::Context, field::FieldScope, globals::Globals, state::State};
+use stateful::{
+    agent::{Agent, IntoAgents},
+    context::Context,
+    field::FieldScope,
+    globals::Globals,
+    state::State,
+};
 
 pub use self::config::JsonStateOutputConfig;
-use crate::{
-    datastore::arrow::batch_conversion::IntoAgents,
-    simulation::package::{
-        name::PackageName,
-        output,
-        output::{
-            Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, MaybeCpuBound, Output, Package, PackageComms, PackageCreator,
-            Result, SimRunConfig, Span,
-        },
+use crate::simulation::package::{
+    name::PackageName,
+    output,
+    output::{
+        Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+        GetWorkerSimStartMsg, MaybeCpuBound, Output, Package, PackageComms, PackageCreator, Result,
+        SimRunConfig, Span,
     },
 };
 
@@ -90,7 +93,7 @@ impl Package for JsonState {
                     agent_batch.batch.record_batch()?,
                     message_batch.batch.record_batch()?,
                 )
-                    .into_agent_states(Some(&self.sim_run_config.sim.store.agent_schema))
+                    .to_agent_states(Some(&self.sim_run_config.sim.store.agent_schema))
             })
             .collect();
 
