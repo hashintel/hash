@@ -13,6 +13,7 @@ import {
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
+import { UnknownEntity } from "./graphql/apiTypes.gen";
 import {
   ComponentNode,
   componentNodeToId,
@@ -74,7 +75,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
     }
   | {
       type: "updateBlockEntityProperties";
-      payload: { draftId: string; targetEntity: BlockEntity };
+      payload: { draftId: string; targetEntity: UnknownEntity };
     }
 );
 
@@ -159,18 +160,18 @@ const updateEntitiesByDraftId = (
 
 const updateBlockEntity = (
   draftEntityStore: Draft<EntityStore["draft"]>,
-  draftId: string,
-  targetEntity: BlockEntity,
+  blockDraftId: string,
+  targetEntity: UnknownEntity,
 ) => {
-  let draftEntity = Object.values(draftEntityStore).find(
+  let targetDraftEntity = Object.values(draftEntityStore).find(
     (entity) => entity.entityId === targetEntity?.entityId,
   );
 
   // Check if entity to load exists in store
   // and add to store if it doesn't exist
-  if (!draftEntity) {
+  if (!targetDraftEntity) {
     const targetEntityDraftId = newDraftId();
-    draftEntity = {
+    targetDraftEntity = {
       accountId: targetEntity.accountId,
       draftId: targetEntityDraftId,
       entityId: targetEntity.entityId,
@@ -178,10 +179,10 @@ const updateBlockEntity = (
       entityVersionCreatedAt: new Date().toISOString(),
     };
 
-    draftEntityStore[targetEntityDraftId] = draftEntity;
+    draftEntityStore[targetEntityDraftId] = targetDraftEntity;
   }
 
-  const draftBlockEntity = draftEntityStore[draftId];
+  const draftBlockEntity = draftEntityStore[blockDraftId];
 
   if (!draftBlockEntity) {
     throw new Error("Block to update not present in store");
@@ -193,7 +194,7 @@ const updateBlockEntity = (
   draftBlockEntity.entityVersionCreatedAt = new Date().toISOString();
 
   draftBlockEntity.properties = {
-    entity: draftEntity,
+    entity: targetDraftEntity,
   };
 };
 

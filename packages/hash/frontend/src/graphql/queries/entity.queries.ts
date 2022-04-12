@@ -7,9 +7,7 @@ const entityFieldsFragment = gql`
     entityTypeId
     entityTypeName
     entityTypeVersionId
-    ... on UnknownEntity {
-      properties
-    }
+    properties
   }
 `;
 
