@@ -105,20 +105,20 @@ export const Inputs = () => {
               <InputAdornment
                 sx={({ palette }) => ({
                   backgroundColor: palette.gray[10],
-                  color: palette.gray[60],
-                  paddingRight: "12px",
                   border: `1px solid ${palette.gray[30]}`,
                 })}
                 position="start"
               >
-                <Typography
-                  sx={({ palette }) => ({
-                    color: palette.gray[60],
-                  })}
-                  variant="regularTextLabels"
-                >
-                  https://
-                </Typography>
+                <Box pr={1.5}>
+                  <Typography
+                    sx={({ palette }) => ({
+                      color: palette.gray[60],
+                    })}
+                    variant="regularTextLabels"
+                  >
+                    https://
+                  </Typography>
+                </Box>
               </InputAdornment>
             ),
           }}

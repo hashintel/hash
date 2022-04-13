@@ -19,6 +19,7 @@ import {
   MuiSwitchThemeOptions,
 } from "./components/inputs";
 import { MuiCssBaselineThemeOptions } from "./components/utils";
+import { MuiSelectThemeOptions } from "./components/inputs/mui-select-theme-options";
 
 export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
@@ -28,6 +29,7 @@ export const components: Components<Theme> = {
   MuiSwitch: MuiSwitchThemeOptions,
   MuiRadio: MuiRadioThemeOptions,
   MuiCheckbox: MuiCheckboxThemeOptions,
+  MuiSelect: MuiSelectThemeOptions,
   /** ===== DATA DISPLAY ===== */
   MuiIconButton: MuiIconButtonThemeOptions,
   MuiTooltip: MuiTooltipThemeOptions,
