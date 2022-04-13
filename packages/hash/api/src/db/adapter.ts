@@ -562,8 +562,8 @@ export interface DbClient {
    * @param params.sourceEntityId - the entity id of the source entity
    * @param params.path - the aggregation path
    * @param params.operation - the aggregation operation
-   * @param params.createdByAccountId - the account id of the user that created the aggregation
-   * @returns {DbAggregation} the created aggregation
+   * @param params.createdByAccountId - the account id of the user that created the aggregationfde
+   * @returns {Promise<DbAggregation>} the created aggregation
    */
   createAggregation(params: {
     sourceAccountId: string;
@@ -580,7 +580,7 @@ export interface DbClient {
    * @param {string} params.aggregationId - the id of the aggregation
    * @param {object} params.operation - the updated aggregation operation
    * @param {string} params.updatedByAccountId - the account id of the user that is updating the aggregation
-   * @returns {DbAggregation} the updated aggregation
+   * @returns {Promise<DbAggregation>} the updated aggregation
    */
   updateAggregationOperation(params: {
     sourceAccountId: string;
@@ -594,7 +594,7 @@ export interface DbClient {
    *
    * @param {string} params.sourceAccountId - the account id of the source entity
    * @param {string} params.aggregationId - the id of the aggregation
-   * @returns {DbAggregation | null} the aggregation with if found in the datastore, otherwise `null`
+   * @returns {Promise<DbAggregation | null>} the aggregation with if found in the datastore, otherwise `null`
    */
   getAggregation(params: {
     sourceAccountId: string;
@@ -608,7 +608,7 @@ export interface DbClient {
    * @param {string} params.sourceEntityId - the entity id of the source entity
    * @param {string} params.path - the aggregation path
    * @param {Date} [params.activeAt] - the timestamp at which the aggregation was active, when the source entity is versioned
-   * @returns {DbAggregation | null} the aggregation if found in the datastore, otherwise `null`
+   * @returns {Promise<DbAggregation | null>} the aggregation if found in the datastore, otherwise `null`
    */
   getEntityAggregationByPath(params: {
     sourceAccountId: string;
@@ -623,7 +623,7 @@ export interface DbClient {
    * @param {string} params.sourceAccountId - the account id of the source entity
    * @param {string} params.sourceEntityId - the entity id of the source entity
    * @param {Date} [params.activeAt] - the timestamp at which the aggregations were active, when the source entity is versioned
-   * @returns {DbAggregation[]} the aggregations of the entity
+   * @returns {Promise<DbAggregation[]>} the aggregations of the entity
    */
   getEntityAggregations(params: {
     sourceAccountId: string;
@@ -636,7 +636,8 @@ export interface DbClient {
    *
    * @param {string} params.sourceAccountId - the account id of the source entity
    * @param {string} params.aggregationId - the id of the aggregation
-   * @param {string} params.deletedByAccountId - the account id of the user that deleted the aggregation
+   * @param {string} params.deletedByAccountId - the account id of the user that deleted the aggregation  (equivalent to the `removedFromSourceByAccountId` field of an aggregation)
+   * @returns {Promise<void>}
    */
   deleteAggregation(params: {
     sourceAccountId: string;
