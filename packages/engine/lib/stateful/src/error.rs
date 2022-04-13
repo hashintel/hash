@@ -2,8 +2,10 @@ use thiserror::Error as ThisError;
 
 use crate::{agent::AgentStateField, field::RootFieldKey};
 
+/// Convenient alias, which defaults to [`Error`] as [`Err`]-Variant.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
+/// Error variants returned by this module.
 #[derive(ThisError, Debug)]
 pub enum Error {
     #[error("{0}")]
