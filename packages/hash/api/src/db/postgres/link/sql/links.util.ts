@@ -101,6 +101,7 @@ export const selectLatestVersionOfLink = (params: {
   order by link_id, updated_at desc
 `;
 
+/** selects all links with a specific destination entity */
 export const selectAllLinksWithDestinationEntity = (params: {
   destinationAccountId: string;
   destinationEntityId: string;
@@ -118,6 +119,7 @@ export const selectAllLinksWithDestinationEntity = (params: {
   )}
 `;
 
+/** selects all links with a specific source entity */
 export const selectAllLinksWithSourceEntity = (params: {
   sourceAccountId: string;
   sourceEntityId: string;

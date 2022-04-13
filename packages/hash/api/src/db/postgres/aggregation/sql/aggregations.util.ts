@@ -96,6 +96,7 @@ export const selectLatestVersionOfAggregation = (params: {
   order by aggregation_id, updated_at desc
 `;
 
+/** selects all aggregations with a specific source entity */
 export const selectAllAggregationsWithSourceEntity = (params: {
   sourceAccountId: string;
   sourceEntityId: string;
