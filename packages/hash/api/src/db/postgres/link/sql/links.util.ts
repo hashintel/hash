@@ -145,7 +145,7 @@ export const selectAllLinksWithSourceEntity = (params: {
               sql`applied_to_source_at <= ${params.activeAt.toISOString()}`,
               // either the link was removed after the timestamp, or the link hasn't been removed yet
               sql`(
-                  removed_from_source_at >= ${params.activeAt.toISOString()}
+                  removed_from_source_at > ${params.activeAt.toISOString()}
                 or
                   removed_from_source_at is null 
               )`,

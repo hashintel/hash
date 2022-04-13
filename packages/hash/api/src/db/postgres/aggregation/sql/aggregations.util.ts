@@ -123,7 +123,7 @@ export const selectAllAggregationsWithSourceEntity = (params: {
               sql`applied_to_source_at <= ${params.activeAt.toISOString()}`,
               // either the aggregation was removed after the timestamp, or the aggregation hasn't been removed yet
               sql`(
-                  removed_from_source_at >= ${params.activeAt.toISOString()}
+                  removed_from_source_at > ${params.activeAt.toISOString()}
                 or
                   removed_from_source_at is null 
               )`,
