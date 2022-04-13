@@ -2,8 +2,11 @@ use memory::shared_memory::{MemoryId, Metaversion, Segment};
 
 use crate::{dataset::SharedDataset, Result};
 
-// TODO: Datasets are just data in memory segments, not really batches, so the parent module should
-//       be renamed or the `Dataset` struct should be moved.
+/// Represents arbitrary data plainly stored in [`memory`].
+///
+/// It's created from a [`SharedDataset`] and its data can be accessed by [`data()`].
+///
+/// [`data()`]: Self::data
 pub struct Dataset {
     segment: Segment,
 }

@@ -2,6 +2,11 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
+/// Record for a [`Dataset`] pointing to a file.
+///
+/// A `SharedDataset` can either be stored as JSON or as CSV.
+///
+/// [`Dataset`]: crate::dataset::Dataset
 #[derive(Deserialize, Serialize, Clone)]
 pub struct SharedDataset {
     pub name: Option<String>,
