@@ -8,14 +8,13 @@ import { useLocalstorageState } from "rooks";
 
 import { Button } from "../../shared/ui";
 import { BlockLoadedProvider } from "../onBlockLoaded";
-import { RemoteBlockMetadata, UserBlocksProvider } from "../userBlocks";
+import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
 import { BlocksMetaMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
   blocksMeta: BlocksMetaMap;
-  initialUserBlocks: RemoteBlockMetadata[];
   accountId: string;
   entityId: string;
 };
@@ -30,7 +29,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   // @todo consolidate blocksMeta and initialUserBlocks as they share properties
   // @see - https://app.asana.com/0/1200211978612931/1202023490862451/f
   blocksMeta,
-  initialUserBlocks,
   accountId,
   entityId,
 }) => {
@@ -84,8 +82,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     };
   }, [accountId, blocksMeta, entityId, renderPortal]);
 
+  console.log({ blocksMeta });
+
   return (
-    <UserBlocksProvider value={initialUserBlocks}>
+    <UserBlocksProvider value={blocksMeta}>
       <BlockLoadedProvider routeHash={routeHash}>
         <div id="root" ref={root} />
         {portals}

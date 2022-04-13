@@ -1,9 +1,10 @@
-import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
   entityStorePluginState,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
+import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Box } from "@mui/material";
 import { BlockVariant } from "blockprotocol";
@@ -14,12 +15,14 @@ import { EditorView, NodeView } from "prosemirror-view";
 import { createRef, forwardRef, useMemo, useRef } from "react";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../shared/icons";
-import { RemoteBlockMetadata } from "../userBlocks";
 import { BlockViewContext } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 import styles from "./style.module.css";
+
 import { RenderPortal } from "./usePortals";
+import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
+import { useUserBlocks } from "../userBlocks";
 
 type BlockHandleProps = {
   entityId: string | null;
@@ -31,20 +34,36 @@ type BlockHandleProps = {
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
   ({ entityId, onTypeChange, entityStore, view }, ref) => {
     const blockMenuRef = useRef(null);
-    const popupState = usePopupState({
+    const contextMenuPopupState = usePopupState({
       variant: "popover",
       popupId: "block-context-menu",
+    });
+
+    const configMenuPopupState = usePopupState({
+      variant: "popover",
+      popupId: "block-config-menu",
     });
 
     const blockSuggesterProps: BlockSuggesterProps = useMemo(
       () => ({
         onChange: (variant, block) => {
           onTypeChange(variant, block);
-          popupState.close();
+          contextMenuPopupState.close();
         },
       }),
-      [onTypeChange, popupState],
+      [onTypeChange, contextMenuPopupState],
     );
+
+    const { value: blocksMetaMap } = useUserBlocks();
+
+    const blockData = entityId ? entityStore.saved[entityId] ?? null : null;
+    if (blockData && !isBlockEntity(blockData)) {
+      throw new Error(`Non-block entity ${entityId} loaded into BlockView.`);
+    }
+
+    const blockSchema = blockData
+      ? blocksMetaMap[blockData.properties.componentId]?.componentSchema
+      : null;
 
     return (
       <Box
@@ -55,15 +74,23 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
         }}
         data-testid="block-changer"
       >
-        <DragVerticalIcon {...bindTrigger(popupState)} />
+        <DragVerticalIcon {...bindTrigger(contextMenuPopupState)} />
 
         <BlockContextMenu
+          blockData={blockData}
           entityId={entityId}
           blockSuggesterProps={blockSuggesterProps}
-          entityStore={entityStore}
+          openConfigMenu={configMenuPopupState.open}
           view={view}
-          popupState={popupState}
+          popupState={contextMenuPopupState}
           ref={blockMenuRef}
+        />
+
+        <BlockConfigMenu
+          blockData={blockData}
+          blockSchema={blockSchema}
+          popupState={configMenuPopupState}
+          updateConfig={console.log}
         />
       </Box>
     );
@@ -292,10 +319,7 @@ export class BlockView implements NodeView<Schema> {
     document.removeEventListener("dragend", this.onDragEnd);
   }
 
-  /**
-   * @todo restore the ability to load in new block types here
-   */
-  onBlockChange = (variant: BlockVariant, meta: RemoteBlockMetadata) => {
+  onBlockChange = (variant: BlockVariant, meta: BlockConfig) => {
     const { node, view, getPos } = this;
 
     const state = view.state;

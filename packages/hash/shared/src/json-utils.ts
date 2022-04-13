@@ -16,6 +16,7 @@ export const parseJson = <T extends JSONObject | JSONArray>(
 ): T => JSON.parse(jsonString);
 
 export type JsonSchema = Schema & {
+  configProperties?: string[];
   $defs?: Record<string, JsonSchema>;
   default?: JSONValue;
 };

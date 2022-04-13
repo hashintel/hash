@@ -17,11 +17,7 @@ export const BlockLoaderInput: React.VFC = () => {
   const [blockUrl, setBlockUrl] = useState("");
   const blockUrlRef = useRef<HTMLInputElement | null>(null);
 
-  const isDefinedBlock = userBlocks.some(
-    (userBlock) =>
-      createNormalizedBlockUrl(userBlock.componentId) ===
-      createNormalizedBlockUrl(blockUrl),
-  );
+  const isDefinedBlock = !!userBlocks[createNormalizedBlockUrl(blockUrl)];
   const isValidBlockUrl = Boolean(blockUrlRef.current?.validity.valid);
 
   const inputDisabled = isDefinedBlock || !isValidBlockUrl || error != null;
@@ -43,10 +39,10 @@ export const BlockLoaderInput: React.VFC = () => {
       .then((blockMeta) => {
         unstable_batchedUpdates(() => {
           setError(null);
-          setUserBlocks((prevUserBlocks) => [
+          setUserBlocks((prevUserBlocks) => ({
             ...prevUserBlocks,
-            blockMeta.componentMetadata,
-          ]);
+            [normalizedUrl]: blockMeta,
+          }));
         });
         return blockView.manager.createRemoteBlock(normalizedUrl);
       })
