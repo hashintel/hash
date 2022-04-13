@@ -6,7 +6,7 @@ pub(in crate) mod boolean;
 mod batch;
 mod iterator;
 mod pool;
-pub mod record_batch;
+mod record_batch;
 
 pub use self::{
     array::IntoRecordBatch,

@@ -62,6 +62,18 @@ impl IntoAgents for (&RecordBatch, &RecordBatch) {
     }
 }
 
+impl IntoAgents for AgentBatch {
+    fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>> {
+        self.batch.record_batch()?.to_agent_states(agent_schema)
+    }
+
+    fn to_filtered_agent_states(&self, agent_schema: &AgentSchema) -> Result<Vec<Agent>> {
+        self.batch
+            .record_batch()?
+            .to_filtered_agent_states(agent_schema)
+    }
+}
+
 impl IntoAgents for RecordBatch {
     fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>> {
         let agents = self;

@@ -7,6 +7,9 @@ use crate::{
     Result,
 };
 
+// TODO: We probably want to wrap `[AgentBatch]` into `AgentBatchPool` or similar for avoiding free
+//   standing functions.
+
 pub fn agent_id_iter<'b: 'a, 'a>(
     agent_pool: &'a [&'b AgentBatch],
 ) -> Result<impl Iterator<Item = &'b [u8; UUID_V4_LEN]> + 'a> {
@@ -14,7 +17,7 @@ pub fn agent_id_iter<'b: 'a, 'a>(
 
     // Collect iterators first, because we want to check for any errors.
     for agent_batch in agent_pool {
-        let iterable = record_batch::agent_id_iter(agent_batch.batch.record_batch()?)?;
+        let iterable = agent_batch.id_iter()?;
         iterables.push(iterable);
     }
     Ok(iterables.into_iter().flatten())

@@ -49,7 +49,7 @@ pub(in crate) fn get_old_message_index(
 }
 
 // TODO: no set_id, but ID must have null bytes if too short
-pub fn agent_id_iter(
+pub(crate) fn agent_id_iter(
     record_batch: &RecordBatch,
 ) -> Result<impl Iterator<Item = &[u8; UUID_V4_LEN]>> {
     let column_name = AgentStateField::AgentId.name();
@@ -100,7 +100,7 @@ pub fn get_agent_name(record_batch: &RecordBatch) -> Result<Vec<Option<Cow<'_, s
 #[allow(clippy::option_if_let_else)]
 pub fn agent_name_as_array(
     record_batch: &RecordBatch,
-    column: Vec<Option<Cow<'_, str>>>,
+    column: &[Option<impl AsRef<str>>],
 ) -> Result<ColumnChange> {
     // Guess that the concatenated names of all agents in this record batch have at least 512
     // characters. This initial capacity guess only affects performance, so the exact value
@@ -110,9 +110,9 @@ pub fn agent_name_as_array(
     //       making it depend on the number of agents.
     let mut builder = arrow::array::StringBuilder::new(512);
 
-    column.into_iter().try_for_each(|v| {
+    column.iter().try_for_each(|v| {
         if let Some(value) = v {
-            builder.append_value(value.as_ref())
+            builder.append_value(value)
         } else {
             builder.append_null()
         }
@@ -130,7 +130,7 @@ pub fn agent_name_as_array(
     })
 }
 
-pub fn topology_mut_iter(
+pub(crate) fn topology_mut_iter(
     record_batch: &mut RecordBatch,
 ) -> Result<(
     impl Iterator<
@@ -269,7 +269,8 @@ pub(in crate) fn position_iter(
     }))
 }
 
-pub fn direction_iter(
+#[allow(dead_code)]
+pub(crate) fn direction_iter(
     record_batch: &RecordBatch,
 ) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
     let column_name = AgentStateField::Direction.name();

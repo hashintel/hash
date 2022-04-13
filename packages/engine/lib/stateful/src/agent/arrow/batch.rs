@@ -1,6 +1,6 @@
 #![allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
 
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use arrow::{
     array::Array,
@@ -19,17 +19,20 @@ use memory::{
             self,
             conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
         },
-        ArrowBatch,
+        ArrowBatch, ColumnChange,
     },
     shared_memory::{BufferChange, MemoryId, Metaversion, Segment},
 };
 
 use crate::{
     agent::{
-        arrow::{array::IntoRecordBatch, PREVIOUS_INDEX_FIELD_KEY},
+        arrow::{
+            array::IntoRecordBatch, boolean::BooleanColumn, record_batch, PREVIOUS_INDEX_FIELD_KEY,
+        },
         AgentSchema,
     },
     error::{Error, Result},
+    field::{POSITION_DIM, UUID_V4_LEN},
 };
 
 /// An Arrow batch with agent state columns
@@ -80,7 +83,7 @@ impl AgentBatch {
     }
 
     /// Copy contents from RecordBatch and create a memory-backed Batch
-    pub fn from_record_batch(
+    pub(crate) fn from_record_batch(
         record_batch: &RecordBatch,
         schema: &AgentSchema,
         memory_id: MemoryId,
@@ -249,5 +252,35 @@ impl AgentBatch {
 
     pub fn set_worker_index(&mut self, worker_index: usize) {
         self.worker_index = worker_index;
+    }
+
+    pub fn id_iter(&self) -> Result<impl Iterator<Item = &[u8; UUID_V4_LEN]>> {
+        record_batch::agent_id_iter(self.batch.record_batch()?)
+    }
+
+    pub fn names(&self) -> Result<Vec<Option<Cow<'_, str>>>> {
+        record_batch::get_agent_name(self.batch.record_batch()?)
+    }
+
+    pub fn name_changes<S: AsRef<str>>(&self, column: &[Option<S>]) -> Result<ColumnChange> {
+        record_batch::agent_name_as_array(self.batch.record_batch()?, column)
+    }
+
+    pub fn search_radius_iter(&self) -> Result<impl Iterator<Item = Option<f64>> + '_> {
+        record_batch::search_radius_iter(self.batch.record_batch()?)
+    }
+
+    pub fn topology_iter_mut(
+        &mut self,
+    ) -> Result<(
+        impl Iterator<
+            Item = (
+                Option<&mut [f64; POSITION_DIM]>,
+                Option<&mut [f64; POSITION_DIM]>,
+            ),
+        >,
+        BooleanColumn,
+    )> {
+        record_batch::topology_mut_iter(self.batch.record_batch_mut()?)
     }
 }

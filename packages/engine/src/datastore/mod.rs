@@ -24,7 +24,7 @@ pub mod tests {
     use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
     use rand::Rng;
     use stateful::{
-        agent::{self, AgentBatch, IntoAgents},
+        agent::{AgentBatch, IntoAgents},
         field::UUID_V4_LEN,
         state::State,
     };
@@ -37,8 +37,7 @@ pub mod tests {
     pub fn growable_array_modification() -> Result<()> {
         pub fn modify_name(shmem_os_id: &str) -> Result<Vec<Option<String>>> {
             let mut state_batch = *AgentBatch::from_shmem_os_id(shmem_os_id)?;
-            let record_batch = state_batch.batch.record_batch()?;
-            let mut column = agent::arrow::record_batch::get_agent_name(record_batch)?;
+            let mut column = state_batch.names()?;
             // `targets` values will be checked against shared memory data
             // in order to check if changes were flushed properly
             let mut targets = Vec::with_capacity(column.len());
@@ -64,7 +63,7 @@ pub mod tests {
                     }
                 }
             }
-            let change = agent::arrow::record_batch::agent_name_as_array(record_batch, column)?;
+            let change = state_batch.name_changes(&column)?;
             state_batch.batch.queue_change(change)?;
             state_batch.batch.flush_changes()?;
             Ok(targets)
@@ -106,10 +105,9 @@ pub mod tests {
 
         let state_proxy = state.read()?;
         let batch_proxy: &AgentBatch = state_proxy.agent_pool().batch(0).unwrap();
-        let record_batch = batch_proxy.batch.record_batch()?;
 
-        let names = agent::arrow::record_batch::get_agent_name(record_batch)?;
-        let agent_states = record_batch.to_agent_states(Some(&schema))?;
+        let names = batch_proxy.names()?;
+        let agent_states = batch_proxy.to_agent_states(Some(&schema))?;
 
         targets.into_iter().enumerate().for_each(|(i, t)| match t {
             Some(v) => {
