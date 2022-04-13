@@ -1,4 +1,4 @@
-// TODO: DOC: Add module level docs for describing the high level concept of agents
+//!
 
 mod field;
 mod into_agent;
@@ -11,7 +11,7 @@ mod schema;
 pub mod arrow;
 
 pub use self::{
-    arrow::{flush_pending_columns, modify_loaded_column, AgentBatch, AgentPool},
+    arrow::{AgentBatch, AgentPool},
     field::{Agent, AgentStateField},
     into_agent::IntoAgents,
     name::AgentName,

@@ -14,7 +14,7 @@ pub use self::{
         json_serialized_value_iter, json_value_iter_cols, position_iter, search_radius_iter,
         str_iter,
     },
-    pool::{flush_pending_columns, modify_loaded_column, AgentPool},
+    pool::AgentPool,
 };
 
 // TODO: this should be deleted, i.e. if this value is required use

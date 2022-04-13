@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
-    agent::{flush_pending_columns, modify_loaded_column, AgentBatch},
+    agent::AgentBatch,
     context::Context,
     field::{FieldSource, RootFieldSpec, RootFieldSpecCreator},
     globals::Globals,
@@ -165,7 +165,7 @@ impl BehaviorExecution {
             self.behavior_ids_col_index,
         )?;
 
-        modify_loaded_column(agent_proxies, behavior_ids)?;
+        behavior_ids.apply_to(agent_proxies)?;
         Ok(())
     }
 
@@ -174,7 +174,7 @@ impl BehaviorExecution {
         agent_proxies: &mut PoolWriteProxy<AgentBatch>,
     ) -> Result<()> {
         let behavior_index_col = reset_index_col(self.behavior_index_col_index)?;
-        modify_loaded_column(agent_proxies, behavior_index_col)?;
+        behavior_index_col.apply_to(agent_proxies)?;
 
         Ok(())
     }
