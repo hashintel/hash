@@ -1,3 +1,5 @@
+import {hash_util} from "./src/worker/runner/javascript/hash_util.js"
+
 const json_deepcopy = hash_util.json_deepcopy;
 
 /// Neighbor getters (`neighbor.your_state_field`)
