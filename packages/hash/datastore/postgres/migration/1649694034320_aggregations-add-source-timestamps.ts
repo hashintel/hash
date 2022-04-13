@@ -135,6 +135,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
 /**
  * Implementing a down migration that wouldn't incur dataloss is possible, but
- * would involve significant effort deemed out of scope at this stage, so has been left unimplemented.
+ * would involve significant effort deemed out of scope at this stage of the project.
+ * It will be left unimplemented.
  */
 export const down = false;
