@@ -61,7 +61,7 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
 
               return (
                 <BlockContextMenuItem
-                  key={`${option.meta.name}-${option.variant.name}`}
+                  key={`${option.meta.componentId}-${option.variant.name}`}
                   selected={
                     index + filteredMenuItems.actions.length === selectedIndex
                   }
