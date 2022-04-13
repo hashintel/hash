@@ -1,6 +1,6 @@
 //! The global state shared between all [`Agent`]s.
 //!
-//! For a high-level concept of the context, please see the [HASH documentation]
+//! For a high-level concept of the context, please see the [HASH documentation].
 //!
 //! The main structure in this module is [`Context`]. It's holding a snapshot of the [`StatePools`]
 //! from the previous step and is used for providing global information like [`globals`] and

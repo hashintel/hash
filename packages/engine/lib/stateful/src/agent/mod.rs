@@ -1,6 +1,6 @@
 //! Structures for representing an `Agent`.
 //!
-//! For a high-level concept of an agent, please see the [HASH documentation]
+//! For a high-level concept of an agent, please see the [HASH documentation].
 //!
 //! The main struct in this module is [`Agent`]. It contains all agent fields as an accessible
 //! struct. Its fields are represented by [`AgentStateField`], which is based on the [`field`] API.

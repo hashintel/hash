@@ -1,6 +1,6 @@
 //! Messages to send to and from [`Agent`]s.
 //!
-//! For a high-level concept of an messages, please see the [HASH documentation]
+//! For a high-level concept of an messages, please see the [HASH documentation].
 //!
 //! The main structure in this module is [`Message`]. It's providing for different variants,
 //! depending on the type of the message.
