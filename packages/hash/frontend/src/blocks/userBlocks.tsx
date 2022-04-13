@@ -16,20 +16,6 @@ import { useCachedDefaultState } from "../components/hooks/useDefaultState";
 
 export type RemoteBlockMetadata = BlockMetadata & {
   componentId: string;
-  packagePath?: string;
-};
-
-// @todo - remove this and packagePath once componentId starts being generated on the backend
-const getComponentId = (meta: RemoteBlockMetadata) => {
-  if (meta.componentId) {
-    return meta.componentId;
-  }
-
-  if (meta.packagePath) {
-    return `https://blockprotocol.org/blocks/${meta.packagePath}`;
-  }
-
-  throw new Error("Added a block without packagePath or componentId");
 };
 
 type UserBlocks = RemoteBlockMetadata[];
@@ -112,15 +98,8 @@ export const UserBlocksProvider: FC<{ value: UserBlocks }> = ({
             return response.json();
           })
           .then((responseData) => {
-            const userBlocks = (responseData.results as UserBlocks).map(
-              (userBlock) => ({
-                ...userBlock,
-                componentId: getComponentId(userBlock),
-              }),
-            );
-
             setValue((prevValue) => {
-              return mergeBlocksData(prevValue, userBlocks);
+              return mergeBlocksData(prevValue, responseData);
             });
           })
           .catch((error) => {
