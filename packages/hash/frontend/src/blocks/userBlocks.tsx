@@ -1,5 +1,6 @@
 import { BlockMetadata } from "blockprotocol";
 import produce from "immer";
+import { BlockConfig, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import {
   createContext,
   Dispatch,
@@ -97,9 +98,17 @@ export const UserBlocksProvider: FC<{ value: UserBlocks }> = ({
             }
             return response.json();
           })
-          .then((responseData) => {
+          .then(async ({ results: responseData }) => {
+            const resolvedMetadata = await Promise.all(
+              (responseData as BlockConfig[]).map(
+                async (metadata) =>
+                  (
+                    await fetchBlockMeta(metadata.componentId)
+                  ).componentMetadata,
+              ),
+            );
             setValue((prevValue) => {
-              return mergeBlocksData(prevValue, responseData);
+              return mergeBlocksData(prevValue, resolvedMetadata);
             });
           })
           .catch((error) => {
