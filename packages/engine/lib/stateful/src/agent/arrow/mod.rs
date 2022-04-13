@@ -1,3 +1,5 @@
+//! Low-level interface to [`AgentBatch`].
+
 pub(in crate) mod array;
 pub(in crate) mod boolean;
 

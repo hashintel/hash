@@ -17,7 +17,7 @@ use crate::{
     Error, Result,
 };
 
-/// Conversion into `Agent`, which can be converted to JSON
+/// Conversion of batches to a list of [`Agent`]s.
 pub trait IntoAgents {
     fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>>;
 
