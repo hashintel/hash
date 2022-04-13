@@ -81,7 +81,7 @@ export class EditorConnection {
   dispatch = (action: EditorConnectionAction) => {
     if (this.errored) {
       if (action.type === "update" && action.transaction) {
-        // this.view.updateState(this.view.state.apply(action.transaction));
+        this.view.updateState(this.view.state.apply(action.transaction));
       }
 
       return;
@@ -163,7 +163,7 @@ export class EditorConnection {
 
     // Sync the editor with this.state.edit
     if (this.state.edit) {
-      // this.view.updateState(this.state.edit);
+      this.view.updateState(this.state.edit);
     } else {
       // @todo disable
     }

@@ -205,8 +205,6 @@ const handleUpdateDocument = async (
       data.actions,
     );
 
-    await instance.drainCollabQueue();
-
     if (!result) {
       if (instance.errored) {
         emitServerError(socket, "Collab instance is erroring.");

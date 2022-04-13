@@ -73,6 +73,7 @@ export class EditorWsConnection extends EditorConnectionInterface {
   sentActions = new Set<string>();
   errored = false;
   socket: Socket;
+  isRefetchingState = true;
 
   constructor(
     public url: string,
@@ -174,15 +175,15 @@ export class EditorWsConnection extends EditorConnectionInterface {
     }
 
     if (newEditState) {
-      // eslint-disable-next-line no-console
-      console.debug("sending", { state: this.state, edit: newEditState });
-
       let sendable;
       if (
         // eslint-disable-next-line no-cond-assign
         (sendable = sendableSteps(newEditState)) &&
         sendable
       ) {
+        // eslint-disable-next-line no-console
+        console.debug("sending", { state: this.state, edit: newEditState });
+
         this.state = new State(newEditState, "send", nextVersion);
         this.send(newEditState, sendable);
       } else {
@@ -206,26 +207,21 @@ export class EditorWsConnection extends EditorConnectionInterface {
 
     const { steps: innerSteps, clientID: clientId } = steps;
 
-    emitClientAction(
-      this.socket,
-      {
-        type: "updateDocument",
-        version: this.state.version,
-        steps: innerSteps.map((step) => step.toJSON()),
-        clientId,
-        // @todo do something smarter
-        blockIds: Object.keys(editState.schema.nodes).filter((key) =>
-          key.startsWith("http"),
-        ),
-        actions: actions.map((action) => action.action),
-      },
-      // Callback for when the server has acknowledged
-      () => {
-        for (const action of actions) {
-          this.sentActions.add(action.id);
-        }
-      },
-    );
+    emitClientAction(this.socket, {
+      type: "updateDocument",
+      version: this.state.version,
+      steps: innerSteps.map((step) => step.toJSON()),
+      clientId,
+      // @todo do something smarter
+      blockIds: Object.keys(editState.schema.nodes).filter((key) =>
+        key.startsWith("http"),
+      ),
+      actions: actions.map((action) => action.action),
+    });
+
+    for (const action of actions) {
+      this.sentActions.add(action.id);
+    }
     if (!this.state.edit) {
       throw new Error("Cannot receive steps without state");
     }
@@ -241,7 +237,7 @@ export class EditorWsConnection extends EditorConnectionInterface {
       type: "update",
       transaction: tr,
       requestDone: true,
-      version: this.state.version + innerSteps.length,
+      version: this.state.version + innerSteps.length + actions.length,
     });
   }
 
@@ -258,9 +254,10 @@ export class EditorWsConnection extends EditorConnectionInterface {
     this.dispatch({ type: "update", transaction, version });
   }
 
-  onServerError = (error: ErrorEvent) => {
+  onServerError = ({ error }: ErrorEvent) => {
     // eslint-disable-next-line no-console
     console.error("Collab error:", error);
+    this.dispatch({ type: "error", error });
   };
 
   onInitialState = async (initialState: InitialStateEvent) => {
@@ -307,6 +304,8 @@ export class EditorWsConnection extends EditorConnectionInterface {
     if (update.version < this.state.version) {
       return;
     }
+
+    this.isRefetchingState = false;
 
     if (this.state.edit) {
       const tr = this.state.edit.tr;
@@ -385,10 +384,13 @@ export class EditorWsConnection extends EditorConnectionInterface {
   };
 
   onVersionConflict = () => {
-    emitClientAction(this.socket, {
-      type: "fetchVersion",
-      currentVersion: this.state.version,
-    });
+    if (!this.isRefetchingState) {
+      emitClientAction(this.socket, {
+        type: "fetchVersion",
+        currentVersion: this.state.version,
+      });
+      this.isRefetchingState = true;
+    }
   };
 
   setupListeners() {

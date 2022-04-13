@@ -31,10 +31,16 @@ import {
   createNecessaryEntities,
   updatePageMutation,
 } from "@hashintel/hash-shared/save";
+
 import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
+import {
+  clearIntervalAsync,
+  setIntervalAsync,
+  SetIntervalAsyncTimer,
+} from "set-interval-async/dynamic";
 import { promise as asyncQueue, queue as Queue } from "fastq";
 
 import { logger } from "../logger";
@@ -136,6 +142,7 @@ export class Instance {
   private readonly unsubscribeFromEntityWatcher: () => void;
 
   private eventQueue: Queue<CollabEvent>;
+  private eventQueueConsumer: SetIntervalAsyncTimer;
 
   constructor(
     public accountId: string,
@@ -166,10 +173,8 @@ export class Instance {
     // Single-worker queue for handling event updated serially.
     const self = this;
     this.eventQueue = asyncQueue(self, this.handleCollabEvent, 1);
-  }
 
-  async drainCollabQueue() {
-    await this.eventQueue.drain();
+    this.eventQueueConsumer = setIntervalAsync(this.eventQueue.drain, 30);
   }
 
   handleCollabEvent = async (collabEvent: CollabEvent) => {
@@ -190,7 +195,7 @@ export class Instance {
 
         const result = tr.maybeStep(steps[i]!);
         if (!result.doc) {
-          logger.warn("Bad step", steps[i]);
+          logger.error("Bad step", steps[i]);
           throw new Error(`Could not apply step ${JSON.stringify(steps[i])}`);
         }
       }
@@ -213,6 +218,8 @@ export class Instance {
 
       if (apolloClient) {
         // @todo offload saves to a separate process / debounce them
+        // eslint-disable-next-line no-console
+        console.log("Saving store");
         await this.save(apolloClient)(clientID);
       }
     } catch (err) {
@@ -230,6 +237,8 @@ export class Instance {
     this.sendUpdates([]);
 
     clearInterval(this.positionCleanupInterval);
+
+    void (async () => clearIntervalAsync(this.eventQueueConsumer))();
 
     for (const { error } of this.positionSubscription) {
       error?.("Collab instance was stopped");
@@ -250,7 +259,7 @@ export class Instance {
       return;
     }
 
-    logger.warn(
+    logger.error(
       `Stopping instance ${this.accountId}/${this.pageEntityId}`,
       err,
     );
@@ -416,7 +425,7 @@ export class Instance {
         return false;
       }
 
-      await this.eventQueue.push({
+      this.eventQueue.push({
         apolloClient,
         version,
         steps,
