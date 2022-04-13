@@ -8,12 +8,12 @@ use rayon::iter::{
 use uuid::Uuid;
 
 use crate::{
-    agent,
     agent::AgentBatch,
     field::UUID_V4_LEN,
     message,
     message::{arrow::record_batch::MessageLoader, MessageBatch, MessageSchema},
     proxy::{BatchPool, BatchReadProxy, BatchWriteProxy, PoolReadProxy, PoolWriteProxy},
+    state::MessageReference,
     Error, Result,
 };
 
@@ -153,7 +153,7 @@ impl BatchPool for MessagePool {
 
 pub fn recipient_iter_all<'b: 'r, 'r>(
     message_pool_proxy: &'b PoolReadProxy<MessageBatch>,
-) -> impl ParallelIterator<Item = (Vec<&'b str>, agent::MessageReference)> + 'r {
+) -> impl ParallelIterator<Item = (Vec<&'b str>, MessageReference)> + 'r {
     message_pool_proxy
         .batches
         .par_iter()
@@ -201,7 +201,7 @@ impl<'a> MessageReader<'a> {
 impl MessageReader<'_> {
     pub fn type_iter<'b: 'r, 'r>(
         &'b self,
-        message_references: &'r [agent::MessageReference],
+        message_references: &'r [MessageReference],
     ) -> impl IndexedParallelIterator<Item = &'b str> + 'r {
         message_references.par_iter().map(move |reference| {
             self.loaders[reference.batch_index]
@@ -211,7 +211,7 @@ impl MessageReader<'_> {
 
     pub fn data_iter<'b: 'r, 'r>(
         &'b self,
-        message_references: &'r [agent::MessageReference],
+        message_references: &'r [MessageReference],
     ) -> impl IndexedParallelIterator<Item = &'b str> + 'r {
         message_references.par_iter().map(move |reference| {
             self.loaders[reference.batch_index]
@@ -222,7 +222,7 @@ impl MessageReader<'_> {
     #[allow(clippy::wrong_self_convention)]
     pub fn from_iter<'b: 'r, 'r>(
         &'b self,
-        message_references: &'r [agent::MessageReference],
+        message_references: &'r [MessageReference],
     ) -> impl IndexedParallelIterator<Item = &'b [u8; UUID_V4_LEN]> + 'r {
         message_references.par_iter().map(move |reference| {
             self.loaders[reference.batch_index].get_from(reference.agent_index)

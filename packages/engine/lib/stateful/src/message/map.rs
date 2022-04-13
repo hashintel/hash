@@ -6,16 +6,16 @@ use std::{
 use rayon::iter::ParallelIterator;
 
 use crate::{
-    agent,
     error::Result,
     message::{pool::recipient_iter_all, MessageBatch},
     proxy::PoolReadProxy,
+    state::MessageReference,
 };
 
 /// A mapping from recipient to message reference.
 /// Used in combination with `MessageReader`.
 pub struct MessageMap {
-    inner: HashMap<String, Vec<agent::MessageReference>>,
+    inner: HashMap<String, Vec<MessageReference>>,
 }
 
 impl MessageMap {
@@ -23,7 +23,7 @@ impl MessageMap {
         let iter = recipient_iter_all(pool);
         let inner = iter
             .fold(
-                HashMap::<String, Vec<agent::MessageReference>>::new,
+                HashMap::<String, Vec<MessageReference>>::new,
                 |mut acc, (recipients, message_ref)| {
                     recipients.iter().for_each(|recipient| {
                         // TODO: OS - (decide) currently if message has duplicate recipients then
@@ -54,7 +54,7 @@ impl MessageMap {
         Ok(MessageMap { inner })
     }
 
-    pub fn get_msg_refs(&self, recipient: &str) -> &[agent::MessageReference] {
+    pub fn get_msg_refs(&self, recipient: &str) -> &[MessageReference] {
         self.inner.get(recipient).map(Deref::deref).unwrap_or(&[])
     }
 }

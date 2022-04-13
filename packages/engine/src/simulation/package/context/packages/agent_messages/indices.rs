@@ -1,8 +1,8 @@
-use stateful::agent;
+use stateful::state::MessageReference;
 
 #[derive(Debug)]
 pub struct AgentMessageIndices {
-    inner: Vec<agent::MessageReference>,
+    inner: Vec<MessageReference>,
 }
 
 impl AgentMessageIndices {
@@ -10,7 +10,7 @@ impl AgentMessageIndices {
         AgentMessageIndices { inner: Vec::new() }
     }
 
-    pub fn add(&mut self, refs: &[agent::MessageReference]) {
+    pub fn add(&mut self, refs: &[MessageReference]) {
         self.inner.extend_from_slice(refs);
     }
 
@@ -18,7 +18,7 @@ impl AgentMessageIndices {
         self.inner.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &agent::MessageReference> {
+    pub fn iter(&self) -> impl Iterator<Item = &MessageReference> {
         self.inner.iter()
     }
 }

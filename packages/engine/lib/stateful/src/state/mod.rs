@@ -2,6 +2,7 @@
 
 mod column;
 mod proxy;
+mod references;
 mod view;
 
 use std::{ops::Range, sync::Arc};
@@ -12,6 +13,7 @@ use uuid::Uuid;
 pub use self::{
     column::StateColumn,
     proxy::{StateReadProxy, StateWriteProxy},
+    references::MessageReference,
     view::{StatePools, StateSnapshot},
 };
 use crate::{

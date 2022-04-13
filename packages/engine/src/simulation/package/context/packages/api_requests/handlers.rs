@@ -1,5 +1,5 @@
 use serde_json::Value;
-use stateful::{agent, field::UUID_V4_LEN, message::MessageReader};
+use stateful::{field::UUID_V4_LEN, message::MessageReader, state::MessageReference};
 use thiserror::Error as ThisError;
 
 use crate::simulation::package::context::packages::api_requests::{
@@ -16,7 +16,7 @@ pub struct Requests {
 
 pub fn gather_requests(
     reader: &MessageReader<'_>,
-    messages: &[agent::MessageReference],
+    messages: &[MessageReference],
 ) -> Result<Requests> {
     let inner = (0..messages.len())
         .into_iter()

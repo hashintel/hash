@@ -4,9 +4,10 @@ use arrow::{array::Array, datatypes::Schema, record_batch::RecordBatch};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 use crate::{
-    agent::{arrow::array::get_agent_id_array, MessageReference},
+    agent::arrow::array::get_agent_id_array,
     field::UUID_V4_LEN,
     message::arrow::array::{FieldIndex, MessageArray, FROM_COLUMN_INDEX, MESSAGE_COLUMN_INDEX},
+    state::MessageReference,
     Error, Result,
 };
 
