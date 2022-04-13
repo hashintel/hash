@@ -1,3 +1,10 @@
+/// A reference to a [`Message`] by an [`Agent`] and the [`MessageBatch`] inside of a
+/// [`MessagePool`].
+///
+/// [`Agent`]: crate::agent::Agent
+/// [`Message`]: crate::message::Message
+/// [`MessageBatch`]: crate::message::MessageBatch
+/// [`MessagePool`]: crate::message::MessagePool
 #[derive(Clone, Debug)]
 pub struct MessageReference {
     pub batch_index: usize,

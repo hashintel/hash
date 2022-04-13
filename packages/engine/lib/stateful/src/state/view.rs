@@ -5,6 +5,7 @@ use crate::{
     Result,
 };
 
+/// Unification of [`AgentPool`]s and [`MessagePool`]s for simultaneous access.
 #[derive(Clone)]
 pub struct StatePools {
     pub agent_pool: AgentPool,
@@ -36,6 +37,7 @@ impl Extend<(AgentBatch, MessageBatch)> for StatePools {
     }
 }
 
+/// Associates the [`StatePools`] with a [`MessageMap`].
 pub struct StateSnapshot {
     pub state: StatePools,
     pub message_map: MessageMap,

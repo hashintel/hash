@@ -8,6 +8,7 @@ use crate::{
     Result,
 };
 
+/// Wrapper for [`PoolReadProxy`] holding [`AgentBatch`]es and [`MessageBatch`]es.
 #[derive(Clone)]
 pub struct StateReadProxy {
     pub agent_proxies: PoolReadProxy<AgentBatch>,
@@ -85,6 +86,7 @@ impl StateReadProxy {
     }
 }
 
+/// Wrapper for [`PoolWriteProxy`] holding [`AgentBatch`]es and [`MessageBatch`]es.
 pub struct StateWriteProxy {
     agent_proxies: PoolWriteProxy<AgentBatch>,
     message_proxies: PoolWriteProxy<MessageBatch>,

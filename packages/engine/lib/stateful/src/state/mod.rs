@@ -1,4 +1,17 @@
-// TODO: DOC
+//! Abstraction over [`agent`](crate::agent)s and [`message`](crate::message)s.
+//!
+//! For a high-level concept of the state, please see the [HASH documentation].
+//!
+//! A [`State`] associates [`Agent`]s and [`Message`]s. It stores [`StatePools`] inside, which
+//! itself is a wrapper for [`AgentPool`] and [`MessagePool`]. To provide a similar access like
+//! provided by the [`proxy`] module, [`StateReadProxy`] and [`StateWriteProxy`] are provided.
+//!
+//! To reference to an [`Agent`] and to a [`Message`], [`AgentIndex`] and [`MessageReference`] is
+//! used.
+//!
+//! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/anatomy-of-an-agent/state
+//! [`Message`]: crate::message::Message
+//! [`proxy`]: crate::proxy
 
 mod column;
 mod proxy;
@@ -23,8 +36,10 @@ use crate::{
     Result,
 };
 
+/// A record pointing to a specific [`Agent`] inside of an [`AgentPool`].
 pub type AgentIndex = (u32, u32);
 
+/// Used for creating a new [`State`].
 pub struct StateCreateParameters {
     /// Minimum number of groups.
     ///
@@ -38,6 +53,9 @@ pub struct StateCreateParameters {
     pub message_schema: Arc<MessageSchema>,
 }
 
+/// Holds shared data for [`Agent`]s and [`Message`]s.
+///
+/// [`Message`]: crate::message::Message
 pub struct State {
     /// View into the current step's Agent state.
     state: StatePools,
@@ -189,19 +207,20 @@ impl State {
         self.group_start_indices = group_start_indices;
     }
 
-    /// Reset the messages of the State
+    /// Reset the messages of the [`State`].
     ///
-    /// Uses the Context message pool shared memories as the base for the new message pool for
-    /// State.
+    /// Uses the [`MessagePool`] shared memories as the base for the new message pool for [`State`].
     ///
     /// Returns the old messages so they can be used later for reference.
     ///
-    /// ### Performance
+    /// # Performance
     ///
-    /// This creates a new empty messages column for each old column to replace, which
-    /// requires creating a null bit buffer with all bits set to 1 (i.e. all valid), i.e. one bit
-    /// per each agent in each group. Everything else is O(m), where `m` is the number of batches,
-    /// so this function shouldn't take very long to run.
+    /// This creates a new empty [`Message`]s column for each old column to replace, which requires
+    /// creating a null bit buffer with all bits set to 1 (i.e. all valid), i.e. one bit per each
+    /// agent in each group. Everything else is O(m), where `m` is the number of batches, so this
+    /// function shouldn't take very long to run.
+    ///
+    /// [`Message`]: crate::message::Message
     pub fn reset_messages(
         &mut self,
         mut old_context_message_pool: MessagePool,
