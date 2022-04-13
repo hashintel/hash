@@ -7,7 +7,7 @@ pub use packages::{Name, OutputTask, OutputTaskMessage, PACKAGE_CREATORS};
 use stateful::{
     context::Context,
     field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-    globals::Globals,
+    global::Globals,
     state::State,
 };
 use tracing::Span;

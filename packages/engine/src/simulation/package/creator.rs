@@ -7,7 +7,7 @@ use stateful::{
         FieldScope, FieldSource, FieldSpecMap, FieldSpecMapAccessor, FieldType, PackageId,
         RootFieldSpec, RootFieldSpecCreator,
     },
-    globals::Globals,
+    global::Globals,
 };
 
 use crate::{

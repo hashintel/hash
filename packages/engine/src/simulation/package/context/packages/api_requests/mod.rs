@@ -11,7 +11,7 @@ use stateful::{
     agent,
     context::ContextColumn,
     field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
-    globals::Globals,
+    global::Globals,
     message::MessageReader,
     proxy::BatchPool,
 };

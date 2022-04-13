@@ -7,7 +7,7 @@ use stateful::{
     agent::AgentBatch,
     context::{ContextColumn, ContextSchema},
     field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
-    globals::Globals,
+    global::Globals,
     state::{StateReadProxy, StateSnapshot},
 };
 use tracing::Span;

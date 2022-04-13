@@ -12,7 +12,7 @@ mod worker_pool;
 
 use std::sync::Arc;
 
-use stateful::{globals::Globals, state::StateCreateParameters};
+use stateful::{global::Globals, state::StateCreateParameters};
 
 pub use self::{
     engine::{Config as EngineConfig, Worker, WorkerAllocation},

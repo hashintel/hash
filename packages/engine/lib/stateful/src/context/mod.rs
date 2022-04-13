@@ -3,8 +3,8 @@
 //! For a high-level concept of the context, please see the [HASH documentation].
 //!
 //! The main structure in this module is [`Context`]. It's holding a snapshot of the [`StatePools`]
-//! from the previous step and is used for providing global information like [`globals`] and
-//! [`dataset`]s.
+//! from the previous step and is used for providing global information like [`Globals`] and
+//! [`Dataset`]s.
 //!
 //! The [`Context`] has an in-memory representation defined by [`ContextSchema`] and can be
 //! used by [`ContextBatch`]. Writing to a [`ContextBatch`] is encapsulated in [`ContextColumn`] and
@@ -12,8 +12,8 @@
 //!
 //! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/anatomy-of-an-agent/context
 //! [`Agent`]: crate::agent::Agent
-//! [`globals`]: crate::globals
-//! [`dataset`]: crate::dataset
+//! [`Globals`]: crate::global::Globals
+//! [`Dataset`]: crate::global::Dataset
 
 mod batch;
 mod column;
@@ -47,7 +47,7 @@ use crate::{
 ///
 /// [`Agent`]: crate::agent::Agent
 /// [`Message`]: crate::message::Message
-/// [`Globals`]: crate::globals::Globals
+/// [`Globals`]: crate::global::Globals
 /// [`State`]: crate::state::State
 pub struct Context {
     batch: Arc<ContextBatch>,

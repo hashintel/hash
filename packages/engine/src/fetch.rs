@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::StreamExt;
-use stateful::dataset::SharedDataset;
+use stateful::global::SharedDataset;
 
 use crate::{
     proto::{ExperimentRunRepr, ExperimentRunTrait, FetchedDataset},

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use stateful::{
-    agent::AgentSchema, context::ContextSchema, globals::Globals, message::MessageSchema,
+    agent::AgentSchema, context::ContextSchema, global::Globals, message::MessageSchema,
 };
 
 use crate::{config::Result, simulation::package::creator::PackageCreators};

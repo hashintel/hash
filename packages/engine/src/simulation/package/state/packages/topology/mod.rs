@@ -4,7 +4,7 @@ use stateful::{
     agent::AgentBatch,
     context::Context,
     field::{RootFieldSpec, RootFieldSpecCreator},
-    globals::Globals,
+    global::Globals,
     proxy::BatchPool,
     state::State,
 };

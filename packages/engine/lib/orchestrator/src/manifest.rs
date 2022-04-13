@@ -18,7 +18,7 @@ use hash_engine_lib::{
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
-use stateful::dataset::SharedDataset;
+use stateful::global::SharedDataset;
 use uuid::Uuid;
 
 use crate::ExperimentType;

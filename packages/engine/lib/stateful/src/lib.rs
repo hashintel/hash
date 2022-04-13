@@ -2,9 +2,8 @@
 //            `field` and `proxy` interface
 pub mod agent;
 pub mod context;
-pub mod dataset;
 pub mod field;
-pub mod globals;
+pub mod global;
 pub mod message;
 pub mod proxy;
 pub mod state;

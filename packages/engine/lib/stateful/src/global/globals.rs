@@ -1,16 +1,12 @@
-//! Global, immutable variables accessible to all agents.
-//!
-//! For a high-level concept of globals, please see the [HASH documentation].
-//!
-//! This module currently only contains [`Globals`] but may be expanded in the future.
-//!
-//! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/configuration
-
 use serde::{Deserialize, Serialize};
 
 /// Global constant values that are available within a simulation.
 ///
 /// [`Globals`] is are provided along with the initial world state.
+///
+/// For a high-level concept of globals, please see the [HASH documentation].
+///
+/// [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/configuration
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Globals(pub serde_json::Value);
 

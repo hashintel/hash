@@ -13,7 +13,7 @@ use analyzer::Analyzer;
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
-    context::Context, field::FieldSpecMapAccessor, globals::Globals, proxy::BatchPool, state::State,
+    context::Context, field::FieldSpecMapAccessor, global::Globals, proxy::BatchPool, state::State,
 };
 use tracing::Span;
 

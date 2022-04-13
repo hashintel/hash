@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use memory::shared_memory::MemoryId;
-use stateful::dataset::Dataset;
+use stateful::global::Dataset;
 
 use crate::{config::ExperimentConfig, datastore::error::Result, proto::ExperimentRunTrait};
 

@@ -6,7 +6,7 @@ use stateful::{
     agent::{Agent, IntoAgents},
     context::Context,
     field::FieldScope,
-    globals::Globals,
+    global::Globals,
     state::State,
 };
 

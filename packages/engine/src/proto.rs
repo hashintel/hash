@@ -6,7 +6,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use stateful::{dataset::SharedDataset, globals::Globals};
+use stateful::global::{Globals, SharedDataset};
 use uuid::Uuid;
 
 use crate::simulation::status::SimStatus;

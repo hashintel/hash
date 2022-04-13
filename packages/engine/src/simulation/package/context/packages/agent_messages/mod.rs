@@ -10,7 +10,7 @@ use stateful::{
     agent,
     context::{ContextColumn, ContextSchema},
     field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
-    globals::Globals,
+    global::Globals,
     state::{StateReadProxy, StateSnapshot},
 };
 use tracing::Span;

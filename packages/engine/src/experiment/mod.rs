@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use stateful::globals::Globals;
+use stateful::global::Globals;
 use tokio::task::JoinHandle;
 use tracing::Instrument;
 

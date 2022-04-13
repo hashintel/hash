@@ -1,11 +1,20 @@
-use memory::shared_memory::{MemoryId, Metaversion, Segment};
+use core::fmt;
 
-use crate::{dataset::SharedDataset, Result};
+use memory::shared_memory::{MemoryId, Metaversion, Segment};
+use serde::{Deserialize, Serialize};
+
+use crate::Result;
 
 /// Represents arbitrary data plainly stored in [`memory`].
 ///
-/// It's created from a [`SharedDataset`] and its data can be accessed by [`data()`].
+/// For a high-level concept of datasets, please see the [HASH documentation].
 ///
+/// In comparison to [`Globals`], a [`Dataset`] is stored in a memory [`Segment`] and can be
+/// constructed from a [`SharedDataset`]. Its data can be accessed by [`data()`].
+///
+/// [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/datasets
+/// [`Globals`]: crate::global::Globals
+/// [`Segment`]: memory::shared_memory::Segment
 /// [`data()`]: Self::data
 pub struct Dataset {
     segment: Segment,
@@ -54,5 +63,39 @@ impl Dataset {
         self.segment
             .get_data_buffer()
             .expect("Dataset segment must have data buffer")
+    }
+}
+
+/// Record for a [`Dataset`] pointing to a file.
+///
+/// A `SharedDataset` can either be stored as JSON or as CSV.
+#[derive(Deserialize, Serialize, Clone)]
+pub struct SharedDataset {
+    pub name: Option<String>,
+    pub shortname: String,
+    pub filename: String,
+    pub url: Option<String>,
+    /// Whether the downloadable dataset is a csv
+    pub raw_csv: bool,
+    pub data: Option<String>,
+}
+
+impl fmt::Debug for SharedDataset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SharedDataset")
+            .field("name", &self.name)
+            .field("shortname", &self.shortname)
+            .field("filename", &self.filename)
+            .field("url", &self.url)
+            .field("raw_csv", &self.raw_csv)
+            .field(
+                "data",
+                if self.data.is_some() {
+                    &"Some(...)"
+                } else {
+                    &"None"
+                },
+            )
+            .finish()
     }
 }
