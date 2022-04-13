@@ -17,20 +17,22 @@ use crate::{
     Error, Result,
 };
 
-/// A collection of [`Batch`]es which contain the current (outbound) messages of agents.
+/// A collection of [`MessageBatch`]es which contain the current (outbound) messages of agents.
 ///
 /// This is kept separate to the [`AgentPool`], because while agents can be removed between steps,
 /// messages are still sent out in the next step (including the ones by deleted agents) — this
 /// removes the need for making copies of the pool.
+///
+/// [`AgentPool`]: crate::agent::AgentPool
 #[derive(Clone)]
 pub struct MessagePool {
     batches: Vec<Arc<RwLock<MessageBatch>>>,
 }
 
 impl MessagePool {
-    /// Creates a new pool from [`Batches`].
+    /// Creates a new pool from [`MessageBatch`]es.
     ///
-    /// Because of the way `BatchPools` are organized it's required that the [`Batch`]es are
+    /// Because of the way `BatchPools` are organized it's required that the [`MessageBatch`]es are
     /// stored inside an [`RwLock`] behind an [`Arc`]. This is subject to change.
     pub fn new(batches: Vec<Arc<RwLock<MessageBatch>>>) -> Self {
         Self { batches }

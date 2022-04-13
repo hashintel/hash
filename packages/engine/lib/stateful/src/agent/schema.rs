@@ -8,6 +8,8 @@ use crate::{error::Result, field::FieldSpecMap};
 /// `AgentSchema` describes the layout of every agent-containing `SharedBatch` in a datastore.
 ///
 /// It contains the dual representation of both the [`FieldSpec`] and the Arrow schema.
+///
+/// [`FieldSpec`]: crate::field::FieldSpec
 #[derive(Clone, Debug)]
 pub struct AgentSchema {
     pub arrow: Arc<Schema>,

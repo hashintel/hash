@@ -72,7 +72,7 @@ pub trait BatchPool: Send + Sync {
     /// Returns [`Error::ProxySharedLock`] if any of the batches is currently borrowed in a
     /// [`BatchWriteProxy`].
     ///
-    /// [`Error::ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
+    /// [`Error::ProxySharedLock`]: crate::Error::ProxySharedLock
     /// [`BatchWriteProxy`]: crate::proxy::BatchWriteProxy
     fn read_proxies(&self) -> Result<PoolReadProxy<Self::Batch>>;
 
@@ -84,7 +84,7 @@ pub trait BatchPool: Send + Sync {
     /// Returns [`Error::ProxySharedLock`] if any of the batches at one of the specified
     /// `indices` is currently borrowed in a [`BatchWriteProxy`].
     ///
-    /// [`Error::ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
+    /// [`Error::ProxySharedLock`]: crate::Error::ProxySharedLock
     /// [`BatchWriteProxy`]: crate::proxy::BatchWriteProxy
     fn partial_read_proxies(&self, indices: &[usize]) -> Result<PoolReadProxy<Self::Batch>>;
 
@@ -95,7 +95,7 @@ pub trait BatchPool: Send + Sync {
     /// Returns [`Error::ProxyExclusiveLock`] if any of the batches at one of the specified
     /// `indices` is currently borrowed either as [`BatchReadProxy`] or as [`BatchWriteProxy`].
     ///
-    /// [`Error::ProxyExclusiveLock`]: crate::datastore::error::Error::ProxyExclusiveLock
+    /// [`Error::ProxyExclusiveLock`]: crate::Error::ProxyExclusiveLock
     /// [`BatchReadProxy`]: crate::proxy::BatchReadProxy
     /// [`BatchWriteProxy`]: crate::proxy::BatchWriteProxy
     fn write_proxies(&mut self) -> Result<PoolWriteProxy<Self::Batch>>;
@@ -110,7 +110,7 @@ pub trait BatchPool: Send + Sync {
     /// Returns [`Error::ProxyExclusiveLock`] if any of the batches at one of the specified
     /// `indices` is currently borrowed either as [`BatchReadProxy`] or as [`BatchWriteProxy`].
     ///
-    /// [`Error::ProxyExclusiveLock`]: crate::datastore::error::Error::ProxyExclusiveLock
+    /// [`Error::ProxyExclusiveLock`]: crate::Error::ProxyExclusiveLock
     /// [`BatchReadProxy`]: crate::proxy::BatchReadProxy
     /// [`BatchWriteProxy`]: crate::proxy::BatchWriteProxy
     fn partial_write_proxies(&mut self, indices: &[usize]) -> Result<PoolWriteProxy<Self::Batch>>;

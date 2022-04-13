@@ -108,7 +108,7 @@ impl State {
         })
     }
 
-    /// Creates a new State object from a provided array of [`AgentState`]s.
+    /// Creates a new State object from a provided array of [`Agent`]s.
     ///
     /// Uses the schemas in the provided `sim_config` to validate the provided state, and to create
     /// the agent and message batches. The agent batches are created by splitting up the

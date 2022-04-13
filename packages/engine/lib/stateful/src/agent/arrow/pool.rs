@@ -19,7 +19,7 @@ pub struct AgentPool {
 impl AgentPool {
     /// Creates a new pool from [`AgentBatch`]es.
     ///
-    /// Because of the way `BatchPools` are organized it's required that the [`Batch`]es are
+    /// Because of the way `BatchPools` are organized it's required that the [`AgentBatch`]es are
     /// stored inside an [`RwLock`] behind an [`Arc`]. This is subject to change.
     pub fn new(batches: Vec<Arc<RwLock<AgentBatch>>>) -> Self {
         Self { batches }
