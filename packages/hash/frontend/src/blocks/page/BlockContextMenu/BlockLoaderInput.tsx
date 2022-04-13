@@ -20,7 +20,7 @@ export const BlockLoaderInput: React.VFC = () => {
   const isDefinedBlock = !!userBlocks[createNormalizedBlockUrl(blockUrl)];
   const isValidBlockUrl = Boolean(blockUrlRef.current?.validity.valid);
 
-  const inputDisabled = isDefinedBlock || !isValidBlockUrl || error != null;
+  const inputDisabled = !isValidBlockUrl || error != null;
 
   const loadBlockFromUrl = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -98,7 +98,7 @@ export const BlockLoaderInput: React.VFC = () => {
           type="submit"
         >
           {isDefinedBlock
-            ? "Block already defined"
+            ? "Re-load block"
             : !isValidBlockUrl
             ? "Invalid URL"
             : error

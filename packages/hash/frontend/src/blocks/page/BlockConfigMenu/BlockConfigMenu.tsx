@@ -1,10 +1,23 @@
-import { useKey } from "rooks";
+import { useKey, useOutsideClick } from "rooks";
+import { get } from "lodash";
 
-import { Checkbox, FormControlLabel, Popover, Typography } from "@mui/material";
-import { VoidFunctionComponent } from "react";
-import { bindPopover, PopupState } from "material-ui-popup-state/core";
+import {
+  Checkbox,
+  FormControlLabel,
+  Box,
+  Typography,
+  MenuItem,
+  Popover,
+} from "@mui/material";
+import {
+  ChangeEvent,
+  MutableRefObject,
+  useRef,
+  VoidFunctionComponent,
+} from "react";
 import { JSONObject, JSONValue } from "blockprotocol";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { bindPopover, PopupState } from "material-ui-popup-state/hooks";
 
 import { JsonSchema } from "../../../lib/json-utils";
 import { TextField } from "../../../shared/ui/text-field";
@@ -14,20 +27,41 @@ const extractConfigPropertySchemas = (blockSchema: JsonSchema) =>
     blockSchema.configProperties?.includes(name),
   );
 
+const resolvePropertySchema = ($ref: string, rootSchema: JsonSchema) => {
+  if ($ref.startsWith("#/")) {
+    const deepObjectPath = $ref.split("/").slice(1).join(".");
+    return get(rootSchema, deepObjectPath);
+  }
+  throw new Error(`Resolution of external schema ${$ref} not yet implemented.`);
+};
+
+/**
+ * This is a temporary implementation of 'provide an input based on a property schema'
+ * We will need a more comprehensive implementation for the full entity editor
+ */
 const ConfigurationInput: VoidFunctionComponent<{
   name: string;
-  schema: JsonSchema;
+  onChange: (value: any) => void;
+  rootSchema: JsonSchema;
+  propertySchema: JsonSchema;
   value?: JSONValue | null;
-}> = ({ name, schema: { type }, value }) => {
+}> = ({ name, onChange, propertySchema, rootSchema, value }) => {
+  const resolvedPropertySchema = propertySchema.$ref
+    ? resolvePropertySchema(propertySchema.$ref, rootSchema)
+    : propertySchema;
+  const { enum: enumList, format, type } = resolvedPropertySchema;
+
+  const updateProperty = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => onChange(event.target.value);
+
   switch (type) {
     case "boolean":
       return (
         <FormControlLabel
           control={
             <Checkbox
-              onChange={(event) =>
-                console.log("New value", name, event.target.value)
-              }
+              onChange={updateProperty}
               checked={typeof value === "boolean" ? value : false}
             />
           }
@@ -36,27 +70,33 @@ const ConfigurationInput: VoidFunctionComponent<{
       );
 
     case "string":
+      if (format) {
+        // @todo validate string format - should have a reusable input that does this
+      }
       return (
         <TextField
+          onChange={enumList ? updateProperty : undefined}
+          defaultValue={value ?? ""}
           label={name}
-          onChange={(event) =>
-            console.log("New value", name, event.target.value)
-          }
+          onBlur={enumList ? undefined : updateProperty}
+          select={enumList}
           variant="outlined"
-          value={value ?? ""}
-        />
+        >
+          {(enumList ?? []).map((option: string) => (
+            <MenuItem key={option} value={option}>
+              {option}
+            </MenuItem>
+          ))}
+        </TextField>
       );
 
     case "number":
       return (
         <TextField
-          label={name}
-          onChange={(event) =>
-            console.log("New value", name, event.target.value)
-          }
+          defaultValue={value ?? ""}
+          onBlur={(event) => onChange(event.target.value)}
           type="number"
           variant="outlined"
-          value={value ?? ""}
         />
       );
 
@@ -66,21 +106,28 @@ const ConfigurationInput: VoidFunctionComponent<{
 };
 
 type BlockConfigMenuProps = {
+  anchorRef: MutableRefObject<HTMLDivElement>;
   blockData: BlockEntity | null;
   blockSchema?: JsonSchema | null;
+  closeMenu: () => void;
   popupState: PopupState;
-  updateConfig: () => void;
+  updateConfig: (propertiesToUpdate: JSONObject) => void;
 };
 
+/**
+ * Provides a generic UI for setting properties on the entity a block is rendering.
+ * Useful for when the block doesn't provide the UI to do so itself.
+ * Only the properties listed in the block's schema as 'configProperties' are shown.
+ */
 export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
+  anchorRef,
   blockData,
   blockSchema,
-  updateConfig,
+  closeMenu,
   popupState,
+  updateConfig,
 }) => {
-  useKey(["Escape"], () => {
-    popupState.close();
-  });
+  useKey(["Escape"], closeMenu);
 
   const configProperties = extractConfigPropertySchemas(blockSchema ?? {});
 
@@ -88,35 +135,29 @@ export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
     | JSONObject
     | undefined;
 
-  // console.log({ entityData, blockData });
-
   return (
     <Popover
       {...bindPopover(popupState)}
-      sx={({ borderRadii, palette }) => ({
-        borderRadius: borderRadii.lg,
-        border: `1px solid ${palette.gray[30]}`,
-        padding: 1,
-      })}
-      anchorOrigin={{
-        horizontal: "left",
-        vertical: "bottom",
-      }}
-      transformOrigin={{
-        horizontal: "right",
-        vertical: "top",
-      }}
+      anchorEl={anchorRef.current}
+      PaperProps={{ sx: { padding: 2 } }}
     >
-      <Typography variant="smallTextLabels">Configure</Typography>
+      <Typography variant="h5">Configure block</Typography>
       {configProperties.map(([name, schema]) => (
-        <ConfigurationInput
-          key={name}
-          name={name}
-          schema={schema}
-          value={entityData[name]}
-        />
+        <Box key={name} sx={{ mt: 2 }}>
+          <ConfigurationInput
+            name={name}
+            onChange={(value: any) =>
+              updateConfig({ ...entityData, [name]: value })
+            }
+            rootSchema={blockSchema ?? {}}
+            propertySchema={schema}
+            value={entityData?.[name]}
+          />
+        </Box>
       ))}
-      {!configProperties.length && "No block config properties available."}
+      {!configProperties.length && (
+        <Box sx={{ mt: 2 }}>No block config properties available.</Box>
+      )}
     </Popover>
   );
 };

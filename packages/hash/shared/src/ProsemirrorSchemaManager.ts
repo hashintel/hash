@@ -1,4 +1,4 @@
-import { BlockVariant } from "blockprotocol";
+import { BlockVariant, JSONObject } from "blockprotocol";
 import { isString } from "lodash";
 import { NodeSpec, ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
@@ -435,6 +435,28 @@ export class ProsemirrorSchemaManager {
 
     tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
     view.dispatch(tr);
+  }
+
+  async updateEntityProperties(entityId: string, propertiesToSet: JSONObject) {
+    if (!this.view) {
+      throw new Error("Cannot trigger updateEntityProperties without view");
+    }
+
+    const { tr } = this.view.state;
+
+    const draftEntityId = entityId.startsWith("draft-")
+      ? entityId
+      : `draft-${entityId};`;
+
+    addEntityStoreAction(this.view.state, tr, {
+      type: "updateEntityProperties",
+      payload: {
+        draftId: draftEntityId,
+        properties: propertiesToSet,
+        // @todo maybe need to remove this?
+        merge: true,
+      },
+    });
   }
 
   // @todo handle empty variant properties

@@ -82,8 +82,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     };
   }, [accountId, blocksMeta, entityId, renderPortal]);
 
-  console.log({ blocksMeta });
-
   return (
     <UserBlocksProvider value={blocksMeta}>
       <BlockLoadedProvider routeHash={routeHash}>
