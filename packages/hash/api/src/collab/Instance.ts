@@ -118,9 +118,14 @@ export class Instance {
 
   lastActive = Date.now();
 
-  /** Subscriptions for the current instance */
+  /**
+   * Subscriptions for the current instance .
+   * Instead of having multiple connections in a waiting state,
+   * we use observers that are subscribed to the Instance state
+   * which will be notified of any changes
+   */
   subscriptions: DocumentChangeSubscription[] = [];
-  // waiting: Waiting[] = [];
+
   saveChain = Promise.resolve();
   clientIds = new WeakMap<Step, string>();
 
@@ -141,7 +146,23 @@ export class Instance {
 
   private readonly unsubscribeFromEntityWatcher: () => void;
 
+  /**
+   * Event queue to serialize every event that comes in concurrently.
+   * This is to prevent out-of-order updates to the underlying documents.
+   *
+   * The setup of this Instance class is resembling that of an [Erlang process](https://www.erlang.org/doc/reference_manual/processes.html)
+   * where messages are all serialized into a mailbox to be handled serially.
+   */
   private eventQueue: Queue<CollabEvent>;
+
+  /**
+   * The queue is consumed by a _single_ consumer to prevent any race conditions.
+   * This is especially important when applying steps to the document,
+   * where a large set of steps has no chance to finish before a single, out of order step comes in.
+   *
+   * This queue consumer will only allow a single set of steps to be processed at a time
+   * through a FIFO queue.
+   */
   private eventQueueConsumer: SetIntervalAsyncTimer;
 
   constructor(
@@ -170,10 +191,13 @@ export class Instance {
       (entityVersion) => this.processEntityVersion(entityVersion),
     );
 
-    // Single-worker queue for handling event updated serially.
-    const self = this;
-    this.eventQueue = asyncQueue(self, this.handleCollabEvent, 1);
-
+    // Single-worker queue for handling event updated serially
+    this.eventQueue = asyncQueue(this, this.handleCollabEvent, 1);
+    // Queue consumer is polled through an async interval.
+    // this is different from setInterval as it will make sure to finish
+    // the task before re-triggering another invocation.
+    // this behaviour combined with using a worker-queue reduces out-of-rder
+    // concurrency issues.
     this.eventQueueConsumer = setIntervalAsync(this.eventQueue.drain, 30);
   }
 
@@ -412,6 +436,14 @@ export class Instance {
     ]);
   }
 
+  /**
+   * When adding events to be processed by the document Instance,
+   * it is added to a queue, which will apply events one at a time
+   * to prevent any out-of-order concurrency issues.
+   *
+   * Since the queue doesn't apply the changes immediately, the version
+   * is not updated immediately either.
+   */
   addEvents =
     (apolloClient?: ApolloClient<unknown>) =>
     async (
@@ -433,8 +465,6 @@ export class Instance {
         actions,
         fromClient,
       });
-
-      // return { version: this.version };
     };
 
   save = (apolloClient: ApolloClient<unknown>) => async (clientID: string) => {
