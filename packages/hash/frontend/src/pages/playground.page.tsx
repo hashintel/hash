@@ -39,7 +39,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
         </AccordionDetails>
       </Accordion>
       {/* INPUTS */}
-      <Accordion>
+      <Accordion expanded>
         <AccordionSummary>
           <Typography variant="h4">Inputs</Typography>
         </AccordionSummary>
@@ -48,7 +48,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
         </AccordionDetails>
       </Accordion>
       {/* SELECT MENUS */}
-      <Accordion>
+      <Accordion expanded>
         <AccordionSummary>
           <Typography variant="h4">Select Menus</Typography>
         </AccordionSummary>

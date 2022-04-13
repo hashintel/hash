@@ -106,7 +106,7 @@ export const TextField: VFC<TextFieldProps> = ({
       }}
       helperText={
         <Collapse in={!!helperText}>
-          <Box className="box">{helperText}</Box>
+          <Box>{helperText}</Box>
         </Collapse>
       }
       FormHelperTextProps={{
