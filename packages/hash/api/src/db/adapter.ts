@@ -558,11 +558,11 @@ export interface DbClient {
   /**
    * Create an aggregation for an entity.
    *
-   * @param params.sourceAccountId - the account id of the source entity
-   * @param params.sourceEntityId - the entity id of the source entity
-   * @param params.path - the aggregation path
-   * @param params.operation - the aggregation operation
-   * @param params.createdByAccountId - the account id of the user that created the aggregationfde
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.sourceEntityId - the entity id of the source entity
+   * @param {string} params.path - the aggregation path
+   * @param {object} params.operation - the aggregation operation
+   * @param {string} params.createdByAccountId - the account id of the user that created the aggregationfde
    * @returns {Promise<DbAggregation>} the created aggregation
    */
   createAggregation(params: {
