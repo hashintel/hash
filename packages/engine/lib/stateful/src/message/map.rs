@@ -13,7 +13,10 @@ use crate::{
 };
 
 /// A mapping from recipient to message reference.
-/// Used in combination with `MessageReader`.
+///
+/// Used in combination with [`MessageReader`].
+///
+/// [`MessageReader`]: crate::message::MessageReader
 pub struct MessageMap {
     inner: HashMap<String, Vec<MessageReference>>,
 }

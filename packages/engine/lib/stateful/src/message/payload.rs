@@ -1,3 +1,7 @@
+//! Contains the payload used in [`Message`]s.
+//!
+//! [`Message`]: crate::message::Message
+
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{agent::Agent, message};

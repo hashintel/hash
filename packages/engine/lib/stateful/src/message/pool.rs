@@ -175,6 +175,7 @@ pub fn recipient_iter_all<'b: 'r, 'r>(
         })
 }
 
+/// Loads messages from multiple [`MessageBatch`]es.
 pub struct MessageReader<'a> {
     loaders: Vec<MessageLoader<'a>>,
 }
@@ -183,13 +184,8 @@ impl<'a> MessageReader<'a> {
     pub fn from_message_pool(message_pool_proxy: &'a PoolReadProxy<MessageBatch>) -> Result<Self> {
         let loaders = message_pool_proxy
             .batches_iter()
-            .map(|batch| {
-                batch
-                    .batch
-                    .record_batch()
-                    .map(MessageLoader::from_record_batch)
-            })
-            .collect::<memory::Result<_>>()?;
+            .map(MessageLoader::from_batch)
+            .collect::<Result<_>>()?;
         Ok(Self { loaders })
     }
 

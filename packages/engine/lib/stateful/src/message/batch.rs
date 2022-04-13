@@ -36,7 +36,9 @@ const UPPER_MULTIPLIER: usize = 1000;
 /// Size of shared memory above which the soft upper bound is checked
 const LOWER_BOUND: usize = 10000;
 
+/// A group of messages.
 pub struct MessageBatch {
+    /// The underlying batch used in Arrow
     pub batch: ArrowBatch,
     /// Arrow schema with message batch fields
     arrow_schema: Arc<Schema>,

@@ -5,10 +5,11 @@ use memory::arrow::{meta, meta::conversion::HashStaticMeta};
 
 use crate::{error::Result, field::FieldSpecMap};
 
-/// `AgentSchema` describes the layout of every agent-containing `SharedBatch` in a datastore.
+/// Describes the memory format used for storing [`Agent`]s.
 ///
 /// It contains the dual representation of both the [`FieldSpec`] and the Arrow schema.
 ///
+/// [`Agent`]: crate::agent::Agent
 /// [`FieldSpec`]: crate::field::FieldSpec
 #[derive(Clone, Debug)]
 pub struct AgentSchema {

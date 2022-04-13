@@ -39,23 +39,27 @@ impl fmt::Display for Error {
 
 impl StdError for Error {}
 
-/*
- * We want Serde to deserialize a message to the correct enum variant,
- * and to do so, we need to emulate tagged unions. The matter is complicated
- * by the fact that our tag, the field "type", can be any string! So we want
- * to pick the Message::CreateAgent variant if "type" is "create_agent",
- * Message::RemoveAgent if "type" is "remove_agent", and Message::Generic if
- * "type" has any other value.
- *
- * To do this, we create two enums with a single variant, CreateAgent and
- * RemoveAgent. Message::CreateAgent has a field "type" of type CreateAgent:
- * this means that serde will match it correctly when "type" is "create_agent"!
- * Same holds for "remove_agent". Finally, if it cannot match either variant,
- * Serde will fall back to Message::Generic.
- *
- * Since we are at it, I've also done the same with the "hash" id, as it is
- * another requirement for Message::CreateAgent and Message::RemoveAgent.
- */
+// We want Serde to deserialize a message to the correct enum variant, and to do so, we need to
+// emulate tagged unions. The matter is complicated by the fact that our tag, the field "type", can
+// be any string! So we want to pick the Message::CreateAgent variant if "type" is "create_agent",
+// Message::RemoveAgent if "type" is "remove_agent", and Message::Generic if "type" has any other
+// value.
+//
+// To do this, we create two enums with a single variant, CreateAgent and RemoveAgent.
+// Message::CreateAgent has a field "type" of type CreateAgent: this means that serde will match it
+// correctly when "type" is "create_agent"! Same holds for "remove_agent". Finally, if it cannot
+// match either variant, Serde will fall back to Message::Generic.
+//
+// Since we are at it, I've also done the same with the "hash" id, as it is another requirement for
+// Message::CreateAgent and Message::RemoveAgent.
+/// A message sent by an [`Agent`].
+///
+/// Currently, three types of [built-in messages] are available: `"create_agent"`, `"remove_agent"`,
+/// and `"stop"`. For [messages sent] to other agents, a [`Generic`] message is used.
+///
+/// [built-in messages]: https://hash.ai/docs/simulation/creating-simulations/agent-messages/built-in-message-handlers
+/// [messages sent]: https://hash.ai/docs/simulation/creating-simulations/agent-messages/sending-messages
+/// [`Generic`]: Self::Generic
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 #[allow(clippy::large_enum_variant)]
@@ -69,17 +73,17 @@ pub enum Message {
 
     1) Pick a name for the message. Let's say CloneAgent
 
-    2) Add the variant inside OutboundMessage, alongh with the inner struct:
+    2) Add the variant inside OutboundMessage, along with the inner struct:
 
-        CloneAgent(OutboundCloneAgentMessage)
+        CloneAgent(payload::CloneAgent)
 
     3) Define the inner struct:
 
         #[derive(Clone, Serialize, Deserialize, Debug)]
-        pub struct OutboundCloneAgentMessage {
-           r#type: CloneAgent,
+        pub struct CloneAgent {
+           r#type: kind::CloneAgent,
            to: hash,
-           pub data: CloneAgentPayload,
+           pub data: payload::CloneAgentData,
         }
 
     4) Define a special, one-variant enum named CloneAgent: it will allow
@@ -94,7 +98,7 @@ pub enum Message {
     5) Define the payload, that is, the shape of the "data" field.
 
         #[derive(Clone, Serialize, Deserialize, Debug)]
-        pub struct CloneAgentPayload {
+        pub struct CloneAgentData {
             pub agent_id: String,
             pub agent_name_prefix: String,
             // whatever you want
@@ -113,9 +117,13 @@ pub enum Message {
         }
 
     */
+    /// `"create_agent"` sent to `"hash"` will create a new agent specified by it's payload.
     CreateAgent(payload::CreateAgent),
+    /// `"remove_agent"` sent to `"hash"` will remove the specified agent.
     RemoveAgent(payload::RemoveAgent),
+    /// `"stop"` sent to `"hash"` will attempt to stop the current simulation run.
     StopSim(payload::StopSim),
+    /// A message to be send between agents.
     Generic(payload::Generic),
 }
 

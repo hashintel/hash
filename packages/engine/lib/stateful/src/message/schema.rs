@@ -5,6 +5,9 @@ use memory::arrow::{meta, meta::conversion::HashStaticMeta};
 
 use crate::message::arrow::MESSAGE_BATCH_SCHEMA;
 
+/// Describes the memory format used for storing [`Message`]s.
+///
+/// [`Message`]: crate::message::Message
 pub struct MessageSchema {
     pub arrow: Arc<Schema>,
     pub static_meta: Arc<meta::Static>,

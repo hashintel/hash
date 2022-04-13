@@ -1,19 +1,23 @@
-use arrow::record_batch::RecordBatch;
-
 use crate::{
     field::UUID_V4_LEN,
-    message::arrow::{
-        array::{FieldIndex, FROM_COLUMN_INDEX},
-        record_batch::get_message_field,
+    message::{
+        arrow::{
+            array::{FieldIndex, FROM_COLUMN_INDEX},
+            record_batch::get_message_field,
+        },
+        MessageBatch,
     },
+    Result,
 };
 
+/// A record only containing the origin and the data of a message.
 #[derive(Debug)]
 pub struct RawMessage<'a> {
     pub from: &'a [u8; UUID_V4_LEN],
     pub data: &'a str,
 }
 
+/// Loads messages from a [`MessageBatch`].
 pub struct MessageLoader<'a> {
     from: &'a [u8],
     to_bufs: Vec<&'a [i32]>,
@@ -25,7 +29,8 @@ pub struct MessageLoader<'a> {
 }
 
 impl<'a> MessageLoader<'a> {
-    pub(crate) fn from_record_batch(record_batch: &'a RecordBatch) -> Self {
+    pub fn from_batch(message_batch: &'a MessageBatch) -> Result<Self> {
+        let record_batch = message_batch.batch.record_batch()?;
         let column = record_batch.column(FROM_COLUMN_INDEX);
         let data = column.data_ref();
         let from = unsafe { data.buffers()[0].typed_data::<u8>() };
@@ -37,7 +42,7 @@ impl<'a> MessageLoader<'a> {
         let (data_bufs, data) = get_message_field(record_batch, FieldIndex::Data);
         debug_assert_eq!(data_bufs.len(), 2);
 
-        Self {
+        Ok(Self {
             from,
             to_bufs,
             to,
@@ -45,7 +50,7 @@ impl<'a> MessageLoader<'a> {
             typ,
             data_bufs,
             data,
-        }
+        })
     }
 
     pub(crate) fn get_from(&self, agent_index: usize) -> &'a [u8; UUID_V4_LEN] {
