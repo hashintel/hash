@@ -73,7 +73,7 @@ const selectAllLatestVersionsOfAggregationsBeforeTimestamp = (params: {
     order by aggregation_id, updated_at desc
 `;
 
-/** selects all versions of a specifc aggregation */
+/** selects all versions of a specific aggregation */
 const selectAllVersionsOfAggregation = (params: {
   sourceAccountId: string;
   aggregationId: string;
@@ -141,8 +141,7 @@ export const selectAllAggregationsWithSourceEntity = (params: {
 `;
 
 /**
- * Inserts a new aggregation into the `aggregations` table
- * lookup table.
+ * Inserts a new aggregation into the `aggregations` and `aggregation_versions` tables
  */
 export const insertAggregation = async (
   conn: Connection,
@@ -218,7 +217,7 @@ export const removeAggregationFromSource = async (
 };
 
 /**
- * Delete an aggregation from the aggregations table
+ * Delete an aggregation from the `aggregations` table
  */
 export const deleteAggregationRow = async (
   conn: Connection,
