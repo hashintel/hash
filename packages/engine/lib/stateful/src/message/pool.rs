@@ -11,7 +11,7 @@ use crate::{
     agent::AgentBatch,
     field::UUID_V4_LEN,
     message,
-    message::{arrow::record_batch::MessageLoader, MessageBatch, MessageSchema},
+    message::{MessageBatch, MessageLoader, MessageSchema},
     proxy::{BatchPool, BatchReadProxy, BatchWriteProxy, PoolReadProxy, PoolWriteProxy},
     state::MessageReference,
     Error, Result,

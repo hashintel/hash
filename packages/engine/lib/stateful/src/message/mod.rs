@@ -6,6 +6,7 @@ pub(crate) mod arrow;
 
 mod batch;
 mod kind;
+mod loader;
 mod map;
 mod outbound;
 mod pool;
@@ -13,6 +14,7 @@ mod schema;
 
 pub use self::{
     batch::MessageBatch,
+    loader::{MessageLoader, RawMessage},
     map::MessageMap,
     outbound::Message,
     pool::{MessagePool, MessageReader},
