@@ -44,9 +44,7 @@ const mergeBlocksData = (
       if (matchingUserBlockIndex === -1) {
         // @ts-expect-error TS warns `Type instantiation is excessively deep` but this isn't a problem here
         draftUserBlocks.push(latestUserBlock);
-      }
-
-      if (
+      } else if (
         // in development, overwrite the locally cached block if the source has changed
         (!isProduction &&
           draftUserBlocks[matchingUserBlockIndex]?.source !==
