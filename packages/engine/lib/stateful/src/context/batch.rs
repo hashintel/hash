@@ -24,12 +24,16 @@ use crate::{context::ContextColumn, Error, Result};
 // If required data size is 3 times less than current data size then shmem size will be readjusted.
 const UPPER_BOUND_DATA_SIZE_MULTIPLIER: usize = 3;
 
-/// Contains the information required to build the `context` object accessible in the language
+/// Contains the information required to build the [`Context`] object accessible in the language
 /// runners.
 ///
-/// Data within the `ContextBatch` can rely on the contents of the **Agent** and **Message
-/// Pools** within the **Context** object. For example, the list of neighbors in the `ContextBatch`
-/// is a collection of indices pointing to different agents within the **Agent Pool**.
+/// Data within the `ContextBatch` can rely on the contents of the [`AgentPool`] and [`MessagePool`]
+/// within the [`Context`] object. For example, the list of neighbors in the [`ContextBatch`]
+/// is a collection of indices pointing to different agents within the [`AgentPool`].
+///
+/// [`AgentPool`]: crate::agent::AgentPool
+/// [`MessagePool`]: crate::message::MessagePool
+/// [`Context`]: crate::context::Context
 pub struct ContextBatch {
     segment: Segment,
     batch: RecordBatch,

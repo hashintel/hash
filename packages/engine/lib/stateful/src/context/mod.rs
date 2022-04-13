@@ -1,5 +1,19 @@
-// TODO: DOC: Add module level docs for describing the high level concept of the context, what they
-//   are and why they exist
+//! The global state shared between all [`Agent`]s.
+//!
+//! For a high-level concept of the context, please see the [HASH documentation]
+//!
+//! The main structure in this module is [`Context`]. It's holding a snapshot of the [`StatePools`]
+//! from the previous step and is used for providing global information like [`globals`] and
+//! [`dataset`]s.
+//!
+//! The [`Context`] has an in-memory representation defined by [`ContextSchema`] and can be
+//! used by [`ContextBatch`]. Writing to a [`ContextBatch`] is encapsulated in [`ContextColumn`] and
+//! [`ContextColumnWriter`].
+//!
+//! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/anatomy-of-an-agent/context
+//! [`Agent`]: crate::agent::Agent
+//! [`globals`]: crate::globals
+//! [`dataset`]: crate::dataset
 
 mod batch;
 mod column;
@@ -23,13 +37,18 @@ use crate::{
     Error, Result,
 };
 
-/// The context is global, consistent data about the simulation at a single point in time, which is
-/// shared between all agents.
+/// Global, consistent data about the simulation at a single point in time, which is shared between
+/// all [`Agent`]s.
 ///
 /// It contains information about the general simulation, rather than data belonging to specific
-/// agents. This is effectively what the agent 'can see', e.g. neighboring agents, incoming messages
-/// and globals. Due to it being a description of the current environment surrounding the agent,
-/// it's immutable (unlike an agent's specific state).
+/// agents. This is effectively what the [`Agent`] 'can see', e.g. neighboring agents, incoming
+/// [`Message`]s and [`Globals`]. Due to it being a description of the current environment
+/// surrounding the [`Agent`], it's immutable (unlike an agent's specific [`State`]).
+///
+/// [`Agent`]: crate::agent::Agent
+/// [`Message`]: crate::message::Message
+/// [`Globals`]: crate::globals::Globals
+/// [`State`]: crate::state::State
 pub struct Context {
     batch: Arc<ContextBatch>,
     /// View of the state from the previous step.
@@ -40,7 +59,7 @@ pub struct Context {
 }
 
 impl Context {
-    /// TODO: DOC
+    // TODO: DOC
     pub fn from_columns(
         cols: Vec<Arc<dyn arrow::array::Array>>,
         context_schema: &ContextSchema,
@@ -187,8 +206,10 @@ impl Context {
     }
 }
 
-/// A subset of the Context that's used while running context packages, as the MessagePool and
-/// AgentPool are possibly invalid and unneeded while building/updating the context.
+/// A subset of the [`Context`] that's used while running context packages.
+///
+/// This is required as the [`MessagePool`] and [`AgentPool`] are possibly invalid and unneeded
+/// while building/updating the [`Context`].
 pub struct PreContext {
     batch: Arc<ContextBatch>,
     /// Local metadata

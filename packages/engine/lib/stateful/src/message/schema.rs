@@ -7,7 +7,10 @@ use crate::message::arrow::MESSAGE_BATCH_SCHEMA;
 
 /// Describes the memory format used for storing [`Message`]s.
 ///
+/// It contains the dual representation of both the [`FieldSpec`] and the Arrow schema.
+///
 /// [`Message`]: crate::message::Message
+/// [`FieldSpec`]: crate::field::FieldSpec
 pub struct MessageSchema {
     pub arrow: Arc<Schema>,
     pub static_meta: Arc<meta::Static>,
