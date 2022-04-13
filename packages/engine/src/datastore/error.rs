@@ -1,3 +1,4 @@
+use arrow::error::ArrowError;
 use thiserror::Error as ThisError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -12,6 +13,9 @@ pub enum Error {
 
     #[error("Stateful error: {0}")]
     Stateful(#[from] stateful::Error),
+
+    #[error("Arrow Error: {0}")]
+    Arrow(#[from] ArrowError),
 
     #[error("Serde Error: {0}")]
     Serde(#[from] serde_json::Error),
@@ -33,6 +37,9 @@ pub enum Error {
 
     #[error("{0}")]
     RwLock(String),
+
+    #[error("Invalid utf-8: {0}")]
+    FromUtf8Error(#[from] std::string::FromUtf8Error),
 
     #[error("Unexpected undefined command")]
     UnexpectedUndefinedCommand,
