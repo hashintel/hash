@@ -1,11 +1,11 @@
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
 
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { tdClasses, trClasses } from "./SchemaPropertiesTable";
 import { SchemaPropertyTypeList } from "./SchemaPropertyTypeList";
 import { SchemaSelectElementType } from "./SchemaEditor";
 import { ToggleInputOrDisplay, TextInputOrDisplay } from "./Inputs";
-import { JsonSchema } from "../../../lib/json-utils";
 import { SchemaEditorDispatcher } from "./schemaEditorReducer";
 import { Button } from "../../../shared/ui";
 

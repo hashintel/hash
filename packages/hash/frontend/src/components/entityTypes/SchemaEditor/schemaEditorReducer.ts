@@ -1,8 +1,8 @@
-import produce from "immer";
+import produce, { Draft } from "immer";
 import { Schema } from "jsonschema";
 import { get } from "lodash";
 import { Reducer } from "react";
-import { JsonSchema } from "../../../lib/json-utils";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 
 type Action<S, T> = {
   type: S;
@@ -35,13 +35,13 @@ export type SchemaEditorDispatcher = (
   action: SchemaEditorReducerAction,
 ) => void;
 
-const selectSubSchema = (
-  schema: JsonSchema,
+const selectSubSchema = <T extends JsonSchema | Draft<JsonSchema>>(
+  schema: T,
   pathToSubSchema: string | undefined,
-): JsonSchema => (pathToSubSchema ? get(schema, pathToSubSchema) : schema);
+): T => (pathToSubSchema ? get(schema, pathToSubSchema) : schema);
 
-const updatePropertyType = (
-  schemaToEdit: JsonSchema,
+const updatePropertyType = <T extends JsonSchema | Draft<JsonSchema>>(
+  schemaToEdit: T,
   propertyName: string,
   newType: string,
 ): Schema => {
@@ -108,8 +108,10 @@ const getDependentProperties = (
 };
 
 // returns propertyname as string or path to propertyname as string[]
-export const getSubschemaDependentProperties = (
-  schema: JsonSchema,
+export const getSubschemaDependentProperties = <
+  T extends JsonSchema | Draft<JsonSchema>,
+>(
+  schema: T,
   subSchemaNameToDelete: string,
 ): (string | string[])[] => {
   const { properties, $defs } = schema;
@@ -120,11 +122,12 @@ export const getSubschemaDependentProperties = (
     ...getDependentProperties(properties, subSchemaNameToDelete),
   );
 
-  for (const subSchemaName of Object.keys($defs ?? {})) {
+  for (const subSchemaName of Object.keys(($defs as T["$defs"]) ?? {})) {
     if (subSchemaName === subSchemaNameToDelete) {
       continue;
     }
 
+    // @ts-expect-error Recursive type checking issue - TODO figure out a better solution than ignoring
     const { properties: subschemaProperties } = $defs?.[subSchemaName] ?? {};
 
     dependentProperties.push(
