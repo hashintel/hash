@@ -236,7 +236,9 @@ impl Package for BehaviorExecution {
 
         self.fix_behavior_chains(agent_pool)?;
         self.reset_behavior_index_col(agent_pool)?;
-        flush_pending_columns(agent_pool)?;
+        for agent_batch in agent_pool.batches_iter_mut() {
+            agent_batch.batch.flush_changes()?;
+        }
 
         // Have to reload state agent batches twice, because we just wrote the language ID of each
         // behavior into them, but now want to read it from them.
