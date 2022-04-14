@@ -27,6 +27,13 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: 1.1,
     color: customColors.gray[90],
   },
+  hashHeading3: {
+    fontFamily: ["Open Sauce Two", ...fallbackFonts].join(", "),
+    fontSize: "var(--step-3)",
+    fontWeight: 400,
+    lineHeight: 1.2,
+    color: customColors.gray[90],
+  },
   hashHeading4: {
     fontFamily: ["Open Sauce Two", ...fallbackFonts].join(", "),
     fontSize: "var(--step-2)",
@@ -34,14 +41,18 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: 1.2,
     color: customColors.gray[80],
   },
+  hashHeading5: {
+    fontFamily: ["Open Sauce Two", ...fallbackFonts].join(", "),
+    fontSize: "var(--step-1)",
+    fontWeight: 400,
+    lineHeight: 1.2,
+    color: customColors.gray[90],
+  },
   hashBodyCopy: {
     fontSize: "var(--step-0)",
     fontWeight: 400,
     lineHeight: 1.75,
     color: customColors.gray[80],
-    // @todo check this against other uses
-    maxWidth: "65ch",
-    margin: "0 auto",
   },
   hashLargeText: {
     fontSize: "var(--step-1)",
