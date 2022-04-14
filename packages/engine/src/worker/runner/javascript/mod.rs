@@ -8,6 +8,8 @@
 //
 // - Even though `rusty_v8` returns an `Option` on `Object::get`, if the object does not have the
 //   property the result will be `Some(undefined)` rather than `None`.
+//
+// - Modules always evaluate to `undefined` with the "--harmony_top_level_await" flag, https://github.com/denoland/deno/issues/3696#issuecomment-578488613
 
 mod data_ffi;
 mod error;
@@ -92,28 +94,28 @@ impl<'s> JsPackage<'s> {
     ) -> Result<Self> {
         let path = get_pkg_path(name, pkg_type);
         tracing::debug!("Importing package from path `{path}`");
-        let code = match fs::read_to_string(path.clone()) {
-            Ok(s) => s,
-            Err(_) => {
-                tracing::debug!("Couldn't read package file. It might intentionally not exist.");
-                // Packages don't have to use JS.
-                let fns = v8::Array::new(scope, 3);
-                let undefined = v8::undefined(scope).into();
-                for fn_idx in 0..3 {
-                    fns.set_index(scope, fn_idx, undefined).ok_or_else(|| {
-                        Error::PackageImport(
-                            path.clone(),
-                            format!(
-                                "Could not set Undefined value at index {fn_idx} on package \
-                                 function array"
-                            ),
-                        )
-                    })?;
-                }
+        // let code = match fs::read_to_string(path.clone()) {
+        //     Ok(s) => s,
+        //     Err(_) => {
+        //         tracing::debug!("Couldn't read package file. It might intentionally not exist.");
+        //         // Packages don't have to use JS.
+        //         let fns = v8::Array::new(scope, 3);
+        //         let undefined = v8::undefined(scope).into();
+        //         for fn_idx in 0..3 {
+        //             fns.set_index(scope, fn_idx, undefined).ok_or_else(|| {
+        //                 Error::PackageImport(
+        //                     path.clone(),
+        //                     format!(
+        //                         "Could not set Undefined value at index {fn_idx} on package \
+        //                          function array"
+        //                     ),
+        //                 )
+        //             })?;
+        //         }
 
-                return Ok(JsPackage { fns });
-            }
-        };
+        //         return Ok(JsPackage { fns });
+        //     }
+        // };
 
         // // Avoid JS ReferenceError by wrapping potentially undeclared variables with `typeof`.
         // // Double braces like `{{` are Rust's escape string for a single literal `{`.
@@ -177,7 +179,7 @@ impl<'s> JsPackage<'s> {
         //     })?
         // };
 
-        let fns: Array<'_> = {
+        let fns: Object<'_> = {
             // let global_context = context.global(scope);
             // let fns = call_js_function(scope, pkg, global_context.into(), args).map_err(|err| {
             //     Error::PackageImport(path.clone(), format!("Couldn't call package: {err}"))
@@ -185,31 +187,55 @@ impl<'s> JsPackage<'s> {
 
             let mut try_catch = v8::TryCatch::new(scope);
             // dbg!(&code);
-            let code = new_js_string(&mut try_catch, code);
+            // let code = new_js_string(&mut try_catch, code);
             // let source = v8::script_compiler::Source::new(code, None);
-            let pkg = if let Some(pkg) = v8::Script::compile(&mut try_catch, code, None) {
-                pkg
-            } else {
-                let ex = try_catch.exception().unwrap();
-                panic!("{}", ex.to_rust_string_lossy(&mut try_catch));
+            // let pkg = import_script(&mut try_catch, &path).map_err(|err| {
+            //     Error::FileImport(path.clone(), format!("Couldn't import package: {err}"))
+            // })?;
+            let pkg = match import_script(&mut try_catch, &path) {
+                Ok(s) => s,
+                Err(_) => {
+                    tracing::debug!(
+                        "Couldn't read package file. It might intentionally not exist."
+                    );
+                    // Packages don't have to use JS.
+                    let fns = v8::Array::new(&mut try_catch, 3);
+                    let undefined = v8::undefined(&mut try_catch).into();
+                    for fn_idx in 0..3 {
+                        fns.set_index(&mut try_catch, fn_idx, undefined)
+                            .ok_or_else(|| {
+                                Error::PackageImport(
+                                    path.clone(),
+                                    format!(
+                                        "Could not set Undefined value at index {fn_idx} on \
+                                         package function array"
+                                    ),
+                                )
+                            })?;
+                    }
+
+                    return Ok(JsPackage { fns });
+                }
             };
-            // let pkg =
-            //     v8::script_compiler::compile_module(&mut try_catch, source).ok_or_else(|| {
-            //         Error::PackageImport(path.clone(), format!("Couldn't compile module at
-            // {path}"))     })?;
 
-            let fns = if let Some(fns) = pkg.run(&mut try_catch) {
-                fns
-            } else {
-                let ex = try_catch.exception().unwrap();
-                panic!("{}", ex.to_rust_string_lossy(&mut try_catch));
-            };
+            let fns = pkg.run(&mut try_catch).ok_or_else(|| {
+                let exception = try_catch.exception().unwrap();
+                let exception_string = exception
+                    .to_string(&mut try_catch)
+                    .unwrap()
+                    .to_rust_string_lossy(&mut try_catch);
 
-            let fns: v8::Local<'_, v8::Object> = fns.try_into().unwrap();
-            let key = new_js_string(&mut try_catch, "run_task");
-            let f = fns.get(&mut try_catch, key.into());
+                Error::Eval(
+                    path.to_string(),
+                    format!("Compile error: {exception_string}"),
+                )
+            })?;
 
-            dbg!(f.is_some());
+            // let fns: v8::Local<'_, v8::Object> = fns.try_into().unwrap();
+            // let key = new_js_string(&mut try_catch, "run_task");
+            // let f = fns.get(&mut try_catch, key.into());
+
+            // dbg!(f.is_some());
 
             fns.try_into().map_err(|err| {
                 Error::PackageImport(
@@ -222,32 +248,36 @@ impl<'s> JsPackage<'s> {
             })?
         };
 
-        if fns.length() != 3 {
-            return Err(Error::PackageImport(
-                path.clone(),
-                "Unexpected amount of returned arguments".into(),
-            ));
-        }
+        // if fns.length() != 3 {
+        //     return Err(Error::PackageImport(
+        //         path.clone(),
+        //         "Unexpected amount of returned arguments".into(),
+        //     ));
+        // }
 
         // Validate returned array.
         let fn_names = ["start_experiment", "start_sim", "run_task"];
-        for (idx_fn, fn_name) in fn_names.iter().enumerate() {
-            let elem: Value<'_> = fns.get_index(scope, idx_fn as u32).ok_or_else(|| {
-                Error::PackageImport(
-                    path.clone(),
-                    format!("Couldn't index package functions array: {idx_fn:?}"),
-                )
-            })?;
 
-            if !(elem.is_function() || elem.is_undefined()) {
-                return Err(Error::PackageImport(
-                    path.clone(),
-                    format!("{fn_name} should be a function, not {elem:?}"),
-                ));
-            }
-        }
+        let fns = fn_names
+            .into_iter()
+            .map(|fn_name| {
+                let js_fn_name = new_js_string(scope, fn_name);
+                let elem: Value<'_> = fns.get(scope, js_fn_name.into()).unwrap();
 
-        Ok(JsPackage { fns })
+                if !(elem.is_function() || elem.is_undefined()) {
+                    return Err(Error::PackageImport(
+                        path.clone(),
+                        format!("{fn_name} should be a function, not {elem:?}"),
+                    ));
+                }
+
+                Ok(elem)
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(JsPackage {
+            fns: v8::Array::new_with_elements(scope, &fns),
+        })
     }
 }
 
@@ -264,6 +294,41 @@ struct Embedded<'s> {
 
 fn read_file(path: &str) -> Result<String> {
     fs::read_to_string(path).map_err(|err| Error::IO(path.into(), err))
+}
+
+fn import_script<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    path: &str,
+) -> Result<v8::Local<'s, v8::Script>> {
+    let source_code = read_file(path)?;
+    let js_source_code = new_js_string(scope, &source_code);
+    let js_path = new_js_string(scope, path);
+    let origin = v8::ScriptOrigin::new(
+        scope,
+        js_path.into(),
+        0,
+        0,
+        false,
+        0,
+        js_path.into(),
+        false,
+        false,
+        false,
+    );
+
+    let mut try_catch = v8::TryCatch::new(scope);
+    v8::Script::compile(&mut try_catch, js_source_code, Some(&origin)).ok_or_else(|| {
+        let exception = try_catch.exception().unwrap();
+        let exception_string = exception
+            .to_string(&mut try_catch)
+            .unwrap()
+            .to_rust_string_lossy(&mut try_catch);
+
+        Error::Eval(
+            path.to_string(),
+            format!("Compile error: {exception_string}"),
+        )
+    })
 }
 
 fn import_module<'s>(
@@ -390,7 +455,7 @@ impl<'s> Embedded<'s> {
         // })?;
 
         let gen_state = import_module(scope, "./src/worker/runner/javascript/state.js")?;
-        let fns = import_module(scope, "./src/worker/runner/javascript/runner.js")?;
+        let runner = import_script(scope, "./src/worker/runner/javascript/runner.js")?;
         // let fns: Array<'_> = fns.try_into().map_err(|err| {
         //     Error::FileImport(
         //         "./src/worker/runner/javascript/runner.js".into(),
@@ -399,21 +464,7 @@ impl<'s> Embedded<'s> {
         // })?;
         let mut try_catch = v8::TryCatch::new(scope);
 
-        fns.instantiate_module(&mut try_catch, module_resolve_callback)
-            .ok_or_else(|| {
-                let exception = try_catch.exception().unwrap();
-                let exception_string = exception
-                    .to_string(&mut try_catch)
-                    .unwrap()
-                    .to_rust_string_lossy(&mut try_catch);
-
-                Error::PackageImport(
-                    "./src/worker/runner/javascript/runner.js".to_string(),
-                    format!("Could not instantiate code for package: {exception_string}"),
-                )
-            })?;
-
-        let fns = fns.evaluate(&mut try_catch).ok_or_else(|| {
+        let fns = runner.run(&mut try_catch).ok_or_else(|| {
             let exception = try_catch.exception().unwrap();
             let exception_string = exception
                 .to_string(&mut try_catch)
@@ -422,35 +473,63 @@ impl<'s> Embedded<'s> {
 
             Error::PackageImport(
                 "./src/worker/runner/javascript/runner.js".to_string(),
-                format!("Could not evaluate code for package: {exception_string}"),
+                format!("Could not run code for package: {exception_string}"),
             )
         })?;
+
+        // fns.instantiate_module(&mut try_catch, module_resolve_callback)
+        //     .ok_or_else(|| {
+        //         let exception = try_catch.exception().unwrap();
+        //         let exception_string = exception
+        //             .to_string(&mut try_catch)
+        //             .unwrap()
+        //             .to_rust_string_lossy(&mut try_catch);
+
+        //         Error::PackageImport(
+        //             "./src/worker/runner/javascript/runner.js".to_string(),
+        //             format!("Could not instantiate code for package: {exception_string}"),
+        //         )
+        //     })?;
+
+        // let fns = fns.evaluate(&mut try_catch).ok_or_else(|| {
+        //     let exception = try_catch.exception().unwrap();
+        //     let exception_string = exception
+        //         .to_string(&mut try_catch)
+        //         .unwrap()
+        //         .to_rust_string_lossy(&mut try_catch);
+
+        //     Error::PackageImport(
+        //         "./src/worker/runner/javascript/runner.js".to_string(),
+        //         format!("Could not evaluate code for package: {exception_string}"),
+        //     )
+        // })?;
 
         drop(try_catch);
 
-        // https://stackoverflow.com/a/55964911
-        let fns: v8::Local<'_, v8::Promise> = fns.try_into().map_err(|err| {
-            Error::FileImport(
-                "./src/worker/runner/javascript/runner.js".into(),
-                format!("Couldn't get return value of 'runner.js', {err}"),
-            )
-        })?;
-        while fns.state() == v8::PromiseState::Pending {
-            scope.perform_microtask_checkpoint();
-        }
-        if fns.state() == v8::PromiseState::Rejected {
-            return Err(Error::FileImport(
-                "./src/worker/runner/javascript/runner.js".into(),
-                format!("Promise returned from 'runner.js' got rejected"),
-            ));
-        }
+        // // https://stackoverflow.com/a/55964911
+        // let fns: v8::Local<'_, v8::Promise> = fns.try_into().map_err(|err| {
+        //     Error::FileImport(
+        //         "./src/worker/runner/javascript/runner.js".into(),
+        //         format!("Couldn't get return value of 'runner.js', {err}"),
+        //     )
+        // })?;
+        // while fns.state() == v8::PromiseState::Pending {
+        //     scope.perform_microtask_checkpoint();
+        // }
+        // if fns.state() == v8::PromiseState::Rejected {
+        //     return Err(Error::FileImport(
+        //         "./src/worker/runner/javascript/runner.js".into(),
+        //         format!("Promise returned from 'runner.js' got rejected"),
+        //     ));
+        // }
 
-        let fns = fns.result(scope);
-        if fns.is_undefined() {
-            // Probably always undefined
-            // https://github.com/denoland/deno/issues/3696
-            dbg!("und");
-        }
+        // let fns = fns.result(scope);
+        // if fns.is_undefined() {
+        //     // Probably always undefined
+        //     // https://github.com/denoland/deno/issues/3696
+        //     dbg!();
+        // }
+
         let fns: Array<'_> = fns.try_into().map_err(|err| {
             Error::FileImport(
                 "./src/worker/runner/javascript/runner.js".into(),
@@ -458,7 +537,7 @@ impl<'s> Embedded<'s> {
             )
         })?;
 
-        dbg!(v8::json::stringify(scope, fns.into()));
+        // dbg!(v8::json::stringify(scope, fns.into()));
 
         let [
             start_experiment,
@@ -468,34 +547,50 @@ impl<'s> Embedded<'s> {
             state_sync,
             state_interim_sync,
             state_snapshot_sync,
-        ]: [Function<'_>; 7] = [
-            "start_experiment",
-            "start_sim",
-            "run_task",
-            "ctx_batch_sync",
-            "state_sync",
-            "state_interim_sync",
-            "state_snapshot_sync",
-        ]
-        .map(|fn_name| {
-            todo!()
-            // let js_fn_name = new_js_string(scope, fn_name);
+        ]: [Function<'_>; 7] = (0..7)
+            .map(|fn_idx| {
+                fns.get_index(scope, fn_idx)
+                    .ok_or_else(|| {
+                        Error::V8(format!("Could not get package function at index {fn_idx}"))
+                    })?
+                    .try_into()
+                    .map_err(|err| {
+                        Error::V8(format!(
+                            "Could not convert value at index {fn_idx} in runner.js as a \
+                             function: {err}"
+                        ))
+                    })
+                // let js_fn_name = new_js_string(scope, fn_name);
+                // let context = scope.get_current_context().global(scope);
+                // let func = context.get(scope, js_fn_name.into()).ok_or_else(|| {
+                //     Error::FileImport(
+                //         "./src/worker/runner/javascript/runner.js".into(),
+                //         format!("Couldn't get {fn_name} function in 'runner.js'"),
+                //     )
+                // })?;
 
-            // fns.get(scope, js_fn_name.into())
-            //     .ok_or_else(|| Error::V8(format!("Could not get package function {fn_name}")))?
-            //     .try_into()
-            //     .map_err(|err| {
-            //         Error::V8(format!(
-            //             "Could not convert value {fn_name} in runner.js to a function: {err}"
-            //         ))
-            //     })
-        })
-        .into_iter()
-        .collect::<Result<Vec<_>>>()?
-        .try_into()
-        .unwrap();
+                // dbg!(func.is_function());
 
-        todo!();
+                // func.try_into().map_err(|err| {
+                //     Error::FileImport(
+                //         "./src/worker/runner/javascript/runner.js".into(),
+                //         format!("Couldn't convert {fn_name} to a Function: {err}"),
+                //     )
+                // })
+                // let js_fn_name = new_js_string(scope, fn_name);
+
+                // fns.get(scope, js_fn_name.into())
+                //     .ok_or_else(|| Error::V8(format!("Could not get package function
+                // {fn_name}")))?     .try_into()
+                //     .map_err(|err| {
+                //         Error::V8(format!(
+                //             "Could not convert value {fn_name} in runner.js to a function: {err}"
+                //         ))
+                //     })
+            })
+            .collect::<Result<Vec<_>>>()?
+            .try_into()
+            .unwrap();
 
         Ok(Embedded {
             start_experiment,

@@ -1,4 +1,4 @@
-import {hash_util} from "./src/worker/runner/javascript/hash_util.js"
+import("./src/worker/runner/javascript/hash_util.js")
 
 const json_deepcopy = hash_util.json_deepcopy;
 
@@ -105,3 +105,7 @@ const start_sim = (_experiment, _sim, _init_message, init_context) => {
     getters: getters,
   };
 };
+
+{
+  start_sim
+}
