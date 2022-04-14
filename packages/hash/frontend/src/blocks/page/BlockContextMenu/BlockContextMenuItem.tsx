@@ -7,7 +7,14 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import HoverPopover from "material-ui-popup-state/HoverPopover";
-import { cloneElement, forwardRef, RefObject, useRef, useState } from "react";
+import {
+  cloneElement,
+  forwardRef,
+  RefObject,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { FontAwesomeIcon } from "../../../shared/icons";
 
 type BlockContextMenuItemProps = {
@@ -33,9 +40,11 @@ export const BlockContextMenuItem = forwardRef<
   const localRef = useRef<HTMLLIElement>(null);
   const menuItemRef = (ref ?? localRef) as RefObject<HTMLLIElement>;
 
-  if (subMenu && !subMenuOffsetTop && menuItemRef.current) {
-    setSubmenuOffsetTop(menuItemRef.current.offsetTop);
-  }
+  useLayoutEffect(() => {
+    if (subMenu && !subMenuOffsetTop && menuItemRef.current) {
+      setSubmenuOffsetTop(menuItemRef.current.offsetTop);
+    }
+  }, [subMenu, subMenuOffsetTop, menuItemRef]);
 
   return (
     <MenuItem
