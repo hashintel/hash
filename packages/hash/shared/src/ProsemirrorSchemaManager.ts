@@ -264,12 +264,13 @@ export class ProsemirrorSchemaManager {
 
   /**
    *  This is useful for creating a block when we are sure it's
-   * info has been fetched
+   *  info has been fetched
    */
   createLocalBlock(
     targetComponentId: string,
     entityStore?: EntityStore,
     draftBlockId?: string | null,
+    textContent: ProsemirrorNode<Schema>[] = [],
   ) {
     const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
 
@@ -282,7 +283,7 @@ export class ProsemirrorSchemaManager {
               ? blockEntity.properties.entity.draftId
               : null,
           },
-          [this.schema.nodes[targetComponentId]!.create({}, [])],
+          [this.schema.nodes[targetComponentId]!.create({}, textContent)],
         ),
       ),
     ]);
@@ -340,34 +341,24 @@ export class ProsemirrorSchemaManager {
        *    3. [Outermost] The block node (rendered by BlockView) which
        *       provides the surrounding UI
        */
-      return this.schema.nodes.block!.create({}, [
-        this.schema.nodes.entity!.create({ draftId: draftBlockId }, [
-          this.schema.nodes.entity!.create(
-            {
-              draftId: draftTextEntity?.draftId,
-            },
-            [this.schema.nodes[targetComponentId]!.create({}, content)],
-          ),
-        ]),
-      ]);
+      return this.createLocalBlock(
+        targetComponentId,
+        entityStore,
+        draftTextEntity?.draftId,
+        content,
+      );
     } else {
       /**
        * @todo arguably this doesn't need to be here – remove it if possible
        *   when working on switching blocks
        */
-      return this.schema.nodes.block!.create({}, [
-        this.schema.nodes.entity!.create(
-          { draftId: draftBlockId },
-          this.schema.nodes.entity!.create(
-            {
-              draftId: isDraftBlockEntity(blockEntity)
-                ? blockEntity.properties.entity.draftId
-                : null,
-            },
-            [this.schema.nodes[targetComponentId]!.create({}, [])],
-          ),
-        ),
-      ]);
+      return this.createLocalBlock(
+        targetComponentId,
+        entityStore,
+        isDraftBlockEntity(blockEntity)
+          ? blockEntity.properties.entity.draftId
+          : null,
+      );
     }
   }
 
