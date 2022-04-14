@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { useState, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 
-import { JsonSchema } from "../../../lib/json-utils";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { Button } from "../../../shared/ui";
 import { ConfirmationAlert } from "../../ConfirmationAlert";
 import { SchemaSelectElementType } from "./SchemaEditor";
