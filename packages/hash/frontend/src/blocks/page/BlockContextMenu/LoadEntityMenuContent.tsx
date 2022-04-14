@@ -1,6 +1,6 @@
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { isBlockEntity } from "@hashintel/hash-shared/entityStore";
-import { entityStorePluginStateFromTransaction } from "@hashintel/hash-shared/entityStorePlugin";
+import { entityStorePluginState, entityStorePluginStateFromTransaction } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   Box,
   InputAdornment,
@@ -32,10 +32,7 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   // This depends on state external to react without subscribing to it
   // and this can cause some bugs.
   // @todo make this a subscription
-  const entityStore = entityStorePluginStateFromTransaction(
-    blockView.view.state.tr,
-    blockView.view.state,
-  ).store;
+  const entityStore = entityStorePluginState(blockView.view.state).store
   const blockData = entityId ? entityStore.saved[entityId] : null;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: entities, loading } = useAccountEntities({
