@@ -23,8 +23,8 @@ const variants = fs.existsSync("./variants.json")
 class StatsPlugin {
   apply(compiler) {
     compiler.hooks.done.tap(this.constructor.name, (stats) => {
-      const main = Object.keys(stats.compilation.assets).find(
-        (asset) => asset.startsWith("main") && asset.endsWith(".js"),
+      const main = Object.keys(stats.compilation.assets).find((asset) =>
+        asset.startsWith("main"),
       );
 
       const blockMetadata = {
