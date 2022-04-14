@@ -26,8 +26,6 @@ type PageBlockProps = {
  * do that
  */
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
-  // @todo consolidate blocksMeta and initialUserBlocks as they share properties
-  // @see - https://app.asana.com/0/1200211978612931/1202023490862451/f
   blocksMeta,
   accountId,
   entityId,

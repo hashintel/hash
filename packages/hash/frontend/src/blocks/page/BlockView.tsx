@@ -73,7 +73,7 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
     const { updateEntities } = useBlockProtocolUpdateEntities();
     const updateChildEntity = useCallback(
       (newProperties: JSONObject) => {
-        const { entity: childEntity } = blockData?.properties ?? {};
+        const childEntity = blockData?.properties.entity;
         if (!childEntity) {
           throw new Error(`No child entity on block to update`);
         }
