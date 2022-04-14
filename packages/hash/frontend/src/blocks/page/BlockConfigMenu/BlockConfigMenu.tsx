@@ -1,4 +1,4 @@
-import { useKey, useOutsideClick } from "rooks";
+import { useKey } from "rooks";
 import { get } from "lodash";
 
 import {
@@ -9,12 +9,7 @@ import {
   MenuItem,
   Popover,
 } from "@mui/material";
-import {
-  ChangeEvent,
-  MutableRefObject,
-  useRef,
-  VoidFunctionComponent,
-} from "react";
+import { ChangeEvent, ForwardedRef, VoidFunctionComponent } from "react";
 import { JSONObject, JSONValue } from "blockprotocol";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { bindPopover, PopupState } from "material-ui-popup-state/hooks";
@@ -106,7 +101,7 @@ const ConfigurationInput: VoidFunctionComponent<{
 };
 
 type BlockConfigMenuProps = {
-  anchorRef: MutableRefObject<HTMLDivElement>;
+  anchorRef: ForwardedRef<HTMLDivElement>;
   blockData: BlockEntity | null;
   blockSchema?: JsonSchema | null;
   closeMenu: () => void;

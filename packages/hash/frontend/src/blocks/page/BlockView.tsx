@@ -12,14 +12,7 @@ import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import {
-  createRef,
-  forwardRef,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createRef, forwardRef, useCallback, useMemo, useRef } from "react";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../shared/icons";
 import { BlockViewContext } from "./BlockViewContext";
@@ -84,6 +77,7 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
             data: newProperties,
           },
         ]).catch((err) =>
+          // eslint-disable-next-line no-console -- TODO: consider using logger
           console.error(
             `Error updating child entity ${childEntity.entityId}: ${err.message}`,
           ),
