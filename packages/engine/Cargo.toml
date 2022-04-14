@@ -12,6 +12,7 @@ flatbuffers_gen = { path = "lib/flatbuffers_gen" }
 nano = { path = "lib/nano", default-features = false }
 memory = { path = "lib/memory" }
 stateful = { path = "lib/stateful" }
+worker = { path = "lib/worker" }
 
 arr_macro = "0.1.3"
 arrow = { version = "10.0.0", default-features = false, features = ["ipc"] }
