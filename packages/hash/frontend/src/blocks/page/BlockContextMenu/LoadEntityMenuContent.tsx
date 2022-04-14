@@ -1,9 +1,6 @@
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { isBlockEntity } from "@hashintel/hash-shared/entityStore";
-import {
-  addEntityStoreAction,
-  entityStorePluginStateFromTransaction,
-} from "@hashintel/hash-shared/entityStorePlugin";
+import { entityStorePluginStateFromTransaction } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   Box,
   InputAdornment,
@@ -31,9 +28,25 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   popupState,
 }) => {
   const { accountId } = useRouteAccountInfo();
-  const { data: entities, fetchEntities, loading } = useAccountEntities();
   const blockView = useBlockView();
+  // This depends on state external to react without subscribing to it
+  // and this can cause some bugs.
+  // @todo make this a subscription
+  const entityStore = entityStorePluginStateFromTransaction(
+    blockView.view.state.tr,
+    blockView.view.state,
+  ).store;
+  const blockData = entityId ? entityStore.saved[entityId] : null;
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const { data: entities, loading } = useAccountEntities({
+    accountId,
+    entityTypeFilter: {
+      componentId: isBlockEntity(blockData)
+        ? blockData?.properties.componentId
+        : undefined,
+    },
+    skip: !(isBlockEntity(blockData) && !!accountId),
+  });
 
   useEffect(() => {
     if (popupState?.isOpen) {
@@ -41,73 +54,24 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
     }
   }, [popupState]);
 
-  useEffect(() => {
-    const entityStore = entityStorePluginStateFromTransaction(
-      blockView.view.state.tr,
-      blockView.view.state,
-    ).store;
-    const blockData = entityId ? entityStore.saved[entityId] : null;
-
-    if (isBlockEntity(blockData) && accountId) {
-      void fetchEntities(accountId, {
-        componentId: blockData.properties.componentId,
-      });
-    }
-  }, [blockView, entityId, accountId, fetchEntities]);
-
   const handleClick = useCallback(
-    (targetData: BlockEntity) => {
-      let currentEntityStore = entityStorePluginStateFromTransaction(
-        blockView.view.state.tr,
-        blockView.view.state,
-      ).store;
-      const blockData = entityId ? currentEntityStore.saved[entityId] : null;
-
-      const targetEntity = isBlockEntity(targetData)
-        ? targetData.properties.entity
-        : null;
-      const blockEntity = isBlockEntity(blockData)
-        ? blockData.properties.entity
+    (targetEntity: BlockEntity) => {
+      // Right now we only handle entities that are created by a block.
+      // This will be updated later on to also handle entities that have a similar
+      // schema with the block's data
+      const targetData = isBlockEntity(targetEntity)
+        ? targetEntity.properties.entity
         : null;
 
-      if (
-        !targetEntity ||
-        !blockData ||
-        !blockEntity ||
-        targetEntity.entityId === blockEntity.entityId
-      ) {
+      if (!entityId || !targetData) {
         return;
       }
 
-      const tr = blockView.view.state.tr;
-
-      addEntityStoreAction(blockView.view.state, tr, {
-        type: "updateBlockEntityProperties",
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore -- @todo fix typings
-        payload: {
-          targetEntity,
-          draftId: `draft-${blockData.entityId}`,
-        },
-      });
-
-      currentEntityStore = entityStorePluginStateFromTransaction(
-        tr,
-        blockView.view.state,
-      ).store;
-
-      const pos = blockView.getPos();
-
-      const node = blockView.manager.createLocalBlock(
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore -- @todo fix typings
-        blockData.properties.componentId,
-        currentEntityStore,
-        `draft-${blockData.entityId}`,
+      blockView.manager.updateBlockData(
+        entityId,
+        targetData,
+        blockView.getPos(),
       );
-
-      tr.replaceRangeWith(pos, pos + node.nodeSize, node);
-      blockView.view.dispatch(tr);
       popupState?.close();
     },
     [blockView, entityId, popupState],

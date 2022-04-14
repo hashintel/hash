@@ -43,7 +43,7 @@ export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
     <MenuList>
       <Box sx={{ mx: 0.75 }}>
         <TextField
-          placeholder="Search for entities"
+          placeholder="Search for blocks"
           fullWidth
           size="xs"
           onChange={(evt) => {
