@@ -1,8 +1,9 @@
-import { Container, Stack, Typography } from "@mui/material";
+import { Container, Stack, Typography, typographyClasses } from "@mui/material";
 import { Box } from "@mui/system";
 import Head from "next/head";
 import Image from "next/image";
 import { createContext, FC, ReactNode, useContext, VFC } from "react";
+import { mdxImageClasses } from "./MdxImage";
 
 export type BlogPagePhoto = {
   src: string;
@@ -141,5 +142,59 @@ export const BlogPostHead: VFC<{
 };
 
 export const BlogPostContent: FC = ({ children }) => (
-  <Container>{children}</Container>
+  <Container>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "1fr min(calc(var(--step-0) * 37.7), 100%) 1fr",
+        margin: "0 auto",
+
+        "> *": {
+          gridColumn: 2,
+        },
+
+        [`.${typographyClasses.root} a`]: {
+          fontWeight: "inherit",
+        },
+
+        ".MuiTypography-hashBodyCopy + .MuiTypography-hashBodyCopy": {
+          mt: 4,
+        },
+        ".MuiTypography-hashHeading2": {
+          mt: 10,
+          mb: 4.25,
+          color: "gray.90",
+        },
+        ".MuiTypography-hashHeading3": {
+          mt: 8,
+          mb: 3,
+          color: "gray.90",
+        },
+        ".MuiTypography-hashHeading4": {
+          mt: 8,
+          mb: 2,
+          color: "gray.90",
+        },
+        ".MuiTypography-hashHeading5": {
+          mt: 5,
+          mb: 2,
+          color: "gray.90",
+        },
+        [`.${mdxImageClasses.root}`]: {
+          width: 1,
+          gridColumn: "1 / 4",
+          my: 5,
+
+          img: {
+            borderRadius: "4px",
+          },
+        },
+        "> pre": {
+          my: 3,
+        },
+      }}
+    >
+      {children}
+    </Box>
+  </Container>
 );
