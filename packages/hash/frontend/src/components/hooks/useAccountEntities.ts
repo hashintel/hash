@@ -1,6 +1,4 @@
-import { unstable_batchedUpdates } from "react-dom";
-import { useCallback, useState } from "react";
-import { useApolloClient } from "@apollo/client";
+import { useQuery } from "@apollo/client";
 import { getEntities } from "../../graphql/queries/entity.queries";
 import {
   GetEntitiesQuery,
@@ -9,38 +7,30 @@ import {
 } from "../../graphql/apiTypes.gen";
 
 // @todo handle error state
-export const useAccountEntities = () => {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<GetEntitiesQuery["entities"]>([]);
-  const client = useApolloClient();
-
-  const fetchEntities = useCallback(
-    async (accountId: string, entityTypeFilter: EntityTypeChoice) => {
-      setLoading(true);
-      const response = await client.query<
-        GetEntitiesQuery,
-        GetEntitiesQueryVariables
-      >({
-        query: getEntities,
-        variables: {
-          accountId,
-          filter: {
-            entityType: entityTypeFilter,
-          },
-        },
-      });
-
-      unstable_batchedUpdates(() => {
-        setLoading(false);
-        setData(response.data.entities);
-      });
+export const useAccountEntities = ({
+  accountId,
+  entityTypeFilter,
+  skip,
+}: {
+  accountId: string;
+  entityTypeFilter: EntityTypeChoice;
+  skip: boolean;
+}) => {
+  const { data, loading } = useQuery<
+    GetEntitiesQuery,
+    GetEntitiesQueryVariables
+  >(getEntities, {
+    variables: {
+      accountId,
+      filter: {
+        entityType: entityTypeFilter,
+      },
     },
-    [client],
-  );
+    skip,
+  });
 
   return {
-    fetchEntities,
     loading,
-    data,
+    data: data?.entities ?? [],
   };
 };

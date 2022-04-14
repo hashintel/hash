@@ -1,15 +1,5 @@
 import { gql } from "@apollo/client";
-
-const entityFieldsFragment = gql`
-  fragment EntityFields on UnknownEntity {
-    accountId
-    entityId
-    entityTypeId
-    entityTypeName
-    entityTypeVersionId
-    properties
-  }
-`;
+import { entityFieldsFragment } from "@hashintel/hash-shared/queries/entity.queries";
 
 export const getEntities = gql`
   query getEntities($accountId: ID!, $filter: EntityFilter) {
