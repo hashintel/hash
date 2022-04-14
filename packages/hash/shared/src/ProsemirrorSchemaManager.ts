@@ -268,7 +268,7 @@ export class ProsemirrorSchemaManager {
    *  This assumes the block info has been fetched and the
    *  entities (block entity and child entity)
    *  @todo this only works for non-text blocks,
-   *  It should be updated to handle text blocks when 
+   *  It should be updated to handle text blocks when
    *  https://github.com/hashintel/hash/pull/490 is in
    */
   createLocalBlock({
@@ -347,7 +347,7 @@ export class ProsemirrorSchemaManager {
        *    3. [Outermost] The block node (rendered by BlockView) which
        *       provides the surrounding UI
        */
-       return this.schema.nodes.block!.create({}, [
+      return this.schema.nodes.block!.create({}, [
         this.schema.nodes.entity!.create({ draftId: draftBlockId }, [
           this.schema.nodes.entity!.create(
             {

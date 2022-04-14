@@ -38,9 +38,9 @@ export const BlockContextMenuItem = forwardRef<
     number | undefined
   >();
   const localRef = useRef<HTMLLIElement>(null);
-  // @todo this doesn't handle when ref is a function and can break when trying to 
-  // access offsetTop in the useLayoutEffect. Consider using an library to handle merging refs 
-  // @see https://github.com/gregberge/react-merge-refs, or better still, use the 
+  // @todo this doesn't handle when ref is a function and can break when trying to
+  // access offsetTop in the useLayoutEffect. Consider using an library to handle merging refs
+  // @see https://github.com/gregberge/react-merge-refs, or better still, use the
   // useForkRef exported by MUI
   const menuItemRef = (ref ?? localRef) as RefObject<HTMLLIElement>;
 

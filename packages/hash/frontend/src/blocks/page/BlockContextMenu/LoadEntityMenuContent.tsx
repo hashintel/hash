@@ -32,7 +32,7 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   // This depends on state external to react without subscribing to it
   // and this can cause some bugs.
   // @todo make this a subscription
-  const entityStore = entityStorePluginState(blockView.view.state).store
+  const entityStore = entityStorePluginState(blockView.view.state).store;
   const blockData = entityId ? entityStore.saved[entityId] : null;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: entities, loading } = useAccountEntities({

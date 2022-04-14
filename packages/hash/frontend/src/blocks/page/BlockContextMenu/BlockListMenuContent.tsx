@@ -11,9 +11,7 @@ import {
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
 import { useRef, useState, VFC } from "react";
-import {
-  BlockSuggesterProps
-} from "../createSuggester/BlockSuggester";
+import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
 import { useUserBlocks } from "../../userBlocks";
 import { FontAwesomeIcon } from "../../../shared/icons";
@@ -32,20 +30,19 @@ export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
   const { value: userBlocks } = useUserBlocks();
   const blocks = useFilteredBlocks(searchQuery, userBlocks);
 
-  
-   // The essence of this is to autoFocus the input when 
-    // the blocklist menu comes up. We have a listener for 
-    // character "/". Once that is clicked the MenuItem that has this submenu
-    // is focused and as a result the submenu becomes visible.
-    // Currently this flow introduces a bug where it is difficult to switch to certain blocks
-    // e.g Embed;
-    // @see https://github.com/hashintel/hash/pull/480#discussion_r849594184
-    // Commenting this out till a fix is made
-    // useEffect(() => {
-    // if (popupState?.isOpen) {
-    //   searchInputRef.current?.focus();
-    // }
-    // }, [popupState]);
+  // The essence of this is to autoFocus the input when
+  // the blocklist menu comes up. We have a listener for
+  // character "/". Once that is clicked the MenuItem that has this submenu
+  // is focused and as a result the submenu becomes visible.
+  // Currently this flow introduces a bug where it is difficult to switch to certain blocks
+  // e.g Embed;
+  // @see https://github.com/hashintel/hash/pull/480#discussion_r849594184
+  // Commenting this out till a fix is made
+  // useEffect(() => {
+  // if (popupState?.isOpen) {
+  //   searchInputRef.current?.focus();
+  // }
+  // }, [popupState]);
 
   return (
     <MenuList>
@@ -88,7 +85,7 @@ export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
         <MenuItem
           onClick={() => {
             blockSuggesterProps.onChange(option.variant, option.meta);
-            popupState?.close()
+            popupState?.close();
           }}
           key={`${option.meta.name}/${option.variant.name}`}
         >
