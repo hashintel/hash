@@ -11,6 +11,7 @@ use futures::{
     stream::{FuturesUnordered, StreamExt},
 };
 use rand::prelude::SliceRandom;
+use stateful::field::PackageId;
 use tokio::{pin, task::JoinHandle};
 use tracing::{Instrument, Span};
 
@@ -31,7 +32,6 @@ use crate::{
     proto::SimulationShortId,
     simulation::{
         comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
-        package::id::PackageId,
         task::{args::GetTaskArgs, handler::WorkerPoolHandler, Task},
     },
     types::{TaskId, WorkerIndex},

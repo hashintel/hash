@@ -14,20 +14,6 @@ export interface BlockSuggesterProps {
   sx?: SxProps<Theme>;
 }
 
-export const getVariantIcon = (option: {
-  variant: BlockVariant;
-  meta: RemoteBlockMetadata;
-}): string | undefined => {
-  const iconPath = option.variant.icon;
-
-  const regex = /^(?:[a-z]+:)?\/\//i;
-  if (!iconPath || regex.test(iconPath)) {
-    return iconPath;
-  }
-
-  return `${option.meta.componentId}/${iconPath.replace(/^\//, "")}`;
-};
-
 /**
  * used to present list of blocks to choose from to the user
  *
@@ -52,7 +38,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
               <img
                 className={tw`w-6 h-6`}
                 alt={option.variant.name}
-                src={getVariantIcon(option)}
+                src={option.variant.icon}
               />
             )}
           </div>
@@ -106,7 +92,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
           </Box>
         ) : null
       }
-      itemKey={({ meta, variant }) => `${meta.name}/${variant.name}`}
+      itemKey={({ meta, variant }) => `${meta.componentId}/${variant.name}`}
       onChange={(option) => {
         onChange(option.variant, option.meta);
       }}

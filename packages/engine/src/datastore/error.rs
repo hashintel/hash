@@ -4,8 +4,6 @@ use arrow::{datatypes::DataType, error::ArrowError};
 use stateful::{agent::AgentStateField, field::RootFieldKey};
 use thiserror::Error as ThisError;
 
-use crate::hash_types::{self};
-
 #[derive(Debug)]
 pub enum SupportedType {
     NullableField,
@@ -58,9 +56,6 @@ pub enum Error {
 
     #[error("Failed to interpret a sequence of u8's (bytes) as a string: {0}")]
     Utf8(#[from] std::str::Utf8Error),
-
-    #[error("Simulation error: {0}")]
-    Simulation(#[from] hash_types::Error),
 
     #[error("Shared memory error: {0}")]
     SharedMemory(#[from] shared_memory::ShmemError),

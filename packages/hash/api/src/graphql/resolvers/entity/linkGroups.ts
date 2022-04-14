@@ -82,17 +82,6 @@ const addEntityOutgoingLinks =
     }
   };
 
-const areEntitiesEquivalent = (
-  entity: Entity,
-  otherEntity: Entity,
-): boolean => {
-  return (
-    entity.accountId === otherEntity.accountId &&
-    entity.entityId === otherEntity.entityId &&
-    entity.entityVersionId === otherEntity.entityVersionId
-  );
-};
-
 /**
  * Adds the outgoing links of the aggregation results of an entity to the provided linkGroups object
  */
@@ -111,7 +100,7 @@ const addEntityAggregationResultOutgoingLinks =
       .filter((result, i, all) => {
         return (
           all.findIndex((resultEntity) =>
-            areEntitiesEquivalent(resultEntity, result),
+            resultEntity.isEquivalentTo(result),
           ) === i
         );
       });

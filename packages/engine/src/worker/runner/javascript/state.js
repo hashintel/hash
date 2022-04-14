@@ -1,6 +1,6 @@
 (hash_util) => {
   // TODO: Propagate field specs to runners and use in state and context objects
-  const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_14_behavior_index";
+  const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_7_behavior_index";
 
   const throw_missing_field = (field) => {
     throw new ReferenceError("Missing field (behavior keys?): " + field);

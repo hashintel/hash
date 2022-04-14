@@ -1,8 +1,11 @@
 import { cloneDeep } from "lodash";
 import { JSONObject } from "blockprotocol";
 
+import {
+  isParsedJsonObject,
+  isParsedJsonObjectOrArray,
+} from "@hashintel/hash-shared/json-utils";
 import { UnknownEntity } from "../graphql/apiTypes.gen";
-import { isParsedJsonObject, isParsedJsonObjectOrArray } from "./json-utils";
 
 /* eslint-disable no-param-reassign */
 

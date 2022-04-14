@@ -1,9 +1,6 @@
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
-import {
-  BlockSuggesterProps,
-  getVariantIcon,
-} from "../../blocks/page/createSuggester/BlockSuggester";
+import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
 import {
   FilteredMenuItems,
@@ -62,11 +59,9 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
             {filteredMenuItems.blocks.map((option, index) => {
               const { name } = option.variant;
 
-              const icon = getVariantIcon(option);
-
               return (
                 <BlockContextMenuItem
-                  key={`${option.meta.name}-${option.variant.name}`}
+                  key={`${option.meta.componentId}-${option.variant.name}`}
                   selected={
                     index + filteredMenuItems.actions.length === selectedIndex
                   }
@@ -75,8 +70,11 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
                   }
                   onSelect={() => updateMenuState({ selectedIndex: index })}
                   icon={
-                    // @todo add a fallback icon
-                    <img src={icon ?? ""} alt={name} className={iconStyles} />
+                    <img
+                      src={option.variant.icon ?? "/format-font.svg"}
+                      alt={name}
+                      className={iconStyles}
+                    />
                   }
                   title={name}
                 />

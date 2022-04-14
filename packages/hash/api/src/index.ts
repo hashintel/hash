@@ -42,7 +42,8 @@ import { logger } from "./logger";
 import { getRequiredEnv } from "./util";
 import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
-import { setupTelemtry } from "./telemetry/snowplow-setup";
+import { setupTelemetry } from "./telemetry/snowplow-setup";
+import { connectToTaskExecutor } from "./task-execution";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -52,7 +53,7 @@ const main = async () => {
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
 
-    const [spEmitter, spTracker] = setupTelemtry();
+    const [spEmitter, spTracker] = setupTelemetry();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     tracker = spTracker;
 
@@ -96,6 +97,11 @@ const main = async () => {
   const pgPort = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
   const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
+  const taskExecutorHost = getRequiredEnv("HASH_TASK_EXECUTOR_HOST");
+  const taskExecutorPort = parseInt(
+    getRequiredEnv("HASH_TASK_EXECUTOR_PORT"),
+    10,
+  );
 
   await Promise.all([
     waitOnResource(`tcp:${pgHost}:${pgPort}`, logger),
@@ -120,6 +126,13 @@ const main = async () => {
     port: redisPort,
   });
   shutdown.addCleanup("Redis", async () => redis.close());
+
+  // Connect to the HASH-Task-Executor
+  const taskExecutorConfig = {
+    host: taskExecutorHost,
+    port: taskExecutorPort,
+  };
+  const taskExecutor = connectToTaskExecutor(taskExecutorConfig);
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -184,6 +197,7 @@ const main = async () => {
     db,
     search,
     cache: redis,
+    taskExecutor,
     emailTransporter,
     logger,
     statsd,

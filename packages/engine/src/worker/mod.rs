@@ -19,7 +19,7 @@ use futures::{
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
-pub use self::error::{Error, Result};
+pub use self::error::{Error, Result, RunnerError};
 use self::{
     pending::PendingWorkerTasks,
     runner::{
