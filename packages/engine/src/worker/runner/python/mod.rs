@@ -17,11 +17,11 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
+use worker::Language;
 
 pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};
 use crate::{
-    language::Language,
     proto::SimulationShortId,
     types::TaskId,
     worker::{

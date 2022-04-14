@@ -8,13 +8,13 @@ use stateful::{
     proxy::PoolWriteProxy,
     state::{State, StateWriteProxy},
 };
+use worker::Language;
 
 use self::{
     config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
 };
 use crate::{
     datastore::table::task_shared_store::TaskSharedStoreBuilder,
-    language::Language,
     simulation::{
         package::state::{
             packages::behavior_execution::{

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
+use ::worker::Language;
 use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use serde::{Deserialize, Serialize};
 use tracing::Span;
 
 use crate::{
-    language::Language,
     proto::SimulationShortId,
     types::TaskId,
     worker::{

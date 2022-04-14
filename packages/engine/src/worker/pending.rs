@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
+use worker::Language;
+
 use crate::{
-    language::Language,
     simulation::task::{msg::TaskMessage, Task},
     types::TaskId,
     worker::{Error, Result},

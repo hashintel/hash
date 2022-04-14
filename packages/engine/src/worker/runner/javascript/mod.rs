@@ -35,6 +35,7 @@ use tokio::{
     task::JoinError,
 };
 use tracing::{Instrument, Span};
+use worker::Language;
 
 pub use self::error::{Error, Result};
 use crate::{
@@ -45,7 +46,6 @@ use crate::{
             task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
         },
     },
-    language::Language,
     proto::SimulationShortId,
     simulation::{package::PackageType, task::msg::TaskMessage},
     types::TaskId,

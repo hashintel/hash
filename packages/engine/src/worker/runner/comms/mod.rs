@@ -8,11 +8,11 @@ use std::{
 use arrow::datatypes::Schema;
 use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
 use tracing::Span;
+use worker::Language;
 
 use crate::{
     config::EngineConfig,
     datastore::{shared_store::SharedStore, table::task_shared_store::TaskSharedStore},
-    language::Language,
     proto::{ExperimentId, SimulationShortId},
     simulation::{package::worker_init::PackageInitMsgForWorker, task::msg::TaskMessage},
     types::{TaskId, WorkerIndex},

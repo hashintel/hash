@@ -18,6 +18,7 @@ use futures::{
 };
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
+use worker::Language;
 
 pub use self::error::{Error, Result, RunnerError};
 use self::{
@@ -39,7 +40,6 @@ use crate::{
         sync::SyncPayload,
         task_shared_store::{SharedState, TaskSharedStore},
     },
-    language::Language,
     proto::SimulationShortId,
     simulation::task::{
         handler::WorkerHandler,

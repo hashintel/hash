@@ -1,14 +1,21 @@
+use core::fmt;
+
 use serde::{Deserialize, Serialize};
-use strum_macros::Display;
 
 use crate::{Error, Result};
 
 /// Supported languages
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug, Display)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Language {
     JavaScript = 0,
     Python = 1,
     Rust = 2,
+}
+
+impl fmt::Display for Language {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.serialize(fmt)
+    }
 }
 
 impl Language {

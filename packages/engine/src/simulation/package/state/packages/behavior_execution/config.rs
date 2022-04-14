@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
+use worker::Language;
 
-use crate::{
-    language::Language,
-    simulation::package::state::packages::behavior_execution::{
-        fields::behavior::BehaviorMap, Error, Result,
-    },
+use crate::simulation::package::state::packages::behavior_execution::{
+    fields::behavior::BehaviorMap, Error, Result,
 };
 
 #[derive(Serialize, Deserialize)]
