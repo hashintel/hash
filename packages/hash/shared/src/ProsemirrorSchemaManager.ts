@@ -263,25 +263,26 @@ export class ProsemirrorSchemaManager {
   }
 
   /**
-   *  This is useful for creating a block when we are sure it's
-   *  info has been fetched
+   *  This assumes the block info has been fetched and the
+   *  entities (block entity and child entity)
    */
-  createLocalBlock(
-    targetComponentId: string,
-    entityStore?: EntityStore,
-    draftBlockId?: string | null,
-    textContent: ProsemirrorNode<Schema>[] = [],
-  ) {
-    const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
-
+  createLocalBlock({
+    targetComponentId,
+    draftBlockId,
+    draftChildEntityId,
+    textContent = [],
+  }: {
+    targetComponentId: string;
+    draftBlockId?: string | null;
+    draftChildEntityId?: string | null;
+    textContent?: ProsemirrorNode<Schema>[];
+  }) {
     return this.schema.nodes.block!.create({}, [
       this.schema.nodes.entity!.create(
         { draftId: draftBlockId },
         this.schema.nodes.entity!.create(
           {
-            draftId: isDraftBlockEntity(blockEntity)
-              ? blockEntity.properties.entity.draftId
-              : null,
+            draftId: draftChildEntityId,
           },
           [this.schema.nodes[targetComponentId]!.create({}, textContent)],
         ),
@@ -341,24 +342,24 @@ export class ProsemirrorSchemaManager {
        *    3. [Outermost] The block node (rendered by BlockView) which
        *       provides the surrounding UI
        */
-      return this.createLocalBlock(
+      return this.createLocalBlock({
         targetComponentId,
-        entityStore,
-        draftTextEntity?.draftId,
-        content,
-      );
+        draftBlockId,
+        draftChildEntityId: draftTextEntity?.draftId,
+        textContent: content,
+      });
     } else {
       /**
        * @todo arguably this doesn't need to be here – remove it if possible
        *   when working on switching blocks
        */
-      return this.createLocalBlock(
+      return this.createLocalBlock({
         targetComponentId,
-        entityStore,
-        isDraftBlockEntity(blockEntity)
+        draftBlockId,
+        draftChildEntityId: isDraftBlockEntity(blockEntity)
           ? blockEntity.properties.entity.draftId
           : null,
-      );
+      });
     }
   }
 
@@ -583,6 +584,9 @@ export class ProsemirrorSchemaManager {
 
     return [tr, newNode, meta] as const;
   }
+
+  //
+  async updateBlock() {}
 
   private async createNewDraftBlock(
     tr: Transaction<Schema>,
