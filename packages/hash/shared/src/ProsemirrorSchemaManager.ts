@@ -267,9 +267,9 @@ export class ProsemirrorSchemaManager {
   /**
    *  This assumes the block info has been fetched and the
    *  entities (block entity and child entity)
-   *  @todo this doesn't properly handle text blocks,
-   *  This should be handled when https://github.com/hashintel/hash/pull/490 is in,
-   *  With that in we can synchronously access block schema from context
+   *  @todo this only works for non-text blocks,
+   *  It should be updated to handle text blocks when 
+   *  https://github.com/hashintel/hash/pull/490 is in
    */
   createLocalBlock({
     targetComponentId,
@@ -347,12 +347,16 @@ export class ProsemirrorSchemaManager {
        *    3. [Outermost] The block node (rendered by BlockView) which
        *       provides the surrounding UI
        */
-      return this.createLocalBlock({
-        targetComponentId,
-        draftBlockId,
-        draftChildEntityId: draftTextEntity?.draftId,
-        textContent: content,
-      });
+       return this.schema.nodes.block!.create({}, [
+        this.schema.nodes.entity!.create({ draftId: draftBlockId }, [
+          this.schema.nodes.entity!.create(
+            {
+              draftId: draftTextEntity?.draftId,
+            },
+            [this.schema.nodes[targetComponentId]!.create({}, content)],
+          ),
+        ]),
+      ]);
     } else {
       /**
        * @todo arguably this doesn't need to be here – remove it if possible
