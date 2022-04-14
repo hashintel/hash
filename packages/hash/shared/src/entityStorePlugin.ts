@@ -164,7 +164,7 @@ const updateEntitiesByDraftId = (
 /**
  * The method does the following
  * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
- * 2. Update
+ * 2. Sets targetEntity as the new block data
  * @param draftEntityStore draft entity store
  * @param draftBlockId draft id of the Block Entity whose child entity should be changed
  * @param targetEntity entity to be changed to
