@@ -267,6 +267,9 @@ export class ProsemirrorSchemaManager {
   /**
    *  This assumes the block info has been fetched and the
    *  entities (block entity and child entity)
+   *  @todo this doesn't properly handle text blocks,
+   *  This should be handled when https://github.com/hashintel/hash/pull/490 is in,
+   *  With that in we can synchronously access block schema from context
    */
   createLocalBlock({
     targetComponentId,

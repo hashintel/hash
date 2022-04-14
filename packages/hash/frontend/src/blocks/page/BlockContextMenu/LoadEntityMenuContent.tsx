@@ -1,6 +1,6 @@
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { isBlockEntity } from "@hashintel/hash-shared/entityStore";
-import { entityStorePluginState, entityStorePluginStateFromTransaction } from "@hashintel/hash-shared/entityStorePlugin";
+import { entityStorePluginState } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   Box,
   InputAdornment,
@@ -35,6 +35,7 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   const entityStore = entityStorePluginState(blockView.view.state).store
   const blockData = entityId ? entityStore.saved[entityId] : null;
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const { value: userBlocks } = useUserBlocks()
   const { data: entities, loading } = useAccountEntities({
     accountId,
     entityTypeFilter: {

@@ -12,8 +12,7 @@ import {
 import { PopupState } from "material-ui-popup-state/core";
 import { useEffect, useRef, useState, VFC } from "react";
 import {
-  BlockSuggesterProps,
-  getVariantIcon,
+  BlockSuggesterProps
 } from "../createSuggester/BlockSuggester";
 import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
 import { useUserBlocks } from "../../userBlocks";
@@ -90,7 +89,7 @@ export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
               height={16}
               overflow="hidden"
               alt={option.variant.name}
-              src={getVariantIcon(option)}
+              src={option.variant.icon ?? "/format-font.svg"}
             />
           </ListItemIcon>
           <ListItemText primary={option?.variant.name} />
