@@ -21,6 +21,7 @@ import {
   ServerEvent,
   SERVER_ERROR,
   UpdateAction,
+  UpdateDocumentCallback,
   UPDATE_DOCUMENT,
 } from "@hashintel/hash-shared/collab";
 import { Server as HttpServer } from "http";
@@ -212,12 +213,13 @@ const handleUpdateDocument = async (
         // If the result does not exist, but the instance hasn't errored,
         // it means the updates were given at a wrong version.
         // Tell the client it's behind
-        emitServerEvent(socket, {
-          type: "versionConflict",
-        });
+        callback?.(<UpdateDocumentCallback>{ status: "versionConflict" });
+        // emitServerEvent(socket, {
+        //   type: "versionConflict",
+        // });
       }
     } else {
-      callback?.(result);
+      callback?.(<UpdateDocumentCallback>{ status: "success" });
     }
   } catch (error) {
     emitServerError(socket, error);

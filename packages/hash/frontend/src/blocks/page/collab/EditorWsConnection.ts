@@ -16,6 +16,7 @@ import {
   PositionUpdatedEvent,
   ClientAction,
   VERSION_CONFLICT,
+  UpdateDocumentCallback,
 } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
@@ -74,6 +75,7 @@ export class EditorWsConnection extends EditorConnectionInterface {
   errored = false;
   socket: Socket;
   isRefetchingState = true;
+  isSendingState = false;
 
   constructor(
     public url: string,
@@ -207,38 +209,58 @@ export class EditorWsConnection extends EditorConnectionInterface {
 
     const { steps: innerSteps, clientID: clientId } = steps;
 
-    emitClientAction(this.socket, {
-      type: "updateDocument",
-      version: this.state.version,
-      steps: innerSteps.map((step) => step.toJSON()),
-      clientId,
-      // @todo do something smarter
-      blockIds: Object.keys(editState.schema.nodes).filter((key) =>
-        key.startsWith("http"),
-      ),
-      actions: actions.map((action) => action.action),
-    });
-
     for (const action of actions) {
       this.sentActions.add(action.id);
     }
-    if (!this.state.edit) {
-      throw new Error("Cannot receive steps without state");
-    }
-    const tr = steps
-      ? receiveTransaction(
-          this.state.edit,
-          innerSteps,
-          repeat(clientId, innerSteps.length),
-        )
-      : this.state.edit.tr;
 
-    this.dispatch({
-      type: "update",
-      transaction: tr,
-      requestDone: true,
-      version: this.state.version + innerSteps.length + actions.length,
-    });
+    const removeActions = () => {
+      for (const action of actions) {
+        this.sentActions.delete(action.id);
+      }
+    };
+
+    emitClientAction(
+      this.socket,
+      {
+        type: "updateDocument",
+        version: this.state.version,
+        steps: innerSteps.map((step) => step.toJSON()),
+        clientId,
+        // @todo do something smarter
+        blockIds: Object.keys(editState.schema.nodes).filter((key) =>
+          key.startsWith("http"),
+        ),
+        actions: actions.map((action) => action.action),
+      },
+      ({ status }: UpdateDocumentCallback) => {
+        if (!this.state.edit) {
+          throw new Error("Cannot receive steps without state");
+        }
+        if (status === "versionConflict") {
+          // If saving did not go well, remove sent actions and try to sync version
+          removeActions();
+          this.onVersionConflict();
+          return;
+        }
+
+        // If saving went well, apply update
+
+        const tr = steps
+          ? receiveTransaction(
+              this.state.edit,
+              innerSteps,
+              repeat(clientId, innerSteps.length),
+            )
+          : this.state.edit.tr;
+
+        this.dispatch({
+          type: "update",
+          transaction: tr,
+          requestDone: true,
+          version: this.state.version + innerSteps.length + actions.length,
+        });
+      },
+    );
   }
 
   private unsentActions(editState: EditorState<Schema>) {

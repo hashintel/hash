@@ -94,6 +94,10 @@ export type ClientAction =
   | FetchVersionAction
   | ReportPositionAction;
 
+export type UpdateDocumentCallback = {
+  status: "success" | "versionConflict";
+};
+
 export const initialConnectionDataValues = [
   "accountId",
   "pageEntityId",
