@@ -10,10 +10,10 @@ import {
   DraftEntity,
   draftEntityForEntityId,
   EntityStore,
+  EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
-import { UnknownEntity } from "./graphql/apiTypes.gen";
 import {
   ComponentNode,
   componentNodeToId,
@@ -75,7 +75,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
     }
   | {
       type: "updateBlockEntityProperties";
-      payload: { draftId: string; targetEntity: UnknownEntity };
+      payload: { draftId: string; targetEntity: EntityStoreType };
     }
 );
 
@@ -120,6 +120,9 @@ export const entityStorePluginStateFromTransaction = (
 
 export const newDraftId = () => `fake-${uuid()}`;
 
+export const prefixEntityIdWithDraft = (entityId: string) =>
+  `draft-${entityId}`;
+
 /**
  * As we're not yet working with a totally flat entity store, the same
  * entity can exist in multiple places in a draft entity store. This
@@ -158,17 +161,26 @@ const updateEntitiesByDraftId = (
   }
 };
 
+/**
+ * The method does the following
+ * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
+ * 2. Update
+ * @param draftEntityStore draft entity store
+ * @param blockDraftId draft id of the Block Entity whose child entity should be changed
+ * @param targetEntity entity to be changed to
+ */
 const updateBlockEntity = (
   draftEntityStore: Draft<EntityStore["draft"]>,
   blockDraftId: string,
-  targetEntity: UnknownEntity,
+  targetEntity: EntityStoreType,
 ) => {
-  let targetDraftEntity = Object.values(draftEntityStore).find(
-    (entity) => entity.entityId === targetEntity?.entityId,
+  let targetDraftEntity = draftEntityForEntityId(
+    draftEntityStore,
+    blockDraftId,
   );
 
-  // Check if entity to load exists in store
-  // and add to store if it doesn't exist
+  // Add target entity to draft store if it is not
+  // present there
   if (!targetDraftEntity) {
     const targetEntityDraftId = newDraftId();
     targetDraftEntity = {
@@ -188,14 +200,16 @@ const updateBlockEntity = (
     throw new Error("Block to update not present in store");
   }
 
+  if (!isDraftBlockEntity(draftBlockEntity)) {
+    throw new Error("draftId provided does not point to a BlockEntity");
+  }
+
   // we shouldn't need to update this since the api is meant to
   // handle it.
   // @todo remove the need for this
   draftBlockEntity.entityVersionCreatedAt = new Date().toISOString();
 
-  draftBlockEntity.properties = {
-    entity: targetDraftEntity,
-  };
+  draftBlockEntity.properties.entity = targetDraftEntity;
 };
 
 /**
