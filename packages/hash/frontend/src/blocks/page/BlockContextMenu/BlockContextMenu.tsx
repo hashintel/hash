@@ -110,6 +110,8 @@ export const BlockContextMenu = forwardRef<
       },
     ];
 
+    // @todo this flag wouldn't be need once
+    // https://app.asana.com/0/1201959586244685/1202106892392942 has been addressed
     if (!localStorage.getItem(LOAD_BLOCK_ENTITY_UI)) {
       items.shift();
     }
