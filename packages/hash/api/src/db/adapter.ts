@@ -562,7 +562,7 @@ export interface DbClient {
    * @param {string} params.sourceEntityId - the entity id of the source entity
    * @param {string} params.path - the aggregation path
    * @param {object} params.operation - the aggregation operation
-   * @param {string} params.createdByAccountId - the account id of the user that created the aggregationfde
+   * @param {string} params.createdByAccountId - the account id of the user that created the aggregation (equivalent to the `appliedToSourceByAccountId` field on the aggregation)
    * @returns {Promise<DbAggregation>} the created aggregation
    */
   createAggregation(params: {
