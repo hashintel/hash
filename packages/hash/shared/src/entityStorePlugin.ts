@@ -166,17 +166,17 @@ const updateEntitiesByDraftId = (
  * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
  * 2. Update
  * @param draftEntityStore draft entity store
- * @param blockDraftId draft id of the Block Entity whose child entity should be changed
+ * @param draftBlockId draft id of the Block Entity whose child entity should be changed
  * @param targetEntity entity to be changed to
  */
 const updateBlockEntity = (
   draftEntityStore: Draft<EntityStore["draft"]>,
-  blockDraftId: string,
+  draftBlockId: string,
   targetEntity: EntityStoreType,
 ) => {
   let targetDraftEntity = draftEntityForEntityId(
     draftEntityStore,
-    blockDraftId,
+    draftBlockId,
   );
 
   // Add target entity to draft store if it is not
@@ -194,7 +194,7 @@ const updateBlockEntity = (
     draftEntityStore[targetEntityDraftId] = targetDraftEntity;
   }
 
-  const draftBlockEntity = draftEntityStore[blockDraftId];
+  const draftBlockEntity = draftEntityStore[draftBlockId];
 
   if (!draftBlockEntity) {
     throw new Error("Block to update not present in store");
