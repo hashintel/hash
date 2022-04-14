@@ -244,7 +244,8 @@ const entityStoreReducer = (
 
     case "newDraftEntity":
       if (state.store.draft[action.payload.draftId]) {
-        throw new Error("Draft entity already exists");
+        // Draft entity already exists
+        return state;
       }
 
       return produce(state, (draftState) => {
