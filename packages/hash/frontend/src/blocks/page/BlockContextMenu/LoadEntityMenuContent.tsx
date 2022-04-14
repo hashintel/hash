@@ -35,7 +35,6 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   const entityStore = entityStorePluginState(blockView.view.state).store
   const blockData = entityId ? entityStore.saved[entityId] : null;
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { value: userBlocks } = useUserBlocks()
   const { data: entities, loading } = useAccountEntities({
     accountId,
     entityTypeFilter: {
