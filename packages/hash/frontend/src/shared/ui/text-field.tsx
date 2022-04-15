@@ -110,6 +110,7 @@ export const TextField: VFC<TextFieldProps> = ({
         </Collapse>
       }
       FormHelperTextProps={{
+        ...{ as: "div" },
         error,
         sx: ({ typography, palette }) => ({
           marginLeft: 0,

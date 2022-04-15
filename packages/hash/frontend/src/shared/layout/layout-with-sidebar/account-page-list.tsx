@@ -113,7 +113,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
         sx={{
           mx: 0.5,
         }}
-        selected={currentPageEntityId}
+        {...(currentPageEntityId && { selected: currentPageEntityId })}
         onNodeSelect={(_: SyntheticEvent, pageEntityId: string) => {
           void router.push(`/${accountId}/${pageEntityId}`);
         }}

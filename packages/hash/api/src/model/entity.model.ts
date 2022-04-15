@@ -385,9 +385,10 @@ class __Entity {
     return aggregation;
   }
 
-  async getAggregations(client: DbClient) {
+  async getAggregations(client: DbClient, params?: { activeAt?: Date }) {
     const aggregations = await Aggregation.getAllEntityAggregations(client, {
       source: this,
+      activeAt: params?.activeAt,
     });
 
     return aggregations;
