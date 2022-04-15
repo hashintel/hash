@@ -21,7 +21,7 @@ type BlockContextMenuItemProps = {
   itemKey: string;
   onClick?: () => void;
   icon: JSX.Element;
-  title: JSX.Element | string;
+  title: string;
   subMenu?: JSX.Element;
   subMenuWidth?: number;
 };

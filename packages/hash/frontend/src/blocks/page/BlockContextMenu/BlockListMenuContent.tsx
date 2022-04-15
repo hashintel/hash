@@ -94,7 +94,6 @@ export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
               component="img"
               width={16}
               height={16}
-              overflow="hidden"
               alt={option.variant.name}
               src={option.variant.icon ?? "/format-font.svg"}
             />
