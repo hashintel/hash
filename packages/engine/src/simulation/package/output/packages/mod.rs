@@ -87,7 +87,7 @@ impl StoreAccessVerify for OutputTask {
         //   extracting verification logic out of tasks, for example, we _could_ verify access to
         //   State and Context at a package-level rather than Task level.
         if (state.is_readonly() || state.is_disabled())
-            && (context.is_readonly() || context.is_readonly())
+            && (context.is_readonly() || context.is_disabled())
         {
             Ok(())
         } else {
