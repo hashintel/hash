@@ -1945,9 +1945,9 @@ fn run_experiment(
             v8::V8::initialize();
 
             // 0 makes V8 use its default value
-            let js_runner_initial_heap_constraint = init_msg.js_runner_initial_heap_constraint.unwrap_or(0);
+            let js_runner_initial_heap_constraint = init_msg.runner_config.js_runner_initial_heap_constraint.unwrap_or(0);
             // 0 makes V8 use its default value
-            let js_runner_max_heap_size = init_msg.js_runner_max_heap_size.unwrap_or(0);
+            let js_runner_max_heap_size = init_msg.runner_config.js_runner_max_heap_size.unwrap_or(0);
 
             let create_params = v8::Isolate::create_params().heap_limits(
                 js_runner_initial_heap_constraint * MB,

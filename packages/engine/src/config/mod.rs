@@ -11,8 +11,8 @@ pub use self::{
     simulation::Config as SimulationConfig,
     store::Config as StoreConfig,
     topology::Config as TopologyConfig,
-    worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig},
-    worker_pool::Config as WorkerPoolConfig,
+    worker::{RunnerConfig, RunnerSpawnConfig, WorkerConfig},
+    worker_pool::WorkerPoolConfig,
 };
 use crate::{
     env::Environment,

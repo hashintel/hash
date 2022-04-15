@@ -57,7 +57,7 @@ pub struct WorkerPoolController {
     terminate_recv: TerminateRecv,
     top_send: WorkerPoolMsgSend,
     worker_comms: Option<Vec<WorkerCommsWithWorkerPool>>,
-    worker_base_config: Option<config::WorkerConfig>,
+    worker_config: Option<config::WorkerConfig>,
 }
 
 impl WorkerPoolController {
@@ -68,7 +68,7 @@ impl WorkerPoolController {
         worker_pool_controller_send: WorkerPoolMsgSend,
     ) -> Result<(Self, MainMsgSendBase)> {
         let WorkerPoolConfig {
-            worker_base_config,
+            worker_config,
             num_workers,
         } = (*config.worker_pool).clone();
 
@@ -89,7 +89,7 @@ impl WorkerPoolController {
                 terminate_recv,
                 top_send: worker_pool_controller_send,
                 worker_comms: Some(worker_comms),
-                worker_base_config: Some(worker_base_config),
+                worker_config: Some(worker_config),
             },
             sim_send_base,
         ))
@@ -103,14 +103,14 @@ impl WorkerPoolController {
             .worker_comms
             .take()
             .ok_or_else(|| Error::from("missing worker comms"))?;
-        let worker_base_config = self
-            .worker_base_config
+        let worker_config = self
+            .worker_config
             .take()
             .ok_or_else(|| Error::from("missing worker base config"))?;
         self.worker_controllers = Some(
             try_join_all(worker_comms.into_iter().map(|comms| {
                 let init = ExperimentInitRunnerMsg::new(&exp_init_base, *comms.index());
-                WorkerController::spawn(worker_base_config.clone(), comms, init)
+                WorkerController::spawn(worker_config.clone(), comms, init)
             }))
             .await
             .map_err(|e| Error::from(e.to_string()))?,

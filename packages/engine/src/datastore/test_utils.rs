@@ -274,12 +274,10 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         run: Arc::new(ExperimentRunRepr::ExperimentRunBase(base)),
         target_max_group_size: 100_000,
         worker_pool: Arc::new(WorkerPoolConfig {
-            worker_base_config: Default::default(),
+            worker_config: Default::default(),
             num_workers: 0,
         }),
         base_globals: globals.clone(),
-        js_runner_initial_heap_constraint: None,
-        js_runner_max_heap_size: None,
     });
 
     // We can't use `PackageCreators::from_config` as it will initialise the global static

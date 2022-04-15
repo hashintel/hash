@@ -1,13 +1,13 @@
 #[derive(Debug, Clone)]
-pub struct SpawnConfig {
+pub struct RunnerSpawnConfig {
     pub python: bool,
     pub javascript: bool,
     pub rust: bool,
 }
 
-impl Default for SpawnConfig {
+impl Default for RunnerSpawnConfig {
     fn default() -> Self {
-        SpawnConfig {
+        Self {
             python: true,
             javascript: true,
             rust: true,
@@ -16,8 +16,13 @@ impl Default for SpawnConfig {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct Config {
-    pub spawn: SpawnConfig,
+pub struct RunnerConfig {
     pub js_runner_initial_heap_constraint: Option<usize>,
     pub js_runner_max_heap_size: Option<usize>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct WorkerConfig {
+    pub spawn: RunnerSpawnConfig,
+    pub runner_config: RunnerConfig,
 }

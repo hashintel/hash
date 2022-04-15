@@ -11,7 +11,7 @@ use tracing::Span;
 use worker::runner::MessageTarget;
 
 use crate::{
-    config::EngineConfig,
+    config::{EngineConfig, RunnerConfig},
     datastore::{shared_store::SharedDatasets, table::task_shared_store::SharedStore},
     proto::{ExperimentId, SimulationShortId},
     simulation::{package::worker_init::PackageInitMsgForWorker, task::msg::TaskMessage},
@@ -139,8 +139,7 @@ pub struct ExperimentInitRunnerMsgBase {
     pub experiment_id: ExperimentId,
     pub shared_context: Arc<SharedDatasets>,
     pub package_config: Arc<PackageMsgs>,
-    pub js_runner_initial_heap_constraint: Option<usize>,
-    pub js_runner_max_heap_size: Option<usize>,
+    pub runner_config: RunnerConfig,
 }
 
 #[derive(Clone)]
@@ -149,8 +148,7 @@ pub struct ExperimentInitRunnerMsg {
     pub worker_index: WorkerIndex,
     pub shared_context: Arc<SharedDatasets>,
     pub package_config: Arc<PackageMsgs>,
-    pub js_runner_initial_heap_constraint: Option<usize>,
-    pub js_runner_max_heap_size: Option<usize>,
+    pub runner_config: RunnerConfig,
 }
 
 impl ExperimentInitRunnerMsg {
@@ -162,16 +160,14 @@ impl ExperimentInitRunnerMsg {
             experiment_id,
             shared_context,
             package_config,
-            js_runner_initial_heap_constraint,
-            js_runner_max_heap_size,
+            runner_config,
         } = base.clone();
         ExperimentInitRunnerMsg {
             experiment_id,
             worker_index,
             shared_context,
             package_config,
-            js_runner_initial_heap_constraint,
-            js_runner_max_heap_size,
+            runner_config,
         }
     }
 }

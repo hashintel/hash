@@ -35,7 +35,7 @@ use self::{
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
-    config::{WorkerConfig, WorkerSpawnConfig},
+    config::{RunnerConfig, RunnerSpawnConfig, WorkerConfig},
     datastore::table::{
         sync::SyncPayload,
         task_shared_store::{SharedState, SharedStore},
@@ -72,7 +72,7 @@ pub struct WorkerController {
     rs: RustRunner,
 
     // TODO: unused, remove?
-    _config: WorkerConfig,
+    _runner_config: RunnerConfig,
 
     worker_pool_comms: WorkerCommsWithWorkerPool,
     tasks: PendingWorkerTasks,
@@ -83,22 +83,22 @@ impl WorkerController {
     /// Spawns a new worker controller, containing a runner for each language: JavaScript,
     /// Python, and Rust and initialize the
     pub async fn spawn(
-        config: WorkerConfig,
+        worker_config: WorkerConfig,
         worker_pool_comms: WorkerCommsWithWorkerPool,
         exp_init: ExperimentInitRunnerMsg,
     ) -> Result<WorkerController> {
         tracing::debug!("Spawning worker controller");
-        let WorkerSpawnConfig {
+        let RunnerSpawnConfig {
             python,
             javascript,
             rust,
-        } = config.spawn;
+        } = worker_config.spawn;
         // TODO: Rust, JS
         Ok(WorkerController {
             py: PythonRunner::new(python, exp_init.clone())?,
             js: JavaScriptRunner::new(javascript, exp_init.clone())?,
             rs: RustRunner::new(rust, exp_init)?,
-            _config: config,
+            _runner_config: worker_config.runner_config,
             worker_pool_comms,
             tasks: PendingWorkerTasks::default(),
         })

@@ -3,7 +3,9 @@ use std::sync::Arc;
 use stateful::global::Globals;
 
 use crate::{
-    config::{package, worker, worker_pool, Result},
+    config::{
+        package, worker::RunnerConfig, Result, RunnerSpawnConfig, WorkerConfig, WorkerPoolConfig,
+    },
     proto::{ExperimentName, ExperimentRunRepr, ExperimentRunTrait, InitialStateName},
     simulation::package::init,
 };
@@ -13,11 +15,9 @@ use crate::{
 pub struct Config {
     pub packages: Arc<package::Config>,
     pub run: Arc<ExperimentRunRepr>,
-    pub worker_pool: Arc<worker_pool::Config>,
+    pub worker_pool: Arc<WorkerPoolConfig>,
     /// The size at which the engine aims to split a group of agents
     pub target_max_group_size: usize,
-    pub js_runner_initial_heap_constraint: Option<usize>,
-    pub js_runner_max_heap_size: Option<usize>,
     pub base_globals: Globals,
 }
 
@@ -46,24 +46,24 @@ impl Config {
 
         // TODO: Rust, Python
         // TODO: Ask packages for what language execution they require.
-        let worker_base_config = worker::Config {
-            spawn: worker::SpawnConfig {
+        let worker_config = WorkerConfig {
+            spawn: RunnerSpawnConfig {
                 python: true,
                 rust: false,
                 javascript: true,
             },
-            js_runner_initial_heap_constraint,
-            js_runner_max_heap_size,
+            runner_config: RunnerConfig {
+                js_runner_initial_heap_constraint,
+                js_runner_max_heap_size,
+            },
         };
-        let worker_pool = Arc::new(worker_pool::Config::new(worker_base_config, num_workers));
+        let worker_pool = Arc::new(WorkerPoolConfig::new(worker_config, num_workers));
 
         Ok(Config {
             packages: Arc::new(package_config),
             run,
             base_globals,
             target_max_group_size,
-            js_runner_initial_heap_constraint,
-            js_runner_max_heap_size,
             worker_pool,
         })
     }
@@ -77,8 +77,6 @@ impl Config {
             worker_pool: self.worker_pool.clone(),
             target_max_group_size: self.target_max_group_size,
             base_globals: self.base_globals.clone(),
-            js_runner_initial_heap_constraint: self.js_runner_initial_heap_constraint,
-            js_runner_max_heap_size: self.js_runner_max_heap_size,
         })
     }
 
@@ -95,8 +93,6 @@ impl From<&Config> for Config {
             worker_pool: value.worker_pool.clone(),
             target_max_group_size: value.target_max_group_size,
             base_globals: value.base_globals.clone(),
-            js_runner_initial_heap_constraint: value.js_runner_initial_heap_constraint,
-            js_runner_max_heap_size: value.js_runner_max_heap_size,
         }
     }
 }
