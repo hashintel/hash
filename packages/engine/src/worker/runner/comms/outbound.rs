@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use execution::Language;
+use execution::runner::Language;
 use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use serde::{Deserialize, Serialize};
 use tracing::Span;

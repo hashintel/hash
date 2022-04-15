@@ -1,4 +1,4 @@
-use crate::Language;
+use crate::runner::Language;
 
 /// Possible targets for a [`TargetedTaskMessage`] to be forwarded to by the `Worker`.
 ///

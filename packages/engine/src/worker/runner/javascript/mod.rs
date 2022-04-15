@@ -21,7 +21,7 @@ use arrow::{
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
     util::bit_util,
 };
-use execution::{runner::MessageTarget, Language};
+use execution::runner::{Language, MessageTarget};
 use futures::{Future, FutureExt};
 use memory::{
     arrow::{ArrowBatch, ColumnChange},
