@@ -1,15 +1,24 @@
-import { faStar } from "@fortawesome/free-regular-svg-icons";
+import { faStar, faSmile } from "@fortawesome/free-regular-svg-icons";
+import {
+  faChevronRight,
+  faGear,
+  faPerson,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
+  Checkbox,
   Chip,
-  InputAdornment,
+  ListItemAvatar,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  ListItemText,
   MenuItem,
+  MenuList,
   Select,
   Stack,
-  Typography,
 } from "@mui/material";
 import { FontAwesomeIcon } from "../../shared/icons";
-import { TextField } from "../../shared/ui";
+import { Avatar, Button, TextField } from "../../shared/ui";
 
 export const SelectMenus = () => {
   return (
@@ -48,46 +57,49 @@ export const SelectMenus = () => {
           },
         }}
       >
-        <Select
-          value="10"
-          startAdornment={
-            <InputAdornment position="start">
+        <Select value="10">
+          <MenuItem value="10">
+            <ListItemIcon>
               <FontAwesomeIcon icon={faStar} />
-            </InputAdornment>
-          }
-        >
-          <MenuItem value="10">Tom Cook</MenuItem>
-        </Select>
-        <Select
-          value="10"
-          endAdornment={
-            <InputAdornment position="end">
-              <Typography sx={({ palette }) => ({ color: palette.gray[50] })}>
-                @tomcook
-              </Typography>
-            </InputAdornment>
-          }
-        >
-          <MenuItem value="10">Tom Cook</MenuItem>
-        </Select>
-        <Select
-          value="10"
-          startAdornment={
-            <InputAdornment position="start">
+            </ListItemIcon>
+            <ListItemText primary="Tom Cook" />
+            <ListItemSecondaryAction>@tomcook</ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemIcon>
               <FontAwesomeIcon icon={faStar} />
-            </InputAdornment>
-          }
-          endAdornment={
-            <InputAdornment position="end">
-              <Typography sx={({ palette }) => ({ color: palette.gray[50] })}>
-                @tomcook
-              </Typography>
-            </InputAdornment>
-          }
-        >
-          <MenuItem value="10">Tom Cook</MenuItem>
+            </ListItemIcon>
+            <ListItemText primary="Tom Cook" />
+            <ListItemSecondaryAction>@tomcook</ListItemSecondaryAction>
+          </MenuItem>
+        </Select>
+
+        <Select value="10">
+          <MenuItem value="10">
+            <ListItemText primary="Tom Cook" />
+            <ListItemSecondaryAction>@tomcook</ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemText primary="Tom Cook" />
+            <ListItemSecondaryAction>@tomcook</ListItemSecondaryAction>
+          </MenuItem>
+        </Select>
+        <Select value="10">
+          <MenuItem value="10">
+            <ListItemAvatar>
+              <Avatar src="https://picsum.photos/id/237/100/100" />
+            </ListItemAvatar>
+            <ListItemText primary="Tom Cook" />
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemAvatar>
+              <Avatar src="https://picsum.photos/id/233/100/100" />
+            </ListItemAvatar>
+            <ListItemText primary="Tom Cook" />
+          </MenuItem>
         </Select>
       </Stack>
+      <Box mb={3} />
       <Stack
         direction="row"
         alignItems="center"
@@ -99,12 +111,25 @@ export const SelectMenus = () => {
           },
         }}
       >
-        <Select size="small" error>
-          <MenuItem value="10">Tom Cook</MenuItem>
+        <Select value="10">
+          <MenuItem value="10">
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faStar} />
+            </ListItemIcon>
+            <ListItemText primary="Tom Cook" />
+            <ListItemSecondaryAction>@tomcook</ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faStar} />
+            </ListItemIcon>
+            <ListItemText primary="Tom Cook" />
+            <ListItemSecondaryAction>@tomcook</ListItemSecondaryAction>
+          </MenuItem>
         </Select>
       </Stack>
       {/* Using TextField instead  */}
-      <Stack
+      {/* <Stack
         direction="row"
         alignItems="center"
         spacing={2}
@@ -143,7 +168,7 @@ export const SelectMenus = () => {
         >
           <MenuItem value="10">Tom Cook</MenuItem>
         </TextField>
-      </Stack>
+      </Stack> */}
       {/* Chips */}
       <Stack
         direction="row"
@@ -156,6 +181,7 @@ export const SelectMenus = () => {
           },
         }}
       >
+        {/* @todo add styles for chips */}
         <Select
           multiple
           renderValue={(selected) => (
@@ -179,10 +205,284 @@ export const SelectMenus = () => {
       <br />
       <br />
       <br />
-      <Select size="small" value="10">
-        <MenuItem value="10">Tom Cook</MenuItem>
-      </Select>
+      {/* SIZES */}
+
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={4}
+        mb={2}
+        sx={{
+          "& > *": {
+            minWidth: 250,
+            // border: "1px dotted black"
+          },
+        }}
+      >
+        {/*  */}
+        <MenuList>
+          <MenuItem value="10" selected>
+            <ListItemText primary="Account Settings" />
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemText primary="Account Settings" />
+          </MenuItem>
+          <MenuItem value="30">
+            <ListItemText primary="Account Settings" />
+          </MenuItem>
+        </MenuList>
+        {/*  */}
+        <MenuList>
+          <MenuItem value="10">
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faSmile} />
+            </ListItemIcon>
+            <ListItemText primary="Edit" />
+          </MenuItem>
+          <MenuItem value="20" selected>
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faSmile} />
+            </ListItemIcon>
+            <ListItemText primary="Edit" />
+          </MenuItem>
+          <MenuItem value="30">
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faSmile} />
+            </ListItemIcon>
+            <ListItemText primary="Edit" />
+          </MenuItem>
+        </MenuList>
+        {/*  */}
+        <MenuList>
+          <MenuItem value="10">
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faSmile} />
+            </ListItemIcon>
+            <ListItemText primary="Edit" />
+            <ListItemSecondaryAction>
+              <FontAwesomeIcon icon={faChevronRight} />
+            </ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faSmile} />
+            </ListItemIcon>
+            <ListItemText primary="Edit" />
+            <ListItemSecondaryAction>
+              <FontAwesomeIcon icon={faChevronRight} />
+            </ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="30" selected>
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faSmile} />
+            </ListItemIcon>
+            <ListItemText primary="Edit" />
+            <ListItemSecondaryAction>
+              <FontAwesomeIcon icon={faChevronRight} />
+            </ListItemSecondaryAction>
+          </MenuItem>
+        </MenuList>
+        {/*  */}
+        <MenuList>
+          <MenuItem value="10">
+            <ListItemAvatar>
+              <Avatar src="https://picsum.photos/id/200/100/100" />
+            </ListItemAvatar>
+            <ListItemText primary="Mark Marrignton" />
+            <ListItemSecondaryAction>
+              <FontAwesomeIcon icon={faChevronRight} />
+            </ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemAvatar>
+              <Avatar src="https://picsum.photos/id/200/100/100" />
+            </ListItemAvatar>
+            <ListItemText primary="Mark Marrignton" />
+            <ListItemSecondaryAction>
+              <FontAwesomeIcon icon={faChevronRight} />
+            </ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="30" selected>
+            <ListItemAvatar>
+              <Avatar src="https://picsum.photos/id/200/100/100" />
+            </ListItemAvatar>
+            <ListItemText primary="Mark Marrignton" />
+            <ListItemSecondaryAction>
+              <FontAwesomeIcon icon={faChevronRight} />
+            </ListItemSecondaryAction>
+          </MenuItem>
+        </MenuList>
+      </Stack>
+      {/* VARIANTS */}
+
+      <Box mb={8} />
+
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={4}
+        mb={2}
+        sx={{
+          "& > *": {
+            minWidth: 250,
+            // border: "1px dotted black"
+          },
+        }}
+      >
+        <MenuList>
+          <MenuItem value="10" selected>
+            <ListItemText primary="Account Settings" />
+            <ListItemSecondaryAction>Cmd + D</ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemText primary="Account Settings" />
+            <ListItemSecondaryAction>Cmd + D</ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="30">
+            <ListItemText primary="Account Settings" />
+            <ListItemSecondaryAction>Cmd + D</ListItemSecondaryAction>
+          </MenuItem>
+        </MenuList>
+        {/*  */}
+        <MenuList>
+          <MenuItem value="10">
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faSmile} />
+            </ListItemIcon>
+            <ListItemText primary="Account Settings" />
+            <ListItemSecondaryAction>Cmd + D</ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="20" selected>
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faSmile} />
+            </ListItemIcon>
+            <ListItemText primary="Account Settings" />
+            <ListItemSecondaryAction>Cmd + D</ListItemSecondaryAction>
+          </MenuItem>
+          <MenuItem value="30">
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faSmile} />
+            </ListItemIcon>
+            <ListItemText primary="Account Settings" />
+            <ListItemSecondaryAction>Cmd + D</ListItemSecondaryAction>
+          </MenuItem>
+        </MenuList>
+        {/*  */}
+        <MenuList>
+          <MenuItem value="10">
+            <ListItemText
+              primary="Account Settings"
+              secondary="Descriptive text"
+            />
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemText
+              primary="Account Settings"
+              secondary="Descriptive text"
+            />
+          </MenuItem>
+          <MenuItem value="30" selected>
+            <ListItemText
+              primary="Account Settings"
+              secondary="Descriptive text"
+            />
+          </MenuItem>
+        </MenuList>
+        {/*  */}
+        <MenuList>
+          <MenuItem value="10">
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faGear} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Account Settings"
+              secondary="Descriptive text"
+            />
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faGear} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Account Settings"
+              secondary="Descriptive text"
+            />
+          </MenuItem>
+          <MenuItem value="30" selected>
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faGear} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Account Settings"
+              secondary="Descriptive text"
+            />
+          </MenuItem>
+        </MenuList>
+      </Stack>
       {/*  */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={4}
+        mb={2}
+        sx={{
+          "& > *": {
+            minWidth: 250,
+            // border: "1px dotted black"
+          },
+        }}
+      >
+        <MenuList>
+          <MenuItem value="10">
+            <ListItemIcon>
+              <Checkbox />
+            </ListItemIcon>
+            <ListItemText primary="Account Settings" />
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemIcon>
+              <Checkbox />
+            </ListItemIcon>
+            <ListItemText primary="Account Settings" />
+          </MenuItem>
+          <MenuItem value="30">
+            <ListItemIcon>
+              <Checkbox />
+            </ListItemIcon>
+            <ListItemText primary="Account Settings" />
+          </MenuItem>
+        </MenuList>
+        {/*  */}
+        <MenuList>
+          <MenuItem value="10">
+            <ListItemIcon>
+              <Checkbox />
+            </ListItemIcon>
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faPerson} />
+            </ListItemIcon>
+            <ListItemText primary="Account Settings" />
+          </MenuItem>
+          <MenuItem value="20">
+            <ListItemIcon>
+              <Checkbox />
+            </ListItemIcon>
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faPerson} />
+            </ListItemIcon>
+            <ListItemText primary="Account Settings" />
+          </MenuItem>
+          <MenuItem value="30">
+            <ListItemIcon>
+              <Checkbox />
+            </ListItemIcon>
+            <ListItemIcon>
+              <FontAwesomeIcon icon={faPerson} />
+            </ListItemIcon>
+            <ListItemText primary="Account Settings" />
+          </MenuItem>
+        </MenuList>
+      </Stack>
     </Box>
   );
 };

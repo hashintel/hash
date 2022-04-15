@@ -6,6 +6,7 @@ import {
   listItemTextClasses,
   listItemIconClasses,
   listItemAvatarClasses,
+  listItemSecondaryActionClasses,
 } from "@mui/material";
 
 export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
@@ -24,6 +25,20 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
         color: theme.palette.gray[80],
       },
 
+      [`& .${listItemIconClasses.root}`]: {
+        color: theme.palette.gray[50],
+        minWidth: "unset",
+        marginRight: 12,
+        alignItems: "flex-start",
+      },
+
+      [`& .${listItemAvatarClasses.root}`]: {
+        border: "2px solid transparent",
+        marginRight: "12px",
+        borderRadius: "50%",
+        minWidth: "unset",
+      },
+
       [`& .${listItemTextClasses.primary}`]: {
         ...theme.typography.smallTextLabels,
         fontWeight: 500,
@@ -37,17 +52,16 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
         color: theme.palette.gray[50],
       },
 
-      [`& .${listItemIconClasses.root}`]: {
+      [`& .${listItemSecondaryActionClasses.root}`]: {
+        // right: theme.spacing(4.5),
+        ...theme.typography.smallTextLabels,
+        fontWeight: 500,
         color: theme.palette.gray[50],
-        minWidth: "unset",
-        marginRight: 12,
-      },
 
-      [`& .${listItemAvatarClasses.root}`]: {
-        border: "2px solid transparent",
-        marginRight: "12px",
-        borderRadius: "50%",
-        minWidth: "unset",
+        "& svg": {
+          fontSize: 12,
+          color: "currentColor",
+        },
       },
 
       "&:focus": {
@@ -79,6 +93,10 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
 
           [`& .${listItemAvatarClasses.root}`]: {
             borderColor: theme.palette.white,
+          },
+
+          [`& .${listItemSecondaryActionClasses.root}`]: {
+            color: theme.palette.blue[30],
           },
         },
 

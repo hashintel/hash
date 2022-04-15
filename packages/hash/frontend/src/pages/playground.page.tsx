@@ -4,6 +4,7 @@ import {
   AccordionSummary,
   Typography,
   Container,
+  Box,
 } from "@mui/material";
 import { GetStaticProps } from "next";
 import { NextPageWithLayout } from "../shared/layout";
@@ -39,7 +40,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
         </AccordionDetails>
       </Accordion>
       {/* INPUTS */}
-      <Accordion expanded>
+      <Accordion>
         <AccordionSummary>
           <Typography variant="h4">Inputs</Typography>
         </AccordionSummary>
@@ -56,8 +57,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
           <SelectMenus />
         </AccordionDetails>
       </Accordion>
-
-      <br />
+      <Box mb={20} />
     </Container>
   );
 };

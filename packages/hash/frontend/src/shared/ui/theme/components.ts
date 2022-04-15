@@ -4,6 +4,7 @@ import {
   MuiListItemButtonThemeOptions,
   MuiListItemTextThemeOptions,
   MuiTooltipThemeOptions,
+  MuiListItemSecondaryActionThemeOptions,
 } from "./components/data-display";
 import {
   MuiDrawerThemeOptions,
@@ -35,6 +36,8 @@ export const components: Components<Theme> = {
   MuiTooltip: MuiTooltipThemeOptions,
   MuiListItemButton: MuiListItemButtonThemeOptions,
   MuiListItemText: MuiListItemTextThemeOptions,
+  MuiListItemSecondaryAction: MuiListItemSecondaryActionThemeOptions,
+
   /** ===== FEEDBACK ===== */
   /** ===== SURFACES ===== */
   /** ===== NAVIGATION ===== */
