@@ -8,11 +8,7 @@ import {
   BlogPostPhotosContext,
 } from "../../components/BlogPost";
 import { MdxPageContent } from "../../components/MdxPageContent";
-import {
-  getAllPageHrefs,
-  getSerializedPage,
-  parseAST,
-} from "../../util/mdxUtil";
+import { getAllPageHrefs, getSerializedPage } from "../../util/mdxUtil";
 
 const imageSize = promisify(legacyImageSize);
 
@@ -103,7 +99,6 @@ export const getStaticProps: GetStaticProps<
     };
   } catch (err) {
     // @todo better error when MDX content is broken
-    console.error(err);
     return {
       notFound: true,
     };
