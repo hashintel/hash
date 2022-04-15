@@ -26,7 +26,7 @@ pub enum Error {
     TaskResultSend(SendError<TaskResultOrCancelled>),
 
     #[error("Missing worker with index {0}")]
-    MissingWorkerWithIndex(crate::types::WorkerIndex),
+    MissingWorkerWithIndex(execution::worker_pool::WorkerIndex),
 
     #[error("Terminate message already sent")]
     TerminateMessageAlreadySent,

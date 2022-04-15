@@ -1,9 +1,9 @@
+use execution::worker_pool::WorkerIndex;
 use nng::{Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 use crate::{
     proto::ExperimentId,
-    types::WorkerIndex,
     worker::runner::{
         comms::ExperimentInitRunnerMsg,
         python::{

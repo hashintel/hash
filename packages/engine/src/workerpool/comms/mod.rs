@@ -3,6 +3,7 @@ pub mod main;
 pub mod terminate;
 pub mod top;
 
+use execution::worker_pool::WorkerIndex;
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::Receiver,
@@ -17,7 +18,7 @@ pub use self::{
 use crate::{
     datastore::table::sync::SyncPayload,
     proto::SimulationShortId,
-    types::{TaskId, WorkerIndex},
+    types::TaskId,
     worker::{
         runner::comms::{
             outbound::{PackageError, RunnerError, UserError, UserWarning},

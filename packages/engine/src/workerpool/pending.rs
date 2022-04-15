@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
+use execution::worker_pool::Worker;
 use tokio::sync::oneshot;
 
 use crate::{
-    config::Worker,
     simulation::{
         comms::active::ActiveTaskExecutorComms,
         task::{

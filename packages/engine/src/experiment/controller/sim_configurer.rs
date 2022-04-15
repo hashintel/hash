@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
+use execution::worker_pool::{Worker, WorkerAllocation};
 use stateful::global::Globals;
 
 use crate::{
-    config::{
-        EngineConfig, ExperimentConfig, PersistenceConfig, SimRunConfig, StoreConfig,
-        WorkerAllocation,
-    },
+    config::{EngineConfig, ExperimentConfig, PersistenceConfig, SimRunConfig, StoreConfig},
     experiment::controller::error::Result,
     proto::{ExperimentPackageConfig, SimulationShortId},
 };
@@ -74,7 +72,7 @@ impl WorkerAllocator {
             .map(|_| {
                 let w = self.next_worker;
                 self.next_worker = (w + 1) % self.num_workers;
-                crate::config::Worker::new(w)
+                Worker::new(w)
             })
             .collect()
     }

@@ -2,7 +2,9 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use execution::{
-    task::TaskDistributionConfig, worker::WorkerConfig, worker_pool::WorkerPoolConfig,
+    task::TaskDistributionConfig,
+    worker::WorkerConfig,
+    worker_pool::{Worker, WorkerIndex, WorkerPoolConfig},
 };
 use futures::{
     future::try_join_all,
@@ -24,14 +26,14 @@ use self::{
     runs::SimulationRuns,
 };
 use crate::{
-    config::{self, Worker},
+    config::{self},
     datastore::table::{sync::SyncPayload, task_shared_store::SharedStore},
     proto::SimulationShortId,
     simulation::{
         comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
         task::{args::GetTaskArgs, handler::WorkerPoolHandler, Task},
     },
-    types::{TaskId, WorkerIndex},
+    types::TaskId,
     worker::{
         runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
         task::WorkerTask,

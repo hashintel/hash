@@ -2,7 +2,7 @@ use arrow::{
     datatypes::Schema,
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
 };
-use execution::runner::MessageTarget;
+use execution::{runner::MessageTarget, worker_pool::WorkerIndex};
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use memory::shared_memory::arrow_continuation;
@@ -13,7 +13,6 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 use crate::{
     datastore::table::task_shared_store::{PartialSharedState, SharedState, SharedStore},
     proto::{ExperimentId, SimulationShortId},
-    types::WorkerIndex,
     worker::runner::{
         comms::inbound::InboundToRunnerMsgPayload,
         python::{

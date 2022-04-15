@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
+use execution::worker_pool::WorkerAllocation;
+
 use crate::{
-    config::WorkerAllocation,
     proto::SimulationShortId,
     workerpool::{Error, Result},
 };

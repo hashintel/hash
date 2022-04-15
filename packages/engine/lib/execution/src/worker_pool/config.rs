@@ -1,5 +1,21 @@
 use crate::worker::WorkerConfig;
 
+pub type WorkerIndex = usize;
+pub type WorkerAllocation = Vec<Worker>;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
+pub struct Worker(WorkerIndex);
+
+impl Worker {
+    pub fn new(index: WorkerIndex) -> Worker {
+        Worker(index)
+    }
+
+    pub fn index(&self) -> WorkerIndex {
+        self.0
+    }
+}
+
 #[derive(Clone)]
 pub struct WorkerPoolConfig {
     pub worker_config: WorkerConfig,

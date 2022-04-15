@@ -3,7 +3,7 @@ use std::sync::Arc;
 use stateful::{global::Globals, state::StateCreateParameters};
 
 pub use self::{
-    engine::{Config as EngineConfig, Worker, WorkerAllocation},
+    engine::Config as EngineConfig,
     error::{Error, Result},
     experiment::Config as ExperimentConfig,
     package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
