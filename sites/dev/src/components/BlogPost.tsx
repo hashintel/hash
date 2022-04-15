@@ -41,7 +41,6 @@ export const BlogPostHead: VFC<{
   return (
     <>
       <Head>
-        {/** @todo check this */}
         <title>{pageTitle} – HASH for Developers</title>
       </Head>
       <Box pt={8}>
