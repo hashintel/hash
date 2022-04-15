@@ -1,3 +1,5 @@
+import * as hash_util from "./src/worker/runner/javascript/hash_util.js"
+
 const InboxMessage = function (ctx_msg_pool, msg_loc) {
   this.__pool = ctx_msg_pool;
   this.__loc = msg_loc; // i_group, i_agent, i_msg
@@ -56,6 +58,13 @@ Object.defineProperty(InboxMessage.prototype, "to", {
   },
 });
 
+export const start_sim = (experiment, sim, init_message, init_context) => {
+  return {
+    loaders: loaders,
+    getters: getters,
+  };
+};
+
 const loaders = {
   /// `messages` column loader of context batch (*not* state_snapshot -- state
   /// agent and message pools are loaded identically with state_snapshot agent
@@ -85,11 +94,4 @@ const getters = {
       msgs.push(...agent_context.api_responses());
     return msgs;
   },
-};
-
-const start_sim = (experiment, sim, init_message, init_context) => {
-  return {
-    loaders: loaders,
-    getters: getters,
-  };
 };

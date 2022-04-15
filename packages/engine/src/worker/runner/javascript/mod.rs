@@ -9,7 +9,8 @@
 // - Even though `rusty_v8` returns an `Option` on `Object::get`, if the object does not have the
 //   property the result will be `Some(undefined)` rather than `None`.
 //
-// - Modules always evaluate to `undefined` with the "--harmony_top_level_await" flag, https://github.com/denoland/deno/issues/3696#issuecomment-578488613
+// - Modules always evaluate to `undefined` without the "--harmony_top_level_await" flag, https://github.com/denoland/deno/issues/3696#issuecomment-578488613
+//   To access values inside a module use v8::Module::get_module_namespace
 
 mod data_ffi;
 mod error;
@@ -192,44 +193,63 @@ impl<'s> JsPackage<'s> {
             // let pkg = import_script(&mut try_catch, &path).map_err(|err| {
             //     Error::FileImport(path.clone(), format!("Couldn't import package: {err}"))
             // })?;
-            let pkg = match import_script(&mut try_catch, &path) {
-                Ok(s) => s,
-                Err(_) => {
+            let pkg = match import_module(&mut try_catch, &path)? {
+                Some(s) => s,
+                None => {
                     tracing::debug!(
                         "Couldn't read package file. It might intentionally not exist."
                     );
                     // Packages don't have to use JS.
-                    let fns = v8::Array::new(&mut try_catch, 3);
                     let undefined = v8::undefined(&mut try_catch).into();
-                    for fn_idx in 0..3 {
-                        fns.set_index(&mut try_catch, fn_idx, undefined)
-                            .ok_or_else(|| {
-                                Error::PackageImport(
-                                    path.clone(),
-                                    format!(
-                                        "Could not set Undefined value at index {fn_idx} on \
-                                         package function array"
-                                    ),
-                                )
-                            })?;
-                    }
+                    let fns = v8::Array::new_with_elements(&mut try_catch, &[undefined; 3]);
 
                     return Ok(JsPackage { fns });
                 }
             };
 
-            let fns = pkg.run(&mut try_catch).ok_or_else(|| {
-                let exception = try_catch.exception().unwrap();
-                let exception_string = exception
-                    .to_string(&mut try_catch)
-                    .unwrap()
-                    .to_rust_string_lossy(&mut try_catch);
+            // pkg.instantiate_module(&mut try_catch, module_resolve_callback)
+            //     .ok_or_else(|| {
+            //         let exception = try_catch.exception().unwrap();
+            //         let exception_string = exception
+            //             .to_string(&mut try_catch)
+            //             .unwrap()
+            //             .to_rust_string_lossy(&mut try_catch);
 
-                Error::Eval(
-                    path.to_string(),
-                    format!("Compile error: {exception_string}"),
-                )
-            })?;
+            //         Error::PackageImport(
+            //             path.clone(),
+            //             format!("Could not instantiate code for package: {exception_string}"),
+            //         )
+            //     })?;
+
+            // pkg.evaluate(&mut try_catch).ok_or_else(|| {
+            //     let exception = try_catch.exception().unwrap();
+            //     let exception_string = exception
+            //         .to_string(&mut try_catch)
+            //         .unwrap()
+            //         .to_rust_string_lossy(&mut try_catch);
+
+            //     Error::PackageImport(
+            //         path.clone(),
+            //         format!("Could not evaluate code for package: {exception_string}"),
+            //     )
+            // })?;
+
+            pkg.get_module_namespace()
+                .to_object(&mut try_catch)
+                .unwrap()
+
+            // let fns = pkg.run(&mut try_catch).ok_or_else(|| {
+            //     let exception = try_catch.exception().unwrap();
+            //     let exception_string = exception
+            //         .to_string(&mut try_catch)
+            //         .unwrap()
+            //         .to_rust_string_lossy(&mut try_catch);
+
+            //     Error::Eval(
+            //         path.to_string(),
+            //         format!("Compile error: {exception_string}"),
+            //     )
+            // })?;
 
             // let fns: v8::Local<'_, v8::Object> = fns.try_into().unwrap();
             // let key = new_js_string(&mut try_catch, "run_task");
@@ -237,15 +257,15 @@ impl<'s> JsPackage<'s> {
 
             // dbg!(f.is_some());
 
-            fns.try_into().map_err(|err| {
-                Error::PackageImport(
-                    path.clone(),
-                    format!(
-                        "Couldn't convert package return value to array of package functions: \
-                         {err}"
-                    ),
-                )
-            })?
+            // fns.try_into().map_err(|err| {
+            //     Error::PackageImport(
+            //         path.clone(),
+            //         format!(
+            //             "Couldn't convert package return value to array of package functions: \
+            //              {err}"
+            //         ),
+            //     )
+            // })?
         };
 
         // if fns.length() != 3 {
@@ -261,8 +281,22 @@ impl<'s> JsPackage<'s> {
         let fns = fn_names
             .into_iter()
             .map(|fn_name| {
-                let js_fn_name = new_js_string(scope, fn_name);
-                let elem: Value<'_> = fns.get(scope, js_fn_name.into()).unwrap();
+                let mut try_catch = v8::TryCatch::new(scope);
+
+                let js_fn_name = new_js_string(&mut try_catch, fn_name);
+                let elem: Value<'_> =
+                    fns.get(&mut try_catch, js_fn_name.into()).ok_or_else(|| {
+                        let exception = try_catch.exception().unwrap();
+                        let exception_string = exception
+                            .to_string(&mut try_catch)
+                            .unwrap()
+                            .to_rust_string_lossy(&mut try_catch);
+
+                        Error::PackageImport(
+                            name.to_string(),
+                            format!("Could not get function from package: {exception_string}"),
+                        )
+                    })?;
 
                 if !(elem.is_function() || elem.is_undefined()) {
                     return Err(Error::PackageImport(
@@ -334,38 +368,89 @@ fn import_script<'s>(
 fn import_module<'s>(
     scope: &mut v8::HandleScope<'s>,
     path: &str,
-) -> Result<v8::Local<'s, v8::Module>> {
-    let source_code = read_file(path)?;
-    let js_source_code = new_js_string(scope, &source_code);
-    let js_path = new_js_string(scope, path);
-    let source = v8::script_compiler::Source::new(
-        js_source_code,
-        Some(&v8::ScriptOrigin::new(
-            scope,
-            js_path.into(),
-            0,
-            0,
-            false,
-            0,
-            js_path.into(),
-            false,
-            false,
-            true,
-        )),
-    );
-    let mut try_catch = v8::TryCatch::new(scope);
-    v8::script_compiler::compile_module(&mut try_catch, source).ok_or_else(|| {
-        let exception = try_catch.exception().unwrap();
-        let exception_string = exception
-            .to_string(&mut try_catch)
-            .unwrap()
-            .to_rust_string_lossy(&mut try_catch);
+) -> Result<Option<v8::Local<'s, v8::Module>>> {
+    match read_file(path) {
+        Err(_) => Ok(None),
+        Ok(source_code) => {
+            let js_source_code = new_js_string(scope, &source_code);
+            let js_path = new_js_string(scope, path);
+            let source = v8::script_compiler::Source::new(
+                js_source_code,
+                Some(&v8::ScriptOrigin::new(
+                    scope,
+                    js_path.into(),
+                    0,
+                    0,
+                    false,
+                    0,
+                    js_path.into(),
+                    false,
+                    false,
+                    true,
+                )),
+            );
+            let mut try_catch = v8::TryCatch::new(scope);
+            let module =
+                v8::script_compiler::compile_module(&mut try_catch, source).ok_or_else(|| {
+                    let exception = try_catch.exception().unwrap();
+                    let exception_string = exception
+                        .to_string(&mut try_catch)
+                        .unwrap()
+                        .to_rust_string_lossy(&mut try_catch);
 
-        Error::Eval(
-            path.to_string(),
-            format!("Compile error: {exception_string}"),
-        )
-    })
+                    Error::Eval(
+                        path.to_string(),
+                        format!("Compile error: {exception_string}"),
+                    )
+                })?;
+
+            module
+                .instantiate_module(&mut try_catch, module_resolve_callback)
+                .ok_or_else(|| {
+                    let exception = try_catch.exception().unwrap();
+                    let exception_string = exception
+                        .to_string(&mut try_catch)
+                        .unwrap()
+                        .to_rust_string_lossy(&mut try_catch);
+
+                    Error::PackageImport(
+                        path.to_string(),
+                        format!("Could not instantiate code for package: {exception_string}"),
+                    )
+                })?;
+
+            assert!(module.get_status() == v8::ModuleStatus::Instantiated);
+
+            module.evaluate(&mut try_catch).ok_or_else(|| {
+                let exception = try_catch.exception().unwrap();
+                let exception_string = exception
+                    .to_string(&mut try_catch)
+                    .unwrap()
+                    .to_rust_string_lossy(&mut try_catch);
+
+                Error::PackageImport(
+                    path.to_string(),
+                    format!("Could not evaluate code for package: {exception_string}"),
+                )
+            })?;
+
+            // `v8::Module::evaluate` can return `Some` even though the evaluation didn't succeed
+            if module.get_status() != v8::ModuleStatus::Evaluated {
+                let exception = module.get_exception();
+                let exception_string = exception
+                    .to_string(&mut try_catch)
+                    .unwrap()
+                    .to_rust_string_lossy(&mut try_catch);
+
+                return Err(Error::PackageImport(
+                    path.to_string(),
+                    format!("Could not evaluate code for package: {exception_string}"),
+                ));
+            }
+
+            Ok(Some(module))
+        }
+    }
 
     // script.run(&mut try_catch).ok_or_else(|| {
     //     let exception = try_catch.exception().unwrap();
@@ -390,7 +475,7 @@ pub fn module_resolve_callback<'s>(
     // Safe: we are in a callback
     let mut scope = unsafe { v8::CallbackScope::new(context) };
     let specifier = specifier.to_rust_string_lossy(&mut scope);
-    import_module(&mut scope, &specifier).ok()
+    import_module(&mut scope, &specifier).ok().flatten()
 }
 
 // fn import_file<'s>(
@@ -455,7 +540,11 @@ impl<'s> Embedded<'s> {
         // })?;
 
         let gen_state = import_module(scope, "./src/worker/runner/javascript/state.js")?;
-        let runner = import_script(scope, "./src/worker/runner/javascript/runner.js")?;
+        let runner = match import_module(scope, "./src/worker/runner/javascript/runner.js")? {
+            Some(runner) => runner,
+            None => return panic!("no runner.js"),
+        };
+
         // let fns: Array<'_> = fns.try_into().map_err(|err| {
         //     Error::FileImport(
         //         "./src/worker/runner/javascript/runner.js".into(),
@@ -464,20 +553,21 @@ impl<'s> Embedded<'s> {
         // })?;
         let mut try_catch = v8::TryCatch::new(scope);
 
-        let fns = runner.run(&mut try_catch).ok_or_else(|| {
-            let exception = try_catch.exception().unwrap();
-            let exception_string = exception
-                .to_string(&mut try_catch)
-                .unwrap()
-                .to_rust_string_lossy(&mut try_catch);
+        // let fns = runner.run(&mut try_catch).ok_or_else(|| {
+        //     let exception = try_catch.exception().unwrap();
+        //     let exception_string = exception
+        //         .to_string(&mut try_catch)
+        //         .unwrap()
+        //         .to_rust_string_lossy(&mut try_catch);
 
-            Error::PackageImport(
-                "./src/worker/runner/javascript/runner.js".to_string(),
-                format!("Could not run code for package: {exception_string}"),
-            )
-        })?;
+        //     Error::PackageImport(
+        //         "./src/worker/runner/javascript/runner.js".to_string(),
+        //         format!("Could not run code for package: {exception_string}"),
+        //     )
+        // })?;
 
-        // fns.instantiate_module(&mut try_catch, module_resolve_callback)
+        // runner
+        //     .instantiate_module(&mut try_catch, module_resolve_callback)
         //     .ok_or_else(|| {
         //         let exception = try_catch.exception().unwrap();
         //         let exception_string = exception
@@ -491,7 +581,20 @@ impl<'s> Embedded<'s> {
         //         )
         //     })?;
 
-        // let fns = fns.evaluate(&mut try_catch).ok_or_else(|| {
+        // let global: Object<'_> = try_catch.get_current_context().global(&mut try_catch);
+        // let name = new_js_string(&mut try_catch, "start_experiment");
+        // let start_experiment = global.get(&mut try_catch, name.into()).unwrap();
+        // let props = global
+        //     .get_property_names(&mut try_catch)
+        //     .unwrap()
+        //     .to_string(&mut try_catch)
+        //     .unwrap();
+        // dbg!(props.to_rust_string_lossy(&mut try_catch));
+        // let start_experiment: Function<'_> = start_experiment.try_into().unwrap();
+
+        // todo!();
+
+        // runner.evaluate(&mut try_catch).ok_or_else(|| {
         //     let exception = try_catch.exception().unwrap();
         //     let exception_string = exception
         //         .to_string(&mut try_catch)
@@ -530,14 +633,18 @@ impl<'s> Embedded<'s> {
         //     dbg!();
         // }
 
-        let fns: Array<'_> = fns.try_into().map_err(|err| {
-            Error::FileImport(
-                "./src/worker/runner/javascript/runner.js".into(),
-                format!("Couldn't get return value of 'runner.js', {err}"),
-            )
-        })?;
+        // let fns: Array<'_> = fns.try_into().map_err(|err| {
+        //     Error::FileImport(
+        //         "./src/worker/runner/javascript/runner.js".into(),
+        //         format!("Couldn't get return value of 'runner.js', {err}"),
+        //     )
+        // })?;
 
         // dbg!(v8::json::stringify(scope, fns.into()));
+
+        // How to get a function from a module
+        // https://chromium.googlesource.com/v8/v8/+/refs/heads/lkgr/test/cctest/test-modules.cc#625
+        let namespace = runner.get_module_namespace().to_object(scope).unwrap();
 
         let [
             start_experiment,
@@ -547,50 +654,65 @@ impl<'s> Embedded<'s> {
             state_sync,
             state_interim_sync,
             state_snapshot_sync,
-        ]: [Function<'_>; 7] = (0..7)
-            .map(|fn_idx| {
-                fns.get_index(scope, fn_idx)
-                    .ok_or_else(|| {
-                        Error::V8(format!("Could not get package function at index {fn_idx}"))
-                    })?
-                    .try_into()
-                    .map_err(|err| {
-                        Error::V8(format!(
-                            "Could not convert value at index {fn_idx} in runner.js as a \
-                             function: {err}"
-                        ))
-                    })
-                // let js_fn_name = new_js_string(scope, fn_name);
-                // let context = scope.get_current_context().global(scope);
-                // let func = context.get(scope, js_fn_name.into()).ok_or_else(|| {
-                //     Error::FileImport(
-                //         "./src/worker/runner/javascript/runner.js".into(),
-                //         format!("Couldn't get {fn_name} function in 'runner.js'"),
-                //     )
-                // })?;
+        ]: [Function<'_>; 7] = [
+            "start_experiment",
+            "start_sim",
+            "run_task",
+            "ctx_batch_sync",
+            "state_sync",
+            "state_interim_sync",
+            "state_snapshot_sync",
+        ]
+        .into_iter()
+        .map(|fn_name| {
+            // todo!()
+            // fns.get_index(scope, fn_idx)
+            //     .ok_or_else(|| {
+            //         Error::V8(format!("Could not get package function at index {fn_idx}"))
+            //     })?
+            //     .try_into()
+            //     .map_err(|err| {
+            //         Error::V8(format!(
+            //             "Could not convert value at index {fn_idx} in runner.js as a \
+            //              function: {err}"
+            //         ))
+            //     })
+            // let js_fn_name = new_js_string(scope, fn_name);
+            // let context = scope.get_current_context().global(scope);
+            // let func = context.get(scope, js_fn_name.into()).ok_or_else(|| {
+            //     Error::FileImport(
+            //         "./src/worker/runner/javascript/runner.js".into(),
+            //         format!("Couldn't get {fn_name} function in 'runner.js'"),
+            //     )
+            // })?;
 
-                // dbg!(func.is_function());
+            // dbg!(func.is_function());
 
-                // func.try_into().map_err(|err| {
-                //     Error::FileImport(
-                //         "./src/worker/runner/javascript/runner.js".into(),
-                //         format!("Couldn't convert {fn_name} to a Function: {err}"),
-                //     )
-                // })
-                // let js_fn_name = new_js_string(scope, fn_name);
+            // func.try_into().map_err(|err| {
+            //     Error::FileImport(
+            //         "./src/worker/runner/javascript/runner.js".into(),
+            //         format!("Couldn't convert {fn_name} to a Function: {err}"),
+            //     )
+            // })
 
-                // fns.get(scope, js_fn_name.into())
-                //     .ok_or_else(|| Error::V8(format!("Could not get package function
-                // {fn_name}")))?     .try_into()
-                //     .map_err(|err| {
-                //         Error::V8(format!(
-                //             "Could not convert value {fn_name} in runner.js to a function: {err}"
-                //         ))
-                //     })
-            })
-            .collect::<Result<Vec<_>>>()?
-            .try_into()
-            .unwrap();
+            let js_fn_name = new_js_string(scope, fn_name);
+            let func: Function<'_> = namespace
+                .get(scope, js_fn_name.into())
+                .ok_or_else(|| Error::V8(format!("Could not get package function {fn_name}")))?
+                .try_into()
+                .map_err(|err| {
+                    Error::V8(format!(
+                        "Could not convert value {fn_name} in runner.js to a function: {err}"
+                    ))
+                })?;
+
+            assert!(func.is_function());
+
+            Ok(func)
+        })
+        .collect::<Result<Vec<_>>>()?
+        .try_into()
+        .unwrap();
 
         Ok(Embedded {
             start_experiment,

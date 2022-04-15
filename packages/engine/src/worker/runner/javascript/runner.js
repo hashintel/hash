@@ -1,11 +1,7 @@
-// import {arrow} from "./src/worker/runner/javascript/apache-arrow-bundle.js"
-// import {Batches} from "./src/worker/runner/javascript/batch.js"
-// import {ExperimentContext, SimInitContext, gen_sim_ctx} from "./src/worker/runner/javascript/context.js"
-// import {gen_group_state} from "./src/worker/runner/javascript/state.js"
-import("./src/worker/runner/javascript/apache-arrow-bundle.js")
-import("./src/worker/runner/javascript/batch.js")
-import("./src/worker/runner/javascript/context.js")
-import("./src/worker/runner/javascript/state.js")
+import {arrow} from "./src/worker/runner/javascript/apache-arrow-bundle.js"
+import {Batches} from "./src/worker/runner/javascript/batch.js"
+import {ExperimentContext, SimInitContext, gen_sim_ctx} from "./src/worker/runner/javascript/context.js"
+import {gen_group_state} from "./src/worker/runner/javascript/state.js"
 
 // noinspection BadExpressionStatementJS
 
@@ -17,7 +13,7 @@ const make_hash_set = (fields) => {
   return set;
 };
 
-function start_experiment(datasets, pkg_init_msgs, pkg_fns) {
+export function start_experiment(datasets, pkg_init_msgs, pkg_fns) {
   this.batches = new Batches();
   for (var dataset_name in datasets)
     datasets[dataset_name] = JSON.parse(datasets[dataset_name]);
@@ -94,7 +90,7 @@ const load_schema = (bytes) => {
   return schema;
 };
 
-function start_sim(
+export function start_sim(
   sim_id,
   agent_schema_bytes,
   msg_schema_bytes,
@@ -176,7 +172,7 @@ function start_sim(
   sim.GroupState = gen_group_state(sim.schema.agent, sim.state_getters);
 }
 
-function run_task(sim_id, i_group, pkg_id, task_message) {
+export function run_task(sim_id, i_group, pkg_id, task_message) {
   const pkg = this.pkgs[pkg_id];
   const pkg_run_task = pkg.run_task;
   if (!pkg_run_task) {
@@ -234,7 +230,7 @@ Stack: ${JSON.stringify(e.stack)}
 /// Invalidates existing `GroupContext` and `AgentContext` objects.
 /// (NB: Any `GroupContext` or `AgentContext` objects must be forgotten at
 /// the end of a `run_task` call.)
-function ctx_batch_sync(
+export function ctx_batch_sync(
   sim_id,
   ctx_batch,
   state_group_start_idxs,
@@ -264,7 +260,7 @@ const _sync_pools = (sim, batches, agent_pool, message_pool) => {
   }
 };
 
-function state_sync(sim_id, agent_pool, message_pool) {
+export function state_sync(sim_id, agent_pool, message_pool) {
   const sim = this.sims[sim_id];
   _sync_pools(sim, this.batches, agent_pool, message_pool);
 
@@ -288,7 +284,7 @@ function state_sync(sim_id, agent_pool, message_pool) {
   }
 }
 
-function state_interim_sync(
+export function state_interim_sync(
   sim_id,
   group_idxs,
   agent_batches,
@@ -309,7 +305,7 @@ function state_interim_sync(
 }
 
 /// Invalidates existing `GroupContext` and `AgentContext` objects.
-function state_snapshot_sync(sim_id, agent_pool, message_pool) {
+export function state_snapshot_sync(sim_id, agent_pool, message_pool) {
   const sim = this.sims[sim_id];
   _sync_pools(sim, this.batches, agent_pool, message_pool);
   sim.ctx.sync_snapshot({
@@ -317,14 +313,3 @@ function state_snapshot_sync(sim_id, agent_pool, message_pool) {
     message_pool: message_pool,
   });
 }
-
-// Return value when evaluating the module
-[
-  start_experiment,
-  start_sim,
-  run_task,
-  ctx_batch_sync,
-  state_sync,
-  state_interim_sync,
-  state_snapshot_sync,
-]
