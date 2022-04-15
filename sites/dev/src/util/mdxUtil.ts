@@ -1,14 +1,13 @@
 // @todo update from block protocol
+import fs from "fs-extra";
+import matter from "gray-matter";
+import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
 import path from "path";
-import matter from "gray-matter";
-import fs from "fs-extra";
-import { unified } from "unified";
 import remarkMdx from "remark-mdx";
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import remarkParse from "remark-parse";
 import slugify from "slugify";
-import { inspect } from "util";
+import { unified } from "unified";
 import { SiteMapPage, SiteMapPageSection } from "./sitemap";
 
 type Node = {
