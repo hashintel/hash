@@ -14,6 +14,7 @@ use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration
 
 use execution::{
     runner::{Language, MessageTarget, RunnerConfig},
+    task::{SharedState, SharedStore},
     worker::{RunnerSpawnConfig, WorkerConfig},
 };
 use futures::{
@@ -38,10 +39,7 @@ use self::{
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
-    datastore::table::{
-        sync::SyncPayload,
-        task_shared_store::{SharedState, SharedStore},
-    },
+    datastore::table::sync::SyncPayload,
     proto::SimulationShortId,
     simulation::task::{
         handler::WorkerHandler,

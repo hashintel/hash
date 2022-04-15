@@ -7,6 +7,7 @@ use std::{
     sync::Arc,
 };
 
+use execution::task::SharedStore;
 use js_py::{js::JsInitTask, py::PyInitTask};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,6 @@ use stateful::field::PackageId;
 
 use crate::{
     config::ExperimentConfig,
-    datastore::table::task_shared_store::SharedStore,
     simulation::{
         package::{
             id::PackageIdGenerator,

@@ -1,16 +1,15 @@
 //! TODO: DOC
-use std::fmt::Debug;
 
-use execution::{
-    task::StateBatchDistribution,
-    worker_pool::{SplitConfig, WorkerAllocation, WorkerIndex},
-};
 use stateful::{
     context::Context,
     state::{StateReadProxy, StateWriteProxy},
 };
 
-use crate::datastore::error::{Error, Result};
+use crate::{
+    task::StateBatchDistribution,
+    worker_pool::{SplitConfig, WorkerAllocation, WorkerIndex},
+    Error, Result,
+};
 
 /// Holds proxies to access the state and information, if the context is readable.
 ///
@@ -199,6 +198,13 @@ impl PartialSharedState {
     }
 }
 
+pub struct DistributedBatch<A, M> {
+    worker_index: WorkerIndex,
+    agent_batches: Vec<A>,
+    message_batches: Vec<M>,
+    group_indices: Vec<usize>,
+}
+
 /// TODO: DOC
 fn distribute_batches<A, M>(
     worker_list: &WorkerAllocation,
@@ -206,14 +212,19 @@ fn distribute_batches<A, M>(
     msg_batches: Vec<M>,
     group_indices: Vec<usize>,
     group_sizes: Vec<usize>, // Number of agents in each group
-) -> (Vec<(WorkerIndex, Vec<A>, Vec<M>, Vec<usize>)>, SplitConfig) {
+) -> (Vec<DistributedBatch<A, M>>, SplitConfig) {
     // Initialize with empty distribution.
     let num_workers = worker_list.len();
     let mut agent_distribution = Vec::with_capacity(num_workers);
     let mut stores = Vec::with_capacity(num_workers);
     worker_list.iter().for_each(|worker| {
         agent_distribution.push(0);
-        stores.push((*worker, vec![], vec![], vec![]));
+        stores.push(DistributedBatch {
+            worker_index: *worker,
+            agent_batches: vec![],
+            message_batches: vec![],
+            group_indices: vec![],
+        });
     });
 
     // Distribute batches.
@@ -226,9 +237,9 @@ fn distribute_batches<A, M>(
         agent_distribution[i_worker] += group_sizes[i_group];
 
         let store = &mut stores[i_worker];
-        store.1.push(agent_batch);
-        store.2.push(msg_batch);
-        store.3.push(group_indices[i_group]);
+        store.agent_batches.push(agent_batch);
+        store.message_batches.push(msg_batch);
+        store.group_indices.push(group_indices[i_group]);
     }
 
     // Wrap into correct format.
@@ -293,17 +304,20 @@ impl SharedStore {
             );
             let stores: Vec<_> = stores
                 .into_iter()
-                .map(|(worker, agent_batches, msg_batches, group_indices)| {
+                .map(|batch_distribution| {
                     let store = Self {
                         state: SharedState::Partial(PartialSharedState::Write(
                             PartialStateWriteProxy {
-                                group_indices,
-                                state_proxy: StateWriteProxy::from((agent_batches, msg_batches)),
+                                group_indices: batch_distribution.group_indices,
+                                state_proxy: StateWriteProxy::from((
+                                    batch_distribution.agent_batches,
+                                    batch_distribution.message_batches,
+                                )),
                             },
                         )),
                         context: context.clone(),
                     };
-                    (worker, store)
+                    (batch_distribution.worker_index, store)
                 })
                 .collect();
             (stores, split_config)
@@ -336,17 +350,20 @@ impl SharedStore {
             );
             let stores: Vec<_> = stores
                 .into_iter()
-                .map(|(worker, agent_batches, msg_batches, group_indices)| {
+                .map(|batch_distribution| {
                     let store = Self {
                         state: SharedState::Partial(PartialSharedState::Read(
                             PartialStateReadProxy {
-                                group_indices,
-                                state_proxy: StateReadProxy::from((agent_batches, msg_batches)),
+                                group_indices: batch_distribution.group_indices,
+                                state_proxy: StateReadProxy::from((
+                                    batch_distribution.agent_batches,
+                                    batch_distribution.message_batches,
+                                )),
                             },
                         )),
                         context: context.clone(),
                     };
-                    (worker, store)
+                    (batch_distribution.worker_index, store)
                 })
                 .collect();
             (stores, split_config)

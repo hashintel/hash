@@ -26,6 +26,7 @@ pub mod package;
 
 use std::sync::{Arc, RwLock};
 
+use execution::task::SharedStore;
 use stateful::{agent::Agent, context::Context, field::PackageId, state::StateReadProxy};
 use uuid::Uuid;
 
@@ -36,10 +37,7 @@ use super::{
     Error, Result,
 };
 use crate::{
-    datastore::table::{
-        sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
-        task_shared_store::SharedStore,
-    },
+    datastore::table::sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
     proto::SimulationShortId,
     simulation::comms::message::SyncCompletionReceiver,
     types::TaskId,

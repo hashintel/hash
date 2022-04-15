@@ -7,6 +7,7 @@ use std::{
     sync::Arc,
 };
 
+use execution::task::SharedStore;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use stateful::field::PackageId;
@@ -14,7 +15,6 @@ use stateful::field::PackageId;
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use crate::{
     config::ExperimentConfig,
-    datastore::table::task_shared_store::SharedStore,
     simulation::{
         package::{
             id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,

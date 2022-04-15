@@ -10,6 +10,12 @@ pub enum Error {
 
     #[error("Behavior language parse error: {0}")]
     ParseBehavior(String),
+
+    #[error(
+        "Can't take multiple write access to shared state, e.g. by cloning writable task shared \
+         store"
+    )]
+    MultipleWriteSharedState,
 }
 
 impl From<&str> for Error {

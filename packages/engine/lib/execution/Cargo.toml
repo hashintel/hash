@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 flatbuffers_gen = { path = "../flatbuffers_gen" }
+stateful = { path = "../stateful" }
 
 serde = { version = "1.0.111", features = ["derive"] }
 thiserror = "1.0.21"

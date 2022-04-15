@@ -1,13 +1,13 @@
 use std::fmt::{Debug, Formatter};
 
 use async_trait::async_trait;
+use execution::task::SharedStore;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use stateful::agent::Agent;
 
 use crate::{
     config::ExperimentConfig,
-    datastore::table::task_shared_store::SharedStore,
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         package::init::{

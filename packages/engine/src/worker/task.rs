@@ -1,7 +1,7 @@
+use execution::task::SharedStore;
 use stateful::field::PackageId;
 
 use crate::{
-    datastore::table::task_shared_store::SharedStore,
     simulation::task::{msg::TaskResultOrCancelled, Task},
     types::TaskId,
 };

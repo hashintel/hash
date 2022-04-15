@@ -21,7 +21,10 @@ use arrow::{
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
     util::bit_util,
 };
-use execution::runner::{Language, MessageTarget};
+use execution::{
+    runner::{Language, MessageTarget},
+    task::{PartialSharedState, SharedState, SharedStore},
+};
 use futures::{Future, FutureExt};
 use memory::{
     arrow::{ArrowBatch, ColumnChange},
@@ -41,10 +44,7 @@ pub use self::error::{Error, Result};
 use crate::{
     datastore::{
         shared_store::SharedDatasets,
-        table::{
-            sync::{ContextBatchSync, StateSync, WaitableStateSync},
-            task_shared_store::{PartialSharedState, SharedState, SharedStore},
-        },
+        table::sync::{ContextBatchSync, StateSync, WaitableStateSync},
     },
     proto::SimulationShortId,
     simulation::{package::PackageType, task::msg::TaskMessage},

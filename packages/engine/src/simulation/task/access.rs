@@ -1,4 +1,6 @@
-use crate::{datastore::table::task_shared_store::SharedStore, simulation::Result};
+use execution::task::SharedStore;
+
+use crate::simulation::Result;
 
 pub trait StoreAccessVerify {
     /// Ensures that the [`Task`] variant has the correct permissions on the [`SharedState`] and

@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use execution::runner::Language;
+use execution::{runner::Language, task::TaskSharedStoreBuilder};
 use serde_json::Value;
 use stateful::{
     agent::AgentBatch,
@@ -13,21 +13,18 @@ use stateful::{
 use self::{
     config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
 };
-use crate::{
-    datastore::table::task_shared_store::TaskSharedStoreBuilder,
-    simulation::{
-        package::state::{
-            packages::behavior_execution::{
-                config::BehaviorIds,
-                fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
-                tasks::ExecuteBehaviorsTask,
-            },
-            Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, Name, Package, PackageComms, PackageCreator, Result,
-            SimRunConfig, Span, StateTask,
+use crate::simulation::{
+    package::state::{
+        packages::behavior_execution::{
+            config::BehaviorIds,
+            fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
+            tasks::ExecuteBehaviorsTask,
         },
-        task::{active::ActiveTask, Task},
+        Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+        GetWorkerSimStartMsg, Name, Package, PackageComms, PackageCreator, Result, SimRunConfig,
+        Span, StateTask,
     },
+    task::{active::ActiveTask, Task},
 };
 
 mod chain;

@@ -7,7 +7,10 @@ use std::{
     sync::Arc,
 };
 
-use execution::{task::TaskDistributionConfig, worker_pool::SplitConfig};
+use execution::{
+    task::{SharedStore, TaskDistributionConfig},
+    worker_pool::SplitConfig,
+};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use stateful::field::PackageId;
@@ -15,7 +18,6 @@ use stateful::field::PackageId;
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use crate::{
     config::ExperimentConfig,
-    datastore::table::task_shared_store::SharedStore,
     simulation::{
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
         task::{

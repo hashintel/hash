@@ -10,6 +10,9 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Execution error: {0}")]
+    Execution(#[from] execution::Error),
+
     #[error("Worker error: {0}")]
     Worker(#[from] worker::Error),
 

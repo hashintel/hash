@@ -2,7 +2,7 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use execution::{
-    task::TaskDistributionConfig,
+    task::{SharedStore, TaskDistributionConfig},
     worker::WorkerConfig,
     worker_pool::{WorkerIndex, WorkerPoolConfig},
 };
@@ -27,7 +27,7 @@ use self::{
 };
 use crate::{
     config::{self},
-    datastore::table::{sync::SyncPayload, task_shared_store::SharedStore},
+    datastore::table::sync::SyncPayload,
     proto::SimulationShortId,
     simulation::{
         comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
