@@ -8,6 +8,8 @@ import {
   Box,
   Checkbox,
   Chip,
+  FormControl,
+  InputLabel,
   ListItemAvatar,
   ListItemIcon,
   ListItemSecondaryAction,
@@ -18,7 +20,7 @@ import {
   Stack,
 } from "@mui/material";
 import { FontAwesomeIcon } from "../../shared/icons";
-import { Avatar, Button, TextField } from "../../shared/ui";
+import { Avatar } from "../../shared/ui";
 
 export const SelectMenus = () => {
   return (
@@ -428,7 +430,6 @@ export const SelectMenus = () => {
         sx={{
           "& > *": {
             minWidth: 250,
-            // border: "1px dotted black"
           },
         }}
       >
@@ -482,6 +483,38 @@ export const SelectMenus = () => {
             <ListItemText primary="Account Settings" />
           </MenuItem>
         </MenuList>
+      </Stack>
+      <Box mb={6} />
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={4}
+        mb={2}
+        sx={{
+          "& > *": {
+            width: 250,
+            // border: "1px dotted black"
+          },
+        }}
+      >
+        <FormControl>
+          <InputLabel shrink={false} disableAnimation variant="standard" />
+          <Select fullWidth>
+            {[
+              "Edit",
+              "Add to Favourites",
+              "Duplicate",
+              "Copy Link",
+              "Move",
+              "rename",
+              "filter",
+            ].map((item) => (
+              <MenuItem key={item} value={item}>
+                <ListItemText primary={item} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </Stack>
     </Box>
   );

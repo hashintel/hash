@@ -3,7 +3,7 @@ import { Components, Theme } from "@mui/material";
 export const MuiInputLabelThemeOptions: Components<Theme>["MuiInputLabel"] = {
   defaultProps: {
     disableAnimation: true,
-    shrink: true,
+    // shrink: true,
   },
   styleOverrides: {
     root: ({ theme }) => ({
