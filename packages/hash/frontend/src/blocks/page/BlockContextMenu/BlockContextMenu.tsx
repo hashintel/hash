@@ -63,11 +63,6 @@ export const BlockContextMenu = forwardRef<
           key: "set-entity",
           title: hasChildEntity ? "Swap Entity" : "Add an entity",
           icon: <FontAwesomeIcon icon={faAdd} />,
-          // @todo fix this TS issue. all subMenu's require
-          // popupState and that's passed in through cloneElement
-          // in BlockContextMenuItem
-          // For now the temporary fix is to make popupState optional
-          // in LoadEntityMenuContent
           subMenu: <LoadEntityMenuContent entityId={entityId} />,
           subMenuWidth: 280,
         },

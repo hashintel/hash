@@ -12,9 +12,9 @@ import {
 import { ChangeEvent, ForwardedRef, VoidFunctionComponent } from "react";
 import { JSONObject, JSONValue } from "blockprotocol";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { bindPopover, PopupState } from "material-ui-popup-state/hooks";
 
-import { JsonSchema } from "../../../lib/json-utils";
 import { TextField } from "../../../shared/ui/text-field";
 
 const extractConfigPropertySchemas = (blockSchema: JsonSchema) =>
@@ -130,10 +130,16 @@ export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
     | JSONObject
     | undefined;
 
+  if (anchorRef && (!("current" in anchorRef) || !anchorRef.current)) {
+    throw new Error(
+      "BlockConfigMenu requires an element attached to anchorRef.current, to anchor the menu to.",
+    );
+  }
+
   return (
     <Popover
       {...bindPopover(popupState)}
-      anchorEl={anchorRef.current}
+      anchorEl={anchorRef?.current}
       PaperProps={{ sx: { padding: 2 } }}
     >
       <Typography variant="h5">Configure block</Typography>
