@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use execution::task::TaskDistributionConfig;
+use execution::{task::TaskDistributionConfig, worker_pool::SplitConfig};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use stateful::field::PackageId;
@@ -21,7 +21,7 @@ use crate::{
         task::{
             access::StoreAccessVerify,
             args::GetTaskArgs,
-            handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
+            handler::{WorkerHandler, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
             GetTaskName, Task,
         },

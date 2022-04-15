@@ -3,17 +3,14 @@ use std::fmt::Debug;
 
 use execution::{
     task::StateBatchDistribution,
-    worker_pool::{WorkerAllocation, WorkerIndex},
+    worker_pool::{SplitConfig, WorkerAllocation, WorkerIndex},
 };
 use stateful::{
     context::Context,
     state::{StateReadProxy, StateWriteProxy},
 };
 
-use crate::{
-    datastore::error::{Error, Result},
-    simulation::task::handler::SplitConfig,
-};
+use crate::datastore::error::{Error, Result};
 
 /// Holds proxies to access the state and information, if the context is readable.
 ///

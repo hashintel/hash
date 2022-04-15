@@ -1,3 +1,3 @@
 mod config;
 
-pub use self::config::{WorkerAllocation, WorkerIndex, WorkerPoolConfig};
+pub use self::config::{SplitConfig, WorkerAllocation, WorkerIndex, WorkerPoolConfig};

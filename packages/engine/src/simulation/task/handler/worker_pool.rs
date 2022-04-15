@@ -1,15 +1,9 @@
+use execution::worker_pool::SplitConfig;
+
 use crate::simulation::{
     task::{msg::TaskMessage, Task},
     Error, Result,
 };
-
-/// Describes how agent groups are split between workers.
-/// If the task uses distributed execution, `agent_distribution`
-/// contains the number of agents allocated to each worker.
-pub struct SplitConfig {
-    pub num_workers: usize,
-    pub agent_distribution: Option<Vec<usize>>, // TODO: make sure we don't leak Worker here
-}
 
 pub trait WorkerPoolHandler {
     /// When a Chunked/Parallel task is initialized

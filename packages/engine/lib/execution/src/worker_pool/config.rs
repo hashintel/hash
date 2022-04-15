@@ -39,3 +39,11 @@ impl WorkerPoolConfig {
         }
     }
 }
+
+/// Describes how agent groups are split between workers.
+/// If the task uses distributed execution, `agent_distribution`
+/// contains the number of agents allocated to each worker.
+pub struct SplitConfig {
+    pub num_workers: usize,
+    pub agent_distribution: Option<Vec<usize>>, // TODO: make sure we don't leak Worker here
+}

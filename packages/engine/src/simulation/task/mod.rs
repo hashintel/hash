@@ -81,7 +81,7 @@ pub mod cancel;
 pub mod handler;
 pub mod msg;
 
-use execution::task::TaskDistributionConfig;
+use execution::{task::TaskDistributionConfig, worker_pool::SplitConfig};
 
 use crate::{
     datastore::table::task_shared_store::SharedStore,
@@ -90,7 +90,7 @@ use crate::{
         task::{
             access::StoreAccessVerify,
             args::GetTaskArgs,
-            handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
+            handler::{WorkerHandler, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
         },
         Result,

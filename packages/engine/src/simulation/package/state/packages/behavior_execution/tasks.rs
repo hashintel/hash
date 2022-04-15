@@ -1,6 +1,7 @@
 use execution::{
     runner::MessageTarget,
     task::{StateBatchDistribution, TaskDistributionConfig},
+    worker_pool::SplitConfig,
 };
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +12,7 @@ use crate::simulation::{
     },
     task::{
         args::GetTaskArgs,
-        handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
+        handler::{WorkerHandler, WorkerPoolHandler},
         msg::{TargetedTaskMessage, TaskMessage},
         GetTaskName, Task,
     },
