@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use execution::worker_pool::{Worker, WorkerAllocation};
+use execution::worker_pool::{WorkerAllocation, WorkerIndex};
 use stateful::global::Globals;
 
 use crate::{
@@ -72,7 +72,7 @@ impl WorkerAllocator {
             .map(|_| {
                 let w = self.next_worker;
                 self.next_worker = (w + 1) % self.num_workers;
-                Worker::new(w)
+                WorkerIndex::new(w)
             })
             .collect()
     }

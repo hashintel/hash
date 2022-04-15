@@ -3,7 +3,7 @@ use std::fmt::Debug;
 
 use execution::{
     task::StateBatchDistribution,
-    worker_pool::{Worker, WorkerAllocation},
+    worker_pool::{WorkerAllocation, WorkerIndex},
 };
 use stateful::{
     context::Context,
@@ -209,7 +209,7 @@ fn distribute_batches<A, M>(
     msg_batches: Vec<M>,
     group_indices: Vec<usize>,
     group_sizes: Vec<usize>, // Number of agents in each group
-) -> (Vec<(Worker, Vec<A>, Vec<M>, Vec<usize>)>, SplitConfig) {
+) -> (Vec<(WorkerIndex, Vec<A>, Vec<M>, Vec<usize>)>, SplitConfig) {
     // Initialize with empty distribution.
     let num_workers = worker_list.len();
     let mut agent_distribution = Vec::with_capacity(num_workers);
@@ -261,7 +261,7 @@ impl SharedStore {
         self,
         distribution: &StateBatchDistribution,
         worker_list: &WorkerAllocation,
-    ) -> Result<(Vec<(Worker, Self)>, SplitConfig)> {
+    ) -> Result<(Vec<(WorkerIndex, Self)>, SplitConfig)> {
         let reads_state = self.state.is_readonly();
         let writes_state = self.state.is_readwrite();
         let context = self.context.clone();

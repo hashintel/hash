@@ -1,18 +1,25 @@
+use core::fmt;
+
 use crate::worker::WorkerConfig;
 
-pub type WorkerIndex = usize;
-pub type WorkerAllocation = Vec<Worker>;
+pub type WorkerAllocation = Vec<WorkerIndex>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub struct Worker(WorkerIndex);
+pub struct WorkerIndex(usize);
 
-impl Worker {
-    pub fn new(index: WorkerIndex) -> Worker {
-        Worker(index)
+impl WorkerIndex {
+    pub fn new(index: usize) -> WorkerIndex {
+        WorkerIndex(index)
     }
 
-    pub fn index(&self) -> WorkerIndex {
+    pub fn index(&self) -> usize {
         self.0
+    }
+}
+
+impl fmt::Display for WorkerIndex {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
     }
 }
 

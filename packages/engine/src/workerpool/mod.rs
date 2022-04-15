@@ -4,7 +4,7 @@ use std::{future::Future, pin::Pin, sync::Arc};
 use execution::{
     task::TaskDistributionConfig,
     worker::WorkerConfig,
-    worker_pool::{Worker, WorkerIndex, WorkerPoolConfig},
+    worker_pool::{WorkerIndex, WorkerPoolConfig},
 };
 use futures::{
     future::try_join_all,
@@ -230,8 +230,8 @@ impl WorkerPoolController {
                 let pending =
                     PendingWorkerPoolTask::new(task_id, channels, distribution_controller);
                 self.pending_tasks.inner.insert(task_id, pending);
-                tasks.into_iter().try_for_each(|(worker, task)| {
-                    self.send_to_worker(worker.index(), WorkerPoolToWorkerMsg::task(sim_id, task))
+                tasks.into_iter().try_for_each(|(worker_index, task)| {
+                    self.send_to_worker(worker_index, WorkerPoolToWorkerMsg::task(sim_id, task))
                 })?;
             }
             EngineToWorkerPoolMsgPayload::Sync(sync) => {
@@ -246,11 +246,12 @@ impl WorkerPoolController {
                 let (worker_msgs, worker_completion_receivers) =
                     sync.create_children(self.comms.num_workers());
                 for (worker_index, msg) in worker_msgs.into_iter().enumerate() {
-                    self.comms.send(worker_index, WorkerPoolToWorkerMsg {
-                        span: Span::current(),
-                        sim_id: Some(sim_id),
-                        payload: WorkerPoolToWorkerMsgPayload::Sync(SyncPayload::State(msg)),
-                    })?;
+                    self.comms
+                        .send(WorkerIndex::new(worker_index), WorkerPoolToWorkerMsg {
+                            span: Span::current(),
+                            sim_id: Some(sim_id),
+                            payload: WorkerPoolToWorkerMsgPayload::Sync(SyncPayload::State(msg)),
+                        })?;
                 }
                 let fut = async move {
                     let sync = sync;
@@ -282,7 +283,7 @@ impl WorkerPoolController {
     /// TODO: DOC
     async fn handle_worker_msg(
         &mut self,
-        worker: WorkerIndex,
+        worker_index: WorkerIndex,
         sim_id: SimulationShortId,
         worker_msg: WorkerToWorkerPoolMsg,
     ) -> Result<()> {
@@ -294,7 +295,7 @@ impl WorkerPoolController {
                     .inner
                     .get_mut(&res.task_id)
                     .ok_or(Error::MissingPendingTask(task_id))?;
-                if pending_task.handle_result_or_cancel(Worker::new(worker), res)? {
+                if pending_task.handle_result_or_cancel(worker_index, res)? {
                     // Remove pending task because it has terminated (completed OR cancelled)
                     // Unwrap must work, since we've checked the key exists in the hashmap
                     self.pending_tasks.inner.remove(&task_id).unwrap();
@@ -351,20 +352,22 @@ impl WorkerPoolController {
             if let Some(task) = self.pending_tasks.inner.get(&id) {
                 match &task.distribution_controller {
                     DistributionController::Distributed {
-                        active_workers,
+                        active_worker_indices,
                         received_results: _,
                         reference_task: _,
                     } => {
-                        for worker in active_workers {
+                        for worker_index in active_worker_indices {
                             self.send_to_worker(
-                                worker.index(),
+                                *worker_index,
                                 WorkerPoolToWorkerMsg::cancel_task(task.task_id),
                             )?;
                         }
                     }
-                    DistributionController::Single { active_worker } => {
+                    DistributionController::Single {
+                        active_worker: active_worker_index,
+                    } => {
                         self.send_to_worker(
-                            active_worker.index(),
+                            *active_worker_index,
                             WorkerPoolToWorkerMsg::cancel_task(task.task_id),
                         )?;
                     }
@@ -391,7 +394,7 @@ impl WorkerPoolController {
         package_id: PackageId,
         shared_store: SharedStore,
         task: Task,
-    ) -> Result<(Vec<(Worker, WorkerTask)>, DistributionController)> {
+    ) -> Result<(Vec<(WorkerIndex, WorkerTask)>, DistributionController)> {
         let worker_list = self.simulation_runs.get_worker_allocation(sim_id)?;
 
         let (triples, original_task) =
@@ -406,7 +409,7 @@ impl WorkerPoolController {
                         .map(|(task, (worker, store))| (worker, task, store))
                         .collect::<Vec<_>>(),
                     DistributionController::Distributed {
-                        active_workers: worker_list.clone(),
+                        active_worker_indices: worker_list.clone(),
                         received_results: Vec::with_capacity(worker_list.len()),
                         reference_task: task,
                     },

@@ -28,7 +28,7 @@ fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message
         &mut fbb,
         &flatbuffers_gen::init_generated::InitArgs {
             experiment_id: Some(&experiment_id),
-            worker_index: init.worker_index as u64,
+            worker_index: init.worker_index.index() as u64,
             shared_context: Some(shared_context),
             package_config: Some(package_config),
         },

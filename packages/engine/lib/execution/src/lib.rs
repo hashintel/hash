@@ -1,3 +1,5 @@
+extern crate core;
+
 mod error;
 pub mod runner;
 pub mod task;
