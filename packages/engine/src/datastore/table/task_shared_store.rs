@@ -13,7 +13,10 @@ use crate::{
     simulation::task::handler::SplitConfig,
 };
 
-/// TODO: DOC, purpose and fields
+/// Holds proxies to access the state and information, if the context is readable.
+///
+/// If the `state` can accessed (i.e. `state` is not `SharedState::None`), it holds read-only,
+/// read-write, partially borrowed proxies to the state pools.
 #[derive(Default, Debug)]
 pub struct SharedStore {
     pub state: SharedState,
@@ -30,21 +33,29 @@ impl SharedStore {
     }
 }
 
-/// TODO: DOC
+/// Partial write access to the state pools.
+///
+/// This only holds a subset of the state pools' batches specified by `group_indices`. Used in
+/// [`PartialSharedState`] to have read and write access to different batches.
 #[derive(Debug)]
 pub struct PartialStateWriteProxy {
     pub group_indices: Vec<usize>,
     pub state_proxy: StateWriteProxy,
 }
 
-/// TODO: DOC
+/// Partial read access to the state pools.
+///
+/// This only holds a subset of the state pools' batches specified by `group_indices`. Used in
+/// [`PartialSharedState`] to have read and write access to different batches.
 #[derive(Debug, Clone)]
 pub struct PartialStateReadProxy {
     pub group_indices: Vec<usize>,
     pub state_proxy: StateReadProxy,
 }
 
-/// TODO: DOC
+/// Fine-grained access to the state pools.
+///
+/// Can either hold proxies for all batches (read or write) or partially borrow a subset of batches.
 #[derive(Debug)]
 pub enum SharedState {
     Partial(PartialSharedState),
@@ -129,11 +140,9 @@ impl TaskSharedStoreBuilder {
     }
 }
 
-/// TODO: DOC (expand and reformat below)
-// Represents partial access to the State portion
-// of the data store. Can have both write
-// and read access to different (non-overlapping)
-// subsets of the state pool
+/// Partial read or write access to the state pools.
+///
+/// This enables both, read and write access, to different, non-overlapping subsets of the state.
 #[derive(Debug)]
 pub enum PartialSharedState {
     Write(PartialStateWriteProxy),
