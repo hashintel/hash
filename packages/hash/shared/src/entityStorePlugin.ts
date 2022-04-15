@@ -120,8 +120,7 @@ export const entityStorePluginStateFromTransaction = (
 
 export const newDraftId = () => `fake-${uuid()}`;
 
-export const prefixEntityIdWithDraft = (entityId: string) =>
-  `draft-${entityId}`;
+export const draftIdForEntity = (entityId: string) => `draft-${entityId}`;
 
 /**
  * As we're not yet working with a totally flat entity store, the same

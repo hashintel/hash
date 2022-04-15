@@ -28,7 +28,7 @@ import {
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
   newDraftId,
-  prefixEntityIdWithDraft,
+  draftIdForEntity,
 } from "./entityStorePlugin";
 import {
   childrenForTextEntity,
@@ -633,7 +633,7 @@ export class ProsemirrorSchemaManager {
       type: "updateBlockEntityProperties",
       payload: {
         targetEntity,
-        draftId: prefixEntityIdWithDraft(blockEntity.entityId),
+        draftId: draftIdForEntity(blockEntity.entityId),
       },
     });
 
@@ -644,7 +644,7 @@ export class ProsemirrorSchemaManager {
 
     const newBlockNode = this.createLocalBlock({
       targetComponentId: blockEntity.properties.componentId,
-      draftBlockId: prefixEntityIdWithDraft(blockEntity.entityId),
+      draftBlockId: draftIdForEntity(blockEntity.entityId),
       draftChildEntityId: draftEntityForEntityId(
         updatedStore.draft,
         targetEntity.entityId,

@@ -1,5 +1,5 @@
 import { Draft, produce } from "immer";
-import { prefixEntityIdWithDraft } from "./entityStorePlugin";
+import { draftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
 import { DistributiveOmit } from "./util";
 
@@ -128,7 +128,7 @@ export const createEntityStore = (
 
   for (const entity of entities) {
     if (!entityToDraft[entity.entityId]) {
-      entityToDraft[entity.entityId] = prefixEntityIdWithDraft(entity.entityId);
+      entityToDraft[entity.entityId] = draftIdForEntity(entity.entityId);
     }
   }
 
