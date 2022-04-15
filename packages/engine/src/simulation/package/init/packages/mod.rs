@@ -14,7 +14,7 @@ use stateful::field::PackageId;
 
 use crate::{
     config::ExperimentConfig,
-    datastore::table::task_shared_store::TaskSharedStore,
+    datastore::table::task_shared_store::SharedStore,
     simulation::{
         package::{
             id::PackageIdGenerator,
@@ -93,7 +93,7 @@ impl WorkerHandler for InitTask {
 impl WorkerPoolHandler for InitTask {}
 
 impl StoreAccessVerify for InitTask {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
         if state.is_disabled() && context.is_disabled() {

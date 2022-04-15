@@ -3,7 +3,7 @@ use tracing::Instrument;
 use uuid::Uuid;
 
 use crate::{
-    datastore::table::task_shared_store::TaskSharedStore,
+    datastore::table::task_shared_store::SharedStore,
     simulation::{
         comms::{Comms, Result},
         package::PackageType,
@@ -31,7 +31,7 @@ impl PackageComms {
 }
 
 impl PackageComms {
-    pub async fn new_task(&self, task: Task, shared_store: TaskSharedStore) -> Result<ActiveTask> {
+    pub async fn new_task(&self, task: Task, shared_store: SharedStore) -> Result<ActiveTask> {
         let task_name = task.get_task_name();
 
         self.inner

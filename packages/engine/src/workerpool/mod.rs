@@ -23,7 +23,7 @@ use self::{
 };
 use crate::{
     config::{self, Worker, WorkerPoolConfig},
-    datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
+    datastore::table::{sync::SyncPayload, task_shared_store::SharedStore},
     proto::SimulationShortId,
     simulation::{
         comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
@@ -385,7 +385,7 @@ impl WorkerPoolController {
         sim_id: SimulationShortId,
         task_id: TaskId,
         package_id: PackageId,
-        shared_store: TaskSharedStore,
+        shared_store: SharedStore,
         task: Task,
     ) -> Result<(Vec<(Worker, WorkerTask)>, DistributionController)> {
         let worker_list = self.simulation_runs.get_worker_allocation(sim_id)?;

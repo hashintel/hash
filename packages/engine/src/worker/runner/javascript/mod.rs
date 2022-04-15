@@ -43,7 +43,7 @@ use crate::{
         shared_store::SharedDatasets,
         table::{
             sync::{ContextBatchSync, StateSync, WaitableStateSync},
-            task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
+            task_shared_store::{PartialSharedState, SharedState, SharedStore},
         },
     },
     proto::SimulationShortId,
@@ -453,7 +453,7 @@ fn current_step_to_js<'s>(scope: &mut v8::HandleScope<'s>, current_step: usize) 
 }
 
 fn batches_from_shared_store(
-    shared_store: &TaskSharedStore,
+    shared_store: &SharedStore,
 ) -> Result<(Vec<&AgentBatch>, Vec<&MessageBatch>, Vec<usize>)> {
     // TODO: Remove duplication between read and write access
     Ok(match &shared_store.state {
@@ -1374,7 +1374,7 @@ impl<'s> ThreadLocalRunner<'s> {
         &mut self,
         scope: &mut v8::HandleScope<'s>,
         sim_run_id: SimulationShortId,
-        shared_store: &mut TaskSharedStore,
+        shared_store: &mut SharedStore,
         return_val: Object<'s>,
     ) -> Result<()> {
         let (proxy, group_indices) = match &mut shared_store.state {
@@ -1612,7 +1612,7 @@ impl<'s> ThreadLocalRunner<'s> {
         package_id: PackageId,
         task_id: TaskId,
         wrapper: &serde_json::Value,
-        mut shared_store: TaskSharedStore,
+        mut shared_store: SharedStore,
     ) -> Result<(
         TargetedRunnerTaskMsg,
         Option<Vec<UserWarning>>,
@@ -1730,7 +1730,7 @@ impl<'s> ThreadLocalRunner<'s> {
         &mut self,
         scope: &mut v8::HandleScope<'s>,
         sim_id: SimulationShortId,
-        shared_store: &TaskSharedStore,
+        shared_store: &SharedStore,
     ) -> Result<()> {
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;

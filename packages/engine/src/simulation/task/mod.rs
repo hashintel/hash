@@ -84,7 +84,7 @@ pub mod msg;
 use worker::task::TaskDistributionConfig;
 
 use crate::{
-    datastore::table::task_shared_store::TaskSharedStore,
+    datastore::table::task_shared_store::SharedStore,
     simulation::{
         package::{context::ContextTask, init::InitTask, output::OutputTask, state::StateTask},
         task::{
@@ -187,7 +187,7 @@ impl WorkerPoolHandler for Task {
 }
 
 impl StoreAccessVerify for Task {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
         match self {
             Self::InitTask(inner) => inner.verify_store_access(access),
             Self::ContextTask(inner) => inner.verify_store_access(access),

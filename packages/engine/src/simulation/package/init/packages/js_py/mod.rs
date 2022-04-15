@@ -7,7 +7,7 @@ use stateful::agent::Agent;
 
 use crate::{
     config::ExperimentConfig,
-    datastore::table::task_shared_store::TaskSharedStore,
+    datastore::table::task_shared_store::SharedStore,
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         package::init::{
@@ -99,7 +99,7 @@ impl InitPackage for Package {
             }
         };
 
-        let shared_store = TaskSharedStore::default();
+        let shared_store = SharedStore::default();
         let active_task = self
             .comms
             .new_task(Task::InitTask(task), shared_store)

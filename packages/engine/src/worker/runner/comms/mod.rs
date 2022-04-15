@@ -12,7 +12,7 @@ use worker::runner::MessageTarget;
 
 use crate::{
     config::EngineConfig,
-    datastore::{shared_store::SharedDatasets, table::task_shared_store::TaskSharedStore},
+    datastore::{shared_store::SharedDatasets, table::task_shared_store::SharedStore},
     proto::{ExperimentId, SimulationShortId},
     simulation::{package::worker_init::PackageInitMsgForWorker, task::msg::TaskMessage},
     types::{TaskId, WorkerIndex},
@@ -32,7 +32,7 @@ pub mod outbound;
 /// `task_wrapper`: Top two levels of nesting of task (when serialized as JSON)
 // TODO: UNUSED: Needs triage
 pub struct SentTask {
-    pub shared_store: TaskSharedStore,
+    pub shared_store: SharedStore,
     pub task_wrapper: serde_json::Value,
 }
 
@@ -42,7 +42,7 @@ pub struct RunnerTaskMsg {
     pub task_id: TaskId,
     pub group_index: Option<usize>,
     pub payload: TaskMessage,
-    pub shared_store: TaskSharedStore,
+    pub shared_store: SharedStore,
 }
 
 #[derive(Debug)]
@@ -96,7 +96,7 @@ impl TargetedRunnerTaskMsg {
 
 #[derive(Debug)]
 pub struct StateInterimSync {
-    pub shared_store: TaskSharedStore,
+    pub shared_store: SharedStore,
 }
 
 // TODO: UNUSED: Needs triage

@@ -14,7 +14,7 @@ use stateful::field::PackageId;
 
 use crate::{
     config::ExperimentConfig,
-    datastore::table::task_shared_store::TaskSharedStore,
+    datastore::table::task_shared_store::SharedStore,
     simulation::{
         package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
         task::{
@@ -66,7 +66,7 @@ impl std::fmt::Display for Name {
 pub struct ContextTask {}
 
 impl StoreAccessVerify for ContextTask {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
         if (state.is_readonly() || state.is_disabled()) && context.is_disabled() {

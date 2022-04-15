@@ -1,4 +1,4 @@
-use crate::{datastore::table::task_shared_store::TaskSharedStore, simulation::Result};
+use crate::{datastore::table::task_shared_store::SharedStore, simulation::Result};
 
 pub trait StoreAccessVerify {
     /// Ensures that the [`Task`] variant has the correct permissions on the [`SharedState`] and
@@ -16,5 +16,5 @@ pub trait StoreAccessVerify {
     /// [`SharedState`]: crate::datastore::table::task_shared_store::SharedState
     /// [`SharedContext`]: crate::datastore::table::task_shared_store::SharedContext
     /// [`AccessNotAllowed`]: crate::simulation::error::Error::AccessNotAllowed
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()>;
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()>;
 }

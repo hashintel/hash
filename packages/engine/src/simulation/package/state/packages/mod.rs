@@ -15,7 +15,7 @@ use worker::task::TaskDistributionConfig;
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use crate::{
     config::ExperimentConfig,
-    datastore::table::task_shared_store::TaskSharedStore,
+    datastore::table::task_shared_store::SharedStore,
     simulation::{
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
         task::{
@@ -117,7 +117,7 @@ impl WorkerPoolHandler for StateTask {
 }
 
 impl StoreAccessVerify for StateTask {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
         // All combinations (as of now) are allowed (but still being explicit)

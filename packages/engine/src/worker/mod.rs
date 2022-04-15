@@ -38,7 +38,7 @@ use crate::{
     config::{WorkerConfig, WorkerSpawnConfig},
     datastore::table::{
         sync::SyncPayload,
-        task_shared_store::{SharedState, TaskSharedStore},
+        task_shared_store::{SharedState, SharedStore},
     },
     proto::SimulationShortId,
     simulation::task::{
@@ -415,7 +415,7 @@ impl WorkerController {
         group_index: Option<usize>,
         _source: Language,
         message: TaskMessage,
-        shared_store: TaskSharedStore,
+        shared_store: SharedStore,
     ) -> Result<()> {
         // `shared_store` metaversioning should have been kept updated
         // by the runners, so it doesn't need to be updated at this point.
@@ -636,7 +636,7 @@ impl WorkerController {
                     let group_index = shared_state.indices()[0];
                     (
                         Some(group_index),
-                        TaskSharedStore::new(SharedState::Partial(shared_state), context.clone()),
+                        SharedStore::new(SharedState::Partial(shared_state), context.clone()),
                     )
                 })
                 .collect(),

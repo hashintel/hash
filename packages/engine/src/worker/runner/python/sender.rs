@@ -11,7 +11,7 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 use worker::runner::MessageTarget;
 
 use crate::{
-    datastore::table::task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
+    datastore::table::task_shared_store::{PartialSharedState, SharedState, SharedStore},
     proto::{ExperimentId, SimulationShortId},
     types::WorkerIndex,
     worker::runner::{
@@ -317,7 +317,7 @@ fn state_sync_to_fbs<'f>(
 // TODO: Reduce code duplication between enum variants.
 fn shared_store_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
-    shared_store: &TaskSharedStore,
+    shared_store: &SharedStore,
 ) -> WIPOffset<flatbuffers_gen::sync_state_interim_generated::StateInterimSync<'f>> {
     let (agent_batches, msg_batches, indices) = match &shared_store.state {
         SharedState::None => (vec![], vec![], vec![]),

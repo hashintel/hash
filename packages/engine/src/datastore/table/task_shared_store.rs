@@ -15,12 +15,12 @@ use crate::{
 
 /// TODO: DOC, purpose and fields
 #[derive(Default, Debug)]
-pub struct TaskSharedStore {
+pub struct SharedStore {
     pub state: SharedState,
     context: SharedContext,
 }
 
-impl TaskSharedStore {
+impl SharedStore {
     pub fn new(state: SharedState, context: SharedContext) -> Self {
         Self { state, context }
     }
@@ -104,7 +104,7 @@ impl SharedContext {
 
 #[derive(Default)]
 pub struct TaskSharedStoreBuilder {
-    inner: TaskSharedStore,
+    inner: SharedStore,
 }
 
 impl TaskSharedStoreBuilder {
@@ -112,7 +112,7 @@ impl TaskSharedStoreBuilder {
         Self::default()
     }
 
-    pub fn build(self) -> TaskSharedStore {
+    pub fn build(self) -> SharedStore {
         self.inner
     }
 
@@ -231,7 +231,7 @@ fn distribute_batches<A, M>(
     (stores, split_config)
 }
 
-impl TaskSharedStore {
+impl SharedStore {
     /// Number of agents in the sim that can be accessed through this store
     fn n_accessible_agents(&self) -> usize {
         match &self.state {
@@ -365,7 +365,7 @@ impl TaskSharedStore {
     }
 }
 
-impl TaskSharedStore {
+impl SharedStore {
     /// Fallible clone. Fails with write access to state.
     fn try_clone(&self) -> Result<Self> {
         let state = match &self.state {

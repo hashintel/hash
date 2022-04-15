@@ -2,7 +2,7 @@ use stateful::field::PackageId;
 use tracing::Span;
 
 use crate::{
-    datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
+    datastore::table::{sync::SyncPayload, task_shared_store::SharedStore},
     proto::SimulationShortId,
     simulation::{comms::active::ActiveTaskExecutorComms, task::Task},
     types::TaskId,
@@ -18,7 +18,7 @@ pub struct WrappedTask {
     pub package_id: PackageId,
     pub inner: Task,
     pub comms: ActiveTaskExecutorComms,
-    pub shared_store: TaskSharedStore,
+    pub shared_store: SharedStore,
 }
 
 #[derive(Debug)]

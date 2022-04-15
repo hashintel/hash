@@ -38,7 +38,7 @@ use super::{
 use crate::{
     datastore::table::{
         sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
-        task_shared_store::TaskSharedStore,
+        task_shared_store::SharedStore,
     },
     proto::SimulationShortId,
     simulation::comms::message::SyncCompletionReceiver,
@@ -190,7 +190,7 @@ impl Comms {
         &self,
         package_id: PackageId,
         task: Task,
-        shared_store: TaskSharedStore,
+        shared_store: SharedStore,
     ) -> Result<ActiveTask> {
         let task_id = uuid::Uuid::new_v4().as_u128();
         let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store)?;
@@ -215,7 +215,7 @@ fn wrap_task(
     task_id: TaskId,
     package_id: PackageId,
     task: Task,
-    shared_store: TaskSharedStore,
+    shared_store: SharedStore,
 ) -> Result<(WrappedTask, ActiveTask)> {
     task.verify_store_access(&shared_store)?;
     let (owner_channels, executor_channels) = active::comms();

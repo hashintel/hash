@@ -1,7 +1,7 @@
 use stateful::field::PackageId;
 
 use crate::{
-    datastore::table::task_shared_store::TaskSharedStore,
+    datastore::table::task_shared_store::SharedStore,
     simulation::task::{msg::TaskResultOrCancelled, Task},
     types::TaskId,
 };
@@ -11,7 +11,7 @@ pub struct WorkerTask {
     pub task_id: TaskId,
     pub package_id: PackageId,
     pub inner: Task,
-    pub shared_store: TaskSharedStore,
+    pub shared_store: SharedStore,
 }
 
 #[derive(Debug, Clone)]

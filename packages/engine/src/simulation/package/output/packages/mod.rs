@@ -14,7 +14,7 @@ use stateful::field::PackageId;
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use crate::{
     config::ExperimentConfig,
-    datastore::table::task_shared_store::TaskSharedStore,
+    datastore::table::task_shared_store::SharedStore,
     simulation::{
         package::{
             id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
@@ -78,7 +78,7 @@ pub enum Output {
 pub enum OutputTask {}
 
 impl StoreAccessVerify for OutputTask {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
         // TODO: This check is useless currently as we don't encapsulate the run logic of output
