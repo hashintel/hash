@@ -53,7 +53,7 @@ export const LayoutWithSidebar: VFC<{ children?: ReactNode }> = ({
               size="large"
               sx={{
                 position: "absolute",
-                top: "8px",
+                top: 1,
                 left: 32,
                 transform: "rotate(180deg)",
 

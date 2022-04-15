@@ -10,6 +10,7 @@ import {
   DraftEntity,
   draftEntityForEntityId,
   EntityStore,
+  EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
@@ -72,6 +73,10 @@ export type EntityStorePluginAction = { received?: boolean } & (
         entityId: string;
       };
     }
+  | {
+      type: "updateBlockEntityProperties";
+      payload: { draftId: string; targetEntity: EntityStoreType };
+    }
 );
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
@@ -113,6 +118,10 @@ export const entityStorePluginStateFromTransaction = (
 ): EntityStorePluginState =>
   getMeta(tr)?.store ?? entityStorePluginState(state);
 
+export const newDraftId = () => `fake-${uuid()}`;
+
+export const draftIdForEntity = (entityId: string) => `draft-${entityId}`;
+
 /**
  * As we're not yet working with a totally flat entity store, the same
  * entity can exist in multiple places in a draft entity store. This
@@ -149,6 +158,57 @@ const updateEntitiesByDraftId = (
   for (const entity of entities) {
     updateHandler(entity);
   }
+};
+
+/**
+ * The method does the following
+ * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
+ * 2. Sets targetEntity as the new block data
+ * @param draftEntityStore draft entity store
+ * @param draftBlockId draft id of the Block Entity whose child entity should be changed
+ * @param targetEntity entity to be changed to
+ */
+const updateBlockEntity = (
+  draftEntityStore: Draft<EntityStore["draft"]>,
+  draftBlockId: string,
+  targetEntity: EntityStoreType,
+) => {
+  let targetDraftEntity = draftEntityForEntityId(
+    draftEntityStore,
+    draftBlockId,
+  );
+
+  // Add target entity to draft store if it is not
+  // present there
+  if (!targetDraftEntity) {
+    const targetEntityDraftId = newDraftId();
+    targetDraftEntity = {
+      accountId: targetEntity.accountId,
+      draftId: targetEntityDraftId,
+      entityId: targetEntity.entityId,
+      properties: targetEntity.properties,
+      entityVersionCreatedAt: new Date().toISOString(),
+    };
+
+    draftEntityStore[targetEntityDraftId] = targetDraftEntity;
+  }
+
+  const draftBlockEntity = draftEntityStore[draftBlockId];
+
+  if (!draftBlockEntity) {
+    throw new Error("Block to update not present in store");
+  }
+
+  if (!isDraftBlockEntity(draftBlockEntity)) {
+    throw new Error("draftId provided does not point to a BlockEntity");
+  }
+
+  // we shouldn't need to update this since the api is meant to
+  // handle it.
+  // @todo remove the need for this
+  draftBlockEntity.entityVersionCreatedAt = new Date().toISOString();
+
+  draftBlockEntity.properties.entity = targetDraftEntity;
 };
 
 /**
@@ -218,6 +278,28 @@ const entityStoreReducer = (
             : (draftEntity) => {
                 draftEntity.properties = action.payload.properties;
               },
+        );
+      });
+    }
+
+    case "updateBlockEntityProperties": {
+      if (!state.store.draft[action.payload.draftId]) {
+        throw new Error("Block missing to merge entity properties");
+      }
+
+      if (!action.payload.targetEntity) {
+        throw new Error("Entity missing to merge Block entity properties");
+      }
+
+      return produce(state, (draftState) => {
+        if (!action.received) {
+          draftState.trackedActions.push({ action, id: uuid() });
+        }
+
+        updateBlockEntity(
+          draftState.store.draft,
+          action.payload.draftId,
+          action.payload.targetEntity,
         );
       });
     }
@@ -352,8 +434,6 @@ const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
 
   return entityNode.attrs.draftId;
 };
-
-export const newDraftId = () => `fake-${uuid()}`;
 
 class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;

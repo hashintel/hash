@@ -38,7 +38,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
               <img
                 className={tw`w-6 h-6`}
                 alt={option.variant.name}
-                src={option.variant.icon}
+                src={option.variant.icon ?? "/format-font.svg"}
               />
             )}
           </div>

@@ -1,6 +1,6 @@
 import { BlockVariant } from "blockprotocol";
 import { tw } from "twind";
-import { RemoteBlockMetadata } from "../../blocks/userBlocks";
+import { RemoteBlockMetadata } from "../../userBlocks";
 
 export type MenuState = {
   currentView: "normal" | "search";
