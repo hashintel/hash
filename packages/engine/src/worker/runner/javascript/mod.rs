@@ -35,7 +35,7 @@ use tokio::{
     task::JoinError,
 };
 use tracing::{Instrument, Span};
-use worker::Language;
+use worker::{runner::MessageTarget, Language};
 
 pub use self::error::{Error, Result};
 use crate::{
@@ -56,8 +56,7 @@ use crate::{
                 OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, UserError,
                 UserWarning,
             },
-            ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg,
-            TargetedRunnerTaskMsg,
+            ExperimentInitRunnerMsg, NewSimulationRun, RunnerTaskMsg, TargetedRunnerTaskMsg,
         },
         Result as WorkerResult,
     },

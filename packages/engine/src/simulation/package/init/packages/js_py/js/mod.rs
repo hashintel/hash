@@ -1,17 +1,16 @@
-use crate::{
-    simulation::{
-        package::init::{
-            packages::js_py::{JsPyInitTaskMessage, StartMessage},
-            InitTaskMessage,
-        },
-        task::{
-            handler::WorkerHandler,
-            msg::{TargetedTaskMessage, TaskMessage},
-            GetTaskName,
-        },
-        Result as SimulationResult,
+use worker::runner::MessageTarget;
+
+use crate::simulation::{
+    package::init::{
+        packages::js_py::{JsPyInitTaskMessage, StartMessage},
+        InitTaskMessage,
     },
-    worker::runner::comms::MessageTarget,
+    task::{
+        handler::WorkerHandler,
+        msg::{TargetedTaskMessage, TaskMessage},
+        GetTaskName,
+    },
+    Result as SimulationResult,
 };
 
 #[derive(Clone, Debug)]

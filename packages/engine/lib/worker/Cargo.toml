@@ -4,5 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+flatbuffers_gen = { path = "../flatbuffers_gen" }
+
 serde = { version = "1.0.111", features = ["derive"] }
 thiserror = "1.0.21"

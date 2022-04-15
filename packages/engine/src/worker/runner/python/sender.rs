@@ -8,13 +8,14 @@ use memory::shared_memory::arrow_continuation;
 use nng::{options::Options, Aio, Socket};
 use stateful::state::StateReadProxy;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
+use worker::runner::MessageTarget;
 
 use crate::{
     datastore::table::task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
     proto::{ExperimentId, SimulationShortId},
     types::WorkerIndex,
     worker::runner::{
-        comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
+        comms::inbound::InboundToRunnerMsgPayload,
         python::{
             error::{Error, Result},
             fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},

@@ -12,7 +12,7 @@ pub enum Error {
     Unique(String),
 
     #[error("Unexpected target for a message {0:?}")]
-    UnexpectedTarget(super::runner::comms::MessageTarget),
+    UnexpectedTarget(worker::runner::MessageTarget),
 
     #[error("Datastore: {0}")]
     Datastore(#[from] crate::datastore::Error),

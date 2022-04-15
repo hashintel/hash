@@ -18,7 +18,7 @@ use futures::{
 };
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
-use worker::Language;
+use worker::{runner::MessageTarget, Language};
 
 pub use self::error::{Error, Result, RunnerError};
 use self::{
@@ -48,7 +48,7 @@ use crate::{
     types::TaskId,
     worker::{
         pending::{PendingGroup, PendingWorkerTask},
-        runner::comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
+        runner::comms::inbound::InboundToRunnerMsgPayload,
     },
     workerpool::comms::{
         WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,

@@ -1,16 +1,14 @@
 use std::hint::unreachable_unchecked;
 
 use serde::{Deserialize, Serialize};
+use worker::runner::MessageTarget;
 
-use crate::{
-    simulation::{
-        package::{
-            context::ContextTaskMessage, init::InitTaskMessage, output::OutputTaskMessage,
-            state::StateTaskMessage,
-        },
-        Result,
+use crate::simulation::{
+    package::{
+        context::ContextTaskMessage, init::InitTaskMessage, output::OutputTaskMessage,
+        state::StateTaskMessage,
     },
-    worker::runner::comms::MessageTarget,
+    Result,
 };
 
 // TODO: Possibly come up with a better interface for distinguishing between types of TaskMessages

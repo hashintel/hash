@@ -1,21 +1,21 @@
 use serde::{Deserialize, Serialize};
-use worker::task::{StateBatchDistribution, TaskDistributionConfig};
+use worker::{
+    runner::MessageTarget,
+    task::{StateBatchDistribution, TaskDistributionConfig},
+};
 
-use crate::{
-    simulation::{
-        package::state::{
-            packages::{Error, Result},
-            StateTask, StateTaskMessage,
-        },
-        task::{
-            args::GetTaskArgs,
-            handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
-            msg::{TargetedTaskMessage, TaskMessage},
-            GetTaskName, Task,
-        },
-        Result as SimulationResult,
+use crate::simulation::{
+    package::state::{
+        packages::{Error, Result},
+        StateTask, StateTaskMessage,
     },
-    worker::runner::comms::MessageTarget,
+    task::{
+        args::GetTaskArgs,
+        handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
+        msg::{TargetedTaskMessage, TaskMessage},
+        GetTaskName, Task,
+    },
+    Result as SimulationResult,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
