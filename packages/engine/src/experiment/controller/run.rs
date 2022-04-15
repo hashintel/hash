@@ -4,7 +4,7 @@ use tracing::Instrument;
 
 use crate::{
     config::ExperimentConfig,
-    datastore::shared_store::SharedStore,
+    datastore::shared_store::SharedDatasets,
     env::Environment,
     experiment::{
         controller::{
@@ -106,7 +106,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let exp_base_config = Arc::new(exp_config.to_base()?);
     // Spin up the shared store (includes the entities which are
     // shared across the whole experiment run)
-    let shared_store = Arc::new(SharedStore::new(&exp_base_config)?);
+    let shared_store = Arc::new(SharedDatasets::new(&exp_base_config)?);
 
     // Set up the worker pool controller and all communications with it
     let (experiment_to_worker_pool_send, experiment_to_worker_pool_recv) =

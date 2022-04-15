@@ -40,7 +40,7 @@ use worker::{runner::MessageTarget, Language};
 pub use self::error::{Error, Result};
 use crate::{
     datastore::{
-        shared_store::SharedStore,
+        shared_store::SharedDatasets,
         table::{
             sync::{ContextBatchSync, StateSync, WaitableStateSync},
             task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
@@ -836,7 +836,7 @@ fn get_next_task<'s>(
 impl<'s> ThreadLocalRunner<'s> {
     fn load_datasets(
         scope: &mut v8::HandleScope<'s>,
-        shared_ctx: &SharedStore,
+        shared_ctx: &SharedDatasets,
     ) -> Result<Value<'s>> {
         let js_datasets = v8::Object::new(scope);
         for (dataset_name, dataset) in shared_ctx.datasets.iter() {

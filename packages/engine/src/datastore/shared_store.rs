@@ -5,16 +5,15 @@ use stateful::global::Dataset;
 
 use crate::{config::ExperimentConfig, datastore::error::Result, proto::ExperimentRunTrait};
 
-// TODO rename to something more self-explanatory
 /// This is an object we use to manage sharing access to data that's static across simulation runs
 /// within an experiment, such as datasets.
 #[derive(Clone)]
-pub struct SharedStore {
+pub struct SharedDatasets {
     pub datasets: HashMap<String, Arc<Dataset>>,
 }
 
-impl SharedStore {
-    pub fn new(config: &ExperimentConfig) -> Result<SharedStore> {
+impl SharedDatasets {
+    pub fn new(config: &ExperimentConfig) -> Result<SharedDatasets> {
         let datasets = &config.run.base().project_base.datasets;
         let mut dataset_batches = HashMap::with_capacity(datasets.len());
         for dataset in &config.run.base().project_base.datasets {
@@ -23,7 +22,7 @@ impl SharedStore {
             dataset_batches.insert(dataset_name, Arc::new(dataset_batch));
         }
 
-        Ok(SharedStore {
+        Ok(SharedDatasets {
             datasets: dataset_batches,
         })
     }

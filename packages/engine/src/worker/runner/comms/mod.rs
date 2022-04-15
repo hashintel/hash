@@ -12,7 +12,7 @@ use worker::runner::MessageTarget;
 
 use crate::{
     config::EngineConfig,
-    datastore::{shared_store::SharedStore, table::task_shared_store::TaskSharedStore},
+    datastore::{shared_store::SharedDatasets, table::task_shared_store::TaskSharedStore},
     proto::{ExperimentId, SimulationShortId},
     simulation::{package::worker_init::PackageInitMsgForWorker, task::msg::TaskMessage},
     types::{TaskId, WorkerIndex},
@@ -104,7 +104,7 @@ pub struct DatastoreInit {
     pub agent_batch_schema: Vec<u8>,
     pub message_batch_schema: Vec<u8>,
     pub context_batch_schema: Vec<u8>,
-    pub shared_context: SharedStore,
+    pub shared_context: SharedDatasets,
 }
 
 #[derive(Clone, Debug)]
@@ -125,7 +125,7 @@ pub struct DatastoreSimulationPayload {
     pub agent_batch_schema: Arc<AgentSchema>,
     pub message_batch_schema: Arc<Schema>,
     pub context_batch_schema: Arc<Schema>,
-    pub shared_store: Arc<SharedStore>,
+    pub shared_store: Arc<SharedDatasets>,
 }
 
 impl Debug for DatastoreSimulationPayload {
@@ -137,7 +137,7 @@ impl Debug for DatastoreSimulationPayload {
 #[derive(Clone)]
 pub struct ExperimentInitRunnerMsgBase {
     pub experiment_id: ExperimentId,
-    pub shared_context: Arc<SharedStore>,
+    pub shared_context: Arc<SharedDatasets>,
     pub package_config: Arc<PackageMsgs>,
     pub js_runner_initial_heap_constraint: Option<usize>,
     pub js_runner_max_heap_size: Option<usize>,
@@ -147,7 +147,7 @@ pub struct ExperimentInitRunnerMsgBase {
 pub struct ExperimentInitRunnerMsg {
     pub experiment_id: ExperimentId,
     pub worker_index: WorkerIndex,
-    pub shared_context: Arc<SharedStore>,
+    pub shared_context: Arc<SharedDatasets>,
     pub package_config: Arc<PackageMsgs>,
     pub js_runner_initial_heap_constraint: Option<usize>,
     pub js_runner_max_heap_size: Option<usize>,

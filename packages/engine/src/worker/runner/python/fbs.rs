@@ -2,7 +2,7 @@ use flatbuffers::{FlatBufferBuilder, WIPOffset};
 use memory::shared_memory::{Metaversion, Segment};
 
 use crate::{
-    datastore::shared_store::SharedStore,
+    datastore::shared_store::SharedDatasets,
     worker::runner::{comms::PackageMsgs, python::Result},
 };
 
@@ -50,7 +50,7 @@ pub fn pkgs_to_fbs<'f>(
 
 pub fn shared_ctx_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
-    shared_ctx: &SharedStore,
+    shared_ctx: &SharedDatasets,
 ) -> WIPOffset<flatbuffers_gen::shared_context_generated::SharedContext<'f>> {
     let mut batch_offsets = Vec::new();
     for (_, dataset) in shared_ctx.datasets.iter() {

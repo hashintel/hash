@@ -4,7 +4,7 @@ use tracing::{Instrument, Span};
 
 use crate::{
     config::{ExperimentConfig, PersistenceConfig, StoreConfig},
-    datastore::shared_store::SharedStore,
+    datastore::shared_store::SharedDatasets,
     env::{Environment, OrchClient},
     experiment::{
         apply_globals_changes,
@@ -47,7 +47,7 @@ pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
     // TODO: unused, remove?
     exp_base_config: Arc<ExperimentConfig>,
     env: Environment,
-    shared_store: Arc<SharedStore>,
+    shared_store: Arc<SharedDatasets>,
     worker_pool_send: ExpMsgSend,
     worker_pool_controller_recv: WorkerPoolMsgRecv,
     experiment_package_comms: ExperimentPackageComms,
@@ -393,7 +393,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         exp_config: Arc<ExperimentConfig>,
         exp_base_config: Arc<ExperimentConfig>,
         env: Environment,
-        shared_store: Arc<SharedStore>,
+        shared_store: Arc<SharedDatasets>,
         worker_pool_send: ExpMsgSend,
         worker_pool_controller_recv: WorkerPoolMsgRecv,
         experiment_package_comms: ExperimentPackageComms,
