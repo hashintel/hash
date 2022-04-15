@@ -12,10 +12,10 @@ import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createRef, forwardRef, useCallback, useMemo, useRef } from "react";
+import { createRef, forwardRef, useMemo, useRef } from "react";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../shared/icons";
-import { BlockViewContext } from "./BlockViewContext";
+import { BlockViewContext, useBlockView } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 import styles from "./style.module.css";
@@ -23,7 +23,6 @@ import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { useUserBlocks } from "../userBlocks";
-import { useBlockProtocolUpdateEntities } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
 
 type BlockHandleProps = {
   entityId: string | null;
@@ -63,28 +62,18 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
       throw new Error(`Non-block entity ${entityId} loaded into BlockView.`);
     }
 
-    const { updateEntities } = useBlockProtocolUpdateEntities();
-    const updateChildEntity = useCallback(
-      (newProperties: JSONObject) => {
-        const childEntity = blockData?.properties.entity;
-        if (!childEntity) {
-          throw new Error(`No child entity on block to update`);
-        }
-        updateEntities([
-          {
-            accountId: childEntity.accountId,
-            entityId: childEntity.entityId,
-            data: newProperties,
-          },
-        ]).catch((err) =>
-          // eslint-disable-next-line no-console -- TODO: consider using logger
-          console.error(
-            `Error updating child entity ${childEntity.entityId}: ${err.message}`,
-          ),
-        );
-      },
-      [blockData, updateEntities],
-    );
+    const blockView = useBlockView();
+
+    const updateChildEntity = (properties: JSONObject) => {
+      const childEntity = blockData?.properties.entity;
+      if (!childEntity) {
+        throw new Error(`No child entity on block to update`);
+      }
+      blockView.manager.updateEntityProperties(
+        childEntity.entityId,
+        properties,
+      );
+    };
 
     const blockSchema = blockData
       ? blocksMetaMap[blockData.properties.componentId]?.componentSchema

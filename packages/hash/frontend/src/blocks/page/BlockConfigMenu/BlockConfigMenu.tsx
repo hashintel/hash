@@ -9,7 +9,13 @@ import {
   MenuItem,
   Popover,
 } from "@mui/material";
-import { ChangeEvent, ForwardedRef, VoidFunctionComponent } from "react";
+import {
+  ChangeEvent,
+  ForwardedRef,
+  useEffect,
+  useState,
+  VoidFunctionComponent,
+} from "react";
 import { JSONObject, JSONValue } from "blockprotocol";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
@@ -50,6 +56,15 @@ const ConfigurationInput: VoidFunctionComponent<{
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => onChange(event.target.value);
 
+  const [draftValue, setDraftValue] = useState(value);
+
+  useEffect(() => {
+    console.log({ value, draftValue });
+    if (value !== draftValue) {
+      setDraftValue(value);
+    }
+  }, [draftValue, value]);
+
   switch (type) {
     case "boolean":
       return (
@@ -70,11 +85,17 @@ const ConfigurationInput: VoidFunctionComponent<{
       }
       return (
         <TextField
-          onChange={enumList ? updateProperty : undefined}
-          defaultValue={value ?? ""}
           label={name}
           onBlur={enumList ? undefined : updateProperty}
-          select={enumList}
+          onChange={(event) => {
+            if (enumList) {
+              updateProperty(event);
+            } else {
+              setDraftValue(event.target.value);
+            }
+          }}
+          select={!!enumList}
+          value={draftValue}
           variant="outlined"
         >
           {(enumList ?? []).map((option: string) => (
@@ -90,7 +111,9 @@ const ConfigurationInput: VoidFunctionComponent<{
         <TextField
           defaultValue={value ?? ""}
           onBlur={(event) => onChange(event.target.value)}
+          onChange={(event) => setDraftValue(event.target.value)}
           type="number"
+          value={draftValue}
           variant="outlined"
         />
       );
@@ -130,7 +153,7 @@ export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
     | JSONObject
     | undefined;
 
-  if (anchorRef && (!("current" in anchorRef) || !anchorRef.current)) {
+  if (anchorRef && typeof anchorRef === "function") {
     throw new Error(
       "BlockConfigMenu requires an element attached to anchorRef.current, to anchor the menu to.",
     );
@@ -147,9 +170,7 @@ export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
         <Box key={name} sx={{ mt: 2 }}>
           <ConfigurationInput
             name={name}
-            onChange={(value: any) =>
-              updateConfig({ ...entityData, [name]: value })
-            }
+            onChange={(value: any) => updateConfig({ [name]: value })}
             rootSchema={blockSchema ?? {}}
             propertySchema={schema}
             value={entityData?.[name]}

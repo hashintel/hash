@@ -1,4 +1,4 @@
-import { BlockVariant } from "blockprotocol";
+import { BlockVariant, JSONObject } from "blockprotocol";
 import { isString } from "lodash";
 import { NodeSpec, ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
@@ -652,6 +652,31 @@ export class ProsemirrorSchemaManager {
     });
 
     tr.replaceRangeWith(pos, pos + newBlockNode.nodeSize, newBlockNode);
+    this.view.dispatch(tr);
+  }
+
+  /**
+   * Updates the provided properties on the specified entity.
+   * Merges provided properties in with existing properties.
+   * @param entityId the id of the entity to update
+   * @param propertiesToUpdate the properties to update
+   */
+  updateEntityProperties(entityId: string, propertiesToUpdate: JSONObject) {
+    if (!this.view) {
+      throw new Error("Cannot trigger updateEntityProperties without view");
+    }
+
+    const { tr } = this.view.state;
+
+    addEntityStoreAction(this.view.state, tr, {
+      type: "updateEntityProperties",
+      payload: {
+        draftId: draftIdForEntity(entityId),
+        properties: propertiesToUpdate,
+        merge: true,
+      },
+    });
+
     this.view.dispatch(tr);
   }
 
