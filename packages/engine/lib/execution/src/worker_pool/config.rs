@@ -1,4 +1,4 @@
-use crate::config::WorkerConfig;
+use crate::worker::WorkerConfig;
 
 #[derive(Clone)]
 pub struct WorkerPoolConfig {

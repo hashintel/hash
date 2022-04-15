@@ -11,8 +11,6 @@ pub use self::{
     simulation::Config as SimulationConfig,
     store::Config as StoreConfig,
     topology::Config as TopologyConfig,
-    worker::{RunnerConfig, RunnerSpawnConfig, WorkerConfig},
-    worker_pool::WorkerPoolConfig,
 };
 use crate::{
     env::Environment,
@@ -28,8 +26,6 @@ mod persistence;
 mod simulation;
 mod store;
 pub mod topology;
-mod worker;
-mod worker_pool;
 
 pub const MIN_AGENTS_PER_GROUP: usize = 10;
 

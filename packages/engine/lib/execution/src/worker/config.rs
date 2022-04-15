@@ -1,3 +1,5 @@
+use crate::runner::RunnerConfig;
+
 #[derive(Debug, Clone)]
 pub struct RunnerSpawnConfig {
     pub python: bool,
@@ -13,12 +15,6 @@ impl Default for RunnerSpawnConfig {
             rust: true,
         }
     }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct RunnerConfig {
-    pub js_runner_initial_heap_constraint: Option<usize>,
-    pub js_runner_max_heap_size: Option<usize>,
 }
 
 #[derive(Debug, Default, Clone)]

@@ -1,7 +1,9 @@
 //! TODO: DOC
 use std::{future::Future, pin::Pin, sync::Arc};
 
-use execution::task::TaskDistributionConfig;
+use execution::{
+    task::TaskDistributionConfig, worker::WorkerConfig, worker_pool::WorkerPoolConfig,
+};
 use futures::{
     future::try_join_all,
     stream::{FuturesUnordered, StreamExt},
@@ -22,7 +24,7 @@ use self::{
     runs::SimulationRuns,
 };
 use crate::{
-    config::{self, Worker, WorkerPoolConfig},
+    config::{self, Worker},
     datastore::table::{sync::SyncPayload, task_shared_store::SharedStore},
     proto::SimulationShortId,
     simulation::{
@@ -57,7 +59,7 @@ pub struct WorkerPoolController {
     terminate_recv: TerminateRecv,
     top_send: WorkerPoolMsgSend,
     worker_comms: Option<Vec<WorkerCommsWithWorkerPool>>,
-    worker_config: Option<config::WorkerConfig>,
+    worker_config: Option<WorkerConfig>,
 }
 
 impl WorkerPoolController {

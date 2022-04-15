@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
+use execution::{
+    runner::RunnerConfig,
+    worker::{RunnerSpawnConfig, WorkerConfig},
+    worker_pool::WorkerPoolConfig,
+};
 use stateful::global::Globals;
 
 use crate::{
-    config::{
-        package, worker::RunnerConfig, Result, RunnerSpawnConfig, WorkerConfig, WorkerPoolConfig,
-    },
+    config::{package, Result},
     proto::{ExperimentName, ExperimentRunRepr, ExperimentRunTrait, InitialStateName},
     simulation::package::init,
 };

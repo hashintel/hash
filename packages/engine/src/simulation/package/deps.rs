@@ -94,11 +94,12 @@ impl PackageName {
 pub mod tests {
     use std::sync::Arc;
 
+    use execution::{worker::WorkerConfig, worker_pool::WorkerPoolConfig};
     use uuid::Uuid;
 
     use super::*;
     use crate::{
-        config::{ExperimentConfig, WorkerConfig, WorkerPoolConfig},
+        config::ExperimentConfig,
         proto::{
             ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase,
         },

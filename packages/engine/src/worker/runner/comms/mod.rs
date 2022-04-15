@@ -6,12 +6,12 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
-use execution::runner::MessageTarget;
+use execution::runner::{MessageTarget, RunnerConfig};
 use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
 use tracing::Span;
 
 use crate::{
-    config::{EngineConfig, RunnerConfig},
+    config::EngineConfig,
     datastore::{shared_store::SharedDatasets, table::task_shared_store::SharedStore},
     proto::{ExperimentId, SimulationShortId},
     simulation::{package::worker_init::PackageInitMsgForWorker, task::msg::TaskMessage},

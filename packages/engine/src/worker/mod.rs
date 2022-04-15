@@ -12,7 +12,10 @@ pub mod task;
 
 use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration};
 
-use execution::runner::{Language, MessageTarget};
+use execution::{
+    runner::{Language, MessageTarget, RunnerConfig},
+    worker::{RunnerSpawnConfig, WorkerConfig},
+};
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
@@ -35,7 +38,6 @@ use self::{
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
-    config::{RunnerConfig, RunnerSpawnConfig, WorkerConfig},
     datastore::table::{
         sync::SyncPayload,
         task_shared_store::{SharedState, SharedStore},

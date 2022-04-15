@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use execution::worker_pool::WorkerPoolConfig;
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use stateful::{
@@ -15,7 +16,7 @@ use uuid::Uuid;
 use crate::{
     config::{
         EngineConfig, ExperimentConfig, PackageConfig, PersistenceConfig, SimRunConfig,
-        SimulationConfig, StoreConfig, WorkerPoolConfig,
+        SimulationConfig, StoreConfig,
     },
     datastore::{error::Error, schema::last_state_index_key},
     proto::{ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase},
