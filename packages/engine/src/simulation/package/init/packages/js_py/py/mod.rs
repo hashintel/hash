@@ -1,4 +1,4 @@
-use worker::runner::MessageTarget;
+use execution::runner::MessageTarget;
 
 use crate::simulation::{
     package::init::{

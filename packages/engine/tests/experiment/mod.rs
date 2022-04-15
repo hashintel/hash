@@ -8,6 +8,7 @@ use std::{
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
+use execution::Language;
 use hash_engine_lib::{
     proto::ExperimentName,
     utils::{LogFormat, LogLevel, OutputLocation},
@@ -16,7 +17,6 @@ use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
 use tracing_subscriber::fmt::time::Uptime;
-use worker::Language;
 
 pub type AgentStates = Value;
 pub type Globals = Value;

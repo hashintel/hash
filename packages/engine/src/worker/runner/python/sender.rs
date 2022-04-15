@@ -2,13 +2,13 @@ use arrow::{
     datatypes::Schema,
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
 };
+use execution::runner::MessageTarget;
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use memory::shared_memory::arrow_continuation;
 use nng::{options::Options, Aio, Socket};
 use stateful::state::StateReadProxy;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
-use worker::runner::MessageTarget;
 
 use crate::{
     datastore::table::task_shared_store::{PartialSharedState, SharedState, SharedStore},

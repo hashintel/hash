@@ -7,10 +7,10 @@ use std::{
     sync::Arc,
 };
 
+use execution::task::TaskDistributionConfig;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use stateful::field::PackageId;
-use worker::task::TaskDistributionConfig;
 
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use crate::{

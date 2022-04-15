@@ -6,9 +6,9 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
+use execution::runner::MessageTarget;
 use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
 use tracing::Span;
-use worker::runner::MessageTarget;
 
 use crate::{
     config::{EngineConfig, RunnerConfig},

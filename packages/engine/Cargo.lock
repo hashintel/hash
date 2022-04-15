@@ -676,6 +676,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7531096570974c3a9dcf9e4b8e1cede1ec26cf5046219fb3b9d897503b9be59"
 
 [[package]]
+name = "execution"
+version = "0.0.0"
+dependencies = [
+ "flatbuffers_gen",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -946,6 +955,7 @@ dependencies = [
  "csv",
  "derive-new",
  "error",
+ "execution",
  "flatbuffers",
  "flatbuffers_gen",
  "float-cmp",
@@ -980,7 +990,6 @@ dependencies = [
  "tracing-texray",
  "uuid",
  "v8",
- "worker",
 ]
 
 [[package]]
@@ -2822,12 +2831,3 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-
-[[package]]
-name = "worker"
-version = "0.0.0"
-dependencies = [
- "flatbuffers_gen",
- "serde",
- "thiserror",
-]

@@ -11,13 +11,13 @@ use std::{
     sync::Arc,
 };
 
+use execution::Language;
 use futures::FutureExt;
 use tokio::{
     process::Command,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
-use worker::Language;
 
 pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};

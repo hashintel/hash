@@ -1,4 +1,4 @@
-use worker::task::TaskDistributionConfig;
+use execution::task::TaskDistributionConfig;
 
 pub trait GetTaskArgs {
     /// Defines if a [`Task`] has a distributed (split across [`worker`]s) execution.

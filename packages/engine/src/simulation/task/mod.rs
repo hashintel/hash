@@ -81,7 +81,7 @@ pub mod cancel;
 pub mod handler;
 pub mod msg;
 
-use worker::task::TaskDistributionConfig;
+use execution::task::TaskDistributionConfig;
 
 use crate::{
     datastore::table::task_shared_store::SharedStore,

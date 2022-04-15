@@ -1,11 +1,11 @@
 //! TODO: DOC
 use std::fmt::Debug;
 
+use execution::task::StateBatchDistribution;
 use stateful::{
     context::Context,
     state::{StateReadProxy, StateWriteProxy},
 };
-use worker::task::StateBatchDistribution;
 
 use crate::{
     config::{Worker, WorkerAllocation},

@@ -21,6 +21,7 @@ use arrow::{
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
     util::bit_util,
 };
+use execution::{runner::MessageTarget, Language};
 use futures::{Future, FutureExt};
 use memory::{
     arrow::{ArrowBatch, ColumnChange},
@@ -35,7 +36,6 @@ use tokio::{
     task::JoinError,
 };
 use tracing::{Instrument, Span};
-use worker::{runner::MessageTarget, Language};
 
 pub use self::error::{Error, Result};
 use crate::{

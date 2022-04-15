@@ -1,7 +1,7 @@
 use std::hint::unreachable_unchecked;
 
+use execution::runner::MessageTarget;
 use serde::{Deserialize, Serialize};
-use worker::runner::MessageTarget;
 
 use crate::simulation::{
     package::{

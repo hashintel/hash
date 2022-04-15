@@ -12,13 +12,13 @@ pub mod task;
 
 use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration};
 
+use execution::{runner::MessageTarget, Language};
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
-use worker::{runner::MessageTarget, Language};
 
 pub use self::error::{Error, Result, RunnerError};
 use self::{

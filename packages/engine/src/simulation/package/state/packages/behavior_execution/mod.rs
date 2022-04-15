@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use execution::Language;
 use serde_json::Value;
 use stateful::{
     agent::AgentBatch,
@@ -8,7 +9,6 @@ use stateful::{
     proxy::PoolWriteProxy,
     state::{State, StateWriteProxy},
 };
-use worker::Language;
 
 use self::{
     config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,

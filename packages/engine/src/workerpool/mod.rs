@@ -1,6 +1,7 @@
 //! TODO: DOC
 use std::{future::Future, pin::Pin, sync::Arc};
 
+use execution::task::TaskDistributionConfig;
 use futures::{
     future::try_join_all,
     stream::{FuturesUnordered, StreamExt},
@@ -9,7 +10,6 @@ use rand::prelude::SliceRandom;
 use stateful::field::PackageId;
 use tokio::{pin, task::JoinHandle};
 use tracing::{Instrument, Span};
-use worker::task::TaskDistributionConfig;
 
 pub use self::error::{Error, Result};
 use self::{
