@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
+use worker::task::{StateBatchDistribution, TaskDistributionConfig};
 
 use crate::{
-    config::{StateBatchDistribution, TaskDistributionConfig},
     simulation::{
         package::state::{
             packages::{Error, Result},

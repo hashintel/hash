@@ -5,9 +5,10 @@ use stateful::{
     context::Context,
     state::{StateReadProxy, StateWriteProxy},
 };
+use worker::task::StateBatchDistribution;
 
 use crate::{
-    config::{StateBatchDistribution, Worker, WorkerAllocation},
+    config::{Worker, WorkerAllocation},
     datastore::error::{Error, Result},
     simulation::task::handler::SplitConfig,
 };

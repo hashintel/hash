@@ -81,8 +81,9 @@ pub mod cancel;
 pub mod handler;
 pub mod msg;
 
+use worker::task::TaskDistributionConfig;
+
 use crate::{
-    config::TaskDistributionConfig,
     datastore::table::task_shared_store::TaskSharedStore,
     simulation::{
         package::{context::ContextTask, init::InitTask, output::OutputTask, state::StateTask},

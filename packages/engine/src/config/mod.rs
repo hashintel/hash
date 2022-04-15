@@ -1,15 +1,3 @@
-mod engine;
-mod error;
-mod experiment;
-mod package;
-mod persistence;
-mod simulation;
-mod store;
-mod task_distribution;
-pub mod topology;
-mod worker;
-mod worker_pool;
-
 use std::sync::Arc;
 
 use stateful::{global::Globals, state::StateCreateParameters};
@@ -22,7 +10,6 @@ pub use self::{
     persistence::Config as PersistenceConfig,
     simulation::Config as SimulationConfig,
     store::Config as StoreConfig,
-    task_distribution::{Config as TaskDistributionConfig, StateBatchDistribution},
     topology::Config as TopologyConfig,
     worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig},
     worker_pool::Config as WorkerPoolConfig,
@@ -32,6 +19,17 @@ use crate::{
     proto::{ExperimentRunTrait, SimulationShortId},
     Args,
 };
+
+mod engine;
+mod error;
+mod experiment;
+mod package;
+mod persistence;
+mod simulation;
+mod store;
+pub mod topology;
+mod worker;
+mod worker_pool;
 
 pub const MIN_AGENTS_PER_GROUP: usize = 10;
 

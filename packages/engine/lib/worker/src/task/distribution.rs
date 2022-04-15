@@ -24,7 +24,7 @@ pub struct StateBatchDistribution {
 ///
 /// [`Task`]: crate::simulation::task::Task
 /// [`worker`]: crate::worker
-pub enum Config {
+pub enum TaskDistributionConfig {
     /// The [`Task`] is split up and executed on multiple [`worker`]s, with access to
     /// [`AgentBatch`]s as defined in the [`StateBatchDistribution`] object.
     ///

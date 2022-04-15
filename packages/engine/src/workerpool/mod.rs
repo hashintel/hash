@@ -1,9 +1,4 @@
 //! TODO: DOC
-pub mod comms;
-mod error;
-mod pending;
-pub mod runs;
-
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use futures::{
@@ -14,6 +9,7 @@ use rand::prelude::SliceRandom;
 use stateful::field::PackageId;
 use tokio::{pin, task::JoinHandle};
 use tracing::{Instrument, Span};
+use worker::task::TaskDistributionConfig;
 
 pub use self::error::{Error, Result};
 use self::{
@@ -26,8 +22,7 @@ use self::{
     runs::SimulationRuns,
 };
 use crate::{
-    config,
-    config::{TaskDistributionConfig, Worker, WorkerPoolConfig},
+    config::{self, Worker, WorkerPoolConfig},
     datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
     proto::SimulationShortId,
     simulation::{
@@ -45,6 +40,11 @@ use crate::{
         WorkerToWorkerPoolMsg,
     },
 };
+
+pub mod comms;
+mod error;
+mod pending;
+pub mod runs;
 
 /// TODO: DOC
 pub struct WorkerPoolController {

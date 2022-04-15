@@ -10,10 +10,11 @@ use std::{
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use stateful::field::PackageId;
+use worker::task::TaskDistributionConfig;
 
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use crate::{
-    config::{ExperimentConfig, TaskDistributionConfig},
+    config::ExperimentConfig,
     datastore::table::task_shared_store::TaskSharedStore,
     simulation::{
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
