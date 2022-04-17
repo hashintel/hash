@@ -29,6 +29,7 @@ import {
   entityStorePluginStateFromTransaction,
   newDraftId,
   draftIdForEntity,
+  getDraftIdFromEntityByEntityId,
 } from "./entityStorePlugin";
 import {
   childrenForTextEntity,
@@ -455,6 +456,7 @@ export class ProsemirrorSchemaManager {
     let blockIdForNode = draftBlockId;
 
     if (blockIdForNode) {
+      // we already have a block which we're swapping
       const entityStoreState = entityStorePluginState(this.view.state);
 
       const blockEntity = entityStoreState.store.draft[blockIdForNode];
@@ -501,6 +503,7 @@ export class ProsemirrorSchemaManager {
             },
           });
         } else {
+          // we're swapping to the same text component - preserve text
           blockIdForNode = await this.createNewDraftBlock(
             tr,
             {
@@ -518,6 +521,7 @@ export class ProsemirrorSchemaManager {
           );
         }
       } else {
+        // we're swapping a block to a different component
         let entityProperties = targetVariant?.properties ?? {};
         if (blockComponentRequiresText(meta.componentSchema)) {
           const textEntityLink = isDraftTextContainingEntityProperties(
@@ -542,6 +546,7 @@ export class ProsemirrorSchemaManager {
         );
       }
     } else {
+      // we're adding a new block, rather than swapping an existing one
       let entityProperties = targetVariant?.properties ?? {};
 
       if (blockComponentRequiresText(meta.componentSchema)) {
@@ -668,10 +673,15 @@ export class ProsemirrorSchemaManager {
 
     const { tr } = this.view.state;
 
+    const entityStore = entityStorePluginStateFromTransaction(
+      tr,
+      this.view.state,
+    ).store.draft;
+
     addEntityStoreAction(this.view.state, tr, {
       type: "updateEntityProperties",
       payload: {
-        draftId: draftIdForEntity(entityId),
+        draftId: getDraftIdFromEntityByEntityId(entityStore, entityId),
         properties: propertiesToUpdate,
         merge: true,
       },

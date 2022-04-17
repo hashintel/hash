@@ -414,7 +414,7 @@ export const subscribeToEntityStore = (
   };
 };
 
-const getDraftIdFromEntityByEntityId = (
+export const getDraftIdFromEntityByEntityId = (
   draftStore: EntityStore["draft"],
   entityId: string,
 ) => {

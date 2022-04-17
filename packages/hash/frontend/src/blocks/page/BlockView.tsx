@@ -79,6 +79,8 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
       ? blocksMetaMap[blockData.properties.componentId]?.componentSchema
       : null;
 
+    console.log({ blockData });
+
     return (
       <Box
         ref={ref}

@@ -13,6 +13,7 @@ import {
   ChangeEvent,
   ForwardedRef,
   useEffect,
+  useRef,
   useState,
   VoidFunctionComponent,
 } from "react";
@@ -58,12 +59,18 @@ const ConfigurationInput: VoidFunctionComponent<{
 
   const [draftValue, setDraftValue] = useState(value);
 
+  const previousValue = useRef<JSONValue | undefined>(undefined);
   useEffect(() => {
+    previousValue.current = value;
+    console.log({ value });
+  });
+
+  if (previousValue.current !== value && value !== draftValue) {
     console.log({ value, draftValue });
-    if (value !== draftValue) {
-      setDraftValue(value);
-    }
-  }, [draftValue, value]);
+    setDraftValue(value);
+  }
+
+  console.log({ previousValue: previousValue.current, value, draftValue });
 
   switch (type) {
     case "boolean":
@@ -88,10 +95,9 @@ const ConfigurationInput: VoidFunctionComponent<{
           label={name}
           onBlur={enumList ? undefined : updateProperty}
           onChange={(event) => {
+            setDraftValue(event.target.value);
             if (enumList) {
               updateProperty(event);
-            } else {
-              setDraftValue(event.target.value);
             }
           }}
           select={!!enumList}
