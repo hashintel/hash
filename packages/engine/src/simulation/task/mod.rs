@@ -92,13 +92,7 @@ use crate::simulation::enum_dispatch::{
 // From<init::Task>, ..., From<output::Task> for this enum.
 // Additionally we have TryInto<init::Task>, (and others)
 // implemented for this enum.
-#[enum_dispatch(
-    GetTaskName,
-    WorkerHandler,
-    WorkerPoolHandler,
-    GetTaskArgs,
-    StoreAccessVerify
-)]
+#[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs, StoreAccessVerify)]
 #[derive(Clone, Debug)]
 pub enum Task {
     InitTask,
@@ -107,10 +101,20 @@ pub enum Task {
     OutputTask,
 }
 
-#[enum_dispatch]
 pub trait GetTaskName {
     /// Provides a human-readable name of the [`Task`], e.g. `"BehaviorExecution"`.
     fn get_task_name(&self) -> &'static str;
+}
+
+impl GetTaskName for Task {
+    fn get_task_name(&self) -> &'static str {
+        match self {
+            Self::InitTask(inner) => inner.get_task_name(),
+            Self::ContextTask(inner) => inner.get_task_name(),
+            Self::StateTask(inner) => inner.get_task_name(),
+            Self::OutputTask(inner) => inner.get_task_name(),
+        }
+    }
 }
 
 // TODO: Is there an important differentiation between Task and TaskMessage

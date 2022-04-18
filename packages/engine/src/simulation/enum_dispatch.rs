@@ -97,7 +97,6 @@ pub use crate::{
             args::GetTaskArgs,
             handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
-            GetTaskName,
         },
         Result,
     },

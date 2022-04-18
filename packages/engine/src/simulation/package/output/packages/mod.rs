@@ -16,13 +16,14 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         enum_dispatch::{
-            enum_dispatch, GetTaskArgs, GetTaskName, StoreAccessVerify, TaskSharedStore,
-            WorkerHandler, WorkerPoolHandler,
+            enum_dispatch, GetTaskArgs, StoreAccessVerify, TaskSharedStore, WorkerHandler,
+            WorkerPoolHandler,
         },
         package::{
             id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
             PackageType,
         },
+        task::GetTaskName,
         Error, Result,
     },
 };
