@@ -1,6 +1,5 @@
 import { Box, Typography, TypographyProps } from "@mui/material";
 import { ReactNode } from "react";
-import { BlogPostContent, BlogPostHead } from "../components/BlogPost";
 import { Link, LinkProps } from "../components/Link";
 import { MdxImage } from "../components/MdxImage";
 import { MdxPre } from "../components/MdxPre";
@@ -8,8 +7,6 @@ import { MdxPre } from "../components/MdxPre";
 export const mdxComponents: Record<string, ReactNode> = {
   Box,
   Typography,
-  BlogPostHead,
-  BlogPostContent,
 
   p: (props: TypographyProps<"p">) => {
     if (!Array.isArray(props.children) && typeof props.children !== "string") {

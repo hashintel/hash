@@ -34,11 +34,11 @@ export const useBlogPostPhotos = () => {
 };
 
 export const BlogPostHead: VFC<{
-  title: string;
-  subtitle: string;
-  author: string;
-  jobTitle: string;
-  date: string;
+  title?: string;
+  subtitle?: string;
+  author?: string;
+  jobTitle?: string;
+  date?: string;
   pageTitle?: string;
   pageDescription?: string;
 }> = ({
@@ -52,8 +52,10 @@ export const BlogPostHead: VFC<{
 }) => {
   const photos = useBlogPostPhotos();
 
-  const fullTitle = `${pageTitle} – HASH for Developers`;
-  const dateIso = parse(date, "MMMM do, yyyy", epoch).toISOString();
+  const fullTitle = `${pageTitle ? `${pageTitle} – ` : ""}HASH for Developers`;
+  const dateIso = date
+    ? parse(date, "MMMM do, yyyy", epoch).toISOString()
+    : null;
 
   return (
     <>
@@ -82,8 +84,12 @@ export const BlogPostHead: VFC<{
         <meta property="og:type" content="article" />
         <meta property="og:article:author" content={author} />
         <meta property="article:author" content={author} />
-        <meta property="og:article:published_time" content={dateIso} />
-        <meta property="article:published_time" content={dateIso} />
+        {dateIso ? (
+          <>
+            <meta property="og:article:published_time" content={dateIso} />
+            <meta property="article:published_time" content={dateIso} />
+          </>
+        ) : null}
       </Head>
       <Box pt={8}>
         <Container
@@ -108,36 +114,42 @@ export const BlogPostHead: VFC<{
                 },
               })}
             >
-              <Typography variant="hashHeading1" mb={3}>
-                {title}
-              </Typography>
-              <Typography variant="hashLargeText" mb={5} color="gray.80">
-                {subtitle}
-              </Typography>
-              <Stack direction={{ xs: "column", md: "row" }}>
-                <Typography
-                  variant="hashSmallText"
-                  fontStyle="italic"
-                  color="gray.80"
-                  order={{ xs: 0, md: 1 }}
-                  sx={[
-                    {
-                      order: 0,
-                    },
-                    (theme) => ({
-                      [theme.breakpoints.down("md")]: {
-                        mb: 3,
-                      },
-                      [theme.breakpoints.up("md")]: {
-                        order: 1,
-                        ml: "auto",
-                        alignSelf: "end",
-                      },
-                    }),
-                  ]}
-                >
-                  {date}
+              {title ? (
+                <Typography variant="hashHeading1" mb={3}>
+                  {title}
                 </Typography>
+              ) : null}
+              {subtitle ? (
+                <Typography variant="hashLargeText" mb={5} color="gray.80">
+                  {subtitle}
+                </Typography>
+              ) : null}
+              <Stack direction={{ xs: "column", md: "row" }}>
+                {date ? (
+                  <Typography
+                    variant="hashSmallText"
+                    fontStyle="italic"
+                    color="gray.80"
+                    order={{ xs: 0, md: 1 }}
+                    sx={[
+                      {
+                        order: 0,
+                      },
+                      (theme) => ({
+                        [theme.breakpoints.down("md")]: {
+                          mb: 3,
+                        },
+                        [theme.breakpoints.up("md")]: {
+                          order: 1,
+                          ml: "auto",
+                          alignSelf: "end",
+                        },
+                      }),
+                    ]}
+                  >
+                    {date}
+                  </Typography>
+                ) : null}
                 <Stack direction="row">
                   {photos.author ? (
                     <Box
@@ -151,10 +163,16 @@ export const BlogPostHead: VFC<{
                     </Box>
                   ) : null}
                   <Stack ml={2} direction="column" spacing={0.5}>
-                    <Typography variant="hashMediumCaps" color="purple.600">
-                      {author}
-                    </Typography>
-                    <Typography variant="hashMediumCaps">{jobTitle}</Typography>
+                    {author ? (
+                      <Typography variant="hashMediumCaps" color="purple.600">
+                        {author}
+                      </Typography>
+                    ) : null}
+                    {jobTitle ? (
+                      <Typography variant="hashMediumCaps">
+                        {jobTitle}
+                      </Typography>
+                    ) : null}
                   </Stack>
                 </Stack>
               </Stack>
