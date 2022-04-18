@@ -27,11 +27,7 @@ impl GetTaskName for JsInitTask {
     }
 }
 
-impl GetTaskArgs for JsInitTask {
-    fn distribution(&self) -> TaskDistributionConfig {
-        TaskDistributionConfig::None
-    }
-}
+impl GetTaskArgs for JsInitTask {}
 
 impl WorkerHandler for JsInitTask {
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {

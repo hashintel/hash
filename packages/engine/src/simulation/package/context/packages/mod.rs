@@ -85,11 +85,7 @@ impl WorkerHandler for ContextTask {}
 
 impl WorkerPoolHandler for ContextTask {}
 
-impl GetTaskArgs for ContextTask {
-    fn distribution(&self) -> TaskDistributionConfig {
-        unimplemented!()
-    }
-}
+impl GetTaskArgs for ContextTask {}
 
 /// All context package task messages are registered in this enum
 #[enum_dispatch(RegisterWithoutTrait)]

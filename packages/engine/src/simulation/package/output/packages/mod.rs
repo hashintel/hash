@@ -105,11 +105,7 @@ impl WorkerHandler for OutputTask {}
 
 impl WorkerPoolHandler for OutputTask {}
 
-impl GetTaskArgs for OutputTask {
-    fn distribution(&self) -> TaskDistributionConfig {
-        unimplemented!()
-    }
-}
+impl GetTaskArgs for OutputTask {}
 
 /// All output package task messages are registered in this enum
 #[derive(Clone, Debug, Serialize, Deserialize)]

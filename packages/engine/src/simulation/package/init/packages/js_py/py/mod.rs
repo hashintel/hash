@@ -25,11 +25,7 @@ impl GetTaskName for PyInitTask {
     }
 }
 
-impl GetTaskArgs for PyInitTask {
-    fn distribution(&self) -> TaskDistributionConfig {
-        TaskDistributionConfig::None
-    }
-}
+impl GetTaskArgs for PyInitTask {}
 
 impl WorkerHandler for PyInitTask {
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {

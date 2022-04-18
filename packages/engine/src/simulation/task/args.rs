@@ -12,5 +12,7 @@ pub trait GetTaskArgs {
     ///
     /// [`Task`]: crate::simulation::task::Task
     /// [`worker`]: crate::worker
-    fn distribution(&self) -> TaskDistributionConfig;
+    fn distribution(&self) -> TaskDistributionConfig {
+        TaskDistributionConfig::None
+    }
 }
