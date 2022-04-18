@@ -100,16 +100,3 @@ pub use crate::{
         Result,
     },
 };
-/// An empty trait to be used with enum_dispatch so that it generates into and try methods for enums
-/// without any other associated trait. This allows enum_dispatch to register the enum and link it
-/// with this empty trait.
-///
-/// # Usage:
-/// If creating an enum with enum_dispatch without any traits then do:
-// TODO: reenable test
-/// ```ignore
-/// #[enum_dispatch(RegisterWithoutTrait)]
-/// enum SomeEnum {/* ... */}
-/// ```
-#[enum_dispatch]
-pub trait RegisterWithoutTrait {}

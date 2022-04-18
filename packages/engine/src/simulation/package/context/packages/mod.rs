@@ -15,7 +15,7 @@ use stateful::field::PackageId;
 use crate::{
     config::ExperimentConfig,
     simulation::{
-        enum_dispatch::{enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore},
+        enum_dispatch::{StoreAccessVerify, TaskSharedStore},
         package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
         task::{
             args::GetTaskArgs,
@@ -90,7 +90,6 @@ impl WorkerPoolHandler for ContextTask {}
 impl GetTaskArgs for ContextTask {}
 
 /// All context package task messages are registered in this enum
-#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ContextTaskMessage {}
 

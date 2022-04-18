@@ -16,8 +16,7 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         enum_dispatch::{
-            enum_dispatch, JsPyInitTaskMessage, RegisterWithoutTrait, StoreAccessVerify,
-            TargetedTaskMessage, TaskSharedStore,
+            JsPyInitTaskMessage, StoreAccessVerify, TargetedTaskMessage, TaskSharedStore,
         },
         package::{id::PackageIdGenerator, init::PackageCreator, PackageMetadata, PackageType},
         task::{
@@ -102,10 +101,9 @@ impl StoreAccessVerify for InitTask {
 }
 
 /// All init package task messages are registered in this enum
-#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum InitTaskMessage {
-    JsPyInitTaskMessage,
+    JsPyInitTaskMessage(JsPyInitTaskMessage),
 }
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);

@@ -42,10 +42,11 @@ impl GetTaskArgs for ExecuteBehaviorsTask {
 
 impl WorkerHandler for ExecuteBehaviorsTask {
     fn start_message(&self) -> Result<TargetedTaskMessage> {
-        let task_msg: StateTaskMessage = ExecuteBehaviorsTaskMessage {}.into();
+        let task_msg =
+            StateTaskMessage::ExecuteBehaviorsTaskMessage(ExecuteBehaviorsTaskMessage {});
         SimulationResult::Ok(TargetedTaskMessage {
             target: self.target,
-            payload: task_msg.into(),
+            payload: TaskMessage::StateTaskMessage(task_msg),
         })
     }
 
@@ -89,8 +90,8 @@ fn combine_task_messages(split_messages: Vec<TaskMessage>) -> Result<TaskMessage
                 return Err(Error::InvalidBehaviorTaskMessage(task_message));
             }
         }
-        let task_message: StateTaskMessage = ExecuteBehaviorsTaskMessage {}.into();
-        let task_message: TaskMessage = task_message.into();
-        Ok(task_message)
+        let task_message =
+            StateTaskMessage::ExecuteBehaviorsTaskMessage(ExecuteBehaviorsTaskMessage {});
+        Ok(TaskMessage::StateTaskMessage(task_message))
     }
 }

@@ -1,7 +1,4 @@
-use std::{
-    convert::TryInto,
-    fmt::{Debug, Formatter},
-};
+use std::fmt::{Debug, Formatter};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -12,7 +9,7 @@ use crate::{
     config::ExperimentConfig,
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
-        enum_dispatch::{enum_dispatch, RegisterWithoutTrait, TaskSharedStore},
+        enum_dispatch::{TaskMessage, TaskSharedStore},
         package::init::{
             packages::js_py::{js::JsInitTask, py::PyInitTask},
             Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTask,
@@ -107,23 +104,23 @@ impl InitPackage for Package {
             .comms
             .new_task(Task::InitTask(task), shared_store)
             .await?;
-        let task_message = TryInto::<JsPyInitTaskMessage>::try_into(
-            TryInto::<InitTaskMessage>::try_into(active_task.drive_to_completion().await?)?,
-        )?;
+        let task_message = match active_task.drive_to_completion().await? {
+            TaskMessage::InitTaskMessage(InitTaskMessage::JsPyInitTaskMessage(message)) => message,
+            _ => return Err(Error::from("Not a JsPyInitTaskMessage")),
+        };
 
-        match TryInto::<SuccessMessage>::try_into(task_message) {
-            Ok(SuccessMessage { agents }) => Ok(agents),
-            Err(err) => Err(Error::from(format!("Init Task failed: {err}"))),
+        match task_message {
+            JsPyInitTaskMessage::SuccessMessage(SuccessMessage { agents }) => Ok(agents),
+            _ => Err(Error::from("Init Task failed")),
         }
     }
 }
 
-#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum JsPyInitTaskMessage {
-    StartMessage,
-    SuccessMessage,
-    FailedMessage,
+    StartMessage(StartMessage),
+    SuccessMessage(SuccessMessage),
+    FailedMessage(FailedMessage),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

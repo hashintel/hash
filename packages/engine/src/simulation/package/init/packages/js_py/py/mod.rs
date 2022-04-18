@@ -1,6 +1,6 @@
 use crate::{
     simulation::{
-        enum_dispatch::InitTaskMessage,
+        enum_dispatch::{InitTaskMessage, TaskMessage},
         package::init::packages::js_py::{JsPyInitTaskMessage, StartMessage},
         task::{handler::WorkerHandler, msg::TargetedTaskMessage, GetTaskName},
         Result as SimulationResult,
@@ -24,11 +24,11 @@ impl WorkerHandler for PyInitTask {
         let start_msg = StartMessage {
             initial_state_source: self.initial_state_source.clone(),
         };
-        let jspy_task_msg: JsPyInitTaskMessage = start_msg.into();
-        let init_task_msg: InitTaskMessage = jspy_task_msg.into();
+        let jspy_task_msg = JsPyInitTaskMessage::StartMessage(start_msg);
+        let init_task_msg = InitTaskMessage::JsPyInitTaskMessage(jspy_task_msg);
         SimulationResult::Ok(TargetedTaskMessage {
             target: MessageTarget::Python,
-            payload: init_task_msg.into(),
+            payload: TaskMessage::InitTaskMessage(init_task_msg),
         })
     }
 }

@@ -16,8 +16,8 @@ use crate::{
     config::{ExperimentConfig, TaskDistributionConfig},
     simulation::{
         enum_dispatch::{
-            enum_dispatch, RegisterWithoutTrait, SplitConfig, StoreAccessVerify,
-            TargetedTaskMessage, TaskMessage, TaskSharedStore,
+            enum_dispatch, SplitConfig, StoreAccessVerify, TargetedTaskMessage, TaskMessage,
+            TaskSharedStore,
         },
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
         task::{
@@ -133,10 +133,9 @@ impl StoreAccessVerify for StateTask {
 }
 
 /// All state package task messages are registered in this enum
-#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum StateTaskMessage {
-    ExecuteBehaviorsTaskMessage,
+    ExecuteBehaviorsTaskMessage(ExecuteBehaviorsTaskMessage),
 }
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
