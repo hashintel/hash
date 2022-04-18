@@ -69,7 +69,8 @@ pub struct State {
 
     num_agents: usize,
 
-    create_parameters: StateCreateParameters,
+    memory_base_id: Uuid,
+    message_schema: Arc<MessageSchema>,
 }
 
 impl State {
@@ -122,7 +123,8 @@ impl State {
             removed_batches: Vec::new(),
             num_agents,
             group_start_indices: Arc::new(group_start_indices),
-            create_parameters,
+            memory_base_id: create_parameters.memory_base_id,
+            message_schema: create_parameters.message_schema,
         })
     }
 
@@ -228,8 +230,8 @@ impl State {
         let agent_proxies = self.agent_pool().read_proxies()?;
         old_context_message_pool.reset(
             &agent_proxies,
-            self.create_parameters.memory_base_id,
-            &self.create_parameters.message_schema,
+            self.memory_base_id,
+            &self.message_schema,
         )?;
         Ok(std::mem::replace(
             &mut self.state.message_pool,
