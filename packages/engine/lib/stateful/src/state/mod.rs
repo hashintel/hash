@@ -43,7 +43,7 @@ pub type AgentIndex = (u32, u32);
 pub struct StateCreateParameters {
     /// Minimum number of groups.
     ///
-    /// This does take into account the bounds specified by `target_group_size`.
+    /// This may get overwritten by `target_group_size`.
     pub target_min_groups: usize,
     /// Limits the number of agents per group.
     pub target_group_size: Range<usize>,
