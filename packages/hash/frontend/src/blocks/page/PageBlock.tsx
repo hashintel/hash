@@ -62,7 +62,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      * contain at least one child, so lets insert a special "blank" placeholder
      * child
      */
-    const { view, connection, manager } = createEditorView(
+    const { view, manager } = createEditorView(
       node,
       renderPortal,
       accountId,
@@ -72,7 +72,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
     prosemirrorSetup.current = {
       view,
-      connection: connection ?? null,
+      connection: null,
       manager,
     };
 
@@ -80,7 +80,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       // @todo how does this work with portals?
       node.innerHTML = "";
       prosemirrorSetup.current = null;
-      connection?.close();
     };
   }, [accountId, blocksMeta, entityId, renderPortal]);
 

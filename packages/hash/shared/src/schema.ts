@@ -20,7 +20,8 @@ export const createSchema = () =>
          * @see import("./ProsemirrorSchemaManager").ProsemirrorSchemaManager#prepareToDisableBlankDefaultComponentNode
          */
         group: componentNodeGroupName,
-        toDOM: () => ["div", 0] as const,
+        // Leaf nodes must not contain any holes (0)
+        toDOM: () => ["div"] as const,
       },
       block: {
         content: "entity",

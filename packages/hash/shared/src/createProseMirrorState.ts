@@ -8,7 +8,11 @@ import { createSchema } from "./schema";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
 const createInitialDoc = (schema: Schema = createSchema()) =>
-  schema.node("doc", {}, [schema.node("blank")]);
+  schema.node("doc", {}, [
+    schema.node("block", {}, [
+      schema.node("entity", {}, [schema.node("blank")]),
+    ]),
+  ]);
 
 const defaultPlugins: Plugin<any, Schema>[] = [
   ...wrapEntitiesPlugin(baseKeymap),
@@ -18,26 +22,25 @@ const defaultPlugins: Plugin<any, Schema>[] = [
 
 export const createProseMirrorState = ({
   accountId,
-  doc = createInitialDoc(),
   plugins = [],
 }: {
   accountId: string;
-  doc?: ProsemirrorNode<Schema>;
   plugins?: Plugin<any, Schema>[];
 }) => {
+  const schema = createSchema();
   const formatKeymap = keymap<Schema>({
     // Mod- stands for Cmd- o macOS and Ctrl- elsewhere
-    "Mod-b": toggleMark(doc.type.schema.marks.strong!),
-    "Mod-i": toggleMark(doc.type.schema.marks.em!),
-    "Mod-u": toggleMark(doc.type.schema.marks.underlined!),
+    "Mod-b": toggleMark(schema.marks.strong!),
+    "Mod-i": toggleMark(schema.marks.em!),
+    "Mod-u": toggleMark(schema.marks.underlined!),
     // We add an extra shortcut on macOS to mimic raw Chrome’s contentEditable.
     // ProseMirror normalizes keys, so we don’t get two self-cancelling handlers.
-    "Ctrl-u": toggleMark(doc.type.schema.marks.underlined!),
+    "Ctrl-u": toggleMark(schema.marks.underlined!),
 
     "Shift-Enter": (state, dispatch) => {
       dispatch?.(
         state.tr
-          .replaceSelectionWith(doc.type.schema.nodes.hardBreak!.create())
+          .replaceSelectionWith(schema.nodes.hardBreak!.create())
           .scrollIntoView(),
       );
       return true;
@@ -45,12 +48,13 @@ export const createProseMirrorState = ({
   });
 
   return EditorState.create<Schema>({
-    doc,
+    // doc,
+    schema,
     plugins: [
       ...defaultPlugins,
+      ...plugins,
       createEntityStorePlugin({ accountId }),
       formatKeymap,
-      ...plugins,
     ],
   });
 };

@@ -2,12 +2,24 @@ import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-// import applyDevTools from "prosemirror-dev-tools";
+import applyDevTools from "prosemirror-dev-tools";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
+import {
+  ySyncPlugin,
+  yCursorPlugin,
+  defaultSelectionBuilder,
+  yUndoPlugin,
+  undo,
+  redo,
+} from "y-prosemirror";
+import { WebsocketProvider } from "y-websocket";
+import { keymap } from "prosemirror-keymap";
+import * as Y from "yjs";
+
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { BlockView } from "./BlockView";
-import { EditorConnection } from "./collab/EditorConnection";
+// import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
 import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
@@ -22,22 +34,51 @@ export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
   accountId: string,
-  pageEntityId: string,
+  _pageEntityId: string,
   blocksMeta: BlocksMetaMap,
 ) => {
   let manager: ProsemirrorSchemaManager;
 
-  const [errorPlugin, onError] = createErrorPlugin(renderPortal);
+  const ydoc = new Y.Doc();
+  const provider = new WebsocketProvider(
+    "ws://localhost:8080",
+    "prosemirror-demo",
+    ydoc,
+  );
+  const yXmlFragment = ydoc.getXmlFragment("prosemirror");
+
+  const [errorPlugin, _onError] = createErrorPlugin(renderPortal);
+
+  const myCursorBuilder = (user) => {
+    const cursor = document.createElement("span");
+    cursor.classList.add("ProseMirror-yjs-cursor");
+    cursor.setAttribute("style", `border-color: ${user.color}`);
+    const userDiv = document.createElement("div");
+    userDiv.setAttribute("style", `background-color: ${user.color}`);
+    userDiv.insertBefore(document.createTextNode(user.name), null);
+    cursor.insertBefore(userDiv, null);
+    return cursor;
+  };
 
   const plugins: Plugin<unknown, Schema>[] = [
+    ySyncPlugin(yXmlFragment),
+    yCursorPlugin(provider.awareness, {
+      cursorBuilder: myCursorBuilder,
+      selectionBuilder: defaultSelectionBuilder,
+      getSelection: (state) => state.selection,
+    }),
+    yUndoPlugin(),
     ...createFormatPlugins(renderPortal),
     createSuggester(renderPortal, () => manager, accountId),
     errorPlugin,
+    keymap<Schema>({
+      "Mod-z": undo,
+      "Mod-y": redo,
+      "Mod-Shift-z": redo,
+    }),
   ];
 
   const state = createProseMirrorState({ accountId, plugins });
-
-  let connection: EditorConnection;
 
   const view = new EditorView<Schema>(renderNode, {
     state,
@@ -97,8 +138,6 @@ export const createEditorView = (
         );
       },
     },
-    dispatchTransaction: (tr) =>
-      connection?.dispatchTransaction(tr, connection?.state.version ?? 0),
   });
 
   manager = new ProsemirrorSchemaManager(
@@ -116,17 +155,18 @@ export const createEditorView = (
     },
   );
 
-  connection = new EditorConnection(
-    `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
-    view.state.schema,
-    view,
-    manager,
-    plugins,
-    accountId,
-    () => {
-      view.dispatch(onError(view.state.tr));
-    },
-  );
+  // view.state.apply()
+  // const connection = new EditorConnection(
+  //   `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
+  //   view.state.schema,
+  //   view,
+  //   manager,
+  //   plugins,
+  //   accountId,
+  //   () => {
+  //     view.dispatch(onError(view.state.tr));
+  //   },
+  // );
 
   view.dom.classList.add(styles.ProseMirror!);
 
@@ -148,7 +188,9 @@ export const createEditorView = (
   blocksMetaArray.forEach((blockMeta) => manager.defineNewBlock(blockMeta));
 
   // @todo figure out how to use dev tools without it breaking fast refresh
-  // applyDevTools(view);
+  applyDevTools(view);
 
-  return { view, connection, manager };
+  provider.connect();
+
+  return { view, manager };
 };
