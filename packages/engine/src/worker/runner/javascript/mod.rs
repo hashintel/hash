@@ -266,7 +266,7 @@ impl ModuleMap {
                 if module.get_status() != v8::ModuleStatus::Instantiated {
                     return Err(Error::PackageImport(
                         path.to_string(),
-                        format!("Could not instantiate code for package"),
+                        "Could not instantiate code for package".to_string(),
                     ));
                 }
 
@@ -357,7 +357,7 @@ impl<'s> Embedded<'s> {
             None => {
                 return Err(Error::PackageImport(
                     "./src/worker/runner/javascript/runner.js".to_string(),
-                    format!("Missing package"),
+                    "Missing package".to_string(),
                 ));
             }
         };
