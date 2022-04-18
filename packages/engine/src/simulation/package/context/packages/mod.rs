@@ -4,6 +4,7 @@ pub mod neighbors;
 
 use std::{
     collections::{hash_map::Iter, HashMap},
+    fmt,
     lazy::SyncOnceCell,
     sync::Arc,
 };
@@ -42,14 +43,9 @@ impl Name {
     }
 }
 
-// TODO: Reduce code duplication between Name enums of different package types.
-impl std::fmt::Display for Name {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            serde_json::to_string(self).map_err(|_| std::fmt::Error)?
-        )
+impl fmt::Display for Name {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.serialize(fmt)
     }
 }
 
