@@ -1,8 +1,10 @@
 import { Container, Stack, Typography, typographyClasses } from "@mui/material";
 import { Box } from "@mui/system";
+import { parse } from "date-fns";
 import Head from "next/head";
 import Image from "next/image";
 import { createContext, FC, ReactNode, useContext, VFC } from "react";
+import { FRONTEND_URL, SITE_DESCRIPTION } from "../config";
 import { mdxImageClasses } from "./MdxImage";
 
 export type BlogPagePhoto = {
@@ -19,6 +21,8 @@ export type BlogPagePhotos = {
 
 export const BlogPostPhotosContext = createContext<BlogPagePhotos | null>(null);
 
+const epoch = new Date(0);
+
 export const useBlogPostPhotos = () => {
   const context = useContext(BlogPostPhotosContext);
 
@@ -30,18 +34,56 @@ export const useBlogPostPhotos = () => {
 };
 
 export const BlogPostHead: VFC<{
-  title: ReactNode;
-  subtitle: ReactNode;
-  author: ReactNode;
-  jobTitle: ReactNode;
-  date: ReactNode;
-  pageTitle: string;
-}> = ({ title, subtitle, author, jobTitle, date, pageTitle }) => {
+  title: string;
+  subtitle: string;
+  author: string;
+  jobTitle: string;
+  date: string;
+  pageTitle?: string;
+  pageDescription?: string;
+}> = ({
+  title,
+  subtitle,
+  author,
+  jobTitle,
+  date,
+  pageTitle = title,
+  pageDescription = SITE_DESCRIPTION,
+}) => {
   const photos = useBlogPostPhotos();
+
+  const fullTitle = `${pageTitle} – HASH for Developers`;
+  const dateIso = parse(date, "MMMM do, yyyy", epoch).toISOString();
+
   return (
     <>
       <Head>
-        <title>{pageTitle} – HASH for Developers</title>
+        <title>{fullTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:title" content={fullTitle} />
+        <meta name="twitter:site" content="@hashintel" />
+        {photos.post ? (
+          <>
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta
+              name="twitter:image:src"
+              content={`${FRONTEND_URL}${photos.post.src}`}
+            />
+            <meta
+              property="og:image"
+              content={`${FRONTEND_URL}${photos.post.src}`}
+            />
+          </>
+        ) : null}
+        <meta name="og:title" content={fullTitle} />
+        <meta name="og:description" content={pageDescription} />
+        <meta property="og:site_name" content="HASH for Developers" />
+        <meta property="og:type" content="article" />
+        <meta property="og:article:author" content={author} />
+        <meta property="article:author" content={author} />
+        <meta property="og:article:published_time" content={dateIso} />
+        <meta property="article:published_time" content={dateIso} />
       </Head>
       <Box pt={8}>
         <Container

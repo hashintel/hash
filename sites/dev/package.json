@@ -28,6 +28,7 @@
     "@types/md5": "2.3.2",
     "axios": "0.26.1",
     "clsx": "1.1.1",
+    "date-fns": "2.28.0",
     "fs-extra": "10.0.1",
     "gray-matter": "4.0.3",
     "image-size": "1.0.1",
