@@ -1,5 +1,3 @@
-import * as hash_stdlib from "./src/worker/runner/javascript/hash_stdlib.js"
-
 const _prepare_user_trace = (error, trace) => {
   // TODO: Check that line numbers aren't off by 2
   const frames = [];

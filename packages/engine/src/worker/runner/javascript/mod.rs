@@ -171,6 +171,31 @@ fn read_file(path: &str) -> Result<String> {
     fs::read_to_string(path).map_err(|err| Error::IO(path.into(), err))
 }
 
+fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s>> {
+    let source_code = read_file(path)?;
+    let js_source_code = new_js_string(scope, &source_code);
+    let mut try_catch = v8::TryCatch::new(scope);
+    let script = v8::Script::compile(&mut try_catch, js_source_code, None).ok_or_else(|| {
+        let exception = try_catch.exception().unwrap();
+        let exception_string = exception
+            .to_string(&mut try_catch)
+            .unwrap()
+            .to_rust_string_lossy(&mut try_catch);
+
+        Error::Eval(path.into(), format!("Compile error: {exception_string}"))
+    })?;
+
+    script.run(&mut try_catch).ok_or_else(|| {
+        let exception = try_catch.exception().unwrap();
+        let exception_string = exception
+            .to_string(&mut try_catch)
+            .unwrap()
+            .to_rust_string_lossy(&mut try_catch);
+
+        Error::Eval(path.into(), format!("Execution error: {exception_string}"))
+    })
+}
+
 /// Cache module to not evaluate them twice
 struct ModuleMap(HashMap<String, v8::Global<v8::Module>>);
 
@@ -313,54 +338,34 @@ impl<'s> Embedded<'s> {
             .get_slot::<Rc<RefCell<ModuleMap>>>()
             .expect("ModuleMap is not present in isolate slots")
             .clone();
-        assert!(
-            ModuleMap::import_module(
-                module_map.clone(),
-                scope,
-                "./src/worker/runner/javascript/apache-arrow-bundle.js"
-            )?
-            .is_some()
-        );
-        assert!(
-            ModuleMap::import_module(
-                module_map.clone(),
-                scope,
-                "./src/worker/runner/javascript/hash_stdlib.js"
-            )?
-            .is_some()
-        );
-        assert!(
-            ModuleMap::import_module(
-                module_map.clone(),
-                scope,
-                "./src/worker/runner/javascript/hash_util.js"
-            )?
-            .is_some()
-        );
-        assert!(
-            ModuleMap::import_module(
-                module_map.clone(),
-                scope,
-                "./src/worker/runner/javascript/batch.js"
-            )?
-            .is_some()
-        );
-        assert!(
-            ModuleMap::import_module(
-                module_map.clone(),
-                scope,
-                "./src/worker/runner/javascript/context.js"
-            )?
-            .is_some()
-        );
-        assert!(
-            ModuleMap::import_module(
-                module_map.clone(),
-                scope,
-                "./src/worker/runner/javascript/state.js"
-            )?
-            .is_some()
-        );
+
+        for path in [
+            "./src/worker/runner/javascript/apache-arrow-bundle.js",
+            "./src/worker/runner/javascript/hash_util.js",
+            "./src/worker/runner/javascript/batch.js",
+            "./src/worker/runner/javascript/context.js",
+            "./src/worker/runner/javascript/state.js",
+        ] {
+            match ModuleMap::import_module(module_map.clone(), scope, path)? {
+                Some(_) => {}
+                None => {
+                    return Err(Error::PackageImport(
+                        path.to_string(),
+                        format!("Missing package"),
+                    ));
+                }
+            };
+        }
+
+        // `hash_stdlib` can't be imported as a module because it needs to be available globally for
+        // behaviors.
+        let hash_stdlib = eval_file(scope, "./src/worker/runner/javascript/hash_stdlib.js")?;
+        let hash_stdlib_str = new_js_string(scope, "hash_stdlib");
+        scope
+            .get_current_context()
+            .global(scope)
+            .set(scope, hash_stdlib_str.into(), hash_stdlib);
+
         let runner = match ModuleMap::import_module(
             module_map,
             scope,

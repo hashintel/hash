@@ -1,5 +1,3 @@
-import * as hash_stdlib from "./src/worker/runner/javascript/hash_stdlib.js"
-
 // TODO: Propagate field specs to runners and use in state and context objects
 const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_7_behavior_index";
 const BEHAVIOR_IDS_FIELD_KEY = "_PRIVATE_7_behavior_ids";
