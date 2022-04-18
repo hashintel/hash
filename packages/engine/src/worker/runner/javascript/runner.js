@@ -1,9 +1,8 @@
+// noinspection BadExpressionStatementJS
 import {arrow} from "./src/worker/runner/javascript/apache-arrow-bundle.js"
 import {Batches} from "./src/worker/runner/javascript/batch.js"
 import {ExperimentContext, SimInitContext, gen_sim_ctx} from "./src/worker/runner/javascript/context.js"
 import {gen_group_state} from "./src/worker/runner/javascript/state.js"
-
-// noinspection BadExpressionStatementJS
 
 const make_hash_set = (fields) => {
   const set = Object.create(null);
