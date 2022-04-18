@@ -59,6 +59,7 @@ declare module "@mui/material/styles" {
     pink: PaletteValue;
     teal: PaletteValue;
     mint: PaletteValue;
+    navy: PaletteValue;
     white: string;
     black: string;
   }
@@ -198,6 +199,37 @@ declare module "@mui/material/InputBase" {
     small: true;
     medium: true;
     large: true;
+  }
+}
+
+declare module "@mui/material/Chip" {
+  interface ChipPropsSizeOverrides {
+    xs: true;
+    small: true;
+    medium: true;
+    large: true;
+  }
+
+  interface ChipPropsColorOverrides {
+    // @todo override default ones
+    gray: true;
+    blue: true;
+    purple: true;
+    red: true;
+    orange: true;
+    green: true;
+    yellow: true;
+    pink: true;
+    teal: true;
+    mint: true;
+    navy: true;
+    // Disable defaults
+    primary: false;
+    secondary: false;
+    success: false;
+    error: false;
+    info: false;
+    warning: false;
   }
 }
 

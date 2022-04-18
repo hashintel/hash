@@ -1,4 +1,5 @@
 import { Components, Theme } from "@mui/material/styles";
+import { MuiChipThemeOptions } from "./components/data-display/mui-chip-theme-options";
 import {
   MuiIconButtonThemeOptions,
   MuiListItemButtonThemeOptions,
@@ -32,6 +33,7 @@ export const components: Components<Theme> = {
   MuiCheckbox: MuiCheckboxThemeOptions,
   MuiSelect: MuiSelectThemeOptions,
   /** ===== DATA DISPLAY ===== */
+  MuiChip: MuiChipThemeOptions,
   MuiIconButton: MuiIconButtonThemeOptions,
   MuiTooltip: MuiTooltipThemeOptions,
   MuiListItemButton: MuiListItemButtonThemeOptions,
