@@ -14,6 +14,7 @@ import { ComponentProps, FC, ReactNode, VFC } from "react";
 import { Button } from "../components/Button";
 import { FaIcon } from "../components/icons/FaIcon";
 import { Link } from "../components/Link";
+import { SITE_DESCRIPTION } from "../config";
 
 const StylishDivider: VFC<
   ComponentProps<typeof Stack> & { wide?: boolean }
@@ -315,10 +316,20 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
 };
 
 const Home: NextPage = () => {
+  const fullTitle = "HASH.dev – HASH for Developers";
+
   return (
     <>
       <Head>
-        <title>HASH.dev – HASH for Developers</title>
+        <title>{fullTitle}</title>
+        <meta name="description" content={SITE_DESCRIPTION} />
+        <meta name="twitter:description" content={SITE_DESCRIPTION} />
+        <meta name="twitter:title" content={fullTitle} />
+        <meta name="twitter:site" content="@hashintel" />
+        <meta name="og:title" content={fullTitle} />
+        <meta name="og:description" content={SITE_DESCRIPTION} />
+        <meta property="og:site_name" content="HASH for Developers" />
+        <meta property="og:type" content="website" />
       </Head>
       <Hero />
       <Projects />

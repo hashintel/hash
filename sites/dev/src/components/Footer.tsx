@@ -1,5 +1,6 @@
 import { Box, Container, Divider, Stack, Typography } from "@mui/material";
 import { ComponentProps, FC, ReactNode } from "react";
+import { SITE_DESCRIPTION } from "../config";
 import { DiscordIcon } from "./icons/DiscordIcon";
 import { GithubIcon } from "./icons/GithubIcon";
 import { TwitterIcon } from "./icons/TwitterIcon";
@@ -103,8 +104,7 @@ export const Footer: FC = () => (
             sx={{ width: { xs: 1, md: 289 }, mb: 4.5 }}
             variant="hashSmallText"
           >
-            Open-source resources and tools for developers who want to build the
-            future of decision-making with HASH
+            {SITE_DESCRIPTION}
           </Typography>
           <Typography variant="hashSocialIconLink">
             <Stack direction="row" spacing={3}>
