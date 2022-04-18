@@ -46,7 +46,7 @@ impl WorkerPoolHandler for ExecuteBehaviorsTask {
             .as_ref()
             .expect("Behavior execution is expected to be distributed");
         let state_task = StateTask::ExecuteBehaviorsTask(self.clone());
-        let task = PackageTask::StateTask(state_task);
+        let task = PackageTask::State(state_task);
         Ok((0..split_config.num_workers)
             .map(|_| task.clone())
             .collect())

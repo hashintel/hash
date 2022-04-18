@@ -92,28 +92,28 @@ use crate::simulation::{
 impl WorkerHandler for PackageTask {
     fn start_message(&self) -> Result<TargetedTaskMessage> {
         match self {
-            Self::InitTask(inner) => inner.start_message(),
-            Self::ContextTask(inner) => inner.start_message(),
-            Self::StateTask(inner) => inner.start_message(),
-            Self::OutputTask(inner) => inner.start_message(),
+            Self::Init(inner) => inner.start_message(),
+            Self::Context(inner) => inner.start_message(),
+            Self::State(inner) => inner.start_message(),
+            Self::Output(inner) => inner.start_message(),
         }
     }
 
     fn handle_worker_message(&mut self, msg: TaskMessage) -> Result<TargetedTaskMessage> {
         match self {
-            Self::InitTask(inner) => inner.handle_worker_message(msg),
-            Self::ContextTask(inner) => inner.handle_worker_message(msg),
-            Self::StateTask(inner) => inner.handle_worker_message(msg),
-            Self::OutputTask(inner) => inner.handle_worker_message(msg),
+            Self::Init(inner) => inner.handle_worker_message(msg),
+            Self::Context(inner) => inner.handle_worker_message(msg),
+            Self::State(inner) => inner.handle_worker_message(msg),
+            Self::Output(inner) => inner.handle_worker_message(msg),
         }
     }
 
     fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
         match self {
-            Self::InitTask(inner) => inner.combine_task_messages(task_messages),
-            Self::ContextTask(inner) => inner.combine_task_messages(task_messages),
-            Self::StateTask(inner) => inner.combine_task_messages(task_messages),
-            Self::OutputTask(inner) => inner.combine_task_messages(task_messages),
+            Self::Init(inner) => inner.combine_task_messages(task_messages),
+            Self::Context(inner) => inner.combine_task_messages(task_messages),
+            Self::State(inner) => inner.combine_task_messages(task_messages),
+            Self::Output(inner) => inner.combine_task_messages(task_messages),
         }
     }
 }
@@ -121,19 +121,19 @@ impl WorkerHandler for PackageTask {
 impl WorkerPoolHandler for PackageTask {
     fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<PackageTask>> {
         match self {
-            Self::InitTask(inner) => inner.split_task(split_config),
-            Self::ContextTask(inner) => inner.split_task(split_config),
-            Self::StateTask(inner) => inner.split_task(split_config),
-            Self::OutputTask(inner) => inner.split_task(split_config),
+            Self::Init(inner) => inner.split_task(split_config),
+            Self::Context(inner) => inner.split_task(split_config),
+            Self::State(inner) => inner.split_task(split_config),
+            Self::Output(inner) => inner.split_task(split_config),
         }
     }
 
     fn combine_messages(&self, split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
         match self {
-            Self::InitTask(inner) => inner.combine_messages(split_messages),
-            Self::ContextTask(inner) => inner.combine_messages(split_messages),
-            Self::StateTask(inner) => inner.combine_messages(split_messages),
-            Self::OutputTask(inner) => inner.combine_messages(split_messages),
+            Self::Init(inner) => inner.combine_messages(split_messages),
+            Self::Context(inner) => inner.combine_messages(split_messages),
+            Self::State(inner) => inner.combine_messages(split_messages),
+            Self::Output(inner) => inner.combine_messages(split_messages),
         }
     }
 }

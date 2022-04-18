@@ -109,7 +109,7 @@ impl InitPackage for Package {
         let shared_store = SharedStore::default();
         let active_task = self
             .comms
-            .new_task(PackageTask::InitTask(task), shared_store)
+            .new_task(PackageTask::Init(task), shared_store)
             .await?;
         let task_message = match active_task.drive_to_completion().await? {
             TaskMessage::InitTaskMessage(InitTaskMessage::JsPyInitTaskMessage(message)) => message,
