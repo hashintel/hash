@@ -68,17 +68,23 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
             color: theme.palette.red[80],
           }),
 
-          padding: theme.spacing(1, 2),
-          ...(hasStartAdornment && { paddingLeft: theme.spacing(0.5) }),
-          ...(hasEndAdornment && { paddingRight: theme.spacing(0.5) }),
-
+          ...(size === "xs" && {
+            ...theme.typography.smallTextLabels,
+            padding: theme.spacing(1, 1.5),
+            ...(hasStartAdornment && { paddingLeft: theme.spacing(0) }),
+            ...(hasEndAdornment && { paddingRight: theme.spacing(0) }),
+          }),
           ...(size === "small" && {
             ...theme.typography.smallTextLabels,
-            paddingTop: theme.spacing(1.5),
-            paddingBottom: theme.spacing(1.5),
+            padding: theme.spacing(1.5, 2),
+            ...(hasStartAdornment && { paddingLeft: theme.spacing(0.5) }),
+            ...(hasEndAdornment && { paddingRight: theme.spacing(0.5) }),
           }),
           ...(size === "medium" && {
             ...theme.typography.regularTextLabels,
+            padding: theme.spacing(1, 2),
+            ...(hasStartAdornment && { paddingLeft: theme.spacing(0.5) }),
+            ...(hasEndAdornment && { paddingRight: theme.spacing(0.5) }),
           }),
           ...(size === "large" && {
             ...theme.typography.regularTextLabels,

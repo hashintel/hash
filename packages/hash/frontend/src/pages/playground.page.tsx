@@ -12,6 +12,7 @@ import { isProduction } from "../lib/config";
 import { Buttons } from "./playground.page/button";
 import { Inputs } from "./playground.page/input";
 import { SelectMenus } from "./playground.page/select";
+import { Chips } from "./playground.page/chips";
 
 interface PageProps {}
 
@@ -46,6 +47,15 @@ const Page: NextPageWithLayout<PageProps> = () => {
         </AccordionSummary>
         <AccordionDetails>
           <Inputs />
+        </AccordionDetails>
+      </Accordion>
+      {/* CHIPS */}
+      <Accordion expanded>
+        <AccordionSummary>
+          <Typography variant="h4">Chips</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Chips />
         </AccordionDetails>
       </Accordion>
       {/* SELECT MENUS */}

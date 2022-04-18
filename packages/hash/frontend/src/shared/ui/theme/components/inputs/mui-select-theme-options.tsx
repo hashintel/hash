@@ -13,6 +13,7 @@ import { FontAwesomeIcon } from "../../../../icons";
 export const MuiSelectThemeOptions: Components<Theme>["MuiSelect"] = {
   defaultProps: {
     IconComponent: (props) => <FontAwesomeIcon icon={faAngleDown} {...props} />,
+    size: "medium",
   },
   styleOverrides: {
     select: ({ theme }) => ({

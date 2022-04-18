@@ -8,8 +8,6 @@ import {
   Box,
   Checkbox,
   Chip,
-  FormControl,
-  InputLabel,
   ListItemAvatar,
   ListItemIcon,
   ListItemSecondaryAction,
@@ -21,6 +19,7 @@ import {
 } from "@mui/material";
 import { FontAwesomeIcon } from "../../shared/icons";
 import { Avatar } from "../../shared/ui";
+import { SelectWithSearch } from "./select/select-with-search";
 
 export const SelectMenus = () => {
   return (
@@ -193,7 +192,7 @@ export const SelectMenus = () => {
               ))}
             </Box>
           )}
-          value={["10", "20", "30", "40"]}
+          value={["10", "20", "40"]}
         >
           <MenuItem value="10">Multiple</MenuItem>
           <MenuItem value="20">Values</MenuItem>
@@ -493,28 +492,10 @@ export const SelectMenus = () => {
         sx={{
           "& > *": {
             width: 250,
-            // border: "1px dotted black"
           },
         }}
       >
-        <FormControl>
-          <InputLabel shrink={false} disableAnimation variant="standard" />
-          <Select fullWidth>
-            {[
-              "Edit",
-              "Add to Favourites",
-              "Duplicate",
-              "Copy Link",
-              "Move",
-              "rename",
-              "filter",
-            ].map((item) => (
-              <MenuItem key={item} value={item}>
-                <ListItemText primary={item} />
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <SelectWithSearch />
       </Stack>
     </Box>
   );
