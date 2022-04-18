@@ -55,12 +55,9 @@ impl FromStr for ExperimentName {
     }
 }
 
-use crate::{
-    simulation::enum_dispatch::enum_dispatch,
-    worker::{
-        runner::comms::outbound::{PackageError, UserError, UserWarning},
-        RunnerError,
-    },
+use crate::worker::{
+    runner::comms::outbound::{PackageError, UserError, UserWarning},
+    RunnerError,
 };
 
 /// The message type sent from the engine to the orchestrator.
@@ -354,12 +351,11 @@ pub enum ExtendedExperimentPackageConfig {
     Optimization(OptimizationExperimentConfig),
 }
 
-#[enum_dispatch(ExperimentRunTrait)]
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum ExperimentRunRepr {
-    ExperimentRunBase,
-    ExperimentRun,
-    ExtendedExperimentRun,
+    ExperimentRunBase(ExperimentRunBase),
+    ExperimentRun(ExperimentRun),
+    ExtendedExperimentRun(ExtendedExperimentRun),
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -381,7 +377,6 @@ pub struct ExtendedExperimentRun {
     pub package_config: ExtendedExperimentPackageConfig,
 }
 
-#[enum_dispatch]
 pub trait ExperimentRunTrait: Clone + for<'a> Deserialize<'a> + Serialize {
     fn base(&self) -> &ExperimentRunBase;
     fn base_mut(&mut self) -> &mut ExperimentRunBase;
@@ -427,6 +422,32 @@ impl ExperimentRunTrait for ExtendedExperimentRun {
 
     fn package_config(&self) -> PackageConfig<'_> {
         PackageConfig::ExtendedExperimentPackageConfig(&self.package_config)
+    }
+}
+
+impl ExperimentRunTrait for ExperimentRunRepr {
+    fn base(&self) -> &ExperimentRunBase {
+        match self {
+            Self::ExperimentRun(inner) => inner.base(),
+            Self::ExperimentRunBase(inner) => inner.base(),
+            Self::ExtendedExperimentRun(inner) => inner.base(),
+        }
+    }
+
+    fn base_mut(&mut self) -> &mut ExperimentRunBase {
+        match self {
+            Self::ExperimentRun(inner) => inner.base_mut(),
+            Self::ExperimentRunBase(inner) => inner.base_mut(),
+            Self::ExtendedExperimentRun(inner) => inner.base_mut(),
+        }
+    }
+
+    fn package_config(&self) -> PackageConfig<'_> {
+        match self {
+            Self::ExperimentRun(inner) => inner.package_config(),
+            Self::ExperimentRunBase(inner) => inner.package_config(),
+            Self::ExtendedExperimentRun(inner) => inner.package_config(),
+        }
     }
 }
 
