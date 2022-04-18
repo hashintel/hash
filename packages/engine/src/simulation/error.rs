@@ -1,4 +1,3 @@
-use execution::task::{SharedContext, SharedState};
 use stateful::agent::Agent;
 use thiserror::Error as ThisError;
 
@@ -177,14 +176,6 @@ impl Error {
     ///       between simulation and worker errors.
     pub fn state_sync(worker_error: crate::worker::Error) -> Self {
         Self::StateSync(format!("{:?}", worker_error))
-    }
-
-    pub fn access_not_allowed(
-        state: &SharedState,
-        ctx: &SharedContext,
-        package_type: String,
-    ) -> Self {
-        Self::AccessNotAllowed(format!("{:?}", state), format!("{:?}", ctx), package_type)
     }
 }
 

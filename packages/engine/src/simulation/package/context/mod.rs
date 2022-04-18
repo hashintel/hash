@@ -11,7 +11,7 @@ use stateful::{
 };
 use tracing::Span;
 
-pub use self::packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
+pub use self::packages::{ContextTaskMessage, Name, PACKAGE_CREATORS};
 use crate::{
     config::{ExperimentConfig, SimRunConfig},
     simulation::{

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use execution::worker_pool::WorkerIndex;
+use execution::{package::PackageTask, worker_pool::WorkerIndex};
 use tokio::sync::oneshot;
 
 use crate::{
@@ -10,7 +10,6 @@ use crate::{
             cancel::CancelTask,
             handler::WorkerPoolHandler,
             msg::{TaskMessage, TaskResultOrCancelled},
-            PackageTask,
         },
     },
     types::TaskId,

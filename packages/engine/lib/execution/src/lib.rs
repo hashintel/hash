@@ -1,6 +1,7 @@
 extern crate core;
 
 mod error;
+pub mod package;
 pub mod runner;
 pub mod task;
 pub mod worker;

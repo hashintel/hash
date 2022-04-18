@@ -8,10 +8,9 @@ pub use self::{
         SharedState, SharedStore, TaskSharedStoreBuilder,
     },
 };
+use crate::Result;
 
 pub trait Task {
-    type Error;
-
     /// Provides a human-readable name of the [`Task`], e.g. `"BehaviorExecution"`.
     fn name(&self) -> &'static str;
 
@@ -38,5 +37,5 @@ pub trait Task {
     /// [`SharedState`]: crate::datastore::table::task_shared_store::SharedState
     /// [`SharedContext`]: crate::datastore::table::task_shared_store::SharedContext
     /// [`AccessNotAllowed`]: crate::simulation::error::Error::AccessNotAllowed
-    fn verify_store_access(&self, access: &SharedStore) -> Result<(), Self::Error>;
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()>;
 }

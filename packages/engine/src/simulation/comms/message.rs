@@ -1,12 +1,10 @@
-use execution::task::SharedStore;
+use execution::{package::PackageTask, task::SharedStore};
 use stateful::field::PackageId;
 use tracing::Span;
 
 use crate::{
-    datastore::table::sync::SyncPayload,
-    proto::SimulationShortId,
-    simulation::{comms::active::ActiveTaskExecutorComms, task::PackageTask},
-    types::TaskId,
+    datastore::table::sync::SyncPayload, proto::SimulationShortId,
+    simulation::comms::active::ActiveTaskExecutorComms, types::TaskId,
     worker::Result as WorkerResult,
 };
 

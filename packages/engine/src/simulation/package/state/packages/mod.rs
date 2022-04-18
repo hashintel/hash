@@ -8,14 +8,14 @@ use std::{
 };
 
 use execution::{
-    task::{SharedStore, StateBatchDistribution, Task, TaskDistributionConfig},
+    package::{state::StateTask, PackageTask},
     worker_pool::SplitConfig,
 };
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use stateful::field::PackageId;
 
-use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
+use self::behavior_execution::tasks::ExecuteBehaviorsTaskMessage;
 use crate::{
     config::ExperimentConfig,
     simulation::{
@@ -23,7 +23,6 @@ use crate::{
         task::{
             handler::{WorkerHandler, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
-            PackageTask,
         },
         Error, Result,
     },
@@ -57,45 +56,6 @@ impl std::fmt::Display for Name {
             "{}",
             serde_json::to_string(self).map_err(|_| std::fmt::Error)?
         )
-    }
-}
-
-/// All state package tasks are registered in this enum
-#[derive(Clone, Debug)]
-pub enum StateTask {
-    ExecuteBehaviorsTask(ExecuteBehaviorsTask),
-}
-
-impl Task for StateTask {
-    type Error = Error;
-
-    fn name(&self) -> &'static str {
-        match self {
-            Self::ExecuteBehaviorsTask(_) => "BehaviorExecution",
-        }
-    }
-
-    fn distribution(&self) -> TaskDistributionConfig {
-        match self {
-            Self::ExecuteBehaviorsTask(_) => {
-                TaskDistributionConfig::Distributed(StateBatchDistribution {
-                    partitioned_batches: true,
-                })
-            }
-        }
-    }
-
-    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
-        let state = &access.state;
-        let context = access.context();
-        // All combinations (as of now) are allowed (but still being explicit)
-        if (state.is_readwrite() || state.is_readonly() || state.is_disabled())
-            && (context.is_readonly() || context.is_disabled())
-        {
-            Ok(())
-        } else {
-            Err(Error::access_not_allowed(state, context, "State".into()))
-        }
     }
 }
 

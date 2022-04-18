@@ -1,4 +1,4 @@
-use execution::runner::MessageTarget;
+use execution::{package::init::script::JsInitTask, runner::MessageTarget};
 
 use crate::simulation::{
     package::init::{
@@ -11,11 +11,6 @@ use crate::simulation::{
     },
     Result as SimulationResult,
 };
-
-#[derive(Clone, Debug)]
-pub struct JsInitTask {
-    pub initial_state_source: String,
-}
 
 impl WorkerHandler for JsInitTask {
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {

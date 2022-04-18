@@ -7,8 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use execution::task::{SharedStore, Task};
-use js_py::{js::JsInitTask, py::PyInitTask};
+use execution::package::init::InitTask;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use stateful::field::PackageId;
@@ -57,34 +56,6 @@ impl std::fmt::Display for Name {
             "{}",
             serde_json::to_string(self).map_err(|_| std::fmt::Error)?
         )
-    }
-}
-
-/// All init package tasks are registered in this enum
-#[derive(Clone, Debug)]
-pub enum InitTask {
-    JsInitTask(JsInitTask),
-    PyInitTask(PyInitTask),
-}
-
-impl Task for InitTask {
-    type Error = Error;
-
-    fn name(&self) -> &'static str {
-        match self {
-            Self::JsInitTask(_) => "JsInit",
-            Self::PyInitTask(_) => "PyInit",
-        }
-    }
-
-    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
-        let state = &access.state;
-        let context = access.context();
-        if state.is_disabled() && context.is_disabled() {
-            Ok(())
-        } else {
-            Err(Error::access_not_allowed(state, context, "Init".into()))
-        }
     }
 }
 

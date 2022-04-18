@@ -1,7 +1,16 @@
 use std::fmt::{Debug, Formatter};
 
 use async_trait::async_trait;
-use execution::task::SharedStore;
+use execution::{
+    package::{
+        init::{
+            script::{JsInitTask, PyInitTask},
+            InitTask,
+        },
+        PackageTask,
+    },
+    task::SharedStore,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use stateful::agent::Agent;
@@ -11,12 +20,10 @@ use crate::{
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         package::init::{
-            packages::js_py::{js::JsInitTask, py::PyInitTask},
-            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTask,
-            InitTaskMessage, MaybeCpuBound, Package as InitPackage, PackageComms, PackageCreator,
-            SimRunConfig,
+            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTaskMessage,
+            MaybeCpuBound, Package as InitPackage, PackageComms, PackageCreator, SimRunConfig,
         },
-        task::{msg::TaskMessage, PackageTask},
+        task::msg::TaskMessage,
         Error, Result,
     },
 };

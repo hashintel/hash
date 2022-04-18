@@ -1,4 +1,4 @@
-use execution::runner::MessageTarget;
+use execution::{package::init::script::PyInitTask, runner::MessageTarget};
 
 use crate::simulation::{
     package::init::{
@@ -11,11 +11,6 @@ use crate::simulation::{
     },
     Result as SimulationResult,
 };
-
-#[derive(Clone, Debug)]
-pub struct PyInitTask {
-    pub initial_state_source: String,
-}
 
 impl WorkerHandler for PyInitTask {
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {

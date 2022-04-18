@@ -1,5 +1,12 @@
 use async_trait::async_trait;
-use execution::{runner::Language, task::TaskSharedStoreBuilder};
+use execution::{
+    package::{
+        state::{behavior_execution::ExecuteBehaviorsTask, StateTask},
+        PackageTask,
+    },
+    runner::Language,
+    task::TaskSharedStoreBuilder,
+};
 use serde_json::Value;
 use stateful::{
     agent::AgentBatch,
@@ -18,13 +25,12 @@ use crate::simulation::{
         packages::behavior_execution::{
             config::BehaviorIds,
             fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
-            tasks::ExecuteBehaviorsTask,
         },
         Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
         GetWorkerSimStartMsg, Name, Package, PackageComms, PackageCreator, Result, SimRunConfig,
-        Span, StateTask,
+        Span,
     },
-    task::{active::ActiveTask, PackageTask},
+    task::active::ActiveTask,
 };
 
 mod chain;

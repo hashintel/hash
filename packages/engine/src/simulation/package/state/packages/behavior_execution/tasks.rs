@@ -1,15 +1,20 @@
-use execution::{runner::MessageTarget, worker_pool::SplitConfig};
+use execution::{
+    package::{
+        state::{behavior_execution::ExecuteBehaviorsTask, StateTask},
+        PackageTask,
+    },
+    worker_pool::SplitConfig,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::simulation::{
     package::state::{
         packages::{Error, Result},
-        StateTask, StateTaskMessage,
+        StateTaskMessage,
     },
     task::{
         handler::{WorkerHandler, WorkerPoolHandler},
         msg::{TargetedTaskMessage, TaskMessage},
-        PackageTask,
     },
     Result as SimulationResult,
 };
@@ -18,11 +23,6 @@ use crate::simulation::{
 // This is an empty struct, as the runners have access to all the information through Arrow
 // and the task finishes by returning to the "main" target.
 pub struct ExecuteBehaviorsTaskMessage {}
-
-#[derive(Clone, Debug)]
-pub struct ExecuteBehaviorsTask {
-    pub target: MessageTarget,
-}
 
 impl WorkerHandler for ExecuteBehaviorsTask {
     fn start_message(&self) -> Result<TargetedTaskMessage> {

@@ -1,5 +1,7 @@
 use thiserror::Error as ThisError;
 
+use crate::task::{SharedContext, SharedState};
+
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(ThisError, Debug)]
@@ -16,6 +18,22 @@ pub enum Error {
          store"
     )]
     MultipleWriteSharedState,
+
+    #[error(
+        "State or Context access not allowed for package (with type: {2}). StateAccess: {0}, \
+         ContextAccess: {1}."
+    )]
+    AccessNotAllowed(String, String, String),
+}
+
+impl Error {
+    pub fn access_not_allowed(
+        state: &SharedState,
+        ctx: &SharedContext,
+        package_type: String,
+    ) -> Self {
+        Self::AccessNotAllowed(format!("{:?}", state), format!("{:?}", ctx), package_type)
+    }
 }
 
 impl From<&str> for Error {
