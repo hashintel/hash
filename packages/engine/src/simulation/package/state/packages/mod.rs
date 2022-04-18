@@ -8,7 +8,7 @@ use std::{
 };
 
 use execution::{
-    task::{SharedStore, StateBatchDistribution, TaskDistributionConfig},
+    task::{SharedStore, StateBatchDistribution, Task, TaskDistributionConfig},
     worker_pool::SplitConfig,
 };
 use lazy_static::lazy_static;
@@ -23,7 +23,7 @@ use crate::{
         task::{
             handler::{WorkerHandler, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
-            PackageTask, Task,
+            PackageTask,
         },
         Error, Result,
     },
@@ -67,6 +67,8 @@ pub enum StateTask {
 }
 
 impl Task for StateTask {
+    type Error = Error;
+
     fn name(&self) -> &'static str {
         match self {
             Self::ExecuteBehaviorsTask(_) => "BehaviorExecution",

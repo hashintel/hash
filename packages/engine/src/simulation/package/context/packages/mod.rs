@@ -8,7 +8,7 @@ use std::{
     sync::Arc,
 };
 
-use execution::task::SharedStore;
+use execution::task::{SharedStore, Task};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use stateful::field::PackageId;
@@ -17,10 +17,7 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
-        task::{
-            handler::{WorkerHandler, WorkerPoolHandler},
-            Task,
-        },
+        task::handler::{WorkerHandler, WorkerPoolHandler},
         Error, Result,
     },
 };
@@ -64,6 +61,8 @@ impl std::fmt::Display for Name {
 pub struct ContextTask {}
 
 impl Task for ContextTask {
+    type Error = Error;
+
     fn name(&self) -> &'static str {
         unimplemented!()
     }

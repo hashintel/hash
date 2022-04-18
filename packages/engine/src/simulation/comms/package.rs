@@ -1,4 +1,4 @@
-use execution::task::SharedStore;
+use execution::task::{SharedStore, Task};
 use stateful::{agent::Agent, field::PackageId};
 use tracing::Instrument;
 use uuid::Uuid;
@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::simulation::{
     comms::{Comms, Result},
     package::PackageType,
-    task::{active::ActiveTask, PackageTask, Task},
+    task::{active::ActiveTask, PackageTask},
 };
 
 #[derive(derive_new::new)]

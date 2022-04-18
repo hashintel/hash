@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use execution::task::SharedStore;
+use execution::task::{SharedStore, Task};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use stateful::field::PackageId;
@@ -20,10 +20,7 @@ use crate::{
             id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
             PackageType,
         },
-        task::{
-            handler::{WorkerHandler, WorkerPoolHandler},
-            Task,
-        },
+        task::handler::{WorkerHandler, WorkerPoolHandler},
         Error, Result,
     },
 };
@@ -76,6 +73,8 @@ pub enum Output {
 pub enum OutputTask {}
 
 impl Task for OutputTask {
+    type Error = Error;
+
     fn name(&self) -> &'static str {
         unimplemented!()
     }

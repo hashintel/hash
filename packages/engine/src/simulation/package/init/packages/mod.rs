@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use execution::task::SharedStore;
+use execution::task::{SharedStore, Task};
 use js_py::{js::JsInitTask, py::PyInitTask};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -24,7 +24,6 @@ use crate::{
         task::{
             handler::{WorkerHandler, WorkerPoolHandler},
             msg::TargetedTaskMessage,
-            Task,
         },
         Error, Result,
     },
@@ -69,6 +68,8 @@ pub enum InitTask {
 }
 
 impl Task for InitTask {
+    type Error = Error;
+
     fn name(&self) -> &'static str {
         match self {
             Self::JsInitTask(_) => "JsInit",
