@@ -1,8 +1,10 @@
+mod cancel;
 mod distribution;
 mod message;
 mod shared_store;
 
 pub use self::{
+    cancel::{CancelTask, TaskCancelled},
     distribution::{StateBatchDistribution, TaskDistributionConfig},
     message::TargetedTaskMessage,
     shared_store::{

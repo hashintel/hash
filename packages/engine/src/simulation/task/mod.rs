@@ -74,6 +74,6 @@
 //! [`AgentBatch`]: crate::datastore::batch::agent::Batch
 //! [`PendingWorkerPoolTask::handle_result_state`]: crate::workerpool::pending::PendingWorkerPoolTask::handle_result_state
 //! [`WorkerController::spawn_task()`]: crate::worker::WorkerController::spawn_task
+
 pub mod active;
-pub mod cancel;
 pub mod msg;

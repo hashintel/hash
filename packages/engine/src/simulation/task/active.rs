@@ -1,12 +1,10 @@
 use std::time::Duration;
 
-use execution::package::TaskMessage;
+use execution::{package::TaskMessage, task::CancelTask};
 use tokio::time::timeout;
 
 use crate::simulation::{
-    comms::active::ActiveTaskOwnerComms,
-    task::{cancel::CancelTask, msg::TaskResultOrCancelled},
-    Error, Result,
+    comms::active::ActiveTaskOwnerComms, task::msg::TaskResultOrCancelled, Error, Result,
 };
 
 /// A sibling struct to a [`Task`] that is currently being executed to allow management of
@@ -77,7 +75,7 @@ impl ActiveTask {
                 .take()
                 .ok_or_else(|| Error::from("Couldn't take cancel send"))?;
             cancel_send
-                .send(CancelTask::new())
+                .send(CancelTask {})
                 .map_err(|_| Error::from("Failed to send Cancel Task"))?;
             self.cancel_sent = true;
             let recv = self
@@ -111,7 +109,7 @@ impl Drop for ActiveTask {
                 tracing::warn!("Sent cancel message");
                 if let Some(cancel_send) = self.comms.cancel_send.take() {
                     // TODO: .expect()?
-                    if cancel_send.send(CancelTask::new()).is_err() {
+                    if cancel_send.send(CancelTask {}).is_err() {
                         tracing::error!("Can't cancel task")
                     }
                     self.cancel_sent = true;
