@@ -9,8 +9,8 @@
 // - Even though `rusty_v8` returns an `Option` on `Object::get`, if the object does not have the
 //   property the result will be `Some(undefined)` rather than `None`.
 //
-// - Modules always evaluate to `undefined` without the "--harmony_top_level_await" flag, https://github.com/denoland/deno/issues/3696#issuecomment-578488613
-//   To access values inside a module use v8::Module::get_module_namespace
+// - Modules always evaluate to `undefined` without the "--harmony_top_level_await" flag, https://github.com/denoland/deno/issues/3696#issuecomment-578488613.
+//   To access values inside a module use v8::Module::get_module_namespace.
 
 mod data_ffi;
 mod error;
@@ -92,11 +92,11 @@ impl<'s> JsPackage<'s> {
         let path = get_pkg_path(name, pkg_type);
         tracing::debug!("Importing package from path `{path}`");
 
-        let fns: Object<'_> = {
+        let namespace: Object<'_> = {
             let mut try_catch = v8::TryCatch::new(scope);
             let module_map = try_catch
                 .get_slot::<Rc<RefCell<ModuleMap>>>()
-                .expect("ModuleMap was not inserted in an isolate slot")
+                .expect("ModuleMap is not present in isolate slots")
                 .clone();
             let pkg = match ModuleMap::import_module(module_map, &mut try_catch, &path)? {
                 Some(s) => s,
@@ -124,8 +124,9 @@ impl<'s> JsPackage<'s> {
                 let mut try_catch = v8::TryCatch::new(scope);
 
                 let js_fn_name = new_js_string(&mut try_catch, fn_name);
-                let elem: Value<'_> =
-                    fns.get(&mut try_catch, js_fn_name.into()).ok_or_else(|| {
+                let elem: Value<'_> = namespace
+                    .get(&mut try_catch, js_fn_name.into())
+                    .ok_or_else(|| {
                         let exception = try_catch.exception().unwrap();
                         let exception_string = exception
                             .to_string(&mut try_catch)
@@ -237,7 +238,12 @@ impl ModuleMap {
                         )
                     })?;
 
-                assert!(module.get_status() == v8::ModuleStatus::Instantiated);
+                if module.get_status() != v8::ModuleStatus::Instantiated {
+                    return Err(Error::PackageImport(
+                        path.to_string(),
+                        format!("Could not instantiate code for package"),
+                    ));
+                }
 
                 module.evaluate(&mut try_catch).ok_or_else(|| {
                     let exception = try_catch.exception().unwrap();
@@ -276,8 +282,9 @@ impl ModuleMap {
         }
     }
 }
-// simple version: https://gist.github.com/surusek/4c05e4dcac6b82d18a1a28e6742fc23e
-// better version: https://github.com/denoland/deno/blob/f7e7f548499eff8d2df0872d1340ddcdfa028c45/core/bindings.rs#L1344
+
+// Simple example: https://gist.github.com/surusek/4c05e4dcac6b82d18a1a28e6742fc23e
+// More elaborate example: https://github.com/denoland/deno/blob/f7e7f548499eff8d2df0872d1340ddcdfa028c45/core/bindings.rs#L1344
 pub fn module_resolve_callback<'s>(
     context: v8::Local<'s, v8::Context>,
     // path of the module trying to get imported
@@ -291,7 +298,7 @@ pub fn module_resolve_callback<'s>(
     ModuleMap::import_module(
         scope
             .get_slot::<Rc<RefCell<ModuleMap>>>()
-            .expect("ModuleMap was not inserted in an isolate slot")
+            .expect("ModuleMap is not present in isolate slots")
             .clone(),
         &mut scope,
         &specifier,
@@ -304,7 +311,7 @@ impl<'s> Embedded<'s> {
     fn import(scope: &mut v8::HandleScope<'s>) -> Result<Self> {
         let module_map = scope
             .get_slot::<Rc<RefCell<ModuleMap>>>()
-            .expect("ModuleMap was not inserted in an isolate slot")
+            .expect("ModuleMap is not present in isolate slots")
             .clone();
         assert!(
             ModuleMap::import_module(
@@ -360,7 +367,12 @@ impl<'s> Embedded<'s> {
             "./src/worker/runner/javascript/runner.js",
         )? {
             Some(runner) => runner,
-            None => panic!("no runner.js"),
+            None => {
+                return Err(Error::PackageImport(
+                    "./src/worker/runner/javascript/runner.js".to_string(),
+                    format!("Missing package"),
+                ));
+            }
         };
 
         // How to get a function from a module
@@ -390,7 +402,7 @@ impl<'s> Embedded<'s> {
         .into_iter()
         .map(|fn_name| {
             let js_fn_name = new_js_string(scope, fn_name);
-            let func: Function<'_> = namespace
+            namespace
                 .get(scope, js_fn_name.into())
                 .ok_or_else(|| Error::V8(format!("Could not get package function {fn_name}")))?
                 .try_into()
@@ -398,11 +410,7 @@ impl<'s> Embedded<'s> {
                     Error::V8(format!(
                         "Could not convert value {fn_name} in runner.js to a function: {err}"
                     ))
-                })?;
-
-            assert!(func.is_function());
-
-            Ok(func)
+                })
         })
         .collect::<Result<Vec<_>>>()?
         .try_into()
@@ -460,7 +468,6 @@ fn call_js_function<'s>(
     this: Value<'s>,
     args: &[Value<'s>],
 ) -> std::result::Result<Value<'s>, String> {
-    dbg!(func.get_name(scope).to_rust_string_lossy(scope));
     let mut try_catch = v8::TryCatch::new(scope);
     func.call(&mut try_catch, this, args).ok_or_else(|| {
         let exception = try_catch.exception().unwrap();
