@@ -85,14 +85,12 @@ impl GetWorkerSimStartMsg for Package {
 impl InitPackage for Package {
     async fn run(&mut self) -> Result<Vec<Agent>> {
         let task: InitTask = match &self.initial_state.name {
-            InitialStateName::InitPy => PyInitTask {
+            InitialStateName::InitPy => InitTask::PyInitTask(PyInitTask {
                 initial_state_source: self.initial_state.src.clone(),
-            }
-            .into(),
-            InitialStateName::InitJs => JsInitTask {
+            }),
+            InitialStateName::InitJs => InitTask::JsInitTask(JsInitTask {
                 initial_state_source: self.initial_state.src.clone(),
-            }
-            .into(),
+            }),
             name => {
                 // should be unreachable
                 return Err(Error::from(format!(

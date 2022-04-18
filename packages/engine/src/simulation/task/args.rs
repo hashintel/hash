@@ -1,9 +1,6 @@
 use crate::{
     config::TaskDistributionConfig,
-    simulation::{
-        enum_dispatch::{enum_dispatch, ExecuteBehaviorsTask, InitTask, StateTask},
-        package::init::packages::js_py::{js::JsInitTask, py::PyInitTask},
-    },
+    simulation::enum_dispatch::{enum_dispatch, ExecuteBehaviorsTask, StateTask},
 };
 
 #[enum_dispatch]

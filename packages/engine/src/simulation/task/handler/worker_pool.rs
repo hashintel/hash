@@ -1,5 +1,5 @@
 use crate::simulation::{
-    enum_dispatch::{enum_dispatch, InitTask, StateTask, TaskMessage},
+    enum_dispatch::{enum_dispatch, StateTask, TaskMessage},
     task::Task,
     Error, Result,
 };

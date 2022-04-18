@@ -1,14 +1,8 @@
 use crate::{
-    config::TaskDistributionConfig,
     simulation::{
         enum_dispatch::InitTaskMessage,
         package::init::packages::js_py::{JsPyInitTaskMessage, StartMessage},
-        task::{
-            args::GetTaskArgs,
-            handler::{WorkerHandler, WorkerPoolHandler},
-            msg::TargetedTaskMessage,
-            GetTaskName,
-        },
+        task::{handler::WorkerHandler, msg::TargetedTaskMessage, GetTaskName},
         Result as SimulationResult,
     },
     worker::runner::comms::MessageTarget,
@@ -25,8 +19,6 @@ impl GetTaskName for PyInitTask {
     }
 }
 
-impl GetTaskArgs for PyInitTask {}
-
 impl WorkerHandler for PyInitTask {
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {
         let start_msg = StartMessage {
@@ -40,5 +32,3 @@ impl WorkerHandler for PyInitTask {
         })
     }
 }
-
-impl WorkerPoolHandler for PyInitTask {}

@@ -16,10 +16,12 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         enum_dispatch::{
-            enum_dispatch, JsPyInitTaskMessage, RegisterWithoutTrait, StoreAccessVerify,
-            TaskSharedStore,
+            enum_dispatch, GetTaskArgs, JsPyInitTaskMessage, RegisterWithoutTrait,
+            StoreAccessVerify, TargetedTaskMessage, TaskSharedStore, WorkerHandler,
+            WorkerPoolHandler,
         },
         package::{id::PackageIdGenerator, init::PackageCreator, PackageMetadata, PackageType},
+        task::GetTaskName,
         Error, Result,
     },
 };
@@ -56,12 +58,33 @@ impl std::fmt::Display for Name {
 }
 
 /// All init package tasks are registered in this enum
-#[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
 pub enum InitTask {
-    JsInitTask,
-    PyInitTask,
+    JsInitTask(JsInitTask),
+    PyInitTask(PyInitTask),
 }
+
+impl GetTaskName for InitTask {
+    fn get_task_name(&self) -> &'static str {
+        match self {
+            Self::JsInitTask(inner) => inner.get_task_name(),
+            Self::PyInitTask(inner) => inner.get_task_name(),
+        }
+    }
+}
+
+impl GetTaskArgs for InitTask {}
+
+impl WorkerHandler for InitTask {
+    fn start_message(&self) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::JsInitTask(inner) => inner.start_message(),
+            Self::PyInitTask(inner) => inner.start_message(),
+        }
+    }
+}
+
+impl WorkerPoolHandler for InitTask {}
 
 impl StoreAccessVerify for InitTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {

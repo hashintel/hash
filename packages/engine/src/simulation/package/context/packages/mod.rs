@@ -17,7 +17,7 @@ use crate::{
     simulation::{
         enum_dispatch::{
             enum_dispatch, GetTaskArgs, GetTaskName, RegisterWithoutTrait, StoreAccessVerify,
-            TaskDistributionConfig, TaskSharedStore, WorkerHandler, WorkerPoolHandler,
+            TaskSharedStore, WorkerHandler, WorkerPoolHandler,
         },
         package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
         Error, Result,

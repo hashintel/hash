@@ -1,16 +1,10 @@
 use crate::{
-    config::TaskDistributionConfig,
     simulation::{
         package::init::{
             packages::js_py::{JsPyInitTaskMessage, StartMessage},
             InitTaskMessage,
         },
-        task::{
-            args::GetTaskArgs,
-            handler::{WorkerHandler, WorkerPoolHandler},
-            msg::TargetedTaskMessage,
-            GetTaskName,
-        },
+        task::{handler::WorkerHandler, msg::TargetedTaskMessage, GetTaskName},
         Result as SimulationResult,
     },
     worker::runner::comms::MessageTarget,
@@ -27,8 +21,6 @@ impl GetTaskName for JsInitTask {
     }
 }
 
-impl GetTaskArgs for JsInitTask {}
-
 impl WorkerHandler for JsInitTask {
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {
         let jspy_init_task_msg: JsPyInitTaskMessage = StartMessage {
@@ -42,5 +34,3 @@ impl WorkerHandler for JsInitTask {
         })
     }
 }
-
-impl WorkerPoolHandler for JsInitTask {}
