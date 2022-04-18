@@ -1,5 +1,7 @@
 use crate::{
     task::{SharedStore, Task},
+    worker::WorkerHandler,
+    worker_pool::WorkerPoolHandler,
     Error, Result,
 };
 
@@ -23,3 +25,7 @@ impl Task for ContextTask {
         }
     }
 }
+
+impl WorkerHandler for ContextTask {}
+
+impl WorkerPoolHandler for ContextTask {}

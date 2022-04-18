@@ -24,9 +24,6 @@ use crate::{
     },
 };
 
-pub mod js;
-pub mod py;
-
 pub struct Creator {}
 
 impl PackageCreator for Creator {

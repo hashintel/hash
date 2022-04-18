@@ -38,7 +38,6 @@ mod reset_index_col;
 // TODO: better name for config
 pub mod config;
 pub mod fields;
-pub mod tasks;
 
 pub const BEHAVIOR_INDEX_INNER_COUNT: usize = 2;
 

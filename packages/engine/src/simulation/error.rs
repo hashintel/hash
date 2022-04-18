@@ -102,9 +102,6 @@ pub enum Error {
     #[error("The number of parallel workers should be a power of 2")]
     NumParallelWorkers,
 
-    #[error("Invalid type of task message for behavior execution: {0:?}")]
-    InvalidBehaviorTaskMessage(execution::package::TaskMessage),
-
     #[error("Invalid behavior bytes: {0:?} ({1:?})")]
     InvalidBehaviorBytes(Vec<u8>, Result<String, std::string::FromUtf8Error>),
 
@@ -157,12 +154,6 @@ pub enum Error {
          ContextAccess: {1}."
     )]
     AccessNotAllowed(String, String, String),
-
-    #[error("Distribution node handling is not implemented for this message type")]
-    DistributionNodeHandlerNotImplemented,
-
-    #[error("Worker node handling is not implemented for this message type")]
-    WorkerNodeHandlerNotImplemented,
 
     #[error("{0}")]
     RwLock(String),

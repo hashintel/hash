@@ -8,7 +8,6 @@ use std::{
     sync::Arc,
 };
 
-use execution::package::context::ContextTask;
 use lazy_static::lazy_static;
 use serde::Serialize;
 use stateful::field::PackageId;
@@ -17,7 +16,6 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
-        task::handler::{WorkerHandler, WorkerPoolHandler},
         Error, Result,
     },
 };
@@ -54,10 +52,6 @@ impl std::fmt::Display for Name {
         )
     }
 }
-
-impl WorkerHandler for ContextTask {}
-
-impl WorkerPoolHandler for ContextTask {}
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
 

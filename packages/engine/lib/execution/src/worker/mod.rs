@@ -1,3 +1,7 @@
 mod config;
+mod handler;
 
-pub use self::config::{RunnerSpawnConfig, WorkerConfig};
+pub use self::{
+    config::{RunnerSpawnConfig, WorkerConfig},
+    handler::WorkerHandler,
+};

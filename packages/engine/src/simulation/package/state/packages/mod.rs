@@ -7,11 +7,6 @@ use std::{
     sync::Arc,
 };
 
-use execution::{
-    package::{state::StateTask, PackageTask, TaskMessage},
-    task::TargetedTaskMessage,
-    worker_pool::SplitConfig,
-};
 use lazy_static::lazy_static;
 use serde::Serialize;
 use stateful::field::PackageId;
@@ -20,7 +15,6 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
-        task::handler::{WorkerHandler, WorkerPoolHandler},
         Error, Result,
     },
 };
@@ -53,40 +47,6 @@ impl std::fmt::Display for Name {
             "{}",
             serde_json::to_string(self).map_err(|_| std::fmt::Error)?
         )
-    }
-}
-
-impl WorkerHandler for StateTask {
-    fn start_message(&self) -> Result<TargetedTaskMessage> {
-        match self {
-            Self::ExecuteBehaviorsTask(inner) => inner.start_message(),
-        }
-    }
-
-    fn handle_worker_message(&mut self, msg: TaskMessage) -> Result<TargetedTaskMessage> {
-        match self {
-            Self::ExecuteBehaviorsTask(inner) => inner.handle_worker_message(msg),
-        }
-    }
-
-    fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
-        match self {
-            Self::ExecuteBehaviorsTask(inner) => inner.combine_task_messages(task_messages),
-        }
-    }
-}
-
-impl WorkerPoolHandler for StateTask {
-    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<PackageTask>> {
-        match self {
-            Self::ExecuteBehaviorsTask(inner) => inner.split_task(split_config),
-        }
-    }
-
-    fn combine_messages(&self, split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
-        match self {
-            Self::ExecuteBehaviorsTask(inner) => inner.combine_messages(split_messages),
-        }
     }
 }
 

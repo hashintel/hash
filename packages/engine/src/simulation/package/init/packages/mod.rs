@@ -7,7 +7,6 @@ use std::{
     sync::Arc,
 };
 
-use execution::{package::init::InitTask, task::TargetedTaskMessage};
 use lazy_static::lazy_static;
 use serde::Serialize;
 use stateful::field::PackageId;
@@ -16,7 +15,6 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         package::{id::PackageIdGenerator, init::PackageCreator, PackageMetadata, PackageType},
-        task::handler::{WorkerHandler, WorkerPoolHandler},
         Error, Result,
     },
 };
@@ -51,17 +49,6 @@ impl std::fmt::Display for Name {
         )
     }
 }
-
-impl WorkerHandler for InitTask {
-    fn start_message(&self) -> Result<TargetedTaskMessage> {
-        match self {
-            Self::JsInitTask(inner) => inner.start_message(),
-            Self::PyInitTask(inner) => inner.start_message(),
-        }
-    }
-}
-
-impl WorkerPoolHandler for InitTask {}
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
 

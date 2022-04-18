@@ -27,6 +27,15 @@ pub enum Error {
 
     #[error("Serde Error: {0}")]
     Serde(#[from] serde_json::Error),
+
+    #[error("Distribution node handling is not implemented for this message type")]
+    DistributionNodeHandlerNotImplemented,
+
+    #[error("Worker node handling is not implemented for this message type")]
+    WorkerNodeHandlerNotImplemented,
+
+    #[error("Invalid type of task message for behavior execution: {0:?}")]
+    InvalidBehaviorTaskMessage(crate::package::TaskMessage),
 }
 
 impl Error {

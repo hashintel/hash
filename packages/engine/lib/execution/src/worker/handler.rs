@@ -1,6 +1,4 @@
-use execution::{package::TaskMessage, task::TargetedTaskMessage};
-
-use crate::simulation::{Error, Result};
+use crate::{package::TaskMessage, task::TargetedTaskMessage, Error, Result};
 
 pub trait WorkerHandler {
     /// Given an initial message from the package in the main loop of the simulation, convert it to
@@ -14,7 +12,8 @@ pub trait WorkerHandler {
     ///
     /// [`MessageTarget::Dynamic`]: crate::worker::runner::comms::MessageTarget::Dynamic
     /// [`MessageTarget::Main`]: crate::worker::runner::comms::MessageTarget::Main
-    fn handle_worker_message(&mut self, _msg: TaskMessage) -> Result<TargetedTaskMessage> {
+    #[allow(unused_variables)]
+    fn handle_worker_message(&mut self, task_message: TaskMessage) -> Result<TargetedTaskMessage> {
         Err(Error::WorkerNodeHandlerNotImplemented)
     }
 
@@ -24,7 +23,8 @@ pub trait WorkerHandler {
     /// [`Task`]s may be split up _within_ a [`Worker`] into sub-tasks according to the groups of
     /// agents they're operating on (in a similar way to a [`Task`] being distributed _across_
     /// multiple workers).
-    fn combine_task_messages(&self, _task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+    #[allow(unused_variables)]
+    fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
         Err(Error::WorkerNodeHandlerNotImplemented)
     }
 }

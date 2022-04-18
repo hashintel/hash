@@ -3,6 +3,9 @@ use crate::{
     task::{SharedStore, Task},
     Error, Result,
 };
+use crate::task::TargetedTaskMessage;
+use crate::worker::WorkerHandler;
+use crate::worker_pool::WorkerPoolHandler;
 
 /// All init package tasks are registered in this enum
 #[derive(Clone, Debug)]
@@ -29,3 +32,14 @@ impl Task for InitTask {
         }
     }
 }
+
+impl WorkerHandler for InitTask {
+    fn start_message(&self) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::JsInitTask(inner) => inner.start_message(),
+            Self::PyInitTask(inner) => inner.start_message(),
+        }
+    }
+}
+
+impl WorkerPoolHandler for InitTask {}

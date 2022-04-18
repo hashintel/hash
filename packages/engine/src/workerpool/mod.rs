@@ -5,7 +5,7 @@ use execution::{
     package::PackageTask,
     task::{SharedStore, Task, TaskDistributionConfig},
     worker::WorkerConfig,
-    worker_pool::{WorkerIndex, WorkerPoolConfig},
+    worker_pool::{WorkerIndex, WorkerPoolConfig, WorkerPoolHandler},
 };
 use futures::{
     future::try_join_all,
@@ -30,10 +30,7 @@ use crate::{
     config::{self},
     datastore::table::sync::SyncPayload,
     proto::SimulationShortId,
-    simulation::{
-        comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
-        task::handler::WorkerPoolHandler,
-    },
+    simulation::comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
     types::TaskId,
     worker::{
         runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},

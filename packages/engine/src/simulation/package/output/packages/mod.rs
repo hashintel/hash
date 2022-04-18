@@ -7,7 +7,6 @@ use std::{
     sync::Arc,
 };
 
-use execution::package::output::OutputTask;
 use lazy_static::lazy_static;
 use serde::Serialize;
 use stateful::field::PackageId;
@@ -20,7 +19,6 @@ use crate::{
             id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
             PackageType,
         },
-        task::handler::{WorkerHandler, WorkerPoolHandler},
         Error, Result,
     },
 };
@@ -66,10 +64,6 @@ pub enum Output {
     AnalysisOutput(AnalysisOutput),
     JsonStateOutput(JsonStateOutput),
 }
-
-impl WorkerHandler for OutputTask {}
-
-impl WorkerPoolHandler for OutputTask {}
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
 

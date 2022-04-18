@@ -17,6 +17,9 @@ pub enum Error {
     #[error("Datastore: {0}")]
     Datastore(#[from] crate::datastore::Error),
 
+    #[error("Execution error: {0}")]
+    Execution(#[from] execution::Error),
+
     #[error("Task already exists (id: {0})")]
     TaskAlreadyExists(crate::types::TaskId),
 

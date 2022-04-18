@@ -1,4 +1,6 @@
-use crate::{task::SharedStore, Error, Result};
+use crate::{
+    task::SharedStore, worker::WorkerHandler, worker_pool::WorkerPoolHandler, Error, Result,
+};
 
 /// All output package tasks are registered in this enum
 // #[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
@@ -27,3 +29,7 @@ impl crate::task::Task for OutputTask {
         }
     }
 }
+
+impl WorkerHandler for OutputTask {}
+
+impl WorkerPoolHandler for OutputTask {}

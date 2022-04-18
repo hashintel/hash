@@ -16,7 +16,7 @@ use execution::{
     package::TaskMessage,
     runner::{Language, MessageTarget, RunnerConfig},
     task::{SharedState, SharedStore},
-    worker::{RunnerSpawnConfig, WorkerConfig},
+    worker::{RunnerSpawnConfig, WorkerConfig, WorkerHandler},
 };
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
@@ -42,7 +42,7 @@ use self::{
 use crate::{
     datastore::table::sync::SyncPayload,
     proto::SimulationShortId,
-    simulation::task::{handler::WorkerHandler, msg::TaskResultOrCancelled},
+    simulation::task::msg::TaskResultOrCancelled,
     types::TaskId,
     worker::{
         pending::{PendingGroup, PendingWorkerTask},
