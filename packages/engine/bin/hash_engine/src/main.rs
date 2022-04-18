@@ -4,7 +4,7 @@ use hash_engine_lib::{
     env::env,
     experiment::controller::run::run_experiment,
     fetch::FetchDependencies,
-    output::buffer::{cleanup_experiment, EngineExitStatus},
+    output::{cleanup_experiment, EngineExitStatus},
     proto::{ExperimentRun, ExperimentRunTrait},
     utils::init_logger,
 };

@@ -7,7 +7,7 @@ use std::{collections::HashMap, path::PathBuf, time::Duration};
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
-    output::{buffer::EngineExitStatus, local::config::LocalPersistenceConfig},
+    output::{local::config::LocalPersistenceConfig, EngineExitStatus},
     proto,
     proto::{
         ExecutionEnvironment, ExperimentId, ExperimentName, ExperimentPackageConfig,

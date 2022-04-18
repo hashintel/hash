@@ -2,14 +2,12 @@ use memory::shared_memory::MemoryId;
 
 use crate::{output::buffer::RELATIVE_PARTS_FOLDER, proto::ExperimentId};
 
-// TODO: move this to top-level
 #[derive(PartialEq, Eq, Clone)]
 pub enum EngineExitStatus {
     Success,
     Error,
 }
 
-// TODO: move this to top-level
 /// Shared memory cleanup in the process hard crash case.
 /// Not required for pod instances.
 pub fn cleanup_experiment(experiment_id: &ExperimentId, exit_status: EngineExitStatus) {
@@ -19,6 +17,7 @@ pub fn cleanup_experiment(experiment_id: &ExperimentId, exit_status: EngineExitS
     let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"));
     let topy_files = glob::glob(&format!("{experiment_id}-topy*"));
 
+    // We're ignoring glob errors as they shouldn't stop the whole cleanup process.
     frompy_files
         .into_iter()
         .chain(topy_files)
@@ -62,13 +61,6 @@ fn remove_experiment_parts(experiment_id: &ExperimentId) {
                 experiment = %experiment_id,
                 "Could not clean up {path:?}: {err}"
             );
-        }
-    }
-
-    match std::fs::remove_dir(RELATIVE_PARTS_FOLDER) {
-        Ok(_) => tracing::trace!("Removed parts folder."),
-        Err(err) => {
-            tracing::warn!("Could not remove the parts folder: {err}");
         }
     }
 }

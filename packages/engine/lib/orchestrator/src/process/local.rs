@@ -6,7 +6,7 @@ use std::{
 use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine_lib::{
-    output::buffer::{cleanup_experiment, EngineExitStatus},
+    output::{cleanup_experiment, EngineExitStatus},
     proto::{EngineMsg, ExperimentId},
     utils::{LogFormat, LogLevel, OutputLocation},
 };

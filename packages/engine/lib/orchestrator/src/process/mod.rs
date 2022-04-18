@@ -7,7 +7,7 @@ use std::process::ExitStatus;
 use async_trait::async_trait;
 use error::Result;
 use hash_engine_lib::{
-    output::buffer::EngineExitStatus,
+    output::EngineExitStatus,
     proto::{EngineMsg, ExperimentId},
 };
 pub use local::{LocalCommand, LocalProcess};

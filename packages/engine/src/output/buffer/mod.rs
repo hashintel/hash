@@ -1,14 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 mod part;
-mod util;
 
 use serde::Serialize;
 
-pub use self::{
-    part::OutputPartBuffer,
-    util::{cleanup_experiment, EngineExitStatus},
-};
+pub use self::part::OutputPartBuffer;
 use crate::{
     output::error::{Error, Result},
     proto::{ExperimentId, SimulationShortId},
@@ -22,7 +18,7 @@ use crate::{
     },
 };
 
-const RELATIVE_PARTS_FOLDER: &str = "./parts";
+pub(crate) const RELATIVE_PARTS_FOLDER: &str = "./parts";
 
 pub struct Buffers {
     pub json_state: OutputPartBuffer,
