@@ -8,7 +8,7 @@ use std::{
 };
 
 use execution::{
-    task::{SharedStore, TaskDistributionConfig},
+    task::{SharedStore, StateBatchDistribution, TaskDistributionConfig},
     worker_pool::SplitConfig,
 };
 use lazy_static::lazy_static;
@@ -21,11 +21,9 @@ use crate::{
     simulation::{
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
         task::{
-            access::StoreAccessVerify,
-            args::GetTaskArgs,
             handler::{WorkerHandler, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
-            GetTaskName, PackageTask,
+            PackageTask, Task,
         },
         Error, Result,
     },
@@ -68,18 +66,33 @@ pub enum StateTask {
     ExecuteBehaviorsTask(ExecuteBehaviorsTask),
 }
 
-impl GetTaskName for StateTask {
-    fn get_task_name(&self) -> &'static str {
+impl Task for StateTask {
+    fn name(&self) -> &'static str {
         match self {
-            Self::ExecuteBehaviorsTask(inner) => inner.get_task_name(),
+            Self::ExecuteBehaviorsTask(_) => "BehaviorExecution",
         }
     }
-}
 
-impl GetTaskArgs for StateTask {
     fn distribution(&self) -> TaskDistributionConfig {
         match self {
-            Self::ExecuteBehaviorsTask(inner) => inner.distribution(),
+            Self::ExecuteBehaviorsTask(_) => {
+                TaskDistributionConfig::Distributed(StateBatchDistribution {
+                    partitioned_batches: true,
+                })
+            }
+        }
+    }
+
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
+        let state = &access.state;
+        let context = access.context();
+        // All combinations (as of now) are allowed (but still being explicit)
+        if (state.is_readwrite() || state.is_readonly() || state.is_disabled())
+            && (context.is_readonly() || context.is_disabled())
+        {
+            Ok(())
+        } else {
+            Err(Error::access_not_allowed(state, context, "State".into()))
         }
     }
 }
@@ -114,21 +127,6 @@ impl WorkerPoolHandler for StateTask {
     fn combine_messages(&self, split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
         match self {
             Self::ExecuteBehaviorsTask(inner) => inner.combine_messages(split_messages),
-        }
-    }
-}
-
-impl StoreAccessVerify for StateTask {
-    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
-        let state = &access.state;
-        let context = access.context();
-        // All combinations (as of now) are allowed (but still being explicit)
-        if (state.is_readwrite() || state.is_readonly() || state.is_disabled())
-            && (context.is_readonly() || context.is_disabled())
-        {
-            Ok(())
-        } else {
-            Err(Error::access_not_allowed(state, context, "State".into()))
         }
     }
 }

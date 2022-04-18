@@ -21,10 +21,8 @@ use crate::{
             PackageType,
         },
         task::{
-            access::StoreAccessVerify,
-            args::GetTaskArgs,
             handler::{WorkerHandler, WorkerPoolHandler},
-            GetTaskName,
+            Task,
         },
         Error, Result,
     },
@@ -77,7 +75,11 @@ pub enum Output {
 #[derive(Clone, Debug)]
 pub enum OutputTask {}
 
-impl StoreAccessVerify for OutputTask {
+impl Task for OutputTask {
+    fn name(&self) -> &'static str {
+        unimplemented!()
+    }
+
     fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
@@ -96,18 +98,9 @@ impl StoreAccessVerify for OutputTask {
     }
 }
 
-// Empty impls to satisfy constraints enum_dispatch while there are no task variants
-impl GetTaskName for OutputTask {
-    fn get_task_name(&self) -> &'static str {
-        unimplemented!()
-    }
-}
-
 impl WorkerHandler for OutputTask {}
 
 impl WorkerPoolHandler for OutputTask {}
-
-impl GetTaskArgs for OutputTask {}
 
 /// All output package task messages are registered in this enum
 #[derive(Clone, Debug, Serialize, Deserialize)]

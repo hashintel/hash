@@ -31,7 +31,7 @@ use crate::{
     proto::SimulationShortId,
     simulation::{
         comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
-        task::{args::GetTaskArgs, handler::WorkerPoolHandler, PackageTask},
+        task::{handler::WorkerPoolHandler, PackageTask, Task},
     },
     types::TaskId,
     worker::{

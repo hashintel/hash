@@ -8,7 +8,6 @@ use crate::simulation::{
     task::{
         handler::WorkerHandler,
         msg::{TargetedTaskMessage, TaskMessage},
-        GetTaskName,
     },
     Result as SimulationResult,
 };
@@ -16,12 +15,6 @@ use crate::simulation::{
 #[derive(Clone, Debug)]
 pub struct JsInitTask {
     pub initial_state_source: String,
-}
-
-impl GetTaskName for JsInitTask {
-    fn get_task_name(&self) -> &'static str {
-        "JsInit"
-    }
 }
 
 impl WorkerHandler for JsInitTask {

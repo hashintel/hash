@@ -74,9 +74,7 @@
 //! [`AgentBatch`]: crate::datastore::batch::agent::Batch
 //! [`PendingWorkerPoolTask::handle_result_state`]: crate::workerpool::pending::PendingWorkerPoolTask::handle_result_state
 //! [`WorkerController::spawn_task()`]: crate::worker::WorkerController::spawn_task
-pub mod access;
 pub mod active;
-pub mod args;
 pub mod cancel;
 pub mod handler;
 pub mod msg;
@@ -89,8 +87,6 @@ use execution::{
 use crate::simulation::{
     package::{context::ContextTask, init::InitTask, output::OutputTask, state::StateTask},
     task::{
-        access::StoreAccessVerify,
-        args::GetTaskArgs,
         handler::{WorkerHandler, WorkerPoolHandler},
         msg::{TargetedTaskMessage, TaskMessage},
     },
@@ -110,29 +106,61 @@ pub enum PackageTask {
     OutputTask(OutputTask),
 }
 
-pub trait GetTaskName {
+pub trait Task {
     /// Provides a human-readable name of the [`Task`], e.g. `"BehaviorExecution"`.
-    fn get_task_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+
+    /// Defines if a [`Task`] has a distributed (split across [`worker`]s) execution.
+    ///
+    /// [`Task`]: crate::simulation::task::Task
+    /// [`worker`]: crate::worker
+    fn distribution(&self) -> TaskDistributionConfig {
+        TaskDistributionConfig::None
+    }
+
+    /// Ensures that the [`Task`] variant has the correct permissions on the [`SharedState`] and
+    /// [`SharedContext`] objects that make up the [`TaskSharedStore`].
+    ///
+    /// The intended implementation, is that this trait is implemented for each package-group, e.g.
+    /// rather than being implemented on `JsPyInitTask`, it's implemented on the [`InitTask`]
+    /// variant, as all Initialization packages should have the same access expectations.
+    ///
+    /// # Errors
+    ///
+    /// The implementation should error with [`AccessNotAllowed`] if the permissions don't match up.
+    ///
+    /// [`Task`]: crate::simulation::task::Task
+    /// [`SharedState`]: crate::datastore::table::task_shared_store::SharedState
+    /// [`SharedContext`]: crate::datastore::table::task_shared_store::SharedContext
+    /// [`AccessNotAllowed`]: crate::simulation::error::Error::AccessNotAllowed
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()>;
 }
 
-impl GetTaskName for PackageTask {
-    fn get_task_name(&self) -> &'static str {
+impl Task for PackageTask {
+    fn name(&self) -> &'static str {
         match self {
-            Self::InitTask(inner) => inner.get_task_name(),
-            Self::ContextTask(inner) => inner.get_task_name(),
-            Self::StateTask(inner) => inner.get_task_name(),
-            Self::OutputTask(inner) => inner.get_task_name(),
+            Self::InitTask(inner) => inner.name(),
+            Self::ContextTask(inner) => inner.name(),
+            Self::StateTask(inner) => inner.name(),
+            Self::OutputTask(inner) => inner.name(),
         }
     }
-}
 
-impl GetTaskArgs for PackageTask {
     fn distribution(&self) -> TaskDistributionConfig {
         match self {
             Self::InitTask(inner) => inner.distribution(),
             Self::ContextTask(inner) => inner.distribution(),
             Self::StateTask(inner) => inner.distribution(),
             Self::OutputTask(inner) => inner.distribution(),
+        }
+    }
+
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
+        match self {
+            Self::InitTask(inner) => inner.verify_store_access(access),
+            Self::ContextTask(inner) => inner.verify_store_access(access),
+            Self::StateTask(inner) => inner.verify_store_access(access),
+            Self::OutputTask(inner) => inner.verify_store_access(access),
         }
     }
 }
@@ -182,17 +210,6 @@ impl WorkerPoolHandler for PackageTask {
             Self::ContextTask(inner) => inner.combine_messages(split_messages),
             Self::StateTask(inner) => inner.combine_messages(split_messages),
             Self::OutputTask(inner) => inner.combine_messages(split_messages),
-        }
-    }
-}
-
-impl StoreAccessVerify for PackageTask {
-    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
-        match self {
-            Self::InitTask(inner) => inner.verify_store_access(access),
-            Self::ContextTask(inner) => inner.verify_store_access(access),
-            Self::StateTask(inner) => inner.verify_store_access(access),
-            Self::OutputTask(inner) => inner.verify_store_access(access),
         }
     }
 }

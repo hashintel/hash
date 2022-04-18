@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::simulation::{
     comms::{Comms, Result},
     package::PackageType,
-    task::{active::ActiveTask, GetTaskName, PackageTask},
+    task::{active::ActiveTask, PackageTask, Task},
 };
 
 #[derive(derive_new::new)]
@@ -34,7 +34,7 @@ impl PackageComms {
         task: PackageTask,
         shared_store: SharedStore,
     ) -> Result<ActiveTask> {
-        let task_name = task.get_task_name();
+        let task_name = task.name();
 
         self.inner
             .new_task(self.package_id, task, shared_store)

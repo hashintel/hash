@@ -1,8 +1,4 @@
-use execution::{
-    runner::MessageTarget,
-    task::{StateBatchDistribution, TaskDistributionConfig},
-    worker_pool::SplitConfig,
-};
+use execution::{runner::MessageTarget, worker_pool::SplitConfig};
 use serde::{Deserialize, Serialize};
 
 use crate::simulation::{
@@ -11,10 +7,9 @@ use crate::simulation::{
         StateTask, StateTaskMessage,
     },
     task::{
-        args::GetTaskArgs,
         handler::{WorkerHandler, WorkerPoolHandler},
         msg::{TargetedTaskMessage, TaskMessage},
-        GetTaskName, PackageTask,
+        PackageTask,
     },
     Result as SimulationResult,
 };
@@ -27,20 +22,6 @@ pub struct ExecuteBehaviorsTaskMessage {}
 #[derive(Clone, Debug)]
 pub struct ExecuteBehaviorsTask {
     pub target: MessageTarget,
-}
-
-impl GetTaskName for ExecuteBehaviorsTask {
-    fn get_task_name(&self) -> &'static str {
-        "BehaviorExecution"
-    }
-}
-
-impl GetTaskArgs for ExecuteBehaviorsTask {
-    fn distribution(&self) -> TaskDistributionConfig {
-        TaskDistributionConfig::Distributed(StateBatchDistribution {
-            partitioned_batches: true,
-        })
-    }
 }
 
 impl WorkerHandler for ExecuteBehaviorsTask {

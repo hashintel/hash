@@ -18,10 +18,8 @@ use crate::{
     simulation::{
         package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
         task::{
-            access::StoreAccessVerify,
-            args::GetTaskArgs,
             handler::{WorkerHandler, WorkerPoolHandler},
-            GetTaskName,
+            Task,
         },
         Error, Result,
     },
@@ -65,7 +63,11 @@ impl std::fmt::Display for Name {
 #[derive(Clone, Debug)]
 pub struct ContextTask {}
 
-impl StoreAccessVerify for ContextTask {
+impl Task for ContextTask {
+    fn name(&self) -> &'static str {
+        unimplemented!()
+    }
+
     fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
@@ -77,18 +79,9 @@ impl StoreAccessVerify for ContextTask {
     }
 }
 
-// Empty impls to satisfy constraints from enum_dispatch while there are no task variants
-impl GetTaskName for ContextTask {
-    fn get_task_name(&self) -> &'static str {
-        unimplemented!()
-    }
-}
-
 impl WorkerHandler for ContextTask {}
 
 impl WorkerPoolHandler for ContextTask {}
-
-impl GetTaskArgs for ContextTask {}
 
 /// All context package task messages are registered in this enum
 #[derive(Clone, Debug, Serialize, Deserialize)]

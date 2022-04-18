@@ -33,13 +33,13 @@ use uuid::Uuid;
 use self::message::{EngineToWorkerPoolMsg, WrappedTask};
 use super::{
     command::Commands,
-    task::{access::StoreAccessVerify, active::ActiveTask, PackageTask},
+    task::{active::ActiveTask, PackageTask},
     Error, Result,
 };
 use crate::{
     datastore::table::sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
     proto::SimulationShortId,
-    simulation::comms::message::SyncCompletionReceiver,
+    simulation::{comms::message::SyncCompletionReceiver, task::Task},
     types::TaskId,
     workerpool::comms::MainMsgSend,
 };

@@ -22,11 +22,9 @@ use crate::{
             PackageMetadata, PackageType,
         },
         task::{
-            access::StoreAccessVerify,
-            args::GetTaskArgs,
             handler::{WorkerHandler, WorkerPoolHandler},
             msg::TargetedTaskMessage,
-            GetTaskName,
+            Task,
         },
         Error, Result,
     },
@@ -70,16 +68,24 @@ pub enum InitTask {
     PyInitTask(PyInitTask),
 }
 
-impl GetTaskName for InitTask {
-    fn get_task_name(&self) -> &'static str {
+impl Task for InitTask {
+    fn name(&self) -> &'static str {
         match self {
-            Self::JsInitTask(inner) => inner.get_task_name(),
-            Self::PyInitTask(inner) => inner.get_task_name(),
+            Self::JsInitTask(_) => "JsInit",
+            Self::PyInitTask(_) => "PyInit",
+        }
+    }
+
+    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
+        let state = &access.state;
+        let context = access.context();
+        if state.is_disabled() && context.is_disabled() {
+            Ok(())
+        } else {
+            Err(Error::access_not_allowed(state, context, "Init".into()))
         }
     }
 }
-
-impl GetTaskArgs for InitTask {}
 
 impl WorkerHandler for InitTask {
     fn start_message(&self) -> Result<TargetedTaskMessage> {
@@ -91,18 +97,6 @@ impl WorkerHandler for InitTask {
 }
 
 impl WorkerPoolHandler for InitTask {}
-
-impl StoreAccessVerify for InitTask {
-    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
-        let state = &access.state;
-        let context = access.context();
-        if state.is_disabled() && context.is_disabled() {
-            Ok(())
-        } else {
-            Err(Error::access_not_allowed(state, context, "Init".into()))
-        }
-    }
-}
 
 /// All init package task messages are registered in this enum
 #[derive(Clone, Debug, Serialize, Deserialize)]
