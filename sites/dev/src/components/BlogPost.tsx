@@ -3,7 +3,7 @@ import { Box } from "@mui/system";
 import { parse } from "date-fns";
 import Head from "next/head";
 import Image from "next/image";
-import { createContext, FC, ReactNode, useContext, VFC } from "react";
+import { createContext, FC, useContext, VFC } from "react";
 import { FRONTEND_URL, SITE_DESCRIPTION } from "../config";
 import { mdxImageClasses } from "./MdxImage";
 
