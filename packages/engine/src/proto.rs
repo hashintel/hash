@@ -6,9 +6,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
+use stateful::globals::Globals;
 use uuid::Uuid;
 
-use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status::SimStatus};
+use crate::simulation::status::SimStatus;
 
 // TODO: UNUSED: Needs triage
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
@@ -56,7 +57,10 @@ impl FromStr for ExperimentName {
 
 use crate::{
     simulation::enum_dispatch::enum_dispatch,
-    worker::runner::comms::outbound::{PackageError, UserError, UserWarning},
+    worker::{
+        runner::comms::outbound::{PackageError, UserError, UserWarning},
+        RunnerError,
+    },
 };
 
 /// The message type sent from the engine to the orchestrator.

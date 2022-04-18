@@ -61,7 +61,23 @@ export type EntityWithOutgoingEntityIds = DbEntity & {
 export type DbLink = {
   linkId: string;
   linkVersionId: string;
+
+  /**
+   * Path into the source entity's properties.
+   *
+   * @example
+   * "$.contents"
+   * "$.parentPage"
+   */
   path: string;
+
+  /**
+   * Defines order between multiple link entities.
+   *
+   * @todo: consider using a fractional index so we don't need to update
+   * multiple links when re-ordering. Then occasionally, you can do a re-balance
+   * when re-ordering between two items with too low of a distance.
+   */
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
@@ -73,7 +89,13 @@ export type DbLink = {
   removedFromSourceByAccountId?: string;
 
   destinationAccountId: string;
+
   destinationEntityId: string;
+
+  /**
+   * Optional way to pin the link to a specific
+   * version of the destination entity.
+   */
   destinationEntityVersionId?: string;
 
   updatedAt: Date;
@@ -92,13 +114,27 @@ export type DbLinkVersion = {
 };
 
 export type DbAggregation = {
+  aggregationId: string;
+  aggregationVersionId: string;
   sourceAccountId: string;
   sourceEntityId: string;
-  sourceEntityVersionIds: Set<string>;
+  appliedToSourceAt: Date;
+  appliedToSourceByAccountId: string;
+  removedFromSourceAt?: Date;
+  removedFromSourceByAccountId?: string;
   path: string;
   operation: object;
-  createdByAccountId: string;
-  createdAt: Date;
+  updatedAt: Date;
+  updatedByAccountId: string;
+};
+
+export type DbAggregationVersion = {
+  sourceAccountId: string;
+  aggregationVersionId: string;
+  aggregationId: string;
+  operation: object;
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
 export type EntityTypeMeta = EntityMeta & {
@@ -448,6 +484,7 @@ export interface DbClient {
     sourceEntityVersionIds: Set<string>;
     destinationAccountId: string;
     destinationEntityId: string;
+    /** See docs for {@link DbLink.destinationEntityVersionId} */
     destinationEntityVersionId?: string;
   }): Promise<DbLink>;
 
@@ -518,39 +555,94 @@ export interface DbClient {
     emailAddress: string;
   }): Promise<VerificationCode>;
 
+  /**
+   * Create an aggregation for an entity.
+   *
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.sourceEntityId - the entity id of the source entity
+   * @param {string} params.path - the aggregation path
+   * @param {object} params.operation - the aggregation operation
+   * @param {string} params.createdByAccountId - the account id of the user that created the aggregation (equivalent to the `appliedToSourceByAccountId` field on the aggregation)
+   * @returns {Promise<DbAggregation>} the created aggregation
+   */
   createAggregation(params: {
-    createdByAccountId: string;
     sourceAccountId: string;
     sourceEntityId: string;
     path: string;
     operation: object;
+    createdByAccountId: string;
   }): Promise<DbAggregation>;
 
+  /**
+   * Update the operation of an existing aggregation.
+   *
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.aggregationId - the id of the aggregation
+   * @param {object} params.operation - the updated aggregation operation
+   * @param {string} params.updatedByAccountId - the account id of the user that is updating the aggregation
+   * @returns {Promise<DbAggregation>} the updated aggregation
+   */
   updateAggregationOperation(params: {
     sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
-    operation: object;
+    aggregationId: string;
+    updatedOperation: object;
+    updatedByAccountId: string;
   }): Promise<DbAggregation>;
 
-  getEntityAggregation(params: {
+  /**
+   * Get an aggregation by its aggregation id.
+   *
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.aggregationId - the id of the aggregation
+   * @returns {Promise<DbAggregation | null>} the aggregation with if found in the datastore, otherwise `null`
+   */
+  getAggregation(params: {
     sourceAccountId: string;
-    sourceEntityId: string;
-    sourceEntityVersionId?: string;
-    path: string;
+    aggregationId: string;
   }): Promise<DbAggregation | null>;
 
+  /**
+   * Get an aggregation by its source entity and path.
+   *
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.sourceEntityId - the entity id of the source entity
+   * @param {string} params.path - the aggregation path
+   * @param {Date} [params.activeAt] - the timestamp at which the aggregation was active, when the source entity is versioned
+   * @returns {Promise<DbAggregation | null>} the aggregation if found in the datastore, otherwise `null`
+   */
+  getEntityAggregationByPath(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    path: string;
+    activeAt?: Date;
+  }): Promise<DbAggregation | null>;
+
+  /**
+   * Get all aggregations for an entity.
+   *
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.sourceEntityId - the entity id of the source entity
+   * @param {Date} [params.activeAt] - the timestamp at which the aggregations were active, when the source entity is versioned
+   * @returns {Promise<DbAggregation[]>} the aggregations of the entity
+   */
   getEntityAggregations(params: {
     sourceAccountId: string;
     sourceEntityId: string;
-    sourceEntityVersionId?: string;
+    activeAt?: Date;
   }): Promise<DbAggregation[]>;
 
+  /**
+   * Delete an existing aggregation.
+   *
+   * @param {string} params.sourceAccountId - the account id of the source entity
+   * @param {string} params.aggregationId - the id of the aggregation
+   * @param {string} params.deletedByAccountId - the account id of the user that deleted the aggregation  (equivalent to the `removedFromSourceByAccountId` field of an aggregation)
+   * @returns {Promise<void>}
+   */
   deleteAggregation(params: {
-    deletedByAccountId: string;
     sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
+    aggregationId: string;
+    deletedByAccountId: string;
   }): Promise<void>;
 
   /** Get a verification code (it may be invalid!) */

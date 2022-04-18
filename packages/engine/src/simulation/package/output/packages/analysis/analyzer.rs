@@ -1,13 +1,10 @@
 use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
 use serde::{Deserialize, Serialize};
-use stateful::field::FieldSpecMapAccessor;
+use stateful::{agent::AgentSchema, field::FieldSpecMapAccessor};
 
 use crate::{
-    datastore::{
-        batch::AgentBatch,
-        schema::{state::AgentSchema, EngineComponent},
-    },
+    datastore::batch::AgentBatch,
     simulation::package::output::packages::analysis::{
         index_iter,
         output::{AnalysisFinalOutput, AnalysisSingleOutput},
@@ -44,7 +41,7 @@ impl Analyzer {
     pub fn from_analysis_source(
         analysis_source: &str,
         _agent_schema: &AgentSchema,
-        accessor: &FieldSpecMapAccessor<EngineComponent>,
+        accessor: &FieldSpecMapAccessor,
     ) -> Result<Analyzer> {
         let repr = AnalysisSourceRepr::try_from(analysis_source)?;
         repr.validate_def()?;
@@ -131,7 +128,7 @@ pub struct OutputCreator {
 
 impl OutputCreator {
     fn new(
-        accessor: &FieldSpecMapAccessor<EngineComponent>,
+        accessor: &FieldSpecMapAccessor,
         operations: &[AnalysisOperationRepr],
     ) -> Result<OutputCreator> {
         let creator = Self::index_creator(operations, accessor)?;
@@ -144,7 +141,7 @@ impl OutputCreator {
 
     pub(super) fn index_creator(
         operations: &[AnalysisOperationRepr],
-        accessor: &FieldSpecMapAccessor<EngineComponent>,
+        accessor: &FieldSpecMapAccessor,
     ) -> Result<OutputRunnerCreator> {
         match &operations[0] {
             AnalysisOperationRepr::Filter {

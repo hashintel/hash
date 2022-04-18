@@ -63,29 +63,29 @@ impl fmt::Debug for FieldSpec {
 /// [`RootFieldSpec`] associates a [`FieldSpec`] with a [`FieldScope`] and a [`FieldSource`]. It's
 /// uniquely identifiable by a [`RootFieldKey`].
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct RootFieldSpec<S> {
+pub struct RootFieldSpec {
     pub inner: FieldSpec,
     pub scope: FieldScope,
-    pub source: S,
+    pub source: FieldSource,
 }
 
-impl<S: FieldSource> RootFieldSpec<S> {
+impl RootFieldSpec {
     pub fn create_key(&self) -> Result<RootFieldKey> {
         Ok(match &self.scope {
             FieldScope::Agent => RootFieldKey::new_agent_scoped(&self.inner.name)?,
             FieldScope::Private | FieldScope::Hidden => RootFieldKey::new_private_or_hidden_scoped(
                 &self.inner.name,
-                &self.source,
+                self.source,
                 self.scope,
             )?,
         })
     }
 }
 
-impl<S: FieldSource> TryFrom<RootFieldSpec<S>> for Field {
+impl TryFrom<RootFieldSpec> for Field {
     type Error = Error;
 
-    fn try_from(root_field_spec: RootFieldSpec<S>) -> Result<Self, Self::Error> {
+    fn try_from(root_field_spec: RootFieldSpec) -> Result<Self, Self::Error> {
         let field_key = root_field_spec.create_key()?;
         Ok(root_field_spec
             .inner
@@ -98,33 +98,27 @@ impl<S: FieldSource> TryFrom<RootFieldSpec<S>> for Field {
 ///
 /// This allows packages to not need to be aware of the [`FieldSource`], which can get rather
 /// complicated.
-pub struct RootFieldSpecCreator<S> {
-    field_source: S,
+pub struct RootFieldSpecCreator {
+    field_source: FieldSource,
 }
 
-impl<S> RootFieldSpecCreator<S> {
+impl RootFieldSpecCreator {
     /// Creates a new `RootFieldSpecCreator` for a given [`FieldSource`].
     ///
     /// # Example
     ///
     /// ```
-    /// use stateful::field::RootFieldSpecCreator;
-    ///
-    /// #[derive(Debug, Clone, PartialEq)]
-    /// pub enum EngineComponent {
-    ///     Engine,
-    ///     Package,
-    /// }
+    /// use stateful::field::{FieldSource, RootFieldSpecCreator};
     ///
     /// # #[allow(unused_variables)]
-    /// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+    /// let rfs_creator = RootFieldSpecCreator::new(FieldSource::Engine);
     /// ```
-    pub const fn new(field_source: S) -> Self {
+    pub const fn new(field_source: FieldSource) -> Self {
         Self { field_source }
     }
 }
 
-impl<S: Clone> RootFieldSpecCreator<S> {
+impl RootFieldSpecCreator {
     /// Creates a [`RootFieldSpec`] of a [`FieldType`] with a given `name` in the provided
     /// [`FieldScope`].
     ///
@@ -136,27 +130,8 @@ impl<S: Clone> RootFieldSpecCreator<S> {
     ///     Result,
     /// };
     ///
-    /// #[derive(Debug, Clone, PartialEq)]
-    /// pub enum EngineComponent {
-    ///     Engine,
-    ///     Package,
-    /// }
-    ///
-    /// impl FieldSource for EngineComponent {
-    ///     // Implementation detail
-    /// #    fn unique_id(&self) -> Result<usize> {
-    /// #        match self {
-    /// #            EngineComponent::Engine => Ok(0),
-    /// #            EngineComponent::Package => Ok(1),
-    /// #        }
-    /// #    }
-    /// #    fn can_guarantee_null(&self) -> bool {
-    /// #        *self == EngineComponent::Engine
-    /// #    }
-    /// }
-    ///
     /// // Create the RootFieldSpecCreator
-    /// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+    /// let rfs_creator = RootFieldSpecCreator::new(FieldSource::Engine);
     ///
     /// // Create a non-nullable `Number` field type
     /// let field_type = FieldType::new(FieldTypeVariant::Number, false);
@@ -171,18 +146,13 @@ impl<S: Clone> RootFieldSpecCreator<S> {
     /// assert_eq!(rfs.inner.name, "my_number");
     /// assert_eq!(rfs.inner.field_type, field_type);
     /// assert_eq!(rfs.scope, FieldScope::Agent);
-    /// assert_eq!(rfs.source, EngineComponent::Engine);
+    /// assert_eq!(rfs.source, FieldSource::Engine);
     /// ```
-    pub fn create(
-        &self,
-        name: String,
-        field_type: FieldType,
-        scope: FieldScope,
-    ) -> RootFieldSpec<S> {
+    pub fn create(&self, name: String, field_type: FieldType, scope: FieldScope) -> RootFieldSpec {
         RootFieldSpec {
             inner: FieldSpec { name, field_type },
             scope,
-            source: self.field_source.clone(),
+            source: self.field_source,
         }
     }
 }

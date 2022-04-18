@@ -1,12 +1,12 @@
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::agent::Agent;
 
 use crate::{
-    datastore::schema::EngineComponent,
     proto::{ExperimentRunTrait, InitialStateName},
     simulation::{
         package::init::{
-            Agent, Arc, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+            Arc, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
             GetWorkerSimStartMsg, MaybeCpuBound, Package as InitPackage, PackageComms,
             PackageCreator, SimRunConfig,
         },
@@ -25,7 +25,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _accessor: FieldSpecMapAccessor<EngineComponent>,
+        _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &config.exp.run.base().project_base.initial_state.name {
             InitialStateName::InitJson => Ok(Box::new(Package {
@@ -48,6 +48,7 @@ impl GetWorkerExpStartMsg for Creator {
         Ok(Value::Null)
     }
 }
+
 pub struct Package {
     initial_state_src: String,
 }

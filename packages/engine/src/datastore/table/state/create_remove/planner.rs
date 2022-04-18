@@ -2,6 +2,7 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
+use stateful::{agent::AgentSchema, proxy::PoolReadProxy};
 
 use crate::{
     config::SimRunConfig,
@@ -11,9 +12,7 @@ use crate::{
             AgentBatch,
         },
         error::Result,
-        schema::state::AgentSchema,
         table::{
-            pool::proxy::PoolReadProxy,
             proxy::StateReadProxy,
             state::create_remove::{
                 action::{CreateActions, ExistingGroupBufferActions},

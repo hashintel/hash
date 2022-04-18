@@ -110,7 +110,9 @@ test("user can create page", async ({ page }) => {
     .nth(2);
   await blockChanger.click();
 
-  await blockChanger
+  const blockContextMenu = page.locator('[data-testid="block-context-menu"]');
+
+  await blockContextMenu
     .locator('[placeholder="Load Block from URL..."]')
     .fill("https://blockprotocol.org/blocks/@shinypb/emoji-trading-cards");
 
@@ -121,10 +123,10 @@ test("user can create page", async ({ page }) => {
    *
    * @see https://app.asana.com/0/1201095311341924/1202033760322934/f
    */
-  await blockChanger.locator("text=Load Block").click();
+  await blockContextMenu.locator("text=Load Block").click();
 
   await expect(
-    blockChanger.locator('[placeholder="Load Block from URL..."]'),
+    blockContextMenu.locator('[placeholder="Load Block from URL..."]'),
   ).toHaveCount(0, { timeout: 1000 });
 
   await expect(

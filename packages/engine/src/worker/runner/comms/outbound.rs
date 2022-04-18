@@ -5,11 +5,11 @@ use serde::{Deserialize, Serialize};
 use tracing::Span;
 
 use crate::{
-    hash_types::worker,
     language::Language,
     proto::SimulationShortId,
     types::TaskId,
     worker::{
+        self,
         runner::comms::{SentTask, TargetedRunnerTaskMsg},
         Error, Result,
     },

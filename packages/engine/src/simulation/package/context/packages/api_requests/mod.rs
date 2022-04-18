@@ -7,14 +7,20 @@ use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
-use stateful::field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
+use stateful::{
+    field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
+};
 use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
-    config::{ExperimentConfig, Globals},
-    datastore::{batch::iterators, schema::EngineComponent, table::pool::BatchPool},
+    config::ExperimentConfig,
+    datastore::{
+        batch::iterators,
+        table::pool::{message, BatchPool},
+    },
     simulation::{
         comms::package::PackageComms,
         package::context::{
@@ -40,8 +46,8 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _state_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
-        context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+        _state_field_spec_accessor: FieldSpecMapAccessor,
+        context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let custom_message_handlers = custom_message_handlers_from_globals(&config.sim.globals)?;
         Ok(Box::new(ApiRequests {
@@ -54,8 +60,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
-    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![fields::get_api_responses_field_spec(
             field_spec_creator,
         )?])
@@ -70,7 +76,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 struct ApiRequests {
     custom_message_handlers: Option<Vec<String>>,
-    context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+    context_field_spec_accessor: FieldSpecMapAccessor,
 }
 
 impl MaybeCpuBound for ApiRequests {
@@ -201,7 +207,7 @@ async fn build_api_response_maps(
     let mut futs = FuturesOrdered::new();
     {
         let message_proxies = &snapshot.state.message_pool.read_proxies()?;
-        let reader = message_proxies.get_reader()?;
+        let reader = message::get_reader(message_proxies)?;
 
         handlers.iter().try_for_each::<_, Result<()>>(|handler| {
             let messages = snapshot.message_map.get_msg_refs(handler);

@@ -963,6 +963,7 @@ dependencies = [
  "flatbuffers_gen",
  "float-cmp",
  "futures",
+ "glob",
  "http-types",
  "kdtree",
  "lazy_static",
@@ -2161,9 +2162,15 @@ name = "stateful"
 version = "0.0.0"
 dependencies = [
  "arrow",
+ "lazy_static",
  "memory",
+ "parking_lot",
+ "serde",
+ "serde-aux",
+ "serde_json",
  "thiserror",
  "tracing",
+ "uuid",
 ]
 
 [[package]]

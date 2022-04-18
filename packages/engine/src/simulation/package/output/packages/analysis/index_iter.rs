@@ -5,12 +5,9 @@ use float_cmp::approx_eq;
 use stateful::field::{FieldSpecMapAccessor, FieldTypeVariant};
 
 use crate::{
-    datastore::{
-        batch::iterators::agent::{
-            bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols,
-            str_iter,
-        },
-        schema::EngineComponent,
+    datastore::batch::iterators::agent::{
+        bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols,
+        str_iter,
     },
     simulation::package::output::packages::analysis::{
         analyzer::{
@@ -25,7 +22,7 @@ use crate::{
 
 fn index_iterator_f64_filter(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     float: f64,
@@ -78,7 +75,7 @@ fn index_iterator_f64_filter(
 
 fn index_iterator_serialized_f64_filter(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     float: f64,
@@ -185,7 +182,7 @@ fn index_iterator_serialized_f64_filter(
 
 fn index_iterator_null_filter(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
 ) -> Result<OutputRunnerCreator> {
@@ -204,7 +201,7 @@ fn index_iterator_null_filter(
 
 fn index_iterator_boolean_filter(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     boolean: bool,
@@ -224,7 +221,7 @@ fn index_iterator_boolean_filter(
 
 fn index_iterator_serialized_null_filter(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
 ) -> Result<OutputRunnerCreator> {
@@ -251,7 +248,7 @@ fn index_iterator_serialized_null_filter(
 
 fn index_iterator_serialized_boolean_filter(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     boolean: bool,
@@ -297,7 +294,7 @@ fn index_iterator_serialized_boolean_filter(
 
 fn index_iterator_string_filter(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     string: String,
@@ -362,7 +359,7 @@ fn index_iterator_string_filter(
 
 fn index_iterator_serialized_string_filter(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     string: String,
@@ -481,7 +478,7 @@ fn index_iterator_serialized_string_filter(
 
 fn index_iterator_serialized_filter(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     value: &serde_json::Value,
@@ -608,7 +605,7 @@ fn f64_iter_aggregate(
 
 pub(super) fn index_iterator_filter_creator(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     value: &serde_json::Value,
@@ -690,7 +687,7 @@ pub(super) fn index_iterator_filter_creator(
 }
 
 fn default_first_getter(
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
     first_field: &str,
 ) -> Result<ValueIteratorCreator> {
     let data_type = DataType::from(
@@ -712,7 +709,7 @@ fn default_first_getter(
 
 pub(super) fn index_iterator_mapper_creator(
     operations: &[AnalysisOperationRepr],
-    accessor: &FieldSpecMapAccessor<EngineComponent>,
+    accessor: &FieldSpecMapAccessor,
 ) -> Result<OutputRunnerCreator> {
     // Aggregator logic:
     // All NaNs, Infs and -Infs get mapped to null

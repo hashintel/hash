@@ -8,24 +8,21 @@ use std::{collections::HashSet, sync::Arc};
 
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use stateful::field::RootFieldKey;
+use stateful::{
+    agent::{Agent, AgentSchema},
+    field::RootFieldKey,
+    message::payload::OutboundRemoveAgentData as RemoveAgentPayload,
+    proxy::PoolReadProxy,
+};
 use uuid::Uuid;
 
 use crate::{
     datastore::{
-        arrow::{
-            batch_conversion::IntoRecordBatch,
-            message::{CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
-        },
+        arrow::batch_conversion::IntoRecordBatch,
         batch::MessageBatch,
-        schema::state::AgentSchema,
-        table::{
-            pool::proxy::PoolReadProxy, references::MessageMap,
-            state::create_remove::ProcessedCommands,
-        },
+        table::{pool::message, references::MessageMap, state::create_remove::ProcessedCommands},
         UUID_V4_LEN,
     },
-    hash_types::{message::RemoveAgentPayload, Agent},
     simulation::{Error, Result},
 };
 
@@ -154,9 +151,9 @@ impl Commands {
     /// commands.
     pub fn from_hash_messages(
         message_map: &MessageMap,
-        message_proxies: PoolReadProxy<MessageBatch>,
+        message_proxies: &PoolReadProxy<MessageBatch>,
     ) -> Result<Commands> {
-        let message_reader = message_proxies.get_reader()?;
+        let message_reader = message::get_reader(message_proxies)?;
 
         let mut refs = Vec::with_capacity(HASH.len());
         for hash_recipient in &HASH {
@@ -172,11 +169,17 @@ impl Commands {
                     message_reader
                         .type_iter(refs)
                         .map(|type_str| match type_str {
-                            CREATE_AGENT => Ok(HashMessageType::Create),
-                            REMOVE_AGENT => Ok(HashMessageType::Remove),
+                            stateful::message::payload::OutboundCreateAgent::KIND => {
+                                Ok(HashMessageType::Create)
+                            }
+                            stateful::message::payload::OutboundRemoveAgent::KIND => {
+                                Ok(HashMessageType::Remove)
+                            }
                             // TODO: When implementing "mapbox" don't forget to update module docs.
                             "mapbox" => todo!(),
-                            STOP_SIM => Ok(HashMessageType::Stop),
+                            stateful::message::payload::OutboundStopSim::KIND => {
+                                Ok(HashMessageType::Stop)
+                            }
                             _ => Err(Error::UnexpectedSystemMessage {
                                 message_type: type_str.into(),
                             }),

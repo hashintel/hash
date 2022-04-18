@@ -1,11 +1,11 @@
 use std::{collections::HashSet, sync::Arc};
 
 use arrow::record_batch::RecordBatch;
+use stateful::agent::AgentSchema;
 
 use crate::{
     datastore::{
         error::{Error, Result},
-        schema::state::AgentSchema,
         UUID_V4_LEN,
     },
     simulation::command::CreateRemoveCommands,

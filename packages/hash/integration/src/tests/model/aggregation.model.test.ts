@@ -92,10 +92,7 @@ describe("Aggregation model class ", () => {
 
     expect(aggregation.sourceAccountId).toBe(source.accountId);
     expect(aggregation.sourceEntityId).toBe(source.entityId);
-    expect(aggregation.sourceEntityVersionIds.has(source.entityVersionId)).toBe(
-      true,
-    );
-    expect(aggregation.createdByAccountId).toBe(existingUser.entityId);
+    expect(aggregation.appliedToSourceByAccountId).toBe(existingUser.entityId);
   });
 
   it("results method retrieves aggregation results", async () => {
@@ -180,6 +177,7 @@ describe("Aggregation model class ", () => {
 
     await aggregation.updateOperation(db, {
       operation: updatedOperation,
+      updatedByAccountId: existingUser.accountId,
     });
 
     const refetchedSourceAggregations = await source.getAggregations(db);
@@ -188,11 +186,13 @@ describe("Aggregation model class ", () => {
 
     const refetchedAggregation = refetchedSourceAggregations[0];
 
-    expect(refetchedAggregation!.createdAt).toEqual(aggregation.createdAt);
+    expect(refetchedAggregation!.appliedToSourceByAccountId).toEqual(
+      aggregation.appliedToSourceByAccountId,
+    );
     expect(refetchedAggregation!.operation).toEqual(updatedOperation);
   });
 
-  it("delete method deletes an aggregation with a non-versioned source entity", async () => {
+  it("delete method deletes an aggregation with a versioned source entity", async () => {
     const accountId = existingUser.accountId;
     const createdByAccountId = existingUser.entityId;
 
@@ -204,7 +204,7 @@ describe("Aggregation model class ", () => {
       properties: {},
     });
 
-    const entityAVersionId1 = entityA.entityVersionId;
+    const entityAVersion1Timestamp = entityA.updatedAt;
 
     const aggregation = await Aggregation.create(db, {
       stringifiedPath: "$.test",
@@ -217,36 +217,20 @@ describe("Aggregation model class ", () => {
 
     await entityA.refetchLatestVersion(db);
 
-    const entityAVersionId2 = entityA.entityVersionId;
+    const entityAVersion2Timestamp = entityA.updatedAt;
 
-    expect(entityAVersionId1).not.toBe(entityAVersionId2);
+    expect(entityAVersion1Timestamp).not.toBe(entityAVersion2Timestamp);
 
-    const entityAVersion1 = (await Entity.getEntity(db, {
-      accountId: entityA.accountId,
-      entityVersionId: entityAVersionId1,
-    }))!;
+    const entityAVersion1Aggregations = await entityA.getAggregations(db, {
+      activeAt: entityAVersion1Timestamp,
+    });
 
-    expect(entityAVersion1).not.toBe(null);
+    expect(entityAVersion1Aggregations).toHaveLength(0);
 
-    const entityAVersionId1Aggregations = await entityAVersion1.getAggregations(
-      db,
-    );
+    const entityAVersion2Aggregations = await entityA.getAggregations(db);
 
-    expect(entityAVersionId1Aggregations).toHaveLength(0);
-
-    const entityAVersion2 = (await Entity.getEntity(db, {
-      accountId: entityA.accountId,
-      entityVersionId: entityAVersionId2,
-    }))!;
-
-    expect(entityAVersion2).not.toBe(null);
-
-    const entityAVersionId2Aggregations = await entityAVersion2.getAggregations(
-      db,
-    );
-
-    expect(entityAVersionId2Aggregations).toHaveLength(1);
-    expect(entityAVersionId2Aggregations[0]).toEqual(aggregation);
+    expect(entityAVersion2Aggregations).toHaveLength(1);
+    expect(entityAVersion2Aggregations[0]).toEqual(aggregation);
   });
 
   it("create/updateOperation/delete methods create different versions of a versioned source entity", async () => {
@@ -273,7 +257,7 @@ describe("Aggregation model class ", () => {
 
     const sourceVersionId2 = source.entityVersionId;
 
-    expect(sourceVersionId1).not.toBe(sourceVersionId2);
+    expect(sourceVersionId1).toBe(sourceVersionId2);
 
     const sourceVersion2Aggregations = await source.getAggregations(db);
 
@@ -300,7 +284,7 @@ describe("Aggregation model class ", () => {
 
     expect(sourceVersion3Aggregations).toHaveLength(1);
 
-    // expect(sourceVersion3Aggregations[0]).toEqual(aggregation);
+    expect(sourceVersion3Aggregations[0]).toEqual(aggregation);
 
     // Update the aggregation operation
 
@@ -312,19 +296,20 @@ describe("Aggregation model class ", () => {
 
     await aggregation.updateOperation(db, {
       operation: updatedOperation,
+      updatedByAccountId: existingUser.accountId,
     });
 
     await source.refetchLatestVersion(db);
 
     const sourceVersionId4 = source.entityVersionId;
 
-    expect(sourceVersionId4).not.toBe(sourceVersionId3);
+    expect(sourceVersionId4).toBe(sourceVersionId3);
 
     const sourceVersion4Aggregations = await source.getAggregations(db);
 
     expect(sourceVersion4Aggregations).toHaveLength(1);
 
-    // expect(sourceVersion4Aggregations[0]).toEqual(aggregation);
+    expect(sourceVersion4Aggregations[0]).toEqual(aggregation);
 
     // Delete the aggregation
 
@@ -336,7 +321,7 @@ describe("Aggregation model class ", () => {
 
     const sourceVersionId5 = source.entityVersionId;
 
-    expect(sourceVersionId5).not.toBe(sourceVersionId4);
+    expect(sourceVersionId5).toBe(sourceVersionId4);
 
     const sourceVersion5Aggregations = await source.getAggregations(db);
 
@@ -344,7 +329,9 @@ describe("Aggregation model class ", () => {
 
     // Let's check the source entity has the correct number of versions
 
-    expect(await source.getHistory(db)).toHaveLength(5);
+    expect(await source.getHistory(db)).toHaveLength(2);
+
+    /** @todo: check the source entity has the correct number of implied versions */
   });
 });
 

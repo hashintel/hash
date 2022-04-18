@@ -6,12 +6,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 pub use packages::{InitTask, InitTaskMessage, Name, PACKAGE_CREATORS};
-use stateful::field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator};
+use stateful::{
+    agent::Agent,
+    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    globals::Globals,
+};
 
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
-    datastore::schema::EngineComponent,
-    hash_types::Agent,
+    config::{ExperimentConfig, SimRunConfig},
     simulation::{
         comms::package::PackageComms,
         package::{
@@ -39,7 +41,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         config: &Arc<SimRunConfig>,
         system: PackageComms,
-        accessor: FieldSpecMapAccessor<EngineComponent>,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
     fn dependencies() -> Dependencies
@@ -53,8 +55,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_map_builder: &RootFieldSpecCreator<EngineComponent>,
-    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+        _field_spec_map_builder: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![])
     }
 }

@@ -4,6 +4,7 @@ use hash_engine_lib::{
     env::env,
     experiment::controller::run::run_experiment,
     fetch::FetchDependencies,
+    output::buffer::{cleanup_experiment, EngineExitStatus},
     proto::{ExperimentRun, ExperimentRunTrait},
     utils::init_logger,
 };
@@ -37,7 +38,17 @@ async fn main() -> Result<()> {
         config.run.base().name
     );
 
-    run_experiment(config, env)
+    let experiment_result = run_experiment(config, env)
         .await
-        .wrap_err("Could not run experiment")
+        .wrap_err("Could not run experiment");
+
+    let exit_status = if experiment_result.is_ok() {
+        EngineExitStatus::Success
+    } else {
+        EngineExitStatus::Error
+    };
+
+    cleanup_experiment(&args.experiment_id, exit_status);
+
+    experiment_result
 }
