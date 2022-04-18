@@ -96,7 +96,7 @@ impl<'s> JsPackage<'s> {
             let mut try_catch = v8::TryCatch::new(scope);
             let module_map = try_catch
                 .get_slot::<Rc<RefCell<ModuleMap>>>()
-                .unwrap()
+                .expect("ModuleMap was not inserted in an isolate slot")
                 .clone();
             let pkg = match ModuleMap::import_module(module_map, &mut try_catch, &path)? {
                 Some(s) => s,
@@ -114,7 +114,7 @@ impl<'s> JsPackage<'s> {
 
             pkg.get_module_namespace()
                 .to_object(&mut try_catch)
-                .unwrap()
+                .expect("Module is not instantiated")
         };
 
         let fn_names = ["start_experiment", "start_sim", "run_task"];
@@ -170,6 +170,7 @@ fn read_file(path: &str) -> Result<String> {
     fs::read_to_string(path).map_err(|err| Error::IO(path.into(), err))
 }
 
+/// Cache module to not evaluate them twice
 struct ModuleMap(HashMap<String, v8::Global<v8::Module>>);
 
 impl ModuleMap {
@@ -288,7 +289,10 @@ pub fn module_resolve_callback<'s>(
     let mut scope = unsafe { v8::CallbackScope::new(context) };
     let specifier = specifier.to_rust_string_lossy(&mut scope);
     ModuleMap::import_module(
-        scope.get_slot::<Rc<RefCell<ModuleMap>>>().unwrap().clone(),
+        scope
+            .get_slot::<Rc<RefCell<ModuleMap>>>()
+            .expect("ModuleMap was not inserted in an isolate slot")
+            .clone(),
         &mut scope,
         &specifier,
     )
@@ -298,7 +302,10 @@ pub fn module_resolve_callback<'s>(
 
 impl<'s> Embedded<'s> {
     fn import(scope: &mut v8::HandleScope<'s>) -> Result<Self> {
-        let module_map = scope.get_slot::<Rc<RefCell<ModuleMap>>>().unwrap().clone();
+        let module_map = scope
+            .get_slot::<Rc<RefCell<ModuleMap>>>()
+            .expect("ModuleMap was not inserted in an isolate slot")
+            .clone();
         assert!(
             ModuleMap::import_module(
                 module_map.clone(),
@@ -348,7 +355,7 @@ impl<'s> Embedded<'s> {
             .is_some()
         );
         let runner = match ModuleMap::import_module(
-            module_map.clone(),
+            module_map,
             scope,
             "./src/worker/runner/javascript/runner.js",
         )? {
@@ -358,7 +365,10 @@ impl<'s> Embedded<'s> {
 
         // How to get a function from a module
         // https://chromium.googlesource.com/v8/v8/+/refs/heads/lkgr/test/cctest/test-modules.cc#625
-        let namespace = runner.get_module_namespace().to_object(scope).unwrap();
+        let namespace = runner
+            .get_module_namespace()
+            .to_object(scope)
+            .expect("Module is not instantiated");
 
         let [
             start_experiment,
@@ -1975,6 +1985,11 @@ fn run_experiment(
             let context = v8::Context::new(&mut handle_scope);
             let mut context_scope = v8::ContextScope::new(&mut handle_scope, context);
 
+            // We use an `Rc<RefCell>` here because `ContextScope` is borrowed as long as we access
+            // this value and most call look like:
+            // `scope.get_slot::<ModuleMap>().import_module(&mut scope)`
+            // `scope` would be borrowed twice which is not possible. By using `Rc<RefCell>` we can
+            // clone the `Rc` ending the first borrow.
             let module_map = Rc::new(RefCell::new(ModuleMap::new()));
 
             context_scope.set_slot(module_map);
