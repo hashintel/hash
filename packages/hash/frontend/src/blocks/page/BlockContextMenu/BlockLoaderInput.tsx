@@ -1,10 +1,10 @@
+import { Box, Collapse } from "@mui/material";
 import React, { useState, useRef, FormEvent } from "react";
 import { unstable_batchedUpdates } from "react-dom";
-import { tw } from "twind";
 
-import { useBlockView } from "../../blocks/page/BlockViewContext";
-import { useUserBlocks } from "../../blocks/userBlocks";
-import { Button } from "../../shared/ui";
+import { useBlockView } from "../BlockViewContext";
+import { useUserBlocks } from "../../userBlocks";
+import { Button, TextField } from "../../../shared/ui";
 
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
@@ -70,17 +70,28 @@ export const BlockLoaderInput: React.VFC = () => {
   };
 
   return (
-    <form onSubmit={loadBlockFromUrl}>
-      <input
-        ref={blockUrlRef}
+    <Box
+      component="form"
+      display="flex"
+      flexDirection="column"
+      onSubmit={loadBlockFromUrl}
+    >
+      <TextField
+        size="xs"
         type="url"
-        value={blockUrl}
-        onChange={(event) => setBlockUrl(event.target.value)}
         placeholder="Load Block from URL..."
-        className={tw`mt-2 block w-full px-2 py-1 bg-gray-50 border-1 text-sm rounded-sm `}
         required
+        value={blockUrl}
+        sx={{ flex: 1 }}
+        InputProps={{
+          inputRef: blockUrlRef,
+        }}
+        onChange={(event) => setBlockUrl(event.target.value)}
+        onKeyDown={(evt) => {
+          evt.stopPropagation();
+        }}
       />
-      {blockUrl && (
+      <Collapse in={!!blockUrl}>
         <Button
           size="xs"
           sx={{
@@ -98,7 +109,7 @@ export const BlockLoaderInput: React.VFC = () => {
             ? "An error occurred"
             : "Load Block"}
         </Button>
-      )}
-    </form>
+      </Collapse>
+    </Box>
   );
 };
