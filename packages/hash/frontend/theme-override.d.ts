@@ -185,6 +185,7 @@ declare module "@mui/lab/TreeItem" {
 
 declare module "@mui/material/TextField" {
   interface TextFieldPropsSizeOverrides {
+    xs: true;
     small: true;
     medium: true;
     large: true;
@@ -193,6 +194,7 @@ declare module "@mui/material/TextField" {
 
 declare module "@mui/material/InputBase" {
   interface InputBasePropsSizeOverrides {
+    xs: true;
     small: true;
     medium: true;
     large: true;
