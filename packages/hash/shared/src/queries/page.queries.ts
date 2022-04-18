@@ -1,18 +1,5 @@
 import { gql } from "@apollo/client";
-import { linkedAggregationsFragment } from "./entity.queries";
-
-const linkFieldsFragment = gql`
-  fragment LinkFields on Link {
-    linkId
-    path
-    index
-    sourceAccountId
-    sourceEntityId
-    destinationAccountId
-    destinationEntityId
-    destinationEntityVersionId
-  }
-`;
+import { entityFieldsFragment } from "./entity.queries";
 
 const blockFieldsFragment = gql`
   fragment BlockFields on Block {
@@ -30,39 +17,11 @@ const blockFieldsFragment = gql`
       __typename
       componentId
       entity {
-        __typename
-        id
-        entityVersionId
-        entityId
-        accountId
-        updatedAt
-        createdAt
-        entityVersionCreatedAt
-        createdByAccountId
-        entityTypeId
-        properties
-        linkGroups {
-          links {
-            ...LinkFields
-          }
-          sourceEntityId
-          sourceEntityVersionId
-          path
-        }
-        linkedEntities {
-          accountId
-          entityId
-          entityTypeId
-          properties
-        }
-        linkedAggregations {
-          ...LinkedAggregationsFields
-        }
+        ...EntityFields
       }
     }
   }
-  ${linkFieldsFragment}
-  ${linkedAggregationsFragment}
+  ${entityFieldsFragment}
 `;
 
 const pageFieldsFragment = gql`

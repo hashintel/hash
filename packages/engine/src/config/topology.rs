@@ -5,8 +5,9 @@ use serde::{
     Deserialize,
 };
 use serde_json::Value;
+use stateful::globals::Globals;
 
-use crate::config::{globals::Globals, Result};
+use crate::config::Result;
 
 // TODO: think about creating a system of ConfigProviders whereby packages can depend on them
 //   and decrease the amount of assumptions the core engine has to make, for example position

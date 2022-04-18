@@ -1,7 +1,6 @@
 import {
   blockComponentRequiresText,
   BlockMeta,
-  componentIdToUrl,
 } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
@@ -125,7 +124,6 @@ export class ComponentView implements NodeView<Schema> {
         .resolve(this.getPos())
         .node(2).attrs.draftId;
 
-      const mappedUrl = componentIdToUrl(this.componentId);
       const entity = this.store.draft[blockDraftId]!;
 
       // @todo handle entity id not being defined
@@ -151,7 +149,7 @@ export class ComponentView implements NodeView<Schema> {
           fallback={(props) => <ErrorBlock {...props} onRetry={onRetry} />}
         >
           <BlockLoader
-            sourceUrl={`${mappedUrl}/${this.sourceName}`}
+            sourceUrl={this.sourceName}
             blockEntityId={entityId}
             shouldSandbox={!this.editable}
             editableRef={this.editable ? this.editableRef : undefined}

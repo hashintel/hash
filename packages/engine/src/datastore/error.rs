@@ -1,10 +1,8 @@
 use std::fmt;
 
 use arrow::{datatypes::DataType, error::ArrowError};
-use stateful::field::RootFieldKey;
+use stateful::{agent::AgentStateField, field::RootFieldKey};
 use thiserror::Error as ThisError;
-
-use crate::hash_types::{self, state::AgentStateField};
 
 #[derive(Debug)]
 pub enum SupportedType {
@@ -38,12 +36,6 @@ pub enum Error {
     #[error("Stateful error: {0}")]
     Stateful(#[from] stateful::Error),
 
-    #[error("Couldn't acquire shared lock on object")]
-    ProxySharedLock,
-
-    #[error("Couldn't acquire exclusive lock on object")]
-    ProxyExclusiveLock,
-
     #[error("Arrow Error: {0}")]
     Arrow(#[from] ArrowError),
 
@@ -64,9 +56,6 @@ pub enum Error {
 
     #[error("Failed to interpret a sequence of u8's (bytes) as a string: {0}")]
     Utf8(#[from] std::str::Utf8Error),
-
-    #[error("Simulation error: {0}")]
-    Simulation(#[from] hash_types::Error),
 
     #[error("Shared memory error: {0}")]
     SharedMemory(#[from] shared_memory::ShmemError),

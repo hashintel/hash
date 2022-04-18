@@ -1,54 +1,8 @@
-use std::cmp::Ordering;
-
-use stateful::{
-    field::{
-        FieldScope, FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType,
-        RootFieldSpec,
-    },
-    Error, Result,
-};
-
-use crate::{hash_types::state::AgentStateField, simulation::package::name::PackageName};
+use stateful::field::{FieldSpec, FieldType, FieldTypeVariant, PresetFieldType};
 
 pub mod built_in;
 
 pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
-
-/// Defines the source from which a Field was specified, useful for resolving clashes
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum EngineComponent {
-    Engine,
-    Package(PackageName),
-}
-
-impl FieldSource for EngineComponent {
-    fn unique_id(&self) -> Result<usize> {
-        match self {
-            EngineComponent::Engine => Ok(0),
-            EngineComponent::Package(package_name) => Ok(package_name
-                .get_id()
-                .map_err(|err| stateful::Error::from(err.to_string()))?
-                .as_usize()),
-        }
-    }
-
-    fn can_guarantee_null(&self) -> bool {
-        *self == EngineComponent::Engine
-    }
-}
-
-impl PartialOrd for EngineComponent {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // TODO: We only do a partial ordering as we currently don't have a defined precedence of
-        //   packages. When `PartialOrd` for `PackageName` is implemented, derive it instead.
-        match (self, other) {
-            (Self::Engine, Self::Engine) => Some(Ordering::Equal),
-            (Self::Engine, Self::Package(_)) => Some(Ordering::Greater),
-            (Self::Package(_), Self::Engine) => Some(Ordering::Less),
-            (Self::Package(_), Self::Package(_)) => None,
-        }
-    }
-}
 
 /// This key is required for accessing neighbors' outboxes (new inboxes).
 /// Since the neighbor agent state is always the previous step state of the
@@ -78,79 +32,25 @@ pub fn last_state_index_key() -> FieldSpec {
     }
 }
 
-impl TryFrom<AgentStateField> for RootFieldSpec<EngineComponent> {
-    type Error = Error;
-
-    fn try_from(field: AgentStateField) -> Result<Self, Self::Error> {
-        Ok(Self {
-            inner: FieldSpec {
-                name: field.name().into(),
-                field_type: field.try_into()?,
-            },
-            scope: FieldScope::Agent,
-            source: EngineComponent::Engine,
-        })
-    }
-}
-
-// TODO: remove dependency on legacy `AgentStateField` (contains references to package fields)
-impl TryFrom<AgentStateField> for FieldType {
-    type Error = Error;
-
-    fn try_from(field: AgentStateField) -> Result<Self, Self::Error> {
-        let name = field.name();
-
-        let field_type = match field {
-            AgentStateField::AgentId => {
-                FieldType::new(FieldTypeVariant::Preset(PresetFieldType::Id), false)
-            }
-            AgentStateField::AgentName | AgentStateField::Shape | AgentStateField::Color => {
-                FieldType::new(FieldTypeVariant::String, true)
-            }
-            AgentStateField::Position
-            | AgentStateField::Direction
-            | AgentStateField::Scale
-            | AgentStateField::Velocity
-            | AgentStateField::RGB => FieldType::new(
-                FieldTypeVariant::FixedLengthArray {
-                    field_type: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
-                    len: 3,
-                },
-                true,
-            ),
-            AgentStateField::Hidden => {
-                // TODO: diff w/ `AgentStateField`
-
-                FieldType::new(FieldTypeVariant::Boolean, false)
-            }
-            AgentStateField::Height => FieldType::new(FieldTypeVariant::Number, true),
-            // Note `Messages` and `Extra` and 'BehaviorId' are not included in here:
-            // 1) `Messages` as they are in a separate batch
-            // 2) `Extra` as they are not yet implemented
-            // 3) 'BehaviorId' as it is only used in hash_engine
-            AgentStateField::Extra(_) | AgentStateField::Messages => {
-                return Err(Error::from(format!(
-                    "Cannot match built in field with name {}",
-                    name
-                )));
-            }
-        };
-        Ok(field_type)
-    }
-}
-
 // TODO: Expand unit tests to cover more cases, such as the AgentScopedFieldKeyClash branch, and
 // possibly split across modules
 #[cfg(test)]
 pub mod tests {
-    use stateful::field::{FieldSpecMap, RootFieldSpecCreator};
+    use stateful::{
+        agent::AgentStateField,
+        field::{FieldScope, FieldSource, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
+        Error, Result,
+    };
 
     use super::*;
-    use crate::simulation::package::creator::get_base_agent_fields;
+    use crate::{
+        datastore::test_utils::root_field_spec_from_agent_field,
+        simulation::package::creator::get_base_agent_fields,
+    };
 
     #[test]
     fn name_collision_built_in() {
-        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -169,7 +69,7 @@ pub mod tests {
 
     #[test]
     fn name_collision_custom() {
-        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -196,7 +96,7 @@ pub mod tests {
 
     #[test]
     fn unchanged_size_built_in() {
-        let _field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+        let _field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -206,7 +106,7 @@ pub mod tests {
         let len_before = field_spec_map.len();
 
         field_spec_map
-            .try_extend([AgentStateField::AgentId.try_into().unwrap()])
+            .try_extend([root_field_spec_from_agent_field(AgentStateField::AgentId).unwrap()])
             .unwrap();
 
         assert_eq!(len_before, field_spec_map.len());
@@ -214,7 +114,7 @@ pub mod tests {
 
     #[test]
     fn unchanged_size_custom() {
-        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -263,7 +163,7 @@ pub mod tests {
                 ),
             },
             scope: FieldScope::Private,
-            source: EngineComponent::Engine,
+            source: FieldSource::Engine,
         }])?;
 
         keys.create_arrow_schema()?;

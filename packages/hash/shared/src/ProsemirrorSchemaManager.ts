@@ -19,6 +19,7 @@ import {
   createEntityStore,
   draftEntityForEntityId,
   EntityStore,
+  EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
@@ -27,6 +28,7 @@ import {
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
   newDraftId,
+  draftIdForEntity,
 } from "./entityStorePlugin";
 import {
   childrenForTextEntity,
@@ -263,6 +265,37 @@ export class ProsemirrorSchemaManager {
   }
 
   /**
+   *  This assumes the block info has been fetched and the
+   *  entities (block entity and child entity)
+   *  @todo this only works for non-text blocks,
+   *  It should be updated to handle text blocks when
+   *  https://github.com/hashintel/hash/pull/490 is in
+   */
+  createLocalBlock({
+    targetComponentId,
+    draftBlockId,
+    draftChildEntityId,
+    textContent = [],
+  }: {
+    targetComponentId: string;
+    draftBlockId?: string | null;
+    draftChildEntityId?: string | null;
+    textContent?: ProsemirrorNode<Schema>[];
+  }) {
+    return this.schema.nodes.block!.create({}, [
+      this.schema.nodes.entity!.create(
+        { draftId: draftBlockId },
+        this.schema.nodes.entity!.create(
+          {
+            draftId: draftChildEntityId,
+          },
+          [this.schema.nodes[targetComponentId]!.create({}, textContent)],
+        ),
+      ),
+    ]);
+  }
+
+  /**
    * Creating a new type of block in prosemirror, without necessarily having
    * requested the block metadata yet.
    */
@@ -329,19 +362,13 @@ export class ProsemirrorSchemaManager {
        * @todo arguably this doesn't need to be here – remove it if possible
        *   when working on switching blocks
        */
-      return this.schema.nodes.block!.create({}, [
-        this.schema.nodes.entity!.create(
-          { draftId: draftBlockId },
-          this.schema.nodes.entity!.create(
-            {
-              draftId: isDraftBlockEntity(blockEntity)
-                ? blockEntity.properties.entity.draftId
-                : null,
-            },
-            [this.schema.nodes[targetComponentId]!.create({}, [])],
-          ),
-        ),
-      ]);
+      return this.createLocalBlock({
+        targetComponentId,
+        draftBlockId,
+        draftChildEntityId: isDraftBlockEntity(blockEntity)
+          ? blockEntity.properties.entity.draftId
+          : null,
+      });
     }
   }
 
@@ -565,6 +592,67 @@ export class ProsemirrorSchemaManager {
     );
 
     return [tr, newNode, meta] as const;
+  }
+
+  /**
+   * This handles changing the block's data (blockEntity.properties.entity)
+   * to point to the targetEntity and updating the prosemirror tree to render
+   * the block with updated content
+   */
+  updateBlockData(
+    entityId: string,
+    targetEntity: EntityStoreType,
+    pos: number,
+  ) {
+    if (!this.view) {
+      throw new Error("Cannot trigger updateBlock without view");
+    }
+
+    const { tr } = this.view.state;
+    const entityStore = entityStorePluginStateFromTransaction(
+      tr,
+      this.view.state,
+    ).store;
+
+    const blockEntity = entityId ? entityStore.saved[entityId] : null;
+    const blockData = isBlockEntity(blockEntity)
+      ? blockEntity.properties.entity
+      : null;
+
+    if (!isBlockEntity(blockEntity) || !blockData) {
+      throw new Error("Can only update data of a BlockEntity");
+    }
+
+    // If the target entity is the same as the block's child entity
+    // we don't need to do anything
+    if (targetEntity.entityId === blockData.entityId) {
+      return;
+    }
+
+    addEntityStoreAction(this.view.state, tr, {
+      type: "updateBlockEntityProperties",
+      payload: {
+        targetEntity,
+        draftId: draftIdForEntity(blockEntity.entityId),
+      },
+    });
+
+    const updatedStore = entityStorePluginStateFromTransaction(
+      tr,
+      this.view.state,
+    ).store;
+
+    const newBlockNode = this.createLocalBlock({
+      targetComponentId: blockEntity.properties.componentId,
+      draftBlockId: draftIdForEntity(blockEntity.entityId),
+      draftChildEntityId: draftEntityForEntityId(
+        updatedStore.draft,
+        targetEntity.entityId,
+      )?.draftId,
+    });
+
+    tr.replaceRangeWith(pos, pos + newBlockNode.nodeSize, newBlockNode);
+    this.view.dispatch(tr);
   }
 
   private async createNewDraftBlock(

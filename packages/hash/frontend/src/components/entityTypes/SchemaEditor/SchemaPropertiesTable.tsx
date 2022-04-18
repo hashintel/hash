@@ -1,8 +1,8 @@
 import React, { FormEvent, useState, VoidFunctionComponent } from "react";
 import { tw } from "twind";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { SchemaSelectElementType } from "./SchemaEditor";
 import { SchemaPropertyRow } from "./SchemaPropertyRow";
-import { JsonSchema } from "../../../lib/json-utils";
 import { TextInputOrDisplay } from "./Inputs";
 import { SchemaEditorDispatcher } from "./schemaEditorReducer";
 import { Button } from "../../../shared/ui";

@@ -14,7 +14,7 @@ export const updateLinkedAggregationOperation: Resolver<
 > = async (
   _,
   { sourceAccountId, sourceEntityId, path, updatedOperation },
-  { dataSources },
+  { dataSources, user },
 ) =>
   dataSources.db.transaction(async (client) => {
     const source = await Entity.getEntityLatestVersion(client, {
@@ -27,7 +27,7 @@ export const updateLinkedAggregationOperation: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const aggregation = await source.getAggregation(client, {
+    const aggregation = await source.getAggregationByPath(client, {
       stringifiedPath: path,
     });
 
@@ -44,6 +44,7 @@ export const updateLinkedAggregationOperation: Resolver<
         itemsPerPage: updatedOperation.itemsPerPage ?? 10,
         pageNumber: updatedOperation.pageNumber ?? 1,
       },
+      updatedByAccountId: user.accountId,
     });
 
     return aggregation.toGQLLinkedAggregation(dataSources.db);

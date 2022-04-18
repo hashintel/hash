@@ -6,16 +6,16 @@ use std::{
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use stateful::agent::Agent;
 
 use crate::{
     config::ExperimentConfig,
-    datastore::schema::EngineComponent,
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         enum_dispatch::{enum_dispatch, RegisterWithoutTrait, TaskSharedStore},
         package::init::{
             packages::js_py::{js::JsInitTask, py::PyInitTask},
-            Agent, Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTask,
+            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTask,
             InitTaskMessage, MaybeCpuBound, Package as InitPackage, PackageComms, PackageCreator,
             SimRunConfig,
         },
@@ -37,7 +37,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         comms: PackageComms,
-        _accessor: FieldSpecMapAccessor<EngineComponent>,
+        _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &config.exp.run.base().project_base.initial_state.name {
             InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(Package {

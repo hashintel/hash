@@ -6,16 +6,16 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
+use stateful::{agent::AgentSchema, field::PackageId, globals::Globals};
 use tracing::Span;
 
 use crate::{
-    config::{EngineConfig, Globals},
-    datastore::{schema::state::AgentSchema, shared_store::SharedStore},
+    config::EngineConfig,
+    datastore::shared_store::SharedStore,
     language::Language,
     proto::{ExperimentId, SimulationShortId},
     simulation::{
-        enum_dispatch::TaskSharedStore,
-        package::{id::PackageId, worker_init::PackageInitMsgForWorker},
+        enum_dispatch::TaskSharedStore, package::worker_init::PackageInitMsgForWorker,
         task::msg::TaskMessage,
     },
     types::{TaskId, WorkerIndex},

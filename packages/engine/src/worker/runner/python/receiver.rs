@@ -106,10 +106,3 @@ impl NngReceiver {
         Ok(nng_msg)
     }
 }
-
-impl Drop for NngReceiver {
-    fn drop(&mut self) {
-        // TODO: Check whether nng already does this when a socket is dropped
-        self.from_py.close();
-    }
-}

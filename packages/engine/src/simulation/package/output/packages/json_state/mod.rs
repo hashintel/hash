@@ -2,19 +2,18 @@ mod config;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::FieldScope;
+use stateful::{agent::Agent, field::FieldScope, globals::Globals};
 
 pub use self::config::JsonStateOutputConfig;
 use crate::{
-    datastore::{arrow::batch_conversion::IntoAgents, schema::EngineComponent},
-    hash_types::Agent,
+    datastore::arrow::batch_conversion::IntoAgents,
     simulation::package::{
         name::PackageName,
         output,
         output::{
             Arc, Context, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, Globals, MaybeCpuBound, Output, Package, PackageComms,
-            PackageCreator, Result, SimRunConfig, Span, State,
+            GetWorkerSimStartMsg, MaybeCpuBound, Output, Package, PackageComms, PackageCreator,
+            Result, SimRunConfig, Span, State,
         },
     },
 };
@@ -33,7 +32,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _accessor: FieldSpecMapAccessor<EngineComponent>,
+        _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let value = config
             .sim

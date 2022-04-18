@@ -1,4 +1,3 @@
-use core::fmt;
 use std::{
     cmp::Ordering,
     collections::{
@@ -10,10 +9,7 @@ use std::{
 use arrow::datatypes::{Field, Schema};
 
 use crate::{
-    field::{
-        fixed_size::IsFixedSize, FieldScope, FieldSource, FieldTypeVariant, RootFieldKey,
-        RootFieldSpec,
-    },
+    field::{fixed_size::IsFixedSize, FieldScope, FieldTypeVariant, RootFieldKey, RootFieldSpec},
     Error, Result,
 };
 
@@ -26,21 +22,12 @@ use crate::{
 /// [`create_arrow_schema()`].
 ///
 /// [`create_arrow_schema()`]: Self::create_arrow_schema
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct FieldSpecMap<S> {
-    field_specs: HashMap<RootFieldKey, RootFieldSpec<S>>,
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
+pub struct FieldSpecMap {
+    field_specs: HashMap<RootFieldKey, RootFieldSpec>,
 }
 
-// Can't be derived because of `S`
-impl<S> Default for FieldSpecMap<S> {
-    fn default() -> Self {
-        Self {
-            field_specs: HashMap::default(),
-        }
-    }
-}
-
-impl<S> FieldSpecMap<S> {
+impl FieldSpecMap {
     pub fn empty() -> Self {
         Self {
             field_specs: HashMap::default(),
@@ -51,15 +38,15 @@ impl<S> FieldSpecMap<S> {
         self.field_specs.contains_key(key)
     }
 
-    pub fn iter(&self) -> Iter<'_, RootFieldKey, RootFieldSpec<S>> {
+    pub fn iter(&self) -> Iter<'_, RootFieldKey, RootFieldSpec> {
         self.field_specs.iter()
     }
 
-    pub fn field_specs(&self) -> Values<'_, RootFieldKey, RootFieldSpec<S>> {
+    pub fn field_specs(&self) -> Values<'_, RootFieldKey, RootFieldSpec> {
         self.field_specs.values()
     }
 
-    pub fn drain_field_specs(&mut self) -> impl Iterator<Item = RootFieldSpec<S>> + '_ {
+    pub fn drain_field_specs(&mut self) -> impl Iterator<Item = RootFieldSpec> + '_ {
         self.field_specs.drain().map(|(_, field_spec)| field_spec)
     }
 
@@ -71,18 +58,13 @@ impl<S> FieldSpecMap<S> {
         self.len() == 0
     }
 
-    pub fn get_field_spec(&self, field_key: &RootFieldKey) -> Result<&RootFieldSpec<S>> {
+    pub fn get_field_spec(&self, field_key: &RootFieldKey) -> Result<&RootFieldSpec> {
         self.field_specs
             .get(field_key)
             .ok_or_else(|| Error::from(format!("Cannot find field with name '{:?}'", field_key)))
     }
-}
 
-impl<S: FieldSource + Clone> FieldSpecMap<S> {
-    fn add(&mut self, new_field: RootFieldSpec<S>) -> Result<()>
-    where
-        S: PartialOrd + fmt::Debug,
-    {
+    fn add(&mut self, new_field: RootFieldSpec) -> Result<()> {
         let field_key = new_field.create_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
             if existing_field == &new_field {
@@ -138,13 +120,10 @@ impl<S: FieldSource + Clone> FieldSpecMap<S> {
         }
     }
 
-    pub fn try_extend<I: IntoIterator<Item = RootFieldSpec<S>>>(
+    pub fn try_extend<I: IntoIterator<Item = RootFieldSpec>>(
         &mut self,
         new_field_specs: I,
-    ) -> Result<()>
-    where
-        S: PartialOrd + fmt::Debug,
-    {
+    ) -> Result<()> {
         let new_field_specs = new_field_specs.into_iter();
         self.field_specs.reserve(new_field_specs.size_hint().0);
         for field_spec in new_field_specs {
@@ -178,8 +157,7 @@ impl<S: FieldSource + Clone> FieldSpecMap<S> {
         }
 
         // Sort both partitions by field keys
-        let key_sort =
-            |a: &(&RootFieldSpec<S>, String), b: &(&RootFieldSpec<S>, String)| a.1.cmp(&b.1);
+        let key_sort = |a: &(&RootFieldSpec, String), b: &(&RootFieldSpec, String)| a.1.cmp(&b.1);
         partitioned_fields[0..fixed_size_no].sort_by(key_sort);
         partitioned_fields[fixed_size_no..].sort_by(key_sort);
         let nullabilities = partitioned_fields

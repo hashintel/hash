@@ -14,6 +14,18 @@ pub enum Error {
          field: {2}"
     )]
     FieldKeyClash(RootFieldKey, String, String),
+
+    #[error("Couldn't acquire shared lock on object")]
+    ProxySharedLock,
+
+    #[error("Couldn't acquire exclusive lock on object")]
+    ProxyExclusiveLock,
+
+    #[error("Serde Error: {0}")]
+    Serde(#[from] serde_json::Error),
+
+    #[error("Could not parse outbound message: {0}")]
+    OutboundMessageParse(#[from] crate::message::OutboundError),
 }
 
 impl From<&str> for Error {

@@ -4,17 +4,14 @@ use parking_lot::RwLock;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
+use stateful::proxy::{BatchWriteProxy, PoolReadProxy};
 
 use crate::{
     config::SimRunConfig,
     datastore::{
         batch::{self, message, AgentBatch, MessageBatch},
         error::{Error, Result},
-        table::{
-            pool::{proxy::PoolReadProxy, BatchPool},
-            proxy::BatchWriteProxy,
-            references::AgentMessageReference,
-        },
+        table::{pool::BatchPool, references::AgentMessageReference},
         UUID_V4_LEN,
     },
     proto::ExperimentRunTrait,
@@ -103,24 +100,29 @@ impl MessagePool {
     }
 }
 
-impl PoolReadProxy<MessageBatch> {
-    pub fn get_reader(&self) -> memory::Result<MessageReader<'_>> {
-        let loaders: memory::Result<_> = self
-            .batches_iter()
-            .map(|batch| {
-                batch
-                    .batch
-                    .record_batch()
-                    .map(message::record_batch::message_loader)
-            })
-            .collect();
-        Ok(MessageReader { loaders: loaders? })
-    }
+pub fn get_reader(
+    message_pool_proxy: &PoolReadProxy<MessageBatch>,
+) -> memory::Result<MessageReader<'_>> {
+    let loaders: memory::Result<_> = message_pool_proxy
+        .batches_iter()
+        .map(|batch| {
+            batch
+                .batch
+                .record_batch()
+                .map(message::record_batch::message_loader)
+        })
+        .collect();
+    Ok(MessageReader { loaders: loaders? })
+}
 
-    pub fn recipient_iter_all<'b: 'r, 'r>(
-        &'b self,
-    ) -> impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r {
-        self.batches.par_iter().enumerate().flat_map(|(i, group)| {
+pub fn recipient_iter_all<'b: 'r, 'r>(
+    message_pool_proxy: &'b PoolReadProxy<MessageBatch>,
+) -> impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r {
+    message_pool_proxy
+        .batches
+        .par_iter()
+        .enumerate()
+        .flat_map(|(i, group)| {
             let record_batch = group.batch.record_batch().unwrap(); // TODO: unwrap --> err
             message::record_batch::message_recipients_par_iter(record_batch)
                 .zip_eq(message::record_batch::message_usize_index_iter(
@@ -133,7 +135,6 @@ impl PoolReadProxy<MessageBatch> {
                     res.into_par_iter().zip_eq(refs.into_par_iter())
                 })
         })
-    }
 }
 
 pub struct MessageReader<'a> {
