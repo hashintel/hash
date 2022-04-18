@@ -19,10 +19,10 @@ use crate::{
 /// [`Task`]: crate::simulation::task::Task
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TaskMessage {
-    InitTaskMessage(InitTaskMessage),
-    ContextTaskMessage(ContextTaskMessage),
-    StateTaskMessage(StateTaskMessage),
-    OutputTaskMessage(OutputTaskMessage),
+    Init(InitTaskMessage),
+    Context(ContextTaskMessage),
+    State(StateTaskMessage),
+    Output(OutputTaskMessage),
 }
 
 impl TaskMessage {

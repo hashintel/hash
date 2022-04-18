@@ -20,11 +20,11 @@ impl WorkerHandler for PyInitTask {
         let start_msg = StartMessage {
             initial_state_source: self.initial_state_source.clone(),
         };
-        let jspy_task_msg = JsPyInitTaskMessage::StartMessage(start_msg);
+        let jspy_task_msg = JsPyInitTaskMessage::Start(start_msg);
         let init_task_msg = InitTaskMessage::JsPyInitTaskMessage(jspy_task_msg);
         SimulationResult::Ok(TargetedTaskMessage {
             target: MessageTarget::Python,
-            payload: TaskMessage::InitTaskMessage(init_task_msg),
+            payload: TaskMessage::Init(init_task_msg),
         })
     }
 }

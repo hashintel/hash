@@ -17,13 +17,13 @@ use crate::simulation::{
 
 impl WorkerHandler for JsInitTask {
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {
-        let jspy_init_task_msg = JsPyInitTaskMessage::StartMessage(StartMessage {
+        let jspy_init_task_msg = JsPyInitTaskMessage::Start(StartMessage {
             initial_state_source: self.initial_state_source.clone(),
         });
         let init_task_msg = InitTaskMessage::JsPyInitTaskMessage(jspy_init_task_msg);
         SimulationResult::Ok(TargetedTaskMessage {
             target: MessageTarget::JavaScript,
-            payload: TaskMessage::InitTaskMessage(init_task_msg),
+            payload: TaskMessage::Init(init_task_msg),
         })
     }
 }

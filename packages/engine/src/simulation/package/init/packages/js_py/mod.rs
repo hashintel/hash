@@ -108,12 +108,12 @@ impl InitPackage for Package {
             .new_task(PackageTask::Init(task), shared_store)
             .await?;
         let task_message = match active_task.drive_to_completion().await? {
-            TaskMessage::InitTaskMessage(InitTaskMessage::JsPyInitTaskMessage(message)) => message,
+            TaskMessage::Init(InitTaskMessage::JsPyInitTaskMessage(message)) => message,
             _ => return Err(Error::from("Not a JsPyInitTaskMessage")),
         };
 
         match task_message {
-            JsPyInitTaskMessage::SuccessMessage(SuccessMessage { agents }) => Ok(agents),
+            JsPyInitTaskMessage::Success(SuccessMessage { agents }) => Ok(agents),
             _ => Err(Error::from("Init Task failed")),
         }
     }
