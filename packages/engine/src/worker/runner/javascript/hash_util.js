@@ -5,7 +5,7 @@
 // Only values `x` that are JSON-serializable or have a `to_json` method are supported.
 // `_depth` is an optional argument.
 // Throws an `Error` if recursion depth 1000 is exceeded.
-const json_deepcopy = (x, _depth) => {
+export const json_deepcopy = (x, _depth) => {
   if (x === null || typeof x !== "object") {
     return x;
   }
@@ -54,7 +54,7 @@ const json_deepcopy = (x, _depth) => {
 // NB: If input is an `any`-type column, will return an array of strings (containing JSON).
 // TODO: Change arguments after upgrading Arrow (is_nullable and is_any will probably become
 //       unnecessary as we want to store them in column metadata).
-const load_shallow = (vector, is_nullable, is_any) => {
+export const load_shallow = (vector, is_nullable, is_any) => {
   // `vector.toArray` returns array-like (in some cases? TODO), not actual array.
   const shallow = [];
   for (var i = 0; i < vector.length; ++i) {
@@ -122,7 +122,7 @@ const _vector_to_array = (vector) => {
 
 // TODO: Change arguments after upgrading Arrow (is_nullable and is_any will probably become
 //       unnecessary as we want to store them in column metadata).
-const load_full = (vector, is_nullable, is_any) => {
+export const load_full = (vector, is_nullable, is_any) => {
   // TODO: Do manual zero-copy conversion for non-nullable fixed-size types.
   //       (Or modify JS Arrow `toArray` implementation.)
 
@@ -143,7 +143,7 @@ const load_full = (vector, is_nullable, is_any) => {
 /// (Loading `elem` manually for a known field type
 /// will generally be somewhat faster than using `load_elem`,
 /// because `load_elem` has to parse `field` at runtime.)
-const load_elem = (elem, type) => {
+export const load_elem = (elem, type) => {
   if (type.is_any) {
     // Can only have top-level `any`.
     // `elem` must be a string containing JSON.
@@ -158,7 +158,7 @@ const load_elem = (elem, type) => {
   return _struct_vec_to_obj(elem, children);
 };
 
-const uuid_to_bytes = (uuid) => {
+export const uuid_to_bytes = (uuid) => {
   let v;
   const bytes = new Uint8Array(16);
 
@@ -192,12 +192,12 @@ const uuid_to_bytes = (uuid) => {
   return bytes;
 };
 
-const byte_to_hex = [];
+export const byte_to_hex = [];
 for (let i = 0; i < 256; ++i) {
   byte_to_hex.push((i + 0x100).toString(16).substr(1));
 }
 
-const uuid_to_str = (bytes) => {
+export const uuid_to_str = (bytes) => {
   const uuid = (
     byte_to_hex[bytes[0]] +
     byte_to_hex[bytes[1]] +
