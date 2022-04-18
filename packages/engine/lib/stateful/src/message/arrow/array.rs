@@ -1,4 +1,4 @@
-//! Module for converting the Arrow representation of `Message`
+//! Module for converting the Arrow representation of [`Message`]
 
 use std::any::Any;
 
