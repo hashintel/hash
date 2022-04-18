@@ -58,13 +58,6 @@ Object.defineProperty(InboxMessage.prototype, "to", {
   },
 });
 
-export const start_sim = (experiment, sim, init_message, init_context) => {
-  return {
-    loaders: loaders,
-    getters: getters,
-  };
-};
-
 const loaders = {
   /// `messages` column loader of context batch (*not* state_snapshot -- state
   /// agent and message pools are loaded identically with state_snapshot agent
@@ -94,4 +87,11 @@ const getters = {
       msgs.push(...agent_context.api_responses());
     return msgs;
   },
+};
+
+export const start_sim = (experiment, sim, init_message, init_context) => {
+  return {
+    loaders: loaders,
+    getters: getters,
+  };
 };

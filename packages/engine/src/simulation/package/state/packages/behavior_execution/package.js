@@ -1,4 +1,4 @@
-import * as hash_stdlib from "/home/leudz/dev/hash/packages/engine/src/worker/runner/javascript/hash_stdlib.js"
+import * as hash_stdlib from "./src/worker/runner/javascript/hash_stdlib.js"
 
 // TODO: Propagate field specs to runners and use in state and context objects
 const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_7_behavior_index";
