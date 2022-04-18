@@ -69,12 +69,9 @@ impl MemoryId {
         }
     }
 
-    /// Creates a new identifier from the provided [`MemoryId`].
-    ///
-    /// This will reuise the `memory_id`s id, generates a suffix, and ensures, that the shared
-    /// memory segment does not already exists at */dev/shm/*.
-    pub fn duplicate_from(memory_id: &Self) -> Self {
-        Self::new(memory_id.id)
+    /// Returns the base id used to create this `MemoryId`.
+    pub fn base_id(&self) -> Uuid {
+        self.id
     }
 
     /// Returns the prefix used for the identifier.

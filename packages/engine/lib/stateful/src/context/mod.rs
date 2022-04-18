@@ -168,7 +168,7 @@ impl Context {
                 previous_agent_batches.push(AgentBatch::duplicate_from(
                     batch,
                     agent_schema,
-                    MemoryId::duplicate_from(memory_id),
+                    MemoryId::new(memory_id.base_id()),
                 )?);
             }
         } else if current_agent_batch_proxies.len() < previous_agent_batches.len() {
