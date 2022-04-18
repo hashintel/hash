@@ -334,29 +334,6 @@ pub fn module_resolve_callback<'s>(
 
 impl<'s> Embedded<'s> {
     fn import(scope: &mut v8::HandleScope<'s>) -> Result<Self> {
-        let module_map = scope
-            .get_slot::<Rc<RefCell<ModuleMap>>>()
-            .expect("ModuleMap is not present in isolate slots")
-            .clone();
-
-        for path in [
-            "./src/worker/runner/javascript/apache-arrow-bundle.js",
-            "./src/worker/runner/javascript/hash_util.js",
-            "./src/worker/runner/javascript/batch.js",
-            "./src/worker/runner/javascript/context.js",
-            "./src/worker/runner/javascript/state.js",
-        ] {
-            match ModuleMap::import_module(module_map.clone(), scope, path)? {
-                Some(_) => {}
-                None => {
-                    return Err(Error::PackageImport(
-                        path.to_string(),
-                        format!("Missing package"),
-                    ));
-                }
-            };
-        }
-
         // `hash_stdlib` can't be imported as a module because it needs to be available globally for
         // behaviors.
         let hash_stdlib = eval_file(scope, "./src/worker/runner/javascript/hash_stdlib.js")?;
@@ -365,6 +342,11 @@ impl<'s> Embedded<'s> {
             .get_current_context()
             .global(scope)
             .set(scope, hash_stdlib_str.into(), hash_stdlib);
+
+        let module_map = scope
+            .get_slot::<Rc<RefCell<ModuleMap>>>()
+            .expect("ModuleMap is not present in isolate slots")
+            .clone();
 
         let runner = match ModuleMap::import_module(
             module_map,
