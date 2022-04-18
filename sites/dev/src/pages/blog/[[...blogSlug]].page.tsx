@@ -5,6 +5,8 @@ import { promisify } from "util";
 import {
   BlogPagePhoto,
   BlogPagePhotos,
+  BlogPostContent,
+  BlogPostHead,
   BlogPostPhotosContext,
 } from "../../components/BlogPost";
 import { MdxPageContent } from "../../components/MdxPageContent";
@@ -15,6 +17,13 @@ const imageSize = promisify(legacyImageSize);
 type BlogPageProps = {
   serializedPage: MDXRemoteSerializeResult<Record<string, unknown>>;
   photos: BlogPagePhotos;
+  data: {
+    title?: string;
+    subtitle?: string;
+    author?: string;
+    jobTitle?: string;
+    date?: string;
+  };
 };
 
 type BlogPageQueryParams = {
@@ -95,6 +104,7 @@ export const getStaticProps: GetStaticProps<
       props: {
         serializedPage,
         photos,
+        data,
       },
     };
   } catch (err) {
@@ -105,11 +115,23 @@ export const getStaticProps: GetStaticProps<
   }
 };
 
-// @todo semantics
-const BlogPostPage: NextPage<BlogPageProps> = ({ serializedPage, photos }) => {
+const BlogPostPage: NextPage<BlogPageProps> = ({
+  serializedPage,
+  photos,
+  data,
+}) => {
   return (
     <BlogPostPhotosContext.Provider value={photos}>
-      <MdxPageContent serializedPage={serializedPage} />
+      <BlogPostHead
+        title={data.title}
+        subtitle={data.subtitle}
+        author={data.author}
+        jobTitle={data.jobTitle}
+        date={data.date}
+      />
+      <BlogPostContent>
+        <MdxPageContent serializedPage={serializedPage} />
+      </BlogPostContent>
     </BlogPostPhotosContext.Provider>
   );
 };
