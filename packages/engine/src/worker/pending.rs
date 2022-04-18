@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use execution::runner::Language;
 
 use crate::{
-    simulation::task::{msg::TaskMessage, Task},
+    simulation::task::{msg::TaskMessage, PackageTask},
     types::TaskId,
     worker::{Error, Result},
 };
@@ -23,7 +23,7 @@ impl Default for CancelState {
 // TODO: DOC
 #[derive(derive_new::new)]
 pub struct PendingWorkerTask {
-    pub inner: Task,
+    pub inner: PackageTask,
     /// Groups that resulted in sub-tasks being created, that haven't yet returned a final
     /// [`TaskMessage`]
     pub pending_groups: Vec<PendingGroup>,

@@ -25,7 +25,7 @@ use crate::{
             args::GetTaskArgs,
             handler::{WorkerHandler, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
-            GetTaskName, Task,
+            GetTaskName, PackageTask,
         },
         Error, Result,
     },
@@ -105,7 +105,7 @@ impl WorkerHandler for StateTask {
 }
 
 impl WorkerPoolHandler for StateTask {
-    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<Task>> {
+    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<PackageTask>> {
         match self {
             Self::ExecuteBehaviorsTask(inner) => inner.split_task(split_config),
         }

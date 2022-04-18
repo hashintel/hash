@@ -24,7 +24,7 @@ use crate::simulation::{
         GetWorkerSimStartMsg, Name, Package, PackageComms, PackageCreator, Result, SimRunConfig,
         Span, StateTask,
     },
-    task::{active::ActiveTask, Task},
+    task::{active::ActiveTask, PackageTask},
 };
 
 mod chain;
@@ -216,7 +216,7 @@ impl BehaviorExecution {
         let state_task = StateTask::ExecuteBehaviorsTask(ExecuteBehaviorsTask {
             target: lang.into(),
         });
-        let task = Task::StateTask(state_task);
+        let task = PackageTask::StateTask(state_task);
         let active_task = self.comms.new_task(task, shared_store).await?;
         Ok(active_task)
     }

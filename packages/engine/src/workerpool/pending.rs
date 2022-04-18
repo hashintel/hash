@@ -10,7 +10,7 @@ use crate::{
             cancel::CancelTask,
             handler::WorkerPoolHandler,
             msg::{TaskMessage, TaskResultOrCancelled},
-            Task,
+            PackageTask,
         },
     },
     types::TaskId,
@@ -24,7 +24,7 @@ pub enum DistributionController {
     Distributed {
         active_worker_indices: Vec<WorkerIndex>,
         received_results: Vec<(WorkerIndex, TaskMessage)>,
-        reference_task: Task,
+        reference_task: PackageTask,
     },
     Single {
         active_worker: WorkerIndex,

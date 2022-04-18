@@ -103,7 +103,7 @@ use crate::simulation::{
 // Additionally we have TryInto<init::Task>, (and others)
 // implemented for this enum.
 #[derive(Clone, Debug)]
-pub enum Task {
+pub enum PackageTask {
     InitTask(InitTask),
     ContextTask(ContextTask),
     StateTask(StateTask),
@@ -115,7 +115,7 @@ pub trait GetTaskName {
     fn get_task_name(&self) -> &'static str;
 }
 
-impl GetTaskName for Task {
+impl GetTaskName for PackageTask {
     fn get_task_name(&self) -> &'static str {
         match self {
             Self::InitTask(inner) => inner.get_task_name(),
@@ -126,7 +126,7 @@ impl GetTaskName for Task {
     }
 }
 
-impl GetTaskArgs for Task {
+impl GetTaskArgs for PackageTask {
     fn distribution(&self) -> TaskDistributionConfig {
         match self {
             Self::InitTask(inner) => inner.distribution(),
@@ -137,7 +137,7 @@ impl GetTaskArgs for Task {
     }
 }
 
-impl WorkerHandler for Task {
+impl WorkerHandler for PackageTask {
     fn start_message(&self) -> Result<TargetedTaskMessage> {
         match self {
             Self::InitTask(inner) => inner.start_message(),
@@ -166,8 +166,8 @@ impl WorkerHandler for Task {
     }
 }
 
-impl WorkerPoolHandler for Task {
-    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<Task>> {
+impl WorkerPoolHandler for PackageTask {
+    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<PackageTask>> {
         match self {
             Self::InitTask(inner) => inner.split_task(split_config),
             Self::ContextTask(inner) => inner.split_task(split_config),
@@ -186,7 +186,7 @@ impl WorkerPoolHandler for Task {
     }
 }
 
-impl StoreAccessVerify for Task {
+impl StoreAccessVerify for PackageTask {
     fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
         match self {
             Self::InitTask(inner) => inner.verify_store_access(access),

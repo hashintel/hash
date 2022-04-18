@@ -31,7 +31,7 @@ use crate::{
     proto::SimulationShortId,
     simulation::{
         comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
-        task::{args::GetTaskArgs, handler::WorkerPoolHandler, Task},
+        task::{args::GetTaskArgs, handler::WorkerPoolHandler, PackageTask},
     },
     types::TaskId,
     worker::{
@@ -393,7 +393,7 @@ impl WorkerPoolController {
         task_id: TaskId,
         package_id: PackageId,
         shared_store: SharedStore,
-        task: Task,
+        task: PackageTask,
     ) -> Result<(Vec<(WorkerIndex, WorkerTask)>, DistributionController)> {
         let worker_list = self.simulation_runs.get_worker_allocation(sim_id)?;
 
@@ -401,7 +401,7 @@ impl WorkerPoolController {
             if let TaskDistributionConfig::Distributed(distribution) = task.distribution() {
                 let (distributed_tables, split_config) =
                     shared_store.distribute(&distribution, worker_list)?;
-                let tasks: Vec<Task> = task.split_task(&split_config)?;
+                let tasks: Vec<PackageTask> = task.split_task(&split_config)?;
                 (
                     tasks
                         .into_iter()

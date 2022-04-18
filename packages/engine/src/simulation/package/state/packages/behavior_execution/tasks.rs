@@ -14,7 +14,7 @@ use crate::simulation::{
         args::GetTaskArgs,
         handler::{WorkerHandler, WorkerPoolHandler},
         msg::{TargetedTaskMessage, TaskMessage},
-        GetTaskName, Task,
+        GetTaskName, PackageTask,
     },
     Result as SimulationResult,
 };
@@ -59,13 +59,13 @@ impl WorkerHandler for ExecuteBehaviorsTask {
 }
 
 impl WorkerPoolHandler for ExecuteBehaviorsTask {
-    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<Task>> {
+    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<PackageTask>> {
         split_config
             .agent_distribution
             .as_ref()
             .expect("Behavior execution is expected to be distributed");
         let state_task = StateTask::ExecuteBehaviorsTask(self.clone());
-        let task = Task::StateTask(state_task);
+        let task = PackageTask::StateTask(state_task);
         Ok((0..split_config.num_workers)
             .map(|_| task.clone())
             .collect())

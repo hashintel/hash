@@ -1,7 +1,7 @@
 use execution::worker_pool::SplitConfig;
 
 use crate::simulation::{
-    task::{msg::TaskMessage, Task},
+    task::{msg::TaskMessage, PackageTask},
     Error, Result,
 };
 
@@ -9,7 +9,7 @@ pub trait WorkerPoolHandler {
     /// When a Chunked/Parallel task is initialized
     /// the init message will have to be split
     /// depending on the provided split configuration
-    fn split_task(&self, _split_config: &SplitConfig) -> Result<Vec<Task>> {
+    fn split_task(&self, _split_config: &SplitConfig) -> Result<Vec<PackageTask>> {
         Err(Error::DistributionNodeHandlerNotImplemented)
     }
 

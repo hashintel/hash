@@ -2,7 +2,7 @@ use execution::task::SharedStore;
 use stateful::field::PackageId;
 
 use crate::{
-    simulation::task::{msg::TaskResultOrCancelled, Task},
+    simulation::task::{msg::TaskResultOrCancelled, PackageTask},
     types::TaskId,
 };
 
@@ -10,7 +10,7 @@ use crate::{
 pub struct WorkerTask {
     pub task_id: TaskId,
     pub package_id: PackageId,
-    pub inner: Task,
+    pub inner: PackageTask,
     pub shared_store: SharedStore,
 }
 

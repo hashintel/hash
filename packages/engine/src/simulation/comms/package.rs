@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::simulation::{
     comms::{Comms, Result},
     package::PackageType,
-    task::{active::ActiveTask, GetTaskName, Task},
+    task::{active::ActiveTask, GetTaskName, PackageTask},
 };
 
 #[derive(derive_new::new)]
@@ -29,7 +29,11 @@ impl PackageComms {
 }
 
 impl PackageComms {
-    pub async fn new_task(&self, task: Task, shared_store: SharedStore) -> Result<ActiveTask> {
+    pub async fn new_task(
+        &self,
+        task: PackageTask,
+        shared_store: SharedStore,
+    ) -> Result<ActiveTask> {
         let task_name = task.get_task_name();
 
         self.inner

@@ -33,7 +33,7 @@ use uuid::Uuid;
 use self::message::{EngineToWorkerPoolMsg, WrappedTask};
 use super::{
     command::Commands,
-    task::{access::StoreAccessVerify, active::ActiveTask, Task},
+    task::{access::StoreAccessVerify, active::ActiveTask, PackageTask},
     Error, Result,
 };
 use crate::{
@@ -187,7 +187,7 @@ impl Comms {
     pub async fn new_task(
         &self,
         package_id: PackageId,
-        task: Task,
+        task: PackageTask,
         shared_store: SharedStore,
     ) -> Result<ActiveTask> {
         let task_id = uuid::Uuid::new_v4().as_u128();
@@ -212,7 +212,7 @@ impl Comms {
 fn wrap_task(
     task_id: TaskId,
     package_id: PackageId,
-    task: Task,
+    task: PackageTask,
     shared_store: SharedStore,
 ) -> Result<(WrappedTask, ActiveTask)> {
     task.verify_store_access(&shared_store)?;

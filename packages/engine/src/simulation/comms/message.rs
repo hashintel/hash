@@ -5,7 +5,7 @@ use tracing::Span;
 use crate::{
     datastore::table::sync::SyncPayload,
     proto::SimulationShortId,
-    simulation::{comms::active::ActiveTaskExecutorComms, task::Task},
+    simulation::{comms::active::ActiveTaskExecutorComms, task::PackageTask},
     types::TaskId,
     worker::Result as WorkerResult,
 };
@@ -17,7 +17,7 @@ pub type SyncCompletionSender = tokio::sync::oneshot::Sender<WorkerResult<()>>;
 pub struct WrappedTask {
     pub task_id: TaskId,
     pub package_id: PackageId,
-    pub inner: Task,
+    pub inner: PackageTask,
     pub comms: ActiveTaskExecutorComms,
     pub shared_store: SharedStore,
 }
