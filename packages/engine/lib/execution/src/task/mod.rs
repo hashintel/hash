@@ -1,8 +1,10 @@
 mod distribution;
+mod message;
 mod shared_store;
 
 pub use self::{
     distribution::{StateBatchDistribution, TaskDistributionConfig},
+    message::TargetedTaskMessage,
     shared_store::{
         PartialSharedState, PartialStateReadProxy, PartialStateWriteProxy, SharedContext,
         SharedState, SharedStore, TaskSharedStoreBuilder,

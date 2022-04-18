@@ -103,7 +103,7 @@ pub enum Error {
     NumParallelWorkers,
 
     #[error("Invalid type of task message for behavior execution: {0:?}")]
-    InvalidBehaviorTaskMessage(crate::simulation::task::msg::TaskMessage),
+    InvalidBehaviorTaskMessage(execution::package::TaskMessage),
 
     #[error("Invalid behavior bytes: {0:?} ({1:?})")]
     InvalidBehaviorBytes(Vec<u8>, Result<String, std::string::FromUtf8Error>),

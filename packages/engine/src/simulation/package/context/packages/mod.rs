@@ -10,7 +10,7 @@ use std::{
 
 use execution::package::context::ContextTask;
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use stateful::field::PackageId;
 
 use crate::{
@@ -58,10 +58,6 @@ impl std::fmt::Display for Name {
 impl WorkerHandler for ContextTask {}
 
 impl WorkerPoolHandler for ContextTask {}
-
-/// All context package task messages are registered in this enum
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum ContextTaskMessage {}
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
 

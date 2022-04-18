@@ -1,14 +1,17 @@
-use execution::{package::init::script::PyInitTask, runner::MessageTarget};
+use execution::{
+    package::{
+        init::{
+            script::{PyInitTask, StartMessage},
+            InitTaskMessage,
+        },
+        TaskMessage,
+    },
+    runner::MessageTarget,
+    task::TargetedTaskMessage,
+};
 
 use crate::simulation::{
-    package::init::{
-        packages::js_py::{JsPyInitTaskMessage, StartMessage},
-        InitTaskMessage,
-    },
-    task::{
-        handler::WorkerHandler,
-        msg::{TargetedTaskMessage, TaskMessage},
-    },
+    package::init::packages::js_py::JsPyInitTaskMessage, task::handler::WorkerHandler,
     Result as SimulationResult,
 };
 

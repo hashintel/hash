@@ -7,23 +7,16 @@ use std::{
     sync::Arc,
 };
 
-use execution::package::init::InitTask;
+use execution::{package::init::InitTask, task::TargetedTaskMessage};
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use stateful::field::PackageId;
 
 use crate::{
     config::ExperimentConfig,
     simulation::{
-        package::{
-            id::PackageIdGenerator,
-            init::{packages::js_py::JsPyInitTaskMessage, PackageCreator},
-            PackageMetadata, PackageType,
-        },
-        task::{
-            handler::{WorkerHandler, WorkerPoolHandler},
-            msg::TargetedTaskMessage,
-        },
+        package::{id::PackageIdGenerator, init::PackageCreator, PackageMetadata, PackageType},
+        task::handler::{WorkerHandler, WorkerPoolHandler},
         Error, Result,
     },
 };
@@ -69,12 +62,6 @@ impl WorkerHandler for InitTask {
 }
 
 impl WorkerPoolHandler for InitTask {}
-
-/// All init package task messages are registered in this enum
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum InitTaskMessage {
-    JsPyInitTaskMessage(JsPyInitTaskMessage),
-}
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
 

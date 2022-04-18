@@ -79,13 +79,14 @@ pub mod cancel;
 pub mod handler;
 pub mod msg;
 
-use execution::{package::PackageTask, worker_pool::SplitConfig};
+use execution::{
+    package::{PackageTask, TaskMessage},
+    task::TargetedTaskMessage,
+    worker_pool::SplitConfig,
+};
 
 use crate::simulation::{
-    task::{
-        handler::{WorkerHandler, WorkerPoolHandler},
-        msg::{TargetedTaskMessage, TaskMessage},
-    },
+    task::handler::{WorkerHandler, WorkerPoolHandler},
     Result,
 };
 

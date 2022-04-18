@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
-use execution::{package::PackageTask, runner::Language};
+use execution::{
+    package::{PackageTask, TaskMessage},
+    runner::Language,
+};
 
 use crate::{
-    simulation::task::msg::TaskMessage,
     types::TaskId,
     worker::{Error, Result},
 };

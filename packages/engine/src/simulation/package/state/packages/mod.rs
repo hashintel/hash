@@ -8,22 +8,19 @@ use std::{
 };
 
 use execution::{
-    package::{state::StateTask, PackageTask},
+    package::{state::StateTask, PackageTask, TaskMessage},
+    task::TargetedTaskMessage,
     worker_pool::SplitConfig,
 };
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use stateful::field::PackageId;
 
-use self::behavior_execution::tasks::ExecuteBehaviorsTaskMessage;
 use crate::{
     config::ExperimentConfig,
     simulation::{
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
-        task::{
-            handler::{WorkerHandler, WorkerPoolHandler},
-            msg::{TargetedTaskMessage, TaskMessage},
-        },
+        task::handler::{WorkerHandler, WorkerPoolHandler},
         Error, Result,
     },
 };
@@ -91,12 +88,6 @@ impl WorkerPoolHandler for StateTask {
             Self::ExecuteBehaviorsTask(inner) => inner.combine_messages(split_messages),
         }
     }
-}
-
-/// All state package task messages are registered in this enum
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum StateTaskMessage {
-    ExecuteBehaviorsTaskMessage(ExecuteBehaviorsTaskMessage),
 }
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);

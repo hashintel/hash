@@ -24,6 +24,9 @@ pub enum Error {
          ContextAccess: {1}."
     )]
     AccessNotAllowed(String, String, String),
+
+    #[error("Serde Error: {0}")]
+    Serde(#[from] serde_json::Error),
 }
 
 impl Error {

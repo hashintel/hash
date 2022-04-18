@@ -9,7 +9,7 @@ use std::{
 
 use execution::package::output::OutputTask;
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use stateful::field::PackageId;
 
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
@@ -70,10 +70,6 @@ pub enum Output {
 impl WorkerHandler for OutputTask {}
 
 impl WorkerPoolHandler for OutputTask {}
-
-/// All output package task messages are registered in this enum
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum OutputTaskMessage {}
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
 

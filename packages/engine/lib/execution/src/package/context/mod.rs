@@ -1,3 +1,4 @@
+mod message;
 mod task;
 
-pub use self::task::ContextTask;
+pub use self::{message::ContextTaskMessage, task::ContextTask};

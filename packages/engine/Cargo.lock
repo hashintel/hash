@@ -681,6 +681,7 @@ version = "0.0.0"
 dependencies = [
  "flatbuffers_gen",
  "serde",
+ "serde_json",
  "stateful",
  "thiserror",
 ]

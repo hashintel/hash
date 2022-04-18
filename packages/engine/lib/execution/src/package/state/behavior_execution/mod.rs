@@ -1,3 +1,4 @@
+mod message;
 mod task;
 
-pub use self::task::ExecuteBehaviorsTask;
+pub use self::{message::ExecuteBehaviorsTaskMessage, task::ExecuteBehaviorsTask};

@@ -1,3 +1,4 @@
+mod message;
 mod task;
 
-pub use self::task::OutputTask;
+pub use self::{message::OutputTaskMessage, task::OutputTask};

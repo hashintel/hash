@@ -1,17 +1,14 @@
-use std::fmt::{Debug, Formatter};
-
 use async_trait::async_trait;
 use execution::{
     package::{
         init::{
-            script::{JsInitTask, PyInitTask},
-            InitTask,
+            script::{JsInitTask, JsPyInitTaskMessage, PyInitTask, SuccessMessage},
+            InitTask, InitTaskMessage,
         },
-        PackageTask,
+        PackageTask, TaskMessage,
     },
     task::SharedStore,
 };
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use stateful::agent::Agent;
 
@@ -20,10 +17,9 @@ use crate::{
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         package::init::{
-            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTaskMessage,
-            MaybeCpuBound, Package as InitPackage, PackageComms, PackageCreator, SimRunConfig,
+            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound,
+            Package as InitPackage, PackageComms, PackageCreator, SimRunConfig,
         },
-        task::msg::TaskMessage,
         Error, Result,
     },
 };
@@ -122,37 +118,3 @@ impl InitPackage for Package {
         }
     }
 }
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum JsPyInitTaskMessage {
-    StartMessage(StartMessage),
-    SuccessMessage(SuccessMessage),
-    FailedMessage(FailedMessage),
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct StartMessage {
-    initial_state_source: String,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct SuccessMessage {
-    agents: Vec<Agent>,
-}
-
-impl Debug for SuccessMessage {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SuccessMessage")
-            .field("agents", &{
-                if !self.agents.is_empty() {
-                    format_args!("[...]") // The Agents JSON can result in huge log lines otherwise
-                } else {
-                    format_args!("[]")
-                }
-            })
-            .finish()
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct FailedMessage {}

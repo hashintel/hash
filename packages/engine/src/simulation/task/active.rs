@@ -1,13 +1,11 @@
 use std::time::Duration;
 
+use execution::package::TaskMessage;
 use tokio::time::timeout;
 
 use crate::simulation::{
     comms::active::ActiveTaskOwnerComms,
-    task::{
-        cancel::CancelTask,
-        msg::{TaskMessage, TaskResultOrCancelled},
-    },
+    task::{cancel::CancelTask, msg::TaskResultOrCancelled},
     Error, Result,
 };
 

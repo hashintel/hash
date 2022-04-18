@@ -1,7 +1,6 @@
-use crate::simulation::{
-    task::msg::{TargetedTaskMessage, TaskMessage},
-    Error, Result,
-};
+use execution::{package::TaskMessage, task::TargetedTaskMessage};
+
+use crate::simulation::{Error, Result};
 
 pub trait WorkerHandler {
     /// Given an initial message from the package in the main loop of the simulation, convert it to

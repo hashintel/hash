@@ -5,7 +5,7 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-pub use packages::{InitTaskMessage, Name, PACKAGE_CREATORS};
+pub use packages::{Name, PACKAGE_CREATORS};
 use stateful::{
     agent::Agent,
     field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},

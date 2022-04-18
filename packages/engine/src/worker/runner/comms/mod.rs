@@ -7,6 +7,7 @@ use std::{
 
 use arrow::datatypes::Schema;
 use execution::{
+    package::TaskMessage,
     runner::{MessageTarget, RunnerConfig},
     task::SharedStore,
     worker_pool::WorkerIndex,
@@ -18,7 +19,7 @@ use crate::{
     config::EngineConfig,
     datastore::shared_store::SharedDatasets,
     proto::{ExperimentId, SimulationShortId},
-    simulation::{package::worker_init::PackageInitMsgForWorker, task::msg::TaskMessage},
+    simulation::package::worker_init::PackageInitMsgForWorker,
     types::TaskId,
     worker::{Error, Result},
 };

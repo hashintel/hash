@@ -22,6 +22,7 @@ use arrow::{
     util::bit_util,
 };
 use execution::{
+    package::TaskMessage,
     runner::{Language, MessageTarget},
     task::{PartialSharedState, SharedState, SharedStore},
 };
@@ -47,7 +48,7 @@ use crate::{
         table::sync::{ContextBatchSync, StateSync, WaitableStateSync},
     },
     proto::SimulationShortId,
-    simulation::{package::PackageType, task::msg::TaskMessage},
+    simulation::package::PackageType,
     types::TaskId,
     worker::{
         runner::comms::{

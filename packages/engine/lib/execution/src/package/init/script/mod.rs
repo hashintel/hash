@@ -1,3 +1,7 @@
+mod message;
 mod task;
 
-pub use self::task::{JsInitTask, PyInitTask};
+pub use self::{
+    message::{FailedMessage, JsPyInitTaskMessage, StartMessage, SuccessMessage},
+    task::{JsInitTask, PyInitTask},
+};

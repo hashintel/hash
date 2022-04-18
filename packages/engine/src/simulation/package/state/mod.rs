@@ -3,7 +3,7 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-pub use packages::{Name, StateTaskMessage, PACKAGE_CREATORS};
+pub use packages::{Name, PACKAGE_CREATORS};
 use stateful::{
     context::Context,
     field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
