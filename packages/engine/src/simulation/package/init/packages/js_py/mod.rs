@@ -19,6 +19,7 @@ use crate::{
             InitTaskMessage, MaybeCpuBound, Package as InitPackage, PackageComms, PackageCreator,
             SimRunConfig,
         },
+        task::Task,
         Error, Result,
     },
 };
@@ -84,7 +85,7 @@ impl GetWorkerSimStartMsg for Package {
 #[async_trait]
 impl InitPackage for Package {
     async fn run(&mut self) -> Result<Vec<Agent>> {
-        let task: InitTask = match &self.initial_state.name {
+        let task = match &self.initial_state.name {
             InitialStateName::InitPy => InitTask::PyInitTask(PyInitTask {
                 initial_state_source: self.initial_state.src.clone(),
             }),
@@ -102,7 +103,10 @@ impl InitPackage for Package {
         };
 
         let shared_store = TaskSharedStore::default();
-        let active_task = self.comms.new_task(task, shared_store).await?;
+        let active_task = self
+            .comms
+            .new_task(Task::InitTask(task), shared_store)
+            .await?;
         let task_message = TryInto::<JsPyInitTaskMessage>::try_into(
             TryInto::<InitTaskMessage>::try_into(active_task.drive_to_completion().await?)?,
         )?;

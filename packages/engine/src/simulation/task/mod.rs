@@ -85,8 +85,8 @@ use crate::{
     config::TaskDistributionConfig,
     simulation::{
         enum_dispatch::{
-            enum_dispatch, ContextTask, InitTask, OutputTask, Result, SplitConfig, StateTask,
-            StoreAccessVerify, TargetedTaskMessage, TaskMessage, TaskSharedStore,
+            ContextTask, InitTask, OutputTask, Result, SplitConfig, StateTask, StoreAccessVerify,
+            TargetedTaskMessage, TaskMessage, TaskSharedStore,
         },
         task::{
             args::GetTaskArgs,
@@ -100,13 +100,12 @@ use crate::{
 // From<init::Task>, ..., From<output::Task> for this enum.
 // Additionally we have TryInto<init::Task>, (and others)
 // implemented for this enum.
-#[enum_dispatch(WorkerPoolHandler, StoreAccessVerify)]
 #[derive(Clone, Debug)]
 pub enum Task {
-    InitTask,
-    ContextTask,
-    StateTask,
-    OutputTask,
+    InitTask(InitTask),
+    ContextTask(ContextTask),
+    StateTask(StateTask),
+    OutputTask(OutputTask),
 }
 
 pub trait GetTaskName {
@@ -181,6 +180,17 @@ impl WorkerPoolHandler for Task {
             Self::ContextTask(inner) => inner.combine_messages(split_messages),
             Self::StateTask(inner) => inner.combine_messages(split_messages),
             Self::OutputTask(inner) => inner.combine_messages(split_messages),
+        }
+    }
+}
+
+impl StoreAccessVerify for Task {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+        match self {
+            Self::InitTask(inner) => inner.verify_store_access(access),
+            Self::ContextTask(inner) => inner.verify_store_access(access),
+            Self::StateTask(inner) => inner.verify_store_access(access),
+            Self::OutputTask(inner) => inner.verify_store_access(access),
         }
     }
 }
