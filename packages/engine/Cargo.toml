@@ -19,7 +19,6 @@ async-trait = "0.1.48"
 clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
 csv = "1.1.5"
 derive-new = "0.5"
-enum_dispatch = "0.3.7"
 flatbuffers = "2.1.1"
 float-cmp = "0.8.0"
 futures = { version = "0.3.6", features = ["std"] }
