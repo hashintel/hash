@@ -17,10 +17,10 @@ use crate::{
     simulation::{
         enum_dispatch::{
             enum_dispatch, JsPyInitTaskMessage, RegisterWithoutTrait, StoreAccessVerify,
-            TargetedTaskMessage, TaskSharedStore, WorkerHandler, WorkerPoolHandler,
+            TargetedTaskMessage, TaskSharedStore, WorkerPoolHandler,
         },
         package::{id::PackageIdGenerator, init::PackageCreator, PackageMetadata, PackageType},
-        task::{args::GetTaskArgs, GetTaskName},
+        task::{args::GetTaskArgs, handler::WorkerHandler, GetTaskName},
         Error, Result,
     },
 };

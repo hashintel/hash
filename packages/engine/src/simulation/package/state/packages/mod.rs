@@ -15,9 +15,12 @@ use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTask
 use crate::{
     config::{ExperimentConfig, TaskDistributionConfig},
     simulation::{
-        enum_dispatch::{enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore},
+        enum_dispatch::{
+            enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TargetedTaskMessage,
+            TaskMessage, TaskSharedStore,
+        },
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
-        task::{args::GetTaskArgs, GetTaskName},
+        task::{args::GetTaskArgs, handler::WorkerHandler, GetTaskName},
         Error, Result,
     },
 };
@@ -72,6 +75,26 @@ impl GetTaskArgs for StateTask {
     fn distribution(&self) -> TaskDistributionConfig {
         match self {
             Self::ExecuteBehaviorsTask(inner) => inner.distribution(),
+        }
+    }
+}
+
+impl WorkerHandler for StateTask {
+    fn start_message(&self) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.start_message(),
+        }
+    }
+
+    fn handle_worker_message(&mut self, msg: TaskMessage) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.handle_worker_message(msg),
+        }
+    }
+
+    fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.combine_task_messages(task_messages),
         }
     }
 }

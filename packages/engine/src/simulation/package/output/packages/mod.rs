@@ -15,14 +15,12 @@ use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use crate::{
     config::ExperimentConfig,
     simulation::{
-        enum_dispatch::{
-            enum_dispatch, StoreAccessVerify, TaskSharedStore, WorkerHandler, WorkerPoolHandler,
-        },
+        enum_dispatch::{enum_dispatch, StoreAccessVerify, TaskSharedStore, WorkerPoolHandler},
         package::{
             id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
             PackageType,
         },
-        task::{args::GetTaskArgs, GetTaskName},
+        task::{args::GetTaskArgs, handler::WorkerHandler, GetTaskName},
         Error, Result,
     },
 };

@@ -94,7 +94,7 @@ pub use crate::{
         },
         task::{
             access::StoreAccessVerify,
-            handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
+            handler::{SplitConfig, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
         },
         Result,

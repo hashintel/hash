@@ -86,10 +86,10 @@ use crate::{
     simulation::{
         enum_dispatch::{
             enum_dispatch, ContextTask, InitTask, OutputTask, Result, SplitConfig, StateTask,
-            StoreAccessVerify, TargetedTaskMessage, TaskMessage, TaskSharedStore, WorkerHandler,
+            StoreAccessVerify, TargetedTaskMessage, TaskMessage, TaskSharedStore,
             WorkerPoolHandler,
         },
-        task::args::GetTaskArgs,
+        task::{args::GetTaskArgs, handler::WorkerHandler},
     },
 };
 
@@ -98,7 +98,7 @@ use crate::{
 // From<init::Task>, ..., From<output::Task> for this enum.
 // Additionally we have TryInto<init::Task>, (and others)
 // implemented for this enum.
-#[enum_dispatch(WorkerHandler, WorkerPoolHandler, StoreAccessVerify)]
+#[enum_dispatch(WorkerPoolHandler, StoreAccessVerify)]
 #[derive(Clone, Debug)]
 pub enum Task {
     InitTask,
@@ -130,6 +130,35 @@ impl GetTaskArgs for Task {
             Self::ContextTask(inner) => inner.distribution(),
             Self::StateTask(inner) => inner.distribution(),
             Self::OutputTask(inner) => inner.distribution(),
+        }
+    }
+}
+
+impl WorkerHandler for Task {
+    fn start_message(&self) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::InitTask(inner) => inner.start_message(),
+            Self::ContextTask(inner) => inner.start_message(),
+            Self::StateTask(inner) => inner.start_message(),
+            Self::OutputTask(inner) => inner.start_message(),
+        }
+    }
+
+    fn handle_worker_message(&mut self, msg: TaskMessage) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::InitTask(inner) => inner.handle_worker_message(msg),
+            Self::ContextTask(inner) => inner.handle_worker_message(msg),
+            Self::StateTask(inner) => inner.handle_worker_message(msg),
+            Self::OutputTask(inner) => inner.handle_worker_message(msg),
+        }
+    }
+
+    fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        match self {
+            Self::InitTask(inner) => inner.combine_task_messages(task_messages),
+            Self::ContextTask(inner) => inner.combine_task_messages(task_messages),
+            Self::StateTask(inner) => inner.combine_task_messages(task_messages),
+            Self::OutputTask(inner) => inner.combine_task_messages(task_messages),
         }
     }
 }

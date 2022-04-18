@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 use crate::{
     config::{StateBatchDistribution, TaskDistributionConfig},
     simulation::{
-        enum_dispatch::{StateTask, StateTaskMessage, WorkerHandler},
+        enum_dispatch::{StateTask, StateTaskMessage},
         package::state::packages::{Error, Result},
         task::{
             args::GetTaskArgs,
-            handler::{SplitConfig, WorkerPoolHandler},
+            handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
             GetTaskName, Task,
         },

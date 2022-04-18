@@ -16,11 +16,11 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         enum_dispatch::{
-            enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore, WorkerHandler,
+            enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore,
             WorkerPoolHandler,
         },
         package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
-        task::{args::GetTaskArgs, GetTaskName},
+        task::{args::GetTaskArgs, handler::WorkerHandler, GetTaskName},
         Error, Result,
     },
 };
