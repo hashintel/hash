@@ -13,11 +13,11 @@ use stateful::field::PackageId;
 
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use crate::{
-    config::ExperimentConfig,
+    config::{ExperimentConfig, TaskDistributionConfig},
     simulation::{
         enum_dispatch::{enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore},
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
-        task::GetTaskName,
+        task::{args::GetTaskArgs, GetTaskName},
         Error, Result,
     },
 };
@@ -54,7 +54,7 @@ impl std::fmt::Display for Name {
 }
 
 /// All state package tasks are registered in this enum
-#[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
+#[enum_dispatch(WorkerHandler, WorkerPoolHandler)]
 #[derive(Clone, Debug)]
 pub enum StateTask {
     ExecuteBehaviorsTask,
@@ -64,6 +64,14 @@ impl GetTaskName for StateTask {
     fn get_task_name(&self) -> &'static str {
         match self {
             Self::ExecuteBehaviorsTask(inner) => inner.get_task_name(),
+        }
+    }
+}
+
+impl GetTaskArgs for StateTask {
+    fn distribution(&self) -> TaskDistributionConfig {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.distribution(),
         }
     }
 }

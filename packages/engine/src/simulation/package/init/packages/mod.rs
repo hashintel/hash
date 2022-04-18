@@ -16,12 +16,11 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         enum_dispatch::{
-            enum_dispatch, GetTaskArgs, JsPyInitTaskMessage, RegisterWithoutTrait,
-            StoreAccessVerify, TargetedTaskMessage, TaskSharedStore, WorkerHandler,
-            WorkerPoolHandler,
+            enum_dispatch, JsPyInitTaskMessage, RegisterWithoutTrait, StoreAccessVerify,
+            TargetedTaskMessage, TaskSharedStore, WorkerHandler, WorkerPoolHandler,
         },
         package::{id::PackageIdGenerator, init::PackageCreator, PackageMetadata, PackageType},
-        task::GetTaskName,
+        task::{args::GetTaskArgs, GetTaskName},
         Error, Result,
     },
 };

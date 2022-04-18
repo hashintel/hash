@@ -81,10 +81,16 @@ pub mod cancel;
 pub mod handler;
 pub mod msg;
 
-use crate::simulation::enum_dispatch::{
-    enum_dispatch, ContextTask, GetTaskArgs, InitTask, OutputTask, Result, SplitConfig, StateTask,
-    StoreAccessVerify, TargetedTaskMessage, TaskDistributionConfig, TaskMessage, TaskSharedStore,
-    WorkerHandler, WorkerPoolHandler,
+use crate::{
+    config::TaskDistributionConfig,
+    simulation::{
+        enum_dispatch::{
+            enum_dispatch, ContextTask, InitTask, OutputTask, Result, SplitConfig, StateTask,
+            StoreAccessVerify, TargetedTaskMessage, TaskMessage, TaskSharedStore, WorkerHandler,
+            WorkerPoolHandler,
+        },
+        task::args::GetTaskArgs,
+    },
 };
 
 // All traits applied here apply to the enum.
@@ -92,7 +98,7 @@ use crate::simulation::enum_dispatch::{
 // From<init::Task>, ..., From<output::Task> for this enum.
 // Additionally we have TryInto<init::Task>, (and others)
 // implemented for this enum.
-#[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs, StoreAccessVerify)]
+#[enum_dispatch(WorkerHandler, WorkerPoolHandler, StoreAccessVerify)]
 #[derive(Clone, Debug)]
 pub enum Task {
     InitTask,
@@ -113,6 +119,17 @@ impl GetTaskName for Task {
             Self::ContextTask(inner) => inner.get_task_name(),
             Self::StateTask(inner) => inner.get_task_name(),
             Self::OutputTask(inner) => inner.get_task_name(),
+        }
+    }
+}
+
+impl GetTaskArgs for Task {
+    fn distribution(&self) -> TaskDistributionConfig {
+        match self {
+            Self::InitTask(inner) => inner.distribution(),
+            Self::ContextTask(inner) => inner.distribution(),
+            Self::StateTask(inner) => inner.distribution(),
+            Self::OutputTask(inner) => inner.distribution(),
         }
     }
 }
