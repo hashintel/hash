@@ -188,16 +188,34 @@ export const SelectMenus = () => {
           renderValue={(selected) => (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
               {selected.map((value) => (
-                <Chip key={value} label={value} />
+                <Chip key={value} label={value} size="xs" color="blue" />
               ))}
             </Box>
           )}
-          value={["10", "20", "40"]}
+          defaultValue={["Multiple"]}
         >
-          <MenuItem value="10">Multiple</MenuItem>
-          <MenuItem value="20">Values</MenuItem>
-          <MenuItem value="30">In</MenuItem>
-          <MenuItem value="40">Chips</MenuItem>
+          {["Multiple", "values", "in", "chips"].map((item) => (
+            <MenuItem key={item} value={item}>
+              {item}
+            </MenuItem>
+          ))}
+        </Select>
+        <Select
+          multiple
+          renderValue={(selected) => (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+              {selected.map((value) => (
+                <Chip key={value} label={value} size="xs" color="red" />
+              ))}
+            </Box>
+          )}
+          defaultValue={["Multiple", "values"]}
+        >
+          {["Multiple", "values", "in", "chips"].map((item) => (
+            <MenuItem key={item} value={item}>
+              {item}
+            </MenuItem>
+          ))}
         </Select>
         {/*  */}
       </Stack>
