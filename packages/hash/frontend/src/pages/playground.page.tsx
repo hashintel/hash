@@ -285,6 +285,11 @@ const Page: NextPageWithLayout<PageProps> = () => {
           <br />
           <Stack direction="row" alignItems="center" spacing={2}>
             <TextField
+              defaultValue="xs"
+              placeholder="Search for anything"
+              size="xs"
+            />
+            <TextField
               defaultValue="small"
               placeholder="Search for anything"
               size="small"
