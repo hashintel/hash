@@ -87,9 +87,11 @@ use crate::{
         enum_dispatch::{
             enum_dispatch, ContextTask, InitTask, OutputTask, Result, SplitConfig, StateTask,
             StoreAccessVerify, TargetedTaskMessage, TaskMessage, TaskSharedStore,
-            WorkerPoolHandler,
         },
-        task::{args::GetTaskArgs, handler::WorkerHandler},
+        task::{
+            args::GetTaskArgs,
+            handler::{WorkerHandler, WorkerPoolHandler},
+        },
     },
 };
 
@@ -159,6 +161,26 @@ impl WorkerHandler for Task {
             Self::ContextTask(inner) => inner.combine_task_messages(task_messages),
             Self::StateTask(inner) => inner.combine_task_messages(task_messages),
             Self::OutputTask(inner) => inner.combine_task_messages(task_messages),
+        }
+    }
+}
+
+impl WorkerPoolHandler for Task {
+    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<Task>> {
+        match self {
+            Self::InitTask(inner) => inner.split_task(split_config),
+            Self::ContextTask(inner) => inner.split_task(split_config),
+            Self::StateTask(inner) => inner.split_task(split_config),
+            Self::OutputTask(inner) => inner.split_task(split_config),
+        }
+    }
+
+    fn combine_messages(&self, split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        match self {
+            Self::InitTask(inner) => inner.combine_messages(split_messages),
+            Self::ContextTask(inner) => inner.combine_messages(split_messages),
+            Self::StateTask(inner) => inner.combine_messages(split_messages),
+            Self::OutputTask(inner) => inner.combine_messages(split_messages),
         }
     }
 }

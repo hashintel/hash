@@ -16,11 +16,15 @@ use crate::{
     config::{ExperimentConfig, TaskDistributionConfig},
     simulation::{
         enum_dispatch::{
-            enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TargetedTaskMessage,
-            TaskMessage, TaskSharedStore,
+            enum_dispatch, RegisterWithoutTrait, SplitConfig, StoreAccessVerify,
+            TargetedTaskMessage, TaskMessage, TaskSharedStore,
         },
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
-        task::{args::GetTaskArgs, handler::WorkerHandler, GetTaskName},
+        task::{
+            args::GetTaskArgs,
+            handler::{WorkerHandler, WorkerPoolHandler},
+            GetTaskName, Task,
+        },
         Error, Result,
     },
 };
@@ -95,6 +99,20 @@ impl WorkerHandler for StateTask {
     fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
         match self {
             Self::ExecuteBehaviorsTask(inner) => inner.combine_task_messages(task_messages),
+        }
+    }
+}
+
+impl WorkerPoolHandler for StateTask {
+    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<Task>> {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.split_task(split_config),
+        }
+    }
+
+    fn combine_messages(&self, split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.combine_messages(split_messages),
         }
     }
 }

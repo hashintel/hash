@@ -1,8 +1,4 @@
-use crate::simulation::{
-    enum_dispatch::{enum_dispatch, ExecuteBehaviorsTask, StateTask, TaskMessage},
-    task::Task,
-    Error, Result,
-};
+use crate::simulation::{enum_dispatch::TaskMessage, task::Task, Error, Result};
 
 /// Describes how agent groups are split between workers.
 /// If the task uses distributed execution, `agent_distribution`
@@ -12,7 +8,6 @@ pub struct SplitConfig {
     pub agent_distribution: Option<Vec<usize>>, // TODO: make sure we don't leak Worker here
 }
 
-#[enum_dispatch]
 pub trait WorkerPoolHandler {
     /// When a Chunked/Parallel task is initialized
     /// the init message will have to be split

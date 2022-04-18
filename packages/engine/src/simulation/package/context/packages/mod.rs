@@ -15,12 +15,13 @@ use stateful::field::PackageId;
 use crate::{
     config::ExperimentConfig,
     simulation::{
-        enum_dispatch::{
-            enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore,
-            WorkerPoolHandler,
-        },
+        enum_dispatch::{enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore},
         package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
-        task::{args::GetTaskArgs, handler::WorkerHandler, GetTaskName},
+        task::{
+            args::GetTaskArgs,
+            handler::{WorkerHandler, WorkerPoolHandler},
+            GetTaskName,
+        },
         Error, Result,
     },
 };
