@@ -40,7 +40,13 @@ const _load_init_fn = (console, source) => {
   }
 };
 
-export const run_task = (experiment, _sim, task_message, _group_state, context) => {
+export const run_task = (
+  experiment,
+  _sim,
+  task_message,
+  _group_state,
+  context,
+) => {
   if (!task_message.hasOwnProperty("StartMessage")) {
     throw new Error(`unknown message type received for run_task'`);
   }

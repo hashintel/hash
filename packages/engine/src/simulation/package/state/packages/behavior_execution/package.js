@@ -135,7 +135,11 @@ const load_behaviors = (experiment, behavior_descs) => {
 //     "behaviorIndex": agent_state => agent_state[BEHAVIOR_INDEX_FIELD_KEY]
 // }
 
-export const start_experiment = (experiment, init_message, experiment_context) => {
+export const start_experiment = (
+  experiment,
+  init_message,
+  experiment_context,
+) => {
   load_behaviors(experiment, init_message);
 };
 

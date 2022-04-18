@@ -1,6 +1,6 @@
 // noinspection BadExpressionStatementJS
-import {arrow} from "./src/worker/runner/javascript/apache-arrow-bundle.js"
-import * as hash_util from "./src/worker/runner/javascript/hash_util.js"
+import { arrow } from "./src/worker/runner/javascript/apache-arrow-bundle.js";
+import * as hash_util from "./src/worker/runner/javascript/hash_util.js";
 
 const Batch = function () {
   this.mem_version = -1;

@@ -1,4 +1,4 @@
-import * as hash_util from "./src/worker/runner/javascript/hash_util.js"
+import * as hash_util from "./src/worker/runner/javascript/hash_util.js";
 
 // TODO: Propagate field specs to runners and use in state and context objects
 const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_7_behavior_index";
@@ -20,9 +20,7 @@ const gen_state_accessors = (AgentState, agent_schema, custom_getters) => {
 
     if (name === "agent_id") {
       getter = function () {
-        return hash_util.uuid_to_str(
-          this.__cols.agent_id[this.__idx_in_group],
-        );
+        return hash_util.uuid_to_str(this.__cols.agent_id[this.__idx_in_group]);
       };
       setter = function (value) {
         throw new ReferenceError("`agent_id` is read-only");
@@ -172,10 +170,7 @@ export const gen_group_state = (agent_schema, getters) => {
       throw_missing_field(field_name); // Missing even with dynamic access
     }
 
-    return this.__agent_batch.load_col(
-      field_name,
-      this.__loaders[field_name],
-    );
+    return this.__agent_batch.load_col(field_name, this.__loaders[field_name]);
   };
 
   // Returns the number of agents in this group.
@@ -202,10 +197,7 @@ export const gen_group_state = (agent_schema, getters) => {
 
     const skip = Object.create(null);
     skip.agent_id = true;
-    const agent_changes = this.__agent_batch.flush_changes(
-      schema.agent,
-      skip,
-    );
+    const agent_changes = this.__agent_batch.flush_changes(schema.agent, skip);
 
     // Convert message objects to JSON before flushing message batch.
     // Note that this is distinct from (though analogous to) 'any'-type handling

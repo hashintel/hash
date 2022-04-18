@@ -1,8 +1,12 @@
 // noinspection BadExpressionStatementJS
-import {arrow} from "./src/worker/runner/javascript/apache-arrow-bundle.js"
-import {Batches} from "./src/worker/runner/javascript/batch.js"
-import {ExperimentContext, SimInitContext, gen_sim_ctx} from "./src/worker/runner/javascript/context.js"
-import {gen_group_state} from "./src/worker/runner/javascript/state.js"
+import { arrow } from "./src/worker/runner/javascript/apache-arrow-bundle.js";
+import { Batches } from "./src/worker/runner/javascript/batch.js";
+import {
+  ExperimentContext,
+  SimInitContext,
+  gen_sim_ctx,
+} from "./src/worker/runner/javascript/context.js";
+import { gen_group_state } from "./src/worker/runner/javascript/state.js";
 
 const make_hash_set = (fields) => {
   const set = Object.create(null);
@@ -71,12 +75,7 @@ const maybe_add_custom_fns = (custom_fns, to_add, custom_property, pkg) => {
     // }
     if (custom_fns[field_name]) {
       throw new Error(
-        "Duplicate '" +
-          field_name +
-          "' in " +
-          pkg.name +
-          " " +
-          custom_property,
+        "Duplicate '" + field_name + "' in " + pkg.name + " " + custom_property,
       );
     }
     custom_fns[field_name] = to_add[field_name];
@@ -246,15 +245,9 @@ export function ctx_batch_sync(
 const _sync_pools = (sim, batches, agent_pool, message_pool) => {
   for (var i_group = 0; i_group < agent_pool.length; ++i_group) {
     agent_pool[i_group] = batches.sync(agent_pool[i_group], sim.schema.agent);
-    agent_pool[i_group].load_missing_cols(
-      sim.schema.agent,
-      sim.state_loaders,
-    );
+    agent_pool[i_group].load_missing_cols(sim.schema.agent, sim.state_loaders);
 
-    message_pool[i_group] = batches.sync(
-      message_pool[i_group],
-      sim.schema.msg,
-    );
+    message_pool[i_group] = batches.sync(message_pool[i_group], sim.schema.msg);
     message_pool[i_group].load_missing_cols(sim.schema.msg, {});
   }
 };

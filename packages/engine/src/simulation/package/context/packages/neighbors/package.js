@@ -1,4 +1,4 @@
-import * as hash_util from "./src/worker/runner/javascript/hash_util.js"
+import * as hash_util from "./src/worker/runner/javascript/hash_util.js";
 
 const json_deepcopy = hash_util.json_deepcopy;
 
