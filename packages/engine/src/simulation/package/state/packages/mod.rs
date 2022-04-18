@@ -14,15 +14,14 @@ use stateful::field::PackageId;
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use crate::{
     config::{ExperimentConfig, TaskDistributionConfig},
+    datastore::table::task_shared_store::TaskSharedStore,
     simulation::{
-        enum_dispatch::{
-            enum_dispatch, SplitConfig, StoreAccessVerify, TargetedTaskMessage, TaskMessage,
-            TaskSharedStore,
-        },
         package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
         task::{
+            access::StoreAccessVerify,
             args::GetTaskArgs,
-            handler::{WorkerHandler, WorkerPoolHandler},
+            handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
+            msg::{TargetedTaskMessage, TaskMessage},
             GetTaskName, Task,
         },
         Error, Result,
@@ -61,10 +60,9 @@ impl std::fmt::Display for Name {
 }
 
 /// All state package tasks are registered in this enum
-#[enum_dispatch(WorkerHandler, WorkerPoolHandler)]
 #[derive(Clone, Debug)]
 pub enum StateTask {
-    ExecuteBehaviorsTask,
+    ExecuteBehaviorsTask(ExecuteBehaviorsTask),
 }
 
 impl GetTaskName for StateTask {

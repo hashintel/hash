@@ -14,10 +14,11 @@ use stateful::field::PackageId;
 
 use crate::{
     config::ExperimentConfig,
+    datastore::table::task_shared_store::TaskSharedStore,
     simulation::{
-        enum_dispatch::{StoreAccessVerify, TaskSharedStore},
         package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
         task::{
+            access::StoreAccessVerify,
             args::GetTaskArgs,
             handler::{WorkerHandler, WorkerPoolHandler},
             GetTaskName,

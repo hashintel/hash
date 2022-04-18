@@ -1,4 +1,7 @@
-use crate::simulation::{enum_dispatch::TaskMessage, task::Task, Error, Result};
+use crate::simulation::{
+    task::{msg::TaskMessage, Task},
+    Error, Result,
+};
 
 /// Describes how agent groups are split between workers.
 /// If the task uses distributed execution, `agent_distribution`

@@ -1,8 +1,14 @@
 use crate::{
     simulation::{
-        enum_dispatch::{InitTaskMessage, TaskMessage},
-        package::init::packages::js_py::{JsPyInitTaskMessage, StartMessage},
-        task::{handler::WorkerHandler, msg::TargetedTaskMessage, GetTaskName},
+        package::init::{
+            packages::js_py::{JsPyInitTaskMessage, StartMessage},
+            InitTaskMessage,
+        },
+        task::{
+            handler::WorkerHandler,
+            msg::{TargetedTaskMessage, TaskMessage},
+            GetTaskName,
+        },
         Result as SimulationResult,
     },
     worker::runner::comms::MessageTarget,

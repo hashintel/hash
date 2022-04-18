@@ -7,16 +7,16 @@ use stateful::agent::Agent;
 
 use crate::{
     config::ExperimentConfig,
+    datastore::table::task_shared_store::TaskSharedStore,
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
-        enum_dispatch::{TaskMessage, TaskSharedStore},
         package::init::{
             packages::js_py::{js::JsInitTask, py::PyInitTask},
             Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTask,
             InitTaskMessage, MaybeCpuBound, Package as InitPackage, PackageComms, PackageCreator,
             SimRunConfig,
         },
-        task::Task,
+        task::{msg::TaskMessage, Task},
         Error, Result,
     },
 };

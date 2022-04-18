@@ -14,13 +14,14 @@ use stateful::field::PackageId;
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use crate::{
     config::ExperimentConfig,
+    datastore::table::task_shared_store::TaskSharedStore,
     simulation::{
-        enum_dispatch::{enum_dispatch, StoreAccessVerify, TaskSharedStore},
         package::{
             id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
             PackageType,
         },
         task::{
+            access::StoreAccessVerify,
             args::GetTaskArgs,
             handler::{WorkerHandler, WorkerPoolHandler},
             GetTaskName,
@@ -65,11 +66,10 @@ pub struct OutputPackagesSimConfig {
     pub map: HashMap<PackageName, serde_json::Value>,
 }
 
-#[enum_dispatch(OutputRepr)]
 #[derive(Debug)]
 pub enum Output {
-    AnalysisOutput,
-    JsonStateOutput,
+    AnalysisOutput(AnalysisOutput),
+    JsonStateOutput(JsonStateOutput),
 }
 
 /// All output package tasks are registered in this enum

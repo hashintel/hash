@@ -11,10 +11,9 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 use crate::{
     datastore::table::{
         proxy::StateReadProxy,
-        task_shared_store::{PartialSharedState, SharedState},
+        task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
     },
     proto::{ExperimentId, SimulationShortId},
-    simulation::enum_dispatch::TaskSharedStore,
     types::WorkerIndex,
     worker::runner::{
         comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},

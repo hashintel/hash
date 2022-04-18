@@ -3,8 +3,12 @@ use std::hint::unreachable_unchecked;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    simulation::enum_dispatch::{
-        ContextTaskMessage, InitTaskMessage, OutputTaskMessage, Result, StateTaskMessage,
+    simulation::{
+        package::{
+            context::ContextTaskMessage, init::InitTaskMessage, output::OutputTaskMessage,
+            state::StateTaskMessage,
+        },
+        Result,
     },
     worker::runner::comms::MessageTarget,
 };

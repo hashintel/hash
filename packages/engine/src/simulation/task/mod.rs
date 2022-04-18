@@ -83,15 +83,16 @@ pub mod msg;
 
 use crate::{
     config::TaskDistributionConfig,
+    datastore::table::task_shared_store::TaskSharedStore,
     simulation::{
-        enum_dispatch::{
-            ContextTask, InitTask, OutputTask, Result, SplitConfig, StateTask, StoreAccessVerify,
-            TargetedTaskMessage, TaskMessage, TaskSharedStore,
-        },
+        package::{context::ContextTask, init::InitTask, output::OutputTask, state::StateTask},
         task::{
+            access::StoreAccessVerify,
             args::GetTaskArgs,
-            handler::{WorkerHandler, WorkerPoolHandler},
+            handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
+            msg::{TargetedTaskMessage, TaskMessage},
         },
+        Result,
     },
 };
 
