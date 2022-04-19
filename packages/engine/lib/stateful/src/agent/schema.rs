@@ -9,7 +9,7 @@ use crate::{error::Result, field::FieldSpecMap};
 ///
 /// It contains the dual representation of both the [`FieldSpec`] and the Arrow schema.
 ///
-/// [`Agent`]: crate::agent::Agent
+/// [`AgentBatch`]: crate::agent::AgentBatch
 /// [`FieldSpec`]: crate::field::FieldSpec
 #[derive(Clone, Debug)]
 pub struct AgentSchema {

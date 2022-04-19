@@ -40,6 +40,8 @@ const LOWER_BOUND: usize = 10000;
 ///
 /// Internally, this is backed by an [`ArrowBatch`], which lays the messages out in memory as a
 /// struct of arrays.
+///
+/// [`Message`]: crate::message::Message
 pub struct MessageBatch {
     /// The underlying batch containing the stored messages.
     pub batch: ArrowBatch,

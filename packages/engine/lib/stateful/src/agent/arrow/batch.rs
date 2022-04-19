@@ -35,7 +35,7 @@ use crate::{
     field::{POSITION_DIM, UUID_V4_LEN},
 };
 
-/// A list of [`Agent`] fields.
+/// A collection of agent fields.
 ///
 /// Internally, this is backed by an [`ArrowBatch`], which is organizing the agent fields as a
 /// struct of arrays.

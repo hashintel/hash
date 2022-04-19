@@ -1,9 +1,16 @@
 /// A record pointing to a specific agent inside of an [`AgentPool`].
+///
+/// [`AgentPool`]: crate::agent::AgentPool
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AgentIndex {
     /// Index of the [`AgentBatch`] inside of a [`AgentPool`]
+    ///
+    /// [`AgentBatch`]: crate::agent::AgentBatch
+    /// [`AgentPool`]: crate::agent::AgentPool
     pub group_index: u32,
     /// Index of the agent inside of an [`AgentBatch`]
+    ///
+    /// [`AgentBatch`]: crate::agent::AgentBatch
     pub agent_index: u32,
 }
 
