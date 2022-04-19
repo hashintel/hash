@@ -102,11 +102,11 @@ We're slightly better at maneouvering a cursor onto a target on desktops, but no
 
 #### 2. Make editable elements obvious
 
-If the user can edit, manipulate, or input data anywhere in the block, use visual styling to make it clear. This means making buttons look like buttons by giving them a different background colour and clear border.
+If the user can edit, manipulate, or input data anywhere in the block, use visual styling to make it clear.
 
-It means making input fields look like input fields by giving them a border and ideally a subtle inner shadow to indicate they're "fillable".
+This means making buttons look like buttons by giving them a different background colour and clear border. It means making input fields look like input fields by giving them a border and ideally a subtle inner shadow to indicate they're "fillable".
 
-If you haven't heard, [flat design is bad for usability](https://www.nngroup.com/articles/flat-design/). You should instead use _subtle_ indicators of depth like drop shadows, inner shadows, and layering to help users understand how interface elements are related and what they can interact with.
+If you haven't heard, the flat design trends of the last decade are [bad for usability](https://www.nngroup.com/articles/flat-design/). You should instead use "flat 2.0" styling – an approach that uses _subtle_ indicators of depth like drop shadows, inner shadows, and layering to help users understand how interface elements are related and what they can interact with.
 
 #### 3. Make your blocks A11y accessible
 
@@ -118,11 +118,17 @@ Two common mistakes are having low colour contrast levels and forgetting to incl
 
 #### 4. Follow conventional icon semantics and use labels
 
-Mysterious icons
+There's nothing less enticing than a mysterious icon in the corner of an app that gives you no indication of what it might do. Take you to a new page? Delete all the data you just entered? Who knows!
 
-Ideally, icons should always have text labels next to them. This prevents users from having to guess what the icon means.
+--- image of mystery icons in a toolbar ---
 
-Since we live in a world where we don't have infinite screen screen, it can be tricky to fit labels on everything. You should put labels inside tooltips that appear when a user hovers over the icon. This obviously is a better solution for desktop than mobile, as we can't hover with our fingers (yet... still waiting for Apple to figure that one out).
+<p style={{ margin: "0 auto 2rem", fontSize: "80%" }}>
+  Who doesn't like a little russian roulette in their SaaS app?
+</p>
+
+Ideally, icons should always have text labels next to them. This prevents users from having to guess what the icon means. This is especially important if you're using icons that aren't widely used in other applications.
+
+Since we live in a world where we don't have infinite screen screen, it can be tricky to fit labels on everything. You should put labels inside tooltips that appear when a user hovers over the icon. This is a better solution for desktop than mobile, as we can't hover with our fingers (yet... still waiting for Apple to figure that one out). For mobile it's more important to show the text label in lieu of a tooltip.
 
 #### 5. Co-locate data and actions
 
