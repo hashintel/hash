@@ -8,21 +8,30 @@ jobTitle: "Head of Design at HASH"
 date: "April 24th, 2022"
 ---
 
-One of the biggest challenges with designing and building reusable blocks is making them look and feel great across a wide variety of contexts.
-
-[The Block Protocol](https://blockprotocol.org) enables developers to build reusable blocks that will work in any application that also follows the protocol. It acts as the communication layer between an application and a block. The block and the application don't need to know anything about how the other is built. They only need to follow the protocol to work seamlessly together.
+This guide is for developers who want to build blocks with the [Block Protocol](https://blockprotocol.org). The protocol allows you build reusable blocks that will work in any application that also follows the protocol. It acts as the communication layer between an application and a block. The block and the application don't need to know anything about how the other is built. They only need to follow the protocol to work seamlessly together.
 
 –––– image of the block protocol as the communication layer between blocks and EAs ––––
 
-Applications that follow the protocol and use blocks from the [block hub](https://blockprotocol.org/hub) are called “embedding applications.” And they each have a unique visual style and set of design conventions they follow; a design system they've worked hard to establish and keep consistent across their product.
+This opens up a world of possibilities; as a developer you can build any block you can dream up, publish it to the [block hub](https://blockprotocol.org/hub) or [npm](https://www.npmjs.com/), and allow other developers to download and use it in any protocol-compliant application.
 
-The challenge for developers who want to build and publish blocks is designing them in a way that helps them blend in with their surroundings, _and_ make them easy to use by following tried-and-true interaction design principles.
+–––– image of any block to any EA ––––
 
-We've all felt the frustration of trying to use an app that behaves inconsistently. 99 button colours, icons that change meaning across screens, and labels that sporadically switch between “cancel,” “discard”, and “delete” will quickly deplete a user's patience.
+This also raises some new challenges though. For your blocks to be successful, loved, and widely used, they need to look and feel great across a wide variety of contexts. **Which means you have to design them well.**
 
-Now imagine trying to use an app where every block is designed and built by someone different, without any shared conventions or rules. Yikes.
+This doesn't mean add fancy gradients and drop shadows to everything. It means following these two principles:
 
-Thankfully, we can easily avoid these design problems by following a few simple principles and best practices when you're creating blocks.
+1.  Blocks should be visually simple, minimal, and blend in with their surroundings
+2.  Blocks should follow tried-and-true interaction design principles
+
+The first principle helps blocks feel at home in the applications that use them. Each application will have its own visual style and set of design conventions they follow; a design system they've worked hard to establish and keep consistent across their product.
+
+We've designed the protocol with this in mind; we allow applications to pass styling variables into blocks such as `primaryColour` and `fontFamily` (more on this below) which helps them match the visual styling of their environments.
+
+There's more to design than visual appearance though. Blocks need to behave predictably and consistently for the people using them. This means being both internally consistent, and consistent with the way most other websites on the web work. This principle is known as [Jakob's Law](https://www.nngroup.com/videos/jakobs-law-internet-ux/) - users spend 99% of their time on apps and websites other than yours, and they expect them to all work the same way. There is no need to reinvent the wheel or the dropdown menu.
+
+There is a much higher risk of inconsistent behaviour when every block in an application is designed and built by someone different, without any shared conventions or rules. We've all felt the frustration of trying to use an app that has 99 button colours, icons that change meaning across screens, and labels that sporadically switch between “cancel,” “discard”, and “delete.” These small frustrations add up and will quickly deplete a user's patience.
+
+Thankfully, you can avoid most of these usability problems by following our visual styling principles and best practices when you're creating blocks.
 
 ## Styling Block Protocol blocks
 
