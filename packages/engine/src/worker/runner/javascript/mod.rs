@@ -93,27 +93,26 @@ impl<'s> JsPackage<'s> {
         tracing::debug!("Importing package from path `{path}`");
 
         let namespace: Object<'_> = {
-            let mut try_catch = v8::TryCatch::new(scope);
-            let module_map = try_catch
+            let module_map = scope
                 .get_slot::<Rc<RefCell<ModuleMap>>>()
                 .expect("ModuleMap is not present in isolate slots")
                 .clone();
-            let pkg = match ModuleMap::import_module(module_map, &mut try_catch, &path)? {
+            let pkg = match ModuleMap::import_module(module_map, scope, &path)? {
                 Some(s) => s,
                 None => {
                     tracing::debug!(
                         "Couldn't read package file. It might intentionally not exist."
                     );
                     // Packages don't have to use JS.
-                    let undefined = v8::undefined(&mut try_catch).into();
-                    let fns = v8::Array::new_with_elements(&mut try_catch, &[undefined; 3]);
+                    let undefined = v8::undefined(scope).into();
+                    let fns = v8::Array::new_with_elements(scope, &[undefined; 3]);
 
                     return Ok(JsPackage { fns });
                 }
             };
 
             pkg.get_module_namespace()
-                .to_object(&mut try_catch)
+                .to_object(scope)
                 .expect("Module is not instantiated")
         };
 
@@ -127,15 +126,11 @@ impl<'s> JsPackage<'s> {
                 let elem: Value<'_> = namespace
                     .get(&mut try_catch, js_fn_name.into())
                     .ok_or_else(|| {
-                        let exception = try_catch.exception().unwrap();
-                        let exception_string = exception
-                            .to_string(&mut try_catch)
-                            .unwrap()
-                            .to_rust_string_lossy(&mut try_catch);
+                        let exception = try_catch_exception(&mut try_catch).unwrap();
 
                         Error::PackageImport(
                             name.to_string(),
-                            format!("Could not get function from package: {exception_string}"),
+                            format!("Could not get function from package: {exception}"),
                         )
                     })?;
 
@@ -176,23 +171,15 @@ fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s
     let js_source_code = new_js_string(scope, &source_code);
     let mut try_catch = v8::TryCatch::new(scope);
     let script = v8::Script::compile(&mut try_catch, js_source_code, None).ok_or_else(|| {
-        let exception = try_catch.exception().unwrap();
-        let exception_string = exception
-            .to_string(&mut try_catch)
-            .unwrap()
-            .to_rust_string_lossy(&mut try_catch);
+        let exception = try_catch_exception(&mut try_catch).unwrap();
 
-        Error::Eval(path.into(), format!("Compile error: {exception_string}"))
+        Error::Eval(path.into(), format!("Compile error: {exception}"))
     })?;
 
     script.run(&mut try_catch).ok_or_else(|| {
-        let exception = try_catch.exception().unwrap();
-        let exception_string = exception
-            .to_string(&mut try_catch)
-            .unwrap()
-            .to_rust_string_lossy(&mut try_catch);
+        let exception = try_catch_exception(&mut try_catch).unwrap();
 
-        Error::Eval(path.into(), format!("Execution error: {exception_string}"))
+        Error::Eval(path.into(), format!("Execution error: {exception}"))
     })
 }
 
@@ -236,30 +223,19 @@ impl ModuleMap {
                 let mut try_catch = v8::TryCatch::new(scope);
                 let module = v8::script_compiler::compile_module(&mut try_catch, source)
                     .ok_or_else(|| {
-                        let exception = try_catch.exception().unwrap();
-                        let exception_string = exception
-                            .to_string(&mut try_catch)
-                            .unwrap()
-                            .to_rust_string_lossy(&mut try_catch);
+                        let exception = try_catch_exception(&mut try_catch).unwrap();
 
-                        Error::Eval(
-                            path.to_string(),
-                            format!("Compile error: {exception_string}"),
-                        )
+                        Error::Eval(path.to_string(), format!("Compile error: {exception}"))
                     })?;
 
                 module
                     .instantiate_module(&mut try_catch, module_resolve_callback)
                     .ok_or_else(|| {
-                        let exception = try_catch.exception().unwrap();
-                        let exception_string = exception
-                            .to_string(&mut try_catch)
-                            .unwrap()
-                            .to_rust_string_lossy(&mut try_catch);
+                        let exception = try_catch_exception(&mut try_catch).unwrap();
 
                         Error::PackageImport(
                             path.to_string(),
-                            format!("Could not instantiate code for package: {exception_string}"),
+                            format!("Could not instantiate code for package: {exception}"),
                         )
                     })?;
 
@@ -271,15 +247,11 @@ impl ModuleMap {
                 }
 
                 module.evaluate(&mut try_catch).ok_or_else(|| {
-                    let exception = try_catch.exception().unwrap();
-                    let exception_string = exception
-                        .to_string(&mut try_catch)
-                        .unwrap()
-                        .to_rust_string_lossy(&mut try_catch);
+                    let exception = try_catch_exception(&mut try_catch).unwrap();
 
                     Error::PackageImport(
                         path.to_string(),
-                        format!("Could not evaluate code for package: {exception_string}"),
+                        format!("Could not evaluate code for package: {exception}"),
                     )
                 })?;
 
@@ -456,13 +428,8 @@ fn call_js_function<'s>(
     args: &[Value<'s>],
 ) -> std::result::Result<Value<'s>, String> {
     let mut try_catch = v8::TryCatch::new(scope);
-    func.call(&mut try_catch, this, args).ok_or_else(|| {
-        let exception = try_catch.exception().unwrap();
-        exception
-            .to_string(&mut try_catch)
-            .unwrap()
-            .to_rust_string_lossy(&mut try_catch)
-    })
+    func.call(&mut try_catch, this, args)
+        .ok_or_else(|| try_catch_exception(&mut try_catch).unwrap())
 }
 
 fn current_step_to_js<'s>(scope: &mut v8::HandleScope<'s>, current_step: usize) -> Value<'s> {
@@ -2031,6 +1998,22 @@ fn new_js_string<'s>(
 ) -> v8::Local<'s, v8::String> {
     let s = s.as_ref();
     v8::String::new(scope, s).expect(&format!("Could not create JS String: {s}"))
+}
+
+/// Helper function to get the exception from a [`v8::TryCatch`]
+fn try_catch_exception<'s, 'p: 's, S>(try_catch: &mut v8::TryCatch<'s, S>) -> Option<String>
+where
+    v8::TryCatch<'s, S>: AsMut<v8::HandleScope<'p, ()>>,
+    v8::TryCatch<'s, S>: AsMut<v8::HandleScope<'p, v8::Context>>,
+    v8::TryCatch<'s, S>: AsMut<v8::Isolate>,
+{
+    let exception = try_catch.exception()?;
+    Some(
+        exception
+            .to_string(try_catch.as_mut())
+            .unwrap()
+            .to_rust_string_lossy(try_catch.as_mut()),
+    )
 }
 
 // Returns the new max heap size.
