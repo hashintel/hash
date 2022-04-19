@@ -12,6 +12,7 @@ export const MuiLinkThemeOptions: Components<Theme>["MuiLink"] = {
       ":hover": {
         backgroundColor: theme.palette.yellow[300],
         color: theme.palette.yellow[1000],
+        transition: "background-color 0.3s ease-in-out",
       },
     }),
   },
