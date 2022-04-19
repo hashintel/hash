@@ -224,6 +224,7 @@ declare module "@mui/material/Chip" {
     mint: true;
     navy: true;
     // Disable defaults
+    default: false;
     primary: false;
     secondary: false;
     success: false;

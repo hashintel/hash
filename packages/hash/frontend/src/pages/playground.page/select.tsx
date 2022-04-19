@@ -7,7 +7,6 @@ import {
 import {
   Box,
   Checkbox,
-  Chip,
   ListItemAvatar,
   ListItemIcon,
   ListItemSecondaryAction,
@@ -18,7 +17,7 @@ import {
   Stack,
 } from "@mui/material";
 import { FontAwesomeIcon } from "../../shared/icons";
-import { Avatar } from "../../shared/ui";
+import { Avatar, Chip } from "../../shared/ui";
 import { SelectWithSearch } from "./select/select-with-search";
 
 export const SelectMenus = () => {

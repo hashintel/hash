@@ -1,7 +1,8 @@
+/* eslint-disable no-alert -- used for testing purposes */
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { Box, Stack, Chip } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import { FontAwesomeIcon } from "../../shared/icons";
-import { ChipGroup } from "../../shared/ui";
+import { Chip, ChipGroup } from "../../shared/ui";
 
 export const Chips = () => {
   return (
@@ -57,8 +58,18 @@ export const Chips = () => {
           label="Chip"
           onDelete={() => alert("Delete clicked")}
         />
-        <Chip size="small" color="red" label="Chip" onDelete={() => {}} />
-        <Chip size="large" color="blue" label="Chip" onDelete={() => {}} />
+        <Chip
+          size="small"
+          color="red"
+          label="Chip"
+          onDelete={() => alert("Delete clicked")}
+        />
+        <Chip
+          size="large"
+          color="blue"
+          label="Chip"
+          onDelete={() => alert("Delete clicked")}
+        />
       </Stack>
       <Stack direction="row" alignItems="center" spacing={2} mb={2}>
         <Chip
@@ -79,6 +90,11 @@ export const Chips = () => {
           label="Chip"
           icon={<FontAwesomeIcon icon={faPlus} />}
         />
+      </Stack>
+      <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+        <Chip color="gray" label="Chip" hasCircleStartIcon />
+        <Chip color="red" label="Chip" hasCircleStartIcon />
+        <Chip color="blue" label="Chip" hasCircleStartIcon />
       </Stack>
 
       <Stack direction="row" alignItems="center" spacing={2} mb={2}>

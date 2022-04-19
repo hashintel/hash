@@ -92,8 +92,6 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
     root: ({ ownerState, theme }) => {
       const { color, variant } = ownerState;
 
-      const formattedColor = !color || color === "default" ? "gray" : color;
-
       const {
         textColor,
         bgColor,
@@ -101,7 +99,7 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
         bgHoverColor,
         outlineColor,
         outlineHoverColor,
-      } = getColors(theme, formattedColor, variant);
+      } = getColors(theme, color ?? "gray", variant);
 
       return {
         color: textColor,
@@ -153,11 +151,11 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
         color: "currentColor",
         fontSize: 12,
         marginLeft: 12,
-        marginRight: -8,
+        marginRight: -6,
 
         ...(size === "xs" && {
           marginLeft: 8,
-          marginRight: -4,
+          marginRight: -2,
         }),
 
         ...(size === "large" && {

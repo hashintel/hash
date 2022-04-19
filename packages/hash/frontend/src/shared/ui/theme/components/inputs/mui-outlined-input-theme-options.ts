@@ -18,6 +18,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
         paddingLeft: 0,
         paddingRight: 0,
         boxShadow: theme.boxShadows.xs,
+        backgroundColor: theme.palette.white,
 
         "&.Mui-focused, &.Mui-focused:hover": {
           [`& .${outlinedInputClasses.notchedOutline}`]: {
