@@ -77,12 +77,6 @@ const getColors = (
   };
 };
 
-// @todo
-// 1. add isCircle to handle when startIcon should be a circle
-// 2. handle displaying icons on the right. Currently only
-// delete icon can be displayed on the right and this (i.e delete icon)
-// gets displayed when onDelete is passed in
-
 export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
   defaultProps: {
     size: "small",

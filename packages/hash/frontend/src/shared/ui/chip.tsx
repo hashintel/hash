@@ -13,6 +13,12 @@ export type ChipProps = {
   rectangular?: boolean;
 } & MuiChipProps;
 
+// @todo
+// Handle displaying icons on the right. MUI Chip only
+// allows the delete icon can be displayed on the right when onDelete prop
+// is passed in
+// @see https://github.com/mui/material-ui/blob/master/packages/mui-material/src/Chip/Chip.js#L444-L448
+
 export const Chip: FC<ChipProps> = forwardRef(
   (
     {

@@ -211,7 +211,6 @@ declare module "@mui/material/Chip" {
   }
 
   interface ChipPropsColorOverrides {
-    // @todo override default ones
     gray: true;
     blue: true;
     purple: true;
