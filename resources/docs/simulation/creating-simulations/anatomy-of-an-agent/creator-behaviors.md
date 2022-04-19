@@ -1,8 +1,8 @@
 ---
-title: Programmable Initialization
-slug: simulation/creating-simulations/anatomy-of-an-agent/programmable-initial-states
+title: Creator Behaviors
+slug: simulation/creating-simulations/anatomy-of-an-agent/creator-behaviors
 objectId: 13e5ee9e-1c0e-4ffe-be93-739606ed9af6
-description: Initializing simulations with JavaScript and Python
+description: Initializing simulations by using creator behaviors
 ---
 
 ## Creator Agents
