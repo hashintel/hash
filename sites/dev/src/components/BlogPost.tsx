@@ -48,7 +48,7 @@ export const BlogPostHead: VFC<{
   jobTitle,
   date,
   pageTitle = title,
-  pageDescription = SITE_DESCRIPTION,
+  pageDescription = subtitle,
 }) => {
   const photos = useBlogPostPhotos();
 
