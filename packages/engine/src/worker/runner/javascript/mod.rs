@@ -123,7 +123,8 @@ impl<'s> JsPackage<'s> {
                 let mut try_catch = v8::TryCatch::new(scope);
 
                 let js_fn_name = new_js_string(&mut try_catch, fn_name);
-                let elem: Value<'_> = namespace
+                // Get the function `Value` from the namespace
+                let func_or_undefined: Value<'_> = namespace
                     .get(&mut try_catch, js_fn_name.into())
                     .ok_or_else(|| {
                         let exception = try_catch_exception(&mut try_catch).unwrap();
@@ -134,14 +135,14 @@ impl<'s> JsPackage<'s> {
                         )
                     })?;
 
-                if !(elem.is_function() || elem.is_undefined()) {
+                if !(func_or_undefined.is_function() || func_or_undefined.is_undefined()) {
                     return Err(Error::PackageImport(
                         path.clone(),
-                        format!("{fn_name} should be a function, not {elem:?}"),
+                        format!("{fn_name} should be a function, not {func_or_undefined:?}"),
                     ));
                 }
 
-                Ok(elem)
+                Ok(func_or_undefined)
             })
             .collect::<Result<Vec<_>>>()?;
 
