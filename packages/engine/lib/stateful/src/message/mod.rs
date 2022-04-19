@@ -2,13 +2,13 @@
 //!
 //! For a high-level concept of an messages, please see the [HASH documentation].
 //!
-//! It contains [`Message`] and accompanying API for sending messages from agents to agents or from
-//! agents to the engine. Depending on the type of the message, [`Message`] provides different
-//! variants, please see it's documentation for more information.
+//! This module contains [`Message`] and the accompanying API for handling messages sent from agents
+//! to agents or from agents to the engine. Depending on the type of the message, [`Message`]
+//! provides different variants, please see its documentation for more information.
 //!
-//! To store multiple [`Message`]s, an in-memory representation is defined by [`MessageSchema`] and
-//! can be used by [`MessageBatch`] or, in case of multiple batches, [`MessagePool`].
-//! To read those, the [`MessageLoader`] and [`MessageReader`] is used.
+//! [`Message`]s are laid out in-memory in [`MessageBatch`]es according to the representation
+//! defined by [`MessageSchema`]. Multiple [`MessageBatch`]es are collected in a [`MessagePool`]
+//! which is interacted with through the [`MessageLoader`] and [`MessageReader`].
 //!
 //! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/agent-messages
 //! [`Agent`]: crate::agent::Agent

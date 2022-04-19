@@ -38,8 +38,8 @@ const LOWER_BOUND: usize = 10000;
 
 /// A collection of [`Message`]s.
 ///
-/// Internally, this is backed by an [`ArrowBatch`], which is organizing the messages as a struct of
-/// arrays.
+/// Internally, this is backed by an [`ArrowBatch`], which lays the messages out in memory as a
+/// struct of arrays.
 pub struct MessageBatch {
     /// The underlying batch containing the stored messages.
     pub batch: ArrowBatch,
