@@ -39,7 +39,7 @@ const getImagesFromParent = (parent: Parent): Image[] => [
   ...parent.children.filter(isImage),
   ...parent.children
     .filter(isParent)
-    .flatMap((parent) => getImagesFromParent(parent)),
+    .flatMap((child) => getImagesFromParent(child)),
 ];
 
 // Parses the name from a MDX file name (removing the prefix index and the .mdx file extension)
