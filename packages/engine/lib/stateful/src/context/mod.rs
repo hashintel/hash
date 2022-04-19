@@ -11,7 +11,6 @@
 //! [`ContextColumnWriter`].
 //!
 //! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/anatomy-of-an-agent/context
-//! [`Agent`]: crate::agent::Agent
 //! [`Globals`]: crate::global::Globals
 //! [`Dataset`]: crate::global::Dataset
 
