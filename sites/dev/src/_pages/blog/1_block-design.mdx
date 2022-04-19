@@ -1,0 +1,129 @@
+---
+authorPhoto: blog/0_test/maggie.png
+postPhoto: blog/0_test/banner.png
+---
+
+<BlogPostHead
+    pageTitle="Design guidelines for building Block Protocol blocks"
+    title={
+        <>
+            Design guidelines for building blocks with the Block Protocol
+        </>
+    }
+    subtitle={
+        <>
+            How to make your blocks feel intuitive, easy to use, and beautiful across every application
+        </>
+    }
+    author={<>Maggie Appleton</>}
+    jobTitle={<>Head of Design at HASH</>}
+    date={<>April 24th, 2022</>}
+/>
+<BlogPostContent>
+
+One of the biggest challenges with designing and building reusable blocks is making them look and feel great across a wide variety of contexts.
+
+[The Block Protocol](https://blockprotocol.org) enables developers to build reusable blocks that will work in any application that also follows the protocol. It acts as the communication layer between an application and a block. The block and the application don't need to know anything about how the other is built. They only need to follow the protocol to work seamlessly together.
+
+–––– image of the block protocol as the communication layer between blocks and EAs ––––
+
+Applications that follow the protocol and use blocks from the [block hub](https://blockprotocol.org/hub) are called “embedding applications.” And they each have a unique visual style and set of design conventions they follow; a design system they've worked hard to establish and keep consistent across their product.
+
+The challenge for developers who want to build and publish blocks is designing them in a way that helps them blend in with their surroundings, _and_ make them easy to use by following tried-and-true interaction design principles.
+
+We've all felt the frustration of trying to use an app that behaves inconsistently. 99 button colours, icons that change meaning across screens, and labels that sporadically switch between “cancel,” “discard”, and “delete” will quickly deplete a user's patience.
+
+Now imagine trying to use an app where every block is designed and built by someone different, without any shared conventions or rules. Yikes.
+
+Thankfully, we can easily avoid these design problems by following a few simple principles and best practices when you're creating blocks.
+
+## Styling Block Protocol blocks
+
+We designed the protocol to give embedding applications control over the way blocks appear in their product. We give embedding applications the final say over how a block looks, as they have more context about the environment it lives within and how people will use it.
+
+Every Block Protocol block must accept a `styleVariables` object that the embedding application can pass in.
+
+This object defines a number of variables that control the basic styles of the block. We've designed these to maximise consistency and simplicity within your block.
+
+### Style Variables
+
+##### Colours
+
+- Primary, secondary, and tertiary colours
+- Primary and secondary background colours
+- Border colour
+- Font colour
+
+##### Spacing
+
+- Base size
+- Spacing scale
+
+##### Typography
+
+- Font family
+- Base font size
+- Typographic scale
+
+##### Borders
+
+- Box border radius
+- Button border radius
+- Border weight
+
+##### General
+
+- Icon size
+- Box shadows
+
+--- diagram of a block with all these variables labelled ---
+
+These styling variables can do a lot of the heavy lifting to help blocks match their surrounding environment.
+
+--- image of the same block with a variety of styles passed to it ----
+
+As a block developer, you should make sure the markup in your blocks uses these styling variables to make life easier for the people using your blocks.
+
+Embedding applications can also pass raw CSS into the block if they need to manually override specific styles and layouts. This should be a last resort though, as futzing with CSS selectors can get messy and may end up affecting the core functionality of the block.
+
+## Usability principles
+
+No matter how beautiful a block looks, it's not worth much to anyone if it's difficult to use. Soft drop shadows and smooth gradients aren't going to delight the user if they're furiously trying to find the “save” button, and you've stashed it inside a dropdown menu that's too low contrast to see.
+
+---- image of a shitty dropdown menu design ----
+
+#### 1. Generous touch targets
+
+Touch targets are any area of the screen users will need to click - buttons, icons that trigger actions, or links.
+
+Humans have fat little fingers and we're bad at accurately poking them at screens. We're slightly better at maneouvering a mouse onto a target, but not by much.
+
+On mobile, you should make sure any clickable elements are at least 44px wide and high. We're slightly better at hitting targets in the middle of the screen than on the edges, so you reduce that if it's bang in the middle. If your touch target is on the edge or corner, bump it up to 50px.
+
+On desktop this can be 40px. For icons and buttons you can simply add padding around the element to increase the target size.
+
+#### 2. Make editable elements obvious
+
+If the user can edit, manipulate, or input data anywhere in the block, make it clear
+
+#### 3. A11y accessiblity
+
+#### 4. Follow conventional icon semantics and use labels
+
+Mysterious icons
+
+Ideally, icons should always have text labels next to them. This prevents users from having to guess what the icon means.
+
+Since we live in a world where we don't have infinite screen screen, it can be tricky to fit labels on everything. You should put labels inside tooltips that appear when a user hovers over the icon. This obviously is a better solution for desktop than mobile, as we can't hover with our fingers (yet... still waiting for Apple to figure that one out).
+
+#### 5. Co-locate information and actions
+
+Whenever the user is able to perform an action on data within the block, try to put the button or element that triggers the action as close to the data as possible.
+
+For example, X
+
+#### 6. Direct manipulation
+
+A close cousin of co-location, direct manipulation is when we allow users to directly touch and move elements on the screen.
+
+</BlogPostContent>
