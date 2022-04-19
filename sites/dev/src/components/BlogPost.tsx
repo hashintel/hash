@@ -1,22 +1,22 @@
 import { Container, Stack, Typography } from "@mui/material";
-import { Box } from "@mui/system";
+import { Box, styled, TypographyProps } from "@mui/system";
 import { parse } from "date-fns";
 import Head from "next/head";
 import Image from "next/image";
-import { createContext, FC, useContext, VFC } from "react";
+import { ComponentProps, createContext, FC, useContext, VFC } from "react";
 import { FRONTEND_URL, SITE_DESCRIPTION } from "../config";
 import { mdxImageClasses } from "./MdxImage";
 
-export type BlogPagePhoto = {
+export type BlogPostPagePhoto = {
   src: string;
   width: number;
   height: number;
 };
 
 export type BlogPagePhotos = {
-  author: BlogPagePhoto | null;
-  post: BlogPagePhoto | null;
-  body: Record<string, BlogPagePhoto | null>;
+  author: BlogPostPagePhoto | null;
+  post: BlogPostPagePhoto | null;
+  body: Record<string, BlogPostPagePhoto | null>;
 };
 
 export const BlogPostPhotosContext = createContext<BlogPagePhotos | null>(null);
@@ -32,6 +32,12 @@ export const useBlogPostPhotos = () => {
 
   return context;
 };
+
+export const BlogPostAuthor: FC<TypographyProps> = ({ children, ...props }) => (
+  <Typography variant="hashMediumCaps" color="purple.600" {...props}>
+    {children}
+  </Typography>
+);
 
 export const BlogPostHead: VFC<{
   title?: string;
@@ -163,11 +169,7 @@ export const BlogPostHead: VFC<{
                     </Box>
                   ) : null}
                   <Stack ml={2} direction="column" spacing={0.5}>
-                    {author ? (
-                      <Typography variant="hashMediumCaps" color="purple.600">
-                        {author}
-                      </Typography>
-                    ) : null}
+                    {author ? <BlogPostAuthor>{author}</BlogPostAuthor> : null}
                     {jobTitle ? (
                       <Typography variant="hashMediumCaps">
                         {jobTitle}

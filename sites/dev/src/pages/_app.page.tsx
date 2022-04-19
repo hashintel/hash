@@ -6,13 +6,22 @@ import "../../styles/globals.css";
 import { PageLayout } from "../components/PageLayout";
 import { theme } from "../theme";
 import { MuiProvider } from "../theme/MuiProvider";
+import { NextPageWithLayout } from "../util/nextTypes";
+
+type AppPropsWithLayout = AppProps & {
+  Component: NextPageWithLayout;
+};
 
 type MyAppProps = {
   emotionCache?: EmotionCache;
-} & AppProps;
+} & AppPropsWithLayout;
 
 const MyApp: VFC<MyAppProps> = ({ Component, pageProps, emotionCache }) => {
   const router = useRouter();
+
+  // Use the layout defined at the page level, if available
+  const getLayout =
+    Component.getLayout ?? ((page) => <PageLayout>{page}</PageLayout>);
 
   useEffect(() => {
     const handleRouteChange = (url: string) => {
@@ -29,9 +38,7 @@ const MyApp: VFC<MyAppProps> = ({ Component, pageProps, emotionCache }) => {
 
   return (
     <MuiProvider emotionCache={emotionCache} theme={theme}>
-      <PageLayout>
-        <Component {...pageProps} />
-      </PageLayout>
+      {getLayout(<Component {...pageProps} />)}
     </MuiProvider>
   );
 };
