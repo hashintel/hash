@@ -67,7 +67,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
           <SelectMenus />
         </AccordionDetails>
       </Accordion>
-      <Box mb={25} />
+      <Box mb={45} />
     </Container>
   );
 };
