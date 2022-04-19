@@ -1,17 +1,15 @@
 use memory::arrow::meta::{
     util::DataSliceUtils, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder,
 };
+use stateful::context::ContextColumnWriter;
 
-use crate::{
-    datastore::Result as DatastoreResult,
-    simulation::package::context::{packages::neighbors::map::NeighborMap, ContextColumnWriter},
-};
+use crate::simulation::package::context::packages::neighbors::map::NeighborMap;
 
 const NUM_NODES: usize = 3;
 const NUM_BUFFERS: usize = 5;
 
 impl ContextColumnWriter for NeighborMap {
-    fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata> {
+    fn dynamic_metadata(&self) -> stateful::Result<ColumnDynamicMetadata> {
         let mut builder = ColumnDynamicMetadataBuilder::with_capacities(NUM_NODES, NUM_BUFFERS);
 
         let num_agents = self.data.len();
@@ -32,7 +30,7 @@ impl ContextColumnWriter for NeighborMap {
         Ok(builder.finish())
     }
 
-    fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
+    fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> stateful::Result<()> {
         // TODO[6](optimization)
         // we can leave these null buffers out (length = 0) if Rust does not need to read them.
 
@@ -58,8 +56,8 @@ impl ContextColumnWriter for NeighborMap {
         let mut cur_index = 0;
         self.data.iter().for_each(|v| {
             v.iter().for_each(|u| {
-                data_buffer[cur_index] = u.0;
-                data_buffer[cur_index + 1] = u.1;
+                data_buffer[cur_index] = u.group_index;
+                data_buffer[cur_index + 1] = u.agent_index;
                 cur_index += 2;
             })
         });

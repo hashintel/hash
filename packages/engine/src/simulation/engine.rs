@@ -1,21 +1,18 @@
 use std::{mem, sync::Arc};
 
+use memory::shared_memory::MemoryId;
+use stateful::{
+    agent::AgentPool,
+    context::Context,
+    message::{MessageMap, MessagePool},
+    proxy::BatchPool,
+    state::{State, StatePools, StateSnapshot},
+};
 use tracing::Instrument;
 
 use crate::{
     config::SimRunConfig,
-    datastore::{
-        store::Store,
-        table::{
-            context::Context,
-            pool::{agent::AgentPool, message::MessagePool, BatchPool},
-            references::MessageMap,
-            state::{
-                view::{StatePools, StateSnapshot},
-                State,
-            },
-        },
-    },
+    datastore::{store::Store, table::create_remove::CreateRemovePlanner},
     proto::ExperimentRunTrait,
     simulation::{
         agent_control::AgentControl,
@@ -173,7 +170,7 @@ impl Engine {
                 snapshot,
                 pre_context,
                 state.num_agents(),
-                state.sim_config(),
+                &self.config,
             )
             .instrument(tracing::info_span!("run_context_packages"))
             .await?;
@@ -276,7 +273,16 @@ impl Engine {
         commands.merge(self.comms.take_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
         self.stop_messages = commands.stop;
-        state.create_remove(commands.create_remove, &self.config)?;
+
+        let mut planner =
+            CreateRemovePlanner::new(commands.create_remove, Arc::clone(&self.config))?;
+        let plan = planner.run(&state.read()?)?;
+        state.set_num_agents(plan.num_agents_after_execution);
+        let removed_ids = plan.execute(state.state_mut(), &self.config)?;
+
+        // Register all batches that were removed
+        state.removed_batches().extend(removed_ids.into_iter());
+
         Ok(())
     }
 
@@ -288,7 +294,7 @@ impl Engine {
         context: &mut Context,
     ) -> Result<MessagePool> {
         let message_pool = context.take_message_pool();
-        let finalized_message_pool = state.reset_messages(message_pool, &self.config)?;
+        let finalized_message_pool = state.reset_messages(message_pool)?;
         Ok(finalized_message_pool)
     }
 
@@ -302,7 +308,7 @@ impl Engine {
         context.update_agent_snapshot(
             state,
             &self.config.sim.store.agent_schema,
-            &self.config.exp.run.base().id,
+            &MemoryId::new(self.config.exp.run.base().id),
         )?;
         Ok(context.take_agent_pool())
     }
