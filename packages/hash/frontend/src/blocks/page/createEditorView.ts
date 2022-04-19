@@ -18,6 +18,10 @@ import { RenderPortal } from "./usePortals";
 
 export type BlocksMetaMap = Record<string, BlockMeta>;
 
+/**
+ * An editor view manages the DOM structure that represents an editable document.
+ * @see https://prosemirror.net/docs/ref/#view.EditorView
+ */
 export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,

@@ -1,5 +1,5 @@
 import { Draft, produce } from "immer";
-import { draftIdForEntity } from "./entityStorePlugin";
+import { createDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
 import { DistributiveOmit } from "./util";
 
@@ -69,9 +69,11 @@ export const isDraftBlockEntity = (
   isBlockEntity(entity) && isDraftEntity(entity);
 
 /**
+ * Returns the draft entity associated with an entity id, or undefined if it does not.
+ * Use mustGetDraftEntityFromEntityId if you want an error if the entity is missing.
  * @todo we could store a map of entity id <-> draft id to make this easier
  */
-export const draftEntityForEntityId = (
+export const getDraftEntityFromEntityId = (
   draft: EntityStore["draft"],
   entityId: string,
 ) => Object.values(draft).find((entity) => entity.entityId === entityId);
@@ -128,7 +130,7 @@ export const createEntityStore = (
 
   for (const entity of entities) {
     if (!entityToDraft[entity.entityId]) {
-      entityToDraft[entity.entityId] = draftIdForEntity(entity.entityId);
+      entityToDraft[entity.entityId] = createDraftIdForEntity(entity.entityId);
     }
   }
 

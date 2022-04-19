@@ -17,7 +17,6 @@ import {
 } from "./entity";
 import {
   createEntityStore,
-  draftEntityForEntityId,
   EntityStore,
   EntityStoreType,
   isBlockEntity,
@@ -27,9 +26,8 @@ import {
   addEntityStoreAction,
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
-  newDraftId,
-  draftIdForEntity,
-  getDraftIdFromEntityByEntityId,
+  createDraftIdForEntity,
+  mustGetDraftEntityFromEntityId,
 } from "./entityStorePlugin";
 import {
   childrenForTextEntity,
@@ -66,6 +64,10 @@ type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
 type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
 
+/**
+ * Manages the creation and editing of the ProseMirror schema.
+ * Editing the ProseMirror schema on the fly involves unsupported hacks flagged below.
+ */
 export class ProsemirrorSchemaManager {
   constructor(
     public schema: Schema,
@@ -384,14 +386,10 @@ export class ProsemirrorSchemaManager {
 
     const newNodes = await Promise.all(
       entities.map((blockEntity) => {
-        const draftEntity = draftEntityForEntityId(
+        const draftEntity = mustGetDraftEntityFromEntityId(
           store.draft,
           blockEntity.entityId,
         );
-
-        if (!draftEntity) {
-          throw new Error("Missing draft entity");
-        }
 
         return this.createRemoteBlock(
           blockEntity.properties.componentId,
@@ -550,7 +548,7 @@ export class ProsemirrorSchemaManager {
       let entityProperties = targetVariant?.properties ?? {};
 
       if (blockComponentRequiresText(meta.componentSchema)) {
-        const newTextDraftId = newDraftId();
+        const newTextDraftId = createDraftIdForEntity(null);
 
         addEntityStoreAction(this.view.state, tr, {
           type: "newDraftEntity",
@@ -638,7 +636,10 @@ export class ProsemirrorSchemaManager {
       type: "updateBlockEntityProperties",
       payload: {
         targetEntity,
-        draftId: draftIdForEntity(blockEntity.entityId),
+        draftId: mustGetDraftEntityFromEntityId(
+          entityStore.draft,
+          blockEntity.entityId,
+        ).draftId,
       },
     });
 
@@ -649,8 +650,8 @@ export class ProsemirrorSchemaManager {
 
     const newBlockNode = this.createLocalBlock({
       targetComponentId: blockEntity.properties.componentId,
-      draftBlockId: draftIdForEntity(blockEntity.entityId),
-      draftChildEntityId: draftEntityForEntityId(
+      draftBlockId: createDraftIdForEntity(blockEntity.entityId),
+      draftChildEntityId: mustGetDraftEntityFromEntityId(
         updatedStore.draft,
         targetEntity.entityId,
       )?.draftId,
@@ -681,7 +682,7 @@ export class ProsemirrorSchemaManager {
     addEntityStoreAction(this.view.state, tr, {
       type: "updateEntityProperties",
       payload: {
-        draftId: getDraftIdFromEntityByEntityId(entityStore, entityId),
+        draftId: mustGetDraftEntityFromEntityId(entityStore, entityId).draftId,
         properties: propertiesToUpdate,
         merge: true,
       },
@@ -699,7 +700,7 @@ export class ProsemirrorSchemaManager {
       throw new Error("Cannot trigger createNewDraftBlock without view");
     }
 
-    const newBlockId = newDraftId();
+    const newBlockId = createDraftIdForEntity(null);
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
@@ -709,7 +710,7 @@ export class ProsemirrorSchemaManager {
       },
     });
 
-    const newVariantDraftId = newDraftId();
+    const newVariantDraftId = createDraftIdForEntity(null);
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
