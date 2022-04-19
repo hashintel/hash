@@ -3,7 +3,7 @@
 </p>
 <div align="center">
  <a href="https://github.com/hashintel/hash/blob/main/packages/hash/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-agpl3.svg" alt="GNU Affero General Public License version 3" /></a>
- <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
+ <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_hash"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
 # HASH
