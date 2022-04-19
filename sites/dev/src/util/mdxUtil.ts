@@ -6,6 +6,7 @@ import path from "path";
 import remarkMdx from "remark-mdx";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
+import remarkMdxDisableExplicitJsx from "remark-mdx-disable-explicit-jsx";
 
 type Node = {
   type: string;
@@ -32,7 +33,11 @@ type ParsedAST = {
 
 // Parses the abstract syntax tree of a stringified MDX file
 export const parseAST = (mdxFileContent: string) =>
-  unified().use(remarkParse).use(remarkMdx).parse(mdxFileContent) as ParsedAST;
+  unified()
+    .use(remarkParse)
+    .use(remarkMdx)
+    .use(remarkMdxDisableExplicitJsx)
+    .parse(mdxFileContent) as ParsedAST;
 
 // Recursively returns all the headings in an MDX AST
 const getImagesFromParent = (parent: Parent): Image[] => [
@@ -104,7 +109,7 @@ export const getSerializedPage = async (params: {
   const serializedMdx = await serialize(content, {
     // Optionally pass remark/rehype plugins
     mdxOptions: {
-      remarkPlugins: [],
+      remarkPlugins: [remarkMdxDisableExplicitJsx],
       rehypePlugins: [],
     },
     scope: data,
