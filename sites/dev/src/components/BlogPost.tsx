@@ -212,9 +212,9 @@ export const BlogPostContent: FC = ({ children }) => (
           gridColumn: 2,
         },
 
-        [`.${typographyClasses.root} a`]: {
-          fontWeight: "inherit",
-        },
+        // [`.${typographyClasses.root} a`]: {
+        //   fontWeight: "inherit",
+        // },
 
         ".MuiTypography-hashBodyCopy + .MuiTypography-hashBodyCopy": {
           mt: 4,

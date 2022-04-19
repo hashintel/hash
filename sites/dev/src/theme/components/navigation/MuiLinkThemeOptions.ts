@@ -4,6 +4,7 @@ export const MuiLinkThemeOptions: Components<Theme>["MuiLink"] = {
   styleOverrides: {
     root: ({ theme }) => ({
       textDecoration: "none",
+      fontWeight: 700,
       position: "relative",
       ":focus-visible": {
         border: "none",
