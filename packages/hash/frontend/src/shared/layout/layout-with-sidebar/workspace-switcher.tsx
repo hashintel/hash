@@ -8,6 +8,7 @@ import {
   ListItemText,
   ListItemAvatar,
   listItemTextClasses,
+  Tooltip,
 } from "@mui/material";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -76,39 +77,41 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
 
   return (
     <Box>
-      <Button
-        ref={buttonRef}
-        variant="tertiary_quiet"
-        fullWidth
-        sx={({ spacing }) => ({
-          backgroundColor: "transparent",
-          padding: spacing(1.5, 2, 1.5, 2.25),
-          justifyContent: "flex-start",
-          textAlign: "left",
-        })}
-        {...bindTrigger(popupState)}
-      >
-        <Avatar size={24} title={activeWorkspace.name} />
-        <Typography
-          sx={{
-            pr: 1,
-            pl: 1,
-            overflowX: "hidden",
-            whiteSpace: "nowrap",
-            textOverflow: "ellipsis",
-            maxWidth: 140,
-            color: ({ palette }) => palette.gray[80],
-            fontWeight: 600,
-          }}
-          variant="smallTextLabels"
+      <Tooltip placement="bottom" title={activeWorkspace.name}>
+        <Button
+          ref={buttonRef}
+          variant="tertiary_quiet"
+          fullWidth
+          sx={({ spacing }) => ({
+            backgroundColor: "transparent",
+            padding: spacing(1.5, 2, 1.5, 2.25),
+            justifyContent: "flex-start",
+            textAlign: "left",
+          })}
+          {...bindTrigger(popupState)}
         >
-          {activeWorkspace.name}
-        </Typography>
-        <FontAwesomeIcon
-          icon={faChevronDown}
-          sx={{ fontSize: 12, color: ({ palette }) => palette.gray[70] }}
-        />
-      </Button>
+          <Avatar size={24} title={activeWorkspace.name} />
+          <Typography
+            sx={{
+              pr: 1,
+              pl: 1,
+              overflowX: "hidden",
+              whiteSpace: "nowrap",
+              textOverflow: "ellipsis",
+              maxWidth: 140,
+              color: ({ palette }) => palette.gray[80],
+              fontWeight: 600,
+            }}
+            variant="smallTextLabels"
+          >
+            {activeWorkspace.name}
+          </Typography>
+          <FontAwesomeIcon
+            icon={faChevronDown}
+            sx={{ fontSize: 12, color: ({ palette }) => palette.gray[70] }}
+          />
+        </Button>
+      </Tooltip>
 
       <Menu
         {...bindMenu(popupState)}

@@ -5,30 +5,28 @@ use serde::{Deserialize, Serialize};
 use stateful::{
     agent::{Agent, AgentSchema, AgentStateField},
     field::{
-        FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
-        RootFieldSpecCreator,
+        FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
+        RootFieldSpec, RootFieldSpecCreator,
     },
+    global::Globals,
 };
 use uuid::Uuid;
 
 use crate::{
     config::{
-        EngineConfig, ExperimentConfig, Globals, PackageConfig, PersistenceConfig, SimRunConfig,
+        EngineConfig, ExperimentConfig, PackageConfig, PersistenceConfig, SimRunConfig,
         SimulationConfig, StoreConfig, WorkerPoolConfig,
     },
-    datastore::{
-        error::Error,
-        schema::{last_state_index_key, EngineComponent},
-    },
+    datastore::{error::Error, schema::last_state_index_key},
     proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
-fn test_field_specs() -> FieldSpecMap<EngineComponent> {
+fn test_field_specs() -> FieldSpecMap {
     let mut map = FieldSpecMap::default();
     map.try_extend([RootFieldSpec {
         inner: last_state_index_key(),
-        source: EngineComponent::Engine,
+        source: FieldSource::Engine,
         scope: FieldScope::Hidden,
     }])
     .unwrap();
@@ -50,7 +48,7 @@ fn test_field_specs() -> FieldSpecMap<EngineComponent> {
             ),
         },
         scope: FieldScope::Agent,
-        source: EngineComponent::Engine,
+        source: FieldSource::Engine,
     }])
     .unwrap();
     map.try_extend([RootFieldSpec {
@@ -59,7 +57,7 @@ fn test_field_specs() -> FieldSpecMap<EngineComponent> {
             field_type: FieldType::new(FieldTypeVariant::Number, false),
         },
         scope: FieldScope::Agent,
-        source: EngineComponent::Engine,
+        source: FieldSource::Engine,
     }])
     .unwrap();
     map.try_extend([RootFieldSpec {
@@ -147,22 +145,20 @@ fn test_field_specs() -> FieldSpecMap<EngineComponent> {
             ),
         },
         scope: FieldScope::Agent,
-        source: EngineComponent::Engine,
+        source: FieldSource::Engine,
     }])
     .unwrap();
     map
 }
 
-pub fn root_field_spec_from_agent_field(
-    field: AgentStateField,
-) -> Result<RootFieldSpec<EngineComponent>, Error> {
+pub fn root_field_spec_from_agent_field(field: AgentStateField) -> Result<RootFieldSpec, Error> {
     Ok(RootFieldSpec {
         inner: FieldSpec {
             name: field.name().into(),
             field_type: field.try_into()?,
         },
         scope: FieldScope::Agent,
-        source: EngineComponent::Engine,
+        source: FieldSource::Engine,
     })
 }
 
@@ -266,7 +262,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         id: Uuid::new_v4(),
         project_base,
     };
-    let globals: Globals = Default::default();
+    let globals = Globals::default();
 
     let exp_config = Arc::new(ExperimentConfig {
         packages: Arc::new(PackageConfig {
@@ -313,8 +309,8 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
 pub fn gen_schema_and_test_agents(
     num_agents: usize,
     seed: u64,
-) -> Result<(Arc<AgentSchema<EngineComponent>>, Vec<Agent>), Error> {
-    let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+) -> Result<(Arc<AgentSchema>, Vec<Agent>), Error> {
+    let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
     let mut field_spec_map = FieldSpecMap::empty();
     field_spec_map.try_extend([field_spec_creator.create(
         "age".to_string(),

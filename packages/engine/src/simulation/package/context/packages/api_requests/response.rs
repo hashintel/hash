@@ -1,6 +1,6 @@
 use std::{collections::HashMap, marker::PhantomData};
 
-use crate::datastore::UUID_V4_LEN;
+use stateful::field::UUID_V4_LEN;
 
 pub struct ApiResponseToAnonymous {
     pub from: &'static str,

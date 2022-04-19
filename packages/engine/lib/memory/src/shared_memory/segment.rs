@@ -46,18 +46,18 @@ impl<'a> Buffers<'a> {
 ///
 /// Holds a UUID and a random suffix. The UUID can be reused for different [`Segment`]s and can all
 /// be cleaned up by calling [`MemoryId::clean_up`].
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct MemoryId<'id> {
-    id: &'id Uuid,
+#[derive(Debug, PartialEq)]
+pub struct MemoryId {
+    id: Uuid,
     suffix: u16,
 }
 
-impl<'id> MemoryId<'id> {
+impl MemoryId {
     /// Creates a new identifier from the provided [`Uuid`].
     ///
     /// This will generate a suffix and ensures, that the shared memory segment does not already
     /// exists at */dev/shm/*.
-    pub fn new(id: &'id Uuid) -> Self {
+    pub fn new(id: Uuid) -> Self {
         loop {
             let memory_id = Self {
                 id,
@@ -67,6 +67,11 @@ impl<'id> MemoryId<'id> {
                 return memory_id;
             }
         }
+    }
+
+    /// Returns the base id used to create this `MemoryId`.
+    pub fn base_id(&self) -> Uuid {
+        self.id
     }
 
     /// Returns the prefix used for the identifier.
@@ -82,23 +87,21 @@ impl<'id> MemoryId<'id> {
     }
 
     /// Clean up generated shared memory segments associated with a given `MemoryId`.
-    pub fn clean_up<Id: Borrow<Uuid>>(id: Id) -> Result<()> {
+    pub fn clean_up<Id: Borrow<Uuid>>(id: Id) {
         // TODO: macOS does not store the shared memory FDs at `/dev/shm/`. Maybe it's not storing
         //   FDs at all. Find out if they are stored somewhere and remove them instead, otherwise we
         //   have to figure out a way to remove them without relying on the file-system.
-        let shm_files = glob::glob(&format!("/dev/shm/{}_*", Self::prefix(id)))
-            .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
+        let shm_files = glob::glob(&format!("/dev/shm/{}_*", Self::prefix(id)));
 
-        shm_files.filter_map(Result::ok).for_each(|path| {
+        shm_files.into_iter().flatten().flatten().for_each(|path| {
             if let Err(err) = std::fs::remove_file(&path) {
                 tracing::warn!("Could not clean up {path:?}: {err}");
             }
         });
-        Ok(())
     }
 }
 
-impl fmt::Display for MemoryId<'_> {
+impl fmt::Display for MemoryId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let prefix = Self::prefix(self);
         if cfg!(target_os = "macos") {
@@ -110,9 +113,9 @@ impl fmt::Display for MemoryId<'_> {
     }
 }
 
-impl Borrow<Uuid> for &MemoryId<'_> {
+impl Borrow<Uuid> for &MemoryId {
     fn borrow(&self) -> &Uuid {
-        self.id
+        &self.id
     }
 }
 
@@ -257,11 +260,10 @@ impl Segment {
         VisitorMut::new(MemoryPtr::from_memory(self), self)
     }
 
-    pub fn duplicate(memory: &Segment, id: &Uuid) -> Result<Segment> {
+    pub fn duplicate(memory: &Segment, memory_id: MemoryId) -> Result<Segment> {
         let shmem = &memory.data;
-        let new_id = MemoryId::new(id);
         let data = ShmemConf::new(true)
-            .os_id(&new_id.to_string())
+            .os_id(&memory_id.to_string())
             .size(memory.size)
             .create()?;
         unsafe { std::ptr::copy_nonoverlapping(shmem.as_ptr(), data.as_ptr(), memory.size) };
@@ -546,8 +548,7 @@ pub mod tests {
 
     #[test]
     pub fn test_identical_buffers() -> Result<()> {
-        let uuid = Uuid::new_v4();
-        let memory_id = MemoryId::new(&uuid);
+        let memory_id = MemoryId::new(Uuid::new_v4());
         let buffer1: Vec<u8> = vec![1; 1482];
         let buffer2: Vec<u8> = vec![2; 645];
         let buffer3: Vec<u8> = vec![3; 254];
@@ -572,8 +573,7 @@ pub mod tests {
 
     #[test]
     pub fn test_message() -> Result<()> {
-        let uuid = Uuid::new_v4();
-        let memory_id = MemoryId::new(&uuid);
+        let memory_id = MemoryId::new(Uuid::new_v4());
         let buffer1: Vec<u8> = vec![1; 1482];
         let buffer2: Vec<u8> = vec![2; 645];
         let buffer3: Vec<u8> = vec![3; 254];

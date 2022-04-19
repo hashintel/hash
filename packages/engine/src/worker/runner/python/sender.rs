@@ -6,13 +6,11 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use memory::shared_memory::arrow_continuation;
 use nng::{options::Options, Aio, Socket};
+use stateful::state::StateReadProxy;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 use crate::{
-    datastore::table::{
-        proxy::StateReadProxy,
-        task_shared_store::{PartialSharedState, SharedState},
-    },
+    datastore::table::task_shared_store::{PartialSharedState, SharedState},
     proto::{ExperimentId, SimulationShortId},
     simulation::enum_dispatch::TaskSharedStore,
     types::WorkerIndex,
@@ -116,13 +114,6 @@ impl NngSender {
     }
 }
 
-impl Drop for NngSender {
-    fn drop(&mut self) {
-        // TODO: Check whether nng already does this when a socket is dropped
-        self.to_py.close();
-    }
-}
-
 // TODO: Make this function shorter.
 fn inbound_to_nng(
     sim_id: Option<SimulationShortId>,
@@ -150,7 +141,7 @@ fn inbound_to_nng(
             let msg = flatbuffers_gen::task_msg_generated::TaskMsg::create(
                 fbb,
                 &flatbuffers_gen::task_msg_generated::TaskMsgArgs {
-                    package_sid: msg.package_id.as_usize() as u64,
+                    package_sid: msg.package_id.as_usize().get() as u64,
                     task_id: Some(&task_id),
                     target: MessageTarget::Python.into(),
                     group_index: group_index.as_ref(),

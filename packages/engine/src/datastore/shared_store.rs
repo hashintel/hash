@@ -1,10 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{
-    config::ExperimentConfig,
-    datastore::{batch::Dataset, error::Result},
-    proto::ExperimentRunTrait,
-};
+use memory::shared_memory::MemoryId;
+use stateful::global::Dataset;
+
+use crate::{config::ExperimentConfig, datastore::error::Result, proto::ExperimentRunTrait};
 
 // TODO rename to something more self-explanatory
 /// This is an object we use to manage sharing access to data that's static across simulation runs
@@ -20,7 +19,7 @@ impl SharedStore {
         let mut dataset_batches = HashMap::with_capacity(datasets.len());
         for dataset in &config.run.base().project_base.datasets {
             let dataset_name = dataset.shortname.clone();
-            let dataset_batch = Dataset::new_from_dataset(dataset, &config.run.base().id)?;
+            let dataset_batch = Dataset::from_shared(dataset, MemoryId::new(config.run.base().id))?;
             dataset_batches.insert(dataset_name, Arc::new(dataset_batch));
         }
 

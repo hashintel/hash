@@ -2,17 +2,25 @@ use std::collections::HashMap;
 
 use arrow::datatypes::{DataType, Field, Schema};
 use stateful::{
-    agent::AgentStateField,
-    field::{FieldScope, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpecCreator},
+    agent::{
+        arrow::{IntoRecordBatch, PREVIOUS_INDEX_FIELD_KEY},
+        AgentStateField, IntoAgents,
+    },
+    field::{
+        FieldScope, FieldSource, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpecCreator,
+        UUID_V4_LEN,
+    },
+    message::MessageSchema,
 };
 
 use crate::datastore::{
-    error::Result, schema::EngineComponent, test_utils::root_field_spec_from_agent_field,
+    error::Result,
+    test_utils::{gen_schema_and_test_agents, root_field_spec_from_agent_field},
 };
 
 #[test]
 fn get_schema() -> Result<()> {
-    let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+    let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
     let mut field_spec_map = FieldSpecMap::empty();
 
     field_spec_map.try_extend([field_spec_creator.create(
@@ -60,7 +68,7 @@ fn get_schema() -> Result<()> {
             ),
             Field::new(
                 "agent_id",
-                DataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32),
+                DataType::FixedSizeBinary(UUID_V4_LEN as i32),
                 false,
             ),
             Field::new(
@@ -74,5 +82,48 @@ fn get_schema() -> Result<()> {
 
     let schema = field_spec_map.create_arrow_schema().unwrap();
     assert_eq!(schema, target);
+    Ok(())
+}
+
+#[test]
+fn agent_state_into_record_batch() -> Result<()> {
+    let mut failed_agent_seeds = vec![];
+
+    for round in 0..3 {
+        let num_agents = 150;
+        let initial_seed = round * num_agents;
+        let (schema, mut agents) = gen_schema_and_test_agents(num_agents, initial_seed as u64)?;
+
+        let agent_batch = agents.as_slice().to_agent_batch(&schema)?;
+        let message_batch = agents
+            .as_slice()
+            .to_message_batch(MessageSchema::default().arrow)?;
+
+        let mut returned_agents = (&agent_batch, &message_batch).to_agent_states(Some(&schema))?;
+
+        agents.iter_mut().for_each(|v| {
+            v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
+        });
+        returned_agents.iter_mut().for_each(|v| {
+            v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
+        });
+
+        agents
+            .iter()
+            .zip(returned_agents.iter())
+            .for_each(|(agent, returned_agent)| {
+                if agent != returned_agent {
+                    failed_agent_seeds.push(agent.get_custom::<f64>("seed").unwrap())
+                }
+            });
+    }
+
+    assert_eq!(
+        failed_agent_seeds.len(),
+        0,
+        "Some agents failed to be properly converted, their seeds were: {:?}",
+        failed_agent_seeds
+    );
+
     Ok(())
 }

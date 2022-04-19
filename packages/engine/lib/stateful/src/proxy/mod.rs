@@ -8,13 +8,15 @@
 //! As the `Proxy` is just a pointer into the [`RwLock`], proxies are very small. This also implies,
 //! that the data behind a `Proxy` is automatically [`Pin`]ned.
 //!
-//! [`RwLock`]: std::lock::RwLock
+//! [`RwLock`]: std::sync::RwLock
 //! [`Pin`]: core::pin::Pin
 
 mod batch;
+mod batch_pool;
 mod pool;
 
 pub use self::{
     batch::{BatchReadProxy, BatchWriteProxy},
+    batch_pool::BatchPool,
     pool::{PoolReadProxy, PoolWriteProxy},
 };

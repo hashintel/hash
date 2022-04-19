@@ -17,8 +17,8 @@ import React, {
 import { tw } from "twind";
 import { debounce, get } from "lodash";
 
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { SchemaPropertiesTable } from "./SchemaPropertiesTable";
-import { JsonSchema } from "../../../lib/json-utils";
 import { TextInputOrDisplay } from "./Inputs";
 import {
   schemaEditorReducer,

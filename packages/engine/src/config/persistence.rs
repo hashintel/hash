@@ -1,5 +1,7 @@
+use stateful::global::Globals;
+
 use crate::{
-    config::{Globals, Result},
+    config::Result,
     simulation::package::{creator::PackageCreators, output::packages::OutputPackagesSimConfig},
 };
 

@@ -7,25 +7,27 @@ use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
-use stateful::field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
+use stateful::{
+    agent,
+    context::ContextColumn,
+    field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    global::Globals,
+    message::MessageReader,
+    proxy::BatchPool,
+};
 use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
-    config::{ExperimentConfig, Globals},
-    datastore::{
-        batch::iterators,
-        schema::EngineComponent,
-        table::pool::{message, BatchPool},
-    },
+    config::ExperimentConfig,
     simulation::{
         comms::package::PackageComms,
         package::context::{
-            packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextColumn,
-            ContextSchema, Error, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
-            MaybeCpuBound, Package, Package as ContextPackage, PackageCreator, SimRunConfig,
-            StateReadProxy, StateSnapshot,
+            packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextSchema, Error,
+            FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound,
+            Package, Package as ContextPackage, PackageCreator, SimRunConfig, StateReadProxy,
+            StateSnapshot,
         },
         Result,
     },
@@ -44,8 +46,8 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _state_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
-        context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+        _state_field_spec_accessor: FieldSpecMapAccessor,
+        context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let custom_message_handlers = custom_message_handlers_from_globals(&config.sim.globals)?;
         Ok(Box::new(ApiRequests {
@@ -58,8 +60,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
-    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![fields::get_api_responses_field_spec(
             field_spec_creator,
         )?])
@@ -74,7 +76,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 struct ApiRequests {
     custom_message_handlers: Option<Vec<String>>,
-    context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+    context_field_spec_accessor: FieldSpecMapAccessor,
 }
 
 impl MaybeCpuBound for ApiRequests {
@@ -113,7 +115,7 @@ impl Package for ApiRequests {
 
         let agent_pool = state_proxy.agent_pool();
         let batches = agent_pool.batches();
-        let responses_per_agent = iterators::agent::agent_id_iter(&batches)?
+        let responses_per_agent = agent::arrow::agent_id_iter(&batches)?
             .map(move |agent_id| {
                 let mut ext_responses = vec![];
                 api_response_maps
@@ -129,11 +131,11 @@ impl Package for ApiRequests {
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
             .create_key()?;
 
-        Ok(vec![ContextColumn {
+        Ok(vec![ContextColumn::new(
             field_key,
-            inner: Box::new(api_responses),
-            span: pkg_span,
-        }])
+            Box::new(api_responses),
+            pkg_span,
+        )])
     }
 
     fn get_empty_arrow_columns(
@@ -205,7 +207,7 @@ async fn build_api_response_maps(
     let mut futs = FuturesOrdered::new();
     {
         let message_proxies = &snapshot.state.message_pool.read_proxies()?;
-        let reader = message::get_reader(message_proxies)?;
+        let reader = MessageReader::from_message_pool(message_proxies)?;
 
         handlers.iter().try_for_each::<_, Result<()>>(|handler| {
             let messages = snapshot.message_map.get_msg_refs(handler);

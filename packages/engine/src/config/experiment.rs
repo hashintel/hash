@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
+use stateful::global::Globals;
+
 use crate::{
-    config::{globals::Globals, package, worker, worker_pool, Result},
+    config::{package, worker, worker_pool, Result},
     proto::{ExperimentName, ExperimentRunRepr, ExperimentRunTrait, InitialStateName},
     simulation::package::init,
 };

@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const aggregationTypedef = gql`
   type LinkedAggregation {
+    aggregationId: ID!
     sourceAccountId: ID!
     sourceEntityId: ID!
     path: String!

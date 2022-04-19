@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
+use stateful::global::Globals;
+
 use crate::{
     config::{
-        EngineConfig, ExperimentConfig, Globals, PersistenceConfig, SimRunConfig, StoreConfig,
+        EngineConfig, ExperimentConfig, PersistenceConfig, SimRunConfig, StoreConfig,
         WorkerAllocation,
     },
     experiment::controller::error::Result,

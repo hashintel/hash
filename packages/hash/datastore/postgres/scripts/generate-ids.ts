@@ -1,15 +1,12 @@
 import fs from "fs";
 import path from "path";
-import { Uuid4 } from "id128";
 import { SYSTEM_TYPES } from "@hashintel/hash-api/src/types/entityTypes";
+import { genId } from "../util";
 
 const requiredIds = {
   orgs: ["__system__"],
   types: SYSTEM_TYPES,
 };
-
-/** @todo replace this when implementation in the backend/src/util changes */
-const genId = () => Uuid4.generate().toCanonical().toLowerCase();
 
 export const generatedIds: {
   [key: string]: {

@@ -385,22 +385,23 @@ class __Entity {
     return aggregation;
   }
 
-  async getAggregations(client: DbClient) {
+  async getAggregations(client: DbClient, params?: { activeAt?: Date }) {
     const aggregations = await Aggregation.getAllEntityAggregations(client, {
       source: this,
+      activeAt: params?.activeAt,
     });
 
     return aggregations;
   }
 
-  async getAggregation(
+  async getAggregationByPath(
     client: DbClient,
     params: {
       stringifiedPath: string;
     },
   ) {
     const { stringifiedPath } = params;
-    const aggregation = await Aggregation.getEntityAggregation(client, {
+    const aggregation = await Aggregation.getEntityAggregationByPath(client, {
       source: this,
       stringifiedPath,
     });
