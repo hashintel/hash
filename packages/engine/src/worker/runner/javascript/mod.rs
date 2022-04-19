@@ -93,11 +93,7 @@ impl<'s> JsPackage<'s> {
         tracing::debug!("Importing package from path `{path}`");
 
         let namespace: Object<'_> = {
-            let module_map = scope
-                .get_slot::<Rc<RefCell<ModuleMap>>>()
-                .expect("ModuleMap is not present in isolate slots")
-                .clone();
-            let pkg = match ModuleMap::import_module(module_map, scope, &path)? {
+            let pkg = match ModuleMap::import_module(scope, &path)? {
                 Some(s) => s,
                 None => {
                     tracing::debug!(
@@ -193,11 +189,15 @@ impl ModuleMap {
     }
 
     fn import_module<'s>(
-        this: Rc<RefCell<Self>>,
         scope: &mut v8::HandleScope<'s>,
         path: &str,
     ) -> Result<Option<v8::Local<'s, v8::Module>>> {
-        if let Some(module) = this.borrow().0.get(path) {
+        let module_map = scope
+            .get_slot::<Rc<RefCell<ModuleMap>>>()
+            .expect("ModuleMap is not present in isolate slots")
+            .clone();
+
+        if let Some(module) = module_map.borrow().0.get(path) {
             return Ok(Some(v8::Local::new(scope, module)));
         }
 
@@ -271,7 +271,8 @@ impl ModuleMap {
                     ));
                 }
 
-                this.borrow_mut()
+                module_map
+                    .borrow_mut()
                     .0
                     .insert(path.to_string(), v8::Global::new(&mut try_catch, module));
 
@@ -294,16 +295,9 @@ pub fn module_resolve_callback<'s>(
     // Safe: we are in a callback
     let mut scope = unsafe { v8::CallbackScope::new(context) };
     let specifier = specifier.to_rust_string_lossy(&mut scope);
-    ModuleMap::import_module(
-        scope
-            .get_slot::<Rc<RefCell<ModuleMap>>>()
-            .expect("ModuleMap is not present in isolate slots")
-            .clone(),
-        &mut scope,
-        &specifier,
-    )
-    .ok()
-    .flatten()
+    ModuleMap::import_module(&mut scope, &specifier)
+        .ok()
+        .flatten()
 }
 
 impl<'s> Embedded<'s> {
@@ -317,24 +311,16 @@ impl<'s> Embedded<'s> {
             .global(scope)
             .set(scope, hash_stdlib_str.into(), hash_stdlib);
 
-        let module_map = scope
-            .get_slot::<Rc<RefCell<ModuleMap>>>()
-            .expect("ModuleMap is not present in isolate slots")
-            .clone();
-
-        let runner = match ModuleMap::import_module(
-            module_map,
-            scope,
-            "./src/worker/runner/javascript/runner.js",
-        )? {
-            Some(runner) => runner,
-            None => {
-                return Err(Error::PackageImport(
-                    "./src/worker/runner/javascript/runner.js".to_string(),
-                    "Missing package".to_string(),
-                ));
-            }
-        };
+        let runner =
+            match ModuleMap::import_module(scope, "./src/worker/runner/javascript/runner.js")? {
+                Some(runner) => runner,
+                None => {
+                    return Err(Error::PackageImport(
+                        "./src/worker/runner/javascript/runner.js".to_string(),
+                        "Missing package".to_string(),
+                    ));
+                }
+            };
 
         // How to get a function from a module
         // https://chromium.googlesource.com/v8/v8/+/refs/heads/lkgr/test/cctest/test-modules.cc#625
