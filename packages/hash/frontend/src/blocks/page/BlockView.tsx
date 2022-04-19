@@ -32,11 +32,11 @@ type BlockHandleProps = {
   entityId: string | null;
   onTypeChange: BlockSuggesterProps["onChange"];
   entityStore: EntityStore;
-  view: EditorView<Schema>;
+  editorView: EditorView<Schema>;
 };
 
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ entityId, onTypeChange, entityStore, view }, ref) => {
+  ({ entityId, onTypeChange, entityStore, editorView }, ref) => {
     const blockMenuRef = useRef(null);
     const contextMenuPopupState = usePopupState({
       variant: "popover",
@@ -108,7 +108,6 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
           entityId={entityId}
           blockSuggesterProps={blockSuggesterProps}
           openConfigMenu={configMenuPopupState.open}
-          view={view}
           popupState={contextMenuPopupState}
           ref={blockMenuRef}
         />
@@ -170,7 +169,7 @@ export class BlockView implements NodeView<Schema> {
 
   constructor(
     public node: ProsemirrorNode<Schema>,
-    public view: EditorView<Schema>,
+    public editorView: EditorView<Schema>,
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
@@ -190,8 +189,8 @@ export class BlockView implements NodeView<Schema> {
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content!);
 
-    this.store = entityStorePluginState(view.state).store;
-    this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
+    this.store = entityStorePluginState(editorView.state).store;
+    this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
       this.store = store;
       this.update(this.node);
     });
@@ -312,7 +311,7 @@ export class BlockView implements NodeView<Schema> {
             this.dragging = true;
             this.dom.classList.add(styles["Block--dragging"]!);
 
-            const { tr } = this.view.state;
+            const { tr } = this.editorView.state;
 
             /**
              * By triggering a selection of the node, we can ensure
@@ -320,10 +319,13 @@ export class BlockView implements NodeView<Schema> {
              * starts
              */
             tr.setSelection(
-              NodeSelection.create<Schema>(this.view.state.doc, this.getPos()),
+              NodeSelection.create<Schema>(
+                this.editorView.state.doc,
+                this.getPos(),
+              ),
             );
 
-            this.view.dispatch(tr);
+            this.editorView.dispatch(tr);
 
             this.update(this.node);
           }}
@@ -334,7 +336,7 @@ export class BlockView implements NodeView<Schema> {
           entityId={blockEntityId}
           onTypeChange={this.onBlockChange}
           entityStore={this.store}
-          view={this.view}
+          editorView={this.editorView}
         />
       </BlockViewContext.Provider>,
       this.selectContainer,
@@ -351,9 +353,9 @@ export class BlockView implements NodeView<Schema> {
   }
 
   onBlockChange = (variant: BlockVariant, meta: BlockConfig) => {
-    const { node, view, getPos } = this;
+    const { node, editorView, getPos } = this;
 
-    const state = view.state;
+    const state = editorView.state;
     const child = state.doc.resolve(getPos() + 1).nodeAfter;
     const draftId = child?.attrs.draftId;
 

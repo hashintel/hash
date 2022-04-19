@@ -2,8 +2,6 @@ import React, { useRef, forwardRef, useMemo } from "react";
 
 import { useKey } from "rooks";
 
-import { EditorView } from "prosemirror-view";
-import { Schema } from "prosemirror-model";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
@@ -38,7 +36,6 @@ type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
   entityId: string | null;
   openConfigMenu: () => void;
-  view: EditorView<Schema>;
 };
 
 const LOAD_BLOCK_ENTITY_UI = "hash-load-entity-ui";
