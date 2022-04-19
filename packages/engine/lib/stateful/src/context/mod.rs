@@ -1,4 +1,4 @@
-//! The global state shared between all [`Agent`]s.
+//! The global state shared between all agents.
 //!
 //! For a high-level concept of the context, please see the [HASH documentation].
 //!
