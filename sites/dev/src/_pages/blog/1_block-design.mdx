@@ -88,25 +88,31 @@ No matter how beautiful a block looks, it's not worth much to anyone if it's dif
 
 ![](blog/1_block-design/DesignGuidelines_1.png)
 
+<p style={{ margin: "0 auto 2rem", fontSize: "80%" }}>Don't do this</p>
+
 Usability and user experience design (UX) is a whole discipline in its own right, and we can't cover everything in this guide. We're not expecting you to become a UX designer before you can start building blocks. However, knowing the basics of UX and some of the most important principles will go a long way in making you a better block builder. So here's the 80/20 version.
 
 #### 1. Generous touch targets
 
 Touch targets are any area of the screen users will need to click - buttons, icons that trigger actions, or links.
 
-Humans have fat little fingers and we're bad at accurately poking them at screens. We're slightly better at maneouvering a mouse onto a target, but not by much.
+Humans have fat little fingers and we're bad at accurately poking them at screens. On mobile devices, you should make sure any clickable elements are at least 44px wide and high. We're slightly better at hitting targets in the middle of the screen than on the edges. If your touch target is on the edge or corner, bump it up to 50px.
 
-On mobile, you should make sure any clickable elements are at least 44px wide and high. We're slightly better at hitting targets in the middle of the screen than on the edges, so you reduce that if it's bang in the middle. If your touch target is on the edge or corner, bump it up to 50px.
+This doesn't mean the icons and text on buttons need to be that large – only the clickable space around it.
 
-On desktop this can be 40px. For icons and buttons you can simply add padding around the element to increase the target size.
+We're slightly better at maneouvering a cursor onto a target on desktops, but not by much. Clickable targets should be at least 40px wide and high. You can be sensibly flexible with this; if you have a button that is only 30px high but 200px wide that will do. The general rule is that larger targets = quicker and easier to click.
 
 #### 2. Make editable elements obvious
 
-If the user can edit, manipulate, or input data anywhere in the block, make it clear
+If the user can edit, manipulate, or input data anywhere in the block, use visual styling to make it clear. This means making buttons look like buttons by giving them a different background colour and clear border.
+
+It means making input fields look like input fields by giving them a border and ideally a subtle inner shadow to indicate they're "fillable".
+
+If you haven't heard, [flat design is bad for usability](https://www.nngroup.com/articles/flat-design/). You should instead use _subtle_ indicators of depth like drop shadows, inner shadows, and layering to help users understand how interface elements are related and what they can interact with.
 
 #### 3. Make your blocks A11y accessible
 
-[A11y](https://www.a11yproject.com/)
+[A11y](https://www.a11yproject.com/) accessibility covers a wide range of design practices that help make web interfaces easier to use for everyone. Especially people who might be visually, physically, or cognitively impared while they're using your block.
 
 The a11y project has a great [checklist](https://www.a11yproject.com/checklist/#content) you can work through to make sure your blocks meet the basic requirements.
 
@@ -120,15 +126,19 @@ Ideally, icons should always have text labels next to them. This prevents users 
 
 Since we live in a world where we don't have infinite screen screen, it can be tricky to fit labels on everything. You should put labels inside tooltips that appear when a user hovers over the icon. This obviously is a better solution for desktop than mobile, as we can't hover with our fingers (yet... still waiting for Apple to figure that one out).
 
-#### 5. Co-locate information and actions
+#### 5. Co-locate data and actions
 
 Whenever the user is able to perform an action on data within the block, try to put the button or element that triggers the action as close to the data as possible.
 
-For example, X
+If a user is filling in a form, put the "submit" button right next to the last field.
+
+If a user is applying a set of filters, put the "apply filters" button right next to the selectors.
+
+You can also use containers and spacing to indicate a button is closely related to an area of input.
 
 #### 6. Direct manipulation
 
-A close cousin of co-location, direct manipulation is when we allow users to directly touch and move elements on the screen.
+A close cousin of co-location, direct manipulation is when we allow users to directly touch and move elements on the screen to change their state. As humans with bodies, we are very used to touching and moving physical objects to manipulate them. Whenever we want to change a digital object we have the same instinct – we try to touch it (or at least, the visual represtation of it on our screens)
 
 ---
 
