@@ -3,7 +3,7 @@
 </p>
 <div align="center">
  <a href="https://github.com/hashintel/hash/blob/main/packages/engine/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-sspl.svg" alt="Server Side Public License" /></a>
- <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
+ <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
 # hEngine
