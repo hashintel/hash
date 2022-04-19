@@ -1,10 +1,6 @@
-import {
-  chipClasses,
-  ChipProps,
-  Components,
-  PaletteValue,
-  Theme,
-} from "@mui/material";
+import { faClose } from "@fortawesome/free-solid-svg-icons";
+import { ChipProps, Components, PaletteValue, Theme } from "@mui/material";
+import { FontAwesomeIcon } from "../../../../icons";
 
 const getColors = (
   theme: Theme,
@@ -81,13 +77,20 @@ const getColors = (
   };
 };
 
+// @todo
+// 1. add isCircle to handle when startIcon should be a circle
+// 2. handle displaying icons on the right. Currently only
+// delete icon can be displayed on the right and this (i.e delete icon)
+// gets displayed when onDelete is passed in
+
 export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
   defaultProps: {
     size: "small",
+    deleteIcon: <FontAwesomeIcon icon={faClose} />,
   },
   styleOverrides: {
     root: ({ ownerState, theme }) => {
-      const { size, color, variant } = ownerState;
+      const { color, variant } = ownerState;
 
       const formattedColor = !color || color === "default" ? "gray" : color;
 
@@ -109,10 +112,6 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
           border: `1px solid ${outlineColor}`,
         }),
 
-        [`& .${chipClasses.label}`]: {
-          color: "currentColor",
-        },
-
         "&:hover": {
           color: textHoverColor,
           background: bgHoverColor,
@@ -120,31 +119,67 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
             border: `1px solid ${outlineHoverColor}`,
           }),
         },
+      };
+    },
+    label: ({ ownerState, theme }) => {
+      const { size = "small" } = ownerState;
 
+      return {
+        color: "currentColor",
         ...(size === "xs" && {
-          [`.${chipClasses.label}`]: {
-            ...theme.typography.microText,
-            fontWeight: 500,
-            padding: theme.spacing(0.25, 1),
-          },
+          ...theme.typography.microText,
+          fontWeight: 500,
+          padding: theme.spacing(0.25, 1),
         }),
         // @todo there's no medium size in the design
         // confirm if this is correct.
         // For now reusing the styles for small
         // @see https://www.figma.com/file/gydVGka9FjNEg9E2STwhi2?node-id=841:72304#181234889
-        ...(["small", "medium", undefined].includes(size) && {
-          [`.${chipClasses.label}`]: {
-            ...theme.typography.smallTextLabels,
-            fontWeight: 500,
-            padding: theme.spacing(0.5, 1.5),
-          },
+        ...(["small", "medium"].includes(size) && {
+          ...theme.typography.smallTextLabels,
+          fontWeight: 500,
+          padding: theme.spacing(0.5, 1.5),
         }),
         ...(size === "large" && {
-          [`.${chipClasses.label}`]: {
-            ...theme.typography.regularTextLabels,
-            fontWeight: 500,
-            padding: theme.spacing(0.5, 1.5),
-          },
+          ...theme.typography.regularTextLabels,
+          fontWeight: 500,
+          padding: theme.spacing(0.5, 1.5),
+        }),
+      };
+    },
+    icon: ({ ownerState }) => {
+      const { size } = ownerState;
+      return {
+        color: "currentColor",
+        fontSize: 12,
+        marginLeft: 12,
+        marginRight: -8,
+
+        ...(size === "xs" && {
+          marginLeft: 8,
+          marginRight: -4,
+        }),
+
+        ...(size === "large" && {
+          fontSize: 16,
+        }),
+      };
+    },
+    deleteIcon: ({ ownerState }) => {
+      const { size } = ownerState;
+      return {
+        color: "currentColor",
+        fontSize: 12,
+        marginRight: 12,
+        marginLeft: -8,
+
+        ...(size === "xs" && {
+          marginRight: 8,
+          marginLeft: -4,
+        }),
+
+        ...(size === "large" && {
+          fontSize: 16,
         }),
       };
     },
