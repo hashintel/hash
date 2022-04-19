@@ -123,7 +123,7 @@ pub enum Message {
     RemoveAgent(payload::RemoveAgent),
     /// `"stop"` sent to `"hash"` will attempt to stop the current simulation run.
     StopSim(payload::StopSim),
-    /// A message to be send between agents.
+    /// A message to be sent between agents with a JSON payload
     Generic(payload::Generic),
 }
 
