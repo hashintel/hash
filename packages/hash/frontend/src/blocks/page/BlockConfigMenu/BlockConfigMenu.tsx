@@ -59,18 +59,17 @@ const ConfigurationInput: VoidFunctionComponent<{
 
   const [draftValue, setDraftValue] = useState(value);
 
+  /**
+   * Keep track of the previous externally-provided value, in case the entity is updated while the menu is open.
+   */
   const previousValue = useRef<JSONValue | undefined>(undefined);
   useEffect(() => {
     previousValue.current = value;
-    console.log({ value });
   });
 
   if (previousValue.current !== value && value !== draftValue) {
-    console.log({ value, draftValue });
     setDraftValue(value);
   }
-
-  console.log({ previousValue: previousValue.current, value, draftValue });
 
   switch (type) {
     case "boolean":

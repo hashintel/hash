@@ -108,6 +108,7 @@ const restoreDraftId = (
   // eslint-disable-next-line no-param-reassign
   (entity as unknown as DraftEntity).draftId = entityToDraft[textEntityId]!;
 };
+
 /**
  * @todo this should be flat – so that we don't have to traverse links
  * @todo clean up

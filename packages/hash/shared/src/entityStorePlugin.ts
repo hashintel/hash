@@ -187,7 +187,7 @@ const updateBlockEntity = (
   // Add target entity to draft store if it is not
   // present there
   if (!targetDraftEntity) {
-    const targetEntityDraftId = createDraftIdForEntity(null);
+    const targetEntityDraftId = createDraftIdForEntity(targetEntity.entityId);
     targetDraftEntity = {
       accountId: targetEntity.accountId,
       draftId: targetEntityDraftId,

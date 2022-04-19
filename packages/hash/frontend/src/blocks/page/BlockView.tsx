@@ -1,4 +1,8 @@
-import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
+import {
+  EntityStore,
+  getDraftEntityFromEntityId,
+  isBlockEntity,
+} from "@hashintel/hash-shared/entityStore";
 import {
   entityStorePluginState,
   subscribeToEntityStore,
@@ -56,7 +60,16 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
 
     const { value: blocksMetaMap } = useUserBlocks();
 
-    const blockData = entityId ? entityStore.saved[entityId] ?? null : null;
+    /**
+     * The context and config menu use data from the draft store to subscribe to the latest changes.
+     * Because some blocks update the API directly, bypassing collab and the entity store,
+     * this means that the data in the menus can get out of sync with data in those blocks.
+     * The update is eventually received by collab via the db realtime subscription, and the store updated.
+     * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
+     */
+    const blockData = entityId
+      ? getDraftEntityFromEntityId(entityStore.draft, entityId) ?? null
+      : null;
 
     if (blockData && !isBlockEntity(blockData)) {
       throw new Error(`Non-block entity ${entityId} loaded into BlockView.`);
@@ -78,8 +91,6 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
     const blockSchema = blockData
       ? blocksMetaMap[blockData.properties.componentId]?.componentSchema
       : null;
-
-    console.log({ blockData });
 
     return (
       <Box
