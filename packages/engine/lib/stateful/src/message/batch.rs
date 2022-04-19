@@ -36,7 +36,7 @@ const UPPER_MULTIPLIER: usize = 1000;
 /// Size of shared memory above which the soft upper bound is checked
 const LOWER_BOUND: usize = 10000;
 
-/// A list of [`Message`].
+/// A collection of [`Message`]s.
 ///
 /// Internally, this is backed by an [`ArrowBatch`], which is organizing the messages as a struct of
 /// arrays.
