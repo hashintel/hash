@@ -10,11 +10,19 @@ import { FontAwesomeIcon } from "../icons";
 
 export type ChipProps = {
   hasCircleStartIcon?: boolean;
+  rectangular?: boolean;
 } & MuiChipProps;
 
 export const Chip: FC<ChipProps> = forwardRef(
   (
-    { sx = [], icon: startIcon, color = "gray", hasCircleStartIcon, ...props },
+    {
+      sx = [],
+      icon: startIcon,
+      color = "gray",
+      hasCircleStartIcon,
+      rectangular,
+      ...props
+    },
     ref,
   ) => {
     return (
@@ -23,6 +31,9 @@ export const Chip: FC<ChipProps> = forwardRef(
         color={color}
         sx={[
           ({ palette }) => ({
+            ...(rectangular && {
+              borderRadius: 0.5,
+            }),
             // circle start icon has a lighter shade compared to the shade
             // applied by default to the icon class
             ...(hasCircleStartIcon && {

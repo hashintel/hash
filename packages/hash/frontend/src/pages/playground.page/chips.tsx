@@ -115,6 +115,12 @@ export const Chips = () => {
           <Chip color="orange" label="Chip" />
         </ChipGroup>
       </Stack>
+
+      <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+        <Chip size="xs" color="blue" label="Rectangular" rectangular />
+        <Chip size="small" color="orange" label="Chip" rectangular />
+        <Chip size="large" color="red" label="Chip" rectangular />
+      </Stack>
     </Box>
   );
 };
