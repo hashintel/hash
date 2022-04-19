@@ -1615,6 +1615,7 @@ dependencies = [
  "rand_distr",
  "serde",
  "serde_json",
+ "stateful",
  "tokio",
  "tracing",
  "uuid",
@@ -2162,9 +2163,12 @@ name = "stateful"
 version = "0.0.0"
 dependencies = [
  "arrow",
+ "flatbuffers",
  "lazy_static",
  "memory",
  "parking_lot",
+ "rand 0.8.4",
+ "rayon",
  "serde",
  "serde-aux",
  "serde_json",

@@ -5,7 +5,7 @@ use serde::{
     Deserialize,
 };
 use serde_json::Value;
-use stateful::globals::Globals;
+use stateful::global::Globals;
 
 use crate::config::Result;
 

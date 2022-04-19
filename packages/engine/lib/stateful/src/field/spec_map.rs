@@ -9,7 +9,7 @@ use std::{
 use arrow::datatypes::{Field, Schema};
 
 use crate::{
-    field::{fixed_size::IsFixedSize, FieldScope, FieldTypeVariant, RootFieldKey, RootFieldSpec},
+    field::{FieldScope, FieldTypeVariant, IsFixedSize, RootFieldKey, RootFieldSpec},
     Error, Result,
 };
 

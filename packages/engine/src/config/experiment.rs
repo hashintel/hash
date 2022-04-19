@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use stateful::globals::Globals;
+use stateful::global::Globals;
 
 use crate::{
     config::{package, worker, worker_pool, Result},
