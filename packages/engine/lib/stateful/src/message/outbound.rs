@@ -117,7 +117,7 @@ pub enum Message {
         }
 
     */
-    /// `"create_agent"` sent to `"hash"` will create a new agent specified by it's payload.
+    /// `"create_agent"` sent to `"hash"` will create a new agent specified by its payload.
     CreateAgent(payload::CreateAgent),
     /// `"remove_agent"` sent to `"hash"` will remove the specified agent.
     RemoveAgent(payload::RemoveAgent),
