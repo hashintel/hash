@@ -1,15 +1,15 @@
 use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
 use serde::{Deserialize, Serialize};
-use stateful::{agent::AgentSchema, field::FieldSpecMapAccessor};
+use stateful::{
+    agent::{AgentBatch, AgentSchema},
+    field::FieldSpecMapAccessor,
+};
 
-use crate::{
-    datastore::batch::AgentBatch,
-    simulation::package::output::packages::analysis::{
-        index_iter,
-        output::{AnalysisFinalOutput, AnalysisSingleOutput},
-        AnalysisOutput, Error, Result,
-    },
+use crate::simulation::package::output::packages::analysis::{
+    index_iter,
+    output::{AnalysisFinalOutput, AnalysisSingleOutput},
+    AnalysisOutput, Error, Result,
 };
 
 pub(crate) const ULPS: i64 = 2;

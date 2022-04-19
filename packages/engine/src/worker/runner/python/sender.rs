@@ -6,13 +6,11 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use memory::shared_memory::arrow_continuation;
 use nng::{options::Options, Aio, Socket};
+use stateful::state::StateReadProxy;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 use crate::{
-    datastore::table::{
-        proxy::StateReadProxy,
-        task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
-    },
+    datastore::table::task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
     proto::{ExperimentId, SimulationShortId},
     types::WorkerIndex,
     worker::runner::{
@@ -112,13 +110,6 @@ impl NngSender {
 
     pub async fn get_send_result(&mut self) -> Option<Result<()>> {
         self.aio_result_receiver.recv().await
-    }
-}
-
-impl Drop for NngSender {
-    fn drop(&mut self) {
-        // TODO: Check whether nng already does this when a socket is dropped
-        self.to_py.close();
     }
 }
 

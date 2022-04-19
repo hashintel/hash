@@ -1,6 +1,6 @@
 use arrow::datatypes::DataType;
 
-pub trait IsFixedSize {
+pub(crate) trait IsFixedSize {
     /// Returns if the type has a non-variable size.
     ///
     /// # Panics

@@ -6,6 +6,7 @@ use std::{
 use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine_lib::{
+    output::buffer::{cleanup_experiment, EngineExitStatus},
     proto::{EngineMsg, ExperimentId},
     utils::{LogFormat, LogLevel, OutputLocation},
 };
@@ -29,8 +30,14 @@ pub struct LocalProcess {
 
 #[async_trait]
 impl process::Process for LocalProcess {
-    async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
-        self.child
+    async fn exit_and_cleanup(
+        mut self: Box<Self>,
+        experiment_id: ExperimentId,
+        exit_status: EngineExitStatus,
+    ) -> Result<()> {
+        // Kill the child process as it didn't stop on its own
+        let kill_result = self
+            .child
             .kill()
             .await
             .or_else(|e| match e.kind() {
@@ -39,10 +46,12 @@ impl process::Process for LocalProcess {
                 std::io::ErrorKind::InvalidInput => Ok(()),
                 _ => Err(Report::new(e)),
             })
-            .wrap_err("Could not kill the process")?;
+            .wrap_err("Could not kill the process");
+
+        cleanup_experiment(&experiment_id, exit_status);
 
         debug!("Cleaned up local engine process for experiment");
-        Ok(())
+        kill_result
     }
 
     /// Creates or reuses a [`nano::Client`] to send a message to the [`hash_engine`] subprocess.

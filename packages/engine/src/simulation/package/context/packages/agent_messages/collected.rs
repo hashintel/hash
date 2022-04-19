@@ -1,8 +1,7 @@
-use crate::{
-    datastore::{table::references::MessageMap, UUID_V4_LEN},
-    simulation::package::context::packages::agent_messages::{
-        indices::AgentMessageIndices, Result,
-    },
+use stateful::{field::UUID_V4_LEN, message::MessageMap};
+
+use crate::simulation::package::context::packages::agent_messages::{
+    indices::AgentMessageIndices, Result,
 };
 
 /// Columnar native representation of indices to messages

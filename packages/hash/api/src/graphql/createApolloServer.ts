@@ -17,11 +17,13 @@ import { buildPassportGraphQLMethods } from "../auth/passport";
 import { GraphQLContext } from "./context";
 import { EmailTransporter } from "../email/transporters";
 import { StorageType } from "./apiTypes.gen";
+import { TaskExecutor } from "../task-execution";
 
 export interface CreateApolloServerParams {
   db: DbAdapter;
   cache: CacheAdapter;
   search?: SearchAdapter;
+  taskExecutor?: TaskExecutor;
   emailTransporter: EmailTransporter;
   /** The storage provider to use for new file uploads */
   uploadProvider: StorageType;
@@ -33,6 +35,7 @@ export const createApolloServer = ({
   db,
   cache,
   search,
+  taskExecutor,
   emailTransporter,
   uploadProvider,
   logger,
@@ -51,6 +54,9 @@ export const createApolloServer = ({
     };
     if (search) {
       sources.search = search;
+    }
+    if (taskExecutor) {
+      sources.taskExecutor = taskExecutor;
     }
     return sources;
   };

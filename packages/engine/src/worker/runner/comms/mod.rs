@@ -6,7 +6,7 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
-use stateful::{agent::AgentSchema, field::PackageId, globals::Globals};
+use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
 use tracing::Span;
 
 use crate::{

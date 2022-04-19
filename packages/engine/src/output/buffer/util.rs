@@ -1,42 +1,74 @@
-use std::path::PathBuf;
-
 use memory::shared_memory::MemoryId;
 
-use crate::{
-    output::{buffer::RELATIVE_PARTS_FOLDER, error::Result},
-    proto::ExperimentId,
-};
+use crate::{output::buffer::RELATIVE_PARTS_FOLDER, proto::ExperimentId};
+
+// TODO: move this to top-level
+#[derive(PartialEq, Eq, Clone)]
+pub enum EngineExitStatus {
+    Success,
+    Error,
+}
 
 // TODO: move this to top-level
 /// Shared memory cleanup in the process hard crash case.
 /// Not required for pod instances.
-pub fn cleanup_experiment(experiment_id: &ExperimentId) -> Result<()> {
-    MemoryId::clean_up(experiment_id)?;
+pub fn cleanup_experiment(experiment_id: &ExperimentId, exit_status: EngineExitStatus) {
+    MemoryId::clean_up(experiment_id);
 
-    // TODO: We don't want to be deleting the parts files by default. We should figure out what to
-    //   do with this.
-    // remove_experiment_parts(experiment_id).or_else(|e| {
-    //     let err_string = e.to_string();
-    //     if err_string.contains("kind: NotFound") {
-    //         Ok(())
-    //     } else {
-    //         Err(Error::from(format!(
-    //             "Error while trying to remove experiment parts folder: {err_string}"
-    //         )))
-    //     }
-    // })?;
+    // Cleanup python socket files in case the engine didn't
+    let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"));
+    let topy_files = glob::glob(&format!("{experiment_id}-topy*"));
 
-    Ok(())
+    frompy_files
+        .into_iter()
+        .chain(topy_files)
+        .flatten()
+        .flatten()
+        .for_each(|path| match std::fs::remove_file(&path) {
+            Ok(_) => {
+                match exit_status {
+                    EngineExitStatus::Success => tracing::error!(
+                        experiment = %experiment_id,
+                        "Removed file {path:?} that should've been cleanup by the engine."
+                    ),
+                    EngineExitStatus::Error => tracing::warn!(
+                        experiment = %experiment_id,
+                        "Removed file {path:?} that should've been cleanup by the engine."
+                    ),
+                };
+            }
+            Err(err) => {
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Could not clean up {path:?}: {err}"
+                );
+            }
+        });
+
+    remove_experiment_parts(experiment_id);
 }
 
-#[allow(dead_code)]
-fn remove_experiment_parts(experiment_id: &ExperimentId) -> Result<()> {
-    let mut base_path = PathBuf::from(RELATIVE_PARTS_FOLDER);
-    // TODO: this is unused at the moment so it's fine, but this logic is wrong, we name our folders
-    //  differently, we should update the design to store the paths and use them here when we use
-    //  the clean up code again
-    base_path.push(experiment_id.to_string());
-    tracing::trace!("Removing all parts files in: {base_path:?}");
-    std::fs::remove_dir_all(base_path)?;
-    Ok(())
+fn remove_experiment_parts(experiment_id: &ExperimentId) {
+    let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
+    match std::fs::remove_dir_all(&path) {
+        Ok(_) => {
+            tracing::trace!(
+                experiment = %experiment_id,
+                "Removed parts folder for experiment {experiment_id}: {path:?}"
+            );
+        }
+        Err(err) => {
+            tracing::warn!(
+                experiment = %experiment_id,
+                "Could not clean up {path:?}: {err}"
+            );
+        }
+    }
+
+    match std::fs::remove_dir(RELATIVE_PARTS_FOLDER) {
+        Ok(_) => tracing::trace!("Removed parts folder."),
+        Err(err) => {
+            tracing::warn!("Could not remove the parts folder: {err}");
+        }
+    }
 }

@@ -22,7 +22,7 @@ export const linkedAggregationResults: Resolver<
     throw new ApolloError(msg, "NOT_FOUND");
   }
 
-  const aggregation = await source.getAggregation(dataSources.db, {
+  const aggregation = await source.getAggregationByPath(dataSources.db, {
     stringifiedPath: path,
   });
 

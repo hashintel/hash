@@ -17,34 +17,27 @@ pub mod test_utils;
 
 pub use self::error::{Error, Result};
 
-/// We store Agent IDs in the UUID-byte format (not string bytes).
-/// This means their length is 128 bits i.e. 16 bytes
-pub const UUID_V4_LEN: usize = 16;
-pub const POSITION_DIM: usize = 3;
-
 #[cfg(test)]
 pub mod tests {
-    use std::{borrow::Cow, sync::Arc};
+    use std::borrow::Cow;
 
     use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
     use rand::Rng;
+    use stateful::{
+        agent::{AgentBatch, IntoAgents},
+        field::UUID_V4_LEN,
+        state::State,
+    };
 
+    use crate::datastore::error::Result;
     #[allow(clippy::wildcard_imports)] // Desigend as test-prelude
     use crate::datastore::test_utils::*;
-    use crate::datastore::{
-        arrow::batch_conversion::IntoAgents,
-        batch::{iterators, AgentBatch},
-        error::Result,
-        table::state::State,
-        UUID_V4_LEN,
-    };
 
     #[test]
     pub fn growable_array_modification() -> Result<()> {
         pub fn modify_name(shmem_os_id: &str) -> Result<Vec<Option<String>>> {
             let mut state_batch = *AgentBatch::from_shmem_os_id(shmem_os_id)?;
-            let record_batch = state_batch.batch.record_batch()?;
-            let mut column = iterators::record_batch::get_agent_name(record_batch)?;
+            let mut column = state_batch.names()?;
             // `targets` values will be checked against shared memory data
             // in order to check if changes were flushed properly
             let mut targets = Vec::with_capacity(column.len());
@@ -70,7 +63,7 @@ pub mod tests {
                     }
                 }
             }
-            let change = iterators::record_batch::agent_name_as_array(record_batch, column)?;
+            let change = state_batch.name_changes(&column)?;
             state_batch.batch.queue_change(change)?;
             state_batch.batch.flush_changes()?;
             Ok(targets)
@@ -80,8 +73,9 @@ pub mod tests {
 
         let (schema, agents) = gen_schema_and_test_agents(num_agents, 0)?;
 
-        let mut state = State::from_agent_states(&agents, Arc::new(dummy_sim_run_config()))
-            .expect("Couldn't turn `Vec<Agent>` into `State`");
+        let mut state =
+            State::from_agent_states(&agents, dummy_sim_run_config().to_state_create_parameters())
+                .expect("Couldn't turn `Vec<Agent>` into `State`");
 
         // get the ID of the shared-memory segment for the first batch of agents
         let shmem_id = state
@@ -111,10 +105,9 @@ pub mod tests {
 
         let state_proxy = state.read()?;
         let batch_proxy: &AgentBatch = state_proxy.agent_pool().batch(0).unwrap();
-        let record_batch = batch_proxy.batch.record_batch()?;
 
-        let names = iterators::record_batch::get_agent_name(record_batch)?;
-        let agent_states = record_batch.into_agent_states(Some(&schema))?;
+        let names = batch_proxy.names()?;
+        let agent_states = batch_proxy.to_agent_states(Some(&schema))?;
 
         targets.into_iter().enumerate().for_each(|(i, t)| match t {
             Some(v) => {

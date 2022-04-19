@@ -8,7 +8,7 @@ use stateful::{
         FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
         RootFieldSpec, RootFieldSpecCreator,
     },
-    globals::Globals,
+    global::Globals,
 };
 use uuid::Uuid;
 
