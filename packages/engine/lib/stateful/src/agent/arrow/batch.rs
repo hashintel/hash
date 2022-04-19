@@ -35,10 +35,16 @@ use crate::{
     field::{POSITION_DIM, UUID_V4_LEN},
 };
 
-/// An Arrow batch with agent state columns
-// TODO: Maybe rename to AgentGroup
+/// A list of [`Agent`] fields.
+///
+/// Internally, this is backed by an [`ArrowBatch`], which is organizing the agent fields as a
+/// struct of arrays.
+// TODO: Maybe come up with a better name. Actually, this is not a batch of `Agent`s as the name
+//   suggested but only the agent fields, so this is not a group of agents but only a collection of
+//   agent fields
 #[allow(clippy::module_name_repetitions)]
 pub struct AgentBatch {
+    /// The underlying batch containing the stored agent fields.
     pub batch: ArrowBatch,
     /// Describes the worker the batch is distributed to if there are multiple workers
     pub worker_index: usize,

@@ -5,7 +5,7 @@ use memory::arrow::{meta, meta::conversion::HashStaticMeta};
 
 use crate::{error::Result, field::FieldSpecMap};
 
-/// Describes the memory format used for storing [`Agent`]s.
+/// Describes the memory format for every [`Agent`]-containing [`AgentBatch`].
 ///
 /// It contains the dual representation of both the [`FieldSpec`] and the Arrow schema.
 ///
