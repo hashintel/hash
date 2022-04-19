@@ -24,7 +24,7 @@ use crate::{context::ContextColumn, Error, Result};
 // If required data size is 3 times less than current data size then shmem size will be readjusted.
 const UPPER_BOUND_DATA_SIZE_MULTIPLIER: usize = 3;
 
-/// Contains the information required to build the [`Context`] object accessible in the language
+/// Contains the information required to build the context, which is accessible in the language
 /// runners.
 ///
 /// Data within the `ContextBatch` can rely on the contents of the [`AgentPool`] and [`MessagePool`]
