@@ -11,7 +11,7 @@ use crate::field::{FieldSpec, IsFixedSize, UUID_V4_LEN};
 
 /// Represent an extension of types of fields that can be set by the engine.
 ///
-/// This gives greater control over underlying Arrow datatype such as integer sizes compared to the
+/// This gives greater control over underlying Arrow datatypes such as integer sizes compared to the
 /// field types we allow users to set
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PresetFieldType {
