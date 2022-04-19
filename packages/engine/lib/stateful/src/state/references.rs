@@ -1,3 +1,10 @@
+/// A record pointing to a specific [`Agent`] inside of an [`AgentPool`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct AgentIndex {
+    pub agent_batch_index: u32,
+    pub agent_index: u32,
+}
+
 /// A reference to a [`Message`] by an [`Agent`] and the [`MessageBatch`] inside of a
 /// [`MessagePool`].
 ///

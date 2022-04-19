@@ -26,7 +26,7 @@ use uuid::Uuid;
 pub use self::{
     column::StateColumn,
     proxy::{StateReadProxy, StateWriteProxy},
-    references::MessageReference,
+    references::{AgentIndex, MessageReference},
     view::{StatePools, StateSnapshot},
 };
 use crate::{
@@ -35,9 +35,6 @@ use crate::{
     proxy::BatchPool,
     Result,
 };
-
-/// A record pointing to a specific [`Agent`] inside of an [`AgentPool`].
-pub type AgentIndex = (u32, u32);
 
 /// Used for creating a new [`State`].
 pub struct StateCreateParameters {

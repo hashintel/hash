@@ -56,11 +56,17 @@ pub fn json_value_iter_cols<'b: 'a, 'a>(
 pub fn index_iter<'b: 'a, 'a>(
     agent_pool: &'a [&'b AgentBatch],
 ) -> impl Iterator<Item = AgentIndex> + 'a {
-    agent_pool.iter().enumerate().flat_map(|(i, g)| {
-        let num_agents = g.num_agents() as u32;
-        let group_index = i as u32;
-        (0..num_agents).map(move |j| (group_index, j))
-    })
+    agent_pool
+        .iter()
+        .enumerate()
+        .flat_map(|(agent_batch_index, agent_batch)| {
+            let num_agents = agent_batch.num_agents() as u32;
+            let agent_batch_index = agent_batch_index as u32;
+            (0..num_agents).map(move |agent_index| AgentIndex {
+                agent_batch_index,
+                agent_index,
+            })
+        })
 }
 
 pub fn position_iter<'b: 'a, 'a>(

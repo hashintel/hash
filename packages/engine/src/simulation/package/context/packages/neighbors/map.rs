@@ -15,12 +15,12 @@ pub type Tree<'a> = kdtree::kdtree::KdTree<PositionSubType, AgentIndex, &'a Posi
 
 #[derive(Debug)]
 pub struct NeighborMap {
-    pub data: Vec<Vec<(u32, u32)>>,
+    pub data: Vec<Vec<AgentIndex>>,
     // Sum of neighbor counts
     pub total_count: usize,
 }
 
-pub type NeighborRef<'a> = ((Option<&'a [f64; 3]>, (u32, u32)), Option<f64>);
+pub type NeighborRef<'a> = ((Option<&'a [f64; 3]>, AgentIndex), Option<f64>);
 
 /// # Errors
 /// This function will not fail
