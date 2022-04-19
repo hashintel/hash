@@ -59,11 +59,11 @@ pub fn index_iter<'b: 'a, 'a>(
     agent_pool
         .iter()
         .enumerate()
-        .flat_map(|(agent_batch_index, agent_batch)| {
+        .flat_map(|(group_index, agent_batch)| {
             let num_agents = agent_batch.num_agents() as u32;
-            let agent_batch_index = agent_batch_index as u32;
+            let group_index = group_index as u32;
             (0..num_agents).map(move |agent_index| AgentIndex {
-                agent_batch_index,
+                group_index,
                 agent_index,
             })
         })

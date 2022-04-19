@@ -56,7 +56,7 @@ impl ContextColumnWriter for NeighborMap {
         let mut cur_index = 0;
         self.data.iter().for_each(|v| {
             v.iter().for_each(|u| {
-                data_buffer[cur_index] = u.agent_batch_index;
+                data_buffer[cur_index] = u.group_index;
                 data_buffer[cur_index + 1] = u.agent_index;
                 cur_index += 2;
             })

@@ -1,7 +1,9 @@
-/// A record pointing to a specific [`Agent`] inside of an [`AgentPool`].
+/// A record pointing to a specific agent inside of an [`AgentPool`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AgentIndex {
-    pub agent_batch_index: u32,
+    /// Index of the [`AgentBatch`] inside of a [`AgentPool`]
+    pub group_index: u32,
+    /// Index of the agent inside of an [`AgentBatch`]
     pub agent_index: u32,
 }
 
