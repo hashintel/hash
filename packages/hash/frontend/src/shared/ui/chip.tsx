@@ -1,6 +1,6 @@
 import { FC, forwardRef } from "react";
 import {
-  /* eslint-disable-next-line -- allow import of original popover to extend it */
+  /* eslint-disable-next-line -- allow import of original chip to extend it */
   Chip as MuiChip,
   chipClasses,
   ChipProps as MuiChipProps,

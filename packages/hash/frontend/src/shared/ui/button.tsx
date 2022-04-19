@@ -2,7 +2,7 @@
 import Link from "next/link";
 import {
   Box,
-  /* eslint-disable-next-line -- allow import of original popover to extend it */
+  /* eslint-disable-next-line -- allow import of original button to extend it */
   Button as MuiButton,
   ButtonProps as MuiButtonProps,
   useTheme,

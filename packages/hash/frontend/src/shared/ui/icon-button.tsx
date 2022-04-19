@@ -1,5 +1,5 @@
 import {
-  /* eslint-disable-next-line -- allow import of original popover to extend it */
+  /* eslint-disable-next-line -- allow import of original icon button to extend it */
   IconButton as MuiIconButton,
   IconButtonProps as MuiIconButtonProps,
 } from "@mui/material";
