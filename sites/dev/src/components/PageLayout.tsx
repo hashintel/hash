@@ -6,7 +6,7 @@ import { PreFooter } from "./PreFooter";
 
 export const PageLayout: FC<{ subscribe?: boolean }> = ({
   children,
-  subscribe = false,
+  subscribe = true,
 }) => (
   <Box display="flex" flexDirection="column" sx={{ minHeight: "100vh" }}>
     <Navbar />
