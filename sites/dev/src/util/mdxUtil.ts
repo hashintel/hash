@@ -1,3 +1,4 @@
+import { readFileSync } from "fs";
 import { readdir, readdirSync, readFile } from "fs-extra";
 import matter from "gray-matter";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
@@ -116,4 +117,40 @@ export const getSerializedPage = async (params: {
   });
 
   return [serializedMdx, data, images];
+};
+
+export type Page<DataType extends {}> = {
+  fileName: string;
+  data: Partial<DataType>;
+};
+
+export const getPage = <DataType extends {}>(params: {
+  pathToDirectory: string;
+  fileName: string;
+}): Page<DataType> => {
+  const { pathToDirectory, fileName } = params;
+
+  const source = readFileSync(
+    path.join(process.cwd(), `src/_pages/${pathToDirectory}/${fileName}`),
+  );
+
+  return {
+    fileName,
+    data: matter(source).data as DataType,
+  };
+};
+
+export const getAllPages = <DataType extends {}>(
+  pathToDirectory: string,
+): Page<DataType>[] => {
+  const fileNames = readdirSync(
+    path.join(process.cwd(), `src/_pages/${pathToDirectory}`),
+  );
+
+  return fileNames.map((fileName) =>
+    getPage({
+      pathToDirectory,
+      fileName,
+    }),
+  );
 };

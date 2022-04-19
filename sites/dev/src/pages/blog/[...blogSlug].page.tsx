@@ -3,10 +3,10 @@ import { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { promisify } from "util";
 import {
-  BlogPagePhoto,
   BlogPagePhotos,
   BlogPostContent,
   BlogPostHead,
+  BlogPostPagePhoto,
   BlogPostPhotosContext,
 } from "../../components/BlogPost";
 import { MdxPageContent } from "../../components/MdxPageContent";
@@ -14,23 +14,29 @@ import { getAllPageHrefs, getSerializedPage } from "../../util/mdxUtil";
 
 const imageSize = promisify(legacyImageSize);
 
-type BlogPageProps = {
-  serializedPage: MDXRemoteSerializeResult<Record<string, unknown>>;
-  photos: BlogPagePhotos;
-  data: {
-    title?: string;
-    subtitle?: string;
-    author?: string;
-    jobTitle?: string;
-    date?: string;
-  };
+export type BlogPostProps = {
+  title: string;
+  subtitle: string;
+  author: string;
+  jobTitle: string;
+  date: string;
+  authorPhoto: string;
+  postPhoto: string;
 };
 
-type BlogPageQueryParams = {
+type BlogPostPageProps = {
+  serializedPage: MDXRemoteSerializeResult<Record<string, unknown>>;
+  photos: BlogPagePhotos;
+  data: Partial<BlogPostProps>;
+};
+
+type BlogPostPageQueryParams = {
   blogSlug?: string[];
 };
 
-export const getStaticPaths: GetStaticPaths<BlogPageQueryParams> = async () => {
+export const getStaticPaths: GetStaticPaths<
+  BlogPostPageQueryParams
+> = async () => {
   const paths = getAllPageHrefs({ folderName: "blog" }).map((href) => ({
     params: {
       blogSlug: href
@@ -46,7 +52,9 @@ export const getStaticPaths: GetStaticPaths<BlogPageQueryParams> = async () => {
   };
 };
 
-const getPhoto = async (src: string | null): Promise<BlogPagePhoto | null> => {
+export const getPhoto = async (
+  src: string | null,
+): Promise<BlogPostPagePhoto | null> => {
   if (!src) return null;
   const fullUrl = `/public/${src}`;
   // @todo this is relative to CLI dir – need to make it absolute
@@ -60,8 +68,8 @@ const getPhoto = async (src: string | null): Promise<BlogPagePhoto | null> => {
 };
 
 export const getStaticProps: GetStaticProps<
-  BlogPageProps,
-  BlogPageQueryParams
+  BlogPostPageProps,
+  BlogPostPageQueryParams
 > = async ({ params }) => {
   const { blogSlug } = params ?? {};
 
@@ -115,7 +123,7 @@ export const getStaticProps: GetStaticProps<
   }
 };
 
-const BlogPostPage: NextPage<BlogPageProps> = ({
+const BlogPostPage: NextPage<BlogPostPageProps> = ({
   serializedPage,
   photos,
   data,

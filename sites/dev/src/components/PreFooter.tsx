@@ -11,7 +11,7 @@ import { TextField } from "./TextField";
 const EMAIL_REGEX =
   /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-const Subscribe: VFC = () => {
+export const Subscribe: VFC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [userJoined, setUserJoined] = useState<boolean>(false);
@@ -252,9 +252,11 @@ const Community: VFC = () => {
   );
 };
 
-export const PreFooter = () => (
+export const PreFooter: VFC<{ subscribe?: boolean }> = ({
+  subscribe = true,
+}) => (
   <>
-    <Subscribe />
+    {subscribe ? <Subscribe /> : null}
     <Community />
   </>
 );
