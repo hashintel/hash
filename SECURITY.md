@@ -10,7 +10,7 @@ If you are an enterprise customer with specific security requirements you can [c
 
 ## Reporting a Vulnerability
 
-We value the work of security researchers who help keep our users safe. To responsibly and confidentially disclose vulnerabilities in any of our hosted code, email a report to [security@hash.ai](mailto:security@hash.ai) or via the form at [hash.ai/contact](https://hash.ai/contact)
+We value the work of security researchers who help keep our users safe. To responsibly and confidentially disclose vulnerabilities in any of our code, email a report to [security@hash.ai](mailto:security@hash.ai) or use the form at [hash.ai/contact](https://hash.ai/contact) - please **do not** open a public thread, _Issue_ or _Discussion_ on this GitHub repository containing any security-related reports as this may put users at risk.
 
 ## More Information
 
