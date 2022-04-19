@@ -82,11 +82,13 @@ As a block developer, you should make sure the markup in your blocks uses these 
 
 Embedding applications can also pass raw CSS into the block if they need to manually override specific styles and layouts. This should be a last resort though, as futzing with CSS selectors can get messy and may end up affecting the core functionality of the block.
 
-## Usability principles
+## Usability and UX principles
 
 No matter how beautiful a block looks, it's not worth much to anyone if it's difficult to use. Soft drop shadows and smooth gradients aren't going to delight the user if they're furiously trying to find the “save” button, and you've stashed it inside a dropdown menu that's too low contrast to see.
 
 ---- image of a shitty dropdown menu design ----
+
+Usability and user experience design (UX) is a whole discipline in its own right, and we can't cover everything in this guide. We're not expecting you to become a UX designer before you can start building blocks. However, knowing the basics of UX and some of the most important principles will go a long way in making you a better block builder. So here's the 80/20 version.
 
 #### 1. Generous touch targets
 
@@ -102,7 +104,13 @@ On desktop this can be 40px. For icons and buttons you can simply add padding ar
 
 If the user can edit, manipulate, or input data anywhere in the block, make it clear
 
-#### 3. A11y accessiblity
+#### 3. Make your blocks A11y accessible
+
+[A11y](https://www.a11yproject.com/)
+
+The a11y project has a great [checklist](https://www.a11yproject.com/checklist/#content) you can work through to make sure your blocks meet the basic requirements.
+
+Two common mistakes are having low colour contrast levels and forgetting to include alt tags on images.
 
 #### 4. Follow conventional icon semantics and use labels
 
@@ -121,3 +129,11 @@ For example, X
 #### 6. Direct manipulation
 
 A close cousin of co-location, direct manipulation is when we allow users to directly touch and move elements on the screen.
+
+---
+
+## Working with designers
+
+At this point, some of you might be overwhelmed by the number of things you need to consider when designing blocks. Design is hard! There's a reason it's an entire specialised profession that takes decades to master.
+
+If you're working on a block and you want it to be _really_ great, you should find a designer to come work on it with you.
