@@ -11,7 +11,7 @@ import { NextPageWithLayout } from "../shared/layout";
 import { isProduction } from "../lib/config";
 import { Buttons } from "./playground.page/button";
 import { Inputs } from "./playground.page/input";
-import { SelectMenus } from "./playground.page/select";
+import { SelectMenus } from "./playground.page/select-menus";
 import { Chips } from "./playground.page/chips";
 
 interface PageProps {}
@@ -50,7 +50,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
         </AccordionDetails>
       </Accordion>
       {/* CHIPS */}
-      <Accordion expanded>
+      <Accordion>
         <AccordionSummary>
           <Typography variant="h4">Chips</Typography>
         </AccordionSummary>

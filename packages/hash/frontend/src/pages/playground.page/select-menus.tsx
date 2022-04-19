@@ -19,6 +19,7 @@ import {
 import { FontAwesomeIcon } from "../../shared/icons";
 import { Avatar, Chip } from "../../shared/ui";
 import { SelectWithSearch } from "./select/select-with-search";
+import { SelectWithSearchAndCheckbox } from "./select/select-with-search-checkbox";
 
 export const SelectMenus = () => {
   return (
@@ -513,6 +514,7 @@ export const SelectMenus = () => {
         }}
       >
         <SelectWithSearch />
+        <SelectWithSearchAndCheckbox />
       </Stack>
     </Box>
   );

@@ -2,7 +2,6 @@ import {
   Components,
   Theme,
   menuItemClasses,
-  dividerClasses,
   listItemTextClasses,
   listItemIconClasses,
   listItemAvatarClasses,
@@ -15,7 +14,7 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
     disableTouchRipple: true,
   },
   styleOverrides: {
-    root: ({ ownerState, theme }) => ({
+    root: ({ theme }) => ({
       borderRadius: "4px",
       padding: theme.spacing(1, 1.5),
       ...theme.typography.smallTextLabels,
@@ -120,17 +119,6 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
             color: theme.palette.blue[30],
           },
         },
-
-      ...(!ownerState.disableGutters && {
-        marginLeft: theme.spacing(0.5),
-        marginRight: theme.spacing(0.5),
-      }),
-
-      // DIVIDER
-      [`& + .${dividerClasses.root}`]: {
-        marginTop: theme.spacing(0.75),
-        marginBottom: theme.spacing(0.75),
-      },
     }),
   },
 };
