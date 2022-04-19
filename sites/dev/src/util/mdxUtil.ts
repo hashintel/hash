@@ -35,17 +35,12 @@ export const parseAST = (mdxFileContent: string) =>
   unified().use(remarkParse).use(remarkMdx).parse(mdxFileContent) as ParsedAST;
 
 // Recursively returns all the headings in an MDX AST
-const getImagesFromParent = (parent: Parent): Image[] =>
-  parent.children
-    .map((child) => {
-      if (isImage(child)) {
-        return [child];
-      } else if (isParent(child)) {
-        return child.children.filter(isParent).map(getImagesFromParent).flat();
-      }
-      return [];
-    })
-    .flat();
+const getImagesFromParent = (parent: Parent): Image[] => [
+  ...parent.children.filter(isImage),
+  ...parent.children
+    .filter(isParent)
+    .flatMap((parent) => getImagesFromParent(parent)),
+];
 
 // Parses the name from a MDX file name (removing the prefix index and the .mdx file extension)
 const parseNameFromFileName = (fileName: string): string => {
