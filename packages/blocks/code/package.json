@@ -23,10 +23,12 @@
     "prismjs": "1.27.0"
   },
   "devDependencies": {
+    "@types/prismjs": "1.16.5",
     "block-scripts": "0.0.1",
     "mock-block-dock": "0.0.6",
     "react": "17.0.2",
-    "react-dom": "17.0.2"
+    "react-dom": "17.0.2",
+    "twind": "0.16.16"
   },
   "peerDependencies": {
     "react": "^17.0.2",
