@@ -27,8 +27,8 @@ use crate::simulation::{
             fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
         },
         Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-        GetWorkerSimStartMsg, Name, Package, PackageComms, PackageCreator, Result, SimRunConfig,
-        Span,
+        GetWorkerSimStartMsg, Name, PackageComms, Result, SimRunConfig, Span, StatePackage,
+        StatePackageCreator,
     },
     task::active::ActiveTask,
 };
@@ -76,8 +76,8 @@ impl GetWorkerExpStartMsg for Creator {
     }
 }
 
-impl PackageCreator for Creator {
-    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
+impl StatePackageCreator for Creator {
+    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>> {
         // TODO: Packages shouldn't have to set the source
         let field_spec_creator =
             RootFieldSpecCreator::new(FieldSource::Package(Name::BehaviorExecution.id()?));
@@ -96,7 +96,7 @@ impl PackageCreator for Creator {
         config: &Arc<SimRunConfig>,
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
-    ) -> Result<Box<dyn Package>> {
+    ) -> Result<Box<dyn StatePackage>> {
         let behavior_ids_col_data_types = fields::id_column_data_types();
         let behavior_ids_col = accessor
             .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
@@ -228,7 +228,7 @@ impl BehaviorExecution {
 }
 
 #[async_trait]
-impl Package for BehaviorExecution {
+impl StatePackage for BehaviorExecution {
     async fn run(&mut self, state: &mut State, context: &Context) -> Result<()> {
         tracing::trace!("Running BehaviorExecution");
         let mut state_proxy = state.write()?;

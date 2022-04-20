@@ -25,16 +25,16 @@ use crate::{
 };
 
 #[async_trait]
-pub trait Package: GetWorkerSimStartMsg + Send + Sync {
+pub trait StatePackage: GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: &mut State, context: &Context) -> Result<()>;
 
     fn span(&self) -> Span;
 }
 
-pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {
+pub trait StatePackageCreator: GetWorkerExpStartMsg + Send + Sync {
     /// We can't derive a default as that returns Self which implies Sized which in turn means we
     /// can't create Trait Objects out of PackageCreator
-    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>>
+    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>>
     where
         Self: Sized;
 
@@ -44,7 +44,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {
         config: &Arc<SimRunConfig>,
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
-    ) -> Result<Box<dyn Package>>;
+    ) -> Result<Box<dyn StatePackage>>;
 
     /// Get the package names that this package depends on.
     fn dependencies() -> Dependencies

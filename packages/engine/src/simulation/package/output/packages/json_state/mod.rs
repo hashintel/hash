@@ -16,8 +16,8 @@ use crate::simulation::package::{
     output,
     output::{
         Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-        GetWorkerSimStartMsg, MaybeCpuBound, Output, Package, PackageComms, PackageCreator, Result,
-        SimRunConfig, Span,
+        GetWorkerSimStartMsg, MaybeCpuBound, Output, OutputPackage, OutputPackageCreator,
+        PackageComms, Result, SimRunConfig, Span,
     },
 };
 
@@ -26,8 +26,8 @@ pub enum Task {}
 
 pub struct Creator {}
 
-impl PackageCreator for Creator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
+impl OutputPackageCreator for Creator {
+    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn OutputPackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
@@ -36,7 +36,7 @@ impl PackageCreator for Creator {
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
-    ) -> Result<Box<dyn Package>> {
+    ) -> Result<Box<dyn OutputPackage>> {
         let value = config
             .sim
             .persistence
@@ -81,7 +81,7 @@ impl GetWorkerSimStartMsg for JsonState {
 }
 
 #[async_trait]
-impl Package for JsonState {
+impl OutputPackage for JsonState {
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         let state = state.read()?;
         let agent_states: stateful::Result<Vec<_>> = state

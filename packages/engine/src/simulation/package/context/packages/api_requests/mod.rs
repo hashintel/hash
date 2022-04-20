@@ -24,10 +24,10 @@ use crate::{
     simulation::{
         comms::package::PackageComms,
         package::context::{
-            packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextSchema, Error,
-            FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound,
-            Package, Package as ContextPackage, PackageCreator, SimRunConfig, StateReadProxy,
-            StateSnapshot,
+            packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextPackage,
+            ContextPackageCreator, ContextSchema, Error, FieldSpecMapAccessor,
+            GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound, SimRunConfig,
+            StateReadProxy, StateSnapshot,
         },
         Result,
     },
@@ -37,8 +37,8 @@ const CPU_BOUND: bool = false;
 
 pub struct Creator {}
 
-impl PackageCreator for Creator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
+impl ContextPackageCreator for Creator {
+    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
@@ -92,7 +92,7 @@ impl GetWorkerSimStartMsg for ApiRequests {
 }
 
 #[async_trait]
-impl Package for ApiRequests {
+impl ContextPackage for ApiRequests {
     async fn run<'s>(
         &mut self,
         state_proxy: StateReadProxy,

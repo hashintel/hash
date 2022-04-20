@@ -13,8 +13,8 @@ use crate::{
     config::{ExperimentConfig, TopologyConfig},
     simulation::{
         package::state::{
-            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Package,
-            PackageComms, PackageCreator, SimRunConfig, Span,
+            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, PackageComms,
+            SimRunConfig, Span, StatePackage, StatePackageCreator,
         },
         Result,
     },
@@ -31,8 +31,8 @@ type Direction = [DirectionSubType; 3];
 
 pub struct Creator {}
 
-impl PackageCreator for Creator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
+impl StatePackageCreator for Creator {
+    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
@@ -41,7 +41,7 @@ impl PackageCreator for Creator {
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
-    ) -> Result<Box<dyn Package>> {
+    ) -> Result<Box<dyn StatePackage>> {
         let topology = Topology {
             config: Arc::new(TopologyConfig::from_globals(&config.sim.globals)?),
         };
@@ -92,7 +92,7 @@ impl GetWorkerSimStartMsg for Topology {
 }
 
 #[async_trait]
-impl Package for Topology {
+impl StatePackage for Topology {
     async fn run(&mut self, state: &mut State, _context: &Context) -> Result<()> {
         tracing::trace!("Running Topology package");
         if self.config.move_wrapped_agents {

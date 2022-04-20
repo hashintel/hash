@@ -17,7 +17,6 @@ use crate::{
     simulation::{
         comms::package::PackageComms,
         package::{
-            context::Package as ContextPackage,
             deps::Dependencies,
             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
         },
@@ -26,7 +25,7 @@ use crate::{
 };
 
 #[async_trait]
-pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
+pub trait ContextPackage: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run<'s>(
         &mut self,
         state_proxy: StateReadProxy,
@@ -41,7 +40,7 @@ pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     fn span(&self) -> Span;
 }
 
-pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
+pub trait ContextPackageCreator: GetWorkerExpStartMsg + Sync + Send {
     /// A per-experiment initialization step that provide the creator with experiment config.
     /// This step is called when packages are loaded by the experiment controller.
     ///
@@ -49,7 +48,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
     /// can get it from the simulation config when calling `create`
     /// We can't derive a default as that returns Self which implies Sized which in turn means we
     /// can't create Trait Objects out of PackageCreator
-    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>>
+    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>>
     where
         Self: Sized;
 
@@ -60,7 +59,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         system: PackageComms,
         state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
-    ) -> Result<Box<dyn Package>>;
+    ) -> Result<Box<dyn ContextPackage>>;
 
     fn dependencies() -> Dependencies
     where

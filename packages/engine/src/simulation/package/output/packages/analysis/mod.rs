@@ -29,7 +29,7 @@ use crate::{
         comms::package::PackageComms,
         package::{
             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
-            output::{packages::Output, Package, PackageCreator},
+            output::{packages::Output, OutputPackage, OutputPackageCreator},
         },
         Error, Result,
     },
@@ -40,8 +40,8 @@ pub enum Task {}
 
 pub struct Creator {}
 
-impl PackageCreator for Creator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
+impl OutputPackageCreator for Creator {
+    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn OutputPackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
@@ -50,7 +50,7 @@ impl PackageCreator for Creator {
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
         accessor: FieldSpecMapAccessor,
-    ) -> Result<Box<dyn Package>> {
+    ) -> Result<Box<dyn OutputPackage>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and
         // make this unnecessary
         let analysis_src = get_analysis_source(&config.exp.run.base().project_base.packages)?;
@@ -92,7 +92,7 @@ impl GetWorkerSimStartMsg for Analysis {
 }
 
 #[async_trait]
-impl Package for Analysis {
+impl OutputPackage for Analysis {
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         // TODO: use filtering to avoid exposing hidden values to users
         let agent_proxies = state.agent_pool().read_proxies()?;

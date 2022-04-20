@@ -25,10 +25,10 @@ use crate::{
     },
 };
 
-pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
+pub trait OutputPackageCreator: GetWorkerExpStartMsg + Sync + Send {
     /// We can't derive a default as that returns Self which implies Sized which in turn means we
     /// can't create Trait Objects out of PackageCreator
-    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>>
+    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn OutputPackageCreator>>
     where
         Self: Sized;
 
@@ -38,7 +38,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         config: &Arc<SimRunConfig>,
         system: PackageComms,
         accessor: FieldSpecMapAccessor,
-    ) -> Result<Box<dyn Package>>;
+    ) -> Result<Box<dyn OutputPackage>>;
 
     fn dependencies() -> Dependencies
     where
@@ -66,7 +66,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
 }
 
 #[async_trait]
-pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
+pub trait OutputPackage: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: Arc<State>, context: Arc<Context>) -> Result<Output>;
 
     fn span(&self) -> Span;

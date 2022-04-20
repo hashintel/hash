@@ -17,8 +17,8 @@ use crate::{
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         package::init::{
-            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound,
-            Package as InitPackage, PackageComms, PackageCreator, SimRunConfig,
+            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitPackage,
+            InitPackageCreator, MaybeCpuBound, PackageComms, SimRunConfig,
         },
         Error, Result,
     },
@@ -26,8 +26,8 @@ use crate::{
 
 pub struct Creator {}
 
-impl PackageCreator for Creator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
+impl InitPackageCreator for Creator {
+    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn InitPackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 

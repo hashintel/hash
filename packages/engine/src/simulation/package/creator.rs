@@ -34,22 +34,22 @@ pub struct PackageCreators {
     init: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn init::PackageCreator>,
+        &'static Box<dyn init::InitPackageCreator>,
     )>,
     context: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn context::PackageCreator>,
+        &'static Box<dyn context::ContextPackageCreator>,
     )>,
     state: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn state::PackageCreator>,
+        &'static Box<dyn state::StatePackageCreator>,
     )>,
     output: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn output::PackageCreator>,
+        &'static Box<dyn output::OutputPackageCreator>,
     )>,
 }
 
@@ -391,22 +391,22 @@ impl PackageCreators {
         init: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn init::PackageCreator>,
+            &'static Box<dyn init::InitPackageCreator>,
         )>,
         context: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn context::PackageCreator>,
+            &'static Box<dyn context::ContextPackageCreator>,
         )>,
         state: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn state::PackageCreator>,
+            &'static Box<dyn state::StatePackageCreator>,
         )>,
         output: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn output::PackageCreator>,
+            &'static Box<dyn output::OutputPackageCreator>,
         )>,
     ) -> Self {
         Self {

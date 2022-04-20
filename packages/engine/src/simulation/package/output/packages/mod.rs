@@ -17,8 +17,8 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         package::{
-            id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
-            PackageType,
+            id::PackageIdGenerator, name::PackageName, output::OutputPackageCreator,
+            PackageMetadata, PackageType,
         },
         Error, Result,
     },
@@ -62,7 +62,7 @@ pub enum Output {
     JsonStateOutput(JsonStateOutput),
 }
 
-pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
+pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn OutputPackageCreator>>>);
 
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
@@ -82,7 +82,7 @@ impl PackageCreators {
         Ok(())
     }
 
-    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn PackageCreator>> {
+    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn OutputPackageCreator>> {
         self.0
             .get()
             .ok_or_else(|| Error::from("Output Package Creators weren't initialized"))?
@@ -96,7 +96,7 @@ impl PackageCreators {
     }
 
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn PackageCreator>>> {
+    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn OutputPackageCreator>>> {
         Ok(self
             .0
             .get()

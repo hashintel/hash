@@ -21,9 +21,9 @@ use crate::{
     simulation::{
         comms::package::PackageComms,
         package::context::{
-            packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, FieldSpecMapAccessor,
-            GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound, Package as ContextPackage,
-            Package, PackageCreator, SimRunConfig,
+            packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextPackage,
+            ContextPackageCreator, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+            GetWorkerSimStartMsg, MaybeCpuBound, SimRunConfig,
         },
         Result,
     },
@@ -37,8 +37,8 @@ pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct Creator {}
 
-impl PackageCreator for Creator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
+impl ContextPackageCreator for Creator {
+    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
@@ -87,7 +87,7 @@ impl GetWorkerSimStartMsg for AgentMessages {
 }
 
 #[async_trait]
-impl Package for AgentMessages {
+impl ContextPackage for AgentMessages {
     async fn run<'s>(
         &mut self,
         state_proxy: StateReadProxy,

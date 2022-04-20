@@ -19,8 +19,8 @@ use crate::{
         comms::package::PackageComms,
         package::{
             context::{
-                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackage, Package,
-                PackageCreator,
+                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackage,
+                ContextPackageCreator,
             },
             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
         },
@@ -41,8 +41,8 @@ pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct Creator {}
 
-impl PackageCreator for Creator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
+impl ContextPackageCreator for Creator {
+    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
@@ -114,7 +114,7 @@ impl GetWorkerSimStartMsg for Neighbors {
 }
 
 #[async_trait]
-impl Package for Neighbors {
+impl ContextPackage for Neighbors {
     async fn run<'s>(
         &mut self,
         state_proxy: StateReadProxy,

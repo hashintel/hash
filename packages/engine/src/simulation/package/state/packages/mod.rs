@@ -15,7 +15,9 @@ use stateful::field::PackageId;
 use crate::{
     config::ExperimentConfig,
     simulation::{
-        package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
+        package::{
+            id::PackageIdGenerator, state::StatePackageCreator, PackageMetadata, PackageType,
+        },
         Error, Result,
     },
 };
@@ -47,7 +49,7 @@ impl fmt::Display for Name {
     }
 }
 
-pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
+pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn StatePackageCreator>>>);
 
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
@@ -70,7 +72,7 @@ impl PackageCreators {
         Ok(())
     }
 
-    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn PackageCreator>> {
+    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn StatePackageCreator>> {
         self.0
             .get()
             .ok_or_else(|| Error::from("State Package Creators weren't initialized"))?
@@ -84,7 +86,7 @@ impl PackageCreators {
     }
 
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn PackageCreator>>> {
+    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn StatePackageCreator>>> {
         Ok(self
             .0
             .get()

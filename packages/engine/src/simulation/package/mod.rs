@@ -32,7 +32,7 @@
 //! #         comms::package::PackageComms,
 //! #         package::{
 //! #             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg},
-//! #             state::{Package, PackageCreator},
+//! #             state::{StatePackage, StatePackageCreator},
 //! #         },
 //! #         Result,
 //! #     },
@@ -48,7 +48,7 @@
 //! }
 //!
 //! #[async_trait]
-//! impl Package for GreetingPackage {
+//! impl StatePackage for GreetingPackage {
 //!     async fn run(&mut self, _state: &mut State, _context: &Context) -> Result<()> {
 //!         println!("Hello HASH!");
 //!         Ok(())
@@ -67,8 +67,8 @@
 //!     }
 //! }
 //!
-//! impl PackageCreator for GreetingCreator {
-//!     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>>
+//! impl StatePackageCreator for GreetingCreator {
+//!     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>>
 //!     where
 //!         Self: Sized,
 //!     {
@@ -80,7 +80,7 @@
 //!         _config: &Arc<SimRunConfig>,
 //!         _comms: PackageComms,
 //!         _accessor: FieldSpecMapAccessor,
-//!     ) -> Result<Box<dyn Package>> {
+//!     ) -> Result<Box<dyn StatePackage>> {
 //!         Ok(Box::new(GreetingPackage))
 //!     }
 //! }

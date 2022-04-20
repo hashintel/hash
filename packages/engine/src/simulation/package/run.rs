@@ -26,11 +26,11 @@ pub struct Packages {
 
 /// TODO: DOC: explain link to init/mod.rs
 pub struct InitPackages {
-    inner: Vec<Box<dyn init::Package>>,
+    inner: Vec<Box<dyn init::InitPackage>>,
 }
 
 impl InitPackages {
-    pub fn new(inner: Vec<Box<dyn init::Package>>) -> InitPackages {
+    pub fn new(inner: Vec<Box<dyn init::InitPackage>>) -> InitPackages {
         InitPackages { inner }
     }
 
@@ -73,16 +73,16 @@ impl InitPackages {
 }
 
 pub struct StepPackages {
-    context: Vec<Box<dyn context::Package>>,
-    state: Vec<Box<dyn state::Package>>,
-    output: Vec<Box<dyn output::Package>>,
+    context: Vec<Box<dyn context::ContextPackage>>,
+    state: Vec<Box<dyn state::StatePackage>>,
+    output: Vec<Box<dyn output::OutputPackage>>,
 }
 
 impl StepPackages {
     pub fn new(
-        context: Vec<Box<dyn context::Package>>,
-        state: Vec<Box<dyn state::Package>>,
-        output: Vec<Box<dyn output::Package>>,
+        context: Vec<Box<dyn context::ContextPackage>>,
+        state: Vec<Box<dyn state::StatePackage>>,
+        output: Vec<Box<dyn output::OutputPackage>>,
     ) -> StepPackages {
         StepPackages {
             context,

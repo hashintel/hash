@@ -25,14 +25,14 @@ use crate::{
 };
 
 #[async_trait]
-pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
+pub trait InitPackage: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self) -> Result<Vec<Agent>>;
 }
 
-pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
+pub trait InitPackageCreator: GetWorkerExpStartMsg + Sync + Send {
     /// We can't derive a default as that returns Self which implies Sized which in turn means we
     /// can't create Trait Objects out of PackageCreator
-    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>>
+    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn InitPackageCreator>>
     where
         Self: Sized;
 
@@ -42,7 +42,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         config: &Arc<SimRunConfig>,
         system: PackageComms,
         accessor: FieldSpecMapAccessor,
-    ) -> Result<Box<dyn Package>>;
+    ) -> Result<Box<dyn InitPackage>>;
 
     fn dependencies() -> Dependencies
     where
