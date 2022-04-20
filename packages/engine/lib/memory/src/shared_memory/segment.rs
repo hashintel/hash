@@ -89,19 +89,13 @@ impl MemoryId {
 
 impl fmt::Display for MemoryId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let prefix = Self::prefix(self);
+        let prefix = Self::prefix(self.base_id());
         if cfg!(target_os = "macos") {
             // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
             write!(fmt, "{}_{:.7}", prefix, self.suffix)
         } else {
             write!(fmt, "{}_{}", prefix, self.suffix)
         }
-    }
-}
-
-impl Borrow<Uuid> for &MemoryId {
-    fn borrow(&self) -> &Uuid {
-        &self.id
     }
 }
 
