@@ -40,13 +40,6 @@ pub trait OutputPackageCreator: PackageCreator {
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>>;
 
-    fn dependencies() -> Dependencies
-    where
-        Self: Sized,
-    {
-        Dependencies::empty()
-    }
-
     fn persistence_config(
         &self,
         _config: &ExperimentConfig,

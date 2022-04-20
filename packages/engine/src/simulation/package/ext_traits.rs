@@ -1,4 +1,4 @@
-use crate::simulation::error::Result;
+use crate::simulation::{error::Result, package::deps::Dependencies};
 
 pub trait PackageCreator: Sync + Send {
     /// A message sent to all workers before running any packages.
@@ -11,6 +11,14 @@ pub trait PackageCreator: Sync + Send {
     /// their respective package creator.
     fn init_message(&self) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
+    }
+
+    /// Get the package names that packages created by this creator will depend on.
+    fn dependencies() -> Dependencies
+    where
+        Self: Sized,
+    {
+        Dependencies::empty()
     }
 }
 

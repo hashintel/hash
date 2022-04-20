@@ -46,14 +46,6 @@ pub trait StatePackageCreator: PackageCreator {
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>>;
 
-    /// Get the package names that this package depends on.
-    fn dependencies() -> Dependencies
-    where
-        Self: Sized,
-    {
-        Dependencies::empty()
-    }
-
     fn get_state_field_specs(
         &self,
         _config: &ExperimentConfig,
