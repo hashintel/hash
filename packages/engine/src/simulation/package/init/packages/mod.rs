@@ -15,7 +15,15 @@ use stateful::field::PackageId;
 use crate::{
     config::ExperimentConfig,
     simulation::{
-        package::{id::PackageIdGenerator, init::InitPackageCreator, PackageMetadata, PackageType},
+        package::{
+            ext_traits::PackageCreator,
+            id::PackageIdGenerator,
+            init::{
+                packages::{js_py::ScriptInitCreator, json::JsonInitCreator},
+                InitPackageCreator,
+            },
+            PackageMetadata, PackageType,
+        },
         Error, Result,
     },
 };
@@ -54,13 +62,13 @@ pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new
 impl PackageCreators {
     pub(crate) fn initialize_for_experiment_run(
         &self,
-        experiment_config: &Arc<ExperimentConfig>,
+        _experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
         tracing::debug!("Initializing Init Package Creators");
         use Name::{JsPy, Json};
-        let mut m = HashMap::new();
-        m.insert(Json, json::JsonInitCreator::new(experiment_config)?);
-        m.insert(JsPy, js_py::ScriptInitCreator::new(experiment_config)?);
+        let mut m = HashMap::<_, Box<dyn InitPackageCreator>>::new();
+        m.insert(Json, Box::new(JsonInitCreator));
+        m.insert(JsPy, Box::new(ScriptInitCreator));
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize Init Package Creators"))?;
@@ -95,14 +103,14 @@ lazy_static! {
         use Name::{JsPy, Json};
         let mut id_creator = PackageIdGenerator::new(PackageType::Init);
         let mut m = HashMap::new();
-        m.insert(Json, PackageMetadata {
-            id: id_creator.next(),
-            dependencies: json::JsonInitCreator::dependencies(),
-        });
-        m.insert(JsPy, PackageMetadata {
-            id: id_creator.next(),
-            dependencies: js_py::ScriptInitCreator::dependencies(),
-        });
+        m.insert(
+            Json,
+            PackageMetadata::new(id_creator.next(), JsonInitCreator::dependencies()),
+        );
+        m.insert(
+            JsPy,
+            PackageMetadata::new(id_creator.next(), ScriptInitCreator::dependencies()),
+        );
         m
     };
 }

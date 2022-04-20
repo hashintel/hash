@@ -13,7 +13,6 @@ use serde_json::Value;
 use stateful::agent::Agent;
 
 use crate::{
-    config::ExperimentConfig,
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         package::init::{
@@ -24,13 +23,9 @@ use crate::{
     },
 };
 
-pub struct ScriptInitCreator {}
+pub struct ScriptInitCreator;
 
 impl InitPackageCreator for ScriptInitCreator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn InitPackageCreator>> {
-        Ok(Box::new(ScriptInitCreator {}))
-    }
-
     fn create(
         &self,
         config: &Arc<SimRunConfig>,

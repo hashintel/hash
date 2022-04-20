@@ -6,20 +6,16 @@ use crate::{
     proto::{ExperimentRunTrait, InitialStateName},
     simulation::{
         package::init::{
-            Arc, ExperimentConfig, FieldSpecMapAccessor, InitPackage, InitPackageCreator,
-            MaybeCpuBound, Package, PackageComms, PackageCreator, SimRunConfig,
+            Arc, FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
+            PackageComms, PackageCreator, SimRunConfig,
         },
         Error, Result,
     },
 };
 
-pub struct JsonInitCreator {}
+pub struct JsonInitCreator;
 
 impl InitPackageCreator for JsonInitCreator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn InitPackageCreator>> {
-        Ok(Box::new(JsonInitCreator {}))
-    }
-
     fn create(
         &self,
         config: &Arc<SimRunConfig>,

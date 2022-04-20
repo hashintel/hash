@@ -17,21 +17,12 @@ use crate::{
     config::{ExperimentConfig, SimRunConfig},
     simulation::{
         comms::package::PackageComms,
-        package::{
-            deps::Dependencies,
-            ext_traits::{MaybeCpuBound, Package, PackageCreator},
-        },
+        package::ext_traits::{MaybeCpuBound, Package, PackageCreator},
         Error, Result,
     },
 };
 
 pub trait OutputPackageCreator: PackageCreator {
-    /// We can't derive a default as that returns Self which implies Sized which in turn means we
-    /// can't create Trait Objects out of PackageCreator
-    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn OutputPackageCreator>>
-    where
-        Self: Sized;
-
     /// Create the package.
     fn create(
         &self,

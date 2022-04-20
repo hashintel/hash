@@ -17,7 +17,16 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         package::{
-            context::ContextPackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType,
+            context::{
+                packages::{
+                    agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator,
+                    neighbors::NeighborsCreator,
+                },
+                ContextPackageCreator,
+            },
+            ext_traits::PackageCreator,
+            id::PackageIdGenerator,
+            PackageMetadata, PackageType,
         },
         Error, Result,
     },
@@ -58,23 +67,14 @@ pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new
 impl PackageCreators {
     pub(crate) fn initialize_for_experiment_run(
         &self,
-        experiment_config: &Arc<ExperimentConfig>,
+        _experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
         tracing::debug!("Initializing Context Package Creators");
         use Name::{AgentMessages, ApiRequests, Neighbors};
-        let mut m = HashMap::new();
-        m.insert(
-            AgentMessages,
-            agent_messages::AgentMessagesCreator::new(experiment_config)?,
-        );
-        m.insert(
-            ApiRequests,
-            api_requests::ApiRequestsCreator::new(experiment_config)?,
-        );
-        m.insert(
-            Neighbors,
-            neighbors::NeighborsCreator::new(experiment_config)?,
-        );
+        let mut m = HashMap::<_, Box<dyn ContextPackageCreator>>::new();
+        m.insert(AgentMessages, Box::new(AgentMessagesCreator));
+        m.insert(ApiRequests, Box::new(ApiRequestsCreator));
+        m.insert(Neighbors, Box::new(NeighborsCreator));
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize Context Package Creators"))?;
@@ -109,18 +109,9 @@ lazy_static! {
         use Name::{AgentMessages, ApiRequests, Neighbors};
         let mut id_creator = PackageIdGenerator::new(PackageType::Context);
         let mut m = HashMap::new();
-        m.insert(AgentMessages, PackageMetadata{
-            id: id_creator.next(),
-            dependencies: agent_messages::AgentMessagesCreator::dependencies()
-        });
-        m.insert(ApiRequests, PackageMetadata{
-            id: id_creator.next(),
-            dependencies: api_requests::ApiRequestsCreator::dependencies()
-        });
-        m.insert(Neighbors, PackageMetadata{
-            id: id_creator.next(),
-            dependencies: neighbors::NeighborsCreator::dependencies()
-        });
+        m.insert(AgentMessages, PackageMetadata::new(id_creator.next(), AgentMessagesCreator::dependencies()));
+        m.insert(ApiRequests, PackageMetadata::new(id_creator.next(), ApiRequestsCreator::dependencies()));
+        m.insert(Neighbors, PackageMetadata::new(id_creator.next(), NeighborsCreator::dependencies()));
         m
     };
 }

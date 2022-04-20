@@ -16,10 +16,7 @@ use crate::{
     config::{ExperimentConfig, SimRunConfig},
     simulation::{
         comms::package::PackageComms,
-        package::{
-            deps::Dependencies,
-            ext_traits::{MaybeCpuBound, Package, PackageCreator},
-        },
+        package::ext_traits::{MaybeCpuBound, Package, PackageCreator},
         Error, Result,
     },
 };
@@ -41,17 +38,6 @@ pub trait ContextPackage: Package + MaybeCpuBound {
 }
 
 pub trait ContextPackageCreator: PackageCreator {
-    /// A per-experiment initialization step that provide the creator with experiment config.
-    /// This step is called when packages are loaded by the experiment controller.
-    ///
-    /// A default implementation is provided as most packages don't need to store the config and
-    /// can get it from the simulation config when calling `create`
-    /// We can't derive a default as that returns Self which implies Sized which in turn means we
-    /// can't create Trait Objects out of PackageCreator
-    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>>
-    where
-        Self: Sized;
-
     /// Create the package.
     fn create(
         &self,

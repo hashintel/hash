@@ -16,7 +16,15 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         package::{
-            id::PackageIdGenerator, state::StatePackageCreator, PackageMetadata, PackageType,
+            ext_traits::PackageCreator,
+            id::PackageIdGenerator,
+            state::{
+                packages::{
+                    behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator,
+                },
+                StatePackageCreator,
+            },
+            PackageMetadata, PackageType,
         },
         Error, Result,
     },
@@ -60,12 +68,12 @@ impl PackageCreators {
     ) -> Result<()> {
         tracing::debug!("Initializing State Package Creators");
         use Name::{BehaviorExecution, Topology};
-        let mut m = HashMap::new();
+        let mut m = HashMap::<_, Box<dyn StatePackageCreator>>::new();
         m.insert(
             BehaviorExecution,
-            behavior_execution::BehaviorExecutionCreator::new(experiment_config)?,
+            BehaviorExecutionCreator::new(experiment_config)?,
         );
-        m.insert(Topology, topology::TopologyCreator::new(experiment_config)?);
+        m.insert(Topology, Box::new(TopologyCreator));
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize State Package Creators"))?;
@@ -102,14 +110,11 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert(
             BehaviorExecution,
-            PackageMetadata::new(
-                id_creator.next(),
-                behavior_execution::BehaviorExecutionCreator::dependencies(),
-            ),
+            PackageMetadata::new(id_creator.next(), BehaviorExecutionCreator::dependencies()),
         );
         m.insert(
             Topology,
-            PackageMetadata::new(id_creator.next(), topology::Creator::dependencies()),
+            PackageMetadata::new(id_creator.next(), TopologyCreator::dependencies()),
         );
         m
     };

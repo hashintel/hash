@@ -49,6 +49,20 @@ pub struct BehaviorExecutionCreator {
 }
 
 impl BehaviorExecutionCreator {
+    pub fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>> {
+        // TODO: Packages shouldn't have to set the source
+        let field_spec_creator =
+            RootFieldSpecCreator::new(FieldSource::Package(Name::BehaviorExecution.id()?));
+        let behavior_map =
+            BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
+        let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
+
+        Ok(Box::new(BehaviorExecutionCreator {
+            behavior_ids: Some(Arc::new(behavior_ids)),
+            behavior_map: Some(Arc::new(behavior_map)),
+        }))
+    }
+
     fn get_behavior_ids(&self) -> Result<&Arc<BehaviorIds>> {
         self.behavior_ids.as_ref().ok_or_else(|| {
             Error::from(
@@ -76,20 +90,6 @@ impl PackageCreator for BehaviorExecutionCreator {
 }
 
 impl StatePackageCreator for BehaviorExecutionCreator {
-    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>> {
-        // TODO: Packages shouldn't have to set the source
-        let field_spec_creator =
-            RootFieldSpecCreator::new(FieldSource::Package(Name::BehaviorExecution.id()?));
-        let behavior_map =
-            BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
-        let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
-
-        Ok(Box::new(BehaviorExecutionCreator {
-            behavior_ids: Some(Arc::new(behavior_ids)),
-            behavior_map: Some(Arc::new(behavior_map)),
-        }))
-    }
-
     fn create(
         &self,
         config: &Arc<SimRunConfig>,

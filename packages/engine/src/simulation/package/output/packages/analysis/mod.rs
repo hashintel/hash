@@ -38,13 +38,9 @@ use crate::{
 // TODO: UNUSED: Needs triage
 pub enum Task {}
 
-pub struct AnalysisCreator {}
+pub struct AnalysisCreator;
 
 impl OutputPackageCreator for AnalysisCreator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn OutputPackageCreator>> {
-        Ok(Box::new(AnalysisCreator {}))
-    }
-
     fn create(
         &self,
         config: &Arc<SimRunConfig>,

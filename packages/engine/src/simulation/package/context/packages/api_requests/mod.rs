@@ -34,13 +34,9 @@ use crate::{
 
 const CPU_BOUND: bool = false;
 
-pub struct ApiRequestsCreator {}
+pub struct ApiRequestsCreator;
 
 impl ContextPackageCreator for ApiRequestsCreator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>> {
-        Ok(Box::new(ApiRequestsCreator {}))
-    }
-
     fn create(
         &self,
         config: &Arc<SimRunConfig>,

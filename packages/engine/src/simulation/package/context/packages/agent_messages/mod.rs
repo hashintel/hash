@@ -35,13 +35,9 @@ pub const MESSAGE_INDEX_COUNT: usize = 3;
 pub type IndexType = u32;
 pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
-pub struct AgentMessagesCreator {}
+pub struct AgentMessagesCreator;
 
 impl ContextPackageCreator for AgentMessagesCreator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>> {
-        Ok(Box::new(AgentMessagesCreator {}))
-    }
-
     fn create(
         &self,
         _config: &Arc<SimRunConfig>,

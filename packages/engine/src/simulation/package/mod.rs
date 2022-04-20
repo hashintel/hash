@@ -68,13 +68,6 @@
 //! }
 //!
 //! impl StatePackageCreator for GreetingCreator {
-//!     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>>
-//!     where
-//!         Self: Sized,
-//!     {
-//!         Ok(Box::new(GreetingCreator))
-//!     }
-//!
 //!     fn create(
 //!         &self,
 //!         _config: &Arc<SimRunConfig>,
@@ -123,7 +116,7 @@
 //!         use Name::{BehaviorExecution, Greeting, Topology};
 //!         # let mut m = HashMap::new();
 //!         // ...
-//!         m.insert(Greeting, GreetingCreator::new(experiment_config)?);
+//!         m.insert(Greeting, Box::new(GreetingCreator));
 //!         // ...
 //!         # Ok(())
 //!     }

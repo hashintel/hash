@@ -29,13 +29,9 @@ type Position = [PositionSubType; 3];
 type DirectionSubType = f64;
 type Direction = [DirectionSubType; 3];
 
-pub struct TopologyCreator {}
+pub struct TopologyCreator;
 
 impl StatePackageCreator for TopologyCreator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>> {
-        Ok(Box::new(TopologyCreator {}))
-    }
-
     fn create(
         &self,
         config: &Arc<SimRunConfig>,

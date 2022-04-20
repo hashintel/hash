@@ -17,7 +17,13 @@ use crate::{
     config::ExperimentConfig,
     simulation::{
         package::{
-            id::PackageIdGenerator, name::PackageName, output::OutputPackageCreator,
+            ext_traits::PackageCreator,
+            id::PackageIdGenerator,
+            name::PackageName,
+            output::{
+                packages::{analysis::AnalysisCreator, json_state::JsonStateCreator},
+                OutputPackageCreator,
+            },
             PackageMetadata, PackageType,
         },
         Error, Result,
@@ -69,16 +75,13 @@ pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new
 impl PackageCreators {
     pub(crate) fn initialize_for_experiment_run(
         &self,
-        experiment_config: &Arc<ExperimentConfig>,
+        _experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
         tracing::debug!("Initializing Output Package Creators");
         use Name::{Analysis, JsonState};
-        let mut m = HashMap::new();
-        m.insert(Analysis, analysis::AnalysisCreator::new(experiment_config)?);
-        m.insert(
-            JsonState,
-            json_state::JsonStateCreator::new(experiment_config)?,
-        );
+        let mut m = HashMap::<_, Box<dyn OutputPackageCreator>>::new();
+        m.insert(Analysis, Box::new(AnalysisCreator));
+        m.insert(JsonState, Box::new(JsonStateCreator));
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize Output Package Creators"))?;
@@ -115,11 +118,11 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert(Analysis, PackageMetadata {
             id: id_creator.next(),
-            dependencies: analysis::AnalysisCreator::dependencies(),
+            dependencies: AnalysisCreator::dependencies(),
         });
         m.insert(JsonState, PackageMetadata {
             id: id_creator.next(),
-            dependencies: json_state::JsonStateCreator::dependencies(),
+            dependencies: JsonStateCreator::dependencies(),
         });
         m
     };

@@ -23,13 +23,9 @@ use crate::simulation::package::{
 // TODO: UNUSED: Needs triage
 pub enum Task {}
 
-pub struct JsonStateCreator {}
+pub struct JsonStateCreator;
 
 impl OutputPackageCreator for JsonStateCreator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn OutputPackageCreator>> {
-        Ok(Box::new(JsonStateCreator {}))
-    }
-
     fn create(
         &self,
         config: &Arc<SimRunConfig>,

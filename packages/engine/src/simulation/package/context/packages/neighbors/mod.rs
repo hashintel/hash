@@ -39,13 +39,9 @@ pub const NEIGHBOR_INDEX_COUNT: usize = 2;
 pub type IndexType = u32;
 pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
-pub struct NeighborsCreator {}
+pub struct NeighborsCreator;
 
 impl ContextPackageCreator for NeighborsCreator {
-    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>> {
-        Ok(Box::new(NeighborsCreator {}))
-    }
-
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
