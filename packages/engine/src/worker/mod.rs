@@ -35,15 +35,15 @@ use self::{
 };
 use crate::{
     config::{WorkerConfig, WorkerSpawnConfig},
-    datastore::table::{sync::SyncPayload, task_shared_store::SharedState},
+    datastore::table::{
+        sync::SyncPayload,
+        task_shared_store::{SharedState, TaskSharedStore},
+    },
     language::Language,
     proto::SimulationShortId,
-    simulation::{
-        enum_dispatch::TaskSharedStore,
-        task::{
-            handler::WorkerHandler,
-            msg::{TaskMessage, TaskResultOrCancelled},
-        },
+    simulation::task::{
+        handler::WorkerHandler,
+        msg::{TaskMessage, TaskResultOrCancelled},
     },
     types::TaskId,
     worker::{

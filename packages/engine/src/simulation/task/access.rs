@@ -1,9 +1,5 @@
-use crate::{
-    datastore::table::task_shared_store::TaskSharedStore,
-    simulation::{enum_dispatch::enum_dispatch, Result},
-};
+use crate::{datastore::table::task_shared_store::TaskSharedStore, simulation::Result};
 
-#[enum_dispatch]
 pub trait StoreAccessVerify {
     /// Ensures that the [`Task`] variant has the correct permissions on the [`SharedState`] and
     /// [`SharedContext`] objects that make up the [`TaskSharedStore`].
