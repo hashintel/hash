@@ -13,20 +13,20 @@
           {
             "name": "@mui/material",
             "importNames": ["Link"],
-            "message": "Please use the custom src/shared/ui/link component instead to ensure Next.js and MUI compatibility."
+            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "@mui/material/Link",
-            "message": "Please use the custom src/shared/ui/link component instead to ensure Next.js and MUI compatibility."
+            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "next",
             "importNames": ["Link"],
-            "message": "Please use the custom src/shared/ui/link component instead to ensure Next.js and MUI compatibility."
+            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "next/link",
-            "message": "Please use the custom src/shared/ui/link component instead to ensure Next.js and MUI compatibility."
+            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "@mui/material",
@@ -43,32 +43,32 @@
           {
             "name": "@mui/material/Avatar",
             "importNames": ["default"],
-            "message": "Please use the custom src/shared/ui/avatar component instead."
+            "message": "Please use the custom wrapper component in src/shared/ui instead."
           },
           {
             "name": "@mui/material/Button",
             "importNames": ["default"],
-            "message": "Please use the custom src/shared/ui/button component instead."
+            "message": "Please use the custom wrapper component in src/shared/ui instead."
           },
           {
             "name": "@mui/material/IconButton",
             "importNames": ["default"],
-            "message": "Please use the custom src/shared/ui/icon-button component instead."
+            "message": "Please use the custom wrapper component in src/shared/ui instead."
           },
           {
             "name": "@mui/material/Chip",
             "importNames": ["default"],
-            "message": "Please use the custom src/shared/ui/chip component instead."
+            "message": "Please use the custom wrapper component in src/shared/ui instead."
           },
           {
             "name": "@mui/material/Popover",
             "importNames": ["default"],
-            "message": "Please use the custom src/shared/ui/popover component instead."
+            "message": "Please use the custom wrapper component in src/shared/ui instead."
           },
           {
             "name": "@mui/material/TextField",
             "importNames": ["default"],
-            "message": "Please use the custom src/shared/ui/text-field component instead."
+            "message": "Please use the custom wrapper component in src/shared/ui instead."
           }
         ]
       }
