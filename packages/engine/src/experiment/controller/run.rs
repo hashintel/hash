@@ -359,7 +359,9 @@ pub enum EngineExitStatus {
 /// Shared memory cleanup in the process hard crash case.
 /// Not required for pod instances.
 pub fn cleanup_experiment(experiment_id: &ExperimentId, exit_status: EngineExitStatus) {
-    MemoryId::clean_up(experiment_id);
+    if let Err(err) = MemoryId::clean_up(experiment_id) {
+        tracing::warn!("{}", err);
+    }
 
     cleanup_python_runner(experiment_id, exit_status);
 
