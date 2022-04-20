@@ -1,6 +1,9 @@
 use memory::shared_memory::MemoryId;
 
-use crate::{output::buffer::RELATIVE_PARTS_FOLDER, proto::ExperimentId};
+use crate::{
+    output::buffer::RELATIVE_PARTS_FOLDER, proto::ExperimentId,
+    worker::runner::python::cleanup_python_runner,
+};
 
 #[derive(PartialEq, Eq, Clone)]
 pub enum EngineExitStatus {
@@ -13,40 +16,12 @@ pub enum EngineExitStatus {
 pub fn cleanup_experiment(experiment_id: &ExperimentId, exit_status: EngineExitStatus) {
     MemoryId::clean_up(experiment_id);
 
-    // Cleanup python socket files in case the engine didn't
-    let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"));
-    let topy_files = glob::glob(&format!("{experiment_id}-topy*"));
-
-    // We're ignoring glob errors as they shouldn't stop the whole cleanup process.
-    frompy_files
-        .into_iter()
-        .chain(topy_files)
-        .flatten()
-        .flatten()
-        .for_each(|path| match std::fs::remove_file(&path) {
-            Ok(_) => {
-                match exit_status {
-                    EngineExitStatus::Success => tracing::error!(
-                        experiment = %experiment_id,
-                        "Removed file {path:?} that should've been cleanup by the engine."
-                    ),
-                    EngineExitStatus::Error => tracing::warn!(
-                        experiment = %experiment_id,
-                        "Removed file {path:?} that should've been cleanup by the engine."
-                    ),
-                };
-            }
-            Err(err) => {
-                tracing::warn!(
-                    experiment = %experiment_id,
-                    "Could not clean up {path:?}: {err}"
-                );
-            }
-        });
+    cleanup_python_runner(experiment_id, exit_status);
 
     remove_experiment_parts(experiment_id);
 }
 
+// We might want to move the "/parts" folder to a temporary folder (like "/tmp" or "/var/tmp").
 fn remove_experiment_parts(experiment_id: &ExperimentId) {
     let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
     match std::fs::remove_dir_all(&path) {
