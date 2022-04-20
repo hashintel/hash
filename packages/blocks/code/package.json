@@ -1,13 +1,15 @@
 {
-  "name": "code",
-  "version": "0.0.0",
-  "description": "code block",
-  "keywords": [
-    "blockprotocol",
-    "blocks"
-  ],
+  "name": "@hashintel/block-code",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Capture a code snippet",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "packages/blocks/code"
+  },
   "license": "MIT",
-  "author": "Alexander Kachkaev",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
@@ -32,7 +34,7 @@
   },
   "block-scripts": {
     "devPort": 9090,
-    "servePort": 63212
+    "servePort": 62681
   },
   "blockprotocol": {
     "displayName": "Code",
