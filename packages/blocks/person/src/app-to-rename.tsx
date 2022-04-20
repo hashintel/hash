@@ -2,8 +2,8 @@ import React, { CSSProperties, useMemo } from "react";
 import { BlockComponent } from "blockprotocol/react";
 import DOMPurify from "dompurify";
 
-import { MailIcon } from "./icons/MailIcon";
-import { LinkIcon } from "./icons/LinkIcon";
+import { MailIcon } from "./icons/mail-icon";
+import { LinkIcon } from "./icons/link-icon";
 
 import "./index.css";
 

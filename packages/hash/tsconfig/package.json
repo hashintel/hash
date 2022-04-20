@@ -1,5 +1,10 @@
 {
   "name": "@hashintel/tsconfig",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "fix:eslint": "echo \"@hashintel/eslint-config is not covered by eslint\"",
+    "lint:eslint": "echo \"@hashintel/eslint-config is not covered by eslint\"",
+    "lint:tsc": "echo \"@hashintel/eslint-config contains no ts files\""
+  }
 }

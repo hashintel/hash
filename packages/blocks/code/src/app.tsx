@@ -5,7 +5,7 @@ import { BlockComponent } from "blockprotocol/react";
 import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
 import { CopyIcon } from "./icons";
 import { languages, LanguageType } from "./utils";
-import { Editor } from "./components/Editor";
+import { Editor } from "./components/editor";
 
 type AppProps = {
   caption?: string;

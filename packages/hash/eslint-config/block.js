@@ -4,7 +4,7 @@ module.exports = {
     jsx: true,
     useJSXTextNode: true,
   },
-  plugins: ["@typescript-eslint", "react-hooks", "react"],
+  plugins: ["@typescript-eslint", "react-hooks", "react", "unicorn"],
   rules: {
     curly: ["error", "multi-line"],
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],

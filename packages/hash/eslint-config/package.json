@@ -2,7 +2,11 @@
   "name": "@hashintel/eslint-config",
   "version": "0.0.0",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "fix:eslint": "echo \"@hashintel/eslint-config is not covered by eslint\"",
+    "lint:eslint": "echo \"@hashintel/eslint-config is not covered by eslint\"",
+    "lint:tsc": "echo \"@hashintel/eslint-config contains no ts files\""
+  },
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "5.17.0",
     "@typescript-eslint/parser": "5.17.0",
