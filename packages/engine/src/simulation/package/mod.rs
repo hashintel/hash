@@ -1,15 +1,15 @@
-//! The central component of the HASH simulation engine is the Package system.
+//! The Package System defines the building blocks of HASH Simulation, specifying the stages of
+//! execution, and the types of logic that can be ran.
 //!
-//! The only presumption that the engine makes about a simulation project is that it creates
-//! a set of agents backed by the Datastore, which may have their state changed as
+//! The only invariant that the engine expects of a simulation project is that it creates a set of
+//! [`Agent`]s backed by the data defined in [`stateful`], which may have their state changed as
 //! simulation time progresses.
 //!
-//! Using only this presumption clearly does not provide enough utility to a simulation
-//! so packages can be added on top of that to create a simulation engine which provides
-//! the user with a wide array of functionality.
+//! The rest of the engine logic itself is defined within packages, self-contained implementations
+//! that can affect the simulation initialisation, logic, and outputs.
 //!
-//! For example, if the `BehaviorExecution` State Package is enabled, then the engine
-//! will execute behaviors on agents, depending on the behavior lists of the agents.
+//! For example, if the [`BehaviorExecution`] State Package is enabled, then the engine will execute
+//! behaviors on agents, depending on the behavior lists of the agents.
 //!
 //! A default collection of packages are usually used for the engine (
 //! see [`PackageConfig`](crate::simulation::config::PackageConfig)).
