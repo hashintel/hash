@@ -350,8 +350,7 @@ fn worker_pool_exit_logic(
     false
 }
 
-/// Shared memory cleanup in the process hard crash case.
-/// Not required for pod instances.
+/// Forcefully clean-up resources created by the experiment
 pub fn cleanup_experiment(experiment_id: &ExperimentId) {
     if let Err(err) = MemoryId::clean_up(experiment_id) {
         tracing::warn!("{}", err);
