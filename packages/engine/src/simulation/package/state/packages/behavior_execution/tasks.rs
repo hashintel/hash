@@ -3,11 +3,13 @@ use serde::{Deserialize, Serialize};
 use crate::{
     config::{StateBatchDistribution, TaskDistributionConfig},
     simulation::{
-        enum_dispatch::{StateTask, StateTaskMessage, WorkerHandler},
-        package::state::packages::{Error, Result},
+        package::state::{
+            packages::{Error, Result},
+            StateTask, StateTaskMessage,
+        },
         task::{
             args::GetTaskArgs,
-            handler::{SplitConfig, WorkerPoolHandler},
+            handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
             GetTaskName, Task,
         },
@@ -42,10 +44,11 @@ impl GetTaskArgs for ExecuteBehaviorsTask {
 
 impl WorkerHandler for ExecuteBehaviorsTask {
     fn start_message(&self) -> Result<TargetedTaskMessage> {
-        let task_msg: StateTaskMessage = ExecuteBehaviorsTaskMessage {}.into();
+        let task_msg =
+            StateTaskMessage::ExecuteBehaviorsTaskMessage(ExecuteBehaviorsTaskMessage {});
         SimulationResult::Ok(TargetedTaskMessage {
             target: self.target,
-            payload: task_msg.into(),
+            payload: TaskMessage::StateTaskMessage(task_msg),
         })
     }
 
@@ -60,8 +63,8 @@ impl WorkerPoolHandler for ExecuteBehaviorsTask {
             .agent_distribution
             .as_ref()
             .expect("Behavior execution is expected to be distributed");
-        let task: StateTask = self.clone().into();
-        let task: Task = task.into();
+        let state_task = StateTask::ExecuteBehaviorsTask(self.clone());
+        let task = Task::StateTask(state_task);
         Ok((0..split_config.num_workers)
             .map(|_| task.clone())
             .collect())
@@ -89,8 +92,8 @@ fn combine_task_messages(split_messages: Vec<TaskMessage>) -> Result<TaskMessage
                 return Err(Error::InvalidBehaviorTaskMessage(task_message));
             }
         }
-        let task_message: StateTaskMessage = ExecuteBehaviorsTaskMessage {}.into();
-        let task_message: TaskMessage = task_message.into();
-        Ok(task_message)
+        let task_message =
+            StateTaskMessage::ExecuteBehaviorsTaskMessage(ExecuteBehaviorsTaskMessage {});
+        Ok(TaskMessage::StateTaskMessage(task_message))
     }
 }

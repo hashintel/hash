@@ -216,11 +216,10 @@ impl BehaviorExecution {
             .write_state(state_proxy)?
             .read_context(context)?
             .build();
-        let state_task: StateTask = ExecuteBehaviorsTask {
+        let state_task = StateTask::ExecuteBehaviorsTask(ExecuteBehaviorsTask {
             target: lang.into(),
-        }
-        .into();
-        let task: Task = state_task.into();
+        });
+        let task = Task::StateTask(state_task);
         let active_task = self.comms.new_task(task, shared_store).await?;
         Ok(active_task)
     }
