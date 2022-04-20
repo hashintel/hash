@@ -257,17 +257,23 @@ async fn _run(
     Ok(())
 }
 
-pub(crate) fn cleanup_python_runner(experiment_id: &ExperimentId) {
+pub(crate) fn cleanup_python_runner(experiment_id: &ExperimentId) -> Result<()> {
     // Cleanup python socket files in case the engine didn't
-    let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"));
-    let topy_files = glob::glob(&format!("{experiment_id}-topy*"));
+    let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"))
+        .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
+    let topy_files = glob::glob(&format!("{experiment_id}-topy*"))
+        .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
 
-    // We're ignoring glob errors as they shouldn't stop the whole cleanup process.
     frompy_files
         .into_iter()
         .chain(topy_files)
-        .flatten()
-        .filter_map(Result::ok)
+        .filter_map(|glob_res| match glob_res {
+            Ok(path) => Some(path),
+            Err(err) => {
+                tracing::warn!("Glob Error while trying to clean-up shared memory files: {err}");
+                None
+            }
+        })
         .for_each(|path| match std::fs::remove_file(&path) {
             Ok(_) => {
                 tracing::warn!(
@@ -282,4 +288,6 @@ pub(crate) fn cleanup_python_runner(experiment_id: &ExperimentId) {
                 );
             }
         });
+
+    Ok(())
 }
