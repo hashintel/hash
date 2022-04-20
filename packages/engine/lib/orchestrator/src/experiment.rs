@@ -11,7 +11,7 @@ use hash_engine_lib::{
     proto,
     proto::{
         ExecutionEnvironment, ExperimentId, ExperimentName, ExperimentPackageConfig,
-        ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
+        ExperimentRunBase, ExperimentRunRepr, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     simulation::command::StopStatus,
     utils::{LogFormat, LogLevel, OutputLocation},
@@ -272,7 +272,7 @@ impl Experiment {
         )];
         // Now we can send the init message
         let init_message = proto::InitMessage {
-            experiment: experiment_run.clone().into(),
+            experiment: ExperimentRunRepr::ExperimentRun(experiment_run.clone()),
             env: ExecutionEnvironment::None, // We don't connect to the API
             dyn_payloads: serde_json::Map::from_iter(map_iter),
         };

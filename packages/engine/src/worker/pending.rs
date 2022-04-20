@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     language::Language,
-    simulation::{enum_dispatch::TaskMessage, task::Task},
+    simulation::task::{msg::TaskMessage, Task},
     types::TaskId,
     worker::{Error, Result},
 };
