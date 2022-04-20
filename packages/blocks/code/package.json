@@ -10,19 +10,13 @@
   },
   "license": "MIT",
   "author": "HASH",
-  "main": "src/index.ts",
-  "browser": "dist/main.js",
   "scripts": {
-    "build": "yarn clean; cross-env NODE_ENV=production webpack --mode production && yarn schema",
-    "build:dev": "yarn clean; cross-env NODE_ENV=development webpack --mode development",
-    "clean": "rimraf ./dist/",
-    "dev": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
     "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
     "lint:eslint": "eslint --ext .ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
-    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
-    "serve": "serve -C -l 62681 ./dist/",
-    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn dev\""
+    "serve": "block-scripts serve"
   },
   "dependencies": {
     "blockprotocol": "0.0.7",
@@ -74,6 +68,10 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "twind": "^0.16.16"
+  },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 63212
   },
   "blockprotocol": {
     "displayName": "Code",

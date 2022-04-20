@@ -22,8 +22,7 @@
     "lint:tsc": "tsc --noEmit",
     "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
     "serve": "serve -C -l 62678 ./dist/",
-    "start": "concurrently -n webpack,webpack-dev-server,schema -c green,cyan,orange \"yarn build:dev -- --watch --verbose\" \"yarn dev\" \"yarn schema\"",
-    "type-schema": "node schemaGenerator"
+    "start": "concurrently -n webpack,webpack-dev-server,schema -c green,cyan,orange \"yarn build:dev -- --watch --verbose\" \"yarn dev\" \"yarn schema\""
   },
   "dependencies": {
     "@headlessui/react": "1.4.1",
