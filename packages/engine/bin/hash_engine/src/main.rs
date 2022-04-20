@@ -2,9 +2,8 @@ use error::{Result, ResultExt};
 use hash_engine_lib::{
     config::experiment_config,
     env::env,
-    experiment::controller::run::run_experiment,
+    experiment::controller::run::{cleanup_experiment, run_experiment, EngineExitStatus},
     fetch::FetchDependencies,
-    output::{cleanup_experiment, EngineExitStatus},
     proto::{ExperimentRun, ExperimentRunTrait},
     utils::init_logger,
 };

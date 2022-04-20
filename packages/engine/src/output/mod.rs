@@ -11,9 +11,6 @@ pub mod buffer;
 mod error;
 pub mod local;
 pub mod none;
-mod utils;
-
-pub use utils::{cleanup_experiment, EngineExitStatus};
 
 pub use self::error::{Error, Result};
 

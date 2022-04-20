@@ -21,8 +21,8 @@ use tokio::{
 pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};
 use crate::{
+    experiment::controller::run::EngineExitStatus,
     language::Language,
-    output::EngineExitStatus,
     proto::{ExperimentId, SimulationShortId},
     types::TaskId,
     worker::{
