@@ -23,5 +23,5 @@ pub use self::{
     buffer_change::BufferChange,
     continuation::arrow_continuation,
     metaversion::Metaversion,
-    segment::{clean_up_by_base_id, MemoryId, Segment},
+    segment::{cleanup_by_base_id, MemoryId, Segment},
 };

@@ -46,7 +46,7 @@ impl<'a> Buffers<'a> {
 /// An identifier for a shared memory [`Segment`].
 ///
 /// Holds a UUID and a random suffix. The UUID can be reused for different [`Segment`]s and can all
-/// be cleaned up by calling [`MemoryId::clean_up`].
+/// be cleaned up by calling [`cleanup_by_base_id`].
 #[derive(Debug, PartialEq)]
 pub struct MemoryId {
     id: Uuid,
@@ -101,7 +101,7 @@ impl fmt::Display for MemoryId {
 }
 
 /// Clean up generated shared memory segments associated with a given `MemoryId`.
-pub fn clean_up_by_base_id(id: Uuid) -> Result<()> {
+pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
     // TODO: macOS does not store the shared memory FDs at `/dev/shm/`. Maybe it's not storing
     //   FDs at all. Find out if they are stored somewhere and remove them instead, otherwise we
     //   have to figure out a way to remove them without relying on the file-system.
