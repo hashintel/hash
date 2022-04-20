@@ -70,15 +70,12 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
       >
         <HeaderIconButton
           {...bindTrigger(popupState)}
-          // onClick={() => setOpen(!open)}
-          // ref={buttonRef}
           rounded
           sx={{
             height: 32,
             width: 32,
             padding: 0,
           }}
-          // open={open}
           data-testid="user-avatar"
         >
           {avatar ? (

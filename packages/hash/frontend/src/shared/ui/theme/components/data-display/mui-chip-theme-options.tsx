@@ -52,7 +52,7 @@ const getColors = (
   // if it's an outlined variant,
   // 1. we set outline color to initial bgColorShade + 10
   // 2. we set outline hover color to outline color (set above) + 10
-  // 2. we reduce all other shades by 10
+  // 3. we reduce all other shades by 10
   if (variant === "outlined") {
     outlineColorShade = bgColorShade + 10;
     outlineHoverColorShade = outlineColorShade + 10;
