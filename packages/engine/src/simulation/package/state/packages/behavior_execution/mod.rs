@@ -21,13 +21,16 @@ use self::{
     config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
 };
 use crate::simulation::{
-    package::state::{
-        packages::behavior_execution::{
-            config::BehaviorIds,
-            fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
+    package::{
+        name::PackageName,
+        state::{
+            packages::behavior_execution::{
+                config::BehaviorIds,
+                fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
+            },
+            Arc, Error, ExperimentConfig, FieldSpecMapAccessor, Name, Package, PackageComms,
+            PackageCreator, Result, SimRunConfig, Span, StatePackage, StatePackageCreator,
         },
-        Arc, Error, ExperimentConfig, FieldSpecMapAccessor, Name, Package, PackageComms,
-        PackageCreator, Result, SimRunConfig, Span, StatePackage, StatePackageCreator,
     },
     task::active::ActiveTask,
 };
@@ -51,8 +54,8 @@ pub struct BehaviorExecutionCreator {
 impl BehaviorExecutionCreator {
     pub fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>> {
         // TODO: Packages shouldn't have to set the source
-        let field_spec_creator =
-            RootFieldSpecCreator::new(FieldSource::Package(Name::BehaviorExecution.id()?));
+        let package_id = PackageName::State(Name::BehaviorExecution).get_id()?;
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(package_id));
         let behavior_map =
             BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;

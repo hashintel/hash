@@ -10,7 +10,6 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::Serialize;
-use stateful::field::PackageId;
 
 use crate::{
     config::ExperimentConfig,
@@ -34,19 +33,6 @@ use crate::{
 pub enum Name {
     Json,
     JsPy,
-}
-
-impl Name {
-    pub fn id(self) -> Result<PackageId> {
-        Ok(METADATA
-            .get(&self)
-            .ok_or_else(|| {
-                Error::from(format!(
-                    "Package Metadata not registered for package: {self}"
-                ))
-            })?
-            .id)
-    }
 }
 
 impl fmt::Display for Name {
@@ -99,7 +85,7 @@ impl PackageCreators {
 }
 
 lazy_static! {
-    pub static ref METADATA: HashMap<Name, PackageMetadata> = {
+    pub(in crate::simulation::package) static ref METADATA: HashMap<Name, PackageMetadata> = {
         use Name::{JsPy, Json};
         let mut id_creator = PackageIdGenerator::new(PackageType::Init);
         let mut m = HashMap::new();

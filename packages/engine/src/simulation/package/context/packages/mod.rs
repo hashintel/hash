@@ -11,7 +11,6 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::Serialize;
-use stateful::field::PackageId;
 
 use crate::{
     config::ExperimentConfig,
@@ -39,19 +38,6 @@ pub enum Name {
     AgentMessages,
     ApiRequests,
     Neighbors,
-}
-
-impl Name {
-    pub fn id(self) -> Result<PackageId> {
-        Ok(METADATA
-            .get(&self)
-            .ok_or_else(|| {
-                Error::from(format!(
-                    "Package Metadata not registered for package: {self}"
-                ))
-            })?
-            .id)
-    }
 }
 
 impl fmt::Display for Name {
@@ -105,7 +91,7 @@ impl PackageCreators {
 
 lazy_static! {
     /// All context package creators are registered in this hashmap
-    pub static ref METADATA: HashMap<Name, PackageMetadata> = {
+    pub(in crate::simulation::package) static ref METADATA: HashMap<Name, PackageMetadata> = {
         use Name::{AgentMessages, ApiRequests, Neighbors};
         let mut id_creator = PackageIdGenerator::new(PackageType::Context);
         let mut m = HashMap::new();
