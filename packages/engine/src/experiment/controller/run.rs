@@ -1,6 +1,6 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
-use memory::shared_memory::clean_up_by_base_id;
+use memory::shared_memory;
 use tracing::Instrument;
 
 use crate::{
@@ -23,7 +23,7 @@ use crate::{
     },
     proto::{EngineStatus, ExperimentId, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
-    worker::runner::python::cleanup_python_runner,
+    worker::runner::python,
     workerpool,
     workerpool::{comms::terminate::TerminateSend, WorkerPoolController},
     Error as CrateError,
@@ -356,7 +356,7 @@ pub fn cleanup_experiment(experiment_id: &ExperimentId) {
         tracing::warn!("{}", err);
     }
 
-    if let Err(err) = cleanup_python_runner(experiment_id) {
+    if let Err(err) = python::cleanup_python_runner(experiment_id) {
         tracing::warn!("{}", err);
     }
 
