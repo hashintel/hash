@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, env, fmt, mem, path::Path};
+use std::{env, fmt, mem, path::Path};
 
 use glob::GlobError;
 use shared_memory::{Shmem, ShmemConf};
@@ -76,8 +76,8 @@ impl MemoryId {
     }
 
     /// Returns the prefix used for the identifier.
-    fn prefix<Id: Borrow<Uuid>>(id: Id) -> String {
-        let id = id.borrow().to_simple_ref();
+    fn prefix(id: Uuid) -> String {
+        let id = id.to_simple_ref();
         if cfg!(target_os = "macos") {
             // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
             // And we need to_string otherwise it's not truncated when formatting

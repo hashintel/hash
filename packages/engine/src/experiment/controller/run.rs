@@ -351,8 +351,8 @@ fn worker_pool_exit_logic(
 }
 
 /// Forcefully clean-up resources created by the experiment
-pub fn cleanup_experiment(experiment_id: &ExperimentId) {
-    if let Err(err) = shared_memory::cleanup_by_base_id(experiment_id.clone()) {
+pub fn cleanup_experiment(experiment_id: ExperimentId) {
+    if let Err(err) = shared_memory::cleanup_by_base_id(experiment_id) {
         tracing::warn!("{}", err);
     }
 

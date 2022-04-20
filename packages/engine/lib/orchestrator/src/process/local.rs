@@ -44,7 +44,7 @@ impl process::Process for LocalProcess {
             })
             .wrap_err("Could not kill the process");
 
-        cleanup_experiment(&experiment_id);
+        cleanup_experiment(experiment_id);
 
         debug!("Cleaned up local engine process for experiment");
         kill_result

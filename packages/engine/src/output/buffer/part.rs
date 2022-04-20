@@ -113,7 +113,7 @@ impl OutputPartBuffer {
     }
 }
 
-pub fn remove_experiment_parts(experiment_id: &ExperimentId) {
+pub fn remove_experiment_parts(experiment_id: ExperimentId) {
     let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
     match std::fs::remove_dir_all(&path) {
         Ok(_) => {

@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
         .await
         .wrap_err("Could not run experiment");
 
-    cleanup_experiment(&args.experiment_id);
+    cleanup_experiment(args.experiment_id);
 
     experiment_result
 }
