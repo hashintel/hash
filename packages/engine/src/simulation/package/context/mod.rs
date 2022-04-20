@@ -18,14 +18,14 @@ use crate::{
         comms::package::PackageComms,
         package::{
             deps::Dependencies,
-            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
+            ext_traits::{MaybeCpuBound, Package, PackageCreator},
         },
         Error, Result,
     },
 };
 
 #[async_trait]
-pub trait ContextPackage: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
+pub trait ContextPackage: Package + MaybeCpuBound {
     async fn run<'s>(
         &mut self,
         state_proxy: StateReadProxy,
@@ -40,7 +40,7 @@ pub trait ContextPackage: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     fn span(&self) -> Span;
 }
 
-pub trait ContextPackageCreator: GetWorkerExpStartMsg + Sync + Send {
+pub trait ContextPackageCreator: PackageCreator {
     /// A per-experiment initialization step that provide the creator with experiment config.
     /// This step is called when packages are loaded by the experiment controller.
     ///

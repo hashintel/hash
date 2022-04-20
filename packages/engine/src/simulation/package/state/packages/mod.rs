@@ -63,9 +63,9 @@ impl PackageCreators {
         let mut m = HashMap::new();
         m.insert(
             BehaviorExecution,
-            behavior_execution::Creator::new(experiment_config)?,
+            behavior_execution::BehaviorExecutionCreator::new(experiment_config)?,
         );
-        m.insert(Topology, topology::Creator::new(experiment_config)?);
+        m.insert(Topology, topology::TopologyCreator::new(experiment_config)?);
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize State Package Creators"))?;
@@ -104,7 +104,7 @@ lazy_static! {
             BehaviorExecution,
             PackageMetadata::new(
                 id_creator.next(),
-                behavior_execution::Creator::dependencies(),
+                behavior_execution::BehaviorExecutionCreator::dependencies(),
             ),
         );
         m.insert(

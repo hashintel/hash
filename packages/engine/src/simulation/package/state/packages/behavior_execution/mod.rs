@@ -26,9 +26,8 @@ use crate::simulation::{
             config::BehaviorIds,
             fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
         },
-        Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-        GetWorkerSimStartMsg, Name, PackageComms, Result, SimRunConfig, Span, StatePackage,
-        StatePackageCreator,
+        Arc, Error, ExperimentConfig, FieldSpecMapAccessor, Name, Package, PackageComms,
+        PackageCreator, Result, SimRunConfig, Span, StatePackage, StatePackageCreator,
     },
     task::active::ActiveTask,
 };
@@ -44,12 +43,12 @@ pub const BEHAVIOR_INDEX_INNER_COUNT: usize = 2;
 pub type BehaviorIdInnerDataType = u16;
 pub type BehaviorIndexInnerDataType = f64;
 
-pub struct Creator {
+pub struct BehaviorExecutionCreator {
     behavior_ids: Option<Arc<BehaviorIds>>,
     behavior_map: Option<Arc<BehaviorMap>>,
 }
 
-impl Creator {
+impl BehaviorExecutionCreator {
     fn get_behavior_ids(&self) -> Result<&Arc<BehaviorIds>> {
         self.behavior_ids.as_ref().ok_or_else(|| {
             Error::from(
@@ -69,14 +68,14 @@ impl Creator {
     }
 }
 
-impl GetWorkerExpStartMsg for Creator {
-    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+impl PackageCreator for BehaviorExecutionCreator {
+    fn init_message(&self) -> Result<Value> {
         let msg = exp_init_message(self.get_behavior_ids()?, self.get_behavior_map()?)?;
         Ok(serde_json::to_value(msg)?)
     }
 }
 
-impl StatePackageCreator for Creator {
+impl StatePackageCreator for BehaviorExecutionCreator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>> {
         // TODO: Packages shouldn't have to set the source
         let field_spec_creator =
@@ -85,7 +84,7 @@ impl StatePackageCreator for Creator {
             BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
 
-        Ok(Box::new(Creator {
+        Ok(Box::new(BehaviorExecutionCreator {
             behavior_ids: Some(Arc::new(behavior_ids)),
             behavior_map: Some(Arc::new(behavior_map)),
         }))
@@ -146,8 +145,8 @@ struct BehaviorExecution {
     comms: PackageComms,
 }
 
-impl GetWorkerSimStartMsg for BehaviorExecution {
-    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+impl Package for BehaviorExecution {
+    fn start_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

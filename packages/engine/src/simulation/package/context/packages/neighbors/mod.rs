@@ -22,7 +22,7 @@ use crate::{
                 packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackage,
                 ContextPackageCreator,
             },
-            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
+            ext_traits::{MaybeCpuBound, Package, PackageCreator},
         },
         Result,
     },
@@ -39,11 +39,11 @@ pub const NEIGHBOR_INDEX_COUNT: usize = 2;
 pub type IndexType = u32;
 pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
-pub struct Creator {}
+pub struct NeighborsCreator {}
 
-impl ContextPackageCreator for Creator {
+impl ContextPackageCreator for NeighborsCreator {
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>> {
-        Ok(Box::new(Creator {}))
+        Ok(Box::new(NeighborsCreator {}))
     }
 
     fn create(
@@ -81,8 +81,8 @@ impl ContextPackageCreator for Creator {
     }
 }
 
-impl GetWorkerExpStartMsg for Creator {
-    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+impl PackageCreator for NeighborsCreator {
+    fn init_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
@@ -107,8 +107,8 @@ impl MaybeCpuBound for Neighbors {
     }
 }
 
-impl GetWorkerSimStartMsg for Neighbors {
-    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+impl Package for Neighbors {
+    fn start_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

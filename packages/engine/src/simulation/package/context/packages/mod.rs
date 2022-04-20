@@ -65,10 +65,16 @@ impl PackageCreators {
         let mut m = HashMap::new();
         m.insert(
             AgentMessages,
-            agent_messages::Creator::new(experiment_config)?,
+            agent_messages::AgentMessagesCreator::new(experiment_config)?,
         );
-        m.insert(ApiRequests, api_requests::Creator::new(experiment_config)?);
-        m.insert(Neighbors, neighbors::Creator::new(experiment_config)?);
+        m.insert(
+            ApiRequests,
+            api_requests::ApiRequestsCreator::new(experiment_config)?,
+        );
+        m.insert(
+            Neighbors,
+            neighbors::NeighborsCreator::new(experiment_config)?,
+        );
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize Context Package Creators"))?;
@@ -105,15 +111,15 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert(AgentMessages, PackageMetadata{
             id: id_creator.next(),
-            dependencies: agent_messages::Creator::dependencies()
+            dependencies: agent_messages::AgentMessagesCreator::dependencies()
         });
         m.insert(ApiRequests, PackageMetadata{
             id: id_creator.next(),
-            dependencies: api_requests::Creator::dependencies()
+            dependencies: api_requests::ApiRequestsCreator::dependencies()
         });
         m.insert(Neighbors, PackageMetadata{
             id: id_creator.next(),
-            dependencies: neighbors::Creator::dependencies()
+            dependencies: neighbors::NeighborsCreator::dependencies()
         });
         m
     };

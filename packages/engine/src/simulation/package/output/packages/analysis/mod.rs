@@ -28,7 +28,7 @@ use crate::{
     simulation::{
         comms::package::PackageComms,
         package::{
-            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
+            ext_traits::{MaybeCpuBound, Package, PackageCreator},
             output::{packages::Output, OutputPackage, OutputPackageCreator},
         },
         Error, Result,
@@ -38,11 +38,11 @@ use crate::{
 // TODO: UNUSED: Needs triage
 pub enum Task {}
 
-pub struct Creator {}
+pub struct AnalysisCreator {}
 
-impl OutputPackageCreator for Creator {
+impl OutputPackageCreator for AnalysisCreator {
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn OutputPackageCreator>> {
-        Ok(Box::new(Creator {}))
+        Ok(Box::new(AnalysisCreator {}))
     }
 
     fn create(
@@ -69,8 +69,8 @@ impl OutputPackageCreator for Creator {
     }
 }
 
-impl GetWorkerExpStartMsg for Creator {
-    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+impl PackageCreator for AnalysisCreator {
+    fn init_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
@@ -85,8 +85,8 @@ impl MaybeCpuBound for Analysis {
     }
 }
 
-impl GetWorkerSimStartMsg for Analysis {
-    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+impl Package for Analysis {
+    fn start_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

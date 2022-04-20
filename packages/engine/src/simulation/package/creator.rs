@@ -116,11 +116,11 @@ impl PackageCreators {
         })
     }
 
-    pub fn get_worker_exp_start_msgs(&self) -> Result<PackageMsgs> {
+    pub fn init_message(&self) -> Result<PackageMsgs> {
         // TODO: generics to avoid code duplication
         let mut msgs = HashMap::new();
         for (id, name, creator) in &self.init {
-            let payload = creator.get_worker_exp_start_msg()?;
+            let payload = creator.init_message()?;
             let wrapped = PackageInitMsgForWorker {
                 name: *name,
                 r#type: PackageType::Init,
@@ -131,7 +131,7 @@ impl PackageCreators {
         }
 
         for (id, name, creator) in &self.context {
-            let payload = creator.get_worker_exp_start_msg()?;
+            let payload = creator.init_message()?;
             let wrapped = PackageInitMsgForWorker {
                 name: *name,
                 r#type: PackageType::Context,
@@ -142,7 +142,7 @@ impl PackageCreators {
         }
 
         for (id, name, creator) in &self.state {
-            let payload = creator.get_worker_exp_start_msg()?;
+            let payload = creator.init_message()?;
             let wrapped = PackageInitMsgForWorker {
                 name: *name,
                 r#type: PackageType::State,
@@ -153,7 +153,7 @@ impl PackageCreators {
         }
 
         for (id, name, creator) in &self.output {
-            let payload = creator.get_worker_exp_start_msg()?;
+            let payload = creator.init_message()?;
             let wrapped = PackageInitMsgForWorker {
                 name: *name,
                 r#type: PackageType::Output,
@@ -187,7 +187,7 @@ impl PackageCreators {
                         state_field_spec_map.clone(),
                     ),
                 )?;
-                let start_msg = package.get_worker_sim_start_msg()?;
+                let start_msg = package.start_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::Init,
@@ -214,7 +214,7 @@ impl PackageCreators {
                         Arc::clone(context_field_spec_map),
                     ),
                 )?;
-                let start_msg = package.get_worker_sim_start_msg()?;
+                let start_msg = package.start_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::Context,
@@ -237,7 +237,7 @@ impl PackageCreators {
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
-                let start_msg = package.get_worker_sim_start_msg()?;
+                let start_msg = package.start_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::State,
@@ -260,7 +260,7 @@ impl PackageCreators {
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
-                let start_msg = package.get_worker_sim_start_msg()?;
+                let start_msg = package.start_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::State,

@@ -22,8 +22,8 @@ use crate::{
         comms::package::PackageComms,
         package::context::{
             packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextPackage,
-            ContextPackageCreator, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, MaybeCpuBound, SimRunConfig,
+            ContextPackageCreator, FieldSpecMapAccessor, MaybeCpuBound, Package, PackageCreator,
+            SimRunConfig,
         },
         Result,
     },
@@ -35,11 +35,11 @@ pub const MESSAGE_INDEX_COUNT: usize = 3;
 pub type IndexType = u32;
 pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
-pub struct Creator {}
+pub struct AgentMessagesCreator {}
 
-impl ContextPackageCreator for Creator {
+impl ContextPackageCreator for AgentMessagesCreator {
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>> {
-        Ok(Box::new(Creator {}))
+        Ok(Box::new(AgentMessagesCreator {}))
     }
 
     fn create(
@@ -64,8 +64,8 @@ impl ContextPackageCreator for Creator {
     }
 }
 
-impl GetWorkerExpStartMsg for Creator {
-    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+impl PackageCreator for AgentMessagesCreator {
+    fn init_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
@@ -80,8 +80,8 @@ impl MaybeCpuBound for AgentMessages {
     }
 }
 
-impl GetWorkerSimStartMsg for AgentMessages {
-    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+impl Package for AgentMessages {
+    fn start_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

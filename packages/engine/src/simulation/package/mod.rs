@@ -31,7 +31,7 @@
 //! #     simulation::{
 //! #         comms::package::PackageComms,
 //! #         package::{
-//! #             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg},
+//! #             ext_traits::{PackageCreator, Package},
 //! #             state::{StatePackage, StatePackageCreator},
 //! #         },
 //! #         Result,
@@ -41,8 +41,8 @@
 //! # use tracing::Span;
 //! pub struct GreetingPackage;
 //!
-//! impl GetWorkerSimStartMsg for GreetingPackage {
-//!     fn get_worker_sim_start_msg(&self) -> Result<serde_json::Value> {
+//! impl Package for GreetingPackage {
+//!     fn start_message(&self) -> Result<serde_json::Value> {
 //!         Ok(serde_json::Value::Null)
 //!     }
 //! }
@@ -61,8 +61,8 @@
 //!
 //! pub struct GreetingCreator;
 //!
-//! impl GetWorkerExpStartMsg for GreetingCreator {
-//!     fn get_worker_exp_start_msg(&self) -> Result<serde_json::Value> {
+//! impl PackageCreator for GreetingCreator {
+//!     fn init_message(&self) -> Result<serde_json::Value> {
 //!         Ok(serde_json::Value::Null)
 //!     }
 //! }

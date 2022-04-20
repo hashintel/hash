@@ -6,19 +6,18 @@ use crate::{
     proto::{ExperimentRunTrait, InitialStateName},
     simulation::{
         package::init::{
-            Arc, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, InitPackage, InitPackageCreator, MaybeCpuBound, PackageComms,
-            SimRunConfig,
+            Arc, ExperimentConfig, FieldSpecMapAccessor, InitPackage, InitPackageCreator,
+            MaybeCpuBound, Package, PackageComms, PackageCreator, SimRunConfig,
         },
         Error, Result,
     },
 };
 
-pub struct Creator {}
+pub struct JsonInitCreator {}
 
-impl InitPackageCreator for Creator {
+impl InitPackageCreator for JsonInitCreator {
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn InitPackageCreator>> {
-        Ok(Box::new(Creator {}))
+        Ok(Box::new(JsonInitCreator {}))
     }
 
     fn create(
@@ -28,7 +27,7 @@ impl InitPackageCreator for Creator {
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &config.exp.run.base().project_base.initial_state.name {
-            InitialStateName::InitJson => Ok(Box::new(Package {
+            InitialStateName::InitJson => Ok(Box::new(JsonInit {
                 initial_state_src: config.exp.run.base().project_base.initial_state.src.clone(),
             })),
             name => {
@@ -42,31 +41,31 @@ impl InitPackageCreator for Creator {
     }
 }
 
-impl GetWorkerExpStartMsg for Creator {
-    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+impl PackageCreator for JsonInitCreator {
+    fn init_message(&self) -> Result<Value> {
         // TODO: possibly pass init.json here to optimize
         Ok(Value::Null)
     }
 }
 
-pub struct Package {
+pub struct JsonInit {
     initial_state_src: String,
 }
 
-impl MaybeCpuBound for Package {
+impl MaybeCpuBound for JsonInit {
     fn cpu_bound(&self) -> bool {
         false
     }
 }
 
-impl GetWorkerSimStartMsg for Package {
-    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+impl Package for JsonInit {
+    fn start_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
 
 #[async_trait]
-impl InitPackage for Package {
+impl InitPackage for JsonInit {
     async fn run(&mut self) -> Result<Vec<Agent>> {
         // TODO: Map Error when we design package errors
         serde_json::from_str(&self.initial_state_src).map_err(|e| {

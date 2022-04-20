@@ -74,8 +74,11 @@ impl PackageCreators {
         tracing::debug!("Initializing Output Package Creators");
         use Name::{Analysis, JsonState};
         let mut m = HashMap::new();
-        m.insert(Analysis, analysis::Creator::new(experiment_config)?);
-        m.insert(JsonState, json_state::Creator::new(experiment_config)?);
+        m.insert(Analysis, analysis::AnalysisCreator::new(experiment_config)?);
+        m.insert(
+            JsonState,
+            json_state::JsonStateCreator::new(experiment_config)?,
+        );
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize Output Package Creators"))?;
@@ -112,11 +115,11 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert(Analysis, PackageMetadata {
             id: id_creator.next(),
-            dependencies: analysis::Creator::dependencies(),
+            dependencies: analysis::AnalysisCreator::dependencies(),
         });
         m.insert(JsonState, PackageMetadata {
             id: id_creator.next(),
-            dependencies: json_state::Creator::dependencies(),
+            dependencies: json_state::JsonStateCreator::dependencies(),
         });
         m
     };

@@ -1,32 +1,30 @@
 use crate::simulation::error::Result;
 
-pub trait GetWorkerExpStartMsg {
-    // TODO: maybe the Ok(Null) return should be impl by default
-    //      if packages don't use this often
-    //      Leaving default unimplemented for now since the forced impls
-    //      are good to demonstrate what can be done with package-design
-    //      until we create documentation on writing packages
-    /// This allows package creators to pass any kind of configuration from their
-    /// Rust runtime to their Language Runner counterpart for the experiment.
-    /// Compared to [GetWorkerSimStartMsg], the data returned with this method
-    /// will be available for all simulations. Also, this should not be implemented
-    /// for packages but their respective package creator.
-    /// If a package creator doesn't want to pass anything it should return a
-    /// `Ok(serde_json::Value::Null)`.
-    fn get_worker_exp_start_msg(&self) -> Result<serde_json::Value>;
+pub trait PackageCreator: Sync + Send {
+    /// A message sent to all workers before running any packages.
+    ///
+    /// This allows package creators to pass any kind of configuration from their Rust runtime to
+    /// their Language Runner counterpart all.
+    ///
+    /// Compared to [`Package::start_message()`], the data returned with this method will be
+    /// available for all simulations. Also, this should not be implemented for packages but
+    /// their respective package creator.
+    fn init_message(&self) -> Result<serde_json::Value> {
+        Ok(serde_json::Value::Null)
+    }
 }
 
-pub trait GetWorkerSimStartMsg {
-    // TODO: maybe the Ok(Null) return should be impl by default
-    //      if packages don't use this often
-    /// This allows packages to pass any kind of configuration from their
-    /// Rust runtime to their Language Runner counterpart for a specific simulation.
-    /// Compared to [GetWorkerExpStartMsg], the data returned with this method
-    /// will only be available for that specific simulation where the package
-    /// has been instantiated.
-    /// If a package doesn't want to pass anything it should return a
-    /// `Ok(serde_json::Value::Null)`.
-    fn get_worker_sim_start_msg(&self) -> Result<serde_json::Value>;
+pub trait Package: Send + Sync {
+    /// A message sent to the workers before the package is running.
+    ///
+    /// This allows packages to pass any kind of configuration from their Rust runtime to their
+    /// Language Runner counterpart for a specific simulation.
+    ///
+    /// Compared to [`PackageCreator::init_message()`], the data returned with this method will only
+    /// be available for that specific simulation where the package has been instantiated.
+    fn start_message(&self) -> Result<serde_json::Value> {
+        Ok(serde_json::Value::Null)
+    }
 }
 
 pub trait MaybeCpuBound {

@@ -17,18 +17,18 @@ use crate::{
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         package::init::{
-            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitPackage,
-            InitPackageCreator, MaybeCpuBound, PackageComms, SimRunConfig,
+            Arc, FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
+            PackageComms, PackageCreator, SimRunConfig,
         },
         Error, Result,
     },
 };
 
-pub struct Creator {}
+pub struct ScriptInitCreator {}
 
-impl InitPackageCreator for Creator {
+impl InitPackageCreator for ScriptInitCreator {
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn InitPackageCreator>> {
-        Ok(Box::new(Creator {}))
+        Ok(Box::new(ScriptInitCreator {}))
     }
 
     fn create(
@@ -38,7 +38,7 @@ impl InitPackageCreator for Creator {
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &config.exp.run.base().project_base.initial_state.name {
-            InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(Package {
+            InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(ScriptInit {
                 initial_state: config.exp.run.base().project_base.initial_state.clone(),
                 comms,
             })),
@@ -53,34 +53,34 @@ impl InitPackageCreator for Creator {
     }
 }
 
-impl GetWorkerExpStartMsg for Creator {
+impl PackageCreator for ScriptInitCreator {
     // TODO: Since the init.js/py file is the same for the whole experiment
     //      consider sending it out here instead of inside `PyInitTask`
     //      and `JsInitTask`
-    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+    fn init_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
 
-pub struct Package {
+pub struct ScriptInit {
     initial_state: InitialState,
     comms: PackageComms,
 }
 
-impl MaybeCpuBound for Package {
+impl MaybeCpuBound for ScriptInit {
     fn cpu_bound(&self) -> bool {
         false
     }
 }
 
-impl GetWorkerSimStartMsg for Package {
-    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+impl Package for ScriptInit {
+    fn start_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
 
 #[async_trait]
-impl InitPackage for Package {
+impl InitPackage for ScriptInit {
     async fn run(&mut self) -> Result<Vec<Agent>> {
         let task = match &self.initial_state.name {
             InitialStateName::InitPy => InitTask::PyInitTask(PyInitTask {

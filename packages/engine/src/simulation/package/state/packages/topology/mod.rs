@@ -13,8 +13,8 @@ use crate::{
     config::{ExperimentConfig, TopologyConfig},
     simulation::{
         package::state::{
-            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, PackageComms,
-            SimRunConfig, Span, StatePackage, StatePackageCreator,
+            Arc, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, SimRunConfig, Span,
+            StatePackage, StatePackageCreator,
         },
         Result,
     },
@@ -29,11 +29,11 @@ type Position = [PositionSubType; 3];
 type DirectionSubType = f64;
 type Direction = [DirectionSubType; 3];
 
-pub struct Creator {}
+pub struct TopologyCreator {}
 
-impl StatePackageCreator for Creator {
+impl StatePackageCreator for TopologyCreator {
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>> {
-        Ok(Box::new(Creator {}))
+        Ok(Box::new(TopologyCreator {}))
     }
 
     fn create(
@@ -60,8 +60,8 @@ impl StatePackageCreator for Creator {
     }
 }
 
-impl GetWorkerExpStartMsg for Creator {
-    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+impl PackageCreator for TopologyCreator {
+    fn init_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
@@ -85,8 +85,8 @@ impl Topology {
     }
 }
 
-impl GetWorkerSimStartMsg for Topology {
-    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+impl Package for Topology {
+    fn start_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

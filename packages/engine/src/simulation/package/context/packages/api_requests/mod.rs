@@ -25,9 +25,8 @@ use crate::{
         comms::package::PackageComms,
         package::context::{
             packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextPackage,
-            ContextPackageCreator, ContextSchema, Error, FieldSpecMapAccessor,
-            GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound, SimRunConfig,
-            StateReadProxy, StateSnapshot,
+            ContextPackageCreator, ContextSchema, Error, FieldSpecMapAccessor, MaybeCpuBound,
+            Package, PackageCreator, SimRunConfig, StateReadProxy, StateSnapshot,
         },
         Result,
     },
@@ -35,11 +34,11 @@ use crate::{
 
 const CPU_BOUND: bool = false;
 
-pub struct Creator {}
+pub struct ApiRequestsCreator {}
 
-impl ContextPackageCreator for Creator {
+impl ContextPackageCreator for ApiRequestsCreator {
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn ContextPackageCreator>> {
-        Ok(Box::new(Creator {}))
+        Ok(Box::new(ApiRequestsCreator {}))
     }
 
     fn create(
@@ -68,8 +67,8 @@ impl ContextPackageCreator for Creator {
     }
 }
 
-impl GetWorkerExpStartMsg for Creator {
-    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+impl PackageCreator for ApiRequestsCreator {
+    fn init_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
@@ -85,8 +84,8 @@ impl MaybeCpuBound for ApiRequests {
     }
 }
 
-impl GetWorkerSimStartMsg for ApiRequests {
-    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+impl Package for ApiRequests {
+    fn start_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

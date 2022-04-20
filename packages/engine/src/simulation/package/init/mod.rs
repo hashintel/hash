@@ -18,18 +18,18 @@ use crate::{
         comms::package::PackageComms,
         package::{
             deps::Dependencies,
-            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
+            ext_traits::{MaybeCpuBound, Package, PackageCreator},
         },
         Result,
     },
 };
 
 #[async_trait]
-pub trait InitPackage: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
+pub trait InitPackage: Package + MaybeCpuBound {
     async fn run(&mut self) -> Result<Vec<Agent>>;
 }
 
-pub trait InitPackageCreator: GetWorkerExpStartMsg + Sync + Send {
+pub trait InitPackageCreator: PackageCreator {
     /// We can't derive a default as that returns Self which implies Sized which in turn means we
     /// can't create Trait Objects out of PackageCreator
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn InitPackageCreator>>

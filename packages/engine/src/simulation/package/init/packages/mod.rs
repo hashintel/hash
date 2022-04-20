@@ -59,8 +59,8 @@ impl PackageCreators {
         tracing::debug!("Initializing Init Package Creators");
         use Name::{JsPy, Json};
         let mut m = HashMap::new();
-        m.insert(Json, json::Creator::new(experiment_config)?);
-        m.insert(JsPy, js_py::Creator::new(experiment_config)?);
+        m.insert(Json, json::JsonInitCreator::new(experiment_config)?);
+        m.insert(JsPy, js_py::ScriptInitCreator::new(experiment_config)?);
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize Init Package Creators"))?;
@@ -97,11 +97,11 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert(Json, PackageMetadata {
             id: id_creator.next(),
-            dependencies: json::Creator::dependencies(),
+            dependencies: json::JsonInitCreator::dependencies(),
         });
         m.insert(JsPy, PackageMetadata {
             id: id_creator.next(),
-            dependencies: js_py::Creator::dependencies(),
+            dependencies: js_py::ScriptInitCreator::dependencies(),
         });
         m
     };

@@ -15,20 +15,19 @@ use crate::simulation::package::{
     name::PackageName,
     output,
     output::{
-        Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-        GetWorkerSimStartMsg, MaybeCpuBound, Output, OutputPackage, OutputPackageCreator,
-        PackageComms, Result, SimRunConfig, Span,
+        Arc, Error, ExperimentConfig, FieldSpecMapAccessor, MaybeCpuBound, Output, OutputPackage,
+        OutputPackageCreator, Package, PackageComms, PackageCreator, Result, SimRunConfig, Span,
     },
 };
 
 // TODO: UNUSED: Needs triage
 pub enum Task {}
 
-pub struct Creator {}
+pub struct JsonStateCreator {}
 
-impl OutputPackageCreator for Creator {
+impl OutputPackageCreator for JsonStateCreator {
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn OutputPackageCreator>> {
-        Ok(Box::new(Creator {}))
+        Ok(Box::new(JsonStateCreator {}))
     }
 
     fn create(
@@ -57,8 +56,8 @@ impl OutputPackageCreator for Creator {
     }
 }
 
-impl GetWorkerExpStartMsg for Creator {
-    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+impl PackageCreator for JsonStateCreator {
+    fn init_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
@@ -74,8 +73,8 @@ impl MaybeCpuBound for JsonState {
     }
 }
 
-impl GetWorkerSimStartMsg for JsonState {
-    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+impl Package for JsonState {
+    fn start_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
