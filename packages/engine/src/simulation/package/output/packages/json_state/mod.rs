@@ -2,22 +2,22 @@ mod config;
 
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::{
+    agent::{Agent, IntoAgents},
+    context::Context,
+    field::FieldScope,
+    global::Globals,
+    state::State,
+};
 
 pub use self::config::JsonStateOutputConfig;
-use crate::{
-    datastore::{
-        arrow::batch_conversion::IntoAgents,
-        schema::{HIDDEN_PREFIX, PRIVATE_PREFIX},
-    },
-    hash_types::Agent,
-    simulation::package::{
-        name::PackageName,
-        output,
-        output::{
-            Arc, Context, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, Globals, MaybeCpuBound, Output, Package, PackageComms,
-            PackageCreator, Result, SimRunConfig, Span, State,
-        },
+use crate::simulation::package::{
+    name::PackageName,
+    output,
+    output::{
+        Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+        GetWorkerSimStartMsg, MaybeCpuBound, Output, Package, PackageComms, PackageCreator, Result,
+        SimRunConfig, Span,
     },
 };
 
@@ -84,7 +84,7 @@ impl GetWorkerSimStartMsg for JsonState {
 impl Package for JsonState {
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         let state = state.read()?;
-        let agent_states: crate::datastore::Result<Vec<_>> = state
+        let agent_states: stateful::Result<Vec<_>> = state
             .agent_pool()
             .batches_iter()
             .zip(state.message_pool().batches_iter())
@@ -93,7 +93,7 @@ impl Package for JsonState {
                     agent_batch.batch.record_batch()?,
                     message_batch.batch.record_batch()?,
                 )
-                    .into_agent_states(Some(&self.sim_run_config.sim.store.agent_schema))
+                    .to_agent_states(Some(&self.sim_run_config.sim.store.agent_schema))
             })
             .collect();
 
@@ -102,9 +102,9 @@ impl Package for JsonState {
             .flatten()
             .map(|mut agent| {
                 agent.custom.retain(|key, _| {
-                    if key.starts_with(HIDDEN_PREFIX) {
+                    if key.starts_with(FieldScope::Hidden.prefix()) {
                         self.output_config.retain_hidden
-                    } else if key.starts_with(PRIVATE_PREFIX) {
+                    } else if key.starts_with(FieldScope::Private.prefix()) {
                         self.output_config.retain_private
                     } else {
                         true

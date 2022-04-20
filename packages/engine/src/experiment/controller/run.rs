@@ -1,5 +1,6 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
+use memory::shared_memory;
 use tracing::Instrument;
 
 use crate::{
@@ -17,11 +18,12 @@ use crate::{
         package::ExperimentPackage,
     },
     output::{
-        buffer::cleanup_experiment, local::LocalOutputPersistence, none::NoOutputPersistence,
+        buffer::remove_experiment_parts, local::LocalOutputPersistence, none::NoOutputPersistence,
         OutputPersistenceCreatorRepr,
     },
-    proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
+    proto::{EngineStatus, ExperimentId, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
+    worker::runner::python,
     workerpool,
     workerpool::{comms::terminate::TerminateSend, WorkerPoolController},
     Error as CrateError,
@@ -30,7 +32,6 @@ use crate::{
 #[tracing::instrument(skip_all, fields(experiment_id = % exp_config.run.base().id))]
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     let experiment_name = exp_config.name().to_string();
-    let experiment_id = exp_config.run.base().id;
     tracing::info!("Running experiment \"{experiment_name}\"");
     // TODO: Get cloud-specific configuration from `env`
     let _output_persistence_config = config::output_persistence(&env)?;
@@ -65,8 +66,6 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
             };
         }
     }
-
-    cleanup_experiment(&experiment_id).map_err(|e| Error::from(e.to_string()))?;
 
     // Allow messages to be picked up.
     std::thread::sleep(std::time::Duration::from_millis(100));
@@ -349,4 +348,17 @@ fn worker_pool_exit_logic(
     };
 
     false
+}
+
+/// Forcefully clean-up resources created by the experiment
+pub fn cleanup_experiment(experiment_id: ExperimentId) {
+    if let Err(err) = shared_memory::cleanup_by_base_id(experiment_id) {
+        tracing::warn!("{}", err);
+    }
+
+    if let Err(err) = python::cleanup_runner(experiment_id) {
+        tracing::warn!("{}", err);
+    }
+
+    remove_experiment_parts(experiment_id);
 }

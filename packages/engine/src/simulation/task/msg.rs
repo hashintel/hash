@@ -3,9 +3,12 @@ use std::hint::unreachable_unchecked;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    simulation::enum_dispatch::{
-        enum_dispatch, ContextTaskMessage, InitTaskMessage, OutputTaskMessage,
-        RegisterWithoutTrait, Result, StateTaskMessage,
+    simulation::{
+        package::{
+            context::ContextTaskMessage, init::InitTaskMessage, output::OutputTaskMessage,
+            state::StateTaskMessage,
+        },
+        Result,
     },
     worker::runner::comms::MessageTarget,
 };
@@ -17,13 +20,12 @@ use crate::{
 /// variants are defined.
 ///
 /// [`Task`]: crate::simulation::task::Task
-#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TaskMessage {
-    InitTaskMessage,
-    ContextTaskMessage,
-    StateTaskMessage,
-    OutputTaskMessage,
+    InitTaskMessage(InitTaskMessage),
+    ContextTaskMessage(ContextTaskMessage),
+    StateTaskMessage(StateTaskMessage),
+    OutputTaskMessage(OutputTaskMessage),
 }
 
 impl TaskMessage {

@@ -3,7 +3,7 @@
 </p>
 <div align="center">
  <a href="https://github.com/hashintel/hash/blob/main/packages/engine/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-sspl.svg" alt="Server Side Public License" /></a>
- <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
+ <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
 # hEngine
@@ -228,6 +228,26 @@ In order to see more logging information while the simulation is running, you ca
 ```shell
 export RUST_LOG=debug
 ```
+
+If your simulation requires a lot of memory and uses JavaScript behaviors, the JavaScript runner may run out of memory.
+As a first step, you can provide a larger heap size to the runner:
+
+```shell
+cargo run --bin cli -- --js-runner-max-heap-size <NEW-SIZE-IN-MB> <YOUR-CLI-ARGUMENTS>
+```
+
+This will increase the heap size, but you may still run into limitations beyond 4GB.
+The next step is to recompile V8, the underlying JavaScript engine, and set flags for it:
+
+```shell
+export V8_FROM_SOURCE = "1"
+export GN_ARGS = "v8_enable_pointer_compression=false v8_enable_shared_ro_heap=true"
+```
+
+- `V8_FROM_SOURCE` will force the V8 engine to be compiled from source and not use a pre-compiled version.
+  This will take quite a long time, expect at least 15 minutes. This can be mitigated in subsequent compiles by using [sccache](https://github.com/mozilla/sccache) or [ccache](https://ccache.dev/). Our build scripts will detect and use them. Set the environment variable `$SCCACHE` or `$CCACHE` if the binary is not in your `$PATH`.
+- `v8_enable_pointer_compression` is an optimization reducing RAM usage but limits the heap size to 4 gigabytes.
+- `v8_enable_shared_ro_heap` enables read-only memory sharing by V8 isolates. This means, that read-only memory may be shared across different workers for JavaScript. Enabling this is required to compile V8 without pointer compression.
 
 [docs]: https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine
 

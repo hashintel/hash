@@ -1,33 +1,30 @@
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::{
+    agent::AgentBatch,
+    context::Context,
+    field::{FieldSource, RootFieldSpec, RootFieldSpecCreator},
+    global::Globals,
+    proxy::PoolWriteProxy,
+    state::{State, StateWriteProxy},
+};
 
 use self::{
     config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
 };
 use crate::{
-    datastore::{
-        batch::AgentBatch,
-        schema::{accessor::GetFieldSpec, FieldSource},
-        table::{
-            context::Context, pool::proxy::PoolWriteProxy, proxy::StateWriteProxy,
-            task_shared_store::TaskSharedStoreBuilder,
-        },
-    },
+    datastore::table::task_shared_store::TaskSharedStoreBuilder,
     language::Language,
     simulation::{
-        package::{
-            name::PackageName,
-            state::{
-                packages::behavior_execution::{
-                    config::BehaviorIds,
-                    fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
-                    tasks::ExecuteBehaviorsTask,
-                },
-                Arc, DatastoreResult, Error, ExperimentConfig, FieldSpecMapAccessor,
-                GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals, IntoArrowChange, Name,
-                Package, PackageComms, PackageCreator, Result, RootFieldSpec, RootFieldSpecCreator,
-                SimRunConfig, Span, State, StateColumn, StateTask,
+        package::state::{
+            packages::behavior_execution::{
+                config::BehaviorIds,
+                fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
+                tasks::ExecuteBehaviorsTask,
             },
+            Arc, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+            GetWorkerSimStartMsg, Name, Package, PackageComms, PackageCreator, Result,
+            SimRunConfig, Span, StateTask,
         },
         task::{active::ActiveTask, Task},
     },
@@ -80,9 +77,8 @@ impl GetWorkerExpStartMsg for Creator {
 impl PackageCreator for Creator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         // TODO: Packages shouldn't have to set the source
-        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(
-            PackageName::State(Name::BehaviorExecution),
-        ));
+        let field_spec_creator =
+            RootFieldSpecCreator::new(FieldSource::Package(Name::BehaviorExecution.id()?));
         let behavior_map =
             BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
@@ -99,10 +95,10 @@ impl PackageCreator for Creator {
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
-        let behavior_ids_col_data_types = fields::id_column_data_types()?;
+        let behavior_ids_col_data_types = fields::id_column_data_types();
         let behavior_ids_col = accessor
             .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
 
         let behavior_ids_col_index = config
             .sim
@@ -113,7 +109,7 @@ impl PackageCreator for Creator {
 
         let behavior_index_col = accessor
             .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
         let behavior_index_col_index = config
             .sim
             .store
@@ -169,7 +165,7 @@ impl BehaviorExecution {
             self.behavior_ids_col_index,
         )?;
 
-        agent_proxies.modify_loaded_column(behavior_ids)?;
+        behavior_ids.apply_to(agent_proxies)?;
         Ok(())
     }
 
@@ -178,7 +174,7 @@ impl BehaviorExecution {
         agent_proxies: &mut PoolWriteProxy<AgentBatch>,
     ) -> Result<()> {
         let behavior_index_col = reset_index_col(self.behavior_index_col_index)?;
-        agent_proxies.modify_loaded_column(behavior_index_col)?;
+        behavior_index_col.apply_to(agent_proxies)?;
 
         Ok(())
     }
@@ -220,11 +216,10 @@ impl BehaviorExecution {
             .write_state(state_proxy)?
             .read_context(context)?
             .build();
-        let state_task: StateTask = ExecuteBehaviorsTask {
+        let state_task = StateTask::ExecuteBehaviorsTask(ExecuteBehaviorsTask {
             target: lang.into(),
-        }
-        .into();
-        let task: Task = state_task.into();
+        });
+        let task = Task::StateTask(state_task);
         let active_task = self.comms.new_task(task, shared_store).await?;
         Ok(active_task)
     }
@@ -240,7 +235,9 @@ impl Package for BehaviorExecution {
 
         self.fix_behavior_chains(agent_pool)?;
         self.reset_behavior_index_col(agent_pool)?;
-        agent_pool.flush_pending_columns()?;
+        for agent_batch in agent_pool.batches_iter_mut() {
+            agent_batch.batch.flush_changes()?;
+        }
 
         // Have to reload state agent batches twice, because we just wrote the language ID of each
         // behavior into them, but now want to read it from them.

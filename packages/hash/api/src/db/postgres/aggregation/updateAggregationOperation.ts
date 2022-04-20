@@ -1,47 +1,50 @@
 import { Connection } from "../types";
-import {
-  acquireEntityLock,
-  getEntityLatestVersion,
-  updateVersionedEntity,
-} from "../entity";
+import { acquireEntityLock, getEntityLatestVersion } from "../entity";
 import { DbEntityNotFoundError } from "../..";
-import { insertAggregation, updateAggregationRowOperation } from "./util";
-import { getEntityAggregation } from "./getEntityAggregation";
-import { DbAggregation } from "../../adapter";
+import { getAggregation } from "./getAggregation";
+import { DbAggregation, DbClient } from "../../adapter";
 import { requireTransaction } from "../util";
 import { DbAggregationNotFoundError } from "../../errors";
+import { genId } from "../../../util";
+import {
+  insertAggregationVersionRow,
+  updateAggregationVersionRow,
+} from "./sql/aggregation_versions.util";
 
+/** See {@link DbClient.updateAggregationOperation} */
 export const updateAggregationOperation = (
   existingConnection: Connection,
-  params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
-    operation: object;
-  },
+  {
+    sourceAccountId,
+    aggregationId,
+    updatedOperation,
+    updatedByAccountId,
+  }: Parameters<DbClient["updateAggregationOperation"]>[0],
 ): Promise<DbAggregation> =>
   requireTransaction(existingConnection)(async (conn) => {
-    const { sourceAccountId, sourceEntityId, operation } = params;
-
     const now = new Date();
 
-    const dbAggregation = await getEntityAggregation(conn, params);
+    const previousDbAggregation = await getAggregation(conn, {
+      sourceAccountId,
+      aggregationId,
+    });
 
-    if (!dbAggregation) {
-      throw new DbAggregationNotFoundError(params);
+    if (!previousDbAggregation) {
+      throw new DbAggregationNotFoundError({ aggregationId });
     }
 
-    const {
-      createdByAccountId,
-      createdAt,
-      sourceEntityVersionIds: prevSourceEntityVersionIds,
-    } = dbAggregation;
-
-    let sourceEntityVersionIds: Set<string> = prevSourceEntityVersionIds;
+    const { sourceEntityId } = previousDbAggregation;
 
     await acquireEntityLock(conn, { entityId: sourceEntityId });
 
-    let dbSourceEntity = await getEntityLatestVersion(conn, {
+    const updatedDbAggregation = {
+      ...previousDbAggregation,
+      operation: updatedOperation,
+      updatedAt: now,
+      updatedByAccountId,
+    };
+
+    const dbSourceEntity = await getEntityLatestVersion(conn, {
       accountId: sourceAccountId,
       entityId: sourceEntityId,
     }).then((dbEntity) => {
@@ -55,33 +58,17 @@ export const updateAggregationOperation = (
     });
 
     if (dbSourceEntity.metadata.versioned) {
-      dbSourceEntity = await updateVersionedEntity(conn, {
-        updatedByAccountId: createdByAccountId,
-        entity: dbSourceEntity,
-        /** @todo: re-implement method to not require updated `properties` */
-        properties: dbSourceEntity.properties,
-        omittedAggregations: [params],
-      });
+      updatedDbAggregation.aggregationVersionId = genId();
 
-      sourceEntityVersionIds = new Set([dbSourceEntity.entityVersionId]);
-
-      await insertAggregation(conn, {
-        aggregation: {
-          ...params,
-          sourceEntityVersionIds,
-          operation,
-          createdAt: now,
-          createdByAccountId,
-        },
+      await insertAggregationVersionRow(conn, {
+        dbAggregationVersion: updatedDbAggregation,
       });
     } else {
-      await updateAggregationRowOperation(conn, params);
+      await updateAggregationVersionRow(conn, {
+        ...updatedDbAggregation,
+        updatedOperation,
+      });
     }
 
-    return {
-      ...params,
-      sourceEntityVersionIds,
-      createdByAccountId,
-      createdAt,
-    };
+    return updatedDbAggregation;
   });

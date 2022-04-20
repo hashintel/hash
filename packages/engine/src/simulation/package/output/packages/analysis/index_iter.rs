@@ -1,27 +1,20 @@
 use std::cmp::Ordering;
 
+use arrow::datatypes::DataType;
 use float_cmp::approx_eq;
+use stateful::{
+    agent,
+    field::{FieldSpecMapAccessor, FieldTypeVariant},
+};
 
-use crate::{
-    datastore::{
-        batch::iterators::agent::{
-            bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols,
-            str_iter,
-        },
-        schema::{
-            accessor::{FieldSpecMapAccessor, GetFieldSpec},
-            FieldTypeVariant,
-        },
+use crate::simulation::package::output::packages::analysis::{
+    analyzer::{
+        AnalysisOperationRepr, ComparisonRepr, IndexIterator, OutputCreator, OutputRunner,
+        OutputRunnerCreator, ValueIterator, ValueIteratorCreator, ULPS,
     },
-    simulation::package::output::packages::analysis::{
-        analyzer::{
-            AnalysisOperationRepr, ComparisonRepr, IndexIterator, OutputCreator, OutputRunner,
-            OutputRunnerCreator, ValueIterator, ValueIteratorCreator, ULPS,
-        },
-        output::AnalysisSingleOutput,
-        value_iter::{value_iterator_filter, value_iterator_mapper},
-        Error, Result,
-    },
+    output::AnalysisSingleOutput,
+    value_iter::{value_iterator_filter, value_iterator_mapper},
+    Error, Result,
 };
 
 fn index_iterator_f64_filter(
@@ -694,15 +687,18 @@ fn default_first_getter(
     accessor: &FieldSpecMapAccessor,
     first_field: &str,
 ) -> Result<ValueIteratorCreator> {
-    let data_type = accessor
-        .get_agent_scoped_field_spec(first_field)?
-        .inner
-        .field_type
-        .get_arrow_data_type()?;
+    let data_type = DataType::from(
+        accessor
+            .get_agent_scoped_field_spec(first_field)?
+            .inner
+            .field_type
+            .variant
+            .clone(),
+    );
 
     let first_field = first_field.to_string();
     let a: ValueIteratorCreator = Box::new(move |agents: &_| {
-        let iterator = json_value_iter_cols(agents, &first_field, &data_type)?;
+        let iterator = agent::arrow::json_value_iter_cols(agents, &first_field, &data_type)?;
         Ok(iterator as ValueIterator<'_>)
     });
     Ok(a)
@@ -749,7 +745,7 @@ pub(super) fn index_iterator_mapper_creator(
         }
         FieldTypeVariant::AnyType => {
             let a: ValueIteratorCreator = Box::new(move |agents| {
-                let iterator = json_serialized_value_iter(agents, &first_field)?;
+                let iterator = agent::arrow::json_serialized_value_iter(agents, &first_field)?;
                 Ok(Box::new(iterator) as ValueIterator<'_>)
             });
             a

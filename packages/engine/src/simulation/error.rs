@@ -1,9 +1,7 @@
+use stateful::agent::Agent;
 use thiserror::Error as ThisError;
 
-use crate::{
-    datastore::table::task_shared_store::{SharedContext, SharedState},
-    hash_types::Agent,
-};
+use crate::datastore::table::task_shared_store::{SharedContext, SharedState};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -14,6 +12,9 @@ pub enum Error {
 
     #[error("Memory Error: {0}")]
     Memory(#[from] memory::Error),
+
+    #[error("Stateful error: {0}")]
+    Stateful(#[from] stateful::Error),
 
     #[error("Env error: {0}")]
     Env(#[from] crate::env::Error),
@@ -101,7 +102,7 @@ pub enum Error {
     NumParallelWorkers,
 
     #[error("Invalid type of task message for behavior execution: {0:?}")]
-    InvalidBehaviorTaskMessage(crate::simulation::enum_dispatch::TaskMessage),
+    InvalidBehaviorTaskMessage(crate::simulation::task::msg::TaskMessage),
 
     #[error("Invalid behavior bytes: {0:?} ({1:?})")]
     InvalidBehaviorBytes(Vec<u8>, Result<String, std::string::FromUtf8Error>),

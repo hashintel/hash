@@ -6,18 +6,18 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
+use stateful::global::Globals;
 use tokio::task::JoinHandle;
 use tracing::Instrument;
 
 pub use self::error::{Error, Result};
 use crate::{
-    config::{ExperimentConfig, Globals},
+    config::ExperimentConfig,
     experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
     proto,
     types::SpanId,
 };
 
-pub type SharedDataset = proto::SharedDataset;
 pub type SharedBehavior = proto::SharedBehavior;
 pub type SimPackageArgs = proto::SimPackageArgs;
 pub type Simulation = proto::ProjectBase;

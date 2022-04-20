@@ -1,7 +1,6 @@
 mod engine;
 mod error;
 mod experiment;
-mod globals;
 mod package;
 mod persistence;
 mod simulation;
@@ -13,11 +12,12 @@ mod worker_pool;
 
 use std::sync::Arc;
 
+use stateful::{global::Globals, state::StateCreateParameters};
+
 pub use self::{
     engine::{Config as EngineConfig, Worker, WorkerAllocation},
     error::{Error, Result},
     experiment::Config as ExperimentConfig,
-    globals::Globals,
     package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
     persistence::Config as PersistenceConfig,
     simulation::Config as SimulationConfig,
@@ -27,7 +27,13 @@ pub use self::{
     worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig},
     worker_pool::Config as WorkerPoolConfig,
 };
-use crate::{env::Environment, proto::SimulationShortId, Args};
+use crate::{
+    env::Environment,
+    proto::{ExperimentRunTrait, SimulationShortId},
+    Args,
+};
+
+pub const MIN_AGENTS_PER_GROUP: usize = 10;
 
 #[derive(Clone)]
 pub struct SimRunConfig {
@@ -68,6 +74,16 @@ impl SimRunConfig {
             exp: global.clone(),
             sim: Arc::new(local),
         })
+    }
+
+    pub fn to_state_create_parameters(&self) -> StateCreateParameters {
+        StateCreateParameters {
+            target_min_groups: self.sim.engine.num_workers,
+            target_group_size: MIN_AGENTS_PER_GROUP..self.exp.target_max_group_size,
+            memory_base_id: self.exp.run.base().id,
+            agent_schema: Arc::clone(&self.sim.store.agent_schema),
+            message_schema: Arc::clone(&self.sim.store.message_schema),
+        }
     }
 }
 

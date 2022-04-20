@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
+use stateful::global::Globals;
+
 use crate::{
-    config::{EngineConfig, Globals, PersistenceConfig, StoreConfig},
+    config::{EngineConfig, PersistenceConfig, StoreConfig},
     proto::SimulationShortId,
 };
 

@@ -1,5 +1,6 @@
 import { BlockMetadata } from "blockprotocol";
 import produce from "immer";
+import { BlockConfig, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import {
   createContext,
   Dispatch,
@@ -16,20 +17,6 @@ import { useCachedDefaultState } from "../components/hooks/useDefaultState";
 
 export type RemoteBlockMetadata = BlockMetadata & {
   componentId: string;
-  packagePath?: string;
-};
-
-// @todo - remove this and packagePath once componentId starts being generated on the backend
-const getComponentId = (meta: RemoteBlockMetadata) => {
-  if (meta.componentId) {
-    return meta.componentId;
-  }
-
-  if (meta.packagePath) {
-    return `https://blockprotocol.org/blocks/${meta.packagePath}`;
-  }
-
-  throw new Error("Added a block without packagePath or componentId");
 };
 
 type UserBlocks = RemoteBlockMetadata[];
@@ -57,9 +44,7 @@ const mergeBlocksData = (
       if (matchingUserBlockIndex === -1) {
         // @ts-expect-error TS warns `Type instantiation is excessively deep` but this isn't a problem here
         draftUserBlocks.push(latestUserBlock);
-      }
-
-      if (
+      } else if (
         // in development, overwrite the locally cached block if the source has changed
         (!isProduction &&
           draftUserBlocks[matchingUserBlockIndex]?.source !==
@@ -111,16 +96,17 @@ export const UserBlocksProvider: FC<{ value: UserBlocks }> = ({
             }
             return response.json();
           })
-          .then((responseData) => {
-            const userBlocks = (responseData.results as UserBlocks).map(
-              (userBlock) => ({
-                ...userBlock,
-                componentId: getComponentId(userBlock),
-              }),
+          .then(async ({ results: responseData }) => {
+            const resolvedMetadata = await Promise.all(
+              (responseData as BlockConfig[]).map(
+                async (metadata) =>
+                  (
+                    await fetchBlockMeta(metadata.componentId)
+                  ).componentMetadata,
+              ),
             );
-
             setValue((prevValue) => {
-              return mergeBlocksData(prevValue, userBlocks);
+              return mergeBlocksData(prevValue, resolvedMetadata);
             });
           })
           .catch((error) => {

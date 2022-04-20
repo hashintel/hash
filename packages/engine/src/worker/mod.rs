@@ -19,7 +19,7 @@ use futures::{
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
-pub use self::error::{Error, Result};
+pub use self::error::{Error, Result, RunnerError};
 use self::{
     pending::PendingWorkerTasks,
     runner::{
@@ -35,15 +35,15 @@ use self::{
 };
 use crate::{
     config::{WorkerConfig, WorkerSpawnConfig},
-    datastore::table::{sync::SyncPayload, task_shared_store::SharedState},
+    datastore::table::{
+        sync::SyncPayload,
+        task_shared_store::{SharedState, TaskSharedStore},
+    },
     language::Language,
     proto::SimulationShortId,
-    simulation::{
-        enum_dispatch::TaskSharedStore,
-        task::{
-            handler::WorkerHandler,
-            msg::{TaskMessage, TaskResultOrCancelled},
-        },
+    simulation::task::{
+        handler::WorkerHandler,
+        msg::{TaskMessage, TaskResultOrCancelled},
     },
     types::TaskId,
     worker::{

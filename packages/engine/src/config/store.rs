@@ -1,13 +1,10 @@
 use std::sync::Arc;
 
-use crate::{
-    config::{globals::Globals, Result},
-    datastore::schema::{
-        context::ContextSchema,
-        state::{AgentSchema, MessageSchema},
-    },
-    simulation::package::creator::PackageCreators,
+use stateful::{
+    agent::AgentSchema, context::ContextSchema, global::Globals, message::MessageSchema,
 };
+
+use crate::{config::Result, simulation::package::creator::PackageCreators};
 
 pub struct Config {
     pub agent_schema: Arc<AgentSchema>,

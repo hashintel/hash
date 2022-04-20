@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { keyBy } from "lodash";
-import { GetStaticPaths, GetStaticProps, NextPage } from "next";
+import { GetStaticPaths, GetStaticProps } from "next";
 import { Router, useRouter } from "next/router";
 import { tw } from "twind";
 
@@ -21,8 +21,8 @@ import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
-import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
-import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
+import { PageTransferDropdown } from "./[page-slug].page/page-transfer-dropdown";
+import { NextPageWithLayout, getLayoutWithSidebar } from "../../shared/layout";
 import { RemoteBlockMetadata } from "../../blocks/userBlocks";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 
@@ -32,9 +32,9 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
   fallback: "blocking", // indicates the type of fallback
 });
 
-interface PageProps {
+type PageProps = {
   blocksMeta: BlockMeta[];
-}
+};
 
 /**
  * This is used to fetch the metadata associated with blocks that're preloaded
@@ -54,7 +54,7 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
   };
 };
 
-export const Page: NextPage<PageProps> = ({ blocksMeta }) => {
+const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
   const router = useRouter();
 
   const { accountId } = useRouteAccountInfo();
@@ -104,41 +104,25 @@ export const Page: NextPage<PageProps> = ({ blocksMeta }) => {
   }, [pageState]);
 
   if (pageState === "transferring") {
-    return (
-      <MainContentWrapper>
-        <h1>Transferring you to the new page...</h1>
-      </MainContentWrapper>
-    );
+    return <h1>Transferring you to the new page...</h1>;
   }
 
   if (loading) {
-    return (
-      <MainContentWrapper>
-        <h1>Loading...</h1>
-      </MainContentWrapper>
-    );
+    return <h1>Loading...</h1>;
   }
 
   if (error) {
-    return (
-      <MainContentWrapper>
-        <h1>Error: {error.message}</h1>
-      </MainContentWrapper>
-    );
+    return <h1>Error: {error.message}</h1>;
   }
 
   if (!data) {
-    return (
-      <MainContentWrapper>
-        <h1>No data loaded.</h1>
-      </MainContentWrapper>
-    );
+    return <h1>No data loaded.</h1>;
   }
 
   const { title } = data.page.properties;
 
   return (
-    <MainContentWrapper>
+    <>
       <header>
         <div className={styles.PageHeader}>
           <div className={tw`flex flex-col-reverse`}>
@@ -185,7 +169,10 @@ export const Page: NextPage<PageProps> = ({ blocksMeta }) => {
           />
         </CollabPositionProvider>
       </main>
-    </MainContentWrapper>
+    </>
   );
 };
+
+Page.getLayout = getLayoutWithSidebar;
+
 export default Page;

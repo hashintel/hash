@@ -3,17 +3,17 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use memory::arrow::ColumnChange;
 pub use packages::{Name, StateTask, StateTaskMessage, PACKAGE_CREATORS};
+use stateful::{
+    context::Context,
+    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    global::Globals,
+    state::State,
+};
 use tracing::Span;
 
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
-    datastore::{
-        schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-        table::{context::Context, state::State},
-        Result as DatastoreResult,
-    },
+    config::{ExperimentConfig, SimRunConfig},
     simulation::{
         comms::package::PackageComms,
         package::{
@@ -62,22 +62,4 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {
     ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![])
     }
-}
-
-pub struct StateColumn {
-    inner: Box<dyn IntoArrowChange + Send + Sync>,
-}
-
-impl StateColumn {
-    pub fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ColumnChange> {
-        self.inner.get_arrow_change(range)
-    }
-
-    pub fn new(inner: Box<dyn IntoArrowChange + Send + Sync>) -> StateColumn {
-        StateColumn { inner }
-    }
-}
-
-pub trait IntoArrowChange {
-    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ColumnChange>;
 }

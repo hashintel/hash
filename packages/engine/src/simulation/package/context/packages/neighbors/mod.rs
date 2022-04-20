@@ -2,26 +2,25 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::{
+    agent,
+    agent::AgentBatch,
+    context::{ContextColumn, ContextSchema},
+    field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    global::Globals,
+    state::{StateReadProxy, StateSnapshot},
+};
 use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig, TopologyConfig},
-    datastore::{
-        batch::{iterators, AgentBatch},
-        schema::{
-            accessor::{FieldSpecMapAccessor, GetFieldSpec},
-            context::ContextSchema,
-            FieldKey, RootFieldSpec, RootFieldSpecCreator,
-        },
-        table::{proxy::StateReadProxy, state::view::StateSnapshot},
-    },
+    config::{ExperimentConfig, SimRunConfig, TopologyConfig},
     simulation::{
         comms::package::PackageComms,
         package::{
             context::{
-                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextColumn, ContextPackage,
-                Package, PackageCreator,
+                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackage, Package,
+                PackageCreator,
             },
             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
         },
@@ -95,9 +94,9 @@ struct Neighbors {
 
 impl Neighbors {
     fn neighbor_vec<'a>(batches: &'a [&AgentBatch]) -> Result<Vec<NeighborRef<'a>>> {
-        Ok(iterators::agent::position_iter(batches)?
-            .zip(iterators::agent::index_iter(batches))
-            .zip(iterators::agent::search_radius_iter(batches)?)
+        Ok(agent::arrow::position_iter(batches)?
+            .zip(agent::arrow::index_iter(batches))
+            .zip(agent::arrow::search_radius_iter(batches)?)
             .collect())
     }
 }
@@ -134,20 +133,16 @@ impl Package for Neighbors {
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
-            .to_key()?;
+            .create_key()?;
 
-        Ok(vec![ContextColumn {
-            field_key,
-            inner: Box::new(map),
-            span: pkg_span,
-        }])
+        Ok(vec![ContextColumn::new(field_key, Box::new(map), pkg_span)])
     }
 
     fn get_empty_arrow_columns(
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
 
         let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 2);
@@ -160,7 +155,7 @@ impl Package for Neighbors {
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec("neighbors")?
-            .to_key()?;
+            .create_key()?;
 
         Ok(vec![(field_key, Arc::new(neighbors_builder.finish()))])
     }

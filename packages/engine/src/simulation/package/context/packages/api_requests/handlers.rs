@@ -1,14 +1,9 @@
 use serde_json::Value;
+use stateful::{field::UUID_V4_LEN, message::MessageReader, state::MessageReference};
 use thiserror::Error as ThisError;
 
-use crate::{
-    datastore::{
-        table::{pool::message::MessageReader, references::AgentMessageReference},
-        UUID_V4_LEN,
-    },
-    simulation::package::context::packages::api_requests::{
-        handlers, ApiResponseMap, Error, Result,
-    },
+use crate::simulation::package::context::packages::api_requests::{
+    handlers, ApiResponseMap, Error, Result,
 };
 
 pub const ACTIVE_REQUESTS: usize = 10;
@@ -21,7 +16,7 @@ pub struct Requests {
 
 pub fn gather_requests(
     reader: &MessageReader<'_>,
-    messages: &[AgentMessageReference],
+    messages: &[MessageReference],
 ) -> Result<Requests> {
     let inner = (0..messages.len())
         .into_iter()
@@ -64,14 +59,12 @@ pub mod mapbox {
     use std::collections::{hash_map, HashMap};
 
     use futures::StreamExt;
+    use stateful::field::UUID_V4_LEN;
     use thiserror::Error as ThisError;
 
-    use crate::{
-        datastore::UUID_V4_LEN,
-        simulation::package::context::packages::api_requests::{
-            handlers::{CustomError, Request, Requests, ACTIVE_REQUESTS},
-            ApiResponseMap, Result, Value,
-        },
+    use crate::simulation::package::context::packages::api_requests::{
+        handlers::{CustomError, Request, Requests, ACTIVE_REQUESTS},
+        ApiResponseMap, Result, Value,
     };
 
     #[derive(ThisError, Debug)]

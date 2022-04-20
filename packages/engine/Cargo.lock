@@ -662,18 +662,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enum_dispatch"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd53b3fde38a39a06b2e66dc282f3e86191e53bd04cc499929c15742beae3df8"
-dependencies = [
- "once_cell",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "error"
 version = "0.0.0"
 dependencies = [
@@ -957,12 +945,12 @@ dependencies = [
  "clap",
  "csv",
  "derive-new",
- "enum_dispatch",
  "error",
  "flatbuffers",
  "flatbuffers_gen",
  "float-cmp",
  "futures",
+ "glob",
  "http-types",
  "kdtree",
  "lazy_static",
@@ -980,6 +968,7 @@ dependencies = [
  "serde-aux",
  "serde_json",
  "shared_memory",
+ "stateful",
  "strum_macros",
  "surf",
  "thiserror",
@@ -1613,6 +1602,7 @@ dependencies = [
  "rand_distr",
  "serde",
  "serde_json",
+ "stateful",
  "tokio",
  "tracing",
  "uuid",
@@ -2153,6 +2143,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e113fb6f3de07a243d434a56ec6f186dfd51cb08448239fe7bcae73f87ff28ff"
 dependencies = [
  "version_check",
+]
+
+[[package]]
+name = "stateful"
+version = "0.0.0"
+dependencies = [
+ "arrow",
+ "flatbuffers",
+ "lazy_static",
+ "memory",
+ "parking_lot",
+ "rand 0.8.4",
+ "rayon",
+ "serde",
+ "serde-aux",
+ "serde_json",
+ "thiserror",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

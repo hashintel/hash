@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use arrow::{array::ArrayData, record_batch::RecordBatch};
+use arrow::{
+    array::{ArrayData, ArrayRef},
+    record_batch::RecordBatch,
+};
 
 use crate::{
     arrow::{
@@ -343,4 +346,13 @@ impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
     fn segment_mut(&mut self) -> &mut Segment {
         &mut self.segment
     }
+}
+
+pub fn column_with_name<'a>(record_batch: &'a RecordBatch, name: &str) -> Result<&'a ArrayRef> {
+    let (index, _) = record_batch
+        .schema()
+        .column_with_name(name)
+        .ok_or_else(|| Error::ColumnNotFound(name.into()))?;
+
+    Ok(record_batch.column(index))
 }

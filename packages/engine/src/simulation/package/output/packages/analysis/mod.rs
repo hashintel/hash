@@ -12,6 +12,9 @@ use std::sync::Arc;
 use analyzer::Analyzer;
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::{
+    context::Context, field::FieldSpecMapAccessor, global::Globals, proxy::BatchPool, state::State,
+};
 use tracing::Span;
 
 pub use self::{
@@ -19,11 +22,7 @@ pub use self::{
     output::{AnalysisOutput, AnalysisSingleOutput},
 };
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
-    datastore::{
-        schema::accessor::FieldSpecMapAccessor,
-        table::{context::Context, pool::BatchPool, state::State},
-    },
+    config::{ExperimentConfig, SimRunConfig},
     experiment::SimPackageArgs,
     proto::ExperimentRunTrait,
     simulation::{

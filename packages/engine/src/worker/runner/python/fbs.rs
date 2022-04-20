@@ -30,7 +30,7 @@ pub fn pkgs_to_fbs<'f>(
                 &flatbuffers_gen::package_config_generated::PackageArgs {
                     type_: init_msg.r#type.into(),
                     name: Some(package_name),
-                    sid: package_id.as_usize() as u64,
+                    sid: package_id.as_usize().get() as u64,
                     init_payload: Some(payload),
                 },
             ))

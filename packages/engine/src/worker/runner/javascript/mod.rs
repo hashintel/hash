@@ -26,6 +26,10 @@ use memory::{
     arrow::{ArrowBatch, ColumnChange},
     shared_memory::{arrow_continuation, Metaversion, Segment},
 };
+use stateful::{
+    agent::AgentBatch, field::PackageId, global::Globals, message::MessageBatch,
+    state::StateWriteProxy,
+};
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
@@ -34,22 +38,16 @@ use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use crate::{
-    config::Globals,
     datastore::{
-        batch::{AgentBatch, MessageBatch},
         shared_store::SharedStore,
         table::{
-            proxy::StateWriteProxy,
             sync::{ContextBatchSync, StateSync, WaitableStateSync},
             task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
         },
     },
     language::Language,
     proto::SimulationShortId,
-    simulation::{
-        package::{id::PackageId, PackageType},
-        task::msg::TaskMessage,
-    },
+    simulation::{package::PackageType, task::msg::TaskMessage},
     types::TaskId,
     worker::{
         runner::comms::{
@@ -418,7 +416,7 @@ fn sim_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, sim_id: SimulationShortId) 
 }
 
 fn pkg_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, pkg_id: PackageId) -> Value<'s> {
-    v8::Number::new(scope, pkg_id.as_usize() as f64).into()
+    v8::Number::new(scope, pkg_id.as_usize().get() as f64).into()
 }
 
 fn new_js_array_from_usizes<'s>(

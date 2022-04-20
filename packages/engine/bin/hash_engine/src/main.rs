@@ -2,7 +2,7 @@ use error::{Result, ResultExt};
 use hash_engine_lib::{
     config::experiment_config,
     env::env,
-    experiment::controller::run::run_experiment,
+    experiment::controller::run::{cleanup_experiment, run_experiment},
     fetch::FetchDependencies,
     proto::{ExperimentRun, ExperimentRunTrait},
     utils::init_logger,
@@ -37,7 +37,11 @@ async fn main() -> Result<()> {
         config.run.base().name
     );
 
-    run_experiment(config, env)
+    let experiment_result = run_experiment(config, env)
         .await
-        .wrap_err("Could not run experiment")
+        .wrap_err("Could not run experiment");
+
+    cleanup_experiment(args.experiment_id);
+
+    experiment_result
 }

@@ -9,29 +9,46 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use stateful::field::PackageId;
 
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use crate::{
     config::ExperimentConfig,
+    datastore::table::task_shared_store::TaskSharedStore,
     simulation::{
-        enum_dispatch::{
-            enum_dispatch, GetTaskArgs, GetTaskName, StoreAccessVerify, TaskDistributionConfig,
-            TaskSharedStore, WorkerHandler, WorkerPoolHandler,
-        },
         package::{
             id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
             PackageType,
+        },
+        task::{
+            access::StoreAccessVerify,
+            args::GetTaskArgs,
+            handler::{WorkerHandler, WorkerPoolHandler},
+            GetTaskName,
         },
         Error, Result,
     },
 };
 
 /// All output package names are registered in this enum
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Name {
     Analysis,
     JsonState,
+}
+
+impl Name {
+    pub fn id(self) -> Result<PackageId> {
+        Ok(METADATA
+            .get(&self)
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "Package Metadata not registered for package: {self}"
+                ))
+            })?
+            .id)
+    }
 }
 
 impl std::fmt::Display for Name {
@@ -49,11 +66,10 @@ pub struct OutputPackagesSimConfig {
     pub map: HashMap<PackageName, serde_json::Value>,
 }
 
-#[enum_dispatch(OutputRepr)]
 #[derive(Debug)]
 pub enum Output {
-    AnalysisOutput,
-    JsonStateOutput,
+    AnalysisOutput(AnalysisOutput),
+    JsonStateOutput(JsonStateOutput),
 }
 
 /// All output package tasks are registered in this enum
@@ -91,11 +107,7 @@ impl WorkerHandler for OutputTask {}
 
 impl WorkerPoolHandler for OutputTask {}
 
-impl GetTaskArgs for OutputTask {
-    fn distribution(&self) -> TaskDistributionConfig {
-        unimplemented!()
-    }
-}
+impl GetTaskArgs for OutputTask {}
 
 /// All output package task messages are registered in this enum
 #[derive(Clone, Debug, Serialize, Deserialize)]

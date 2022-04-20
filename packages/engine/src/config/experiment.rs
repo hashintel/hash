@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
+use stateful::global::Globals;
+
 use crate::{
-    config::{globals::Globals, package, worker, worker_pool, Result},
+    config::{package, worker, worker_pool, Result},
     proto::{ExperimentName, ExperimentRunRepr, ExperimentRunTrait, InitialStateName},
     simulation::package::init,
 };
@@ -71,7 +73,7 @@ impl Config {
         let run_base = self.run.base().clone();
         Ok(Config {
             packages: self.packages.clone(),
-            run: Arc::new(run_base.into()),
+            run: Arc::new(ExperimentRunRepr::ExperimentRunBase(run_base)),
             worker_pool: self.worker_pool.clone(),
             target_max_group_size: self.target_max_group_size,
             base_globals: self.base_globals.clone(),
