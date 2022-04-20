@@ -9,10 +9,10 @@ import {
 import { GetStaticProps } from "next";
 import { NextPageWithLayout } from "../shared/layout";
 import { isProduction } from "../lib/config";
-import { Buttons } from "./playground.page/button";
-import { Inputs } from "./playground.page/input";
-import { SelectMenus } from "./playground.page/select-menus";
-import { Chips } from "./playground.page/chips";
+import { ButtonsDemo } from "./playground.page/buttons-demo";
+import { InputsDemo } from "./playground.page/inputs-demo";
+import { SelectMenusDemo } from "./playground.page/select-menus-demo";
+import { ChipsDemo } from "./playground.page/chips-demo";
 
 interface PageProps {}
 
@@ -37,7 +37,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
           <Typography variant="h4">Buttons</Typography>
         </AccordionSummary>
         <AccordionDetails>
-          <Buttons />
+          <ButtonsDemo />
         </AccordionDetails>
       </Accordion>
       {/* INPUTS */}
@@ -46,7 +46,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
           <Typography variant="h4">Inputs</Typography>
         </AccordionSummary>
         <AccordionDetails>
-          <Inputs />
+          <InputsDemo />
         </AccordionDetails>
       </Accordion>
       {/* CHIPS */}
@@ -55,7 +55,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
           <Typography variant="h4">Chips</Typography>
         </AccordionSummary>
         <AccordionDetails>
-          <Chips />
+          <ChipsDemo />
         </AccordionDetails>
       </Accordion>
       {/* SELECT MENUS */}
@@ -64,7 +64,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
           <Typography variant="h4">Select Menus</Typography>
         </AccordionSummary>
         <AccordionDetails>
-          <SelectMenus />
+          <SelectMenusDemo />
         </AccordionDetails>
       </Accordion>
       <Box mb={45} />

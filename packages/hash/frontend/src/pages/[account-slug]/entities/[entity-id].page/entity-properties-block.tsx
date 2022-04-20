@@ -1,7 +1,7 @@
 import { ThemeProvider } from "@emotion/react";
-/* eslint-disable-next-line -- no-restricted-imports */
-import { Button, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import { BlockComponent } from "blockprotocol/react";
+import { Button } from "../../../../shared/ui";
 
 export const EntityPropertiesBlock: BlockComponent = ({ theme, entityId }) => {
   return (

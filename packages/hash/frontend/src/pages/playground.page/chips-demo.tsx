@@ -77,18 +77,21 @@ export const ChipsDemo = () => {
           color="gray"
           label="Chip"
           icon={<FontAwesomeIcon icon={faPlus} />}
+          onClick={() => alert("item clicked")}
         />
         <Chip
           size="small"
           color="red"
           label="Chip"
           icon={<FontAwesomeIcon icon={faPlus} />}
+          onClick={() => alert("item clicked")}
         />
         <Chip
           size="large"
           color="blue"
           label="Chip"
           icon={<FontAwesomeIcon icon={faPlus} />}
+          onClick={() => alert("item clicked")}
         />
       </Stack>
       <Stack direction="row" alignItems="center" spacing={2} mb={2}>
