@@ -1,5 +1,6 @@
 use std::{borrow::Borrow, env, fmt, mem, path::Path};
 
+use glob::GlobError;
 use shared_memory::{Shmem, ShmemConf};
 use uuid::Uuid;
 
@@ -107,19 +108,14 @@ pub fn clean_up_by_base_id<Id: Borrow<Uuid>>(id: Id) -> Result<()> {
     let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
         .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
 
-    shm_files
-        .filter_map(|glob_res| match glob_res {
-            Ok(path) => Some(path),
-            Err(err) => {
-                tracing::warn!("Glob Error while trying to clean-up shared memory files: {err}");
-                None
-            }
-        })
-        .for_each(|path| {
-            if let Err(err) = std::fs::remove_file(&path) {
-                tracing::warn!("Could not clean up {path:?}: {err}");
-            }
-        });
+    for path in shm_files {
+        if let Err(err) = path
+            .map_err(GlobError::into_error)
+            .and_then(std::fs::remove_file)
+        {
+            tracing::warn!("Could not remove shared memory file: {err}");
+        }
+    }
     Ok(())
 }
 
