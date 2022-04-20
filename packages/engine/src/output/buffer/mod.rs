@@ -18,7 +18,7 @@ use crate::{
     },
 };
 
-// We might want to move the "/parts" folder to a temporary folder (like "/tmp" or "/var/tmp").
+// TODO: We might want to use a temporary folder (like "/tmp" or "/var/tmp") instead.
 const RELATIVE_PARTS_FOLDER: &str = "./parts";
 
 pub struct Buffers {
