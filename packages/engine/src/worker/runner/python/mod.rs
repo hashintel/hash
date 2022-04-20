@@ -257,7 +257,7 @@ async fn _run(
     Ok(())
 }
 
-pub(crate) fn cleanup_python_runner(experiment_id: &ExperimentId) -> Result<()> {
+pub(crate) fn cleanup_runner(experiment_id: &ExperimentId) -> Result<()> {
     // Cleanup python socket files in case the engine didn't
     let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"))
         .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;

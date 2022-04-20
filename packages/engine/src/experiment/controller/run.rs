@@ -356,7 +356,7 @@ pub fn cleanup_experiment(experiment_id: &ExperimentId) {
         tracing::warn!("{}", err);
     }
 
-    if let Err(err) = python::cleanup_python_runner(experiment_id) {
+    if let Err(err) = python::cleanup_runner(experiment_id) {
         tracing::warn!("{}", err);
     }
 
