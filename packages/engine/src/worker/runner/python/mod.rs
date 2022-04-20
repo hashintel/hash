@@ -270,7 +270,10 @@ pub(crate) fn cleanup_python_runner(experiment_id: &ExperimentId) -> Result<()> 
         .filter_map(|glob_res| match glob_res {
             Ok(path) => Some(path),
             Err(err) => {
-                tracing::warn!("Glob Error while trying to clean-up NNG socket files from the Python runner: {err}");
+                tracing::warn!(
+                    "Glob Error while trying to clean-up NNG socket files from the Python runner: \
+                     {err}"
+                );
                 None
             }
         })
