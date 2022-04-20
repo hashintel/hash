@@ -18,7 +18,7 @@ use crate::{
         package::ExperimentPackage,
     },
     output::{
-        buffer::RELATIVE_PARTS_FOLDER, local::LocalOutputPersistence, none::NoOutputPersistence,
+        buffer::remove_experiment_parts, local::LocalOutputPersistence, none::NoOutputPersistence,
         OutputPersistenceCreatorRepr,
     },
     proto::{EngineStatus, ExperimentId, ExperimentRunTrait, PackageConfig},
@@ -361,22 +361,4 @@ pub fn cleanup_experiment(experiment_id: &ExperimentId) {
     }
 
     remove_experiment_parts(experiment_id);
-}
-
-fn remove_experiment_parts(experiment_id: &ExperimentId) {
-    let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
-    match std::fs::remove_dir_all(&path) {
-        Ok(_) => {
-            tracing::trace!(
-                experiment = %experiment_id,
-                "Removed parts folder for experiment {experiment_id}: {path:?}"
-            );
-        }
-        Err(err) => {
-            tracing::warn!(
-                experiment = %experiment_id,
-                "Could not clean up {path:?}: {err}"
-            );
-        }
-    }
 }

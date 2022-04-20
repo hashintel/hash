@@ -4,7 +4,7 @@ mod part;
 
 use serde::Serialize;
 
-pub use self::part::OutputPartBuffer;
+pub use self::part::{remove_experiment_parts, OutputPartBuffer};
 use crate::{
     output::error::{Error, Result},
     proto::{ExperimentId, SimulationShortId},
@@ -19,7 +19,7 @@ use crate::{
 };
 
 // We might want to move the "/parts" folder to a temporary folder (like "/tmp" or "/var/tmp").
-pub(crate) const RELATIVE_PARTS_FOLDER: &str = "./parts";
+const RELATIVE_PARTS_FOLDER: &str = "./parts";
 
 pub struct Buffers {
     pub json_state: OutputPartBuffer,
