@@ -19,7 +19,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.7",
+    "blockprotocol": "0.0.8",
     "prismjs": "1.27.0"
   },
   "devDependencies": {
@@ -36,7 +36,7 @@
   },
   "block-scripts": {
     "devPort": 9090,
-    "servePort": 62681
+    "servePort": 62679
   },
   "blockprotocol": {
     "displayName": "Code",
