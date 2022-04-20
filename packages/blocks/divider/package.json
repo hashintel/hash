@@ -33,6 +33,10 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 63679
+  },
   "blockprotocol": {
     "displayName": "Divider",
     "icon": "public/divider.svg",

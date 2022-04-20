@@ -78,6 +78,10 @@
     "react-dom": "^17.0.2",
     "twind": "^0.16.16"
   },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 62678
+  },
   "blockprotocol": {
     "displayName": "Table",
     "icon": "public/table.svg",
