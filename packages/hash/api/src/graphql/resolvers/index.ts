@@ -70,7 +70,7 @@ import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationR
 import { orgEmailInvitationLinkedEntities } from "./orgEmailInvitation/linkedEntities";
 import { orgInvitationLinkLinkedEntities } from "./orgInvitationLink/linkedEntities";
 import { pageSearchResultConnection } from "./paginationConnection/pageSearchResultConnection";
-import { executeDemoTask } from "./taskExecutor";
+import { executeDemoTask, executeGithubSpecTask } from "./taskExecutor";
 
 export const resolvers = {
   Query: {
@@ -133,6 +133,7 @@ export const resolvers = {
     sendLoginCode,
     loginWithLoginCode,
     executeDemoTask,
+    executeGithubSpecTask,
   },
 
   JSONObject: GraphQLJSON,

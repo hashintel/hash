@@ -3,8 +3,13 @@ import { gql } from "apollo-server-express";
 export const executeTaskTypedef = gql`
   extend type Mutation {
     """
-    Execute a the Demo Task
+    Execute the Demo Task
     """
     executeDemoTask: String!
+
+    """
+    Call the Github Integration Spec Task
+    """
+    executeGithubSpecTask: String!
   }
 `;
