@@ -268,7 +268,7 @@ pub(crate) fn cleanup_python_runner(experiment_id: &ExperimentId, exit_status: E
         .into_iter()
         .chain(topy_files)
         .flatten()
-        .flatten()
+        .filter_map(Result::ok)
         .for_each(|path| match std::fs::remove_file(&path) {
             Ok(_) => {
                 match exit_status {

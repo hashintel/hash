@@ -89,11 +89,14 @@ impl<'id> MemoryId<'id> {
         //   FDs at all. Find out if they are stored somewhere and remove them instead, otherwise we
         //   have to figure out a way to remove them without relying on the file-system.
         if let Ok(shm_files) = glob::glob(&format!("/dev/shm/{}_*", Self::prefix(id))) {
-            shm_files.into_iter().flatten().for_each(|path| {
-                if let Err(err) = std::fs::remove_file(&path) {
-                    tracing::warn!("Could not clean up {path:?}: {err}");
-                }
-            });
+            shm_files
+                .into_iter()
+                .filter_map(Result::ok)
+                .for_each(|path| {
+                    if let Err(err) = std::fs::remove_file(&path) {
+                        tracing::warn!("Could not clean up {path:?}: {err}");
+                    }
+                });
         }
     }
 }
