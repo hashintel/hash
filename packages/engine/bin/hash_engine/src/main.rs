@@ -2,7 +2,7 @@ use error::{Result, ResultExt};
 use hash_engine_lib::{
     config::experiment_config,
     env::env,
-    experiment::controller::run::{cleanup_experiment, run_experiment, EngineExitStatus},
+    experiment::controller::run::{cleanup_experiment, run_experiment},
     fetch::FetchDependencies,
     proto::{ExperimentRun, ExperimentRunTrait},
     utils::init_logger,
@@ -41,13 +41,7 @@ async fn main() -> Result<()> {
         .await
         .wrap_err("Could not run experiment");
 
-    let exit_status = if experiment_result.is_ok() {
-        EngineExitStatus::Success
-    } else {
-        EngineExitStatus::Error
-    };
-
-    cleanup_experiment(&args.experiment_id, exit_status);
+    cleanup_experiment(&args.experiment_id);
 
     experiment_result
 }

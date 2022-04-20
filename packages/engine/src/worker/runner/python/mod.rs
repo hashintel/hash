@@ -21,7 +21,6 @@ use tokio::{
 pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};
 use crate::{
-    experiment::controller::run::EngineExitStatus,
     language::Language,
     proto::{ExperimentId, SimulationShortId},
     types::TaskId,
@@ -258,7 +257,7 @@ async fn _run(
     Ok(())
 }
 
-pub(crate) fn cleanup_python_runner(experiment_id: &ExperimentId, exit_status: EngineExitStatus) {
+pub(crate) fn cleanup_python_runner(experiment_id: &ExperimentId) {
     // Cleanup python socket files in case the engine didn't
     let frompy_files = glob::glob(&format!("{experiment_id}-frompy*"));
     let topy_files = glob::glob(&format!("{experiment_id}-topy*"));
@@ -271,16 +270,10 @@ pub(crate) fn cleanup_python_runner(experiment_id: &ExperimentId, exit_status: E
         .filter_map(Result::ok)
         .for_each(|path| match std::fs::remove_file(&path) {
             Ok(_) => {
-                match exit_status {
-                    EngineExitStatus::Success => tracing::error!(
-                        experiment = %experiment_id,
-                        "Removed file {path:?} that should've been cleanup by the engine."
-                    ),
-                    EngineExitStatus::Error => tracing::warn!(
-                        experiment = %experiment_id,
-                        "Removed file {path:?} that should've been cleanup by the engine."
-                    ),
-                };
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Removed file {path:?} that should've been cleanup by the engine."
+                );
             }
             Err(err) => {
                 tracing::warn!(

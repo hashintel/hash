@@ -350,20 +350,14 @@ fn worker_pool_exit_logic(
     false
 }
 
-#[derive(PartialEq, Eq, Clone)]
-pub enum EngineExitStatus {
-    Success,
-    Error,
-}
-
 /// Shared memory cleanup in the process hard crash case.
 /// Not required for pod instances.
-pub fn cleanup_experiment(experiment_id: &ExperimentId, exit_status: EngineExitStatus) {
+pub fn cleanup_experiment(experiment_id: &ExperimentId) {
     if let Err(err) = MemoryId::clean_up(experiment_id) {
         tracing::warn!("{}", err);
     }
 
-    cleanup_python_runner(experiment_id, exit_status);
+    cleanup_python_runner(experiment_id);
 
     remove_experiment_parts(experiment_id);
 }
