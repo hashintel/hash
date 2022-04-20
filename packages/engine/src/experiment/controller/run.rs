@@ -363,7 +363,6 @@ pub fn cleanup_experiment(experiment_id: &ExperimentId) {
     remove_experiment_parts(experiment_id);
 }
 
-// We might want to move the "/parts" folder to a temporary folder (like "/tmp" or "/var/tmp").
 fn remove_experiment_parts(experiment_id: &ExperimentId) {
     let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
     match std::fs::remove_dir_all(&path) {

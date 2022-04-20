@@ -18,6 +18,7 @@ use crate::{
     },
 };
 
+// We might want to move the "/parts" folder to a temporary folder (like "/tmp" or "/var/tmp").
 pub(crate) const RELATIVE_PARTS_FOLDER: &str = "./parts";
 
 pub struct Buffers {
