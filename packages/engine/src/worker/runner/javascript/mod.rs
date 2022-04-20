@@ -181,11 +181,15 @@ fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s
 }
 
 /// Cache module to not evaluate them twice
-struct ModuleMap(HashMap<String, v8::Global<v8::Module>>);
+struct ModuleMap {
+    path_to_module: HashMap<String, v8::Global<v8::Module>>,
+}
 
 impl ModuleMap {
     fn new() -> Self {
-        Self(HashMap::new())
+        Self {
+            path_to_module: HashMap::new(),
+        }
     }
 
     fn import_module<'s>(
@@ -197,7 +201,7 @@ impl ModuleMap {
             .expect("ModuleMap is not present in isolate slots")
             .clone();
 
-        if let Some(module) = module_map.borrow().0.get(path) {
+        if let Some(module) = module_map.borrow().path_to_module.get(path) {
             return Ok(Some(v8::Local::new(scope, module)));
         }
 
@@ -273,7 +277,7 @@ impl ModuleMap {
 
                 module_map
                     .borrow_mut()
-                    .0
+                    .path_to_module
                     .insert(path.to_string(), v8::Global::new(&mut try_catch, module));
 
                 Ok(Some(module))
@@ -295,9 +299,20 @@ pub fn module_resolve_callback<'s>(
     // Safe: we are in a callback
     let mut scope = unsafe { v8::CallbackScope::new(context) };
     let specifier = specifier.to_rust_string_lossy(&mut scope);
-    ModuleMap::import_module(&mut scope, &specifier)
-        .ok()
-        .flatten()
+
+    match ModuleMap::import_module(&mut scope, &specifier) {
+        Ok(Some(module)) => Some(module),
+        Ok(None) => {
+            tracing::error!("Couldn't import {specifier}, file missing.");
+
+            None
+        }
+        Err(err) => {
+            tracing::error!("Couldn't import {specifier}, {err}.");
+
+            None
+        }
+    }
 }
 
 impl<'s> Embedded<'s> {
