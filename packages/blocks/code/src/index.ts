@@ -1,6 +1,6 @@
 /**
  * Entrypoint of the Block Component.
  */
-import { App } from "./app-2";
+import { App } from "./app";
 
 export default App;
