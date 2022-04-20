@@ -36,6 +36,7 @@
     "@typescript-eslint/parser": "5.17.0",
     "babel-loader": "^8.2.2",
     "babel-plugin-prismjs": "2.0.1",
+    "block-scripts": "0.0.1",
     "concurrently": "7.0.0",
     "copy-webpack-plugin": "^4.6.0",
     "core-js": "^2.6.12",
