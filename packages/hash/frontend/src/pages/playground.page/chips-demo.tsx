@@ -4,7 +4,7 @@ import { Box, Stack } from "@mui/material";
 import { FontAwesomeIcon } from "../../shared/icons";
 import { Chip, ChipGroup } from "../../shared/ui";
 
-export const Chips = () => {
+export const ChipsDemo = () => {
   return (
     <Box>
       <Stack direction="row" alignItems="center" spacing={2} mb={2}>

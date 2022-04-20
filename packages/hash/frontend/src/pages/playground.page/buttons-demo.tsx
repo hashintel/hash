@@ -3,7 +3,7 @@ import { Box, Typography } from "@mui/material";
 import { FontAwesomeIcon } from "../../shared/icons";
 import { Button, IconButton, SubmitButtonWrapper } from "../../shared/ui";
 
-export const Buttons = () => {
+export const ButtonsDemo = () => {
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "flex-start" }}>

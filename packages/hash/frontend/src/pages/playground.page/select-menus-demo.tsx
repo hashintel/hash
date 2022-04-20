@@ -21,7 +21,7 @@ import { Avatar, Chip } from "../../shared/ui";
 import { SelectWithSearch } from "./select/select-with-search";
 import { SelectWithSearchAndCheckbox } from "./select/select-with-search-checkbox";
 
-export const SelectMenus = () => {
+export const SelectMenusDemo = () => {
   return (
     <Box>
       {/* Sizes */}

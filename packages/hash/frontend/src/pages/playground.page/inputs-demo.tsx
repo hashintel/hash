@@ -14,7 +14,7 @@ import {
 import { FontAwesomeIcon } from "../../shared/icons";
 import { Button, FormInline, TextField } from "../../shared/ui";
 
-export const Inputs = () => {
+export const InputsDemo = () => {
   return (
     <Box>
       <Switch />
