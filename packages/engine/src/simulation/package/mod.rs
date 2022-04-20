@@ -177,7 +177,6 @@ pub mod deps;
 pub mod ext_traits;
 pub mod id;
 pub mod name;
-pub mod package;
 pub mod run;
 pub mod worker_init;
 
