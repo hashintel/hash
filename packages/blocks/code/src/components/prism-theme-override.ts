@@ -1,3 +1,6 @@
+import { createGlobalStyle } from "styled-components";
+
+export const PrismThemeOverride = createGlobalStyle`
 .prism-theme-override {
   pre[class*="language-"],
   :not(pre) > code[class*="language-"] {
@@ -28,3 +31,4 @@
     overflow-x: auto;
   }
 }
+`;
