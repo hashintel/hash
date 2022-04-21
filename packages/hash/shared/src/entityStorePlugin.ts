@@ -75,7 +75,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
     }
   | {
       type: "updateBlockEntityProperties";
-      payload: { draftId: string; targetEntity: EntityStoreType };
+      payload: { blockEntitydraftId: string; targetEntity: EntityStoreType };
     }
 );
 
@@ -165,21 +165,22 @@ const updateEntitiesByDraftId = (
  * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
  * 2. Sets targetEntity as the new block data
  * @param draftEntityStore draft entity store
- * @param draftBlockId draft id of the Block Entity whose child entity should be changed
+ * @param blockEntityDraftId draft id of the Block Entity whose child entity should be changed
  * @param targetEntity entity to be changed to
  */
 const updateBlockEntity = (
   draftEntityStore: Draft<EntityStore["draft"]>,
-  draftBlockId: string,
+  blockEntityDraftId: string,
   targetEntity: EntityStoreType,
 ) => {
   let targetDraftEntity = draftEntityForEntityId(
     draftEntityStore,
-    draftBlockId,
+    targetEntity.entityId,
   );
 
   // Add target entity to draft store if it is not
   // present there
+  // @todo consider moving this to updateBlockData
   if (!targetDraftEntity) {
     const targetEntityDraftId = newDraftId();
     targetDraftEntity = {
@@ -187,14 +188,16 @@ const updateBlockEntity = (
       draftId: targetEntityDraftId,
       entityId: targetEntity.entityId,
       properties: targetEntity.properties,
+      // might not need this?
       entityVersionCreatedAt: new Date().toISOString(),
     };
 
     draftEntityStore[targetEntityDraftId] = targetDraftEntity;
   }
 
-  const draftBlockEntity = draftEntityStore[draftBlockId];
+  const draftBlockEntity = draftEntityStore[blockEntityDraftId];
 
+  // these two conditionals can be merged into 1
   if (!draftBlockEntity) {
     throw new Error("Block to update not present in store");
   }
@@ -206,7 +209,7 @@ const updateBlockEntity = (
   // we shouldn't need to update this since the api is meant to
   // handle it.
   // @todo remove the need for this
-  draftBlockEntity.entityVersionCreatedAt = new Date().toISOString();
+  // draftBlockEntity.entityVersionCreatedAt = new Date().toISOString();
 
   draftBlockEntity.properties.entity = targetDraftEntity;
 };
@@ -283,12 +286,14 @@ const entityStoreReducer = (
     }
 
     case "updateBlockEntityProperties": {
-      if (!state.store.draft[action.payload.draftId]) {
-        throw new Error("Block missing to merge entity properties");
+      if (!state.store.draft[action.payload.blockEntitydraftId]) {
+        throw new Error(
+          `Block missing to merge entity properties -> ${action.payload.blockEntitydraftId}`,
+        );
       }
 
       if (!action.payload.targetEntity) {
-        throw new Error("Entity missing to merge Block entity properties");
+        throw new Error("Entity missing to update Block data");
       }
 
       return produce(state, (draftState) => {
@@ -298,7 +303,7 @@ const entityStoreReducer = (
 
         updateBlockEntity(
           draftState.store.draft,
-          action.payload.draftId,
+          action.payload.blockEntitydraftId,
           action.payload.targetEntity,
         );
       });

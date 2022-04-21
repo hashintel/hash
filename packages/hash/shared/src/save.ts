@@ -13,6 +13,7 @@ import {
 import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
+import { draftIdForEntity } from "./entityStorePlugin";
 import {
   BlockEntity,
   blockEntityIdExists,
@@ -303,6 +304,14 @@ const updateBlocks = defineOperation(
             const entityProperties = textBlockNodeToEntityProperties(node);
 
             if (!isEqual(tokens, entityProperties.tokens)) {
+              console.log({
+                updateEntity: {
+                  entityId: textEntity.entityId,
+                  accountId: textEntity.accountId,
+                  properties: entityProperties,
+                },
+              });
+
               updates.push({
                 updateEntity: {
                   entityId: textEntity.entityId,
@@ -310,6 +319,48 @@ const updateBlocks = defineOperation(
                   properties: entityProperties,
                 },
               });
+            }
+          } else {
+            const draftBlock =
+              entityStore.draft[draftIdForEntity(blockEntityId)];
+            const draftChildEntity = draftBlock?.properties.entity;
+
+            // get draftChildEntiy from entityStore
+
+            console.log(
+              "draft ==> ",
+              JSON.stringify(draftChildEntity?.properties),
+            );
+            console.log(
+              "saved ==> ",
+              JSON.stringify(savedChildEntity.properties),
+            );
+
+            if (
+              draftChildEntity &&
+              !isEqual(draftChildEntity.properties, savedChildEntity.properties)
+            ) {
+              console.log("is not equal");
+
+              // @todo should use create a link before changing here
+
+              // updates.push({
+              //   updateEntity: {
+              //     entityId: blockEntityId,
+              //     accountId: draftChildEntity.accountId,
+              //     properties: {
+              //       // componentId: savedEntity.componentId,
+              //       entity: draftChildEntity
+              //     },
+              //   },
+              // });
+
+              // console.log("node ==> ", JSON.stringify(node));
+              // console.log("update => ", {
+              //   updateEntity: {
+              //     entityId: draftChildEntity.entityId,
+              //   },
+              // });
             }
           }
 
@@ -619,6 +670,8 @@ export const updatePageMutation = async (
     entityStore,
     createdEntities,
   );
+
+  console.log("actions ==>", JSON.stringify(actions), "\n\n\n\n");
 
   const res = await client.mutate<
     UpdatePageContentsMutation,

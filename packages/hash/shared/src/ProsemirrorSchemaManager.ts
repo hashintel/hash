@@ -633,7 +633,7 @@ export class ProsemirrorSchemaManager {
       type: "updateBlockEntityProperties",
       payload: {
         targetEntity,
-        draftId: draftIdForEntity(blockEntity.entityId),
+        blockEntitydraftId: draftIdForEntity(entityId),
       },
     });
 
@@ -641,6 +641,15 @@ export class ProsemirrorSchemaManager {
       tr,
       this.view.state,
     ).store;
+
+    // debugger;
+
+    // const textContent =
+    //   childrenForTextEntity(
+    //     draftEntityForEntityId(updatedStore.draft, targetEntity.entityId)
+    //       ?.properties,
+    //     this.schema,
+    //   ) ?? [];
 
     const newBlockNode = this.createLocalBlock({
       targetComponentId: blockEntity.properties.componentId,
@@ -650,6 +659,16 @@ export class ProsemirrorSchemaManager {
         targetEntity.entityId,
       )?.draftId,
     });
+
+    // const newBlockNode = this.createLocalBlock({
+    //   targetComponentId: blockEntity.properties.componentId,
+    //   draftBlockId: draftIdForEntity(blockEntity.entityId),
+    //   draftChildEntityId: draftEntityForEntityId(
+    //     updatedStore.draft,
+    //     targetEntity.entityId,
+    //   )?.draftId,
+    //   textContent,
+    // });
 
     tr.replaceRangeWith(pos, pos + newBlockNode.nodeSize, newBlockNode);
     this.view.dispatch(tr);
