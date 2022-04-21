@@ -242,14 +242,16 @@ jobs:
         id: diff_before_tests
         if: matrix.directory == 'packages/engine'
         run: |
-          echo "DIFF_BEFORE_TESTS=$(git diff ${{ matrix.directory }})" >> $GITHUB_ENV
+          diff = git diff ${{ matrix.directory }}
+          echo "::$diff::"
+          echo "::set-output name=DIFF_BEFORE_TESTS::$(diff)"
 
       - name: Check diff is empty before tests
         uses: actions/github-script@v3
-        if: matrix.directory == 'packages/engine' && ${{ env.DIFF_BEFORE_TESTS }} != ""
+        if: matrix.directory == 'packages/engine' && ${{ steps.diff_before_tests.DIFF_BEFORE_TESTS }}
         with:
           script: |
-            console.log(`${process.env.DIFF_BEFORE_TESTS}`)
+            console.log(`${steps.diff_before_tests.DIFF_BEFORE_TESTS}`)
             core.setFailed('Diff was not empty before tests')
 
       - name: Setup Python environment
@@ -269,7 +271,7 @@ jobs:
 
       - name: Check diff is empty after tests
         uses: actions/github-script@v3
-        if: matrix.directory == 'packages/engine' && ${{ env.DIFF_AFTER_TESTS }} != ""
+        if: matrix.directory == 'packages/engine' && ${{ env.DIFF_AFTER_TESTS }}
         with:
           script: |
             console.log(`${process.env.DIFF_AFTER_TESTS}`)
