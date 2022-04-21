@@ -182,9 +182,8 @@ pub mod worker_init;
 
 use std::sync::Arc;
 
+use execution::package::PersistenceConfig;
 use stateful::{agent::AgentSchema, global::Globals};
-
-use crate::config::PersistenceConfig;
 
 pub struct PackageCreatorConfig {
     pub agent_schema: Arc<AgentSchema>,

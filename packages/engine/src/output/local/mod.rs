@@ -2,9 +2,10 @@ pub mod config;
 pub mod result;
 mod sim;
 
+use execution::package::PersistenceConfig;
+
 use self::{config::LocalPersistenceConfig, sim::LocalSimulationOutputPersistence};
 use crate::{
-    config::PersistenceConfig,
     output::{buffer::Buffers, error::Result, OutputPersistenceCreatorRepr},
     proto::{ExperimentId, ExperimentName, SimulationShortId},
 };

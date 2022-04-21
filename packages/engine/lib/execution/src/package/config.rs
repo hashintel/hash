@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
-use crate::package::{init::InitialState, state::behavior_execution::Behavior};
+use crate::package::{init::InitialState, state::behavior_execution::Behavior, PackageName};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct SimPackageArgs {
@@ -15,4 +17,14 @@ pub struct PackageInitConfig {
     pub packages: Vec<SimPackageArgs>,
     pub initial_state: InitialState,
     pub behaviors: Vec<Behavior>,
+}
+
+#[derive(Clone)]
+pub struct OutputPackagesSimConfig {
+    pub map: HashMap<PackageName, serde_json::Value>,
+}
+
+#[derive(Clone)]
+pub struct PersistenceConfig {
+    pub output_config: OutputPackagesSimConfig,
 }

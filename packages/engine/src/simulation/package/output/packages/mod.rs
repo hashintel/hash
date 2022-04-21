@@ -6,7 +6,7 @@ use std::{
     lazy::SyncOnceCell,
 };
 
-use execution::package::{output::OutputPackageName, PackageInitConfig, PackageName};
+use execution::package::{output::OutputPackageName, PackageInitConfig};
 
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use crate::simulation::{
@@ -16,11 +16,6 @@ use crate::simulation::{
     },
     Error, Result,
 };
-
-#[derive(Clone)]
-pub struct OutputPackagesSimConfig {
-    pub map: HashMap<PackageName, serde_json::Value>,
-}
 
 #[derive(Debug)]
 pub enum Output {

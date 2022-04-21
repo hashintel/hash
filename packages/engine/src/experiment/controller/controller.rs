@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use tracing::{Instrument, Span};
 
 use crate::{
-    config::{ExperimentConfig, PersistenceConfig, StoreConfig},
+    config::{ExperimentConfig, StoreConfig},
     datastore::shared_store::SharedDatasets,
     env::{Environment, OrchClient},
     experiment::{
@@ -206,8 +206,9 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             &self.package_creators,
         )?;
         // Create the persistence configuration
-        let persistence_config =
-            PersistenceConfig::new_sim(&self.exp_base_config, &globals, &self.package_creators)?;
+        let persistence_config = self
+            .package_creators
+            .create_persistent_config(&self.exp_base_config, &globals)?;
         // Start the persistence service
         let persistence_service = self
             .output_persistence_service_creator

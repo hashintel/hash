@@ -1,7 +1,8 @@
+use execution::package::PersistenceConfig;
 use serde_json::Value;
 
 use crate::{
-    config::{PersistenceConfig, SimRunConfig},
+    config::SimRunConfig,
     output::{
         error::Result, OutputPersistenceCreatorRepr, OutputPersistenceResultRepr,
         SimulationOutputPersistenceRepr,

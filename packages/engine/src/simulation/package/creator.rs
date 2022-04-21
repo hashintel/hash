@@ -1,6 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
-use execution::package::{PackageInitConfig, PackageName, PackageType};
+use execution::package::{
+    OutputPackagesSimConfig, PackageInitConfig, PackageName, PackageType, PersistenceConfig,
+};
 use stateful::{
     agent::AgentSchema,
     context::ContextSchema,
@@ -12,14 +14,13 @@ use stateful::{
 };
 
 use crate::{
-    config::{PackageConfig, SimRunConfig},
+    config::{ExperimentConfig, PackageConfig, SimRunConfig},
     datastore::schema::last_state_index_key,
     proto::ExperimentRunTrait,
     simulation::{
         comms::{package::PackageComms, Comms},
         package::{
             context, init, output,
-            output::packages::OutputPackagesSimConfig,
             run::{InitPackages, Packages, StepPackages},
             state,
             worker_init::PackageInitMsgForWorker,
@@ -113,6 +114,18 @@ impl PackageCreators {
             state,
             output,
         })
+    }
+
+    pub fn create_persistent_config(
+        &self,
+        exp_config: &ExperimentConfig,
+        globals: &Globals,
+    ) -> Result<PersistenceConfig> {
+        let output_config = self.get_output_persistence_config(
+            &exp_config.run.base().project_base.package_init,
+            globals,
+        )?;
+        Ok(PersistenceConfig { output_config })
     }
 
     pub fn init_message(&self) -> Result<PackageMsgs> {

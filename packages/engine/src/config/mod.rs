@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use execution::package::PersistenceConfig;
 use stateful::{global::Globals, state::StateCreateParameters};
 
 pub use self::{
@@ -7,7 +8,6 @@ pub use self::{
     error::{Error, Result},
     experiment::Config as ExperimentConfig,
     package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
-    persistence::Config as PersistenceConfig,
     simulation::Config as SimulationConfig,
     store::Config as StoreConfig,
     topology::Config as TopologyConfig,
@@ -23,7 +23,6 @@ mod engine;
 mod error;
 mod experiment;
 mod package;
-mod persistence;
 mod simulation;
 mod store;
 pub mod topology;

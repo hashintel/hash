@@ -21,8 +21,7 @@ use uuid::Uuid;
 
 use crate::{
     config::{
-        EngineConfig, ExperimentConfig, PackageConfig, PersistenceConfig, SimRunConfig,
-        SimulationConfig, StoreConfig,
+        EngineConfig, ExperimentConfig, PackageConfig, SimRunConfig, SimulationConfig, StoreConfig,
     },
     datastore::{error::Error, schema::last_state_index_key},
     proto::{ExperimentRunBase, ExperimentRunRepr, ProjectBase},
@@ -307,7 +306,8 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
             id: 0,
             package_creator: PackageCreatorConfig {
                 agent_schema: Arc::clone(&store.agent_schema),
-                persistence: PersistenceConfig::new_sim(&exp_config, &globals, &package_creators)
+                persistence: package_creators
+                    .create_persistent_config(&exp_config, &globals)
                     .unwrap(),
                 globals,
             },

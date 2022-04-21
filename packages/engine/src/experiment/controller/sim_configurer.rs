@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
-use execution::worker_pool::{WorkerAllocation, WorkerIndex};
+use execution::{
+    package::PersistenceConfig,
+    worker_pool::{WorkerAllocation, WorkerIndex},
+};
 use stateful::global::Globals;
 
 use crate::{
-    config::{EngineConfig, ExperimentConfig, PersistenceConfig, SimRunConfig, StoreConfig},
+    config::{EngineConfig, ExperimentConfig, SimRunConfig, StoreConfig},
     experiment::controller::error::Result,
     proto::{ExperimentPackageConfig, SimulationShortId},
 };
