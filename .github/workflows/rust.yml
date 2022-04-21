@@ -242,12 +242,14 @@ jobs:
 
       - name: Generate diff before tests
         run: |
+          changed_files="$(git diff --name-only HEAD)"
+          echo $changed_files
           git --no-pager diff packages/engine
           echo "GIT_DIFF=$(git --no-pager diff packages/engine)"
 
       - name: Check diff is empty before tests
         uses: actions/github-script@v3
-        if: matrix.directory == 'packages/engine' && ${{ env.GIT_DIFF }}
+        if: matrix.directory == 'packages/engine' && ${{ env.GIT_DIFF }} != ""
         with:
           script: |
             console.log(${{ env.GIT_DIFF }})
