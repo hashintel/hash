@@ -3,11 +3,13 @@ import { Box } from "@mui/system";
 import { GetStaticProps } from "next";
 import Head from "next/head";
 import Image from "next/image";
-import { Fragment, VFC } from "react";
+import { FC, Fragment, VFC } from "react";
 import { BlogPostAuthor, BlogPostPagePhoto } from "../../components/BlogPost";
 import { GradientContainer } from "../../components/GradientContainer";
+import { Link } from "../../components/Link";
 import { PageLayout } from "../../components/PageLayout";
 import { Subscribe } from "../../components/PreFooter";
+import { parseNameFromFileName } from "../../util/clientMdxUtil";
 import { getAllPages, Page } from "../../util/mdxUtil";
 import { NextPageWithLayout } from "../../util/nextTypes";
 import { BlogPostProps, getPhoto } from "./[...blogSlug].page";
@@ -65,15 +67,37 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
   }
 };
 
+const BlogPostLink: FC<{ page: BlogIndividualPage }> = ({ page, children }) => (
+  <Link
+    href={{
+      pathname: "/blog/[...blogSlug]",
+      query: { blogSlug: parseNameFromFileName(page.fileName) },
+    }}
+  >
+    {children}
+  </Link>
+);
+
+const PostImage: VFC<{ page: BlogIndividualPage }> = ({ page }) =>
+  page.photos.post ? (
+    <BlogPostLink page={page}>
+      <Image {...page.photos.post} />
+    </BlogPostLink>
+  ) : null;
+
 const MajorPost: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
   <Stack direction="column">
-    <Box>{page.photos.post ? <Image {...page.photos.post} /> : null}</Box>
+    <Box>
+      <PostImage page={page} />
+    </Box>
     <Box>
       {page.data.author ? (
         <BlogPostAuthor>{page.data.author}</BlogPostAuthor>
       ) : null}
       {page.data.title ? (
-        <Typography variant="hashHeading2">{page.data.title}</Typography>
+        <Typography variant="hashHeading2">
+          <BlogPostLink page={page}>{page.data.title}</BlogPostLink>
+        </Typography>
       ) : null}
       {page.data.subtitle ? (
         <Typography variant="hashBodyCopy" sx={{ lineHeight: 1.5 }}>
@@ -97,7 +121,9 @@ const MinorPost: VFC<{ page: BlogIndividualPage; collapsed?: boolean }> = ({
         <BlogPostAuthor>{page.data.author}</BlogPostAuthor>
       ) : null}
       {page.data.title ? (
-        <Typography variant="hashHeading4">{page.data.title}</Typography>
+        <Typography variant="hashHeading4">
+          <BlogPostLink page={page}>{page.data.title}</BlogPostLink>
+        </Typography>
       ) : null}
       {page.data.subtitle ? (
         <Typography variant="hashBodyCopy" sx={{ lineHeight: 1.5 }}>
@@ -105,7 +131,9 @@ const MinorPost: VFC<{ page: BlogIndividualPage; collapsed?: boolean }> = ({
         </Typography>
       ) : null}
     </Box>
-    <Box>{page.photos.post ? <Image {...page.photos.post} /> : null}</Box>
+    <Box>
+      <PostImage page={page} />
+    </Box>
   </Stack>
 );
 
