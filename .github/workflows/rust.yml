@@ -183,7 +183,7 @@ jobs:
         if: ${{ env.GIT_DIFF }} && ${{ env.GIT_DIFF }} != ""
         with:
           script: |
-            core.setFailed(`Diff was not empty after compilation: ${ process.env.GIT_DIFF }`)
+            core.setFailed('Diff was not empty after compilation')
 
       - name: Annotate
         if: ${{ failure() }}
