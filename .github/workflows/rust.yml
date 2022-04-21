@@ -241,13 +241,15 @@ jobs:
       - name: Generate diff before tests
         uses: technote-space/get-diff-action@v6
         if: matrix.directory == 'packages/engine'
+        with:
+          RELATIVE: ${{ matrix.directory }}
 
       - name: Check diff is empty before tests
         uses: actions/github-script@v3
         if: matrix.directory == 'packages/engine' && ${{ env.GIT_DIFF }}
         with:
           script: |
-            console.log("${{ env.GIT_DIFF }}")
+            console.log(${{ env.GIT_DIFF }})
             core.setFailed('Diff was not empty before tests')
 
       - name: Setup Python environment
