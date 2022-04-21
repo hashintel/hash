@@ -239,9 +239,8 @@ jobs:
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
 
       - name: Generate diff before tests
-        if: matrix.directory == 'packages/engine'
         run: |
-          git --no-pager diff ${{ matrix.directory }}
+          git --no-pager diff packages/engine
           echo "GIT_DIFF=$(git --no-pager diff ${{ matrix.directory }})"
 
       - name: Check diff is empty before tests
