@@ -241,7 +241,7 @@ jobs:
       - name: Generate diff before tests
         if: matrix.directory == 'packages/engine'
         run: |
-          echo git --no-pager diff ${{ matrix.directory }}
+          git --no-pager diff ${{ matrix.directory }}
           echo "DIFF=$(git --no-pager diff ${{ matrix.directory }})"
 
       - name: Check diff is empty before tests
