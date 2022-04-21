@@ -35,7 +35,7 @@
     "@sentry/nextjs": "6.17.9",
     "@svgr/webpack": "6.2.1",
     "@twind/next": "1.0.9",
-    "ajv": "8.7.1",
+    "ajv": "8.11.0",
     "blockprotocol": "0.0.7",
     "clsx": "1.1.1",
     "date-fns": "2.22.1",

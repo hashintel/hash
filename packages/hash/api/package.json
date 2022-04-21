@@ -27,7 +27,7 @@
     "@snowplow/node-tracker": "3.3.1",
     "@types/lodash": "4.14.175",
     "@types/redis": "2.8.32",
-    "ajv": "8.7.1",
+    "ajv": "8.11.0",
     "ajv-formats": "2.1.1",
     "apollo-datasource": "3.3.0",
     "apollo-server-errors": "3.1.0",
