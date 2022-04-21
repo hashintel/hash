@@ -9,6 +9,8 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import clsx from "clsx";
+import { useRouter } from "next/router";
 import { useState, VFC } from "react";
 import { Button } from "./Button";
 import { FaIcon } from "./icons/FaIcon";
@@ -17,73 +19,96 @@ import { Logo } from "./Logo";
 
 export const NAV_HEIGHT = 58;
 
-const DesktopNav: VFC = () => (
-  <>
-    <Button
-      size="medium"
-      variant="tertiary"
-      href="https://hash.ai"
-      endIcon={<FaIcon name="arrow-up-right-from-square" type="solid" />}
-    >
-      Visit our main site
-    </Button>
-    <Stack
-      direction="row"
-      spacing={2}
-      ml="auto"
-      sx={{
-        [`& .${buttonClasses.root}`]: {
-          minHeight: 32,
-          py: 1,
-          borderRadius: 30,
-          borderWidth: 1,
+const DesktopNav: VFC = () => {
+  const router = useRouter();
 
-          "&:after": {
-            borderWidth: 3,
-            left: -6,
-            top: -6,
-            right: -6,
-            bottom: -6,
-          },
-
-          "&.MuiButton-primary": {
-            borderColor: "yellow.500",
-            color: "yellow.900",
-
-            ":hover, :focus-visible, &.Button--focus:not(:disabled)": {
-              backgroundColor: "yellow.400",
-            },
-          },
-
-          "&.MuiButton-tertiary": {
-            borderColor: "gray.20",
-
-            ":focus-visible, &.Button--focus:not(:disabled)": {
-              borderColor: "gray.40",
-            },
-          },
-        },
-      }}
-    >
+  return (
+    <>
       <Button
         size="medium"
         variant="tertiary"
-        startIcon={<FaIcon name="discord" type="brands" />}
-        href="https://hash.ai/discord"
+        href="https://hash.ai"
+        endIcon={<FaIcon name="arrow-up-right-from-square" type="solid" />}
       >
-        Chat to us on Discord
+        Visit our main site
       </Button>
-      <Button
-        size="medium"
-        variant="primary"
-        startIcon={<FaIcon name="envelope" type="regular" />}
-        href="#subscribe"
+      <Stack
+        direction="row"
+        spacing={2}
+        ml="auto"
+        sx={{
+          [`& .${buttonClasses.root}`]: {
+            minHeight: 32,
+            py: 1,
+            borderRadius: 30,
+            borderWidth: 1,
+
+            "&:after": {
+              borderWidth: 3,
+              left: -6,
+              top: -6,
+              right: -6,
+              bottom: -6,
+            },
+
+            "&.MuiButton-primary": {
+              borderColor: "yellow.500",
+              color: "yellow.900",
+
+              ":hover, :focus-visible, &.Button--focus:not(:disabled)": {
+                backgroundColor: "yellow.400",
+              },
+            },
+
+            "&.MuiButton-tertiary": {
+              borderColor: "gray.20",
+
+              ":focus-visible, &.Button--focus:not(:disabled)": {
+                borderColor: "gray.40",
+              },
+            },
+          },
+          ".NavLink": {
+            border: 0,
+
+            background: "transparent",
+
+            "&.active": {
+              background: "yellow.20",
+            },
+          },
+        }}
       >
-        Join the mailing list
-      </Button>
-    </Stack>
-  </>
-);
+        <Button
+          size="medium"
+          className={clsx("NavLink", {
+            active: router.asPath.startsWith("/blog"),
+          })}
+          href="/blog"
+          startIcon={<FaIcon name="newspaper" type="solid" />}
+        >
+          Blog
+        </Button>
+        <Button
+          size="medium"
+          variant="tertiary"
+          startIcon={<FaIcon name="discord" type="brands" />}
+          href="https://hash.ai/discord"
+        >
+          Chat to us on Discord
+        </Button>
+        <Button
+          size="medium"
+          variant="primary"
+          startIcon={<FaIcon name="envelope" type="regular" />}
+          href="#subscribe"
+        >
+          Join the mailing list
+        </Button>
+      </Stack>
+    </>
+  );
+};
 
 const MobileNavButton: VFC<{ open: boolean; onOpenToggle: () => void }> = ({
   open,
