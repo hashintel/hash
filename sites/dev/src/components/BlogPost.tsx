@@ -1,4 +1,4 @@
-import { Container, Stack, Typography, typographyClasses } from "@mui/material";
+import { Container, Stack, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import { parse } from "date-fns";
 import Head from "next/head";
@@ -211,10 +211,6 @@ export const BlogPostContent: FC = ({ children }) => (
         "> *": {
           gridColumn: 2,
         },
-
-        // [`.${typographyClasses.root} a`]: {
-        //   fontWeight: "inherit",
-        // },
 
         ".MuiTypography-hashBodyCopy + .MuiTypography-hashBodyCopy": {
           mt: 4,
