@@ -242,7 +242,7 @@ jobs:
         if: matrix.directory == 'packages/engine'
         run: |
           git --no-pager diff ${{ matrix.directory }}
-          echo "DIFF=$(git --no-pager diff ${{ matrix.directory }})"
+          echo "GIT_DIFF=$(git --no-pager diff ${{ matrix.directory }})"
 
       - name: Check diff is empty before tests
         uses: actions/github-script@v3
