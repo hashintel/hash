@@ -32,11 +32,10 @@ type BlockHandleProps = {
   entityId: string | null;
   onTypeChange: BlockSuggesterProps["onChange"];
   entityStore: EntityStore;
-  editorView: EditorView<Schema>;
 };
 
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ entityId, onTypeChange, entityStore, editorView }, ref) => {
+  ({ entityId, onTypeChange, entityStore }, ref) => {
     const blockMenuRef = useRef(null);
     const contextMenuPopupState = usePopupState({
       variant: "popover",
@@ -61,11 +60,12 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
     const { value: blocksMetaMap } = useUserBlocks();
 
     /**
-     * The context and config menu use data from the draft store to subscribe to the latest changes.
+     * The context and config menu use data from the draft store to subscribe to the latest local changes.
      * Because some blocks update the API directly, bypassing collab and the entity store,
-     * this means that the data in the menus can get out of sync with data in those blocks.
+     * data in the menus can get out of sync with data in those blocks for a few seconds.
      * The update is eventually received by collab via the db realtime subscription, and the store updated.
      * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
+     * @todo remove this comment when all updates are sent via collab
      */
     const blockData = entityId
       ? getDraftEntityFromEntityId(entityStore.draft, entityId) ?? null
@@ -336,7 +336,6 @@ export class BlockView implements NodeView<Schema> {
           entityId={blockEntityId}
           onTypeChange={this.onBlockChange}
           entityStore={this.store}
-          editorView={this.editorView}
         />
       </BlockViewContext.Provider>,
       this.selectContainer,
