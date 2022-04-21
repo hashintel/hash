@@ -1,19 +1,25 @@
 import { Box } from "@mui/material";
+import { BoxProps } from "@mui/system";
 import { FC } from "react";
 
-export const GradientContainer: FC = ({ children }) => (
+export const GradientContainer: FC<BoxProps> = ({
+  children,
+  sx = [],
+  ...props
+}) => (
   <Box
     component="section"
     py={16}
-    sx={{
-      position: "relative",
-      "&:before": {
-        content: `""`,
-        display: "block",
-        position: "absolute",
-        top: 0,
-        left: 0,
-        backgroundImage: `
+    sx={[
+      {
+        position: "relative",
+        "&:before": {
+          content: `""`,
+          display: "block",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundImage: `
           linear-gradient(
             180deg,
             rgba(255, 255, 255, 0) 0%,
@@ -34,11 +40,14 @@ export const GradientContainer: FC = ({ children }) => (
             hsl(252deg 95% 64%) 97%
           );
         `,
-        width: "100%",
-        height: 400,
-        zIndex: -1,
+          width: "100%",
+          height: 400,
+          zIndex: -1,
+        },
       },
-    }}
+      ...(Array.isArray(sx) ? sx : [sx]),
+    ]}
+    {...props}
   >
     {children}
   </Box>
