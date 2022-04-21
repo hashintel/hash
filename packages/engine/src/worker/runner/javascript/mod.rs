@@ -22,7 +22,7 @@ use arrow::{
     util::bit_util,
 };
 use execution::{
-    package::TaskMessage,
+    package::{PackageType, TaskMessage},
     runner::{Language, MessageTarget},
     task::{PartialSharedState, SharedState, SharedStore},
 };
@@ -48,7 +48,6 @@ use crate::{
         table::sync::{ContextBatchSync, StateSync, WaitableStateSync},
     },
     proto::SimulationShortId,
-    simulation::package::PackageType,
     types::TaskId,
     worker::{
         runner::comms::{
@@ -75,11 +74,7 @@ struct JsPackage<'s> {
 }
 
 fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
-    format!(
-        "./src/simulation/package/{}/packages/{}/package.js",
-        pkg_type.as_str(),
-        name
-    )
+    format!("./src/simulation/package/{pkg_type}/packages/{name}/package.js")
 }
 
 /// TODO: DOC add docstrings on impl'd methods
@@ -877,7 +872,7 @@ impl<'s> ThreadLocalRunner<'s> {
             tracing::trace!(
                 "pkg experiment init name {:?}, type {}, fns {:?}",
                 &pkg_init.name,
-                &pkg_init.r#type.as_str(),
+                &pkg_init.r#type,
                 &pkg.fns,
             );
             pkg_fns

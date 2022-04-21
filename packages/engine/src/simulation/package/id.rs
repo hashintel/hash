@@ -1,6 +1,5 @@
+use execution::package::PackageType;
 use stateful::field::PackageId;
-
-use crate::simulation::package::PackageType;
 
 pub struct PackageIdGenerator {
     cur: u32,

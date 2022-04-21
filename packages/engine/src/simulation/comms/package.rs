@@ -1,5 +1,5 @@
 use execution::{
-    package::PackageTask,
+    package::{PackageTask, PackageType},
     task::{SharedStore, Task},
 };
 use stateful::{agent::Agent, field::PackageId};
@@ -8,7 +8,6 @@ use uuid::Uuid;
 
 use crate::simulation::{
     comms::{Comms, Result},
-    package::PackageType,
     task::active::ActiveTask,
 };
 
