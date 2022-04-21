@@ -1,12 +1,21 @@
 import { executeTask } from "../execution";
-import { AirbyteMessage } from "./protocol";
+import { parse_message_stream } from "./parsing";
+import {
+  AirbyteConnectionStatus,
+  AirbyteMessage,
+  AirbyteStream,
+  ConnectorSpecification,
+} from "./protocol";
 
 interface AirbyteExecutor {
   imageName: string;
 
-  runSpec(): Promise<AirbyteMessage>;
-  runCheck(config_path: string): Promise<AirbyteMessage>;
-  runDiscover(config_path: string): Promise<AirbyteMessage>;
+  runSpec(): Promise<ConnectorSpecification>;
+  runCheck(config_path: string): Promise<AirbyteConnectionStatus>;
+  runDiscover(config_path: string): Promise<{
+    streams: AirbyteStream[];
+    [k: string]: unknown;
+  }>;
   runRead(
     config_path: string,
     configured_catalog_path: string,
@@ -21,7 +30,7 @@ export class BaseExecutor implements AirbyteExecutor {
     this.imageName = imageName;
   }
 
-  async runSpec(): Promise<AirbyteMessage> {
+  async runSpec(): Promise<ConnectorSpecification> {
     const response = await executeTask("docker", [
       "run",
       "--rm",
@@ -29,10 +38,19 @@ export class BaseExecutor implements AirbyteExecutor {
       "spec",
     ]);
 
-    return JSON.parse(response);
+    const messages = parse_message_stream(response);
+
+    const spec_message = messages.find(
+      (message) => message.type === "SPEC" && message.spec,
+    );
+    if (spec_message) {
+      return spec_message.spec!;
+    } else {
+      throw new Error("Message didn't contain a ConnectorSpecification");
+    }
   }
 
-  async runCheck(config_path: string): Promise<AirbyteMessage> {
+  async runCheck(config_path: string): Promise<AirbyteConnectionStatus> {
     const response = await executeTask("docker", [
       "run",
       "--rm",
@@ -44,10 +62,23 @@ export class BaseExecutor implements AirbyteExecutor {
       "/secrets/config.json",
     ]);
 
-    return JSON.parse(response);
+    const messages = parse_message_stream(response);
+
+    const status_message = messages.find(
+      (message) =>
+        message.type === "CONNECTION_STATUS" && message.connectionStatus,
+    );
+    if (status_message) {
+      return status_message.connectionStatus!;
+    } else {
+      throw new Error("Message didn't contain a AirbyteConnectionStatus");
+    }
   }
 
-  async runDiscover(config_path: string): Promise<AirbyteMessage> {
+  async runDiscover(config_path: string): Promise<{
+    streams: AirbyteStream[];
+    [k: string]: unknown;
+  }> {
     const response = await executeTask("docker", [
       "run",
       "--rm",
@@ -59,7 +90,16 @@ export class BaseExecutor implements AirbyteExecutor {
       "/secrets/config.json",
     ]);
 
-    return JSON.parse(response);
+    const messages = parse_message_stream(response);
+
+    const catalog_message = messages.find(
+      (message) => message.type === "CATALOG" && message.catalog,
+    );
+    if (catalog_message) {
+      return catalog_message.catalog!;
+    } else {
+      throw new Error("Message didn't contain a Airbyte Catalog");
+    }
   }
 
   async runRead(
@@ -87,6 +127,9 @@ export class BaseExecutor implements AirbyteExecutor {
 
     const response = await executeTask("docker", args);
 
-    return JSON.parse(response);
+    const stream = JSON.parse(response);
+    console.log(stream);
+    // todo
+    throw new Error();
   }
 }

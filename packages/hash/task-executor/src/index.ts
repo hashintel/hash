@@ -18,7 +18,23 @@ app.get("/github/spec", (_, res) => {
   new GithubIngestor()
     .runSpec()
     .then((result) => res.status(200).send(JSON.stringify(result)))
-    .catch((err) => res.status(500).send(JSON.stringify(err)));
+    .catch((err) => res.status(500).json({ error: err.toString() }));
+});
+
+app.get("/github/check", (_, res) => {
+  new GithubIngestor()
+    .runCheck(`${process.cwd()}/src/tasks/source-github/secrets/config.json`)
+    .then((result) => res.status(200).send(JSON.stringify(result)))
+    .catch((err) => {
+      res.status(500).json({ error: err.toString() });
+    });
+});
+
+app.get("/github/discover", (_, res) => {
+  new GithubIngestor()
+    .runDiscover(`${process.cwd()}/src/tasks/source-github/secrets/config.json`)
+    .then((result) => res.status(200).send(JSON.stringify(result)))
+    .catch((err) => res.status(500).json({ error: err.toString() }));
 });
 
 app.listen(port, () => console.log(`Listening on port ${port}...`));

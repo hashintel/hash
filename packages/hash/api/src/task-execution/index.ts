@@ -6,6 +6,7 @@ import fetch from "node-fetch";
 export enum Tasks {
   Demo = "python",
   GithubSpec = "github/spec",
+  GithubCheck = "github/check",
 }
 
 export type Config = {

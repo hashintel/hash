@@ -11,5 +11,9 @@ export const executeTaskTypedef = gql`
     Call the Github Integration Spec Task
     """
     executeGithubSpecTask: String!
+    """
+    Call the Github Integration Check Task
+    """
+    executeGithubCheckTask: String!
   }
 `;
