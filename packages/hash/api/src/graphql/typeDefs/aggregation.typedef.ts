@@ -100,7 +100,7 @@ export const aggregationTypedef = gql`
     updateLinkedAggregationOperation(
       sourceAccountId: ID!
       sourceEntityId: ID!
-      path: String!
+      aggregationId: ID!
       updatedOperation: AggregateOperationInput!
     ): LinkedAggregation!
     """
@@ -109,7 +109,7 @@ export const aggregationTypedef = gql`
     deleteLinkedAggregation(
       sourceAccountId: ID!
       sourceEntityId: ID!
-      path: String!
+      aggregationId: ID!
     ): Boolean!
   }
 `;
