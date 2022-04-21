@@ -25,9 +25,9 @@ use crate::simulation::{
         context::{
             packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextPackage,
             ContextPackageCreator, ContextSchema, Error, FieldSpecMapAccessor, MaybeCpuBound,
-            Package, PackageCreator, SimRunConfig, StateReadProxy, StateSnapshot,
+            Package, PackageCreator, StateReadProxy, StateSnapshot,
         },
-        PackageInitConfig,
+        PackageCreatorConfig, PackageInitConfig,
     },
     Result,
 };
@@ -39,13 +39,13 @@ pub struct ApiRequestsCreator;
 impl ContextPackageCreator for ApiRequestsCreator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
         _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
-        let custom_message_handlers = custom_message_handlers_from_globals(&config.sim.globals)?;
+        let custom_message_handlers = custom_message_handlers_from_globals(&config.globals)?;
         Ok(Box::new(ApiRequests {
             custom_message_handlers,
             context_field_spec_accessor,

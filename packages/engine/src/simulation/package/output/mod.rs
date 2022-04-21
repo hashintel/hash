@@ -13,23 +13,20 @@ use stateful::{
 use tracing::Span;
 
 use self::packages::Output;
-use crate::{
-    config::SimRunConfig,
-    simulation::{
-        comms::package::PackageComms,
-        package::{
-            ext_traits::{MaybeCpuBound, Package, PackageCreator},
-            PackageInitConfig,
-        },
-        Error, Result,
+use crate::simulation::{
+    comms::package::PackageComms,
+    package::{
+        ext_traits::{MaybeCpuBound, Package, PackageCreator},
+        PackageCreatorConfig, PackageInitConfig,
     },
+    Error, Result,
 };
 
 pub trait OutputPackageCreator: PackageCreator {
     /// Create the package.
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
         system: PackageComms,
         accessor: FieldSpecMapAccessor,

@@ -2,8 +2,6 @@
 
 pub mod packages;
 
-use std::sync::Arc;
-
 use async_trait::async_trait;
 pub use packages::{Name, PACKAGE_CREATORS};
 use stateful::{
@@ -12,16 +10,13 @@ use stateful::{
     global::Globals,
 };
 
-use crate::{
-    config::SimRunConfig,
-    simulation::{
-        comms::package::PackageComms,
-        package::{
-            ext_traits::{MaybeCpuBound, Package, PackageCreator},
-            PackageInitConfig,
-        },
-        Result,
+use crate::simulation::{
+    comms::package::PackageComms,
+    package::{
+        ext_traits::{MaybeCpuBound, Package, PackageCreator},
+        PackageCreatorConfig, PackageInitConfig,
     },
+    Result,
 };
 
 #[async_trait]
@@ -33,7 +28,7 @@ pub trait InitPackageCreator: PackageCreator {
     /// Create the package.
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
         system: PackageComms,
         accessor: FieldSpecMapAccessor,

@@ -3,7 +3,7 @@ mod config;
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
-    agent::{Agent, IntoAgents},
+    agent::{Agent, AgentSchema, IntoAgents},
     context::Context,
     field::FieldScope,
     global::Globals,
@@ -16,9 +16,9 @@ use crate::simulation::package::{
     output,
     output::{
         Arc, Error, FieldSpecMapAccessor, MaybeCpuBound, Output, OutputPackage,
-        OutputPackageCreator, Package, PackageComms, PackageCreator, Result, SimRunConfig, Span,
+        OutputPackageCreator, Package, PackageComms, PackageCreator, Result, Span,
     },
-    PackageInitConfig,
+    PackageCreatorConfig, PackageInitConfig,
 };
 
 // TODO: UNUSED: Needs triage
@@ -29,13 +29,12 @@ pub struct JsonStateCreator;
 impl OutputPackageCreator for JsonStateCreator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
         _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>> {
         let value = config
-            .sim
             .persistence
             .output_config
             .map
@@ -43,7 +42,7 @@ impl OutputPackageCreator for JsonStateCreator {
             .ok_or_else(|| Error::from("Missing JSON state config"))?;
         let output_config: JsonStateOutputConfig = serde_json::from_value(value.clone())?;
         Ok(Box::new(JsonState {
-            sim_run_config: config.clone(),
+            agent_schema: Arc::clone(&config.agent_schema),
             output_config,
         }))
     }
@@ -61,7 +60,7 @@ impl PackageCreator for JsonStateCreator {
 }
 
 struct JsonState {
-    sim_run_config: Arc<SimRunConfig>,
+    agent_schema: Arc<AgentSchema>,
     output_config: JsonStateOutputConfig,
 }
 
@@ -90,7 +89,7 @@ impl OutputPackage for JsonState {
                     agent_batch.batch.record_batch()?,
                     message_batch.batch.record_batch()?,
                 )
-                    .to_agent_states(Some(&self.sim_run_config.sim.store.agent_schema))
+                    .to_agent_states(Some(&self.agent_schema))
             })
             .collect();
 

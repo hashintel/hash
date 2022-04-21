@@ -29,9 +29,9 @@ use crate::simulation::{
                 fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
             },
             Arc, Error, FieldSpecMapAccessor, Name, Package, PackageComms, PackageCreator, Result,
-            SimRunConfig, Span, StatePackage, StatePackageCreator,
+            Span, StatePackage, StatePackageCreator,
         },
-        PackageInitConfig,
+        PackageCreatorConfig, PackageInitConfig,
     },
     task::active::ActiveTask,
 };
@@ -95,7 +95,7 @@ impl PackageCreator for BehaviorExecutionCreator {
 impl StatePackageCreator for BehaviorExecutionCreator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
@@ -106,8 +106,6 @@ impl StatePackageCreator for BehaviorExecutionCreator {
             .create_key()?;
 
         let behavior_ids_col_index = config
-            .sim
-            .store
             .agent_schema
             .arrow
             .index_of(behavior_ids_col.value())?;
@@ -116,8 +114,6 @@ impl StatePackageCreator for BehaviorExecutionCreator {
             .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
             .create_key()?;
         let behavior_index_col_index = config
-            .sim
-            .store
             .agent_schema
             .arrow
             .index_of(behavior_index_col.value())?;

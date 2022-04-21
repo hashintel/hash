@@ -14,10 +14,10 @@ use crate::{
     simulation::{
         package::{
             state::{
-                Arc, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, SimRunConfig,
-                Span, StatePackage, StatePackageCreator,
+                Arc, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, Span,
+                StatePackage, StatePackageCreator,
             },
-            PackageInitConfig,
+            PackageCreatorConfig, PackageInitConfig,
         },
         Result,
     },
@@ -37,13 +37,13 @@ pub struct TopologyCreator;
 impl StatePackageCreator for TopologyCreator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
         _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>> {
         let topology = Topology {
-            config: Arc::new(TopologyConfig::from_globals(&config.sim.globals)?),
+            config: Arc::new(TopologyConfig::from_globals(&config.globals)?),
         };
         Ok(Box::new(topology))
     }

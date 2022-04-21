@@ -17,10 +17,10 @@ use crate::{
     simulation::{
         package::{
             init::{
-                Arc, FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
-                PackageComms, PackageCreator, SimRunConfig,
+                FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
+                PackageComms, PackageCreator,
             },
-            PackageInitConfig,
+            PackageCreatorConfig, PackageInitConfig,
         },
         Error, Result,
     },
@@ -31,7 +31,7 @@ pub struct ScriptInitCreator;
 impl InitPackageCreator for ScriptInitCreator {
     fn create(
         &self,
-        _config: &Arc<SimRunConfig>,
+        _config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
         comms: PackageComms,
         _accessor: FieldSpecMapAccessor,

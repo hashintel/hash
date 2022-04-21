@@ -15,6 +15,7 @@ pub use self::{
 use crate::{
     env::Environment,
     proto::{ExperimentRunTrait, SimulationShortId},
+    simulation::package::PackageCreatorConfig,
     Args,
 };
 
@@ -92,10 +93,13 @@ fn simulation_config(
 ) -> Result<SimulationConfig> {
     Ok(SimulationConfig {
         id,
-        globals: Arc::new(globals),
+        package_creator: PackageCreatorConfig {
+            agent_schema: Arc::clone(&store.agent_schema),
+            globals,
+            persistence,
+        },
         engine: Arc::new(engine),
         store: Arc::new(store),
-        persistence,
         max_num_steps,
     })
 }

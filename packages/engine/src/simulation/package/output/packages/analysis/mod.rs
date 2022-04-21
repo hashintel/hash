@@ -22,14 +22,13 @@ pub use self::{
     output::{AnalysisOutput, AnalysisSingleOutput},
 };
 use crate::{
-    config::SimRunConfig,
     experiment::SimPackageArgs,
     simulation::{
         comms::package::PackageComms,
         package::{
             ext_traits::{MaybeCpuBound, Package, PackageCreator},
             output::{packages::Output, OutputPackage, OutputPackageCreator},
-            PackageInitConfig,
+            PackageCreatorConfig, PackageInitConfig,
         },
         Error, Result,
     },
@@ -43,7 +42,7 @@ pub struct AnalysisCreator;
 impl OutputPackageCreator for AnalysisCreator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
         _comms: PackageComms,
         accessor: FieldSpecMapAccessor,
@@ -51,11 +50,8 @@ impl OutputPackageCreator for AnalysisCreator {
         // TODO, look at reworking signatures and package creation to make ownership clearer and
         // make this unnecessary
         let analysis_src = get_analysis_source(&init_config.packages)?;
-        let analyzer = Analyzer::from_analysis_source(
-            &analysis_src,
-            &config.sim.store.agent_schema,
-            &accessor,
-        )?;
+        let analyzer =
+            Analyzer::from_analysis_source(&analysis_src, &config.agent_schema, &accessor)?;
 
         Ok(Box::new(Analysis { analyzer }))
     }

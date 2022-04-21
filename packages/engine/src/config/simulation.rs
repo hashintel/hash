@@ -1,17 +1,15 @@
 use std::sync::Arc;
 
-use stateful::global::Globals;
-
 use crate::{
-    config::{EngineConfig, PersistenceConfig, StoreConfig},
+    config::{EngineConfig, StoreConfig},
     proto::SimulationShortId,
+    simulation::package::PackageCreatorConfig,
 };
 
 pub struct Config {
     pub id: SimulationShortId,
-    pub globals: Arc<Globals>,
     pub store: Arc<StoreConfig>,
     pub engine: Arc<EngineConfig>,
     pub max_num_steps: usize,
-    pub persistence: PersistenceConfig,
+    pub package_creator: PackageCreatorConfig,
 }

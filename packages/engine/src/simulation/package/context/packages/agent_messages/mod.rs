@@ -22,9 +22,8 @@ use crate::simulation::{
         context::{
             packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextPackage,
             ContextPackageCreator, FieldSpecMapAccessor, MaybeCpuBound, Package, PackageCreator,
-            SimRunConfig,
         },
-        PackageInitConfig,
+        PackageCreatorConfig, PackageInitConfig,
     },
     Result,
 };
@@ -40,7 +39,7 @@ pub struct AgentMessagesCreator;
 impl ContextPackageCreator for AgentMessagesCreator {
     fn create(
         &self,
-        _config: &Arc<SimRunConfig>,
+        _config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
         _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,

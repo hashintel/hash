@@ -183,14 +183,23 @@ pub mod name;
 pub mod run;
 pub mod worker_init;
 
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
-use stateful::field::PackageId;
+use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
 
 use crate::{
+    config::PersistenceConfig,
     experiment::{SharedBehavior, SimPackageArgs},
     proto::InitialState,
     simulation::package::deps::Dependencies,
 };
+
+pub struct PackageCreatorConfig {
+    pub agent_schema: Arc<AgentSchema>,
+    pub globals: Globals,
+    pub persistence: PersistenceConfig,
+}
 
 // TODO: The name might be confused with the init package type. If we can come up with another name,
 //   this would be great.

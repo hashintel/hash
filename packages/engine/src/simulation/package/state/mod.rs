@@ -12,16 +12,13 @@ use stateful::{
 };
 use tracing::Span;
 
-use crate::{
-    config::SimRunConfig,
-    simulation::{
-        comms::package::PackageComms,
-        package::{
-            ext_traits::{Package, PackageCreator},
-            PackageInitConfig,
-        },
-        Error, Result,
+use crate::simulation::{
+    comms::package::PackageComms,
+    package::{
+        ext_traits::{Package, PackageCreator},
+        PackageCreatorConfig, PackageInitConfig,
     },
+    Error, Result,
 };
 
 #[async_trait]
@@ -35,7 +32,7 @@ pub trait StatePackageCreator: PackageCreator {
     /// Create the package.
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,

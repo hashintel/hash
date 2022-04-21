@@ -84,7 +84,10 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         // Globals
         let globals_path = path.join("globals.json");
         std::fs::File::create(&globals_path)?;
-        std::fs::write(&globals_path, serde_json::to_string(&config.sim.globals)?)?;
+        std::fs::write(
+            &globals_path,
+            serde_json::to_string(&config.sim.package_creator.globals)?,
+        )?;
 
         Ok(LocalPersistenceResult::new(
             path.canonicalize()?.to_string_lossy().to_string(),

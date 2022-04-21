@@ -22,7 +22,7 @@ use crate::{
     proto::{ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase},
     simulation::package::{
         creator::{get_base_agent_fields, PackageCreators},
-        PackageInitConfig,
+        PackageCreatorConfig, PackageInitConfig,
     },
 };
 
@@ -299,15 +299,18 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         exp: Arc::clone(&exp_config),
         sim: Arc::new(SimulationConfig {
             id: 0,
-            globals: Arc::default(),
+            package_creator: PackageCreatorConfig {
+                agent_schema: Arc::clone(&store.agent_schema),
+                persistence: PersistenceConfig::new_sim(&exp_config, &globals, &package_creators)
+                    .unwrap(),
+                globals,
+            },
             store,
             engine: Arc::new(EngineConfig {
                 worker_allocation: Vec::new(),
                 num_workers: 0,
             }),
             max_num_steps: 0,
-            persistence: PersistenceConfig::new_sim(&exp_config, &globals, &package_creators)
-                .unwrap(),
         }),
     }
 }

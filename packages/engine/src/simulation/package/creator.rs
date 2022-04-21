@@ -181,7 +181,7 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    config,
+                    &config.sim.package_creator,
                     &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Init),
                     FieldSpecMapAccessor::new(
@@ -205,7 +205,7 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    config,
+                    &config.sim.package_creator,
                     &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Context),
                     FieldSpecMapAccessor::new(
@@ -233,7 +233,7 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    config,
+                    &config.sim.package_creator,
                     &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::State),
                     FieldSpecMapAccessor::new(
@@ -257,7 +257,7 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    config,
+                    &config.sim.package_creator,
                     &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Output),
                     FieldSpecMapAccessor::new(

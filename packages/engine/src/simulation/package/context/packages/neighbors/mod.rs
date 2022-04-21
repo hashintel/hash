@@ -14,7 +14,7 @@ use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
-    config::{SimRunConfig, TopologyConfig},
+    config::TopologyConfig,
     simulation::{
         comms::package::PackageComms,
         package::{
@@ -23,7 +23,7 @@ use crate::{
                 ContextPackageCreator,
             },
             ext_traits::{MaybeCpuBound, Package, PackageCreator},
-            PackageInitConfig,
+            PackageCreatorConfig, PackageInitConfig,
         },
         Result,
     },
@@ -45,14 +45,14 @@ pub struct NeighborsCreator;
 impl ContextPackageCreator for NeighborsCreator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
         _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let neighbors = Neighbors {
-            topology: Arc::new(TopologyConfig::from_globals(&config.sim.globals)?),
+            topology: Arc::new(TopologyConfig::from_globals(&config.globals)?),
             context_field_spec_accessor,
         };
         Ok(Box::new(neighbors))
