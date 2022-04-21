@@ -78,6 +78,14 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   // should only include block entities and
   // should not include current entity displayed in the block
 
+  const filteredEntities = entities.filter((entity) => {
+    return (
+      Object.keys(entity.properties?.entity?.properties).length > 0 &&
+      entity.properties?.entity.entityId !==
+        blockData?.properties.entity.entityId
+    );
+  });
+
   return (
     <MenuList>
       <Box sx={{ mx: 0.75 }}>
@@ -106,7 +114,7 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
           }}
         />
       </Box>
-      {entities.map((entity) => {
+      {filteredEntities.map((entity) => {
         return (
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore -- @todo fix typings
