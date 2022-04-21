@@ -1,12 +1,12 @@
 use crate::{
-    config::TaskDistributionConfig,
     simulation::{
-        enum_dispatch::InitTaskMessage,
-        package::init::packages::js_py::{JsPyInitTaskMessage, StartMessage},
+        package::init::{
+            packages::js_py::{JsPyInitTaskMessage, StartMessage},
+            InitTaskMessage,
+        },
         task::{
-            args::GetTaskArgs,
-            handler::{WorkerHandler, WorkerPoolHandler},
-            msg::TargetedTaskMessage,
+            handler::WorkerHandler,
+            msg::{TargetedTaskMessage, TaskMessage},
             GetTaskName,
         },
         Result as SimulationResult,
@@ -25,24 +25,16 @@ impl GetTaskName for PyInitTask {
     }
 }
 
-impl GetTaskArgs for PyInitTask {
-    fn distribution(&self) -> TaskDistributionConfig {
-        TaskDistributionConfig::None
-    }
-}
-
 impl WorkerHandler for PyInitTask {
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {
         let start_msg = StartMessage {
             initial_state_source: self.initial_state_source.clone(),
         };
-        let jspy_task_msg: JsPyInitTaskMessage = start_msg.into();
-        let init_task_msg: InitTaskMessage = jspy_task_msg.into();
+        let jspy_task_msg = JsPyInitTaskMessage::StartMessage(start_msg);
+        let init_task_msg = InitTaskMessage::JsPyInitTaskMessage(jspy_task_msg);
         SimulationResult::Ok(TargetedTaskMessage {
             target: MessageTarget::Python,
-            payload: init_task_msg.into(),
+            payload: TaskMessage::InitTaskMessage(init_task_msg),
         })
     }
 }
-
-impl WorkerPoolHandler for PyInitTask {}

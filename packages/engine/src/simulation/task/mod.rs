@@ -81,10 +81,19 @@ pub mod cancel;
 pub mod handler;
 pub mod msg;
 
-use crate::simulation::enum_dispatch::{
-    enum_dispatch, ContextTask, GetTaskArgs, InitTask, OutputTask, Result, SplitConfig, StateTask,
-    StoreAccessVerify, TargetedTaskMessage, TaskDistributionConfig, TaskMessage, TaskSharedStore,
-    WorkerHandler, WorkerPoolHandler,
+use crate::{
+    config::TaskDistributionConfig,
+    datastore::table::task_shared_store::TaskSharedStore,
+    simulation::{
+        package::{context::ContextTask, init::InitTask, output::OutputTask, state::StateTask},
+        task::{
+            access::StoreAccessVerify,
+            args::GetTaskArgs,
+            handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
+            msg::{TargetedTaskMessage, TaskMessage},
+        },
+        Result,
+    },
 };
 
 // All traits applied here apply to the enum.
@@ -92,25 +101,99 @@ use crate::simulation::enum_dispatch::{
 // From<init::Task>, ..., From<output::Task> for this enum.
 // Additionally we have TryInto<init::Task>, (and others)
 // implemented for this enum.
-#[enum_dispatch(
-    GetTaskName,
-    WorkerHandler,
-    WorkerPoolHandler,
-    GetTaskArgs,
-    StoreAccessVerify
-)]
 #[derive(Clone, Debug)]
 pub enum Task {
-    InitTask,
-    ContextTask,
-    StateTask,
-    OutputTask,
+    InitTask(InitTask),
+    ContextTask(ContextTask),
+    StateTask(StateTask),
+    OutputTask(OutputTask),
 }
 
-#[enum_dispatch]
 pub trait GetTaskName {
     /// Provides a human-readable name of the [`Task`], e.g. `"BehaviorExecution"`.
     fn get_task_name(&self) -> &'static str;
+}
+
+impl GetTaskName for Task {
+    fn get_task_name(&self) -> &'static str {
+        match self {
+            Self::InitTask(inner) => inner.get_task_name(),
+            Self::ContextTask(inner) => inner.get_task_name(),
+            Self::StateTask(inner) => inner.get_task_name(),
+            Self::OutputTask(inner) => inner.get_task_name(),
+        }
+    }
+}
+
+impl GetTaskArgs for Task {
+    fn distribution(&self) -> TaskDistributionConfig {
+        match self {
+            Self::InitTask(inner) => inner.distribution(),
+            Self::ContextTask(inner) => inner.distribution(),
+            Self::StateTask(inner) => inner.distribution(),
+            Self::OutputTask(inner) => inner.distribution(),
+        }
+    }
+}
+
+impl WorkerHandler for Task {
+    fn start_message(&self) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::InitTask(inner) => inner.start_message(),
+            Self::ContextTask(inner) => inner.start_message(),
+            Self::StateTask(inner) => inner.start_message(),
+            Self::OutputTask(inner) => inner.start_message(),
+        }
+    }
+
+    fn handle_worker_message(&mut self, msg: TaskMessage) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::InitTask(inner) => inner.handle_worker_message(msg),
+            Self::ContextTask(inner) => inner.handle_worker_message(msg),
+            Self::StateTask(inner) => inner.handle_worker_message(msg),
+            Self::OutputTask(inner) => inner.handle_worker_message(msg),
+        }
+    }
+
+    fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        match self {
+            Self::InitTask(inner) => inner.combine_task_messages(task_messages),
+            Self::ContextTask(inner) => inner.combine_task_messages(task_messages),
+            Self::StateTask(inner) => inner.combine_task_messages(task_messages),
+            Self::OutputTask(inner) => inner.combine_task_messages(task_messages),
+        }
+    }
+}
+
+impl WorkerPoolHandler for Task {
+    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<Task>> {
+        match self {
+            Self::InitTask(inner) => inner.split_task(split_config),
+            Self::ContextTask(inner) => inner.split_task(split_config),
+            Self::StateTask(inner) => inner.split_task(split_config),
+            Self::OutputTask(inner) => inner.split_task(split_config),
+        }
+    }
+
+    fn combine_messages(&self, split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        match self {
+            Self::InitTask(inner) => inner.combine_messages(split_messages),
+            Self::ContextTask(inner) => inner.combine_messages(split_messages),
+            Self::StateTask(inner) => inner.combine_messages(split_messages),
+            Self::OutputTask(inner) => inner.combine_messages(split_messages),
+        }
+    }
+}
+
+impl StoreAccessVerify for Task {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+        match self {
+            Self::InitTask(inner) => inner.verify_store_access(access),
+            Self::ContextTask(inner) => inner.verify_store_access(access),
+            Self::StateTask(inner) => inner.verify_store_access(access),
+            Self::OutputTask(inner) => inner.verify_store_access(access),
+        }
+    }
 }
 
 // TODO: Is there an important differentiation between Task and TaskMessage

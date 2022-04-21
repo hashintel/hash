@@ -13,11 +13,12 @@ use hash_engine_lib::{
     fetch::parse_raw_csv_into_json,
     proto::{
         ExperimentRun, ExperimentRunBase, InitialState, InitialStateName, ProjectBase,
-        SharedBehavior, SharedDataset, SimPackageArgs,
+        SharedBehavior, SimPackageArgs,
     },
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
+use stateful::global::SharedDataset;
 use uuid::Uuid;
 
 use crate::ExperimentType;

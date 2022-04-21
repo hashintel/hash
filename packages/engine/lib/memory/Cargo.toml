@@ -17,6 +17,9 @@ thiserror = "1.0.21"
 tracing = "0.1.29"
 uuid = { version = "0.8.1", features = ["v4"] }
 
+[dev-dependencies]
+rand = "0.8.3"
+
 [lib]
 name = "memory"
 crate-type = ["lib", "cdylib"]

@@ -7,10 +7,11 @@ use core::fmt;
 
 use arrow::datatypes::{DataType, Field};
 
-use crate::field::{fixed_size::IsFixedSize, FieldSpec, UUID_V4_LEN};
+use crate::field::{FieldSpec, IsFixedSize, UUID_V4_LEN};
 
-/// PresetFieldTypes represent an extension of types of fields that can be set by the engine, this
-/// gives greater control over underlying Arrow datatype such as integer sizes compared to the
+/// Represent an extension of types of fields that can be set by the engine.
+///
+/// This gives greater control over underlying Arrow datatypes such as integer sizes compared to the
 /// field types we allow users to set
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PresetFieldType {
@@ -41,8 +42,10 @@ impl IsFixedSize for PresetFieldType {
     }
 }
 
-/// These represent the types of fields that users can set. This is more restrictive than the total
-/// field types we support (see PresetFieldType for an extension of types not visible to the user)
+/// These represent the types of fields that users can set.
+///
+/// This is more restrictive than the total field types we support (see PresetFieldType for an
+/// extension of types not visible to the user)
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum FieldTypeVariant {
     /// A 64 bit floating point number

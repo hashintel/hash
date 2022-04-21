@@ -101,6 +101,7 @@ export const selectLatestVersionOfLink = (params: {
   order by link_id, updated_at desc
 `;
 
+/** selects all links with a specific destination entity */
 export const selectAllLinksWithDestinationEntity = (params: {
   destinationAccountId: string;
   destinationEntityId: string;
@@ -118,6 +119,7 @@ export const selectAllLinksWithDestinationEntity = (params: {
   )}
 `;
 
+/** selects all links with a specific source entity */
 export const selectAllLinksWithSourceEntity = (params: {
   sourceAccountId: string;
   sourceEntityId: string;
@@ -145,7 +147,7 @@ export const selectAllLinksWithSourceEntity = (params: {
               sql`applied_to_source_at <= ${params.activeAt.toISOString()}`,
               // either the link was removed after the timestamp, or the link hasn't been removed yet
               sql`(
-                  removed_from_source_at >= ${params.activeAt.toISOString()}
+                  removed_from_source_at > ${params.activeAt.toISOString()}
                 or
                   removed_from_source_at is null 
               )`,

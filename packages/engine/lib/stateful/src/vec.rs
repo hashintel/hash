@@ -4,16 +4,20 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, 
 
 use serde::{Deserialize, Serialize};
 
-// We are rolling out our own Vec3 implementation to better support
-// deserialization from non-3D vectors. With this Vec3, you can do
-//
-//     let v: Vec3 = [1.0, 2.0].into();
-//
-// or
-//
-//     let v: Vec3 = json!([3, 4]).into();
-//
-// and it will work.
+/// A simple 3-dim vector with basic basic algebra functionality.
+///
+/// This types is used for convenient creation of 3-dim vectors from non-3-dim vectors.
+///
+/// # Examples
+///
+/// ```
+/// use serde_json::json;
+/// use stateful::Vec3;
+///
+/// assert_eq!(Vec3::from([1.0, 2.0]), Vec3(1.0, 2.0, 0.0));
+/// assert_eq!(Vec3::try_from(json!([1.0_f64, 2.0]))?, Vec3(1.0, 2.0, 0.0));
+/// # serde_json::Result::Ok(())
+/// ```
 #[derive(Clone, Serialize, Deserialize, Debug, Copy, PartialEq)]
 // https://rust-lang.github.io/rust-clippy/master/index.html#unsafe_derive_deserialize
 #[allow(clippy::module_name_repetitions)]

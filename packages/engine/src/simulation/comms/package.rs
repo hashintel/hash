@@ -31,12 +31,7 @@ impl PackageComms {
 }
 
 impl PackageComms {
-    pub async fn new_task<T: Into<Task>>(
-        &self,
-        task: T,
-        shared_store: TaskSharedStore,
-    ) -> Result<ActiveTask> {
-        let task = task.into();
+    pub async fn new_task(&self, task: Task, shared_store: TaskSharedStore) -> Result<ActiveTask> {
         let task_name = task.get_task_name();
 
         self.inner

@@ -8,7 +8,7 @@ use stateful::{
         FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
         RootFieldSpec, RootFieldSpecCreator,
     },
-    globals::Globals,
+    global::Globals,
 };
 use uuid::Uuid;
 
@@ -18,7 +18,7 @@ use crate::{
         SimulationConfig, StoreConfig, WorkerPoolConfig,
     },
     datastore::{error::Error, schema::last_state_index_key},
-    proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
+    proto::{ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
@@ -271,7 +271,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
             state: Vec::new(),
             output: Vec::new(),
         }),
-        run: Arc::new(base.into()),
+        run: Arc::new(ExperimentRunRepr::ExperimentRunBase(base)),
         target_max_group_size: 100_000,
         worker_pool: Arc::new(WorkerPoolConfig {
             worker_base_config: Default::default(),
