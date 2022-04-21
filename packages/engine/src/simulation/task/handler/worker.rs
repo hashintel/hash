@@ -1,10 +1,8 @@
 use crate::simulation::{
-    enum_dispatch::{enum_dispatch, InitTask, StateTask},
     task::msg::{TargetedTaskMessage, TaskMessage},
     Error, Result,
 };
 
-#[enum_dispatch]
 pub trait WorkerHandler {
     /// Given an initial message from the package in the main loop of the simulation, convert it to
     /// one that can be sent to a language runner.

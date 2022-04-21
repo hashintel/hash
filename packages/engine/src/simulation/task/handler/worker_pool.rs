@@ -1,6 +1,5 @@
 use crate::simulation::{
-    enum_dispatch::{enum_dispatch, InitTask, StateTask, TaskMessage},
-    task::Task,
+    task::{msg::TaskMessage, Task},
     Error, Result,
 };
 
@@ -12,7 +11,6 @@ pub struct SplitConfig {
     pub agent_distribution: Option<Vec<usize>>, // TODO: make sure we don't leak Worker here
 }
 
-#[enum_dispatch]
 pub trait WorkerPoolHandler {
     /// When a Chunked/Parallel task is initialized
     /// the init message will have to be split

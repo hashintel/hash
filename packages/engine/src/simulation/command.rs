@@ -4,25 +4,24 @@
 //! * Dynamically request the deletion of agents
 //! * Dynamically request stopping of the simulation run
 
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use stateful::{
-    agent::{Agent, AgentSchema},
-    field::RootFieldKey,
-    message::payload::OutboundRemoveAgentData as RemoveAgentPayload,
+    agent::{arrow::IntoRecordBatch, Agent, AgentSchema},
+    field::{RootFieldKey, UUID_V4_LEN},
+    message,
+    message::{MessageBatch, MessageMap, MessageReader},
     proxy::PoolReadProxy,
 };
 use uuid::Uuid;
 
 use crate::{
-    datastore::{
-        arrow::batch_conversion::IntoRecordBatch,
-        batch::MessageBatch,
-        table::{pool::message, references::MessageMap, state::create_remove::ProcessedCommands},
-        UUID_V4_LEN,
-    },
+    datastore::table::create_remove::ProcessedCommands,
     simulation::{Error, Result},
 };
 
@@ -153,7 +152,7 @@ impl Commands {
         message_map: &MessageMap,
         message_proxies: &PoolReadProxy<MessageBatch>,
     ) -> Result<Commands> {
-        let message_reader = message::get_reader(message_proxies)?;
+        let message_reader = MessageReader::from_message_pool(message_proxies)?;
 
         let mut refs = Vec::with_capacity(HASH.len());
         for hash_recipient in &HASH {
@@ -169,17 +168,11 @@ impl Commands {
                     message_reader
                         .type_iter(refs)
                         .map(|type_str| match type_str {
-                            stateful::message::payload::OutboundCreateAgent::KIND => {
-                                Ok(HashMessageType::Create)
-                            }
-                            stateful::message::payload::OutboundRemoveAgent::KIND => {
-                                Ok(HashMessageType::Remove)
-                            }
+                            message::payload::CreateAgent::KIND => Ok(HashMessageType::Create),
+                            message::payload::RemoveAgent::KIND => Ok(HashMessageType::Remove),
                             // TODO: When implementing "mapbox" don't forget to update module docs.
                             "mapbox" => todo!(),
-                            stateful::message::payload::OutboundStopSim::KIND => {
-                                Ok(HashMessageType::Stop)
-                            }
+                            message::payload::StopSim::KIND => Ok(HashMessageType::Stop),
                             _ => Err(Error::UnexpectedSystemMessage {
                                 message_type: type_str.into(),
                             }),
@@ -224,7 +217,7 @@ impl CreateRemoveCommands {
                     .map(|create_cmd| create_cmd.agent)
                     .collect::<Vec<_>>()
                     .as_slice()
-                    .into_agent_batch(schema)?,
+                    .to_agent_batch(schema)?,
             )
         } else {
             None
@@ -265,7 +258,7 @@ fn handle_hash_message(
         HashMessageType::Stop => {
             cmds.stop.push(StopCommand {
                 message: serde_json::from_str(data)?,
-                agent: uuid::Uuid::from_bytes(*from),
+                agent: Uuid::from_bytes(*from),
             });
         }
     }
@@ -276,17 +269,16 @@ fn handle_hash_message(
 /// the message if the payload is missing.
 fn handle_remove_data(cmds: &mut Commands, data: &str, from: &[u8; UUID_V4_LEN]) -> Result<()> {
     let uuid = if data == "null" {
-        Ok(uuid::Uuid::from_bytes(*from))
+        Ok(Uuid::from_bytes(*from))
     } else {
-        match serde_json::from_str::<RemoveAgentPayload>(data) {
-            Ok(payload) => Ok(uuid::Uuid::parse_str(&payload.agent_id)?),
+        match serde_json::from_str::<message::payload::RemoveAgentData>(data) {
+            Ok(payload) => Ok(Uuid::parse_str(&payload.agent_id)?),
             Err(_) => {
                 if data == "null"
                     || data.is_empty()
-                    || serde_json::from_str::<std::collections::HashMap<String, String>>(data)
-                        .is_ok()
+                    || serde_json::from_str::<HashMap<String, String>>(data).is_ok()
                 {
-                    Ok(uuid::Uuid::from_bytes(*from))
+                    Ok(Uuid::from_bytes(*from))
                 } else {
                     Err(Error::RemoveAgentMessage(data.to_string()))
                 }

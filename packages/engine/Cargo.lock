@@ -662,18 +662,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enum_dispatch"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd53b3fde38a39a06b2e66dc282f3e86191e53bd04cc499929c15742beae3df8"
-dependencies = [
- "once_cell",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "error"
 version = "0.0.0"
 dependencies = [
@@ -957,7 +945,6 @@ dependencies = [
  "clap",
  "csv",
  "derive-new",
- "enum_dispatch",
  "error",
  "flatbuffers",
  "flatbuffers_gen",
@@ -1615,6 +1602,7 @@ dependencies = [
  "rand_distr",
  "serde",
  "serde_json",
+ "stateful",
  "tokio",
  "tracing",
  "uuid",
@@ -2162,9 +2150,12 @@ name = "stateful"
 version = "0.0.0"
 dependencies = [
  "arrow",
+ "flatbuffers",
  "lazy_static",
  "memory",
  "parking_lot",
+ "rand 0.8.4",
+ "rayon",
  "serde",
  "serde-aux",
  "serde_json",

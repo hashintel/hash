@@ -31,6 +31,10 @@
                 "slug": "simulation/creating-simulations/anatomy-of-an-agent/programmable-initial-states"
               },
               {
+                "title": "Creator Behaviors",
+                "slug": "simulation/creating-simulations/anatomy-of-an-agent/creator-behaviors"
+              },
+              {
                 "title": "Visualization",
                 "slug": "simulation/creating-simulations/anatomy-of-an-agent/visualization",
                 "urldata": [

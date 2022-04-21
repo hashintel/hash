@@ -234,6 +234,8 @@ export class EditorConnection {
 
         if (this.state.edit) {
           const tr = this.state.edit.tr;
+          // This also allows an empty object response to act
+          // like a polling checkpoint
           let shouldDispatch = false;
 
           if (data.store) {

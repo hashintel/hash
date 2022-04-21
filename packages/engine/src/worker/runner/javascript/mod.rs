@@ -26,7 +26,10 @@ use memory::{
     arrow::{ArrowBatch, ColumnChange},
     shared_memory::{arrow_continuation, Metaversion, Segment},
 };
-use stateful::{field::PackageId, globals::Globals};
+use stateful::{
+    agent::AgentBatch, field::PackageId, global::Globals, message::MessageBatch,
+    state::StateWriteProxy,
+};
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
@@ -36,10 +39,8 @@ use tracing::{Instrument, Span};
 pub use self::error::{Error, Result};
 use crate::{
     datastore::{
-        batch::{AgentBatch, MessageBatch},
         shared_store::SharedStore,
         table::{
-            proxy::StateWriteProxy,
             sync::{ContextBatchSync, StateSync, WaitableStateSync},
             task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
         },

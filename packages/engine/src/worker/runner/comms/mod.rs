@@ -6,18 +6,15 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
-use stateful::{agent::AgentSchema, field::PackageId, globals::Globals};
+use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
 use tracing::Span;
 
 use crate::{
     config::EngineConfig,
-    datastore::shared_store::SharedStore,
+    datastore::{shared_store::SharedStore, table::task_shared_store::TaskSharedStore},
     language::Language,
     proto::{ExperimentId, SimulationShortId},
-    simulation::{
-        enum_dispatch::TaskSharedStore, package::worker_init::PackageInitMsgForWorker,
-        task::msg::TaskMessage,
-    },
+    simulation::{package::worker_init::PackageInitMsgForWorker, task::msg::TaskMessage},
     types::{TaskId, WorkerIndex},
     worker::{Error, Result},
 };

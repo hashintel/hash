@@ -79,6 +79,9 @@ pub enum Error {
 
     #[error("{0}")]
     InvalidFlatbuffer(#[from] flatbuffers::InvalidFlatbuffer),
+
+    #[error("No column found in batch with name: {0}")]
+    ColumnNotFound(String),
 }
 
 impl From<&str> for Error {
