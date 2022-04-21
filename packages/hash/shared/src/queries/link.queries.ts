@@ -111,6 +111,7 @@ export const createLinkedAggregationMutation = gql`
       path: $path
       operation: $operation
     ) {
+      aggregationId
       sourceAccountId
       sourceEntityId
       path
@@ -141,15 +142,16 @@ export const updateLinkedAggregationMutation = gql`
   mutation updateLinkedAggregationOperation(
     $sourceAccountId: ID!
     $sourceEntityId: ID!
-    $path: String!
+    $aggregationId: ID!
     $updatedOperation: AggregateOperationInput!
   ) {
     updateLinkedAggregationOperation(
       sourceAccountId: $sourceAccountId
       sourceEntityId: $sourceEntityId
-      path: $path
+      aggregationId: $aggregationId
       updatedOperation: $updatedOperation
     ) {
+      aggregationId
       sourceAccountId
       sourceEntityId
       path
