@@ -47,8 +47,8 @@ export const BlockLoaderInput: React.VFC = () => {
         return blockView.manager.createRemoteBlock(normalizedUrl);
       })
       .then((block) => {
-        const { view } = blockView;
-        view.dispatch(view.state.tr.insert(pos, block));
+        const { editorView } = blockView;
+        editorView.dispatch(editorView.state.tr.insert(pos, block));
       })
       .catch((err) => {
         // eslint-disable-next-line no-console -- requires individual debugging
