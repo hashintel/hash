@@ -7,6 +7,7 @@ export enum Tasks {
   Demo = "python",
   GithubSpec = "github/spec",
   GithubCheck = "github/check",
+  GithubDiscover = "github/discover",
 }
 
 export type Config = {

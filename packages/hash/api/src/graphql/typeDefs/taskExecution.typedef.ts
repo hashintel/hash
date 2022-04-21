@@ -15,5 +15,9 @@ export const executeTaskTypedef = gql`
     Call the Github Integration Check Task
     """
     executeGithubCheckTask: String!
+    """
+    Call the Github Integration Discover Task
+    """
+    executeGithubDiscoverTask: String!
   }
 `;

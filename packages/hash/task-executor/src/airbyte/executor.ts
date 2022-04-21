@@ -12,10 +12,7 @@ interface AirbyteExecutor {
 
   runSpec(): Promise<ConnectorSpecification>;
   runCheck(config_path: string): Promise<AirbyteConnectionStatus>;
-  runDiscover(config_path: string): Promise<{
-    streams: AirbyteStream[];
-    [k: string]: unknown;
-  }>;
+  runDiscover(config_path: string): Promise<AirbyteStream[]>;
   runRead(
     config_path: string,
     configured_catalog_path: string,
@@ -75,10 +72,7 @@ export class BaseExecutor implements AirbyteExecutor {
     }
   }
 
-  async runDiscover(config_path: string): Promise<{
-    streams: AirbyteStream[];
-    [k: string]: unknown;
-  }> {
+  async runDiscover(config_path: string): Promise<AirbyteStream[]> {
     const response = await executeTask("docker", [
       "run",
       "--rm",
@@ -96,7 +90,7 @@ export class BaseExecutor implements AirbyteExecutor {
       (message) => message.type === "CATALOG" && message.catalog,
     );
     if (catalog_message) {
-      return catalog_message.catalog!;
+      return catalog_message.catalog!.streams;
     } else {
       throw new Error("Message didn't contain a Airbyte Catalog");
     }
