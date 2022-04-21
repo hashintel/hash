@@ -1,12 +1,9 @@
 use execution::package::{
     context::ContextPackageName, init::InitPackageName, output::OutputPackageName,
-    state::StatePackageName,
+    state::StatePackageName, PackageName,
 };
 
-use crate::{
-    config::error::{Error, Result},
-    simulation::package::name::PackageName,
-};
+use crate::config::error::{Error, Result};
 
 /// Configuration of packages used in the engine.
 /// Contains the names of all packages used.

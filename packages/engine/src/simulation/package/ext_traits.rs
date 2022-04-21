@@ -1,4 +1,6 @@
-use crate::simulation::{error::Result, package::deps::Dependencies};
+use execution::package::Dependencies;
+
+use crate::simulation::error::Result;
 
 pub trait PackageCreator: Sync + Send {
     /// A message sent to all workers before running any packages.

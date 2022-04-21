@@ -1,9 +1,10 @@
-use execution::package::{
-    context::ContextPackageName, init::InitPackageName, output::OutputPackageName,
-    state::StatePackageName,
+use crate::{
+    package::{
+        context::ContextPackageName, init::InitPackageName, output::OutputPackageName,
+        state::StatePackageName, PackageName,
+    },
+    Error, Result,
 };
-
-use crate::simulation::{package::name::PackageName, Error, Result};
 
 #[derive(Clone, Default)]
 pub struct Dependencies {
@@ -19,8 +20,9 @@ impl Dependencies {
         Self::default()
     }
 
-    fn add_dependency(&mut self, dep: PackageName) -> Result<()> {
-        self.inner.push(dep);
+    fn add_dependency(&mut self, dependency: PackageName) -> Result<()> {
+        self.validate_clash(&dependency)?;
+        self.inner.push(dependency);
         Ok(())
     }
 
@@ -32,27 +34,19 @@ impl Dependencies {
     }
 
     pub fn add_context_dep(&mut self, name: ContextPackageName) -> Result<()> {
-        let dependency = PackageName::Context(name);
-        self.validate_clash(&dependency)?;
-        self.add_dependency(dependency)
+        self.add_dependency(PackageName::Context(name))
     }
 
     pub fn add_init_dep(&mut self, name: InitPackageName) -> Result<()> {
-        let dependency = PackageName::Init(name);
-        self.validate_clash(&dependency)?;
-        self.add_dependency(dependency)
+        self.add_dependency(PackageName::Init(name))
     }
 
     pub fn add_state_dep(&mut self, name: StatePackageName) -> Result<()> {
-        let dependency = PackageName::State(name);
-        self.validate_clash(&dependency)?;
-        self.add_dependency(dependency)
+        self.add_dependency(PackageName::State(name))
     }
 
     pub fn add_output_dep(&mut self, name: OutputPackageName) -> Result<()> {
-        let dependency = PackageName::Output(name);
-        self.validate_clash(&dependency)?;
-        self.add_dependency(dependency)
+        self.add_dependency(PackageName::Output(name))
     }
 
     pub fn contains(&self, dep: &PackageName) -> bool {
@@ -81,8 +75,8 @@ impl Dependencies {
 impl PackageName {
     pub fn get_all_dependencies(&self) -> Result<Dependencies> {
         let mut merged = Dependencies::new();
-        for dependency in self.get_dependencies()?.into_iter_deps() {
-            merged.add_dependency_with_ignore(dependency)?;
+        for dependency in self.get_dependencies()?.iter_deps() {
+            merged.add_dependency_with_ignore(*dependency)?;
             let deps = dependency.get_all_dependencies()?;
             for dep in deps.into_iter_deps() {
                 merged.add_dependency_with_ignore(dep)?;
@@ -94,14 +88,13 @@ impl PackageName {
 
 #[cfg(test)]
 pub mod tests {
-    use execution::package::{
-        init::{InitialState, InitialStateName},
-        PackageInitConfig,
-    };
-
     use super::*;
-    use crate::simulation::{
-        package::{context, init, output, state},
+    use crate::{
+        package::{
+            context, init,
+            init::{InitialState, InitialStateName},
+            output, state, PackageInitConfig,
+        },
         Error, Result,
     };
 
@@ -116,8 +109,8 @@ pub mod tests {
         } else {
             // Safe unwrap as we've added an element to `parents`
             let deps = parents.last().unwrap().get_dependencies()?;
-            for dep in deps.into_iter_deps() {
-                validate(parents.clone(), dep)?;
+            for dep in deps.iter_deps() {
+                validate(parents.clone(), *dep)?;
             }
         }
         Ok(())
@@ -142,10 +135,11 @@ pub mod tests {
             behaviors: vec![],
             packages: vec![],
         };
-        validate!(context, &init_config, PackageName::Context);
-        validate!(init, &init_config, PackageName::Init);
-        validate!(state, &init_config, PackageName::State);
-        validate!(output, &init_config, PackageName::Output);
+        todo!("Enable tests again");
+        // validate!(context, &init_config, PackageName::Context);
+        // validate!(init, &init_config, PackageName::Init);
+        // validate!(state, &init_config, PackageName::State);
+        // validate!(output, &init_config, PackageName::Output);
         Ok(())
     }
 }

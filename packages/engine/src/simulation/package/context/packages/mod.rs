@@ -7,21 +7,15 @@ use std::{
     lazy::SyncOnceCell,
 };
 
-use execution::package::{context::ContextPackageName, PackageInitConfig, PackageType};
-use lazy_static::lazy_static;
+use execution::package::{context::ContextPackageName, PackageInitConfig};
 
 use crate::simulation::{
-    package::{
-        context::{
-            packages::{
-                agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator,
-                neighbors::NeighborsCreator,
-            },
-            ContextPackageCreator,
+    package::context::{
+        packages::{
+            agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator,
+            neighbors::NeighborsCreator,
         },
-        ext_traits::PackageCreator,
-        id::PackageIdGenerator,
-        PackageMetadata,
+        ContextPackageCreator,
     },
     Error, Result,
 };
@@ -71,17 +65,4 @@ impl PackageCreators {
             .ok_or_else(|| Error::from("Context Package Creators weren't initialized"))?
             .iter())
     }
-}
-
-lazy_static! {
-    /// All context package creators are registered in this hashmap
-    pub(in crate::simulation::package) static ref METADATA: HashMap<ContextPackageName, PackageMetadata> = {
-        use ContextPackageName::{AgentMessages, ApiRequests, Neighbors};
-        let mut id_creator = PackageIdGenerator::new(PackageType::Context);
-        let mut m = HashMap::new();
-        m.insert(AgentMessages, PackageMetadata::new(id_creator.next(), AgentMessagesCreator::dependencies()));
-        m.insert(ApiRequests, PackageMetadata::new(id_creator.next(), ApiRequestsCreator::dependencies()));
-        m.insert(Neighbors, PackageMetadata::new(id_creator.next(), NeighborsCreator::dependencies()));
-        m
-    };
 }

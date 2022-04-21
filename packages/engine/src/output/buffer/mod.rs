@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 mod part;
 mod util;
 
-use execution::package::output::OutputPackageName;
+use execution::package::{output::OutputPackageName, PackageName};
 use serde::Serialize;
 
 pub use self::{
@@ -14,7 +14,6 @@ use crate::{
     output::error::{Error, Result},
     proto::{ExperimentId, SimulationShortId},
     simulation::package::{
-        name::PackageName,
         output,
         output::packages::{
             analysis::{AnalysisOutput, AnalysisSingleOutput},

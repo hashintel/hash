@@ -6,20 +6,13 @@ use std::{
     lazy::SyncOnceCell,
 };
 
-use execution::package::{output::OutputPackageName, PackageInitConfig, PackageType};
-use lazy_static::lazy_static;
+use execution::package::{output::OutputPackageName, PackageInitConfig, PackageName};
 
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use crate::simulation::{
-    package::{
-        ext_traits::PackageCreator,
-        id::PackageIdGenerator,
-        name::PackageName,
-        output::{
-            packages::{analysis::AnalysisCreator, json_state::JsonStateCreator},
-            OutputPackageCreator,
-        },
-        PackageMetadata,
+    package::output::{
+        packages::{analysis::AnalysisCreator, json_state::JsonStateCreator},
+        OutputPackageCreator,
     },
     Error, Result,
 };
@@ -78,21 +71,4 @@ impl PackageCreators {
             .ok_or_else(|| Error::from("Output Package Creators weren't initialized"))?
             .iter())
     }
-}
-
-lazy_static! {
-    pub(in crate::simulation::package) static ref METADATA: HashMap<OutputPackageName, PackageMetadata> = {
-        use OutputPackageName::{Analysis, JsonState};
-        let mut id_creator = PackageIdGenerator::new(PackageType::Output);
-        let mut m = HashMap::new();
-        m.insert(Analysis, PackageMetadata {
-            id: id_creator.next(),
-            dependencies: AnalysisCreator::dependencies(),
-        });
-        m.insert(JsonState, PackageMetadata {
-            id: id_creator.next(),
-            dependencies: JsonStateCreator::dependencies(),
-        });
-        m
-    };
 }

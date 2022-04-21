@@ -7,6 +7,7 @@ edition = "2021"
 flatbuffers_gen = { path = "../flatbuffers_gen" }
 stateful = { path = "../stateful" }
 
+lazy_static = "1.4.0"
 serde = { version = "1.0.111", features = ["derive"] }
 serde_json = "1.0.59"
 thiserror = "1.0.21"

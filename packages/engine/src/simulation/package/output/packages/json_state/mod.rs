@@ -1,7 +1,7 @@
 mod config;
 
 use async_trait::async_trait;
-use execution::package::{output::OutputPackageName, PackageInitConfig};
+use execution::package::{output::OutputPackageName, PackageInitConfig, PackageName};
 use serde_json::Value;
 use stateful::{
     agent::{Agent, AgentSchema, IntoAgents},
@@ -13,7 +13,6 @@ use stateful::{
 
 pub use self::config::JsonStateOutputConfig;
 use crate::simulation::package::{
-    name::PackageName,
     output::{
         Arc, Error, FieldSpecMapAccessor, MaybeCpuBound, Output, OutputPackage,
         OutputPackageCreator, Package, PackageComms, PackageCreator, Result, Span,

@@ -90,7 +90,7 @@
 //! # use hash_engine_lib::{
 //! #     config::ExperimentConfig,
 //! #     simulation::{
-//! #         package::{deps::Dependencies, id::PackageIdGenerator, PackageMetadata, PackageType},
+//! #         package::{ id::PackageIdGenerator, PackageMetadata, PackageType},
 //! #         Result,
 //! #     },
 //! # };
@@ -176,32 +176,18 @@ pub mod output;
 pub mod state;
 
 pub mod creator;
-pub mod deps;
 pub mod ext_traits;
-pub mod id;
-pub mod name;
 pub mod run;
 pub mod worker_init;
 
 use std::sync::Arc;
 
-use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
+use stateful::{agent::AgentSchema, global::Globals};
 
-use crate::{config::PersistenceConfig, simulation::package::deps::Dependencies};
+use crate::config::PersistenceConfig;
 
 pub struct PackageCreatorConfig {
     pub agent_schema: Arc<AgentSchema>,
     pub globals: Globals,
     pub persistence: PersistenceConfig,
-}
-
-pub struct PackageMetadata {
-    id: PackageId,
-    dependencies: Dependencies,
-}
-
-impl PackageMetadata {
-    pub fn new(id: PackageId, dependencies: Dependencies) -> Self {
-        Self { id, dependencies }
-    }
 }

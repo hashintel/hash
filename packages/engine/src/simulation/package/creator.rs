@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use execution::package::{PackageInitConfig, PackageType};
+use execution::package::{PackageInitConfig, PackageName, PackageType};
 use stateful::{
     agent::AgentSchema,
     context::ContextSchema,
@@ -18,9 +18,7 @@ use crate::{
     simulation::{
         comms::{package::PackageComms, Comms},
         package::{
-            context, init,
-            name::PackageName,
-            output,
+            context, init, output,
             output::packages::OutputPackagesSimConfig,
             run::{InitPackages, Packages, StepPackages},
             state,

@@ -1,8 +1,6 @@
-use execution::package::PackageType;
+use execution::package::{PackageName, PackageType};
 use serde::Serialize;
 use stateful::field::PackageId;
-
-use crate::simulation::package::name::PackageName;
 
 /// Initialization message for language runners
 /// These can be sent out for experiment and simulation

@@ -6,18 +6,12 @@ use std::{
     lazy::SyncOnceCell,
 };
 
-use execution::package::{state::StatePackageName, PackageInitConfig, PackageType};
-use lazy_static::lazy_static;
+use execution::package::{state::StatePackageName, PackageInitConfig};
 
 use crate::simulation::{
-    package::{
-        ext_traits::PackageCreator,
-        id::PackageIdGenerator,
-        state::{
-            packages::{behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator},
-            StatePackageCreator,
-        },
-        PackageMetadata,
+    package::state::{
+        packages::{behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator},
+        StatePackageCreator,
     },
     Error, Result,
 };
@@ -65,21 +59,4 @@ impl PackageCreators {
             .ok_or_else(|| Error::from("State Package Creators weren't initialized"))?
             .iter())
     }
-}
-
-lazy_static! {
-    pub(in crate::simulation::package) static ref METADATA: HashMap<StatePackageName, PackageMetadata> = {
-        use StatePackageName::{BehaviorExecution, Topology};
-        let mut id_creator = PackageIdGenerator::new(PackageType::State);
-        let mut m = HashMap::new();
-        m.insert(
-            BehaviorExecution,
-            PackageMetadata::new(id_creator.next(), BehaviorExecutionCreator::dependencies()),
-        );
-        m.insert(
-            Topology,
-            PackageMetadata::new(id_creator.next(), TopologyCreator::dependencies()),
-        );
-        m
-    };
 }

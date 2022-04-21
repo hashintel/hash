@@ -6,18 +6,12 @@ use std::{
     lazy::SyncOnceCell,
 };
 
-use execution::package::{init::InitPackageName, PackageInitConfig, PackageType};
-use lazy_static::lazy_static;
+use execution::package::{init::InitPackageName, PackageInitConfig};
 
 use crate::simulation::{
-    package::{
-        ext_traits::PackageCreator,
-        id::PackageIdGenerator,
-        init::{
-            packages::{js_py::ScriptInitCreator, json::JsonInitCreator},
-            InitPackageCreator,
-        },
-        PackageMetadata,
+    package::init::{
+        packages::{js_py::ScriptInitCreator, json::JsonInitCreator},
+        InitPackageCreator,
     },
     Error, Result,
 };
@@ -65,21 +59,4 @@ impl PackageCreators {
             .ok_or_else(|| Error::from("Init Package Creators weren't initialized"))?
             .iter())
     }
-}
-
-lazy_static! {
-    pub(in crate::simulation::package) static ref METADATA: HashMap<InitPackageName, PackageMetadata> = {
-        use InitPackageName::{JsPy, Json};
-        let mut id_creator = PackageIdGenerator::new(PackageType::Init);
-        let mut m = HashMap::new();
-        m.insert(
-            Json,
-            PackageMetadata::new(id_creator.next(), JsonInitCreator::dependencies()),
-        );
-        m.insert(
-            JsPy,
-            PackageMetadata::new(id_creator.next(), ScriptInitCreator::dependencies()),
-        );
-        m
-    };
 }

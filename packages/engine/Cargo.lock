@@ -680,6 +680,7 @@ name = "execution"
 version = "0.0.0"
 dependencies = [
  "flatbuffers_gen",
+ "lazy_static",
  "serde",
  "serde_json",
  "stateful",
