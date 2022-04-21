@@ -92,18 +92,10 @@ impl PackageName {
 
 #[cfg(test)]
 pub mod tests {
-    use std::sync::Arc;
-
-    use execution::{worker::WorkerConfig, worker_pool::WorkerPoolConfig};
-    use uuid::Uuid;
-
     use super::*;
     use crate::{
-        config::ExperimentConfig,
-        proto::{
-            ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase,
-        },
-        simulation::{Error, Result},
+        proto::{InitialState, InitialStateName},
+        simulation::{package::PackageInitConfig, Error, Result},
     };
 
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {
@@ -135,35 +127,18 @@ pub mod tests {
 
     #[test]
     fn validate_dependencies() -> Result<()> {
-        let experiment_config = &Arc::new(ExperimentConfig {
-            packages: Arc::new(Default::default()),
-            run: Arc::new(ExperimentRunRepr::ExperimentRunBase(ExperimentRunBase {
-                name: String::new().into(),
-                id: Uuid::new_v4(),
-                project_base: ProjectBase {
-                    name: String::new(),
-                    initial_state: InitialState {
-                        name: InitialStateName::InitJson,
-                        src: String::new(),
-                    },
-                    globals_src: String::new(),
-                    experiments_src: None,
-                    behaviors: vec![],
-                    datasets: vec![],
-                    packages: vec![],
-                },
-            })),
-            worker_pool: Arc::new(WorkerPoolConfig {
-                worker_config: WorkerConfig::default(),
-                num_workers: 0,
-            }),
-            target_max_group_size: 100_000,
-            base_globals: Default::default(),
-        });
-        validate!(context, experiment_config, PackageName::Context);
-        validate!(init, experiment_config, PackageName::Init);
-        validate!(state, experiment_config, PackageName::State);
-        validate!(output, experiment_config, PackageName::Output);
+        let init_config = PackageInitConfig {
+            initial_state: InitialState {
+                name: InitialStateName::InitJson,
+                src: String::new(),
+            },
+            behaviors: vec![],
+            packages: vec![],
+        };
+        validate!(context, &init_config, PackageName::Context);
+        validate!(init, &init_config, PackageName::Init);
+        validate!(state, &init_config, PackageName::State);
+        validate!(output, &init_config, PackageName::Output);
         Ok(())
     }
 }

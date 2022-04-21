@@ -28,9 +28,10 @@ use crate::simulation::{
                 config::BehaviorIds,
                 fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
             },
-            Arc, Error, ExperimentConfig, FieldSpecMapAccessor, Name, Package, PackageComms,
-            PackageCreator, Result, SimRunConfig, Span, StatePackage, StatePackageCreator,
+            Arc, Error, FieldSpecMapAccessor, Name, Package, PackageComms, PackageCreator, Result,
+            SimRunConfig, Span, StatePackage, StatePackageCreator,
         },
+        PackageInitConfig,
     },
     task::active::ActiveTask,
 };
@@ -52,12 +53,11 @@ pub struct BehaviorExecutionCreator {
 }
 
 impl BehaviorExecutionCreator {
-    pub fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn StatePackageCreator>> {
+    pub fn new(config: &PackageInitConfig) -> Result<Box<dyn StatePackageCreator>> {
         // TODO: Packages shouldn't have to set the source
         let package_id = PackageName::State(Name::BehaviorExecution).get_id()?;
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(package_id));
-        let behavior_map =
-            BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
+        let behavior_map = BehaviorMap::try_from((config, &field_spec_creator))?;
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
 
         Ok(Box::new(BehaviorExecutionCreator {
@@ -96,6 +96,7 @@ impl StatePackageCreator for BehaviorExecutionCreator {
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
+        _init_config: &PackageInitConfig,
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>> {
@@ -132,7 +133,7 @@ impl StatePackageCreator for BehaviorExecutionCreator {
 
     fn get_state_field_specs(
         &self,
-        config: &ExperimentConfig,
+        config: &PackageInitConfig,
         _globals: &Globals,
         field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {

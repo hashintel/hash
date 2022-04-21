@@ -5,28 +5,24 @@ use std::{
     collections::{hash_map::Iter, HashMap},
     fmt,
     lazy::SyncOnceCell,
-    sync::Arc,
 };
 
 use lazy_static::lazy_static;
 use serde::Serialize;
 
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
-use crate::{
-    config::ExperimentConfig,
-    simulation::{
-        package::{
-            ext_traits::PackageCreator,
-            id::PackageIdGenerator,
-            name::PackageName,
-            output::{
-                packages::{analysis::AnalysisCreator, json_state::JsonStateCreator},
-                OutputPackageCreator,
-            },
-            PackageMetadata, PackageType,
+use crate::simulation::{
+    package::{
+        ext_traits::PackageCreator,
+        id::PackageIdGenerator,
+        name::PackageName,
+        output::{
+            packages::{analysis::AnalysisCreator, json_state::JsonStateCreator},
+            OutputPackageCreator,
         },
-        Error, Result,
+        PackageInitConfig, PackageMetadata, PackageType,
     },
+    Error, Result,
 };
 
 /// All output package names are registered in this enum
@@ -59,10 +55,7 @@ pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn OutputPackageCreat
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
 impl PackageCreators {
-    pub(crate) fn initialize_for_experiment_run(
-        &self,
-        _experiment_config: &Arc<ExperimentConfig>,
-    ) -> Result<()> {
+    pub(crate) fn initialize_for_experiment_run(&self, _config: &PackageInitConfig) -> Result<()> {
         tracing::debug!("Initializing Output Package Creators");
         use Name::{Analysis, JsonState};
         let mut m = HashMap::<_, Box<dyn OutputPackageCreator>>::new();

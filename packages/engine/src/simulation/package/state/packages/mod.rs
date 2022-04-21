@@ -5,28 +5,22 @@ use std::{
     collections::{hash_map::Iter, HashMap},
     fmt,
     lazy::SyncOnceCell,
-    sync::Arc,
 };
 
 use lazy_static::lazy_static;
 use serde::Serialize;
 
-use crate::{
-    config::ExperimentConfig,
-    simulation::{
-        package::{
-            ext_traits::PackageCreator,
-            id::PackageIdGenerator,
-            state::{
-                packages::{
-                    behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator,
-                },
-                StatePackageCreator,
-            },
-            PackageMetadata, PackageType,
+use crate::simulation::{
+    package::{
+        ext_traits::PackageCreator,
+        id::PackageIdGenerator,
+        state::{
+            packages::{behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator},
+            StatePackageCreator,
         },
-        Error, Result,
+        PackageInitConfig, PackageMetadata, PackageType,
     },
+    Error, Result,
 };
 
 /// All state package names are registered in this enum
@@ -48,17 +42,11 @@ pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn StatePackageCreato
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
 impl PackageCreators {
-    pub(crate) fn initialize_for_experiment_run(
-        &self,
-        experiment_config: &Arc<ExperimentConfig>,
-    ) -> Result<()> {
+    pub(crate) fn initialize_for_experiment_run(&self, config: &PackageInitConfig) -> Result<()> {
         tracing::debug!("Initializing State Package Creators");
         use Name::{BehaviorExecution, Topology};
         let mut m = HashMap::<_, Box<dyn StatePackageCreator>>::new();
-        m.insert(
-            BehaviorExecution,
-            BehaviorExecutionCreator::new(experiment_config)?,
-        );
+        m.insert(BehaviorExecution, BehaviorExecutionCreator::new(config)?);
         m.insert(Topology, Box::new(TopologyCreator));
         self.0
             .set(m)

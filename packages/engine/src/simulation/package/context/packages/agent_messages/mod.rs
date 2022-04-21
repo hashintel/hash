@@ -16,17 +16,17 @@ use stateful::{
 use tracing::Span;
 
 use self::collected::Messages;
-use crate::{
-    config::ExperimentConfig,
-    simulation::{
-        comms::package::PackageComms,
-        package::context::{
+use crate::simulation::{
+    comms::package::PackageComms,
+    package::{
+        context::{
             packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextPackage,
             ContextPackageCreator, FieldSpecMapAccessor, MaybeCpuBound, Package, PackageCreator,
             SimRunConfig,
         },
-        Result,
+        PackageInitConfig,
     },
+    Result,
 };
 
 const CPU_BOUND: bool = true;
@@ -41,6 +41,7 @@ impl ContextPackageCreator for AgentMessagesCreator {
     fn create(
         &self,
         _config: &Arc<SimRunConfig>,
+        _init_config: &PackageInitConfig,
         _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
@@ -52,7 +53,7 @@ impl ContextPackageCreator for AgentMessagesCreator {
 
     fn get_context_field_specs(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
         field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {

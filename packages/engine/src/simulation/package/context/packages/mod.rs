@@ -6,29 +6,25 @@ use std::{
     collections::{hash_map::Iter, HashMap},
     fmt,
     lazy::SyncOnceCell,
-    sync::Arc,
 };
 
 use lazy_static::lazy_static;
 use serde::Serialize;
 
-use crate::{
-    config::ExperimentConfig,
-    simulation::{
-        package::{
-            context::{
-                packages::{
-                    agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator,
-                    neighbors::NeighborsCreator,
-                },
-                ContextPackageCreator,
+use crate::simulation::{
+    package::{
+        context::{
+            packages::{
+                agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator,
+                neighbors::NeighborsCreator,
             },
-            ext_traits::PackageCreator,
-            id::PackageIdGenerator,
-            PackageMetadata, PackageType,
+            ContextPackageCreator,
         },
-        Error, Result,
+        ext_traits::PackageCreator,
+        id::PackageIdGenerator,
+        PackageInitConfig, PackageMetadata, PackageType,
     },
+    Error, Result,
 };
 
 /// All context package names are registered in this enum
@@ -51,10 +47,7 @@ pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn ContextPackageCrea
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
 impl PackageCreators {
-    pub(crate) fn initialize_for_experiment_run(
-        &self,
-        _experiment_config: &Arc<ExperimentConfig>,
-    ) -> Result<()> {
+    pub(crate) fn initialize_for_experiment_run(&self, _config: &PackageInitConfig) -> Result<()> {
         tracing::debug!("Initializing Context Package Creators");
         use Name::{AgentMessages, ApiRequests, Neighbors};
         let mut m = HashMap::<_, Box<dyn ContextPackageCreator>>::new();

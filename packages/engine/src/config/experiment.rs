@@ -35,7 +35,13 @@ impl Config {
         // For differentiation purposes when multiple experiment runs are active in the same system
         let package_config = package::ConfigBuilder::new()
             .add_init_package(
-                match experiment_run.base().project_base.initial_state.name {
+                match experiment_run
+                    .base()
+                    .project_base
+                    .package_init
+                    .initial_state
+                    .name
+                {
                     InitialStateName::InitJson => init::Name::Json,
                     InitialStateName::InitPy | InitialStateName::InitJs => init::Name::JsPy,
                 },

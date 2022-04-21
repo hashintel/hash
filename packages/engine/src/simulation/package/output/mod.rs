@@ -14,10 +14,13 @@ use tracing::Span;
 
 use self::packages::Output;
 use crate::{
-    config::{ExperimentConfig, SimRunConfig},
+    config::SimRunConfig,
     simulation::{
         comms::package::PackageComms,
-        package::ext_traits::{MaybeCpuBound, Package, PackageCreator},
+        package::{
+            ext_traits::{MaybeCpuBound, Package, PackageCreator},
+            PackageInitConfig,
+        },
         Error, Result,
     },
 };
@@ -27,13 +30,14 @@ pub trait OutputPackageCreator: PackageCreator {
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
+        init_config: &PackageInitConfig,
         system: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>>;
 
     fn persistence_config(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
     ) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
@@ -41,7 +45,7 @@ pub trait OutputPackageCreator: PackageCreator {
 
     fn get_state_field_specs(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
         _field_spec_map_builder: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {

@@ -22,14 +22,14 @@ pub use self::{
     output::{AnalysisOutput, AnalysisSingleOutput},
 };
 use crate::{
-    config::{ExperimentConfig, SimRunConfig},
+    config::SimRunConfig,
     experiment::SimPackageArgs,
-    proto::ExperimentRunTrait,
     simulation::{
         comms::package::PackageComms,
         package::{
             ext_traits::{MaybeCpuBound, Package, PackageCreator},
             output::{packages::Output, OutputPackage, OutputPackageCreator},
+            PackageInitConfig,
         },
         Error, Result,
     },
@@ -44,12 +44,13 @@ impl OutputPackageCreator for AnalysisCreator {
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
+        init_config: &PackageInitConfig,
         _comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and
         // make this unnecessary
-        let analysis_src = get_analysis_source(&config.exp.run.base().project_base.packages)?;
+        let analysis_src = get_analysis_source(&init_config.packages)?;
         let analyzer = Analyzer::from_analysis_source(
             &analysis_src,
             &config.sim.store.agent_schema,
@@ -59,7 +60,7 @@ impl OutputPackageCreator for AnalysisCreator {
         Ok(Box::new(Analysis { analyzer }))
     }
 
-    fn persistence_config(&self, config: &ExperimentConfig, _globals: &Globals) -> Result<Value> {
+    fn persistence_config(&self, config: &PackageInitConfig, _globals: &Globals) -> Result<Value> {
         let config = AnalysisOutputConfig::new(config)?;
         Ok(serde_json::to_value(config)?)
     }

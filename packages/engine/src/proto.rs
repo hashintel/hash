@@ -9,7 +9,7 @@ use serde_json::Value as SerdeValue;
 use stateful::global::{Globals, SharedDataset};
 use uuid::Uuid;
 
-use crate::simulation::status::SimStatus;
+use crate::simulation::{package::PackageInitConfig, status::SimStatus};
 
 // TODO: UNUSED: Needs triage
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
@@ -208,12 +208,10 @@ pub struct InitialState {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ProjectBase {
     pub name: String,
-    pub initial_state: InitialState,
     pub globals_src: String,
     pub experiments_src: Option<String>,
-    pub behaviors: Vec<SharedBehavior>,
     pub datasets: Vec<SharedDataset>,
-    pub packages: Vec<SimPackageArgs>,
+    pub package_init: PackageInitConfig,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]

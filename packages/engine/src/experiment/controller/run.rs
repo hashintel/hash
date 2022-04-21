@@ -135,7 +135,10 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     };
 
     let worker_allocator = SimConfigurer::new(package_config, exp_config.worker_pool.num_workers);
-    let package_creators = PackageCreators::from_config(&exp_config.packages, &exp_config)?;
+    let package_creators = PackageCreators::from_config(
+        &exp_config.packages,
+        &exp_config.run.base().project_base.package_init,
+    )?;
     let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
     let mut orch_client = env.orch_client.try_clone()?;
     let (mut experiment_controller_terminate_send, experiment_controller_terminate_recv) =

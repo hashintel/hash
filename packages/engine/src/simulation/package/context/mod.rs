@@ -13,10 +13,13 @@ use tracing::Span;
 
 pub use self::packages::{Name, PACKAGE_CREATORS};
 use crate::{
-    config::{ExperimentConfig, SimRunConfig},
+    config::SimRunConfig,
     simulation::{
         comms::package::PackageComms,
-        package::ext_traits::{MaybeCpuBound, Package, PackageCreator},
+        package::{
+            ext_traits::{MaybeCpuBound, Package, PackageCreator},
+            PackageInitConfig,
+        },
         Error, Result,
     },
 };
@@ -42,6 +45,7 @@ pub trait ContextPackageCreator: PackageCreator {
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
+        init_config: &PackageInitConfig,
         system: PackageComms,
         state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
@@ -51,7 +55,7 @@ pub trait ContextPackageCreator: PackageCreator {
     // "get_empty_arrow_column"
     fn get_context_field_specs(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
         _field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {
@@ -60,7 +64,7 @@ pub trait ContextPackageCreator: PackageCreator {
 
     fn get_state_field_specs(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
         _field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {

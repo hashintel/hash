@@ -19,17 +19,17 @@ use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
-use crate::{
-    config::ExperimentConfig,
-    simulation::{
-        comms::package::PackageComms,
-        package::context::{
+use crate::simulation::{
+    comms::package::PackageComms,
+    package::{
+        context::{
             packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextPackage,
             ContextPackageCreator, ContextSchema, Error, FieldSpecMapAccessor, MaybeCpuBound,
             Package, PackageCreator, SimRunConfig, StateReadProxy, StateSnapshot,
         },
-        Result,
+        PackageInitConfig,
     },
+    Result,
 };
 
 const CPU_BOUND: bool = false;
@@ -40,6 +40,7 @@ impl ContextPackageCreator for ApiRequestsCreator {
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
+        _init_config: &PackageInitConfig,
         _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
@@ -53,7 +54,7 @@ impl ContextPackageCreator for ApiRequestsCreator {
 
     fn get_context_field_specs(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
         field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {

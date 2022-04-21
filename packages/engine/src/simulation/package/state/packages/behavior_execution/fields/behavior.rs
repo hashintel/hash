@@ -10,10 +10,9 @@ use stateful::{
 
 // use crate::worker::runner::rust;
 use crate::{
-    config::ExperimentConfig,
     datastore::{Error, Result},
     experiment::SharedBehavior,
-    proto::ExperimentRunTrait,
+    simulation::package::PackageInitConfig,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -157,19 +156,16 @@ pub struct BehaviorMap {
     pub(in super::super) all_field_specs: FieldSpecMap,
 }
 
-impl TryFrom<(&ExperimentConfig, &RootFieldSpecCreator)> for BehaviorMap {
+impl TryFrom<(&PackageInitConfig, &RootFieldSpecCreator)> for BehaviorMap {
     type Error = Error;
 
     fn try_from(
-        (experiment_config, field_spec_creator): (&ExperimentConfig, &RootFieldSpecCreator),
+        (package_creator_config, field_spec_creator): (&PackageInitConfig, &RootFieldSpecCreator),
     ) -> Result<Self> {
         let mut meta = HashMap::new();
         let mut field_spec_map = FieldSpecMap::empty();
 
-        experiment_config
-            .run
-            .base()
-            .project_base
+        package_creator_config
             .behaviors
             .iter()
             .try_for_each::<_, Result<()>>(|b| {

@@ -11,8 +11,9 @@ use stateful::{
 };
 
 use crate::{
-    config::{ExperimentConfig, PackageConfig, SimRunConfig},
+    config::{PackageConfig, SimRunConfig},
     datastore::schema::last_state_index_key,
+    proto::ExperimentRunTrait,
     simulation::{
         comms::{package::PackageComms, Comms},
         package::{
@@ -23,7 +24,7 @@ use crate::{
             run::{InitPackages, Packages, StepPackages},
             state,
             worker_init::PackageInitMsgForWorker,
-            PackageType,
+            PackageInitConfig, PackageType,
         },
         Error, Result,
     },
@@ -56,12 +57,12 @@ pub struct PackageCreators {
 impl PackageCreators {
     pub fn from_config(
         package_config: &PackageConfig,
-        experiment_config: &Arc<ExperimentConfig>,
+        init_config: &PackageInitConfig,
     ) -> Result<PackageCreators> {
-        init::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
-        context::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
-        output::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
-        state::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
+        init::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
+        context::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
+        output::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
+        state::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
 
         let init = package_config
             .init_packages()
@@ -181,6 +182,7 @@ impl PackageCreators {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     config,
+                    &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Init),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -204,6 +206,7 @@ impl PackageCreators {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     config,
+                    &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Context),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -231,6 +234,7 @@ impl PackageCreators {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     config,
+                    &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::State),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -254,6 +258,7 @@ impl PackageCreators {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     config,
+                    &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Output),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -280,14 +285,14 @@ impl PackageCreators {
 
     pub fn get_output_persistence_config(
         &self,
-        exp_config: &ExperimentConfig,
+        config: &PackageInitConfig,
         globals: &Globals,
     ) -> Result<OutputPackagesSimConfig> {
         let mut map = HashMap::new();
         self.output
             .iter()
             .try_for_each::<_, Result<()>>(|(_id, name, creator)| {
-                let config = creator.persistence_config(exp_config, globals)?;
+                let config = creator.persistence_config(config, globals)?;
                 map.insert(*name, config);
                 Ok(())
             })?;
@@ -296,7 +301,7 @@ impl PackageCreators {
 
     pub fn get_agent_schema(
         &self,
-        exp_config: &ExperimentConfig,
+        package_init_config: &PackageInitConfig,
         globals: &Globals,
     ) -> Result<AgentSchema> {
         let mut field_spec_map = FieldSpecMap::empty();
@@ -307,7 +312,7 @@ impl PackageCreators {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
-                    exp_config,
+                    package_init_config,
                     globals,
                     &field_spec_creator,
                 )?)?;
@@ -320,7 +325,7 @@ impl PackageCreators {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
-                    exp_config,
+                    package_init_config,
                     globals,
                     &field_spec_creator,
                 )?)?;
@@ -333,7 +338,7 @@ impl PackageCreators {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
-                    exp_config,
+                    package_init_config,
                     globals,
                     &field_spec_creator,
                 )?)?;
@@ -346,7 +351,7 @@ impl PackageCreators {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
-                    exp_config,
+                    package_init_config,
                     globals,
                     &field_spec_creator,
                 )?)?;
@@ -361,7 +366,7 @@ impl PackageCreators {
 
     pub fn get_context_schema(
         &self,
-        exp_config: &ExperimentConfig,
+        package_init_config: &PackageInitConfig,
         globals: &Globals,
     ) -> Result<ContextSchema, Error> {
         let mut field_spec_map = FieldSpecMap::empty();
@@ -371,7 +376,7 @@ impl PackageCreators {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_context_field_specs(
-                    exp_config,
+                    package_init_config,
                     globals,
                     &field_spec_creator,
                 )?)?;

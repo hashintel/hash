@@ -14,7 +14,7 @@ use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
-    config::{ExperimentConfig, SimRunConfig, TopologyConfig},
+    config::{SimRunConfig, TopologyConfig},
     simulation::{
         comms::package::PackageComms,
         package::{
@@ -23,6 +23,7 @@ use crate::{
                 ContextPackageCreator,
             },
             ext_traits::{MaybeCpuBound, Package, PackageCreator},
+            PackageInitConfig,
         },
         Result,
     },
@@ -45,6 +46,7 @@ impl ContextPackageCreator for NeighborsCreator {
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
+        _init_config: &PackageInitConfig,
         _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
@@ -58,7 +60,7 @@ impl ContextPackageCreator for NeighborsCreator {
 
     fn get_context_field_specs(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
         field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {
@@ -67,7 +69,7 @@ impl ContextPackageCreator for NeighborsCreator {
 
     fn get_state_field_specs(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
         field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {

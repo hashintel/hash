@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{config::ExperimentConfig, simulation::Result};
+use crate::simulation::{package::PackageInitConfig, Result};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct JsonStateOutputConfig {
@@ -9,7 +9,7 @@ pub struct JsonStateOutputConfig {
 }
 
 impl JsonStateOutputConfig {
-    pub fn new(_config: &ExperimentConfig) -> Result<JsonStateOutputConfig> {
+    pub fn new(_config: &PackageInitConfig) -> Result<JsonStateOutputConfig> {
         // TODO: make this configurable
         Ok(JsonStateOutputConfig::default())
     }

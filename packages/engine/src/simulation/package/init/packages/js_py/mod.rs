@@ -13,11 +13,14 @@ use serde_json::Value;
 use stateful::agent::Agent;
 
 use crate::{
-    proto::{ExperimentRunTrait, InitialState, InitialStateName},
+    proto::{InitialState, InitialStateName},
     simulation::{
-        package::init::{
-            Arc, FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
-            PackageComms, PackageCreator, SimRunConfig,
+        package::{
+            init::{
+                Arc, FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
+                PackageComms, PackageCreator, SimRunConfig,
+            },
+            PackageInitConfig,
         },
         Error, Result,
     },
@@ -28,13 +31,14 @@ pub struct ScriptInitCreator;
 impl InitPackageCreator for ScriptInitCreator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        _config: &Arc<SimRunConfig>,
+        init_config: &PackageInitConfig,
         comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
-        match &config.exp.run.base().project_base.initial_state.name {
+        match &init_config.initial_state.name {
             InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(ScriptInit {
-                initial_state: config.exp.run.base().project_base.initial_state.clone(),
+                initial_state: init_config.initial_state.clone(),
                 comms,
             })),
             name => {

@@ -6,11 +6,9 @@ use stateful::field::{
 };
 
 use self::behavior::BehaviorMap;
-use crate::{
-    config::ExperimentConfig,
-    simulation::{
-        package::state::packages::behavior_execution::BEHAVIOR_INDEX_INNER_COUNT, Result,
-    },
+use crate::simulation::{
+    package::{state::packages::behavior_execution::BEHAVIOR_INDEX_INNER_COUNT, PackageInitConfig},
+    Result,
 };
 
 pub(super) const BEHAVIORS_FIELD_NAME: &str = "behaviors";
@@ -68,7 +66,7 @@ fn get_behavior_ids_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Res
 }
 
 pub(super) fn get_state_field_specs(
-    config: &ExperimentConfig,
+    config: &PackageInitConfig,
     field_spec_creator: &RootFieldSpecCreator,
 ) -> Result<Vec<RootFieldSpec>> {
     let behavior_map: BehaviorMap = (config, field_spec_creator).try_into()?;

@@ -13,10 +13,13 @@ use stateful::{
 };
 
 use crate::{
-    config::{ExperimentConfig, SimRunConfig},
+    config::SimRunConfig,
     simulation::{
         comms::package::PackageComms,
-        package::ext_traits::{MaybeCpuBound, Package, PackageCreator},
+        package::{
+            ext_traits::{MaybeCpuBound, Package, PackageCreator},
+            PackageInitConfig,
+        },
         Result,
     },
 };
@@ -31,13 +34,14 @@ pub trait InitPackageCreator: PackageCreator {
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
+        init_config: &PackageInitConfig,
         system: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>>;
 
     fn get_state_field_specs(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
         _field_spec_map_builder: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {

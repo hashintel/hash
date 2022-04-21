@@ -10,11 +10,14 @@ use stateful::{
 };
 
 use crate::{
-    config::{ExperimentConfig, TopologyConfig},
+    config::TopologyConfig,
     simulation::{
-        package::state::{
-            Arc, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, SimRunConfig, Span,
-            StatePackage, StatePackageCreator,
+        package::{
+            state::{
+                Arc, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, SimRunConfig,
+                Span, StatePackage, StatePackageCreator,
+            },
+            PackageInitConfig,
         },
         Result,
     },
@@ -35,6 +38,7 @@ impl StatePackageCreator for TopologyCreator {
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
+        _init_config: &PackageInitConfig,
         _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>> {
@@ -46,7 +50,7 @@ impl StatePackageCreator for TopologyCreator {
 
     fn get_state_field_specs(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
         field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {

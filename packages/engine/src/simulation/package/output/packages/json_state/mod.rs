@@ -15,9 +15,10 @@ use crate::simulation::package::{
     name::PackageName,
     output,
     output::{
-        Arc, Error, ExperimentConfig, FieldSpecMapAccessor, MaybeCpuBound, Output, OutputPackage,
+        Arc, Error, FieldSpecMapAccessor, MaybeCpuBound, Output, OutputPackage,
         OutputPackageCreator, Package, PackageComms, PackageCreator, Result, SimRunConfig, Span,
     },
+    PackageInitConfig,
 };
 
 // TODO: UNUSED: Needs triage
@@ -29,6 +30,7 @@ impl OutputPackageCreator for JsonStateCreator {
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
+        _init_config: &PackageInitConfig,
         _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>> {
@@ -46,7 +48,7 @@ impl OutputPackageCreator for JsonStateCreator {
         }))
     }
 
-    fn persistence_config(&self, config: &ExperimentConfig, _globals: &Globals) -> Result<Value> {
+    fn persistence_config(&self, config: &PackageInitConfig, _globals: &Globals) -> Result<Value> {
         let config = JsonStateOutputConfig::new(config)?;
         Ok(serde_json::to_value(config)?)
     }

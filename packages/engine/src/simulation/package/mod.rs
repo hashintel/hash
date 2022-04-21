@@ -25,14 +25,16 @@
 //!
 //! ```
 //! # use std::sync::Arc;
+//! #
 //! # use async_trait::async_trait;
 //! # use hash_engine_lib::{
 //! #     config::{ExperimentConfig, SimRunConfig},
 //! #     simulation::{
 //! #         comms::package::PackageComms,
 //! #         package::{
-//! #             ext_traits::{PackageCreator, Package},
+//! #             ext_traits::{Package, PackageCreator},
 //! #             state::{StatePackage, StatePackageCreator},
+//! #             PackageInitConfig,
 //! #         },
 //! #         Result,
 //! #     },
@@ -71,6 +73,7 @@
 //!     fn create(
 //!         &self,
 //!         _config: &Arc<SimRunConfig>,
+//!         _init_config: &PackageInitConfig,
 //!         _comms: PackageComms,
 //!         _accessor: FieldSpecMapAccessor,
 //!     ) -> Result<Box<dyn StatePackage>> {
@@ -180,10 +183,23 @@ pub mod name;
 pub mod run;
 pub mod worker_init;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use stateful::field::PackageId;
 
-use crate::simulation::package::deps::Dependencies;
+use crate::{
+    experiment::{SharedBehavior, SimPackageArgs},
+    proto::InitialState,
+    simulation::package::deps::Dependencies,
+};
+
+// TODO: The name might be confused with the init package type. If we can come up with another name,
+//   this would be great.
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct PackageInitConfig {
+    pub packages: Vec<SimPackageArgs>,
+    pub initial_state: InitialState,
+    pub behaviors: Vec<SharedBehavior>,
+}
 
 #[derive(Clone, Copy, Debug)]
 pub enum PackageType {

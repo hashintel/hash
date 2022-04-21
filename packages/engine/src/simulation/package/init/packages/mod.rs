@@ -5,26 +5,22 @@ use std::{
     collections::{hash_map::Iter, HashMap},
     fmt,
     lazy::SyncOnceCell,
-    sync::Arc,
 };
 
 use lazy_static::lazy_static;
 use serde::Serialize;
 
-use crate::{
-    config::ExperimentConfig,
-    simulation::{
-        package::{
-            ext_traits::PackageCreator,
-            id::PackageIdGenerator,
-            init::{
-                packages::{js_py::ScriptInitCreator, json::JsonInitCreator},
-                InitPackageCreator,
-            },
-            PackageMetadata, PackageType,
+use crate::simulation::{
+    package::{
+        ext_traits::PackageCreator,
+        id::PackageIdGenerator,
+        init::{
+            packages::{js_py::ScriptInitCreator, json::JsonInitCreator},
+            InitPackageCreator,
         },
-        Error, Result,
+        PackageInitConfig, PackageMetadata, PackageType,
     },
+    Error, Result,
 };
 
 /// All init package names are registered in this enum
@@ -46,10 +42,7 @@ pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn InitPackageCreator
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
 impl PackageCreators {
-    pub(crate) fn initialize_for_experiment_run(
-        &self,
-        _experiment_config: &Arc<ExperimentConfig>,
-    ) -> Result<()> {
+    pub(crate) fn initialize_for_experiment_run(&self, _config: &PackageInitConfig) -> Result<()> {
         tracing::debug!("Initializing Init Package Creators");
         use Name::{JsPy, Json};
         let mut m = HashMap::<_, Box<dyn InitPackageCreator>>::new();

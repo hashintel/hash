@@ -15,6 +15,7 @@ use hash_engine_lib::{
         ExperimentRun, ExperimentRunBase, InitialState, InitialStateName, ProjectBase,
         SharedBehavior, SimPackageArgs,
     },
+    simulation::package::PackageInitConfig,
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
@@ -487,19 +488,21 @@ impl Manifest {
     pub fn read(self, experiment_type: ExperimentType) -> Result<ExperimentRun> {
         let project_base = ProjectBase {
             name: self.project_name,
-            initial_state: self
-                .initial_state
-                .ok_or_else(|| report!("Project must specify an initial state file."))?,
             globals_src: self.globals_json.unwrap_or_else(|| "{}".to_string()),
             experiments_src: self.experiments_json,
-            behaviors: self.behaviors,
             datasets: self.datasets,
             // TODO: allow packages themselves to implement resolvers for local projects to build
             // this   field
-            packages: vec![SimPackageArgs {
-                name: "analysis".into(),
-                data: SerdeValue::String(self.analysis_json.unwrap_or_default()),
-            }],
+            package_init: PackageInitConfig {
+                packages: vec![SimPackageArgs {
+                    name: "analysis".into(),
+                    data: SerdeValue::String(self.analysis_json.unwrap_or_default()),
+                }],
+                behaviors: self.behaviors,
+                initial_state: self
+                    .initial_state
+                    .ok_or_else(|| report!("Project must specify an initial state file."))?,
+            },
         };
 
         let name = match &experiment_type {

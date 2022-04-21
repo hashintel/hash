@@ -13,10 +13,13 @@ use stateful::{
 use tracing::Span;
 
 use crate::{
-    config::{ExperimentConfig, SimRunConfig},
+    config::SimRunConfig,
     simulation::{
         comms::package::PackageComms,
-        package::ext_traits::{Package, PackageCreator},
+        package::{
+            ext_traits::{Package, PackageCreator},
+            PackageInitConfig,
+        },
         Error, Result,
     },
 };
@@ -33,13 +36,14 @@ pub trait StatePackageCreator: PackageCreator {
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
+        init_config: &PackageInitConfig,
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>>;
 
     fn get_state_field_specs(
         &self,
-        _config: &ExperimentConfig,
+        _config: &PackageInitConfig,
         _globals: &Globals,
         _field_spec_map_builder: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {

@@ -3,11 +3,14 @@ use serde_json::Value;
 use stateful::agent::Agent;
 
 use crate::{
-    proto::{ExperimentRunTrait, InitialStateName},
+    proto::InitialStateName,
     simulation::{
-        package::init::{
-            Arc, FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
-            PackageComms, PackageCreator, SimRunConfig,
+        package::{
+            init::{
+                Arc, FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
+                PackageComms, PackageCreator, SimRunConfig,
+            },
+            PackageInitConfig,
         },
         Error, Result,
     },
@@ -18,13 +21,14 @@ pub struct JsonInitCreator;
 impl InitPackageCreator for JsonInitCreator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig>,
+        _config: &Arc<SimRunConfig>,
+        init_config: &PackageInitConfig,
         _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
-        match &config.exp.run.base().project_base.initial_state.name {
+        match &init_config.initial_state.name {
             InitialStateName::InitJson => Ok(Box::new(JsonInit {
-                initial_state_src: config.exp.run.base().project_base.initial_state.src.clone(),
+                initial_state_src: init_config.initial_state.src.clone(),
             })),
             name => {
                 return Err(Error::from(format!(

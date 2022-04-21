@@ -200,8 +200,11 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         );
 
         // Create the datastore configuration (requires schemas)
-        let store_config =
-            StoreConfig::new_sim(&self.exp_base_config, &globals, &self.package_creators)?;
+        let store_config = StoreConfig::new_sim(
+            &self.exp_base_config.run.base().project_base.package_init,
+            &globals,
+            &self.package_creators,
+        )?;
         // Create the persistence configuration
         let persistence_config =
             PersistenceConfig::new_sim(&self.exp_base_config, &globals, &self.package_creators)?;

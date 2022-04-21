@@ -20,7 +20,10 @@ use crate::{
     },
     datastore::{error::Error, schema::last_state_index_key},
     proto::{ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase},
-    simulation::package::creator::{get_base_agent_fields, PackageCreators},
+    simulation::package::{
+        creator::{get_base_agent_fields, PackageCreators},
+        PackageInitConfig,
+    },
 };
 
 fn test_field_specs() -> FieldSpecMap {
@@ -246,24 +249,35 @@ fn make_dummy_agent(seed: u64) -> Result<Agent, Error> {
 }
 
 pub fn dummy_sim_run_config() -> SimRunConfig {
-    let project_base = ProjectBase {
-        name: "project_name".to_string(),
+    let package_init = PackageInitConfig {
         initial_state: InitialState {
             name: InitialStateName::InitJson,
             src: "{}".to_string(),
         },
+        behaviors: Vec::new(),
+        packages: Vec::new(),
+    };
+
+    let globals = Globals::default();
+
+    // We can't use `PackageCreators::from_config` as it will initialise the global static
+    // `SyncOnceCell`s multiple times (thus erroring) if we run multiple tests at once
+    let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
+
+    let store = Arc::new(StoreConfig::new_sim(&package_init, &globals, &package_creators).unwrap());
+
+    let project_base = ProjectBase {
+        name: "project_name".to_string(),
         globals_src: "{}".to_string(),
         experiments_src: None,
-        behaviors: Vec::new(),
         datasets: Vec::new(),
-        packages: Vec::new(),
+        package_init,
     };
     let base = ExperimentRunBase {
         name: "experiment_name".to_string().into(),
         id: Uuid::new_v4(),
         project_base,
     };
-    let globals = Globals::default();
 
     let exp_config = Arc::new(ExperimentConfig {
         packages: Arc::new(PackageConfig {
@@ -281,18 +295,12 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         base_globals: globals.clone(),
     });
 
-    // We can't use `PackageCreators::from_config` as it will initialise the global static
-    // `SyncOnceCell`s multiple times (thus erroring) if we run multiple tests at once
-    let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
-
     SimRunConfig {
         exp: Arc::clone(&exp_config),
         sim: Arc::new(SimulationConfig {
             id: 0,
             globals: Arc::default(),
-            store: Arc::new(
-                StoreConfig::new_sim(&exp_config, &globals, &package_creators).unwrap(),
-            ),
+            store,
             engine: Arc::new(EngineConfig {
                 worker_allocation: Vec::new(),
                 num_workers: 0,

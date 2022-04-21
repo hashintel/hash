@@ -2,6 +2,7 @@ use stateful::global::Globals;
 
 use crate::{
     config::Result,
+    proto::ExperimentRunTrait,
     simulation::package::{creator::PackageCreators, output::packages::OutputPackagesSimConfig},
 };
 
@@ -16,7 +17,10 @@ impl Config {
         globals: &Globals,
         package_creators: &PackageCreators,
     ) -> Result<Config> {
-        let output_config = package_creators.get_output_persistence_config(exp_config, globals)?;
+        let output_config = package_creators.get_output_persistence_config(
+            &exp_config.run.base().project_base.package_init,
+            globals,
+        )?;
         Ok(Config { output_config })
     }
 }
