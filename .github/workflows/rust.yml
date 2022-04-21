@@ -173,6 +173,9 @@ jobs:
       - name: Run clippy
         run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} -- -D warnings
 
+      - name: Ensure empty git diff
+        run: git --no-pager diff --exit-code --color
+
       - name: Generate diff after compilation
         run: |
           changed_files="$(git diff --name-only HEAD)"
