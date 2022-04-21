@@ -252,17 +252,8 @@ jobs:
         if: matrix.directory == 'packages/engine'
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
 
-      - name: Generate diff after compilation
-        run: |
-          changed_files="$(git diff --name-only HEAD)"
-          echo "GIT_DIFF=$(echo $changed_files)"
-
-      - name: Check diff is empty after compilation
-        uses: actions/github-script@v3
-        if: ${{ env.GIT_DIFF }} && ${{ env.GIT_DIFF }} != ""
-        with:
-          script: |
-            core.setFailed('Diff was not empty after compilation')
+      - name: Ensure empty git diff
+        run: git --no-pager diff --exit-code --color
 
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
