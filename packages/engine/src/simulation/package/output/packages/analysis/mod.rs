@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use analyzer::Analyzer;
 use async_trait::async_trait;
-use execution::package::{PackageInitConfig, SimPackageArgs};
+use execution::package::{PackageCreatorConfig, PackageInitConfig, SimPackageArgs};
 use serde_json::Value;
 use stateful::{
     context::Context, field::FieldSpecMapAccessor, global::Globals, proxy::BatchPool, state::State,
@@ -27,7 +27,6 @@ use crate::simulation::{
     package::{
         ext_traits::{MaybeCpuBound, Package, PackageCreator},
         output::{packages::Output, OutputPackage, OutputPackageCreator},
-        PackageCreatorConfig,
     },
     Error, Result,
 };

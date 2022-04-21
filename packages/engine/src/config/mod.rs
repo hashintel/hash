@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use execution::package::PersistenceConfig;
+use execution::package::{PackageCreatorConfig, PersistenceConfig};
 use stateful::{global::Globals, state::StateCreateParameters};
 
 pub use self::{
@@ -15,7 +15,6 @@ pub use self::{
 use crate::{
     env::Environment,
     proto::{ExperimentRunTrait, SimulationShortId},
-    simulation::package::PackageCreatorConfig,
     Args,
 };
 

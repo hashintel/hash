@@ -5,7 +5,7 @@ mod writer;
 
 use arrow::datatypes::DataType;
 use async_trait::async_trait;
-use execution::package::PackageInitConfig;
+use execution::package::{PackageCreatorConfig, PackageInitConfig};
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
 use stateful::{
@@ -22,13 +22,10 @@ pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::simulation::{
     comms::package::PackageComms,
-    package::{
-        context::{
-            packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextPackage,
-            ContextPackageCreator, ContextSchema, Error, FieldSpecMapAccessor, MaybeCpuBound,
-            Package, PackageCreator, StateReadProxy, StateSnapshot,
-        },
-        PackageCreatorConfig,
+    package::context::{
+        packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextPackage,
+        ContextPackageCreator, ContextSchema, Error, FieldSpecMapAccessor, MaybeCpuBound, Package,
+        PackageCreator, StateReadProxy, StateSnapshot,
     },
     Result,
 };

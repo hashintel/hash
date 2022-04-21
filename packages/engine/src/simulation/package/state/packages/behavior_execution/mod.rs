@@ -5,7 +5,7 @@ use execution::{
             behavior_execution::{BehaviorMap, ExecuteBehaviorsTask},
             StatePackageName, StateTask,
         },
-        PackageInitConfig, PackageName, PackageTask,
+        PackageCreatorConfig, PackageInitConfig, PackageName, PackageTask,
     },
     runner::Language,
     task::TaskSharedStoreBuilder,
@@ -22,16 +22,13 @@ use stateful::{
 
 use self::{config::exp_init_message, reset_index_col::reset_index_col};
 use crate::simulation::{
-    package::{
-        state::{
-            packages::behavior_execution::{
-                config::BehaviorIds,
-                fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
-            },
-            Arc, Error, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, Result, Span,
-            StatePackage, StatePackageCreator,
+    package::state::{
+        packages::behavior_execution::{
+            config::BehaviorIds,
+            fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
         },
-        PackageCreatorConfig,
+        Arc, Error, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, Result, Span,
+        StatePackage, StatePackageCreator,
     },
     task::active::ActiveTask,
 };

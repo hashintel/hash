@@ -3,7 +3,7 @@ use std::sync::Arc;
 use execution::{
     package::{
         init::{InitialState, InitialStateName},
-        PackageInitConfig,
+        PackageCreatorConfig, PackageInitConfig,
     },
     worker_pool::WorkerPoolConfig,
 };
@@ -25,10 +25,7 @@ use crate::{
     },
     datastore::{error::Error, schema::last_state_index_key},
     proto::{ExperimentRunBase, ExperimentRunRepr, ProjectBase},
-    simulation::package::{
-        creator::{get_base_agent_fields, PackageCreators},
-        PackageCreatorConfig,
-    },
+    simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
 fn test_field_specs() -> FieldSpecMap {

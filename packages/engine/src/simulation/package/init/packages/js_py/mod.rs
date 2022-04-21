@@ -5,7 +5,7 @@ use execution::{
             script::{JsInitTask, JsPyInitTaskMessage, PyInitTask, SuccessMessage},
             InitTask, InitTaskMessage, InitialState, InitialStateName,
         },
-        PackageInitConfig, PackageTask, TaskMessage,
+        PackageCreatorConfig, PackageInitConfig, PackageTask, TaskMessage,
     },
     task::SharedStore,
 };
@@ -13,12 +13,9 @@ use serde_json::Value;
 use stateful::agent::Agent;
 
 use crate::simulation::{
-    package::{
-        init::{
-            FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
-            PackageComms, PackageCreator,
-        },
-        PackageCreatorConfig,
+    package::init::{
+        FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
+        PackageComms, PackageCreator,
     },
     Error, Result,
 };

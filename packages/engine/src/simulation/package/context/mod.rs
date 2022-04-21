@@ -3,7 +3,7 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use execution::package::PackageInitConfig;
+use execution::package::{PackageCreatorConfig, PackageInitConfig};
 use stateful::{
     context::{ContextColumn, ContextSchema},
     field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
@@ -15,10 +15,7 @@ use tracing::Span;
 pub use self::packages::PACKAGE_CREATORS;
 use crate::simulation::{
     comms::package::PackageComms,
-    package::{
-        ext_traits::{MaybeCpuBound, Package, PackageCreator},
-        PackageCreatorConfig,
-    },
+    package::ext_traits::{MaybeCpuBound, Package, PackageCreator},
     Error, Result,
 };
 

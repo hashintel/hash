@@ -3,7 +3,7 @@
 pub mod packages;
 
 use async_trait::async_trait;
-use execution::package::PackageInitConfig;
+use execution::package::{PackageCreatorConfig, PackageInitConfig};
 pub use packages::PACKAGE_CREATORS;
 use stateful::{
     agent::Agent,
@@ -13,10 +13,7 @@ use stateful::{
 
 use crate::simulation::{
     comms::package::PackageComms,
-    package::{
-        ext_traits::{MaybeCpuBound, Package, PackageCreator},
-        PackageCreatorConfig,
-    },
+    package::ext_traits::{MaybeCpuBound, Package, PackageCreator},
     Result,
 };
 

@@ -179,14 +179,3 @@ pub mod creator;
 pub mod ext_traits;
 pub mod run;
 pub mod worker_init;
-
-use std::sync::Arc;
-
-use execution::package::PersistenceConfig;
-use stateful::{agent::AgentSchema, global::Globals};
-
-pub struct PackageCreatorConfig {
-    pub agent_schema: Arc<AgentSchema>,
-    pub globals: Globals,
-    pub persistence: PersistenceConfig,
-}

@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use execution::package::PackageInitConfig;
+use execution::package::{PackageCreatorConfig, PackageInitConfig};
 use serde_json::Value;
 use stateful::{
     agent::AgentBatch,
@@ -13,12 +13,9 @@ use stateful::{
 use crate::{
     config::TopologyConfig,
     simulation::{
-        package::{
-            state::{
-                Arc, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, Span,
-                StatePackage, StatePackageCreator,
-            },
-            PackageCreatorConfig,
+        package::state::{
+            Arc, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, Span, StatePackage,
+            StatePackageCreator,
         },
         Result,
     },

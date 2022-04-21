@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use execution::package::PackageCreatorConfig;
+
 use crate::{
     config::{EngineConfig, StoreConfig},
     proto::SimulationShortId,
-    simulation::package::PackageCreatorConfig,
 };
 
 pub struct Config {

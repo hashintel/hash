@@ -5,7 +5,7 @@ mod writer;
 
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
-use execution::package::PackageInitConfig;
+use execution::package::{PackageCreatorConfig, PackageInitConfig};
 use serde_json::Value;
 use stateful::{
     agent,
@@ -19,12 +19,9 @@ use tracing::Span;
 use self::collected::Messages;
 use crate::simulation::{
     comms::package::PackageComms,
-    package::{
-        context::{
-            packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextPackage,
-            ContextPackageCreator, FieldSpecMapAccessor, MaybeCpuBound, Package, PackageCreator,
-        },
-        PackageCreatorConfig,
+    package::context::{
+        packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextPackage,
+        ContextPackageCreator, FieldSpecMapAccessor, MaybeCpuBound, Package, PackageCreator,
     },
     Result,
 };

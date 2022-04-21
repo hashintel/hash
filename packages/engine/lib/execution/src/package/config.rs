@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use serde::{Deserialize, Serialize};
+use stateful::{agent::AgentSchema, global::Globals};
 
 use crate::package::{init::InitialState, state::behavior_execution::Behavior, PackageName};
 
@@ -27,4 +28,10 @@ pub struct OutputPackagesSimConfig {
 #[derive(Clone)]
 pub struct PersistenceConfig {
     pub output_config: OutputPackagesSimConfig,
+}
+
+pub struct PackageCreatorConfig {
+    pub agent_schema: Arc<AgentSchema>,
+    pub globals: Globals,
+    pub persistence: PersistenceConfig,
 }
