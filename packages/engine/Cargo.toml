@@ -46,8 +46,7 @@ tracing-appender = "0.2.0"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.7", features = ["env-filter", "json"] }
 tracing-texray = { version = "0.1.2", optional = true }
-# Only temporary, use the next crates.io release (after 0.41.0)
-v8 = { git = "https://github.com/denoland/rusty_v8" }
+v8 = "0.42.0"
 uuid = { version = "0.8.1", features = ["v4", "serde"] }
 
 [dev-dependencies]
