@@ -238,13 +238,17 @@ jobs:
         if: matrix.directory == 'packages/engine'
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
 
-      - name: Check diff is empty before tests
+      - name: Generate diff before tests
         uses: technote-space/get-diff-action@v6
+        if: matrix.directory == 'packages/engine'
+
+      - name: Check diff is empty before tests
+        uses: actions/github-script@v3
         if: matrix.directory == 'packages/engine' && ${{ env.GIT_DIFF }}
         with:
           script: |
             console.log("${{ env.GIT_DIFF }}")
-            exit 1
+            core.setFailed('Diff was not empty before tests')
 
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
