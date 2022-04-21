@@ -249,7 +249,7 @@ jobs:
         if: matrix.directory == 'packages/engine' && ${{ env.DIFF_BEFORE_TESTS }} != ""
         with:
           script: |
-            console.log(`${env.DIFF_BEFORE_TESTS}`)
+            console.log(`${process.env.DIFF_BEFORE_TESTS}`)
             core.setFailed('Diff was not empty before tests')
 
       - name: Setup Python environment
@@ -272,7 +272,7 @@ jobs:
         if: matrix.directory == 'packages/engine' && ${{ env.DIFF_AFTER_TESTS }} != ""
         with:
           script: |
-            console.log(`${env.DIFF_AFTER_TESTS}`)
+            console.log(`${process.env.DIFF_AFTER_TESTS}`)
             core.setFailed('Diff was not empty after tests')
 
   bench:
