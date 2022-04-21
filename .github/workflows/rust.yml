@@ -239,10 +239,10 @@ jobs:
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
 
       - name: Generate diff before tests
-        uses: technote-space/get-diff-action@v6
         if: matrix.directory == 'packages/engine'
-        with:
-          RELATIVE: ${{ matrix.directory }}
+        run: |
+          echo git --no-pager diff ${{ matrix.directory }}
+          echo "DIFF=$(git --no-pager diff ${{ matrix.directory }})"
 
       - name: Check diff is empty before tests
         uses: actions/github-script@v3
