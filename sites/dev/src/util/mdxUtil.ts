@@ -5,9 +5,10 @@ import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
 import path from "path";
 import remarkMdx from "remark-mdx";
+import remarkMdxDisableExplicitJsx from "remark-mdx-disable-explicit-jsx";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
-import remarkMdxDisableExplicitJsx from "remark-mdx-disable-explicit-jsx";
+import { parseNameFromFileName } from "./clientMdxUtil";
 
 type Node = {
   type: string;
@@ -47,17 +48,6 @@ const getImagesFromParent = (parent: Parent): Image[] => [
     .filter(isParent)
     .flatMap((child) => getImagesFromParent(child)),
 ];
-
-// Parses the name from a MDX file name (removing the prefix index and the .mdx file extension)
-const parseNameFromFileName = (fileName: string): string => {
-  const matches = fileName.match(/^\d+_(.*?)\.mdx$/);
-
-  if (!matches || matches.length < 2) {
-    throw new Error(`Invalid MDX fileName: ${fileName}`);
-  }
-
-  return matches[1]!;
-};
 
 // Gets all hrefs corresponding to the MDX files in a directory
 export const getAllPageHrefs = (params: { folderName: string }): string[] => {
