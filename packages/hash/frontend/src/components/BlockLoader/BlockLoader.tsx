@@ -19,6 +19,9 @@ import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/use
 import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
 import { useBlockProtocolUpdateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinks";
 import { useBlockLoaded } from "../../blocks/onBlockLoaded";
+import { useBlockProtocolCreateLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregations";
+import { useBlockProtocolUpdateLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregations";
+import { useBlockProtocolDeleteLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregations";
 
 type BlockLoaderProps = {
   accountId: string;
@@ -53,11 +56,17 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 }) => {
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
-  const { createLinks } = useBlockProtocolCreateLinks();
-  const { deleteLinks } = useBlockProtocolDeleteLinks();
   const { updateEntities } = useBlockProtocolUpdateEntities();
   const { uploadFile } = useFileUpload();
+  const { createLinks } = useBlockProtocolCreateLinks();
   const { updateLinks } = useBlockProtocolUpdateLinks();
+  const { deleteLinks } = useBlockProtocolDeleteLinks();
+  const { createLinkedAggregations } =
+    useBlockProtocolCreateLinkedAggregations();
+  const { updateLinkedAggregations } =
+    useBlockProtocolUpdateLinkedAggregations();
+  const { deleteLinkedAggregations } =
+    useBlockProtocolDeleteLinkedAggregations();
 
   const flattenedProperties = useMemo(() => {
     let flattenedLinkedEntities: UnknownEntity[] = [];
@@ -93,13 +102,16 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const functions = {
     aggregateEntityTypes,
     aggregateEntities,
-    createLinks,
-    deleteLinks,
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
     updateEntities,
-    updateLinks,
     uploadFile,
+    createLinks,
+    updateLinks,
+    deleteLinks,
+    createLinkedAggregations,
+    updateLinkedAggregations,
+    deleteLinkedAggregations,
   };
 
   const onBlockLoaded = useBlockLoaded();

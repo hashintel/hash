@@ -112,7 +112,6 @@ export const Table: BlockComponent<AppProps> = ({
   accountId,
   aggregateEntities,
   aggregateEntityTypes,
-  createLinks,
   entityId,
   entityTypeId,
   entityTypes: schemas,
@@ -120,7 +119,8 @@ export const Table: BlockComponent<AppProps> = ({
   initialState,
   linkedAggregations,
   updateEntities,
-  updateLinks,
+  updateLinkedAggregations,
+  createLinkedAggregations,
 }) => {
   const matchingLinkedAggregation = useMemo(() => {
     if (!entityId) {
@@ -245,7 +245,7 @@ export const Table: BlockComponent<AppProps> = ({
       if (
         !entityId ||
         !updateEntities ||
-        !updateLinks ||
+        !updateLinkedAggregations ||
         !matchingLinkedAggregation ||
         !tableData.linkedAggregation
       ) {
@@ -298,11 +298,11 @@ export const Table: BlockComponent<AppProps> = ({
         },
       ]);
 
-      void updateLinks([
+      void updateLinkedAggregations([
         cleanUpdateLinkedAggregationAction({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
-          path,
+          aggregationId: matchingLinkedAggregation.aggregationId,
           data: newLinkedData.operation,
         }),
       ]);
@@ -315,7 +315,7 @@ export const Table: BlockComponent<AppProps> = ({
       initialState,
       matchingLinkedAggregation,
       updateEntities,
-      updateLinks,
+      updateLinkedAggregations,
       tableData.linkedAggregation,
     ],
   );
@@ -442,19 +442,24 @@ export const Table: BlockComponent<AppProps> = ({
 
   const handleEntityTypeChange = useCallback(
     (updatedEntityTypeId: string | undefined) => {
-      if (!entityId || !updateLinks || !createLinks) {
+      if (
+        !accountId ||
+        !entityId ||
+        !updateLinkedAggregations ||
+        !createLinkedAggregations
+      ) {
         throw new Error(
-          "All of entityId, createLinks and updateLinks must be passed to the block to update data linked from it",
+          "All of accountId, entityId, createLinkedAggregations and updateLinkedAggregations must be passed to the block to update data linked from it",
         );
       }
 
-      if (updatedEntityTypeId) {
+      if (updatedEntityTypeId && tableData.linkedAggregation) {
         if (tableData?.linkedAggregation) {
-          void updateLinks?.([
+          void updateLinkedAggregations([
             cleanUpdateLinkedAggregationAction({
               sourceAccountId: accountId,
               sourceEntityId: entityId,
-              path,
+              aggregationId: tableData.linkedAggregation.aggregationId,
               data: {
                 entityTypeId: updatedEntityTypeId,
                 // There is scope to include other options if entity properties overlap
@@ -464,7 +469,7 @@ export const Table: BlockComponent<AppProps> = ({
             }),
           ]);
         } else {
-          void createLinks?.([
+          void createLinkedAggregations([
             {
               operation: {
                 entityTypeId: updatedEntityTypeId,
@@ -479,10 +484,10 @@ export const Table: BlockComponent<AppProps> = ({
     },
     [
       accountId,
-      createLinks,
       entityId,
       tableData.linkedAggregation,
-      updateLinks,
+      updateLinkedAggregations,
+      createLinkedAggregations,
     ],
   );
 
