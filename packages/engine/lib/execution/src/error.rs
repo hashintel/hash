@@ -10,6 +10,9 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Stateful error: {0}")]
+    Stateful(#[from] stateful::Error),
+
     #[error("Behavior language parse error: {0}")]
     ParseBehavior(String),
 
@@ -36,6 +39,9 @@ pub enum Error {
 
     #[error("Invalid type of task message for behavior execution: {0:?}")]
     InvalidBehaviorTaskMessage(crate::package::TaskMessage),
+
+    #[error("Behavior Key Error: {0}")]
+    BehaviorKeyJsonError(#[from] crate::package::state::behavior_execution::BehaviorKeyJsonError),
 }
 
 impl Error {

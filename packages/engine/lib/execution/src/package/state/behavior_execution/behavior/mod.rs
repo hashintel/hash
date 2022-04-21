@@ -1,6 +1,13 @@
+mod error;
+mod field;
+mod json;
+mod keys;
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+
+pub use self::{error::BehaviorKeyJsonError, field::BehaviorMap};
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Behavior {

@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
-use execution::runner::Language;
+use execution::{package::state::behavior_execution::BehaviorMap, runner::Language};
 use serde::{Deserialize, Serialize};
 
-use crate::simulation::package::state::packages::behavior_execution::{
-    fields::behavior::BehaviorMap, Error, Result,
-};
+use crate::simulation::package::state::packages::behavior_execution::{Error, Result};
 
 #[derive(Serialize, Deserialize)]
 pub struct BehaviorDescription {

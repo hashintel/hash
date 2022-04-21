@@ -1,12 +1,9 @@
-pub mod behavior;
-
 use arrow::datatypes::DataType;
-use execution::package::PackageInitConfig;
+use execution::package::{state::behavior_execution::BehaviorMap, PackageInitConfig};
 use stateful::field::{
     FieldScope, FieldType, FieldTypeVariant, PresetFieldType, RootFieldSpec, RootFieldSpecCreator,
 };
 
-use self::behavior::BehaviorMap;
 use crate::simulation::{
     package::state::packages::behavior_execution::BEHAVIOR_INDEX_INNER_COUNT, Result,
 };

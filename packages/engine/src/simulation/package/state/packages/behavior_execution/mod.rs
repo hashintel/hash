@@ -1,7 +1,10 @@
 use async_trait::async_trait;
 use execution::{
     package::{
-        state::{behavior_execution::ExecuteBehaviorsTask, StateTask},
+        state::{
+            behavior_execution::{BehaviorMap, ExecuteBehaviorsTask},
+            StateTask,
+        },
         PackageInitConfig, PackageTask,
     },
     runner::Language,
@@ -17,9 +20,7 @@ use stateful::{
     state::{State, StateWriteProxy},
 };
 
-use self::{
-    config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
-};
+use self::{config::exp_init_message, reset_index_col::reset_index_col};
 use crate::simulation::{
     package::{
         name::PackageName,
