@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@headlessui/react": "1.4.1",
-    "blockprotocol": "0.0.8",
+    "blockprotocol": "0.0.7",
     "immer": "9.0.6",
     "lodash": "4.17.21",
     "react-table": "7.7.0",

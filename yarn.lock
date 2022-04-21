@@ -8524,10 +8524,10 @@ blockprotocol@0.0.6:
   dependencies:
     "@types/react" "^17.0.38"
 
-blockprotocol@0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.8.tgz#1fef8fc7bcdfc1fb132015a90fd1c962a5cce9c1"
-  integrity sha512-49rvjzpvlbtvZWsO+4c7UmKlDbMrIff6WCwtMk3DF3y/LCNliLREGxNmkOK9OT8NJ2OfubCbziGW9v6tzwCHaw==
+blockprotocol@0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.7.tgz#e9f36e6e9c468a8611075a1f6d93b9af22711f19"
+  integrity sha512-8Hapdz1jaBoTYZqd2m9MY/+NAYCOGhMq0zR5t7Q3F8LjpKTP1DmAj6LayOIJFYVzQCYAbFouI45GhHyWmtRRnA==
   dependencies:
     "@types/react" "^17.0.39"
 

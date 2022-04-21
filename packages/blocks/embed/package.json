@@ -19,7 +19,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.8",
+    "blockprotocol": "0.0.7",
     "lodash": "4.17.21"
   },
   "devDependencies": {
