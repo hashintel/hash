@@ -3,5 +3,5 @@ mod message;
 mod task;
 
 pub use self::{
-    behavior::SharedBehavior, message::ExecuteBehaviorsTaskMessage, task::ExecuteBehaviorsTask,
+    behavior::Behavior, message::ExecuteBehaviorsTaskMessage, task::ExecuteBehaviorsTask,
 };

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::package::{init::InitialState, state::behavior_execution::SharedBehavior};
+use crate::package::{init::InitialState, state::behavior_execution::Behavior};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct SimPackageArgs {
@@ -14,5 +14,5 @@ pub struct SimPackageArgs {
 pub struct PackageInitConfig {
     pub packages: Vec<SimPackageArgs>,
     pub initial_state: InitialState,
-    pub behaviors: Vec<SharedBehavior>,
+    pub behaviors: Vec<Behavior>,
 }

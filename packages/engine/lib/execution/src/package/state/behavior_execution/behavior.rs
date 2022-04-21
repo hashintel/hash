@@ -3,7 +3,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
-pub struct SharedBehavior {
+pub struct Behavior {
     /// This is the unique identifier (also the file/path) that, in the case of Cloud runs, is used
     /// by the HASH API
     pub id: String,
@@ -19,7 +19,7 @@ pub struct SharedBehavior {
     pub behavior_keys_src: Option<String>,
 }
 
-impl fmt::Debug for SharedBehavior {
+impl fmt::Debug for Behavior {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("SharedBehavior")
             .field("id", &self.id)

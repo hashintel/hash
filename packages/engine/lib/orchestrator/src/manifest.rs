@@ -11,7 +11,7 @@ use std::{
 use error::{bail, ensure, report, Result, ResultExt};
 use execution::package::{
     init::{InitialState, InitialStateName},
-    state::behavior_execution::SharedBehavior,
+    state::behavior_execution::Behavior,
     PackageInitConfig, SimPackageArgs,
 };
 use hash_engine_lib::{
@@ -39,7 +39,7 @@ pub struct Manifest {
     /// The initial state for the simulation.
     pub initial_state: Option<InitialState>,
     /// A list of all behaviors in the project.
-    pub behaviors: Vec<SharedBehavior>,
+    pub behaviors: Vec<Behavior>,
     /// A list of all datasets in the project.
     pub datasets: Vec<SharedDataset>,
     /// JSON string describing the [`Globals`](hash_engine_lib::config::Globals) object.
@@ -183,7 +183,7 @@ impl Manifest {
             {
                 DependencyType::Behavior(extension) => {
                     let behavior = if &extension == ".rs" {
-                        SharedBehavior {
+                        Behavior {
                             id: dependency_name.to_string(),
                             name: dependency_name.to_string(),
                             shortnames: vec![],
@@ -213,7 +213,7 @@ impl Manifest {
     }
 
     /// Adds the provided `behavior` to the list of behaviors.
-    pub fn add_behavior(&mut self, behavior: SharedBehavior) {
+    pub fn add_behavior(&mut self, behavior: Behavior) {
         self.behaviors.push(behavior);
     }
 
@@ -247,7 +247,7 @@ impl Manifest {
             .ok_or_else(|| report!("Could not find parent folder for behavior file: {path:?}"))?;
         let key_path = folder_path.join(&format!("{file_name}.json"));
 
-        self.add_behavior(SharedBehavior {
+        self.add_behavior(Behavior {
             // `id`, `name` and `shortnames` may be updated later if this behavior is a dependency
             id: file_name.clone(),
             name: file_name,
@@ -552,7 +552,7 @@ fn get_dependency_type_from_name(dependency_name: &str) -> Result<DependencyType
 fn get_behavior_from_dependency_projects(
     dependency_name: &str,
     dependency_projects: &HashMap<PathBuf, Manifest>,
-) -> Result<SharedBehavior> {
+) -> Result<Behavior> {
     let mut name = dependency_name.to_string();
     let mut possible_names = Vec::with_capacity(4);
 

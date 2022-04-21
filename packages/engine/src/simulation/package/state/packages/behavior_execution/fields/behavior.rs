@@ -1,6 +1,6 @@
 use std::{collections::HashMap, convert::TryFrom};
 
-use execution::package::{state::behavior_execution::SharedBehavior, PackageInitConfig};
+use execution::package::{state::behavior_execution::Behavior, PackageInitConfig};
 use stateful::{
     agent::AgentStateField,
     field::{
@@ -133,12 +133,12 @@ impl BehaviorKeys {
 
 #[derive(Clone)]
 pub struct BehaviorFieldMap {
-    shared: SharedBehavior,
+    shared: Behavior,
     keys: BehaviorKeys,
 }
 
 impl BehaviorFieldMap {
-    pub fn shared(&self) -> &SharedBehavior {
+    pub fn shared(&self) -> &Behavior {
         &self.shared
     }
 
