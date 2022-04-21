@@ -43,16 +43,17 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
       })),
     );
 
+    const TOTAL = 14;
     const fakedPages = [
       ...pages,
-      ...new Array(11)
+      ...new Array(TOTAL)
         .fill({})
         .flatMap(() => pages)
         .map((page) => ({
           ...page,
           fileName: `${Math.floor(Math.random() * 100)}_${page.fileName}`,
         }))
-        .slice(0, 11 - pages.length),
+        .slice(0, TOTAL - pages.length),
     ];
     return {
       props: {
@@ -105,7 +106,7 @@ const PostImage: VFC<{
     </BlogPostLink>
   ) : null;
 
-const MajorPost: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
+const FourPosts: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
   <Stack direction="column" spacing={{ xs: 3, md: 4 }}>
     <Box position="relative">
       <PostImage page={page} fill={false} />
@@ -128,9 +129,9 @@ const MajorPost: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
   </Stack>
 );
 
-const MinorPost: VFC<{ page: BlogIndividualPage; collapsed?: boolean }> = ({
+const ThreePosts: VFC<{ page: BlogIndividualPage; collapsed?: boolean }> = ({
   page,
-  collapsed,
+  collapsed = false,
 }) => (
   <Stack
     direction={{ xs: "column-reverse", ...(!collapsed && { md: "row" }) }}
@@ -152,13 +153,19 @@ const MinorPost: VFC<{ page: BlogIndividualPage; collapsed?: boolean }> = ({
         </Typography>
       ) : null}
     </PostCopyContainer>
-    <Box {...(!collapsed && { width: 160, height: 160 })} position="relative">
+    <Box
+      sx={[
+        { position: "relative" },
+        !collapsed && { width: 160, height: 160 },
+        collapsed && { width: 1 },
+      ]}
+    >
       <PostImage page={page} fill={!collapsed} />
     </Box>
   </Stack>
 );
 
-const MajorRow: VFC<{ reverse?: boolean; posts: BlogIndividualPage[] }> = ({
+const FourPostsRow: VFC<{ reverse?: boolean; posts: BlogIndividualPage[] }> = ({
   reverse,
   posts: [majorPost = null, ...posts],
 }) => (
@@ -168,7 +175,7 @@ const MajorRow: VFC<{ reverse?: boolean; posts: BlogIndividualPage[] }> = ({
   >
     {majorPost ? (
       <Box width={{ xs: 1, md: 591 }}>
-        <MajorPost page={majorPost} />
+        <FourPosts page={majorPost} />
       </Box>
     ) : null}
     <Stack
@@ -184,16 +191,16 @@ const MajorRow: VFC<{ reverse?: boolean; posts: BlogIndividualPage[] }> = ({
       }
     >
       {posts.map((post) => (
-        <MinorPost page={post} key={post.fileName} />
+        <ThreePosts page={post} key={post.fileName} />
       ))}
     </Stack>
   </Stack>
 );
 
-const MinorRow: VFC<{ posts: BlogIndividualPage[] }> = ({ posts }) => (
+const ThreePostsRow: VFC<{ posts: BlogIndividualPage[] }> = ({ posts }) => (
   <Stack direction={{ xs: "column", md: "row" }} spacing={5}>
     {posts.map((post) => (
-      <MinorPost page={post} collapsed key={post.fileName} />
+      <ThreePosts page={post} collapsed key={post.fileName} />
     ))}
   </Stack>
 );
@@ -244,11 +251,11 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
             {groupedPages.map((row, idx) => (
               // eslint-disable-next-line react/no-array-index-key
               <Fragment key={idx}>
-                {idx % 3 === 1 ? (
-                  <MinorRow posts={row} />
+                {idx % 2 === 1 ? (
+                  <ThreePostsRow posts={row} />
                 ) : (
                   <>
-                    <MajorRow posts={row} reverse={idx % 3 === 2} />
+                    <FourPostsRow posts={row} reverse={idx % 3 === 2} />
                     {/** @todo full width */}
                     {idx === 0 ? <Subscribe /> : null}
                   </>
