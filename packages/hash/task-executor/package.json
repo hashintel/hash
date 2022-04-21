@@ -8,7 +8,7 @@
     "fix:eslint": "eslint --ext .ts --fix ./src/",
     "lint:eslint": "eslint --ext .ts ./src/",
     "lint:tsc": "tsc --noEmit",
-    "start": ". ./setup.sh python3 && cross-env NODE_ENV=production node ./node_modules/.bin/ts-node --transpile-only ./src/index.ts"
+    "start": "nodemon ./src/index.ts --transpile-only"
   },
   "dependencies": {
     "body-parser": "1.19.0",
@@ -17,5 +17,8 @@
     "express": "4.17.1",
     "ts-node": "10.4.0",
     "typescript": "4.6.2"
+  },
+  "devDependencies": {
+    "nodemon": "2.0.15"
   }
 }
