@@ -173,20 +173,18 @@ jobs:
       - name: Run clippy
         run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} -- -D warnings
 
-      - name: Generate diff before tests
+      - name: Generate diff after compilation
         run: |
           changed_files="$(git diff --name-only HEAD)"
           echo $changed_files
-          git --no-pager diff packages/engine
-          echo "GIT_DIFF=$(git --no-pager diff packages/engine)"
+          echo "GIT_DIFF=$($changed_files)"
 
-      - name: Check diff is empty before tests
+      - name: Check diff is empty after compilation
         uses: actions/github-script@v3
-        if: matrix.directory == 'packages/engine' && ${{ env.GIT_DIFF }} != ""
+        if: ${{ env.GIT_DIFF }} != ""
         with:
           script: |
-            console.log(${{ env.GIT_DIFF }})
-            core.setFailed('Diff was not empty before tests')
+            core.setFailed('Diff was not empty after compilation')
 
       - name: Annotate
         if: ${{ failure() }}
@@ -255,21 +253,6 @@ jobs:
         if: matrix.directory == 'packages/engine'
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
 
-      - name: Generate diff before tests
-        run: |
-          changed_files="$(git diff --name-only HEAD)"
-          echo $changed_files
-          git --no-pager diff packages/engine
-          echo "GIT_DIFF=$(git --no-pager diff packages/engine)"
-
-      - name: Check diff is empty before tests
-        uses: actions/github-script@v3
-        if: matrix.directory == 'packages/engine' && ${{ env.GIT_DIFF }} != ""
-        with:
-          script: |
-            console.log(${{ env.GIT_DIFF }})
-            core.setFailed('Diff was not empty before tests')
-
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
         working-directory: ${{ matrix.directory }}
@@ -278,20 +261,6 @@ jobs:
 
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
-
-      - name: Generate diff after tests
-        id: diff_after_tests
-        if: matrix.directory == 'packages/engine'
-        run: |
-          echo "DIFF_AFTER_TESTS=$(git diff ${{ matrix.directory }})" >> $GITHUB_ENV
-
-      - name: Check diff is empty after tests
-        uses: actions/github-script@v3
-        if: matrix.directory == 'packages/engine' && ${{ env.DIFF_AFTER_TESTS }}
-        with:
-          script: |
-            console.log(`${process.env.DIFF_AFTER_TESTS}`)
-            core.setFailed('Diff was not empty after tests')
 
   bench:
     name: bench
