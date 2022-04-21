@@ -36,7 +36,7 @@
   },
   "block-scripts": {
     "devPort": 9090,
-    "servePort": 62679
+    "servePort": 62681
   },
   "blockprotocol": {
     "displayName": "Code",

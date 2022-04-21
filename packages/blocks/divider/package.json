@@ -35,7 +35,7 @@
   },
   "block-scripts": {
     "devPort": 9090,
-    "servePort": 63679
+    "servePort": 62679
   },
   "blockprotocol": {
     "displayName": "Divider",
