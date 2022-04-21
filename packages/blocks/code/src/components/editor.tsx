@@ -9,7 +9,7 @@ import React, {
 import Prism from "prismjs";
 import { tw } from "twind";
 
-import "./prism-theme-override.scss";
+// import "./prism-theme-override.scss";
 import { LanguageType } from "../utils";
 
 type IEditorProps = {

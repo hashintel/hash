@@ -8,8 +8,6 @@ import { tw } from "twind";
 import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
-import { ProviderName } from "./types";
-import { EmbedDataType } from "./mock-data/mock-data";
 import variants from "../variants.json";
 
 const node = document.getElementById("app");
@@ -17,15 +15,13 @@ const node = document.getElementById("app");
 /** Temporarily leaving this here, till we fix importing it from hash-shared */
 const apiGraphQLEndpoint = "http://localhost:5001/graphql";
 
-async function getEmbedBlock(
-  url: string,
-  type?: ProviderName,
-): Promise<{
-  html: string;
-  error?: string;
-  height?: number;
-  width?: number;
-}> {
+/**
+ *
+ * @param {string} url
+ * @param {import("./types").ProviderName} type
+ * @returns {Promise<{ html: string; error?: string; height?: number; width?: number;}}
+ */
+async function getEmbedBlock(url, type) {
   return fetch(apiGraphQLEndpoint, {
     method: "POST",
     headers: {
@@ -46,21 +42,25 @@ async function getEmbedBlock(
 }
 
 // @todo replace typeof variants[number] with type BlockVariant when available
-const getVariantProperties = (variant: typeof variants[number]) => {
+/**
+ * @param {typeof variants[number]} variant
+ */
+const getVariantProperties = (variant) => {
   return {
     ...variant.properties,
-    embedType: variant.properties?.embedType as ProviderName,
+    embedType: variant.properties?.embedType,
     ...variant.examples?.[0],
   };
 };
 
 const initialVariantIndex = 0;
 
-const initialState: EmbedDataType = getVariantProperties(
-  variants[initialVariantIndex]!,
-);
+const initialState = getVariantProperties(variants[initialVariantIndex]);
 
-const AppComponent: React.VoidFunctionComponent = () => {
+/**
+ * @type {import("react").VoidFunctionComponent}
+ */
+const AppComponent = () => {
   const [selectedVariantIndex, setSelectedVariantIndex] =
     useState(initialVariantIndex);
 
@@ -87,7 +87,7 @@ const AppComponent: React.VoidFunctionComponent = () => {
           entityTypeId="Embed"
           getEmbedBlock={getEmbedBlock}
           {...initialState}
-          {...getVariantProperties(variants[selectedVariantIndex]!)}
+          {...getVariantProperties(variants[selectedVariantIndex])}
         />
       </MockBlockDock>
     </div>

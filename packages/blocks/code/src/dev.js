@@ -8,14 +8,13 @@ import { tw } from "twind";
 import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
-import { LanguageType } from "./utils";
 
 const node = document.getElementById("app");
 
-const initialData: {
-  content: string;
-  language: LanguageType;
-} = {
+/**
+ * @type {{content: string; language: import("./utils").LanguageType;}}
+ */
+const initialData = {
   content: 'var foo = "bar";',
   language: "javascript",
 };
