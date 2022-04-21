@@ -201,6 +201,8 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Remove default members
         run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
