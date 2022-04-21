@@ -70,6 +70,8 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
   },
 );
 
+BlockHandle.displayName = "BlockHandle";
+
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
 

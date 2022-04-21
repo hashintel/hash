@@ -218,3 +218,5 @@ export const BlockContextMenu = forwardRef<
     </Menu>
   );
 });
+
+BlockContextMenu.displayName = "BlockContextMenu";
