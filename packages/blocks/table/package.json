@@ -33,7 +33,8 @@
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "twind": "0.16.16",
-    "typescript": "4.6.3"
+    "typescript": "4.6.3",
+    "typescript-json-schema": "0.50.1"
   },
   "peerDependencies": {
     "lodash": "^4.17.21",
