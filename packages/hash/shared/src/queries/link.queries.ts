@@ -177,3 +177,17 @@ export const updateLinkedAggregationMutation = gql`
     }
   }
 `;
+
+export const deleteLinkedAggregationMutation = gql`
+  mutation deleteLinkedAggregation(
+    $sourceAccountId: ID!
+    $sourceEntityId: ID!
+    $aggregationId: ID!
+  ) {
+    deleteLinkedAggregation(
+      sourceAccountId: $sourceAccountId
+      sourceEntityId: $sourceEntityId
+      aggregationId: $aggregationId
+    )
+  }
+`;

@@ -33,14 +33,19 @@ export const useBlockProtocolDeleteLinks = (): {
           throw new Error("deleteLinks needs to be passed a sourceEntityId");
         }
 
-        const { data } = await runDeleteLinkMutation({
+        const { data, errors } = await runDeleteLinkMutation({
           variables: {
             linkId: action.linkId,
             sourceAccountId: action.sourceAccountId,
             sourceEntityId: action.sourceEntityId,
           },
         });
-        results.push(!!data?.deleteLink);
+
+        if (!data) {
+          throw new Error(`Could not delete link: ${errors?.[0]!.message}`);
+        }
+
+        results.push(data.deleteLink);
       }
       return results;
     },
