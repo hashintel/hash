@@ -267,6 +267,9 @@ jobs:
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
 
+      - name: Ensure empty git diff
+        run: git --no-pager diff --exit-code --color
+
   bench:
     name: bench
     needs: setup
