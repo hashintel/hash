@@ -132,12 +132,12 @@ impl BehaviorKeys {
 }
 
 #[derive(Clone)]
-pub struct Behavior {
+pub struct BehaviorFieldMap {
     shared: SharedBehavior,
     keys: BehaviorKeys,
 }
 
-impl Behavior {
+impl BehaviorFieldMap {
     pub fn shared(&self) -> &SharedBehavior {
         &self.shared
     }
@@ -149,7 +149,7 @@ impl Behavior {
 
 #[derive(Clone)]
 pub struct BehaviorMap {
-    pub(in super::super) inner: HashMap<String, Behavior>,
+    pub(in super::super) inner: HashMap<String, BehaviorFieldMap>,
     pub(in super::super) all_field_specs: FieldSpecMap,
 }
 
@@ -198,7 +198,7 @@ impl TryFrom<(&PackageInitConfig, &RootFieldSpecCreator)> for BehaviorMap {
                         .cloned()
                         .collect::<Vec<RootFieldSpec>>(),
                 )?;
-                let behavior = Behavior {
+                let behavior = BehaviorFieldMap {
                     shared: b.clone(),
                     keys,
                 };
@@ -214,7 +214,7 @@ impl TryFrom<(&PackageInitConfig, &RootFieldSpecCreator)> for BehaviorMap {
 }
 
 impl BehaviorMap {
-    pub fn iter_behaviors(&self) -> impl Iterator<Item = &Behavior> {
+    pub fn iter_behaviors(&self) -> impl Iterator<Item = &BehaviorFieldMap> {
         self.inner.values()
     }
 }
