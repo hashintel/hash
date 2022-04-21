@@ -176,8 +176,7 @@ jobs:
       - name: Generate diff after compilation
         run: |
           changed_files="$(git diff --name-only HEAD)"
-          echo $changed_files
-          echo "GIT_DIFF=$($changed_files)"
+          echo "GIT_DIFF=$(echo $changed_files)"
 
       - name: Check diff is empty after compilation
         uses: actions/github-script@v3
