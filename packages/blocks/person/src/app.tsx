@@ -4,8 +4,7 @@ import DOMPurify from "dompurify";
 
 import { MailIcon } from "./icons/mail-icon";
 import { LinkIcon } from "./icons/link-icon";
-
-import "./index.css";
+import { globalStyles } from "./global-styles";
 
 type AppProps = {
   avatar?: string;
@@ -52,6 +51,15 @@ export const App: BlockComponent<AppProps> = ({
       className="person-container"
       style={{ "--person-container-max-width": maxWidth } as CSSProperties}
     >
+      <link
+        rel="stylesheet"
+        href="https://fontlibrary.org/face/open-sauce-two"
+      />
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      />
+      <style>{globalStyles}</style>
       {avatar && (
         <img
           alt={`${name ? `${name}'s ` : ""}avatar`}

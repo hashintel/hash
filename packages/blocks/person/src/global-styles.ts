@@ -1,6 +1,4 @@
-@import url("https://fontlibrary.org/face/open-sauce-two");
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
-
+export const globalStyles = `
 .person-container {
   padding: 24px 32px;
   background: #ffffff;
@@ -124,4 +122,4 @@
   .avatar-desktop {
     display: none;
   }
-}
+}`;
