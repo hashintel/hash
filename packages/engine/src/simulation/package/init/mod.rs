@@ -4,7 +4,7 @@ pub mod packages;
 
 use async_trait::async_trait;
 use execution::package::PackageInitConfig;
-pub use packages::{Name, PACKAGE_CREATORS};
+pub use packages::{InitPackageName, PACKAGE_CREATORS};
 use stateful::{
     agent::Agent,
     field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},

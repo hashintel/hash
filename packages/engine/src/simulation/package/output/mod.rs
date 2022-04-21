@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use execution::package::PackageInitConfig;
-pub use packages::{Name, PACKAGE_CREATORS};
+pub use packages::{OutputPackageName, PACKAGE_CREATORS};
 use stateful::{
     context::Context,
     field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},

@@ -29,12 +29,12 @@ use crate::simulation::{
 /// All output package names are registered in this enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Name {
+pub enum OutputPackageName {
     Analysis,
     JsonState,
 }
 
-impl fmt::Display for Name {
+impl fmt::Display for OutputPackageName {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
     }
@@ -51,14 +51,14 @@ pub enum Output {
     JsonStateOutput(JsonStateOutput),
 }
 
-pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn OutputPackageCreator>>>);
+pub struct PackageCreators(SyncOnceCell<HashMap<OutputPackageName, Box<dyn OutputPackageCreator>>>);
 
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
 impl PackageCreators {
     pub(crate) fn initialize_for_experiment_run(&self, _config: &PackageInitConfig) -> Result<()> {
         tracing::debug!("Initializing Output Package Creators");
-        use Name::{Analysis, JsonState};
+        use OutputPackageName::{Analysis, JsonState};
         let mut m = HashMap::<_, Box<dyn OutputPackageCreator>>::new();
         m.insert(Analysis, Box::new(AnalysisCreator));
         m.insert(JsonState, Box::new(JsonStateCreator));
@@ -68,7 +68,10 @@ impl PackageCreators {
         Ok(())
     }
 
-    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn OutputPackageCreator>> {
+    pub(crate) fn get_checked(
+        &self,
+        name: &OutputPackageName,
+    ) -> Result<&Box<dyn OutputPackageCreator>> {
         self.0
             .get()
             .ok_or_else(|| Error::from("Output Package Creators weren't initialized"))?
@@ -82,7 +85,9 @@ impl PackageCreators {
     }
 
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn OutputPackageCreator>>> {
+    pub(crate) fn iter_checked(
+        &self,
+    ) -> Result<Iter<'_, OutputPackageName, Box<dyn OutputPackageCreator>>> {
         Ok(self
             .0
             .get()
@@ -92,8 +97,8 @@ impl PackageCreators {
 }
 
 lazy_static! {
-    pub(in crate::simulation::package) static ref METADATA: HashMap<Name, PackageMetadata> = {
-        use Name::{Analysis, JsonState};
+    pub(in crate::simulation::package) static ref METADATA: HashMap<OutputPackageName, PackageMetadata> = {
+        use OutputPackageName::{Analysis, JsonState};
         let mut id_creator = PackageIdGenerator::new(PackageType::Output);
         let mut m = HashMap::new();
         m.insert(Analysis, PackageMetadata {

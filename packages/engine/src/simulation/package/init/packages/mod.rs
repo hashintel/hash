@@ -27,25 +27,25 @@ use crate::simulation::{
 /// All init package names are registered in this enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Name {
+pub enum InitPackageName {
     Json,
     JsPy,
 }
 
-impl fmt::Display for Name {
+impl fmt::Display for InitPackageName {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
     }
 }
 
-pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn InitPackageCreator>>>);
+pub struct PackageCreators(SyncOnceCell<HashMap<InitPackageName, Box<dyn InitPackageCreator>>>);
 
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
 impl PackageCreators {
     pub(crate) fn initialize_for_experiment_run(&self, _config: &PackageInitConfig) -> Result<()> {
         tracing::debug!("Initializing Init Package Creators");
-        use Name::{JsPy, Json};
+        use InitPackageName::{JsPy, Json};
         let mut m = HashMap::<_, Box<dyn InitPackageCreator>>::new();
         m.insert(Json, Box::new(JsonInitCreator));
         m.insert(JsPy, Box::new(ScriptInitCreator));
@@ -55,7 +55,10 @@ impl PackageCreators {
         Ok(())
     }
 
-    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn InitPackageCreator>> {
+    pub(crate) fn get_checked(
+        &self,
+        name: &InitPackageName,
+    ) -> Result<&Box<dyn InitPackageCreator>> {
         self.0
             .get()
             .ok_or_else(|| Error::from("Init Package Creators weren't initialized"))?
@@ -69,7 +72,9 @@ impl PackageCreators {
     }
 
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn InitPackageCreator>>> {
+    pub(crate) fn iter_checked(
+        &self,
+    ) -> Result<Iter<'_, InitPackageName, Box<dyn InitPackageCreator>>> {
         Ok(self
             .0
             .get()
@@ -79,8 +84,8 @@ impl PackageCreators {
 }
 
 lazy_static! {
-    pub(in crate::simulation::package) static ref METADATA: HashMap<Name, PackageMetadata> = {
-        use Name::{JsPy, Json};
+    pub(in crate::simulation::package) static ref METADATA: HashMap<InitPackageName, PackageMetadata> = {
+        use InitPackageName::{JsPy, Json};
         let mut id_creator = PackageIdGenerator::new(PackageType::Init);
         let mut m = HashMap::new();
         m.insert(

@@ -11,7 +11,7 @@ use stateful::global::Globals;
 use crate::{
     config::{package, Result},
     proto::{ExperimentName, ExperimentRunRepr, ExperimentRunTrait},
-    simulation::package::init,
+    simulation::package::init::InitPackageName,
 };
 
 #[derive(Clone)]
@@ -43,8 +43,8 @@ impl Config {
                     .initial_state
                     .name
                 {
-                    InitialStateName::InitJson => init::Name::Json,
-                    InitialStateName::InitPy | InitialStateName::InitJs => init::Name::JsPy,
+                    InitialStateName::InitJson => InitPackageName::Json,
+                    InitialStateName::InitPy | InitialStateName::InitJs => InitPackageName::JsPy,
                 },
             )
             .build()?;

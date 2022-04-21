@@ -27,25 +27,25 @@ use crate::simulation::{
 /// All state package names are registered in this enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Name {
+pub enum StatePackageName {
     BehaviorExecution,
     Topology,
 }
 
-impl fmt::Display for Name {
+impl fmt::Display for StatePackageName {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
     }
 }
 
-pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn StatePackageCreator>>>);
+pub struct PackageCreators(SyncOnceCell<HashMap<StatePackageName, Box<dyn StatePackageCreator>>>);
 
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
 impl PackageCreators {
     pub(crate) fn initialize_for_experiment_run(&self, config: &PackageInitConfig) -> Result<()> {
         tracing::debug!("Initializing State Package Creators");
-        use Name::{BehaviorExecution, Topology};
+        use StatePackageName::{BehaviorExecution, Topology};
         let mut m = HashMap::<_, Box<dyn StatePackageCreator>>::new();
         m.insert(BehaviorExecution, BehaviorExecutionCreator::new(config)?);
         m.insert(Topology, Box::new(TopologyCreator));
@@ -55,7 +55,10 @@ impl PackageCreators {
         Ok(())
     }
 
-    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn StatePackageCreator>> {
+    pub(crate) fn get_checked(
+        &self,
+        name: &StatePackageName,
+    ) -> Result<&Box<dyn StatePackageCreator>> {
         self.0
             .get()
             .ok_or_else(|| Error::from("State Package Creators weren't initialized"))?
@@ -69,7 +72,9 @@ impl PackageCreators {
     }
 
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn StatePackageCreator>>> {
+    pub(crate) fn iter_checked(
+        &self,
+    ) -> Result<Iter<'_, StatePackageName, Box<dyn StatePackageCreator>>> {
         Ok(self
             .0
             .get()
@@ -79,8 +84,8 @@ impl PackageCreators {
 }
 
 lazy_static! {
-    pub(in crate::simulation::package) static ref METADATA: HashMap<Name, PackageMetadata> = {
-        use Name::{BehaviorExecution, Topology};
+    pub(in crate::simulation::package) static ref METADATA: HashMap<StatePackageName, PackageMetadata> = {
+        use StatePackageName::{BehaviorExecution, Topology};
         let mut id_creator = PackageIdGenerator::new(PackageType::State);
         let mut m = HashMap::new();
         m.insert(

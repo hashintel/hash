@@ -39,7 +39,7 @@ impl OutputPackageCreator for JsonStateCreator {
             .persistence
             .output_config
             .map
-            .get(&PackageName::Output(output::Name::JsonState))
+            .get(&PackageName::Output(output::OutputPackageName::JsonState))
             .ok_or_else(|| Error::from("Missing JSON state config"))?;
         let output_config: JsonStateOutputConfig = serde_json::from_value(value.clone())?;
         Ok(Box::new(JsonState {

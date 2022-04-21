@@ -4,16 +4,19 @@ use serde::Serialize;
 use stateful::field::PackageId;
 
 use crate::simulation::{
-    package::{context, deps::Dependencies, init, output, state, PackageMetadata},
+    package::{
+        context::ContextPackageName, deps::Dependencies, init::InitPackageName,
+        output::OutputPackageName, state::StatePackageName, PackageMetadata,
+    },
     Error, Result,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PackageName {
-    Context(context::Name),
-    Init(init::Name),
-    State(state::Name),
-    Output(output::Name),
+    Context(ContextPackageName),
+    Init(InitPackageName),
+    State(StatePackageName),
+    Output(OutputPackageName),
 }
 
 impl Display for PackageName {

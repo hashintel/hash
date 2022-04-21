@@ -1,5 +1,8 @@
 use crate::simulation::{
-    package::{context, init, name::PackageName, output, state},
+    package::{
+        context::ContextPackageName, init::InitPackageName, name::PackageName,
+        output::OutputPackageName, state::StatePackageName,
+    },
     Error, Result,
 };
 
@@ -29,25 +32,25 @@ impl Dependencies {
         Ok(())
     }
 
-    pub fn add_context_dep(&mut self, name: context::Name) -> Result<()> {
+    pub fn add_context_dep(&mut self, name: ContextPackageName) -> Result<()> {
         let dependency = PackageName::Context(name);
         self.validate_clash(&dependency)?;
         self.add_dependency(dependency)
     }
 
-    pub fn add_init_dep(&mut self, name: init::Name) -> Result<()> {
+    pub fn add_init_dep(&mut self, name: InitPackageName) -> Result<()> {
         let dependency = PackageName::Init(name);
         self.validate_clash(&dependency)?;
         self.add_dependency(dependency)
     }
 
-    pub fn add_state_dep(&mut self, name: state::Name) -> Result<()> {
+    pub fn add_state_dep(&mut self, name: StatePackageName) -> Result<()> {
         let dependency = PackageName::State(name);
         self.validate_clash(&dependency)?;
         self.add_dependency(dependency)
     }
 
-    pub fn add_output_dep(&mut self, name: output::Name) -> Result<()> {
+    pub fn add_output_dep(&mut self, name: OutputPackageName) -> Result<()> {
         let dependency = PackageName::Output(name);
         self.validate_clash(&dependency)?;
         self.add_dependency(dependency)
@@ -98,7 +101,10 @@ pub mod tests {
     };
 
     use super::*;
-    use crate::simulation::{Error, Result};
+    use crate::simulation::{
+        package::{context, init, output, state},
+        Error, Result,
+    };
 
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {
         let cycle_found = parents.contains(&src_dep);

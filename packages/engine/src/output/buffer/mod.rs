@@ -15,9 +15,12 @@ use crate::{
     simulation::package::{
         name::PackageName,
         output,
-        output::packages::{
-            analysis::{AnalysisOutput, AnalysisSingleOutput},
-            OutputPackagesSimConfig,
+        output::{
+            packages::{
+                analysis::{AnalysisOutput, AnalysisSingleOutput},
+                OutputPackagesSimConfig,
+            },
+            OutputPackageName,
         },
     },
 };
@@ -54,7 +57,7 @@ impl AnalysisBuffer {
     pub fn new(output_packages_config: &OutputPackagesSimConfig) -> Result<AnalysisBuffer> {
         let value = output_packages_config
             .map
-            .get(&PackageName::Output(output::Name::Analysis))
+            .get(&PackageName::Output(OutputPackageName::Analysis))
             .ok_or_else(|| Error::from("Missing analysis config"))?;
         let config: output::packages::analysis::AnalysisOutputConfig =
             serde_json::from_value(value.clone())?;

@@ -1,11 +1,9 @@
-use context::Name as ContextPackage;
-use init::Name as InitPackage;
-use output::Name as OutputPackage;
-use state::Name as StatePackage;
-
 use crate::{
     config::error::{Error, Result},
-    simulation::package::{context, init, name::PackageName, output, state},
+    simulation::package::{
+        context::ContextPackageName, init::InitPackageName, name::PackageName,
+        output::OutputPackageName, state::StatePackageName,
+    },
 };
 
 /// Configuration of packages used in the engine.
@@ -17,49 +15,49 @@ use crate::{
 /// Unless a default config is required, use
 /// `ConfigBuilder`.
 pub struct Config {
-    pub init: Vec<InitPackage>,
-    pub context: Vec<ContextPackage>,
-    pub state: Vec<StatePackage>,
-    pub output: Vec<OutputPackage>,
+    pub init: Vec<InitPackageName>,
+    pub context: Vec<ContextPackageName>,
+    pub state: Vec<StatePackageName>,
+    pub output: Vec<OutputPackageName>,
 }
 
 impl Config {
-    fn default_init_packages() -> Vec<InitPackage> {
-        let default = [InitPackage::Json];
-        Vec::from_iter(default.iter().cloned())
+    fn default_init_packages() -> Vec<InitPackageName> {
+        vec![InitPackageName::Json]
     }
 
-    fn default_context_packages() -> Vec<ContextPackage> {
-        let default = [
-            ContextPackage::Neighbors,
-            ContextPackage::ApiRequests,
-            ContextPackage::AgentMessages,
-        ];
-        Vec::from_iter(default.iter().cloned())
+    fn default_context_packages() -> Vec<ContextPackageName> {
+        vec![
+            ContextPackageName::Neighbors,
+            ContextPackageName::ApiRequests,
+            ContextPackageName::AgentMessages,
+        ]
     }
 
-    fn default_state_packages() -> Vec<StatePackage> {
-        vec![StatePackage::BehaviorExecution, StatePackage::Topology]
+    fn default_state_packages() -> Vec<StatePackageName> {
+        vec![
+            StatePackageName::BehaviorExecution,
+            StatePackageName::Topology,
+        ]
     }
 
-    fn default_output_packages() -> Vec<OutputPackage> {
-        let default = [OutputPackage::JsonState, OutputPackage::Analysis];
-        Vec::from_iter(default.iter().cloned())
+    fn default_output_packages() -> Vec<OutputPackageName> {
+        vec![OutputPackageName::JsonState, OutputPackageName::Analysis]
     }
 
-    pub fn init_packages(&self) -> &Vec<InitPackage> {
+    pub fn init_packages(&self) -> &Vec<InitPackageName> {
         &self.init
     }
 
-    pub fn state_packages(&self) -> &[StatePackage] {
+    pub fn state_packages(&self) -> &[StatePackageName] {
         &self.state
     }
 
-    pub fn context_packages(&self) -> &Vec<ContextPackage> {
+    pub fn context_packages(&self) -> &Vec<ContextPackageName> {
         &self.context
     }
 
-    pub fn output_packages(&self) -> &Vec<OutputPackage> {
+    pub fn output_packages(&self) -> &Vec<OutputPackageName> {
         &self.output
     }
 }
@@ -77,10 +75,10 @@ impl Default for Config {
 
 #[derive(Debug, Default)]
 pub struct ConfigBuilder {
-    init: Option<Vec<InitPackage>>,
-    context: Option<Vec<ContextPackage>>,
-    state: Option<Vec<StatePackage>>,
-    output: Option<Vec<OutputPackage>>,
+    init: Option<Vec<InitPackageName>>,
+    context: Option<Vec<ContextPackageName>>,
+    state: Option<Vec<StatePackageName>>,
+    output: Option<Vec<OutputPackageName>>,
 }
 
 impl ConfigBuilder {
@@ -88,7 +86,7 @@ impl ConfigBuilder {
         ConfigBuilder::default()
     }
 
-    pub fn set_init_packages<'a, K: IntoIterator<Item = &'a InitPackage>>(
+    pub fn set_init_packages<'a, K: IntoIterator<Item = &'a InitPackageName>>(
         mut self,
         init_packages: K,
     ) -> ConfigBuilder {
@@ -96,7 +94,7 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn set_context_packages<'a, K: IntoIterator<Item = &'a ContextPackage>>(
+    pub fn set_context_packages<'a, K: IntoIterator<Item = &'a ContextPackageName>>(
         mut self,
         context_packages: K,
     ) -> ConfigBuilder {
@@ -104,12 +102,12 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn set_state_packages(mut self, state_packages: Vec<StatePackage>) -> ConfigBuilder {
+    pub fn set_state_packages(mut self, state_packages: Vec<StatePackageName>) -> ConfigBuilder {
         self.state = Some(state_packages);
         self
     }
 
-    pub fn set_output_packages<'a, K: IntoIterator<Item = &'a OutputPackage>>(
+    pub fn set_output_packages<'a, K: IntoIterator<Item = &'a OutputPackageName>>(
         mut self,
         output_packages: K,
     ) -> ConfigBuilder {
@@ -117,7 +115,7 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn add_init_package(mut self, init_package: InitPackage) -> ConfigBuilder {
+    pub fn add_init_package(mut self, init_package: InitPackageName) -> ConfigBuilder {
         match self.init {
             Some(ref mut pkgs) => {
                 pkgs.push(init_package);
@@ -129,7 +127,7 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn add_context_package(mut self, context_package: ContextPackage) -> ConfigBuilder {
+    pub fn add_context_package(mut self, context_package: ContextPackageName) -> ConfigBuilder {
         match self.context {
             Some(ref mut pkgs) => {
                 pkgs.push(context_package);
@@ -141,7 +139,7 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn add_state_package(mut self, state_package: StatePackage) -> ConfigBuilder {
+    pub fn add_state_package(mut self, state_package: StatePackageName) -> ConfigBuilder {
         match self.state {
             Some(ref mut pkgs) => {
                 pkgs.push(state_package);
@@ -153,7 +151,7 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn add_output_package(mut self, output_package: OutputPackage) -> ConfigBuilder {
+    pub fn add_output_package(mut self, output_package: OutputPackageName) -> ConfigBuilder {
         match self.output {
             Some(ref mut pkgs) => {
                 pkgs.push(output_package);

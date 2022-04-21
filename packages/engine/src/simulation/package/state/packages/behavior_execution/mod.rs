@@ -29,8 +29,8 @@ use crate::simulation::{
                 config::BehaviorIds,
                 fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
             },
-            Arc, Error, FieldSpecMapAccessor, Name, Package, PackageComms, PackageCreator, Result,
-            Span, StatePackage, StatePackageCreator,
+            Arc, Error, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, Result, Span,
+            StatePackage, StatePackageCreator, StatePackageName,
         },
         PackageCreatorConfig,
     },
@@ -56,7 +56,7 @@ pub struct BehaviorExecutionCreator {
 impl BehaviorExecutionCreator {
     pub fn new(config: &PackageInitConfig) -> Result<Box<dyn StatePackageCreator>> {
         // TODO: Packages shouldn't have to set the source
-        let package_id = PackageName::State(Name::BehaviorExecution).get_id()?;
+        let package_id = PackageName::State(StatePackageName::BehaviorExecution).get_id()?;
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(package_id));
         let behavior_map = BehaviorMap::try_from((config, &field_spec_creator))?;
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
