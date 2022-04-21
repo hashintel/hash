@@ -1,6 +1,12 @@
 use std::sync::Arc;
 
-use execution::worker_pool::WorkerPoolConfig;
+use execution::{
+    package::{
+        init::{InitialState, InitialStateName},
+        PackageInitConfig,
+    },
+    worker_pool::WorkerPoolConfig,
+};
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use stateful::{
@@ -19,10 +25,10 @@ use crate::{
         SimulationConfig, StoreConfig,
     },
     datastore::{error::Error, schema::last_state_index_key},
-    proto::{ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase},
+    proto::{ExperimentRunBase, ExperimentRunRepr, ProjectBase},
     simulation::package::{
         creator::{get_base_agent_fields, PackageCreators},
-        PackageCreatorConfig, PackageInitConfig,
+        PackageCreatorConfig,
     },
 };
 

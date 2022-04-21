@@ -18,8 +18,6 @@ use crate::{
     types::SpanId,
 };
 
-pub type SharedBehavior = proto::SharedBehavior;
-pub type SimPackageArgs = proto::SimPackageArgs;
 pub type Simulation = proto::ProjectBase;
 pub type PackageDataField = proto::PackageDataField;
 pub type MetricObjective = proto::MetricObjective;

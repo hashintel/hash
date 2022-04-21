@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use execution::package::PackageInitConfig;
 use stateful::{
     agent::AgentSchema,
     context::ContextSchema,
@@ -24,7 +25,7 @@ use crate::{
             run::{InitPackages, Packages, StepPackages},
             state,
             worker_init::PackageInitMsgForWorker,
-            PackageInitConfig, PackageType,
+            PackageType,
         },
         Error, Result,
     },

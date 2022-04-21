@@ -1,6 +1,11 @@
 pub mod script;
 
 mod message;
+mod state;
 mod task;
 
-pub use self::{message::InitTaskMessage, task::InitTask};
+pub use self::{
+    message::InitTaskMessage,
+    state::{InitialState, InitialStateName},
+    task::InitTask,
+};

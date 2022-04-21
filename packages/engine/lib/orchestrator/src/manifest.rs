@@ -9,13 +9,14 @@ use std::{
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
+use execution::package::{
+    init::{InitialState, InitialStateName},
+    state::behavior_execution::SharedBehavior,
+    PackageInitConfig, SimPackageArgs,
+};
 use hash_engine_lib::{
     fetch::parse_raw_csv_into_json,
-    proto::{
-        ExperimentRun, ExperimentRunBase, InitialState, InitialStateName, ProjectBase,
-        SharedBehavior, SimPackageArgs,
-    },
-    simulation::package::PackageInitConfig,
+    proto::{ExperimentRun, ExperimentRunBase, ProjectBase},
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;

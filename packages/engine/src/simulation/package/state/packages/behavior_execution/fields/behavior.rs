@@ -1,5 +1,6 @@
 use std::{collections::HashMap, convert::TryFrom};
 
+use execution::package::{state::behavior_execution::SharedBehavior, PackageInitConfig};
 use stateful::{
     agent::AgentStateField,
     field::{
@@ -9,11 +10,7 @@ use stateful::{
 };
 
 // use crate::worker::runner::rust;
-use crate::{
-    datastore::{Error, Result},
-    experiment::SharedBehavior,
-    simulation::package::PackageInitConfig,
-};
+use crate::datastore::{Error, Result};
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct BehaviorKeys {

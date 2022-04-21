@@ -1,19 +1,17 @@
 use async_trait::async_trait;
+use execution::package::{init::InitialStateName, PackageInitConfig};
 use serde_json::Value;
 use stateful::agent::Agent;
 
-use crate::{
-    proto::InitialStateName,
-    simulation::{
-        package::{
-            init::{
-                FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
-                PackageComms, PackageCreator,
-            },
-            PackageCreatorConfig, PackageInitConfig,
+use crate::simulation::{
+    package::{
+        init::{
+            FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
+            PackageComms, PackageCreator,
         },
-        Error, Result,
+        PackageCreatorConfig,
     },
+    Error, Result,
 };
 
 pub struct JsonInitCreator;

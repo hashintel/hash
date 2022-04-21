@@ -1,0 +1,46 @@
+use std::fmt;
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct SharedBehavior {
+    /// This is the unique identifier (also the file/path) that, in the case of Cloud runs, is used
+    /// by the HASH API
+    pub id: String,
+    /// This is the full name of the file (can be used to refer to the behavior).
+    /// It is often the case that self.id = self.name (except sometimes for dependencies by
+    /// `@hash`).
+    pub name: String,
+    /// These are alternative representations on how one can refer to this behavior
+    pub shortnames: Vec<String>,
+    /// Source code for the behaviors
+    pub behavior_src: Option<String>,
+    /// Behavior key definition for this behavior
+    pub behavior_keys_src: Option<String>,
+}
+
+impl fmt::Debug for SharedBehavior {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("SharedBehavior")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("shortnames", &self.shortnames)
+            .field(
+                "behavior_src",
+                if self.behavior_src.is_some() {
+                    &"Some(...)"
+                } else {
+                    &"None"
+                },
+            )
+            .field(
+                "behavior_keys_src",
+                if self.behavior_keys_src.is_some() {
+                    &"Some(...)"
+                } else {
+                    &"None"
+                },
+            )
+            .finish()
+    }
+}

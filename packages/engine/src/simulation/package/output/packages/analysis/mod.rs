@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use analyzer::Analyzer;
 use async_trait::async_trait;
+use execution::package::{PackageInitConfig, SimPackageArgs};
 use serde_json::Value;
 use stateful::{
     context::Context, field::FieldSpecMapAccessor, global::Globals, proxy::BatchPool, state::State,
@@ -21,17 +22,14 @@ pub use self::{
     config::AnalysisOutputConfig,
     output::{AnalysisOutput, AnalysisSingleOutput},
 };
-use crate::{
-    experiment::SimPackageArgs,
-    simulation::{
-        comms::package::PackageComms,
-        package::{
-            ext_traits::{MaybeCpuBound, Package, PackageCreator},
-            output::{packages::Output, OutputPackage, OutputPackageCreator},
-            PackageCreatorConfig, PackageInitConfig,
-        },
-        Error, Result,
+use crate::simulation::{
+    comms::package::PackageComms,
+    package::{
+        ext_traits::{MaybeCpuBound, Package, PackageCreator},
+        output::{packages::Output, OutputPackage, OutputPackageCreator},
+        PackageCreatorConfig,
     },
+    Error, Result,
 };
 
 // TODO: UNUSED: Needs triage

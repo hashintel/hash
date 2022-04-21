@@ -92,11 +92,13 @@ impl PackageName {
 
 #[cfg(test)]
 pub mod tests {
-    use super::*;
-    use crate::{
-        proto::{InitialState, InitialStateName},
-        simulation::{package::PackageInitConfig, Error, Result},
+    use execution::package::{
+        init::{InitialState, InitialStateName},
+        PackageInitConfig,
     };
+
+    use super::*;
+    use crate::simulation::{Error, Result};
 
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {
         let cycle_found = parents.contains(&src_dep);

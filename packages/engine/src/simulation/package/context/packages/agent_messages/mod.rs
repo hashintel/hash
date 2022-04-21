@@ -5,6 +5,7 @@ mod writer;
 
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
+use execution::package::PackageInitConfig;
 use serde_json::Value;
 use stateful::{
     agent,
@@ -23,7 +24,7 @@ use crate::simulation::{
             packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextPackage,
             ContextPackageCreator, FieldSpecMapAccessor, MaybeCpuBound, Package, PackageCreator,
         },
-        PackageCreatorConfig, PackageInitConfig,
+        PackageCreatorConfig,
     },
     Result,
 };

@@ -5,6 +5,7 @@ mod writer;
 
 use arrow::datatypes::DataType;
 use async_trait::async_trait;
+use execution::package::PackageInitConfig;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
 use stateful::{
@@ -27,7 +28,7 @@ use crate::simulation::{
             ContextPackageCreator, ContextSchema, Error, FieldSpecMapAccessor, MaybeCpuBound,
             Package, PackageCreator, StateReadProxy, StateSnapshot,
         },
-        PackageCreatorConfig, PackageInitConfig,
+        PackageCreatorConfig,
     },
     Result,
 };

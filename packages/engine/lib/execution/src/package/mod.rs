@@ -3,7 +3,12 @@ pub mod init;
 pub mod output;
 pub mod state;
 
+mod config;
 mod message;
 mod task;
 
-pub use self::{message::TaskMessage, task::PackageTask};
+pub use self::{
+    config::{PackageInitConfig, SimPackageArgs},
+    message::TaskMessage,
+    task::PackageTask,
+};

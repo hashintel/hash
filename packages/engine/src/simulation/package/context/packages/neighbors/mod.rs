@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use execution::package::PackageInitConfig;
 use serde_json::Value;
 use stateful::{
     agent,
@@ -23,7 +24,7 @@ use crate::{
                 ContextPackageCreator,
             },
             ext_traits::{MaybeCpuBound, Package, PackageCreator},
-            PackageCreatorConfig, PackageInitConfig,
+            PackageCreatorConfig,
         },
         Result,
     },

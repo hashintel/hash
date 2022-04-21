@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use execution::{
     package::{
         state::{behavior_execution::ExecuteBehaviorsTask, StateTask},
-        PackageTask,
+        PackageInitConfig, PackageTask,
     },
     runner::Language,
     task::TaskSharedStoreBuilder,
@@ -31,7 +31,7 @@ use crate::simulation::{
             Arc, Error, FieldSpecMapAccessor, Name, Package, PackageComms, PackageCreator, Result,
             Span, StatePackage, StatePackageCreator,
         },
-        PackageCreatorConfig, PackageInitConfig,
+        PackageCreatorConfig,
     },
     task::active::ActiveTask,
 };

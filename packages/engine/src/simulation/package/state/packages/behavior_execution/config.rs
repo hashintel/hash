@@ -33,7 +33,7 @@ impl BehaviorId {
 
 pub struct BehaviorIds {
     name_to_index: HashMap<Vec<u8>, BehaviorId>,
-    // TODO: UNUSED: Needs triage
+    // TODO: UNUSED: Needs triageBeh
     index_to_name: HashMap<BehaviorId, String>,
 }
 

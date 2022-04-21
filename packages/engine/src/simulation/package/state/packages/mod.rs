@@ -7,6 +7,7 @@ use std::{
     lazy::SyncOnceCell,
 };
 
+use execution::package::PackageInitConfig;
 use lazy_static::lazy_static;
 use serde::Serialize;
 
@@ -18,7 +19,7 @@ use crate::simulation::{
             packages::{behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator},
             StatePackageCreator,
         },
-        PackageInitConfig, PackageMetadata, PackageType,
+        PackageMetadata, PackageType,
     },
     Error, Result,
 };

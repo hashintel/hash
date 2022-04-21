@@ -1,6 +1,7 @@
 mod config;
 
 use async_trait::async_trait;
+use execution::package::PackageInitConfig;
 use serde_json::Value;
 use stateful::{
     agent::{Agent, AgentSchema, IntoAgents},
@@ -18,7 +19,7 @@ use crate::simulation::package::{
         Arc, Error, FieldSpecMapAccessor, MaybeCpuBound, Output, OutputPackage,
         OutputPackageCreator, Package, PackageComms, PackageCreator, Result, Span,
     },
-    PackageCreatorConfig, PackageInitConfig,
+    PackageCreatorConfig,
 };
 
 // TODO: UNUSED: Needs triage

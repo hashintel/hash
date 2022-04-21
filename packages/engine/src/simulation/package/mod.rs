@@ -185,29 +185,15 @@ pub mod worker_init;
 
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
 
-use crate::{
-    config::PersistenceConfig,
-    experiment::{SharedBehavior, SimPackageArgs},
-    proto::InitialState,
-    simulation::package::deps::Dependencies,
-};
+use crate::{config::PersistenceConfig, simulation::package::deps::Dependencies};
 
 pub struct PackageCreatorConfig {
     pub agent_schema: Arc<AgentSchema>,
     pub globals: Globals,
     pub persistence: PersistenceConfig,
-}
-
-// TODO: The name might be confused with the init package type. If we can come up with another name,
-//   this would be great.
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct PackageInitConfig {
-    pub packages: Vec<SimPackageArgs>,
-    pub initial_state: InitialState,
-    pub behaviors: Vec<SharedBehavior>,
 }
 
 #[derive(Clone, Copy, Debug)]

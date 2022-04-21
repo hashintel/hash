@@ -3,27 +3,24 @@ use execution::{
     package::{
         init::{
             script::{JsInitTask, JsPyInitTaskMessage, PyInitTask, SuccessMessage},
-            InitTask, InitTaskMessage,
+            InitTask, InitTaskMessage, InitialState, InitialStateName,
         },
-        PackageTask, TaskMessage,
+        PackageInitConfig, PackageTask, TaskMessage,
     },
     task::SharedStore,
 };
 use serde_json::Value;
 use stateful::agent::Agent;
 
-use crate::{
-    proto::{InitialState, InitialStateName},
-    simulation::{
-        package::{
-            init::{
-                FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
-                PackageComms, PackageCreator,
-            },
-            PackageCreatorConfig, PackageInitConfig,
+use crate::simulation::{
+    package::{
+        init::{
+            FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
+            PackageComms, PackageCreator,
         },
-        Error, Result,
+        PackageCreatorConfig,
     },
+    Error, Result,
 };
 
 pub struct ScriptInitCreator;

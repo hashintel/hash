@@ -1606,6 +1606,7 @@ dependencies = [
  "async-trait",
  "clap",
  "error",
+ "execution",
  "hash_engine",
  "hash_engine_lib",
  "nano",
