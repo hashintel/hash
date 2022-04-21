@@ -251,6 +251,7 @@ jobs:
         if: matrix.directory == 'packages/engine' && ${{ steps.diff_before_tests.DIFF_BEFORE_TESTS }}
         with:
           script: |
+            console.log("${{ steps.diff_before_tests.DIFF_BEFORE_TESTS }}")
             core.setFailed('Diff was not empty before tests')
 
       - name: Setup Python environment
