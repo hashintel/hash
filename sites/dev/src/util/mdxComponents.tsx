@@ -1,5 +1,6 @@
 import { Box, Typography, TypographyProps } from "@mui/material";
 import { ReactNode } from "react";
+import { ImageWithText } from "../components/ImageWithText";
 import { Link, LinkProps } from "../components/Link";
 import { MdxImage } from "../components/MdxImage";
 import { MdxPre } from "../components/MdxPre";
@@ -40,4 +41,6 @@ export const mdxComponents: Record<string, ReactNode> = {
   pre: MdxPre,
 
   img: MdxImage,
+
+  ImageWithText,
 };
