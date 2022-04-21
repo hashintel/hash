@@ -239,8 +239,10 @@ jobs:
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
 
       - name: Check diff is empty before tests
-        if: matrix.directory == 'packages/engine' && git diff ${{ matrix.directory }} != 1
-        run: exit 1
+        uses: actions/github-script@v3
+        if: matrix.directory == 'packages/engine' && git diff ${{ matrix.directory }} != ""
+        run: |
+          core.setFailed('Diff was not empty before tests')
 
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
@@ -251,9 +253,11 @@ jobs:
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
 
-      - name: Check diff is empty after tests
-        if: matrix.directory == 'packages/engine' && git diff ${{ matrix.directory }} != 1
-        run: exit 1
+      - name: Check diff is empty before tests
+        uses: actions/github-script@v3
+        if: matrix.directory == 'packages/engine' && git diff ${{ matrix.directory }} != ""
+        run: |
+          core.setFailed('Diff was not empty after tests')
 
   bench:
     name: bench
