@@ -196,7 +196,10 @@ export const SelectMenusDemo = () => {
         >
           {["Multiple", "values", "in", "chips"].map((item) => (
             <MenuItem key={item} value={item}>
-              {item}
+              <ListItemIcon>
+                <Checkbox />
+              </ListItemIcon>
+              <ListItemText primary={item} />
             </MenuItem>
           ))}
         </Select>
@@ -213,7 +216,10 @@ export const SelectMenusDemo = () => {
         >
           {["Multiple", "values", "in", "chips"].map((item) => (
             <MenuItem key={item} value={item}>
-              {item}
+              <ListItemIcon>
+                <Checkbox />
+              </ListItemIcon>
+              <ListItemText primary={item} />
             </MenuItem>
           ))}
         </Select>
