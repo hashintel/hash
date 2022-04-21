@@ -180,10 +180,10 @@ jobs:
 
       - name: Check diff is empty after compilation
         uses: actions/github-script@v3
-        if: ${{ env.GIT_DIFF }}
+        if: ${{ env.GIT_DIFF }} && ${{ env.GIT_DIFF }} != ""
         with:
           script: |
-            core.setFailed('Diff was not empty after compilation')
+            core.setFailed('Diff was not empty after compilation: ${{ env.GIT_DIFF }}')
 
       - name: Annotate
         if: ${{ failure() }}
