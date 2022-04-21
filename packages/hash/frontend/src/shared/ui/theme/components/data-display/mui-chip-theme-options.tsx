@@ -1,5 +1,5 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { ChipProps, Components, PaletteValue, Theme } from "@mui/material";
+import { Box, ChipProps, Components, PaletteValue, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "../../../../icons";
 
 const getColors = (
@@ -80,11 +80,17 @@ const getColors = (
 export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
   defaultProps: {
     size: "small",
-    deleteIcon: <FontAwesomeIcon icon={faClose} />,
+    deleteIcon: (
+      // wrapping the icon in a box makes it possible for us to increase
+      // the icons clickable area without increasing the size of the icon
+      <Box>
+        <FontAwesomeIcon icon={faClose} />
+      </Box>
+    ),
   },
   styleOverrides: {
     root: ({ ownerState, theme }) => {
-      const { color, variant } = ownerState;
+      const { color, variant, onClick } = ownerState;
 
       const {
         textColor,
@@ -104,13 +110,17 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
           border: `1px solid ${outlineColor}`,
         }),
 
-        "&:hover": {
-          color: textHoverColor,
-          background: bgHoverColor,
-          ...(outlineHoverColor && {
-            border: `1px solid ${outlineHoverColor}`,
-          }),
-        },
+        // only apply hover ui when the chip
+        // is clickable
+        ...(Boolean(onClick) && {
+          "&:hover": {
+            color: textHoverColor,
+            background: bgHoverColor,
+            ...(outlineHoverColor && {
+              border: `1px solid ${outlineHoverColor}`,
+            }),
+          },
+        }),
       };
     },
     label: ({ ownerState, theme }) => {
@@ -157,21 +167,44 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
         }),
       };
     },
-    deleteIcon: ({ ownerState }) => {
-      const { size } = ownerState;
+    deleteIcon: ({ ownerState, theme }) => {
+      const { size, color } = ownerState;
+      const { bgHoverColor } = getColors(theme, color ?? "gray", "filled");
+
       return {
         color: "currentColor",
+        height: 18,
+        width: 18,
         fontSize: 12,
-        marginRight: 12,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 8,
         marginLeft: -8,
+        borderRadius: "50%",
+        transition: theme.transitions.create("backgroundColor"),
+
+        svg: {
+          fontSize: "inherit",
+        },
+
+        "&:hover": {
+          backgroundColor: bgHoverColor,
+          borderRadius: "50%",
+        },
 
         ...(size === "xs" && {
-          marginRight: 8,
+          height: 16,
+          width: 16,
+          marginRight: 6,
           marginLeft: -4,
         }),
 
         ...(size === "large" && {
+          height: 22,
+          width: 22,
           fontSize: 16,
+          marginLeft: -8,
         }),
       };
     },
