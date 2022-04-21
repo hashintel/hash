@@ -1,5 +1,6 @@
 import "./loadTestEnv";
 import {
+  Aggregation,
   Entity,
   EntityType,
   Org,
@@ -1641,8 +1642,11 @@ describe("logged in user ", () => {
     });
     expect(gqlAggregation.results).toHaveLength(numberOfAggregateEntities);
 
-    const aggregation = (await sourceEntity.getAggregationByPath(db, {
-      stringifiedPath: variables.path,
+    const { aggregationId } = gqlAggregation;
+
+    const aggregation = (await Aggregation.getAggregationById(db, {
+      ...variables,
+      aggregationId,
     }))!;
 
     expect(aggregation).not.toBeNull();
@@ -1693,7 +1697,7 @@ describe("logged in user ", () => {
 
     const stringifiedPath = "$.test";
 
-    await sourceEntity.createAggregation(db, {
+    const { aggregationId } = await sourceEntity.createAggregation(db, {
       stringifiedPath,
       createdBy: existingUser,
       operation: {
@@ -1715,7 +1719,7 @@ describe("logged in user ", () => {
       {
         sourceAccountId: sourceEntity.accountId,
         sourceEntityId: sourceEntity.entityId,
-        path: stringifiedPath,
+        aggregationId,
         updatedOperation,
       },
     );
@@ -1725,8 +1729,9 @@ describe("logged in user ", () => {
       pageCount: 0,
     });
 
-    const aggregation = (await sourceEntity.getAggregationByPath(db, {
-      stringifiedPath,
+    const aggregation = (await Aggregation.getAggregationById(db, {
+      sourceAccountId: existingUser.accountId,
+      aggregationId,
     }))!;
 
     expect(aggregation).not.toBeNull();
@@ -1744,7 +1749,7 @@ describe("logged in user ", () => {
 
     const stringifiedPath = "$.test";
 
-    await sourceEntity.createAggregation(db, {
+    const { aggregationId } = await sourceEntity.createAggregation(db, {
       stringifiedPath,
       createdBy: existingUser,
       operation: {
@@ -1757,11 +1762,12 @@ describe("logged in user ", () => {
     await client.deleteLinkedAggregation({
       sourceAccountId: sourceEntity.accountId,
       sourceEntityId: sourceEntity.entityId,
-      path: stringifiedPath,
+      aggregationId,
     });
 
-    const aggregation = await sourceEntity.getAggregationByPath(db, {
-      stringifiedPath,
+    const aggregation = await Aggregation.getAggregationById(db, {
+      sourceAccountId: sourceEntity.accountId,
+      aggregationId,
     });
 
     expect(aggregation).toBeNull();
