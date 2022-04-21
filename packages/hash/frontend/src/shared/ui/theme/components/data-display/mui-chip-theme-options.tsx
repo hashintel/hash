@@ -110,17 +110,22 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
           border: `1px solid ${outlineColor}`,
         }),
 
-        // only apply hover ui when the chip
-        // is clickable
-        ...(Boolean(onClick) && {
-          "&:hover": {
-            color: textHoverColor,
-            background: bgHoverColor,
-            ...(outlineHoverColor && {
-              border: `1px solid ${outlineHoverColor}`,
+        // only apply hover ui and show a pointer cursor
+        // when the chip is clickable
+        ...(onClick
+          ? {
+              cursor: "pointer",
+              "&:hover": {
+                color: textHoverColor,
+                background: bgHoverColor,
+                ...(outlineHoverColor && {
+                  border: `1px solid ${outlineHoverColor}`,
+                }),
+              },
+            }
+          : {
+              cursor: "default !important",
             }),
-          },
-        }),
       };
     },
     label: ({ ownerState, theme }) => {
@@ -182,7 +187,8 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
         marginRight: 8,
         marginLeft: -8,
         borderRadius: "50%",
-        transition: theme.transitions.create("backgroundColor"),
+        transition: theme.transitions.create("background-color"),
+        cursor: "pointer",
 
         svg: {
           fontSize: "inherit",
