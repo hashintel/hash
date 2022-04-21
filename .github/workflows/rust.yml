@@ -173,6 +173,21 @@ jobs:
       - name: Run clippy
         run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} -- -D warnings
 
+      - name: Generate diff before tests
+        run: |
+          changed_files="$(git diff --name-only HEAD)"
+          echo $changed_files
+          git --no-pager diff packages/engine
+          echo "GIT_DIFF=$(git --no-pager diff packages/engine)"
+
+      - name: Check diff is empty before tests
+        uses: actions/github-script@v3
+        if: matrix.directory == 'packages/engine' && ${{ env.GIT_DIFF }} != ""
+        with:
+          script: |
+            console.log(${{ env.GIT_DIFF }})
+            core.setFailed('Diff was not empty before tests')
+
       - name: Annotate
         if: ${{ failure() }}
         # use `actions-rs/clippy-check@v1` when https://github.com/actions-rs/clippy-check/pull/158 is merged
