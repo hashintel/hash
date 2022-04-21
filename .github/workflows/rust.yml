@@ -242,13 +242,13 @@ jobs:
         id: diff_before_tests
         if: matrix.directory == 'packages/engine'
         run: |
-          diff = git diff ${{ matrix.directory }}
+          diff = git --no-pager diff ${{ matrix.directory }}
           echo "::$diff::"
           echo "::set-output name=DIFF_BEFORE_TESTS::$(diff)"
 
       - name: Check diff is empty before tests
         uses: actions/github-script@v3
-        if: matrix.directory == 'packages/engine' && ${{ steps.diff_before_tests.DIFF_BEFORE_TESTS }}
+        if: matrix.directory == 'packages/engine' && ${{ steps.diff_before_tests.DIFF_BEFORE_TESTS }} && ${{ steps.diff_before_tests.DIFF_BEFORE_TESTS }} != ""
         with:
           script: |
             console.log("${{ steps.diff_before_tests.DIFF_BEFORE_TESTS }}")
