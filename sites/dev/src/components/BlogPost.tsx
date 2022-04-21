@@ -212,9 +212,10 @@ export const BlogPostContent: FC = ({ children }) => (
           gridColumn: 2,
         },
 
-        ".MuiTypography-hashBodyCopy + .MuiTypography-hashBodyCopy": {
-          mt: 4,
-        },
+        [`> .MuiTypography-hashBodyCopy + .MuiTypography-hashBodyCopy, > .MuiTypography-hashBodyCopy + div:not(.${mdxImageClasses.root}), > div:not(.${mdxImageClasses.root}) + .MuiTypography-hashBodyCopy, > div:not(.${mdxImageClasses.root}) + div:not(.${mdxImageClasses.root})`]:
+          {
+            mt: 4,
+          },
         ".MuiTypography-hashHeading2": {
           mt: 10,
           mb: 4.25,
@@ -235,14 +236,17 @@ export const BlogPostContent: FC = ({ children }) => (
           mb: 2,
           color: "gray.90",
         },
-        [`.${mdxImageClasses.root}`]: {
+        [`> .${mdxImageClasses.root}`]: {
           width: 1,
           gridColumn: "1 / 4",
           my: 5,
 
-          img: {
-            borderRadius: "4px",
+          [`+ .${mdxImageClasses.root}`]: {
+            mt: 0,
           },
+        },
+        [`.${mdxImageClasses.root} img`]: {
+          borderRadius: "4px",
         },
         "> pre": {
           my: 3,
