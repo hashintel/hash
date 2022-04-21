@@ -3,13 +3,11 @@ pub mod topology;
 
 use std::{
     collections::{hash_map::Iter, HashMap},
-    fmt,
     lazy::SyncOnceCell,
 };
 
-use execution::package::{PackageInitConfig, PackageType};
+use execution::package::{state::StatePackageName, PackageInitConfig, PackageType};
 use lazy_static::lazy_static;
-use serde::Serialize;
 
 use crate::simulation::{
     package::{
@@ -23,20 +21,6 @@ use crate::simulation::{
     },
     Error, Result,
 };
-
-/// All state package names are registered in this enum
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum StatePackageName {
-    BehaviorExecution,
-    Topology,
-}
-
-impl fmt::Display for StatePackageName {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
-    }
-}
 
 pub struct PackageCreators(SyncOnceCell<HashMap<StatePackageName, Box<dyn StatePackageCreator>>>);
 

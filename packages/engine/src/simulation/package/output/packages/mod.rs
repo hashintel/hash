@@ -3,13 +3,11 @@ pub mod json_state;
 
 use std::{
     collections::{hash_map::Iter, HashMap},
-    fmt,
     lazy::SyncOnceCell,
 };
 
-use execution::package::{PackageInitConfig, PackageType};
+use execution::package::{output::OutputPackageName, PackageInitConfig, PackageType};
 use lazy_static::lazy_static;
-use serde::Serialize;
 
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use crate::simulation::{
@@ -25,20 +23,6 @@ use crate::simulation::{
     },
     Error, Result,
 };
-
-/// All output package names are registered in this enum
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum OutputPackageName {
-    Analysis,
-    JsonState,
-}
-
-impl fmt::Display for OutputPackageName {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
-    }
-}
 
 #[derive(Clone)]
 pub struct OutputPackagesSimConfig {

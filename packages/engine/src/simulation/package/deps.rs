@@ -1,10 +1,9 @@
-use crate::simulation::{
-    package::{
-        context::ContextPackageName, init::InitPackageName, name::PackageName,
-        output::OutputPackageName, state::StatePackageName,
-    },
-    Error, Result,
+use execution::package::{
+    context::ContextPackageName, init::InitPackageName, output::OutputPackageName,
+    state::StatePackageName,
 };
+
+use crate::simulation::{package::name::PackageName, Error, Result};
 
 #[derive(Clone, Default)]
 pub struct Dependencies {

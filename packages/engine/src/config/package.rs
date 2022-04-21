@@ -1,9 +1,11 @@
+use execution::package::{
+    context::ContextPackageName, init::InitPackageName, output::OutputPackageName,
+    state::StatePackageName,
+};
+
 use crate::{
     config::error::{Error, Result},
-    simulation::package::{
-        context::ContextPackageName, init::InitPackageName, name::PackageName,
-        output::OutputPackageName, state::StatePackageName,
-    },
+    simulation::package::name::PackageName,
 };
 
 /// Configuration of packages used in the engine.

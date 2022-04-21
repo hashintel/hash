@@ -3,7 +3,7 @@ use execution::{
     package::{
         state::{
             behavior_execution::{BehaviorMap, ExecuteBehaviorsTask},
-            StateTask,
+            StatePackageName, StateTask,
         },
         PackageInitConfig, PackageTask,
     },
@@ -30,7 +30,7 @@ use crate::simulation::{
                 fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
             },
             Arc, Error, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, Result, Span,
-            StatePackage, StatePackageCreator, StatePackageName,
+            StatePackage, StatePackageCreator,
         },
         PackageCreatorConfig,
     },

@@ -3,4 +3,5 @@ pub mod behavior_execution;
 mod message;
 mod task;
 
-pub use self::{message::StateTaskMessage, task::StateTask};
+mod name;
+pub use self::{message::StateTaskMessage, name::StatePackageName, task::StateTask};

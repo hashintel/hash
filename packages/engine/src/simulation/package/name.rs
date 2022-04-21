@@ -1,13 +1,14 @@
 use std::fmt::Display;
 
+use execution::package::{
+    context::ContextPackageName, init::InitPackageName, output::OutputPackageName,
+    state::StatePackageName,
+};
 use serde::Serialize;
 use stateful::field::PackageId;
 
 use crate::simulation::{
-    package::{
-        context::ContextPackageName, deps::Dependencies, init::InitPackageName,
-        output::OutputPackageName, state::StatePackageName, PackageMetadata,
-    },
+    package::{deps::Dependencies, PackageMetadata},
     Error, Result,
 };
 

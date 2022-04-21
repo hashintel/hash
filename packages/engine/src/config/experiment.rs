@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use execution::{
-    package::init::InitialStateName,
+    package::init::{InitPackageName, InitialStateName},
     runner::RunnerConfig,
     worker::{RunnerSpawnConfig, WorkerConfig},
     worker_pool::WorkerPoolConfig,
@@ -11,7 +11,6 @@ use stateful::global::Globals;
 use crate::{
     config::{package, Result},
     proto::{ExperimentName, ExperimentRunRepr, ExperimentRunTrait},
-    simulation::package::init::InitPackageName,
 };
 
 #[derive(Clone)]

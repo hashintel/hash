@@ -1,4 +1,5 @@
 mod message;
 mod task;
 
-pub use self::{message::OutputTaskMessage, task::OutputTask};
+mod name;
+pub use self::{message::OutputTaskMessage, name::OutputPackageName, task::OutputTask};

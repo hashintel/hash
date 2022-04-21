@@ -3,13 +3,11 @@ pub mod json;
 
 use std::{
     collections::{hash_map::Iter, HashMap},
-    fmt,
     lazy::SyncOnceCell,
 };
 
-use execution::package::{PackageInitConfig, PackageType};
+use execution::package::{init::InitPackageName, PackageInitConfig, PackageType};
 use lazy_static::lazy_static;
-use serde::Serialize;
 
 use crate::simulation::{
     package::{
@@ -23,20 +21,6 @@ use crate::simulation::{
     },
     Error, Result,
 };
-
-/// All init package names are registered in this enum
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum InitPackageName {
-    Json,
-    JsPy,
-}
-
-impl fmt::Display for InitPackageName {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
-    }
-}
 
 pub struct PackageCreators(SyncOnceCell<HashMap<InitPackageName, Box<dyn InitPackageCreator>>>);
 

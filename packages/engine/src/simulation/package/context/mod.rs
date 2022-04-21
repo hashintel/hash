@@ -12,7 +12,7 @@ use stateful::{
 };
 use tracing::Span;
 
-pub use self::packages::{ContextPackageName, PACKAGE_CREATORS};
+pub use self::packages::PACKAGE_CREATORS;
 use crate::simulation::{
     comms::package::PackageComms,
     package::{

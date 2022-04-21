@@ -1,7 +1,7 @@
 mod config;
 
 use async_trait::async_trait;
-use execution::package::PackageInitConfig;
+use execution::package::{output::OutputPackageName, PackageInitConfig};
 use serde_json::Value;
 use stateful::{
     agent::{Agent, AgentSchema, IntoAgents},
@@ -14,7 +14,6 @@ use stateful::{
 pub use self::config::JsonStateOutputConfig;
 use crate::simulation::package::{
     name::PackageName,
-    output,
     output::{
         Arc, Error, FieldSpecMapAccessor, MaybeCpuBound, Output, OutputPackage,
         OutputPackageCreator, Package, PackageComms, PackageCreator, Result, Span,
@@ -39,7 +38,7 @@ impl OutputPackageCreator for JsonStateCreator {
             .persistence
             .output_config
             .map
-            .get(&PackageName::Output(output::OutputPackageName::JsonState))
+            .get(&PackageName::Output(OutputPackageName::JsonState))
             .ok_or_else(|| Error::from("Missing JSON state config"))?;
         let output_config: JsonStateOutputConfig = serde_json::from_value(value.clone())?;
         Ok(Box::new(JsonState {
