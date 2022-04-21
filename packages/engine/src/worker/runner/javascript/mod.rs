@@ -327,7 +327,7 @@ impl<'s> Embedded<'s> {
                 )
             })?;
 
-        // How to get a function from a module
+        // Example of how to get a function from a module
         // https://chromium.googlesource.com/v8/v8/+/refs/heads/lkgr/test/cctest/test-modules.cc#625
         let namespace = runner
             .get_module_namespace()
