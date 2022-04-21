@@ -93,9 +93,9 @@ impl<'s> JsPackage<'s> {
         tracing::debug!("Importing package from path `{path}`");
 
         let namespace: Object<'_> = {
-            let pkg = match ModuleMap::import_module(scope, &path)? {
-                Some(s) => s,
-                None => {
+            let pkg = match ModuleMap::import_module(scope, &path) {
+                Ok(s) => s,
+                Err(Error::MissingDependency(_)) => {
                     tracing::debug!(
                         "Couldn't read package file. It might intentionally not exist."
                     );
@@ -105,6 +105,7 @@ impl<'s> JsPackage<'s> {
 
                     return Ok(JsPackage { fns });
                 }
+                Err(err) => return Err(err),
             };
 
             pkg.get_module_namespace()
@@ -195,94 +196,91 @@ impl ModuleMap {
     fn import_module<'s>(
         scope: &mut v8::HandleScope<'s>,
         path: &str,
-    ) -> Result<Option<v8::Local<'s, v8::Module>>> {
+    ) -> Result<v8::Local<'s, v8::Module>> {
         let module_map = scope
             .get_slot::<Rc<RefCell<ModuleMap>>>()
             .expect("ModuleMap is not present in isolate slots")
             .clone();
 
         if let Some(module) = module_map.borrow().path_to_module.get(path) {
-            return Ok(Some(v8::Local::new(scope, module)));
+            return Ok(v8::Local::new(scope, module));
         }
 
-        match read_file(path) {
-            Err(_) => Ok(None),
-            Ok(source_code) => {
-                let js_source_code = new_js_string(scope, &source_code);
-                let js_path = new_js_string(scope, path);
-                let source = v8::script_compiler::Source::new(
-                    js_source_code,
-                    Some(&v8::ScriptOrigin::new(
-                        scope,
-                        js_path.into(),
-                        0,
-                        0,
-                        false,
-                        0,
-                        js_path.into(),
-                        false,
-                        false,
-                        true,
-                    )),
-                );
-                let mut try_catch = v8::TryCatch::new(scope);
-                let module = v8::script_compiler::compile_module(&mut try_catch, source)
-                    .ok_or_else(|| {
-                        let exception = try_catch_exception(&mut try_catch).unwrap();
+        let source_code =
+            read_file(path).map_err(|err| Error::MissingDependency(format!("{err}")))?;
+        let js_source_code = new_js_string(scope, &source_code);
+        let js_path = new_js_string(scope, path);
+        let source = v8::script_compiler::Source::new(
+            js_source_code,
+            Some(&v8::ScriptOrigin::new(
+                scope,
+                js_path.into(),
+                0,
+                0,
+                false,
+                0,
+                js_path.into(),
+                false,
+                false,
+                true,
+            )),
+        );
+        let mut try_catch = v8::TryCatch::new(scope);
+        let module =
+            v8::script_compiler::compile_module(&mut try_catch, source).ok_or_else(|| {
+                let exception = try_catch_exception(&mut try_catch).unwrap();
 
-                        Error::Eval(path.to_string(), format!("Compile error: {exception}"))
-                    })?;
+                Error::Eval(path.to_string(), format!("Compile error: {exception}"))
+            })?;
 
-                module
-                    .instantiate_module(&mut try_catch, module_resolve_callback)
-                    .ok_or_else(|| {
-                        let exception = try_catch_exception(&mut try_catch).unwrap();
+        module
+            .instantiate_module(&mut try_catch, module_resolve_callback)
+            .ok_or_else(|| {
+                let exception = try_catch_exception(&mut try_catch).unwrap();
 
-                        Error::PackageImport(
-                            path.to_string(),
-                            format!("Could not instantiate code for package: {exception}"),
-                        )
-                    })?;
+                Error::PackageImport(
+                    path.to_string(),
+                    format!("Could not instantiate code for package: {exception}"),
+                )
+            })?;
 
-                if module.get_status() != v8::ModuleStatus::Instantiated {
-                    return Err(Error::PackageImport(
-                        path.to_string(),
-                        "Could not instantiate code for package".to_string(),
-                    ));
-                }
-
-                module.evaluate(&mut try_catch).ok_or_else(|| {
-                    let exception = try_catch_exception(&mut try_catch).unwrap();
-
-                    Error::PackageImport(
-                        path.to_string(),
-                        format!("Could not evaluate code for package: {exception}"),
-                    )
-                })?;
-
-                // `v8::Module::evaluate` can return `Some` even though the evaluation didn't
-                // succeed
-                if module.get_status() != v8::ModuleStatus::Evaluated {
-                    let exception = module.get_exception();
-                    let exception_string = exception
-                        .to_string(&mut try_catch)
-                        .unwrap()
-                        .to_rust_string_lossy(&mut try_catch);
-
-                    return Err(Error::PackageImport(
-                        path.to_string(),
-                        format!("Could not evaluate code for package: {exception_string}"),
-                    ));
-                }
-
-                module_map
-                    .borrow_mut()
-                    .path_to_module
-                    .insert(path.to_string(), v8::Global::new(&mut try_catch, module));
-
-                Ok(Some(module))
-            }
+        if module.get_status() != v8::ModuleStatus::Instantiated {
+            return Err(Error::PackageImport(
+                path.to_string(),
+                "Could not instantiate code for package".to_string(),
+            ));
         }
+
+        module.evaluate(&mut try_catch).ok_or_else(|| {
+            let exception = try_catch_exception(&mut try_catch).unwrap();
+
+            Error::PackageImport(
+                path.to_string(),
+                format!("Could not evaluate code for package: {exception}"),
+            )
+        })?;
+
+        // `v8::Module::evaluate` can return `Some` even though the evaluation didn't
+        // succeed
+        if module.get_status() != v8::ModuleStatus::Evaluated {
+            let exception = module.get_exception();
+            let exception_string = exception
+                .to_string(&mut try_catch)
+                .unwrap()
+                .to_rust_string_lossy(&mut try_catch);
+
+            return Err(Error::PackageImport(
+                path.to_string(),
+                format!("Could not evaluate code for package: {exception_string}"),
+            ));
+        }
+
+        module_map
+            .borrow_mut()
+            .path_to_module
+            .insert(path.to_string(), v8::Global::new(&mut try_catch, module));
+
+        Ok(module)
     }
 }
 
@@ -301,12 +299,7 @@ pub fn module_resolve_callback<'s>(
     let specifier = specifier.to_rust_string_lossy(&mut scope);
 
     match ModuleMap::import_module(&mut scope, &specifier) {
-        Ok(Some(module)) => Some(module),
-        Ok(None) => {
-            tracing::error!("Couldn't import {specifier}, file missing.");
-
-            None
-        }
+        Ok(module) => Some(module),
         Err(err) => {
             tracing::error!("Couldn't import {specifier}, {err}.");
 
@@ -326,16 +319,13 @@ impl<'s> Embedded<'s> {
             .global(scope)
             .set(scope, hash_stdlib_str.into(), hash_stdlib);
 
-        let runner =
-            match ModuleMap::import_module(scope, "./src/worker/runner/javascript/runner.js")? {
-                Some(runner) => runner,
-                None => {
-                    return Err(Error::PackageImport(
-                        "./src/worker/runner/javascript/runner.js".to_string(),
-                        "Missing package".to_string(),
-                    ));
-                }
-            };
+        let runner = ModuleMap::import_module(scope, "./src/worker/runner/javascript/runner.js")
+            .map_err(|err| {
+                Error::PackageImport(
+                    "./src/worker/runner/javascript/runner.js".to_string(),
+                    format!("{err}"),
+                )
+            })?;
 
         // How to get a function from a module
         // https://chromium.googlesource.com/v8/v8/+/refs/heads/lkgr/test/cctest/test-modules.cc#625

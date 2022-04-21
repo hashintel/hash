@@ -92,6 +92,9 @@ pub enum Error {
 
     #[error("serde: {0:?}")]
     Serde(#[from] serde_json::Error),
+
+    #[error("Couldn't open dependency file: {0}")]
+    MissingDependency(String),
 }
 
 impl From<&str> for Error {
