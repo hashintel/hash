@@ -1,5 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
+use execution::package::{
+    context::ContextPackage, init::InitPackage, output::OutputPackage, state::StatePackage,
+};
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use memory::shared_memory::MemoryId;
 use stateful::{
@@ -13,7 +16,6 @@ use crate::{
     proto::ExperimentRunTrait,
     simulation::{
         error::{Error, Result},
-        package::{context, init, output, state},
         step_output::SimulationStepOutput,
     },
 };
@@ -26,11 +28,11 @@ pub struct Packages {
 
 /// TODO: DOC: explain link to init/mod.rs
 pub struct InitPackages {
-    inner: Vec<Box<dyn init::InitPackage>>,
+    inner: Vec<Box<dyn InitPackage>>,
 }
 
 impl InitPackages {
-    pub fn new(inner: Vec<Box<dyn init::InitPackage>>) -> InitPackages {
+    pub fn new(inner: Vec<Box<dyn InitPackage>>) -> InitPackages {
         InitPackages { inner }
     }
 
@@ -73,16 +75,16 @@ impl InitPackages {
 }
 
 pub struct StepPackages {
-    context: Vec<Box<dyn context::ContextPackage>>,
-    state: Vec<Box<dyn state::StatePackage>>,
-    output: Vec<Box<dyn output::OutputPackage>>,
+    context: Vec<Box<dyn ContextPackage>>,
+    state: Vec<Box<dyn StatePackage>>,
+    output: Vec<Box<dyn OutputPackage>>,
 }
 
 impl StepPackages {
     pub fn new(
-        context: Vec<Box<dyn context::ContextPackage>>,
-        state: Vec<Box<dyn state::StatePackage>>,
-        output: Vec<Box<dyn output::OutputPackage>>,
+        context: Vec<Box<dyn ContextPackage>>,
+        state: Vec<Box<dyn StatePackage>>,
+        output: Vec<Box<dyn OutputPackage>>,
     ) -> StepPackages {
         StepPackages {
             context,
@@ -107,7 +109,7 @@ impl StepPackages {
                 package
                     .get_empty_arrow_columns(num_agents, &sim_run_config.sim.store.context_schema)
             })
-            .collect::<Result<Vec<_>>>()?
+            .collect::<execution::Result<Vec<_>>>()?
             .into_iter()
             .flatten()
             .map(|(field_key, col)| (field_key.value().to_string(), col))

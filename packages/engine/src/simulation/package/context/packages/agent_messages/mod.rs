@@ -8,7 +8,8 @@ use std::sync::Arc;
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
 use execution::package::{
-    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    context::ContextPackage, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig,
+    PackageInitConfig,
 };
 use serde_json::Value;
 use stateful::{
@@ -24,8 +25,7 @@ use self::collected::Messages;
 use crate::simulation::{
     comms::package::PackageComms,
     package::context::{
-        packages::agent_messages::fields::MESSAGES_FIELD_NAME, ContextPackage,
-        ContextPackageCreator,
+        packages::agent_messages::fields::MESSAGES_FIELD_NAME, ContextPackageCreator,
     },
     Result,
 };
@@ -90,7 +90,7 @@ impl ContextPackage for AgentMessages {
         &mut self,
         state_proxy: StateReadProxy,
         snapshot: Arc<StateSnapshot>,
-    ) -> Result<Vec<ContextColumn>> {
+    ) -> execution::Result<Vec<ContextColumn>> {
         // We want to pass the span for the package to the writer, so that the write() call isn't
         // nested under the run span
         let pkg_span = Span::current();
@@ -117,7 +117,7 @@ impl ContextPackage for AgentMessages {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>> {
+    ) -> execution::Result<Vec<(RootFieldKey, Arc<dyn Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
         let loc_builder = FixedSizeListBuilder::new(index_builder, 3);
         let mut messages_builder = ListBuilder::new(loc_builder);

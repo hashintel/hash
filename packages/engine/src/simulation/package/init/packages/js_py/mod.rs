@@ -3,7 +3,7 @@ use execution::{
     package::{
         init::{
             script::{JsInitTask, JsPyInitTaskMessage, PyInitTask, SuccessMessage},
-            InitTask, InitTaskMessage, InitialState, InitialStateName,
+            InitPackage, InitTask, InitTaskMessage, InitialState, InitialStateName,
         },
         MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
         PackageTask, TaskMessage,
@@ -13,9 +13,7 @@ use execution::{
 use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
 use crate::simulation::{
-    comms::package::PackageComms,
-    package::init::{InitPackage, InitPackageCreator},
-    Error, Result,
+    comms::package::PackageComms, package::init::InitPackageCreator, Error, Result,
 };
 
 pub struct ScriptInitCreator;
@@ -65,7 +63,7 @@ impl Package for ScriptInit {}
 
 #[async_trait]
 impl InitPackage for ScriptInit {
-    async fn run(&mut self) -> Result<Vec<Agent>> {
+    async fn run(&mut self) -> execution::Result<Vec<Agent>> {
         let task = match &self.initial_state.name {
             InitialStateName::InitPy => InitTask::PyInitTask(PyInitTask {
                 initial_state_source: self.initial_state.src.clone(),
@@ -75,7 +73,7 @@ impl InitPackage for ScriptInit {
             }),
             name => {
                 // should be unreachable
-                return Err(Error::from(format!(
+                return Err(execution::Error::from(format!(
                     "Trying to run an init package for JS/Py but the init source wasn't .js or \
                      .py but instead was: {:?}",
                     name
@@ -90,12 +88,12 @@ impl InitPackage for ScriptInit {
             .await?;
         let task_message = match active_task.drive_to_completion().await? {
             TaskMessage::Init(InitTaskMessage::JsPyInitTaskMessage(message)) => message,
-            _ => return Err(Error::from("Not a JsPyInitTaskMessage")),
+            _ => return Err(execution::Error::from("Not a JsPyInitTaskMessage")),
         };
 
         match task_message {
             JsPyInitTaskMessage::Success(SuccessMessage { agents }) => Ok(agents),
-            _ => Err(Error::from("Init Task failed")),
+            _ => Err(execution::Error::from("Init Task failed")),
         }
     }
 }

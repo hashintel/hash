@@ -8,7 +8,8 @@ use std::sync::Arc;
 use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use execution::package::{
-    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    context::ContextPackage, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig,
+    PackageInitConfig,
 };
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
@@ -28,8 +29,8 @@ use self::response::{ApiResponseMap, ApiResponses};
 use crate::simulation::{
     comms::package::PackageComms,
     package::context::{
-        packages::api_requests::fields::API_RESPONSES_FIELD_NAME, ContextPackage,
-        ContextPackageCreator, ContextSchema,
+        packages::api_requests::fields::API_RESPONSES_FIELD_NAME, ContextPackageCreator,
+        ContextSchema,
     },
     Error, Result,
 };
@@ -87,7 +88,7 @@ impl ContextPackage for ApiRequests {
         &mut self,
         state_proxy: StateReadProxy,
         snapshot: Arc<StateSnapshot>,
-    ) -> Result<Vec<ContextColumn>> {
+    ) -> execution::Result<Vec<ContextColumn>> {
         // We want to pass the span for the package to the writer, so that the write() call isn't
         // nested under the run span
         let pkg_span = Span::current();
@@ -132,7 +133,7 @@ impl ContextPackage for ApiRequests {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
+    ) -> execution::Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
         let from_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let type_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let data_builder = Box::new(arrow::array::StringBuilder::new(1024));

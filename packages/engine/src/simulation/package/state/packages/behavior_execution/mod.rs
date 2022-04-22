@@ -5,7 +5,7 @@ use execution::{
     package::{
         state::{
             behavior_execution::{BehaviorMap, ExecuteBehaviorsTask},
-            StatePackageName, StateTask,
+            StatePackage, StatePackageName, StateTask,
         },
         Package, PackageCreator, PackageCreatorConfig, PackageInitConfig, PackageName, PackageTask,
     },
@@ -31,7 +31,7 @@ use crate::simulation::{
             config::BehaviorIds,
             fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
         },
-        StatePackage, StatePackageCreator,
+        StatePackageCreator,
     },
     task::active::ActiveTask,
     Error, Result,
@@ -225,7 +225,7 @@ impl BehaviorExecution {
 
 #[async_trait]
 impl StatePackage for BehaviorExecution {
-    async fn run(&mut self, state: &mut State, context: &Context) -> Result<()> {
+    async fn run(&mut self, state: &mut State, context: &Context) -> execution::Result<()> {
         tracing::trace!("Running BehaviorExecution");
         let mut state_proxy = state.write()?;
         state_proxy.maybe_reload()?;

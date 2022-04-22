@@ -8,7 +8,6 @@ use std::{
 
 use execution::package::{output::OutputPackageName, PackageInitConfig};
 
-use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use crate::simulation::{
     package::output::{
         packages::{analysis::AnalysisCreator, json_state::JsonStateCreator},
@@ -16,12 +15,6 @@ use crate::simulation::{
     },
     Error, Result,
 };
-
-#[derive(Debug)]
-pub enum Output {
-    AnalysisOutput(AnalysisOutput),
-    JsonStateOutput(JsonStateOutput),
-}
 
 pub struct PackageCreators(SyncOnceCell<HashMap<OutputPackageName, Box<dyn OutputPackageCreator>>>);
 

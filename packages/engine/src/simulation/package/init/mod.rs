@@ -2,23 +2,16 @@
 
 pub mod packages;
 
-use async_trait::async_trait;
 use execution::package::{
-    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    init::InitPackage, PackageCreator, PackageCreatorConfig, PackageInitConfig,
 };
 pub use packages::PACKAGE_CREATORS;
 use stateful::{
-    agent::Agent,
     field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
     global::Globals,
 };
 
 use crate::simulation::{comms::package::PackageComms, Result};
-
-#[async_trait]
-pub trait InitPackage: Package + MaybeCpuBound {
-    async fn run(&mut self) -> Result<Vec<Agent>>;
-}
 
 pub trait InitPackageCreator: PackageCreator {
     /// Create the package.

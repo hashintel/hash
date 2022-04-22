@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use execution::package::{
-    output::OutputPackageName, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig,
-    PackageInitConfig, PackageName,
+    output::{json_state::JsonStateOutput, Output, OutputPackage, OutputPackageName},
+    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig, PackageName,
 };
 use serde_json::Value;
 use stateful::{
-    agent::{Agent, AgentSchema, IntoAgents},
+    agent::{AgentSchema, IntoAgents},
     context::Context,
     field::{FieldScope, FieldSpecMapAccessor},
     global::Globals,
@@ -19,9 +19,7 @@ use tracing::Span;
 
 pub use self::config::JsonStateOutputConfig;
 use crate::simulation::{
-    comms::package::PackageComms,
-    package::output::{packages::Output, OutputPackage, OutputPackageCreator},
-    Error, Result,
+    comms::package::PackageComms, package::output::OutputPackageCreator, Error, Result,
 };
 
 // TODO: UNUSED: Needs triage
@@ -73,7 +71,11 @@ impl Package for JsonState {}
 
 #[async_trait]
 impl OutputPackage for JsonState {
-    async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
+    async fn run(
+        &mut self,
+        state: Arc<State>,
+        _context: Arc<Context>,
+    ) -> execution::Result<Output> {
         let state = state.read()?;
         let agent_states: stateful::Result<Vec<_>> = state
             .agent_pool()
@@ -113,9 +115,4 @@ impl OutputPackage for JsonState {
     fn span(&self) -> Span {
         tracing::debug_span!("json_state")
     }
-}
-
-#[derive(Debug)]
-pub struct JsonStateOutput {
-    pub inner: Vec<Agent>,
 }

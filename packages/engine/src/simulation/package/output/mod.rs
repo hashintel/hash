@@ -1,21 +1,14 @@
 pub mod packages;
 
-use std::sync::Arc;
-
-use async_trait::async_trait;
 use execution::package::{
-    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    output::OutputPackage, PackageCreator, PackageCreatorConfig, PackageInitConfig,
 };
 pub use packages::PACKAGE_CREATORS;
 use stateful::{
-    context::Context,
     field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
     global::Globals,
-    state::State,
 };
-use tracing::Span;
 
-use self::packages::Output;
 use crate::simulation::{comms::package::PackageComms, Result};
 
 pub trait OutputPackageCreator: PackageCreator {
@@ -44,11 +37,4 @@ pub trait OutputPackageCreator: PackageCreator {
     ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![])
     }
-}
-
-#[async_trait]
-pub trait OutputPackage: Package + MaybeCpuBound {
-    async fn run(&mut self, state: Arc<State>, context: Arc<Context>) -> Result<Output>;
-
-    fn span(&self) -> Span;
 }

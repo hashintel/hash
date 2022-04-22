@@ -1,15 +1,13 @@
 use async_trait::async_trait;
 use execution::package::{
-    init::InitialStateName, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig,
-    PackageInitConfig,
+    init::{InitPackage, InitialStateName},
+    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
 };
 use serde_json::Value;
 use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
 use crate::simulation::{
-    comms::package::PackageComms,
-    package::init::{InitPackage, InitPackageCreator},
-    Error, Result,
+    comms::package::PackageComms, package::init::InitPackageCreator, Error, Result,
 };
 
 pub struct JsonInitCreator;
@@ -58,10 +56,10 @@ impl Package for JsonInit {}
 
 #[async_trait]
 impl InitPackage for JsonInit {
-    async fn run(&mut self) -> Result<Vec<Agent>> {
+    async fn run(&mut self) -> execution::Result<Vec<Agent>> {
         // TODO: Map Error when we design package errors
         serde_json::from_str(&self.initial_state_src).map_err(|e| {
-            Error::from(format!(
+            execution::Error::from(format!(
                 "Failed to parse agent state JSON to Vec<Agent>: {:?}",
                 e
             ))

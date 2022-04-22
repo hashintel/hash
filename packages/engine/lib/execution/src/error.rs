@@ -10,8 +10,14 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Memory error: {0}")]
+    Memory(#[from] memory::Error),
+
     #[error("Stateful error: {0}")]
     Stateful(#[from] stateful::Error),
+
+    #[error("Arrow Error: {0}")]
+    Arrow(#[from] arrow::error::ArrowError),
 
     #[error("Behavior language parse error: {0}")]
     ParseBehavior(String),

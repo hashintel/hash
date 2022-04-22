@@ -3,7 +3,13 @@ use std::{collections::HashMap, sync::Arc};
 mod part;
 mod util;
 
-use execution::package::{output::OutputPackageName, OutputPackagesSimConfig, PackageName};
+use execution::package::{
+    output::{
+        analysis::{AnalysisOutput, AnalysisSingleOutput},
+        OutputPackageName,
+    },
+    OutputPackagesSimConfig, PackageName,
+};
 use serde::Serialize;
 
 pub use self::{
@@ -13,10 +19,7 @@ pub use self::{
 use crate::{
     output::error::{Error, Result},
     proto::{ExperimentId, SimulationShortId},
-    simulation::package::{
-        output,
-        output::packages::analysis::{AnalysisOutput, AnalysisSingleOutput},
-    },
+    simulation::package::output::packages::analysis::AnalysisOutputConfig,
 };
 
 const RELATIVE_PARTS_FOLDER: &str = "./parts";
@@ -53,8 +56,7 @@ impl AnalysisBuffer {
             .map
             .get(&PackageName::Output(OutputPackageName::Analysis))
             .ok_or_else(|| Error::from("Missing analysis config"))?;
-        let config: output::packages::analysis::AnalysisOutputConfig =
-            serde_json::from_value(value.clone())?;
+        let config: AnalysisOutputConfig = serde_json::from_value(value.clone())?;
         let buffer = AnalysisBuffer {
             manifest: config.manifest.clone(),
             buffers: config.outputs.keys().map(|v| (v.clone(), vec![])).collect(),

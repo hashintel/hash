@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use execution::package::{Package, PackageCreator, PackageCreatorConfig, PackageInitConfig};
+use execution::package::{
+    state::StatePackage, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+};
 use stateful::{
     agent::AgentBatch,
     context::Context,
@@ -14,11 +16,7 @@ use tracing::Span;
 
 use crate::{
     config::TopologyConfig,
-    simulation::{
-        comms::package::PackageComms,
-        package::state::{StatePackage, StatePackageCreator},
-        Result,
-    },
+    simulation::{comms::package::PackageComms, package::state::StatePackageCreator, Result},
 };
 
 mod adjacency;
@@ -83,7 +81,7 @@ impl Package for Topology {}
 
 #[async_trait]
 impl StatePackage for Topology {
-    async fn run(&mut self, state: &mut State, _context: &Context) -> Result<()> {
+    async fn run(&mut self, state: &mut State, _context: &Context) -> execution::Result<()> {
         tracing::trace!("Running Topology package");
         if self.config.move_wrapped_agents {
             for agent_batch in state.agent_pool_mut().write_proxies()?.batches_iter_mut() {

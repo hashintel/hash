@@ -1,37 +1,16 @@
 pub mod packages;
 
-use std::sync::Arc;
-
-use async_trait::async_trait;
 use execution::package::{
-    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    context::ContextPackage, PackageCreator, PackageCreatorConfig, PackageInitConfig,
 };
 use stateful::{
-    context::{ContextColumn, ContextSchema},
-    field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    context::ContextSchema,
+    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
     global::Globals,
-    state::{StateReadProxy, StateSnapshot},
 };
-use tracing::Span;
 
 pub use self::packages::PACKAGE_CREATORS;
 use crate::simulation::{comms::package::PackageComms, Result};
-
-#[async_trait]
-pub trait ContextPackage: Package + MaybeCpuBound {
-    async fn run<'s>(
-        &mut self,
-        state_proxy: StateReadProxy,
-        snapshot: Arc<StateSnapshot>,
-    ) -> Result<Vec<ContextColumn>>;
-    fn get_empty_arrow_columns(
-        &self,
-        num_agents: usize,
-        context_schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>>;
-
-    fn span(&self) -> Span;
-}
 
 pub trait ContextPackageCreator: PackageCreator {
     /// Create the package.
@@ -45,7 +24,7 @@ pub trait ContextPackageCreator: PackageCreator {
     ) -> Result<Box<dyn ContextPackage>>;
 
     // TODO: Limit context packages to only add one field as long as we only allow one column from
-    // "get_empty_arrow_column"
+    //   "get_empty_arrow_column"
     fn get_context_field_specs(
         &self,
         _config: &PackageInitConfig,

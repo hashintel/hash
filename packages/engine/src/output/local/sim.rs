@@ -1,5 +1,7 @@
 use std::io::{BufReader, BufWriter};
 
+use execution::package::output::Output;
+
 use crate::{
     config::SimRunConfig,
     output::{
@@ -9,7 +11,7 @@ use crate::{
         SimulationOutputPersistenceRepr,
     },
     proto::{ExperimentId, ExperimentName, SimulationShortId},
-    simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
+    simulation::step_output::SimulationStepOutput,
 };
 
 #[derive(derive_new::new)]

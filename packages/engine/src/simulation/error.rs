@@ -170,6 +170,12 @@ impl Error {
     }
 }
 
+impl From<Error> for execution::Error {
+    fn from(error: Error) -> Self {
+        execution::Error::from(error.to_string())
+    }
+}
+
 impl From<&str> for Error {
     fn from(s: &str) -> Self {
         Error::Unique(s.to_string())

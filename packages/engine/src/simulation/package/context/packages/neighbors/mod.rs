@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use execution::package::{
-    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    context::ContextPackage, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig,
+    PackageInitConfig,
 };
 use stateful::{
     agent,
@@ -20,8 +21,7 @@ use crate::{
     simulation::{
         comms::package::PackageComms,
         package::context::{
-            packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackage,
-            ContextPackageCreator,
+            packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackageCreator,
         },
         Result,
     },
@@ -107,7 +107,7 @@ impl ContextPackage for Neighbors {
         &mut self,
         state_proxy: StateReadProxy,
         _snapshot: Arc<StateSnapshot>,
-    ) -> Result<Vec<ContextColumn>> {
+    ) -> execution::Result<Vec<ContextColumn>> {
         // We want to pass the span for the package to the writer, so that the write() call isn't
         // nested under the run span
         let pkg_span = Span::current();
@@ -130,7 +130,7 @@ impl ContextPackage for Neighbors {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
+    ) -> execution::Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
 
         let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 2);

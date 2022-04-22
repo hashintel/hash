@@ -3,7 +3,6 @@ mod macros;
 mod analyzer;
 mod config;
 mod index_iter;
-mod output;
 mod validation;
 mod value_iter;
 
@@ -12,7 +11,9 @@ use std::sync::Arc;
 use analyzer::Analyzer;
 use async_trait::async_trait;
 use execution::package::{
-    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig, SimPackageArgs,
+    output::{Output, OutputPackage},
+    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    SimPackageArgs,
 };
 use serde_json::Value;
 use stateful::{
@@ -20,14 +21,9 @@ use stateful::{
 };
 use tracing::Span;
 
-pub use self::{
-    config::AnalysisOutputConfig,
-    output::{AnalysisOutput, AnalysisSingleOutput},
-};
+pub use self::config::AnalysisOutputConfig;
 use crate::simulation::{
-    comms::package::PackageComms,
-    package::output::{packages::Output, OutputPackage, OutputPackageCreator},
-    Error, Result,
+    comms::package::PackageComms, package::output::OutputPackageCreator, Error, Result,
 };
 
 // TODO: UNUSED: Needs triage
@@ -74,7 +70,11 @@ impl Package for Analysis {}
 
 #[async_trait]
 impl OutputPackage for Analysis {
-    async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
+    async fn run(
+        &mut self,
+        state: Arc<State>,
+        _context: Arc<Context>,
+    ) -> execution::Result<Output> {
         // TODO: use filtering to avoid exposing hidden values to users
         let agent_proxies = state.agent_pool().read_proxies()?;
         // TODO: propagate Deref trait bound through run
