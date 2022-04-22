@@ -5,7 +5,12 @@ import { singular } from "pluralize";
 import { DbAdapter } from "../../../db";
 import { Entity, EntityType, User } from "../../../model";
 import { Tasks } from "../../../task-execution";
-import { Resolver } from "../../apiTypes.gen";
+import {
+  MutationExecuteGithubCheckTaskArgs,
+  MutationExecuteGithubDiscoverTaskArgs,
+  MutationExecuteGithubReadTaskArgs,
+  Resolver,
+} from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 
 export const executeDemoTask: Resolver<
@@ -51,8 +56,9 @@ export const executeGithubSpecTask: Resolver<
 export const executeGithubCheckTask: Resolver<
   Promise<string>,
   {},
-  GraphQLContext
-> = async (_, __, { dataSources: { taskExecutor } }) => {
+  GraphQLContext,
+  MutationExecuteGithubCheckTaskArgs
+> = async (_, { config }, { dataSources: { taskExecutor } }) => {
   if (!taskExecutor) {
     throw new ApolloError(
       "A task-executor wasn't started, so external tasks can't be started",
@@ -60,7 +66,7 @@ export const executeGithubCheckTask: Resolver<
   } else {
     try {
       return await taskExecutor
-        .run_task(Tasks.GithubCheck)
+        .run_task(Tasks.GithubCheck, config)
         .then((res) => JSON.stringify(res));
     } catch (err: any) {
       throw new ApolloError(`Task-execution failed: ${err}`);
@@ -143,8 +149,13 @@ const streamNameToEntityTypeName = (name: string) => {
 export const executeGithubDiscoverTask: Resolver<
   Promise<string>,
   {},
-  LoggedInGraphQLContext
-> = async (_, __, { dataSources: { db, taskExecutor }, user, logger }) => {
+  LoggedInGraphQLContext,
+  MutationExecuteGithubDiscoverTaskArgs
+> = async (
+  _,
+  { config },
+  { dataSources: { db, taskExecutor }, user, logger },
+) => {
   if (!taskExecutor) {
     throw new ApolloError(
       "A task-executor wasn't started, so external tasks can't be started",
@@ -153,6 +164,7 @@ export const executeGithubDiscoverTask: Resolver<
     try {
       const catalog: AirbyteCatalog = await taskExecutor.run_task(
         Tasks.GithubDiscover,
+        config,
       );
 
       const existingEntityChecker = await ExistingEntityChecker(db, user);
@@ -183,8 +195,13 @@ export const executeGithubDiscoverTask: Resolver<
 export const executeGithubReadTask: Resolver<
   Promise<string>,
   {},
-  LoggedInGraphQLContext
-> = async (_, __, { dataSources: { db, taskExecutor }, user, logger }) => {
+  LoggedInGraphQLContext,
+  MutationExecuteGithubReadTaskArgs
+> = async (
+  _,
+  { config },
+  { dataSources: { db, taskExecutor }, user, logger },
+) => {
   if (!taskExecutor) {
     throw new ApolloError(
       "A task-executor wasn't started, so external tasks can't be started",
@@ -194,6 +211,7 @@ export const executeGithubReadTask: Resolver<
     try {
       const airbyteRecords: AirbyteRecords = await taskExecutor.run_task(
         Tasks.GithubRead,
+        config,
       );
       logger.debug(`Received ${airbyteRecords.length} records from Github`);
 

@@ -27,20 +27,25 @@ export type TaskExecutor = ReturnType<typeof connectToTaskExecutor> &
  */
 export const connectToTaskExecutor = (config: Config) => {
   return {
-    run_task: async (route: Tasks) => {
-      return await fetch(`http://${config.host}:${config.port}/${route}`)
-        .then((resp) => {
-          if (resp.ok) {
-            return resp.json();
-          } else {
-            throw new Error(
-              `Task Execution failed for ${route}: ${resp.json()}`,
-            );
-          }
-        })
-        .catch((error) => {
-          throw new Error(`Failed to execute task ${route}: ${error}`);
-        });
+    run_task: async (route: Tasks, body?: any) => {
+      const resp = await fetch(
+        `http://${config.host}:${config.port}/${route}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        },
+      );
+
+      if (resp.ok) {
+        return resp.json();
+      } else {
+        throw new Error(
+          `Task Execution failed for ${route}: ${await resp.text()}`,
+        );
+      }
     },
   };
 };

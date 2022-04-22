@@ -1,6 +1,24 @@
 import { gql } from "apollo-server-express";
 
 export const executeTaskTypedef = gql`
+  input GithubCredentials {
+    """
+    Github Personal Access Token
+    """
+    personal_access_token: String!
+  }
+  input GithubTaskConfig {
+    """
+    A space-separated list of Github Repositories, e.g. 'blockprotocol/blockprotocol hashintel/hash'
+    """
+    repository: String!
+    """
+    The date from which you'd like to replicate data from GitHub in the format YYYY-MM-DDT00:00:00Z. For the streams which support this configuration, only data generated on or after the start date will be replicated. This field doesn't apply to all streams
+    """
+    start_date: String!
+    credentials: GithubCredentials!
+  }
+
   extend type Mutation {
     """
     Execute the Demo Task
@@ -14,14 +32,14 @@ export const executeTaskTypedef = gql`
     """
     Call the Github Integration Check Task
     """
-    executeGithubCheckTask: String!
+    executeGithubCheckTask(config: GithubTaskConfig!): String!
     """
     Call the Github Integration Discover Task
     """
-    executeGithubDiscoverTask: String!
+    executeGithubDiscoverTask(config: GithubTaskConfig!): String!
     """
     Call the Github Integration Read Task
     """
-    executeGithubReadTask: String!
+    executeGithubReadTask(config: GithubTaskConfig!): String!
   }
 `;

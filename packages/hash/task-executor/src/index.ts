@@ -10,25 +10,22 @@ const port = 5010;
 const app = express();
 app.use(json());
 
-app.get("/python", (_, res) => {
+app.post("/python", (_, res) => {
   executeTask("python", ["-m", "src.tasks.demo"])
     .then((result) => res.status(200).json(result))
     .catch((err) => res.status(500).json(err));
 });
 
-app.get("/github/spec", (_, res) => {
+app.post("/github/spec", (_, res) => {
   new GithubIngestor()
     .runSpec()
     .then((result) => res.status(200).send(JSON.stringify(result)))
     .catch((err) => res.status(500).json({ error: err.toString() }));
 });
 
-app.get("/github/check", (_, res) => {
-  const config = JSON.parse(
-    readFileSync(
-      `${process.cwd()}/src/tasks/source-github/secrets/config.json`,
-    ).toString(),
-  );
+app.post("/github/check", (req, res) => {
+  const config = req.body;
+  console.log(config);
   new GithubIngestor()
     .runCheck(config)
     .then((result) => res.status(200).send(JSON.stringify(result)))
@@ -37,7 +34,7 @@ app.get("/github/check", (_, res) => {
     });
 });
 
-app.get("/github/discover", (_, res) => {
+app.post("/github/discover", (_, res) => {
   const config = JSON.parse(
     readFileSync(
       `${process.cwd()}/src/tasks/source-github/secrets/config.json`,
@@ -68,7 +65,7 @@ app.get("/github/discover", (_, res) => {
     .catch((err) => res.status(500).json({ error: err.toString() }));
 });
 
-app.get("/github/read", (_, res) => {
+app.post("/github/read", (_, res) => {
   const config = JSON.parse(
     readFileSync(
       `${process.cwd()}/src/tasks/source-github/secrets/config.json`,
