@@ -203,12 +203,14 @@ jobs:
         uses: actions/checkout@v2
 
       # Store `Cargo.toml` before modifying it to not affect the diff.
-      - name: Remove and store default members
-        id: default_members
-        run: |
-          cargo_toml=`cat ${{ matrix.directory }}/Cargo.toml`
-          echo "CARGO_TOML=$($cargo_toml)" >> $GITHUB_ENV
-          sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+      - name: Store original Cargo.toml
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.toolchain }}/Cargo.toml
+          path: ${{ matrix.directory }}/Cargo.toml
+
+      - name: Remove default members
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
         id: toolchain
@@ -252,11 +254,14 @@ jobs:
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
 
+      - name: Restore Cargo.toml
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.toolchain }}/Cargo.toml
+
       # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
-        run: |
-          echo $CARGO_TOML > ${{ matrix.directory }}/Cargo.toml
-          git --no-pager diff --exit-code --color
+        run: git --no-pager diff --exit-code --color
 
   bench:
     name: bench
