@@ -202,8 +202,11 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v2
 
-      - name: Remove default members
-        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+      # Store `Cargo.toml` before modifying it to not affect the diff.
+      - name: Remove and store default members
+        run: |
+          echo "ORIGINAL_CARGO_TOML=$(cat ${{ matrix.directory }}/Cargo.toml)"
+          sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
         id: toolchain
@@ -249,7 +252,9 @@ jobs:
 
       # Non empty diff can be a Cargo.lock that wasn't pushed.
       - name: Ensure empty git diff
-        run: git --no-pager diff --exit-code --color
+        run: |
+          echo $ORIGINAL_CARGO_TOML > ${{ matrix.directory }}/Cargo.toml
+          git --no-pager diff --exit-code --color
 
   bench:
     name: bench
