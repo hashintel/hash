@@ -16,7 +16,11 @@ use tracing::Span;
 
 use crate::{
     config::TopologyConfig,
-    simulation::{comms::package::PackageComms, package::state::StatePackageCreator, Result},
+    simulation::{
+        comms::{package::PackageComms, Comms},
+        package::state::StatePackageCreator,
+        Result,
+    },
 };
 
 mod adjacency;
@@ -35,7 +39,7 @@ impl StatePackageCreator for TopologyCreator {
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms,
+        _comms: PackageComms<Comms>,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>> {
         let topology = Topology {

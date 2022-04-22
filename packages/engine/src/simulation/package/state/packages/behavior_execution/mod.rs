@@ -25,7 +25,7 @@ use tracing::Span;
 
 use self::{config::exp_init_message, reset_index_col::reset_index_col};
 use crate::simulation::{
-    comms::package::PackageComms,
+    comms::{package::PackageComms, Comms},
     package::state::{
         packages::behavior_execution::{
             config::BehaviorIds,
@@ -98,7 +98,7 @@ impl StatePackageCreator for BehaviorExecutionCreator {
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        comms: PackageComms,
+        comms: PackageComms<Comms>,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>> {
         let behavior_ids_col_data_types = fields::id_column_data_types();
@@ -143,7 +143,7 @@ struct BehaviorExecution {
     behavior_ids_col_index: usize,
     behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
     behavior_index_col_index: usize,
-    comms: PackageComms,
+    comms: PackageComms<Comms>,
 }
 
 impl Package for BehaviorExecution {}

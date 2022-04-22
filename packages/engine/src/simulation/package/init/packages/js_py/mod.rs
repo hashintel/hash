@@ -13,7 +13,9 @@ use execution::{
 use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
 use crate::simulation::{
-    comms::package::PackageComms, package::init::InitPackageCreator, Error, Result,
+    comms::{package::PackageComms, Comms},
+    package::init::InitPackageCreator,
+    Error, Result,
 };
 
 pub struct ScriptInitCreator;
@@ -23,7 +25,7 @@ impl InitPackageCreator for ScriptInitCreator {
         &self,
         _config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        comms: PackageComms,
+        comms: PackageComms<Comms>,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &init_config.initial_state.name {
@@ -50,7 +52,7 @@ impl PackageCreator for ScriptInitCreator {
 
 pub struct ScriptInit {
     initial_state: InitialState,
-    comms: PackageComms,
+    comms: PackageComms<Comms>,
 }
 
 impl MaybeCpuBound for ScriptInit {

@@ -23,7 +23,9 @@ use tracing::Span;
 
 pub use self::config::AnalysisOutputConfig;
 use crate::simulation::{
-    comms::package::PackageComms, package::output::OutputPackageCreator, Error, Result,
+    comms::{package::PackageComms, Comms},
+    package::output::OutputPackageCreator,
+    Error, Result,
 };
 
 // TODO: UNUSED: Needs triage
@@ -36,7 +38,7 @@ impl OutputPackageCreator for AnalysisCreator {
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        _comms: PackageComms,
+        _comms: PackageComms<Comms>,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and

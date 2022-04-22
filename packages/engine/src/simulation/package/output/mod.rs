@@ -9,7 +9,10 @@ use stateful::{
     global::Globals,
 };
 
-use crate::simulation::{comms::package::PackageComms, Result};
+use crate::simulation::{
+    comms::{package::PackageComms, Comms},
+    Result,
+};
 
 pub trait OutputPackageCreator: PackageCreator {
     /// Create the package.
@@ -17,7 +20,7 @@ pub trait OutputPackageCreator: PackageCreator {
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        system: PackageComms,
+        system: PackageComms<Comms>,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>>;
 

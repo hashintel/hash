@@ -19,7 +19,7 @@ use self::map::{NeighborMap, NeighborRef};
 use crate::{
     config::TopologyConfig,
     simulation::{
-        comms::package::PackageComms,
+        comms::{package::PackageComms, Comms},
         package::context::{
             packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackageCreator,
         },
@@ -45,7 +45,7 @@ impl ContextPackageCreator for NeighborsCreator {
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms,
+        _comms: PackageComms<Comms>,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {

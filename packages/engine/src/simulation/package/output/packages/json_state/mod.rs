@@ -19,7 +19,9 @@ use tracing::Span;
 
 pub use self::config::JsonStateOutputConfig;
 use crate::simulation::{
-    comms::package::PackageComms, package::output::OutputPackageCreator, Error, Result,
+    comms::{package::PackageComms, Comms},
+    package::output::OutputPackageCreator,
+    Error, Result,
 };
 
 // TODO: UNUSED: Needs triage
@@ -32,7 +34,7 @@ impl OutputPackageCreator for JsonStateCreator {
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms,
+        _comms: PackageComms<Comms>,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>> {
         let value = config

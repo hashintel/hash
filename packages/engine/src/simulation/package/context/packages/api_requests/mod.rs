@@ -27,7 +27,7 @@ use tracing::{Instrument, Span};
 pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::simulation::{
-    comms::package::PackageComms,
+    comms::{package::PackageComms, Comms},
     package::context::{
         packages::api_requests::fields::API_RESPONSES_FIELD_NAME, ContextPackageCreator,
         ContextSchema,
@@ -44,7 +44,7 @@ impl ContextPackageCreator for ApiRequestsCreator {
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms,
+        _comms: PackageComms<Comms>,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {

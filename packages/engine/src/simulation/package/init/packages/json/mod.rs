@@ -6,7 +6,9 @@ use serde_json::Value;
 use stateful::field::FieldSpecMapAccessor;
 
 use crate::simulation::{
-    comms::package::PackageComms, package::init::InitPackageCreator, Error, Result,
+    comms::{package::PackageComms, Comms},
+    package::init::InitPackageCreator,
+    Error, Result,
 };
 
 pub struct JsonInitCreator;
@@ -16,7 +18,7 @@ impl InitPackageCreator for JsonInitCreator {
         &self,
         _config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        _comms: PackageComms,
+        _comms: PackageComms<Comms>,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &init_config.initial_state.name {

@@ -23,7 +23,7 @@ use tracing::Span;
 
 use self::collected::Messages;
 use crate::simulation::{
-    comms::package::PackageComms,
+    comms::{package::PackageComms, Comms},
     package::context::{
         packages::agent_messages::fields::MESSAGES_FIELD_NAME, ContextPackageCreator,
     },
@@ -43,7 +43,7 @@ impl ContextPackageCreator for AgentMessagesCreator {
         &self,
         _config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms,
+        _comms: PackageComms<Comms>,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
