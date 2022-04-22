@@ -206,7 +206,8 @@ jobs:
       - name: Remove and store default members
         id: default_members
         run: |
-          echo "CARGO_TOML=$(cat ${{ matrix.directory }}/Cargo.toml)" >> $GITHUB_ENV
+          cargo_toml=`cat ${{ matrix.directory }}/Cargo.toml`
+          echo "CARGO_TOML=$($cargo_toml)" >> $GITHUB_ENV
           sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
