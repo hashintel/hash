@@ -1,5 +1,6 @@
 import { ApolloError } from "apollo-server-express";
 import { JSONObject } from "blockprotocol";
+import { upperFirst, camelCase } from "lodash";
 import { DbAdapter } from "../../../db";
 import { Entity, EntityType, User } from "../../../model";
 import { Tasks } from "../../../task-execution";
@@ -134,7 +135,8 @@ const ExistingEntityChecker = async (db: DbAdapter, user: User) => {
 };
 
 const streamNameToEntityTypeName = (name: string) => {
-  return `Github${name.charAt(0).toUpperCase() + name.slice(1)}`;
+  const sanitisedName = upperFirst(camelCase(name));
+  return `Github${sanitisedName}`;
 };
 
 export const executeGithubDiscoverTask: Resolver<
@@ -201,6 +203,8 @@ export const executeGithubReadTask: Resolver<
             `Couldn't find EntityType for ingested data with name: ${entityTypeName}`,
           );
         }
+
+        /** @todo - check primary key to see if entity already exists */
         // Insert the entity
         const entity = await Entity.create(db, {
           accountId: user.accountId,
