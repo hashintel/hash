@@ -152,12 +152,13 @@ export class BaseExecutor implements AirbyteExecutor {
     const response = await executeTask("docker", args);
 
     const messages = parseMessageStream(response);
+    console.log(`Read ${messages.length} messages from Airbyte`);
 
     const recordMessages = messages
       .filter((message) => message.type === "RECORD" && message.record)
       .map((message) => message.record!);
     if (recordMessages) {
-      console.log(JSON.stringify(recordMessages));
+      console.log(`There were ${recordMessages.length} records`);
       return recordMessages;
     } else {
       throw new Error("Message didn't contain any Airbyte Records");
