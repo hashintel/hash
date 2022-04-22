@@ -207,9 +207,7 @@ jobs:
         id: default_members
         run: |
           cargo_toml=$(< ${{ matrix.directory }}/Cargo.toml)
-          echo "ORIGINAL_CARGO_TOML<<'EOF'" >> $GITHUB_ENV
-          echo "$cargo_toml" >> $GITHUB_ENV
-          echo "'EOF'" >> $GITHUB_ENV
+          echo "ORIGINAL_CARGO_TOML=$cargo_toml" >> $GITHUB_ENV
           sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
