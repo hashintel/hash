@@ -60,6 +60,7 @@
     ]
   },
   "resolutions": {
+    "blockprotocol": "0.0.7",
     "node-fetch": "^2.6.7",
     "prettier": "2.5.1",
     "webpack": "^5"
