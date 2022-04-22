@@ -254,7 +254,7 @@ jobs:
       # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
         run: |
-          echo ${{ steps.default_members.${{ matrix.directory }}_Cargo }} > ${{ matrix.directory }}/Cargo.toml
+          echo ${{ steps.default_members.outputs.${{ matrix.directory }}_Cargo }} > ${{ matrix.directory }}/Cargo.toml
           git --no-pager diff --exit-code --color
 
   bench:
