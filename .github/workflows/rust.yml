@@ -204,7 +204,6 @@ jobs:
 
       # Store `Cargo.toml` before modifying it to not affect the diff.
       - name: Remove and store default members
-        id: default_members
         run: |
           cp "${{ matrix.directory }}/Cargo.toml" "${{ matrix.directory }}/Cargo.toml.orig"
           sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
