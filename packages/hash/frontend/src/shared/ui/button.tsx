@@ -2,7 +2,7 @@
 import Link from "next/link";
 import {
   Box,
-  // eslint-disable-next-line no-restricted-imports
+  /* eslint-disable-next-line -- allow import of original button to extend it */
   Button as MuiButton,
   ButtonProps as MuiButtonProps,
   useTheme,
@@ -72,7 +72,7 @@ const LoadingContent: VFC<{
 };
 
 export const Button: FC<ButtonProps> = forwardRef(
-  ({ children, loading, loadingWithoutText, href, ...props }, ref) => {
+  ({ children, loading, loadingWithoutText, href, sx = [], ...props }, ref) => {
     const linkProps = useMemo(() => {
       if (href && isHrefExternal(href)) {
         return {
@@ -87,10 +87,12 @@ export const Button: FC<ButtonProps> = forwardRef(
 
     const Component = (
       <MuiButton
-        sx={{
-          ...(loading && { pointerEvents: "none" }),
-          ...props.sx,
-        }}
+        sx={[
+          {
+            pointerEvents: loading ? "none" : "auto",
+          },
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
         {...props}
         {...linkProps}
         ref={ref}

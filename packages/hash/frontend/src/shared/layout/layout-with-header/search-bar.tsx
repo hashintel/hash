@@ -8,14 +8,7 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
-import {
-  Box,
-  Theme,
-  useTheme,
-  useMediaQuery,
-  SxProps,
-  IconButton,
-} from "@mui/material";
+import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
 
 import { getBlockDomId } from "../../../blocks/page/BlockView";
 import {
@@ -26,7 +19,7 @@ import { searchPages } from "../../../graphql/queries/search.queries";
 import { useUser } from "../../../components/hooks/useUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 import { SearchInput } from "./search-bar/search-input";
-import { Button, Link } from "../../ui";
+import { Button, IconButton, Link } from "../../ui";
 import { SearchIcon } from "../../icons";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
@@ -195,16 +188,8 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
     >
       {/* If the user is in mobile view and the search icon isn't clicked, display the icon */}
       {isMobile && !displaySearchInput ? (
-        <IconButton
-          sx={{
-            height: "32px",
-            width: "32px",
-            display: "flex",
-            alignItems: "center",
-          }}
-          onClick={() => setDisplaySearchInput(true)}
-        >
-          <SearchIcon sx={{ height: "16px", width: "auto" }} />
+        <IconButton size="medium" onClick={() => setDisplaySearchInput(true)}>
+          <SearchIcon />
         </IconButton>
       ) : (
         <Box
