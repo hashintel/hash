@@ -37,7 +37,6 @@ macro_rules! run_test {
         $(#[$attr])*
         #[tokio::test]
         async fn $project() {
-            panic!();
             let project_path = std::path::Path::new(file!())
                 .parent()
                 .unwrap()
