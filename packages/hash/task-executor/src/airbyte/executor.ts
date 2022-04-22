@@ -1,9 +1,10 @@
 import { executeTask } from "../execution";
-import { parse_message_stream } from "./parsing";
+import { parseMessageStream } from "./parsing";
 import {
   AirbyteConnectionStatus,
   AirbyteMessage,
   AirbyteStream,
+  ConfiguredAirbyteCatalog,
   ConnectorSpecification,
 } from "./protocol";
 
@@ -13,12 +14,12 @@ interface AirbyteExecutor {
   imageName: string;
 
   runSpec(): Promise<ConnectorSpecification>;
-  runCheck(config_path: string): Promise<AirbyteConnectionStatus>;
-  runDiscover(config_path: string): Promise<AirbyteStream[]>;
+  runCheck(configPath: string): Promise<AirbyteConnectionStatus>;
+  runDiscover(configPath: string): Promise<AirbyteStream[]>;
   runRead(
-    config_path: string,
-    configured_catalog_path: string,
-    state_path?: string,
+    configPath: string,
+    configuredCatalog: ConfiguredAirbyteCatalog,
+    statePath?: string,
   ): Promise<RecordMessage[]>;
 }
 
@@ -40,79 +41,79 @@ export class BaseExecutor implements AirbyteExecutor {
       "spec",
     ]);
 
-    const messages = parse_message_stream(response);
+    const messages = parseMessageStream(response);
 
-    const spec_message = messages.find(
+    const specMessage = messages.find(
       (message) => message.type === "SPEC" && message.spec,
     );
-    if (spec_message) {
-      return spec_message.spec!;
+    if (specMessage) {
+      return specMessage.spec!;
     } else {
       throw new Error("Message didn't contain a ConnectorSpecification");
     }
   }
 
-  async runCheck(config_path: string): Promise<AirbyteConnectionStatus> {
+  async runCheck(configPath: string): Promise<AirbyteConnectionStatus> {
     const response = await executeTask("docker", [
       "run",
       "--rm",
       "-v",
-      `${config_path}:/secrets/config.json`,
+      `${configPath}:/secrets/config.json`,
       this.imageName,
       "check",
       "--config",
       "/secrets/config.json",
     ]);
 
-    const messages = parse_message_stream(response);
+    const messages = parseMessageStream(response);
 
-    const status_message = messages.find(
+    const statusMessage = messages.find(
       (message) =>
         message.type === "CONNECTION_STATUS" && message.connectionStatus,
     );
-    if (status_message) {
-      return status_message.connectionStatus!;
+    if (statusMessage) {
+      return statusMessage.connectionStatus!;
     } else {
       throw new Error("Message didn't contain a AirbyteConnectionStatus");
     }
   }
 
-  async runDiscover(config_path: string): Promise<AirbyteStream[]> {
+  async runDiscover(configPath: string): Promise<AirbyteStream[]> {
     const response = await executeTask("docker", [
       "run",
       "--rm",
       "-v",
-      `${config_path}:/secrets/config.json`,
+      `${configPath}:/secrets/config.json`,
       this.imageName,
       "discover",
       "--config",
       "/secrets/config.json",
     ]);
 
-    const messages = parse_message_stream(response);
+    const messages = parseMessageStream(response);
 
-    const catalog_message = messages.find(
+    const catalogMessage = messages.find(
       (message) => message.type === "CATALOG" && message.catalog,
     );
-    if (catalog_message) {
-      return catalog_message.catalog!.streams;
+    if (catalogMessage) {
+      return catalogMessage.catalog!.streams;
     } else {
       throw new Error("Message didn't contain a Airbyte Catalog");
     }
   }
 
   async runRead(
-    config_path: string,
-    configured_catalog_path: string,
-    state_path?: string,
+    configPath: string,
+    configuredCatalog: ConfiguredAirbyteCatalog,
+    statePath?: string,
   ): Promise<RecordMessage[]> {
     const args = [
       "run",
       "--rm",
       "-v",
-      `${config_path}:/secrets/config.json`,
+      `${configPath}:/secrets/config.json`,
       "-v",
-      `${configured_catalog_path}:/secrets/catalog.json`,
+      `${configuredCatalog}:/secrets/catalog.json`,
       this.imageName,
       "read",
       "--config",
@@ -121,20 +122,20 @@ export class BaseExecutor implements AirbyteExecutor {
       "/secrets/catalog.json",
     ];
 
-    if (state_path) {
-      args.push("--state", state_path);
+    if (statePath) {
+      args.push("--state", statePath);
     }
 
     const response = await executeTask("docker", args);
 
-    const messages = parse_message_stream(response);
+    const messages = parseMessageStream(response);
 
-    const record_messages = messages
+    const recordMessages = messages
       .filter((message) => message.type === "RECORD" && message.record)
       .map((message) => message.record!);
-    if (record_messages) {
-      console.log(JSON.stringify(record_messages));
-      return record_messages;
+    if (recordMessages) {
+      console.log(JSON.stringify(recordMessages));
+      return recordMessages;
     } else {
       throw new Error("Message didn't contain any Airbyte Records");
     }
