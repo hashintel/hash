@@ -253,7 +253,7 @@ jobs:
       # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
         run: |
-          mv "${{ matrix.directory }}/Cargo.toml.orig" "${{ matrix.directory }}/Cargo.toml"
+          mv -v "${{ matrix.directory }}/Cargo.toml.orig" "${{ matrix.directory }}/Cargo.toml"
           git --no-pager diff --exit-code --color
 
   bench:
