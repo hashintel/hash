@@ -138,11 +138,12 @@ export const resolvers = {
     verifyEmail,
     sendLoginCode,
     loginWithLoginCode,
+    // Task execution
     executeDemoTask,
     executeGithubSpecTask,
     executeGithubCheckTask,
-    executeGithubDiscoverTask,
-    executeGithubReadTask,
+    executeGithubDiscoverTask: loggedInAndSignedUp(executeGithubDiscoverTask),
+    executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
   },
 
   JSONObject: GraphQLJSON,
