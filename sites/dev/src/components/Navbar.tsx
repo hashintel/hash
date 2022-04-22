@@ -91,6 +91,7 @@ const MobileNav: VFC<{ open: boolean; onMenuClose: () => void }> = ({
   open,
   onMenuClose,
 }) => {
+  const router = useRouter();
   return (
     <Slide in={open}>
       <Box
@@ -144,11 +145,14 @@ const MobileNav: VFC<{ open: boolean; onMenuClose: () => void }> = ({
                 Visit our main site
               </Button>
               <Button
-                className="NavLink"
                 size="large"
                 variant="primary"
                 startIcon={<FaIcon name="newspaper" type="solid" />}
                 href="/blog"
+                className={clsx("NavLink", {
+                  active: router.asPath.startsWith("/blog"),
+                })}
+                onClick={() => onMenuClose()}
               >
                 Blog
               </Button>
