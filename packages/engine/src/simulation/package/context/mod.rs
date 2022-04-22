@@ -3,7 +3,9 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use execution::package::{PackageCreatorConfig, PackageInitConfig};
+use execution::package::{
+    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+};
 use stateful::{
     context::{ContextColumn, ContextSchema},
     field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
@@ -13,11 +15,7 @@ use stateful::{
 use tracing::Span;
 
 pub use self::packages::PACKAGE_CREATORS;
-use crate::simulation::{
-    comms::package::PackageComms,
-    package::ext_traits::{MaybeCpuBound, Package, PackageCreator},
-    Error, Result,
-};
+use crate::simulation::{comms::package::PackageComms, Result};
 
 #[async_trait]
 pub trait ContextPackage: Package + MaybeCpuBound {

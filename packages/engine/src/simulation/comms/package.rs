@@ -6,10 +6,7 @@ use stateful::{agent::Agent, field::PackageId};
 use tracing::Instrument;
 use uuid::Uuid;
 
-use crate::simulation::{
-    comms::{Comms, Result},
-    task::active::ActiveTask,
-};
+use crate::simulation::{comms::Comms, task::active::ActiveTask, Result};
 
 #[derive(derive_new::new)]
 pub struct PackageComms {

@@ -3,7 +3,9 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use execution::package::{PackageCreatorConfig, PackageInitConfig};
+use execution::package::{
+    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+};
 pub use packages::PACKAGE_CREATORS;
 use stateful::{
     context::Context,
@@ -14,11 +16,7 @@ use stateful::{
 use tracing::Span;
 
 use self::packages::Output;
-use crate::simulation::{
-    comms::package::PackageComms,
-    package::ext_traits::{MaybeCpuBound, Package, PackageCreator},
-    Error, Result,
-};
+use crate::simulation::{comms::package::PackageComms, Result};
 
 pub trait OutputPackageCreator: PackageCreator {
     /// Create the package.

@@ -1,22 +1,27 @@
 mod config;
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use execution::package::{
-    output::OutputPackageName, PackageCreatorConfig, PackageInitConfig, PackageName,
+    output::OutputPackageName, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig,
+    PackageInitConfig, PackageName,
 };
 use serde_json::Value;
 use stateful::{
     agent::{Agent, AgentSchema, IntoAgents},
     context::Context,
-    field::FieldScope,
+    field::{FieldScope, FieldSpecMapAccessor},
     global::Globals,
     state::State,
 };
+use tracing::Span;
 
 pub use self::config::JsonStateOutputConfig;
-use crate::simulation::package::output::{
-    Arc, Error, FieldSpecMapAccessor, MaybeCpuBound, Output, OutputPackage, OutputPackageCreator,
-    Package, PackageComms, PackageCreator, Result, Span,
+use crate::simulation::{
+    comms::package::PackageComms,
+    package::output::{packages::Output, OutputPackage, OutputPackageCreator},
+    Error, Result,
 };
 
 // TODO: UNUSED: Needs triage
@@ -51,11 +56,7 @@ impl OutputPackageCreator for JsonStateCreator {
     }
 }
 
-impl PackageCreator for JsonStateCreator {
-    fn init_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl PackageCreator for JsonStateCreator {}
 
 struct JsonState {
     agent_schema: Arc<AgentSchema>,
@@ -68,11 +69,7 @@ impl MaybeCpuBound for JsonState {
     }
 }
 
-impl Package for JsonState {
-    fn start_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl Package for JsonState {}
 
 #[async_trait]
 impl OutputPackage for JsonState {

@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use execution::package::{PackageCreatorConfig, PackageInitConfig};
-use serde_json::Value;
+use execution::package::{
+    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+};
 use stateful::{
     agent,
     agent::AgentBatch,
@@ -18,12 +19,9 @@ use crate::{
     config::TopologyConfig,
     simulation::{
         comms::package::PackageComms,
-        package::{
-            context::{
-                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackage,
-                ContextPackageCreator,
-            },
-            ext_traits::{MaybeCpuBound, Package, PackageCreator},
+        package::context::{
+            packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackage,
+            ContextPackageCreator,
         },
         Result,
     },
@@ -79,11 +77,7 @@ impl ContextPackageCreator for NeighborsCreator {
     }
 }
 
-impl PackageCreator for NeighborsCreator {
-    fn init_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl PackageCreator for NeighborsCreator {}
 
 struct Neighbors {
     topology: Arc<TopologyConfig>,
@@ -105,11 +99,7 @@ impl MaybeCpuBound for Neighbors {
     }
 }
 
-impl Package for Neighbors {
-    fn start_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl Package for Neighbors {}
 
 #[async_trait]
 impl ContextPackage for Neighbors {

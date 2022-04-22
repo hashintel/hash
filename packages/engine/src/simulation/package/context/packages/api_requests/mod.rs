@@ -3,18 +3,23 @@ mod handlers;
 mod response;
 mod writer;
 
+use std::sync::Arc;
+
 use arrow::datatypes::DataType;
 use async_trait::async_trait;
-use execution::package::{PackageCreatorConfig, PackageInitConfig};
+use execution::package::{
+    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+};
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
 use stateful::{
     agent,
     context::ContextColumn,
-    field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     global::Globals,
     message::MessageReader,
     proxy::BatchPool,
+    state::{StateReadProxy, StateSnapshot},
 };
 use tracing::{Instrument, Span};
 
@@ -23,11 +28,10 @@ use self::response::{ApiResponseMap, ApiResponses};
 use crate::simulation::{
     comms::package::PackageComms,
     package::context::{
-        packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextPackage,
-        ContextPackageCreator, ContextSchema, Error, FieldSpecMapAccessor, MaybeCpuBound, Package,
-        PackageCreator, StateReadProxy, StateSnapshot,
+        packages::api_requests::fields::API_RESPONSES_FIELD_NAME, ContextPackage,
+        ContextPackageCreator, ContextSchema,
     },
-    Result,
+    Error, Result,
 };
 
 const CPU_BOUND: bool = false;
@@ -62,11 +66,7 @@ impl ContextPackageCreator for ApiRequestsCreator {
     }
 }
 
-impl PackageCreator for ApiRequestsCreator {
-    fn init_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl PackageCreator for ApiRequestsCreator {}
 
 struct ApiRequests {
     custom_message_handlers: Option<Vec<String>>,
@@ -79,11 +79,7 @@ impl MaybeCpuBound for ApiRequests {
     }
 }
 
-impl Package for ApiRequests {
-    fn start_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl Package for ApiRequests {}
 
 #[async_trait]
 impl ContextPackage for ApiRequests {

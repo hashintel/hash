@@ -8,6 +8,7 @@ use crate::{
     package::{Dependencies, PackageIdGenerator, PackageMetadata, PackageType},
     Error, Result,
 };
+
 /// All context package names are registered in this enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]

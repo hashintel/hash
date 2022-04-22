@@ -103,7 +103,7 @@ pub struct SendableBehaviorKeys {
 pub fn exp_init_message(
     behavior_ids: &BehaviorIds,
     behavior_map: &BehaviorMap,
-) -> Result<Vec<BehaviorDescription>> {
+) -> execution::Result<Vec<BehaviorDescription>> {
     let behavior_descriptions = behavior_map
         .inner
         .iter()
@@ -111,16 +111,16 @@ pub fn exp_init_message(
             let shared = behavior.shared();
             let keys = behavior.keys();
 
-            let language = Language::from_file_name(file_name)
-                .map_err(|_| Error::from("Couldn't get language from behavior file name"))?;
+            let language = Language::from_file_name(file_name).map_err(|_| {
+                execution::Error::from("Couldn't get language from behavior file name")
+            })?;
             let id = behavior_ids
                 .name_to_index
                 .get(shared.name.as_bytes())
-                .ok_or_else(|| Error::from("Couldn't get index from behavior name"))?;
-            let source = shared
-                .behavior_src
-                .clone()
-                .ok_or_else(|| Error::from("SharedBehavior didn't have an attached source"))?;
+                .ok_or_else(|| execution::Error::from("Couldn't get index from behavior name"))?;
+            let source = shared.behavior_src.clone().ok_or_else(|| {
+                execution::Error::from("SharedBehavior didn't have an attached source")
+            })?;
             let required_field_keys = keys
                 .inner
                 .iter()
@@ -142,6 +142,6 @@ pub fn exp_init_message(
                 dyn_access: keys.dyn_access,
             })
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect::<execution::Result<Vec<_>>>()?;
     Ok(behavior_descriptions)
 }

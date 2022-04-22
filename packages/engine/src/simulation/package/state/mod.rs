@@ -1,9 +1,7 @@
 pub mod packages;
 
-use std::sync::Arc;
-
 use async_trait::async_trait;
-use execution::package::{PackageCreatorConfig, PackageInitConfig};
+use execution::package::{Package, PackageCreator, PackageCreatorConfig, PackageInitConfig};
 pub use packages::PACKAGE_CREATORS;
 use stateful::{
     context::Context,
@@ -13,11 +11,7 @@ use stateful::{
 };
 use tracing::Span;
 
-use crate::simulation::{
-    comms::package::PackageComms,
-    package::ext_traits::{Package, PackageCreator},
-    Error, Result,
-};
+use crate::simulation::{comms::package::PackageComms, Result};
 
 #[async_trait]
 pub trait StatePackage: Package {

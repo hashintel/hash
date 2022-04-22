@@ -3,14 +3,18 @@ mod fields;
 mod indices;
 mod writer;
 
+use std::sync::Arc;
+
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
-use execution::package::{PackageCreatorConfig, PackageInitConfig};
+use execution::package::{
+    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+};
 use serde_json::Value;
 use stateful::{
     agent,
     context::{ContextColumn, ContextSchema},
-    field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
+    field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator},
     global::Globals,
     state::{StateReadProxy, StateSnapshot},
 };
@@ -20,8 +24,8 @@ use self::collected::Messages;
 use crate::simulation::{
     comms::package::PackageComms,
     package::context::{
-        packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextPackage,
-        ContextPackageCreator, FieldSpecMapAccessor, MaybeCpuBound, Package, PackageCreator,
+        packages::agent_messages::fields::MESSAGES_FIELD_NAME, ContextPackage,
+        ContextPackageCreator,
     },
     Result,
 };
@@ -59,7 +63,7 @@ impl ContextPackageCreator for AgentMessagesCreator {
 }
 
 impl PackageCreator for AgentMessagesCreator {
-    fn init_message(&self) -> Result<Value> {
+    fn init_message(&self) -> execution::Result<Value> {
         Ok(Value::Null)
     }
 }
@@ -75,7 +79,7 @@ impl MaybeCpuBound for AgentMessages {
 }
 
 impl Package for AgentMessages {
-    fn start_message(&self) -> Result<Value> {
+    fn start_message(&self) -> execution::Result<Value> {
         Ok(Value::Null)
     }
 }

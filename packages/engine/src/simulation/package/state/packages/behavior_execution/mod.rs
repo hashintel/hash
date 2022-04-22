@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use execution::{
     package::{
@@ -5,7 +7,7 @@ use execution::{
             behavior_execution::{BehaviorMap, ExecuteBehaviorsTask},
             StatePackageName, StateTask,
         },
-        PackageCreatorConfig, PackageInitConfig, PackageName, PackageTask,
+        Package, PackageCreator, PackageCreatorConfig, PackageInitConfig, PackageName, PackageTask,
     },
     runner::Language,
     task::TaskSharedStoreBuilder,
@@ -14,23 +16,25 @@ use serde_json::Value;
 use stateful::{
     agent::AgentBatch,
     context::Context,
-    field::{FieldSource, RootFieldSpec, RootFieldSpecCreator},
+    field::{FieldSource, FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
     global::Globals,
     proxy::PoolWriteProxy,
     state::{State, StateWriteProxy},
 };
+use tracing::Span;
 
 use self::{config::exp_init_message, reset_index_col::reset_index_col};
 use crate::simulation::{
+    comms::package::PackageComms,
     package::state::{
         packages::behavior_execution::{
             config::BehaviorIds,
             fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
         },
-        Arc, Error, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, Result, Span,
         StatePackage, StatePackageCreator,
     },
     task::active::ActiveTask,
+    Error, Result,
 };
 
 mod chain;
@@ -63,18 +67,18 @@ impl BehaviorExecutionCreator {
         }))
     }
 
-    fn get_behavior_ids(&self) -> Result<&Arc<BehaviorIds>> {
+    fn get_behavior_ids(&self) -> execution::Result<&Arc<BehaviorIds>> {
         self.behavior_ids.as_ref().ok_or_else(|| {
-            Error::from(
+            execution::Error::from(
                 "BehaviorExecution Package Creator didn't have behavior ids, maybe \
                  `initialize_for_experiment` wasn't called.",
             )
         })
     }
 
-    fn get_behavior_map(&self) -> Result<&Arc<BehaviorMap>> {
+    fn get_behavior_map(&self) -> execution::Result<&Arc<BehaviorMap>> {
         self.behavior_map.as_ref().ok_or_else(|| {
-            Error::from(
+            execution::Error::from(
                 "BehaviorExecution Package Creator didn't have behavior map, maybe \
                  `initialize_for_experiment` wasn't called.",
             )
@@ -83,7 +87,7 @@ impl BehaviorExecutionCreator {
 }
 
 impl PackageCreator for BehaviorExecutionCreator {
-    fn init_message(&self) -> Result<Value> {
+    fn init_message(&self) -> execution::Result<Value> {
         let msg = exp_init_message(self.get_behavior_ids()?, self.get_behavior_map()?)?;
         Ok(serde_json::to_value(msg)?)
     }
@@ -142,11 +146,7 @@ struct BehaviorExecution {
     comms: PackageComms,
 }
 
-impl Package for BehaviorExecution {
-    fn start_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl Package for BehaviorExecution {}
 
 impl BehaviorExecution {
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.

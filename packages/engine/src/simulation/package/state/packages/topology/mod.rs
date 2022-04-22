@@ -1,22 +1,22 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
-use execution::package::{PackageCreatorConfig, PackageInitConfig};
-use serde_json::Value;
+use execution::package::{Package, PackageCreator, PackageCreatorConfig, PackageInitConfig};
 use stateful::{
     agent::AgentBatch,
     context::Context,
-    field::{RootFieldSpec, RootFieldSpecCreator},
+    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
     global::Globals,
     proxy::BatchPool,
     state::State,
 };
+use tracing::Span;
 
 use crate::{
     config::TopologyConfig,
     simulation::{
-        package::state::{
-            Arc, FieldSpecMapAccessor, Package, PackageComms, PackageCreator, Span, StatePackage,
-            StatePackageCreator,
-        },
+        comms::package::PackageComms,
+        package::state::{StatePackage, StatePackageCreator},
         Result,
     },
 };
@@ -58,11 +58,7 @@ impl StatePackageCreator for TopologyCreator {
     }
 }
 
-impl PackageCreator for TopologyCreator {
-    fn init_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl PackageCreator for TopologyCreator {}
 
 pub struct Topology {
     config: Arc<TopologyConfig>,
@@ -83,11 +79,7 @@ impl Topology {
     }
 }
 
-impl Package for Topology {
-    fn start_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl Package for Topology {}
 
 #[async_trait]
 impl StatePackage for Topology {

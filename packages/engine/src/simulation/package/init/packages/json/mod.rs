@@ -1,13 +1,14 @@
 use async_trait::async_trait;
-use execution::package::{init::InitialStateName, PackageCreatorConfig, PackageInitConfig};
+use execution::package::{
+    init::InitialStateName, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig,
+    PackageInitConfig,
+};
 use serde_json::Value;
-use stateful::agent::Agent;
+use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
 use crate::simulation::{
-    package::init::{
-        FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
-        PackageComms, PackageCreator,
-    },
+    comms::package::PackageComms,
+    package::init::{InitPackage, InitPackageCreator},
     Error, Result,
 };
 
@@ -37,7 +38,7 @@ impl InitPackageCreator for JsonInitCreator {
 }
 
 impl PackageCreator for JsonInitCreator {
-    fn init_message(&self) -> Result<Value> {
+    fn init_message(&self) -> execution::Result<Value> {
         // TODO: possibly pass init.json here to optimize
         Ok(Value::Null)
     }
@@ -53,11 +54,7 @@ impl MaybeCpuBound for JsonInit {
     }
 }
 
-impl Package for JsonInit {
-    fn start_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl Package for JsonInit {}
 
 #[async_trait]
 impl InitPackage for JsonInit {

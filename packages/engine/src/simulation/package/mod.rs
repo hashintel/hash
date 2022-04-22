@@ -176,6 +176,5 @@ pub mod output;
 pub mod state;
 
 pub mod creator;
-pub mod ext_traits;
 pub mod run;
 pub mod worker_init;

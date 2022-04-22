@@ -5,18 +5,16 @@ use execution::{
             script::{JsInitTask, JsPyInitTaskMessage, PyInitTask, SuccessMessage},
             InitTask, InitTaskMessage, InitialState, InitialStateName,
         },
-        PackageCreatorConfig, PackageInitConfig, PackageTask, TaskMessage,
+        MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+        PackageTask, TaskMessage,
     },
     task::SharedStore,
 };
-use serde_json::Value;
-use stateful::agent::Agent;
+use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
 use crate::simulation::{
-    package::init::{
-        FieldSpecMapAccessor, InitPackage, InitPackageCreator, MaybeCpuBound, Package,
-        PackageComms, PackageCreator,
-    },
+    comms::package::PackageComms,
+    package::init::{InitPackage, InitPackageCreator},
     Error, Result,
 };
 
@@ -50,9 +48,6 @@ impl PackageCreator for ScriptInitCreator {
     // TODO: Since the init.js/py file is the same for the whole experiment
     //      consider sending it out here instead of inside `PyInitTask`
     //      and `JsInitTask`
-    fn init_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
 }
 
 pub struct ScriptInit {
@@ -66,11 +61,7 @@ impl MaybeCpuBound for ScriptInit {
     }
 }
 
-impl Package for ScriptInit {
-    fn start_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl Package for ScriptInit {}
 
 #[async_trait]
 impl InitPackage for ScriptInit {

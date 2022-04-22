@@ -11,7 +11,9 @@ use std::sync::Arc;
 
 use analyzer::Analyzer;
 use async_trait::async_trait;
-use execution::package::{PackageCreatorConfig, PackageInitConfig, SimPackageArgs};
+use execution::package::{
+    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig, SimPackageArgs,
+};
 use serde_json::Value;
 use stateful::{
     context::Context, field::FieldSpecMapAccessor, global::Globals, proxy::BatchPool, state::State,
@@ -24,10 +26,7 @@ pub use self::{
 };
 use crate::simulation::{
     comms::package::PackageComms,
-    package::{
-        ext_traits::{MaybeCpuBound, Package, PackageCreator},
-        output::{packages::Output, OutputPackage, OutputPackageCreator},
-    },
+    package::output::{packages::Output, OutputPackage, OutputPackageCreator},
     Error, Result,
 };
 
@@ -59,11 +58,7 @@ impl OutputPackageCreator for AnalysisCreator {
     }
 }
 
-impl PackageCreator for AnalysisCreator {
-    fn init_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl PackageCreator for AnalysisCreator {}
 
 struct Analysis {
     analyzer: Analyzer,
@@ -75,11 +70,7 @@ impl MaybeCpuBound for Analysis {
     }
 }
 
-impl Package for Analysis {
-    fn start_message(&self) -> Result<Value> {
-        Ok(Value::Null)
-    }
-}
+impl Package for Analysis {}
 
 #[async_trait]
 impl OutputPackage for Analysis {

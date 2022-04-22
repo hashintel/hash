@@ -3,7 +3,9 @@
 pub mod packages;
 
 use async_trait::async_trait;
-use execution::package::{PackageCreatorConfig, PackageInitConfig};
+use execution::package::{
+    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+};
 pub use packages::PACKAGE_CREATORS;
 use stateful::{
     agent::Agent,
@@ -11,11 +13,7 @@ use stateful::{
     global::Globals,
 };
 
-use crate::simulation::{
-    comms::package::PackageComms,
-    package::ext_traits::{MaybeCpuBound, Package, PackageCreator},
-    Result,
-};
+use crate::simulation::{comms::package::PackageComms, Result};
 
 #[async_trait]
 pub trait InitPackage: Package + MaybeCpuBound {
