@@ -206,7 +206,7 @@ jobs:
       - name: Store original Cargo.toml
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.toolchain }}/Cargo.toml
+          name: ${{ matrix.directory }}-Cargo.toml
           path: ${{ matrix.directory }}/Cargo.toml
 
       - name: Remove default members
@@ -257,7 +257,7 @@ jobs:
       - name: Restore Cargo.toml
         uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.toolchain }}/Cargo.toml
+          name: ${{ matrix.directory }}-Cargo.toml
 
       # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
