@@ -1,6 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 import { JSONObject } from "blockprotocol";
 import { upperFirst, camelCase } from "lodash";
+import { singular } from "pluralize";
 import { DbAdapter } from "../../../db";
 import { Entity, EntityType, User } from "../../../model";
 import { Tasks } from "../../../task-execution";
@@ -135,7 +136,7 @@ const ExistingEntityChecker = async (db: DbAdapter, user: User) => {
 };
 
 const streamNameToEntityTypeName = (name: string) => {
-  const sanitisedName = upperFirst(camelCase(name));
+  const sanitisedName = singular(upperFirst(camelCase(name)));
   return `Github${sanitisedName}`;
 };
 
@@ -143,7 +144,7 @@ export const executeGithubDiscoverTask: Resolver<
   Promise<string>,
   {},
   LoggedInGraphQLContext
-> = async (_, __, { dataSources: { db, taskExecutor }, user }) => {
+> = async (_, __, { dataSources: { db, taskExecutor }, user, logger }) => {
   if (!taskExecutor) {
     throw new ApolloError(
       "A task-executor wasn't started, so external tasks can't be started",
@@ -168,6 +169,7 @@ export const executeGithubDiscoverTask: Resolver<
             entityTypeName,
             message.json_schema,
           );
+          logger.debug(`Created a new EntityType: ${entityTypeName}`);
         }
       }
 
@@ -182,7 +184,7 @@ export const executeGithubReadTask: Resolver<
   Promise<string>,
   {},
   LoggedInGraphQLContext
-> = async (_, __, { dataSources: { db, taskExecutor }, user }) => {
+> = async (_, __, { dataSources: { db, taskExecutor }, user, logger }) => {
   if (!taskExecutor) {
     throw new ApolloError(
       "A task-executor wasn't started, so external tasks can't be started",
@@ -193,6 +195,8 @@ export const executeGithubReadTask: Resolver<
       const airbyteRecords: AirbyteRecords = await taskExecutor.run_task(
         Tasks.GithubRead,
       );
+      logger.debug(`Received ${airbyteRecords.length} records from Github`);
+
       const existingEntityChecker = await ExistingEntityChecker(db, user);
       for (const record of airbyteRecords) {
         const entityTypeName = streamNameToEntityTypeName(record.stream);
@@ -217,6 +221,7 @@ export const executeGithubReadTask: Resolver<
         createdEntities.push(entity.entityId);
       }
 
+      logger.debug(`Inserted ${createdEntities.length} entities from Github`);
       return JSON.stringify({ createdEntities });
     } catch (err: any) {
       throw new ApolloError(`Task-execution failed: ${err}`);
