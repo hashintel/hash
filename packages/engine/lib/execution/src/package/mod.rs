@@ -55,7 +55,7 @@ pub trait PackageCreator: Sync + Send {
 // package (and other respective) traits cannot be (sensibly) generalized into one even though they
 // are clearly disjoint.
 
-pub trait Package: Send + Sync {
+pub trait Package: Send {
     /// A message sent to the workers before the package is running.
     ///
     /// This allows packages to pass any kind of configuration from their Rust runtime to their
