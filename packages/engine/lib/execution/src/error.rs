@@ -51,6 +51,18 @@ pub enum Error {
 
     #[error("Tokio oneshot recv: {0}")]
     TokioOneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
+
+    #[error("Globals parse error. Invalid format for field: {0}")]
+    GlobalsParseError(String),
+
+    #[error("No column found in batch with name: {0}")]
+    ColumnNotFound(String),
+
+    #[error("Invalid behavior bytes: {0:?} ({1:?})")]
+    InvalidBehaviorBytes(Vec<u8>, Result<String, std::string::FromUtf8Error>),
+
+    #[error("Uuid error: {0}")]
+    Uuid(#[from] uuid::Error),
 }
 
 impl Error {

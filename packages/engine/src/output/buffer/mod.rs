@@ -19,7 +19,7 @@ pub use self::{
 use crate::{
     output::error::{Error, Result},
     proto::{ExperimentId, SimulationShortId},
-    simulation::package::output::packages::analysis::AnalysisOutputConfig,
+    simulation::package::output::analysis::AnalysisOutputConfig,
 };
 
 const RELATIVE_PARTS_FOLDER: &str = "./parts";

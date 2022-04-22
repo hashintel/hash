@@ -8,14 +8,20 @@ mod task;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use stateful::{agent::Agent, context::Context, state::State};
+use stateful::{
+    context::Context,
+    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    global::Globals,
+    state::State,
+};
 use tracing::Span;
 
 pub use self::{message::OutputTaskMessage, name::OutputPackageName, task::OutputTask};
 use crate::{
     package::{
         output::{analysis::AnalysisOutput, json_state::JsonStateOutput},
-        MaybeCpuBound, Package,
+        MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
+        PackageInitConfig,
     },
     Result,
 };
@@ -31,4 +37,34 @@ pub trait OutputPackage: Package + MaybeCpuBound {
     async fn run(&mut self, state: Arc<State>, context: Arc<Context>) -> Result<Output>;
 
     fn span(&self) -> Span;
+}
+
+pub trait OutputPackageCreator<C>: PackageCreator {
+    /// Create the package.
+    fn create(
+        &self,
+        config: &PackageCreatorConfig,
+        init_config: &PackageInitConfig,
+        system: PackageComms<C>,
+        accessor: FieldSpecMapAccessor,
+    ) -> Result<Box<dyn OutputPackage>>;
+
+    #[allow(unused_variables)]
+    fn persistence_config(
+        &self,
+        config: &PackageInitConfig,
+        globals: &Globals,
+    ) -> Result<serde_json::Value> {
+        Ok(serde_json::Value::Null)
+    }
+
+    #[allow(unused_variables)]
+    fn get_state_field_specs(
+        &self,
+        config: &PackageInitConfig,
+        globals: &Globals,
+        field_spec_map_builder: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![])
+    }
 }

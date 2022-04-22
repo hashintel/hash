@@ -1,8 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
 use execution::package::{
-    OutputPackagesSimConfig, PackageComms, PackageInitConfig, PackageName, PackageType,
-    PersistenceConfig,
+    context::ContextPackageCreator, init::InitPackageCreator, output::OutputPackageCreator,
+    state::StatePackageCreator, OutputPackagesSimConfig, PackageComms, PackageInitConfig,
+    PackageName, PackageType, PersistenceConfig,
 };
 use stateful::{
     agent::AgentSchema,
@@ -35,22 +36,22 @@ pub struct PackageCreators {
     init: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn init::InitPackageCreator<Comms>>,
+        &'static Box<dyn InitPackageCreator<Comms>>,
     )>,
     context: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn context::ContextPackageCreator<Comms>>,
+        &'static Box<dyn ContextPackageCreator<Comms>>,
     )>,
     state: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn state::StatePackageCreator<Comms>>,
+        &'static Box<dyn StatePackageCreator<Comms>>,
     )>,
     output: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn output::OutputPackageCreator<Comms>>,
+        &'static Box<dyn OutputPackageCreator<Comms>>,
     )>,
 }
 
@@ -408,22 +409,22 @@ impl PackageCreators {
         init: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn init::InitPackageCreator<Comms>>,
+            &'static Box<dyn InitPackageCreator<Comms>>,
         )>,
         context: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn context::ContextPackageCreator<Comms>>,
+            &'static Box<dyn ContextPackageCreator<Comms>>,
         )>,
         state: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn state::StatePackageCreator<Comms>>,
+            &'static Box<dyn StatePackageCreator<Comms>>,
         )>,
         output: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn output::OutputPackageCreator<Comms>>,
+            &'static Box<dyn OutputPackageCreator<Comms>>,
         )>,
     ) -> Self {
         Self {
