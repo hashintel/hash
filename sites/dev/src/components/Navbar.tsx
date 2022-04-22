@@ -32,7 +32,52 @@ const DesktopNav: VFC = () => {
       >
         Visit our main site
       </Button>
-      <Stack direction="row" spacing={2} ml="auto">
+      <Stack
+        direction="row"
+        spacing={2}
+        ml="auto"
+        sx={{
+          [`.${buttonClasses.root}`]: {
+            minHeight: 32,
+            py: 1,
+            borderRadius: 30,
+            borderWidth: 1,
+
+            "&:after": {
+              borderWidth: 3,
+              left: -6,
+              top: -6,
+              right: -6,
+              bottom: -6,
+            },
+
+            "&:not(.NavLink)": {
+              "&.MuiButton-primary": {
+                borderColor: "yellow.500",
+                "&, svg": {
+                  color: (theme) => `${theme.palette.yellow[900]} !important`,
+                },
+
+                ":hover, :focus-visible, &.Button--focus:not(:disabled)": {
+                  backgroundColor: "yellow.400",
+                },
+              },
+
+              "&.MuiButton-tertiary": {
+                borderColor: "gray.20",
+
+                "&, svg": {
+                  color: "gray.70",
+                },
+
+                ":focus-visible, &.Button--focus:not(:disabled)": {
+                  borderColor: "gray.40",
+                },
+              },
+            },
+          },
+        }}
+      >
         <Button
           size="medium"
           className={clsx("NavLink", {

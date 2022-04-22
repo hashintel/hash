@@ -19,47 +19,10 @@ export const PageLayout: FC<{ subscribe?: boolean }> = ({
       flexDirection="column"
       sx={{
         minHeight: "100vh",
-
-        [`.${buttonClasses.root}`]: {
-          minHeight: 32,
-          py: 1,
-          borderRadius: 30,
-          borderWidth: 1,
-
-          "&:after": {
-            borderWidth: 3,
-            left: -6,
-            top: -6,
-            right: -6,
-            bottom: -6,
-          },
-
-          "&.MuiButton-primary": {
-            borderColor: "yellow.500",
-            "&, svg": {
-              color: `${theme.palette.yellow[900]} !important`,
-            },
-
-            ":hover, :focus-visible, &.Button--focus:not(:disabled)": {
-              backgroundColor: "yellow.400",
-            },
-          },
-
-          "&.MuiButton-tertiary": {
-            borderColor: "gray.20",
-
-            "&, svg": {
-              color: "gray.70",
-            },
-
-            ":focus-visible, &.Button--focus:not(:disabled)": {
-              borderColor: "gray.40",
-            },
-          },
-        },
         ".NavLink": {
           borderColor: "transparent !important",
           px: 1.5,
+          py: 1,
           background: "transparent",
 
           fontWeight: 500,
