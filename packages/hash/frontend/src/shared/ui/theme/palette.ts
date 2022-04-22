@@ -1,4 +1,27 @@
-import { ThemeOptions } from "@mui/material";
+import { PaletteValue, ThemeOptions } from "@mui/material";
+
+type colorKeys =
+  | "gray"
+  | "blue"
+  | "purple"
+  | "red"
+  | "orange"
+  | "green"
+  | "yellow"
+  | "pink"
+  | "teal"
+  | "mint"
+  | "copper"
+  | "navy"
+  | "black"
+  | "white";
+
+type CustomColorsType = {
+  [P in colorKeys]: (string | PaletteValue) & {
+    contrastText?: string;
+    main?: string;
+  };
+};
 
 export const customColors = {
   gray: {
@@ -146,7 +169,18 @@ export const customColors = {
   },
   black: "#0E1114",
   white: "#FFFFFF",
-} as const;
+} as CustomColorsType;
+
+// This adds `contrastText` and `main` to each palette field since MUI uses them internally
+// in components like MuiChip. This prevents components like MuiChip from
+// breaking even though we override the default styles of such components
+Object.keys(customColors).forEach((key) => {
+  const color = key as keyof CustomColorsType;
+  if (color in customColors && typeof customColors[color] !== "string") {
+    customColors[color].contrastText = customColors[color][80];
+    customColors[color].main = customColors[color][80];
+  }
+});
 
 export const palette: ThemeOptions["palette"] = {
   divider: customColors.gray[30],
@@ -186,8 +220,8 @@ export const palette: ThemeOptions["palette"] = {
     disabled: customColors.gray[50],
   },
   common: {
-    black: customColors.black,
-    white: customColors.white,
+    black: customColors.black as string,
+    white: customColors.white as string,
   },
   ...customColors,
 };

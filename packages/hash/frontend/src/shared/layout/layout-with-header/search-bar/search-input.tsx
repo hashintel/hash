@@ -1,6 +1,5 @@
 import {
   Box,
-  IconButton,
   InputAdornment,
   OutlinedInput,
   Tooltip,
@@ -11,6 +10,7 @@ import { useKeys } from "rooks";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
 import { SearchIcon, FontAwesomeIcon } from "../../../icons";
+import { IconButton } from "../../../ui";
 
 const ClearSearchIcon: React.FC<{
   clearSearch: () => void;
@@ -29,31 +29,8 @@ const ClearSearchIcon: React.FC<{
       }}
     >
       <Tooltip title="Clear search" placement="right">
-        <IconButton
-          sx={(theme) => ({
-            width: "20px",
-            height: "20px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "2px",
-            color: theme.palette.gray[50],
-
-            "&:hover": {
-              transition: theme.transitions.create([
-                "color",
-                "background-color",
-              ]),
-              backgroundColor: theme.palette.gray[20],
-              color: theme.palette.gray[80],
-            },
-          })}
-          onClick={clearSearch}
-        >
-          <FontAwesomeIcon
-            sx={{ width: "12px", height: "12px" }}
-            icon={faXmark}
-          />
+        <IconButton size="small" unpadded onClick={clearSearch}>
+          <FontAwesomeIcon icon={faXmark} />
         </IconButton>
       </Tooltip>
     </Box>

@@ -3,7 +3,6 @@ import {
   Typography,
   Box,
   Tooltip,
-  TextField,
   outlinedInputClasses,
   Fade,
   Collapse,
@@ -19,7 +18,7 @@ import { useRouter } from "next/router";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 import { NavLink } from "./nav-link";
-import { IconButton, Link } from "../../ui";
+import { IconButton, Link, TextField } from "../../ui";
 import { FontAwesomeIcon } from "../../icons";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
@@ -64,6 +63,7 @@ const SearchInput: VFC<SearchInputProps> = ({
           position: "absolute",
           right: 0,
           width: 200,
+          height: "100%",
           borderRadius: "4px",
           backgroundColor: palette.white,
           [`.${outlinedInputClasses.notchedOutline}`]: {
@@ -81,6 +81,7 @@ const SearchInput: VFC<SearchInputProps> = ({
             fontWeight: 500,
             pl: 1.5,
             pr: 1,
+            boxShadow: "none",
             [`& .${outlinedInputClasses.input}`]: {
               px: 0,
               py: 0.875,
