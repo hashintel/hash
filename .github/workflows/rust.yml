@@ -202,10 +202,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v2
 
-      # Store `Cargo.toml` before modifying it to not affect the diff.
-      - name: Remove and store default members
+      - name: Remove default members
         run: |
-          cp "${{ matrix.directory }}/Cargo.toml" "${{ matrix.directory }}/Cargo.toml.orig"
+          # Backup `Config.toml` to restore it later so that `git diff` does not report any changes
+          cp -v "${{ matrix.directory }}/Cargo.toml" "${{ matrix.directory }}/Cargo.toml.orig"
           sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
