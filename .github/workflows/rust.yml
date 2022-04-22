@@ -250,7 +250,7 @@ jobs:
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
 
-      # Non empty diff can be a Cargo.lock that wasn't pushed.
+      # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
         run: |
           echo $ORIGINAL_CARGO_TOML > ${{ matrix.directory }}/Cargo.toml
