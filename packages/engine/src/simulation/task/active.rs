@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use async_trait::async_trait;
 use execution::{package::TaskMessage, task::CancelTask};
 use tokio::time::timeout;
 
@@ -29,7 +30,8 @@ pub struct ActiveTask {
     cancel_sent: bool,
 }
 
-impl ActiveTask {
+#[async_trait]
+impl execution::task::ActiveTask for ActiveTask {
     /// Waits for a [`TaskResultOrCancelled`] from the associated [`Task`] and returns the
     /// [`TaskMessage`].
     ///
@@ -40,13 +42,13 @@ impl ActiveTask {
     /// - If the [`Task`] was cancelled during execution.
     ///
     /// [`Task`]: crate::simulation::task::Task
-    pub async fn drive_to_completion(mut self) -> Result<TaskMessage> {
+    async fn drive_to_completion(mut self) -> execution::Result<TaskMessage> {
         if self.running {
             let recv = self
                 .comms
                 .result_recv
                 .take()
-                .ok_or_else(|| Error::from("Couldn't take result recv"))?;
+                .ok_or_else(|| execution::Error::from("Couldn't take result recv"))?;
             let result = recv.await?;
             tracing::trace!("Got result from task: {:?}", result);
             self.running = false;
@@ -55,14 +57,18 @@ impl ActiveTask {
                 TaskResultOrCancelled::Cancelled => {
                     tracing::warn!("Driving to completion yielded a cancel result");
                     // TODO: create a variant for this error
-                    Err(Error::from("Couldn't drive to completion, task cancelled"))
+                    Err(execution::Error::from(
+                        "Couldn't drive to completion, task cancelled",
+                    ))
                 }
             }
         } else {
-            Err(Error::from("Task is not running"))
+            Err(execution::Error::from("Task is not running"))
         }
     }
+}
 
+impl ActiveTask {
     #[allow(dead_code, unused_mut, unreachable_code)]
     pub async fn cancel(mut self) -> Result<()> {
         todo!("Cancel messages are not implemented yet");

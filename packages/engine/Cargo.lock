@@ -688,6 +688,7 @@ dependencies = [
  "serde_json",
  "stateful",
  "thiserror",
+ "tokio",
  "tracing",
 ]
 

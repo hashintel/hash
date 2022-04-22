@@ -3,6 +3,7 @@ pub mod init;
 pub mod output;
 pub mod state;
 
+mod comms;
 mod config;
 mod dependencies;
 mod message;
@@ -12,6 +13,7 @@ mod task;
 
 pub(crate) use self::name::{PackageIdGenerator, PackageMetadata};
 pub use self::{
+    comms::Comms,
     config::{
         OutputPackagesSimConfig, PackageCreatorConfig, PackageInitConfig, PersistenceConfig,
         SimPackageArgs,

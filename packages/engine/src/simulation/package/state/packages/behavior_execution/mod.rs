@@ -10,7 +10,7 @@ use execution::{
         Package, PackageCreator, PackageCreatorConfig, PackageInitConfig, PackageName, PackageTask,
     },
     runner::Language,
-    task::TaskSharedStoreBuilder,
+    task::{ActiveTask as _, TaskSharedStoreBuilder},
 };
 use serde_json::Value;
 use stateful::{

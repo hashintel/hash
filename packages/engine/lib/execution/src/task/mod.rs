@@ -3,6 +3,8 @@ mod distribution;
 mod message;
 mod shared_store;
 
+use async_trait::async_trait;
+
 pub use self::{
     cancel::{CancelTask, TaskCancelled},
     distribution::{StateBatchDistribution, TaskDistributionConfig},
@@ -12,7 +14,7 @@ pub use self::{
         SharedState, SharedStore, TaskSharedStoreBuilder,
     },
 };
-use crate::Result;
+use crate::{package::TaskMessage, Result};
 
 pub trait Task {
     /// Provides a human-readable name of the [`Task`], e.g. `"BehaviorExecution"`.
@@ -42,4 +44,19 @@ pub trait Task {
     /// [`SharedContext`]: crate::datastore::table::task_shared_store::SharedContext
     /// [`AccessNotAllowed`]: crate::simulation::error::Error::AccessNotAllowed
     fn verify_store_access(&self, access: &SharedStore) -> Result<()>;
+}
+
+#[async_trait]
+pub trait ActiveTask: Send {
+    /// Waits for a [`TaskResultOrCancelled`] from the associated [`Task`] and returns the
+    /// [`TaskMessage`].
+    ///
+    /// # Errors
+    ///
+    /// - If the execution of [`Task`] failed and it wasn't able to receive a
+    /// [`TaskResultOrCancelled`].
+    /// - If the [`Task`] was cancelled during execution.
+    ///
+    /// [`Task`]: crate::simulation::task::Task
+    async fn drive_to_completion(mut self) -> Result<TaskMessage>;
 }

@@ -26,6 +26,7 @@ pub mod package;
 
 use std::sync::{Arc, RwLock};
 
+use async_trait::async_trait;
 use execution::{
     package::PackageTask,
     task::{SharedStore, Task},
@@ -178,22 +179,25 @@ impl Comms {
     }
 }
 
-impl Comms {
+#[async_trait]
+impl execution::package::Comms for Comms {
+    type ActiveTask = ActiveTask;
+
     /// Takes a given [`Task`] object, and starts its execution on the [`workerpool`], returning an
     /// [`ActiveTask`] to track its progress.
     ///
     /// [`workerpool`]: crate::workerpool
-    pub async fn new_task(
+    async fn new_task(
         &self,
         package_id: PackageId,
         task: PackageTask,
         shared_store: SharedStore,
-    ) -> Result<ActiveTask> {
+    ) -> execution::Result<ActiveTask> {
         let task_id = uuid::Uuid::new_v4().as_u128();
         let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store)?;
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))
-            .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
+            .map_err(|e| execution::Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(active)
     }
 }

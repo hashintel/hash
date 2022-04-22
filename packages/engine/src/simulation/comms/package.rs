@@ -1,5 +1,5 @@
 use execution::{
-    package::{PackageTask, PackageType},
+    package::{Comms as _, PackageTask, PackageType},
     task::{SharedStore, Task},
 };
 use stateful::{agent::Agent, field::PackageId};
@@ -32,7 +32,7 @@ impl PackageComms {
         &self,
         task: PackageTask,
         shared_store: SharedStore,
-    ) -> Result<ActiveTask> {
+    ) -> execution::Result<ActiveTask> {
         let task_name = task.name();
 
         self.inner

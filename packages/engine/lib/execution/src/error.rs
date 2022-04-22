@@ -48,6 +48,9 @@ pub enum Error {
 
     #[error("Behavior Key Error: {0}")]
     BehaviorKeyJsonError(#[from] crate::package::state::behavior_execution::BehaviorKeyJsonError),
+
+    #[error("Tokio oneshot recv: {0}")]
+    TokioOneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
 }
 
 impl Error {

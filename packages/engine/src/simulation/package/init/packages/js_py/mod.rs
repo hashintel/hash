@@ -8,7 +8,7 @@ use execution::{
         MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
         PackageTask, TaskMessage,
     },
-    task::SharedStore,
+    task::{ActiveTask, SharedStore},
 };
 use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
