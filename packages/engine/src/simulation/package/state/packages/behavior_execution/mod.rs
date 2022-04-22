@@ -7,8 +7,8 @@ use execution::{
             behavior_execution::{BehaviorMap, ExecuteBehaviorsTask},
             StatePackage, StatePackageName, StateTask,
         },
-        Comms, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig, PackageName,
-        PackageTask,
+        Comms, Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+        PackageName, PackageTask,
     },
     runner::Language,
     task::{ActiveTask as _, TaskSharedStoreBuilder},
@@ -26,7 +26,6 @@ use tracing::Span;
 
 use self::{config::exp_init_message, reset_index_col::reset_index_col};
 use crate::simulation::{
-    comms::package::PackageComms,
     package::state::{
         packages::behavior_execution::{
             config::BehaviorIds,

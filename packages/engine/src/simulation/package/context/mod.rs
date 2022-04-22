@@ -1,7 +1,7 @@
 pub mod packages;
 
 use execution::package::{
-    context::ContextPackage, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    context::ContextPackage, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
 };
 use stateful::{
     context::ContextSchema,
@@ -10,7 +10,7 @@ use stateful::{
 };
 
 pub use self::packages::PACKAGE_CREATORS;
-use crate::simulation::{comms::package::PackageComms, Result};
+use crate::simulation::Result;
 
 pub trait ContextPackageCreator<C>: PackageCreator {
     /// Create the package.

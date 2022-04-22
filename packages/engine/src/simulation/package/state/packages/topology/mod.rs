@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use execution::package::{
-    state::StatePackage, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    state::StatePackage, Package, PackageComms, PackageCreator, PackageCreatorConfig,
+    PackageInitConfig,
 };
 use stateful::{
     agent::AgentBatch,
@@ -16,7 +17,7 @@ use tracing::Span;
 
 use crate::{
     config::TopologyConfig,
-    simulation::{comms::package::PackageComms, package::state::StatePackageCreator, Result},
+    simulation::{package::state::StatePackageCreator, Result},
 };
 
 mod adjacency;

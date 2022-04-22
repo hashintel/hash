@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use execution::package::{
-    context::ContextPackage, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig,
-    PackageInitConfig,
+    context::ContextPackage, MaybeCpuBound, Package, PackageComms, PackageCreator,
+    PackageCreatorConfig, PackageInitConfig,
 };
 use stateful::{
     agent,
@@ -19,7 +19,6 @@ use self::map::{NeighborMap, NeighborRef};
 use crate::{
     config::TopologyConfig,
     simulation::{
-        comms::package::PackageComms,
         package::context::{
             packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackageCreator,
         },

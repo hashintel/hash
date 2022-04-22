@@ -13,7 +13,7 @@ mod task;
 
 pub(crate) use self::name::{PackageIdGenerator, PackageMetadata};
 pub use self::{
-    comms::Comms,
+    comms::{Comms, PackageComms},
     config::{
         OutputPackagesSimConfig, PackageCreatorConfig, PackageInitConfig, PersistenceConfig,
         SimPackageArgs,

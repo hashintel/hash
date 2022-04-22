@@ -22,7 +22,6 @@ main package definition can be agnostic of how work was distributed.
 pub mod active;
 
 pub mod message;
-pub mod package;
 
 use std::sync::{Arc, RwLock};
 

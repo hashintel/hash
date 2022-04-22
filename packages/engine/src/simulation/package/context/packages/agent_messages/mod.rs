@@ -8,8 +8,8 @@ use std::sync::Arc;
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
 use execution::package::{
-    context::ContextPackage, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig,
-    PackageInitConfig,
+    context::ContextPackage, MaybeCpuBound, Package, PackageComms, PackageCreator,
+    PackageCreatorConfig, PackageInitConfig,
 };
 use serde_json::Value;
 use stateful::{
@@ -23,7 +23,6 @@ use tracing::Span;
 
 use self::collected::Messages;
 use crate::simulation::{
-    comms::package::PackageComms,
     package::context::{
         packages::agent_messages::fields::MESSAGES_FIELD_NAME, ContextPackageCreator,
     },

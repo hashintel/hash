@@ -8,8 +8,8 @@ use std::sync::Arc;
 use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use execution::package::{
-    context::ContextPackage, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig,
-    PackageInitConfig,
+    context::ContextPackage, MaybeCpuBound, Package, PackageComms, PackageCreator,
+    PackageCreatorConfig, PackageInitConfig,
 };
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
@@ -27,7 +27,6 @@ use tracing::{Instrument, Span};
 pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::simulation::{
-    comms::package::PackageComms,
     package::context::{
         packages::api_requests::fields::API_RESPONSES_FIELD_NAME, ContextPackageCreator,
         ContextSchema,

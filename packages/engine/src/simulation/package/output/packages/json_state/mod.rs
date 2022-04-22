@@ -5,7 +5,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use execution::package::{
     output::{json_state::JsonStateOutput, Output, OutputPackage, OutputPackageName},
-    MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig, PackageName,
+    MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    PackageName,
 };
 use serde_json::Value;
 use stateful::{
@@ -18,9 +19,7 @@ use stateful::{
 use tracing::Span;
 
 pub use self::config::JsonStateOutputConfig;
-use crate::simulation::{
-    comms::package::PackageComms, package::output::OutputPackageCreator, Error, Result,
-};
+use crate::simulation::{package::output::OutputPackageCreator, Error, Result};
 
 // TODO: UNUSED: Needs triage
 pub enum Task {}

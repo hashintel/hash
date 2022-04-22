@@ -3,7 +3,7 @@
 pub mod packages;
 
 use execution::package::{
-    init::InitPackage, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    init::InitPackage, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
 };
 pub use packages::PACKAGE_CREATORS;
 use stateful::{
@@ -11,7 +11,7 @@ use stateful::{
     global::Globals,
 };
 
-use crate::simulation::{comms::package::PackageComms, Result};
+use crate::simulation::Result;
 
 pub trait InitPackageCreator<C>: PackageCreator {
     /// Create the package.

@@ -5,16 +5,14 @@ use execution::{
             script::{JsInitTask, JsPyInitTaskMessage, PyInitTask, SuccessMessage},
             InitPackage, InitTask, InitTaskMessage, InitialState, InitialStateName,
         },
-        Comms, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
-        PackageTask, TaskMessage,
+        Comms, MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
+        PackageInitConfig, PackageTask, TaskMessage,
     },
     task::{ActiveTask, SharedStore},
 };
 use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
-use crate::simulation::{
-    comms::package::PackageComms, package::init::InitPackageCreator, Error, Result,
-};
+use crate::simulation::{package::init::InitPackageCreator, Error, Result};
 
 pub struct ScriptInitCreator;
 

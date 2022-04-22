@@ -30,7 +30,7 @@
 //! # use hash_engine_lib::{
 //! #     config::{ExperimentConfig, SimRunConfig},
 //! #     simulation::{
-//! #         comms::package::PackageComms,
+//! #
 //! #         package::{
 //! #             ext_traits::{Package, PackageCreator},
 //! #             state::{StatePackage, StatePackageCreator},

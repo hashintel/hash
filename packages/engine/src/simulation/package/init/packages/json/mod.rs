@@ -1,13 +1,11 @@
 use execution::package::{
     init::{json::JsonInit, InitPackage, InitialStateName},
-    PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
 };
 use serde_json::Value;
 use stateful::field::FieldSpecMapAccessor;
 
-use crate::simulation::{
-    comms::package::PackageComms, package::init::InitPackageCreator, Error, Result,
-};
+use crate::simulation::{package::init::InitPackageCreator, Error, Result};
 
 pub struct JsonInitCreator;
 

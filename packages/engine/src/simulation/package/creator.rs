@@ -1,7 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
 use execution::package::{
-    OutputPackagesSimConfig, PackageInitConfig, PackageName, PackageType, PersistenceConfig,
+    OutputPackagesSimConfig, PackageComms, PackageInitConfig, PackageName, PackageType,
+    PersistenceConfig,
 };
 use stateful::{
     agent::AgentSchema,
@@ -18,7 +19,7 @@ use crate::{
     datastore::schema::last_state_index_key,
     proto::ExperimentRunTrait,
     simulation::{
-        comms::{package::PackageComms, Comms},
+        comms::Comms,
         package::{
             context, init, output,
             run::{InitPackages, Packages, StepPackages},
