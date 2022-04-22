@@ -17,6 +17,7 @@ import { BlogPostProps, getPhoto } from "./[...blogSlug].page";
 type BlogIndividualPage = Page<BlogPostProps> & {
   photos: {
     post?: BlogPostPagePhoto | null;
+    postSquare?: BlogPostPagePhoto | null;
   };
 };
 
@@ -35,11 +36,14 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
     const pages = await Promise.all(
       getAllPages<BlogPostProps>("blog").map(async (page) => ({
         ...page,
-        photos: page.data.postPhoto
-          ? {
-              post: await getPhoto(page.data.postPhoto),
-            }
-          : {},
+        photos: {
+          post: page.data.postPhoto
+            ? await getPhoto(page.data.postPhoto)
+            : null,
+          postSquare: page.data.postPhotoSquare
+            ? await getPhoto(page.data.postPhotoSquare)
+            : null,
+        },
       })),
     );
 
@@ -83,7 +87,7 @@ const BlogPostLink: FC<
 );
 
 const PostCopyContainer: FC<StackProps> = ({ children, ...props }) => (
-  <Stack {...props} direction="column" spacing={2}>
+  <Stack {...props} direction="column" spacing={{ xs: 1, md: 2 }}>
     {children}
   </Stack>
 );
@@ -91,11 +95,12 @@ const PostCopyContainer: FC<StackProps> = ({ children, ...props }) => (
 const PostImage: VFC<{
   page: BlogIndividualPage;
   fill?: boolean;
-}> = ({ page, fill = true }) =>
+  square?: boolean;
+}> = ({ page, fill = true, square = false }) =>
   page.photos.post ? (
     <BlogPostLink page={page} sx={{ img: { borderRadius: "4px" } }}>
       <Image
-        {...page.photos.post}
+        {...((square ? page.photos.postSquare : null) ?? page.photos.post)}
         layout="responsive"
         {...(fill && {
           layout: "fill",
@@ -106,7 +111,7 @@ const PostImage: VFC<{
     </BlogPostLink>
   ) : null;
 
-const FourPosts: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
+const BigPost: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
   <Stack direction="column" spacing={{ xs: 3, md: 4 }}>
     <Box position="relative">
       <PostImage page={page} fill={false} />
@@ -129,59 +134,73 @@ const FourPosts: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
   </Stack>
 );
 
-const ThreePosts: VFC<{ page: BlogIndividualPage; collapsed?: boolean }> = ({
-  page,
-  collapsed = false,
-}) => (
+const Post: VFC<{
+  post: BlogIndividualPage;
+  collapsed?: boolean;
+  displayPhoto?: boolean;
+}> = ({ post, collapsed = false, displayPhoto = true }) => (
   <Stack
     direction={{ xs: "column-reverse", ...(!collapsed && { md: "row" }) }}
     spacing={{ xs: 3, ...(!collapsed && { md: 6 }) }}
     alignItems="center"
+    flex={1}
   >
-    <PostCopyContainer flex={1}>
-      {page.data.author ? (
-        <BlogPostAuthor>{page.data.author}</BlogPostAuthor>
+    <PostCopyContainer
+      flex={1}
+      alignItems={{ xs: "center", md: "flex-start" }}
+      textAlign={{ xs: "center", md: "left" }}
+    >
+      {post.data.author ? (
+        <BlogPostAuthor small>{post.data.author}</BlogPostAuthor>
       ) : null}
-      {page.data.title ? (
-        <Typography variant="hashHeading4" sx={{ color: "gray.90" }}>
-          <BlogPostLink page={page}>{page.data.title}</BlogPostLink>
+      {post.data.title ? (
+        <Typography variant="hashHeading4" color="gray.90">
+          <BlogPostLink page={post}>{post.data.title}</BlogPostLink>
         </Typography>
       ) : null}
-      {page.data.subtitle ? (
-        <Typography variant="hashSmallText" sx={{ lineHeight: 1.5 }}>
-          {page.data.subtitle}
+      {post.data.subtitle ? (
+        <Typography
+          variant="hashSmallText"
+          color="gray.80"
+          sx={{ lineHeight: 1.5 }}
+        >
+          {post.data.subtitle}
         </Typography>
       ) : null}
     </PostCopyContainer>
-    <Box
-      sx={[
-        { position: "relative" },
-        !collapsed && { width: 160, height: 160 },
-        collapsed && { width: 1 },
-      ]}
-    >
-      <PostImage page={page} fill={!collapsed} />
-    </Box>
+    {displayPhoto ? (
+      <Box
+        sx={[
+          { position: "relative" },
+          !collapsed && { width: 160, height: 160 },
+          collapsed && { width: 1 },
+        ]}
+      >
+        <PostImage square={!collapsed} page={post} fill={!collapsed} />
+      </Box>
+    ) : null}
   </Stack>
 );
 
-const FourPostsRow: VFC<{ reverse?: boolean; posts: BlogIndividualPage[] }> = ({
-  reverse,
-  posts: [majorPost = null, ...posts],
-}) => (
+const FourPostsRow: VFC<{
+  reverse?: boolean;
+  posts: BlogIndividualPage[];
+  displayPhotos: boolean;
+}> = ({ reverse, posts: [majorPost = null, ...posts], displayPhotos }) => (
   <Stack
     direction={{ xs: "column", md: reverse ? "row-reverse" : "row" }}
     spacing={{ xs: 8, md: 10 }}
   >
     {majorPost ? (
       <Box width={{ xs: 1, md: 591 }}>
-        <FourPosts page={majorPost} />
+        <BigPost page={majorPost} />
       </Box>
     ) : null}
     <Stack
       flex={1}
       divider={
         <Box
+          border={0}
           borderTop={1}
           borderColor="gray.30"
           my={4}
@@ -191,7 +210,7 @@ const FourPostsRow: VFC<{ reverse?: boolean; posts: BlogIndividualPage[] }> = ({
       }
     >
       {posts.map((post) => (
-        <ThreePosts page={post} key={post.fileName} />
+        <Post post={post} key={post.fileName} displayPhoto={displayPhotos} />
       ))}
     </Stack>
   </Stack>
@@ -200,7 +219,7 @@ const FourPostsRow: VFC<{ reverse?: boolean; posts: BlogIndividualPage[] }> = ({
 const ThreePostsRow: VFC<{ posts: BlogIndividualPage[] }> = ({ posts }) => (
   <Stack direction={{ xs: "column", md: "row" }} spacing={5}>
     {posts.map((post) => (
-      <ThreePosts page={post} collapsed key={post.fileName} />
+      <Post post={post} collapsed key={post.fileName} />
     ))}
   </Stack>
 );
@@ -229,12 +248,23 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
       </Head>
       <GradientContainer py={{ xs: 9, md: 13 }}>
         <Container>
-          <Typography mb={2} variant="hashHeading3" color="gray.90">
+          <Typography
+            mb={2}
+            variant="hashHeading3"
+            color="gray.90"
+            fontWeight={600}
+            component="h1"
+          >
             HASH Developer Blog
           </Typography>
-          <Stack direction="row" alignItems="center" spacing={4} mb={6}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={4}
+            mb={{ xs: 4, md: 6 }}
+          >
             <Box>
-              <Typography>
+              <Typography color="gray.70">
                 Stories and guides from developers in the community
               </Typography>
             </Box>
@@ -255,9 +285,17 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
                   <ThreePostsRow posts={row} />
                 ) : (
                   <>
-                    <FourPostsRow posts={row} reverse={idx % 3 === 2} />
+                    <FourPostsRow
+                      posts={row}
+                      reverse={idx % 3 === 2}
+                      displayPhotos={idx === 0}
+                    />
                     {/** @todo full width */}
-                    {idx === 0 ? <Subscribe /> : null}
+                    {idx === 0 ? (
+                      <Box>
+                        <Subscribe />
+                      </Box>
+                    ) : null}
                   </>
                 )}
               </Fragment>
