@@ -206,7 +206,7 @@ jobs:
       - name: Remove and store default members
         id: default_members
         run: |
-          echo "::set-output Cargo=$(cat ${{ matrix.directory }}/Cargo.toml)"
+          echo "::set-output name=Cargo::$(cat ${{ matrix.directory }}/Cargo.toml)"
           sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
