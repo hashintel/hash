@@ -5,6 +5,7 @@ import Head from "next/head";
 import Image from "next/image";
 import { createContext, FC, useContext, VFC } from "react";
 import { FRONTEND_URL } from "../config";
+import { Link } from "./Link";
 import { mdxImageClasses } from "./MdxImage";
 
 export type BlogPostPagePhoto = {
@@ -118,6 +119,24 @@ export const BlogPostHead: VFC<{
             },
           })}
         >
+          <Link href="/blog" mb={3} display="block">
+            <Typography
+              variant="hashSmallCaps"
+              sx={{
+                color: "orange.700",
+                borderBottom: 1,
+                borderBottomColor: "yellow.400",
+                pb: "4px",
+
+                "&:hover": {
+                  color: "orange.900",
+                  borderBottomColor: "yellow.700",
+                },
+              }}
+            >
+              BACK TO BLOG
+            </Typography>
+          </Link>
           <Stack direction={{ xs: "column", md: "row" }} alignItems="center">
             <Box
               sx={(theme) => ({
