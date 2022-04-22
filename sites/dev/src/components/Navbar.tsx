@@ -32,53 +32,7 @@ const DesktopNav: VFC = () => {
       >
         Visit our main site
       </Button>
-      <Stack
-        direction="row"
-        spacing={2}
-        ml="auto"
-        sx={{
-          [`& .${buttonClasses.root}`]: {
-            minHeight: 32,
-            py: 1,
-            borderRadius: 30,
-            borderWidth: 1,
-
-            "&:after": {
-              borderWidth: 3,
-              left: -6,
-              top: -6,
-              right: -6,
-              bottom: -6,
-            },
-
-            "&.MuiButton-primary": {
-              borderColor: "yellow.500",
-              color: "yellow.900",
-
-              ":hover, :focus-visible, &.Button--focus:not(:disabled)": {
-                backgroundColor: "yellow.400",
-              },
-            },
-
-            "&.MuiButton-tertiary": {
-              borderColor: "gray.20",
-
-              ":focus-visible, &.Button--focus:not(:disabled)": {
-                borderColor: "gray.40",
-              },
-            },
-          },
-          ".NavLink": {
-            border: 0,
-
-            background: "transparent",
-
-            "&.active": {
-              background: "yellow.20",
-            },
-          },
-        }}
-      >
+      <Stack direction="row" spacing={2} ml="auto">
         <Button
           size="medium"
           className={clsx("NavLink", {
@@ -94,6 +48,9 @@ const DesktopNav: VFC = () => {
           variant="tertiary"
           startIcon={<FaIcon name="discord" type="brands" />}
           href="https://hash.ai/discord"
+          sx={(theme) => ({
+            [theme.breakpoints.down(980)]: { display: "none" },
+          })}
         >
           Chat to us on Discord
         </Button>
@@ -152,19 +109,52 @@ const MobileNav: VFC<{ open: boolean; onMenuClose: () => void }> = ({
           },
         }}
       >
-        <Container sx={{ height: "100%", pt: 1, pb: 2 }}>
+        <Container
+          sx={{
+            height: "100%",
+            pt: 1,
+            pb: 2,
+          }}
+        >
           <Stack height={1} spacing={1}>
-            <Button
-              size="large"
-              variant="tertiary"
-              href="https://hash.ai"
-              endIcon={
-                <FaIcon name="arrow-up-right-from-square" type="solid" />
+            <Stack
+              spacing={2}
+              alignItems="flex-start"
+              divider={
+                <Box
+                  component="hr"
+                  sx={{
+                    border: 0,
+                    borderTop: 1,
+                    borderColor: "gray.20",
+                    width: 1,
+                  }}
+                />
               }
             >
-              Visit our main site
-            </Button>
+              <Button
+                className="NavLink"
+                size="large"
+                variant="primary"
+                href="https://hash.ai"
+                endIcon={
+                  <FaIcon name="arrow-up-right-from-square" type="solid" />
+                }
+              >
+                Visit our main site
+              </Button>
+              <Button
+                className="NavLink"
+                size="large"
+                variant="primary"
+                startIcon={<FaIcon name="newspaper" type="solid" />}
+                href="/blog"
+              >
+                Blog
+              </Button>
+            </Stack>
             <Button
+              sx={{ mt: "auto !important" }}
               variant="tertiary"
               startIcon={<FaIcon name="discord" type="brands" />}
               size="large"
@@ -173,7 +163,6 @@ const MobileNav: VFC<{ open: boolean; onMenuClose: () => void }> = ({
               Chat to us on Discord
             </Button>
             <Button
-              sx={{ mt: "auto !important" }}
               size="large"
               variant="primary"
               startIcon={<FaIcon name="envelope" type="regular" />}
