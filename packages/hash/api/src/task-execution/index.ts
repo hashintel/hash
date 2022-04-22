@@ -29,7 +29,15 @@ export const connectToTaskExecutor = (config: Config) => {
   return {
     run_task: async (route: Tasks) => {
       return await fetch(`http://${config.host}:${config.port}/${route}`)
-        .then((resp) => resp.json())
+        .then((resp) => {
+          if (resp.ok) {
+            return resp.json();
+          } else {
+            throw new Error(
+              `Task Execution failed for ${route}: ${resp.json()}`,
+            );
+          }
+        })
         .catch((error) => {
           throw new Error(`Failed to execute task ${route}: ${error}`);
         });
