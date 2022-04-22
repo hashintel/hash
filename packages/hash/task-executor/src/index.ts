@@ -1,8 +1,9 @@
 import express from "express";
 import { json } from "body-parser";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import { executeTask } from "./execution";
 import { GithubIngestor } from "./tasks/source-github";
+import { ConfiguredAirbyteCatalog } from "./airbyte/protocol";
 
 const port = 5010;
 
@@ -44,7 +45,26 @@ app.get("/github/discover", (_, res) => {
   );
   new GithubIngestor()
     .runDiscover(config)
-    .then((result) => res.status(200).send(JSON.stringify(result)))
+    .then((result) => {
+      const configuredCatalog: ConfiguredAirbyteCatalog = {
+        streams: result.map((airbyteStream) => {
+          return {
+            stream: airbyteStream,
+            sync_mode:
+              "full_refresh" /** @todo - We don't want to always default to this */,
+            destination_sync_mode:
+              "overwrite" /** @todo - This doesn't matter right now as we haven't built a destination connector */,
+          };
+        }),
+      };
+
+      /** @todo - This should be configurable by the user, and we shouldn't just write it to disk like this */
+      writeFileSync(
+        `${process.cwd()}/src/tasks/source-github/secrets/catalog.json`,
+        JSON.stringify(configuredCatalog),
+      );
+      res.status(200).send(JSON.stringify(result));
+    })
     .catch((err) => res.status(500).json({ error: err.toString() }));
 });
 
