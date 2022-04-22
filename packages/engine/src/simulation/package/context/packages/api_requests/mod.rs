@@ -27,7 +27,7 @@ use tracing::{Instrument, Span};
 pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::simulation::{
-    comms::{package::PackageComms, Comms},
+    comms::package::PackageComms,
     package::context::{
         packages::api_requests::fields::API_RESPONSES_FIELD_NAME, ContextPackageCreator,
         ContextSchema,
@@ -39,12 +39,12 @@ const CPU_BOUND: bool = false;
 
 pub struct ApiRequestsCreator;
 
-impl ContextPackageCreator for ApiRequestsCreator {
+impl<C> ContextPackageCreator<C> for ApiRequestsCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms<Comms>,
+        _comms: PackageComms<C>,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {

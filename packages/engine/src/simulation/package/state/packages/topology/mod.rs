@@ -16,11 +16,7 @@ use tracing::Span;
 
 use crate::{
     config::TopologyConfig,
-    simulation::{
-        comms::{package::PackageComms, Comms},
-        package::state::StatePackageCreator,
-        Result,
-    },
+    simulation::{comms::package::PackageComms, package::state::StatePackageCreator, Result},
 };
 
 mod adjacency;
@@ -34,12 +30,12 @@ type Direction = [DirectionSubType; 3];
 
 pub struct TopologyCreator;
 
-impl StatePackageCreator for TopologyCreator {
+impl<C> StatePackageCreator<C> for TopologyCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms<Comms>,
+        _comms: PackageComms<C>,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>> {
         let topology = Topology {

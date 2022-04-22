@@ -10,18 +10,15 @@ use stateful::{
 };
 
 pub use self::packages::PACKAGE_CREATORS;
-use crate::simulation::{
-    comms::{package::PackageComms, Comms},
-    Result,
-};
+use crate::simulation::{comms::package::PackageComms, Result};
 
-pub trait ContextPackageCreator: PackageCreator {
+pub trait ContextPackageCreator<C>: PackageCreator {
     /// Create the package.
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        system: PackageComms<Comms>,
+        system: PackageComms<C>,
         state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>>;

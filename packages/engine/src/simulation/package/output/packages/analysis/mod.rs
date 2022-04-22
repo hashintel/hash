@@ -23,9 +23,7 @@ use tracing::Span;
 
 pub use self::config::AnalysisOutputConfig;
 use crate::simulation::{
-    comms::{package::PackageComms, Comms},
-    package::output::OutputPackageCreator,
-    Error, Result,
+    comms::package::PackageComms, package::output::OutputPackageCreator, Error, Result,
 };
 
 // TODO: UNUSED: Needs triage
@@ -33,12 +31,12 @@ pub enum Task {}
 
 pub struct AnalysisCreator;
 
-impl OutputPackageCreator for AnalysisCreator {
+impl<C> OutputPackageCreator<C> for AnalysisCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        _comms: PackageComms<Comms>,
+        _comms: PackageComms<C>,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and

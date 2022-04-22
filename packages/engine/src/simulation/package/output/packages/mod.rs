@@ -9,6 +9,7 @@ use std::{
 use execution::package::{output::OutputPackageName, PackageInitConfig};
 
 use crate::simulation::{
+    comms::Comms,
     package::output::{
         packages::{analysis::AnalysisCreator, json_state::JsonStateCreator},
         OutputPackageCreator,
@@ -16,7 +17,9 @@ use crate::simulation::{
     Error, Result,
 };
 
-pub struct PackageCreators(SyncOnceCell<HashMap<OutputPackageName, Box<dyn OutputPackageCreator>>>);
+pub struct PackageCreators(
+    SyncOnceCell<HashMap<OutputPackageName, Box<dyn OutputPackageCreator<Comms>>>>,
+);
 
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
@@ -24,7 +27,7 @@ impl PackageCreators {
     pub(crate) fn initialize_for_experiment_run(&self, _config: &PackageInitConfig) -> Result<()> {
         tracing::debug!("Initializing Output Package Creators");
         use OutputPackageName::{Analysis, JsonState};
-        let mut m = HashMap::<_, Box<dyn OutputPackageCreator>>::new();
+        let mut m = HashMap::<_, Box<dyn OutputPackageCreator<Comms>>>::new();
         m.insert(Analysis, Box::new(AnalysisCreator));
         m.insert(JsonState, Box::new(JsonStateCreator));
         self.0
@@ -36,7 +39,7 @@ impl PackageCreators {
     pub(crate) fn get_checked(
         &self,
         name: &OutputPackageName,
-    ) -> Result<&Box<dyn OutputPackageCreator>> {
+    ) -> Result<&Box<dyn OutputPackageCreator<Comms>>> {
         self.0
             .get()
             .ok_or_else(|| Error::from("Output Package Creators weren't initialized"))?
@@ -52,7 +55,7 @@ impl PackageCreators {
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
     pub(crate) fn iter_checked(
         &self,
-    ) -> Result<Iter<'_, OutputPackageName, Box<dyn OutputPackageCreator>>> {
+    ) -> Result<Iter<'_, OutputPackageName, Box<dyn OutputPackageCreator<Comms>>>> {
         Ok(self
             .0
             .get()

@@ -9,6 +9,7 @@ use std::{
 use execution::package::{state::StatePackageName, PackageInitConfig};
 
 use crate::simulation::{
+    comms::Comms,
     package::state::{
         packages::{behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator},
         StatePackageCreator,
@@ -16,7 +17,9 @@ use crate::simulation::{
     Error, Result,
 };
 
-pub struct PackageCreators(SyncOnceCell<HashMap<StatePackageName, Box<dyn StatePackageCreator>>>);
+pub struct PackageCreators(
+    SyncOnceCell<HashMap<StatePackageName, Box<dyn StatePackageCreator<Comms>>>>,
+);
 
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
@@ -24,7 +27,7 @@ impl PackageCreators {
     pub(crate) fn initialize_for_experiment_run(&self, config: &PackageInitConfig) -> Result<()> {
         tracing::debug!("Initializing State Package Creators");
         use StatePackageName::{BehaviorExecution, Topology};
-        let mut m = HashMap::<_, Box<dyn StatePackageCreator>>::new();
+        let mut m = HashMap::<_, Box<dyn StatePackageCreator<Comms>>>::new();
         m.insert(BehaviorExecution, BehaviorExecutionCreator::new(config)?);
         m.insert(Topology, Box::new(TopologyCreator));
         self.0
@@ -36,7 +39,7 @@ impl PackageCreators {
     pub(crate) fn get_checked(
         &self,
         name: &StatePackageName,
-    ) -> Result<&Box<dyn StatePackageCreator>> {
+    ) -> Result<&Box<dyn StatePackageCreator<Comms>>> {
         self.0
             .get()
             .ok_or_else(|| Error::from("State Package Creators weren't initialized"))?
@@ -52,7 +55,7 @@ impl PackageCreators {
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
     pub(crate) fn iter_checked(
         &self,
-    ) -> Result<Iter<'_, StatePackageName, Box<dyn StatePackageCreator>>> {
+    ) -> Result<Iter<'_, StatePackageName, Box<dyn StatePackageCreator<Comms>>>> {
         Ok(self
             .0
             .get()

@@ -5,7 +5,7 @@ use execution::{
             script::{JsInitTask, JsPyInitTaskMessage, PyInitTask, SuccessMessage},
             InitPackage, InitTask, InitTaskMessage, InitialState, InitialStateName,
         },
-        MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+        Comms, MaybeCpuBound, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig,
         PackageTask, TaskMessage,
     },
     task::{ActiveTask, SharedStore},
@@ -13,19 +13,17 @@ use execution::{
 use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
 use crate::simulation::{
-    comms::{package::PackageComms, Comms},
-    package::init::InitPackageCreator,
-    Error, Result,
+    comms::package::PackageComms, package::init::InitPackageCreator, Error, Result,
 };
 
 pub struct ScriptInitCreator;
 
-impl InitPackageCreator for ScriptInitCreator {
+impl<C: Comms> InitPackageCreator<C> for ScriptInitCreator {
     fn create(
         &self,
         _config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        comms: PackageComms<Comms>,
+        comms: PackageComms<C>,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &init_config.initial_state.name {
@@ -50,21 +48,21 @@ impl PackageCreator for ScriptInitCreator {
     //      and `JsInitTask`
 }
 
-pub struct ScriptInit {
+pub struct ScriptInit<C> {
     initial_state: InitialState,
-    comms: PackageComms<Comms>,
+    comms: PackageComms<C>,
 }
 
-impl MaybeCpuBound for ScriptInit {
+impl<C> MaybeCpuBound for ScriptInit<C> {
     fn cpu_bound(&self) -> bool {
         false
     }
 }
 
-impl Package for ScriptInit {}
+impl<C: Send> Package for ScriptInit<C> {}
 
 #[async_trait]
-impl InitPackage for ScriptInit {
+impl<C: Comms> InitPackage for ScriptInit<C> {
     async fn run(&mut self) -> execution::Result<Vec<Agent>> {
         let task = match &self.initial_state.name {
             InitialStateName::InitPy => InitTask::PyInitTask(PyInitTask {

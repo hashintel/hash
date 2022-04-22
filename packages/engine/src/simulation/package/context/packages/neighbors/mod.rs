@@ -19,7 +19,7 @@ use self::map::{NeighborMap, NeighborRef};
 use crate::{
     config::TopologyConfig,
     simulation::{
-        comms::{package::PackageComms, Comms},
+        comms::package::PackageComms,
         package::context::{
             packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackageCreator,
         },
@@ -40,12 +40,12 @@ pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct NeighborsCreator;
 
-impl ContextPackageCreator for NeighborsCreator {
+impl<C> ContextPackageCreator<C> for NeighborsCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms<Comms>,
+        _comms: PackageComms<C>,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {

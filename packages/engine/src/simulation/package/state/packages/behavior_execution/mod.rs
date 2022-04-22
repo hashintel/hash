@@ -7,7 +7,8 @@ use execution::{
             behavior_execution::{BehaviorMap, ExecuteBehaviorsTask},
             StatePackage, StatePackageName, StateTask,
         },
-        Package, PackageCreator, PackageCreatorConfig, PackageInitConfig, PackageName, PackageTask,
+        Comms, Package, PackageCreator, PackageCreatorConfig, PackageInitConfig, PackageName,
+        PackageTask,
     },
     runner::Language,
     task::{ActiveTask as _, TaskSharedStoreBuilder},
@@ -25,7 +26,7 @@ use tracing::Span;
 
 use self::{config::exp_init_message, reset_index_col::reset_index_col};
 use crate::simulation::{
-    comms::{package::PackageComms, Comms},
+    comms::package::PackageComms,
     package::state::{
         packages::behavior_execution::{
             config::BehaviorIds,
@@ -33,7 +34,6 @@ use crate::simulation::{
         },
         StatePackageCreator,
     },
-    task::active::ActiveTask,
     Error, Result,
 };
 
@@ -54,7 +54,7 @@ pub struct BehaviorExecutionCreator {
 }
 
 impl BehaviorExecutionCreator {
-    pub fn new(config: &PackageInitConfig) -> Result<Box<dyn StatePackageCreator>> {
+    pub fn new<C: Comms>(config: &PackageInitConfig) -> Result<Box<dyn StatePackageCreator<C>>> {
         // TODO: Packages shouldn't have to set the source
         let package_id = PackageName::State(StatePackageName::BehaviorExecution).get_id()?;
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(package_id));
@@ -93,12 +93,12 @@ impl PackageCreator for BehaviorExecutionCreator {
     }
 }
 
-impl StatePackageCreator for BehaviorExecutionCreator {
+impl<C: Comms> StatePackageCreator<C> for BehaviorExecutionCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        comms: PackageComms<Comms>,
+        comms: PackageComms<C>,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>> {
         let behavior_ids_col_data_types = fields::id_column_data_types();
@@ -138,17 +138,17 @@ impl StatePackageCreator for BehaviorExecutionCreator {
     }
 }
 
-struct BehaviorExecution {
+struct BehaviorExecution<C> {
     behavior_ids: Arc<BehaviorIds>,
     behavior_ids_col_index: usize,
     behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
     behavior_index_col_index: usize,
-    comms: PackageComms<Comms>,
+    comms: PackageComms<C>,
 }
 
-impl Package for BehaviorExecution {}
+impl<C: Send> Package for BehaviorExecution<C> {}
 
-impl BehaviorExecution {
+impl<C> BehaviorExecution<C> {
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior
     /// execution will be executed accordingly
@@ -202,14 +202,16 @@ impl BehaviorExecution {
         }
         Ok(None)
     }
+}
 
+impl<C: Comms> BehaviorExecution<C> {
     /// Sends out behavior execution commands to workers
     async fn begin_execution(
         &mut self,
         state_proxy: StateWriteProxy,
         context: &Context,
         lang: Language,
-    ) -> Result<ActiveTask> {
+    ) -> Result<C::ActiveTask> {
         let shared_store = TaskSharedStoreBuilder::new()
             .write_state(state_proxy)?
             .read_context(context)?
@@ -224,7 +226,7 @@ impl BehaviorExecution {
 }
 
 #[async_trait]
-impl StatePackage for BehaviorExecution {
+impl<C: Comms> StatePackage for BehaviorExecution<C> {
     async fn run(&mut self, state: &mut State, context: &Context) -> execution::Result<()> {
         tracing::trace!("Running BehaviorExecution");
         let mut state_proxy = state.write()?;

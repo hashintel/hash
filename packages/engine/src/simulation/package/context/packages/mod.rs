@@ -10,6 +10,7 @@ use std::{
 use execution::package::{context::ContextPackageName, PackageInitConfig};
 
 use crate::simulation::{
+    comms::Comms,
     package::context::{
         packages::{
             agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator,
@@ -21,7 +22,7 @@ use crate::simulation::{
 };
 
 pub struct PackageCreators(
-    SyncOnceCell<HashMap<ContextPackageName, Box<dyn ContextPackageCreator>>>,
+    SyncOnceCell<HashMap<ContextPackageName, Box<dyn ContextPackageCreator<Comms>>>>,
 );
 
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
@@ -30,7 +31,7 @@ impl PackageCreators {
     pub(crate) fn initialize_for_experiment_run(&self, _config: &PackageInitConfig) -> Result<()> {
         tracing::debug!("Initializing Context Package Creators");
         use ContextPackageName::{AgentMessages, ApiRequests, Neighbors};
-        let mut m = HashMap::<_, Box<dyn ContextPackageCreator>>::new();
+        let mut m = HashMap::<_, Box<dyn ContextPackageCreator<Comms>>>::new();
         m.insert(AgentMessages, Box::new(AgentMessagesCreator));
         m.insert(ApiRequests, Box::new(ApiRequestsCreator));
         m.insert(Neighbors, Box::new(NeighborsCreator));
@@ -43,7 +44,7 @@ impl PackageCreators {
     pub(crate) fn get_checked(
         &self,
         name: &ContextPackageName,
-    ) -> Result<&Box<dyn ContextPackageCreator>> {
+    ) -> Result<&Box<dyn ContextPackageCreator<Comms>>> {
         self.0
             .get()
             .ok_or_else(|| Error::from("Context Package Creators weren't initialized"))?
@@ -58,7 +59,7 @@ impl PackageCreators {
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
     pub(crate) fn iter_checked(
         &self,
-    ) -> Result<Iter<'_, ContextPackageName, Box<dyn ContextPackageCreator>>> {
+    ) -> Result<Iter<'_, ContextPackageName, Box<dyn ContextPackageCreator<Comms>>>> {
         Ok(self
             .0
             .get()

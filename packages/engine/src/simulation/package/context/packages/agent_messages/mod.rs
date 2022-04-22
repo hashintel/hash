@@ -23,7 +23,7 @@ use tracing::Span;
 
 use self::collected::Messages;
 use crate::simulation::{
-    comms::{package::PackageComms, Comms},
+    comms::package::PackageComms,
     package::context::{
         packages::agent_messages::fields::MESSAGES_FIELD_NAME, ContextPackageCreator,
     },
@@ -38,12 +38,12 @@ pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct AgentMessagesCreator;
 
-impl ContextPackageCreator for AgentMessagesCreator {
+impl<C> ContextPackageCreator<C> for AgentMessagesCreator {
     fn create(
         &self,
         _config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms<Comms>,
+        _comms: PackageComms<C>,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
