@@ -7,6 +7,7 @@ import {
   ConfiguredAirbyteCatalog,
   ConnectorSpecification,
 } from "./protocol";
+import { writeToTempFile } from "./temp_io";
 
 type RecordMessage = AirbyteMessage["record"];
 
@@ -14,14 +15,17 @@ interface AirbyteExecutor {
   imageName: string;
 
   runSpec(): Promise<ConnectorSpecification>;
-  runCheck(configPath: string): Promise<AirbyteConnectionStatus>;
-  runDiscover(configPath: string): Promise<AirbyteStream[]>;
+  runCheck(config: any): Promise<AirbyteConnectionStatus>;
+  runDiscover(config: any): Promise<AirbyteStream[]>;
   runRead(
-    configPath: string,
+    config: any,
     configuredCatalog: ConfiguredAirbyteCatalog,
     statePath?: string,
   ): Promise<RecordMessage[]>;
 }
+
+const CONFIG_FILE_NAME = "config.json";
+const CATALOG_FILE_NAME = "catalog.json";
 
 /** @todo - Handle Airbyte outputs as a stream so we get progress indication from the log messages */
 /** @todo - Don't ignore Airbyte Log messages */
@@ -53,7 +57,12 @@ export class BaseExecutor implements AirbyteExecutor {
     }
   }
 
-  async runCheck(configPath: string): Promise<AirbyteConnectionStatus> {
+  async runCheck(config: any): Promise<AirbyteConnectionStatus> {
+    const configPath = await writeToTempFile(
+      CONFIG_FILE_NAME,
+      JSON.stringify(config),
+    );
+
     const response = await executeTask("docker", [
       "run",
       "--rm",
@@ -78,7 +87,12 @@ export class BaseExecutor implements AirbyteExecutor {
     }
   }
 
-  async runDiscover(configPath: string): Promise<AirbyteStream[]> {
+  async runDiscover(config: any): Promise<AirbyteStream[]> {
+    const configPath = await writeToTempFile(
+      CONFIG_FILE_NAME,
+      JSON.stringify(config),
+    );
+
     const response = await executeTask("docker", [
       "run",
       "--rm",
@@ -103,17 +117,26 @@ export class BaseExecutor implements AirbyteExecutor {
   }
 
   async runRead(
-    configPath: string,
+    config: any,
     configuredCatalog: ConfiguredAirbyteCatalog,
     statePath?: string,
   ): Promise<RecordMessage[]> {
+    const configPath = await writeToTempFile(
+      CONFIG_FILE_NAME,
+      JSON.stringify(config),
+    );
+    const catalogPath = await writeToTempFile(
+      CATALOG_FILE_NAME,
+      JSON.stringify(configuredCatalog),
+    );
+
     const args = [
       "run",
       "--rm",
       "-v",
       `${configPath}:/secrets/config.json`,
       "-v",
-      `${configuredCatalog}:/secrets/catalog.json`,
+      `${catalogPath}:/secrets/catalog.json`,
       this.imageName,
       "read",
       "--config",
