@@ -115,7 +115,6 @@ export const Editor = ({
         href="https://cdn.jsdelivr.net/npm/prismjs@1.25.0/themes/prism.css"
         rel="stylesheet"
       />
-      <PrismThemeOverride />
       <textarea
         ref={textAreaRef}
         className={tw`resize-none outline-none bg-transparent text-transparent absolute left-0 w-full top-0`}
