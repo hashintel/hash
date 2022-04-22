@@ -206,7 +206,7 @@ jobs:
       - name: Remove and store default members
         id: default_members
         run: |
-          echo "::set-output name=Cargo::$(cat ${{ matrix.directory }}/Cargo.toml)"
+          echo "CARGO_TOML=$(cat ${{ matrix.directory }}/Cargo.toml)" >> $GITHUB_ENV
           sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
@@ -254,7 +254,7 @@ jobs:
       # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
         run: |
-          echo "${{ steps.default_members.outputs.Cargo }}" > ${{ matrix.directory }}/Cargo.toml
+          echo $CARGO_TOML > ${{ matrix.directory }}/Cargo.toml
           git --no-pager diff --exit-code --color
 
   bench:
