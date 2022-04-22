@@ -13,6 +13,13 @@ import {
 import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
+import {
+  draftEntityForEntityId,
+  DraftEntity,
+  EntityStore,
+  isBlockEntity,
+  isDraftBlockEntity,
+} from "./entityStore";
 import { draftIdForEntity } from "./entityStorePlugin";
 import {
   BlockEntity,
@@ -20,12 +27,6 @@ import {
   getTextEntityFromSavedBlock,
   isDraftTextContainingEntityProperties,
 } from "./entity";
-import {
-  DraftEntity,
-  EntityStore,
-  isBlockEntity,
-  isDraftBlockEntity,
-} from "./entityStore";
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
@@ -323,50 +324,49 @@ const updateBlocks = defineOperation(
           } else {
             const draftBlock =
               entityStore.draft[draftIdForEntity(blockEntityId)];
-            const draftChildEntity = draftBlock?.properties.entity;
-
-            // get draftChildEntiy from entityStore
-
-            console.log(
-              "draft ==> ",
-              JSON.stringify(draftChildEntity?.properties),
-            );
-            console.log(
-              "saved ==> ",
-              JSON.stringify(savedChildEntity.properties),
+            const draftChildEntityId = draftBlock?.properties.entity?.entityId;
+            const draftChildEntityWithDraftId = draftEntityForEntityId(
+              entityStore.draft,
+              draftChildEntityId,
             );
 
-            if (
-              draftChildEntity &&
-              !isEqual(draftChildEntity.properties, savedChildEntity.properties)
-            ) {
-              console.log("is not equal");
+            if (draftChildEntityWithDraftId && draftChildEntityId) {
+              const { draftId: _, ...draftChildEntity } =
+                draftChildEntityWithDraftId;
 
-              // @todo should use create a link before changing here
-
-              // updates.push({
-              //   updateEntity: {
-              //     entityId: blockEntityId,
-              //     accountId: draftChildEntity.accountId,
-              //     properties: {
-              //       // componentId: savedEntity.componentId,
-              //       entity: draftChildEntity
-              //     },
-              //   },
-              // });
-
-              // console.log("node ==> ", JSON.stringify(node));
-              // console.log("update => ", {
-              //   updateEntity: {
-              //     entityId: draftChildEntity.entityId,
-              //   },
-              // });
+              if (
+                draftChildEntity &&
+                !isEqual(
+                  draftChildEntity.properties,
+                  savedChildEntity.properties,
+                )
+              ) {
+                if (draftChildEntity.entityId !== savedChildEntity.entityId) {
+                  updates.push({
+                    swapBlockData: {
+                      entityId: blockEntityId,
+                      accountId: savedEntity.accountId,
+                      newEntityAccountId: draftChildEntity.accountId!,
+                      newEntityEntityId: draftChildEntity.entityId!,
+                    },
+                  });
+                } else {
+                  updates.push({
+                    updateEntity: {
+                      entityId: savedChildEntity.entityId,
+                      accountId: savedChildEntity.accountId,
+                      properties: draftChildEntity.properties,
+                    },
+                  });
+                }
+              }
             }
           }
 
           return updates;
         }),
-      (action) => action.updateEntity?.entityId,
+      (action) =>
+        action?.updateEntity?.entityId || action?.swapBlockData?.entityId,
     );
 
     return [actions, entities] as const;

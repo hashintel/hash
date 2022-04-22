@@ -123,6 +123,48 @@ class __Block extends Entity {
 
     return firstLink.getDestination(client);
   }
+
+  async updateBlockData(
+    client: DbClient,
+    params: { updatedByAccountId: string; updatedDataEntity: Entity },
+  ): Promise<Entity> {
+    const { updatedByAccountId, updatedDataEntity } = params;
+    const blockDataLinks = await this.getOutgoingLinks(client, {
+      path: ["data"],
+    });
+
+    const [previousBlockDataLink, ...otherLinks] = blockDataLinks;
+
+    if (!previousBlockDataLink) {
+      throw new Error(
+        `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has no linked block data entity`,
+      );
+    }
+    if (otherLinks.length > 0) {
+      throw new Error(
+        `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has more than one linked block data entity`,
+      );
+    }
+
+    if (
+      previousBlockDataLink.destinationEntityId === updatedDataEntity.entityId
+    ) {
+      const previousBlockData = await this.getBlockData(client);
+      return previousBlockData;
+    }
+
+    await previousBlockDataLink.delete(client, {
+      deletedByAccountId: updatedByAccountId,
+    });
+
+    await this.createOutgoingLink(client, {
+      destination: updatedDataEntity,
+      createdByAccountId: updatedByAccountId,
+      stringifiedPath: "$.data",
+    });
+
+    return updatedDataEntity;
+  }
 }
 
 export default __Block;
