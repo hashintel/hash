@@ -22,6 +22,7 @@ export type BlogPostProps = {
   date: string;
   authorPhoto: string;
   postPhoto: string;
+  postPhotoSquare?: string;
 };
 
 type BlogPostPageProps = {

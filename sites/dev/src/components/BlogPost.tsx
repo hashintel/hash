@@ -33,8 +33,16 @@ export const useBlogPostPhotos = () => {
   return context;
 };
 
-export const BlogPostAuthor: FC<TypographyProps> = ({ children, ...props }) => (
-  <Typography variant="hashMediumCaps" color="purple.600" {...props}>
+export const BlogPostAuthor: FC<TypographyProps & { small?: boolean }> = ({
+  children,
+  small = false,
+  ...props
+}) => (
+  <Typography
+    variant={small ? "hashSmallCaps" : "hashMediumCaps"}
+    color="purple.600"
+    {...props}
+  >
     {children}
   </Typography>
 );

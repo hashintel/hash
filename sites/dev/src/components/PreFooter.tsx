@@ -1,4 +1,5 @@
 import { Box, Container, Stack, Typography } from "@mui/material";
+import { BoxProps } from "@mui/system";
 import axios from "axios";
 import { useState, VFC } from "react";
 import { unstable_batchedUpdates } from "react-dom";
@@ -11,26 +12,19 @@ import { TextField } from "./TextField";
 const EMAIL_REGEX =
   /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-export const Subscribe: VFC = () => {
+export const Subscribe: VFC<BoxProps> = (props) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [userJoined, setUserJoined] = useState<boolean>(false);
 
   return (
-    <Container
-      component="section"
+    <Box
+      {...props}
       id="subscribe"
-      sx={[
-        {
-          mb: 16,
-        },
-        (theme) => ({
-          pt: `calc(${theme.spacing(1)} + ${NAV_HEIGHT}px)`,
-          mt: `calc(${theme.spacing(12)} - ${theme.spacing(
-            1,
-          )} - ${NAV_HEIGHT}px)`,
-        }),
-      ]}
+      sx={{
+        pt: `${NAV_HEIGHT}px`,
+        mt: `-${NAV_HEIGHT}px`,
+      }}
     >
       <Box
         sx={[
@@ -170,7 +164,7 @@ export const Subscribe: VFC = () => {
           </>
         )}
       </Box>
-    </Container>
+    </Box>
   );
 };
 
@@ -256,7 +250,11 @@ export const PreFooter: VFC<{ subscribe?: boolean }> = ({
   subscribe = true,
 }) => (
   <>
-    {subscribe ? <Subscribe /> : null}
+    {subscribe ? (
+      <Container component="section" sx={{ mb: 16, mt: 12 }}>
+        <Subscribe />
+      </Container>
+    ) : null}
     <Community />
   </>
 );
