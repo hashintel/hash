@@ -37,4 +37,14 @@ app.get("/github/discover", (_, res) => {
     .catch((err) => res.status(500).json({ error: err.toString() }));
 });
 
+app.get("/github/read", (_, res) => {
+  new GithubIngestor()
+    .runRead(
+      `${process.cwd()}/src/tasks/source-github/secrets/config.json`,
+      `${process.cwd()}/src/tasks/source-github/secrets/catalog.json`,
+    )
+    .then((result) => res.status(200).send(JSON.stringify(result)))
+    .catch((err) => res.status(500).json({ error: err.toString() }));
+});
+
 app.listen(port, () => console.log(`Listening on port ${port}...`));

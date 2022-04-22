@@ -8,6 +8,7 @@ export enum Tasks {
   GithubSpec = "github/spec",
   GithubCheck = "github/check",
   GithubDiscover = "github/discover",
+  GithubRead = "github/read",
 }
 
 export type Config = {

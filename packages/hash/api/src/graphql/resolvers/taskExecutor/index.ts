@@ -82,3 +82,23 @@ export const executeGithubDiscoverTask: Resolver<
     }
   }
 };
+
+export const executeGithubReadTask: Resolver<
+  Promise<string>,
+  {},
+  GraphQLContext
+> = async (_, __, { dataSources: { taskExecutor } }) => {
+  if (!taskExecutor) {
+    throw new ApolloError(
+      "A task-executor wasn't started, so external tasks can't be started",
+    );
+  } else {
+    try {
+      return await taskExecutor
+        .run_task(Tasks.GithubRead)
+        .then((res) => JSON.stringify(res));
+    } catch (err: any) {
+      throw new ApolloError(`Task-execution failed: ${err}`);
+    }
+  }
+};

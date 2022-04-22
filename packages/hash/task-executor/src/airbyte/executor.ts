@@ -7,6 +7,8 @@ import {
   ConnectorSpecification,
 } from "./protocol";
 
+type RecordMessage = AirbyteMessage["record"];
+
 interface AirbyteExecutor {
   imageName: string;
 
@@ -17,8 +19,11 @@ interface AirbyteExecutor {
     config_path: string,
     configured_catalog_path: string,
     state_path?: string,
-  ): Promise<AirbyteMessage>;
+  ): Promise<RecordMessage[]>;
 }
+
+/** @todo - Handle Airbyte outputs as a stream so we get progress indication from the log messages */
+/** @todo - Don't ignore Airbyte Log messages */
 
 export class BaseExecutor implements AirbyteExecutor {
   imageName;
@@ -100,12 +105,13 @@ export class BaseExecutor implements AirbyteExecutor {
     config_path: string,
     configured_catalog_path: string,
     state_path?: string,
-  ): Promise<AirbyteMessage> {
+  ): Promise<RecordMessage[]> {
     const args = [
       "run",
       "--rm",
       "-v",
       `${config_path}:/secrets/config.json`,
+      "-v",
       `${configured_catalog_path}:/secrets/catalog.json`,
       this.imageName,
       "read",
@@ -121,9 +127,16 @@ export class BaseExecutor implements AirbyteExecutor {
 
     const response = await executeTask("docker", args);
 
-    const stream = JSON.parse(response);
-    console.log(stream);
-    // todo
-    throw new Error();
+    const messages = parse_message_stream(response);
+
+    const record_messages = messages
+      .filter((message) => message.type === "RECORD" && message.record)
+      .map((message) => message.record!);
+    if (record_messages) {
+      console.log(JSON.stringify(record_messages));
+      return record_messages;
+    } else {
+      throw new Error("Message didn't contain any Airbyte Records");
+    }
   }
 }

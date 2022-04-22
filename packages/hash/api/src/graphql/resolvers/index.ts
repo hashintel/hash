@@ -75,6 +75,7 @@ import {
   executeGithubSpecTask,
   executeGithubCheckTask,
   executeGithubDiscoverTask,
+  executeGithubReadTask,
 } from "./taskExecutor";
 
 export const resolvers = {
@@ -141,6 +142,7 @@ export const resolvers = {
     executeGithubSpecTask,
     executeGithubCheckTask,
     executeGithubDiscoverTask,
+    executeGithubReadTask,
   },
 
   JSONObject: GraphQLJSON,
