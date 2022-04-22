@@ -25,7 +25,6 @@ app.post("/github/spec", (_, res) => {
 
 app.post("/github/check", (req, res) => {
   const config = req.body;
-  console.log(config);
   new GithubIngestor()
     .runCheck(config)
     .then((result) => res.status(200).send(JSON.stringify(result)))
@@ -34,12 +33,8 @@ app.post("/github/check", (req, res) => {
     });
 });
 
-app.post("/github/discover", (_, res) => {
-  const config = JSON.parse(
-    readFileSync(
-      `${process.cwd()}/src/tasks/source-github/secrets/config.json`,
-    ).toString(),
-  );
+app.post("/github/discover", (req, res) => {
+  const config = req.body;
   new GithubIngestor()
     .runDiscover(config)
     .then((result) => {
@@ -65,12 +60,8 @@ app.post("/github/discover", (_, res) => {
     .catch((err) => res.status(500).json({ error: err.toString() }));
 });
 
-app.post("/github/read", (_, res) => {
-  const config = JSON.parse(
-    readFileSync(
-      `${process.cwd()}/src/tasks/source-github/secrets/config.json`,
-    ).toString(),
-  );
+app.post("/github/read", (req, res) => {
+  const config = req.body;
   const configuredCatalog = JSON.parse(
     readFileSync(
       `${process.cwd()}/src/tasks/source-github/secrets/catalog.json`,
