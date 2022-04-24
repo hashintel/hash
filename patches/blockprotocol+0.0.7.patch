@@ -1,5 +1,5 @@
 diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index 20a9bbd..ddcda7a 100644
+index 20a9bbd..f89c9be 100644
 --- a/node_modules/blockprotocol/core.d.ts
 +++ b/node_modules/blockprotocol/core.d.ts
 @@ -1,3 +1,6 @@
@@ -120,7 +120,7 @@ index 20a9bbd..ddcda7a 100644
 +};
 +
 +export type BlockProtocolLinkedAggregation = 
-+  Omit<BlockProtocolLinkedAggregation, "operation">
++  Omit<BlockProtocolLinkedAggregationInput, "operation">
 +  & BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>;
 +
 +export type BlockProtocolGetLinkedAggregationAction = {
