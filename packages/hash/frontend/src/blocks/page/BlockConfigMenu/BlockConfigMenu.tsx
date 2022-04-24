@@ -7,7 +7,6 @@ import {
   Box,
   Typography,
   MenuItem,
-  Popover,
 } from "@mui/material";
 import {
   ChangeEvent,
@@ -23,13 +22,19 @@ import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { bindPopover, PopupState } from "material-ui-popup-state/hooks";
 
 import { TextField } from "../../../shared/ui/text-field";
+import { Popover } from "../../../shared/ui";
 
-const extractConfigPropertySchemas = (blockSchema: JsonSchema) =>
+const extractConfigPropertySchemas = (
+  blockSchema: JsonSchema,
+): [string, JsonSchema][] =>
   Object.entries(blockSchema.properties ?? {}).filter(([name]) =>
     blockSchema.configProperties?.includes(name),
   );
 
-const resolvePropertySchema = ($ref: string, rootSchema: JsonSchema) => {
+const resolvePropertySchema = (
+  $ref: string,
+  rootSchema: JsonSchema,
+): JsonSchema => {
   if ($ref.startsWith("#/")) {
     const deepObjectPath = $ref.split("/").slice(1).join(".");
     return get(rootSchema, deepObjectPath);
