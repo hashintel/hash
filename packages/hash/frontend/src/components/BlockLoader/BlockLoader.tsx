@@ -67,13 +67,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { updateLinkedAggregations } =
     useBlockProtocolUpdateLinkedAggregations();
   const { updateLinks } = useBlockProtocolUpdateLinks();
-  const { deleteLinks } = useBlockProtocolDeleteLinks();
-  const { createLinkedAggregations } =
-    useBlockProtocolCreateLinkedAggregations();
-  const { updateLinkedAggregations } =
-    useBlockProtocolUpdateLinkedAggregations();
-  const { deleteLinkedAggregations } =
-    useBlockProtocolDeleteLinkedAggregations();
 
   const flattenedProperties = useMemo(() => {
     let flattenedLinkedEntities: UnknownEntity[] = [];
