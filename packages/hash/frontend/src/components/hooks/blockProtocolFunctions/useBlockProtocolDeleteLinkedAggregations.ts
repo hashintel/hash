@@ -31,11 +31,15 @@ export const useBlockProtocolDeleteLinkedAggregations = (): {
         // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
         for (const action of actions) {
           if (!action.sourceAccountId) {
-            throw new Error("deleteLinks needs to be passed a sourceAccountId");
+            throw new Error(
+              "deleteLinkedAggregations needs to be passed a sourceAccountId",
+            );
           }
 
           if (!action.sourceEntityId) {
-            throw new Error("deleteLinks needs to be passed a sourceEntityId");
+            throw new Error(
+              "deleteLinkedAggregations needs to be passed a sourceEntityId",
+            );
           }
 
           const { data, errors } = await runDeleteLinkedAggregationsMutation({
