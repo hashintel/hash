@@ -34,13 +34,11 @@ export const createLinkedAggregation = gql`
 export const updateLinkedAggregationOperation = gql`
   mutation updateLinkedAggregationOperation(
     $sourceAccountId: ID!
-    $sourceEntityId: ID!
     $aggregationId: ID!
     $updatedOperation: AggregateOperationInput!
   ) {
     updateLinkedAggregationOperation(
       sourceAccountId: $sourceAccountId
-      sourceEntityId: $sourceEntityId
       aggregationId: $aggregationId
       updatedOperation: $updatedOperation
     ) {
@@ -59,14 +57,9 @@ export const updateLinkedAggregationOperation = gql`
 `;
 
 export const deleteLinkedAggregation = gql`
-  mutation deleteLinkedAggregation(
-    $sourceAccountId: ID!
-    $sourceEntityId: ID!
-    $aggregationId: ID!
-  ) {
+  mutation deleteLinkedAggregation($sourceAccountId: ID!, $aggregationId: ID!) {
     deleteLinkedAggregation(
       sourceAccountId: $sourceAccountId
-      sourceEntityId: $sourceEntityId
       aggregationId: $aggregationId
     )
   }

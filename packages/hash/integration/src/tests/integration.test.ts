@@ -1718,7 +1718,6 @@ describe("logged in user ", () => {
     const updatedGQLAggregation = await client.updateLinkedAggregationOperation(
       {
         sourceAccountId: sourceEntity.accountId,
-        sourceEntityId: sourceEntity.entityId,
         aggregationId,
         updatedOperation,
       },
@@ -1761,7 +1760,6 @@ describe("logged in user ", () => {
 
     await client.deleteLinkedAggregation({
       sourceAccountId: sourceEntity.accountId,
-      sourceEntityId: sourceEntity.entityId,
       aggregationId,
     });
 

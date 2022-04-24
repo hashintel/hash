@@ -3,7 +3,7 @@ import {
   MutationDeleteLinkedAggregationArgs,
   Resolver,
 } from "../../apiTypes.gen";
-import { Aggregation, Entity } from "../../../model";
+import { Aggregation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const deleteLinkedAggregation: Resolver<
@@ -11,22 +11,8 @@ export const deleteLinkedAggregation: Resolver<
   {},
   LoggedInGraphQLContext,
   MutationDeleteLinkedAggregationArgs
-> = async (
-  _,
-  { sourceAccountId, sourceEntityId, aggregationId },
-  { dataSources, user },
-) =>
+> = async (_, { sourceAccountId, aggregationId }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
-    const source = await Entity.getEntityLatestVersion(client, {
-      accountId: sourceAccountId,
-      entityId: sourceEntityId,
-    });
-
-    if (!source) {
-      const msg = `entity with fixed ID ${sourceEntityId} not found in account ${sourceAccountId}`;
-      throw new ApolloError(msg, "NOT_FOUND");
-    }
-
     const aggregation = await Aggregation.getAggregationById(client, {
       sourceAccountId,
       aggregationId,

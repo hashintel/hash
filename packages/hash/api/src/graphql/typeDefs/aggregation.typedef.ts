@@ -99,17 +99,12 @@ export const aggregationTypedef = gql`
     """
     updateLinkedAggregationOperation(
       sourceAccountId: ID!
-      sourceEntityId: ID!
       aggregationId: ID!
       updatedOperation: AggregateOperationInput!
     ): LinkedAggregation!
     """
     Delete an entity's linked aggregation
     """
-    deleteLinkedAggregation(
-      sourceAccountId: ID!
-      sourceEntityId: ID!
-      aggregationId: ID!
-    ): Boolean!
+    deleteLinkedAggregation(sourceAccountId: ID!, aggregationId: ID!): Boolean!
   }
 `;

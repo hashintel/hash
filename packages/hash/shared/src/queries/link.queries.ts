@@ -85,16 +85,8 @@ export const createLinkMutation = gql`
 `;
 
 export const deleteLinkMutation = gql`
-  mutation deleteLink(
-    $sourceAccountId: ID!
-    $sourceEntityId: ID!
-    $linkId: ID!
-  ) {
-    deleteLink(
-      sourceAccountId: $sourceAccountId
-      sourceEntityId: $sourceEntityId
-      linkId: $linkId
-    )
+  mutation deleteLink($sourceAccountId: ID!, $linkId: ID!) {
+    deleteLink(sourceAccountId: $sourceAccountId, linkId: $linkId)
   }
 `;
 
@@ -141,13 +133,11 @@ export const createLinkedAggregationMutation = gql`
 export const updateLinkedAggregationMutation = gql`
   mutation updateLinkedAggregationOperation(
     $sourceAccountId: ID!
-    $sourceEntityId: ID!
     $aggregationId: ID!
     $updatedOperation: AggregateOperationInput!
   ) {
     updateLinkedAggregationOperation(
       sourceAccountId: $sourceAccountId
-      sourceEntityId: $sourceEntityId
       aggregationId: $aggregationId
       updatedOperation: $updatedOperation
     ) {
@@ -179,14 +169,9 @@ export const updateLinkedAggregationMutation = gql`
 `;
 
 export const deleteLinkedAggregationMutation = gql`
-  mutation deleteLinkedAggregation(
-    $sourceAccountId: ID!
-    $sourceEntityId: ID!
-    $aggregationId: ID!
-  ) {
+  mutation deleteLinkedAggregation($sourceAccountId: ID!, $aggregationId: ID!) {
     deleteLinkedAggregation(
       sourceAccountId: $sourceAccountId
-      sourceEntityId: $sourceEntityId
       aggregationId: $aggregationId
     )
   }

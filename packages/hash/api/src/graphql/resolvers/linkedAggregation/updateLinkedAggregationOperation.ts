@@ -3,11 +3,7 @@ import {
   MutationUpdateLinkedAggregationOperationArgs,
   Resolver,
 } from "../../apiTypes.gen";
-import {
-  Aggregation,
-  Entity,
-  UnresolvedGQLLinkedAggregation,
-} from "../../../model";
+import { Aggregation, UnresolvedGQLLinkedAggregation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const updateLinkedAggregationOperation: Resolver<
@@ -17,20 +13,10 @@ export const updateLinkedAggregationOperation: Resolver<
   MutationUpdateLinkedAggregationOperationArgs
 > = async (
   _,
-  { sourceAccountId, sourceEntityId, aggregationId, updatedOperation },
+  { sourceAccountId, aggregationId, updatedOperation },
   { dataSources, user },
 ) =>
   dataSources.db.transaction(async (client) => {
-    const source = await Entity.getEntityLatestVersion(client, {
-      accountId: sourceAccountId,
-      entityId: sourceEntityId,
-    });
-
-    if (!source) {
-      const msg = `entity with fixed ID ${sourceEntityId} not found in account ${sourceAccountId}`;
-      throw new ApolloError(msg, "NOT_FOUND");
-    }
-
     const aggregation = await Aggregation.getAggregationById(client, {
       sourceAccountId,
       aggregationId,

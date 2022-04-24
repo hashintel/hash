@@ -36,17 +36,10 @@ export const useBlockProtocolDeleteLinkedAggregations = (): {
             );
           }
 
-          if (!action.sourceEntityId) {
-            throw new Error(
-              "deleteLinkedAggregations needs to be passed a sourceEntityId",
-            );
-          }
-
           const { data, errors } = await runDeleteLinkedAggregationsMutation({
             variables: {
               aggregationId: action.aggregationId,
               sourceAccountId: action.sourceAccountId,
-              sourceEntityId: action.sourceEntityId,
             },
           });
 
