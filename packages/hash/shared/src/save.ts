@@ -305,14 +305,6 @@ const updateBlocks = defineOperation(
             const entityProperties = textBlockNodeToEntityProperties(node);
 
             if (!isEqual(tokens, entityProperties.tokens)) {
-              console.log({
-                updateEntity: {
-                  entityId: textEntity.entityId,
-                  accountId: textEntity.accountId,
-                  properties: entityProperties,
-                },
-              });
-
               updates.push({
                 updateEntity: {
                   entityId: textEntity.entityId,
@@ -323,7 +315,7 @@ const updateBlocks = defineOperation(
             }
           } else {
             const draftBlock =
-              entityStore.draft[draftIdForEntity(blockEntityId)];
+              entityStore.draft[draftIdForEntity(savedEntity.entityId)];
             const draftChildEntityId = draftBlock?.properties.entity?.entityId;
             const draftChildEntityWithDraftId = draftEntityForEntityId(
               entityStore.draft,
@@ -344,7 +336,7 @@ const updateBlocks = defineOperation(
                 if (draftChildEntity.entityId !== savedChildEntity.entityId) {
                   updates.push({
                     swapBlockData: {
-                      entityId: blockEntityId,
+                      entityId: savedEntity.entityId,
                       accountId: savedEntity.accountId,
                       newEntityAccountId: draftChildEntity.accountId!,
                       newEntityEntityId: draftChildEntity.entityId!,
