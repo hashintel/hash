@@ -1,10 +1,18 @@
-import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
+import {
+  AggregationVersion,
+  EntityVersion,
+  LinkVersion,
+} from "@hashintel/hash-backend-utils/pgTables";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
+import {
+  isSupportedRealtimeTable,
+  RealtimeMessage,
+} from "@hashintel/hash-backend-utils/realtime";
 import { logger } from "../logger";
 import { COLLAB_QUEUE_NAME } from "./util";
 
-type EntityWatcherSubscription = (entity: EntityVersion) => Promise<void>;
+type EntityWatcherSubscription = (message: RealtimeMessage) => Promise<void>;
 
 export class EntityWatcher {
   private started = false;
@@ -40,7 +48,7 @@ export class EntityWatcher {
   }
 
   private async processMessage(msg: Wal2JsonMsg) {
-    if (msg.table !== "entity_versions") {
+    if (!isSupportedRealtimeTable(msg.table)) {
       return;
     }
 
@@ -51,11 +59,35 @@ export class EntityWatcher {
      * @todo address this
      */
     if (msg.action !== "D") {
-      const entityVersion = EntityVersion.parseWal2JsonMsg(msg);
+      let message: RealtimeMessage;
+      switch (msg.table) {
+        case "entity_versions":
+          message = {
+            table: msg.table,
+            record: EntityVersion.parseWal2JsonMsg(msg),
+          };
+          break;
+        case "link_versions":
+          message = {
+            table: msg.table,
+            record: LinkVersion.parseWal2JsonMsg(msg),
+          };
+          break;
+        case "aggregation_versions":
+          message = {
+            table: msg.table,
+            record: AggregationVersion.parseWal2JsonMsg(msg),
+          };
+          break;
+        default:
+          throw new Error(
+            `Unexpected record from table '${msg.table}' when processing message.`,
+          );
+      }
 
       for (const subscriber of this.subscriptions) {
         try {
-          await subscriber(entityVersion);
+          await subscriber(message);
         } catch (err) {
           logger.error("Error in notifying of entity change", err);
         }
