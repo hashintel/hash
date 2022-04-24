@@ -33,12 +33,6 @@ export const useBlockProtocolCreateLinks = (): {
           throw new Error("createLinks needs to be passed a sourceAccountId");
         }
 
-        if (!("destinationAccountId" in action)) {
-          throw new Error(
-            "One of operation or destinationEntityId must be provided",
-          );
-        }
-
         const { data, errors } = await runCreateLinksMutation({
           variables: {
             link: {
