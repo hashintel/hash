@@ -7,6 +7,8 @@ export * from "./ui/popover";
 export * from "./ui/submit-button-wrapper";
 export * from "./ui/text-field";
 export * from "./ui/form-inline";
+export * from "./ui/chip";
+export * from "./ui/chip-group";
 
 export * from "./ui/theme";
 export * from "./ui/utils";
