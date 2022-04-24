@@ -1,5 +1,5 @@
 diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index 20a9bbd..f89c9be 100644
+index 20a9bbd..dda5c76 100644
 --- a/node_modules/blockprotocol/core.d.ts
 +++ b/node_modules/blockprotocol/core.d.ts
 @@ -1,3 +1,6 @@
@@ -124,7 +124,7 @@ index 20a9bbd..f89c9be 100644
 +  & BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>;
 +
 +export type BlockProtocolGetLinkedAggregationAction = {
-+  sourceAccountId: string;
++  sourceAccountId?: string | null;
 +  aggregationId: string;
 +};
 +
@@ -142,12 +142,12 @@ index 20a9bbd..f89c9be 100644
 +};
 +
 +export type BlockProtocolUpdateLinkedAggregationActionFragment = {
-+  sourceAccountId: string;
++  sourceAccountId?: string | null;
 +  aggregationId: string;
 +}
 +
 +export type BlockProtocolUpdateLinkedAggregationAction =  {
-+  sourceAccountId: string;
++  sourceAccountId?: string | null;
 +  aggregationId: string;
 +  data: BlockProtocolAggregateOperationInput
 +};
@@ -180,12 +180,8 @@ index 20a9bbd..f89c9be 100644
    uploadFile?: BlockProtocolUploadFileFunction | undefined;
  };
  
-@@ -449,7 +494,7 @@ export type BlockProtocolProps = {
-   entityTypeId?: string | null;
-   entityTypeVersionId?: string | null;
-   entityTypes?: BlockProtocolEntityType[];
--  linkedAggregations?: BlockProtocolLinkedAggregation[];
-+  linkedAggregations?: BlockProtocolLinkedAggregationWithResult[];
+@@ -452,4 +497,4 @@ export type BlockProtocolProps = {
+   linkedAggregations?: BlockProtocolLinkedAggregation[];
    linkedEntities?: BlockProtocolEntity[];
    linkGroups?: BlockProtocolLinkGroup[];
 -} & BlockProtocolFunctions;
