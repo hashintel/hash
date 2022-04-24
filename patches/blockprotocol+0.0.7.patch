@@ -1,5 +1,5 @@
 diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index 20a9bbd..3691f72 100644
+index 20a9bbd..579b0b3 100644
 --- a/node_modules/blockprotocol/core.d.ts
 +++ b/node_modules/blockprotocol/core.d.ts
 @@ -1,3 +1,6 @@
@@ -95,17 +95,11 @@ index 20a9bbd..3691f72 100644
  
  export type BlockProtocolUpdateLinksFunction = {
    (actions: BlockProtocolUpdateLinksAction[]): Promise<BlockProtocolLink[]>;
-@@ -327,6 +310,73 @@ export type BlockProtocolDeleteLinksFunction = {
+@@ -327,6 +310,67 @@ export type BlockProtocolDeleteLinksFunction = {
    (actions: BlockProtocolDeleteLinksAction[]): Promise<boolean[]>;
  };
  
 +// ---------------------- LINKED AGGREGATIONS ------------------------- //
-+
-+export type SingleTargetLinkFields = {
-+  destinationEntityId: string;
-+  destinationEntityTypeId?: string | null;
-+  destinationEntityVersionId?: string | null;
-+};
 +
 +export type BlockProtocolLinkedAggregationInput = {
 +  aggregationId: string;
@@ -169,7 +163,7 @@ index 20a9bbd..3691f72 100644
  // ------------------------- ENTITY TYPES ----------------------------- //
  
  export type BlockProtocolEntityType = {
-@@ -436,6 +486,11 @@ export type BlockProtocolFunctions = {
+@@ -436,6 +480,11 @@ export type BlockProtocolFunctions = {
    deleteLinks?: BlockProtocolDeleteLinksFunction | undefined;
    updateLinks?: BlockProtocolUpdateLinksFunction | undefined;
  
@@ -181,7 +175,7 @@ index 20a9bbd..3691f72 100644
    uploadFile?: BlockProtocolUploadFileFunction | undefined;
  };
  
-@@ -449,7 +504,7 @@ export type BlockProtocolProps = {
+@@ -449,7 +498,7 @@ export type BlockProtocolProps = {
    entityTypeId?: string | null;
    entityTypeVersionId?: string | null;
    entityTypes?: BlockProtocolEntityType[];
