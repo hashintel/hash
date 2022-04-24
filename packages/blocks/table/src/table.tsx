@@ -301,7 +301,6 @@ export const Table: BlockComponent<AppProps> = ({
       void updateLinkedAggregations([
         cleanUpdateLinkedAggregationAction({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
-          sourceEntityId: matchingLinkedAggregation.sourceEntityId,
           aggregationId: matchingLinkedAggregation.aggregationId,
           data: newLinkedData.operation,
         }),
@@ -458,7 +457,6 @@ export const Table: BlockComponent<AppProps> = ({
           void updateLinkedAggregations([
             cleanUpdateLinkedAggregationAction({
               sourceAccountId: accountId,
-              sourceEntityId: entityId,
               aggregationId: tableData.linkedAggregation.aggregationId,
               data: {
                 entityTypeId: updatedEntityTypeId,

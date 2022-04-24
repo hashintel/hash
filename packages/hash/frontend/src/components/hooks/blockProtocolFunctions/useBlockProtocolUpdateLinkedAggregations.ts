@@ -33,6 +33,12 @@ export const useBlockProtocolUpdateLinkedAggregations = (): {
             );
           }
 
+          if (!action.sourceAccountId) {
+            throw new Error(
+              "updateLinkedAggregations needs to be passed a sourceAccountId",
+            );
+          }
+
           const { data, errors } = await runUpdateLinkedAggregationMutation({
             variables: {
               ...action,
