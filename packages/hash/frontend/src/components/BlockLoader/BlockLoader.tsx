@@ -56,17 +56,17 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 }) => {
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
-  const { updateEntities } = useBlockProtocolUpdateEntities();
-  const { uploadFile } = useFileUpload();
-  const { createLinks } = useBlockProtocolCreateLinks();
-  const { updateLinks } = useBlockProtocolUpdateLinks();
-  const { deleteLinks } = useBlockProtocolDeleteLinks();
   const { createLinkedAggregations } =
     useBlockProtocolCreateLinkedAggregations();
-  const { updateLinkedAggregations } =
-    useBlockProtocolUpdateLinkedAggregations();
+  const { createLinks } = useBlockProtocolCreateLinks();
   const { deleteLinkedAggregations } =
     useBlockProtocolDeleteLinkedAggregations();
+  const { deleteLinks } = useBlockProtocolDeleteLinks();
+  const { updateEntities } = useBlockProtocolUpdateEntities();
+  const { uploadFile } = useFileUpload();
+  const { updateLinkedAggregations } =
+    useBlockProtocolUpdateLinkedAggregations();
+  const { updateLinks } = useBlockProtocolUpdateLinks();
 
   const flattenedProperties = useMemo(() => {
     let flattenedLinkedEntities: UnknownEntity[] = [];
@@ -102,16 +102,16 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const functions = {
     aggregateEntityTypes,
     aggregateEntities,
+    createLinkedAggregations,
+    createLinks,
+    deleteLinkedAggregations,
+    deleteLinks,
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
     updateEntities,
     uploadFile,
-    createLinks,
     updateLinks,
-    deleteLinks,
-    createLinkedAggregations,
     updateLinkedAggregations,
-    deleteLinkedAggregations,
   };
 
   const onBlockLoaded = useBlockLoaded();

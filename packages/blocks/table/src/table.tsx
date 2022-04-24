@@ -112,6 +112,7 @@ export const Table: BlockComponent<AppProps> = ({
   accountId,
   aggregateEntities,
   aggregateEntityTypes,
+  createLinkedAggregations,
   entityId,
   entityTypeId,
   entityTypes: schemas,
@@ -120,7 +121,6 @@ export const Table: BlockComponent<AppProps> = ({
   linkedAggregations,
   updateEntities,
   updateLinkedAggregations,
-  createLinkedAggregations,
 }) => {
   const matchingLinkedAggregation = useMemo(() => {
     if (!entityId) {
