@@ -52,16 +52,25 @@ export const App: BlockComponent<AppProps> = ({
     });
   };
 
-  const updateRemoteData = () => {
+  const updateRemoteData = (properties: AppProps) => {
     void updateEntities?.([
       {
         accountId,
-        data: localData,
+        data: properties,
         entityId,
         entityTypeId,
         entityTypeVersionId,
       },
     ] as BlockProtocolUpdateEntitiesAction[]);
+  };
+
+  const handleLanguageChange = (newLanguage: LanguageType) => {
+    const newData = {
+      ...localData,
+      language: newLanguage,
+    };
+    updateLocalData(newData);
+    updateRemoteData(newData);
   };
 
   const copyToClipboard = async () => {
@@ -108,7 +117,7 @@ export const App: BlockComponent<AppProps> = ({
 
   const handleCaptionInputBlur = () => {
     setCaptionVisibility(!!captionRef.current?.value.length);
-    updateRemoteData();
+    updateRemoteData(localData);
   };
 
   return (
@@ -123,7 +132,7 @@ export const App: BlockComponent<AppProps> = ({
             className={tw`py-1 px-2 bg-transparent cursor-pointer hover:bg-black hover:bg-opacity-10 rounded-md `}
             value={localData.language}
             onChange={(evt) =>
-              updateLocalData({ language: evt.target.value as LanguageType })
+              handleLanguageChange(evt.target.value as LanguageType)
             }
           >
             {languages.map(({ code, title }) => (
@@ -156,7 +165,7 @@ export const App: BlockComponent<AppProps> = ({
           setContent={(text) => updateLocalData({ content: text })}
           language={localData.language}
           editorRef={editorRef}
-          onBlur={updateRemoteData}
+          onBlur={() => updateRemoteData(localData)}
         />
       </div>
       <input
