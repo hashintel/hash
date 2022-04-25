@@ -1,22 +1,245 @@
-import { BlockProtocolEntity } from "blockprotocol";
+import { BlockProtocolEntity, BlockProtocolEntityType } from "blockprotocol";
 import * as React from "react";
+// eslint-disable-next-line no-restricted-imports
+import Button from "@mui/material/Button";
+import Box from "@mui/material/Box";
+import Autocomplete from "@mui/material/Autocomplete";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 
 import { EChart, SeriesOption, ECOption } from "./e-chart";
-
-type GraphProps = {
-  title: string;
-  xAxisName: string;
-  yAxisName: string;
-  fetchEntitiesOfType: (params: {
-    entityTypeId: string;
-  }) => Promise<BlockProtocolEntity[]>;
-};
 
 type SeriesDefinition = {
   seriesType: SeriesOption["type"];
   entityTypeId: string;
   xValuePropertyKey: string;
   yValuePropertyKey: string;
+};
+
+const parsePossiblePropertyKeysFromEntityType = (
+  entityType: BlockProtocolEntityType,
+) =>
+  entityType.properties && typeof entityType.properties === "object"
+    ? Object.keys(entityType.properties)
+    : [];
+
+const CreateNewSeriesDefinition: React.FC<{
+  possibleEntityTypes: BlockProtocolEntityType[];
+  createNewDefinition: (params: { definition: SeriesDefinition }) => void;
+}> = ({ createNewDefinition, possibleEntityTypes }) => {
+  const [newDefinition, setNewDefinition] = React.useState<{
+    entityType?: BlockProtocolEntityType;
+    xValuePropertyKey?: string;
+    yValuePropertyKey?: string;
+  }>({});
+
+  const possiblePropertyKeys = React.useMemo(
+    () =>
+      newDefinition.entityType
+        ? parsePossiblePropertyKeysFromEntityType(newDefinition.entityType)
+        : [],
+    [newDefinition.entityType],
+  );
+
+  const handleCreate = () => {
+    if (
+      !newDefinition.entityType ||
+      !newDefinition.xValuePropertyKey ||
+      !newDefinition.yValuePropertyKey
+    ) {
+      return;
+    }
+    createNewDefinition({
+      definition: {
+        seriesType: "scatter",
+        entityTypeId: newDefinition.entityType.entityTypeId,
+        xValuePropertyKey: newDefinition.xValuePropertyKey,
+        yValuePropertyKey: newDefinition.yValuePropertyKey,
+      },
+    });
+  };
+
+  return (
+    <Box display="flex" width="100%">
+      <Autocomplete
+        sx={{ flexGrow: 1 }}
+        options={possibleEntityTypes}
+        renderInput={(params) => <TextField {...params} label="Entity Type" />}
+        value={newDefinition.entityType}
+        getOptionLabel={({ title }) => title}
+        disableClearable
+        onChange={(_, selectedEntityType) => {
+          if (selectedEntityType) {
+            setNewDefinition({
+              entityType: selectedEntityType,
+            });
+          }
+        }}
+      />
+      <Autocomplete
+        sx={{ flexGrow: 1 }}
+        disabled={!newDefinition.entityType}
+        options={possiblePropertyKeys}
+        renderInput={(params) => (
+          <TextField {...params} label="X Axis Property" />
+        )}
+        disableClearable
+        value={newDefinition.xValuePropertyKey}
+        onChange={(_, selectedXValuePropertyKey) => {
+          if (selectedXValuePropertyKey) {
+            setNewDefinition((prev) => ({
+              ...prev,
+              xValuePropertyKey: selectedXValuePropertyKey,
+            }));
+          }
+        }}
+      />
+      <Autocomplete
+        sx={{ flexGrow: 1 }}
+        disabled={!newDefinition.entityType}
+        options={possiblePropertyKeys}
+        renderInput={(params) => (
+          <TextField {...params} label="Y Axis Property" />
+        )}
+        disableClearable
+        value={newDefinition.yValuePropertyKey}
+        onChange={(_, selectedYValuePropertyKey) => {
+          if (selectedYValuePropertyKey) {
+            setNewDefinition((prev) => ({
+              ...prev,
+              yValuePropertyKey: selectedYValuePropertyKey,
+            }));
+          }
+        }}
+      />
+      <Button
+        variant="contained"
+        disabled={
+          !newDefinition.entityType ||
+          !newDefinition.xValuePropertyKey ||
+          !newDefinition.yValuePropertyKey
+        }
+        onClick={handleCreate}
+      >
+        Create
+      </Button>
+    </Box>
+  );
+};
+
+const EditableGraphSeriesDefinitions: React.FC<{
+  possibleEntityTypes: BlockProtocolEntityType[];
+  existingDefinitions: SeriesDefinition[];
+  setExistingDefinitions: React.Dispatch<
+    React.SetStateAction<SeriesDefinition[]>
+  >;
+}> = ({ possibleEntityTypes, existingDefinitions, setExistingDefinitions }) => {
+  const [creatingNewDefinition, setCreatingNewDefinition] =
+    React.useState<boolean>(false);
+
+  const handleAddSeries = () => {
+    setCreatingNewDefinition(true);
+  };
+
+  const handleCreateNewDefinition = (params: {
+    definition: SeriesDefinition;
+  }) => {
+    setExistingDefinitions((prevDefinitions) => [
+      ...prevDefinitions,
+      params.definition,
+    ]);
+    setCreatingNewDefinition(false);
+  };
+
+  return (
+    <>
+      <h2>Graph Series Definitions</h2>
+      {existingDefinitions.map(
+        ({ entityTypeId, xValuePropertyKey, yValuePropertyKey }, i) => {
+          const entityType = possibleEntityTypes.find(
+            (possibleEntityType) =>
+              possibleEntityType.entityTypeId === entityTypeId,
+          );
+
+          if (!entityType) {
+            return null;
+          }
+
+          const possiblePropertyKeys =
+            parsePossiblePropertyKeysFromEntityType(entityType);
+
+          return (
+            <Box display="flex" key={entityTypeId}>
+              <Typography sx={{ flexGrow: 1 }}>{entityType.title}</Typography>
+              <Autocomplete
+                sx={{ flexGrow: 1 }}
+                options={possiblePropertyKeys}
+                renderInput={(params) => (
+                  <TextField {...params} label="X Axis Property" />
+                )}
+                disableClearable
+                value={xValuePropertyKey}
+                onChange={(_, selectedXValuePropertyKey) => {
+                  if (selectedXValuePropertyKey) {
+                    setExistingDefinitions((prev) => [
+                      ...prev.slice(0, i),
+                      {
+                        ...prev[i]!,
+                        xValuePropertyKey: selectedXValuePropertyKey,
+                      },
+                      ...prev.slice(i + 1),
+                    ]);
+                  }
+                }}
+              />
+              <Autocomplete
+                sx={{ flexGrow: 1 }}
+                options={possiblePropertyKeys}
+                renderInput={(params) => (
+                  <TextField {...params} label="Y Axis Property" />
+                )}
+                disableClearable
+                value={yValuePropertyKey}
+                onChange={(_, selectedYValuePropertyKey) => {
+                  if (selectedYValuePropertyKey) {
+                    setExistingDefinitions((prev) => [
+                      ...prev.slice(0, i),
+                      {
+                        ...prev[i]!,
+                        yValuePropertyKey: selectedYValuePropertyKey,
+                      },
+                      ...prev.slice(i + 1),
+                    ]);
+                  }
+                }}
+              />
+            </Box>
+          );
+        },
+      )}
+      {creatingNewDefinition ? (
+        <CreateNewSeriesDefinition
+          possibleEntityTypes={possibleEntityTypes}
+          createNewDefinition={handleCreateNewDefinition}
+        />
+      ) : (
+        <Button variant="contained" onClick={handleAddSeries}>
+          Add Series
+        </Button>
+      )}
+    </>
+  );
+};
+
+type GraphProps = {
+  title: string;
+  xAxisName: string;
+  yAxisName: string;
+  possibleEntityTypes: BlockProtocolEntityType[];
+
+  fetchEntitiesOfType: (params: {
+    entityTypeId: string;
+  }) => Promise<BlockProtocolEntity[]>;
 };
 
 type Series = NonNullable<ECOption["series"]>;
@@ -26,15 +249,11 @@ export const Graph: React.FC<GraphProps> = ({
   xAxisName,
   yAxisName,
   fetchEntitiesOfType,
+  possibleEntityTypes,
 }) => {
-  const [seriesDefinitions] = React.useState<SeriesDefinition[]>([
-    {
-      seriesType: "scatter",
-      entityTypeId: "91288e7d-dde6-47cf-b388-b3330073dba7",
-      xValuePropertyKey: "x",
-      yValuePropertyKey: "y",
-    },
-  ]);
+  const [seriesDefinitions, setSeriesDefinitions] = React.useState<
+    SeriesDefinition[]
+  >([]);
 
   const [series, setSeries] = React.useState<Series>([]);
 
@@ -107,6 +326,11 @@ export const Graph: React.FC<GraphProps> = ({
           },
           series,
         }}
+      />
+      <EditableGraphSeriesDefinitions
+        possibleEntityTypes={possibleEntityTypes}
+        existingDefinitions={seriesDefinitions}
+        setExistingDefinitions={setSeriesDefinitions}
       />
     </>
   );
