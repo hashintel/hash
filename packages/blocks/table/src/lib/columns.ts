@@ -1,4 +1,4 @@
-import { isRecord } from "./identifyEntity";
+import { isRecord } from "./identify-entity";
 
 type TableColumn = { Header: string; accessor: string } & {
   columns?: TableColumn[];
