@@ -198,6 +198,7 @@ jobs:
           - ""
     env:
       OUTPUT_DIRECTORY: test-results
+      RUST_BACKTRACE: 1
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
