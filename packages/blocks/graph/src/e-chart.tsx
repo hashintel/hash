@@ -24,7 +24,7 @@ type GraphProps = {
   options: ECOption;
 };
 
-export const Graph: React.FC<GraphProps> = ({ options }) => {
+export const EChart: React.FC<GraphProps> = ({ options }) => {
   const wrapperRef = React.useRef<HTMLDivElement>(null);
 
   const [chart, setChart] = React.useState<echarts.ECharts>();

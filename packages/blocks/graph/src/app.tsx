@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
-import { Graph, SeriesOption, ECOption } from "./graph";
+import { EChart, SeriesOption, ECOption } from "./e-chart";
 
 type AppProps = {};
 
@@ -106,7 +106,7 @@ export const App: BlockComponent<AppProps> = ({
   return (
     <>
       <h1>{graphDefinition.title}</h1>
-      <Graph
+      <EChart
         options={{
           yAxis: {
             type: "value",
