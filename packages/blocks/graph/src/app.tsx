@@ -9,23 +9,30 @@ export const App: BlockComponent<AppProps> = ({
   accountId,
   aggregateEntities,
 }) => {
+  const fetchEntitiesOfType = React.useCallback(
+    (params: { entityTypeId: string }) => {
+      if (!aggregateEntities) {
+        throw new Error(
+          "aggregateEntities is required to render the Graph block",
+        );
+      }
+
+      const { entityTypeId } = params;
+
+      return aggregateEntities({
+        accountId,
+        operation: { entityTypeId },
+      }).then(({ results }) => results);
+    },
+    [aggregateEntities, accountId],
+  );
+
   return (
     <Graph
       title="Graph"
       yAxisName="Y Axis"
       xAxisName="X Axis"
-      fetchEntitiesOfType={({ entityTypeId }) => {
-        if (!aggregateEntities) {
-          throw new Error(
-            "aggregateEntities is required to render the Graph block",
-          );
-        }
-
-        return aggregateEntities({
-          accountId,
-          operation: { entityTypeId },
-        }).then(({ results }) => results);
-      }}
+      fetchEntitiesOfType={fetchEntitiesOfType}
     />
   );
 };
