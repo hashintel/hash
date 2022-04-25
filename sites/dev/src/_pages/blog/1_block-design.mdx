@@ -136,15 +136,33 @@ To make this easy and quick for users, show them an empty state with:
 2.  Details about what kind of data your block will accept and any limitations, such as "Accepts PNG or JPEG under 25mb"
 3.  A clear button or input element where they can search for data, select from a list, upload a file, or add a URL
 
+<img
+  src="blog/1_block-design/DesignGuidelines_5.png"
+  width={685}
+  height={603}
+  alt="Example image"
+/>
+
+Once they have entered or selected data, ensure you design a loading state that lets them know if they need to wait a moment for the data to load. If the loading process might take a while, giving them buttons to pause and resume it may also be a good idea. Clear feedback and [visibilty of system status](https://www.google.com/search?q=ux+visibility+system+status) is always critical to help users feel informed and in control.
+
+<img
+  src="blog/1_block-design/DesignGuidelines_6.png"
+  width={661}
+  height={238}
+  alt="Example image"
+/>
+
 #### 4. Create generous touch targets
 
 Touch targets are any area of the screen users will need to click - buttons, icons that trigger actions, or links.
 
-Humans have fat little fingers and we're bad at accurately poking them at screens. On mobile devices, you should make sure any clickable elements are at least 44px wide and high. We're slightly better at hitting targets in the middle of the screen than on the edges. If your touch target is on the edge or corner, bump it up to 50px.
+Humans have fat little fingers and we're bad at accurately poking them at screens. On mobile devices, you should make sure any clickable elements are at least 44px wide and high. We're slightly better at hitting targets in the middle of the screen than ones on the edges. If your touch target is on the edge or corner, bump it up to 50px.
 
 This doesn't mean the icons and text on buttons need to be that large – only the clickable space around it.
 
-We're slightly better at maneouvering a cursor onto a target on desktops, but not by much. Clickable targets should be at least 40px wide and high. You can be sensibly flexible with this; if you have a button that is only 30px high but 200px wide that will do. The general rule is that larger targets = quicker and easier to click.
+We're slightly better at manoeuvring a cursor onto a target on desktops, but not by much. Clickable targets should be at least 40px wide and high. You can be sensibly flexible with this; if you have a button that is only 30px high but 200px wide that will do.
+
+The general rule is that larger targets = quicker and easier to click.
 
 #### 5. Make interactive and editable elements obvious
 
@@ -160,7 +178,16 @@ This approach of using subtle depth, lighting, and colour cues to indicate which
 
 The a11y project has a great [checklist](https://www.a11yproject.com/checklist/#content) you can work through to make sure your blocks meet the basic requirements.
 
-Two common mistakes are having low colour contrast levels and forgetting to include alt tags on images.
+The most common mistakes in this department are usually related to colour choices and contrast levels. Any essential text, icons, and elements in your block should have a contrast rating that meets AA standards. That means the contrast ratio between the foreground and background needs to be 3.0:1 for all borders, icons, and text larger than 18px and 4.5:1 for all text smaller than 18px.
+
+<img
+  src="blog/1_block-design/DesignGuidelines_7.png"
+  width={997}
+  height={403}
+  alt="Example image"
+/>
+
+To test the contrast levels of your palette, you can use sites like [colourcontrast.cc](https://colourcontrast.cc/). If you're designing mockups in Figma, plugins like [Stark](https://www.figma.com/community/plugin/732603254453395948/Stark) can help automatically check designs for you.
 
 #### 7. Co-locate data and actions
 
@@ -182,13 +209,9 @@ There's nothing less enticing than a mysterious icon in the corner of an app tha
 
 --- image of mystery icons in a toolbar ---
 
-<p style={{ margin: "0 auto 2rem", fontSize: "80%" }}>
-  Who doesn't like a little russian roulette in their SaaS app?
-</p>
-
 Ideally, icons should always have text labels next to them. This prevents users from having to guess what the icon means. This is especially important if you're using icons that aren't widely used in other applications.
 
-Since we live in a world where we don't have infinite screen screen, it can be tricky to fit labels on everything. You should put labels inside tooltips that appear when a user hovers over the icon. This is a better solution for desktop than mobile, as we can't hover with our fingers (yet... still waiting for Apple to figure that one out). For mobile it's more important to show the text label in lieu of a tooltip.
+Since we live in a world where we don't have infinite screen space, it can be tricky to fit labels on everything. You should put labels inside tooltips that appear when a user hovers over the icon. This is a better solution for desktop than mobile, as we can't hover with our fingers (yet... still waiting for Apple to figure that one out). For mobile it's more important to show the text label in lieu of a tooltip.
 
 ---
 
@@ -200,8 +223,14 @@ If you're working on a block and you want it to be _really_ great, you should fi
 
 ## Bug fix image dump
 
-![](blog/1_block-design/DesignGuidelines_4.png)
+![Example Image](blog/1_block-design/DesignGuidelines_1.png)
 
 ![Example Image](blog/1_block-design/DesignGuidelines_3.png)
 
-![Example Image](blog/1_block-design/DesignGuidelines_1.png)
+![](blog/1_block-design/DesignGuidelines_4.png)
+
+![](blog/1_block-design/DesignGuidelines_5.png)
+
+![](blog/1_block-design/DesignGuidelines_6.png)
+
+![](blog/1_block-design/DesignGuidelines_7.png)
