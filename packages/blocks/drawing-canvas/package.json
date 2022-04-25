@@ -1,0 +1,43 @@
+{
+  "name": "drawing-canvas",
+  "version": "0.0.0",
+  "description": "drawing-canvas block",
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
+  "license": "MIT",
+  "author": "teenoh",
+  "scripts": {
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "@tldraw/tldraw": "1.10.0",
+    "blockprotocol": "0.0.8",
+    "mobx": "6.5.0"
+  },
+  "devDependencies": {
+    "block-scripts": "0.0.2",
+    "mock-block-dock": "0.0.7",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 63212
+  },
+  "blockprotocol": {
+    "displayName": "Drawing Canvas",
+    "examples": [
+      {}
+    ],
+    "icon": "public/omega.svg",
+    "image": "public/block-preview.svg"
+  }
+}
