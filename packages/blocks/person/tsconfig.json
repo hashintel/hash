@@ -1,15 +1,5 @@
 {
-  "extends": "../tsconfig.base.json",
-  "compilerOptions": {
-    // specifics
-    "allowJs": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "noEmit": true,
-
-    // overrides
-    "lib": ["dom", "dom.iterable", "esnext"]
-  },
-  "include": ["./src/"],
+  "extends": "@hashintel/tsconfig/block.json",
+  "include": ["src"],
   "exclude": ["node_modules"]
 }

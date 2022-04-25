@@ -23,7 +23,6 @@ import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "./[page-slug].page/page-transfer-dropdown";
 import { NextPageWithLayout, getLayoutWithSidebar } from "../../shared/layout";
-import { RemoteBlockMetadata } from "../../blocks/userBlocks";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 
 // Apparently defining this is necessary in order to get server rendered props?
@@ -68,10 +67,6 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
       blocksMeta,
       (blockMeta) => blockMeta.componentMetadata.componentId,
     );
-  }, [blocksMeta]);
-
-  const initialUserBlocks: RemoteBlockMetadata[] = useMemo(() => {
-    return blocksMeta.map((blockMeta) => blockMeta.componentMetadata);
   }, [blocksMeta]);
 
   const [pageState, setPageState] = useState<"normal" | "transferring">(
@@ -164,7 +159,6 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
           <PageBlock
             accountId={data.page.accountId}
             blocksMeta={blocksMetaMap}
-            initialUserBlocks={initialUserBlocks}
             entityId={data.page.entityId}
           />
         </CollabPositionProvider>

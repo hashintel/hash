@@ -17,14 +17,10 @@ export const BlockLoaderInput: React.VFC = () => {
   const [blockUrl, setBlockUrl] = useState("");
   const blockUrlRef = useRef<HTMLInputElement | null>(null);
 
-  const isDefinedBlock = userBlocks.some(
-    (userBlock) =>
-      createNormalizedBlockUrl(userBlock.componentId) ===
-      createNormalizedBlockUrl(blockUrl),
-  );
+  const isDefinedBlock = !!userBlocks[createNormalizedBlockUrl(blockUrl)];
   const isValidBlockUrl = Boolean(blockUrlRef.current?.validity.valid);
 
-  const inputDisabled = isDefinedBlock || !isValidBlockUrl || error != null;
+  const inputDisabled = !isValidBlockUrl || error != null;
 
   const loadBlockFromUrl = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -43,16 +39,16 @@ export const BlockLoaderInput: React.VFC = () => {
       .then((blockMeta) => {
         unstable_batchedUpdates(() => {
           setError(null);
-          setUserBlocks((prevUserBlocks) => [
+          setUserBlocks((prevUserBlocks) => ({
             ...prevUserBlocks,
-            blockMeta.componentMetadata,
-          ]);
+            [normalizedUrl]: blockMeta,
+          }));
         });
         return blockView.manager.createRemoteBlock(normalizedUrl);
       })
       .then((block) => {
-        const { view } = blockView;
-        view.dispatch(view.state.tr.insert(pos, block));
+        const { editorView } = blockView;
+        editorView.dispatch(editorView.state.tr.insert(pos, block));
       })
       .catch((err) => {
         // eslint-disable-next-line no-console -- requires individual debugging
@@ -102,7 +98,7 @@ export const BlockLoaderInput: React.VFC = () => {
           type="submit"
         >
           {isDefinedBlock
-            ? "Block already defined"
+            ? "Re-load block"
             : !isValidBlockUrl
             ? "Invalid URL"
             : error

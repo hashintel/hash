@@ -87,7 +87,7 @@ export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
             blockSuggesterProps.onChange(option.variant, option.meta);
             popupState?.close();
           }}
-          key={`${option.meta.name}/${option.variant.name}`}
+          key={`${option.meta.componentId}/${option.variant.name}`}
         >
           <ListItemIcon>
             <Box

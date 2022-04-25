@@ -77,6 +77,8 @@ import {
   executeGithubDiscoverTask,
   executeGithubReadTask,
 } from "./taskExecutor";
+import { getLink } from "./link/getLink";
+import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
 
 export const resolvers = {
   Query: {
@@ -92,6 +94,8 @@ export const resolvers = {
     entity: loggedInAndSignedUp(entity),
     entities: loggedInAndSignedUp(canAccessAccount(entities)),
     getEntityType: loggedInAndSignedUp(getEntityType),
+    getLink: loggedInAndSignedUp(getLink),
+    getLinkedAggregation: loggedInAndSignedUp(getLinkedAggregation),
     page: canAccessAccount(page),
     getImpliedEntityHistory: loggedInAndSignedUp(getImpliedEntityHistory),
     getImpliedEntityVersion: loggedInAndSignedUp(getImpliedEntityVersion),
