@@ -60,11 +60,14 @@ export class EntityWatcher {
      */
     if (msg.action !== "D") {
       const message: RealtimeMessage =
-        table === "entity_versions"
-          ? { table, record: EntityVersion.parseWal2JsonMsg(msg) }
-          : table === "link_versions"
-          ? { table, record: LinkVersion.parseWal2JsonMsg(msg) }
-          : { table, record: AggregationVersion.parseWal2JsonMsg(msg) };
+        msg.table === "entity_versions"
+          ? { table: msg.table, record: EntityVersion.parseWal2JsonMsg(msg) }
+          : msg.table === "link_versions"
+          ? { table: msg.table, record: LinkVersion.parseWal2JsonMsg(msg) }
+          : {
+              table: msg.table,
+              record: AggregationVersion.parseWal2JsonMsg(msg),
+            };
 
       for (const subscriber of this.subscriptions) {
         try {
