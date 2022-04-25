@@ -333,6 +333,7 @@ const updateBlocks = defineOperation(
                   savedChildEntity.properties,
                 )
               ) {
+                // console.log("got here")
                 if (draftChildEntity.entityId !== savedChildEntity.entityId) {
                   updates.push({
                     swapBlockData: {
@@ -343,13 +344,16 @@ const updateBlocks = defineOperation(
                     },
                   });
                 } else {
-                  updates.push({
-                    updateEntity: {
-                      entityId: savedChildEntity.entityId,
-                      accountId: savedChildEntity.accountId,
-                      properties: draftChildEntity.properties,
-                    },
-                  });
+                  // figure out why it also gets to this point
+                  // after getting to the conditional above
+                  // console.log("got to else too")
+                  // updates.push({
+                  //   updateEntity: {
+                  //     entityId: savedChildEntity.entityId,
+                  //     accountId: savedChildEntity.accountId,
+                  //     properties: draftChildEntity.properties,
+                  //   },
+                  // });
                 }
               }
             }
