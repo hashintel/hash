@@ -283,7 +283,7 @@ export class Instance {
       const affectedEntityRefs: LatestEntityRef[] =
         table === "entity_versions"
           ? [getEntityRef(record)] // an entity itself has been updated - get its ref
-          : await getEntityRefsFromLinkOrAggregation(record); // a link has been updated - get the linked entities
+          : await getEntityRefsFromLinkOrAggregation(record); // a link or linked aggregation has been updated - get the affected entities
 
       /**
        * Determine which blocks to refresh by checking if any of the entities within it are affected
