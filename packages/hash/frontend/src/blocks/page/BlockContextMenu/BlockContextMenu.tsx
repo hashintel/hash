@@ -31,7 +31,7 @@ import { LoadEntityMenuContent } from "./LoadEntityMenuContent";
 import { BlockListMenuContent } from "./BlockListMenuContent";
 
 type BlockContextMenuProps = {
-  blockData: BlockEntity | null;
+  blockEntity: BlockEntity | null;
   popupState: PopupState;
   blockSuggesterProps: BlockSuggesterProps;
   entityId: string | null;
@@ -45,7 +45,7 @@ export const BlockContextMenu = forwardRef<
   BlockContextMenuProps
 >(
   (
-    { blockData, popupState, blockSuggesterProps, entityId, openConfigMenu },
+    { blockEntity, popupState, blockSuggesterProps, entityId, openConfigMenu },
     ref,
   ) => {
     const { data: users } = useUsers();
@@ -54,7 +54,8 @@ export const BlockContextMenu = forwardRef<
 
     const menuItems = useMemo(() => {
       const hasChildEntity =
-        Object.keys(blockData?.properties.entity?.properties ?? {}).length > 0;
+        Object.keys(blockEntity?.properties.entity?.properties ?? {}).length >
+        0;
       const items = [
         {
           key: "set-entity",
@@ -120,7 +121,13 @@ export const BlockContextMenu = forwardRef<
       }
 
       return items;
-    }, [blockData, entityId, blockSuggesterProps, openConfigMenu, popupState]);
+    }, [
+      blockEntity,
+      entityId,
+      blockSuggesterProps,
+      openConfigMenu,
+      popupState,
+    ]);
 
     useKey(["Escape"], () => {
       popupState.close();
@@ -204,12 +211,12 @@ export const BlockContextMenu = forwardRef<
               users.find(
                 (account) =>
                   account.entityId ===
-                  blockData?.properties.entity.createdByAccountId,
+                  blockEntity?.properties.entity.createdByAccountId,
               )?.name
             }
           </Typography>
 
-          {typeof blockData?.properties.entity.updatedAt === "string" && (
+          {typeof blockEntity?.properties.entity.updatedAt === "string" && (
             <Typography
               variant="microText"
               sx={({ palette }) => ({
@@ -217,12 +224,12 @@ export const BlockContextMenu = forwardRef<
               })}
             >
               {format(
-                new Date(blockData.properties.entity.updatedAt),
+                new Date(blockEntity.properties.entity.updatedAt),
                 "hh.mm a",
               )}
               {", "}
               {format(
-                new Date(blockData.properties.entity.updatedAt),
+                new Date(blockEntity.properties.entity.updatedAt),
                 "dd/MM/yyyy",
               )}
             </Typography>

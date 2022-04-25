@@ -106,7 +106,6 @@ const ConfigurationInput: VoidFunctionComponent<{
           }}
           select={!!enumList}
           value={draftValue}
-          variant="outlined"
         >
           {(enumList ?? []).map((option: string) => (
             <MenuItem key={option} value={option}>
@@ -135,7 +134,7 @@ const ConfigurationInput: VoidFunctionComponent<{
 
 type BlockConfigMenuProps = {
   anchorRef: ForwardedRef<HTMLDivElement>;
-  blockData: BlockEntity | null;
+  blockEntity: BlockEntity | null;
   blockSchema?: JsonSchema | null;
   closeMenu: () => void;
   popupState: PopupState;
@@ -149,7 +148,7 @@ type BlockConfigMenuProps = {
  */
 export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
   anchorRef,
-  blockData,
+  blockEntity,
   blockSchema,
   closeMenu,
   popupState,
@@ -159,7 +158,7 @@ export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
 
   const configProperties = extractConfigPropertySchemas(blockSchema ?? {});
 
-  const entityData = blockData?.properties.entity.properties as
+  const entityData = blockEntity?.properties.entity.properties as
     | JSONObject
     | undefined;
 
@@ -183,7 +182,7 @@ export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
             onChange={(value: any) => updateConfig({ [name]: value })}
             rootSchema={blockSchema ?? {}}
             propertySchema={schema}
-            value={entityData?.[name]}
+            value={entityData?.[name] ?? ""}
           />
         </Box>
       ))}

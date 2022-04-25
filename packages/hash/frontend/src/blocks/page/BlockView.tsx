@@ -67,18 +67,18 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
      * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
      * @todo remove this comment when all updates are sent via collab
      */
-    const blockData = entityId
+    const blockEntity = entityId
       ? getDraftEntityFromEntityId(entityStore.draft, entityId) ?? null
       : null;
 
-    if (blockData && !isBlockEntity(blockData)) {
+    if (blockEntity && !isBlockEntity(blockEntity)) {
       throw new Error(`Non-block entity ${entityId} loaded into BlockView.`);
     }
 
     const blockView = useBlockView();
 
     const updateChildEntity = (properties: JSONObject) => {
-      const childEntity = blockData?.properties.entity;
+      const childEntity = blockEntity?.properties.entity;
       if (!childEntity) {
         throw new Error(`No child entity on block to update`);
       }
@@ -88,8 +88,8 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
       );
     };
 
-    const blockSchema = blockData
-      ? blocksMetaMap[blockData.properties.componentId]?.componentSchema
+    const blockSchema = blockEntity
+      ? blocksMetaMap[blockEntity.properties.componentId]?.componentSchema
       : null;
 
     return (
@@ -104,7 +104,7 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
         <DragVerticalIcon {...bindTrigger(contextMenuPopupState)} />
 
         <BlockContextMenu
-          blockData={blockData}
+          blockEntity={blockEntity}
           entityId={entityId}
           blockSuggesterProps={blockSuggesterProps}
           openConfigMenu={configMenuPopupState.open}
@@ -114,7 +114,7 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
 
         <BlockConfigMenu
           anchorRef={ref}
-          blockData={blockData}
+          blockEntity={blockEntity}
           blockSchema={blockSchema}
           closeMenu={configMenuPopupState.close}
           updateConfig={(properties: JSONObject) =>
