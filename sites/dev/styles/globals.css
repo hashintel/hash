@@ -5,3 +5,7 @@ code {
     border-radius: 0.25rem;
     border: 1px solid #DDE7F0;
 }
+
+pre code {
+    border: none;
+}
