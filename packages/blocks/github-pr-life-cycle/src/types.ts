@@ -1,0 +1,68 @@
+export interface GitHubIssueEvent {
+  repository?: string;
+  id?: null | number;
+  node_id?: null | string;
+  url?: null | string;
+  actor?: null | {
+    login?: null | string;
+    id?: null | number;
+    node_id?: null | string;
+    avatar_url?: null | string;
+    gravatar_id?: null | string;
+    url?: null | string;
+    html_url?: null | string;
+    followers_url?: null | string;
+    following_url?: null | string;
+    gists_url?: null | string;
+    starred_url?: null | string;
+    subscriptions_url?: null | string;
+    organizations_url?: null | string;
+    repos_url?: null | string;
+    events_url?: null | string;
+    received_events_url?: null | string;
+    type?: null | string;
+    site_admin?: null | boolean;
+    [k: string]: unknown;
+  };
+  event?: null | string;
+  commit_id?: null | string;
+  commit_url?: null | string;
+  created_at?: null | string;
+  issue?: null | {
+    id?: null | number;
+    node_id?: null | string;
+    url?: null | string;
+    repository_url?: null | string;
+    labels_url?: null | string;
+    comments_url?: null | string;
+    events_url?: null | string;
+    html_url?: null | string;
+    number?: null | number;
+    state?: null | string;
+    title?: null | string;
+    body?: null | string;
+    user?: null | {
+      login?: null | string;
+      id?: null | number;
+      node_id?: null | string;
+      avatar_url?: null | string;
+      gravatar_id?: null | string;
+      url?: null | string;
+      html_url?: null | string;
+      followers_url?: null | string;
+      following_url?: null | string;
+      gists_url?: null | string;
+      starred_url?: null | string;
+      subscriptions_url?: null | string;
+      organizations_url?: null | string;
+      repos_url?: null | string;
+      events_url?: null | string;
+      received_events_url?: null | string;
+      type?: null | string;
+      site_admin?: null | boolean;
+      [k: string]: unknown;
+    };
+    [k: string]: unknown;
+  };
+  [k: string]: unknown;
+}

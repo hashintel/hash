@@ -1,0 +1,44 @@
+{
+  "name": "github-pr-life-cycle",
+  "version": "0.0.0",
+  "description": "github-pr-life-cycle block",
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
+  "license": "MIT",
+  "author": "Alfred Mountfield",
+  "scripts": {
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "blockprotocol": "0.0.8"
+  },
+  "devDependencies": {
+    "block-scripts": "0.0.2",
+    "mock-block-dock": "0.0.7",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 63212
+  },
+  "blockprotocol": {
+    "displayName": "GithubPullRequestlife-cycle",
+    "examples": [
+      {}
+    ],
+    "icon": "public/omega.svg",
+    "image": "public/block-preview.svg"
+  }
+}
