@@ -156,21 +156,32 @@ Once they have entered or selected data, ensure you design a loading state that 
 
 Touch targets are any area of the screen users will need to click - buttons, icons that trigger actions, or links.
 
-Humans have fat little fingers and we're bad at accurately poking them at screens. On mobile devices, you should make sure any clickable elements are at least 44px wide and high. We're slightly better at hitting targets in the middle of the screen than ones on the edges. If your touch target is on the edge or corner, bump it up to 50px.
+Humans have fat little fingers and we're bad at accurately poking them at screens. On mobile devices, you should make sure any clickable elements are at least 44px wide and high. We're better at hitting targets in the middle of the screen than ones on the edges, so you can get away with slightly smaller targets if your icon or button is bang in the middle.
 
 This doesn't mean the icons and text on buttons need to be that large – only the clickable space around it.
 
-We're slightly better at manoeuvring a cursor onto a target on desktops, but not by much. Clickable targets should be at least 40px wide and high. You can be sensibly flexible with this; if you have a button that is only 30px high but 200px wide that will do.
+We're more accurate when manoeuvring a cursor onto a target on desktops, but not by much. Clickable targets should be at least 40px wide and high. You can be sensibly flexible with this; if you have a button that is only 30px high but 200px wide that will do.
 
 The general rule is that larger targets = quicker and easier to click.
 
 #### 5. Make interactive and editable elements obvious
 
-If the user can edit, manipulate, or input data anywhere in the block, use visual styling to make it clear.
+If the user can click, edit, manipulate, or input data anywhere in the block, make sure you visually style the element to make clear it's interactive.
 
-This means making buttons look like buttons by giving them a different background colour and clear border. It means making input fields look like input fields by giving them a border and ideally a subtle inner shadow to indicate they're "fillable". It means adding tooltips and hover styles when a user mouses over something they can act upon.
+This means making buttons look like buttons by giving them a different background colour and clear border.
 
-This approach of using subtle depth, lighting, and colour cues to indicate which elements on a page are interactive has been named "flat 2.0" design – an evolution of the previously popular flat design trends that had many [usability issues](https://www.nngroup.com/articles/flat-design/). Indicators of depth like drop shadows, inner shadows, and layering to help users understand how interface elements are related and what they can interact with.
+<img
+  src="blog/1_block-design/DesignGuidelines_8.png"
+  width={650}
+  height={178}
+  alt="Example image"
+/>
+
+It means making input fields look like input fields by giving them a border and either a subtle inner shadow or drop shadow to help them stand out. It means adding tooltips and hover styles when a user mouses over something they can act upon.
+
+This approach of using subtle depth, lighting, and colour cues to indicate which elements on a page are interactive has been named "[Flat 2.0](https://medium.com/@ux_hai/flat-2-0-why-fully-flat-design-is-outdated-95fb5609f729)" design – an evolution of the original "flat design" trends that had many [usability issues](https://www.nngroup.com/articles/flat-design/) and are less popular today.
+
+It turns out using indicators of depth like drop shadows, inner shadows, and layering to help users understand how interface elements are related and what they can interact with. We don't have to go back to full-on skeumorphic design. We just need to offer a few hints to make it obvious what can and can't be interacted with in our blocks.
 
 #### 6. Make your blocks A11y accessible
 
@@ -193,21 +204,17 @@ To test the contrast levels of your palette, you can use sites like [colourcontr
 
 Whenever the user is able to perform an action on data within the block, try to put the button or element that triggers the action as close to the data as possible.
 
-If a user is filling in a form, put the "submit" button right next to the last field.
-
-If a user is applying a set of filters, put the "apply filters" button right next to the selectors.
-
-You can also use containers and spacing to indicate a button is closely related to an area of input.
+If a user is filling in a form, put the "submit" button right next to the last field. If a user is applying a set of filters, put the "apply filters" button right next to the selectors. You can also use containers and spacing to indicate a button is closely related to an area of input.
 
 #### 8. Direct manipulation
 
-A close cousin of co-location, direct manipulation is when we allow users to directly touch and move elements on the screen to change their state. As humans with bodies, we are very used to touching and moving physical objects to manipulate them. Whenever we want to change a digital object we have the same instinct – we try to touch it (or at least, the visual represtation of it on our screens)
+A close cousin of co-location, direct manipulation is when we allow users to directly touch and move elements on the screen to change their state. As humans with bodies, we are very used to touching and moving physical objects to manipulate them. Whenever we want to change a digital object we have the same instinct – we try to touch it (or at least, the visual represtation of it on our screens).
+
+When we have to use an input element that is physically seperated or distant from the data being acted upon, we're move likely to be confused about what we're editing.
 
 #### 9. Follow conventional icon semantics and use labels
 
 There's nothing less enticing than a mysterious icon in the corner of an app that gives you no indication of what it might do. Take you to a new page? Delete all the data you just entered? Who knows!
-
---- image of mystery icons in a toolbar ---
 
 Ideally, icons should always have text labels next to them. This prevents users from having to guess what the icon means. This is especially important if you're using icons that aren't widely used in other applications.
 
@@ -234,3 +241,5 @@ If you're working on a block and you want it to be _really_ great, you should fi
 ![](blog/1_block-design/DesignGuidelines_6.png)
 
 ![](blog/1_block-design/DesignGuidelines_7.png)
+
+![](blog/1_block-design/DesignGuidelines_8.png)
