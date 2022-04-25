@@ -1,7 +1,7 @@
 {
-  "name": "graph",
+  "name": "graph-block",
   "version": "0.0.0",
-  "description": "graph block",
+  "description": "graph-block block",
   "keywords": [
     "blockprotocol",
     "blocks"
@@ -15,7 +15,8 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.8"
+    "blockprotocol": "0.0.8",
+    "echarts": "^5.3.2"
   },
   "devDependencies": {
     "block-scripts": "0.0.2",

@@ -3,6 +3,6 @@
  */
 import { App } from "./app";
 
-import "./index.css";
+import "./base.css";
 
 export default App;
