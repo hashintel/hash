@@ -1,22 +1,30 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
-import { Box, ListItemButton, Typography, useTheme } from "@mui/material";
+import {
+  Box,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import {
+  usePopupState,
+  bindMenu,
+  bindTrigger,
+} from "material-ui-popup-state/hooks";
 
 import { FontAwesomeIcon } from "../../icons";
-import { Link, Popover } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 export const NotificationsDropdown: React.FC = () => {
   const theme = useTheme();
-
-  const buttonRef = useRef(null);
-
-  const [open, setOpen] = useState(false);
   const [notificationsLength] = useState(3);
-
   const hasNotifications = !!notificationsLength;
-
-  const id = open ? "actions-popover" : undefined;
+  const popupState = usePopupState({
+    variant: "popover",
+    popupId: "notifications-dropdown-menu",
+  });
 
   return (
     <Box>
@@ -32,11 +40,11 @@ export const NotificationsDropdown: React.FC = () => {
           height: "32px",
           borderRadius: hasNotifications ? 4 : "100%",
           color:
-            hasNotifications || open
+            hasNotifications || popupState.isOpen
               ? theme.palette.common.white
               : theme.palette.gray[40],
           backgroundColor:
-            hasNotifications || open
+            hasNotifications || popupState.isOpen
               ? theme.palette.blue["70"]
               : theme.palette.gray[20],
 
@@ -53,9 +61,7 @@ export const NotificationsDropdown: React.FC = () => {
             borderRadius: hasNotifications ? 10 : "100%",
           },
         }}
-        ref={buttonRef}
-        onClick={() => setOpen(!open)}
-        open={open}
+        {...bindTrigger(popupState)}
       >
         <FontAwesomeIcon icon={faBell} />
         {hasNotifications && (
@@ -72,11 +78,8 @@ export const NotificationsDropdown: React.FC = () => {
         )}
       </HeaderIconButton>
 
-      <Popover
-        id={id}
-        open={open}
-        anchorEl={buttonRef.current}
-        onClose={() => setOpen(false)}
+      <Menu
+        {...bindMenu(popupState)}
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "right",
@@ -95,50 +98,12 @@ export const NotificationsDropdown: React.FC = () => {
           },
         }}
       >
-        <Box>
-          <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
-            <ListItemButton
-              sx={{
-                mx: 0.5,
-                mt: 0.5,
-                borderRadius: 1,
-                lineHeight: 1,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              <Typography variant="smallTextLabels">Notification 1</Typography>
-            </ListItemButton>
-          </Link>
-          <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
-            <ListItemButton
-              sx={{
-                mx: 0.5,
-                borderRadius: 1,
-                lineHeight: 1,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              <Typography variant="smallTextLabels">Notification 2</Typography>
-            </ListItemButton>
-          </Link>
-          <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
-            <ListItemButton
-              sx={{
-                mx: 0.5,
-                mb: 0.5,
-                borderRadius: 1,
-                lineHeight: 1,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              <Typography variant="smallTextLabels">Notification 3</Typography>
-            </ListItemButton>
-          </Link>
-        </Box>
-      </Popover>
+        {["Notification 1", "Notification 2", "Notification 3"].map((item) => (
+          <MenuItem key={item}>
+            <ListItemText primary={item} />
+          </MenuItem>
+        ))}
+      </Menu>
     </Box>
   );
 };

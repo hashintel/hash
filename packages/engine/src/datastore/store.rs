@@ -1,7 +1,6 @@
-use crate::datastore::{
-    error::{Error, Result},
-    table::{context::Context, state::State},
-};
+use stateful::{context::Context, state::State};
+
+use crate::datastore::error::{Error, Result};
 
 /// The underlying state of a simulation run.
 pub struct Store {

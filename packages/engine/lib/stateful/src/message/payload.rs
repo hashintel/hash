@@ -1,3 +1,7 @@
+//! Contains the payload used in [`Message`]s.
+//!
+//! [`Message`]: crate::message::Message
+
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{agent::Agent, message};
@@ -23,43 +27,43 @@ where
 
 // should the weird CreateAgent type hack be deprecated in favor of a custom serializer?
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct OutboundCreateAgent {
+pub struct CreateAgent {
     pub r#type: message::CreateAgent,
     #[serde(deserialize_with = "value_or_string_array")]
     pub to: Vec<String>,
     pub data: Agent,
 }
 
-impl OutboundCreateAgent {
+impl CreateAgent {
     pub const KIND: &'static str = "create_agent";
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct OutboundRemoveAgentData {
+pub struct RemoveAgentData {
     pub agent_id: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct OutboundRemoveAgent {
+pub struct RemoveAgent {
     pub r#type: message::RemoveAgent,
     #[serde(deserialize_with = "value_or_string_array")]
     pub to: Vec<String>,
-    pub data: OutboundRemoveAgentData,
+    pub data: RemoveAgentData,
 }
 
-impl OutboundRemoveAgent {
+impl RemoveAgent {
     pub const KIND: &'static str = "remove_agent";
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct OutboundStopSim {
+pub struct StopSim {
     pub r#type: message::StopSim,
     #[serde(deserialize_with = "value_or_string_array")]
     pub to: Vec<String>,
     pub data: Option<serde_json::Value>,
 }
 
-impl OutboundStopSim {
+impl StopSim {
     pub const KIND: &'static str = "stop";
 }
 

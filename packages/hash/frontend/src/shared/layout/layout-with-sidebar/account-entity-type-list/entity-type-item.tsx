@@ -17,8 +17,6 @@ type EntityTypeItemProps = {
 const Container = styled((props: BoxProps & { selected: boolean }) => (
   <Box component="li" {...props} />
 ))(({ theme, selected }) => ({
-  marginLeft: theme.spacing(0.5),
-  marginRight: theme.spacing(0.5),
   paddingLeft: theme.spacing(3.75),
   paddingRight: theme.spacing(0.5),
   borderRadius: "4px",

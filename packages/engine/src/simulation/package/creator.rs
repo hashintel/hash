@@ -2,16 +2,17 @@ use std::{collections::HashMap, sync::Arc};
 
 use stateful::{
     agent::AgentSchema,
+    context::ContextSchema,
     field::{
         FieldScope, FieldSource, FieldSpecMap, FieldSpecMapAccessor, FieldType, PackageId,
         RootFieldSpec, RootFieldSpecCreator,
     },
-    globals::Globals,
+    global::Globals,
 };
 
 use crate::{
     config::{ExperimentConfig, PackageConfig, SimRunConfig},
-    datastore::schema::{context::ContextSchema, last_state_index_key},
+    datastore::schema::last_state_index_key,
     simulation::{
         comms::{package::PackageComms, Comms},
         package::{
@@ -416,10 +417,6 @@ impl PackageCreators {
         }
     }
 }
-
-// TODO: this should be deleted, i.e. if this value is required use
-//      something like `get_hidden_column_name(PREVIOUS_INDEX_FIELD_NAME)`
-pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
 pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     let mut field_specs = Vec::with_capacity(13);

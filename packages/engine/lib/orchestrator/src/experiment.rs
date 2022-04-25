@@ -7,11 +7,11 @@ use std::{collections::HashMap, path::PathBuf, time::Duration};
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
-    output::{buffer::EngineExitStatus, local::config::LocalPersistenceConfig},
+    output::local::config::LocalPersistenceConfig,
     proto,
     proto::{
         ExecutionEnvironment, ExperimentId, ExperimentName, ExperimentPackageConfig,
-        ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
+        ExperimentRunBase, ExperimentRunRepr, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     simulation::command::StopStatus,
     utils::{LogFormat, LogLevel, OutputLocation},
@@ -256,7 +256,7 @@ impl Experiment {
             Err(e) => {
                 error!("Engine start timeout for experiment \"{experiment_name}\"");
                 engine_process
-                    .exit_and_cleanup(experiment_run.base.id, EngineExitStatus::Error)
+                    .exit_and_cleanup(experiment_run.base.id)
                     .await
                     .wrap_err("Failed to cleanup after failed start")?;
                 bail!(e);
@@ -272,7 +272,7 @@ impl Experiment {
         )];
         // Now we can send the init message
         let init_message = proto::InitMessage {
-            experiment: experiment_run.clone().into(),
+            experiment: ExperimentRunRepr::ExperimentRun(experiment_run.clone()),
             env: ExecutionEnvironment::None, // We don't connect to the API
             dyn_payloads: serde_json::Map::from_iter(map_iter),
         };
@@ -282,7 +282,7 @@ impl Experiment {
             .wrap_err("Could not send `Init` message")?;
         debug!("Sent init message to \"{experiment_name}\"");
 
-        let mut engine_exit_status = EngineExitStatus::Success;
+        let mut graceful_finish = true;
         loop {
             let msg: Option<proto::EngineStatus>;
             tokio::select! {
@@ -292,7 +292,7 @@ impl Experiment {
                         Exiting now.",
                         self.config.wait_timeout
                     );
-                    engine_exit_status = EngineExitStatus::Error;
+                    graceful_finish = false;
                     break;
                 }
                 exit_code = engine_process.wait() => {
@@ -301,7 +301,7 @@ impl Experiment {
                         Ok(exit_code) => error!("Engine process errored with exit code {exit_code}"),
                         Err(err) => error!("Engine process errored: {err}"),
                     }
-                    engine_exit_status = EngineExitStatus::Error;
+                    graceful_finish = false;
                     break;
                 }
                 m = engine_handle.recv() => { msg = Some(m) },
@@ -337,7 +337,7 @@ impl Experiment {
                                 );
                             }
                             StopStatus::Error => {
-                                engine_exit_status = EngineExitStatus::Error;
+                                graceful_finish = false;
                                 tracing::error!(
                                     "Simulation stopped by agent `{agent}` with an error{reason}"
                                 );
@@ -354,7 +354,7 @@ impl Experiment {
                         "There were errors from the runner when running simulation [{sim_id}]: \
                          {errs:?}"
                     );
-                    engine_exit_status = EngineExitStatus::Error;
+                    graceful_finish = false;
                 }
                 proto::EngineStatus::RunnerWarnings(sim_id, warnings) => {
                     warn!(
@@ -393,7 +393,7 @@ impl Experiment {
                 }
                 proto::EngineStatus::ProcessError(error) => {
                     error!("Got error: {error:?}");
-                    engine_exit_status = EngineExitStatus::Error;
+                    graceful_finish = false;
                     break;
                 }
                 proto::EngineStatus::Started => {
@@ -408,14 +408,11 @@ impl Experiment {
         }
         debug!("Performing cleanup");
         engine_process
-            .exit_and_cleanup(experiment_run.base.id, engine_exit_status.clone())
+            .exit_and_cleanup(experiment_run.base.id)
             .await
             .wrap_err("Could not cleanup after finish")?;
 
-        ensure!(
-            engine_exit_status == EngineExitStatus::Success,
-            "Engine didn't exit gracefully."
-        );
+        ensure!(graceful_finish, "Engine didn't exit gracefully.");
 
         Ok(())
     }

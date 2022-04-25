@@ -74,6 +74,14 @@ export const aggregationTypedef = gql`
       accountId: ID!
       operation: AggregateOperationInput!
     ): AggregationResponse!
+
+    """
+    Retrieve a linked aggregation
+    """
+    getLinkedAggregation(
+      sourceAccountId: ID!
+      aggregationId: ID!
+    ): LinkedAggregation!
   }
 
   extend type Mutation {

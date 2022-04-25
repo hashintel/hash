@@ -99,7 +99,9 @@ pub mod tests {
     use super::*;
     use crate::{
         config::{ExperimentConfig, WorkerPoolConfig},
-        proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
+        proto::{
+            ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase,
+        },
         simulation::{Error, Result},
     };
 
@@ -134,25 +136,22 @@ pub mod tests {
     fn validate_dependencies() -> Result<()> {
         let experiment_config = &Arc::new(ExperimentConfig {
             packages: Arc::new(Default::default()),
-            run: Arc::new(
-                ExperimentRunBase {
-                    name: String::new().into(),
-                    id: Uuid::new_v4(),
-                    project_base: ProjectBase {
-                        name: String::new(),
-                        initial_state: InitialState {
-                            name: InitialStateName::InitJson,
-                            src: String::new(),
-                        },
-                        globals_src: String::new(),
-                        experiments_src: None,
-                        behaviors: vec![],
-                        datasets: vec![],
-                        packages: vec![],
+            run: Arc::new(ExperimentRunRepr::ExperimentRunBase(ExperimentRunBase {
+                name: String::new().into(),
+                id: Uuid::new_v4(),
+                project_base: ProjectBase {
+                    name: String::new(),
+                    initial_state: InitialState {
+                        name: InitialStateName::InitJson,
+                        src: String::new(),
                     },
-                }
-                .into(),
-            ),
+                    globals_src: String::new(),
+                    experiments_src: None,
+                    behaviors: vec![],
+                    datasets: vec![],
+                    packages: vec![],
+                },
+            })),
             worker_pool: Arc::new(WorkerPoolConfig {
                 worker_base_config: Default::default(),
                 num_workers: 0,

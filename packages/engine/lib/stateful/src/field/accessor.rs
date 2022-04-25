@@ -75,7 +75,10 @@ impl FieldSpecMapAccessor {
 /// This Accessor is **only** intended for use by the Engine, i.e. something with root access.
 ///
 /// [`FieldSpec`]: crate::field::FieldSpec
-pub struct RootFieldSpecMapAccessor {
+// TODO: We're allowing dead code on these during development, if the engine doesn't
+//   end up needing these it might be worth removing
+#[allow(dead_code)]
+struct RootFieldSpecMapAccessor {
     pub field_spec_map: Arc<FieldSpecMap>,
 }
 

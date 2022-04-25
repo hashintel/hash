@@ -13,16 +13,12 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
       notched: false,
     },
     styleOverrides: {
-      root: ({ theme, ownerState = {} }) => ({
+      root: ({ theme }) => ({
         borderRadius: `${textFieldBorderRadius}px`,
-        paddingLeft: theme.spacing(2),
-        paddingRight: theme.spacing(2),
+        paddingLeft: 0,
+        paddingRight: 0,
         boxShadow: theme.boxShadows.xs,
-
-        ...(ownerState.size === "xs" && {
-          paddingLeft: theme.spacing(1.5),
-          paddingRight: theme.spacing(1.5),
-        }),
+        backgroundColor: theme.palette.white,
 
         "&.Mui-focused, &.Mui-focused:hover": {
           [`& .${outlinedInputClasses.notchedOutline}`]: {
@@ -37,11 +33,29 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
           display: "flex",
           alignItems: "center",
           color: theme.palette.gray[40],
+          margin: 0,
+          padding: 0,
           "& svg": { fontSize: 16 },
+
+          [`&.${inputAdornmentClasses.positionStart}`]: {
+            borderTopLeftRadius: `${textFieldBorderRadius}px`,
+            borderBottomLeftRadius: `${textFieldBorderRadius}px`,
+            paddingLeft: theme.spacing(2),
+            marginRight: theme.spacing(1.5),
+          },
+
+          [`&.${inputAdornmentClasses.positionEnd}`]: {
+            borderTopRightRadius: `${textFieldBorderRadius}px`,
+            borderBottomRightRadius: `${textFieldBorderRadius}px`,
+            paddingRight: theme.spacing(2),
+            marginLeft: theme.spacing(1.5),
+          },
         },
       }),
       input: ({ theme, ownerState = {} }) => {
-        const { error, size } = ownerState;
+        const { error, size, startAdornment, endAdornment } = ownerState;
+        const hasStartAdornment = Boolean(startAdornment);
+        const hasEndAdornment = Boolean(endAdornment);
         return {
           color: theme.palette.gray[80],
           height: "unset",
@@ -57,40 +71,30 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
 
           ...(size === "xs" && {
             ...theme.typography.smallTextLabels,
-            padding: theme.spacing(1, 0),
+            padding: theme.spacing(1, 1.5),
+            ...(hasStartAdornment && { paddingLeft: theme.spacing(0) }),
+            ...(hasEndAdornment && { paddingRight: theme.spacing(0) }),
           }),
           ...(size === "small" && {
             ...theme.typography.smallTextLabels,
-            padding: theme.spacing(1.5, 0),
+            padding: theme.spacing(1.5, 2),
+            ...(hasStartAdornment && { paddingLeft: theme.spacing(0.5) }),
+            ...(hasEndAdornment && { paddingRight: theme.spacing(0.5) }),
           }),
           ...(size === "medium" && {
             ...theme.typography.regularTextLabels,
-            padding: theme.spacing(1, 0),
+            padding: theme.spacing(1, 2),
+            ...(hasStartAdornment && { paddingLeft: theme.spacing(0.5) }),
+            ...(hasEndAdornment && { paddingRight: theme.spacing(0.5) }),
           }),
           ...(size === "large" && {
             ...theme.typography.regularTextLabels,
-            padding: theme.spacing(1.5, 0),
+            padding: theme.spacing(1.5, 2.5),
+            ...(hasStartAdornment && { paddingLeft: theme.spacing(1) }),
+            ...(hasEndAdornment && { paddingRight: theme.spacing(1) }),
           }),
         };
       },
-      adornedStart: ({ theme }) => ({
-        paddingLeft: "unset",
-        [`& .${inputAdornmentClasses.root}`]: {
-          paddingLeft: theme.spacing(2),
-          borderTopLeftRadius: `${textFieldBorderRadius}px`,
-          borderBottomLeftRadius: `${textFieldBorderRadius}px`,
-          marginRight: theme.spacing(1.5),
-        },
-      }),
-      adornedEnd: ({ theme }) => ({
-        paddingRight: "unset",
-        [`& .${inputAdornmentClasses.root}`]: {
-          paddingRight: theme.spacing(2),
-          borderTopRightRadius: `${textFieldBorderRadius}px`,
-          borderBottomRightRadius: `${textFieldBorderRadius}px`,
-          marginLeft: theme.spacing(1.5),
-        },
-      }),
       multiline: ({ theme }) => ({
         paddingTop: 0,
         paddingBottom: 0,
