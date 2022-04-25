@@ -58,8 +58,6 @@ Embedding applications can also pass a plain old CSS file into the block if they
 
 No matter how beautiful a block looks, it's not worth much to anyone if it's difficult to use. Soft drop shadows and smooth gradients aren't going to delight the user if they're furiously trying to find the “save” button, and you've stashed it inside a dropdown menu that's too low contrast to see.
 
-![Example Image](blog/1_block-design/DesignGuidelines_1.png)
-
 <img
   src="blog/1_block-design/DesignGuidelines_1.png"
   width={900}
@@ -75,8 +73,6 @@ It may take users longer to figure out how to use the block, or may get in the w
 
 In practice this means avoiding loud, wild visual design choices. Like adding a leopard pattern to your form background, or using a funky 1960's font for labels.
 
-![Example Image](blog/1_block-design/DesignGuidelines_3.png)
-
 <img
   src="blog/1_block-design/DesignGuidelines_3.png"
   width={1050}
@@ -87,15 +83,60 @@ Because blocks will be used in a wide variety of situations, it is _extra import
 
 #### 2. Use standard scales for spacing and typography
 
-Nothing makes a design look better than consistency and ratios.
+Nothing makes a design look better than consistency and ratios. Basing both your typography and spacing system off a set of root variables that have a base size (eg. 8px) and a set of standard multipliers (eg. x2, x3, x4) will make your whole block feel more cohesive. It also makes it much easier to manage your CSS.
+
+<img
+  src="blog/1_block-design/DesignGuidelines_4.png"
+  width={948}
+  height={627}
+/>
+
+We provide a system that does this for you in the `base.css` file provided by the [block starter template]()
+
+We've setup a `:root` element that includes the following typography scale:
+
+```css
+--font-size-base: 1rem;
+--font-scaling-ratio: 1.25;
+--font-size-1: calc(var(--font-size-2) / var(--font-scaling-ratio));
+--font-size-2: calc(var(--font-size-base) / var(--font-scaling-ratio));
+--font-size-3: var(--font-size-base);
+--font-size-4: calc(var(--font-size-3) * var(--font-scaling-ratio));
+--font-size-5: calc(var(--font-size-4) * var(--font-scaling-ratio));
+--font-size-6: calc(var(--font-size-5) * var(--font-scaling-ratio));
+--font-size-7: calc(var(--font-size-6) * var(--font-scaling-ratio));
+--font-size-8: calc(var(--font-size-7) * var(--font-scaling-ratio));
+```
+
+We also included a scale for spacing that sets the base as `1rem` (16px) and calculates a set of space variables from 1-8 based off ratios of that base. This results in a scale that starts at 4px and runs up to 72px
+
+```css
+--spacing-base: 1rem;
+--space-1: calc(var(--spacing-base) * 0.25);
+--space-2: calc(var(--spacing-base) * 0.5)
+--space-3: calc(var(--spacing-base) * 0.75);
+--space-4: var(--spacing-base);
+--space-5: calc(var(--spacing-base) * 1.5);
+--space-6: calc(var(--spacing-base) * 2);
+--space-7: calc(var(--spacing-base) * 3);
+--space-8: calc(var(--spacing-base) * 4.5);
+```
+
+Rather than using randomly chosen and inconsistent absolute values like `margin: 13px` or `padding: 37px` throughout your design, you should find it much easier to use these variables. `margin: var(--space-4)` will look neater and adapt properly to styles passed to the block from embedding apps.
 
 #### 3. Make empty states informative and actionable
 
 When a user first selects and loads your block into an application, they should be presented with an empty state that helps them understand what kind of data your block will accept, and gives them a way to do so.
 
-Most blocks will begin their life within any data in them. Users will have to select from a pre-existing resource, or manually enter the data themselves.
+Most blocks will begin their life without any data in them. Users should be able to select from a pre-existing resource, or manually enter the data themselves.
 
-#### 3. Generous touch targets
+To make this easy and quick for users, show them an empty state with:
+
+1.  A clear call to action, such as "Add an image", or "Select a recipe"
+2.  Details about what kind of data your block will accept and any limitations, such as "Accepts PNG or JPEG under 25mb"
+3.  A clear button or input element where they can search for data, select from a list, upload a file, or add a URL
+
+#### 4. Create generous touch targets
 
 Touch targets are any area of the screen users will need to click - buttons, icons that trigger actions, or links.
 
@@ -105,7 +146,7 @@ This doesn't mean the icons and text on buttons need to be that large – only t
 
 We're slightly better at maneouvering a cursor onto a target on desktops, but not by much. Clickable targets should be at least 40px wide and high. You can be sensibly flexible with this; if you have a button that is only 30px high but 200px wide that will do. The general rule is that larger targets = quicker and easier to click.
 
-#### 4. Make interactive and editable elements obvious
+#### 5. Make interactive and editable elements obvious
 
 If the user can edit, manipulate, or input data anywhere in the block, use visual styling to make it clear.
 
@@ -113,7 +154,7 @@ This means making buttons look like buttons by giving them a different backgroun
 
 This approach of using subtle depth, lighting, and colour cues to indicate which elements on a page are interactive has been named "flat 2.0" design – an evolution of the previously popular flat design trends that had many [usability issues](https://www.nngroup.com/articles/flat-design/). Indicators of depth like drop shadows, inner shadows, and layering to help users understand how interface elements are related and what they can interact with.
 
-#### 5. Make your blocks A11y accessible
+#### 6. Make your blocks A11y accessible
 
 [A11y](https://www.a11yproject.com/) accessibility covers a wide range of design practices that help make web interfaces easier to use for everyone. Especially people who might be visually, physically, or cognitively impared while they're using your block.
 
@@ -121,9 +162,21 @@ The a11y project has a great [checklist](https://www.a11yproject.com/checklist/#
 
 Two common mistakes are having low colour contrast levels and forgetting to include alt tags on images.
 
-#### 6. Make it easy for users to recover from mistakes
+#### 7. Co-locate data and actions
 
-#### 7. Follow conventional icon semantics and use labels
+Whenever the user is able to perform an action on data within the block, try to put the button or element that triggers the action as close to the data as possible.
+
+If a user is filling in a form, put the "submit" button right next to the last field.
+
+If a user is applying a set of filters, put the "apply filters" button right next to the selectors.
+
+You can also use containers and spacing to indicate a button is closely related to an area of input.
+
+#### 8. Direct manipulation
+
+A close cousin of co-location, direct manipulation is when we allow users to directly touch and move elements on the screen to change their state. As humans with bodies, we are very used to touching and moving physical objects to manipulate them. Whenever we want to change a digital object we have the same instinct – we try to touch it (or at least, the visual represtation of it on our screens)
+
+#### 9. Follow conventional icon semantics and use labels
 
 There's nothing less enticing than a mysterious icon in the corner of an app that gives you no indication of what it might do. Take you to a new page? Delete all the data you just entered? Who knows!
 
@@ -137,20 +190,6 @@ Ideally, icons should always have text labels next to them. This prevents users 
 
 Since we live in a world where we don't have infinite screen screen, it can be tricky to fit labels on everything. You should put labels inside tooltips that appear when a user hovers over the icon. This is a better solution for desktop than mobile, as we can't hover with our fingers (yet... still waiting for Apple to figure that one out). For mobile it's more important to show the text label in lieu of a tooltip.
 
-#### 8. Co-locate data and actions
-
-Whenever the user is able to perform an action on data within the block, try to put the button or element that triggers the action as close to the data as possible.
-
-If a user is filling in a form, put the "submit" button right next to the last field.
-
-If a user is applying a set of filters, put the "apply filters" button right next to the selectors.
-
-You can also use containers and spacing to indicate a button is closely related to an area of input.
-
-#### 9. Direct manipulation
-
-A close cousin of co-location, direct manipulation is when we allow users to directly touch and move elements on the screen to change their state. As humans with bodies, we are very used to touching and moving physical objects to manipulate them. Whenever we want to change a digital object we have the same instinct – we try to touch it (or at least, the visual represtation of it on our screens)
-
 ---
 
 ## Working with designers
@@ -158,3 +197,11 @@ A close cousin of co-location, direct manipulation is when we allow users to dir
 At this point, some of you might be overwhelmed by the number of things you need to consider when designing blocks. Design is hard! There's a reason it's an entire specialised profession that takes decades to master.
 
 If you're working on a block and you want it to be _really_ great, you should find a designer to come work on it with you.
+
+## Bug fix image dump
+
+![](blog/1_block-design/DesignGuidelines_4.png)
+
+![Example Image](blog/1_block-design/DesignGuidelines_3.png)
+
+![Example Image](blog/1_block-design/DesignGuidelines_1.png)
