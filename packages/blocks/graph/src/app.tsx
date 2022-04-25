@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
-import { Graph, SeriesOption, ECOption } from "./Graph";
+import { Graph, SeriesOption, ECOption } from "./graph";
 
 type AppProps = {};
 
