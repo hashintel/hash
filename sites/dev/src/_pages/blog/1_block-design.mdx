@@ -33,64 +33,69 @@ Thankfully, you can avoid most of these usability problems by following our visu
 
 ## Styling Block Protocol blocks
 
+We've setup our [block starter template](https://github.com/blockprotocol/blockprotocol/tree/main/packages/block-template) with a couple of helpful CSS files:
+
+- A CSS reset file
+- A base styles file with a set of root variables you can adjust
+
+Our base styles file is lightly opinionated and sets up a styling base that will help your block look and feel similar to others.
+
+It comes with a default palette of colours you can use, a typographic scale, a spacing scale, and other similar base styles. You can read more details about what the base stylesheet includes in our [documentation](#).
+
+### Accepting styles from embedding applications
+
 We designed the protocol to give embedding applications control over the way blocks appear in their product. We give embedding applications the final say over how a block looks, as they have more context about the environment it lives within and how people will use it.
 
 Every Block Protocol block must accept a `styleVariables` object that the embedding application can pass in.
 
-This object defines a number of variables that control the basic styles of the block. We've designed these to maximise consistency and simplicity within your block.
+This object defines a set of variables that control the basic styles of the block. We've designed these to maximise consistency and simplicity within your block.
 
-### Style Variables
+These styling variables can do a lot of the heavy lifting to help blocks match their surrounding environment. As a block developer, you should make sure the markup in your blocks uses these styling variables to make life easier for the people using your blocks.
 
-##### Colours
-
-- Primary, secondary, and tertiary colours
-- Primary and secondary background colours
-- Border colour
-- Font colour
-
-##### Spacing
-
-- Base size
-- Spacing scale
-
-##### Typography
-
-- Font family
-- Base font size
-- Typographic scale
-
-##### Borders
-
-- Box border radius
-- Button border radius
-- Border weight
-
-##### General
-
-- Icon size
-- Box shadows
-
---- diagram of a block with all these variables labelled ---
-
-These styling variables can do a lot of the heavy lifting to help blocks match their surrounding environment.
-
---- image of the same block with a variety of styles passed to it ----
-
-As a block developer, you should make sure the markup in your blocks uses these styling variables to make life easier for the people using your blocks.
-
-Embedding applications can also pass raw CSS into the block if they need to manually override specific styles and layouts. This should be a last resort though, as futzing with CSS selectors can get messy and may end up affecting the core functionality of the block.
+Embedding applications can also pass a plain old CSS file into the block if they need to manually override specific styles and layouts. This should be a last resort though, as futzing with CSS selectors can get messy and may end up affecting the core functionality of the block.
 
 ## Usability and UX principles
 
 No matter how beautiful a block looks, it's not worth much to anyone if it's difficult to use. Soft drop shadows and smooth gradients aren't going to delight the user if they're furiously trying to find the “save” button, and you've stashed it inside a dropdown menu that's too low contrast to see.
 
-![](blog/1_block-design/DesignGuidelines_1.png)
+![Example Image](blog/1_block-design/DesignGuidelines_1.png)
 
-<p style={{ margin: "0 auto 2rem", fontSize: "80%" }}>Don't do this</p>
+<img
+  src="blog/1_block-design/DesignGuidelines_1.png"
+  width={900}
+  height={480}
+/>
 
-Usability and user experience design (UX) is a whole discipline in its own right, and we can't cover everything in this guide. We're not expecting you to become a UX designer before you can start building blocks. However, knowing the basics of UX and some of the most important principles will go a long way in making you a better block builder. So here's the 80/20 version.
+Usability and user experience design (UX) is a whole discipline in its own right, and we can't cover everything in this guide. We're not expecting you to become a UX designer before you can start building blocks. However, knowing the basics of UX and some of the most important principles will go a long way in making you a better block builder.
 
-#### 1. Generous touch targets
+#### 1. Keep it vanilla
+
+There's a reason designers won't stop banging on about minimalism and simplicity. Adding in fancy details, decorations, or flashy animations that don't need to be there will increase the visual complexity of your block.
+It may take users longer to figure out how to use the block, or may get in the way of whatever they're trying to do with it.
+
+In practice this means avoiding loud, wild visual design choices. Like adding a leopard pattern to your form background, or using a funky 1960's font for labels.
+
+![Example Image](blog/1_block-design/DesignGuidelines_3.png)
+
+<img
+  src="blog/1_block-design/DesignGuidelines_3.png"
+  width={1050}
+  height={414}
+/>
+
+Because blocks will be used in a wide variety of situations, it is _extra important_ to make them boring enough to blend in with the wallpaper. Use colour sparingly, and only to highlight active areas or draw attention to important elements like call to action buttons. Avoid noisy patterns or textures. Only use animation for subtle transitions, or to communicate the state of the elements to users.
+
+#### 2. Use standard scales for spacing and typography
+
+Nothing makes a design look better than consistency and ratios.
+
+#### 3. Make empty states informative and actionable
+
+When a user first selects and loads your block into an application, they should be presented with an empty state that helps them understand what kind of data your block will accept, and gives them a way to do so.
+
+Most blocks will begin their life within any data in them. Users will have to select from a pre-existing resource, or manually enter the data themselves.
+
+#### 3. Generous touch targets
 
 Touch targets are any area of the screen users will need to click - buttons, icons that trigger actions, or links.
 
@@ -100,15 +105,15 @@ This doesn't mean the icons and text on buttons need to be that large – only t
 
 We're slightly better at maneouvering a cursor onto a target on desktops, but not by much. Clickable targets should be at least 40px wide and high. You can be sensibly flexible with this; if you have a button that is only 30px high but 200px wide that will do. The general rule is that larger targets = quicker and easier to click.
 
-#### 2. Make editable elements obvious
+#### 4. Make interactive and editable elements obvious
 
 If the user can edit, manipulate, or input data anywhere in the block, use visual styling to make it clear.
 
-This means making buttons look like buttons by giving them a different background colour and clear border. It means making input fields look like input fields by giving them a border and ideally a subtle inner shadow to indicate they're "fillable".
+This means making buttons look like buttons by giving them a different background colour and clear border. It means making input fields look like input fields by giving them a border and ideally a subtle inner shadow to indicate they're "fillable". It means adding tooltips and hover styles when a user mouses over something they can act upon.
 
-If you haven't heard, the flat design trends of the last decade are [bad for usability](https://www.nngroup.com/articles/flat-design/). You should instead use "flat 2.0" styling – an approach that uses _subtle_ indicators of depth like drop shadows, inner shadows, and layering to help users understand how interface elements are related and what they can interact with.
+This approach of using subtle depth, lighting, and colour cues to indicate which elements on a page are interactive has been named "flat 2.0" design – an evolution of the previously popular flat design trends that had many [usability issues](https://www.nngroup.com/articles/flat-design/). Indicators of depth like drop shadows, inner shadows, and layering to help users understand how interface elements are related and what they can interact with.
 
-#### 3. Make your blocks A11y accessible
+#### 5. Make your blocks A11y accessible
 
 [A11y](https://www.a11yproject.com/) accessibility covers a wide range of design practices that help make web interfaces easier to use for everyone. Especially people who might be visually, physically, or cognitively impared while they're using your block.
 
@@ -116,7 +121,9 @@ The a11y project has a great [checklist](https://www.a11yproject.com/checklist/#
 
 Two common mistakes are having low colour contrast levels and forgetting to include alt tags on images.
 
-#### 4. Follow conventional icon semantics and use labels
+#### 6. Make it easy for users to recover from mistakes
+
+#### 7. Follow conventional icon semantics and use labels
 
 There's nothing less enticing than a mysterious icon in the corner of an app that gives you no indication of what it might do. Take you to a new page? Delete all the data you just entered? Who knows!
 
@@ -130,7 +137,7 @@ Ideally, icons should always have text labels next to them. This prevents users 
 
 Since we live in a world where we don't have infinite screen screen, it can be tricky to fit labels on everything. You should put labels inside tooltips that appear when a user hovers over the icon. This is a better solution for desktop than mobile, as we can't hover with our fingers (yet... still waiting for Apple to figure that one out). For mobile it's more important to show the text label in lieu of a tooltip.
 
-#### 5. Co-locate data and actions
+#### 8. Co-locate data and actions
 
 Whenever the user is able to perform an action on data within the block, try to put the button or element that triggers the action as close to the data as possible.
 
@@ -140,7 +147,7 @@ If a user is applying a set of filters, put the "apply filters" button right nex
 
 You can also use containers and spacing to indicate a button is closely related to an area of input.
 
-#### 6. Direct manipulation
+#### 9. Direct manipulation
 
 A close cousin of co-location, direct manipulation is when we allow users to directly touch and move elements on the screen to change their state. As humans with bodies, we are very used to touching and moving physical objects to manipulate them. Whenever we want to change a digital object we have the same instinct – we try to touch it (or at least, the visual represtation of it on our screens)
 
