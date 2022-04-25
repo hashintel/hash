@@ -13,7 +13,14 @@ const node = document.getElementById("app");
 
 const App = () => (
   <MockBlockDock>
-    <Component entityId="test-block-1" name="World" />
+    <Component
+      entityId="WeAreDevs"
+      name="We Are Developers!"
+      startDate={new Date("2022-06-14")}
+      endDate={new Date("2022-06-15")}
+      localTime={true}
+      updateInterval={1 / 2}
+    />
   </MockBlockDock>
 );
 
