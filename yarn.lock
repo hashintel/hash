@@ -6498,10 +6498,10 @@
   dependencies:
     "@tldraw/vec" "^1.7.0"
 
-"@tldraw/tldraw@1.10.0":
-  version "1.10.0"
-  resolved "https://registry.yarnpkg.com/@tldraw/tldraw/-/tldraw-1.10.0.tgz#14689ad545dba09298968899eaec48ee2872339d"
-  integrity sha512-9TwRNYX340/xbtFm8b0AZGwqbuckRyOlRaqR3RwCSwsIUSE80Ar6KXh+1PgfpdklRt6WnK3om8sPclWiINDHpg==
+"@tldraw/tldraw@1.11.0":
+  version "1.11.0"
+  resolved "https://registry.yarnpkg.com/@tldraw/tldraw/-/tldraw-1.11.0.tgz#1cd4e3c28a44cf7e42a4fef2b14c75780e68b21e"
+  integrity sha512-Maoy2e41PhtofPwANV2gsQtPjMkFosDj3129GXNWFQGLIGnbRUhiy0ktRcbTlkO5BoWiZfT0z7GOEY/vV+rDbA==
   dependencies:
     "@radix-ui/react-alert-dialog" "^0.1.5"
     "@radix-ui/react-checkbox" "^0.1.4"
@@ -6514,6 +6514,7 @@
     "@tldraw/core" "^1.9.1"
     "@tldraw/intersect" "^1.7.1"
     "@tldraw/vec" "^1.7.0"
+    browser-fs-access "^0.29.1"
     idb-keyval "^6.1.0"
     perfect-freehand "^1.0.16"
     react-hotkey-hook "^1.0.2"
@@ -9066,6 +9067,11 @@ browser-assert@^1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/browser-assert/-/browser-assert-1.2.1.tgz#9aaa5a2a8c74685c2ae05bfe46efd606f068c200"
   integrity sha1-mqpaKox0aFwq4Fv+Ru/WBvBowgA=
+
+browser-fs-access@^0.29.1:
+  version "0.29.1"
+  resolved "https://registry.yarnpkg.com/browser-fs-access/-/browser-fs-access-0.29.1.tgz#8a9794c73cf86b9aec74201829999c597128379c"
+  integrity sha512-LSvVX5e21LRrXqVMhqtAwj5xPgDb+fXAIH80NsnCQ9xuZPs2xWsOREi24RKgZa1XOiQRbcmVrv87+ulOKsgjxw==
 
 browser-process-hrtime@^1.0.0:
   version "1.0.0"

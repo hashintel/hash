@@ -14,7 +14,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@tldraw/tldraw": "1.10.0",
+    "@tldraw/tldraw": "1.11.0",
     "blockprotocol": "0.0.8",
     "mobx": "6.5.0"
   },
