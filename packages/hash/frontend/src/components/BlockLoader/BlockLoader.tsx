@@ -15,6 +15,8 @@ import {
   LinkGroup,
   UnknownEntity,
 } from "../../graphql/apiTypes.gen";
+import { useBlockProtocolCreateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityTypes";
+import { useBlockProtocolCreateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntitities";
 import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
 import { useBlockProtocolUpdateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinks";
@@ -54,6 +56,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createLinks } = useBlockProtocolCreateLinks();
+  const { createEntities } = useBlockProtocolCreateEntities();
+  const { createEntityTypes } = useBlockProtocolCreateEntityTypes();
   const { deleteLinks } = useBlockProtocolDeleteLinks();
   const { updateEntities } = useBlockProtocolUpdateEntities();
   const { uploadFile } = useFileUpload();
@@ -93,6 +97,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const functions = {
     aggregateEntityTypes,
     aggregateEntities,
+    createEntities,
+    createEntityTypes,
     createLinks,
     deleteLinks,
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
