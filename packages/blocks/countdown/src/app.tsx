@@ -2,147 +2,148 @@ import React, { useEffect, useState, RefCallback } from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 import DatePicker from "react-datepicker";
+import {
+  Interval,
+  isFuture,
+  isPast,
+  formatDistanceToNow,
+  formatDistanceToNowStrict,
+  formatRelative,
+  format,
+} from "date-fns";
 
 import "react-datepicker/dist/react-datepicker.css";
 
 type AppProps = {
-  editableRef?: RefCallback<HTMLElement>;
-  localTime?: boolean;
   updateInterval?: number;
   selectsRange?: boolean;
   showWeekNumbers?: boolean;
   showYearDropdown?: boolean;
+  strict?: boolean;
+  relative?: boolean;
 };
 
-const MILLISECONDS = 1;
-const SECONDS = 1000 * MILLISECONDS;
-const MINUTES = 60 * SECONDS;
-const HOURS = 60 * MINUTES;
-const DAYS = 24 * HOURS;
-
 export const App: BlockComponent<AppProps> = ({
-  editableRef,
-  localTime,
   updateInterval,
   selectsRange,
   showWeekNumbers,
   showYearDropdown,
+  strict,
+  relative,
 }) => {
-  localTime = localTime || false;
   updateInterval = updateInterval || 1;
   selectsRange = selectsRange || false;
   showWeekNumbers = showWeekNumbers || false;
   showYearDropdown = showYearDropdown || false;
-  const initialDate = selectsRange
-    ? new Date(new Date().setHours(24, 0, 0, 0))
-    : new Date();
+  strict = strict || false;
+  relative = relative || false;
 
-  const calculateTime = (
-    initialStartDate: Date,
-    endDate: Date,
-    localTime: boolean,
-  ) => {
-    const now = new Date();
-    const timezone_offset = now.getTimezoneOffset() * (localTime ? MINUTES : 0);
-    let difference = +initialStartDate - +now + timezone_offset;
-
-    let state = "until";
-    if (difference < 0) {
-      // Start date is in the past
-      difference = +now - +endDate - timezone_offset;
-      state = "since";
+  const formatDate = (date) => {
+    if (relative) {
+      return formatRelative(date, new Date());
+    } else {
+      return selectsRange ? format(date, "PP") : format(date, "PPPp");
     }
-    if (difference < 0) {
-      // End date is in the future
+  };
+
+  const formatRange = (date) => {
+    return `${formatDate(range.start)} - ${formatDate(range.end)}`;
+  };
+
+  const calculateTime = (range) => {
+    let relative;
+    let date;
+    if (isFuture(range.start)) {
+      date = range.start;
+      relative = "until";
+    } else if (range.end !== null && isPast(range.end)) {
+      date = range.end;
+      relative = "since";
+    } else if (range.end === null) {
+      date = range.start;
+      relative = "since";
+    } else {
       return {
-        days: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0,
-        millis: 0,
-        state: "",
+        prefix: "",
+        offset: formatRange(range),
+        postfix: "is now",
       };
     }
 
+    let distance;
+    if (strict) {
+      distance = formatDistanceToNowStrict(date);
+    } else {
+      distance = formatDistanceToNow(date, { includeSeconds: true });
+    }
+
     return {
-      days: Math.floor(difference / DAYS),
-      hours: Math.floor((difference % DAYS) / HOURS),
-      minutes: Math.floor((difference % HOURS) / MINUTES)
-        .toString()
-        .padStart(2, "0"),
-      seconds: Math.floor((difference % MINUTES) / SECONDS)
-        .toString()
-        .padStart(2, "0"),
-      millis: Math.floor((difference % SECONDS) / MILLISECONDS)
-        .toString()
-        .padStart(3, "0"),
-      state,
+      prefix: `${distance} ${relative}`,
+      offset: formatDate(date),
+      postfix: "",
     };
   };
 
-  const [startDate, setStartDate] = useState(initialDate);
-  const [endDate, setEndDate] = useState(initialDate);
+  const initialDate = selectsRange
+    ? new Date(new Date().setHours(0, 0, 0, 0)) // Ranges can't specify time
+    : new Date();
 
-  const [timeOffset, setTimeOffset] = useState(
-    calculateTime(startDate, endDate, localTime),
-  );
-
+  const [clock, setClock] = useState({ now: new Date() });
+  const tick = () => setClock({ now: new Date() });
   useEffect(() => {
-    setTimeout(() => {
-      setTimeOffset(calculateTime(startDate, endDate, localTime));
-    }, updateInterval * SECONDS);
-  });
+    // Tick once per second
+    setInterval(tick, 1000);
+  }, []);
 
-  const style = (timeUnit: number) => {
-    return updateInterval * SECONDS < timeUnit ? {} : { display: "none" };
-  };
+  const [range, setRange] = useState({ start: initialDate, end: initialDate });
+  useEffect(tick, [range]); // Tick on update
+
+  const [timeOffset, setTimeOffset] = useState(calculateTime(range));
+  useEffect(() => setTimeOffset(calculateTime(range)), [clock]); // Update offset on tick
+
+  const [isOpen, setIsOpen] = useState(false);
 
   const onChange = (changes) => {
     if (Array.isArray(changes)) {
-      setStartDate(changes[0]);
-      setEndDate(changes[1]);
+      setRange({ start: changes[0], end: changes[1] });
     } else {
-      setStartDate(changes);
-      setEndDate(changes);
+      setRange({ start: changes, end: null });
     }
   };
 
-  console.log(editableRef);
+  const onClick = (event) => {
+    event.preventDefault();
+    setIsOpen(!isOpen);
+  };
+
+  const onKeyDown = (event) => {
+    if (event.key === "Escape") setIsOpen(false);
+  };
 
   return (
     <div>
-      <h1>
-        {timeOffset.state.length != 0 ? `Time ${timeOffset.state} ` : ""}
-        {editableRef
-          ? React.createElement("p", { ref: editableRef })
-          : React.createElement("p", {}, "Hello World")}
-        :
-      </h1>
-      <DatePicker
-        selected={startDate}
-        startDate={startDate}
-        endDate={endDate}
-        onChange={onChange}
-        selectsRange={selectsRange}
-        showTimeInput={!selectsRange}
-        dateFormat={selectsRange ? "P" : "Pp"}
-        showWeekNumbers={showWeekNumbers}
-        showYearDropdown={showYearDropdown}
-        focusSelectedMonth
-      />
-      <span id="days">{timeOffset.days}d </span>
-      <span id="hours" style={style(DAYS)}>
-        {timeOffset.hours}h{" "}
-      </span>
-      <span id="minutes" style={style(HOURS)}>
-        {timeOffset.minutes}m{" "}
-      </span>
-      <span id="seconds" style={style(MINUTES)}>
-        {timeOffset.seconds}s{" "}
-      </span>
-      <span id="millis" style={style(SECONDS)}>
-        {timeOffset.millis}ms
-      </span>
+      <div>
+        {timeOffset.prefix}{" "}
+        <button onClick={onClick} onKeyDown={onKeyDown}>
+          {timeOffset.offset}
+        </button>{" "}
+        {timeOffset.postfix}
+      </div>
+      {isOpen && (
+        <DatePicker
+          selected={range.start}
+          startDate={range.start}
+          endDate={range.end}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          closeOnScroll={true}
+          selectsRange={selectsRange}
+          showTimeSelect={!selectsRange}
+          showWeekNumbers={showWeekNumbers}
+          focusSelectedMonth
+          inline
+        />
+      )}
     </div>
   );
 };

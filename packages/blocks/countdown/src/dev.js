@@ -15,11 +15,11 @@ const App = () => (
   <MockBlockDock>
     <Component
       entityId="countdown"
-      name="WeAreDevelopers 2022"
       updateInterval={1 / 60}
       selectsRange={false}
       showWeekNumbers={true}
-      showYearDropdown={true}=
+      strict={false}
+      relative={true}
     />
   </MockBlockDock>
 );
