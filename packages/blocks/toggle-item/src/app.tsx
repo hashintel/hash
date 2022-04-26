@@ -1,4 +1,4 @@
-import React, { RefCallback } from "react";
+import React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 
