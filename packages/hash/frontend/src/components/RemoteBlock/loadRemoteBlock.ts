@@ -53,17 +53,15 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
       "require",
       "module",
       "exports",
-      source,
-      // "__filename",
-      // "__dirname",
+      // this is a hack to ensure the absolute path for bundles is always
+      // used and not relative ones.
+      // This fixes a problem we have with code splitted bundles where
+      // the absolute bundle path generated based on the current page url
+      // and not the url where the block is served
+      source.replace(`=>"main."+`, `=>"${url.split("/main.")[0]}/main."+`),
     );
-    func(
-      requires,
-      module,
-      exports,
-      // `m${source.split("/m")[1]}`,
-      // source.split("main")[0],
-    );
+
+    func(requires, module, exports);
 
     /**
      * @todo check it's actually a React component
