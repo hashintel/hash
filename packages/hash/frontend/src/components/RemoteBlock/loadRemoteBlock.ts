@@ -38,7 +38,9 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
     if (url.endsWith(".html")) {
       return source;
     }
-
+    // console.log("url => ", url);
+    // console.log("source => ", source);
+    // debugger;
     /**
      * Load a commonjs module from a url and wrap it/supply with key variables
      * @see https://nodejs.org/api/modules.html#modules_the_module_wrapper
@@ -47,8 +49,21 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
     const exports = {};
     const module = { exports };
     // eslint-disable-next-line no-new-func,@typescript-eslint/no-implied-eval
-    const func = new Function("require", "module", "exports", source);
-    func(requires, module, exports);
+    const func = new Function(
+      "require",
+      "module",
+      "exports",
+      source,
+      // "__filename",
+      // "__dirname",
+    );
+    func(
+      requires,
+      module,
+      exports,
+      // `m${source.split("/m")[1]}`,
+      // source.split("main")[0],
+    );
 
     /**
      * @todo check it's actually a React component

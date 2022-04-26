@@ -27,6 +27,9 @@ export const RemoteBlock: React.VFC<RemoteBlockProps & Record<string, any>> = ({
     onBlockLoaded,
   );
 
+  // console.log("component => ", Component)
+  // console.log("err => ", err)
+
   if (loading) {
     return <BlockLoadingIndicator />;
   }

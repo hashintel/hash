@@ -54,7 +54,8 @@ export const App: BlockComponent<AppProps> = ({
   const rLoaded = React.useRef(false);
   const rTldrawApp = React.useRef<TldrawApp>();
   const rInitialDocument = React.useRef<TDDocument>(
-    getInitialDocument(document),
+    // getInitialDocument(document),
+    defaultDocument,
   );
 
   console.log("document ==> ", document);
@@ -90,22 +91,22 @@ export const App: BlockComponent<AppProps> = ({
   //   // console.log("change ==> ", app.document);
   // };
 
-  React.useEffect(() => {
-    try {
-      if (!rTldrawApp.current) return;
-      const savedDocument = JSON.parse(document) as TDDocument;
-      const app = rTldrawApp.current;
-      if (rLoaded.current) {
-        app.updateDocument(savedDocument);
-      } else {
-        app.loadDocument(savedDocument);
-        rLoaded.current = true;
-        // app.zoomToFit();
-      }
-    } catch (e) {
-      console.warn("error ==> ", e);
-    }
-  }, [document]);
+  // React.useEffect(() => {
+  //   try {
+  //     if (!rTldrawApp.current) return;
+  //     const savedDocument = JSON.parse(document) as TDDocument;
+  //     const app = rTldrawApp.current;
+  //     if (rLoaded.current) {
+  //       app.updateDocument(savedDocument);
+  //     } else {
+  //       app.loadDocument(savedDocument);
+  //       rLoaded.current = true;
+  //       // app.zoomToFit();
+  //     }
+  //   } catch (e) {
+  //     console.warn("error ==> ", e);
+  //   }
+  // }, [document]);
 
   return (
     <div>
