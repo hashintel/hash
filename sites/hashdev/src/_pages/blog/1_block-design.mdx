@@ -76,7 +76,7 @@ No matter how beautiful a block looks, it's not worth much to anyone if it's dif
 
 Usability and user experience design (UX) is a whole discipline in its own right, and we can't cover everything in this guide. We're not expecting you to become a UX designer before you can start building blocks. However, knowing the basics of UX and some of the most important principles will go a long way in making you a better block builder.
 
-#### 1. Keep it vanilla
+### 1. Keep it vanilla
 
 There's a reason designers won't stop banging on about minimalism and simplicity. Adding in fancy details, decorations, or flashy animations that don't need to be there will increase the visual complexity of your block.
 It may take users longer to figure out how to use the block, or may get in the way of whatever they're trying to do with it.
@@ -92,7 +92,7 @@ In practice, this means avoiding loud, wild visual design choices. Like adding a
 
 Because blocks will be used in a wide variety of situations, it is _extra important_ to make them boring enough to blend in with the wallpaper. Use color sparingly, and only to highlight active areas or draw attention to important elements like call to action buttons. Avoid noisy patterns or textures. Only use animation for subtle transitions, or to communicate the state of the elements to users.
 
-#### 2. Use standard scales for spacing and typography
+### 2. Use standard scales for spacing and typography
 
 Nothing makes a design look better than consistency and ratios. Basing both your typography and spacing system off a set of root variables that have a base size (eg. 8px) and a set of standard multipliers (eg. x2, x3, x4) will make your whole block feel more cohesive. It also makes it much easier to manage your CSS.
 
@@ -136,7 +136,7 @@ We also included a scale for spacing that sets the base as `1rem` (16px) and cal
 
 Rather than using randomly chosen and inconsistent absolute values like `margin: 13px` or `padding: 37px` throughout your design, you should find it much easier to use these variables. `margin: var(--space-4)` will look neater and adapt properly to styles passed to the block from embedding apps.
 
-#### 3. Make empty states informative and actionable
+### 3. Make empty states informative and actionable
 
 When a user first selects and loads your block into an application, they should be presented with an empty state that helps them understand what kind of data your block will accept, and gives them a way to do so.
 
@@ -164,7 +164,7 @@ Once they have entered or selected data, ensure you design a loading state that 
   alt="A loading screen showing how long left until the image uploads and buttons to pause or cancel the process."
 />
 
-#### 4. Create generous touch targets
+### 4. Create generous touch targets
 
 Touch targets are any area of the screen users will need to click - buttons, icons that trigger actions, or links.
 
@@ -176,7 +176,7 @@ We're more accurate when manoeuvring a cursor onto a target on desktops, but not
 
 The general rule is that larger targets = quicker and easier to click.
 
-#### 5. Make interactive and editable elements obvious
+### 5. Make interactive and editable elements obvious
 
 If the user can click, edit, manipulate, or input data anywhere in the block, you should visually style the element in a way that makes clear it's interactive.
 
@@ -195,7 +195,7 @@ This approach of using subtle depth, lighting, and colour cues to indicate which
 
 It turns out using indicators of depth like drop shadows, inner shadows, and layering to help users understand how interface elements are related and what they can interact with. We don't have to go back to full-on skeuomorphic design. We just need to offer a few hints to make it obvious what can and can't be interacted with in our blocks.
 
-#### 6. Make your blocks A11y accessible
+### 6. Make your blocks A11y accessible
 
 [A11y](https://www.a11yproject.com/) accessibility covers a wide range of design practices that help make web interfaces easier to use for everyone. Especially people who might be visually, physically, or cognitively impared while they're using your block.
 
@@ -212,19 +212,19 @@ The most common mistakes in this department are usually related to colour choice
 
 To test the contrast levels of your palette, you can use sites like [colourcontrast.cc](https://colourcontrast.cc/). If you're designing mockups in Figma, plugins like [Stark](https://www.figma.com/community/plugin/732603254453395948/Stark) can help automatically check designs for you.
 
-#### 7. Co-locate data and actions
+### 7. Co-locate data and actions
 
 Whenever the user can edit or manipulate data within the block, place the button or element that triggers that action as close to the data as possible.
 
 If a user is filling in a form, place the "submit" button right next to the last field. If a user is applying a set of filters, place the "apply filters" button right next to the selectors. You can also use containers and spacing to indicate a button is closely related to an area of input.
 
-#### 8. Direct manipulation
+### 8. Direct manipulation
 
 A close cousin of co-location, direct manipulation is when we allow users to directly touch and move elements on the screen to change their state. As humans with bodies, we are very used to touching and moving physical objects to manipulate them. Whenever we want to change a digital object we have the same instinct – we try to touch it (or at least, the visual representation of it on our screens).
 
 When we have to use a control or input element that is physically separated or distant from the data being acted upon, we're more likely to be confused about what we're editing.
 
-#### 9. Follow conventional icon semantics and use labels
+### 9. Follow conventional icon semantics and use labels
 
 There's nothing less enticing than a mysterious icon in the corner of an app that gives you no indication of what it might do. Take you to a new page? Delete all the data you just entered? Who knows!
 
