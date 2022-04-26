@@ -1,4 +1,4 @@
-import React, { useEffect, useState, RefCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 import DatePicker from "react-datepicker";
@@ -102,6 +102,16 @@ export const App: BlockComponent<AppProps> = ({
   useEffect(() => setTimeOffset(calculateTime(range)), [clock]); // Update offset on tick
 
   const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef(null);
+  const onClickOutside = (event) => {
+    if (ref.current && !ref.current.contains(event.target)) setIsOpen(false);
+  };
+  useEffect(() => {
+    document.addEventListener("click", onClickOutside, true);
+    return () => {
+      document.removeEventListener("click", onClickOutside, true);
+    };
+  });
 
   const onChange = (changes) => {
     if (Array.isArray(changes)) {
@@ -122,27 +132,27 @@ export const App: BlockComponent<AppProps> = ({
 
   return (
     <div>
-      <div>
-        {timeOffset.prefix}{" "}
-        <button onClick={onClick} onKeyDown={onKeyDown}>
-          {timeOffset.offset}
-        </button>{" "}
-        {timeOffset.postfix}
-      </div>
+      {timeOffset.prefix}{" "}
+      <button onClick={onClick} onKeyDown={onKeyDown}>
+        {timeOffset.offset}
+      </button>{" "}
+      {timeOffset.postfix}
       {isOpen && (
-        <DatePicker
-          selected={range.start}
-          startDate={range.start}
-          endDate={range.end}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          closeOnScroll={true}
-          selectsRange={selectsRange}
-          showTimeSelect={!selectsRange}
-          showWeekNumbers={showWeekNumbers}
-          focusSelectedMonth
-          inline
-        />
+        <div ref={ref}>
+          <DatePicker
+            selected={range.start}
+            startDate={range.start}
+            endDate={range.end}
+            onChange={onChange}
+            onKeyDown={onKeyDown}
+            closeOnScroll={true}
+            selectsRange={selectsRange}
+            showTimeSelect={!selectsRange}
+            showWeekNumbers={showWeekNumbers}
+            focusSelectedMonth
+            inline
+          />
+        </div>
       )}
     </div>
   );
