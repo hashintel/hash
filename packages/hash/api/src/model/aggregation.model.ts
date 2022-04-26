@@ -212,7 +212,7 @@ class __Aggregation {
           return field;
         }
 
-        return (entity) => entity.properties[field];
+        return (entity) => get(entity.properties, field);
       }),
       multiSort.map(({ desc }) => (desc ? "desc" : "asc")),
     );
