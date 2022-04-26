@@ -41,11 +41,10 @@ export const App: BlockComponent<AppProps> = ({
             onBlur={(event) => updateContent(event.target.value, "title")}
           />
         </summary>
-        <input
+        <textarea
           // @todo Replace input element with editableRef when it's possible to use multiple ones in the same block.
           //       https://app.asana.com/0/1200211978612931/1202183033435672
           defaultValue={content}
-          type="text"
           placeholder="Your detailed content"
           onBlur={(event) => updateContent(event.target.value, "content")}
         />
