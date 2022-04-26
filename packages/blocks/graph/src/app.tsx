@@ -2,14 +2,30 @@ import * as React from "react";
 import { BlockProtocolEntityType } from "blockprotocol";
 
 import { BlockComponent } from "blockprotocol/react";
-import { Graph } from "./graph";
+import { Graph, SeriesType } from "./graph";
 
-type AppProps = {};
+type AppProps = {
+  title?: string;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
+  series?: {
+    seriesId: string;
+    seriesName: string;
+    seriesType: SeriesType;
+    xAxisPropertyKey: string;
+    yAxisPropertyKey: string;
+  }[];
+};
 
 export const App: BlockComponent<AppProps> = ({
+  entityId,
   accountId,
   aggregateEntities,
   aggregateEntityTypes,
+  updateEntities,
+  title = "Graph Title",
+  xAxisLabel = "X Axis",
+  yAxisLabel = "Y Axis",
 }) => {
   const [possibleEntityTypes, setPossibleEntityTypes] = React.useState<
     BlockProtocolEntityType[]
@@ -42,11 +58,30 @@ export const App: BlockComponent<AppProps> = ({
     [aggregateEntities, accountId],
   );
 
+  const updateGraphEntityProperties = React.useCallback(
+    async (
+      updatedProperties: Partial<{
+        title: string;
+        xAxisLabel: string;
+        yAxisLabel: string;
+      }>,
+    ) => {
+      if (!updateEntities) throw new Error("");
+      if (!entityId) throw new Error("");
+
+      await updateEntities([{ accountId, entityId, data: updatedProperties }]);
+    },
+    [updateEntities, entityId, accountId],
+  );
+
   return (
     <Graph
-      title="Graph"
-      yAxisName="Y Axis"
-      xAxisName="X Axis"
+      title={title}
+      updateTitle={(updatedTitle) =>
+        updateGraphEntityProperties({ title: updatedTitle })
+      }
+      yAxisName={xAxisLabel}
+      xAxisName={yAxisLabel}
       fetchEntitiesOfType={fetchEntitiesOfType}
       possibleEntityTypes={possibleEntityTypes}
     />

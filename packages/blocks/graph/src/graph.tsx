@@ -1,5 +1,6 @@
 import { BlockProtocolEntity, BlockProtocolEntityType } from "blockprotocol";
 import * as React from "react";
+import debounce from "lodash.debounce";
 // eslint-disable-next-line no-restricted-imports
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
@@ -9,8 +10,52 @@ import Typography from "@mui/material/Typography";
 
 import { EChart, SeriesOption, ECOption } from "./e-chart";
 
-type SeriesDefinition = {
-  seriesType: SeriesOption["type"];
+type EditableGraphTitleProps = {
+  title: string;
+  updateTitle: (updatedTitle: string) => Promise<void>;
+};
+
+const EditableGraphTitle: React.FC<EditableGraphTitleProps> = ({
+  title: initialTitle,
+  updateTitle,
+}) => {
+  const [textFieldValue, setTextFieldValue] =
+    React.useState<string>(initialTitle);
+
+  const debouncedUpdateTitle = React.useMemo(
+    () =>
+      debounce(async (updatedTitle: string) => updateTitle(updatedTitle), 500),
+    [updateTitle],
+  );
+
+  return (
+    <TextField
+      value={textFieldValue}
+      onChange={({ target }) => {
+        const { value: updatedTitle } = target;
+
+        setTextFieldValue(updatedTitle);
+        void debouncedUpdateTitle(updatedTitle);
+      }}
+      sx={{
+        width: 250,
+        ".MuiOutlinedInput-notchedOutline": {
+          borderColor: "transparent",
+        },
+      }}
+      inputProps={{
+        sx: {
+          padding: 1,
+        },
+      }}
+    />
+  );
+};
+
+export type SeriesType = SeriesOption["type"];
+
+export type SeriesDefinition = {
+  seriesType: SeriesType;
   entityTypeId: string;
   xValuePropertyKey: string;
   yValuePropertyKey: string;
@@ -240,6 +285,7 @@ type GraphProps = {
   fetchEntitiesOfType: (params: {
     entityTypeId: string;
   }) => Promise<BlockProtocolEntity[]>;
+  updateTitle: (newTitle: string) => Promise<void>;
 };
 
 type Series = NonNullable<ECOption["series"]>;
@@ -250,6 +296,7 @@ export const Graph: React.FC<GraphProps> = ({
   yAxisName,
   fetchEntitiesOfType,
   possibleEntityTypes,
+  updateTitle,
 }) => {
   const [seriesDefinitions, setSeriesDefinitions] = React.useState<
     SeriesDefinition[]
@@ -313,7 +360,7 @@ export const Graph: React.FC<GraphProps> = ({
 
   return (
     <>
-      <h1>{title}</h1>
+      <EditableGraphTitle title={title} updateTitle={updateTitle} />
       <EChart
         options={{
           yAxis: {

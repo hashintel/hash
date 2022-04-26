@@ -15,8 +15,6 @@ export type SeriesOption = LineSeriesOption | ScatterSeriesOption;
 // Combine an Option type with only required components and charts via ComposeOption
 export type ECOption = echarts.ComposeOption<SeriesOption>;
 
-export type SupportedSeriesType = "scatter" | "line";
-
 // Register the required components
 echarts.use([LineChart, ScatterChart, GridComponent, SVGRenderer]);
 
