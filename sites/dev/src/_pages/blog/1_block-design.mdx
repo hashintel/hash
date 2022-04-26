@@ -44,11 +44,20 @@ It comes with a default palette of colours you can use, a typographic scale, a s
 
 ### Accepting styles from embedding applications
 
+The blocks you build will be used inside other applications; we call these "embedding application."
+
 We designed the protocol to give embedding applications control over the way blocks appear in their product. We give embedding applications the final say over how a block looks, as they have more context about the environment it lives within and how people will use it.
 
-Every Block Protocol block must accept a `styleVariables` object that the embedding application can pass in.
+Every Block Protocol block you build must accept a `styleVariables` object that the embedding application can pass in.
 
-This object defines a set of variables that control the basic styles of the block. We've designed these to maximise consistency and simplicity within your block.
+This object defines a set of variables that control the basic styles of the block. We've designed these to maximise consistency and simplicity within your block. You can see the full list of these in the [styling section](#) of our documentation. Here's a rundown of the major categories:
+
+1.  Colours - a range of shades for neutrals, primary, secondary, tertiary, warning, and danger.
+2.  Typography – font family, base size, scaling ratios, and line heights
+3.  Spacing – base size and scaling ratios
+4.  Borders – weight, colours, and radius
+5.  Box shadows
+6.  Icon sizes
 
 These styling variables can do a lot of the heavy lifting to help blocks match their surrounding environment. As a block developer, you should make sure the markup in your blocks uses these styling variables to make life easier for the people using your blocks.
 
@@ -62,6 +71,7 @@ No matter how beautiful a block looks, it's not worth much to anyone if it's dif
   src="blog/1_block-design/DesignGuidelines_1.png"
   width={900}
   height={480}
+  alt="A text input field with a very low contrast dropdown menu below it. Inside there is a low-constrast 'save' button and a much larger and more prominent 'delte' button."
 />
 
 Usability and user experience design (UX) is a whole discipline in its own right, and we can't cover everything in this guide. We're not expecting you to become a UX designer before you can start building blocks. However, knowing the basics of UX and some of the most important principles will go a long way in making you a better block builder.
@@ -77,6 +87,7 @@ In practice this means avoiding loud, wild visual design choices. Like adding a 
   src="blog/1_block-design/DesignGuidelines_3.png"
   width={1050}
   height={414}
+  alt="Two callout boxes. The first has very plain styling and limited use of colour. The second has a leopard background, many bold colours, and an unconventional novelty font."
 />
 
 Because blocks will be used in a wide variety of situations, it is _extra important_ to make them boring enough to blend in with the wallpaper. Use colour sparingly, and only to highlight active areas or draw attention to important elements like call to action buttons. Avoid noisy patterns or textures. Only use animation for subtle transitions, or to communicate the state of the elements to users.
@@ -89,6 +100,7 @@ Nothing makes a design look better than consistency and ratios. Basing both your
   src="blog/1_block-design/DesignGuidelines_4.png"
   width={948}
   height={627}
+  alt="Two scales next to one another. The first shows typographic headlines running from small to large on a consistent scale. The second shows a spacing scale running from small to large areas."
 />
 
 We provide a system that does this for you in the `base.css` file provided by the [block starter template]()
@@ -140,7 +152,7 @@ To make this easy and quick for users, show them an empty state with:
   src="blog/1_block-design/DesignGuidelines_5.png"
   width={685}
   height={603}
-  alt="Example image"
+  alt="Two placeholder screens. The first shows a clear CTA in the middle for users to upload an image. The second shows a user dragging and dropping a file into the area."
 />
 
 Once they have entered or selected data, ensure you design a loading state that lets them know if they need to wait a moment for the data to load. If the loading process might take a while, giving them buttons to pause and resume it may also be a good idea. Clear feedback and [visibilty of system status](https://www.google.com/search?q=ux+visibility+system+status) is always critical to help users feel informed and in control.
@@ -148,8 +160,8 @@ Once they have entered or selected data, ensure you design a loading state that 
 <img
   src="blog/1_block-design/DesignGuidelines_6.png"
   width={661}
-  height={238}
-  alt="Example image"
+  height={240}
+  alt="A loading screen showing how long left until the image uploads and buttons to pause or cancel the process"
 />
 
 #### 4. Create generous touch targets
@@ -174,7 +186,7 @@ This means making buttons look like buttons by giving them a different backgroun
   src="blog/1_block-design/DesignGuidelines_8.png"
   width={650}
   height={178}
-  alt="Example image"
+  alt="An example of two buttons where one has a blue background and subtle shading to indicate it's clickable. The second has no background or border and it's unclear if it's clickable."
 />
 
 It means making input fields look like input fields by giving them a border and either a subtle inner shadow or drop shadow to help them stand out. It means adding tooltips and hover styles when a user mouses over something they can act upon.
@@ -195,7 +207,7 @@ The most common mistakes in this department are usually related to colour choice
   src="blog/1_block-design/DesignGuidelines_7.png"
   width={997}
   height={403}
-  alt="Example image"
+  alt="Images of a button and a block of text with two examples. One where they pass the AA contrast ratio threshold, and nother where they're too faint and don't pass the threshold."
 />
 
 To test the contrast levels of your palette, you can use sites like [colourcontrast.cc](https://colourcontrast.cc/). If you're designing mockups in Figma, plugins like [Stark](https://www.figma.com/community/plugin/732603254453395948/Stark) can help automatically check designs for you.
@@ -218,12 +230,19 @@ There's nothing less enticing than a mysterious icon in the corner of an app tha
 
 <img
   src="blog/1_block-design/DesignGuidelines_9.png"
-  width={482}
-  height={162}
-  alt="Example image"
+  width={422}
+  height={189}
+  alt="A row of uncommon icons without labels"
 />
 
 Ideally, icons should always have text labels next to them. This prevents users from having to guess what the icon means. This is especially important if you're using icons that aren't widely used in other applications.
+
+<img
+  src="blog/1_block-design/DesignGuidelines_10.png"
+  width={1028}
+  height={192}
+  alt="A row of uncommon icons with labels"
+/>
 
 Since we live in a world where we don't have infinite screen space, it can be tricky to fit labels on everything. You should put labels inside tooltips that appear when a user hovers over the icon. This is a better solution for desktop than mobile, as we can't hover with our fingers (yet... still waiting for Apple to figure that one out). For mobile it's more important to show the text label in lieu of a tooltip.
 
@@ -252,3 +271,5 @@ If you're working on a block and you want it to be _really_ great, you should fi
 ![](blog/1_block-design/DesignGuidelines_8.png)
 
 ![](blog/1_block-design/DesignGuidelines_9.png)
+
+![](blog/1_block-design/DesignGuidelines_10.png)
