@@ -47,21 +47,9 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
       })),
     );
 
-    const TOTAL = 14;
-    const fakedPages = [
-      ...pages,
-      ...new Array(TOTAL)
-        .fill({})
-        .flatMap(() => pages)
-        .map((page) => ({
-          ...page,
-          fileName: `${Math.floor(Math.random() * 100)}_${page.fileName}`,
-        }))
-        .slice(0, TOTAL - pages.length),
-    ];
     return {
       props: {
-        pages: fakedPages,
+        pages,
       },
     };
   } catch (err) {

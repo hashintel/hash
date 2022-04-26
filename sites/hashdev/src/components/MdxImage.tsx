@@ -12,8 +12,12 @@ export const MdxImage: VFC<
   const { body } = useBlogPostPhotos();
   const details = body[src];
 
-  if (!details?.src) {
-    return null;
+  // @todo figure out what this should actually be – we don't have details on body for <img> tags
+  // we should probably fetch images in img tags instead so that they appear in the body map
+  if (!details && (!src || !width || !height)) {
+    throw new Error(
+      `You must provide a src, width, and height if using a custom img tag.`,
+    );
   }
 
   const inline = typeof width !== "undefined" && typeof height !== "undefined";
@@ -38,8 +42,9 @@ export const MdxImage: VFC<
       <Image
         {...props}
         {...details}
-        width={width ?? details.width}
-        height={height ?? details.height}
+        src={`/${src}` ?? details?.src}
+        width={width ?? details?.width}
+        height={height ?? details?.height}
         layout={inline ? "intrinsic" : "responsive"}
       />
     </Box>
