@@ -33,6 +33,8 @@ export const App: BlockComponent<AppProps> = ({
       <details>
         <summary>
           <input
+            // @todo Replace input elements with editableRef when it's possible to use multiple ones in the same block.
+            //       https://app.asana.com/0/1200211978612931/1202183033435672
             defaultValue={title}
             type="text"
             placeholder="Write a title"
@@ -40,6 +42,8 @@ export const App: BlockComponent<AppProps> = ({
           />
         </summary>
         <input
+          // @todo Replace input element with editableRef when it's possible to use multiple ones in the same block.
+          //       https://app.asana.com/0/1200211978612931/1202183033435672
           defaultValue={content}
           type="text"
           placeholder="Your detailed content"
