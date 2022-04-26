@@ -48,7 +48,7 @@ The blocks you build will be usable inside other applications; we call these "em
 
 The protocol gives embedding applications control over the way blocks appear within them. We give embedding applications the final say over how a block looks, as they have more context about the environment it lives within and how people will use it.
 
-Every Block Protocol block you build must accept a `styleVariables` object that the embedding application can pass in.
+Every Block Protocol block you build should accept a `styleVariables` object that the embedding application can pass in.
 
 This object defines a set of variables that control the basic styles of the block. We've designed these to maximize consistency and simplicity within your block. You can see the full list of these in the [styling section](#) of our documentation. Here's a rundown of the major categories:
 
