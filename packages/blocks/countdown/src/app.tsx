@@ -33,9 +33,12 @@ export const App: BlockComponent<AppProps> = ({
     const now = new Date();
     const timezone_offset = now.getTimezoneOffset() * (localTime ? MINUTES : 0);
     let difference = +startDate - +now + timezone_offset;
+
+    let state = "until";
     if (difference < 0) {
       // Start date is in the past
       difference = +now - +endDate - timezone_offset;
+      state = "since";
     }
     if (difference < 0) {
       // End date is in the future
@@ -45,6 +48,7 @@ export const App: BlockComponent<AppProps> = ({
         minutes: 0,
         seconds: 0,
         millis: 0,
+        state: "",
       };
     }
 
@@ -60,6 +64,7 @@ export const App: BlockComponent<AppProps> = ({
       millis: Math.floor((difference % SECONDS) / MILLISECONDS)
         .toString()
         .padStart(3, "0"),
+      state,
     };
   };
 
@@ -84,7 +89,11 @@ export const App: BlockComponent<AppProps> = ({
 
   return (
     <div>
-      <h1>{name}</h1>
+      <h1>
+        {timeOffset.state.length != 0
+          ? `Time ${timeOffset.state} ${name}:`
+          : `${name}:`}
+      </h1>
       <span id="days">{timeOffset.days}d </span>
       <span id="hours" style={style(DAYS)}>
         {timeOffset.hours}h{" "}
