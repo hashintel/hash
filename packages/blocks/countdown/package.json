@@ -15,7 +15,8 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.8"
+    "blockprotocol": "0.0.8",
+    "react-datepicker": "4.7.0"
   },
   "devDependencies": {
     "block-scripts": "0.0.2",

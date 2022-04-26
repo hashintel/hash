@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, RefCallback } from "react";
 
 import { BlockComponent } from "blockprotocol/react";
+import DatePicker from "react-datepicker";
+
+import "react-datepicker/dist/react-datepicker.css";
 
 type AppProps = {
-  name?: string;
-  startDate: Date;
-  endDate?: Date;
-  duration?: number;
+  editableRef?: RefCallback<HTMLElement>;
   localTime?: boolean;
   updateInterval?: number;
+  selectsRange?: boolean;
+  showWeekNumbers?: boolean;
+  showYearDropdown?: boolean;
 };
 
 const MILLISECONDS = 1;
@@ -18,21 +21,30 @@ const HOURS = 60 * MINUTES;
 const DAYS = 24 * HOURS;
 
 export const App: BlockComponent<AppProps> = ({
-  name,
-  startDate,
-  endDate,
-  duration,
+  editableRef,
   localTime,
   updateInterval,
+  selectsRange,
+  showWeekNumbers,
+  showYearDropdown,
 }) => {
+  localTime = localTime || false;
+  updateInterval = updateInterval || 1;
+  selectsRange = selectsRange || false;
+  showWeekNumbers = showWeekNumbers || false;
+  showYearDropdown = showYearDropdown || false;
+  const initialDate = selectsRange
+    ? new Date(new Date().setHours(24, 0, 0, 0))
+    : new Date();
+
   const calculateTime = (
-    startDate: Date,
+    initialStartDate: Date,
     endDate: Date,
     localTime: boolean,
   ) => {
     const now = new Date();
     const timezone_offset = now.getTimezoneOffset() * (localTime ? MINUTES : 0);
-    let difference = +startDate - +now + timezone_offset;
+    let difference = +initialStartDate - +now + timezone_offset;
 
     let state = "until";
     if (difference < 0) {
@@ -68,10 +80,8 @@ export const App: BlockComponent<AppProps> = ({
     };
   };
 
-  if (duration === undefined) duration = 0;
-  if (endDate === undefined)
-    endDate = new Date(+startDate + duration * SECONDS);
-  if (updateInterval === undefined) updateInterval = 1;
+  const [startDate, setStartDate] = useState(initialDate);
+  const [endDate, setEndDate] = useState(initialDate);
 
   const [timeOffset, setTimeOffset] = useState(
     calculateTime(startDate, endDate, localTime),
@@ -87,13 +97,39 @@ export const App: BlockComponent<AppProps> = ({
     return updateInterval * SECONDS < timeUnit ? {} : { display: "none" };
   };
 
+  const onChange = (changes) => {
+    if (Array.isArray(changes)) {
+      setStartDate(changes[0]);
+      setEndDate(changes[1]);
+    } else {
+      setStartDate(changes);
+      setEndDate(changes);
+    }
+  };
+
+  console.log(editableRef);
+
   return (
     <div>
       <h1>
-        {timeOffset.state.length != 0
-          ? `Time ${timeOffset.state} ${name}:`
-          : `${name}:`}
+        {timeOffset.state.length != 0 ? `Time ${timeOffset.state} ` : ""}
+        {editableRef
+          ? React.createElement("p", { ref: editableRef })
+          : React.createElement("p", {}, "Hello World")}
+        :
       </h1>
+      <DatePicker
+        selected={startDate}
+        startDate={startDate}
+        endDate={endDate}
+        onChange={onChange}
+        selectsRange={selectsRange}
+        showTimeInput={!selectsRange}
+        dateFormat={selectsRange ? "P" : "Pp"}
+        showWeekNumbers={showWeekNumbers}
+        showYearDropdown={showYearDropdown}
+        focusSelectedMonth
+      />
       <span id="days">{timeOffset.days}d </span>
       <span id="hours" style={style(DAYS)}>
         {timeOffset.hours}h{" "}
