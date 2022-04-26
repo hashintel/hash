@@ -51,7 +51,7 @@ const getPrs = (
           {
             field: "html_url",
             operator: "CONTAINS",
-            value: "blockprotocol/blockprotocol/pull/278",
+            value: "hashintel/hash/pull/490",
           },
         ],
       },
@@ -92,7 +92,7 @@ export const collectPrsAndSetState = (
       const mappedPullRequests = new Map();
 
       for (const pullRequest of pullRequests) {
-        const pullRequestId = [pullRequest.repository, pullRequest.number];
+        const pullRequestId = `${pullRequest.repository}/${pullRequest.number}`;
         mappedPullRequests.set(pullRequestId, pullRequest);
       }
 
@@ -124,7 +124,7 @@ const getReviews = (
           {
             field: "html_url",
             operator: "CONTAINS",
-            value: "blockprotocol/blockprotocol/pull/278",
+            value: "hashintel/hash/pull/490",
           },
         ],
       },
@@ -169,10 +169,9 @@ export const collectReviewsAndSetState = (
       const mappedReviews = new Map();
 
       for (const review of reviews) {
-        const pullRequestId = [
-          review.repository,
-          prNumberFromUrl(review.pull_request_url!),
-        ];
+        const pullRequestId = `${review.repository}/${prNumberFromUrl(
+          review.pull_request_url!,
+        )}`;
 
         if (mappedReviews.has(pullRequestId)) {
           mappedReviews.get(pullRequestId).push(review);
@@ -214,7 +213,7 @@ const getPrEvents = (
           {
             field: "issue.html_url",
             operator: "CONTAINS",
-            value: "blockprotocol/blockprotocol/pull/278",
+            value: "hashintel/hash/pull/490",
           },
         ],
       },
@@ -263,7 +262,7 @@ export const collectPrEventsAndSetState = (
       const pullRequestsToEvents = new Map();
 
       for (const event of events) {
-        const pullRequestId = [event.repository, event.issue?.number];
+        const pullRequestId = `${event.repository}/${event.issue?.number}`;
 
         if (pullRequestsToEvents.has(pullRequestId)) {
           pullRequestsToEvents.get(pullRequestId).push(event);
