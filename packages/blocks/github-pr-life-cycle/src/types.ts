@@ -1,4 +1,4 @@
-export interface GitHubIssueEvent {
+export interface GithubIssueEvent {
   repository?: string;
   id?: null | number;
   node_id?: null | string;

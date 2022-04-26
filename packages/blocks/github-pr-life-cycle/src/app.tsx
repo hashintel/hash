@@ -2,20 +2,22 @@
 /* eslint-disable no-console */
 import * as React from "react";
 
+import { uniqBy } from "lodash";
 import { BlockComponent } from "blockprotocol/react";
 import {
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolAggregateEntitiesResult,
   BlockProtocolEntity,
 } from "blockprotocol";
-import { GitHubIssueEvent } from "./types";
+import { GithubIssueEvent } from "./types";
+import { GithubPrLifeCycle, GithubPrLifeCycleProps } from "./lifecycle";
 
 type AppProps = {
   name: string;
 };
 
 // TODO - Don't hardcode
-const GitHubEventTypeId = "871efcfa-eee7-47f3-afeb-3a094ed035f2";
+const GithubEventTypeId = "871efcfa-eee7-47f3-afeb-3a094ed035f2";
 
 function isDefined<T>(val: T | undefined | null): val is T {
   return val !== undefined && val !== null;
@@ -35,9 +37,9 @@ const getPrEvents = (
   const res = aggregateEntities({
     accountId,
     operation: {
-      entityTypeId: GitHubEventTypeId,
+      entityTypeId: GithubEventTypeId,
       pageNumber,
-      itemsPerPage: 100,
+      itemsPerPage: 50,
       multiFilter: {
         operator: "AND",
         filters: [
@@ -46,12 +48,21 @@ const getPrEvents = (
             operator: "IS_NOT_EMPTY",
             value: "",
           },
+          {
+            field: "issue.html_url",
+            operator: "IS",
+            value: "https://github.com/hashintel/hash/pull/490",
+          },
         ],
       },
       multiSort: [
         {
           field: "issue.html_url",
           desc: true,
+        },
+        {
+          field: "created_at",
+          desc: false,
         },
       ],
     },
@@ -69,65 +80,68 @@ export const App: BlockComponent<AppProps> = ({
   aggregateEntities,
 }) => {
   const [prToEvents, setPrToEvents] = React.useState<
-    Map<string, GitHubIssueEvent[]>
+    Map<string, GithubIssueEvent[]>
   >(new Map());
-  const [_PrEvents, setPrEvents] = React.useState<GitHubIssueEvent[]>([]);
 
   React.useEffect(() => {
-    const results = Array(10)
+    const results = Array(1)
       .fill(undefined)
       .map((_, page) => getPrEvents(aggregateEntities, accountId, page));
 
     Promise.all(results)
       .then((entitiesResults) => {
-        const entities: GitHubIssueEvent[] = entitiesResults
+        const entities: GithubIssueEvent[] = entitiesResults
           .flatMap((entityResult) => entityResult?.results)
-          .filter(isDefined);
+          .filter(isDefined)
+          .filter((entity: GithubIssueEvent) =>
+            isDefined(entity.issue?.pull_request),
+          );
 
-        const pullRequestsToEntities = new Map();
+        const events = uniqBy(entities, "id");
 
-        for (const entity of entities) {
-          if (entity.issue?.pull_request === undefined) {
-            // only want issues that are pull_requests
-            continue;
-          }
+        /** @todo - These should be links to a PR entity really */
+        const pullRequestsToEvents = new Map();
 
-          if (pullRequestsToEntities.has(entity.issue.html_url)) {
-            pullRequestsToEntities.get(entity.issue.html_url).push(entity);
+        for (const event of events) {
+          if (pullRequestsToEvents.has(event.issue!.html_url)) {
+            pullRequestsToEvents.get(event.issue!.html_url).push(event);
           } else {
-            pullRequestsToEntities.set(entity.issue.html_url, [entity]);
+            pullRequestsToEvents.set(event.issue!.html_url, [event]);
           }
         }
 
-        setPrToEvents(pullRequestsToEntities);
-        setPrEvents(entities);
+        setPrToEvents(pullRequestsToEvents);
       })
       .catch((err) => console.error(err));
-  }, [accountId, aggregateEntities, setPrEvents, setPrToEvents]);
+  }, [accountId, aggregateEntities, setPrToEvents]);
 
+  let props: GithubPrLifeCycleProps | undefined;
+
+  const entry = prToEvents.entries().next();
+  if (entry.value) {
+    const [_, events]: [string, GithubIssueEvent[]] = entry.value;
+
+    props = {
+      repo: events[0]!.repository!,
+      prNumber: events[0]!.issue!.number!,
+      events,
+    };
+  }
+
+  /** @todo - Filterable list to select a pull-request */
   return (
-    <>
-      <h1>Pull Request Events:</h1>
-      <ol>
-        {prToEvents.size === 0
-          ? "Loading..."
-          : Array.from(prToEvents.entries()).map(([prUrl, events]) => (
-              <li key={prUrl}>
-                <pre>
-                  PR URL: {prUrl}
-                  {"\n"}
-                  Events: {events.map((event) => event.event).join(", ")}
-                </pre>
-              </li>
-            ))}
-        {/* {prEvents.map((prEvent) => <li>
-            <pre>
-              PR Number: {prEvent.payload.number}
-              {"\n"}
-              Action: {prEvent.payload.action}
-            </pre>
-          </li>)} */}
-      </ol>
-    </>
+    <div>
+      {prToEvents.size === 0 ? (
+        "Loading..."
+      ) : isDefined(props) ? (
+        <GithubPrLifeCycle
+          repo={props.repo}
+          prNumber={props.prNumber}
+          events={props.events}
+        />
+      ) : (
+        ""
+      )}
+    </div>
   );
 };

@@ -17,7 +17,10 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.8"
+    "@mui/lab": "5.0.0-alpha.71",
+    "@mui/material": "5.4.3",
+    "blockprotocol": "0.0.8",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "block-scripts": "0.0.2",
@@ -34,7 +37,7 @@
     "servePort": 63212
   },
   "blockprotocol": {
-    "displayName": "GithubPullRequestlife-cycle",
+    "displayName": "GithubPullRequestLifeCycle",
     "examples": [
       {}
     ],

@@ -1,0 +1,10 @@
+.lifeCycleContainer>div {
+    display: flex;
+    flex-direction: column;
+}
+
+.timeline {
+    flex-basis: 0px;
+    flex-grow: 1;
+    overflow-y: auto;
+}
