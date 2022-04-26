@@ -7,28 +7,30 @@ import TimelineConnector from "@mui/lab/TimelineConnector";
 import TimelineContent from "@mui/lab/TimelineContent";
 import TimelineDot from "@mui/lab/TimelineDot";
 
-import { GithubIssueEvent } from "./types";
+import { GithubIssueEvent, GithubPullRequest, GithubReview } from "./types";
 
 export type GithubPrLifeCycleProps = {
-  repo: string;
-  prNumber: number;
+  pullRequest: GithubPullRequest;
+  reviews: GithubReview[];
   events: GithubIssueEvent[];
 };
 
 export const GithubPrLifeCycle: React.FunctionComponent<
   GithubPrLifeCycleProps
-> = ({ repo, prNumber, events }) => {
+> = ({ pullRequest, reviews, events }) => {
+  const maxIdx = events.length - 1;
+
   return (
     <Grid container className="lifeCycleContainer">
       <Grid item xs={4}>
         <div className="timeline">
           <Timeline position="left">
-            {events.map((event) => {
+            {events.map((event, idx) => {
               return (
                 <TimelineItem key={event.id}>
                   <TimelineSeparator>
                     <TimelineDot />
-                    <TimelineConnector />
+                    {idx < maxIdx ? <TimelineConnector /> : undefined}
                   </TimelineSeparator>
                   <TimelineContent>{event.event}</TimelineContent>
                 </TimelineItem>
@@ -40,14 +42,25 @@ export const GithubPrLifeCycle: React.FunctionComponent<
       <Grid item xs={8}>
         <div>
           <h1>
-            {repo} <span style={{ color: "grey" }}>#{prNumber}</span>
+            {pullRequest.repository}{" "}
+            <span style={{ color: "grey" }}>#{pullRequest.number}</span>
           </h1>
+          <h2>
+            Status: <span style={{ color: "green" }}>Merged</span>
+          </h2>
           <br />
-          Time Until Merge: 2 Days and 2 Hours
+          Merged After: 2 Days and 2 Hours
           <br />
           Reviews: 4
           <br />
-          Ran out of ideas
+          Reviewers:
+          <ol>
+            <li>kachkaev</li>
+            <li>semgrep-app</li>
+            <li>teenoh</li>
+            <li>nathggns</li>
+          </ol>
+          <br />
         </div>
       </Grid>
     </Grid>

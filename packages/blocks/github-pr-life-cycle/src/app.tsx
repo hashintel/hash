@@ -2,128 +2,73 @@
 /* eslint-disable no-console */
 import * as React from "react";
 
-import { uniqBy } from "lodash";
 import { BlockComponent } from "blockprotocol/react";
 import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolAggregateEntitiesResult,
-  BlockProtocolEntity,
-} from "blockprotocol";
-import { GithubIssueEvent } from "./types";
+  GithubIssueEvent,
+  GithubPullRequest,
+  GithubPullRequestIdentifier,
+  GithubReview,
+  isDefined,
+} from "./types";
 import { GithubPrLifeCycle, GithubPrLifeCycleProps } from "./lifecycle";
+import {
+  collectPrEventsAndSetState,
+  collectPrsAndSetState,
+  collectReviewsAndSetState,
+} from "./entity-aggregations";
 
 type AppProps = {
   name: string;
-};
-
-// TODO - Don't hardcode
-const GithubEventTypeId = "871efcfa-eee7-47f3-afeb-3a094ed035f2";
-
-function isDefined<T>(val: T | undefined | null): val is T {
-  return val !== undefined && val !== null;
-}
-
-const getPrEvents = (
-  aggregateEntities?: BlockProtocolAggregateEntitiesFunction,
-  accountId?: string | null,
-  pageNumber?: number,
-): Promise<BlockProtocolAggregateEntitiesResult<BlockProtocolEntity> | void> => {
-  if (!aggregateEntities) {
-    return new Promise<void>(() => {});
-  }
-
-  console.log("Calling aggregateEntities");
-
-  const res = aggregateEntities({
-    accountId,
-    operation: {
-      entityTypeId: GithubEventTypeId,
-      pageNumber,
-      itemsPerPage: 50,
-      multiFilter: {
-        operator: "AND",
-        filters: [
-          {
-            field: "issue.pull_request",
-            operator: "IS_NOT_EMPTY",
-            value: "",
-          },
-          {
-            field: "issue.html_url",
-            operator: "IS",
-            value: "https://github.com/hashintel/hash/pull/490",
-          },
-        ],
-      },
-      multiSort: [
-        {
-          field: "issue.html_url",
-          desc: true,
-        },
-        {
-          field: "created_at",
-          desc: false,
-        },
-      ],
-    },
-  });
-
-  void res.then(() => {
-    console.log(`Got result from aggregateEntities`);
-  });
-
-  return res;
 };
 
 export const App: BlockComponent<AppProps> = ({
   accountId,
   aggregateEntities,
 }) => {
-  const [prToEvents, setPrToEvents] = React.useState<
-    Map<string, GithubIssueEvent[]>
+  const [mappedPrs, setMappedPrs] = React.useState<
+    Map<GithubPullRequestIdentifier, GithubPullRequest>
+  >(new Map());
+  const [mappedReviews, setMappedReviews] = React.useState<
+    Map<GithubPullRequestIdentifier, GithubReview[]>
+  >(new Map());
+  const [mappedEvents, setMappedEvents] = React.useState<
+    Map<GithubPullRequestIdentifier, GithubIssueEvent[]>
   >(new Map());
 
   React.useEffect(() => {
-    const results = Array(1)
-      .fill(undefined)
-      .map((_, page) => getPrEvents(aggregateEntities, accountId, page));
-
-    Promise.all(results)
-      .then((entitiesResults) => {
-        const entities: GithubIssueEvent[] = entitiesResults
-          .flatMap((entityResult) => entityResult?.results)
-          .filter(isDefined)
-          .filter((entity: GithubIssueEvent) =>
-            isDefined(entity.issue?.pull_request),
-          );
-
-        const events = uniqBy(entities, "id");
-
-        /** @todo - These should be links to a PR entity really */
-        const pullRequestsToEvents = new Map();
-
-        for (const event of events) {
-          if (pullRequestsToEvents.has(event.issue!.html_url)) {
-            pullRequestsToEvents.get(event.issue!.html_url).push(event);
-          } else {
-            pullRequestsToEvents.set(event.issue!.html_url, [event]);
-          }
-        }
-
-        setPrToEvents(pullRequestsToEvents);
-      })
-      .catch((err) => console.error(err));
-  }, [accountId, aggregateEntities, setPrToEvents]);
+    collectPrsAndSetState(aggregateEntities, accountId, 1, setMappedPrs);
+  }, [accountId, aggregateEntities, setMappedPrs]);
+  React.useEffect(() => {
+    collectReviewsAndSetState(
+      aggregateEntities,
+      accountId,
+      1,
+      setMappedReviews,
+    );
+  }, [accountId, aggregateEntities, setMappedReviews]);
+  React.useEffect(() => {
+    collectPrEventsAndSetState(
+      aggregateEntities,
+      accountId,
+      1,
+      setMappedEvents,
+    );
+  }, [accountId, aggregateEntities, setMappedEvents]);
 
   let props: GithubPrLifeCycleProps | undefined;
 
-  const entry = prToEvents.entries().next();
-  if (entry.value) {
-    const [_, events]: [string, GithubIssueEvent[]] = entry.value;
+  /** @todo - handle missing data */
+  if (mappedPrs.size > 0 && mappedReviews.size > 0 && mappedEvents.size > 0) {
+    const [_, pullRequest]: [GithubPullRequestIdentifier, GithubPullRequest] =
+      mappedPrs.entries().next().value;
+    const [__, reviews]: [GithubPullRequestIdentifier, GithubReview[]] =
+      mappedReviews.entries().next().value;
+    const [___, events]: [GithubPullRequestIdentifier, GithubIssueEvent[]] =
+      mappedEvents.entries().next().value;
 
     props = {
-      repo: events[0]!.repository!,
-      prNumber: events[0]!.issue!.number!,
+      pullRequest,
+      reviews,
       events,
     };
   }
@@ -131,16 +76,14 @@ export const App: BlockComponent<AppProps> = ({
   /** @todo - Filterable list to select a pull-request */
   return (
     <div>
-      {prToEvents.size === 0 ? (
-        "Loading..."
-      ) : isDefined(props) ? (
+      {isDefined(props) ? (
         <GithubPrLifeCycle
-          repo={props.repo}
-          prNumber={props.prNumber}
+          pullRequest={props.pullRequest}
+          reviews={props.reviews}
           events={props.events}
         />
       ) : (
-        ""
+        "Loading..."
       )}
     </div>
   );
