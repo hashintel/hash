@@ -274,7 +274,6 @@ export const Media: BlockComponent<
                   .filter(isSingleTargetLink)
                   .map((link) => ({
                     sourceAccountId: accountId,
-                    sourceEntityId: link.sourceEntityId,
                     linkId: link.linkId,
                   })),
               );
