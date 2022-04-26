@@ -98,6 +98,7 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
         sx={{
           position: "relative",
           cursor: "pointer",
+          height: 24,
         }}
         data-testid="block-changer"
       >

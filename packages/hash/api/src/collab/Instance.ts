@@ -295,9 +295,10 @@ export class Instance {
           // check if the entity itself is affected
           let affected = affectedEntityRefs.includes(entityRef);
 
-          if ("linkedEntities" in entity) {
+          if (!affected && "linkedEntities" in entity) {
             // this is the entity within the block, i.e. the 'child' entity
             // check if any of its linked entities or linked aggregations are affected
+            // we don't need to check this if we already know it's affected
             affected =
               entity.linkedEntities.some((linkedEntity) =>
                 affectedEntityRefs.includes(getEntityRef(linkedEntity)),
