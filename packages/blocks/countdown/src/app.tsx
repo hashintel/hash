@@ -49,7 +49,7 @@ export const App: BlockComponent<AppProps> = ({
 }) => {
   const formatDate = (date) => {
     if (rangeSelection) {
-      return format(date, "PP");
+      return format(date, "PPP");
     } else {
       return formatRelative(date, new Date());
     }
@@ -67,7 +67,7 @@ export const App: BlockComponent<AppProps> = ({
         postfix: "",
       };
     }
-    // console.log(range);
+
     let relative;
     let date;
     if (isFuture(range.start)) {
@@ -151,7 +151,6 @@ export const App: BlockComponent<AppProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const open = () => setIsOpen(true);
   const close = () => setIsOpen(false);
-  const toggle = () => setIsOpen(!isOpen);
 
   const onChange = (changes) => {
     const [start, end] = Array.isArray(changes)
