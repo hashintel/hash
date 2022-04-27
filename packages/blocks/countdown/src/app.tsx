@@ -21,7 +21,19 @@ type AppProps = {
   };
   selectsRange: boolean;
   strict: boolean;
-  relative: boolean;
+};
+
+const Checkbox = ({ label, value, onChange }) => {
+  return (
+    <label>
+      <input type="checkbox" checked={value} onChange={onChange} />
+      {label}
+    </label>
+  );
+};
+
+const Button = ({ label, onClick }) => {
+  return <button onClick={onClick}>{label}</button>;
 };
 
 export const App: BlockComponent<AppProps> = ({
@@ -30,17 +42,16 @@ export const App: BlockComponent<AppProps> = ({
     end: null,
   },
   selectsRange = false,
-  strict = true,
-  relative = true,
+  strict = false,
   entityId,
   accountId,
   updateEntities,
 }) => {
   const formatDate = (date) => {
-    if (relative) {
-      return formatRelative(date, new Date());
+    if (rangeSelection) {
+      return format(date, "PP");
     } else {
-      return selectsRange ? format(date, "PP") : format(date, "PPPp");
+      return formatRelative(date, new Date());
     }
   };
 
@@ -103,7 +114,6 @@ export const App: BlockComponent<AppProps> = ({
   });
   useEffect(() => {
     tick();
-    setRange(range);
     updateEntities([
       {
         entityId,
@@ -113,7 +123,27 @@ export const App: BlockComponent<AppProps> = ({
         },
       },
     ]);
-  }, [range, updateEntities]);
+  }, [range]);
+
+  const [rangeSelection, setRangeSelection] = useState(selectsRange);
+  useEffect(() => {
+    if (rangeSelection)
+      setRange({
+        start: new Date(range.start.setHours(0, 0, 0, 0)),
+        end: null,
+      });
+    else setRange({ start: range.start, end: null });
+
+    updateEntities([
+      {
+        entityId,
+        accountId,
+        data: {
+          selectsRange: rangeSelection,
+        },
+      },
+    ]);
+  }, [rangeSelection]);
 
   const [timeOffset, setTimeOffset] = useState(calculateTime(range));
   useEffect(() => setTimeOffset(calculateTime(range)), [clock]); // Update offset on tick
@@ -129,7 +159,7 @@ export const App: BlockComponent<AppProps> = ({
       : [changes, null];
     setRange({ start, end });
 
-    if (selectsRange && end !== null) close();
+    if (rangeSelection && end !== null) close();
   };
 
   const datepicker = useRef(null);
@@ -141,7 +171,7 @@ export const App: BlockComponent<AppProps> = ({
   return (
     <div>
       {timeOffset.prefix}{" "}
-      {isOpen || <button onClick={open}>{timeOffset.offset}</button>}
+      {isOpen || <Button onClick={open} label={timeOffset.offset} />}
       {isOpen && (
         <div style={{ display: "inline-block" }}>
           <DatePicker
@@ -151,12 +181,18 @@ export const App: BlockComponent<AppProps> = ({
             endDate={range.end}
             onChange={onChange}
             onCalendarClose={close}
-            onSelect={() => selectsRange || close()}
-            selectsRange={selectsRange}
-            showTimeSelect={!selectsRange}
-            showTimeInput={!selectsRange}
+            onSelect={() => rangeSelection || close()}
+            selectsRange={rangeSelection}
+            showTimeInput={!rangeSelection}
             showWeekNumbers
-          />
+            todayButton="Today"
+          >
+            <Checkbox
+              label="Range selection"
+              value={rangeSelection}
+              onChange={() => setRangeSelection(!rangeSelection)}
+            />
+          </DatePicker>
         </div>
       )}{" "}
       {timeOffset.postfix}
