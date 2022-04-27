@@ -20,7 +20,6 @@ type AppProps = {
     end?: Date | string;
   };
   selectsRange: boolean;
-  showYearDropdown: boolean;
   strict: boolean;
   relative: boolean;
 };
