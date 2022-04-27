@@ -15,7 +15,6 @@ const App = () => (
   <MockBlockDock>
     <Component
       entityId="countdown"
-      updateInterval={1 / 60}
       selectsRange={false}
       showWeekNumbers={true}
       strict={false}
