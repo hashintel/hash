@@ -38,9 +38,7 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
     if (url.endsWith(".html")) {
       return source;
     }
-    // console.log("url => ", url);
-    // console.log("source => ", source);
-    // debugger;
+
     /**
      * Load a commonjs module from a url and wrap it/supply with key variables
      * @see https://nodejs.org/api/modules.html#modules_the_module_wrapper
@@ -49,17 +47,7 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
     const exports = {};
     const module = { exports };
     // eslint-disable-next-line no-new-func,@typescript-eslint/no-implied-eval
-    const func = new Function(
-      "require",
-      "module",
-      "exports",
-      // this is a hack to ensure the absolute path for bundles is always
-      // used and not relative ones.
-      // This fixes a problem we have with code splitted bundles where
-      // the absolute bundle path generated based on the current page url
-      // and not the url where the block is served
-      source.replace(`=>"main."+`, `=>"${url.split("/main.")[0]}/main."+`),
-    );
+    const func = new Function("require", "module", "exports", source);
 
     func(requires, module, exports);
 

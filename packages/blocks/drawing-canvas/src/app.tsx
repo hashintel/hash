@@ -2,59 +2,26 @@ import * as React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
+import { handleExport, getInitialDocument } from "./utils";
+import "./base.css";
 
 type AppProps = {
-  name: string;
   document: string;
-};
-
-export const defaultDocument: TDDocument = {
-  id: "doc",
-  name: "New Document",
-  version: TldrawApp.version,
-  pages: {
-    page: {
-      id: "page",
-      name: "Page 1",
-      childIndex: 1,
-      shapes: {},
-      bindings: {},
-    },
-  },
-  assets: {},
-  pageStates: {
-    page: {
-      id: "page",
-      selectedIds: [],
-      camera: {
-        point: [0, 0],
-        zoom: 1,
-      },
-    },
-  },
-};
-
-const getInitialDocument = (document: string | undefined) => {
-  try {
-    return JSON.parse(document) as TDDocument;
-  } catch (err) {
-    return defaultDocument;
-  }
+  readOnly: boolean;
 };
 
 export const App: BlockComponent<AppProps> = ({
   entityId,
   entityTypeId,
   entityTypeVersionId,
-  name,
   document,
-  updateEntities,
   accountId,
+  readOnly,
+  updateEntities,
 }) => {
-  const rLoaded = React.useRef(false);
   const rTldrawApp = React.useRef<TldrawApp>();
   const rInitialDocument = React.useRef<TDDocument>(
-    getInitialDocument(document),
+    getInitialDocument(document, entityId),
   );
 
   const handleMount = React.useCallback((app: TldrawApp) => {
@@ -63,9 +30,9 @@ export const App: BlockComponent<AppProps> = ({
 
   const handlePersist = React.useCallback(
     (app: TldrawApp) => {
-      const newDocument = JSON.stringify(app.document);
-      // console.log("newDoc ==> ", app.document);
-      // console.log("reason ==> ", reason);
+      const newDocument = app.document;
+      // ensure document's id is set to entityId on save
+      newDocument.id = entityId;
 
       void updateEntities([
         {
@@ -74,62 +41,45 @@ export const App: BlockComponent<AppProps> = ({
           entityTypeVersionId,
           accountId,
           data: {
-            document: newDocument,
+            document: JSON.stringify(newDocument),
           },
         },
-      ])
-        .then((resp) => console.log(`Response from update: `, { resp }))
-        .catch((err) => console.error(`Error updating entities: `, err));
+      ]);
     },
     [updateEntities, entityId, entityTypeId, entityTypeVersionId, accountId],
   );
 
-  // const handleChange = (app: TldrawApp) => {
-  //   // console.log("change ==> ", app.document);
-  // };
-
   React.useEffect(() => {
     try {
       if (!rTldrawApp.current) return;
-      const savedDocument = JSON.parse(document) as TDDocument;
+      const remoteDocument = JSON.parse(document) as TDDocument;
       const app = rTldrawApp.current;
-      if (rLoaded.current) {
-        app.updateDocument(savedDocument);
+
+      // update document if its id hasn't changed. load document if it has
+      if (remoteDocument.id && remoteDocument.id === entityId) {
+        app.updateDocument(remoteDocument);
       } else {
-        app.loadDocument(savedDocument);
-        rLoaded.current = true;
+        // saved documents should have an id which points to the entityId supplied.
+        if (!remoteDocument.id) remoteDocument.id = entityId;
+        app.loadDocument(remoteDocument);
+        app.zoomToFit();
       }
-      app.zoomToFit();
-    } catch (e) {
-      console.warn("error ==> ", e);
+    } catch (err) {
+      // todo handle error
     }
-  }, [document]);
+  }, [document, entityId]);
 
   return (
-    <div>
-      <h1>Hello, {name}!</h1>
-      <p>
-        The entityId of this block is {entityId}. Use it to update its data when
-        calling updateEntities.
-      </p>
-      <div
-        style={{
-          position: "relative",
-          height: 600,
-          width: "100%",
-          margin: "0 auto",
-        }}
-      >
-        <Tldraw
-          document={rInitialDocument.current}
-          onMount={handleMount}
-          onPersist={handlePersist}
-          // onChange={handleChange}
-          showMultiplayerMenu={false}
-          showSponsorLink={false}
-          disableAssets // disabling this for now till we properly handle images
-        />
-      </div>
+    <div className="drawing-canvas-container">
+      <Tldraw
+        document={rInitialDocument.current}
+        onMount={handleMount}
+        onPersist={handlePersist}
+        readOnly={readOnly}
+        showMultiplayerMenu={false}
+        showSponsorLink={false}
+        onExport={handleExport}
+      />
     </div>
   );
 };

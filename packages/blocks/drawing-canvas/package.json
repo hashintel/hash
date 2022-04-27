@@ -1,7 +1,7 @@
 {
   "name": "drawing-canvas",
   "version": "0.0.0",
-  "description": "drawing-canvas block",
+  "description": "A drawing block that leverages tldraw",
   "keywords": [
     "blockprotocol",
     "blocks"
