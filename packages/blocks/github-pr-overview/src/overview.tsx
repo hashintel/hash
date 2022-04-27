@@ -48,7 +48,11 @@ export const GithubPrOverview: React.FunctionComponent<
 
   return (
     <Grid container className="prOverviewContainer">
-      <GithubPrTimeline pullRequest={pullRequest} events={events} />
+      <GithubPrTimeline
+        pullRequest={pullRequest}
+        reviews={reviews}
+        events={events}
+      />
       <Grid item xs={8} style={{ paddingLeft: "1em" }}>
         <div>
           <h1>

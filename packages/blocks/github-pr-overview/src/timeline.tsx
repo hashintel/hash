@@ -16,13 +16,8 @@ import TimelineDot from "@mui/lab/TimelineDot";
 import Tooltip from "@mui/material/Tooltip";
 import Popover from "@mui/material/Popover";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import { uniq, intersection } from "lodash";
-import { GithubIssueEvent, GithubPullRequest, isDefined } from "./types";
-
-export type GithubPrTimelineProps = {
-  pullRequest: GithubPullRequest;
-  events: GithubIssueEvent[];
-};
+import { uniq, intersection, sortBy, startCase } from "lodash";
+import { GithubIssueEvent, GithubPullRequest, GithubReview } from "./types";
 
 const NODE_COLORS: {
   [key: string]:
@@ -35,7 +30,7 @@ const NODE_COLORS: {
     | "success"
     | "warning";
 } = {
-  opened: "info",
+  opened: "grey",
   reviewed: "primary",
   review_requested: "warning",
   ready_for_review: "secondary",
@@ -130,26 +125,51 @@ const Config: React.FunctionComponent<{
   );
 };
 
+export type GithubPrTimelineProps = {
+  pullRequest: GithubPullRequest;
+  reviews: GithubReview[];
+  events: GithubIssueEvent[];
+};
+
 export const GithubPrTimeline: React.FunctionComponent<
   GithubPrTimelineProps
-> = ({ pullRequest, events }) => {
-  // there isn't an issue event for opening so we manually make an object to append to the timeline
-  const openedEvent = {
-    id: pullRequest.node_id,
-    event: "opened",
-    created_at: pullRequest.created_at,
-  };
-  const nodes = [openedEvent, ...events];
-  const maxIdx = nodes.length - 1;
+> = ({ pullRequest, events, reviews }) => {
+  const nodes = React.useMemo(() => {
+    // there isn't an issue event for opening so we manually make an object to append to the timeline
+    const openedEvent = {
+      id: pullRequest.node_id,
+      event: "opened",
+      created_at: pullRequest.created_at,
+    };
+    const reviewEvents = reviews.map((review) => {
+      return {
+        id: review.id,
+        event: "reviewed",
+        created_at: review.submitted_at,
+      };
+    });
+    return sortBy([openedEvent, ...reviewEvents, ...events], "created_at");
+  }, [pullRequest, events, reviews]);
 
-  const possibleEventTypes = uniq(
-    nodes.map((event) => event.event).filter(isDefined),
+  const possibleEventTypes = React.useMemo(
+    () => uniq(nodes.map((event) => event.event!)),
+    [nodes],
   );
 
-  // const [configOpen, setConfigOpen] = React.useState(false);
   const [selectedEventTypes, setSelectedEventTypes] = React.useState(
     addDefaultFromPossible(possibleEventTypes),
   );
+
+  const filteredNodes = React.useMemo(
+    () =>
+      nodes.filter(
+        (event) =>
+          event.event != null && selectedEventTypes.includes(event.event),
+      ),
+    [nodes, selectedEventTypes],
+  );
+
+  const maxIdx = filteredNodes.length - 1;
 
   return (
     <Grid
@@ -167,38 +187,33 @@ export const GithubPrTimeline: React.FunctionComponent<
       />
       <div className="timeline">
         <Timeline position="left">
-          {nodes
-            .filter(
-              (event) =>
-                event.event != null && selectedEventTypes.includes(event.event),
-            )
-            .map((event, idx) => {
-              const color = NODE_COLORS[event.event!] ?? "grey";
-              return (
-                <TimelineItem
-                  className="timelineItem"
-                  key={event.id?.toString()}
-                  style={{ alignContent: "right" }}
-                >
-                  <TimelineSeparator>
-                    <TimelineDot color={color} />
-                    {idx < maxIdx ? <TimelineConnector /> : undefined}
-                  </TimelineSeparator>
-                  <TimelineContent>
-                    <Tooltip
-                      title={moment(event.created_at).format(
-                        "dddd, MMMM Do YYYY, HH:mm",
-                      )}
-                    >
-                      {/* This key seems necessary because of some weird behavior of the Tooltip */}
-                      <span key={`LABEL_${event.id?.toString()}`}>
-                        {event.event}
-                      </span>
-                    </Tooltip>
-                  </TimelineContent>
-                </TimelineItem>
-              );
-            })}
+          {filteredNodes.map((event, idx) => {
+            const color = NODE_COLORS[event.event!] ?? "grey";
+            return (
+              <TimelineItem
+                className="timelineItem"
+                key={event.id?.toString()}
+                style={{ alignContent: "right" }}
+              >
+                <TimelineSeparator>
+                  <TimelineDot color={color} />
+                  {idx < maxIdx ? <TimelineConnector /> : undefined}
+                </TimelineSeparator>
+                <TimelineContent>
+                  <Tooltip
+                    title={moment(event.created_at).format(
+                      "dddd, MMMM Do YYYY, HH:mm",
+                    )}
+                  >
+                    {/* This key seems necessary because of some weird behavior of the Tooltip */}
+                    <span key={`LABEL_${event.id?.toString()}`}>
+                      {event.event}
+                    </span>
+                  </Tooltip>
+                </TimelineContent>
+              </TimelineItem>
+            );
+          })}
         </Timeline>
       </div>
     </Grid>
