@@ -34,7 +34,7 @@ export const App: BlockComponent<AppProps> = ({
     React.useState(selectedPullRequest);
 
   const setSelectedPullRequestIdAndPersist = (
-    pullRequestId: PullRequestIdentifier,
+    pullRequestId?: PullRequestIdentifier,
   ) => {
     if (updateEntities) {
       updateEntities([
@@ -116,6 +116,7 @@ export const App: BlockComponent<AppProps> = ({
       pullRequest,
       reviews,
       events,
+      setSelectedPullRequestId: setSelectedPullRequestIdAndPersist,
     };
   }
 
@@ -127,6 +128,7 @@ export const App: BlockComponent<AppProps> = ({
           pullRequest={props.pullRequest}
           reviews={props.reviews}
           events={props.events}
+          setSelectedPullRequestId={props.setSelectedPullRequestId}
         />
       ) : selectedPullRequestId === undefined && allPrs.size > 0 ? (
         <PullRequestSelector
