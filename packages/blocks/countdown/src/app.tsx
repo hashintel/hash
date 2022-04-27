@@ -127,7 +127,7 @@ export const App: BlockComponent<AppProps> = ({
 
   const [rangeSelection, setRangeSelection] = useState(selectsRange);
   useEffect(() => {
-    if (rangeSelection)
+    if (rangeSelection && range.start !== null)
       setRange({
         start: new Date(range.start.setHours(0, 0, 0, 0)),
         end: null,
