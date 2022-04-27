@@ -20,7 +20,6 @@ type AppProps = {
     end?: Date | string;
   };
   selectsRange: boolean;
-  showWeekNumbers: boolean;
   showYearDropdown: boolean;
   strict: boolean;
   relative: boolean;
@@ -32,7 +31,6 @@ export const App: BlockComponent<AppProps> = ({
     end: null,
   },
   selectsRange = false,
-  showWeekNumbers = true,
   strict = true,
   relative = true,
   entityId,
@@ -106,6 +104,7 @@ export const App: BlockComponent<AppProps> = ({
   });
   useEffect(() => {
     tick();
+    setRange(range);
     updateEntities([
       {
         entityId,
@@ -115,23 +114,15 @@ export const App: BlockComponent<AppProps> = ({
         },
       },
     ]);
-  }, [range]);
+  }, [range, updateEntities]);
 
   const [timeOffset, setTimeOffset] = useState(calculateTime(range));
   useEffect(() => setTimeOffset(calculateTime(range)), [clock]); // Update offset on tick
 
   const [isOpen, setIsOpen] = useState(false);
-  const close = () => {
-    console.log("close");
-    setIsOpen(false);
-  };
-  const toggle = () => {
-    console.log("toggle");
-    setIsOpen(!isOpen);
-  };
-  const closeOnEscape = (event) => {
-    if (event.key === "Escape") close();
-  };
+  const open = () => setIsOpen(true);
+  const close = () => setIsOpen(false);
+  const toggle = () => setIsOpen(!isOpen);
 
   const onChange = (changes) => {
     const [start, end] = Array.isArray(changes)
@@ -142,55 +133,32 @@ export const App: BlockComponent<AppProps> = ({
     if (selectsRange && end !== null) close();
   };
 
-  const onClick = (event) => {
-    console.log("onClick");
-    toggle();
-    event.preventDefault();
-  };
-
-  const onSelect = () => {
-    // Don't close when selecting a range.
-    if (!selectsRange) close();
-  };
-
-  const button = useRef(null);
-  const onClickOutside = (event) => {
-    // Prevent action when pressing button
-    if (button.current && !button.current.contains(event.target)) close();
-  };
-
   const datepicker = useRef(null);
-  const focus = () => {
-    console.log(datepicker.current);
-    datepicker.current && datepicker.current.setFocus();
-  };
-  useEffect(() => isOpen && focus(), [isOpen]);
+  useEffect(
+    () => datepicker.current && isOpen && datepicker.current.setOpen(true),
+    [isOpen],
+  );
 
   return (
     <div>
       {timeOffset.prefix}{" "}
-      <button ref={button} onClick={toggle} onKeyDown={closeOnEscape}>
-        {timeOffset.offset}
-      </button>{" "}
-      {timeOffset.postfix}
+      {isOpen || <button onClick={open}>{timeOffset.offset}</button>}
       {isOpen && (
         <DatePicker
           ref={datepicker}
-          autofocus
           selected={range.start}
           startDate={range.start}
           endDate={range.end}
           onChange={onChange}
-          onSelect={onSelect}
-          onKeyDown={closeOnEscape}
-          onClickOutside={onClickOutside}
-          closeOnScroll={true}
+          onCalendarClose={close}
+          onSelect={() => selectsRange || close()}
           selectsRange={selectsRange}
           showTimeSelect={!selectsRange}
           showTimeInput={!selectsRange}
-          showWeekNumbers={showWeekNumbers}
+          showWeekNumbers
         />
-      )}
+      )}{" "}
+      {timeOffset.postfix}
     </div>
   );
 };

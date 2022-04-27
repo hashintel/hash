@@ -13,13 +13,7 @@ const node = document.getElementById("app");
 
 const App = () => (
   <MockBlockDock>
-    <Component
-      entityId="countdown"
-      selectsRange={false}
-      showWeekNumbers={true}
-      strict={false}
-      relative={true}
-    />
+    <Component entityId="countdown" />
   </MockBlockDock>
 );
 
