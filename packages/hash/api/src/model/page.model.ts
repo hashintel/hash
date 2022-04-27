@@ -390,7 +390,7 @@ class __Page extends Entity {
     params: {
       position: number;
       removedByAccountId: string;
-      allowRemovingFinal: boolean;
+      allowRemovingFinal?: boolean;
     },
   ) {
     const { allowRemovingFinal, position } = params;
