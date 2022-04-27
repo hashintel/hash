@@ -17,7 +17,7 @@ import TimelineDot from "@mui/lab/TimelineDot";
 import Tooltip from "@mui/material/Tooltip";
 import Popover from "@mui/material/Popover";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import { uniq } from "lodash";
+import { uniq, intersection } from "lodash";
 import { GithubIssueEvent, GithubPullRequest, isDefined } from "./types";
 
 export type GithubPrTimelineProps = {
@@ -44,11 +44,11 @@ const NODE_COLORS: {
   merged: "success",
 };
 
-const getStyles = (eventType: string, selectedEventTypes: string[]) => {
-  return {
-    fontWeight:
-      selectedEventTypes.indexOf(eventType) === -1 ? "regular" : "bold",
-  };
+const addDefaultFromPossible = (availableEventTypes: string[]) => {
+  return intersection(
+    ["opened", "reviewed", "review_requested", "closed", "merged"],
+    availableEventTypes,
+  );
 };
 
 const Config = (
@@ -83,11 +83,7 @@ const Config = (
         >
           {/* eslint-disable-next-line react/destructuring-assignment -- mistakenly thinks map is a variable that needs to be destructured */}
           {possibleEventTypes.map((eventType) => (
-            <MenuItem
-              key={eventType}
-              value={eventType}
-              style={getStyles(eventType, selectedEventTypes)}
-            >
+            <MenuItem key={eventType} value={eventType}>
               {eventType}
             </MenuItem>
           ))}
@@ -114,7 +110,9 @@ export const GithubPrTimeline: React.FunctionComponent<
   );
 
   const [configOpen, setConfigOpen] = React.useState(false);
-  const [selectedEventTypes, setSelectedEventTypes] = React.useState([]);
+  const [selectedEventTypes, setSelectedEventTypes] = React.useState(
+    addDefaultFromPossible(possibleEventTypes),
+  );
 
   return (
     <Grid item xs={4}>
@@ -147,7 +145,10 @@ export const GithubPrTimeline: React.FunctionComponent<
       <div className="timeline">
         <Timeline position="left">
           {nodes
-            .filter((event) => event.event != null)
+            .filter(
+              (event) =>
+                event.event != null && selectedEventTypes.includes(event.event),
+            )
             .map((event, idx) => {
               const color = NODE_COLORS[event.event!] ?? "grey";
               return (
