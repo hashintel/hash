@@ -106,7 +106,7 @@ const Config: React.FunctionComponent<{
               renderValue={(selected) => (
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                   {selected.map((value) => (
-                    <Chip key={value} label={value} />
+                    <Chip key={value} label={startCase(value)} />
                   ))}
                 </Box>
               )}
@@ -114,7 +114,7 @@ const Config: React.FunctionComponent<{
               {/* eslint-disable-next-line react/destructuring-assignment -- mistakenly thinks map is a variable that needs to be destructured */}
               {possibleEventTypes.map((eventType) => (
                 <MenuItem key={eventType} value={eventType}>
-                  {eventType}
+                  {startCase(eventType)}
                 </MenuItem>
               ))}
             </Select>
@@ -174,7 +174,7 @@ export const GithubPrTimeline: React.FunctionComponent<
   return (
     <Grid
       item
-      xs={3}
+      xs={4}
       style={{
         position: "relative",
         borderRight: "2px solid grey",
@@ -205,9 +205,10 @@ export const GithubPrTimeline: React.FunctionComponent<
                       "dddd, MMMM Do YYYY, HH:mm",
                     )}
                   >
-                    {/* This key seems necessary because of some weird behavior of the Tooltip */}
+                    {/* Even though this span isn't in a list, React complains about list elements needing unique keys unless 
+                    we add a key here. Assuming it's because of some weird behavior of the Tooltip */}
                     <span key={`LABEL_${event.id?.toString()}`}>
-                      {event.event}
+                      {startCase(event.event!)}
                     </span>
                   </Tooltip>
                 </TimelineContent>
