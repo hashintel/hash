@@ -8579,7 +8579,7 @@ block-scripts@0.0.2:
     webpack-dev-server "^4.8.1"
     yargs-parser "21.0.1"
 
-blockprotocol@0.0.6, blockprotocol@0.0.7, blockprotocol@0.0.8:
+blockprotocol@0.0.6, blockprotocol@0.0.7, blockprotocol@0.0.8, blockprotocol@0.0.9:
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.7.tgz#e9f36e6e9c468a8611075a1f6d93b9af22711f19"
   integrity sha512-8Hapdz1jaBoTYZqd2m9MY/+NAYCOGhMq0zR5t7Q3F8LjpKTP1DmAj6LayOIJFYVzQCYAbFouI45GhHyWmtRRnA==
