@@ -19,17 +19,17 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { uniq, intersection, sortBy, startCase } from "lodash";
 import { GithubIssueEvent, GithubPullRequest, GithubReview } from "./types";
 
-const NODE_COLORS: {
-  [key: string]:
-    | "inherit"
-    | "grey"
-    | "primary"
-    | "secondary"
-    | "error"
-    | "info"
-    | "success"
-    | "warning";
-} = {
+const NODE_COLORS: Record<
+  string,
+  | "inherit"
+  | "grey"
+  | "primary"
+  | "secondary"
+  | "error"
+  | "info"
+  | "success"
+  | "warning"
+> = {
   opened: "grey",
   reviewed: "primary",
   review_requested: "warning",

@@ -24,12 +24,34 @@ type AppProps = {
 
 export const App: BlockComponent<AppProps> = ({
   accountId,
+  entityId,
   aggregateEntities,
   selectedPullRequest,
+  updateEntities,
 }) => {
   // selectedPullRequest is just an Identifier, but isn't the associated GithubPullRequestEntity
   const [selectedPullRequestId, setSelectedPullRequestId] =
     React.useState(selectedPullRequest);
+
+  const setSelectedPullRequestIdAndPersist = (
+    pullRequestId: PullRequestIdentifier,
+  ) => {
+    if (updateEntities) {
+      updateEntities([
+        {
+          entityId,
+          accountId,
+          data: {
+            selectedPullRequest: pullRequestId,
+          },
+        },
+      ]).catch((err) => {
+        throw err;
+      });
+    }
+    setSelectedPullRequestId(pullRequestId);
+  };
+
   const [allPrs, setAllPrs] = React.useState<Map<string, GithubPullRequest>>(
     new Map(),
   );
@@ -108,7 +130,7 @@ export const App: BlockComponent<AppProps> = ({
         />
       ) : selectedPullRequestId === undefined && allPrs.size > 0 ? (
         <PullRequestSelector
-          setSelectedPullRequestId={setSelectedPullRequestId}
+          setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
           allPrs={allPrs}
         />
       ) : (
