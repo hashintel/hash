@@ -436,6 +436,23 @@ export class ProsemirrorSchemaManager {
     view.dispatch(tr);
   }
 
+  /**
+   * @todo consider removing the old block from the entity store
+   * @todo need to support variants here (copied from {@link replaceNodeWithRemoteBlock} - is this still relevant?
+   */
+  async deleteNode(node: ProsemirrorNode<Schema>, pos: number) {
+    const { view } = this;
+
+    if (!view) {
+      throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
+    }
+
+    const { tr } = view.state;
+
+    tr.delete(pos, pos + node.nodeSize);
+    view.dispatch(tr);
+  }
+
   // @todo handle empty variant properties
   // @todo handle saving the results of this
   // @todo handle non-intermediary entities
