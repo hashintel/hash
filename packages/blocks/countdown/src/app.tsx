@@ -144,19 +144,21 @@ export const App: BlockComponent<AppProps> = ({
       {timeOffset.prefix}{" "}
       {isOpen || <button onClick={open}>{timeOffset.offset}</button>}
       {isOpen && (
-        <DatePicker
-          ref={datepicker}
-          selected={range.start}
-          startDate={range.start}
-          endDate={range.end}
-          onChange={onChange}
-          onCalendarClose={close}
-          onSelect={() => selectsRange || close()}
-          selectsRange={selectsRange}
-          showTimeSelect={!selectsRange}
-          showTimeInput={!selectsRange}
-          showWeekNumbers
-        />
+        <div style={{ display: "inline-block" }}>
+          <DatePicker
+            ref={datepicker}
+            selected={range.start}
+            startDate={range.start}
+            endDate={range.end}
+            onChange={onChange}
+            onCalendarClose={close}
+            onSelect={() => selectsRange || close()}
+            selectsRange={selectsRange}
+            showTimeSelect={!selectsRange}
+            showTimeInput={!selectsRange}
+            showWeekNumbers
+          />
+        </div>
       )}{" "}
       {timeOffset.postfix}
     </div>
