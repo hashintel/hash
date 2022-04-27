@@ -20,7 +20,8 @@
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
     "blockprotocol": "0.0.8",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "moment": "^2.29.3"
   },
   "devDependencies": {
     "block-scripts": "0.0.2",
