@@ -2,12 +2,6 @@ import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
-import Timeline from "@mui/lab/Timeline";
-import TimelineItem from "@mui/lab/TimelineItem";
-import TimelineSeparator from "@mui/lab/TimelineSeparator";
-import TimelineConnector from "@mui/lab/TimelineConnector";
-import TimelineContent from "@mui/lab/TimelineContent";
-import TimelineDot from "@mui/lab/TimelineDot";
 import { uniqBy } from "lodash";
 import moment from "moment";
 
@@ -17,12 +11,7 @@ import {
   GithubReview,
   isDefined,
 } from "./types";
-
-export type GithubPrOverviewProps = {
-  pullRequest: GithubPullRequest;
-  reviews: GithubReview[];
-  events: GithubIssueEvent[];
-};
+import { GithubPrTimeline } from "./timeline";
 
 export const Reviewer = (login: string, avatar_url?: string | null) => (
   <Stack direction="row" spacing={1}>
@@ -36,10 +25,15 @@ export const Reviewer = (login: string, avatar_url?: string | null) => (
   </Stack>
 );
 
+export type GithubPrOverviewProps = {
+  pullRequest: GithubPullRequest;
+  reviews: GithubReview[];
+  events: GithubIssueEvent[];
+};
+
 export const GithubPrOverview: React.FunctionComponent<
   GithubPrOverviewProps
 > = ({ pullRequest, reviews, events }) => {
-  const maxIdx = events.length - 1;
   const uniqueReviewers = uniqBy(
     reviews.map((review) => {
       return { login: review.user!.login, avatar_url: review.user!.avatar_url };
@@ -51,27 +45,10 @@ export const GithubPrOverview: React.FunctionComponent<
     pullRequest.closed_at != null
       ? moment(pullRequest.closed_at).from(moment(pullRequest.created_at), true)
       : undefined;
-  // there isn't an issue event for opening so we manually make an object to append to the timeline
-  const openedEvent = { id: pullRequest.node_id, event: "opened" };
+
   return (
     <Grid container className="prOverviewContainer">
-      <Grid item xs={4}>
-        <div className="timeline">
-          <Timeline position="left">
-            {[openedEvent, ...events].map((event, idx) => {
-              return (
-                <TimelineItem key={event.id}>
-                  <TimelineSeparator>
-                    <TimelineDot />
-                    {idx < maxIdx ? <TimelineConnector /> : undefined}
-                  </TimelineSeparator>
-                  <TimelineContent>{event.event}</TimelineContent>
-                </TimelineItem>
-              );
-            })}
-          </Timeline>
-        </div>
-      </Grid>
+      <GithubPrTimeline pullRequest={pullRequest} events={events} />
       <Grid item xs={8}>
         <div>
           <h1>
