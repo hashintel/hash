@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 
@@ -14,13 +14,16 @@ export const App: BlockComponent<AppProps> = ({
   content,
   updateEntities,
 }) => {
+  let contentRef = useRef(null);
+  let [content2, setContent] = useState(content);
+
   const updateContent = (text: string, field: "content" | "title") => {
     updateEntities([
       {
         accountId,
         entityId,
         data: {
-          content,
+          content2,
           title,
           [field]: text,
         },
@@ -28,9 +31,25 @@ export const App: BlockComponent<AppProps> = ({
     ]);
   };
 
+  const updateContentHeight = () => {
+    contentRef.current.style.height = "auto";
+    const scrollHeight = contentRef.current.scrollHeight;
+    contentRef.current.style.height = scrollHeight + "px";
+  };
+
+  useEffect(() => {
+    updateContentHeight();
+  }, [content2]);
+
   return (
     <div>
-      <details>
+      <details
+        onToggle={() => {
+          // Browsers don't calculate `scrollHeight` of elements not shown, it's 0
+          // since the `textarea` in the content starts off hidden we need to re-calculate when it's visible
+          updateContentHeight();
+        }}
+      >
         <summary>
           <input
             // @todo Replace input elements with editableRef when it's possible to use multiple ones in the same block.
@@ -38,14 +57,33 @@ export const App: BlockComponent<AppProps> = ({
             defaultValue={title}
             type="text"
             placeholder="Write a title"
+            className="base-paragraph"
+            style={{
+              // Above 97% the text almost always goes to the line bellow the arrow
+              width: "97%",
+              border: 0,
+              outline: 0,
+            }}
             onBlur={(event) => updateContent(event.target.value, "title")}
           />
         </summary>
         <textarea
+          ref={contentRef}
           // @todo Replace input element with editableRef when it's possible to use multiple ones in the same block.
           //       https://app.asana.com/0/1200211978612931/1202183033435672
-          defaultValue={content}
-          placeholder="Your detailed content"
+          defaultValue={content2}
+          placeholder="Your detailed content2"
+          className="base-paragraph"
+          style={{
+            width: "100%",
+            resize: "none",
+            border: 0,
+            outline: 0,
+            overflow: "hidden",
+          }}
+          onChange={(event) => {
+            setContent(event.target.value);
+          }}
           onBlur={(event) => updateContent(event.target.value, "content")}
         />
       </details>
