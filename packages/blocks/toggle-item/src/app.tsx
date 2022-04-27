@@ -15,7 +15,7 @@ export const App: BlockComponent<AppProps> = ({
   updateEntities,
 }) => {
   let contentRef = useRef(null);
-  let [content2, setContent] = useState(content);
+  let [currentContent, setContent] = useState(content);
 
   const updateContent = (text: string, field: "content" | "title") => {
     updateEntities([
@@ -23,7 +23,7 @@ export const App: BlockComponent<AppProps> = ({
         accountId,
         entityId,
         data: {
-          content2,
+          currentContent,
           title,
           [field]: text,
         },
@@ -39,7 +39,7 @@ export const App: BlockComponent<AppProps> = ({
 
   useEffect(() => {
     updateContentHeight();
-  }, [content2]);
+  }, [currentContent]);
 
   return (
     <div>
@@ -71,8 +71,8 @@ export const App: BlockComponent<AppProps> = ({
           ref={contentRef}
           // @todo Replace input element with editableRef when it's possible to use multiple ones in the same block.
           //       https://app.asana.com/0/1200211978612931/1202183033435672
-          defaultValue={content2}
-          placeholder="Your detailed content2"
+          defaultValue={currentContent}
+          placeholder="Your detailed content"
           className="base-paragraph"
           style={{
             width: "100%",
