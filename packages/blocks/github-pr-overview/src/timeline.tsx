@@ -51,12 +51,14 @@ const addDefaultFromPossible = (availableEventTypes: string[]) => {
   );
 };
 
-const Config = (
-  possibleEventTypes: string[],
-  selectedEventTypes: string[],
-  setSelectedEventTypes: (x: any) => void,
-) => {
-  const handleChange = (event: any) => {
+const Config: React.FunctionComponent<{
+  possibleEventTypes: string[];
+  selectedEventTypes: string[];
+  setSelectedEventTypes: (x: any) => void;
+}> = ({ possibleEventTypes, selectedEventTypes, setSelectedEventTypes }) => {
+  const [anchorEl, setAnchorEl] = React.useState(null);
+
+  const handleSelectChange = (event: any) => {
     const {
       target: { value },
     } = event;
@@ -66,30 +68,67 @@ const Config = (
     );
   };
 
+  const handleConfigButtonClick = (event: any) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleConfigClose = () => {
+    setAnchorEl(null);
+  };
+
+  const open = Boolean(anchorEl);
+  const id = open ? "timeline-config-popover" : undefined;
+
   return (
-    <div>
-      <FormControl sx={{ m: 1, width: 300 }}>
-        <Select
-          multiple
-          value={selectedEventTypes}
-          onChange={handleChange}
-          renderValue={(selected) => (
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-              {selected.map((value) => (
-                <Chip key={value} label={value} />
+    <>
+      <Button
+        aria-describedby={id}
+        onClick={handleConfigButtonClick}
+        style={{
+          position: "absolute",
+          top: "1em",
+          left: "1em",
+          zIndex: 3,
+        }}
+        variant="contained"
+      >
+        <SettingsOutlinedIcon fontSize="small" />
+      </Button>
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleConfigClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+      >
+        <div>
+          <FormControl sx={{ m: 1, width: 300 }}>
+            <Select
+              multiple
+              value={selectedEventTypes}
+              onChange={handleSelectChange}
+              renderValue={(selected) => (
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {selected.map((value) => (
+                    <Chip key={value} label={value} />
+                  ))}
+                </Box>
+              )}
+            >
+              {/* eslint-disable-next-line react/destructuring-assignment -- mistakenly thinks map is a variable that needs to be destructured */}
+              {possibleEventTypes.map((eventType) => (
+                <MenuItem key={eventType} value={eventType}>
+                  {eventType}
+                </MenuItem>
               ))}
-            </Box>
-          )}
-        >
-          {/* eslint-disable-next-line react/destructuring-assignment -- mistakenly thinks map is a variable that needs to be destructured */}
-          {possibleEventTypes.map((eventType) => (
-            <MenuItem key={eventType} value={eventType}>
-              {eventType}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </div>
+            </Select>
+          </FormControl>
+        </div>
+      </Popover>
+    </>
   );
 };
 
@@ -109,39 +148,18 @@ export const GithubPrTimeline: React.FunctionComponent<
     nodes.map((event) => event.event).filter(isDefined),
   );
 
-  const [configOpen, setConfigOpen] = React.useState(false);
+  // const [configOpen, setConfigOpen] = React.useState(false);
   const [selectedEventTypes, setSelectedEventTypes] = React.useState(
     addDefaultFromPossible(possibleEventTypes),
   );
 
   return (
-    <Grid item xs={4}>
-      <Button
-        onClick={() => setConfigOpen((state) => !state)}
-        style={{
-          position: "relative",
-          top: 0,
-          right: 0,
-          width: "auto",
-          flexGrow: 0,
-        }}
-      >
-        <SettingsOutlinedIcon />
-      </Button>
-      <Popover
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "left",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "left",
-        }}
-        open={configOpen}
-        onClose={() => setConfigOpen((state) => !state)}
-      >
-        {Config(possibleEventTypes, selectedEventTypes, setSelectedEventTypes)}
-      </Popover>
+    <Grid item xs={4} style={{ position: "relative" }}>
+      <Config
+        possibleEventTypes={possibleEventTypes}
+        selectedEventTypes={selectedEventTypes}
+        setSelectedEventTypes={setSelectedEventTypes}
+      />
       <div className="timeline">
         <Timeline position="left">
           {nodes
