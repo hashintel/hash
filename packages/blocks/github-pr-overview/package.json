@@ -4,7 +4,9 @@
   "description": "github-pr-overview block",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "github",
+    "pullrequest"
   ],
   "license": "MIT",
   "author": "Alfred Mountfield",

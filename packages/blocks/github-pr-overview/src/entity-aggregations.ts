@@ -1,5 +1,3 @@
-/** @todo - remove */
-/* eslint-disable no-console */
 import {
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolAggregateEntitiesResult,
@@ -10,6 +8,7 @@ import {
   GithubIssueEvent,
   GithubIssueEventTypeId,
   GithubPullRequest,
+  PullRequestIdentifier,
   GithubPullRequestTypeId,
   GithubReview,
   GithubReviewTypeId,
@@ -18,20 +17,11 @@ import {
 
 const ITEMS_PER_PAGE = 100;
 
-const prNumberFromUrl = (url: string) => {
-  const segments = url.split("/");
-  const prNumber = segments[segments.length - 1];
-  if (!isDefined(prNumber)) {
-    throw Error(`Couldn't extract PR number, invalid URL: ${url}`);
-  } else {
-    return parseInt(prNumber, 10);
-  }
-};
-
-const getPrs = (
+export const getPrs = (
   aggregateEntities?: BlockProtocolAggregateEntitiesFunction,
   accountId?: string | null,
   pageNumber?: number,
+  selectedPullRequest?: PullRequestIdentifier,
 ): Promise<BlockProtocolAggregateEntitiesResult<GithubPullRequest> | void> => {
   if (!aggregateEntities) {
     return new Promise<void>(() => {});
@@ -45,13 +35,16 @@ const getPrs = (
       itemsPerPage: ITEMS_PER_PAGE,
       multiFilter: {
         operator: "AND",
-        filters: [
-          {
-            field: "html_url",
-            operator: "CONTAINS",
-            value: "hashintel/hash/pull/490",
-          },
-        ],
+        filters:
+          selectedPullRequest !== undefined
+            ? [
+                {
+                  field: "html_url",
+                  operator: "CONTAINS",
+                  value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+                },
+              ]
+            : [],
       },
       multiSort: [
         {
@@ -92,13 +85,16 @@ export const collectPrsAndSetState = (
 
       setState(mappedPullRequests);
     })
-    .catch((err) => console.error(err));
+    .catch((err) => {
+      throw err;
+    });
 };
 
 const getReviews = (
-  aggregateEntities?: BlockProtocolAggregateEntitiesFunction,
-  accountId?: string | null,
-  pageNumber?: number,
+  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
+  accountId: string | null | undefined,
+  pageNumber: number | undefined,
+  selectedPullRequest: PullRequestIdentifier,
 ): Promise<BlockProtocolAggregateEntitiesResult<GithubReview> | void> => {
   if (!aggregateEntities) {
     return new Promise<void>(() => {});
@@ -116,7 +112,7 @@ const getReviews = (
           {
             field: "html_url",
             operator: "CONTAINS",
-            value: "hashintel/hash/pull/490",
+            value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
           },
         ],
       },
@@ -141,10 +137,13 @@ export const collectReviewsAndSetState = (
   accountId: string | null | undefined,
   numPages: number,
   setState: (x: any) => void,
+  selectedPullRequest: PullRequestIdentifier,
 ) => {
   const results = Array(numPages)
     .fill(undefined)
-    .map((_, page) => getReviews(aggregateEntities, accountId, page));
+    .map((_, page) =>
+      getReviews(aggregateEntities, accountId, page, selectedPullRequest),
+    );
 
   Promise.all(results)
     .then((entitiesResults) => {
@@ -154,29 +153,18 @@ export const collectReviewsAndSetState = (
 
       const reviews = uniqBy(entities, "id");
 
-      const mappedReviews = new Map();
-
-      for (const review of reviews) {
-        const pullRequestId = `${review.repository}/${prNumberFromUrl(
-          review.pull_request_url!,
-        )}`;
-
-        if (mappedReviews.has(pullRequestId)) {
-          mappedReviews.get(pullRequestId).push(review);
-        } else {
-          mappedReviews.set(pullRequestId, [review]);
-        }
-      }
-
-      setState(mappedReviews);
+      setState(reviews);
     })
-    .catch((err) => console.error(err));
+    .catch((err) => {
+      throw err;
+    });
 };
 
 const getPrEvents = (
-  aggregateEntities?: BlockProtocolAggregateEntitiesFunction,
-  accountId?: string | null,
-  pageNumber?: number,
+  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
+  accountId: string | null | undefined,
+  pageNumber: number | undefined,
+  selectedPullRequest: PullRequestIdentifier,
 ): Promise<BlockProtocolAggregateEntitiesResult<GithubIssueEvent> | void> => {
   if (!aggregateEntities) {
     return new Promise<void>(() => {});
@@ -199,7 +187,7 @@ const getPrEvents = (
           {
             field: "issue.html_url",
             operator: "CONTAINS",
-            value: "hashintel/hash/pull/490",
+            value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
           },
         ],
       },
@@ -224,10 +212,14 @@ export const collectPrEventsAndSetState = (
   accountId: string | null | undefined,
   numPages: number,
   setState: (x: any) => void,
+  selectedPullRequest: PullRequestIdentifier,
 ) => {
   const results = Array(numPages)
     .fill(undefined)
-    .map((_, page) => getPrEvents(aggregateEntities, accountId, page));
+    .map((_, page) =>
+      /** @todo - These should be links to a PR entity really */
+      getPrEvents(aggregateEntities, accountId, page, selectedPullRequest),
+    );
 
   Promise.all(results)
     .then((entitiesResults) => {
@@ -240,20 +232,9 @@ export const collectPrEventsAndSetState = (
 
       const events = uniqBy(entities, "id");
 
-      /** @todo - These should be links to a PR entity really */
-      const pullRequestsToEvents = new Map();
-
-      for (const event of events) {
-        const pullRequestId = `${event.repository}/${event.issue?.number}`;
-
-        if (pullRequestsToEvents.has(pullRequestId)) {
-          pullRequestsToEvents.get(pullRequestId).push(event);
-        } else {
-          pullRequestsToEvents.set(pullRequestId, [event]);
-        }
-      }
-
-      setState(pullRequestsToEvents);
+      setState(events);
     })
-    .catch((err) => console.error(err));
+    .catch((err) => {
+      throw err;
+    });
 };

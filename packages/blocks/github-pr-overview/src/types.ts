@@ -8,7 +8,10 @@ export const GithubPullRequestTypeId = "8a188e0a-223a-48d6-9eef-01cccdf17ecd"; /
 export const GithubReviewTypeId = "c0c54ab0-f1b0-449b-b8b1-0fb42ce01f87"; // 6afdef29-02f1-4d99-9bbc-179feffc7bfc
 export const GithubIssueEventTypeId = "94067358-2067-466a-9742-59afb6723e18";
 
-export type GithubPullRequestIdentifier = [string, number]; // repo, PR number
+export type PullRequestIdentifier = {
+  repository: string;
+  number: number;
+};
 
 export interface GithubPullRequest extends BlockProtocolEntity {
   repository?: string;

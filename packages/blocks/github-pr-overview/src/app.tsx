@@ -1,12 +1,11 @@
-/** @todo - remove */
-/* eslint-disable no-console */
 import * as React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   GithubIssueEvent,
   GithubPullRequest,
-  GithubPullRequestIdentifier,
+  PullRequestIdentifier,
   GithubReview,
   isDefined,
 } from "./types";
@@ -15,57 +14,84 @@ import {
   collectPrEventsAndSetState,
   collectPrsAndSetState,
   collectReviewsAndSetState,
+  getPrs,
 } from "./entity-aggregations";
 
 type AppProps = {
-  name: string;
+  selectedPullRequest?: PullRequestIdentifier;
 };
 
 export const App: BlockComponent<AppProps> = ({
   accountId,
   aggregateEntities,
+  // selectedPullRequest,
 }) => {
-  const [mappedPrs, setMappedPrs] = React.useState<
-    Map<GithubPullRequestIdentifier, GithubPullRequest>
-  >(new Map());
-  const [mappedReviews, setMappedReviews] = React.useState<
-    Map<GithubPullRequestIdentifier, GithubReview[]>
-  >(new Map());
-  const [mappedEvents, setMappedEvents] = React.useState<
-    Map<GithubPullRequestIdentifier, GithubIssueEvent[]>
-  >(new Map());
+  const selectedPullRequest = React.useMemo(() => {
+    return {
+      repository: "hashintel/hash",
+      number: 490,
+    };
+  }, []);
 
+  const [allPrs, setAllPrs] = React.useState<
+    Map<PullRequestIdentifier, GithubPullRequest>
+  >(new Map());
+  const [pullRequest, setPullRequest] = React.useState<GithubPullRequest>();
+  const [reviews, setReviews] = React.useState<GithubReview[]>();
+  const [events, setEvents] = React.useState<GithubIssueEvent[]>();
+
+  // Block hasn't been initialized with a selected Pull Request, get all PRs to allow user to pick
   React.useEffect(() => {
-    collectPrsAndSetState(aggregateEntities, accountId, 1, setMappedPrs);
-  }, [accountId, aggregateEntities, setMappedPrs]);
+    if (selectedPullRequest === undefined) {
+      collectPrsAndSetState(aggregateEntities, accountId, 1, setAllPrs);
+    }
+  }, [accountId, aggregateEntities, selectedPullRequest, setAllPrs]);
+
+  // Block has been initialized with a selected Pull Request, get associated info
   React.useEffect(() => {
-    collectReviewsAndSetState(
-      aggregateEntities,
-      accountId,
-      1,
-      setMappedReviews,
-    );
-  }, [accountId, aggregateEntities, setMappedReviews]);
+    if (selectedPullRequest) {
+      void getPrs(aggregateEntities, accountId, 1, selectedPullRequest).then(
+        (pullRequests) => {
+          if (pullRequests) {
+            const pr = pullRequests.results[0];
+            setPullRequest(pr);
+          }
+        },
+      );
+    }
+  }, [accountId, aggregateEntities, selectedPullRequest, setPullRequest]);
+  /** @todo - Figure out when to query for more than one page */
   React.useEffect(() => {
-    collectPrEventsAndSetState(
-      aggregateEntities,
-      accountId,
-      1,
-      setMappedEvents,
-    );
-  }, [accountId, aggregateEntities, setMappedEvents]);
+    if (selectedPullRequest) {
+      collectReviewsAndSetState(
+        aggregateEntities,
+        accountId,
+        1,
+        setReviews,
+        selectedPullRequest,
+      );
+    }
+  }, [accountId, aggregateEntities, selectedPullRequest, setReviews]);
+  React.useEffect(() => {
+    if (selectedPullRequest) {
+      collectPrEventsAndSetState(
+        aggregateEntities,
+        accountId,
+        1,
+        setEvents,
+        selectedPullRequest,
+      );
+    }
+  }, [accountId, aggregateEntities, selectedPullRequest, setEvents]);
 
   let props: GithubPrOverviewProps | undefined;
 
   /** @todo - handle missing data */
-  if (mappedPrs.size > 0 && mappedReviews.size > 0 && mappedEvents.size > 0) {
-    const [_, pullRequest]: [GithubPullRequestIdentifier, GithubPullRequest] =
-      mappedPrs.entries().next().value;
-    const [__, reviews]: [GithubPullRequestIdentifier, GithubReview[]] =
-      mappedReviews.entries().next().value;
-    const [___, events]: [GithubPullRequestIdentifier, GithubIssueEvent[]] =
-      mappedEvents.entries().next().value;
-
+  if (
+    pullRequest !== undefined &&
+    reviews !== undefined &&
+    events !== undefined
+  ) {
     props = {
       pullRequest,
       reviews,
@@ -76,14 +102,18 @@ export const App: BlockComponent<AppProps> = ({
   /** @todo - Filterable list to select a pull-request */
   return (
     <div>
-      {isDefined(props) ? (
-        <GithubPrOverview
-          pullRequest={props.pullRequest}
-          reviews={props.reviews}
-          events={props.events}
-        />
+      {selectedPullRequest ? (
+        isDefined(props) ? (
+          <GithubPrOverview
+            pullRequest={props.pullRequest}
+            reviews={props.reviews}
+            events={props.events}
+          />
+        ) : (
+          <LinearProgress />
+        )
       ) : (
-        "Loading..."
+        "Select a Pull Request"
       )}
     </div>
   );
