@@ -32,10 +32,11 @@ import { BlockListMenuContent } from "./BlockListMenuContent";
 
 type BlockContextMenuProps = {
   blockEntity: BlockEntity | null;
-  popupState: PopupState;
   blockSuggesterProps: BlockSuggesterProps;
+  deleteBlock: () => void;
   entityId: string | null;
   openConfigMenu: () => void;
+  popupState: PopupState;
 };
 
 const LOAD_BLOCK_ENTITY_UI = "hash-load-entity-ui";
@@ -45,7 +46,14 @@ export const BlockContextMenu = forwardRef<
   BlockContextMenuProps
 >(
   (
-    { blockEntity, popupState, blockSuggesterProps, entityId, openConfigMenu },
+    {
+      blockEntity,
+      blockSuggesterProps,
+      deleteBlock,
+      entityId,
+      openConfigMenu,
+      popupState,
+    },
     ref,
   ) => {
     const { data: users } = useUsers();
@@ -87,11 +95,13 @@ export const BlockContextMenu = forwardRef<
           key: "duplicate",
           title: "Duplicate",
           icon: <FontAwesomeIcon icon={faCopy} />,
+          isNotYetImplemented: true,
         },
         {
           key: "delete",
           title: "Delete",
           icon: <FontAwesomeIcon icon={faTrashCan} />,
+          onClick: deleteBlock,
         },
         {
           key: "swap-block",
@@ -106,11 +116,13 @@ export const BlockContextMenu = forwardRef<
           key: "move-to-page",
           title: "Move to page",
           icon: <FontAwesomeIcon icon={faArrowRight} />,
+          isNotYetImplemented: true,
         },
         {
           key: "comment",
           title: "Comment",
           icon: <FontAwesomeIcon icon={faMessage} />,
+          isNotYetImplemented: true,
         },
       ];
 
@@ -123,8 +135,9 @@ export const BlockContextMenu = forwardRef<
       return items;
     }, [
       blockEntity,
-      entityId,
       blockSuggesterProps,
+      entityId,
+      deleteBlock,
       openConfigMenu,
       popupState,
     ]);
@@ -169,7 +182,15 @@ export const BlockContextMenu = forwardRef<
         </Box>
 
         {menuItems.map(
-          ({ key, title, icon, onClick, subMenu, subMenuWidth }) => {
+          ({
+            icon,
+            isNotYetImplemented,
+            key,
+            onClick,
+            subMenu,
+            subMenuWidth,
+            title,
+          }) => {
             if (key === "copy-link" && !entityId) {
               return null;
             }
@@ -180,6 +201,10 @@ export const BlockContextMenu = forwardRef<
             }
             if (key === "swap-block") {
               menuItemRef = swapBlocksMenuItemRef;
+            }
+
+            if (isNotYetImplemented) {
+              return null;
             }
 
             return (
