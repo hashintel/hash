@@ -2,8 +2,7 @@ import * as React from "react";
 import moment from "moment";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-/* eslint-disable-next-line -- says the import of Button is restricted */
-import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
 import Grid from "@mui/material/Grid";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
@@ -81,19 +80,18 @@ const Config: React.FunctionComponent<{
 
   return (
     <>
-      <Button
+      <IconButton
         aria-describedby={id}
         onClick={handleConfigButtonClick}
         style={{
           position: "absolute",
-          top: "1em",
-          left: "1em",
+          top: 0,
+          right: "0.3em",
           zIndex: 3,
         }}
-        variant="contained"
       >
         <SettingsOutlinedIcon fontSize="small" />
-      </Button>
+      </IconButton>
       <Popover
         id={id}
         open={open}
@@ -154,7 +152,14 @@ export const GithubPrTimeline: React.FunctionComponent<
   );
 
   return (
-    <Grid item xs={4} style={{ position: "relative" }}>
+    <Grid
+      item
+      xs={3}
+      style={{
+        position: "relative",
+        borderRight: "2px solid grey",
+      }}
+    >
       <Config
         possibleEventTypes={possibleEventTypes}
         selectedEventTypes={selectedEventTypes}
@@ -170,7 +175,11 @@ export const GithubPrTimeline: React.FunctionComponent<
             .map((event, idx) => {
               const color = NODE_COLORS[event.event!] ?? "grey";
               return (
-                <TimelineItem key={event.id?.toString()}>
+                <TimelineItem
+                  className="timelineItem"
+                  key={event.id?.toString()}
+                  style={{ alignContent: "right" }}
+                >
                   <TimelineSeparator>
                     <TimelineDot color={color} />
                     {idx < maxIdx ? <TimelineConnector /> : undefined}

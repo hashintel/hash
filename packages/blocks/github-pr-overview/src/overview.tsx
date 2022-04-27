@@ -49,7 +49,7 @@ export const GithubPrOverview: React.FunctionComponent<
   return (
     <Grid container className="prOverviewContainer">
       <GithubPrTimeline pullRequest={pullRequest} events={events} />
-      <Grid item xs={8}>
+      <Grid item xs={8} style={{ paddingLeft: "1em" }}>
         <div>
           <h1>
             {pullRequest.repository}{" "}

@@ -8,3 +8,8 @@
     flex-grow: 1;
     overflow-y: auto;
 }
+
+.timelineItem::before {
+    /* We don't have anything on the right of the timeline and want to make use of the space */
+    flex: 0; 
+}
