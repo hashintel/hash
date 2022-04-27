@@ -1,11 +1,16 @@
 {
-  "name": "drawing-canvas",
+  "name": "@hashintel/drawing-canvas",
   "version": "0.0.0",
   "description": "A drawing block that leverages tldraw",
   "keywords": [
     "blockprotocol",
     "blocks"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#vu/drawing-canvas",
+    "directory": "packages/blocks/drawing-canvas"
+  },
   "license": "MIT",
   "author": "teenoh",
   "scripts": {
