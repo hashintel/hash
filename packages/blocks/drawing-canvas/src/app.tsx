@@ -54,11 +54,8 @@ export const App: BlockComponent<AppProps> = ({
   const rLoaded = React.useRef(false);
   const rTldrawApp = React.useRef<TldrawApp>();
   const rInitialDocument = React.useRef<TDDocument>(
-    // getInitialDocument(document),
-    defaultDocument,
+    getInitialDocument(document),
   );
-
-  console.log("document ==> ", document);
 
   const handleMount = React.useCallback((app: TldrawApp) => {
     rTldrawApp.current = app;
@@ -91,22 +88,22 @@ export const App: BlockComponent<AppProps> = ({
   //   // console.log("change ==> ", app.document);
   // };
 
-  // React.useEffect(() => {
-  //   try {
-  //     if (!rTldrawApp.current) return;
-  //     const savedDocument = JSON.parse(document) as TDDocument;
-  //     const app = rTldrawApp.current;
-  //     if (rLoaded.current) {
-  //       app.updateDocument(savedDocument);
-  //     } else {
-  //       app.loadDocument(savedDocument);
-  //       rLoaded.current = true;
-  //       // app.zoomToFit();
-  //     }
-  //   } catch (e) {
-  //     console.warn("error ==> ", e);
-  //   }
-  // }, [document]);
+  React.useEffect(() => {
+    try {
+      if (!rTldrawApp.current) return;
+      const savedDocument = JSON.parse(document) as TDDocument;
+      const app = rTldrawApp.current;
+      if (rLoaded.current) {
+        app.updateDocument(savedDocument);
+      } else {
+        app.loadDocument(savedDocument);
+        rLoaded.current = true;
+      }
+      app.zoomToFit();
+    } catch (e) {
+      console.warn("error ==> ", e);
+    }
+  }, [document]);
 
   return (
     <div>
@@ -119,7 +116,7 @@ export const App: BlockComponent<AppProps> = ({
         style={{
           position: "relative",
           height: 600,
-          width: "90vw",
+          width: "100%",
           margin: "0 auto",
         }}
       >
