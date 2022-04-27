@@ -19,15 +19,15 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.7",
+    "blockprotocol": "0.0.8",
     "lodash": "4.17.21"
   },
   "devDependencies": {
-    "block-scripts": "0.0.2",
+    "block-scripts": "0.0.5",
     "eslint": "8.13.0",
-    "mock-block-dock": "0.0.7",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
+    "mock-block-dock": "0.0.8",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "twind": "0.16.17",
     "typescript": "4.6.3"
   },
