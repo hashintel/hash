@@ -82,8 +82,8 @@ const ConfigurationInput: VoidFunctionComponent<{
         <FormControlLabel
           control={
             <Checkbox
-              onChange={updateProperty}
-              checked={typeof value === "boolean" ? value : false}
+              onChange={(event) => onChange(event.target.checked)}
+              checked={typeof value === "boolean" ? value : value === "true"}
             />
           }
           label={name}

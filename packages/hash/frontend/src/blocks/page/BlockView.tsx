@@ -29,13 +29,14 @@ import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { useUserBlocks } from "../userBlocks";
 
 type BlockHandleProps = {
+  deleteBlock: () => void;
   entityId: string | null;
-  onTypeChange: BlockSuggesterProps["onChange"];
   entityStore: EntityStore;
+  onTypeChange: BlockSuggesterProps["onChange"];
 };
 
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ entityId, onTypeChange, entityStore }, ref) => {
+  ({ deleteBlock, entityId, entityStore, onTypeChange }, ref) => {
     const blockMenuRef = useRef(null);
     const contextMenuPopupState = usePopupState({
       variant: "popover",
@@ -98,6 +99,7 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
         sx={{
           position: "relative",
           cursor: "pointer",
+          height: 24,
         }}
         data-testid="block-changer"
       >
@@ -105,8 +107,9 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
 
         <BlockContextMenu
           blockEntity={blockEntity}
-          entityId={entityId}
           blockSuggesterProps={blockSuggesterProps}
+          deleteBlock={deleteBlock}
+          entityId={entityId}
           openConfigMenu={configMenuPopupState.open}
           popupState={contextMenuPopupState}
           ref={blockMenuRef}
@@ -332,10 +335,11 @@ export class BlockView implements NodeView<Schema> {
           onClick={this.onDragEnd}
         />
         <BlockHandle
-          ref={this.blockHandleRef}
+          deleteBlock={this.deleteBlock}
           entityId={blockEntityId}
-          onTypeChange={this.onBlockChange}
           entityStore={this.store}
+          onTypeChange={this.onBlockChange}
+          ref={this.blockHandleRef}
         />
       </BlockViewContext.Provider>,
       this.selectContainer,
@@ -350,6 +354,16 @@ export class BlockView implements NodeView<Schema> {
     this.dom.remove();
     document.removeEventListener("dragend", this.onDragEnd);
   }
+
+  deleteBlock = () => {
+    const { node, getPos } = this;
+    this.manager.deleteNode(node, getPos()).catch((err: Error) => {
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error(
+        `Error deleting node at position ${getPos()}: ${err.message}`,
+      );
+    });
+  };
 
   onBlockChange = (variant: BlockVariant, meta: BlockConfig) => {
     const { node, editorView, getPos } = this;
