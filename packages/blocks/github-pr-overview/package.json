@@ -1,7 +1,7 @@
 {
-  "name": "github-pr-life-cycle",
+  "name": "github-pr-overview",
   "version": "0.0.0",
-  "description": "github-pr-life-cycle block",
+  "description": "github-pr-overview block",
   "keywords": [
     "blockprotocol",
     "blocks"
@@ -38,7 +38,7 @@
     "servePort": 63212
   },
   "blockprotocol": {
-    "displayName": "GithubPullRequestLifeCycle",
+    "displayName": "GithubPullRequestOverview",
     "examples": [
       {}
     ],

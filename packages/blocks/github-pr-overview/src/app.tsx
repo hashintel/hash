@@ -10,7 +10,7 @@ import {
   GithubReview,
   isDefined,
 } from "./types";
-import { GithubPrLifeCycle, GithubPrLifeCycleProps } from "./lifecycle";
+import { GithubPrOverview, GithubPrOverviewProps } from "./overview";
 import {
   collectPrEventsAndSetState,
   collectPrsAndSetState,
@@ -55,7 +55,7 @@ export const App: BlockComponent<AppProps> = ({
     );
   }, [accountId, aggregateEntities, setMappedEvents]);
 
-  let props: GithubPrLifeCycleProps | undefined;
+  let props: GithubPrOverviewProps | undefined;
 
   /** @todo - handle missing data */
   if (mappedPrs.size > 0 && mappedReviews.size > 0 && mappedEvents.size > 0) {
@@ -77,7 +77,7 @@ export const App: BlockComponent<AppProps> = ({
   return (
     <div>
       {isDefined(props) ? (
-        <GithubPrLifeCycle
+        <GithubPrOverview
           pullRequest={props.pullRequest}
           reviews={props.reviews}
           events={props.events}

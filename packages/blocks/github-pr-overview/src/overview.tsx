@@ -18,7 +18,7 @@ import {
   isDefined,
 } from "./types";
 
-export type GithubPrLifeCycleProps = {
+export type GithubPrOverviewProps = {
   pullRequest: GithubPullRequest;
   reviews: GithubReview[];
   events: GithubIssueEvent[];
@@ -36,8 +36,8 @@ export const Reviewer = (login: string, avatar_url?: string | null) => (
   </Stack>
 );
 
-export const GithubPrLifeCycle: React.FunctionComponent<
-  GithubPrLifeCycleProps
+export const GithubPrOverview: React.FunctionComponent<
+  GithubPrOverviewProps
 > = ({ pullRequest, reviews, events }) => {
   const maxIdx = events.length - 1;
   const uniqueReviewers = uniqBy(
@@ -54,7 +54,7 @@ export const GithubPrLifeCycle: React.FunctionComponent<
   // there isn't an issue event for opening so we manually make an object to append to the timeline
   const openedEvent = { id: pullRequest.node_id, event: "opened" };
   return (
-    <Grid container className="lifeCycleContainer">
+    <Grid container className="prOverviewContainer">
       <Grid item xs={4}>
         <div className="timeline">
           <Timeline position="left">
