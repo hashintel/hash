@@ -17,6 +17,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
+    "@mui/icons-material": "5.4.2",
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
     "blockprotocol": "0.0.8",

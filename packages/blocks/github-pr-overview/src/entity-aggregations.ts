@@ -37,8 +37,6 @@ const getPrs = (
     return new Promise<void>(() => {});
   }
 
-  console.log("Calling aggregateEntities");
-
   const res = aggregateEntities({
     accountId,
     operation: {
@@ -62,10 +60,6 @@ const getPrs = (
         },
       ],
     },
-  });
-
-  void res.then(() => {
-    console.log(`Got result from aggregateEntities`);
   });
 
   return res;
@@ -110,8 +104,6 @@ const getReviews = (
     return new Promise<void>(() => {});
   }
 
-  console.log("Calling aggregateEntities");
-
   const res = aggregateEntities({
     accountId,
     operation: {
@@ -139,10 +131,6 @@ const getReviews = (
         },
       ],
     },
-  });
-
-  void res.then(() => {
-    console.log(`Got result from aggregateEntities`);
   });
 
   return res;
@@ -194,8 +182,6 @@ const getPrEvents = (
     return new Promise<void>(() => {});
   }
 
-  console.log("Calling aggregateEntities");
-
   const res = aggregateEntities({
     accountId,
     operation: {
@@ -228,10 +214,6 @@ const getPrEvents = (
         },
       ],
     },
-  });
-
-  void res.then(() => {
-    console.log(`Got result from aggregateEntities`);
   });
 
   return res;

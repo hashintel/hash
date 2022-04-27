@@ -59,10 +59,20 @@ export const GithubPrOverview: React.FunctionComponent<
             Status: <span style={{ color: "green" }}>{pullRequest.state}</span>
           </h2>
           <Stack>
-            {timeToMerge ? <div>Merged After: {timeToMerge}</div> : undefined}
-            <div>Reviews: {reviews.length}</div>
+            {timeToMerge ? (
+              <div>
+                <span style={{ fontWeight: "bold" }}>Merged After:</span>{" "}
+                {timeToMerge}
+              </div>
+            ) : undefined}
             <div>
-              Pending Reviewers:
+              <span style={{ fontWeight: "bold" }}>Reviews:</span>{" "}
+              {reviews.length}
+            </div>
+            <div>
+              <span style={{ fontWeight: "bold" }}>
+                Pending New Reviews From:
+              </span>
               {pullRequest.requested_reviewers
                 ?.filter(isDefined)
                 .map((reviewer) => (
@@ -72,7 +82,7 @@ export const GithubPrOverview: React.FunctionComponent<
                 ))}
             </div>
             <div>
-              Reviewed By:
+              <span style={{ fontWeight: "bold" }}>Reviewed By:</span>
               {uniqueReviewers.map((reviewer) => (
                 <div key={reviewer.login}>
                   {Reviewer(reviewer.login!, reviewer.avatar_url)}
