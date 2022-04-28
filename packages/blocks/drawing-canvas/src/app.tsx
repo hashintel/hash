@@ -8,12 +8,14 @@ import "./base.css";
 type AppProps = {
   document: string;
   readOnly: boolean;
+  darkMode: boolean;
 };
 
 export const App: BlockComponent<AppProps> = ({
   entityId,
   entityTypeId,
   entityTypeVersionId,
+  darkMode = false,
   document,
   accountId,
   readOnly,
@@ -24,9 +26,16 @@ export const App: BlockComponent<AppProps> = ({
     getInitialDocument(document, entityId),
   );
 
-  const handleMount = React.useCallback((app: TldrawApp) => {
-    rTldrawApp.current = app;
-  }, []);
+  const handleMount = React.useCallback(
+    (app: TldrawApp) => {
+      rTldrawApp.current = app;
+
+      // if (darkMode !== rTldrawApp.current.settings.isDarkMode) {
+      //   rTldrawApp.current.toggleDarkMode();
+      // }
+    },
+    [darkMode],
+  );
 
   const handlePersist = React.useCallback(
     (app: TldrawApp) => {
@@ -64,6 +73,10 @@ export const App: BlockComponent<AppProps> = ({
         app.loadDocument(remoteDocument);
         app.zoomToFit();
       }
+
+      // if (darkMode !== app.settings.isDarkMode) {
+      //   app.toggleDarkMode();
+      // }
     } catch (err) {
       // todo handle error
     }
@@ -79,6 +92,7 @@ export const App: BlockComponent<AppProps> = ({
         showMultiplayerMenu={false}
         showSponsorLink={false}
         onExport={handleExport}
+        // darkMode={darkMode}
       />
     </div>
   );
