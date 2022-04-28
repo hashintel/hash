@@ -8,6 +8,8 @@ import {
   PullRequestIdentifier,
   GithubReview,
   isDefined,
+  GITHUB_ENTITY_TYPES,
+  getGithubEntityTypes,
 } from "./types";
 import { GithubPrOverview, GithubPrOverviewProps } from "./overview";
 import {
@@ -28,6 +30,7 @@ export const App: BlockComponent<AppProps> = ({
   aggregateEntities,
   selectedPullRequest,
   updateEntities,
+  aggregateEntityTypes,
 }) => {
   // selectedPullRequest is just an Identifier, but isn't the associated GithubPullRequestEntity
   const [selectedPullRequestId, setSelectedPullRequestId] =
@@ -52,6 +55,9 @@ export const App: BlockComponent<AppProps> = ({
     setSelectedPullRequestId(pullRequestId);
   };
 
+  const [githubEntityTypeIds, setGithubEntityTypeIds] =
+    React.useState<{ [key in GITHUB_ENTITY_TYPES]: string }>();
+
   const [allPrs, setAllPrs] = React.useState<Map<string, GithubPullRequest>>(
     new Map(),
   );
@@ -61,29 +67,77 @@ export const App: BlockComponent<AppProps> = ({
 
   /** @todo - Figure out when to query for more than one page, probably querying until no more results */
 
+  React.useEffect(() => {
+    if (isDefined(aggregateEntityTypes) && githubEntityTypeIds === undefined) {
+      getGithubEntityTypes(
+        aggregateEntityTypes,
+        accountId,
+        5,
+        setGithubEntityTypeIds,
+      );
+    }
+  }, [
+    aggregateEntityTypes,
+    githubEntityTypeIds,
+    accountId,
+    setGithubEntityTypeIds,
+  ]);
+
   // Block hasn't been initialized with a selected Pull Request, get all PRs to allow user to pick
   React.useEffect(() => {
-    if (selectedPullRequestId === undefined) {
-      collectPrsAndSetState(aggregateEntities, accountId, 5, setAllPrs);
+    if (
+      selectedPullRequestId === undefined &&
+      githubEntityTypeIds !== undefined
+    ) {
+      collectPrsAndSetState(
+        githubEntityTypeIds[GITHUB_ENTITY_TYPES.PullRequest],
+        aggregateEntities,
+        accountId,
+        5,
+        setAllPrs,
+      );
     }
-  }, [accountId, aggregateEntities, selectedPullRequestId, setAllPrs]);
+  }, [
+    githubEntityTypeIds,
+    selectedPullRequestId,
+    aggregateEntities,
+    accountId,
+    setAllPrs,
+  ]);
 
   // Block has been initialized with a selected Pull Request, get associated info
   React.useEffect(() => {
-    if (selectedPullRequestId) {
-      void getPrs(aggregateEntities, accountId, 1, selectedPullRequestId).then(
-        (pullRequests) => {
-          if (pullRequests) {
-            const pr = pullRequests.results[0];
-            setPullRequest(pr);
-          }
-        },
-      );
+    if (
+      selectedPullRequestId !== undefined &&
+      githubEntityTypeIds !== undefined
+    ) {
+      void getPrs(
+        githubEntityTypeIds[GITHUB_ENTITY_TYPES.PullRequest],
+        aggregateEntities,
+        accountId,
+        1,
+        selectedPullRequestId,
+      ).then((pullRequests) => {
+        if (pullRequests) {
+          const pr = pullRequests.results[0];
+          setPullRequest(pr);
+        }
+      });
     }
-  }, [accountId, aggregateEntities, selectedPullRequestId, setPullRequest]);
+  }, [
+    githubEntityTypeIds,
+    selectedPullRequestId,
+    aggregateEntities,
+    accountId,
+    setPullRequest,
+  ]);
   React.useEffect(() => {
-    if (selectedPullRequestId) {
+    if (
+      selectedPullRequestId !== undefined &&
+      githubEntityTypeIds !== undefined
+    ) {
       collectReviewsAndSetState(
+        githubEntityTypeIds[GITHUB_ENTITY_TYPES.Review],
         aggregateEntities,
         accountId,
         1,
@@ -91,10 +145,20 @@ export const App: BlockComponent<AppProps> = ({
         selectedPullRequestId,
       );
     }
-  }, [accountId, aggregateEntities, selectedPullRequestId, setReviews]);
+  }, [
+    githubEntityTypeIds,
+    selectedPullRequestId,
+    aggregateEntities,
+    accountId,
+    setReviews,
+  ]);
   React.useEffect(() => {
-    if (selectedPullRequestId) {
+    if (
+      selectedPullRequestId !== undefined &&
+      githubEntityTypeIds !== undefined
+    ) {
       collectPrEventsAndSetState(
+        githubEntityTypeIds[GITHUB_ENTITY_TYPES.IssueEvent],
         aggregateEntities,
         accountId,
         1,
@@ -102,7 +166,13 @@ export const App: BlockComponent<AppProps> = ({
         selectedPullRequestId,
       );
     }
-  }, [accountId, aggregateEntities, selectedPullRequestId, setEvents]);
+  }, [
+    githubEntityTypeIds,
+    selectedPullRequestId,
+    aggregateEntities,
+    accountId,
+    setEvents,
+  ]);
 
   let props: GithubPrOverviewProps | undefined;
 

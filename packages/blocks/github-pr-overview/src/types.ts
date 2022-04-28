@@ -1,16 +1,72 @@
-import { BlockProtocolEntity } from "blockprotocol";
+import {
+  BlockProtocolAggregateEntityTypesFunction,
+  BlockProtocolEntity,
+  BlockProtocolEntityType,
+} from "blockprotocol";
 
 export function isDefined<T>(val: T | undefined | null): val is T {
   return val !== undefined && val !== null;
 }
-/** @todo - Don't hardcode */
-export const GithubPullRequestTypeId = "8a188e0a-223a-48d6-9eef-01cccdf17ecd"; // de0cb56d-0d71-46b8-8ce6-089ccae9684d
-export const GithubReviewTypeId = "c0c54ab0-f1b0-449b-b8b1-0fb42ce01f87"; // 6afdef29-02f1-4d99-9bbc-179feffc7bfc
-export const GithubIssueEventTypeId = "94067358-2067-466a-9742-59afb6723e18";
+
+export const enum GITHUB_ENTITY_TYPES {
+  PullRequest,
+  Review,
+  IssueEvent,
+}
 
 export type PullRequestIdentifier = {
   repository: string;
   number: number;
+};
+
+export const getGithubEntityTypes = (
+  aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction,
+  accountId: string | null | undefined,
+  numPages: number,
+  setGithubEntityTypeIds: (x: any) => void,
+) => {
+  const results = Array(numPages)
+    .fill(undefined)
+    .map((_, pageNumber) =>
+      /** @todo - These should be links to a PR entity really */
+      aggregateEntityTypes({
+        accountId,
+        operation: {
+          pageNumber,
+        },
+      }),
+    );
+
+  Promise.all(results)
+    .then((entityTypesResults) => {
+      const entityTypes: BlockProtocolEntityType[] = entityTypesResults.flatMap(
+        (entityTypeResult) => entityTypeResult.results,
+      );
+
+      const pullRequestTypeId = entityTypes.find(
+        (entityType) => entityType.title === "GithubPullRequest",
+      )?.entityTypeId;
+      const reviewTypeId = entityTypes.find(
+        (entityType) => entityType.title === "GithubReview",
+      )?.entityTypeId;
+      const issueEventTypeId = entityTypes.find(
+        (entityType) => entityType.title === "GithubIssueEvent",
+      )?.entityTypeId;
+
+      if (pullRequestTypeId && reviewTypeId && issueEventTypeId) {
+        const githubTypeIds: {
+          [key in GITHUB_ENTITY_TYPES]: string;
+        } = {
+          [GITHUB_ENTITY_TYPES.PullRequest]: pullRequestTypeId,
+          [GITHUB_ENTITY_TYPES.Review]: reviewTypeId,
+          [GITHUB_ENTITY_TYPES.IssueEvent]: issueEventTypeId,
+        };
+        setGithubEntityTypeIds(githubTypeIds);
+      }
+    })
+    .catch((err) => {
+      throw err;
+    });
 };
 
 export interface GithubPullRequest extends BlockProtocolEntity {

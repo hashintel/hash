@@ -6,18 +6,16 @@ import { uniqBy } from "lodash";
 
 import {
   GithubIssueEvent,
-  GithubIssueEventTypeId,
   GithubPullRequest,
   PullRequestIdentifier,
-  GithubPullRequestTypeId,
   GithubReview,
-  GithubReviewTypeId,
   isDefined,
 } from "./types";
 
 const ITEMS_PER_PAGE = 100;
 
 export const getPrs = (
+  githubPullRequestTypeId: string,
   aggregateEntities?: BlockProtocolAggregateEntitiesFunction,
   accountId?: string | null,
   pageNumber?: number,
@@ -30,7 +28,7 @@ export const getPrs = (
   const res = aggregateEntities({
     accountId,
     operation: {
-      entityTypeId: GithubPullRequestTypeId,
+      entityTypeId: githubPullRequestTypeId,
       pageNumber,
       itemsPerPage: ITEMS_PER_PAGE,
       multiFilter: {
@@ -59,6 +57,7 @@ export const getPrs = (
 };
 
 export const collectPrsAndSetState = (
+  githubPullRequestTypeId: string,
   aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
   accountId: string | null | undefined,
   numPages: number,
@@ -66,7 +65,9 @@ export const collectPrsAndSetState = (
 ) => {
   const results = Array(numPages)
     .fill(undefined)
-    .map((_, page) => getPrs(aggregateEntities, accountId, page));
+    .map((_, pageNumber) =>
+      getPrs(githubPullRequestTypeId, aggregateEntities, accountId, pageNumber),
+    );
 
   Promise.all(results)
     .then((entitiesResults) => {
@@ -91,6 +92,7 @@ export const collectPrsAndSetState = (
 };
 
 const getReviews = (
+  githubReviewTypeId: string,
   aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
   accountId: string | null | undefined,
   pageNumber: number | undefined,
@@ -103,7 +105,7 @@ const getReviews = (
   const res = aggregateEntities({
     accountId,
     operation: {
-      entityTypeId: GithubReviewTypeId,
+      entityTypeId: githubReviewTypeId,
       pageNumber,
       itemsPerPage: ITEMS_PER_PAGE,
       multiFilter: {
@@ -133,6 +135,7 @@ const getReviews = (
 };
 
 export const collectReviewsAndSetState = (
+  githubReviewTypeId: string,
   aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
   accountId: string | null | undefined,
   numPages: number,
@@ -141,8 +144,14 @@ export const collectReviewsAndSetState = (
 ) => {
   const results = Array(numPages)
     .fill(undefined)
-    .map((_, page) =>
-      getReviews(aggregateEntities, accountId, page, selectedPullRequest),
+    .map((_, pageNumber) =>
+      getReviews(
+        githubReviewTypeId,
+        aggregateEntities,
+        accountId,
+        pageNumber,
+        selectedPullRequest,
+      ),
     );
 
   Promise.all(results)
@@ -161,6 +170,7 @@ export const collectReviewsAndSetState = (
 };
 
 const getPrEvents = (
+  githubIssueEventTypeId: string,
   aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
   accountId: string | null | undefined,
   pageNumber: number | undefined,
@@ -173,7 +183,7 @@ const getPrEvents = (
   const res = aggregateEntities({
     accountId,
     operation: {
-      entityTypeId: GithubIssueEventTypeId,
+      entityTypeId: githubIssueEventTypeId,
       pageNumber,
       itemsPerPage: ITEMS_PER_PAGE,
       multiFilter: {
@@ -208,6 +218,7 @@ const getPrEvents = (
 };
 
 export const collectPrEventsAndSetState = (
+  githubIssueEventTypeId: string,
   aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
   accountId: string | null | undefined,
   numPages: number,
@@ -216,9 +227,15 @@ export const collectPrEventsAndSetState = (
 ) => {
   const results = Array(numPages)
     .fill(undefined)
-    .map((_, page) =>
+    .map((_, pageNumber) =>
       /** @todo - These should be links to a PR entity really */
-      getPrEvents(aggregateEntities, accountId, page, selectedPullRequest),
+      getPrEvents(
+        githubIssueEventTypeId,
+        aggregateEntities,
+        accountId,
+        pageNumber,
+        selectedPullRequest,
+      ),
     );
 
   Promise.all(results)
