@@ -35,7 +35,7 @@ export const EChart: React.FC<GraphProps> = ({ options }) => {
 
   React.useEffect(() => {
     if (chart) {
-      chart.setOption(options);
+      chart.setOption(options, { notMerge: true });
     }
   }, [chart, options]);
 

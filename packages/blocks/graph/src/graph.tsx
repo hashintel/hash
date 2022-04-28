@@ -188,11 +188,13 @@ const EditableGraphSeriesDefinitions: React.FC<{
   createSeriesDefinition: (params: {
     definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
   }) => Promise<void>;
+  deleteSeriesDefinition: (params: { seriesId: string }) => Promise<void>;
 }> = ({
   possibleEntityTypes,
   seriesDefinitions,
   updateSeriesDefinition,
   createSeriesDefinition,
+  deleteSeriesDefinition,
 }) => {
   const [creatingNewDefinition, setCreatingNewDefinition] =
     React.useState<boolean>(false);
@@ -259,6 +261,9 @@ const EditableGraphSeriesDefinitions: React.FC<{
                   }
                 }}
               />
+              <Button onClick={() => deleteSeriesDefinition({ seriesId })}>
+                Delete
+              </Button>
             </Box>
           );
         },
@@ -266,7 +271,11 @@ const EditableGraphSeriesDefinitions: React.FC<{
       {creatingNewDefinition ? (
         <CreateNewSeriesDefinition
           possibleEntityTypes={possibleEntityTypes}
-          createDefinition={createSeriesDefinition}
+          createDefinition={(params) =>
+            createSeriesDefinition(params).then(() => {
+              setCreatingNewDefinition(false);
+            })
+          }
         />
       ) : (
         <Button variant="contained" onClick={handleAddSeries}>
@@ -335,6 +344,7 @@ type GraphProps = {
   createSeriesDefinition: (params: {
     definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
   }) => Promise<void>;
+  deleteSeriesDefinition: (params: { seriesId: string }) => Promise<void>;
 };
 
 export const Graph: React.FC<GraphProps> = ({
@@ -346,6 +356,7 @@ export const Graph: React.FC<GraphProps> = ({
   seriesDefinitions,
   updateSeriesDefinition,
   createSeriesDefinition,
+  deleteSeriesDefinition,
 }) => {
   const series = React.useMemo(
     () => mapSeriesDefinitionsToEChartSeries({ seriesDefinitions }),
@@ -373,6 +384,7 @@ export const Graph: React.FC<GraphProps> = ({
         seriesDefinitions={seriesDefinitions}
         updateSeriesDefinition={updateSeriesDefinition}
         createSeriesDefinition={createSeriesDefinition}
+        deleteSeriesDefinition={deleteSeriesDefinition}
       />
     </>
   );

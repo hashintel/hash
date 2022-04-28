@@ -44,17 +44,28 @@ export const App: BlockComponent<AppProps> = ({
   accountId,
   aggregateEntityTypes,
   updateEntities,
+  createLinkedAggregations,
+  updateLinkedAggregations,
+  deleteLinkedAggregations,
+  linkedAggregations,
   title = "Graph Title",
   xAxisLabel = "X Axis",
   yAxisLabel = "Y Axis",
   series = [],
-  linkedAggregations,
-  createLinkedAggregations,
-  updateLinkedAggregations,
 }) => {
   if (!linkedAggregations) {
     throw new Error("linkedAggregations is required to render the Graph block");
   }
+
+  const currentProperties = React.useMemo<GraphEntityProperties>(
+    () => ({
+      title,
+      xAxisLabel,
+      yAxisLabel,
+      series,
+    }),
+    [title, xAxisLabel, yAxisLabel, series],
+  );
 
   const [possibleEntityTypes, setPossibleEntityTypes] = React.useState<
     BlockProtocolEntityType[]
@@ -80,9 +91,18 @@ export const App: BlockComponent<AppProps> = ({
         throw new Error("entityId is required to render the Graph block");
       }
 
-      await updateEntities([{ accountId, entityId, data: updatedProperties }]);
+      await updateEntities([
+        {
+          accountId,
+          entityId,
+          data: {
+            ...currentProperties,
+            ...updatedProperties,
+          },
+        },
+      ]);
     },
-    [updateEntities, entityId, accountId],
+    [updateEntities, entityId, accountId, currentProperties],
   );
 
   const seriesDefinitions = React.useMemo<SeriesDefinition[]>(
@@ -244,6 +264,44 @@ export const App: BlockComponent<AppProps> = ({
     ],
   );
 
+  const handleDeleteSeriesDefinition = React.useCallback(
+    async (params: { seriesId: string }) => {
+      if (!deleteLinkedAggregations) {
+        throw new Error(
+          "deleteLinkedAggregations is requried to delete a series definition",
+        );
+      }
+
+      const aggregation = linkedAggregations.find(
+        ({ path }) => path === `$.${params.seriesId}`,
+      );
+
+      if (!aggregation) {
+        throw new Error(
+          `cannot find aggregation with path '$.${params.seriesId}'`,
+        );
+      }
+
+      await updateGraphEntityProperties({
+        series: series.filter(({ seriesId }) => seriesId !== params.seriesId),
+      });
+
+      await deleteLinkedAggregations([
+        {
+          sourceAccountId: accountId,
+          aggregationId: aggregation.aggregationId,
+        },
+      ]);
+    },
+    [
+      updateGraphEntityProperties,
+      deleteLinkedAggregations,
+      accountId,
+      linkedAggregations,
+      series,
+    ],
+  );
+
   return (
     <Graph
       title={title}
@@ -256,6 +314,7 @@ export const App: BlockComponent<AppProps> = ({
       seriesDefinitions={seriesDefinitions}
       updateSeriesDefinition={handleUpdateSeriesDefinition}
       createSeriesDefinition={handleCreateSeriesDefinition}
+      deleteSeriesDefinition={handleDeleteSeriesDefinition}
     />
   );
 };
