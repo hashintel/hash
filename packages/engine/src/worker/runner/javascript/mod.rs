@@ -124,7 +124,7 @@ impl<'s> JsPackage<'s> {
                 let func_or_undefined: Value<'_> = namespace
                     .get(&mut try_catch, js_fn_name.into())
                     .ok_or_else(|| {
-                        let exception = try_catch_exception(&mut try_catch).unwrap();
+                        let exception = read_try_catch_exception(&mut try_catch).unwrap();
 
                         Error::PackageImport(
                             path.clone(),
@@ -169,13 +169,13 @@ fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s
     let js_source_code = new_js_string(scope, &source_code);
     let mut try_catch = v8::TryCatch::new(scope);
     let script = v8::Script::compile(&mut try_catch, js_source_code, None).ok_or_else(|| {
-        let exception = try_catch_exception(&mut try_catch).unwrap();
+        let exception = read_try_catch_exception(&mut try_catch).unwrap();
 
         Error::Eval(path.into(), format!("Compile error: {exception}"))
     })?;
 
     script.run(&mut try_catch).ok_or_else(|| {
-        let exception = try_catch_exception(&mut try_catch).unwrap();
+        let exception = read_try_catch_exception(&mut try_catch).unwrap();
 
         Error::Eval(path.into(), format!("Execution error: {exception}"))
     })
@@ -228,7 +228,7 @@ impl ModuleMap {
         let mut try_catch = v8::TryCatch::new(scope);
         let module =
             v8::script_compiler::compile_module(&mut try_catch, source).ok_or_else(|| {
-                let exception = try_catch_exception(&mut try_catch).unwrap();
+                let exception = read_try_catch_exception(&mut try_catch).unwrap();
 
                 Error::Eval(path.to_string(), format!("Compile error: {exception}"))
             })?;
@@ -236,7 +236,7 @@ impl ModuleMap {
         module
             .instantiate_module(&mut try_catch, module_resolve_callback)
             .ok_or_else(|| {
-                let exception = try_catch_exception(&mut try_catch).unwrap();
+                let exception = read_try_catch_exception(&mut try_catch).unwrap();
 
                 Error::PackageImport(
                     path.to_string(),
@@ -252,7 +252,7 @@ impl ModuleMap {
         }
 
         module.evaluate(&mut try_catch).ok_or_else(|| {
-            let exception = try_catch_exception(&mut try_catch).unwrap();
+            let exception = read_try_catch_exception(&mut try_catch).unwrap();
 
             Error::PackageImport(
                 path.to_string(),
@@ -422,7 +422,7 @@ fn call_js_function<'s>(
 ) -> std::result::Result<Value<'s>, String> {
     let mut try_catch = v8::TryCatch::new(scope);
     func.call(&mut try_catch, this, args)
-        .ok_or_else(|| try_catch_exception(&mut try_catch).unwrap())
+        .ok_or_else(|| read_try_catch_exception(&mut try_catch).unwrap())
 }
 
 fn current_step_to_js<'s>(scope: &mut v8::HandleScope<'s>, current_step: usize) -> Value<'s> {
@@ -1994,7 +1994,7 @@ fn new_js_string<'s>(
 }
 
 /// Helper function to get the exception from a [`v8::TryCatch`]
-fn try_catch_exception<'s, 'p: 's, S>(try_catch: &mut v8::TryCatch<'s, S>) -> Option<String>
+fn read_try_catch_exception<'s, 'p: 's, S>(try_catch: &mut v8::TryCatch<'s, S>) -> Option<String>
 where
     v8::TryCatch<'s, S>: AsMut<v8::HandleScope<'p, ()>>,
     v8::TryCatch<'s, S>: AsMut<v8::HandleScope<'p, v8::Context>>,
