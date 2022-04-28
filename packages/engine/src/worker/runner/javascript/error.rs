@@ -93,8 +93,8 @@ pub enum Error {
     #[error("serde: {0:?}")]
     Serde(#[from] serde_json::Error),
 
-    #[error("Couldn't open dependency file: {0}")]
-    MissingDependency(String),
+    #[error("Couldn't open javascript dependency file: {0}")]
+    MissingJavascriptDependency(String),
 }
 
 impl From<&str> for Error {

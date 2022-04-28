@@ -95,7 +95,7 @@ impl<'s> JsPackage<'s> {
         let namespace: Object<'_> = {
             let pkg = match ModuleMap::import_module(scope, &path) {
                 Ok(s) => s,
-                Err(Error::MissingDependency(_)) => {
+                Err(Error::MissingJavascriptDependency(_)) => {
                     tracing::debug!(
                         "Couldn't read package file. It might intentionally not exist."
                     );
@@ -207,7 +207,7 @@ impl ModuleMap {
         }
 
         let source_code =
-            read_file(path).map_err(|err| Error::MissingDependency(format!("{err}")))?;
+            read_file(path).map_err(|err| Error::MissingJavascriptDependency(format!("{err}")))?;
         let js_source_code = new_js_string(scope, &source_code);
         let js_path = new_js_string(scope, path);
         let source = v8::script_compiler::Source::new(
