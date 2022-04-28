@@ -7,6 +7,9 @@ import Box from "@mui/material/Box";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import Fade from "@mui/material/Fade";
+import Collapse from "@mui/material/Collapse";
+import Divider from "@mui/material/Divider";
 
 import { EChart, SeriesOption, ECOption } from "./e-chart";
 
@@ -57,6 +60,7 @@ export type SeriesType = SeriesOption["type"];
 export type SeriesDefinition = {
   seriesId: string;
   seriesType: SeriesType;
+  seriesName: string;
   entityTypeId: string;
   xAxisPropertyKey: string;
   yAxisPropertyKey: string;
@@ -75,12 +79,16 @@ const CreateNewSeriesDefinition: React.FC<{
   createDefinition: (params: {
     definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
   }) => Promise<void>;
-}> = ({ createDefinition, possibleEntityTypes }) => {
+  cancel: () => void;
+}> = ({ createDefinition, cancel, possibleEntityTypes }) => {
   const [newDefinition, setNewDefinition] = React.useState<{
     entityType?: BlockProtocolEntityType;
+    seriesName?: string;
     xAxisPropertyKey?: string;
     yAxisPropertyKey?: string;
   }>({});
+
+  const reset = React.useCallback(() => setNewDefinition({}), []);
 
   const possiblePropertyKeys = React.useMemo(
     () =>
@@ -101,77 +109,235 @@ const CreateNewSeriesDefinition: React.FC<{
     void createDefinition({
       definition: {
         seriesType: "scatter",
+        seriesName: `${newDefinition.entityType.title} Series`,
         entityTypeId: newDefinition.entityType.entityTypeId,
         xAxisPropertyKey: newDefinition.xAxisPropertyKey,
         yAxisPropertyKey: newDefinition.yAxisPropertyKey,
       },
+    }).then(() => {
+      reset();
     });
   };
 
+  const handleCancel = () => {
+    cancel();
+    reset();
+  };
+
   return (
-    <Box display="flex" width="100%">
-      <Autocomplete
-        sx={{ flexGrow: 1 }}
-        options={possibleEntityTypes}
-        renderInput={(params) => <TextField {...params} label="Entity Type" />}
-        value={newDefinition.entityType}
-        getOptionLabel={({ title }) => title}
-        disableClearable
-        onChange={(_, selectedEntityType) => {
-          if (selectedEntityType) {
-            setNewDefinition({
-              entityType: selectedEntityType,
+    <>
+      <Divider sx={{ mt: 2 }} />
+      <Box mt={2}>
+        <Autocomplete
+          options={possibleEntityTypes}
+          renderInput={(params) => (
+            <TextField {...params} label="Entity Type" />
+          )}
+          value={newDefinition.entityType}
+          getOptionLabel={({ title }) => title}
+          disableClearable
+          onChange={(_, selectedEntityType) => {
+            if (selectedEntityType) {
+              setNewDefinition({
+                entityType: selectedEntityType,
+                seriesName: `${selectedEntityType.title} Series`,
+              });
+            }
+          }}
+        />
+      </Box>
+      <Collapse in={!!newDefinition.entityType}>
+        <Box mt={2} display="flex" width="100%">
+          <TextField
+            sx={{ flexGrow: 1 }}
+            value={newDefinition.seriesName}
+            onChange={({ target }) =>
+              setNewDefinition({ seriesName: target.value })
+            }
+          />
+          <Autocomplete
+            sx={{ flexGrow: 1 }}
+            disabled={!newDefinition.entityType}
+            options={possiblePropertyKeys}
+            renderInput={(params) => (
+              <TextField {...params} label="X Axis Property" />
+            )}
+            disableClearable
+            value={newDefinition.xAxisPropertyKey}
+            onChange={(_, selectedxAxisPropertyKey) => {
+              if (selectedxAxisPropertyKey) {
+                setNewDefinition((prev) => ({
+                  ...prev,
+                  xAxisPropertyKey: selectedxAxisPropertyKey,
+                }));
+              }
+            }}
+          />
+          <Autocomplete
+            sx={{ flexGrow: 1 }}
+            disabled={!newDefinition.entityType}
+            options={possiblePropertyKeys}
+            renderInput={(params) => (
+              <TextField {...params} label="Y Axis Property" />
+            )}
+            disableClearable
+            value={newDefinition.yAxisPropertyKey}
+            onChange={(_, selectedyAxisPropertyKey) => {
+              if (selectedyAxisPropertyKey) {
+                setNewDefinition((prev) => ({
+                  ...prev,
+                  yAxisPropertyKey: selectedyAxisPropertyKey,
+                }));
+              }
+            }}
+          />
+        </Box>
+      </Collapse>
+      <Box mt={2}>
+        <Button variant="outlined" onClick={handleCancel}>
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          disabled={
+            !newDefinition.entityType ||
+            !newDefinition.xAxisPropertyKey ||
+            !newDefinition.yAxisPropertyKey
+          }
+          onClick={handleCreate}
+        >
+          Create
+        </Button>
+      </Box>
+    </>
+  );
+};
+
+const EditableGraphSeriesDefinition: React.FC<{
+  possibleEntityTypes: BlockProtocolEntityType[];
+  seriesDefinition: SeriesDefinition;
+  updateSeriesDefinition: (params: {
+    updatedDefinition: Partial<
+      Omit<SeriesDefinition, "seriesId" | "aggregationResults">
+    >;
+  }) => Promise<void>;
+  deleteSeriesDefinition: () => Promise<void>;
+}> = ({
+  possibleEntityTypes,
+  seriesDefinition,
+  updateSeriesDefinition,
+  deleteSeriesDefinition,
+}) => {
+  const [isUpdating, setIsUpdating] = React.useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = React.useState<boolean>(false);
+
+  const [seriesName, setSeriesName] = React.useState<string>(
+    seriesDefinition.seriesName,
+  );
+
+  const debouncedUpdateSeriesName = React.useMemo(
+    () =>
+      debounce(async (updatedSeriesName: string) => {
+        setIsUpdating(true);
+        return updateSeriesDefinition({
+          updatedDefinition: { seriesName: updatedSeriesName },
+        }).then(() => {
+          setIsUpdating(false);
+        });
+      }, 500),
+    [updateSeriesDefinition],
+  );
+
+  const { entityTypeId, xAxisPropertyKey, yAxisPropertyKey } = seriesDefinition;
+
+  const entityType = possibleEntityTypes.find(
+    (possibleEntityType) => possibleEntityType.entityTypeId === entityTypeId,
+  );
+
+  if (!entityType) {
+    return null;
+  }
+
+  const possiblePropertyKeys =
+    parsePossiblePropertyKeysFromEntityType(entityType);
+
+  return (
+    <Box mt={2}>
+      <Box display="flex" justifyContent="space-between">
+        <Typography sx={{ flexGrow: 1 }}>{entityType.title}</Typography>
+        <Fade in={isUpdating}>
+          <Typography>Saving</Typography>
+        </Fade>
+      </Box>
+      <Box display="flex">
+        <TextField
+          sx={{ flexGrow: 1 }}
+          value={seriesName}
+          onChange={({ target }) => {
+            const updatedSeriesName = target.value;
+            setSeriesName(updatedSeriesName);
+            void debouncedUpdateSeriesName(updatedSeriesName);
+          }}
+        />
+        <Autocomplete
+          sx={{ flexGrow: 1 }}
+          options={possiblePropertyKeys}
+          renderInput={(params) => (
+            <TextField {...params} label="X Axis Property" />
+          )}
+          disableClearable
+          disabled={isUpdating || isDeleting}
+          value={xAxisPropertyKey}
+          onChange={(_, selectedxAxisPropertyKey) => {
+            if (selectedxAxisPropertyKey) {
+              setIsUpdating(true);
+
+              void updateSeriesDefinition({
+                updatedDefinition: {
+                  xAxisPropertyKey: selectedxAxisPropertyKey,
+                },
+              }).then(() => {
+                setIsUpdating(false);
+              });
+            }
+          }}
+        />
+        <Autocomplete
+          sx={{ flexGrow: 1 }}
+          options={possiblePropertyKeys}
+          disabled={isUpdating || isDeleting}
+          renderInput={(params) => (
+            <TextField {...params} label="Y Axis Property" />
+          )}
+          disableClearable
+          value={yAxisPropertyKey}
+          onChange={(_, selectedyAxisPropertyKey) => {
+            if (selectedyAxisPropertyKey) {
+              setIsUpdating(true);
+              void updateSeriesDefinition({
+                updatedDefinition: {
+                  yAxisPropertyKey: selectedyAxisPropertyKey,
+                },
+              }).then(() => {
+                setIsUpdating(false);
+              });
+            }
+          }}
+        />
+        <Button
+          disabled={isDeleting}
+          variant="contained"
+          color="error"
+          onClick={() => {
+            setIsDeleting(true);
+            void deleteSeriesDefinition().then(() => {
+              setIsDeleting(false);
             });
-          }
-        }}
-      />
-      <Autocomplete
-        sx={{ flexGrow: 1 }}
-        disabled={!newDefinition.entityType}
-        options={possiblePropertyKeys}
-        renderInput={(params) => (
-          <TextField {...params} label="X Axis Property" />
-        )}
-        disableClearable
-        value={newDefinition.xAxisPropertyKey}
-        onChange={(_, selectedxAxisPropertyKey) => {
-          if (selectedxAxisPropertyKey) {
-            setNewDefinition((prev) => ({
-              ...prev,
-              xAxisPropertyKey: selectedxAxisPropertyKey,
-            }));
-          }
-        }}
-      />
-      <Autocomplete
-        sx={{ flexGrow: 1 }}
-        disabled={!newDefinition.entityType}
-        options={possiblePropertyKeys}
-        renderInput={(params) => (
-          <TextField {...params} label="Y Axis Property" />
-        )}
-        disableClearable
-        value={newDefinition.yAxisPropertyKey}
-        onChange={(_, selectedyAxisPropertyKey) => {
-          if (selectedyAxisPropertyKey) {
-            setNewDefinition((prev) => ({
-              ...prev,
-              yAxisPropertyKey: selectedyAxisPropertyKey,
-            }));
-          }
-        }}
-      />
-      <Button
-        variant="contained"
-        disabled={
-          !newDefinition.entityType ||
-          !newDefinition.xAxisPropertyKey ||
-          !newDefinition.yAxisPropertyKey
-        }
-        onClick={handleCreate}
-      >
-        Create
-      </Button>
+          }}
+        >
+          Delete
+        </Button>
+      </Box>
     </Box>
   );
 };
@@ -206,82 +372,40 @@ const EditableGraphSeriesDefinitions: React.FC<{
   return (
     <>
       <h2>Graph Series Definitions</h2>
-      {seriesDefinitions.map(
-        ({ seriesId, entityTypeId, xAxisPropertyKey, yAxisPropertyKey }) => {
-          const entityType = possibleEntityTypes.find(
-            (possibleEntityType) =>
-              possibleEntityType.entityTypeId === entityTypeId,
-          );
-
-          if (!entityType) {
-            return null;
+      {seriesDefinitions.map((seriesDefinition) => (
+        <EditableGraphSeriesDefinition
+          key={seriesDefinition.seriesId}
+          possibleEntityTypes={possibleEntityTypes}
+          seriesDefinition={seriesDefinition}
+          updateSeriesDefinition={({ updatedDefinition }) =>
+            updateSeriesDefinition({
+              seriesId: seriesDefinition.seriesId,
+              updatedDefinition,
+            })
           }
-
-          const possiblePropertyKeys =
-            parsePossiblePropertyKeysFromEntityType(entityType);
-
-          return (
-            <Box display="flex" key={seriesId}>
-              <Typography sx={{ flexGrow: 1 }}>{entityType.title}</Typography>
-              <Autocomplete
-                sx={{ flexGrow: 1 }}
-                options={possiblePropertyKeys}
-                renderInput={(params) => (
-                  <TextField {...params} label="X Axis Property" />
-                )}
-                disableClearable
-                value={xAxisPropertyKey}
-                onChange={(_, selectedxAxisPropertyKey) => {
-                  if (selectedxAxisPropertyKey) {
-                    void updateSeriesDefinition({
-                      seriesId,
-                      updatedDefinition: {
-                        xAxisPropertyKey: selectedxAxisPropertyKey,
-                      },
-                    });
-                  }
-                }}
-              />
-              <Autocomplete
-                sx={{ flexGrow: 1 }}
-                options={possiblePropertyKeys}
-                renderInput={(params) => (
-                  <TextField {...params} label="Y Axis Property" />
-                )}
-                disableClearable
-                value={yAxisPropertyKey}
-                onChange={(_, selectedyAxisPropertyKey) => {
-                  if (selectedyAxisPropertyKey) {
-                    void updateSeriesDefinition({
-                      seriesId,
-                      updatedDefinition: {
-                        yAxisPropertyKey: selectedyAxisPropertyKey,
-                      },
-                    });
-                  }
-                }}
-              />
-              <Button onClick={() => deleteSeriesDefinition({ seriesId })}>
-                Delete
-              </Button>
-            </Box>
-          );
-        },
-      )}
-      {creatingNewDefinition ? (
+          deleteSeriesDefinition={() =>
+            deleteSeriesDefinition({ seriesId: seriesDefinition.seriesId })
+          }
+        />
+      ))}
+      <Collapse in={creatingNewDefinition}>
         <CreateNewSeriesDefinition
           possibleEntityTypes={possibleEntityTypes}
+          cancel={() => {
+            setCreatingNewDefinition(false);
+          }}
           createDefinition={(params) =>
             createSeriesDefinition(params).then(() => {
               setCreatingNewDefinition(false);
             })
           }
         />
-      ) : (
-        <Button variant="contained" onClick={handleAddSeries}>
+      </Collapse>
+      <Fade in={!creatingNewDefinition}>
+        <Button sx={{ mt: 2 }} variant="contained" onClick={handleAddSeries}>
           Add Series
         </Button>
-      )}
+      </Fade>
     </>
   );
 };

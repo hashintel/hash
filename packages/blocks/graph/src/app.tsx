@@ -184,7 +184,8 @@ export const App: BlockComponent<AppProps> = ({
       if (
         params.updatedDefinition.seriesType ||
         params.updatedDefinition.xAxisPropertyKey ||
-        params.updatedDefinition.yAxisPropertyKey
+        params.updatedDefinition.yAxisPropertyKey ||
+        params.updatedDefinition.seriesName
         /** @todo: check these values actually changed */
       ) {
         await updateGraphEntityProperties({
@@ -195,6 +196,9 @@ export const App: BlockComponent<AppProps> = ({
               seriesType:
                 params.updatedDefinition.seriesType ??
                 previousSeries.seriesType,
+              seriesName:
+                params.updatedDefinition.seriesName ??
+                previousSeries.seriesName,
               xAxisPropertyKey:
                 params.updatedDefinition.xAxisPropertyKey ??
                 previousSeries.xAxisPropertyKey,
@@ -228,14 +232,15 @@ export const App: BlockComponent<AppProps> = ({
 
       const seriesId = generateUniqueSeriesId({ seriesDefinitions });
 
-      const { seriesType, xAxisPropertyKey, yAxisPropertyKey } = definition;
+      const { seriesType, xAxisPropertyKey, yAxisPropertyKey, seriesName } =
+        definition;
 
       await updateGraphEntityProperties({
         series: [
           ...series,
           {
             seriesId,
-            seriesName: `Series ${seriesId}`,
+            seriesName,
             seriesType,
             xAxisPropertyKey,
             yAxisPropertyKey,
