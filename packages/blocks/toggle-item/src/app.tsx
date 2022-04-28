@@ -79,6 +79,7 @@ export const App: BlockComponent<AppProps> = ({
             resize: "none",
             border: 0,
             outline: 0,
+            // Hides the scroll bar.
             overflow: "hidden",
           }}
           onChange={(event) => {
