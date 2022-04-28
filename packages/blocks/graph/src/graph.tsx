@@ -504,7 +504,6 @@ const EditableGraphSeriesDefinitions: React.FC<{
 
   return (
     <>
-      <h2>Graph Series Definitions</h2>
       {seriesDefinitions.map((seriesDefinition) => (
         <EditableGraphSeriesDefinition
           key={seriesDefinition.seriesId}
