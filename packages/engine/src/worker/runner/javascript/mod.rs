@@ -309,7 +309,7 @@ pub fn module_resolve_callback<'s>(
 }
 
 impl<'s> Embedded<'s> {
-    fn import(scope: &mut v8::HandleScope<'s>) -> Result<Self> {
+    fn import_common_js_files(scope: &mut v8::HandleScope<'s>) -> Result<Self> {
         // `hash_stdlib` can't be imported as a module because it needs to be available globally for
         // behaviors.
         let hash_stdlib = eval_file(scope, "./src/worker/runner/javascript/hash_stdlib.js")?;
@@ -835,7 +835,7 @@ impl<'s> ThreadLocalRunner<'s> {
     }
 
     pub fn new(scope: &mut v8::HandleScope<'s>, init: &ExperimentInitRunnerMsg) -> Result<Self> {
-        let embedded = Embedded::import(scope)?;
+        let embedded = Embedded::import_common_js_files(scope)?;
         let datasets = Self::load_datasets(scope, &init.shared_context)?;
 
         let pkg_config = &init.package_config.0;
