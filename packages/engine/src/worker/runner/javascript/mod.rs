@@ -1998,7 +1998,6 @@ fn read_try_catch_exception<'s, 'p: 's, S>(try_catch: &mut v8::TryCatch<'s, S>) 
 where
     v8::TryCatch<'s, S>: AsMut<v8::HandleScope<'p, ()>>,
     v8::TryCatch<'s, S>: AsMut<v8::HandleScope<'p, v8::Context>>,
-    v8::TryCatch<'s, S>: AsMut<v8::Isolate>,
 {
     let exception = try_catch.exception()?;
     Some(
