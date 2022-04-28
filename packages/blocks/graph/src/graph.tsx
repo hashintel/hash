@@ -55,10 +55,12 @@ const EditableGraphTitle: React.FC<EditableGraphTitleProps> = ({
 export type SeriesType = SeriesOption["type"];
 
 export type SeriesDefinition = {
+  seriesId: string;
   seriesType: SeriesType;
   entityTypeId: string;
-  xValuePropertyKey: string;
-  yValuePropertyKey: string;
+  xAxisPropertyKey: string;
+  yAxisPropertyKey: string;
+  aggregationResults: BlockProtocolEntity[];
 };
 
 const parsePossiblePropertyKeysFromEntityType = (
@@ -70,12 +72,14 @@ const parsePossiblePropertyKeysFromEntityType = (
 
 const CreateNewSeriesDefinition: React.FC<{
   possibleEntityTypes: BlockProtocolEntityType[];
-  createNewDefinition: (params: { definition: SeriesDefinition }) => void;
-}> = ({ createNewDefinition, possibleEntityTypes }) => {
+  createDefinition: (params: {
+    definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
+  }) => Promise<void>;
+}> = ({ createDefinition, possibleEntityTypes }) => {
   const [newDefinition, setNewDefinition] = React.useState<{
     entityType?: BlockProtocolEntityType;
-    xValuePropertyKey?: string;
-    yValuePropertyKey?: string;
+    xAxisPropertyKey?: string;
+    yAxisPropertyKey?: string;
   }>({});
 
   const possiblePropertyKeys = React.useMemo(
@@ -89,17 +93,17 @@ const CreateNewSeriesDefinition: React.FC<{
   const handleCreate = () => {
     if (
       !newDefinition.entityType ||
-      !newDefinition.xValuePropertyKey ||
-      !newDefinition.yValuePropertyKey
+      !newDefinition.xAxisPropertyKey ||
+      !newDefinition.yAxisPropertyKey
     ) {
       return;
     }
-    createNewDefinition({
+    void createDefinition({
       definition: {
         seriesType: "scatter",
         entityTypeId: newDefinition.entityType.entityTypeId,
-        xValuePropertyKey: newDefinition.xValuePropertyKey,
-        yValuePropertyKey: newDefinition.yValuePropertyKey,
+        xAxisPropertyKey: newDefinition.xAxisPropertyKey,
+        yAxisPropertyKey: newDefinition.yAxisPropertyKey,
       },
     });
   };
@@ -129,12 +133,12 @@ const CreateNewSeriesDefinition: React.FC<{
           <TextField {...params} label="X Axis Property" />
         )}
         disableClearable
-        value={newDefinition.xValuePropertyKey}
-        onChange={(_, selectedXValuePropertyKey) => {
-          if (selectedXValuePropertyKey) {
+        value={newDefinition.xAxisPropertyKey}
+        onChange={(_, selectedxAxisPropertyKey) => {
+          if (selectedxAxisPropertyKey) {
             setNewDefinition((prev) => ({
               ...prev,
-              xValuePropertyKey: selectedXValuePropertyKey,
+              xAxisPropertyKey: selectedxAxisPropertyKey,
             }));
           }
         }}
@@ -147,12 +151,12 @@ const CreateNewSeriesDefinition: React.FC<{
           <TextField {...params} label="Y Axis Property" />
         )}
         disableClearable
-        value={newDefinition.yValuePropertyKey}
-        onChange={(_, selectedYValuePropertyKey) => {
-          if (selectedYValuePropertyKey) {
+        value={newDefinition.yAxisPropertyKey}
+        onChange={(_, selectedyAxisPropertyKey) => {
+          if (selectedyAxisPropertyKey) {
             setNewDefinition((prev) => ({
               ...prev,
-              yValuePropertyKey: selectedYValuePropertyKey,
+              yAxisPropertyKey: selectedyAxisPropertyKey,
             }));
           }
         }}
@@ -161,8 +165,8 @@ const CreateNewSeriesDefinition: React.FC<{
         variant="contained"
         disabled={
           !newDefinition.entityType ||
-          !newDefinition.xValuePropertyKey ||
-          !newDefinition.yValuePropertyKey
+          !newDefinition.xAxisPropertyKey ||
+          !newDefinition.yAxisPropertyKey
         }
         onClick={handleCreate}
       >
@@ -174,11 +178,22 @@ const CreateNewSeriesDefinition: React.FC<{
 
 const EditableGraphSeriesDefinitions: React.FC<{
   possibleEntityTypes: BlockProtocolEntityType[];
-  existingDefinitions: SeriesDefinition[];
-  setExistingDefinitions: React.Dispatch<
-    React.SetStateAction<SeriesDefinition[]>
-  >;
-}> = ({ possibleEntityTypes, existingDefinitions, setExistingDefinitions }) => {
+  seriesDefinitions: SeriesDefinition[];
+  updateSeriesDefinition: (params: {
+    seriesId: string;
+    updatedDefinition: Partial<
+      Omit<SeriesDefinition, "seriesId" | "aggregationResults">
+    >;
+  }) => Promise<void>;
+  createSeriesDefinition: (params: {
+    definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
+  }) => Promise<void>;
+}> = ({
+  possibleEntityTypes,
+  seriesDefinitions,
+  updateSeriesDefinition,
+  createSeriesDefinition,
+}) => {
   const [creatingNewDefinition, setCreatingNewDefinition] =
     React.useState<boolean>(false);
 
@@ -186,21 +201,11 @@ const EditableGraphSeriesDefinitions: React.FC<{
     setCreatingNewDefinition(true);
   };
 
-  const handleCreateNewDefinition = (params: {
-    definition: SeriesDefinition;
-  }) => {
-    setExistingDefinitions((prevDefinitions) => [
-      ...prevDefinitions,
-      params.definition,
-    ]);
-    setCreatingNewDefinition(false);
-  };
-
   return (
     <>
       <h2>Graph Series Definitions</h2>
-      {existingDefinitions.map(
-        ({ entityTypeId, xValuePropertyKey, yValuePropertyKey }, i) => {
+      {seriesDefinitions.map(
+        ({ seriesId, entityTypeId, xAxisPropertyKey, yAxisPropertyKey }) => {
           const entityType = possibleEntityTypes.find(
             (possibleEntityType) =>
               possibleEntityType.entityTypeId === entityTypeId,
@@ -214,7 +219,7 @@ const EditableGraphSeriesDefinitions: React.FC<{
             parsePossiblePropertyKeysFromEntityType(entityType);
 
           return (
-            <Box display="flex" key={entityTypeId}>
+            <Box display="flex" key={seriesId}>
               <Typography sx={{ flexGrow: 1 }}>{entityType.title}</Typography>
               <Autocomplete
                 sx={{ flexGrow: 1 }}
@@ -223,17 +228,15 @@ const EditableGraphSeriesDefinitions: React.FC<{
                   <TextField {...params} label="X Axis Property" />
                 )}
                 disableClearable
-                value={xValuePropertyKey}
-                onChange={(_, selectedXValuePropertyKey) => {
-                  if (selectedXValuePropertyKey) {
-                    setExistingDefinitions((prev) => [
-                      ...prev.slice(0, i),
-                      {
-                        ...prev[i]!,
-                        xValuePropertyKey: selectedXValuePropertyKey,
+                value={xAxisPropertyKey}
+                onChange={(_, selectedxAxisPropertyKey) => {
+                  if (selectedxAxisPropertyKey) {
+                    void updateSeriesDefinition({
+                      seriesId,
+                      updatedDefinition: {
+                        xAxisPropertyKey: selectedxAxisPropertyKey,
                       },
-                      ...prev.slice(i + 1),
-                    ]);
+                    });
                   }
                 }}
               />
@@ -244,17 +247,15 @@ const EditableGraphSeriesDefinitions: React.FC<{
                   <TextField {...params} label="Y Axis Property" />
                 )}
                 disableClearable
-                value={yValuePropertyKey}
-                onChange={(_, selectedYValuePropertyKey) => {
-                  if (selectedYValuePropertyKey) {
-                    setExistingDefinitions((prev) => [
-                      ...prev.slice(0, i),
-                      {
-                        ...prev[i]!,
-                        yValuePropertyKey: selectedYValuePropertyKey,
+                value={yAxisPropertyKey}
+                onChange={(_, selectedyAxisPropertyKey) => {
+                  if (selectedyAxisPropertyKey) {
+                    void updateSeriesDefinition({
+                      seriesId,
+                      updatedDefinition: {
+                        yAxisPropertyKey: selectedyAxisPropertyKey,
                       },
-                      ...prev.slice(i + 1),
-                    ]);
+                    });
                   }
                 }}
               />
@@ -265,7 +266,7 @@ const EditableGraphSeriesDefinitions: React.FC<{
       {creatingNewDefinition ? (
         <CreateNewSeriesDefinition
           possibleEntityTypes={possibleEntityTypes}
-          createNewDefinition={handleCreateNewDefinition}
+          createDefinition={createSeriesDefinition}
         />
       ) : (
         <Button variant="contained" onClick={handleAddSeries}>
@@ -276,87 +277,80 @@ const EditableGraphSeriesDefinitions: React.FC<{
   );
 };
 
+type EChartSeries = NonNullable<ECOption["series"]>;
+
+const mapSeriesDefinitionsToEChartSeries = (params: {
+  seriesDefinitions: SeriesDefinition[];
+}): EChartSeries =>
+  params.seriesDefinitions.map(
+    ({
+      seriesType,
+      xAxisPropertyKey,
+      yAxisPropertyKey,
+      aggregationResults,
+    }) => {
+      return {
+        type: seriesType,
+        data: aggregationResults.map((properties) => {
+          if (!properties[xAxisPropertyKey]) {
+            throw new Error(
+              `No property with key '${xAxisPropertyKey}' found on entity`,
+            );
+          }
+          if (!properties[xAxisPropertyKey]) {
+            throw new Error(
+              `No property with key '${xAxisPropertyKey}' found on entity`,
+            );
+          }
+
+          const xValue = properties[xAxisPropertyKey];
+          if (typeof xValue !== "number") {
+            throw new Error("The x value is not a number");
+          }
+
+          const yValue = properties[yAxisPropertyKey];
+          if (typeof yValue !== "number") {
+            throw new Error("The y value is not a number");
+          }
+
+          return [xValue, yValue];
+        }),
+      };
+    },
+  );
+
 type GraphProps = {
   title: string;
+  updateTitle: (newTitle: string) => Promise<void>;
   xAxisName: string;
   yAxisName: string;
   possibleEntityTypes: BlockProtocolEntityType[];
-
-  fetchEntitiesOfType: (params: {
-    entityTypeId: string;
-  }) => Promise<BlockProtocolEntity[]>;
-  updateTitle: (newTitle: string) => Promise<void>;
+  seriesDefinitions: SeriesDefinition[];
+  updateSeriesDefinition: (params: {
+    seriesId: string;
+    updatedDefinition: Partial<
+      Omit<SeriesDefinition, "seriesId" | "aggregationResults">
+    >;
+  }) => Promise<void>;
+  createSeriesDefinition: (params: {
+    definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
+  }) => Promise<void>;
 };
-
-type Series = NonNullable<ECOption["series"]>;
 
 export const Graph: React.FC<GraphProps> = ({
   title,
+  updateTitle,
   xAxisName,
   yAxisName,
-  fetchEntitiesOfType,
   possibleEntityTypes,
-  updateTitle,
+  seriesDefinitions,
+  updateSeriesDefinition,
+  createSeriesDefinition,
 }) => {
-  const [seriesDefinitions, setSeriesDefinitions] = React.useState<
-    SeriesDefinition[]
-  >([]);
-
-  const [series, setSeries] = React.useState<Series>([]);
-
-  const populateSeries = React.useCallback(
-    async (definitions: SeriesDefinition[]) => {
-      const updatedSeries: Series = await Promise.all(
-        definitions.map(
-          async ({
-            seriesType,
-            entityTypeId,
-            xValuePropertyKey,
-            yValuePropertyKey,
-          }) => {
-            const allEntitiesOfType = await fetchEntitiesOfType({
-              entityTypeId,
-            });
-
-            return {
-              type: seriesType,
-              data: allEntitiesOfType.map((properties) => {
-                if (!properties[xValuePropertyKey]) {
-                  throw new Error(
-                    `No property with key '${xValuePropertyKey}' found on entity`,
-                  );
-                }
-                if (!properties[xValuePropertyKey]) {
-                  throw new Error(
-                    `No property with key '${xValuePropertyKey}' found on entity`,
-                  );
-                }
-
-                const xValue = properties[xValuePropertyKey];
-                if (typeof xValue !== "number") {
-                  throw new Error("The x value is not a number");
-                }
-
-                const yValue = properties[yValuePropertyKey];
-                if (typeof yValue !== "number") {
-                  throw new Error("The y value is not a number");
-                }
-
-                return [xValue, yValue];
-              }),
-            };
-          },
-        ),
-      );
-
-      setSeries(updatedSeries);
-    },
-    [fetchEntitiesOfType, setSeries],
+  const series = React.useMemo(
+    () => mapSeriesDefinitionsToEChartSeries({ seriesDefinitions }),
+    [seriesDefinitions],
   );
-
-  React.useEffect(() => {
-    void populateSeries(seriesDefinitions);
-  }, [seriesDefinitions, populateSeries]);
 
   return (
     <>
@@ -376,8 +370,9 @@ export const Graph: React.FC<GraphProps> = ({
       />
       <EditableGraphSeriesDefinitions
         possibleEntityTypes={possibleEntityTypes}
-        existingDefinitions={seriesDefinitions}
-        setExistingDefinitions={setSeriesDefinitions}
+        seriesDefinitions={seriesDefinitions}
+        updateSeriesDefinition={updateSeriesDefinition}
+        createSeriesDefinition={createSeriesDefinition}
       />
     </>
   );
