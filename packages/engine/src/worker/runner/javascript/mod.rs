@@ -327,8 +327,8 @@ impl<'s> Embedded<'s> {
                 )
             })?;
 
-        // Example of how to get a function from a module
-        // https://chromium.googlesource.com/v8/v8/+/refs/heads/lkgr/test/cctest/test-modules.cc#625
+        // Importing a module doesn't return the items it exports. To access the items it exports we
+        // can use `get_module_namespace`. An example of that can be found at https://chromium.googlesource.com/v8/v8/+/refs/heads/lkgr/test/cctest/test-modules.cc#625
         let namespace = runner
             .get_module_namespace()
             .to_object(scope)
