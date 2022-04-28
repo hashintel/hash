@@ -31,12 +31,12 @@ const NODE_COLORS: Record<
   | "success"
   | "warning"
 > = {
-  opened: "grey",
+  opened: "success",
   reviewed: "primary",
   review_requested: "warning",
-  ready_for_review: "secondary",
+  ready_for_review: "info",
   closed: "error",
-  merged: "success",
+  merged: "secondary",
 };
 
 const addDefaultFromPossible = (availableEventTypes: string[]) => {

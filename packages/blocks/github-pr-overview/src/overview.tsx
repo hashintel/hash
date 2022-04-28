@@ -46,10 +46,18 @@ export const GithubPrOverview: React.FunctionComponent<
     "login",
   );
 
-  const timeToMerge =
+  const timeToClose =
     pullRequest.closed_at != null
       ? moment(pullRequest.closed_at).from(moment(pullRequest.created_at), true)
       : undefined;
+
+  /** @todo - Get colours from theme? */
+  const status =
+    pullRequest.merged_at != null
+      ? { text: "Merged", color: "DarkMagenta" }
+      : pullRequest.state === "closed"
+      ? { text: "Closed", color: "darkred" }
+      : { text: "Open", color: "green" };
 
   return (
     <Grid container className="prOverviewContainer">
@@ -62,22 +70,22 @@ export const GithubPrOverview: React.FunctionComponent<
         <div style={{ position: "relative" }}>
           <div>
             <h1>
-              {pullRequest.repository}{" "}
+              <span>{pullRequest.repository} </span>
               <span style={{ color: "grey" }}>#{pullRequest.number}</span>
             </h1>
             <h2>
-              Status:{" "}
-              <span style={{ color: "green" }}>{pullRequest.state}</span>
+              <span>Status: </span>
+              <span style={{ color: status.color }}>{status.text}</span>
             </h2>
             <Stack>
-              {timeToMerge ? (
+              {timeToClose ? (
                 <div>
-                  <span style={{ fontWeight: "bold" }}>Merged After:</span>{" "}
-                  {timeToMerge}
+                  <span style={{ fontWeight: "bold" }}>Merged After: </span>
+                  {timeToClose}
                 </div>
               ) : undefined}
               <div>
-                <span style={{ fontWeight: "bold" }}>Reviews:</span>{" "}
+                <span style={{ fontWeight: "bold" }}>Reviews: </span>
                 {reviews.length}
               </div>
               <div>
