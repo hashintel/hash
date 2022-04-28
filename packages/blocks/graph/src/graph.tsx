@@ -3,6 +3,7 @@ import * as React from "react";
 import debounce from "lodash.debounce";
 // eslint-disable-next-line no-restricted-imports
 import Button from "@mui/material/Button";
+import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
@@ -16,6 +17,21 @@ import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 
 import { EChart, SeriesOption, ECOption } from "./e-chart";
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  "> .MuiInputBase-root > input": {
+    padding: theme.spacing(1),
+  },
+  "> .MuiInputLabel-root.MuiInputLabel-formControl.MuiInputLabel-animated": {
+    top: -8,
+    "&.MuiInputLabel-shrink": {
+      top: 0,
+    },
+  },
+}));
+
+const seriesNameAutocompleteMaxWidth = 150;
+const deleteButtonWidth = 85;
 
 type EditableGraphTitleProps = {
   title: string;
@@ -36,7 +52,7 @@ const EditableGraphTitle: React.FC<EditableGraphTitleProps> = ({
   );
 
   return (
-    <TextField
+    <StyledTextField
       value={textFieldValue}
       onChange={({ target }) => {
         const { value: updatedTitle } = target;
@@ -110,7 +126,8 @@ const CreateNewSeriesDefinition: React.FC<{
     if (
       !newDefinition.entityType ||
       !newDefinition.xAxisPropertyKey ||
-      !newDefinition.yAxisPropertyKey
+      !newDefinition.yAxisPropertyKey ||
+      !newDefinition.seriesName
     ) {
       return;
     }
@@ -128,8 +145,8 @@ const CreateNewSeriesDefinition: React.FC<{
   };
 
   const handleCancel = () => {
-    cancel();
     reset();
+    cancel();
   };
 
   return (
@@ -137,13 +154,18 @@ const CreateNewSeriesDefinition: React.FC<{
       <Divider sx={{ mt: 2 }} />
       <Box mt={2}>
         <Autocomplete
+          sx={{
+            ".MuiOutlinedInput-root": {
+              padding: 0,
+            },
+            maxWidth: seriesNameAutocompleteMaxWidth,
+          }}
           options={possibleEntityTypes}
           renderInput={(params) => (
-            <TextField {...params} label="Entity Type" />
+            <StyledTextField {...params} label="Entity Type" />
           )}
-          value={newDefinition.entityType}
+          value={newDefinition.entityType ?? null}
           getOptionLabel={({ title }) => title}
-          disableClearable
           onChange={(_, selectedEntityType) => {
             if (selectedEntityType) {
               setNewDefinition((prev) => ({
@@ -151,15 +173,28 @@ const CreateNewSeriesDefinition: React.FC<{
                 entityType: selectedEntityType,
                 seriesName: `${selectedEntityType.title} Series`,
               }));
+            } else {
+              reset();
             }
           }}
         />
       </Box>
       <Collapse in={!!newDefinition.entityType}>
-        <Box mt={2} display="flex" width="100%">
-          <TextField
-            sx={{ flexGrow: 1 }}
-            value={newDefinition.seriesName}
+        <Box
+          display="flex"
+          width="100%"
+          sx={{
+            mt: 2,
+            "> :not(:last-child)": {
+              mr: 0.5,
+            },
+          }}
+        >
+          <StyledTextField
+            sx={{ flexGrow: 1, maxWidth: seriesNameAutocompleteMaxWidth }}
+            label="Series Name"
+            value={newDefinition.seriesName ?? null}
+            defaultValue="Series" /** @todo: figure out how to get rid of this without resulting in label overlapping input */
             onChange={({ target }) =>
               setNewDefinition((prev) => ({
                 ...prev,
@@ -171,6 +206,11 @@ const CreateNewSeriesDefinition: React.FC<{
             <FormControl fullWidth>
               <InputLabel>Series Type</InputLabel>
               <Select
+                sx={{
+                  "> .MuiSelect-select": {
+                    padding: (theme) => theme.spacing(1),
+                  },
+                }}
                 value={newDefinition.seriesType}
                 label="Series Type"
                 onChange={({ target }) =>
@@ -186,11 +226,16 @@ const CreateNewSeriesDefinition: React.FC<{
             </FormControl>
           </Box>
           <Autocomplete
-            sx={{ flexGrow: 1 }}
+            sx={{
+              flexGrow: 1,
+              ".MuiOutlinedInput-root": {
+                padding: 0,
+              },
+            }}
             disabled={!newDefinition.entityType}
             options={possiblePropertyKeys}
             renderInput={(params) => (
-              <TextField {...params} label="X Axis Property" />
+              <StyledTextField {...params} label="X Axis Property" />
             )}
             disableClearable
             value={newDefinition.xAxisPropertyKey}
@@ -203,13 +248,17 @@ const CreateNewSeriesDefinition: React.FC<{
               }
             }}
           />
-
           <Autocomplete
-            sx={{ flexGrow: 1 }}
+            sx={{
+              flexGrow: 1,
+              ".MuiOutlinedInput-root": {
+                padding: 0,
+              },
+            }}
             disabled={!newDefinition.entityType}
             options={possiblePropertyKeys}
             renderInput={(params) => (
-              <TextField {...params} label="Y Axis Property" />
+              <StyledTextField {...params} label="Y Axis Property" />
             )}
             disableClearable
             value={newDefinition.yAxisPropertyKey}
@@ -222,10 +271,11 @@ const CreateNewSeriesDefinition: React.FC<{
               }
             }}
           />
+          <Box width={deleteButtonWidth} />
         </Box>
       </Collapse>
-      <Box mt={2}>
-        <Button variant="outlined" onClick={handleCancel}>
+      <Box mt={1}>
+        <Button variant="outlined" onClick={handleCancel} sx={{ mr: 1 }}>
           Cancel
         </Button>
         <Button
@@ -233,7 +283,8 @@ const CreateNewSeriesDefinition: React.FC<{
           disabled={
             !newDefinition.entityType ||
             !newDefinition.xAxisPropertyKey ||
-            !newDefinition.yAxisPropertyKey
+            !newDefinition.yAxisPropertyKey ||
+            !newDefinition.seriesName
           }
           onClick={handleCreate}
         >
@@ -301,20 +352,36 @@ const EditableGraphSeriesDefinition: React.FC<{
           <Typography>Saving</Typography>
         </Fade>
       </Box>
-      <Box display="flex">
-        <TextField
-          sx={{ flexGrow: 1 }}
+      <Box
+        display="flex"
+        sx={{
+          mt: 1,
+          "> :not(:last-child)": {
+            mr: 0.5,
+          },
+        }}
+      >
+        <StyledTextField
+          sx={{ flexGrow: 1, maxWidth: seriesNameAutocompleteMaxWidth }}
+          label="Series Name"
           value={seriesName}
           onChange={({ target }) => {
             const updatedSeriesName = target.value;
             setSeriesName(updatedSeriesName);
-            void debouncedUpdateSeriesName(updatedSeriesName);
+            if (updatedSeriesName) {
+              void debouncedUpdateSeriesName(updatedSeriesName);
+            }
           }}
         />
         <Box sx={{ minWidth: 120 }}>
           <FormControl fullWidth>
             <InputLabel>Series Type</InputLabel>
             <Select
+              sx={{
+                "> .MuiSelect-select": {
+                  padding: (theme) => theme.spacing(1),
+                },
+              }}
               value={seriesType}
               label="Series Type"
               onChange={({ target }) => {
@@ -335,10 +402,15 @@ const EditableGraphSeriesDefinition: React.FC<{
           </FormControl>
         </Box>
         <Autocomplete
-          sx={{ flexGrow: 1 }}
+          sx={{
+            flexGrow: 1,
+            ".MuiOutlinedInput-root": {
+              padding: 0,
+            },
+          }}
           options={possiblePropertyKeys}
           renderInput={(params) => (
-            <TextField {...params} label="X Axis Property" />
+            <StyledTextField {...params} label="X Axis Property" />
           )}
           disableClearable
           disabled={isUpdating || isDeleting}
@@ -358,11 +430,16 @@ const EditableGraphSeriesDefinition: React.FC<{
           }}
         />
         <Autocomplete
-          sx={{ flexGrow: 1 }}
+          sx={{
+            flexGrow: 1,
+            ".MuiOutlinedInput-root": {
+              padding: 0,
+            },
+          }}
           options={possiblePropertyKeys}
           disabled={isUpdating || isDeleting}
           renderInput={(params) => (
-            <TextField {...params} label="Y Axis Property" />
+            <StyledTextField {...params} label="Y Axis Property" />
           )}
           disableClearable
           value={yAxisPropertyKey}
@@ -380,6 +457,7 @@ const EditableGraphSeriesDefinition: React.FC<{
           }}
         />
         <Button
+          sx={{ width: deleteButtonWidth }}
           disabled={isDeleting}
           variant="contained"
           color="error"
