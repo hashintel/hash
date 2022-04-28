@@ -10,16 +10,12 @@ const Button = ({ label, onClick }) => {
   return <button onClick={onClick}>{label}</button>;
 };
 
-let highest_duration = 0;
-
 function formatDuration(duration: number) {
   const MILLISECONDS = 1;
   const SECONDS = 1000 * MILLISECONDS;
   const MINUTES = 60 * SECONDS;
   const HOURS = 60 * MINUTES;
   const DAYS = 24 * HOURS;
-
-  highest_duration = Math.max(highest_duration, duration);
 
   const millis = Math.floor((duration % SECONDS) / 10)
     .toString()
@@ -30,22 +26,20 @@ function formatDuration(duration: number) {
   const minutes = Math.floor((duration % HOURS) / MINUTES)
     .toString()
     .padStart(2, "0");
-  const hours = Math.floor((duration % DAYS) / HOURS)
-    .toString()
-    .padStart(2, "0");
+  const hours = Math.floor((duration % DAYS) / HOURS);
   const days = Math.floor(duration / DAYS);
 
-  if (highest_duration >= DAYS) return `${days}:${hours}:${minutes}:${seconds}`;
-  else if (highest_duration >= HOURS)
-    return `${hours}:${minutes}:${seconds},${millis}`;
-  else return `${minutes}:${seconds},${millis}`;
+  if (duration >= DAYS)
+    return `${days}:${hours}:${minutes}:${seconds}.${millis}`;
+  else if (duration >= HOURS) return `${hours}:${minutes}:${seconds}.${millis}`;
+  else return `${minutes}:${seconds}.${millis}`;
 }
 
 export const App: BlockComponent<AppProps> = ({
   entityId,
   accountId,
   updateEntities,
-  start = new Date(),
+  start = null,
   laps = [0],
 }) => {
   const [isActive, setIsActive] = useState(start !== null);
