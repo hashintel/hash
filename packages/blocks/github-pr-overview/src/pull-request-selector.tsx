@@ -32,9 +32,9 @@ export const PullRequestSelector: React.FunctionComponent<
     const repoMap = new Map();
 
     Array.from(allPrs.keys()).forEach((prId) => {
+      // e.g. [hashintel, hash, 490
       const parsed = prId.split("/");
       if (parsed.length !== 3) {
-        // e.g. hashintel, hash, 490
         throw Error(`PR Identifier was invalid: ${prId}`);
       }
 

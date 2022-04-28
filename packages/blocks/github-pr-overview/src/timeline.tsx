@@ -9,6 +9,7 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import Timeline from "@mui/lab/Timeline";
 import TimelineItem from "@mui/lab/TimelineItem";
+import TimelineOppositeContent from "@mui/lab/TimelineOppositeContent";
 import TimelineSeparator from "@mui/lab/TimelineSeparator";
 import TimelineConnector from "@mui/lab/TimelineConnector";
 import TimelineContent from "@mui/lab/TimelineContent";
@@ -174,7 +175,7 @@ export const GithubPrTimeline: React.FunctionComponent<
   return (
     <Grid
       item
-      xs={4}
+      xs={6}
       style={{
         position: "relative",
         borderRight: "2px solid grey",
@@ -195,16 +196,15 @@ export const GithubPrTimeline: React.FunctionComponent<
                 key={event.id?.toString()}
                 style={{ alignContent: "right" }}
               >
+                <TimelineOppositeContent color="text.secondary">
+                  {moment(event.created_at).format("ddd, Do MMM YYYY[\n]HH:mm")}
+                </TimelineOppositeContent>
                 <TimelineSeparator>
                   <TimelineDot color={color} />
                   {idx < maxIdx ? <TimelineConnector /> : undefined}
                 </TimelineSeparator>
                 <TimelineContent>
-                  <Tooltip
-                    title={moment(event.created_at).format(
-                      "dddd, MMMM Do YYYY, HH:mm",
-                    )}
-                  >
+                  <Tooltip title={<span>TODO</span>}>
                     {/* Even though this span isn't in a list, React complains about list elements needing unique keys unless 
                     we add a key here. Assuming it's because of some weird behavior of the Tooltip */}
                     <span key={`LABEL_${event.id?.toString()}`}>

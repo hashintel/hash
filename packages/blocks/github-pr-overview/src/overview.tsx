@@ -58,7 +58,7 @@ export const GithubPrOverview: React.FunctionComponent<
         reviews={reviews}
         events={events}
       />
-      <Grid item xs={8} style={{ paddingLeft: "1em" }}>
+      <Grid item xs={6} style={{ paddingLeft: "1em" }}>
         <div style={{ position: "relative" }}>
           <div>
             <h1>
