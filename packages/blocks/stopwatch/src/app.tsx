@@ -10,11 +10,42 @@ const Button = ({ label, onClick }) => {
   return <button onClick={onClick}>{label}</button>;
 };
 
+let highest_duration = 0;
+
+function formatDuration(duration: number) {
+  const MILLISECONDS = 1;
+  const SECONDS = 1000 * MILLISECONDS;
+  const MINUTES = 60 * SECONDS;
+  const HOURS = 60 * MINUTES;
+  const DAYS = 24 * HOURS;
+
+  highest_duration = Math.max(highest_duration, duration);
+
+  const millis = Math.floor((duration % SECONDS) / 10)
+    .toString()
+    .padStart(2, "0");
+  const seconds = Math.floor((duration % MINUTES) / SECONDS)
+    .toString()
+    .padStart(2, "0");
+  const minutes = Math.floor((duration % HOURS) / MINUTES)
+    .toString()
+    .padStart(2, "0");
+  const hours = Math.floor((duration % DAYS) / HOURS)
+    .toString()
+    .padStart(2, "0");
+  const days = Math.floor(duration / DAYS);
+
+  if (highest_duration >= DAYS) return `${days}:${hours}:${minutes}:${seconds}`;
+  else if (highest_duration >= HOURS)
+    return `${hours}:${minutes}:${seconds},${millis}`;
+  else return `${minutes}:${seconds},${millis}`;
+}
+
 export const App: BlockComponent<AppProps> = ({
   entityId,
   accountId,
   updateEntities,
-  start = null,
+  start = new Date(),
   laps = [0],
 }) => {
   const [isActive, setIsActive] = useState(start !== null);
@@ -86,21 +117,24 @@ export const App: BlockComponent<AppProps> = ({
 
   return (
     <>
-      <Button label={isActive ? "lap" : "reset"} onClick={lap_reset} />
       <Button
         label={isActive ? "stop" : allLaps === 0 ? "start" : "continue"}
         onClick={start_stop}
       />
-      <p>All: {allLaps + currentLap}</p>
-      Laps:
-      <ol>
-        {laps_.slice(0, laps_.length - 1).map((lap, i) => (
-          <li key={`lap-${i + 1}`}>{lap}</li>
-        ))}
-        <li key={`lap-${laps_.length}`}>
-          {laps_[laps_.length - 1] + currentLap}
-        </li>
-      </ol>
+      <Button label={isActive ? "lap" : "reset"} onClick={lap_reset} />
+      <p>{formatDuration(allLaps + currentLap)}</p>
+      {laps_.length > 1 && (
+        <>
+          <ol>
+            {laps_.slice(0, laps_.length - 1).map((lap, i) => (
+              <li key={`lap-${i + 1}`}>{formatDuration(lap)}</li>
+            ))}
+            <li key={`lap-${laps_.length}`}>
+              {formatDuration(laps_[laps_.length - 1] + currentLap)}
+            </li>
+          </ol>
+        </>
+      )}
     </>
   );
 };
