@@ -18,7 +18,7 @@ export const App: BlockComponent<AppProps> = ({
   const [currentContent, setContent] = useState(content);
 
   const updateContent = (text: string, field: "content" | "title") => {
-    updateEntities([
+    void updateEntities([
       {
         accountId,
         entityId,
