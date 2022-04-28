@@ -34,11 +34,15 @@
     "servePort": 63212
   },
   "blockprotocol": {
-    "displayName": "Template",
+    "displayName": "Toggle List Item",
     "examples": [
-      {}
+      {
+        "title": "Block Protocol",
+        "content": "An open standard for building and using data-driven blocks."
+      }
     ],
     "icon": "public/omega.svg",
-    "image": "public/block-preview.svg"
+    "image": "public/block-preview.svg",
+    "protocol": "0.1"
   }
 }
