@@ -3,9 +3,12 @@ import moment from "moment";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
+// eslint-disable-next-line no-restricted-imports
+import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
+import Link from "@mui/icons-material/Link";
 import Select from "@mui/material/Select";
 import Timeline from "@mui/lab/Timeline";
 import TimelineItem from "@mui/lab/TimelineItem";
@@ -141,12 +144,16 @@ export const GithubPrTimeline: React.FunctionComponent<
       id: pullRequest.node_id,
       event: "opened",
       created_at: pullRequest.created_at,
+      html_url: pullRequest.html_url,
+      actor: pullRequest.user,
     };
     const reviewEvents = reviews.map((review) => {
       return {
         id: review.id,
         event: "reviewed",
         created_at: review.submitted_at,
+        html_url: review.html_url,
+        actor: review.user,
       };
     });
     return sortBy([openedEvent, ...reviewEvents, ...events], "created_at");
@@ -204,7 +211,29 @@ export const GithubPrTimeline: React.FunctionComponent<
                   {idx < maxIdx ? <TimelineConnector /> : undefined}
                 </TimelineSeparator>
                 <TimelineContent>
-                  <Tooltip title={<span>TODO</span>}>
+                  <Tooltip
+                    title={
+                      <>
+                        {event.actor?.login != null ? (
+                          <span>Actor: {event.actor.login}</span>
+                        ) : null}
+                        {event.html_url != null &&
+                        typeof event.html_url === "string" ? (
+                          <>
+                            <br />
+                            <Button
+                              startIcon={<Link />}
+                              href={event.html_url}
+                              variant="contained"
+                              size="small"
+                            >
+                              Link
+                            </Button>
+                          </>
+                        ) : null}
+                      </>
+                    }
+                  >
                     {/* Even though this span isn't in a list, React complains about list elements needing unique keys unless 
                     we add a key here. Assuming it's because of some weird behavior of the Tooltip */}
                     <span key={`LABEL_${event.id?.toString()}`}>
