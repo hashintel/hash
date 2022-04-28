@@ -10,6 +10,10 @@ import Typography from "@mui/material/Typography";
 import Fade from "@mui/material/Fade";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import InputLabel from "@mui/material/InputLabel";
+import FormControl from "@mui/material/FormControl";
 
 import { EChart, SeriesOption, ECOption } from "./e-chart";
 
@@ -84,11 +88,15 @@ const CreateNewSeriesDefinition: React.FC<{
   const [newDefinition, setNewDefinition] = React.useState<{
     entityType?: BlockProtocolEntityType;
     seriesName?: string;
+    seriesType: SeriesType;
     xAxisPropertyKey?: string;
     yAxisPropertyKey?: string;
-  }>({});
+  }>({ seriesType: "scatter" });
 
-  const reset = React.useCallback(() => setNewDefinition({}), []);
+  const reset = React.useCallback(
+    () => setNewDefinition({ seriesType: "scatter" }),
+    [],
+  );
 
   const possiblePropertyKeys = React.useMemo(
     () =>
@@ -108,7 +116,7 @@ const CreateNewSeriesDefinition: React.FC<{
     }
     void createDefinition({
       definition: {
-        seriesType: "scatter",
+        seriesType: newDefinition.seriesType,
         seriesName: `${newDefinition.entityType.title} Series`,
         entityTypeId: newDefinition.entityType.entityTypeId,
         xAxisPropertyKey: newDefinition.xAxisPropertyKey,
@@ -138,10 +146,11 @@ const CreateNewSeriesDefinition: React.FC<{
           disableClearable
           onChange={(_, selectedEntityType) => {
             if (selectedEntityType) {
-              setNewDefinition({
+              setNewDefinition((prev) => ({
+                ...prev,
                 entityType: selectedEntityType,
                 seriesName: `${selectedEntityType.title} Series`,
-              });
+              }));
             }
           }}
         />
@@ -158,6 +167,24 @@ const CreateNewSeriesDefinition: React.FC<{
               }))
             }
           />
+          <Box sx={{ minWidth: 120 }}>
+            <FormControl fullWidth>
+              <InputLabel>Series Type</InputLabel>
+              <Select
+                value={newDefinition.seriesType}
+                label="Series Type"
+                onChange={({ target }) =>
+                  setNewDefinition((prev) => ({
+                    ...prev,
+                    seriesType: target.value as SeriesType,
+                  }))
+                }
+              >
+                <MenuItem value="line">Line</MenuItem>
+                <MenuItem value="scatter">Scatter</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
           <Autocomplete
             sx={{ flexGrow: 1 }}
             disabled={!newDefinition.entityType}
@@ -176,6 +203,7 @@ const CreateNewSeriesDefinition: React.FC<{
               }
             }}
           />
+
           <Autocomplete
             sx={{ flexGrow: 1 }}
             disabled={!newDefinition.entityType}
@@ -251,7 +279,8 @@ const EditableGraphSeriesDefinition: React.FC<{
     [updateSeriesDefinition],
   );
 
-  const { entityTypeId, xAxisPropertyKey, yAxisPropertyKey } = seriesDefinition;
+  const { entityTypeId, xAxisPropertyKey, yAxisPropertyKey, seriesType } =
+    seriesDefinition;
 
   const entityType = possibleEntityTypes.find(
     (possibleEntityType) => possibleEntityType.entityTypeId === entityTypeId,
@@ -282,6 +311,29 @@ const EditableGraphSeriesDefinition: React.FC<{
             void debouncedUpdateSeriesName(updatedSeriesName);
           }}
         />
+        <Box sx={{ minWidth: 120 }}>
+          <FormControl fullWidth>
+            <InputLabel>Series Type</InputLabel>
+            <Select
+              value={seriesType}
+              label="Series Type"
+              onChange={({ target }) => {
+                setIsUpdating(true);
+
+                void updateSeriesDefinition({
+                  updatedDefinition: {
+                    seriesType: target.value as SeriesType,
+                  },
+                }).then(() => {
+                  setIsUpdating(false);
+                });
+              }}
+            >
+              <MenuItem value="line">Line</MenuItem>
+              <MenuItem value="scatter">Scatter</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
         <Autocomplete
           sx={{ flexGrow: 1 }}
           options={possiblePropertyKeys}
