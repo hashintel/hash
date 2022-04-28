@@ -59,8 +59,8 @@ export const App: BlockComponent<AppProps> = ({
             placeholder="Write a title"
             className="base-paragraph"
             style={{
-              // Above 97% the text almost always goes to the line bellow the arrow
-              width: "97%",
+              // We substract the size of the arrow used to open the details element to have the input and the arrow on the same line.
+              width: "calc(100% - 20px)",
               border: 0,
               outline: 0,
             }}
