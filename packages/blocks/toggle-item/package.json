@@ -1,13 +1,13 @@
 {
   "name": "toggle-item-block",
   "version": "0.0.0",
-  "description": "toggle-item-block block",
+  "description": "Toggle list item block",
   "keywords": [
     "blockprotocol",
     "blocks"
   ],
   "license": "MIT",
-  "author": "leudz",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
