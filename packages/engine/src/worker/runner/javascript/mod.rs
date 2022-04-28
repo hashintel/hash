@@ -2000,12 +2000,23 @@ where
     v8::TryCatch<'s, S>: AsMut<v8::HandleScope<'p, v8::Context>>,
 {
     let exception = try_catch.exception()?;
-    Some(
-        exception
-            .to_string(try_catch.as_mut())
-            .unwrap()
-            .to_rust_string_lossy(try_catch.as_mut()),
-    )
+    let exception_message = try_catch.message();
+
+    let mut returned_string = exception
+        .to_string(try_catch.as_mut())
+        .unwrap()
+        .to_rust_string_lossy(try_catch.as_mut());
+
+    if let Some(exception_message) = exception_message {
+        returned_string.push_str(", Exception message: ");
+        returned_string.push_str(
+            &exception_message
+                .get(try_catch.as_mut())
+                .to_rust_string_lossy(try_catch.as_mut()),
+        )
+    }
+
+    Some(returned_string)
 }
 
 // Returns the new max heap size.
