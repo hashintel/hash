@@ -2,7 +2,7 @@ import * as React from "react";
 
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
-import LinearProgress from "@mui/material/LinearProgress";
+import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
 import CheckCircle from "@mui/icons-material/CheckCircle";
@@ -102,6 +102,6 @@ export const PullRequestSelector: React.FunctionComponent<
       ) : null}
     </Grid>
   ) : (
-    <LinearProgress />
+    <CircularProgress />
   );
 };

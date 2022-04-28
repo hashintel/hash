@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
-import LinearProgress from "@mui/material/LinearProgress";
+import CircularProgress from "@mui/material/CircularProgress";
 import {
   GithubIssueEvent,
   GithubPullRequest,
@@ -206,7 +206,7 @@ export const App: BlockComponent<AppProps> = ({
           allPrs={allPrs}
         />
       ) : (
-        <LinearProgress />
+        <CircularProgress />
       )}
     </div>
   );
