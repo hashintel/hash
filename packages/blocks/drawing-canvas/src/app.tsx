@@ -30,9 +30,9 @@ export const App: BlockComponent<AppProps> = ({
     (app: TldrawApp) => {
       rTldrawApp.current = app;
 
-      // if (darkMode !== rTldrawApp.current.settings.isDarkMode) {
-      //   rTldrawApp.current.toggleDarkMode();
-      // }
+      if (darkMode !== rTldrawApp.current.settings.isDarkMode) {
+        rTldrawApp.current.toggleDarkMode();
+      }
     },
     [darkMode],
   );
@@ -74,13 +74,13 @@ export const App: BlockComponent<AppProps> = ({
         app.zoomToFit();
       }
 
-      // if (darkMode !== app.settings.isDarkMode) {
-      //   app.toggleDarkMode();
-      // }
+      if (darkMode !== app.settings.isDarkMode) {
+        app.toggleDarkMode();
+      }
     } catch (err) {
       // todo handle error
     }
-  }, [document, entityId]);
+  }, [document, entityId, darkMode]);
 
   return (
     <div className="drawing-canvas-container">
@@ -92,7 +92,7 @@ export const App: BlockComponent<AppProps> = ({
         showMultiplayerMenu={false}
         showSponsorLink={false}
         onExport={handleExport}
-        // darkMode={darkMode}
+        darkMode={darkMode}
       />
     </div>
   );

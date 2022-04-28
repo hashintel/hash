@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "properties": {
+    "document": {
+      "type": "string"
+    },
+    "readOnly": {
+      "type": "boolean"
+    },
+    "darkMode": {
+      "type": "boolean"
+    }
+  },
+  "configProperties": ["darkMode", "readOnly", "document"],
+  "required": ["darkMode", "document", "readOnly"],
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
