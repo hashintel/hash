@@ -158,7 +158,7 @@ export const load_elem = (elem, type) => {
   return _struct_vec_to_obj(elem, children);
 };
 
-export const uuid_to_bytes = (uuid) => {
+const uuid_to_bytes = (uuid) => {
   let v;
   const bytes = new Uint8Array(16);
 
@@ -192,7 +192,7 @@ export const uuid_to_bytes = (uuid) => {
   return bytes;
 };
 
-export const byte_to_hex = [];
+const byte_to_hex = [];
 for (let i = 0; i < 256; ++i) {
   byte_to_hex.push((i + 0x100).toString(16).substr(1));
 }
