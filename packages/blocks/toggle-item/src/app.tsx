@@ -57,7 +57,7 @@ export const App: BlockComponent<AppProps> = ({
             defaultValue={title}
             type="text"
             placeholder="Write a title"
-            className="base-paragraph"
+            className="toggle-item-base-paragraph"
             style={{
               // We substract the size of the arrow used to open the details element to have the input and the arrow on the same line.
               width: "calc(100% - 20px)",
@@ -73,7 +73,7 @@ export const App: BlockComponent<AppProps> = ({
           //       https://app.asana.com/0/1200211978612931/1202183033435672
           defaultValue={currentContent}
           placeholder="Your detailed content"
-          className="base-paragraph"
+          className="toggle-item-base-paragraph"
           style={{
             width: "100%",
             resize: "none",
