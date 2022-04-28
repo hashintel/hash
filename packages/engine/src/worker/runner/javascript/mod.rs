@@ -285,8 +285,8 @@ impl ModuleMap {
 }
 
 /// Callback called for each `import ...` in JS files.
-// Simple example: https://gist.github.com/surusek/4c05e4dcac6b82d18a1a28e6742fc23e
-// More elaborate example: https://github.com/denoland/deno/blob/f7e7f548499eff8d2df0872d1340ddcdfa028c45/core/bindings.rs#L1344
+// Simple example without any caching: https://gist.github.com/surusek/4c05e4dcac6b82d18a1a28e6742fc23e
+// More elaborate example with caching and multiple types of imports: https://github.com/denoland/deno/blob/f7e7f548499eff8d2df0872d1340ddcdfa028c45/core/bindings.rs#L1344
 pub fn module_resolve_callback<'s>(
     context: v8::Local<'s, v8::Context>,
     // path of the module trying to get imported
