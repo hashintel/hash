@@ -152,7 +152,10 @@ const CreateNewSeriesDefinition: React.FC<{
             sx={{ flexGrow: 1 }}
             value={newDefinition.seriesName}
             onChange={({ target }) =>
-              setNewDefinition({ seriesName: target.value })
+              setNewDefinition((prev) => ({
+                ...prev,
+                seriesName: target.value,
+              }))
             }
           />
           <Autocomplete
@@ -412,18 +415,35 @@ const EditableGraphSeriesDefinitions: React.FC<{
 
 type EChartSeries = NonNullable<ECOption["series"]>;
 
+export type GraphConfigProperties = {
+  displayDataPointLabels: boolean;
+  displayLegend: boolean;
+};
+
 const mapSeriesDefinitionsToEChartSeries = (params: {
   seriesDefinitions: SeriesDefinition[];
+  config: GraphConfigProperties;
 }): EChartSeries =>
   params.seriesDefinitions.map(
     ({
+      seriesName,
       seriesType,
       xAxisPropertyKey,
       yAxisPropertyKey,
       aggregationResults,
     }) => {
       return {
+        name: seriesName,
         type: seriesType,
+        label: params.config.displayDataPointLabels
+          ? {
+              show: true,
+              position: "top",
+              color: "black",
+              fontSize: 12,
+              formatter: ({ name, data }) => `${name} ${data}`,
+            }
+          : undefined,
         data: aggregationResults.map((properties) => {
           if (!properties[xAxisPropertyKey]) {
             throw new Error(
@@ -469,6 +489,7 @@ type GraphProps = {
     definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
   }) => Promise<void>;
   deleteSeriesDefinition: (params: { seriesId: string }) => Promise<void>;
+  config: GraphConfigProperties;
 };
 
 export const Graph: React.FC<GraphProps> = ({
@@ -481,10 +502,11 @@ export const Graph: React.FC<GraphProps> = ({
   updateSeriesDefinition,
   createSeriesDefinition,
   deleteSeriesDefinition,
+  config,
 }) => {
   const series = React.useMemo(
-    () => mapSeriesDefinitionsToEChartSeries({ seriesDefinitions }),
-    [seriesDefinitions],
+    () => mapSeriesDefinitionsToEChartSeries({ seriesDefinitions, config }),
+    [seriesDefinitions, config],
   );
 
   return (
@@ -492,6 +514,12 @@ export const Graph: React.FC<GraphProps> = ({
       <EditableGraphTitle title={title} updateTitle={updateTitle} />
       <EChart
         options={{
+          /** @todo: figure out why this isn't working */
+          legend: config.displayLegend
+            ? {
+                data: seriesDefinitions.map(({ seriesName }) => seriesName),
+              }
+            : undefined,
           yAxis: {
             type: "value",
             name: yAxisName,

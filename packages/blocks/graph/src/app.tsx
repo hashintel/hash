@@ -2,7 +2,12 @@ import * as React from "react";
 import { BlockProtocolEntityType } from "blockprotocol";
 
 import { BlockComponent } from "blockprotocol/react";
-import { Graph, SeriesDefinition, SeriesType } from "./graph";
+import {
+  Graph,
+  GraphConfigProperties,
+  SeriesDefinition,
+  SeriesType,
+} from "./graph";
 
 const generateUniqueSeriesId = (params: {
   seriesDefinitions: SeriesDefinition[];
@@ -24,6 +29,8 @@ const generateUniqueSeriesId = (params: {
   return potentialSeriesId;
 };
 
+type GraphEntityConfigProperties = Partial<GraphConfigProperties>;
+
 type GraphEntityProperties = {
   title?: string;
   xAxisLabel?: string;
@@ -35,7 +42,7 @@ type GraphEntityProperties = {
     xAxisPropertyKey: string;
     yAxisPropertyKey: string;
   }[];
-};
+} & GraphEntityConfigProperties;
 
 type AppProps = GraphEntityProperties;
 
@@ -52,10 +59,20 @@ export const App: BlockComponent<AppProps> = ({
   xAxisLabel = "X Axis",
   yAxisLabel = "Y Axis",
   series = [],
+  displayDataPointLabels = true,
+  displayLegend = true,
 }) => {
   if (!linkedAggregations) {
     throw new Error("linkedAggregations is required to render the Graph block");
   }
+
+  const currentConfigProperties = React.useMemo<GraphConfigProperties>(
+    () => ({
+      displayDataPointLabels,
+      displayLegend,
+    }),
+    [displayDataPointLabels, displayLegend],
+  );
 
   const currentProperties = React.useMemo<GraphEntityProperties>(
     () => ({
@@ -63,8 +80,9 @@ export const App: BlockComponent<AppProps> = ({
       xAxisLabel,
       yAxisLabel,
       series,
+      ...currentConfigProperties,
     }),
-    [title, xAxisLabel, yAxisLabel, series],
+    [title, xAxisLabel, yAxisLabel, series, currentConfigProperties],
   );
 
   const [possibleEntityTypes, setPossibleEntityTypes] = React.useState<
@@ -107,28 +125,30 @@ export const App: BlockComponent<AppProps> = ({
 
   const seriesDefinitions = React.useMemo<SeriesDefinition[]>(
     () =>
-      series.map(({ seriesId, ...definition }) => {
-        const aggregation = linkedAggregations.find(
-          ({ path }) => path === `$.${seriesId}`,
-        );
-
-        if (!aggregation) {
-          throw new Error(`cannot find aggregation with path '$.${seriesId}'`);
-        }
-
-        if (!aggregation.operation.entityTypeId) {
-          throw new Error(
-            "entityTypeId is not defined on aggregation operation",
+      series
+        .map(({ seriesId, ...definition }) => {
+          const aggregation = linkedAggregations.find(
+            ({ path }) => path === `$.${seriesId}`,
           );
-        }
 
-        return {
-          seriesId,
-          ...definition,
-          entityTypeId: aggregation.operation.entityTypeId,
-          aggregationResults: aggregation.results,
-        };
-      }),
+          if (!aggregation) {
+            return [];
+          }
+
+          if (!aggregation.operation.entityTypeId) {
+            throw new Error(
+              "entityTypeId is not defined on aggregation operation",
+            );
+          }
+
+          return {
+            seriesId,
+            ...definition,
+            entityTypeId: aggregation.operation.entityTypeId,
+            aggregationResults: aggregation.results,
+          };
+        })
+        .flat(),
     [series, linkedAggregations],
   );
 
@@ -320,6 +340,7 @@ export const App: BlockComponent<AppProps> = ({
       updateSeriesDefinition={handleUpdateSeriesDefinition}
       createSeriesDefinition={handleCreateSeriesDefinition}
       deleteSeriesDefinition={handleDeleteSeriesDefinition}
+      config={currentConfigProperties}
     />
   );
 };
