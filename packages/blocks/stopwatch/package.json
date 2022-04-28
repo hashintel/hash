@@ -15,8 +15,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.9",
-    "date-fns": "2.28.0"
+    "blockprotocol": "0.0.9"
   },
   "devDependencies": {
     "block-scripts": "0.0.5",
