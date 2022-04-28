@@ -127,7 +127,7 @@ impl<'s> JsPackage<'s> {
                         let exception = try_catch_exception(&mut try_catch).unwrap();
 
                         Error::PackageImport(
-                            name.to_string(),
+                            path.clone(),
                             format!("Could not get function from package: {exception}"),
                         )
                     })?;
