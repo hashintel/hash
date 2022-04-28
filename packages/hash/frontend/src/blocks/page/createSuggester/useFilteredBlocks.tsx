@@ -1,21 +1,22 @@
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockVariant } from "blockprotocol";
 import { useMemo } from "react";
 
-import { RemoteBlockMetadata } from "../../userBlocks";
 import { fuzzySearchBy } from "./fuzzySearchBy";
+import { BlocksMetaMap } from "../createEditorView";
 
 type Option = {
   variant: BlockVariant;
-  meta: RemoteBlockMetadata;
+  meta: BlockMeta["componentMetadata"];
 };
 
 export const useFilteredBlocks = (
   searchText: string,
-  userBlocks: RemoteBlockMetadata[],
+  blocksMetaMap: BlocksMetaMap,
 ) => {
   return useMemo(() => {
-    const allOptions: Option[] = Object.values(userBlocks).flatMap(
-      (blockMeta) =>
+    const allOptions: Option[] = Object.values(blocksMetaMap).flatMap(
+      ({ componentMetadata: blockMeta }) =>
         // Assumes that variants have been built for all blocks in toBlockConfig
         // any required changes to block metadata should happen there
         (blockMeta.variants ?? []).map((variant) => ({
@@ -32,5 +33,5 @@ export const useFilteredBlocks = (
         .map((str) => str ?? "")
         .join(" "),
     );
-  }, [searchText, userBlocks]);
+  }, [blocksMetaMap, searchText]);
 };
