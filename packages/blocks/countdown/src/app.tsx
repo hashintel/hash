@@ -181,16 +181,17 @@ export const App: BlockComponent<AppProps> = ({
             onChange={onChange}
             onCalendarClose={close}
             onSelect={() => rangeSelection || close()}
+            dateFormat={rangeSelection ? "P" : "Pp"}
             selectsRange={rangeSelection}
             showTimeInput={!rangeSelection}
             showWeekNumbers
             todayButton="Today"
           >
-            <Checkbox
-              label="Range selection"
-              value={rangeSelection}
-              onChange={() => setRangeSelection(!rangeSelection)}
-            />
+            {/*<Checkbox*/}
+            {/*  label="Range selection"*/}
+            {/*  value={rangeSelection}*/}
+            {/*  onChange={() => setRangeSelection(!rangeSelection)}*/}
+            {/*/>*/}
           </DatePicker>
         </div>
       )}{" "}
