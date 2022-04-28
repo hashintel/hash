@@ -14,8 +14,8 @@ export const App: BlockComponent<AppProps> = ({
   content,
   updateEntities,
 }) => {
-  let contentRef = useRef(null);
-  let [currentContent, setContent] = useState(content);
+  const contentRef = useRef(null);
+  const [currentContent, setContent] = useState(content);
 
   const updateContent = (text: string, field: "content" | "title") => {
     updateEntities([
@@ -34,7 +34,7 @@ export const App: BlockComponent<AppProps> = ({
   const updateContentHeight = () => {
     contentRef.current.style.height = "auto";
     const scrollHeight = contentRef.current.scrollHeight;
-    contentRef.current.style.height = scrollHeight + "px";
+    contentRef.current.style.height = `${scrollHeight}px`;
   };
 
   useEffect(() => {
