@@ -1,7 +1,7 @@
 {
-  "name": "graph-block",
+  "name": "@hashintel/block-chart",
   "version": "0.0.0",
-  "description": "graph-block block",
+  "description": "A block for plotting entities in a 2D chart",
   "keywords": [
     "blockprotocol",
     "blocks"
