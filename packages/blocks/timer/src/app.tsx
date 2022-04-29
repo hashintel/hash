@@ -68,7 +68,7 @@ export const App: BlockComponent<AppProps> = ({
       clearInterval(interval);
     }
     return () => clearInterval(interval);
-  }, [target_, isActive]);
+  }, [target_]);
 
   const start_stop = () => {
     if (target_ !== null) {
