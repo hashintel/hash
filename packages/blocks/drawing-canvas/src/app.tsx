@@ -1,11 +1,4 @@
-import React, {
-  useState,
-  useCallback,
-  // useEffect,
-  useRef,
-  useLayoutEffect,
-  useEffect,
-} from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
@@ -17,8 +10,8 @@ type AppProps = {
   document: string;
   readOnly: boolean;
   darkMode?: boolean;
-  width?: number;
-  height?: number;
+  width?: number | string | undefined;
+  height?: number | string | undefined;
 };
 
 type ResizeCallbackData = {
@@ -27,56 +20,53 @@ type ResizeCallbackData = {
   handle: "s" | "w" | "e" | "n" | "sw" | "nw" | "se" | "ne";
 };
 
+// @todo update image upload flow to leverage uploadFile
+// to upload images. Currently images are saved in base64 form
+// in the document and that isn't optimal
+
 export const App: BlockComponent<AppProps> = ({
   entityId,
   entityTypeId,
   entityTypeVersionId,
   darkMode: remoteDarkMode = false,
-  document: remoteDocument,
+  document: remoteDocumentString,
   accountId,
   readOnly: remoteReadOnly,
   updateEntities,
-  height: remoteHeight = 500,
+  height: remoteHeight,
   width: remoteWidth,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rTldrawApp = useRef<TldrawApp>();
   const rInitialDocument = useRef<TDDocument>(
-    getInitialDocument(remoteDocument, entityId),
+    getInitialDocument(remoteDocumentString, entityId),
   );
   const [localState, setLocalState] = useState({
-    height: remoteHeight,
-    width: remoteWidth,
-    document: remoteDocument,
-    maxWidth: 900,
+    height: remoteHeight ?? 500,
+    width: remoteWidth ?? "100%",
+    documentString: remoteDocumentString,
+    maxWidth: "100%",
     darkMode: remoteDarkMode,
     readOnly: remoteReadOnly,
   });
-
-  useLayoutEffect(() => {
-    if (!containerRef.current) return;
-    const newMaxWidth = Number(
-      containerRef.current?.getBoundingClientRect().width.toFixed(2),
-    );
-
-    // @todo handle resizing
-
-    setLocalState((prev) => ({
-      ...prev,
-      maxWidth: newMaxWidth,
-      ...(!prev.width && { width: newMaxWidth }),
-    }));
-  }, []);
 
   useEffect(() => {
     setLocalState((prev) => ({
       ...prev,
       darkMode: remoteDarkMode ?? prev.darkMode,
-      height: remoteHeight ?? prev.height,
-      width: remoteWidth ?? prev.width,
-      document: remoteDocument ?? prev.document,
+      height:
+        // eslint-disable-next-line eqeqeq
+        remoteHeight == undefined || Number.isNaN(remoteHeight)
+          ? prev.height
+          : remoteHeight,
+      width:
+        // eslint-disable-next-line eqeqeq
+        remoteWidth == undefined || Number.isNaN(remoteWidth)
+          ? prev.width
+          : remoteWidth,
+      documentString: remoteDocumentString ?? prev.documentString,
     }));
-  }, [remoteDarkMode, remoteHeight, remoteWidth, remoteDocument]);
+  }, [remoteDarkMode, remoteHeight, remoteWidth, remoteDocumentString]);
 
   const updateRemoteData = useCallback(
     (newData: Partial<AppProps>) => {
@@ -138,7 +128,9 @@ export const App: BlockComponent<AppProps> = ({
   useEffect(() => {
     try {
       if (!rTldrawApp.current) return;
-      const parsedDocument = JSON.parse(localState.document) as TDDocument;
+      const parsedDocument = JSON.parse(
+        localState.documentString,
+      ) as TDDocument;
       const app = rTldrawApp.current;
 
       // update document if its id hasn't changed. load document if it has
@@ -157,7 +149,7 @@ export const App: BlockComponent<AppProps> = ({
     } catch (err) {
       // todo handle error
     }
-  }, [localState.document, entityId, localState.darkMode]);
+  }, [localState.documentString, entityId, localState.darkMode]);
 
   const updateDimensions = useCallback((_, { size }: ResizeCallbackData) => {
     setLocalState((prev) => ({
@@ -169,8 +161,6 @@ export const App: BlockComponent<AppProps> = ({
 
   const updateRemoteDimensions = useCallback(
     (_, { size }: ResizeCallbackData) => {
-      if (!rTldrawApp.current) return;
-      // rTldrawApp.current
       updateRemoteData({
         width: size.width,
         height: size.height,
@@ -178,18 +168,6 @@ export const App: BlockComponent<AppProps> = ({
     },
     [updateRemoteData],
   );
-
-  // console.log("local ==> ", localState);
-  // console.log("remote => ", {
-  //   width: remoteWidth,
-  //   height: remoteHeight,
-  //   maxWidth: localState.maxWidth,
-  //   document: remoteDocument,
-  // });
-
-  useEffect(() => {
-    // console.log("re-rendered");
-  });
 
   return (
     <div ref={containerRef} className="drawing-canvas-container">

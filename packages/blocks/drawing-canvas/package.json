@@ -47,8 +47,10 @@
     "examples": [
       {
         "height": 400,
+        "width": "100%",
         "darkMode": false,
-        "readOnly": false
+        "readOnly": false,
+        "document": ""
       }
     ],
     "icon": "public/omega.svg",
