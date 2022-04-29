@@ -13,6 +13,11 @@ import {
 
 import "react-datepicker/dist/react-datepicker.css";
 
+type Range = {
+  start: Date | null;
+  end: Date | null;
+};
+
 type AppProps = {
   interval: {
     start?: Date | string;
@@ -31,15 +36,7 @@ type AppProps = {
 //   );
 // };
 
-const Button = ({ label, onClick }) => {
-  return (
-    <button type="button" onClick={onClick}>
-      {label}
-    </button>
-  );
-};
-
-function formatDate(date, rangeSelection: boolean) {
+function formatDate(date: Date, rangeSelection: boolean) {
   if (rangeSelection) {
     return format(date, "PPP");
   } else {
@@ -47,14 +44,16 @@ function formatDate(date, rangeSelection: boolean) {
   }
 }
 
-function formatRange(range) {
-  return `${formatDate(range.start, range.end !== null)} - ${formatDate(
-    range.end,
-    range.end !== null,
-  )}`;
+function formatRange(range: Range) {
+  if (range.start !== null && range.end !== null)
+    return `${formatDate(range.start, range.end !== null)} - ${formatDate(
+      range.end,
+      range.end !== null,
+    )}`;
+  else return "";
 }
 
-function calculateTime(range, strict: boolean) {
+function calculateTime(range: Range, strict: boolean) {
   if (range.start === null) {
     return {
       prefix: "",
@@ -107,30 +106,42 @@ export const App: BlockComponent<AppProps> = ({
   accountId,
   updateEntities,
 }) => {
-  const [range, setRange] = useState({
-    start: interval.start === null ? null : new Date(interval.start),
-    end: interval.end === null ? null : new Date(interval.end),
+  const [range, setRange] = useState<Range>({
+    start: !interval.start ? null : new Date(interval.start),
+    end: !interval.end ? null : new Date(interval.end),
   });
-  const [rangeSelection, _setRangeSelection] = useState(selectsRange);
+  const [rangeSelection, setRangeSelection] = useState(selectsRange);
 
   const [clock, setClock] = useState({ now: new Date() });
   const tick = () => setClock({ now: new Date() });
+
+  useEffect(() => {
+    setRange({
+      start: !interval.start ? null : new Date(interval.start),
+      end: !interval.end ? null : new Date(interval.end),
+    });
+    setRangeSelection(selectsRange);
+  }, [interval, selectsRange, strict]);
+
   useEffect(() => {
     // Tick once per second
     setInterval(tick, 1000);
   }, []);
+
   useEffect(() => {
+    setRange(range);
     tick();
-    void updateEntities([
-      {
-        entityId,
-        accountId,
-        data: {
-          interval: range,
-          selectsRange: rangeSelection,
+    if (updateEntities)
+      void updateEntities([
+        {
+          entityId,
+          accountId,
+          data: {
+            interval: range,
+            selectsRange: rangeSelection,
+          },
         },
-      },
-    ]);
+      ]);
   }, [range, rangeSelection, entityId, accountId, updateEntities]);
 
   useEffect(() => {
@@ -152,25 +163,30 @@ export const App: BlockComponent<AppProps> = ({
   const open = () => setIsOpen(true);
   const close = () => setIsOpen(false);
 
-  const onChange = (changes) => {
-    const [start, end] = Array.isArray(changes)
-      ? [changes[0], changes[1]]
-      : [changes, null];
-    setRange({ start, end });
-
-    if (rangeSelection && end !== null) close();
+  const onChange = (changes: Date | [Date | null, Date | null]) => {
+    if (Array.isArray(changes)) {
+      setRange({ start: changes[0], end: changes[1] });
+      if (changes[1] !== null) close();
+    } else if (changes === null) {
+      setRange({ start: null, end: null });
+    } else {
+      setRange({ start: changes, end: null });
+    }
   };
 
-  const datepicker = useRef(null);
-  useEffect(
-    () => datepicker.current && isOpen && datepicker.current.setOpen(true),
-    [isOpen],
-  );
+  const datepicker = useRef<DatePicker>(null);
+  useEffect(() => {
+    datepicker.current && isOpen && datepicker.current.setOpen(true);
+  }, [isOpen]);
 
   return (
     <div>
       {timeOffset.prefix}{" "}
-      {isOpen || <Button onClick={open} label={timeOffset.offset} />}
+      {isOpen || (
+        <button type="button" onClick={open}>
+          {timeOffset.offset}
+        </button>
+      )}
       {isOpen && (
         <div style={{ display: "inline-block" }}>
           <DatePicker
