@@ -23,22 +23,32 @@ export const App: BlockComponent<AppProps> = ({
     target === null ? null : new Date(target),
   );
 
+  useEffect(() => {
+    setTarget(target);
+    setMillis(millis);
+  }, [target, millis]);
+
   const isActive = useCallback(() => {
     return target_ !== null;
   }, [target_]);
 
-  useEffect(() => {
-    void updateEntities([
-      {
-        entityId,
-        accountId,
-        data: {
-          millis: millis_,
-          target: target_,
+  const update = useCallback(
+    (target_data, millis_data) => {
+      setMillis(millis_data);
+      setTarget(target_data);
+      void updateEntities([
+        {
+          entityId,
+          accountId,
+          data: {
+            millis: millis_data,
+            target: target_data,
+          },
         },
-      },
-    ]);
-  }, [target_, millis_, entityId, accountId, updateEntities]);
+      ]);
+    },
+    [entityId, accountId, updateEntities],
+  );
 
   useEffect(() => {
     let interval = null;
@@ -58,8 +68,11 @@ export const App: BlockComponent<AppProps> = ({
   }, [target_, isActive]);
 
   const start_stop = () => {
-    if (isActive()) setTarget(null);
-    else setTarget(new Date(+new Date() + millis_));
+    if (isActive()) {
+      update(null, +target_ - +new Date());
+    } else {
+      update(+new Date() + millis_, millis_);
+    }
   };
 
   return (
@@ -74,7 +87,7 @@ export const App: BlockComponent<AppProps> = ({
           label="timer"
           value={millis_ + new Date(0).getTimezoneOffset() * 60000}
           onChange={(date: Date) => {
-            setMillis(+date - new Date(0).getTimezoneOffset() * 60000);
+            update(null, +date - new Date(0).getTimezoneOffset() * 60000);
           }}
           renderInput={(params) => <TextField {...params} />}
           disabled={isActive()}
