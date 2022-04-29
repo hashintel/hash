@@ -55,12 +55,12 @@ export const App: BlockComponent<AppProps> = ({
   updateLinkedAggregations,
   deleteLinkedAggregations,
   linkedAggregations,
-  title = "Graph Title",
-  xAxisLabel = "X Axis",
-  yAxisLabel = "Y Axis",
+  title = "Chart Title",
+  xAxisLabel = "X Axis Label",
+  yAxisLabel = "Y Axis Label",
   series = [],
-  displayDataPointLabels = true,
-  displayLegend = true,
+  displayDataPointLabels = false,
+  displayLegend = false,
 }) => {
   if (!linkedAggregations) {
     throw new Error("linkedAggregations is required to render the Graph block");
