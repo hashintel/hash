@@ -24,17 +24,21 @@
   "dependencies": {
     "@tldraw/tldraw": "1.11.0",
     "blockprotocol": "0.0.8",
+    "lodash": "4.17.21",
     "mobx": "6.5.0"
   },
   "devDependencies": {
     "block-scripts": "0.0.5",
     "mock-block-dock": "0.0.8",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "twind": "0.16.17"
   },
   "peerDependencies": {
+    "lodash": "^4.17.21",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "twind": "^0.16.16"
   },
   "block-scripts": {
     "port": 63212

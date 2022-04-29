@@ -9,9 +9,15 @@
     },
     "darkMode": {
       "type": "boolean"
+    },
+    "width": {
+      "type": "number"
+    },
+    "height": {
+      "type": "number"
     }
   },
-  "configProperties": ["darkMode", "readOnly", "document"],
-  "required": ["darkMode", "document", "readOnly"],
+  "configProperties": ["darkMode", "readOnly", "document", "width", "height"],
+  "required": ["document", "readOnly"],
   "$schema": "http://json-schema.org/draft-07/schema#"
 }
