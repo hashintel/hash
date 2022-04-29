@@ -1,5 +1,5 @@
 {
-  "name": "timer",
+  "name": "stopwatch",
   "version": "0.0.0",
   "description": "timer block",
   "keywords": [
@@ -15,13 +15,13 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.9"
+    "blockprotocol": "0.0.7"
   },
   "devDependencies": {
-    "block-scripts": "0.0.5",
-    "mock-block-dock": "0.0.8",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "block-scripts": "0.0.2",
+    "mock-block-dock": "0.0.7",
+    "react": "17.0.2",
+    "react-dom": "17.0.2"
   },
   "peerDependencies": {
     "react": "^17.0.2",
