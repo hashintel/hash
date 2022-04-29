@@ -5,7 +5,6 @@ import {
   BlockProtocolCreateEntitiesFunction,
   BlockProtocolEntity,
   BlockProtocolUpdateEntitiesFunction,
-  JSONObject,
 } from "blockprotocol";
 import "iframe-resizer/js/iframeResizer.contentWindow";
 import { useCallback, useEffect, useState, VoidFunctionComponent } from "react";
@@ -28,7 +27,7 @@ export const FramedBlock: VoidFunctionComponent = () => {
   const initialData = properties ? JSON.parse(properties) : undefined;
 
   const [blockProperties, setBlockProperties] = useState<
-    JSONObject | undefined
+    BlockProtocolEntity | undefined
   >(initialData);
 
   const beforeCapture = useCallback(
@@ -42,7 +41,7 @@ export const FramedBlock: VoidFunctionComponent = () => {
     const msgHandler = ({ data }: MessageEvent<MessageFromBlockFramer>) => {
       switch (data.type) {
         case "newData":
-          setBlockProperties(data.payload);
+          setBlockProperties(data.payload as BlockProtocolEntity);
           break;
         case "response":
           settlePromiseFromResponse(data);
@@ -102,23 +101,13 @@ export const FramedBlock: VoidFunctionComponent = () => {
     throw new Error("No entityId present in block properties.");
   }
 
-  const props: BlockProtocolEntity = {
-    ...blockProperties,
-    entityId: blockProperties.entityId,
+  const blockFunctions = {
     aggregateEntities,
     aggregateEntityTypes,
     createEntities,
     getEmbedBlock,
     updateEntities,
   };
-
-  if (sourceUrl.endsWith(".html")) {
-    /**
-     * One answer to 'how do you make functions and properties available to HTML blocks?'
-     * @todo see how this works with HTML blocks of any complexity
-     */
-    Object.assign(window, props);
-  }
 
   return (
     <Sentry.ErrorBoundary
@@ -128,7 +117,12 @@ export const FramedBlock: VoidFunctionComponent = () => {
         <ErrorBlock {...errorData} onRetry={() => window.location.reload()} />
       )}
     >
-      <RemoteBlock {...props} crossFrame sourceUrl={sourceUrl} />
+      <RemoteBlock
+        blockFunctions={blockFunctions}
+        blockProperties={blockProperties}
+        crossFrame
+        sourceUrl={sourceUrl}
+      />
     </Sentry.ErrorBoundary>
   );
 };
