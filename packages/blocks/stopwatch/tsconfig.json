@@ -1,12 +1,5 @@
 {
-  "compilerOptions": {
-    "allowJs": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "noEmit": true,
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowSyntheticDefaultImports": true
-  },
+  "extends": "@hashintel/tsconfig/block.json",
   "include": ["src"],
   "exclude": ["node_modules"]
 }

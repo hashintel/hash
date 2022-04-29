@@ -4,15 +4,6 @@ import { BlockComponent } from "blockprotocol/react";
 type AppProps = {
   start: Date;
   laps: number[];
-  isActive: boolean;
-};
-
-const Button = ({ label, onClick }) => {
-  return (
-    <button type="button" onClick={onClick}>
-      {label}
-    </button>
-  );
 };
 
 function formatDuration(duration: number) {
@@ -43,60 +34,54 @@ function formatDuration(duration: number) {
   }
 }
 
+function lastLap(laps: number[]): number {
+  const last = laps.slice(-1)[0];
+  return last === undefined ? 0 : last;
+}
+
 export const App: BlockComponent<AppProps> = ({
   entityId,
   accountId,
   updateEntities,
-  isActive = false,
   start = null,
   laps = [0],
 }) => {
-  const [isActive_, setIsActive] = useState(isActive);
-  const [start_, setStart] = useState(isActive_ ? new Date(start) : null);
-  const [laps_, setLaps] = useState(laps);
+  const [start_, setStart] = useState(start !== null ? new Date(start) : null);
+  const [laps_, setLaps] = useState(laps.length < 1 ? [0] : laps);
   const [currentLap, setCurrentLap] = useState(
-    isActive_ ? +new Date() - +start_ : 0,
+    start_ !== null ? +new Date() - +start_ : 0,
   );
   const [allLaps, setAllLaps] = useState(laps.reduce((a, b) => a + b, 0));
 
   useEffect(() => {
-    setLaps(laps);
-    setStart(new Date(start));
-    setIsActive(isActive);
+    setLaps(laps.length < 1 ? [0] : laps);
+    setStart(start !== null ? new Date(start) : null);
     setAllLaps(laps.reduce((a, b) => a + b, 0));
-    console.log(
-      `loaded: laps: ${JSON.stringify(
-        laps,
-      )}, start: ${start}, active: ${isActive}`,
-    );
-  }, [laps, start, isActive]);
+  }, [laps, start]);
 
   const update = useCallback(
-    (laps_data, start_data, isActive_data) => {
+    (laps_data, start_data) => {
       setLaps(laps_data);
       setStart(start_data);
-      setIsActive(isActive_data);
-      void updateEntities([
-        {
-          entityId,
-          accountId,
-          data: {
-            laps: laps_data,
-            start: start_data,
-            isActive: isActive_data,
+      if (updateEntities) {
+        void updateEntities([
+          {
+            entityId,
+            accountId,
+            data: {
+              laps: laps_data,
+              start: start_data,
+            },
           },
-        },
-      ]);
-      console.log(
-        `written: laps: ${laps_data}, start: ${start_data}, active: ${isActive_data}`,
-      );
+        ]);
+      }
     },
     [entityId, accountId, updateEntities],
   );
 
   useEffect(() => {
-    let interval = null;
-    if (isActive_) {
+    let interval: any = null;
+    if (start_ !== null) {
       interval = setInterval(() => {
         setCurrentLap(+new Date() - +start_);
       }, 1000 / 60);
@@ -105,52 +90,44 @@ export const App: BlockComponent<AppProps> = ({
       setCurrentLap(0);
     }
     return () => clearInterval(interval);
-  }, [isActive_, start_]);
+  }, [start_]);
 
   const start_stop = () => {
-    if (!isActive_) {
-      update(laps_, new Date(), true);
-    } else {
+    if (start_ !== null) {
       const current = +new Date() - +start_;
       setAllLaps((allLaps_new) => allLaps_new + current);
       update(
-        [
-          ...laps_.slice(0, laps_.length - 1),
-          laps_[laps_.length - 1] + current,
-        ],
+        [...laps_.slice(0, laps_.length - 1), lastLap(laps_) + current],
         null,
-        false,
       );
+    } else {
+      update(laps_, new Date());
     }
   };
 
   const lap_reset = () => {
-    if (isActive_) {
+    if (start_ !== null) {
       const current = +new Date() - +start_;
       setAllLaps((allLaps_new) => allLaps_new + current);
       setCurrentLap(0);
       update(
-        [
-          ...laps_.slice(0, laps_.length - 1),
-          laps_[laps_.length - 1] + current,
-          0,
-        ],
+        [...laps_.slice(0, laps_.length - 1), lastLap(laps_) + current, 0],
         new Date(),
-        true,
       );
     } else {
       setAllLaps(0);
-      update([0], null, false);
+      update([0], null);
     }
   };
 
   return (
     <>
-      <Button
-        label={isActive_ ? "stop" : allLaps === 0 ? "start" : "continue"}
-        onClick={start_stop}
-      />
-      <Button label={isActive_ ? "lap" : "reset"} onClick={lap_reset} />
+      <button type="button" onClick={start_stop}>
+        {start_ !== null ? "stop" : allLaps === 0 ? "start" : "continue"}
+      </button>
+      <button type="button" onClick={lap_reset}>
+        {start_ !== null ? "lap" : "reset"}
+      </button>
       <p>{formatDuration(allLaps + currentLap)}</p>
       {laps_.length > 1 && (
         <ol>
@@ -158,7 +135,7 @@ export const App: BlockComponent<AppProps> = ({
             <li key={`lap-${i + 1}`}>{formatDuration(lap)}</li>
           ))}
           <li key={`lap-${laps_.length}`}>
-            {formatDuration(laps_[laps_.length - 1] + currentLap)}
+            {formatDuration(lastLap(laps_) + currentLap)}
           </li>
         </ol>
       )}
