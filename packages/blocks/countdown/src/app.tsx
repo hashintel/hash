@@ -45,12 +45,14 @@ function formatDate(date: Date, rangeSelection: boolean) {
 }
 
 function formatRange(range: Range) {
-  if (range.start !== null && range.end !== null)
+  if (range.start !== null && range.end !== null) {
     return `${formatDate(range.start, range.end !== null)} - ${formatDate(
       range.end,
       range.end !== null,
     )}`;
-  else return "";
+  } else {
+    return "";
+  }
 }
 
 function calculateTime(range: Range, strict: boolean) {
@@ -131,7 +133,7 @@ export const App: BlockComponent<AppProps> = ({
   useEffect(() => {
     setRange(range);
     tick();
-    if (updateEntities)
+    if (updateEntities) {
       void updateEntities([
         {
           entityId,
@@ -142,6 +144,7 @@ export const App: BlockComponent<AppProps> = ({
           },
         },
       ]);
+    }
   }, [range, rangeSelection, entityId, accountId, updateEntities]);
 
   useEffect(() => {
@@ -176,7 +179,7 @@ export const App: BlockComponent<AppProps> = ({
 
   const datepicker = useRef<DatePicker>(null);
   useEffect(() => {
-    datepicker.current && isOpen && datepicker.current.setOpen(true);
+    if (datepicker.current && isOpen) datepicker.current.setOpen(true);
   }, [isOpen]);
 
   return (
