@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { BlockComponent } from "blockprotocol/react";
 
 type AppProps = {
   start: Date;
   laps: number[];
+  isActive: boolean;
 };
 
 const Button = ({ label, onClick }) => {
@@ -44,33 +45,56 @@ export const App: BlockComponent<AppProps> = ({
   entityId,
   accountId,
   updateEntities,
+  isActive = false,
   start = null,
   laps = [0],
 }) => {
-  const [isActive, setIsActive] = useState(start !== null);
-  const [start_, setStart] = useState(isActive ? new Date(start) : null);
+  const [isActive_, setIsActive] = useState(isActive);
+  const [start_, setStart] = useState(isActive_ ? new Date(start) : null);
   const [laps_, setLaps] = useState(laps);
   const [currentLap, setCurrentLap] = useState(
-    isActive ? +new Date() - +start_ : 0,
+    isActive_ ? +new Date() - +start_ : 0,
   );
   const [allLaps, setAllLaps] = useState(laps.reduce((a, b) => a + b, 0));
 
   useEffect(() => {
-    void updateEntities([
-      {
-        entityId,
-        accountId,
-        data: {
-          laps: laps_,
-          start: start_,
+    setLaps(laps);
+    setStart(new Date(start));
+    setIsActive(isActive);
+    setAllLaps(laps.reduce((a, b) => a + b, 0));
+    console.log(
+      `loaded: laps: ${JSON.stringify(
+        laps,
+      )}, start: ${start}, active: ${isActive}`,
+    );
+  }, [laps, start, isActive]);
+
+  const update = useCallback(
+    (laps_data, start_data, isActive_data) => {
+      setLaps(laps_data);
+      setStart(start_data);
+      setIsActive(isActive_data);
+      void updateEntities([
+        {
+          entityId,
+          accountId,
+          data: {
+            laps: laps_data,
+            start: start_data,
+            isActive: isActive_data,
+          },
         },
-      },
-    ]);
-  }, [laps_, start_, entityId, accountId, updateEntities]);
+      ]);
+      console.log(
+        `written: laps: ${laps_data}, start: ${start_data}, active: ${isActive_data}`,
+      );
+    },
+    [entityId, accountId, updateEntities],
+  );
 
   useEffect(() => {
     let interval = null;
-    if (isActive) {
+    if (isActive_) {
       interval = setInterval(() => {
         setCurrentLap(+new Date() - +start_);
       }, 1000 / 60);
@@ -79,48 +103,52 @@ export const App: BlockComponent<AppProps> = ({
       setCurrentLap(0);
     }
     return () => clearInterval(interval);
-  }, [isActive, start_]);
+  }, [isActive_, start_]);
 
   const start_stop = () => {
-    if (!isActive) {
-      setStart(new Date());
-      setIsActive(true);
+    if (!isActive_) {
+      update(laps_, new Date(), true);
     } else {
       const current = +new Date() - +start_;
-      setLaps((laps_new) => [
-        ...laps_new.slice(0, laps_new.length - 1),
-        laps_new[laps_new.length - 1] + current,
-      ]);
       setAllLaps((allLaps_new) => allLaps_new + current);
-      setStart(null);
-      setIsActive(false);
+      update(
+        [
+          ...laps_.slice(0, laps_.length - 1),
+          laps_[laps_.length - 1] + current,
+        ],
+        null,
+        false,
+      );
     }
   };
 
   const lap_reset = () => {
-    if (isActive) {
+    if (isActive_) {
       const current = +new Date() - +start_;
-      setStart(new Date());
-      setLaps((laps_new) => [
-        ...laps_new.slice(0, laps_new.length - 1),
-        laps_new[laps_new.length - 1] + current,
-        0,
-      ]);
       setAllLaps((allLaps_new) => allLaps_new + current);
       setCurrentLap(0);
+      update(
+        [
+          ...laps_.slice(0, laps_.length - 1),
+          laps_[laps_.length - 1] + current,
+          0,
+        ],
+        new Date(),
+        true,
+      );
     } else {
-      setLaps([0]);
       setAllLaps(0);
+      update([0], null, false);
     }
   };
 
   return (
     <>
       <Button
-        label={isActive ? "stop" : allLaps === 0 ? "start" : "continue"}
+        label={isActive_ ? "stop" : allLaps === 0 ? "start" : "continue"}
         onClick={start_stop}
       />
-      <Button label={isActive ? "lap" : "reset"} onClick={lap_reset} />
+      <Button label={isActive_ ? "lap" : "reset"} onClick={lap_reset} />
       <p>{formatDuration(allLaps + currentLap)}</p>
       {laps_.length > 1 && (
         <ol>
