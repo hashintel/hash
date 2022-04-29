@@ -7,7 +7,11 @@ type AppProps = {
 };
 
 const Button = ({ label, onClick }) => {
-  return <button onClick={onClick}>{label}</button>;
+  return (
+    <button type="button" onClick={onClick}>
+      {label}
+    </button>
+  );
 };
 
 function formatDuration(duration: number) {
@@ -29,9 +33,10 @@ function formatDuration(duration: number) {
   const hours = Math.floor((duration % DAYS) / HOURS);
   const days = Math.floor(duration / DAYS);
 
-  if (duration >= DAYS)
+  if (duration >= DAYS) {
     return `${days}:${hours}:${minutes}:${seconds}.${millis}`;
-  else if (duration >= HOURS) return `${hours}:${minutes}:${seconds}.${millis}`;
+  } else if (duration >= HOURS)
+    return `${hours}:${minutes}:${seconds}.${millis}`;
   else return `${minutes}:${seconds}.${millis}`;
 }
 
@@ -51,7 +56,7 @@ export const App: BlockComponent<AppProps> = ({
   const [allLaps, setAllLaps] = useState(laps.reduce((a, b) => a + b, 0));
 
   useEffect(() => {
-    updateEntities([
+    void updateEntities([
       {
         entityId,
         accountId,
@@ -61,7 +66,7 @@ export const App: BlockComponent<AppProps> = ({
         },
       },
     ]);
-  }, [laps_, start_]);
+  }, [laps_, start_, entityId, accountId, updateEntities]);
 
   useEffect(() => {
     let interval = null;
@@ -82,11 +87,11 @@ export const App: BlockComponent<AppProps> = ({
       setIsActive(true);
     } else {
       const current = +new Date() - +start_;
-      setLaps((laps) => [
-        ...laps.slice(0, laps.length - 1),
-        laps[laps.length - 1] + current,
+      setLaps((laps_new) => [
+        ...laps_new.slice(0, laps_new.length - 1),
+        laps_new[laps_new.length - 1] + current,
       ]);
-      setAllLaps((allLaps) => allLaps + current);
+      setAllLaps((allLaps_new) => allLaps_new + current);
       setStart(null);
       setIsActive(false);
     }
@@ -96,12 +101,12 @@ export const App: BlockComponent<AppProps> = ({
     if (isActive) {
       const current = +new Date() - +start_;
       setStart(new Date());
-      setLaps((laps) => [
-        ...laps.slice(0, laps.length - 1),
-        laps[laps.length - 1] + current,
+      setLaps((laps_new) => [
+        ...laps_new.slice(0, laps_new.length - 1),
+        laps_new[laps_new.length - 1] + current,
         0,
       ]);
-      setAllLaps((allLaps) => allLaps + current);
+      setAllLaps((allLaps_new) => allLaps_new + current);
       setCurrentLap(0);
     } else {
       setLaps([0]);
@@ -118,16 +123,14 @@ export const App: BlockComponent<AppProps> = ({
       <Button label={isActive ? "lap" : "reset"} onClick={lap_reset} />
       <p>{formatDuration(allLaps + currentLap)}</p>
       {laps_.length > 1 && (
-        <>
-          <ol>
-            {laps_.slice(0, laps_.length - 1).map((lap, i) => (
-              <li key={`lap-${i + 1}`}>{formatDuration(lap)}</li>
-            ))}
-            <li key={`lap-${laps_.length}`}>
-              {formatDuration(laps_[laps_.length - 1] + currentLap)}
-            </li>
-          </ol>
-        </>
+        <ol>
+          {laps_.slice(0, laps_.length - 1).map((lap, i) => (
+            <li key={`lap-${i + 1}`}>{formatDuration(lap)}</li>
+          ))}
+          <li key={`lap-${laps_.length}`}>
+            {formatDuration(laps_[laps_.length - 1] + currentLap)}
+          </li>
+        </ol>
       )}
     </>
   );
