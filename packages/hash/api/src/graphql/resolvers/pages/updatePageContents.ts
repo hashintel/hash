@@ -120,6 +120,9 @@ export const updatePageContents: Resolver<
           await page.removeBlock(client, {
             ...action.removeBlock,
             removedByAccountId: user.accountId,
+            allowRemovingFinal: actions
+              .slice(i + 1)
+              .some((actionToFollow) => actionToFollow.insertNewBlock),
           });
         }
       } catch (err) {

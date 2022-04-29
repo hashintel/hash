@@ -17,7 +17,7 @@
 
 .Block {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   word-break: break-all;
   margin: 30px 0;
 }
