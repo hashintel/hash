@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { BlockComponent } from "blockprotocol/react";
 
-// eslint-disable-next-line no-restricted-imports
+// eslint-disable-next-line no-restricted-imports -- false-positive frontend-specific rule
 import { TextField, Button } from "@mui/material";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -37,23 +37,25 @@ export const App: BlockComponent<AppProps> = ({
     (target_data, millis_data) => {
       setMillis(millis_data);
       setTarget(target_data);
-      void updateEntities([
-        {
-          entityId,
-          accountId,
-          data: {
-            millis: millis_data,
-            target: target_data,
+      if (updateEntities) {
+        void updateEntities([
+          {
+            entityId,
+            accountId,
+            data: {
+              millis: millis_data,
+              target: target_data,
+            },
           },
-        },
-      ]);
+        ]);
+      }
     },
     [entityId, accountId, updateEntities],
   );
 
   useEffect(() => {
-    let interval = null;
-    if (isActive()) {
+    let interval: any = null;
+    if (target_ !== null) {
       interval = setInterval(() => {
         if (+target_ <= +new Date()) {
           setMillis(0);
@@ -69,7 +71,7 @@ export const App: BlockComponent<AppProps> = ({
   }, [target_, isActive]);
 
   const start_stop = () => {
-    if (isActive()) {
+    if (target_ !== null) {
       update(null, +target_ - +new Date());
     } else {
       update(+new Date() + millis_, millis_);
@@ -87,8 +89,12 @@ export const App: BlockComponent<AppProps> = ({
           mask="__:__:__"
           label="timer"
           value={millis_ + new Date(0).getTimezoneOffset() * 60000}
-          onChange={(date: Date) => {
-            update(null, +date - new Date(0).getTimezoneOffset() * 60000);
+          onChange={(date: Date | null) => {
+            if (date !== null) {
+              update(null, +date - new Date(0).getTimezoneOffset() * 60000);
+            } else {
+              update(null, new Date(0).getTimezoneOffset() * 60000);
+            }
           }}
           renderInput={(params) => <TextField {...params} />}
           disabled={isActive()}
