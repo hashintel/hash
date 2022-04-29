@@ -5,6 +5,7 @@ import { BlockComponent } from "blockprotocol/react";
 type AppProps = {
   title: string;
   content: string;
+  open: string;
 };
 
 export const App: BlockComponent<AppProps> = ({
@@ -12,19 +13,21 @@ export const App: BlockComponent<AppProps> = ({
   entityId,
   title,
   content,
+  open,
   updateEntities,
 }) => {
   const contentRef = useRef(null);
   const [currentContent, setContent] = useState(content);
 
-  const updateContent = (text: string, field: "content" | "title") => {
+  const updateContent = (text: string, field: "content" | "title" | "open") => {
     void updateEntities([
       {
         accountId,
         entityId,
         data: {
-          currentContent,
+          content: currentContent,
           title,
+          open,
           [field]: text,
         },
       },
@@ -44,7 +47,12 @@ export const App: BlockComponent<AppProps> = ({
   return (
     <div>
       <details
-        onToggle={() => {
+        open={open === "true"}
+        onToggle={(toggled) => {
+          updateContent(
+            (toggled.target as HTMLDetailsElement).open.toString(),
+            "open",
+          );
           // Browsers don't calculate `scrollHeight` of elements not shown, it's 0
           // since the `textarea` in the content starts off hidden we need to re-calculate when it's visible
           updateContentHeight();
