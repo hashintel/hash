@@ -9,11 +9,9 @@ import React, {
 
 import { BlockComponent } from "blockprotocol/react";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
+import { Resizable } from "react-resizable";
 import { handleExport, getInitialDocument } from "./utils";
 import "./base.css";
-import { ResizeBlock } from "./resize-block";
-import { throttle } from "lodash";
-// import { Editor } from "./editor";
 
 type AppProps = {
   document: string;
@@ -21,6 +19,12 @@ type AppProps = {
   darkMode?: boolean;
   width?: number;
   height?: number;
+};
+
+type ResizeCallbackData = {
+  node: HTMLElement;
+  size: { width: number; height: number };
+  handle: "s" | "w" | "e" | "n" | "sw" | "nw" | "se" | "ne";
 };
 
 export const App: BlockComponent<AppProps> = ({
@@ -43,32 +47,26 @@ export const App: BlockComponent<AppProps> = ({
   const [localState, setLocalState] = useState({
     height: remoteHeight,
     width: remoteWidth,
+    document: remoteDocument,
     maxWidth: 900,
     darkMode: remoteDarkMode,
     readOnly: remoteReadOnly,
   });
 
-  // useLayoutEffect(() => {
-  //   if (!containerRef.current) return;
-  //   const handleResize = () => {
-  //     console.log(
-  //       "max-width => ",
-  //       Number(containerRef.current?.getBoundingClientRect().width.toFixed(2)),
-  //     );
-  //     setLocalState((prev) => ({
-  //       ...prev,
-  //       maxWidth: Number(
-  //         containerRef.current?.getBoundingClientRect().width.toFixed(2),
-  //       ),
-  //     }));
-  //   };
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const newMaxWidth = Number(
+      containerRef.current?.getBoundingClientRect().width.toFixed(2),
+    );
 
-  //   document.addEventListener("resize", handleResize);
+    // @todo handle resizing
 
-  //   return () => {
-  //     document.removeEventListener("resize", handleResize);
-  //   };
-  // }, []);
+    setLocalState((prev) => ({
+      ...prev,
+      maxWidth: newMaxWidth,
+      ...(!prev.width && { width: newMaxWidth }),
+    }));
+  }, []);
 
   useEffect(() => {
     setLocalState((prev) => ({
@@ -76,16 +74,19 @@ export const App: BlockComponent<AppProps> = ({
       darkMode: remoteDarkMode ?? prev.darkMode,
       height: remoteHeight ?? prev.height,
       width: remoteWidth ?? prev.width,
-      // document: remoteDocument ?? prev.document,
+      document: remoteDocument ?? prev.document,
     }));
-  }, [remoteDarkMode, remoteHeight, remoteWidth]);
+  }, [remoteDarkMode, remoteHeight, remoteWidth, remoteDocument]);
 
   const updateRemoteData = useCallback(
     (newData: Partial<AppProps>) => {
       if (!rTldrawApp.current) return;
       const data = {
-        document: newData.document ?? rTldrawApp.current.document,
-        readOnly: newData.readOnly ?? localState.readOnly,
+        document:
+          newData.document ?? JSON.stringify(rTldrawApp.current.document),
+        readOnly:
+          newData.readOnly ?? rTldrawApp.current.settings.isReadonlyMode,
+        darkMode: newData.darkMode ?? rTldrawApp.current.settings.isDarkMode,
         height: newData.height ?? localState.height,
         width: newData.width ?? localState.width,
       };
@@ -99,11 +100,6 @@ export const App: BlockComponent<AppProps> = ({
           data,
         },
       ]);
-
-      setLocalState((prev) => ({
-        ...prev,
-        ...data,
-      }));
     },
     [
       localState,
@@ -142,16 +138,16 @@ export const App: BlockComponent<AppProps> = ({
   useEffect(() => {
     try {
       if (!rTldrawApp.current) return;
-      const parsedRemoteDocument = JSON.parse(remoteDocument) as TDDocument;
+      const parsedDocument = JSON.parse(localState.document) as TDDocument;
       const app = rTldrawApp.current;
 
       // update document if its id hasn't changed. load document if it has
-      if (parsedRemoteDocument.id && parsedRemoteDocument.id === entityId) {
-        app.updateDocument(parsedRemoteDocument);
+      if (parsedDocument.id && parsedDocument.id === entityId) {
+        app.updateDocument(parsedDocument);
       } else {
         // saved documents should have an id which points to the entityId supplied.
-        if (!parsedRemoteDocument.id) parsedRemoteDocument.id = entityId;
-        app.loadDocument(parsedRemoteDocument);
+        if (!parsedDocument.id) parsedDocument.id = entityId;
+        app.loadDocument(parsedDocument);
         app.zoomToFit();
       }
 
@@ -161,65 +157,70 @@ export const App: BlockComponent<AppProps> = ({
     } catch (err) {
       // todo handle error
     }
-  }, [remoteDocument, entityId, localState.darkMode]);
+  }, [localState.document, entityId, localState.darkMode]);
 
-  const updateDimensions = useCallback(
-    (newWidth: number, newHeight: number) => {
+  const updateDimensions = useCallback((_, { size }: ResizeCallbackData) => {
+    setLocalState((prev) => ({
+      ...prev,
+      width: size.width,
+      height: size.height,
+    }));
+  }, []);
+
+  const updateRemoteDimensions = useCallback(
+    (_, { size }: ResizeCallbackData) => {
+      if (!rTldrawApp.current) return;
+      // rTldrawApp.current
       updateRemoteData({
-        width: newWidth,
-        height: newHeight,
+        width: size.width,
+        height: size.height,
       });
     },
     [updateRemoteData],
   );
 
-  console.log("local ==> ", localState);
-  console.log("remote => ", {
-    width: remoteWidth,
-    height: remoteHeight,
-    maxWidth: localState.maxWidth,
-    document: remoteDocument,
-  });
+  // console.log("local ==> ", localState);
+  // console.log("remote => ", {
+  //   width: remoteWidth,
+  //   height: remoteHeight,
+  //   maxWidth: localState.maxWidth,
+  //   document: remoteDocument,
+  // });
 
   useEffect(() => {
-    console.log("re-rendered");
+    // console.log("re-rendered");
   });
 
   return (
     <div ref={containerRef} className="drawing-canvas-container">
-      <ResizeBlock
-        width={localState.width}
+      <Resizable
         height={localState.height}
-        maxWidth={localState.maxWidth}
-        updateDimensions={updateDimensions}
+        width={localState.width}
+        minConstraints={[200, 200]}
+        maxConstraints={[localState.maxWidth, Infinity]}
+        onResize={updateDimensions}
+        onResizeStop={updateRemoteDimensions}
+        resizeHandles={["s", "se", "e", "sw"]}
       >
-        <Tldraw
-          document={rInitialDocument.current}
-          onMount={handleMount}
-          onPersist={handlePersist}
-          readOnly={remoteReadOnly}
-          showMultiplayerMenu={false}
-          showSponsorLink={false}
-          onExport={handleExport}
-          darkMode={remoteDarkMode}
-        />
-        {/* <Editor
-          document={document}
-          entityId={entityId}
-          darkMode={darkMode}
-          readOnly={readOnly}
-          updateRemoteData={updateRemoteData}
-          // appRef={rTldrawApp}
-        /> */}
-      </ResizeBlock>
-      {/* <Editor
-        document={document}
-        entityId={entityId}
-        darkMode={darkMode}
-        readOnly={readOnly}
-        updateRemoteData={updateRemoteData}
-        // appRef={rTldrawApp}
-      /> */}
+        <div
+          style={{
+            height: localState.height,
+            width: localState.width,
+            position: "relative",
+          }}
+        >
+          <Tldraw
+            document={rInitialDocument.current}
+            onMount={handleMount}
+            onPersist={handlePersist}
+            readOnly={remoteReadOnly}
+            showMultiplayerMenu={false}
+            showSponsorLink={false}
+            onExport={handleExport}
+            darkMode={remoteDarkMode}
+          />
+        </div>
+      </Resizable>
     </div>
   );
 };

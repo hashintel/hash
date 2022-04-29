@@ -1,5 +1,4 @@
 import { TDDocument, TDExport, TldrawApp } from "@tldraw/tldraw";
-import { kebabCase } from "lodash";
 
 /**
  * @todo implement endpoint for handling image exports
@@ -50,26 +49,3 @@ export const getInitialDocument = (document: string | undefined, entityId) => {
     };
   }
 };
-
-export const toCSSObject = (cssText: string) =>
-  Object.fromEntries(
-    cssText
-      .split(";")
-      .filter(Boolean)
-      .map((rule) => {
-        return rule.split(":").map((item) => item.trim());
-      }),
-  ) as CSSStyleDeclaration;
-
-export const isInRange = (
-  value: number,
-  minValue: number = -Infinity,
-  maxValue: number = +Infinity,
-) => {
-  return value >= minValue && value <= maxValue;
-};
-
-export const toCSSText = (styles: CSSStyleDeclaration): string =>
-  Object.entries(styles)
-    .map(([prop, value]) => `${kebabCase(prop)}:${value}`)
-    .join(";");
