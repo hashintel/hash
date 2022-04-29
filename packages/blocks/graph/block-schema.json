@@ -40,15 +40,15 @@
           "xAxisPropertyKey",
           "yAxisPropertyKey"
         ]
-      },
-      "displayDataPointLabels": {
-        "type": "boolean",
-        "default": false
-      },
-      "displaySeriesKey": {
-        "type": "boolean",
-        "default": false
       }
+    },
+    "displayDataPointLabels": {
+      "type": "boolean",
+      "default": false
+    },
+    "displayLegend": {
+      "type": "boolean",
+      "default": false
     }
   },
   "configProperties": ["displayDataPointLabels", "displaySeriesKey"],
