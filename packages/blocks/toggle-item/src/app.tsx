@@ -16,11 +16,11 @@ export const App: BlockComponent<AppProps> = ({
   open,
   updateEntities,
 }) => {
-  const contentRef = useRef(null);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
   const [currentContent, setContent] = useState(content);
 
   const updateContent = (text: string, field: "content" | "title" | "open") => {
-    void updateEntities([
+    void updateEntities?.([
       {
         accountId,
         entityId,
@@ -35,9 +35,11 @@ export const App: BlockComponent<AppProps> = ({
   };
 
   const updateContentHeight = () => {
-    contentRef.current.style.height = "auto";
-    const scrollHeight = contentRef.current.scrollHeight;
-    contentRef.current.style.height = `${scrollHeight}px`;
+    if (contentRef.current) {
+      contentRef.current.style.height = "auto";
+      const scrollHeight = contentRef.current.scrollHeight;
+      contentRef.current.style.height = `${scrollHeight}px`;
+    }
   };
 
   useEffect(() => {
