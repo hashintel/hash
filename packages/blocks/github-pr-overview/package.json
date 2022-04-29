@@ -40,11 +40,11 @@
     "port": 63212
   },
   "blockprotocol": {
-    "displayName": "GithubPullRequestOverview",
+    "displayName": "Github Pull-Request Overview",
     "examples": [
       {}
     ],
-    "icon": "public/omega.svg",
+    "icon": "public/pull-request.svg",
     "image": "public/block-preview.svg"
   }
 }
