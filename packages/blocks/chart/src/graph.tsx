@@ -68,6 +68,7 @@ const EditableGraphTitle: React.FC<EditableGraphTitleProps> = ({
       }}
       inputProps={{
         sx: {
+          fontSize: 24,
           padding: 1,
         },
       }}
