@@ -138,11 +138,15 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 
   return (
     <RemoteBlock
-      {...blockProperties}
-      {...functions}
-      linkedAggregations={
-        blockProperties.linkedAggregations as BlockProtocolLinkedAggregation[]
-      }
+      blockProperties={{
+        ...blockProperties,
+        entityId: blockProperties.entityId ?? null,
+        entityTypeId: blockProperties.entityTypeId ?? null,
+        entityTypeVersionId: blockProperties.entityTypeVersionId ?? null,
+        linkedAggregations:
+          blockProperties.linkedAggregations as BlockProtocolLinkedAggregation[],
+      }}
+      blockFunctions={functions}
       editableRef={editableRef}
       onBlockLoaded={onRemoteBlockLoaded}
       sourceUrl={sourceUrl}
