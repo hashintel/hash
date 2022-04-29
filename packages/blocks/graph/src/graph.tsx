@@ -193,8 +193,7 @@ const CreateNewSeriesDefinition: React.FC<{
           <StyledTextField
             sx={{ flexGrow: 1, maxWidth: seriesNameAutocompleteMaxWidth }}
             label="Series Name"
-            value={newDefinition.seriesName ?? null}
-            defaultValue="Series" /** @todo: figure out how to get rid of this without resulting in label overlapping input */
+            value={newDefinition.seriesName ?? ""}
             onChange={({ target }) =>
               setNewDefinition((prev) => ({
                 ...prev,
@@ -237,15 +236,12 @@ const CreateNewSeriesDefinition: React.FC<{
             renderInput={(params) => (
               <StyledTextField {...params} label="X Axis Property" />
             )}
-            disableClearable
-            value={newDefinition.xAxisPropertyKey}
+            value={newDefinition.xAxisPropertyKey ?? null}
             onChange={(_, selectedxAxisPropertyKey) => {
-              if (selectedxAxisPropertyKey) {
-                setNewDefinition((prev) => ({
-                  ...prev,
-                  xAxisPropertyKey: selectedxAxisPropertyKey,
-                }));
-              }
+              setNewDefinition((prev) => ({
+                ...prev,
+                xAxisPropertyKey: selectedxAxisPropertyKey ?? undefined,
+              }));
             }}
           />
           <Autocomplete
@@ -260,15 +256,12 @@ const CreateNewSeriesDefinition: React.FC<{
             renderInput={(params) => (
               <StyledTextField {...params} label="Y Axis Property" />
             )}
-            disableClearable
-            value={newDefinition.yAxisPropertyKey}
+            value={newDefinition.yAxisPropertyKey ?? null}
             onChange={(_, selectedyAxisPropertyKey) => {
-              if (selectedyAxisPropertyKey) {
-                setNewDefinition((prev) => ({
-                  ...prev,
-                  yAxisPropertyKey: selectedyAxisPropertyKey,
-                }));
-              }
+              setNewDefinition((prev) => ({
+                ...prev,
+                yAxisPropertyKey: selectedyAxisPropertyKey ?? undefined,
+              }));
             }}
           />
           <Box width={deleteButtonWidth} />
