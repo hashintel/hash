@@ -3,7 +3,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { BlockComponent } from "blockprotocol/react";
 import DatePicker from "react-datepicker";
 import {
-  Interval,
   isFuture,
   isPast,
   formatDistanceToNow,
@@ -23,18 +22,79 @@ type AppProps = {
   strict: boolean;
 };
 
-const Checkbox = ({ label, value, onChange }) => {
+// const Checkbox = ({ label, value, onChange }) => {
+//   return (
+//     <label>
+//       <input type="checkbox" checked={value} onChange={onChange} />
+//       {label}
+//     </label>
+//   );
+// };
+
+const Button = ({ label, onClick }) => {
   return (
-    <label>
-      <input type="checkbox" checked={value} onChange={onChange} />
+    <button type="button" onClick={onClick}>
       {label}
-    </label>
+    </button>
   );
 };
 
-const Button = ({ label, onClick }) => {
-  return <button onClick={onClick}>{label}</button>;
-};
+function formatDate(date, rangeSelection: boolean) {
+  if (rangeSelection) {
+    return format(date, "PPP");
+  } else {
+    return formatRelative(date, new Date());
+  }
+}
+
+function formatRange(range) {
+  return `${formatDate(range.start, range.end !== null)} - ${formatDate(
+    range.end,
+    range.end !== null,
+  )}`;
+}
+
+function calculateTime(range, strict: boolean) {
+  if (range.start === null) {
+    return {
+      prefix: "",
+      offset: "Please select a date",
+      postfix: "",
+    };
+  }
+
+  let relative;
+  let date;
+  if (isFuture(range.start)) {
+    date = range.start;
+    relative = "until";
+  } else if (range.end !== null && isPast(range.end)) {
+    date = range.end;
+    relative = "since";
+  } else if (range.end === null) {
+    date = range.start;
+    relative = "since";
+  } else {
+    return {
+      prefix: "",
+      offset: formatRange(range),
+      postfix: "is now",
+    };
+  }
+
+  let distance;
+  if (strict) {
+    distance = formatDistanceToNowStrict(date);
+  } else {
+    distance = formatDistanceToNow(date, { includeSeconds: true });
+  }
+
+  return {
+    prefix: `${distance} ${relative}`,
+    offset: formatDate(date, range.end !== null),
+    postfix: "",
+  };
+}
 
 export const App: BlockComponent<AppProps> = ({
   interval = {
@@ -47,59 +107,11 @@ export const App: BlockComponent<AppProps> = ({
   accountId,
   updateEntities,
 }) => {
-  const formatDate = (date) => {
-    if (rangeSelection) {
-      return format(date, "PPP");
-    } else {
-      return formatRelative(date, new Date());
-    }
-  };
-
-  const formatRange = (range) => {
-    return `${formatDate(range.start)} - ${formatDate(range.end)}`;
-  };
-
-  const calculateTime = (range) => {
-    if (range.start === null) {
-      return {
-        prefix: "",
-        offset: "Please select a date",
-        postfix: "",
-      };
-    }
-
-    let relative;
-    let date;
-    if (isFuture(range.start)) {
-      date = range.start;
-      relative = "until";
-    } else if (range.end !== null && isPast(range.end)) {
-      date = range.end;
-      relative = "since";
-    } else if (range.end === null) {
-      date = range.start;
-      relative = "since";
-    } else {
-      return {
-        prefix: "",
-        offset: formatRange(range),
-        postfix: "is now",
-      };
-    }
-
-    let distance;
-    if (strict) {
-      distance = formatDistanceToNowStrict(date);
-    } else {
-      distance = formatDistanceToNow(date, { includeSeconds: true });
-    }
-
-    return {
-      prefix: `${distance} ${relative}`,
-      offset: formatDate(date),
-      postfix: "",
-    };
-  };
+  const [range, setRange] = useState({
+    start: interval.start === null ? null : new Date(interval.start),
+    end: interval.end === null ? null : new Date(interval.end),
+  });
+  const [rangeSelection, _setRangeSelection] = useState(selectsRange);
 
   const [clock, setClock] = useState({ now: new Date() });
   const tick = () => setClock({ now: new Date() });
@@ -107,46 +119,34 @@ export const App: BlockComponent<AppProps> = ({
     // Tick once per second
     setInterval(tick, 1000);
   }, []);
-
-  const [range, setRange] = useState({
-    start: interval.start === null ? null : new Date(interval.start),
-    end: interval.end === null ? null : new Date(interval.end),
-  });
   useEffect(() => {
     tick();
-    updateEntities([
+    void updateEntities([
       {
         entityId,
         accountId,
         data: {
           interval: range,
-        },
-      },
-    ]);
-  }, [range]);
-
-  const [rangeSelection, setRangeSelection] = useState(selectsRange);
-  useEffect(() => {
-    if (rangeSelection && range.start !== null)
-      setRange({
-        start: new Date(range.start.setHours(0, 0, 0, 0)),
-        end: null,
-      });
-    else setRange({ start: range.start, end: null });
-
-    updateEntities([
-      {
-        entityId,
-        accountId,
-        data: {
           selectsRange: rangeSelection,
         },
       },
     ]);
-  }, [rangeSelection]);
+  }, [range, rangeSelection, entityId, accountId, updateEntities]);
 
-  const [timeOffset, setTimeOffset] = useState(calculateTime(range));
-  useEffect(() => setTimeOffset(calculateTime(range)), [clock]); // Update offset on tick
+  useEffect(() => {
+    if (rangeSelection && range.start !== null) {
+      setRange({
+        start: new Date(range.start.setHours(0, 0, 0, 0)),
+        end: null,
+      });
+    } else setRange({ start: range.start, end: null });
+  }, [rangeSelection, range.start]);
+
+  const [timeOffset, setTimeOffset] = useState(calculateTime(range, strict));
+  useEffect(
+    () => setTimeOffset(calculateTime(range, strict)),
+    [clock, range, strict],
+  ); // Update offset on tick
 
   const [isOpen, setIsOpen] = useState(false);
   const open = () => setIsOpen(true);
@@ -187,11 +187,11 @@ export const App: BlockComponent<AppProps> = ({
             showWeekNumbers
             todayButton="Today"
           >
-            {/*<Checkbox*/}
-            {/*  label="Range selection"*/}
-            {/*  value={rangeSelection}*/}
-            {/*  onChange={() => setRangeSelection(!rangeSelection)}*/}
-            {/*/>*/}
+            {/* <Checkbox */}
+            {/*  label="Range selection" */}
+            {/*  value={rangeSelection} */}
+            {/*  onChange={() => setRangeSelection(!rangeSelection)} */}
+            {/* /> */}
           </DatePicker>
         </div>
       )}{" "}
