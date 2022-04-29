@@ -66,8 +66,6 @@ export const Editor: FC<Props> = React.memo(
       }
     }, [document, entityId, darkMode]);
 
-    console.log("re-rendered");
-
     return (
       <Tldraw
         document={rInitialDocument.current}

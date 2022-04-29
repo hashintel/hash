@@ -4,6 +4,7 @@ import React, {
   // useEffect,
   useRef,
   useLayoutEffect,
+  useEffect,
 } from "react";
 
 import { BlockComponent } from "blockprotocol/react";
@@ -11,6 +12,7 @@ import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
 import { handleExport, getInitialDocument } from "./utils";
 import "./base.css";
 import { ResizeBlock } from "./resize-block";
+import { throttle } from "lodash";
 // import { Editor } from "./editor";
 
 type AppProps = {
@@ -25,37 +27,68 @@ export const App: BlockComponent<AppProps> = ({
   entityId,
   entityTypeId,
   entityTypeVersionId,
-  darkMode = false,
-  document,
+  darkMode: remoteDarkMode = false,
+  document: remoteDocument,
   accountId,
-  readOnly,
+  readOnly: remoteReadOnly,
   updateEntities,
-  height = 500,
-  width,
+  height: remoteHeight = 500,
+  width: remoteWidth,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rTldrawApp = useRef<TldrawApp>();
   const rInitialDocument = useRef<TDDocument>(
-    getInitialDocument(document, entityId),
+    getInitialDocument(remoteDocument, entityId),
   );
-  const [maxWidth, setMaxWidth] = useState(900);
+  const [localState, setLocalState] = useState({
+    height: remoteHeight,
+    width: remoteWidth,
+    maxWidth: 900,
+    darkMode: remoteDarkMode,
+    readOnly: remoteReadOnly,
+  });
 
-  useLayoutEffect(() => {
-    if (!containerRef.current) return;
-    setMaxWidth(containerRef.current.getBoundingClientRect().width);
-  }, []);
+  // useLayoutEffect(() => {
+  //   if (!containerRef.current) return;
+  //   const handleResize = () => {
+  //     console.log(
+  //       "max-width => ",
+  //       Number(containerRef.current?.getBoundingClientRect().width.toFixed(2)),
+  //     );
+  //     setLocalState((prev) => ({
+  //       ...prev,
+  //       maxWidth: Number(
+  //         containerRef.current?.getBoundingClientRect().width.toFixed(2),
+  //       ),
+  //     }));
+  //   };
+
+  //   document.addEventListener("resize", handleResize);
+
+  //   return () => {
+  //     document.removeEventListener("resize", handleResize);
+  //   };
+  // }, []);
+
+  useEffect(() => {
+    setLocalState((prev) => ({
+      ...prev,
+      darkMode: remoteDarkMode ?? prev.darkMode,
+      height: remoteHeight ?? prev.height,
+      width: remoteWidth ?? prev.width,
+      // document: remoteDocument ?? prev.document,
+    }));
+  }, [remoteDarkMode, remoteHeight, remoteWidth]);
 
   const updateRemoteData = useCallback(
     (newData: Partial<AppProps>) => {
       if (!rTldrawApp.current) return;
       const data = {
         document: newData.document ?? rTldrawApp.current.document,
-        readOnly: newData.readOnly ?? readOnly,
-        height: newData.height ?? height,
-        width: newData.width ?? width,
+        readOnly: newData.readOnly ?? localState.readOnly,
+        height: newData.height ?? localState.height,
+        width: newData.width ?? localState.width,
       };
-
-      console.log("data => ", data);
 
       void updateEntities([
         {
@@ -66,11 +99,14 @@ export const App: BlockComponent<AppProps> = ({
           data,
         },
       ]);
+
+      setLocalState((prev) => ({
+        ...prev,
+        ...data,
+      }));
     },
     [
-      readOnly,
-      height,
-      width,
+      localState,
       updateEntities,
       entityId,
       entityTypeId,
@@ -83,11 +119,11 @@ export const App: BlockComponent<AppProps> = ({
     (app: TldrawApp) => {
       rTldrawApp.current = app;
 
-      if (darkMode !== rTldrawApp.current.settings.isDarkMode) {
+      if (localState.darkMode !== rTldrawApp.current.settings.isDarkMode) {
         rTldrawApp.current.toggleDarkMode();
       }
     },
-    [darkMode],
+    [localState.darkMode],
   );
 
   const handlePersist = useCallback(
@@ -103,6 +139,30 @@ export const App: BlockComponent<AppProps> = ({
     [entityId, updateRemoteData],
   );
 
+  useEffect(() => {
+    try {
+      if (!rTldrawApp.current) return;
+      const parsedRemoteDocument = JSON.parse(remoteDocument) as TDDocument;
+      const app = rTldrawApp.current;
+
+      // update document if its id hasn't changed. load document if it has
+      if (parsedRemoteDocument.id && parsedRemoteDocument.id === entityId) {
+        app.updateDocument(parsedRemoteDocument);
+      } else {
+        // saved documents should have an id which points to the entityId supplied.
+        if (!parsedRemoteDocument.id) parsedRemoteDocument.id = entityId;
+        app.loadDocument(parsedRemoteDocument);
+        app.zoomToFit();
+      }
+
+      if (localState.darkMode !== app.settings.isDarkMode) {
+        app.toggleDarkMode();
+      }
+    } catch (err) {
+      // todo handle error
+    }
+  }, [remoteDocument, entityId, localState.darkMode]);
+
   const updateDimensions = useCallback(
     (newWidth: number, newHeight: number) => {
       updateRemoteData({
@@ -113,25 +173,35 @@ export const App: BlockComponent<AppProps> = ({
     [updateRemoteData],
   );
 
-  console.log({ width, height, maxWidth, document });
+  console.log("local ==> ", localState);
+  console.log("remote => ", {
+    width: remoteWidth,
+    height: remoteHeight,
+    maxWidth: localState.maxWidth,
+    document: remoteDocument,
+  });
+
+  useEffect(() => {
+    console.log("re-rendered");
+  });
 
   return (
     <div ref={containerRef} className="drawing-canvas-container">
       <ResizeBlock
-        width={width}
-        height={height}
-        maxWidth={maxWidth}
+        width={localState.width}
+        height={localState.height}
+        maxWidth={localState.maxWidth}
         updateDimensions={updateDimensions}
       >
         <Tldraw
           document={rInitialDocument.current}
           onMount={handleMount}
           onPersist={handlePersist}
-          readOnly={readOnly}
+          readOnly={remoteReadOnly}
           showMultiplayerMenu={false}
           showSponsorLink={false}
           onExport={handleExport}
-          darkMode={darkMode}
+          darkMode={remoteDarkMode}
         />
         {/* <Editor
           document={document}
