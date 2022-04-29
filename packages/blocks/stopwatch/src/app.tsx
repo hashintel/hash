@@ -36,9 +36,11 @@ function formatDuration(duration: number) {
 
   if (duration >= DAYS) {
     return `${days}:${hours}:${minutes}:${seconds}.${millis}`;
-  } else if (duration >= HOURS)
+  } else if (duration >= HOURS) {
     return `${hours}:${minutes}:${seconds}.${millis}`;
-  else return `${minutes}:${seconds}.${millis}`;
+  } else {
+    return `${minutes}:${seconds}.${millis}`;
+  }
 }
 
 export const App: BlockComponent<AppProps> = ({
