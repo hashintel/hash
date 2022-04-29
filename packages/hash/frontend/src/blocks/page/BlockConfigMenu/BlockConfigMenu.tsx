@@ -63,7 +63,12 @@ const ConfigurationInput: VoidFunctionComponent<{
   ) => {
     const { value: newValue } = event.target;
     // If a type is a number or an array that accepts a number, convert to a number
-    if (type === "number" || (Array.isArray(type) && type.includes("number"))) {
+    if (
+      type === "number" ||
+      (Array.isArray(type) &&
+        type.includes("string") &&
+        type.includes("number"))
+    ) {
       onChange(Number.isNaN(+newValue) ? newValue : Number(newValue));
     } else {
       onChange(newValue);
