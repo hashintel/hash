@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { BlockComponent } from "blockprotocol/react";
 
 import { TextField, Button } from "@mui/material";
@@ -23,12 +23,12 @@ export const App: BlockComponent<AppProps> = ({
     target === null ? null : new Date(target),
   );
 
-  const isActive = () => {
+  const isActive = useCallback(() => {
     return target_ !== null;
-  };
+  }, [target_]);
 
   useEffect(() => {
-    updateEntities([
+    void updateEntities([
       {
         entityId,
         accountId,
@@ -38,8 +38,7 @@ export const App: BlockComponent<AppProps> = ({
         },
       },
     ]);
-    console.log(`Updated: seconds = ${millis_}, target = ${target_}`);
-  }, [target_]);
+  }, [target_, millis_, entityId, accountId, updateEntities]);
 
   useEffect(() => {
     let interval = null;
@@ -56,7 +55,7 @@ export const App: BlockComponent<AppProps> = ({
       clearInterval(interval);
     }
     return () => clearInterval(interval);
-  }, [target_]);
+  }, [target_, isActive]);
 
   const start_stop = () => {
     if (isActive()) setTarget(null);

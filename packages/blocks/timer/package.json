@@ -11,10 +11,13 @@
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"
   },
   "dependencies": {
+    "@mui/material": "^5.6.3",
     "@mui/x-date-pickers": "^5.0.0-alpha.2",
     "blockprotocol": "0.0.7"
   },
