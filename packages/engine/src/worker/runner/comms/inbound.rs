@@ -1,10 +1,11 @@
 //! TODO: DOC
 use std::fmt;
 
+use execution::task::TaskId;
+
 use crate::{
     datastore::table::sync::{ContextBatchSync, StateSync, WaitableStateSync},
     proto::SimulationShortId,
-    types::TaskId,
     worker::runner::comms::{NewSimulationRun, RunnerTaskMsg, StateInterimSync},
 };
 

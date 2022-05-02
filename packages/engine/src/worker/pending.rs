@@ -3,12 +3,10 @@ use std::collections::HashMap;
 use execution::{
     package::{PackageTask, TaskMessage},
     runner::Language,
+    task::TaskId,
 };
 
-use crate::{
-    types::TaskId,
-    worker::{Error, Result},
-};
+use crate::worker::{Error, Result};
 
 #[allow(dead_code)]
 pub enum CancelState {

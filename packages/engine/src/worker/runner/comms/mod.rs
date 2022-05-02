@@ -9,7 +9,7 @@ use arrow::datatypes::Schema;
 use execution::{
     package::TaskMessage,
     runner::{MessageTarget, RunnerConfig},
-    task::SharedStore,
+    task::{SharedStore, TaskId},
     worker_pool::WorkerIndex,
 };
 use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
@@ -20,7 +20,6 @@ use crate::{
     datastore::shared_store::SharedDatasets,
     proto::{ExperimentId, SimulationShortId},
     simulation::package::worker_init::PackageInitMsgForWorker,
-    types::TaskId,
     worker::{Error, Result},
 };
 

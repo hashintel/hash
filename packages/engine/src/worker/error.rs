@@ -21,7 +21,7 @@ pub enum Error {
     Execution(#[from] execution::Error),
 
     #[error("Task already exists (id: {0})")]
-    TaskAlreadyExists(crate::types::TaskId),
+    TaskAlreadyExists(execution::task::TaskId),
 
     #[error("Python runner error: {0}")]
     Python(#[from] PythonError),

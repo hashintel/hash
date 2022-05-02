@@ -60,3 +60,5 @@ pub trait ActiveTask: Send {
     /// [`Task`]: crate::simulation::task::Task
     async fn drive_to_completion(mut self) -> Result<TaskMessage>;
 }
+
+pub type TaskId = u128;

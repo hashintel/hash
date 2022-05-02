@@ -11,7 +11,7 @@ use std::{
     sync::Arc,
 };
 
-use execution::runner::Language;
+use execution::{runner::Language, task::TaskId};
 use futures::FutureExt;
 use tokio::{
     process::Command,
@@ -23,7 +23,6 @@ pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};
 use crate::{
     proto::SimulationShortId,
-    types::TaskId,
     worker::{
         runner::comms::{
             inbound::InboundToRunnerMsgPayload,

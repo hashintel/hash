@@ -1,7 +1,10 @@
-use execution::{package::PackageTask, task::SharedStore};
+use execution::{
+    package::PackageTask,
+    task::{SharedStore, TaskId},
+};
 use stateful::field::PackageId;
 
-use crate::{simulation::task::msg::TaskResultOrCancelled, types::TaskId};
+use crate::simulation::task::msg::TaskResultOrCancelled;
 
 #[derive(derive_new::new, Debug)]
 pub struct WorkerTask {

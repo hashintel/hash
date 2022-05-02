@@ -28,7 +28,7 @@ use std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use execution::{
     package::PackageTask,
-    task::{SharedStore, Task},
+    task::{SharedStore, Task, TaskId},
 };
 use stateful::{agent::Agent, context::Context, field::PackageId, state::StateReadProxy};
 use uuid::Uuid;
@@ -39,7 +39,6 @@ use crate::{
     datastore::table::sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
     proto::SimulationShortId,
     simulation::comms::message::SyncCompletionReceiver,
-    types::TaskId,
     workerpool::comms::MainMsgSend,
 };
 

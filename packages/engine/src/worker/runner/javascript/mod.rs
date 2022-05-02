@@ -24,7 +24,7 @@ use arrow::{
 use execution::{
     package::{PackageType, TaskMessage},
     runner::{Language, MessageTarget},
-    task::{PartialSharedState, SharedState, SharedStore},
+    task::{PartialSharedState, SharedState, SharedStore, TaskId},
 };
 use futures::{Future, FutureExt};
 use memory::{
@@ -48,7 +48,6 @@ use crate::{
         table::sync::{ContextBatchSync, StateSync, WaitableStateSync},
     },
     proto::SimulationShortId,
-    types::TaskId,
     worker::{
         runner::comms::{
             inbound::InboundToRunnerMsgPayload,
