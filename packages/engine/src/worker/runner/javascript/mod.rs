@@ -98,7 +98,7 @@ impl<'s> JsPackage<'s> {
 
         let namespace: Object<'_> = match import_and_get_module_namespace(scope, &path) {
             Ok(s) => s,
-            Err(Error::MissingJavascriptImport(_)) => {
+            Err(Error::MissingJavascriptImport(..)) => {
                 tracing::debug!("Couldn't read package file. It might intentionally not exist.");
                 // Packages don't have to use JS.
                 let undefined = v8::undefined(scope).into();
@@ -203,8 +203,8 @@ impl ModuleMap {
             return Ok(v8::Local::new(scope, module));
         }
 
-        let source_code =
-            read_file(path).map_err(|err| Error::MissingJavascriptImport(format!("{err}")))?;
+        let source_code = read_file(path)
+            .map_err(|err| Error::MissingJavascriptImport(path.to_string(), format!("{err}")))?;
         let js_source_code = new_js_string(scope, &source_code);
         let js_path = new_js_string(scope, path);
         let source = v8::script_compiler::Source::new(
@@ -317,13 +317,7 @@ impl<'s> Embedded<'s> {
             .global(scope)
             .set(scope, hash_stdlib_str.into(), hash_stdlib);
 
-        let runner = ModuleMap::import_module(scope, "./src/worker/runner/javascript/runner.js")
-            .map_err(|err| {
-                Error::PackageImport(
-                    "./src/worker/runner/javascript/runner.js".to_string(),
-                    format!("{err}"),
-                )
-            })?;
+        let runner = ModuleMap::import_module(scope, "./src/worker/runner/javascript/runner.js")?;
 
         // Importing a module doesn't return the items it exports. To access the items it exports we
         // can use `get_module_namespace`. An example of that can be found at https://chromium.googlesource.com/v8/v8/+/refs/heads/lkgr/test/cctest/test-modules.cc#625

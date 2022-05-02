@@ -93,8 +93,8 @@ pub enum Error {
     #[error("serde: {0:?}")]
     Serde(#[from] serde_json::Error),
 
-    #[error("Couldn't import javascript file: {0}")]
-    MissingJavascriptImport(String),
+    #[error("Couldn't access javascript file {0}: {1}")]
+    MissingJavascriptImport(String, String),
 }
 
 impl From<&str> for Error {
