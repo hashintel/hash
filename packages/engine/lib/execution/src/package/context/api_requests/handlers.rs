@@ -2,7 +2,10 @@ use serde_json::Value;
 use stateful::{field::UUID_V4_LEN, message::MessageReader, state::MessageReference};
 use thiserror::Error as ThisError;
 
-use crate::simulation::package::context::api_requests::{handlers, ApiResponseMap, Error, Result};
+use crate::{
+    package::context::api_requests::{handlers, ApiResponseMap},
+    Error, Result,
+};
 
 pub const ACTIVE_REQUESTS: usize = 10;
 
@@ -66,9 +69,9 @@ pub mod mapbox {
     use stateful::field::UUID_V4_LEN;
     use thiserror::Error as ThisError;
 
-    use crate::simulation::package::context::api_requests::{
+    use crate::package::context::api_requests::{
         handlers::{CustomError, Request, Requests, ACTIVE_REQUESTS},
-        ApiResponseMap, Result, Value,
+        ApiResponseMap, Result,
     };
 
     #[derive(ThisError, Debug)]
@@ -76,9 +79,9 @@ pub mod mapbox {
         #[error(
             "`transporation_method` expected string field for Mapbox directions request: {0:?}"
         )]
-        TransporationMethod(Value),
+        TransporationMethod(serde_json::Value),
         #[error("`request_route` expected string field for Mapbox directions request: {0:?}")]
-        RequestRoute(Value),
+        RequestRoute(serde_json::Value),
     }
 
     impl CustomError for MapboxError {}

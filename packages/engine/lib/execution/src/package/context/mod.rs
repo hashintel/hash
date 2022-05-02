@@ -1,4 +1,5 @@
 pub mod agent_messages;
+pub mod api_requests;
 
 mod message;
 mod name;

@@ -7,16 +7,7 @@ use std::sync::Arc;
 
 use arrow::datatypes::DataType;
 use async_trait::async_trait;
-use execution::{
-    package::{
-        context::{ContextPackage, ContextPackageCreator},
-        MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
-        PackageInitConfig,
-    },
-    Error, Result,
-};
 use futures::{stream::FuturesOrdered, StreamExt};
-use serde_json::Value;
 use stateful::{
     agent,
     context::{ContextColumn, ContextSchema},
@@ -30,7 +21,16 @@ use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
-use crate::simulation::package::context::api_requests::fields::API_RESPONSES_FIELD_NAME;
+use crate::{
+    package::{
+        context::{
+            api_requests::fields::API_RESPONSES_FIELD_NAME, ContextPackage, ContextPackageCreator,
+        },
+        MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
+        PackageInitConfig,
+    },
+    Error, Result,
+};
 
 const CPU_BOUND: bool = false;
 

@@ -683,6 +683,7 @@ dependencies = [
  "async-trait",
  "flatbuffers_gen",
  "float-cmp",
+ "futures",
  "lazy_static",
  "memory",
  "serde",

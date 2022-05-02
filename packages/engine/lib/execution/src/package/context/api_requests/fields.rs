@@ -2,7 +2,7 @@ use stateful::field::{
     FieldScope, FieldSpec, FieldType, FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
 };
 
-use crate::simulation::package::context::api_requests::Result;
+use crate::Result;
 
 pub(super) const FROM_FIELD_NAME: &str = "from";
 pub(super) const TYPE_FIELD_NAME: &str = "type";

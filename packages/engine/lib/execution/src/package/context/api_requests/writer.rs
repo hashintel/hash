@@ -3,7 +3,7 @@ use memory::arrow::meta::{
 };
 use stateful::context::ContextColumnWriter;
 
-use crate::simulation::package::context::api_requests::response::ApiResponses;
+use crate::package::context::api_requests::response::ApiResponses;
 
 const NUM_NODES: usize = 5;
 const NUM_BUFFERS: usize = 12;
