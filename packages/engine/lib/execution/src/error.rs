@@ -44,7 +44,7 @@ pub enum Error {
     WorkerNodeHandlerNotImplemented,
 
     #[error("Invalid type of task message for behavior execution: {0:?}")]
-    InvalidBehaviorTaskMessage(crate::package::TaskMessage),
+    InvalidBehaviorTaskMessage(crate::task::TaskMessage),
 
     #[error("Behavior Key Error: {0}")]
     BehaviorKeyJsonError(#[from] crate::package::state::behavior_execution::BehaviorKeyJsonError),

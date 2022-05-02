@@ -1,7 +1,8 @@
 use crate::{
-    package::{state::behavior_execution::ExecuteBehaviorsTask, PackageTask, TaskMessage},
+    package::{state::behavior_execution::ExecuteBehaviorsTask, PackageTask},
     task::{
         SharedStore, StateBatchDistribution, TargetedTaskMessage, Task, TaskDistributionConfig,
+        TaskMessage,
     },
     worker::WorkerHandler,
     worker_pool::{SplitConfig, WorkerPoolHandler},

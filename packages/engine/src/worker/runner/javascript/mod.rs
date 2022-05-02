@@ -22,12 +22,12 @@ use arrow::{
     util::bit_util,
 };
 use execution::{
-    package::{PackageType, TaskMessage},
+    package::PackageType,
     runner::{
         comms::{RunnerTaskMessage, TargetedRunnerTaskMsg},
         Language, MessageTarget,
     },
-    task::{PartialSharedState, SharedState, SharedStore, TaskId},
+    task::{PartialSharedState, SharedState, SharedStore, TaskId, TaskMessage},
 };
 use futures::{Future, FutureExt};
 use memory::{

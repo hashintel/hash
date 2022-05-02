@@ -3,9 +3,8 @@ use std::collections::HashMap;
 use stateful::field::PackageId;
 
 use crate::{
-    package::TaskMessage,
     runner::MessageTarget,
-    task::{SharedStore, TaskId},
+    task::{SharedStore, TaskId, TaskMessage},
     Error, Result,
 };
 

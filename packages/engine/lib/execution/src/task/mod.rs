@@ -8,13 +8,13 @@ use async_trait::async_trait;
 pub use self::{
     cancel::{CancelTask, TaskCancelled},
     distribution::{StateBatchDistribution, TaskDistributionConfig},
-    message::TargetedTaskMessage,
+    message::{TargetedTaskMessage, TaskMessage, TaskResultOrCancelled},
     shared_store::{
         PartialSharedState, PartialStateReadProxy, PartialStateWriteProxy, SharedContext,
         SharedState, SharedStore, TaskSharedStoreBuilder,
     },
 };
-use crate::{package::TaskMessage, Result};
+use crate::Result;
 
 pub trait Task {
     /// Provides a human-readable name of the [`Task`], e.g. `"BehaviorExecution"`.

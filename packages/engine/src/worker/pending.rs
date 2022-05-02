@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use execution::{
-    package::{PackageTask, TaskMessage},
+    package::PackageTask,
     runner::Language,
-    task::TaskId,
+    task::{TaskId, TaskMessage},
 };
 
 use crate::worker::{Error, Result};

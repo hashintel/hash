@@ -76,4 +76,3 @@
 //! [`WorkerController::spawn_task()`]: crate::worker::WorkerController::spawn_task
 
 pub mod active;
-pub mod msg;

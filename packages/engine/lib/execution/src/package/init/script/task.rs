@@ -1,13 +1,10 @@
 use crate::{
-    package::{
-        init::{
-            script::{JsPyInitTaskMessage, StartMessage},
-            InitTaskMessage,
-        },
-        TaskMessage,
+    package::init::{
+        script::{JsPyInitTaskMessage, StartMessage},
+        InitTaskMessage,
     },
     runner::MessageTarget,
-    task::TargetedTaskMessage,
+    task::{TargetedTaskMessage, TaskMessage},
     worker::WorkerHandler,
     Result,
 };

@@ -1,9 +1,7 @@
 use std::fmt::{Debug, Formatter};
 
-use execution::task::CancelTask;
+use execution::task::{CancelTask, TaskResultOrCancelled};
 use tokio::sync::oneshot::{channel, Receiver, Sender};
-
-use crate::simulation::task::msg::TaskResultOrCancelled;
 
 /// Used in an [`ActiveTask`] to allow the owning Package to wait for results from the `WorkerPool`
 /// about the associated [`Task`], or to send a [`CancelTask`] signal to the WorkerPool.

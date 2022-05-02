@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use execution::{
-    package::{PackageTask, TaskMessage},
-    task::{CancelTask, TaskId},
+    package::PackageTask,
+    task::{CancelTask, TaskId, TaskMessage, TaskResultOrCancelled},
     worker_pool::{WorkerIndex, WorkerPoolHandler},
 };
 use tokio::sync::oneshot;
 
 use crate::{
-    simulation::{comms::active::ActiveTaskExecutorComms, task::msg::TaskResultOrCancelled},
+    simulation::comms::active::ActiveTaskExecutorComms,
     worker::task::WorkerTaskResultOrCancelled,
     workerpool::{Error, Result},
 };

@@ -13,9 +13,8 @@ pub mod task;
 use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration};
 
 use execution::{
-    package::TaskMessage,
     runner::{comms::RunnerTaskMessage, Language, MessageTarget, RunnerConfig},
-    task::{SharedState, SharedStore, TaskId},
+    task::{SharedState, SharedStore, TaskId, TaskMessage, TaskResultOrCancelled},
     worker::{RunnerSpawnConfig, WorkerConfig, WorkerHandler},
 };
 use futures::{
@@ -42,7 +41,6 @@ use self::{
 use crate::{
     datastore::table::sync::SyncPayload,
     proto::SimulationShortId,
-    simulation::task::msg::TaskResultOrCancelled,
     worker::{
         pending::{PendingGroup, PendingWorkerTask},
         runner::comms::inbound::InboundToRunnerMsgPayload,

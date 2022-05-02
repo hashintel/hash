@@ -152,7 +152,6 @@ pub mod state;
 mod comms;
 mod config;
 mod dependencies;
-mod message;
 mod name;
 mod package_type;
 mod task;
@@ -165,7 +164,6 @@ pub use self::{
         SimPackageArgs,
     },
     dependencies::Dependencies,
-    message::TaskMessage,
     name::PackageName,
     package_type::PackageType,
     task::PackageTask,

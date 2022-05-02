@@ -15,9 +15,9 @@ use crate::{
             InitialStateName,
         },
         Comms, MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
-        PackageInitConfig, PackageTask, TaskMessage,
+        PackageInitConfig, PackageTask,
     },
-    task::{ActiveTask, SharedStore},
+    task::{ActiveTask, SharedStore, TaskMessage},
     Error, Result,
 };
 

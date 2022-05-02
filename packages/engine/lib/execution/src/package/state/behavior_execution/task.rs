@@ -1,10 +1,10 @@
 use crate::{
     package::{
         state::{behavior_execution::ExecuteBehaviorsTaskMessage, StateTask, StateTaskMessage},
-        PackageTask, TaskMessage,
+        PackageTask,
     },
     runner::MessageTarget,
-    task::TargetedTaskMessage,
+    task::{TargetedTaskMessage, TaskMessage},
     worker::WorkerHandler,
     worker_pool::{SplitConfig, WorkerPoolHandler},
     Error, Result,
