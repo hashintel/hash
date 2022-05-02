@@ -92,25 +92,17 @@ impl<'s> JsPackage<'s> {
         let path = get_pkg_path(name, pkg_type);
         tracing::debug!("Importing package from path `{path}`");
 
-        let namespace: Object<'_> = {
-            let pkg = match ModuleMap::import_module(scope, &path) {
-                Ok(s) => s,
-                Err(Error::MissingJavascriptImport(_)) => {
-                    tracing::debug!(
-                        "Couldn't read package file. It might intentionally not exist."
-                    );
-                    // Packages don't have to use JS.
-                    let undefined = v8::undefined(scope).into();
-                    let fns = v8::Array::new_with_elements(scope, &[undefined; 3]);
+        let namespace: Object<'_> = match import_and_get_module_namespace(scope, &path) {
+            Ok(s) => s,
+            Err(Error::MissingJavascriptImport(_)) => {
+                tracing::debug!("Couldn't read package file. It might intentionally not exist.");
+                // Packages don't have to use JS.
+                let undefined = v8::undefined(scope).into();
+                let fns = v8::Array::new_with_elements(scope, &[undefined; 3]);
 
-                    return Ok(JsPackage { fns });
-                }
-                Err(err) => return Err(err),
-            };
-
-            pkg.get_module_namespace()
-                .to_object(scope)
-                .expect("Module is not instantiated")
+                return Ok(JsPackage { fns });
+            }
+            Err(err) => return Err(err),
         };
 
         let fn_names = ["start_experiment", "start_sim", "run_task"];
@@ -2019,6 +2011,18 @@ where
     }
 
     Some(returned_string)
+}
+
+fn import_and_get_module_namespace<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    path: &str,
+) -> Result<Object<'s>> {
+    let pkg = ModuleMap::import_module(scope, &path)?;
+
+    Ok(pkg
+        .get_module_namespace()
+        .to_object(scope)
+        .expect("Module is not instantiated"))
 }
 
 // Returns the new max heap size.
