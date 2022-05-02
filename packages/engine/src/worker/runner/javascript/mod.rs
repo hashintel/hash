@@ -2015,7 +2015,7 @@ fn import_and_get_module_namespace<'s>(
     scope: &mut v8::HandleScope<'s>,
     path: &str,
 ) -> Result<Object<'s>> {
-    let pkg = ModuleMap::import_module(scope, &path)?;
+    let pkg = ModuleMap::import_module(scope, path)?;
 
     Ok(pkg
         .get_module_namespace()
