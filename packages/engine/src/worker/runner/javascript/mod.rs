@@ -88,7 +88,11 @@ fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
 
 /// TODO: DOC add docstrings on impl'd methods
 impl<'s> JsPackage<'s> {
-    fn import(scope: &mut v8::HandleScope<'s>, name: &str, pkg_type: PackageType) -> Result<Self> {
+    fn import_package(
+        scope: &mut v8::HandleScope<'s>,
+        name: &str,
+        pkg_type: PackageType,
+    ) -> Result<Self> {
         let path = get_pkg_path(name, pkg_type);
         tracing::debug!("Importing package from path `{path}`");
 
@@ -839,7 +843,7 @@ impl<'s> ThreadLocalRunner<'s> {
             let i_pkg = i_pkg as u32;
 
             let pkg_name = pkg_init.name.to_string();
-            let pkg = JsPackage::import(scope, &pkg_name, pkg_init.r#type)?;
+            let pkg = JsPackage::import_package(scope, &pkg_name, pkg_init.r#type)?;
             tracing::trace!(
                 "pkg experiment init name {:?}, type {}, fns {:?}",
                 &pkg_init.name,
