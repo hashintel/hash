@@ -1,16 +1,14 @@
-pub mod js_py;
-
 use std::{
     collections::{hash_map::Iter, HashMap},
     lazy::SyncOnceCell,
 };
 
 use execution::package::{
-    init::{json::JsonInitCreator, InitPackageCreator, InitPackageName},
+    init::{json::JsonInitCreator, script::ScriptInitCreator, InitPackageCreator, InitPackageName},
     PackageInitConfig,
 };
 
-use crate::simulation::{comms::Comms, package::init::js_py::ScriptInitCreator, Error, Result};
+use crate::simulation::{comms::Comms, Error, Result};
 
 pub struct PackageCreators(
     SyncOnceCell<HashMap<InitPackageName, Box<dyn InitPackageCreator<Comms>>>>,

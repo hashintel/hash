@@ -6,8 +6,8 @@ use stateful::field::PackageId;
 
 use crate::{
     package::{
-        init::json::JsonInitCreator, Dependencies, PackageCreator, PackageIdGenerator,
-        PackageMetadata, PackageType,
+        init::{json::JsonInitCreator, script::ScriptInitCreator},
+        Dependencies, PackageCreator, PackageIdGenerator, PackageMetadata, PackageType,
     },
     Error, Result,
 };
@@ -49,15 +49,14 @@ lazy_static! {
         use InitPackageName::{JsPy, Json};
         let mut id_creator = PackageIdGenerator::new(PackageType::Init);
         let mut m = HashMap::new();
-        todo!("Add init packages to metadata");
-        m.insert(
-            Json,
-            PackageMetadata { id: id_creator.next(), dependencies: JsonInitCreator::dependencies() },
-        );
-        // m.insert(
-        //     JsPy,
-        //     PackageMetadata::new(id_creator.next(), ScriptInitCreator::dependencies()),
-        // );
+        m.insert(Json, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: JsonInitCreator::dependencies(),
+        });
+        m.insert(JsPy, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: ScriptInitCreator::dependencies(),
+        });
         m
     };
 }
