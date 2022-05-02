@@ -117,14 +117,14 @@ impl<'s> JsPackage<'s> {
         let fns = fn_names
             .into_iter()
             .map(|fn_name| {
-                let mut try_catch = v8::TryCatch::new(scope);
+                let mut try_catch_scope = v8::TryCatch::new(scope);
 
-                let js_fn_name = new_js_string(&mut try_catch, fn_name);
+                let js_fn_name = new_js_string(&mut try_catch_scope, fn_name);
                 // Get the function `Value` from the namespace
                 let func_or_undefined: Value<'_> = namespace
-                    .get(&mut try_catch, js_fn_name.into())
+                    .get(&mut try_catch_scope, js_fn_name.into())
                     .ok_or_else(|| {
-                        let exception = read_try_catch_exception(&mut try_catch).unwrap();
+                        let exception = read_try_catch_exception(&mut try_catch_scope).unwrap();
 
                         Error::PackageImport(
                             path.clone(),
@@ -167,15 +167,16 @@ fn read_file(path: &str) -> Result<String> {
 fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s>> {
     let source_code = read_file(path)?;
     let js_source_code = new_js_string(scope, &source_code);
-    let mut try_catch = v8::TryCatch::new(scope);
-    let script = v8::Script::compile(&mut try_catch, js_source_code, None).ok_or_else(|| {
-        let exception = read_try_catch_exception(&mut try_catch).unwrap();
+    let mut try_catch_scope = v8::TryCatch::new(scope);
+    let script =
+        v8::Script::compile(&mut try_catch_scope, js_source_code, None).ok_or_else(|| {
+            let exception = read_try_catch_exception(&mut try_catch_scope).unwrap();
 
-        Error::Eval(path.into(), format!("Compile error: {exception}"))
-    })?;
+            Error::Eval(path.into(), format!("Compile error: {exception}"))
+        })?;
 
-    script.run(&mut try_catch).ok_or_else(|| {
-        let exception = read_try_catch_exception(&mut try_catch).unwrap();
+    script.run(&mut try_catch_scope).ok_or_else(|| {
+        let exception = read_try_catch_exception(&mut try_catch_scope).unwrap();
 
         Error::Eval(path.into(), format!("Execution error: {exception}"))
     })
@@ -225,18 +226,18 @@ impl ModuleMap {
                 true,
             )),
         );
-        let mut try_catch = v8::TryCatch::new(scope);
+        let mut try_catch_scope = v8::TryCatch::new(scope);
         let module =
-            v8::script_compiler::compile_module(&mut try_catch, source).ok_or_else(|| {
-                let exception = read_try_catch_exception(&mut try_catch).unwrap();
+            v8::script_compiler::compile_module(&mut try_catch_scope, source).ok_or_else(|| {
+                let exception = read_try_catch_exception(&mut try_catch_scope).unwrap();
 
                 Error::Eval(path.to_string(), format!("Compile error: {exception}"))
             })?;
 
         module
-            .instantiate_module(&mut try_catch, module_resolve_callback)
+            .instantiate_module(&mut try_catch_scope, module_resolve_callback)
             .ok_or_else(|| {
-                let exception = read_try_catch_exception(&mut try_catch).unwrap();
+                let exception = read_try_catch_exception(&mut try_catch_scope).unwrap();
 
                 Error::PackageImport(
                     path.to_string(),
@@ -251,8 +252,8 @@ impl ModuleMap {
             ));
         }
 
-        module.evaluate(&mut try_catch).ok_or_else(|| {
-            let exception = read_try_catch_exception(&mut try_catch).unwrap();
+        module.evaluate(&mut try_catch_scope).ok_or_else(|| {
+            let exception = read_try_catch_exception(&mut try_catch_scope).unwrap();
 
             Error::PackageImport(
                 path.to_string(),
@@ -265,9 +266,9 @@ impl ModuleMap {
         if module.get_status() != v8::ModuleStatus::Evaluated {
             let exception = module.get_exception();
             let exception_string = exception
-                .to_string(&mut try_catch)
+                .to_string(&mut try_catch_scope)
                 .unwrap()
-                .to_rust_string_lossy(&mut try_catch);
+                .to_rust_string_lossy(&mut try_catch_scope);
 
             return Err(Error::PackageImport(
                 path.to_string(),
@@ -275,10 +276,10 @@ impl ModuleMap {
             ));
         }
 
-        module_map
-            .borrow_mut()
-            .path_to_module
-            .insert(path.to_string(), v8::Global::new(&mut try_catch, module));
+        module_map.borrow_mut().path_to_module.insert(
+            path.to_string(),
+            v8::Global::new(&mut try_catch_scope, module),
+        );
 
         Ok(module)
     }
@@ -420,9 +421,9 @@ fn call_js_function<'s>(
     this: Value<'s>,
     args: &[Value<'s>],
 ) -> std::result::Result<Value<'s>, String> {
-    let mut try_catch = v8::TryCatch::new(scope);
-    func.call(&mut try_catch, this, args)
-        .ok_or_else(|| read_try_catch_exception(&mut try_catch).unwrap())
+    let mut try_catch_scope = v8::TryCatch::new(scope);
+    func.call(&mut try_catch_scope, this, args)
+        .ok_or_else(|| read_try_catch_exception(&mut try_catch_scope).unwrap())
 }
 
 fn current_step_to_js<'s>(scope: &mut v8::HandleScope<'s>, current_step: usize) -> Value<'s> {
@@ -1994,25 +1995,27 @@ fn new_js_string<'s>(
 }
 
 /// Helper function to get the exception from a [`v8::TryCatch`]
-fn read_try_catch_exception<'s, 'p: 's, S>(try_catch: &mut v8::TryCatch<'s, S>) -> Option<String>
+fn read_try_catch_exception<'s, 'p: 's, S>(
+    try_catch_scope: &mut v8::TryCatch<'s, S>,
+) -> Option<String>
 where
     v8::TryCatch<'s, S>: AsMut<v8::HandleScope<'p, ()>>,
     v8::TryCatch<'s, S>: AsMut<v8::HandleScope<'p, v8::Context>>,
 {
-    let exception = try_catch.exception()?;
-    let exception_message = try_catch.message();
+    let exception = try_catch_scope.exception()?;
+    let exception_message = try_catch_scope.message();
 
     let mut returned_string = exception
-        .to_string(try_catch.as_mut())
+        .to_string(try_catch_scope.as_mut())
         .unwrap()
-        .to_rust_string_lossy(try_catch.as_mut());
+        .to_rust_string_lossy(try_catch_scope.as_mut());
 
     if let Some(exception_message) = exception_message {
         returned_string.push_str(", Exception message: ");
         returned_string.push_str(
             &exception_message
-                .get(try_catch.as_mut())
-                .to_rust_string_lossy(try_catch.as_mut()),
+                .get(try_catch_scope.as_mut())
+                .to_rust_string_lossy(try_catch_scope.as_mut()),
         )
     }
 
