@@ -63,6 +63,9 @@ pub enum Error {
 
     #[error("Uuid error: {0}")]
     Uuid(#[from] uuid::Error),
+
+    #[error("KdTree error: {0}")]
+    KdTree(#[from] kdtree::ErrorKind),
 }
 
 impl Error {

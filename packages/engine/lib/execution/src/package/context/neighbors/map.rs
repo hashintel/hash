@@ -1,17 +1,15 @@
 use std::collections::HashSet;
 
+use kdtree::KdTree;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use stateful::state::AgentIndex;
 
-use crate::simulation::{
-    package::context::neighbors::{Result, TopologyConfig},
-    Error,
-};
+use crate::{package::state::topology::TopologyConfig, Error, Result};
 
 pub(super) type PositionSubType = f64;
 pub(super) type Position = [PositionSubType; 3];
 
-pub type Tree<'a> = kdtree::kdtree::KdTree<PositionSubType, AgentIndex, &'a Position>;
+pub type Tree<'a> = KdTree<PositionSubType, AgentIndex, &'a Position>;
 
 #[derive(Debug)]
 pub struct NeighborMap {

@@ -1,13 +1,6 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use execution::{
-    package::{
-        context::ContextPackage, state::topology::TopologyConfig, MaybeCpuBound, Package,
-        PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
-    },
-    Result,
-};
 use stateful::{
     agent,
     agent::AgentBatch,
@@ -19,8 +12,14 @@ use stateful::{
 use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
-use crate::simulation::package::context::{
-    neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackageCreator,
+use crate::{
+    package::{
+        context::{neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackage, ContextPackageCreator},
+        state::topology::TopologyConfig,
+        MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
+        PackageInitConfig,
+    },
+    Result,
 };
 
 mod adjacency;

@@ -3,7 +3,7 @@ use memory::arrow::meta::{
 };
 use stateful::context::ContextColumnWriter;
 
-use crate::simulation::package::context::neighbors::map::NeighborMap;
+use crate::package::context::neighbors::map::NeighborMap;
 
 const NUM_NODES: usize = 3;
 const NUM_BUFFERS: usize = 5;

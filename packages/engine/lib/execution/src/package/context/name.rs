@@ -6,7 +6,10 @@ use stateful::field::PackageId;
 
 use crate::{
     package::{
-        context::{agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator},
+        context::{
+            agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator,
+            neighbors::NeighborsCreator,
+        },
         Dependencies, PackageCreator, PackageIdGenerator, PackageMetadata, PackageType,
     },
     Error, Result,
@@ -51,10 +54,9 @@ lazy_static! {
         use ContextPackageName::{AgentMessages, ApiRequests, Neighbors};
         let mut id_creator = PackageIdGenerator::new(PackageType::Context);
         let mut m = HashMap::new();
-        todo!("Add context packages to metadata");
         m.insert(AgentMessages, PackageMetadata { id: id_creator.next(), dependencies: AgentMessagesCreator::dependencies()});
         m.insert(ApiRequests, PackageMetadata { id: id_creator.next(), dependencies: ApiRequestsCreator::dependencies()});
-        // m.insert(Neighbors, PackageMetadata::new(id_creator.next(), NeighborsCreator::dependencies()));
+        m.insert(Neighbors, PackageMetadata { id: id_creator.next(), dependencies: NeighborsCreator::dependencies() });
         m
     };
 }

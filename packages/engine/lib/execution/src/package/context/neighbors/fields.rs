@@ -3,7 +3,7 @@ use stateful::field::{
     RootFieldSpec, RootFieldSpecCreator,
 };
 
-use crate::simulation::package::context::neighbors::{Result, NEIGHBOR_INDEX_COUNT};
+use crate::{package::context::neighbors::NEIGHBOR_INDEX_COUNT, Result};
 
 pub(super) const NEIGHBORS_FIELD_NAME: &str = "neighbors";
 pub(super) const SEARCH_RADIUS_FIELD_NAME: &str = "search_radius";

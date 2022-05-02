@@ -132,9 +132,6 @@ pub enum Error {
     #[error("Got 'started' message from handler in middle of simulation run")]
     UnexpectedStartedMessage,
 
-    #[error("KdTree error: {0}")]
-    KdTree(#[from] kdtree::ErrorKind),
-
     #[error("Tokio Join Error: {0}")]
     TokioJoin(#[from] tokio::task::JoinError),
 

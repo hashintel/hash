@@ -1,5 +1,3 @@
-pub mod neighbors;
-
 use std::{
     collections::{hash_map::Iter, HashMap},
     lazy::SyncOnceCell,
@@ -8,14 +6,12 @@ use std::{
 use execution::package::{
     context::{
         agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator,
-        ContextPackageCreator, ContextPackageName,
+        neighbors::NeighborsCreator, ContextPackageCreator, ContextPackageName,
     },
     PackageInitConfig,
 };
 
-use crate::simulation::{
-    comms::Comms, package::context::neighbors::NeighborsCreator, Error, Result,
-};
+use crate::simulation::{comms::Comms, Error, Result};
 
 pub struct PackageCreators(
     SyncOnceCell<HashMap<ContextPackageName, Box<dyn ContextPackageCreator<Comms>>>>,
