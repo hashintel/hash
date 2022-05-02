@@ -1,17 +1,17 @@
 //! TODO: DOC
 use std::fmt;
 
-use execution::task::TaskId;
+use execution::{runner::comms::RunnerTaskMessage, task::TaskId};
 
 use crate::{
     datastore::table::sync::{ContextBatchSync, StateSync, WaitableStateSync},
     proto::SimulationShortId,
-    worker::runner::comms::{NewSimulationRun, RunnerTaskMsg, StateInterimSync},
+    worker::runner::comms::{NewSimulationRun, StateInterimSync},
 };
 
 /// TODO: DOC
 pub enum InboundToRunnerMsgPayload {
-    TaskMsg(RunnerTaskMsg),
+    TaskMsg(RunnerTaskMessage),
     CancelTask(TaskId),
     StateSync(WaitableStateSync),
     StateSnapshotSync(StateSync),

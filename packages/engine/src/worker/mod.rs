@@ -14,7 +14,7 @@ use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration
 
 use execution::{
     package::TaskMessage,
-    runner::{Language, MessageTarget, RunnerConfig},
+    runner::{comms::RunnerTaskMessage, Language, MessageTarget, RunnerConfig},
     task::{SharedState, SharedStore, TaskId},
     worker::{RunnerSpawnConfig, WorkerConfig, WorkerHandler},
 };
@@ -31,7 +31,7 @@ use self::{
     runner::{
         comms::{
             outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
-            ExperimentInitRunnerMsg, NewSimulationRun, RunnerTaskMsg,
+            ExperimentInitRunnerMsg, NewSimulationRun,
         },
         javascript::JavaScriptRunner,
         python::PythonRunner,
@@ -482,14 +482,14 @@ impl WorkerController {
     async fn run_task_handler_on_outbound(
         &mut self,
         sim_id: SimulationShortId,
-        msg: RunnerTaskMsg,
+        msg: RunnerTaskMessage,
         source: Language,
     ) -> Result<()> {
         if let Some(pending) = self.tasks.inner.get_mut(&msg.task_id) {
             let next = WorkerHandler::handle_worker_message(&mut pending.inner, msg.payload)?;
             match next.target {
                 MessageTarget::Rust => {
-                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
                         package_id: msg.package_id,
                         task_id: msg.task_id,
                         group_index: msg.group_index,
@@ -506,7 +506,7 @@ impl WorkerController {
                         .active_runner = Language::Rust;
                 }
                 MessageTarget::Python => {
-                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
                         package_id: msg.package_id,
                         task_id: msg.task_id,
                         group_index: msg.group_index,
@@ -524,7 +524,7 @@ impl WorkerController {
                         .active_runner = Language::Python;
                 }
                 MessageTarget::JavaScript => {
-                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
                         package_id: msg.package_id,
                         task_id: msg.task_id,
                         group_index: msg.group_index,
@@ -642,7 +642,7 @@ impl WorkerController {
         let mut pending_groups = vec![];
 
         for (group_index, shared_store) in shared_stores {
-            let runner_msg = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+            let runner_msg = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
                 task_id,
                 package_id: task.package_id,
                 group_index,

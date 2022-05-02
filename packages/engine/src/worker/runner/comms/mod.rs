@@ -6,12 +6,7 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
-use execution::{
-    package::TaskMessage,
-    runner::{MessageTarget, RunnerConfig},
-    task::{SharedStore, TaskId},
-    worker_pool::WorkerIndex,
-};
+use execution::{runner::RunnerConfig, task::SharedStore, worker_pool::WorkerIndex};
 use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
 use tracing::Span;
 
@@ -20,83 +15,10 @@ use crate::{
     datastore::shared_store::SharedDatasets,
     proto::{ExperimentId, SimulationShortId},
     simulation::package::worker_init::PackageInitMsgForWorker,
-    worker::{Error, Result},
 };
 
 pub mod inbound;
 pub mod outbound;
-
-/// Contains some data about an inbound task that was sent to a runner's external process,
-/// but for which the runner hasn't yet gotten back the corresponding outbound task.
-/// This data is useful for reconstructing the outbound message struct later (i.e.
-/// converting the outbound FlatBuffers message into a Rust struct).
-///
-/// Fields:
-/// `shared_store`: Task shared store from inbound task message
-/// `task_wrapper`: Top two levels of nesting of task (when serialized as JSON)
-// TODO: UNUSED: Needs triage
-pub struct SentTask {
-    pub shared_store: SharedStore,
-    pub task_wrapper: serde_json::Value,
-}
-
-#[derive(Debug)]
-pub struct RunnerTaskMsg {
-    pub package_id: PackageId,
-    pub task_id: TaskId,
-    pub group_index: Option<usize>,
-    pub payload: TaskMessage,
-    pub shared_store: SharedStore,
-}
-
-#[derive(Debug)]
-pub struct TargetedRunnerTaskMsg {
-    pub target: MessageTarget,
-    pub msg: RunnerTaskMsg,
-}
-
-impl TargetedRunnerTaskMsg {
-    // TODO: UNUSED: Needs triage
-    #[allow(unreachable_code, unused_variables)]
-    pub fn try_from_fbs(
-        task_msg: flatbuffers_gen::task_msg_generated::TaskMsg<'_>,
-        sent_tasks: &mut HashMap<TaskId, SentTask>,
-    ) -> Result<Self> {
-        let task_id = TaskId::from_le_bytes(task_msg.task_id().0);
-
-        let sent = sent_tasks.remove(&task_id).ok_or_else(|| {
-            Error::from(format!("Outbound message w/o sent task id {:?}", task_id))
-        })?;
-
-        let target = task_msg.target().into();
-        let package_id = (task_msg.package_sid() as usize).into();
-        // TODO: our version of flatbuffers doesn't let us have optional Scalars
-        let group_index = task_msg.group_index().map(|val| val.inner() as usize);
-
-        let inner_msg: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
-        let payload = TaskMessage::try_from_inner_msg_and_wrapper(inner_msg, sent.task_wrapper);
-        // TODO: Error message duplication with JS runner
-        let payload = payload.map_err(|e| {
-            Error::from(format!(
-                "Failed to wrap and create a new TaskMessage, perhaps the inner: {:?}, was \
-                 formatted incorrectly. Underlying error: {}",
-                std::str::from_utf8(task_msg.payload().inner()),
-                e
-            ))
-        })?;
-
-        Ok(Self {
-            target,
-            msg: RunnerTaskMsg {
-                package_id,
-                task_id,
-                group_index,
-                payload,
-                shared_store: sent.shared_store,
-            },
-        })
-    }
-}
 
 #[derive(Debug)]
 pub struct StateInterimSync {

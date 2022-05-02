@@ -11,7 +11,13 @@ use std::{
     sync::Arc,
 };
 
-use execution::{runner::Language, task::TaskId};
+use execution::{
+    runner::{
+        comms::{RunnerTaskMessage, SentTask},
+        Language,
+    },
+    task::TaskId,
+};
 use futures::FutureExt;
 use tokio::{
     process::Command,
@@ -27,7 +33,7 @@ use crate::{
         runner::comms::{
             inbound::InboundToRunnerMsgPayload,
             outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
-            ExperimentInitRunnerMsg, RunnerTaskMsg, SentTask,
+            ExperimentInitRunnerMsg,
         },
         Error as WorkerError, Result as WorkerResult,
     },
@@ -188,7 +194,7 @@ async fn _run(
                             return Err(Error::AlreadyAwaiting.into());
                         }
                     }
-                    InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                    InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
                         task_id,
                         shared_store,
                         ..

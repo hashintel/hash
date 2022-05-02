@@ -23,7 +23,10 @@ use arrow::{
 };
 use execution::{
     package::{PackageType, TaskMessage},
-    runner::{Language, MessageTarget},
+    runner::{
+        comms::{RunnerTaskMessage, TargetedRunnerTaskMsg},
+        Language, MessageTarget,
+    },
     task::{PartialSharedState, SharedState, SharedStore, TaskId},
 };
 use futures::{Future, FutureExt};
@@ -55,7 +58,7 @@ use crate::{
                 OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, UserError,
                 UserWarning,
             },
-            ExperimentInitRunnerMsg, NewSimulationRun, RunnerTaskMsg, TargetedRunnerTaskMsg,
+            ExperimentInitRunnerMsg, NewSimulationRun,
         },
         Result as WorkerResult,
     },
@@ -1499,7 +1502,7 @@ impl<'s> ThreadLocalRunner<'s> {
         &mut self,
         scope: &mut v8::HandleScope<'s>,
         sim_id: SimulationShortId,
-        msg: RunnerTaskMsg,
+        msg: RunnerTaskMessage,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
     ) -> Result<()> {
         tracing::debug!("Starting state interim sync before running task");
@@ -1644,7 +1647,7 @@ impl<'s> ThreadLocalRunner<'s> {
 
         let next_task_msg = TargetedRunnerTaskMsg {
             target: next_target,
-            msg: RunnerTaskMsg {
+            msg: RunnerTaskMessage {
                 package_id,
                 task_id,
                 group_index,

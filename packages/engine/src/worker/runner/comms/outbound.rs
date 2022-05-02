@@ -1,17 +1,19 @@
 use std::collections::HashMap;
 
-use execution::{runner::Language, task::TaskId};
+use execution::{
+    runner::{
+        comms::{SentTask, TargetedRunnerTaskMsg},
+        Language,
+    },
+    task::TaskId,
+};
 use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use serde::{Deserialize, Serialize};
 use tracing::Span;
 
 use crate::{
     proto::SimulationShortId,
-    worker::{
-        self,
-        runner::comms::{SentTask, TargetedRunnerTaskMsg},
-        Error, Result,
-    },
+    worker::{self, Error, Result},
 };
 
 #[derive(Debug, Default, Clone)]
