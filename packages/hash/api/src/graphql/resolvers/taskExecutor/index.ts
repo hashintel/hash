@@ -2,9 +2,8 @@ import { ApolloError } from "apollo-server-express";
 import { JSONObject } from "blockprotocol";
 import { upperFirst, camelCase } from "lodash";
 import { singular } from "pluralize";
-import { DbAdapter } from "../../../db";
-import { Entity, EntityType, User } from "../../../model";
-import { Tasks } from "../../../task-execution";
+import { Entity } from "../../../model";
+import { CachedEntityTypes, Tasks } from "../../../task-execution";
 import {
   MutationExecuteGithubCheckTaskArgs,
   MutationExecuteGithubDiscoverTaskArgs,
@@ -25,7 +24,7 @@ export const executeDemoTask: Resolver<
   } else {
     try {
       return await taskExecutor
-        .run_task(Tasks.Demo)
+        .runTask(Tasks.Demo)
         .then((res) => res.toString());
     } catch (err: any) {
       throw new ApolloError(`Task-execution failed: ${err}`);
@@ -45,7 +44,7 @@ export const executeGithubSpecTask: Resolver<
   } else {
     try {
       return await taskExecutor
-        .run_task(Tasks.GithubSpec)
+        .runTask(Tasks.GithubSpec)
         .then((res) => JSON.stringify(res));
     } catch (err: any) {
       throw new ApolloError(`Task-execution failed: ${err}`);
@@ -66,7 +65,7 @@ export const executeGithubCheckTask: Resolver<
   } else {
     try {
       return await taskExecutor
-        .run_task(Tasks.GithubCheck, config)
+        .runTask(Tasks.GithubCheck, config)
         .then((res) => JSON.stringify(res));
     } catch (err: any) {
       throw new ApolloError(`Task-execution failed: ${err}`);
@@ -102,48 +101,9 @@ type AirbyteRecords = Array<{
   [k: string]: unknown;
 }>;
 
-const ExistingEntityChecker = async (db: DbAdapter, user: User) => {
-  const streamsWithEntityTypes: Map<string, string> = new Map();
-  const dbTypes = await db.getAccountEntityTypes({
-    accountId: user.accountId,
-  });
-
-  return {
-    getExisting: (entityTypeName: string) => {
-      // check the map to find the entityTypeId associated with the stream if we've already encountered it
-      let entityTypeId: string | undefined | null =
-        streamsWithEntityTypes.get(entityTypeName);
-
-      if (entityTypeId === undefined) {
-        // check all entityTypes to see if there's one with the same name as the stream
-        entityTypeId = dbTypes.find(
-          (entityType) => entityType.metadata.name === entityTypeName,
-        )?.entityId; /** @todo - WHY is this entityId instead of entityTypeId?! */
-      }
-      return entityTypeId || undefined;
-    },
-
-    createNew: async (entityTypeName: string, jsonSchema?: JSONObject) => {
-      const entityTypeId = await db.transaction(async (client) => {
-        const entityType = await EntityType.create(client, {
-          /** @todo should this be a param on the graphql endpoint */
-          accountId: user.accountId,
-          createdByAccountId: user.accountId,
-          description: undefined,
-          name: entityTypeName,
-          schema: jsonSchema,
-        });
-        return entityType.entityId;
-      });
-
-      streamsWithEntityTypes.set(entityTypeName, entityTypeId);
-    },
-  };
-};
-
 const streamNameToEntityTypeName = (name: string) => {
-  const sanitisedName = singular(upperFirst(camelCase(name)));
-  return `Github${sanitisedName}`;
+  const sanitizedName = singular(upperFirst(camelCase(name)));
+  return `Github${sanitizedName}`;
 };
 
 export const executeGithubDiscoverTask: Resolver<
@@ -162,12 +122,12 @@ export const executeGithubDiscoverTask: Resolver<
     );
   } else {
     try {
-      const catalog: AirbyteCatalog = await taskExecutor.run_task(
+      const catalog: AirbyteCatalog = await taskExecutor.runTask(
         Tasks.GithubDiscover,
         config,
       );
 
-      const existingEntityChecker = await ExistingEntityChecker(db, user);
+      const existingEntityChecker = await CachedEntityTypes(db, user);
 
       for (const message of catalog) {
         if (!message.name || !message.json_schema) {
@@ -209,13 +169,13 @@ export const executeGithubReadTask: Resolver<
   } else {
     const createdEntities = [];
     try {
-      const airbyteRecords: AirbyteRecords = await taskExecutor.run_task(
+      const airbyteRecords: AirbyteRecords = await taskExecutor.runTask(
         Tasks.GithubRead,
         config,
       );
       logger.debug(`Received ${airbyteRecords.length} records from Github`);
 
-      const existingEntityChecker = await ExistingEntityChecker(db, user);
+      const existingEntityChecker = await CachedEntityTypes(db, user);
       for (const record of airbyteRecords) {
         const entityTypeName = streamNameToEntityTypeName(record.stream);
         /** @todo - Check if entity already exists */
