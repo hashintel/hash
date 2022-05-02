@@ -2,7 +2,7 @@
   "private": true,
   "description": "HASH monorepo",
   "workspaces": [
-    "sites/dev",
+    "sites/hashdev",
     "packages/blocks/*",
     "packages/engine/apache-arrow-js-bundle",
     "packages/hash/api",

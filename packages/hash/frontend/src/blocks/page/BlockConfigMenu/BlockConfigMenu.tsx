@@ -60,7 +60,20 @@ const ConfigurationInput: VoidFunctionComponent<{
 
   const updateProperty = (
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => onChange(event.target.value);
+  ) => {
+    const { value: newValue } = event.target;
+    // If a type is a number or an array that accepts a number, convert to a number
+    if (
+      type === "number" ||
+      (Array.isArray(type) &&
+        type.includes("string") &&
+        type.includes("number"))
+    ) {
+      onChange(Number.isNaN(+newValue) ? newValue : Number(newValue));
+    } else {
+      onChange(newValue);
+    }
+  };
 
   const [draftValue, setDraftValue] = useState(value);
 
@@ -76,60 +89,87 @@ const ConfigurationInput: VoidFunctionComponent<{
     setDraftValue(value);
   }
 
-  switch (type) {
-    case "boolean":
-      return (
-        <FormControlLabel
-          control={
-            <Checkbox
-              onChange={updateProperty}
-              checked={typeof value === "boolean" ? value : false}
-            />
-          }
-          label={name}
-        />
-      );
-
-    case "string":
-      if (format) {
-        // @todo validate string format - should have a reusable input that does this
-      }
-      return (
-        <TextField
-          label={name}
-          onBlur={enumList ? undefined : updateProperty}
-          onChange={(event) => {
-            setDraftValue(event.target.value);
-            if (enumList) {
-              updateProperty(event);
-            }
-          }}
-          select={!!enumList}
-          value={draftValue}
-        >
-          {(enumList ?? []).map((option: string) => (
-            <MenuItem key={option} value={option}>
-              {option}
-            </MenuItem>
-          ))}
-        </TextField>
-      );
-
-    case "number":
-      return (
-        <TextField
-          defaultValue={value ?? ""}
-          onBlur={(event) => onChange(event.target.value)}
-          onChange={(event) => setDraftValue(event.target.value)}
-          type="number"
-          value={draftValue}
-          variant="outlined"
-        />
-      );
-
-    default:
-      throw new Error(`Property type ${type} config input not implemented`);
+  if (type === "boolean") {
+    return (
+      <FormControlLabel
+        control={
+          <Checkbox
+            onChange={(event) => onChange(event.target.checked)}
+            checked={typeof value === "boolean" ? value : value === "true"}
+          />
+        }
+        label={name}
+      />
+    );
   }
+
+  if (type === "string") {
+    if (format) {
+      // @todo validate string format - should have a reusable input that does this
+    }
+    return (
+      <TextField
+        label={name}
+        onBlur={enumList ? undefined : updateProperty}
+        onChange={(event) => {
+          setDraftValue(event.target.value);
+          if (enumList) {
+            updateProperty(event);
+          }
+        }}
+        select={!!enumList}
+        value={draftValue}
+      >
+        {(enumList ?? []).map((option: string) => (
+          <MenuItem key={option} value={option}>
+            {option}
+          </MenuItem>
+        ))}
+      </TextField>
+    );
+  }
+
+  if (type === "number") {
+    return (
+      <TextField
+        defaultValue={value ?? ""}
+        onBlur={(event) => onChange(event.target.value)}
+        onChange={(event) => setDraftValue(event.target.value)}
+        type="number"
+        value={draftValue}
+        variant="outlined"
+      />
+    );
+  }
+
+  if (
+    Array.isArray(type) &&
+    type.includes("string") &&
+    type.includes("number")
+  ) {
+    return (
+      <TextField
+        label={name}
+        onBlur={enumList ? undefined : updateProperty}
+        onChange={(event) => {
+          setDraftValue(event.target.value);
+          if (enumList) {
+            updateProperty(event);
+          }
+        }}
+        select={!!enumList}
+        value={draftValue}
+      >
+        {(enumList ?? []).map((option: string) => (
+          <MenuItem key={option} value={option}>
+            {option}
+          </MenuItem>
+        ))}
+      </TextField>
+    );
+  }
+
+  throw new Error(`Property type ${type} config input not implemented`);
 };
 
 type BlockConfigMenuProps = {
