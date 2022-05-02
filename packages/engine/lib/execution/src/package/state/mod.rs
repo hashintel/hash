@@ -5,12 +5,17 @@ mod name;
 mod task;
 
 use async_trait::async_trait;
-use stateful::{agent::Agent, context::Context, state::State};
+use stateful::{
+    context::Context,
+    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    global::Globals,
+    state::State,
+};
 use tracing::Span;
 
 pub use self::{message::StateTaskMessage, name::StatePackageName, task::StateTask};
 use crate::{
-    package::{MaybeCpuBound, Package},
+    package::{Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig},
     Result,
 };
 

@@ -1,8 +1,12 @@
 use async_trait::async_trait;
-use stateful::agent::Agent;
+use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
 use crate::{
-    package::{init::InitPackage, MaybeCpuBound, Package},
+    package::{
+        init::{InitPackage, InitPackageCreator, InitialStateName},
+        MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
+        PackageInitConfig,
+    },
     Error, Result,
 };
 
@@ -29,3 +33,31 @@ impl InitPackage for JsonInit {
         })
     }
 }
+
+pub struct JsonInitCreator;
+
+impl<C> InitPackageCreator<C> for JsonInitCreator {
+    fn create(
+        &self,
+        _config: &PackageCreatorConfig,
+        init_config: &PackageInitConfig,
+        _comms: PackageComms<C>,
+        _accessor: FieldSpecMapAccessor,
+    ) -> Result<Box<dyn InitPackage>> {
+        match &init_config.initial_state.name {
+            InitialStateName::InitJson => Ok(Box::new(JsonInit {
+                initial_state_src: init_config.initial_state.src.clone(),
+            })),
+            name => {
+                return Err(Error::from(format!(
+                    "Trying to create a JSON init package but the init file didn't end in .json \
+                     but instead was: {:?}",
+                    name
+                )));
+            }
+        }
+    }
+}
+
+// TODO: possibly pass init.json here to optimize
+impl PackageCreator for JsonInitCreator {}

@@ -1,5 +1,4 @@
 pub mod js_py;
-pub mod json;
 
 use std::{
     collections::{hash_map::Iter, HashMap},
@@ -7,15 +6,11 @@ use std::{
 };
 
 use execution::package::{
-    init::{InitPackageCreator, InitPackageName},
+    init::{json::JsonInitCreator, InitPackageCreator, InitPackageName},
     PackageInitConfig,
 };
 
-use crate::simulation::{
-    comms::Comms,
-    package::init::{js_py::ScriptInitCreator, json::JsonInitCreator},
-    Error, Result,
-};
+use crate::simulation::{comms::Comms, package::init::js_py::ScriptInitCreator, Error, Result};
 
 pub struct PackageCreators(
     SyncOnceCell<HashMap<InitPackageName, Box<dyn InitPackageCreator<Comms>>>>,
