@@ -3,13 +3,13 @@ import { gql } from "apollo-server-express";
 export const executeTaskTypedef = gql`
   input GithubCredentials {
     """
-    Github Personal Access Token
+    GitHub Personal Access Token
     """
     personal_access_token: String!
   }
   input GithubTaskConfig {
     """
-    A space-separated list of Github Repositories, e.g. 'blockprotocol/blockprotocol hashintel/hash'
+    A space-separated list of GitHub Repositories, e.g. 'blockprotocol/blockprotocol hashintel/hash'
     """
     repository: String!
     """
@@ -26,19 +26,19 @@ export const executeTaskTypedef = gql`
     executeDemoTask: String!
 
     """
-    Call the Github Integration Spec Task
+    Call the GitHub Integration Spec Task
     """
     executeGithubSpecTask: String!
     """
-    Call the Github Integration Check Task
+    Call the GitHub Integration Check Task
     """
     executeGithubCheckTask(config: GithubTaskConfig!): String!
     """
-    Call the Github Integration Discover Task
+    Call the GitHub Integration Discover Task
     """
     executeGithubDiscoverTask(config: GithubTaskConfig!): String!
     """
-    Call the Github Integration Read Task
+    Call the GitHub Integration Read Task
     """
     executeGithubReadTask(config: GithubTaskConfig!): String!
   }
