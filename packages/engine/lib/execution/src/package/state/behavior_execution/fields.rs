@@ -1,13 +1,15 @@
 use arrow::datatypes::DataType;
-use execution::{
-    package::{state::behavior_execution::BehaviorMap, PackageInitConfig},
-    Result,
-};
 use stateful::field::{
     FieldScope, FieldType, FieldTypeVariant, PresetFieldType, RootFieldSpec, RootFieldSpecCreator,
 };
 
-use crate::simulation::package::state::behavior_execution::BEHAVIOR_INDEX_INNER_COUNT;
+use crate::{
+    package::{
+        state::behavior_execution::{BehaviorMap, BEHAVIOR_INDEX_INNER_COUNT},
+        PackageInitConfig,
+    },
+    Result,
+};
 
 pub(super) const BEHAVIORS_FIELD_NAME: &str = "behaviors";
 pub(super) const BEHAVIOR_INDEX_FIELD_NAME: &str = "behavior_index";

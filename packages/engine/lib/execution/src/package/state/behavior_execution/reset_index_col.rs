@@ -1,9 +1,8 @@
 use arrow::{array::ArrayData, datatypes::DataType};
-use execution::Result;
 use memory::arrow::{new_buffer, ColumnChange, IntoArrowChange};
 use stateful::state::StateColumn;
 
-use crate::simulation::package::state::behavior_execution::BehaviorIndexInnerDataType;
+use crate::{package::state::behavior_execution::BehaviorIndexInnerDataType, Result};
 
 pub fn reset_index_col(behavior_index_col_index: usize) -> Result<StateColumn> {
     Ok(StateColumn::new(Box::new(ResetIndexCol {

@@ -6,8 +6,8 @@ use stateful::field::PackageId;
 
 use crate::{
     package::{
-        state::topology::TopologyCreator, Dependencies, PackageCreator, PackageIdGenerator,
-        PackageMetadata, PackageType,
+        state::{behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator},
+        Dependencies, PackageCreator, PackageIdGenerator, PackageMetadata, PackageType,
     },
     Error, Result,
 };
@@ -49,15 +49,14 @@ lazy_static! {
         use StatePackageName::{BehaviorExecution, Topology};
         let mut id_creator = PackageIdGenerator::new(PackageType::State);
         let mut m = HashMap::new();
-        todo!("Add state packages to metadata");
-        // m.insert(
-        //     BehaviorExecution,
-        //     PackageMetadata::new(id_creator.next(), BehaviorExecutionCreator::dependencies()),
-        // );
-        m.insert(
-            Topology,
-            PackageMetadata { id: id_creator.next(), dependencies: TopologyCreator::dependencies() },
-        );
+        m.insert(BehaviorExecution, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: BehaviorExecutionCreator::dependencies(),
+        });
+        m.insert(Topology, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: TopologyCreator::dependencies(),
+        });
         m
     };
 }

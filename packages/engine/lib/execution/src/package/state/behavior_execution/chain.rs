@@ -1,10 +1,12 @@
 use arrow::{array::ArrayData, record_batch::RecordBatch};
-use execution::{Error, Result};
 use memory::arrow::{new_buffer, new_offsets_buffer, ColumnChange, IntoArrowChange};
 use stateful::{agent::AgentBatch, state::StateColumn};
 
-use crate::simulation::package::state::behavior_execution::{
-    config::BehaviorId, BehaviorIdInnerDataType, BehaviorIds, BEHAVIOR_INDEX_INNER_COUNT,
+use crate::{
+    package::state::behavior_execution::{
+        config::BehaviorId, BehaviorIdInnerDataType, BehaviorIds, BEHAVIOR_INDEX_INNER_COUNT,
+    },
+    Error, Result,
 };
 
 pub fn gather_behavior_chains(

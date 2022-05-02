@@ -1,18 +1,17 @@
-pub mod behavior_execution;
-
 use std::{
     collections::{hash_map::Iter, HashMap},
     lazy::SyncOnceCell,
 };
 
 use execution::package::{
-    state::{topology::TopologyCreator, StatePackageCreator, StatePackageName},
+    state::{
+        behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator,
+        StatePackageCreator, StatePackageName,
+    },
     PackageInitConfig,
 };
 
-use crate::simulation::{
-    comms::Comms, package::state::behavior_execution::BehaviorExecutionCreator, Error, Result,
-};
+use crate::simulation::{comms::Comms, Error, Result};
 
 pub struct PackageCreators(
     SyncOnceCell<HashMap<StatePackageName, Box<dyn StatePackageCreator<Comms>>>>,
