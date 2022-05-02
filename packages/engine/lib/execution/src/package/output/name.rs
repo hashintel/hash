@@ -5,7 +5,10 @@ use serde::Serialize;
 use stateful::field::PackageId;
 
 use crate::{
-    package::{Dependencies, PackageIdGenerator, PackageMetadata, PackageType},
+    package::{
+        output::json_state::JsonStateCreator, Dependencies, PackageCreator, PackageIdGenerator,
+        PackageMetadata, PackageType,
+    },
     Error, Result,
 };
 
@@ -51,10 +54,10 @@ lazy_static! {
         //     id: id_creator.next(),
         //     dependencies: AnalysisCreator::dependencies(),
         // });
-        // m.insert(JsonState, PackageMetadata {
-        //     id: id_creator.next(),
-        //     dependencies: JsonStateCreator::dependencies(),
-        // });
+        m.insert(JsonState, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: JsonStateCreator::dependencies(),
+        });
         m
     };
 }

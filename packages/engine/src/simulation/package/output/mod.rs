@@ -1,5 +1,4 @@
 pub mod analysis;
-pub mod json_state;
 
 use std::{
     collections::{hash_map::Iter, HashMap},
@@ -7,15 +6,11 @@ use std::{
 };
 
 use execution::package::{
-    output::{OutputPackageCreator, OutputPackageName},
+    output::{json_state::JsonStateCreator, OutputPackageCreator, OutputPackageName},
     PackageInitConfig,
 };
 
-use crate::simulation::{
-    comms::Comms,
-    package::output::{analysis::AnalysisCreator, json_state::JsonStateCreator},
-    Error, Result,
-};
+use crate::simulation::{comms::Comms, package::output::analysis::AnalysisCreator, Error, Result};
 
 pub struct PackageCreators(
     SyncOnceCell<HashMap<OutputPackageName, Box<dyn OutputPackageCreator<Comms>>>>,
