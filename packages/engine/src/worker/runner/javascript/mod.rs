@@ -320,7 +320,7 @@ impl<'s> Embedded<'s> {
         let runner = ModuleMap::import_module(scope, "./src/worker/runner/javascript/runner.js")?;
 
         // Importing a module doesn't return the items it exports. To access the items it exports we
-        // can use `get_module_namespace`. An example of that can be found at https://chromium.googlesource.com/v8/v8/+/refs/heads/lkgr/test/cctest/test-modules.cc#625
+        // can use `get_module_namespace`. An example of that can be found at https://github.com/v8/v8/blob/25e3225286d08a49812b9728810b4777041a7dd5/test/unittests/objects/modules-unittest.cc#L659
         let namespace = runner
             .get_module_namespace()
             .to_object(scope)
