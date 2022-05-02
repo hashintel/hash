@@ -6,8 +6,8 @@ use stateful::field::PackageId;
 
 use crate::{
     package::{
-        output::json_state::JsonStateCreator, Dependencies, PackageCreator, PackageIdGenerator,
-        PackageMetadata, PackageType,
+        output::{analysis::AnalysisCreator, json_state::JsonStateCreator},
+        Dependencies, PackageCreator, PackageIdGenerator, PackageMetadata, PackageType,
     },
     Error, Result,
 };
@@ -49,11 +49,10 @@ lazy_static! {
         use OutputPackageName::{Analysis, JsonState};
         let mut id_creator = PackageIdGenerator::new(PackageType::Output);
         let mut m = HashMap::new();
-        todo!("Add output packages to metadata");
-        // m.insert(Analysis, PackageMetadata {
-        //     id: id_creator.next(),
-        //     dependencies: AnalysisCreator::dependencies(),
-        // });
+        m.insert(Analysis, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: AnalysisCreator::dependencies(),
+        });
         m.insert(JsonState, PackageMetadata {
             id: id_creator.next(),
             dependencies: JsonStateCreator::dependencies(),

@@ -1,19 +1,21 @@
 use std::cmp::Ordering;
 
 use arrow::datatypes::DataType;
-use execution::package::output::analysis::AnalysisSingleOutput;
 use float_cmp::approx_eq;
 use stateful::{
     agent,
     field::{FieldSpecMapAccessor, FieldTypeVariant},
 };
 
-use crate::simulation::package::output::analysis::{
-    analyzer::{
-        AnalysisOperationRepr, ComparisonRepr, IndexIterator, OutputCreator, OutputRunner,
-        OutputRunnerCreator, ValueIterator, ValueIteratorCreator, ULPS,
+use crate::{
+    package::output::analysis::{
+        analyzer::{
+            AnalysisOperationRepr, ComparisonRepr, IndexIterator, OutputCreator, OutputRunner,
+            OutputRunnerCreator, ValueIterator, ValueIteratorCreator, ULPS,
+        },
+        value_iter::{value_iterator_filter, value_iterator_mapper},
+        AnalysisSingleOutput,
     },
-    value_iter::{value_iterator_filter, value_iterator_mapper},
     Error, Result,
 };
 

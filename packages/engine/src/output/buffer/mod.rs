@@ -5,7 +5,7 @@ mod util;
 
 use execution::package::{
     output::{
-        analysis::{AnalysisOutput, AnalysisSingleOutput},
+        analysis::{AnalysisOutput, AnalysisOutputConfig, AnalysisSingleOutput},
         OutputPackageName,
     },
     OutputPackagesSimConfig, PackageName,
@@ -19,7 +19,6 @@ pub use self::{
 use crate::{
     output::error::{Error, Result},
     proto::{ExperimentId, SimulationShortId},
-    simulation::package::output::analysis::AnalysisOutputConfig,
 };
 
 const RELATIVE_PARTS_FOLDER: &str = "./parts";

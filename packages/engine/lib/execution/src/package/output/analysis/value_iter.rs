@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 
 use float_cmp::approx_eq;
 
-use crate::simulation::package::output::analysis::{
-    analyzer::{ComparisonRepr, MapIterator, ValueIterator, ULPS},
+use crate::{
+    package::output::analysis::analyzer::{ComparisonRepr, MapIterator, ValueIterator, ULPS},
     Error, Result,
 };
 

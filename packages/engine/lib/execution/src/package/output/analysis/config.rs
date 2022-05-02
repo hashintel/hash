@@ -1,11 +1,16 @@
 use std::{collections::HashMap, sync::Arc};
 
-use execution::package::PackageInitConfig;
 use serde::{Deserialize, Serialize};
 
-use crate::simulation::package::output::analysis::{
-    analyzer::{AnalysisOperationRepr, AnalysisSourceRepr},
-    get_analysis_source, Result,
+use crate::{
+    package::{
+        output::analysis::{
+            analyzer::{AnalysisOperationRepr, AnalysisSourceRepr},
+            get_analysis_source,
+        },
+        PackageInitConfig,
+    },
+    Result,
 };
 
 #[derive(Serialize, Deserialize)]

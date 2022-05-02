@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::simulation::package::output::{
-    analysis::analyzer::{AnalysisOperationRepr, AnalysisSourceRepr},
+use crate::{
+    package::output::analysis::analyzer::{AnalysisOperationRepr, AnalysisSourceRepr},
     Error, Result,
 };
 

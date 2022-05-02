@@ -1,16 +1,17 @@
-pub mod analysis;
-
 use std::{
     collections::{hash_map::Iter, HashMap},
     lazy::SyncOnceCell,
 };
 
 use execution::package::{
-    output::{json_state::JsonStateCreator, OutputPackageCreator, OutputPackageName},
+    output::{
+        analysis::AnalysisCreator, json_state::JsonStateCreator, OutputPackageCreator,
+        OutputPackageName,
+    },
     PackageInitConfig,
 };
 
-use crate::simulation::{comms::Comms, package::output::analysis::AnalysisCreator, Error, Result};
+use crate::simulation::{comms::Comms, Error, Result};
 
 pub struct PackageCreators(
     SyncOnceCell<HashMap<OutputPackageName, Box<dyn OutputPackageCreator<Comms>>>>,

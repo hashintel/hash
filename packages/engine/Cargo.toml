@@ -21,7 +21,6 @@ clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
 csv = "1.1.5"
 derive-new = "0.5"
 flatbuffers = "2.1.1"
-float-cmp = "0.8.0"
 futures = { version = "0.3.6", features = ["std"] }
 glob = "0.3.0"
 http-types = "2.6.0"
