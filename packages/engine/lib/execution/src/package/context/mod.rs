@@ -1,3 +1,5 @@
+pub mod agent_messages;
+
 mod message;
 mod name;
 mod task;

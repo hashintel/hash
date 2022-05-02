@@ -1,4 +1,3 @@
-pub mod agent_messages;
 pub mod api_requests;
 pub mod neighbors;
 
@@ -8,16 +7,13 @@ use std::{
 };
 
 use execution::package::{
-    context::{ContextPackageCreator, ContextPackageName},
+    context::{agent_messages::AgentMessagesCreator, ContextPackageCreator, ContextPackageName},
     PackageInitConfig,
 };
 
 use crate::simulation::{
     comms::Comms,
-    package::context::{
-        agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator,
-        neighbors::NeighborsCreator,
-    },
+    package::context::{api_requests::ApiRequestsCreator, neighbors::NeighborsCreator},
     Error, Result,
 };
 

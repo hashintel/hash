@@ -1,7 +1,6 @@
-use execution::Result;
 use stateful::{field::UUID_V4_LEN, message::MessageMap};
 
-use crate::simulation::package::context::agent_messages::indices::AgentMessageIndices;
+use crate::{package::context::agent_messages::indices::AgentMessageIndices, Result};
 
 /// Columnar native representation of indices to messages
 #[derive(Debug)]

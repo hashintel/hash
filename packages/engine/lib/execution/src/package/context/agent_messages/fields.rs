@@ -2,7 +2,7 @@ use stateful::field::{
     FieldScope, FieldType, FieldTypeVariant, PresetFieldType, RootFieldSpec, RootFieldSpecCreator,
 };
 
-use crate::simulation::package::context::agent_messages::{Result, MESSAGE_INDEX_COUNT};
+use crate::{package::context::agent_messages::MESSAGE_INDEX_COUNT, Result};
 
 pub(super) const MESSAGES_FIELD_NAME: &str = "messages";
 

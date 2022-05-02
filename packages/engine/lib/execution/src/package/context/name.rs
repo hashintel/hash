@@ -5,7 +5,10 @@ use serde::Serialize;
 use stateful::field::PackageId;
 
 use crate::{
-    package::{Dependencies, PackageIdGenerator, PackageMetadata, PackageType},
+    package::{
+        context::agent_messages::AgentMessagesCreator, Dependencies, PackageCreator,
+        PackageIdGenerator, PackageMetadata, PackageType,
+    },
     Error, Result,
 };
 
@@ -49,7 +52,7 @@ lazy_static! {
         let mut id_creator = PackageIdGenerator::new(PackageType::Context);
         let mut m = HashMap::new();
         todo!("Add context packages to metadata");
-        // m.insert(AgentMessages, PackageMetadata::new(id_creator.next(), AgentMessagesCreator::dependencies()));
+        m.insert(AgentMessages, PackageMetadata { id: id_creator.next(), dependencies: AgentMessagesCreator::dependencies()});
         // m.insert(ApiRequests, PackageMetadata::new(id_creator.next(), ApiRequestsCreator::dependencies()));
         // m.insert(Neighbors, PackageMetadata::new(id_creator.next(), NeighborsCreator::dependencies()));
         m

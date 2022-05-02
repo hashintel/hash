@@ -3,7 +3,7 @@ use memory::arrow::meta::{
 };
 use stateful::context::ContextColumnWriter;
 
-use crate::simulation::package::context::agent_messages::collected::Messages;
+use crate::package::context::agent_messages::collected::Messages;
 
 const NUM_NODES: usize = 3;
 const NUM_BUFFERS: usize = 5;

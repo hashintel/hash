@@ -7,13 +7,6 @@ use std::sync::Arc;
 
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
-use execution::{
-    package::{
-        context::ContextPackage, MaybeCpuBound, Package, PackageComms, PackageCreator,
-        PackageCreatorConfig, PackageInitConfig,
-    },
-    Result,
-};
 use serde_json::Value;
 use stateful::{
     agent,
@@ -24,9 +17,14 @@ use stateful::{
 };
 use tracing::Span;
 
-use self::collected::Messages;
-use crate::simulation::package::context::{
-    agent_messages::fields::MESSAGES_FIELD_NAME, ContextPackageCreator,
+use self::{collected::Messages, fields::MESSAGES_FIELD_NAME};
+use crate::{
+    package::{
+        context::{ContextPackage, ContextPackageCreator},
+        MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
+        PackageInitConfig,
+    },
+    Result,
 };
 
 const CPU_BOUND: bool = true;
