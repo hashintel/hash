@@ -10,7 +10,6 @@ pub use self::{
     package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
     simulation::Config as SimulationConfig,
     store::Config as StoreConfig,
-    topology::Config as TopologyConfig,
 };
 use crate::{
     env::Environment,
@@ -24,7 +23,6 @@ mod experiment;
 mod package;
 mod simulation;
 mod store;
-pub mod topology;
 
 pub const MIN_AGENTS_PER_GROUP: usize = 10;
 

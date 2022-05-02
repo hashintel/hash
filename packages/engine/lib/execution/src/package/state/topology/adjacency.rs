@@ -1,7 +1,4 @@
-use crate::{
-    config::topology::Config as TopologyConfig,
-    simulation::package::state::topology::{Direction, Position},
-};
+use crate::package::state::topology::{Direction, Position, TopologyConfig, WrappingBehavior};
 
 /// Wrap the position if the agent is out of bounds
 pub fn correct_agent(
@@ -28,25 +25,22 @@ pub fn correct_agent(
 }
 
 fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {
-    use crate::config::topology::WrappingBehavior::{
-        Continuous, NoWrap, OffsetReflection, Reflection,
-    };
     match config.wrap_modes[i] {
-        Continuous => {
+        WrappingBehavior::Continuous => {
             if pos[i] > config.get_half_dim(i) {
                 pos[i] -= config.get_dim_size(i);
             } else {
                 pos[i] += config.get_dim_size(i);
             }
         }
-        Reflection => {
+        WrappingBehavior::Reflection => {
             if pos[i] < config.get_half_dim(i) {
                 pos[i] += 2.0 * (config.bounds[i].min - pos[i]);
             } else {
                 pos[i] += 2.0 * (config.bounds[i].max - pos[i]) - 1.0;
             }
         }
-        OffsetReflection => {
+        WrappingBehavior::OffsetReflection => {
             // we need to reflect along i and offset along j
             let j = if i == 0 { 2 } else { i - 1 };
             if pos[j] < config.get_half_dim(j) {
@@ -60,14 +54,13 @@ fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {
                 pos[i] += 2.0 * (config.bounds[i].max - pos[i]) - 1.0;
             }
         }
-        NoWrap => (),
+        WrappingBehavior::NoWrap => (),
     }
 }
 
 fn wrap_dir_coord(dir: &mut Direction, i: usize, config: &TopologyConfig) {
-    use crate::config::topology::WrappingBehavior::{OffsetReflection, Reflection};
     match config.wrap_modes[i] {
-        Reflection | OffsetReflection => {
+        WrappingBehavior::Reflection | WrappingBehavior::OffsetReflection => {
             dir[i] = -dir[i];
         }
         _ => (),

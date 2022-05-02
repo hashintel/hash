@@ -1,13 +1,8 @@
+mod config;
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use execution::{
-    package::{
-        state::{StatePackage, StatePackageCreator},
-        Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
-    },
-    Result,
-};
 use stateful::{
     agent::AgentBatch,
     context::Context,
@@ -18,7 +13,14 @@ use stateful::{
 };
 use tracing::Span;
 
-use crate::config::TopologyConfig;
+pub use self::config::{TopologyConfig, WrappingBehavior};
+use crate::{
+    package::{
+        state::{StatePackage, StatePackageCreator},
+        Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+    },
+    Result,
+};
 
 mod adjacency;
 mod fields;

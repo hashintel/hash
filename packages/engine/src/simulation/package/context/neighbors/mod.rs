@@ -3,8 +3,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use execution::{
     package::{
-        context::ContextPackage, MaybeCpuBound, Package, PackageComms, PackageCreator,
-        PackageCreatorConfig, PackageInitConfig,
+        context::ContextPackage, state::topology::TopologyConfig, MaybeCpuBound, Package,
+        PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
     },
     Result,
 };
@@ -19,11 +19,8 @@ use stateful::{
 use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
-use crate::{
-    config::TopologyConfig,
-    simulation::package::context::{
-        neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackageCreator,
-    },
+use crate::simulation::package::context::{
+    neighbors::fields::NEIGHBORS_FIELD_NAME, ContextPackageCreator,
 };
 
 mod adjacency;

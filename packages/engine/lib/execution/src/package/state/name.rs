@@ -5,7 +5,10 @@ use serde::Serialize;
 use stateful::field::PackageId;
 
 use crate::{
-    package::{Dependencies, PackageIdGenerator, PackageMetadata, PackageType},
+    package::{
+        state::topology::TopologyCreator, Dependencies, PackageCreator, PackageIdGenerator,
+        PackageMetadata, PackageType,
+    },
     Error, Result,
 };
 
@@ -51,10 +54,10 @@ lazy_static! {
         //     BehaviorExecution,
         //     PackageMetadata::new(id_creator.next(), BehaviorExecutionCreator::dependencies()),
         // );
-        // m.insert(
-        //     Topology,
-        //     PackageMetadata::new(id_creator.next(), TopologyCreator::dependencies()),
-        // );
+        m.insert(
+            Topology,
+            PackageMetadata { id: id_creator.next(), dependencies: TopologyCreator::dependencies() },
+        );
         m
     };
 }

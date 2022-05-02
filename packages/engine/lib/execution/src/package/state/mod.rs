@@ -1,4 +1,5 @@
 pub mod behavior_execution;
+pub mod topology;
 
 mod message;
 mod name;

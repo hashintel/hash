@@ -7,7 +7,7 @@ use serde::{
 use serde_json::Value;
 use stateful::global::Globals;
 
-use crate::config::Result;
+use crate::Result;
 
 // TODO: think about creating a system of ConfigProviders whereby packages can depend on them
 //   and decrease the amount of assumptions the core engine has to make, for example position
@@ -357,7 +357,7 @@ impl DistanceFunction {
 }
 
 /// Configuration of the topology relevant to movement and neighbor calculation
-pub struct Config {
+pub struct TopologyConfig {
     /// x/y/z-Dimensions of board associated with "width"/"length"/"height"
     pub bounds: [AxisBoundary; 3],
 
@@ -379,9 +379,9 @@ pub struct Config {
     pub wrapping_combinations: usize,
 }
 
-impl Default for Config {
-    fn default() -> Config {
-        Config {
+impl Default for TopologyConfig {
+    fn default() -> TopologyConfig {
+        TopologyConfig {
             bounds: Default::default(),
             wrap_modes: Default::default(),
             search_radius: None,
@@ -392,7 +392,7 @@ impl Default for Config {
     }
 }
 
-impl Config {
+impl TopologyConfig {
     /// Creates a topology configuration from [`Globals`].
     ///
     /// If a value is not set, it will fallback as specified in [`Config::default()`].
@@ -496,7 +496,7 @@ mod tests {
 
     use super::*;
 
-    fn assert_equality(lhs: &Config, rhs: &Config) {
+    fn assert_equality(lhs: &TopologyConfig, rhs: &TopologyConfig) {
         assert_eq!(lhs.bounds, rhs.bounds);
         assert_eq!(lhs.wrap_modes, rhs.wrap_modes);
         assert_eq!(lhs.wrapping_combinations, rhs.wrapping_combinations);
@@ -507,18 +507,18 @@ mod tests {
     #[test]
     fn test_defaults() {
         assert_equality(
-            &Config::default(),
-            &Config::from_globals(&Globals(json!({}))).unwrap(),
+            &TopologyConfig::default(),
+            &TopologyConfig::from_globals(&Globals(json!({}))).unwrap(),
         );
         assert_equality(
-            &Config::default(),
-            &Config::from_globals(&Globals(json!({"topology": {}}))).unwrap(),
+            &TopologyConfig::default(),
+            &TopologyConfig::from_globals(&Globals(json!({"topology": {}}))).unwrap(),
         );
     }
 
     #[test]
     fn test_axis_boundary() {
-        let target = Config {
+        let target = TopologyConfig {
             bounds: [
                 AxisBoundary {
                     min: -20.,
@@ -536,9 +536,9 @@ mod tests {
                 WrappingBehavior::default(),
             ],
             wrapping_combinations: 4,
-            ..Config::default()
+            ..TopologyConfig::default()
         };
-        let from_json = Config::from_globals(&Globals(json!({
+        let from_json = TopologyConfig::from_globals(&Globals(json!({
             "topology": {
                 "x_bounds": [-20, 20],
                 "y_bounds": [-40, 40],
@@ -547,7 +547,7 @@ mod tests {
         .unwrap();
         assert_equality(&target, &from_json);
 
-        let target = Config {
+        let target = TopologyConfig {
             bounds: [
                 AxisBoundary {
                     min: f64::NEG_INFINITY,
@@ -559,9 +559,9 @@ mod tests {
                 },
                 AxisBoundary::default(),
             ],
-            ..Config::default()
+            ..TopologyConfig::default()
         };
-        let from_json = Config::from_globals(&Globals(json!({
+        let from_json = TopologyConfig::from_globals(&Globals(json!({
             "topology": {
                 "x_bounds": ["-Infinity", 0],
                 "y_bounds": [0, "Infinity"]
@@ -573,11 +573,11 @@ mod tests {
 
     #[test]
     fn test_search_radius() {
-        let target = Config {
+        let target = TopologyConfig {
             search_radius: Some(4.),
-            ..Config::default()
+            ..TopologyConfig::default()
         };
-        let from_json = Config::from_globals(&Globals(json!({
+        let from_json = TopologyConfig::from_globals(&Globals(json!({
             "topology": {
                 "search_radius": 4
             }

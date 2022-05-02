@@ -1,5 +1,4 @@
 pub mod behavior_execution;
-pub mod topology;
 
 use std::{
     collections::{hash_map::Iter, HashMap},
@@ -7,14 +6,12 @@ use std::{
 };
 
 use execution::package::{
-    state::{StatePackageCreator, StatePackageName},
+    state::{topology::TopologyCreator, StatePackageCreator, StatePackageName},
     PackageInitConfig,
 };
 
 use crate::simulation::{
-    comms::Comms,
-    package::state::{behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator},
-    Error, Result,
+    comms::Comms, package::state::behavior_execution::BehaviorExecutionCreator, Error, Result,
 };
 
 pub struct PackageCreators(
