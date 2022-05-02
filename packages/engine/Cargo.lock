@@ -662,18 +662,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enum_dispatch"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd53b3fde38a39a06b2e66dc282f3e86191e53bd04cc499929c15742beae3df8"
-dependencies = [
- "once_cell",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "error"
 version = "0.0.0"
 dependencies = [
@@ -748,6 +736,16 @@ checksum = "5fc25a87fa4fd2094bffb06925852034d90a17f0d1e05197d4956d3555752191"
 dependencies = [
  "matches",
  "percent-encoding",
+]
+
+[[package]]
+name = "fslock"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57eafdd0c16f57161105ae1b98a1238f97645f2f588438b2949c99a2af9616bf"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]
@@ -947,7 +945,6 @@ dependencies = [
  "clap",
  "csv",
  "derive-new",
- "enum_dispatch",
  "error",
  "flatbuffers",
  "flatbuffers_gen",
@@ -957,6 +954,7 @@ dependencies = [
  "http-types",
  "kdtree",
  "lazy_static",
+ "memory",
  "nano",
  "nng",
  "num_cpus",
@@ -970,6 +968,7 @@ dependencies = [
  "serde-aux",
  "serde_json",
  "shared_memory",
+ "stateful",
  "strum_macros",
  "surf",
  "thiserror",
@@ -980,6 +979,7 @@ dependencies = [
  "tracing-subscriber",
  "tracing-texray",
  "uuid",
+ "v8",
 ]
 
 [[package]]
@@ -1332,6 +1332,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "memory"
+version = "0.1.0"
+dependencies = [
+ "arrow",
+ "flatbuffers",
+ "flatbuffers_gen",
+ "glob",
+ "rand 0.8.4",
+ "serde",
+ "serde_json",
+ "shared_memory",
+ "thiserror",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1403,9 +1420,9 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.22.0"
+version = "0.22.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf1e25ee6b412c2a1e3fcb6a4499a5c1bfe7f43e014bdce9a6b6666e5aa2d187"
+checksum = "e4916f159ed8e5de0082076562152a76b7a1f64a01fd9d1e0fea002c37624faf"
 dependencies = [
  "bitflags",
  "cc",
@@ -1585,6 +1602,7 @@ dependencies = [
  "rand_distr",
  "serde",
  "serde_json",
+ "stateful",
  "tokio",
  "tracing",
  "uuid",
@@ -2128,6 +2146,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "stateful"
+version = "0.0.0"
+dependencies = [
+ "arrow",
+ "flatbuffers",
+ "lazy_static",
+ "memory",
+ "parking_lot",
+ "rand 0.8.4",
+ "rayon",
+ "serde",
+ "serde-aux",
+ "serde_json",
+ "thiserror",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2607,6 +2644,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "v8"
+version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d743ec43aa5297faec64715b85411340495cac129e34e9cce1a0e879557d32c"
+dependencies = [
+ "bitflags",
+ "fslock",
+ "lazy_static",
+ "libc",
+ "which",
+]
+
+[[package]]
 name = "value-bag"
 version = "1.0.0-alpha.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2729,6 +2779,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d743fdedc5c64377b5fc2bc036b01c7fd642205a0d96356034ae3404d49eb7fb"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "which"
+version = "4.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a5a7e487e921cf220206864a94a89b6c6905bfc19f1057fa26a4cb360e5c1d2"
+dependencies = [
+ "either",
+ "lazy_static",
+ "libc",
 ]
 
 [[package]]

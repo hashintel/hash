@@ -1,12 +1,16 @@
 use nng::{Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
-use super::{
-    error::{Error, Result},
-    fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
-};
 use crate::{
-    proto::ExperimentId, types::WorkerIndex, worker::runner::comms::ExperimentInitRunnerMsg,
+    proto::ExperimentId,
+    types::WorkerIndex,
+    worker::runner::{
+        comms::ExperimentInitRunnerMsg,
+        python::{
+            error::{Error, Result},
+            fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
+        },
+    },
 };
 
 fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
@@ -100,12 +104,5 @@ impl NngReceiver {
 
         self.from_py.recv_async(&self.aio)?;
         Ok(nng_msg)
-    }
-}
-
-impl Drop for NngReceiver {
-    fn drop(&mut self) {
-        // TODO: Check whether nng already does this when a socket is dropped
-        self.from_py.close();
     }
 }

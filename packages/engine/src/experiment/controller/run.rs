@@ -1,30 +1,37 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
+use memory::shared_memory;
 use tracing::Instrument;
 
-use super::{config, controller::ExperimentController, Error, Result};
 use crate::{
+    config::ExperimentConfig,
     datastore::shared_store::SharedStore,
+    env::Environment,
     experiment::{
-        controller::{config::OutputPersistenceConfig, sim_configurer::SimConfigurer},
+        controller::{
+            config::{self, OutputPersistenceConfig},
+            controller::ExperimentController,
+            error::{Error, Result},
+            sim_configurer::SimConfigurer,
+        },
+        error::{Error as ExperimentError, Result as ExperimentResult},
         package::ExperimentPackage,
-        Error as ExperimentError,
     },
     output::{
-        buffer::cleanup_experiment, local::LocalOutputPersistence, none::NoOutputPersistence,
+        buffer::remove_experiment_parts, local::LocalOutputPersistence, none::NoOutputPersistence,
         OutputPersistenceCreatorRepr,
     },
-    proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
+    proto::{EngineStatus, ExperimentId, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
+    worker::runner::python,
     workerpool,
     workerpool::{comms::terminate::TerminateSend, WorkerPoolController},
-    Environment, Error as CrateError, ExperimentConfig,
+    Error as CrateError,
 };
 
-#[tracing::instrument(skip_all, fields(experiment_id = %exp_config.run.base().id))]
+#[tracing::instrument(skip_all, fields(experiment_id = % exp_config.run.base().id))]
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     let experiment_name = exp_config.name().to_string();
-    let experiment_id = exp_config.run.base().id;
     tracing::info!("Running experiment \"{experiment_name}\"");
     // TODO: Get cloud-specific configuration from `env`
     let _output_persistence_config = config::output_persistence(&env)?;
@@ -60,8 +67,6 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
         }
     }
 
-    cleanup_experiment(&experiment_id).map_err(|e| Error::from(e.to_string()))?;
-
     // Allow messages to be picked up.
     std::thread::sleep(std::time::Duration::from_millis(100));
     tracing::info!("Exiting \"{experiment_name}\"");
@@ -89,7 +94,7 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
     Ok(())
 }
 
-type ExperimentPackageResult = Option<crate::experiment::Result<()>>;
+type ExperimentPackageResult = Option<ExperimentResult<()>>;
 type ExperimentControllerResult = Option<Result<()>>;
 type WorkerPoolResult = Option<crate::workerpool::Result<()>>;
 
@@ -343,4 +348,17 @@ fn worker_pool_exit_logic(
     };
 
     false
+}
+
+/// Forcefully clean-up resources created by the experiment
+pub fn cleanup_experiment(experiment_id: ExperimentId) {
+    if let Err(err) = shared_memory::cleanup_by_base_id(experiment_id) {
+        tracing::warn!("{}", err);
+    }
+
+    if let Err(err) = python::cleanup_runner(experiment_id) {
+        tracing::warn!("{}", err);
+    }
+
+    remove_experiment_parts(experiment_id);
 }

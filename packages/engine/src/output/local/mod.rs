@@ -3,10 +3,9 @@ pub mod result;
 mod sim;
 
 use self::{config::LocalPersistenceConfig, sim::LocalSimulationOutputPersistence};
-use super::{buffer::Buffers, OutputPersistenceCreatorRepr};
 use crate::{
     config::PersistenceConfig,
-    output::error::Result,
+    output::{buffer::Buffers, error::Result, OutputPersistenceCreatorRepr},
     proto::{ExperimentId, ExperimentName, SimulationShortId},
 };
 

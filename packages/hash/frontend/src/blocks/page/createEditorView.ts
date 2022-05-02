@@ -8,8 +8,8 @@ import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
-import { Reporter } from "./collab/Reporter";
 import { ComponentView } from "./ComponentView";
+import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
 import { createSuggester } from "./createSuggester/createSuggester";
 import { MentionView } from "./MentionView/MentionView";
@@ -18,6 +18,10 @@ import { RenderPortal } from "./usePortals";
 
 export type BlocksMetaMap = Record<string, BlockMeta>;
 
+/**
+ * An editor view manages the DOM structure that represents an editable document.
+ * @see https://prosemirror.net/docs/ref/#view.EditorView
+ */
 export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
@@ -27,12 +31,15 @@ export const createEditorView = (
 ) => {
   let manager: ProsemirrorSchemaManager;
 
+  const [errorPlugin, onError] = createErrorPlugin(renderPortal);
+
   const plugins: Plugin<unknown, Schema>[] = [
     ...createFormatPlugins(renderPortal),
     createSuggester(renderPortal, () => manager, accountId),
+    errorPlugin,
   ];
 
-  const state = createProseMirrorState({ plugins });
+  const state = createProseMirrorState({ accountId, plugins });
 
   let connection: EditorConnection;
 
@@ -100,6 +107,7 @@ export const createEditorView = (
 
   manager = new ProsemirrorSchemaManager(
     state.schema,
+    accountId,
     view,
     // Reason for adding `_decorations`:
     // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
@@ -108,24 +116,20 @@ export const createEditorView = (
         throw new Error("Invalid config for nodeview");
       }
 
-      return new ComponentView(
-        node,
-        editorView,
-        getPos,
-        renderPortal,
-        meta,
-        accountId,
-      );
+      return new ComponentView(node, editorView, getPos, renderPortal, meta);
     },
   );
 
   connection = new EditorConnection(
-    new Reporter(),
     `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
     view.state.schema,
     view,
     manager,
     plugins,
+    accountId,
+    () => {
+      view.dispatch(onError(view.state.tr));
+    },
   );
 
   view.dom.classList.add(styles.ProseMirror!);

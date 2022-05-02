@@ -31,6 +31,10 @@
                 "slug": "simulation/creating-simulations/anatomy-of-an-agent/programmable-initial-states"
               },
               {
+                "title": "Creator Behaviors",
+                "slug": "simulation/creating-simulations/anatomy-of-an-agent/creator-behaviors"
+              },
+              {
                 "title": "Visualization",
                 "slug": "simulation/creating-simulations/anatomy-of-an-agent/visualization",
                 "urldata": [
@@ -381,6 +385,24 @@
               {
                 "title": "Adding Data to a Process Model",
                 "slug": "simulation/tutorials/building-process-models/using-data-in-a-process-model"
+              }
+            ]
+          },
+          {
+            "title": "Building a Financial Toolbox",
+            "slug": "simulation/tutorials/financial-toolbox",
+            "urldata": [
+              {
+                "title": "Modeling a Portfolio",
+                "slug": "simulation/tutorials/financial-toolbox/modeling-a-portfolio"
+              },
+              {
+                "title": "Making Trades",
+                "slug": "simulation/tutorials/financial-toolbox/making-trades"
+              },
+              {
+                "title": "Economic Analysis",
+                "slug": "simulation/tutorials/financial-toolbox/economic-analysis"
               }
             ]
           },

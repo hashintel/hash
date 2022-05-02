@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
-use super::Result;
+use stateful::global::Globals;
+
 use crate::{
     config::{
-        EngineConfig, ExperimentConfig, Globals, PersistenceConfig, StoreConfig, WorkerAllocation,
+        EngineConfig, ExperimentConfig, PersistenceConfig, SimRunConfig, StoreConfig,
+        WorkerAllocation,
     },
+    experiment::controller::error::Result,
     proto::{ExperimentPackageConfig, SimulationShortId},
-    SimRunConfig,
 };
 
 pub struct SimConfigurer {

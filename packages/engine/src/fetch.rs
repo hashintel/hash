@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::StreamExt;
+use stateful::global::SharedDataset;
 
 use crate::{
-    error::{Error, Result},
-    proto::{ExperimentRunRepr, ExperimentRunTrait, FetchedDataset, SharedDataset},
+    proto::{ExperimentRunRepr, ExperimentRunTrait, FetchedDataset},
+    Error, Result,
 };
 
 pub type Datasets = Vec<Arc<FetchedDataset>>;

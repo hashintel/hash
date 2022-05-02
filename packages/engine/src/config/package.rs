@@ -3,8 +3,10 @@ use init::Name as InitPackage;
 use output::Name as OutputPackage;
 use state::Name as StatePackage;
 
-use super::{Error, Result};
-use crate::simulation::package::{context, init, name::PackageName, output, state};
+use crate::{
+    config::error::{Error, Result},
+    simulation::package::{context, init, name::PackageName, output, state},
+};
 
 /// Configuration of packages used in the engine.
 /// Contains the names of all packages used.
@@ -176,19 +178,19 @@ impl ConfigBuilder {
 
         let init_as_deps = init
             .iter()
-            .map(|n| PackageName::Init(n.clone()))
+            .map(|n| PackageName::Init(*n))
             .collect::<Vec<_>>();
         let context_as_deps = context
             .iter()
-            .map(|n| PackageName::Context(n.clone()))
+            .map(|n| PackageName::Context(*n))
             .collect::<Vec<_>>();
         let state_as_deps = state
             .iter()
-            .map(|n| PackageName::State(n.clone()))
+            .map(|n| PackageName::State(*n))
             .collect::<Vec<_>>();
         let output_as_deps = output
             .iter()
-            .map(|n| PackageName::Output(n.clone()))
+            .map(|n| PackageName::Output(*n))
             .collect::<Vec<_>>();
 
         // Gather all dependencies and insert

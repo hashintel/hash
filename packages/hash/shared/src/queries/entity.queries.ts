@@ -39,6 +39,41 @@ export const linkedAggregationsFragment = gql`
   }
 `;
 
+export const entityFieldsFragment = gql`
+  fragment EntityFields on UnknownEntity {
+    __typename
+    id
+    entityVersionId
+    entityId
+    accountId
+    updatedAt
+    createdAt
+    entityVersionCreatedAt
+    createdByAccountId
+    entityTypeId
+    properties
+    linkGroups {
+      links {
+        ...LinkFields
+      }
+      sourceEntityId
+      sourceEntityVersionId
+      path
+    }
+    linkedEntities {
+      accountId
+      entityId
+      entityTypeId
+      properties
+    }
+    linkedAggregations {
+      ...LinkedAggregationsFields
+    }
+  }
+  ${linkFieldsFragment}
+  ${linkedAggregationsFragment}
+`;
+
 export const getEntity = gql`
   query getEntity($accountId: ID!, $entityId: ID!) {
     entity(accountId: $accountId, entityId: $entityId) {
@@ -162,6 +197,7 @@ export const aggregateEntity = gql`
         properties
       }
       operation {
+        entityTypeId
         pageNumber
         pageCount
         itemsPerPage
@@ -218,4 +254,13 @@ export const createEntityType = gql`
       properties
     }
   }
+`;
+
+export const getEntities = gql`
+  query getEntities($accountId: ID!, $filter: EntityFilter) {
+    entities(accountId: $accountId, filter: $filter) {
+      ...EntityFields
+    }
+  }
+  ${entityFieldsFragment}
 `;

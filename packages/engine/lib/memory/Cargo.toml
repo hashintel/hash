@@ -1,0 +1,25 @@
+[package]
+name = "memory"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flatbuffers_gen = { path = "../flatbuffers_gen" }
+
+arrow = { version = "10.0.0", default-features = false, features = ["ipc"] }
+flatbuffers = "2.1.1"
+glob = "0.3.0"
+rand = "0.8.3"
+serde = { version = "1.0.111", features = ["derive", "rc"] }
+serde_json = "1.0.59"
+shared_memory = { git = "https://github.com/hashdeps/shared_memory-rs" }
+thiserror = "1.0.21"
+tracing = "0.1.29"
+uuid = { version = "0.8.1", features = ["v4"] }
+
+[dev-dependencies]
+rand = "0.8.3"
+
+[lib]
+name = "memory"
+crate-type = ["lib", "cdylib"]

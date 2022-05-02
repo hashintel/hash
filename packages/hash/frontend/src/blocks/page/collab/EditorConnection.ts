@@ -12,7 +12,6 @@ import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import { AbortingPromise, GET, POST } from "./http";
-import { Reporter } from "./Reporter";
 import { StatusError } from "./StatusError";
 
 // @todo check this
@@ -49,7 +48,7 @@ type EditorConnectionAction =
       type: "poll";
     }
   | {
-      type: "recover";
+      type: "error";
       error: StatusError;
     }
   | {
@@ -66,14 +65,16 @@ export class EditorConnection {
   backOff = 0;
   request: AbortingPromise<string> | null = null;
   sentActions = new Set<string>();
+  errored = false;
 
   constructor(
-    public report: Reporter,
     public url: string,
     public schema: Schema,
     public view: EditorView<Schema>,
     public manager: ProsemirrorSchemaManager,
     public additionalPlugins: Plugin<unknown, Schema>[],
+    public accountId: string,
+    private onError: () => void,
   ) {
     this.start();
   }
@@ -85,12 +86,21 @@ export class EditorConnection {
 
   // All state changes go through this
   dispatch = (action: EditorConnectionAction) => {
+    if (this.errored) {
+      if (action.type === "update" && action.transaction) {
+        this.view.updateState(this.view.state.apply(action.transaction));
+      }
+
+      return;
+    }
+
     let newEditState = null;
     let nextVersion = this.state.version;
 
     switch (action.type) {
       case "loaded": {
         const editorState = createProseMirrorState({
+          accountId: this.accountId,
           doc: action.doc,
           plugins: [
             ...this.additionalPlugins,
@@ -119,14 +129,11 @@ export class EditorConnection {
         this.state = new State(this.state.edit, "poll", nextVersion);
         this.poll();
         break;
-      case "recover":
-        if (action.error.status && action.error.status < 500) {
-          this.report.failure(action.error);
-          this.state = new State(null, null, 0);
-        } else {
-          this.state = new State(this.state.edit, "recover", nextVersion);
-          this.recover(action.error);
-        }
+      case "error":
+        this.errored = true;
+        this.onError();
+        this.state = new State(null, null, 0);
+        this.close();
         break;
       case "update":
         if (!this.state.edit) {
@@ -145,12 +152,7 @@ export class EditorConnection {
       const requestDone = "requestDone" in action && action.requestDone;
 
       let sendable;
-      if (newEditState.doc.content.size > 40000) {
-        if (this.state.comm !== "detached") {
-          this.report.failure(new Error("Document too big. Detached."));
-        }
-        this.state = new State(newEditState, "detached", nextVersion);
-      } else if (
+      if (
         (this.state.comm === "poll" || requestDone) &&
         // eslint-disable-next-line no-cond-assign
         (sendable = this.sendable(newEditState))
@@ -200,7 +202,6 @@ export class EditorConnection {
         return this.manager.ensureDocDefined(doc).then(() => ({ doc, data }));
       })
       .then(({ data, doc }) => {
-        this.report.success();
         this.backOff = 0;
         this.dispatch({
           type: "loaded",
@@ -212,7 +213,7 @@ export class EditorConnection {
       .catch((err) => {
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
-        this.report.failure(err);
+        this.dispatch({ type: "error", error: err });
       });
   }
 
@@ -227,13 +228,14 @@ export class EditorConnection {
     const query = `version=${this.state.version}`;
     this.run(GET(`${this.url}/events?${query}`)).then(
       (stringifiedData) => {
-        this.report.success();
         // @todo type this
         const data = JSON.parse(stringifiedData);
         this.backOff = 0;
 
         if (this.state.edit) {
           const tr = this.state.edit.tr;
+          // This also allows an empty object response to act
+          // like a polling checkpoint
           let shouldDispatch = false;
 
           if (data.store) {
@@ -305,10 +307,12 @@ export class EditorConnection {
       (err) => {
         if (err.status === 410 || badVersion(err)) {
           // Too far behind. Revert to server state
-          this.report.failure(err);
+          // @todo use logger
+          // eslint-disable-next-line no-console
+          console.warn(err);
           this.dispatch({ type: "restart" });
         } else if (err) {
-          this.dispatch({ type: "recover", error: err });
+          this.dispatch({ type: "error", error: err });
         }
       },
     );
@@ -349,7 +353,6 @@ export class EditorConnection {
       POST(`${this.url}/events`, json, "application/json", removeActions),
     ).then(
       (data) => {
-        this.report.success();
         this.backOff = 0;
         if (!this.state.edit) {
           throw new Error("Cannot receive steps without state");
@@ -377,10 +380,9 @@ export class EditorConnection {
           this.backOff = 0;
           this.dispatch({ type: "poll" });
         } else if (badVersion(err)) {
-          this.report.failure(err);
           this.dispatch({ type: "restart" });
         } else {
-          this.dispatch({ type: "recover", error: err });
+          this.dispatch({ type: "error", error: err });
         }
       },
     );
@@ -390,16 +392,6 @@ export class EditorConnection {
     return entityStorePluginState(editState).trackedActions.filter(
       (action) => !this.sentActions.has(action.id),
     );
-  }
-
-  // Try to recover from an error
-  recover(err: StatusError | Error) {
-    const newBackOff = this.backOff ? Math.min(this.backOff * 2, 6e4) : 200;
-    if (newBackOff > 1000 && this.backOff < 1000) this.report.delay(err);
-    this.backOff = newBackOff;
-    setTimeout(() => {
-      if (this.state.comm === "recover") this.dispatch({ type: "poll" });
-    }, this.backOff);
   }
 
   closeRequest() {

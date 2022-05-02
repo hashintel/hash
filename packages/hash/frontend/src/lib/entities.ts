@@ -1,8 +1,11 @@
 import { cloneDeep } from "lodash";
 import { JSONObject } from "blockprotocol";
 
+import {
+  isParsedJsonObject,
+  isParsedJsonObjectOrArray,
+} from "@hashintel/hash-shared/json-utils";
 import { UnknownEntity } from "../graphql/apiTypes.gen";
-import { isParsedJsonObject, isParsedJsonObjectOrArray } from "./json-utils";
 
 /* eslint-disable no-param-reassign */
 
@@ -115,7 +118,10 @@ export const cloneEntityTreeWithPropertiesMovedUp = (
   return clonedTree;
 };
 
-export const entityName = (entity: JSONObject) => {
+/**
+ * We are working on a first-class label concept that would replace this function.
+ */
+export const guessEntityName = (entity: JSONObject) => {
   const { name, preferredName, displayName, title, shortname, legalName } =
     isParsedJsonObject(entity.properties) ? entity.properties : entity;
   return (

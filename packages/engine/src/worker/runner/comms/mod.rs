@@ -6,20 +6,17 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
+use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
 use tracing::Span;
 
 use crate::{
-    config::{EngineConfig, Globals},
-    datastore::{schema::state::AgentSchema, shared_store::SharedStore},
+    config::EngineConfig,
+    datastore::{shared_store::SharedStore, table::task_shared_store::TaskSharedStore},
+    language::Language,
     proto::{ExperimentId, SimulationShortId},
-    simulation::{
-        enum_dispatch::TaskSharedStore,
-        package::{id::PackageId, worker_init::PackageInitMsgForWorker},
-        task::msg::TaskMessage,
-    },
+    simulation::{package::worker_init::PackageInitMsgForWorker, task::msg::TaskMessage},
     types::{TaskId, WorkerIndex},
     worker::{Error, Result},
-    Language,
 };
 
 pub mod inbound;
@@ -208,6 +205,8 @@ pub struct ExperimentInitRunnerMsgBase {
     pub experiment_id: ExperimentId,
     pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
+    pub js_runner_initial_heap_constraint: Option<usize>,
+    pub js_runner_max_heap_size: Option<usize>,
 }
 
 #[derive(Clone)]
@@ -216,6 +215,8 @@ pub struct ExperimentInitRunnerMsg {
     pub worker_index: WorkerIndex,
     pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
+    pub js_runner_initial_heap_constraint: Option<usize>,
+    pub js_runner_max_heap_size: Option<usize>,
 }
 
 impl ExperimentInitRunnerMsg {
@@ -227,12 +228,16 @@ impl ExperimentInitRunnerMsg {
             experiment_id,
             shared_context,
             package_config,
+            js_runner_initial_heap_constraint,
+            js_runner_max_heap_size,
         } = base.clone();
         ExperimentInitRunnerMsg {
             experiment_id,
             worker_index,
             shared_context,
             package_config,
+            js_runner_initial_heap_constraint,
+            js_runner_max_heap_size,
         }
     }
 }

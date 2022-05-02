@@ -1,25 +1,22 @@
-use std::{
-    convert::TryInto,
-    fmt::{Debug, Formatter},
-};
+use std::fmt::{Debug, Formatter};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use stateful::agent::Agent;
 
-use super::super::{
-    Agent, Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTask,
-    InitTaskMessage, MaybeCpuBound, PackageComms, PackageCreator, SimRunConfig,
-};
 use crate::{
     config::ExperimentConfig,
+    datastore::table::task_shared_store::TaskSharedStore,
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
-        enum_dispatch::{enum_dispatch, RegisterWithoutTrait, TaskSharedStore},
         package::init::{
             packages::js_py::{js::JsInitTask, py::PyInitTask},
-            Package as InitPackage,
+            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTask,
+            InitTaskMessage, MaybeCpuBound, Package as InitPackage, PackageComms, PackageCreator,
+            SimRunConfig,
         },
+        task::{msg::TaskMessage, Task},
         Error, Result,
     },
 };
@@ -85,15 +82,13 @@ impl GetWorkerSimStartMsg for Package {
 #[async_trait]
 impl InitPackage for Package {
     async fn run(&mut self) -> Result<Vec<Agent>> {
-        let task: InitTask = match &self.initial_state.name {
-            InitialStateName::InitPy => PyInitTask {
+        let task = match &self.initial_state.name {
+            InitialStateName::InitPy => InitTask::PyInitTask(PyInitTask {
                 initial_state_source: self.initial_state.src.clone(),
-            }
-            .into(),
-            InitialStateName::InitJs => JsInitTask {
+            }),
+            InitialStateName::InitJs => InitTask::JsInitTask(JsInitTask {
                 initial_state_source: self.initial_state.src.clone(),
-            }
-            .into(),
+            }),
             name => {
                 // should be unreachable
                 return Err(Error::from(format!(
@@ -105,24 +100,27 @@ impl InitPackage for Package {
         };
 
         let shared_store = TaskSharedStore::default();
-        let active_task = self.comms.new_task(task, shared_store).await?;
-        let task_message = TryInto::<JsPyInitTaskMessage>::try_into(
-            TryInto::<InitTaskMessage>::try_into(active_task.drive_to_completion().await?)?,
-        )?;
+        let active_task = self
+            .comms
+            .new_task(Task::InitTask(task), shared_store)
+            .await?;
+        let task_message = match active_task.drive_to_completion().await? {
+            TaskMessage::InitTaskMessage(InitTaskMessage::JsPyInitTaskMessage(message)) => message,
+            _ => return Err(Error::from("Not a JsPyInitTaskMessage")),
+        };
 
-        match TryInto::<SuccessMessage>::try_into(task_message) {
-            Ok(SuccessMessage { agents }) => Ok(agents),
-            Err(err) => Err(Error::from(format!("Init Task failed: {err}"))),
+        match task_message {
+            JsPyInitTaskMessage::SuccessMessage(SuccessMessage { agents }) => Ok(agents),
+            _ => Err(Error::from("Init Task failed")),
         }
     }
 }
 
-#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum JsPyInitTaskMessage {
-    StartMessage,
-    SuccessMessage,
-    FailedMessage,
+    StartMessage(StartMessage),
+    SuccessMessage(SuccessMessage),
+    FailedMessage(FailedMessage),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

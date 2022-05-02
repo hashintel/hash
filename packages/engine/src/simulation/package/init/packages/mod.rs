@@ -1,3 +1,6 @@
+pub mod js_py;
+pub mod json;
+
 use std::{
     collections::{hash_map::Iter, HashMap},
     lazy::SyncOnceCell,
@@ -7,28 +10,47 @@ use std::{
 use js_py::{js::JsInitTask, py::PyInitTask};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use stateful::field::PackageId;
 
-use super::PackageCreator;
 use crate::{
+    config::ExperimentConfig,
+    datastore::table::task_shared_store::TaskSharedStore,
     simulation::{
-        enum_dispatch::{
-            enum_dispatch, JsPyInitTaskMessage, RegisterWithoutTrait, StoreAccessVerify,
-            TaskSharedStore,
+        package::{
+            id::PackageIdGenerator,
+            init::{packages::js_py::JsPyInitTaskMessage, PackageCreator},
+            PackageMetadata, PackageType,
         },
-        package::{id::PackageIdGenerator, PackageMetadata, PackageType},
+        task::{
+            access::StoreAccessVerify,
+            args::GetTaskArgs,
+            handler::{WorkerHandler, WorkerPoolHandler},
+            msg::TargetedTaskMessage,
+            GetTaskName,
+        },
         Error, Result,
     },
-    ExperimentConfig,
 };
-pub mod js_py;
-pub mod json;
 
 /// All init package names are registered in this enum
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Name {
     Json,
     JsPy,
+}
+
+impl Name {
+    pub fn id(self) -> Result<PackageId> {
+        Ok(METADATA
+            .get(&self)
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "Package Metadata not registered for package: {self}"
+                ))
+            })?
+            .id)
+    }
 }
 
 impl std::fmt::Display for Name {
@@ -42,12 +64,33 @@ impl std::fmt::Display for Name {
 }
 
 /// All init package tasks are registered in this enum
-#[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
 pub enum InitTask {
-    JsInitTask,
-    PyInitTask,
+    JsInitTask(JsInitTask),
+    PyInitTask(PyInitTask),
 }
+
+impl GetTaskName for InitTask {
+    fn get_task_name(&self) -> &'static str {
+        match self {
+            Self::JsInitTask(inner) => inner.get_task_name(),
+            Self::PyInitTask(inner) => inner.get_task_name(),
+        }
+    }
+}
+
+impl GetTaskArgs for InitTask {}
+
+impl WorkerHandler for InitTask {
+    fn start_message(&self) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::JsInitTask(inner) => inner.start_message(),
+            Self::PyInitTask(inner) => inner.start_message(),
+        }
+    }
+}
+
+impl WorkerPoolHandler for InitTask {}
 
 impl StoreAccessVerify for InitTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
@@ -62,10 +105,9 @@ impl StoreAccessVerify for InitTask {
 }
 
 /// All init package task messages are registered in this enum
-#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum InitTaskMessage {
-    JsPyInitTaskMessage,
+    JsPyInitTaskMessage(JsPyInitTaskMessage),
 }
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);

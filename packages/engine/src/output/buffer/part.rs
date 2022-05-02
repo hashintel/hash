@@ -2,9 +2,8 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 
-use super::RELATIVE_PARTS_FOLDER;
 use crate::{
-    output::error::Result,
+    output::{buffer::RELATIVE_PARTS_FOLDER, error::Result},
     proto::{ExperimentId, SimulationShortId},
 };
 
@@ -111,5 +110,23 @@ impl OutputPartBuffer {
         self.current.push(CHAR_OPEN_RIGHT_SQUARE_BRACKET);
         self.persist_current_on_disk()?;
         Ok((self.current, self.parts))
+    }
+}
+
+pub fn remove_experiment_parts(experiment_id: ExperimentId) {
+    let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
+    match std::fs::remove_dir_all(&path) {
+        Ok(_) => {
+            tracing::trace!(
+                experiment = %experiment_id,
+                "Removed parts folder for experiment {experiment_id}: {path:?}"
+            );
+        }
+        Err(err) => {
+            tracing::warn!(
+                experiment = %experiment_id,
+                "Could not clean up {path:?}: {err}"
+            );
+        }
     }
 }

@@ -8,8 +8,9 @@ import { BlockEntity, isDraftTextContainingEntityProperties } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
-  draftEntityForEntityId,
+  getDraftEntityFromEntityId,
   EntityStore,
+  EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
@@ -60,8 +61,9 @@ export type EntityStorePluginAction = { received?: boolean } & (
   | {
       type: "newDraftEntity";
       payload: {
-        entityId: string | null;
+        accountId: string;
         draftId: string;
+        entityId: string | null;
       };
     }
   | {
@@ -70,6 +72,10 @@ export type EntityStorePluginAction = { received?: boolean } & (
         draftId: string;
         entityId: string;
       };
+    }
+  | {
+      type: "updateBlockEntityProperties";
+      payload: { draftId: string; targetEntity: EntityStoreType };
     }
 );
 
@@ -113,6 +119,16 @@ export const entityStorePluginStateFromTransaction = (
   getMeta(tr)?.store ?? entityStorePluginState(state);
 
 /**
+ * Creates a draftId for an entity.
+ * If the entityId is not yet available, a fake draft id is used for the session.
+ * Pass 'null' if the entity is new and the entityId is not available.
+ * Do NOT change the entity's draftId mid-session - leave it as fake.
+ * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId
+ */
+export const createDraftIdForEntity = (entityId: string | null) =>
+  entityId ? `draft-${entityId}` : `fake-${uuid()}`;
+
+/**
  * As we're not yet working with a totally flat entity store, the same
  * entity can exist in multiple places in a draft entity store. This
  * function finds each instance of an entity by entity id, and calls a
@@ -148,6 +164,57 @@ const updateEntitiesByDraftId = (
   for (const entity of entities) {
     updateHandler(entity);
   }
+};
+
+/**
+ * The method does the following
+ * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
+ * 2. Sets targetEntity as the new block data
+ * @param draftEntityStore draft entity store
+ * @param draftBlockId draft id of the Block Entity whose child entity should be changed
+ * @param targetEntity entity to be changed to
+ */
+const updateBlockEntity = (
+  draftEntityStore: Draft<EntityStore["draft"]>,
+  draftBlockId: string,
+  targetEntity: EntityStoreType,
+) => {
+  let targetDraftEntity = getDraftEntityFromEntityId(
+    draftEntityStore,
+    draftBlockId,
+  );
+
+  // Add target entity to draft store if it is not
+  // present there
+  if (!targetDraftEntity) {
+    const targetEntityDraftId = createDraftIdForEntity(targetEntity.entityId);
+    targetDraftEntity = {
+      accountId: targetEntity.accountId,
+      draftId: targetEntityDraftId,
+      entityId: targetEntity.entityId,
+      properties: targetEntity.properties,
+      entityVersionCreatedAt: new Date().toISOString(),
+    };
+
+    draftEntityStore[targetEntityDraftId] = targetDraftEntity;
+  }
+
+  const draftBlockEntity = draftEntityStore[draftBlockId];
+
+  if (!draftBlockEntity) {
+    throw new Error("Block to update not present in store");
+  }
+
+  if (!isDraftBlockEntity(draftBlockEntity)) {
+    throw new Error("draftId provided does not point to a BlockEntity");
+  }
+
+  // we shouldn't need to update this since the api is meant to
+  // handle it.
+  // @todo remove the need for this
+  draftBlockEntity.entityVersionCreatedAt = new Date().toISOString();
+
+  draftBlockEntity.properties.entity = targetDraftEntity;
 };
 
 /**
@@ -221,6 +288,28 @@ const entityStoreReducer = (
       });
     }
 
+    case "updateBlockEntityProperties": {
+      if (!state.store.draft[action.payload.draftId]) {
+        throw new Error("Block missing to merge entity properties");
+      }
+
+      if (!action.payload.targetEntity) {
+        throw new Error("Entity missing to merge Block entity properties");
+      }
+
+      return produce(state, (draftState) => {
+        if (!action.received) {
+          draftState.trackedActions.push({ action, id: uuid() });
+        }
+
+        updateBlockEntity(
+          draftState.store.draft,
+          action.payload.draftId,
+          action.payload.targetEntity,
+        );
+      });
+    }
+
     case "updateEntityId": {
       if (!state.store.draft[action.payload.draftId]) {
         throw new Error("Entity missing to update entity id");
@@ -252,6 +341,7 @@ const entityStoreReducer = (
         }
 
         draftState.store.draft[action.payload.draftId] = {
+          accountId: action.payload.accountId,
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
           entityVersionCreatedAt: new Date().toISOString(),
@@ -330,17 +420,21 @@ export const subscribeToEntityStore = (
   };
 };
 
-const getDraftIdFromEntityByEntityId = (
+/**
+ * Retrieves the draft entity for an entity, given its entityId and the draft store.
+ * @throws {Error} if entity not found - use getDraftEntityForEntityId if you don't want an error on missing entities.
+ */
+export const mustGetDraftEntityFromEntityId = (
   draftStore: EntityStore["draft"],
   entityId: string,
 ) => {
-  const existingEntity = draftEntityForEntityId(draftStore, entityId);
+  const existingEntity = getDraftEntityFromEntityId(draftStore, entityId);
 
   if (!existingEntity) {
     throw new Error("invariant: entity missing from entity store");
   }
 
-  return existingEntity.draftId;
+  return existingEntity;
 };
 
 const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
@@ -351,13 +445,11 @@ const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
   return entityNode.attrs.draftId;
 };
 
-export const newDraftId = () => `fake-${uuid()}`;
-
 class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;
   private handled = false;
 
-  constructor(private state: EditorState<Schema>) {
+  constructor(private state: EditorState<Schema>, private accountId: string) {
     this.tr = state.tr;
   }
 
@@ -516,20 +608,21 @@ class ProsemirrorStateChangeHandler {
       : null;
 
     const draftId = entityId
-      ? getDraftIdFromEntityByEntityId(draftEntityStore, entityId)
+      ? mustGetDraftEntityFromEntityId(draftEntityStore, entityId).draftId
       : /**
          * @todo this will lead to the frontend setting draft id uuids for
          *   new blocks – this is potentially insecure and needs
          *   considering
          */
-        node.attrs.draftId ?? newDraftId();
+        node.attrs.draftId ?? createDraftIdForEntity(null);
 
     if (!draftEntityStore[draftId]) {
       addEntityStoreAction(this.state, this.tr, {
         type: "newDraftEntity",
         payload: {
-          entityId: entityId ?? null,
+          accountId: this.accountId,
           draftId,
+          entityId: entityId ?? null,
         },
       });
     }
@@ -570,47 +663,85 @@ class ProsemirrorStateChangeHandler {
   }
 }
 
-export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
-  key: entityStorePluginKey,
-  state: {
-    init(_): EntityStorePluginState {
+/**
+ * This is used by entityStorePlugin to notify any listeners to the plugin that
+ * a state has changed. This needs to happen at the end of a tick to ensure that
+ * Prosemirror is in a consistent and stable state before the subscriber is
+ * notified as the subscriber may then query Prosemirror which could cause a
+ * crash if Prosemirror is either not in a consistent state yet, or if the view
+ * state and the state used to notify the subscribers are not in sync.
+ *
+ * We schedule the notification using the view and not the current state, as
+ * the view state may change in between when its scheduled and when the
+ * notification occurs, and we want to ensure we only notify with the final
+ * view state in a tick. Intermediary states are not notified for.
+ */
+const scheduleNotifyEntityStoreSubscribers = collect<
+  [
+    view: EditorView<Schema>,
+    prevState: EditorState<Schema>,
+    entityStorePlugin: Plugin<EntityStorePluginState, Schema>,
+  ]
+>((calls) => {
+  for (const [view, prevState, entityStorePlugin] of calls) {
+    const nextPluginState = entityStorePlugin.getState(view.state);
+    const prevPluginState = entityStorePlugin.getState(prevState);
+
+    // If the plugin state has changed, notify listeners
+    if (nextPluginState !== prevPluginState) {
+      for (const listener of nextPluginState.listeners) {
+        listener(nextPluginState.store);
+      }
+    }
+  }
+});
+
+export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
+  new Plugin<EntityStorePluginState, Schema>({
+    key: entityStorePluginKey,
+    state: {
+      init(_): EntityStorePluginState {
+        return {
+          store: createEntityStore([], {}),
+          listeners: [],
+          trackedActions: [],
+        };
+      },
+      apply(tr, initialState): EntityStorePluginState {
+        return getMeta(tr)?.store ?? initialState;
+      },
+    },
+
+    view() {
       return {
-        store: createEntityStore([], {}),
-        listeners: [],
-        trackedActions: [],
+        update: (view, prevState) => {
+          scheduleNotifyEntityStoreSubscribers(
+            view,
+            prevState,
+            createEntityStorePlugin({ accountId }),
+          );
+        },
       };
     },
-    apply(tr, initialState): EntityStorePluginState {
-      const nextState = getMeta(tr)?.store ?? initialState;
 
-      if (nextState !== initialState) {
-        for (const listener of nextState.listeners) {
-          listener(nextState.store);
-        }
+    /**
+     * This is necessary to ensure the draft entity store stays in sync with the
+     * changes made by users to the document
+     *
+     * @todo we need to take the state left by the transactions as the start
+     * for nodeChangeHandler
+     */
+    appendTransaction(transactions, _, state) {
+      if (!transactions.some((tr) => tr.docChanged)) {
+        return;
       }
 
-      return nextState;
+      if (
+        getMeta(transactions[transactions.length - 1]!)?.disableInterpretation
+      ) {
+        return;
+      }
+
+      return new ProsemirrorStateChangeHandler(state, accountId).handleDoc();
     },
-  },
-
-  /**
-   * This is necessary to ensure the draft entity store stays in sync with the
-   * changes made by users to the document
-   *
-   * @todo we need to take the state left by the transactions as the start
-   * for nodeChangeHandler
-   */
-  appendTransaction(transactions, _, state) {
-    if (!transactions.some((tr) => tr.docChanged)) {
-      return;
-    }
-
-    if (
-      getMeta(transactions[transactions.length - 1]!)?.disableInterpretation
-    ) {
-      return;
-    }
-
-    return new ProsemirrorStateChangeHandler(state).handleDoc();
-  },
-});
+  });

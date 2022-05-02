@@ -1,18 +1,28 @@
+#[macro_use]
+mod macros;
+mod analyzer;
+mod config;
+mod index_iter;
+mod output;
+mod validation;
+mod value_iter;
+
 use std::sync::Arc;
 
 use analyzer::Analyzer;
 use async_trait::async_trait;
-pub use output::{AnalysisOutput, AnalysisSingleOutput};
 use serde_json::Value;
+use stateful::{
+    context::Context, field::FieldSpecMapAccessor, global::Globals, proxy::BatchPool, state::State,
+};
 use tracing::Span;
 
-pub use self::config::AnalysisOutputConfig;
+pub use self::{
+    config::AnalysisOutputConfig,
+    output::{AnalysisOutput, AnalysisSingleOutput},
+};
 use crate::{
-    config::{ExperimentConfig, Globals},
-    datastore::{
-        schema::accessor::FieldSpecMapAccessor,
-        table::{context::Context, pool::BatchPool, state::State},
-    },
+    config::{ExperimentConfig, SimRunConfig},
     experiment::SimPackageArgs,
     proto::ExperimentRunTrait,
     simulation::{
@@ -23,17 +33,7 @@ use crate::{
         },
         Error, Result,
     },
-    SimRunConfig,
 };
-
-#[macro_use]
-mod macros;
-mod analyzer;
-mod config;
-mod index_iter;
-mod output;
-mod validation;
-mod value_iter;
 
 // TODO: UNUSED: Needs triage
 pub enum Task {}

@@ -1,18 +1,15 @@
-use super::collected::Messages;
-use crate::{
-    datastore::{
-        arrow::util::DataSliceUtils,
-        error::Result as DatastoreResult,
-        meta::{ColumnDynamicMetadata, ColumnDynamicMetadataBuilder},
-    },
-    simulation::package::context::ContextColumnWriter,
+use memory::arrow::meta::{
+    util::DataSliceUtils, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder,
 };
+use stateful::context::ContextColumnWriter;
+
+use crate::simulation::package::context::packages::agent_messages::collected::Messages;
 
 const NUM_NODES: usize = 3;
 const NUM_BUFFERS: usize = 5;
 
 impl ContextColumnWriter for Messages {
-    fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata> {
+    fn dynamic_metadata(&self) -> stateful::Result<ColumnDynamicMetadata> {
         let mut builder = ColumnDynamicMetadataBuilder::with_capacities(NUM_NODES, NUM_BUFFERS);
         // TODO: Implement and use `builder.add_offset_buffer` convenience function;
         //       maybe also `builder.add_null_buffer`.
@@ -35,7 +32,7 @@ impl ContextColumnWriter for Messages {
         Ok(builder.finish())
     }
 
-    fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
+    fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> stateful::Result<()> {
         tracing::debug!("Writing context message locs");
         // TODO[6](optimization)
         // we can leave these null buffers out (length = 0) if Rust does not need to read them.

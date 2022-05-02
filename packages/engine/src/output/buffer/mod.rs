@@ -1,9 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
-pub use part::OutputPartBuffer;
-use serde::Serialize;
-pub use util::cleanup_experiment;
+mod part;
 
+use serde::Serialize;
+
+pub use self::part::{remove_experiment_parts, OutputPartBuffer};
 use crate::{
     output::error::{Error, Result},
     proto::{ExperimentId, SimulationShortId},
@@ -17,9 +18,7 @@ use crate::{
     },
 };
 
-mod part;
-mod util;
-
+// TODO: We might want to use a temporary folder (like "/tmp" or "/var/tmp") instead.
 const RELATIVE_PARTS_FOLDER: &str = "./parts";
 
 pub struct Buffers {

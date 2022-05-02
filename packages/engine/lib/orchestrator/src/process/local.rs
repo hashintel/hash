@@ -6,6 +6,7 @@ use std::{
 use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine_lib::{
+    experiment::controller::run::cleanup_experiment,
     proto::{EngineMsg, ExperimentId},
     utils::{LogFormat, LogLevel, OutputLocation},
 };
@@ -29,8 +30,10 @@ pub struct LocalProcess {
 
 #[async_trait]
 impl process::Process for LocalProcess {
-    async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
-        self.child
+    async fn exit_and_cleanup(mut self: Box<Self>, experiment_id: ExperimentId) -> Result<()> {
+        // Kill the child process as it didn't stop on its own
+        let kill_result = self
+            .child
             .kill()
             .await
             .or_else(|e| match e.kind() {
@@ -39,10 +42,12 @@ impl process::Process for LocalProcess {
                 std::io::ErrorKind::InvalidInput => Ok(()),
                 _ => Err(Report::new(e)),
             })
-            .wrap_err("Could not kill the process")?;
+            .wrap_err("Could not kill the process");
+
+        cleanup_experiment(experiment_id);
 
         debug!("Cleaned up local engine process for experiment");
-        Ok(())
+        kill_result
     }
 
     /// Creates or reuses a [`nano::Client`] to send a message to the [`hash_engine`] subprocess.
@@ -84,6 +89,8 @@ pub struct LocalCommand {
     output_location: OutputLocation,
     log_folder: PathBuf,
     target_max_group_size: Option<usize>,
+    js_runner_initial_heap_constraint: Option<usize>,
+    js_runner_max_heap_size: Option<usize>,
 }
 
 impl LocalCommand {
@@ -98,6 +105,8 @@ impl LocalCommand {
         output_location: OutputLocation,
         log_folder: PathBuf,
         target_max_group_size: Option<usize>,
+        js_runner_initial_heap_constraint: Option<usize>,
+        js_runner_max_heap_size: Option<usize>,
     ) -> Self {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
@@ -112,6 +121,8 @@ impl LocalCommand {
             output_location,
             log_folder,
             target_max_group_size,
+            js_runner_initial_heap_constraint,
+            js_runner_max_heap_size,
         }
     }
 }
@@ -156,6 +167,14 @@ impl process::Command for LocalCommand {
         if let Some(target_max_group_size) = self.target_max_group_size {
             cmd.arg("--target-max-group-size")
                 .arg(target_max_group_size.to_string());
+        }
+        if let Some(js_runner_initial_heap_constraint) = self.js_runner_initial_heap_constraint {
+            cmd.arg("--js-runner-initial-heap-constraint")
+                .arg(js_runner_initial_heap_constraint.to_string());
+        }
+        if let Some(js_runner_max_heap_size) = self.js_runner_max_heap_size {
+            cmd.arg("--js-runner-max-heap-size")
+                .arg(js_runner_max_heap_size.to_string());
         }
         debug!("Running `{cmd:?}`");
 

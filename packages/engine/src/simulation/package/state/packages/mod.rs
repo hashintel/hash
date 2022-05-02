@@ -9,24 +9,44 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use stateful::field::PackageId;
 
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
-use super::PackageCreator;
 use crate::{
+    config::{ExperimentConfig, TaskDistributionConfig},
+    datastore::table::task_shared_store::TaskSharedStore,
     simulation::{
-        enum_dispatch::{enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore},
-        package::{id::PackageIdGenerator, PackageMetadata, PackageType},
+        package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
+        task::{
+            access::StoreAccessVerify,
+            args::GetTaskArgs,
+            handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
+            msg::{TargetedTaskMessage, TaskMessage},
+            GetTaskName, Task,
+        },
         Error, Result,
     },
-    ExperimentConfig,
 };
 
 /// All state package names are registered in this enum
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Name {
     BehaviorExecution,
     Topology,
+}
+
+impl Name {
+    pub fn id(self) -> Result<PackageId> {
+        Ok(METADATA
+            .get(&self)
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "Package Metadata not registered for package: {self}"
+                ))
+            })?
+            .id)
+    }
 }
 
 impl std::fmt::Display for Name {
@@ -40,10 +60,59 @@ impl std::fmt::Display for Name {
 }
 
 /// All state package tasks are registered in this enum
-#[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
 pub enum StateTask {
-    ExecuteBehaviorsTask,
+    ExecuteBehaviorsTask(ExecuteBehaviorsTask),
+}
+
+impl GetTaskName for StateTask {
+    fn get_task_name(&self) -> &'static str {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.get_task_name(),
+        }
+    }
+}
+
+impl GetTaskArgs for StateTask {
+    fn distribution(&self) -> TaskDistributionConfig {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.distribution(),
+        }
+    }
+}
+
+impl WorkerHandler for StateTask {
+    fn start_message(&self) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.start_message(),
+        }
+    }
+
+    fn handle_worker_message(&mut self, msg: TaskMessage) -> Result<TargetedTaskMessage> {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.handle_worker_message(msg),
+        }
+    }
+
+    fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.combine_task_messages(task_messages),
+        }
+    }
+}
+
+impl WorkerPoolHandler for StateTask {
+    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<Task>> {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.split_task(split_config),
+        }
+    }
+
+    fn combine_messages(&self, split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        match self {
+            Self::ExecuteBehaviorsTask(inner) => inner.combine_messages(split_messages),
+        }
+    }
 }
 
 impl StoreAccessVerify for StateTask {
@@ -62,10 +131,9 @@ impl StoreAccessVerify for StateTask {
 }
 
 /// All state package task messages are registered in this enum
-#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum StateTaskMessage {
-    ExecuteBehaviorsTaskMessage,
+    ExecuteBehaviorsTaskMessage(ExecuteBehaviorsTaskMessage),
 }
 
 pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
@@ -119,14 +187,17 @@ lazy_static! {
         use Name::{BehaviorExecution, Topology};
         let mut id_creator = PackageIdGenerator::new(PackageType::State);
         let mut m = HashMap::new();
-        m.insert(BehaviorExecution, PackageMetadata {
-            id: id_creator.next(),
-            dependencies: behavior_execution::Creator::dependencies(),
-        });
-        m.insert(Topology, PackageMetadata {
-            id: id_creator.next(),
-            dependencies: topology::Creator::dependencies(),
-        });
+        m.insert(
+            BehaviorExecution,
+            PackageMetadata::new(
+                id_creator.next(),
+                behavior_execution::Creator::dependencies(),
+            ),
+        );
+        m.insert(
+            Topology,
+            PackageMetadata::new(id_creator.next(), topology::Creator::dependencies()),
+        );
         m
     };
 }

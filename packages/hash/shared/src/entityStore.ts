@@ -1,4 +1,5 @@
 import { Draft, produce } from "immer";
+import { createDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
 import { DistributiveOmit } from "./util";
 
@@ -68,9 +69,11 @@ export const isDraftBlockEntity = (
   isBlockEntity(entity) && isDraftEntity(entity);
 
 /**
+ * Returns the draft entity associated with an entity id, or undefined if it does not.
+ * Use mustGetDraftEntityFromEntityId if you want an error if the entity is missing.
  * @todo we could store a map of entity id <-> draft id to make this easier
  */
-export const draftEntityForEntityId = (
+export const getDraftEntityFromEntityId = (
   draft: EntityStore["draft"],
   entityId: string,
 ) => Object.values(draft).find((entity) => entity.entityId === entityId);
@@ -105,6 +108,7 @@ const restoreDraftId = (
   // eslint-disable-next-line no-param-reassign
   (entity as unknown as DraftEntity).draftId = entityToDraft[textEntityId]!;
 };
+
 /**
  * @todo this should be flat – so that we don't have to traverse links
  * @todo clean up
@@ -127,7 +131,7 @@ export const createEntityStore = (
 
   for (const entity of entities) {
     if (!entityToDraft[entity.entityId]) {
-      entityToDraft[entity.entityId] = `draft-${entity.entityId}`;
+      entityToDraft[entity.entityId] = createDraftIdForEntity(entity.entityId);
     }
   }
 

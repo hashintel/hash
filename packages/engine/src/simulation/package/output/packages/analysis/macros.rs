@@ -140,7 +140,7 @@ macro_rules! apply_index_filter_f64 {
             OutputCreator::index_creator(&$operations[1..], $accessor)?;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
-            let f64_iterator = f64_iter(agents, &field)?;
+            let f64_iterator = agent::arrow::f64_iter(agents, &field)?;
             let next = following(agents)?;
             Ok(Box::new(
                 move |iterator: Box<dyn Iterator<Item = usize> + Send + Sync>| {
@@ -180,7 +180,7 @@ macro_rules! apply_index_filter_str {
             OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
-            let str_iterator = str_iter(&agents, &field)?;
+            let str_iterator = agent::arrow::str_iter(&agents, &field)?;
             let next = following(agents)?;
             let $cloned = $string.clone();
             Ok(Box::new(
@@ -220,7 +220,7 @@ macro_rules! apply_index_filter_serialized_json_str {
             OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
-            let str_iterator = str_iter(agents, &field)?;
+            let str_iterator = agent::arrow::str_iter(agents, &field)?;
             let next = following(agents)?;
             let $cloned = $string.clone();
             Ok(Box::new(
@@ -251,7 +251,7 @@ macro_rules! apply_index_filter_serialized_json {
         let following = OutputCreator::index_creator(&$operations[1..], $accessor)?;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
-            let str_iterator = str_iter(agents, &field)?;
+            let str_iterator = agent::arrow::str_iter(agents, &field)?;
             let next = following(agents)?;
             Ok(Box::new(
                 move |iterator: Box<dyn Iterator<Item = usize> + Send + Sync>| {
@@ -282,7 +282,7 @@ macro_rules! apply_index_filter_null {
             OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
-            let exists_iter = exists_iter(agents, &field)?;
+            let exists_iter = agent::arrow::exists_iter(agents, &field)?;
             let next = following(agents)?;
             Ok(Box::new(
                 move |iterator: Box<dyn Iterator<Item = usize> + Send + Sync>| {
@@ -311,7 +311,7 @@ macro_rules! apply_index_filter_bool {
             OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
-            let bool_iterator = bool_iter(agents, &field)?;
+            let bool_iterator = agent::arrow::bool_iter(agents, &field)?;
             let next = following(agents)?;
             Ok(Box::new(
                 move |iterator: Box<dyn Iterator<Item = usize> + Send + Sync>| {
@@ -365,7 +365,7 @@ macro_rules! apply_aggregator {
 macro_rules! apply_aggregator_f64 {
     ($field_name:ident, $iter:ident, $aggr:expr) => {{
         let runner: OutputRunnerCreator = Box::new(move |agents: &_| {
-            let f64_iter = f64_iter(agents, &$field_name)?;
+            let f64_iter = agent::arrow::f64_iter(agents, &$field_name)?;
             let runner: OutputRunner<'_> = Box::new(
                 move |iterator: Box<dyn Iterator<Item = usize> + Send + Sync>| {
                     let mut iter = f64_iter;

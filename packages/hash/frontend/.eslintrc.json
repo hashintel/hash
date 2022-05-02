@@ -2,7 +2,7 @@
   "parserOptions": {
     "project": ["./tsconfig.json"]
   },
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "canonical", "unicorn"],
   "rules": {
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
@@ -13,25 +13,32 @@
           {
             "name": "@mui/material",
             "importNames": ["Link"],
-            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
-          },
-          {
-            "name": "@mui/material/Link",
-            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "next",
             "importNames": ["Link"],
-            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "next/link",
-            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
-            "name": "@mui/material/Popover",
-            "importNames": ["default"],
-            "message": "Please use the custom src/components/Popover component instead."
+            "name": "@mui/material/*",
+            "message": "Please import from @mui/material instead"
+          },
+          {
+            "name": "@mui/material",
+            "importNames": [
+              "Avatar",
+              "Button",
+              "IconButton",
+              "Chip",
+              "Popover",
+              "TextField"
+            ],
+            "message": "Please use the custom wrapper component in src/shared/ui instead."
           }
         ]
       }
@@ -46,6 +53,13 @@
       ],
       "rules": {
         "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["**/shared/**/*", "./src/pages/**/*"],
+      "rules": {
+        "canonical/filename-no-index": "error",
+        "unicorn/filename-case": "error"
       }
     }
   ]

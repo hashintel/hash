@@ -1,18 +1,15 @@
-use super::response::ApiResponses;
-use crate::{
-    datastore::{
-        arrow::util::DataSliceUtils,
-        error::Result as DatastoreResult,
-        meta::{Buffer, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder},
-    },
-    simulation::package::context::ContextColumnWriter,
+use memory::arrow::meta::{
+    util::DataSliceUtils, Buffer, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder,
 };
+use stateful::context::ContextColumnWriter;
+
+use crate::simulation::package::context::packages::api_requests::response::ApiResponses;
 
 const NUM_NODES: usize = 5;
 const NUM_BUFFERS: usize = 12;
 
 impl ContextColumnWriter for ApiResponses<'_> {
-    fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata> {
+    fn dynamic_metadata(&self) -> stateful::Result<ColumnDynamicMetadata> {
         let mut builder = ColumnDynamicMetadataBuilder::with_capacities(NUM_NODES, NUM_BUFFERS);
 
         // List of Structs
@@ -33,7 +30,7 @@ impl ContextColumnWriter for ApiResponses<'_> {
         Ok(builder.finish())
     }
 
-    fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
+    fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> stateful::Result<()> {
         // Null buffer
         data.from_offset(&meta.buffers[0]).fill_with_ones();
 

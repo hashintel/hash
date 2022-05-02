@@ -17,16 +17,15 @@ import React, {
 import { tw } from "twind";
 import { debounce, get } from "lodash";
 
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { SchemaPropertiesTable } from "./SchemaPropertiesTable";
-import { JsonSchema } from "../../../lib/json-utils";
 import { TextInputOrDisplay } from "./Inputs";
 import {
   schemaEditorReducer,
   SchemaEditorReducerAction,
 } from "./schemaEditorReducer";
-import { Button } from "../../Button";
 import { SubSchemaItem } from "./SubSchemaItem";
-import { Link } from "../../Link";
+import { Button, Link } from "../../../shared/ui";
 
 export type SchemaSelectElementType = VoidFunctionComponent<{
   schemaRef: string;

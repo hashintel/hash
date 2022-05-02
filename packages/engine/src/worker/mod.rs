@@ -5,7 +5,7 @@
 //! [communication module](runner::comms). The [`task`] module defines tasks executed in the
 //! runners.
 
-pub mod error;
+mod error;
 mod pending;
 pub mod runner;
 pub mod task;
@@ -19,7 +19,7 @@ use futures::{
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
-pub use self::error::{Error, Result};
+pub use self::error::{Error, Result, RunnerError};
 use self::{
     pending::PendingWorkerTasks,
     runner::{
@@ -35,14 +35,15 @@ use self::{
 };
 use crate::{
     config::{WorkerConfig, WorkerSpawnConfig},
-    datastore::table::{sync::SyncPayload, task_shared_store::SharedState},
+    datastore::table::{
+        sync::SyncPayload,
+        task_shared_store::{SharedState, TaskSharedStore},
+    },
+    language::Language,
     proto::SimulationShortId,
-    simulation::{
-        enum_dispatch::TaskSharedStore,
-        task::{
-            handler::WorkerHandler,
-            msg::{TaskMessage, TaskResultOrCancelled},
-        },
+    simulation::task::{
+        handler::WorkerHandler,
+        msg::{TaskMessage, TaskResultOrCancelled},
     },
     types::TaskId,
     worker::{
@@ -53,7 +54,6 @@ use crate::{
         WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
         WorkerToWorkerPoolMsg,
     },
-    Language,
 };
 
 /// A task worker.

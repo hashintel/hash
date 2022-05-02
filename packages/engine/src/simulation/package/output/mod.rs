@@ -4,23 +4,25 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 pub use packages::{Name, OutputTask, OutputTaskMessage, PACKAGE_CREATORS};
+use stateful::{
+    context::Context,
+    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    global::Globals,
+    state::State,
+};
 use tracing::Span;
 
 use self::packages::Output;
-use super::{
-    deps::Dependencies,
-    ext_traits::{GetWorkerSimStartMsg, MaybeCpuBound},
-};
 use crate::{
-    config::{ExperimentConfig, Globals},
-    datastore::{
-        schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-        table::{context::Context, state::State},
-    },
+    config::{ExperimentConfig, SimRunConfig},
     simulation::{
-        comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg, Error, Result,
+        comms::package::PackageComms,
+        package::{
+            deps::Dependencies,
+            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
+        },
+        Error, Result,
     },
-    SimRunConfig,
 };
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {

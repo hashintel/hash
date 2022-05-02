@@ -1,5 +1,5 @@
 import { ApolloClient } from "@apollo/client";
-import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
+import { RealtimeMessage } from "@hashintel/hash-backend-utils/realtime";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import {
@@ -17,6 +17,10 @@ import {
 import {
   GetBlocksQuery,
   GetBlocksQueryVariables,
+  GetLinkedAggregationQuery,
+  GetLinkedAggregationQueryVariables,
+  GetLinkQuery,
+  GetLinkQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
   LatestEntityRef,
@@ -28,6 +32,10 @@ import {
   getPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
 import {
+  getLinkedAggregationIdentifierFieldsQuery,
+  getLinkQuery,
+} from "@hashintel/hash-shared/queries/link.queries";
+import {
   createNecessaryEntities,
   updatePageMutation,
 } from "@hashintel/hash-shared/save";
@@ -36,6 +44,10 @@ import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
+import {
+  AggregationVersion,
+  LinkVersion,
+} from "@hashintel/hash-backend-utils/pgTables";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -83,6 +95,9 @@ export class Instance {
   timedPositions: TimedCollabPosition[] = [];
   positionCleanupInterval: ReturnType<typeof setInterval>;
 
+  errored = false;
+  stopped = false;
+
   /**
    * @todo absorb position updates into this
    */
@@ -113,11 +128,16 @@ export class Instance {
     }, POSITION_CLEANUP_INTERVAL);
 
     this.unsubscribeFromEntityWatcher = this.entityWatcher.subscribe(
-      (entityVersion) => this.processEntityVersion(entityVersion),
+      (message) => this.processWatcherMessage(message),
     );
   }
 
   stop() {
+    if (this.stopped) {
+      return;
+    }
+
+    this.stopped = true;
     this.sendUpdates();
 
     clearInterval(this.positionCleanupInterval);
@@ -130,6 +150,30 @@ export class Instance {
     this.unsubscribeFromEntityWatcher();
   }
 
+  error(err: unknown) {
+    if (err instanceof InvalidVersionError) {
+      throw err;
+    }
+
+    if (this.errored) {
+      logger.error(
+        "Error encountered when instance already in errored state",
+        err,
+      );
+      return;
+    }
+
+    logger.warn(
+      `Stopping instance ${this.accountId}/${this.pageEntityId}`,
+      err,
+    );
+
+    this.errored = true;
+    this.updates = [];
+    this.sendUpdates();
+    this.stop();
+  }
+
   /**
    * This has a non-ideal implementation as we have to walk the entity tree
    * twice – the first time to work out if the entity version we've received is
@@ -138,105 +182,209 @@ export class Instance {
    * talk to the GraphQL server to resolve links on the incoming entity, and
    * walkValueForEntity cannot handle async operations
    */
-  private async processEntityVersion(entityVersion: EntityVersion) {
-    /**
-     * This removes any extra properties from a passed object containing an
-     * accountId and entityId, which may be an Entity or a LatestEntityRef, or
-     * similar, in order to generate a LatestEntityRef with only the
-     * specific properties. This allows us to create objects which identify
-     * specific entities for use in GraphQL requests or comparisons. Because
-     * TypeScript's "substitutability", this function can be called with objects
-     * with extra properties than those specified.
-     *
-     * This function is memoized so that the resulting value can be used inside
-     * Map or Set, or for direct comparison, in absence of support for the
-     * Record proposal. The second argument to memoize allows calling this
-     * function with an object.
-     *
-     * This is defined locally as we only need calls to be referentially equal
-     * within the scope of `processEntityVersion`.
-     *
-     * @todo replace this with a Record once the proposal is usable
-     * @see https://github.com/tc39/proposal-record-tuple
-     * @see https://github.com/Microsoft/TypeScript/wiki/FAQ#substitutability
-     */
-    const getEntityRef = memoize(
-      (ref: { accountId: string; entityId: string }): LatestEntityRef =>
-        pick(ref, "accountId", "entityId"),
-      ({ accountId, entityId }) => `${accountId}/${entityId}`,
-    );
+  private async processWatcherMessage({ table, record }: RealtimeMessage) {
+    if (this.errored) {
+      return;
+    }
 
-    const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
-    const entityVersionRef = getEntityRef(entityVersion);
-
-    const blocksToRefresh = new Set(
-      flatMapBlocks(this.savedContents, (entity, blockEntity) => {
-        const entityRef = getEntityRef(entity);
-
-        if (
-          entityRef === entityVersionRef &&
-          entityVersionTime > new Date(entity.updatedAt).getTime()
-        ) {
-          return [getEntityRef(blockEntity)];
-        }
-
-        return [];
-      }),
-    );
-
-    if (blocksToRefresh.size) {
-      const refreshedBlocksQuery = await this.fallbackClient.query<
-        GetBlocksQuery,
-        GetBlocksQueryVariables
-      >({
-        query: getBlocksQuery,
-        variables: {
-          blocks: Array.from(blocksToRefresh.values()),
-        },
-        fetchPolicy: "network-only",
-      });
-
-      const refreshedPageBlocks = new Map<LatestEntityRef, BlockEntity>(
-        refreshedBlocksQuery.data.blocks.map(
-          (block) => [getEntityRef(block), block] as const,
-        ),
+    try {
+      /**
+       * This removes any extra properties from a passed object containing an
+       * accountId and entityId, which may be an Entity or a LatestEntityRef, or
+       * similar, in order to generate a LatestEntityRef with only the
+       * specific properties. This allows us to create objects which identify
+       * specific entities for use in GraphQL requests or comparisons. Because
+       * TypeScript's "substitutability", this function can be called with objects
+       * with extra properties than those specified.
+       *
+       * This function is memoized so that the resulting value can be used inside
+       * Map or Set, or for direct comparison, in absence of support for the
+       * Record proposal. The second argument to memoize allows calling this
+       * function with an object.
+       *
+       * This is defined locally as we only need calls to be referentially equal
+       * within the scope of `processEntityVersion`.
+       *
+       * @todo replace this with a Record once the proposal is usable
+       * @see https://github.com/tc39/proposal-record-tuple
+       * @see https://github.com/Microsoft/TypeScript/wiki/FAQ#substitutability
+       */
+      const getEntityRef = memoize(
+        (ref: { accountId: string; entityId: string }): LatestEntityRef =>
+          pick(ref, "accountId", "entityId"),
+        ({ accountId, entityId }) => `${accountId}/${entityId}`,
       );
 
-      const nextSavedContents = this.savedContents.map((block) => {
-        const blockRef = getEntityRef(block);
+      /**
+       * This fetches entity references relevant to the provided LinkVersion or AggregationVersion.
+       * Multiple entity refs may be returned, as a LinkVersion has both a source and a destination.
+       * The LinkedEntities for a destination can change if any of its properties are resolved via incoming links.
+       * This uses {@link getEntityRef} to memoize the refs, so they can be checked against refs
+       * acquired through that function directly.
+       */
+      const getEntityRefsFromLinkOrAggregation = (
+        recordToGetIdsFrom: LinkVersion | AggregationVersion,
+      ): Promise<LatestEntityRef[]> => {
+        const variables =
+          "linkId" in recordToGetIdsFrom
+            ? {
+                sourceAccountId: recordToGetIdsFrom.sourceAccountId,
+                linkId: recordToGetIdsFrom.linkId,
+              }
+            : {
+                sourceAccountId: recordToGetIdsFrom.sourceAccountId,
+                aggregationId: recordToGetIdsFrom.aggregationId,
+              };
+        return this.fallbackClient
+          .query<
+            GetLinkQuery | GetLinkedAggregationQuery,
+            GetLinkQueryVariables | GetLinkedAggregationQueryVariables
+          >({
+            query:
+              "linkId" in recordToGetIdsFrom
+                ? getLinkQuery
+                : getLinkedAggregationIdentifierFieldsQuery,
+            variables,
+            fetchPolicy: "network-only",
+          })
+          .then(({ data }) => {
+            if ("getLink" in data) {
+              const {
+                sourceAccountId,
+                sourceEntityId,
+                destinationAccountId,
+                destinationEntityId,
+              } = data.getLink;
+              return [
+                getEntityRef({
+                  accountId: sourceAccountId,
+                  entityId: sourceEntityId,
+                }),
+                getEntityRef({
+                  accountId: destinationAccountId,
+                  entityId: destinationEntityId,
+                }),
+              ];
+            } else {
+              const { sourceAccountId, sourceEntityId } =
+                data.getLinkedAggregation;
+              return [
+                getEntityRef({
+                  accountId: sourceAccountId,
+                  entityId: sourceEntityId,
+                }),
+              ];
+            }
+          });
+      };
 
-        if (blocksToRefresh.has(blockRef)) {
-          const refreshedBlock = refreshedPageBlocks.get(blockRef);
+      const recordUpdatedAt = new Date(record.updatedAt).getTime();
 
-          if (!refreshedBlock) {
-            throw new Error("Cannot find updated block in updated page");
-          }
-
-          return refreshedBlock;
-        }
-
-        return block;
-      });
+      const affectedEntityRefs: LatestEntityRef[] =
+        table === "entity_versions"
+          ? [getEntityRef(record)] // an entity itself has been updated - get its ref
+          : await getEntityRefsFromLinkOrAggregation(record); // a link or linked aggregation has been updated - get the affected entities
 
       /**
-       * We should know not to notify consumers of changes they've already been
-       * notified of, but because of a race condition between saves triggered
-       * by collab and saves triggered by frontend blocks, this doesn't
-       * necessarily work, so unfortunately we need to notify on every
-       * notification from realtime right now. This means clients will be
-       * notified about prosemirror changes twice right now. There are no known
-       * downsides to this other than performance.
-       *
-       * If nextSavedContents === this.savedContents, then we're likely
-       * notifying of changes the client is possibly already aware of
-       *
-       * @todo fix this
+       * Determine which blocks to refresh by checking if any of the entities within it are affected
        */
-      this.updateSavedContents(nextSavedContents);
+      const blocksToRefresh = new Set(
+        flatMapBlocks(this.savedContents, (entity, blockEntity) => {
+          const entityRef = getEntityRef(entity);
+
+          // check if the entity itself is affected
+          let affected = affectedEntityRefs.includes(entityRef);
+
+          if (!affected && "linkedEntities" in entity) {
+            // this is the entity within the block, i.e. the 'child' entity
+            // check if any of its linked entities or linked aggregations are affected
+            // we don't need to check this if we already know it's affected
+            affected =
+              entity.linkedEntities.some((linkedEntity) =>
+                affectedEntityRefs.includes(getEntityRef(linkedEntity)),
+              ) ||
+              entity.linkedAggregations.some(
+                ({ sourceAccountId, sourceEntityId }) =>
+                  affectedEntityRefs.includes(
+                    getEntityRef({
+                      accountId: sourceAccountId,
+                      entityId: sourceEntityId,
+                    }),
+                  ),
+              );
+          }
+
+          if (
+            affected &&
+            recordUpdatedAt > new Date(entity.updatedAt).getTime()
+          ) {
+            return [getEntityRef(blockEntity)];
+          }
+
+          return [];
+        }),
+      );
+
+      if (blocksToRefresh.size) {
+        const refreshedBlocksQuery = await this.fallbackClient.query<
+          GetBlocksQuery,
+          GetBlocksQueryVariables
+        >({
+          query: getBlocksQuery,
+          variables: {
+            blocks: Array.from(blocksToRefresh.values()),
+          },
+          fetchPolicy: "network-only",
+        });
+
+        const refreshedPageBlocks = new Map<LatestEntityRef, BlockEntity>(
+          refreshedBlocksQuery.data.blocks.map(
+            (block) => [getEntityRef(block), block] as const,
+          ),
+        );
+
+        const nextSavedContents = this.savedContents.map((block) => {
+          const blockRef = getEntityRef(block);
+
+          if (blocksToRefresh.has(blockRef)) {
+            const refreshedBlock = refreshedPageBlocks.get(blockRef);
+
+            if (!refreshedBlock) {
+              throw new Error("Cannot find updated block in updated page");
+            }
+
+            return refreshedBlock;
+          }
+
+          return block;
+        });
+
+        /**
+         * We should know not to notify consumers of changes they've already been
+         * notified of, but because of a race condition between saves triggered
+         * by collab and saves triggered by frontend blocks, this doesn't
+         * necessarily work, so unfortunately we need to notify on every
+         * notification from realtime right now. This means clients will be
+         * notified about prosemirror changes twice right now. There are no known
+         * downsides to this other than performance.
+         *
+         * If nextSavedContents === this.savedContents, then we're likely
+         * notifying of changes the client is possibly already aware of
+         *
+         * @todo fix this
+         */
+        this.updateSavedContents(nextSavedContents);
+      }
+    } catch (err) {
+      this.error(err);
     }
   }
 
   private updateSavedContents(nextSavedContents: BlockEntity[]) {
+    if (this.errored) {
+      return;
+    }
+
     const { tr } = this.state;
     addEntityStoreAction(this.state, tr, {
       type: "mergeNewPageContents",
@@ -270,39 +418,51 @@ export class Instance {
       actions: EntityStorePluginAction[] = [],
       fromClient = true,
     ) => {
-      this.checkVersion(version);
-      if (this.version !== version) return false;
-      const tr = this.state.tr;
-
-      if (fromClient) {
-        disableEntityStoreTransactionInterpretation(tr);
+      if (this.errored) {
+        return false;
       }
 
-      for (let i = 0; i < steps.length; i++) {
-        this.clientIds.set(steps[i]!, clientID);
+      try {
+        this.checkVersion(version);
+        if (this.version !== version) return false;
 
-        const result = tr.maybeStep(steps[i]!);
-        if (!result.doc) return false;
-      }
+        const tr = this.state.tr;
 
-      for (const action of actions) {
-        addEntityStoreAction(this.state, tr, { ...action, received: true });
-      }
+        if (fromClient) {
+          disableEntityStoreTransactionInterpretation(tr);
+        }
 
-      this.state = this.state.apply(tr);
+        for (let i = 0; i < steps.length; i++) {
+          this.clientIds.set(steps[i]!, clientID);
 
-      // this.doc = doc;
-      this.addUpdates(steps.map((step) => ({ type: "step", payload: step })));
+          const result = tr.maybeStep(steps[i]!);
+          if (!result.doc) {
+            logger.warn("Bad step", steps[i]);
+            throw new Error("Could not apply step");
+          }
+        }
 
-      for (const action of actions) {
-        this.addUpdates([{ type: "action", payload: action }]);
-      }
+        for (const action of actions) {
+          addEntityStoreAction(this.state, tr, { ...action, received: true });
+        }
 
-      this.sendUpdates();
+        this.state = this.state.apply(tr);
 
-      if (apolloClient) {
-        // @todo offload saves to a separate process / debounce them
-        this.save(apolloClient)(clientID);
+        this.addUpdates(steps.map((step) => ({ type: "step", payload: step })));
+
+        for (const action of actions) {
+          this.addUpdates([{ type: "action", payload: action }]);
+        }
+
+        this.sendUpdates();
+
+        if (apolloClient) {
+          // @todo offload saves to a separate process / debounce them
+          this.save(apolloClient)(clientID);
+        }
+      } catch (err) {
+        this.error(err);
+        return false;
       }
 
       return { version: this.version };
@@ -312,6 +472,10 @@ export class Instance {
     this.saveChain = this.saveChain
       .catch()
       .then(async () => {
+        if (this.errored) {
+          throw new Error("Saving when instance stopped");
+        }
+
         const { actions, createdEntities } = await createNecessaryEntities(
           this.state,
           this.accountId,
@@ -425,7 +589,7 @@ export class Instance {
         });
       })
       .catch((err) => {
-        logger.error("could not save", err);
+        this.error(err);
       });
   };
 
@@ -438,62 +602,67 @@ export class Instance {
       blockIds: string[],
       actions: EntityStorePluginAction[] = [],
     ) => {
-      /**
-       * This isn't strictly necessary, and will result in more laggy collab
-       * performance. However, it is a quick way to improve stability by
-       * reducing moving parts – because it means each client will not try to
-       * send another set of updates until the previous updates (even those
-       * from other clients are finished saving). This is a good way to improve
-       * stability until we're more confident in collab not breaking with
-       * frequent updates.
-       *
-       * @todo remove this
-       */
-      await this.saveChain;
+      try {
+        /**
+         * This isn't strictly necessary, and will result in more laggy collab
+         * performance. However, it is a quick way to improve stability by
+         * reducing moving parts – because it means each client will not try to
+         * send another set of updates until the previous updates (even those
+         * from other clients are finished saving). This is a good way to improve
+         * stability until we're more confident in collab not breaking with
+         * frequent updates.
+         *
+         * @todo remove this
+         */
+        await this.saveChain;
 
-      /**
-       * This is a potential security risk as the frontend can instruct us
-       * to make a web request
-       */
-      await Promise.all(
-        blockIds.map((id) => this.manager.defineRemoteBlock(id)),
-      );
+        /**
+         * This is a potential security risk as the frontend can instruct us
+         * to make a web request
+         */
+        await Promise.all(
+          blockIds.map((id) => this.manager.defineRemoteBlock(id)),
+        );
 
-      const steps = jsonSteps.map((step) =>
-        Step.fromJSON(this.state.doc.type.schema, step),
-      );
+        const steps = jsonSteps.map((step) =>
+          Step.fromJSON(this.state.doc.type.schema, step),
+        );
 
-      const res = this.addEvents(apolloClient)(
-        version,
-        steps,
-        clientId,
-        actions,
-      );
+        const res = this.addEvents(apolloClient)(
+          version,
+          steps,
+          clientId,
+          actions,
+        );
 
-      /**
-       * This isn't strictly necessary, and will result in more laggy collab
-       * performance. However, it is a quick way to improve stability by
-       * reducing moving parts – because it means each client will not try to
-       * send another set of updates until the previous updates (even those
-       * from other clients are finished saving). This is a good way to improve
-       * stability until we're more confident in collab not breaking with
-       * frequent updates.
-       *
-       * @todo remove this
-       */
-      await this.saveChain;
+        /**
+         * This isn't strictly necessary, and will result in more laggy collab
+         * performance. However, it is a quick way to improve stability by
+         * reducing moving parts – because it means each client will not try to
+         * send another set of updates until the previous updates (even those
+         * from other clients are finished saving). This is a good way to improve
+         * stability until we're more confident in collab not breaking with
+         * frequent updates.
+         *
+         * @todo remove this
+         */
+        await this.saveChain;
 
-      return res;
+        return res;
+      } catch (err) {
+        this.error(err);
+        return false;
+      }
     };
 
-  sendUpdates() {
+  private sendUpdates() {
     while (this.waiting.length) this.waiting.pop()?.finish();
   }
 
   // : (Number)
   // Check if a document version number relates to an existing
   // document version.
-  checkVersion(version: number) {
+  private checkVersion(version: number) {
     if (version < 0 || version > this.version) {
       throw new InvalidVersionError(version);
     }
@@ -504,32 +673,41 @@ export class Instance {
    * version.
    */
   getEvents(version: number) {
-    this.checkVersion(version);
-    const startIndex = this.updates.length - (this.version - version);
-    if (startIndex < 0) return false;
+    try {
+      if (this.errored) {
+        return false;
+      }
 
-    const updates = this.updates.slice(startIndex);
-    const steps = updates
-      .filter((update): update is StepUpdate => update.type === "step")
-      .map((update) => update.payload);
+      this.checkVersion(version);
+      const startIndex = this.updates.length - (this.version - version);
+      if (startIndex < 0) return false;
 
-    const store =
-      [...updates]
-        .reverse()
-        .find((update): update is StoreUpdate => update.type === "store")
-        ?.payload ?? null;
+      const updates = this.updates.slice(startIndex);
+      const steps = updates
+        .filter((update): update is StepUpdate => update.type === "step")
+        .map((update) => update.payload);
 
-    const actions = updates
-      .filter((update): update is ActionUpdate => update.type === "action")
-      .map((update) => update.payload);
+      const store =
+        [...updates]
+          .reverse()
+          .find((update): update is StoreUpdate => update.type === "store")
+          ?.payload ?? null;
 
-    return {
-      steps,
-      clientIDs: steps.map((step) => this.clientIds.get(step)),
-      store,
-      actions,
-      shouldRespondImmediately: updates.length > 0,
-    };
+      const actions = updates
+        .filter((update): update is ActionUpdate => update.type === "action")
+        .map((update) => update.payload);
+
+      return {
+        steps,
+        clientIDs: steps.map((step) => this.clientIds.get(step)),
+        store,
+        actions,
+        shouldRespondImmediately: updates.length > 0,
+      };
+    } catch (err) {
+      this.error(err);
+      return false;
+    }
   }
 
   extractPositions(userIdToExclude: string | null): CollabPosition[] {
@@ -550,6 +728,10 @@ export class Instance {
     userPreferredName: string;
     entityId: string | null;
   }): void {
+    if (this.errored) {
+      return;
+    }
+
     const currentTimestamp = Date.now();
 
     const timedPositionIndex = this.timedPositions.findIndex(
@@ -577,7 +759,7 @@ export class Instance {
     this.notifyPositionPollers();
   }
 
-  cleanupPositions() {
+  private cleanupPositions() {
     const previousNumberOfPositions = this.timedPositions.length;
     const currentTimestamp = Date.now();
 
@@ -592,10 +774,14 @@ export class Instance {
   }
 
   addPositionPoller(positionPoller: CollabPositionPoller) {
+    if (this.errored) {
+      return;
+    }
+
     this.positionPollers.push(positionPoller);
   }
 
-  notifyPositionPollers() {
+  private notifyPositionPollers() {
     for (const { baselinePositions, userIdToExclude, response } of this
       .positionPollers) {
       const positions = this.extractPositions(userIdToExclude);
@@ -609,7 +795,7 @@ export class Instance {
     });
   }
 
-  cleanupPositionPollers() {
+  private cleanupPositionPollers() {
     this.positionPollers = this.positionPollers.filter(({ response }) =>
       isUnused(response),
     );
@@ -619,6 +805,10 @@ export class Instance {
    * @todo do we want to force sending updates here too?
    */
   private addUpdates(updates: Update[]) {
+    if (this.errored) {
+      return;
+    }
+
     this.updates = [...this.updates, ...updates];
 
     /**
@@ -661,9 +851,9 @@ const newInstance =
       variables: { entityId: pageEntityId, accountId },
     });
 
-    const state = createProseMirrorState();
+    const state = createProseMirrorState({ accountId });
 
-    const manager = new ProsemirrorSchemaManager(state.schema);
+    const manager = new ProsemirrorSchemaManager(state.schema, accountId);
 
     /**
      * @todo check plugins
@@ -696,7 +886,7 @@ const newInstance =
 export const getInstance =
   (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
   async (accountId: string, pageEntityId: string, forceNewInstance = false) => {
-    if (forceNewInstance) {
+    if (forceNewInstance || instances[pageEntityId]?.errored) {
       instances[pageEntityId]?.stop();
       delete instances[pageEntityId];
     }

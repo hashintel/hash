@@ -1,49 +1,37 @@
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockVariant } from "blockprotocol";
 import { useMemo } from "react";
 
-import { RemoteBlockMetadata } from "../../userBlocks";
 import { fuzzySearchBy } from "./fuzzySearchBy";
+import { BlocksMetaMap } from "../createEditorView";
 
 type Option = {
   variant: BlockVariant;
-  meta: RemoteBlockMetadata;
+  meta: BlockMeta["componentMetadata"];
 };
 
 export const useFilteredBlocks = (
   searchText: string,
-  userBlocks: RemoteBlockMetadata[],
+  blocksMetaMap: BlocksMetaMap,
 ) => {
   return useMemo(() => {
-    const allOptions: Option[] = Object.values(userBlocks).flatMap(
-      (blockMeta) => {
-        if (blockMeta.variants) {
-          return blockMeta.variants.map((variant) => ({
-            variant: {
-              ...variant,
-              name: variant.name ?? variant.displayName,
-            },
-            meta: blockMeta,
-          }));
-        }
-
-        const option: Option = {
-          variant: {
-            description: blockMeta.description ?? "",
-            name: blockMeta.displayName ?? "",
-            icon: blockMeta.icon ?? "",
-            properties: {},
-          },
+    const allOptions: Option[] = Object.values(blocksMetaMap).flatMap(
+      ({ componentMetadata: blockMeta }) =>
+        // Assumes that variants have been built for all blocks in toBlockConfig
+        // any required changes to block metadata should happen there
+        (blockMeta.variants ?? []).map((variant) => ({
+          variant,
           meta: blockMeta,
-        };
-
-        return option;
-      },
+        })),
     );
 
     return fuzzySearchBy(allOptions, searchText, (option) =>
-      [option.variant.name, option.variant.description, option.meta.author]
+      [
+        option.variant.name ?? option.variant.displayName,
+        option.variant.description,
+      ]
         .map((str) => str ?? "")
         .join(" "),
     );
-  }, [searchText, userBlocks]);
+  }, [blocksMetaMap, searchText]);
 };

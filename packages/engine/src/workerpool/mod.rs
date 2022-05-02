@@ -1,6 +1,6 @@
 //! TODO: DOC
 pub mod comms;
-pub mod error;
+mod error;
 mod pending;
 pub mod runs;
 
@@ -11,6 +11,7 @@ use futures::{
     stream::{FuturesUnordered, StreamExt},
 };
 use rand::prelude::SliceRandom;
+use stateful::field::PackageId;
 use tokio::{pin, task::JoinHandle};
 use tracing::{Instrument, Span};
 
@@ -31,7 +32,6 @@ use crate::{
     proto::SimulationShortId,
     simulation::{
         comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
-        package::id::PackageId,
         task::{args::GetTaskArgs, handler::WorkerPoolHandler, Task},
     },
     types::{TaskId, WorkerIndex},
@@ -249,7 +249,8 @@ impl WorkerPoolController {
                     })?;
                 }
                 let fut = async move {
-                    let sync = sync; // Capture `sync` in lambda.
+                    let sync = sync;
+                    // Capture `sync` in lambda.
                     // TODO: these types of logs are better suited as a span
                     tracing::trace!("Waiting for worker synchronization");
                     sync.forward_children(worker_completion_receivers).await;

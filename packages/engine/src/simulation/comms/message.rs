@@ -1,12 +1,12 @@
+use stateful::field::PackageId;
 use tracing::Span;
 
-use super::active::ActiveTaskExecutorComms;
 use crate::{
     datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
     proto::SimulationShortId,
-    simulation::{package::id::PackageId, task::Task},
+    simulation::{comms::active::ActiveTaskExecutorComms, task::Task},
     types::TaskId,
-    worker::error::Result as WorkerResult,
+    worker::Result as WorkerResult,
 };
 
 pub type SyncCompletionReceiver = tokio::sync::oneshot::Receiver<WorkerResult<()>>;

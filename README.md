@@ -1,6 +1,6 @@
-<div id="top"></div>
-
 # HASH
+
+<a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 
 This repository contains HASH's open-source and public code, documentation, and other key resources, including:
 

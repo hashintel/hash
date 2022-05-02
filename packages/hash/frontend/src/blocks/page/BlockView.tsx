@@ -1,67 +1,137 @@
-import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import {
+  EntityStore,
+  getDraftEntityFromEntityId,
+  isBlockEntity,
+} from "@hashintel/hash-shared/entityStore";
 import {
   entityStorePluginState,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
+import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { BlockVariant } from "blockprotocol";
+import { Box } from "@mui/material";
+import { BlockVariant, JSONObject } from "blockprotocol";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createRef, forwardRef, RefObject, useMemo, useState } from "react";
-import { useOutsideClick } from "rooks";
-import { tw } from "twind";
-import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
-import { DragVerticalIcon } from "../../components/icons";
-import { RemoteBlockMetadata } from "../userBlocks";
-import { BlockViewContext } from "./BlockViewContext";
+import { createRef, forwardRef, useMemo, useRef } from "react";
+import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
+import { DragVerticalIcon } from "../../shared/icons";
+import { BlockViewContext, useBlockView } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 import styles from "./style.module.css";
+
 import { RenderPortal } from "./usePortals";
+import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
+import { useUserBlocks } from "../userBlocks";
 
 type BlockHandleProps = {
+  deleteBlock: () => void;
   entityId: string | null;
-  onTypeChange: BlockSuggesterProps["onChange"];
   entityStore: EntityStore;
+  onTypeChange: BlockSuggesterProps["onChange"];
 };
 
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ entityId, onTypeChange, entityStore }, ref) => {
-    const [isPopoverVisible, setPopoverVisible] = useState(false);
+  ({ deleteBlock, entityId, entityStore, onTypeChange }, ref) => {
+    const blockMenuRef = useRef(null);
+    const contextMenuPopupState = usePopupState({
+      variant: "popover",
+      popupId: "block-context-menu",
+    });
 
-    useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
-      setPopoverVisible(false),
-    );
+    const configMenuPopupState = usePopupState({
+      variant: "popover",
+      popupId: "block-config-menu",
+    });
 
     const blockSuggesterProps: BlockSuggesterProps = useMemo(
       () => ({
         onChange: (variant, block) => {
           onTypeChange(variant, block);
-          setPopoverVisible(false);
+          contextMenuPopupState.close();
         },
       }),
-      [onTypeChange],
+      [onTypeChange, contextMenuPopupState],
     );
 
+    const { value: blocksMetaMap } = useUserBlocks();
+
+    /**
+     * The context and config menu use data from the draft store to subscribe to the latest local changes.
+     * Because some blocks update the API directly, bypassing collab and the entity store,
+     * data in the menus can get out of sync with data in those blocks for a few seconds.
+     * The update is eventually received by collab via the db realtime subscription, and the store updated.
+     * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
+     * @todo remove this comment when all updates are sent via collab
+     */
+    const blockEntity = entityId
+      ? getDraftEntityFromEntityId(entityStore.draft, entityId) ?? null
+      : null;
+
+    if (blockEntity && !isBlockEntity(blockEntity)) {
+      throw new Error(`Non-block entity ${entityId} loaded into BlockView.`);
+    }
+
+    const blockView = useBlockView();
+
+    const updateChildEntity = (properties: JSONObject) => {
+      const childEntity = blockEntity?.properties.entity;
+      if (!childEntity) {
+        throw new Error(`No child entity on block to update`);
+      }
+      blockView.manager.updateEntityProperties(
+        childEntity.entityId,
+        properties,
+      );
+    };
+
+    const blockSchema = blockEntity
+      ? blocksMetaMap[blockEntity.properties.componentId]?.componentSchema
+      : null;
+
     return (
-      <div ref={ref} className={tw`relative cursor-pointer`}>
-        <DragVerticalIcon onClick={() => setPopoverVisible(true)} />
-        {isPopoverVisible && (
-          <BlockContextMenu
-            entityId={entityId}
-            blockSuggesterProps={blockSuggesterProps}
-            closeMenu={() => setPopoverVisible(false)}
-            entityStore={entityStore}
-          />
-        )}
-      </div>
+      <Box
+        ref={ref}
+        sx={{
+          position: "relative",
+          cursor: "pointer",
+          height: 24,
+        }}
+        data-testid="block-changer"
+      >
+        <DragVerticalIcon {...bindTrigger(contextMenuPopupState)} />
+
+        <BlockContextMenu
+          blockEntity={blockEntity}
+          blockSuggesterProps={blockSuggesterProps}
+          deleteBlock={deleteBlock}
+          entityId={entityId}
+          openConfigMenu={configMenuPopupState.open}
+          popupState={contextMenuPopupState}
+          ref={blockMenuRef}
+        />
+
+        <BlockConfigMenu
+          anchorRef={ref}
+          blockEntity={blockEntity}
+          blockSchema={blockSchema}
+          closeMenu={configMenuPopupState.close}
+          updateConfig={(properties: JSONObject) =>
+            updateChildEntity(properties)
+          }
+          popupState={configMenuPopupState}
+        />
+      </Box>
     );
   },
 );
 
-export const blockDomId = (blockEntityId: string) => `entity-${blockEntityId}`;
+export const getBlockDomId = (blockEntityId: string) =>
+  `entity-${blockEntityId}`;
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject
@@ -102,13 +172,14 @@ export class BlockView implements NodeView<Schema> {
 
   constructor(
     public node: ProsemirrorNode<Schema>,
-    public view: EditorView<Schema>,
+    public editorView: EditorView<Schema>,
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
+    this.dom.setAttribute("data-testid", "block");
 
     this.selectContainer = document.createElement("div");
     this.selectContainer.classList.add(styles.Block__UI!);
@@ -121,8 +192,8 @@ export class BlockView implements NodeView<Schema> {
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content!);
 
-    this.store = entityStorePluginState(view.state).store;
-    this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
+    this.store = entityStorePluginState(editorView.state).store;
+    this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
       this.store = store;
       this.update(this.node);
     });
@@ -210,16 +281,24 @@ export class BlockView implements NodeView<Schema> {
     const blockEntityId = this.getBlockEntityIdFromNode(this.node);
 
     if (blockEntityId) {
-      this.dom.id = blockDomId(blockEntityId);
+      this.dom.id = getBlockDomId(blockEntityId);
     }
 
     this.renderPortal(
       <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-        <div
+        <Box
           data-testid="block-handle"
-          className={styles.Block__Handle}
+          sx={{
+            backgroundImage: `url("/drag-icon.png")`,
+            height: 20,
+            width: 20,
+            borderRadius: "50%",
+            mr: 1.25,
+            backgroundSize: "contain",
+            cursor: "pointer",
+          }}
           ref={this.dragHandleRef}
           onMouseDown={() => {
             /**
@@ -235,7 +314,7 @@ export class BlockView implements NodeView<Schema> {
             this.dragging = true;
             this.dom.classList.add(styles["Block--dragging"]!);
 
-            const { tr } = this.view.state;
+            const { tr } = this.editorView.state;
 
             /**
              * By triggering a selection of the node, we can ensure
@@ -243,20 +322,24 @@ export class BlockView implements NodeView<Schema> {
              * starts
              */
             tr.setSelection(
-              NodeSelection.create<Schema>(this.view.state.doc, this.getPos()),
+              NodeSelection.create<Schema>(
+                this.editorView.state.doc,
+                this.getPos(),
+              ),
             );
 
-            this.view.dispatch(tr);
+            this.editorView.dispatch(tr);
 
             this.update(this.node);
           }}
           onClick={this.onDragEnd}
         />
         <BlockHandle
-          ref={this.blockHandleRef}
+          deleteBlock={this.deleteBlock}
           entityId={blockEntityId}
-          onTypeChange={this.onBlockChange}
           entityStore={this.store}
+          onTypeChange={this.onBlockChange}
+          ref={this.blockHandleRef}
         />
       </BlockViewContext.Provider>,
       this.selectContainer,
@@ -272,13 +355,20 @@ export class BlockView implements NodeView<Schema> {
     document.removeEventListener("dragend", this.onDragEnd);
   }
 
-  /**
-   * @todo restore the ability to load in new block types here
-   */
-  onBlockChange = (variant: BlockVariant, meta: RemoteBlockMetadata) => {
-    const { node, view, getPos } = this;
+  deleteBlock = () => {
+    const { node, getPos } = this;
+    this.manager.deleteNode(node, getPos()).catch((err: Error) => {
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error(
+        `Error deleting node at position ${getPos()}: ${err.message}`,
+      );
+    });
+  };
 
-    const state = view.state;
+  onBlockChange = (variant: BlockVariant, meta: BlockConfig) => {
+    const { node, editorView, getPos } = this;
+
+    const state = editorView.state;
     const child = state.doc.resolve(getPos() + 1).nodeAfter;
     const draftId = child?.attrs.draftId;
 

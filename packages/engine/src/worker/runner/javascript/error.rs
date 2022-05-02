@@ -1,12 +1,11 @@
 use arrow::{datatypes::DataType, error::ArrowError};
+use stateful::field::PackageId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 use tracing::Span;
 
-use super::mini_v8 as mv8;
 use crate::{
     proto::SimulationShortId,
-    simulation::package::id::PackageId,
     worker::runner::comms::{
         inbound::InboundToRunnerMsgPayload,
         outbound::{OutboundFromRunnerMsg, PackageError, UserError},
@@ -20,6 +19,9 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Memory error: {0}")]
+    Memory(#[from] memory::Error),
+
     #[error("Can't start JavaScript runner again when it is already running")]
     AlreadyRunning,
 
@@ -30,7 +32,7 @@ pub enum Error {
     FlushType(DataType),
 
     #[error("Datastore: {0}")]
-    Datastore(#[from] crate::datastore::error::Error),
+    Datastore(#[from] crate::datastore::Error),
 
     // TODO: Missing sim in JS runtime? (Currently just internal JS error.)
     // TODO: JSON parse error?
@@ -90,12 +92,6 @@ pub enum Error {
 
     #[error("serde: {0:?}")]
     Serde(#[from] serde_json::Error),
-}
-
-impl From<mv8::Error<'_>> for Error {
-    fn from(e: mv8::Error<'_>) -> Self {
-        Error::V8(format!("{:?}", e))
-    }
 }
 
 impl From<&str> for Error {

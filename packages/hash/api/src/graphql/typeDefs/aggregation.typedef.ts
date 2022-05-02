@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const aggregationTypedef = gql`
   type LinkedAggregation {
+    aggregationId: ID!
     sourceAccountId: ID!
     sourceEntityId: ID!
     path: String!
@@ -73,6 +74,14 @@ export const aggregationTypedef = gql`
       accountId: ID!
       operation: AggregateOperationInput!
     ): AggregationResponse!
+
+    """
+    Retrieve a linked aggregation
+    """
+    getLinkedAggregation(
+      sourceAccountId: ID!
+      aggregationId: ID!
+    ): LinkedAggregation!
   }
 
   extend type Mutation {

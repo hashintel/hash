@@ -1,74 +1,28 @@
-import { BlockMetadata } from "blockprotocol";
-import produce from "immer";
 import {
   createContext,
   Dispatch,
+  FC,
   SetStateAction,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
+import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
-
-export type RemoteBlockMetadata = BlockMetadata & {
-  componentId: string;
-  packagePath?: string;
-};
-
-// @todo - remove this and packagePath once componentId starts being generated on the backend
-const getComponentId = (meta: RemoteBlockMetadata) => {
-  if (meta.componentId) {
-    return meta.componentId;
-  }
-
-  if (meta.packagePath) {
-    return `https://blockprotocol.org/blocks/${meta.packagePath}`;
-  }
-
-  throw new Error("Added a block without packagePath or componentId");
-};
-
-type UserBlocks = RemoteBlockMetadata[];
+import { BlocksMetaMap } from "./page/createEditorView";
 
 interface UserBlocksContextState {
-  value: UserBlocks;
-  setValue: Dispatch<SetStateAction<UserBlocks>>;
+  value: BlocksMetaMap;
+  setValue: Dispatch<SetStateAction<BlocksMetaMap>>;
   blockFetchFailed: boolean;
 }
 
 /** @private enforces use of custom provider */
 const UserBlocksContext = createContext<UserBlocksContextState | null>(null);
 
-const mergeBlocksData = (
-  oldBlocksData: UserBlocks,
-  newBlocksData: UserBlocks,
-): UserBlocks => {
-  return produce(oldBlocksData, (draftUserBlocks) => {
-    for (const latestUserBlock of newBlocksData) {
-      const matchingUserBlockIndex = draftUserBlocks.findIndex(
-        (userBlock) => userBlock.name === latestUserBlock.name,
-      );
-
-      // @todo Remove need for @ts-expect-error here
-      if (matchingUserBlockIndex === -1) {
-        // @ts-expect-error TS warns `Type instantiation is excessively deep` but this isn't a problem here
-        draftUserBlocks.push(latestUserBlock);
-      }
-
-      if (
-        draftUserBlocks[matchingUserBlockIndex]?.version !==
-        latestUserBlock.version
-      ) {
-        // @ts-expect-error TS warns `Type instantiation is excessively deep` but this isn't a problem here
-        draftUserBlocks[matchingUserBlockIndex] = latestUserBlock;
-      }
-    }
-  });
-};
-
-export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
+export const UserBlocksProvider: FC<{ value: BlocksMetaMap }> = ({
   value: initialUserBlocks,
   children,
 }) => {
@@ -76,7 +30,7 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
     initialUserBlocks,
     "hash-workspace-user-blocks",
     (nextInitialItems, prevInitialItems) => {
-      return mergeBlocksData(prevInitialItems, nextInitialItems);
+      return { ...prevInitialItems, ...nextInitialItems };
     },
   );
 
@@ -104,16 +58,16 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
             }
             return response.json();
           })
-          .then((responseData) => {
-            const userBlocks = (responseData.results as UserBlocks).map(
-              (userBlock) => ({
-                ...userBlock,
-                componentId: getComponentId(userBlock),
-              }),
-            );
+          .then(async (responseData) => {
+            const apiProvidedBlocksMetaMap: BlocksMetaMap = {};
+            for (const { componentId } of responseData.results) {
+              apiProvidedBlocksMetaMap[componentId] = await fetchBlockMeta(
+                componentId,
+              );
+            }
 
             setValue((prevValue) => {
-              return mergeBlocksData(prevValue, userBlocks);
+              return { ...prevValue, ...apiProvidedBlocksMetaMap };
             });
           })
           .catch((error) => {

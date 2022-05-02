@@ -11,7 +11,7 @@ use hash_engine_lib::{
     proto,
     proto::{
         ExecutionEnvironment, ExperimentId, ExperimentName, ExperimentPackageConfig,
-        ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
+        ExperimentRunBase, ExperimentRunRepr, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     simulation::command::StopStatus,
     utils::{LogFormat, LogLevel, OutputLocation},
@@ -95,6 +95,33 @@ pub struct ExperimentConfig {
     clap(global = true, short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one, env = "HASH_WORKERS")
     )]
     pub num_workers: usize,
+
+    /// Heap size in megabytes of the V8 runtime in each JavaScript runner under which garbage
+    /// collection doesn't occur. See "--num-workers" to set the number of JavaScript runners
+    /// executing in parallel.
+    ///
+    /// Unless you have specific need, this setting should be left at its default value.
+    /// It could be beneficial if you are going to store a large amount of "eternal" (=lives as
+    /// long as the simulation is running) data on the heap.
+    /// Example: you know that at any given time you have 500MB of reachable data on the
+    /// heap. You could set this argument to 600MB (500MB plus some) and save some runs of the
+    /// garbage collector.
+    ///
+    /// Defaults to V8's `initial_heap_size` default.
+    // https://stackoverflow.com/questions/58035992/how-to-increase-memory-at-startup/58041256#58041256
+    #[cfg_attr(feature = "clap", clap(global = true, long))]
+    pub js_runner_initial_heap_constraint: Option<usize>,
+
+    /// Maximum size in megabytes of the V8 heap in each JavaScript runner. See "--num-workers" to
+    /// set the number of JavaScript runners executing in parallel.
+    ///
+    /// The JavaScript runner will run a series of garbage collection when the heap size gets close
+    /// to this limit. If garbage collection can't get the heap smaller than this limit then it
+    /// crashes.
+    ///
+    /// Defaults to V8's `max_heap_size` default.
+    #[cfg_attr(feature = "clap", clap(global = true, long))]
+    pub js_runner_max_heap_size: Option<usize>,
 }
 
 #[cfg(feature = "clap")]
@@ -163,6 +190,8 @@ impl Experiment {
         experiment_id: ExperimentId,
         controller_url: &str,
         target_max_group_size: Option<usize>,
+        js_runner_initial_heap_constraint: Option<usize>,
+        js_runner_max_heap_size: Option<usize>,
     ) -> Box<dyn process::Command + Send> {
         Box::new(process::LocalCommand::new(
             experiment_id,
@@ -173,6 +202,8 @@ impl Experiment {
             self.config.output_location.clone(),
             self.config.log_folder.clone(),
             target_max_group_size,
+            js_runner_initial_heap_constraint,
+            js_runner_max_heap_size,
         ))
     }
 
@@ -201,6 +232,8 @@ impl Experiment {
             experiment_run.base.id,
             handler.url(),
             target_max_group_size,
+            self.config.js_runner_initial_heap_constraint,
+            self.config.js_runner_max_heap_size,
         );
         let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
 
@@ -223,7 +256,7 @@ impl Experiment {
             Err(e) => {
                 error!("Engine start timeout for experiment \"{experiment_name}\"");
                 engine_process
-                    .exit_and_cleanup()
+                    .exit_and_cleanup(experiment_run.base.id)
                     .await
                     .wrap_err("Failed to cleanup after failed start")?;
                 bail!(e);
@@ -239,7 +272,7 @@ impl Experiment {
         )];
         // Now we can send the init message
         let init_message = proto::InitMessage {
-            experiment: experiment_run.clone().into(),
+            experiment: ExperimentRunRepr::ExperimentRun(experiment_run.clone()),
             env: ExecutionEnvironment::None, // We don't connect to the API
             dyn_payloads: serde_json::Map::from_iter(map_iter),
         };
@@ -375,7 +408,7 @@ impl Experiment {
         }
         debug!("Performing cleanup");
         engine_process
-            .exit_and_cleanup()
+            .exit_and_cleanup(experiment_run.base.id)
             .await
             .wrap_err("Could not cleanup after finish")?;
 

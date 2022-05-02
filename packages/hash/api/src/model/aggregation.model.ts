@@ -1,6 +1,6 @@
 import jp from "jsonpath";
 import { UserInputError } from "apollo-server-errors";
-import { get, orderBy } from "lodash";
+import { get, merge, orderBy } from "lodash";
 import { DbClient } from "../db";
 import {
   Entity,
@@ -37,16 +37,23 @@ export type CreateAggregationArgs = {
 };
 
 export type AggregationConstructorArgs = {
+  aggregationId: string;
+  aggregationVersionId: string;
+
   stringifiedPath: string;
 
   sourceAccountId: string;
   sourceEntityId: string;
-  sourceEntityVersionIds: Set<string>;
+
+  appliedToSourceAt: Date;
+  appliedToSourceByAccountId: string;
+  removedFromSourceAt?: Date;
+  removedFromSourceByAccountId?: string;
 
   operation: UnresolvedGQLAggregateOperation;
 
-  createdByAccountId: string;
-  createdAt: Date;
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
 const mapDbAggregationToModel = (dbAggregation: DbAggregation) =>
@@ -57,35 +64,52 @@ const mapDbAggregationToModel = (dbAggregation: DbAggregation) =>
   });
 
 class __Aggregation {
+  aggregationId: string;
+  aggregationVersionId: string;
+
   stringifiedPath: string;
   path: jp.PathComponent[];
 
   sourceAccountId: string;
   sourceEntityId: string;
-  sourceEntityVersionIds: Set<string>;
+
+  appliedToSourceAt: Date;
+  appliedToSourceByAccountId: string;
+  removedFromSourceAt?: Date;
+  removedFromSourceByAccountId?: string;
 
   operation: UnresolvedGQLAggregateOperation;
 
-  createdByAccountId: string;
-  createdAt: Date;
+  updatedAt: Date;
+  updatedByAccountId: string;
 
   constructor({
+    aggregationId,
+    aggregationVersionId,
     stringifiedPath,
     operation,
     sourceAccountId,
     sourceEntityId,
-    sourceEntityVersionIds,
-    createdAt,
-    createdByAccountId,
+    appliedToSourceAt,
+    appliedToSourceByAccountId,
+    removedFromSourceAt,
+    removedFromSourceByAccountId,
+    updatedAt,
+    updatedByAccountId,
   }: AggregationConstructorArgs) {
+    this.aggregationId = aggregationId;
+    this.aggregationVersionId = aggregationVersionId;
     this.stringifiedPath = stringifiedPath;
     this.path = Link.parseStringifiedPath(stringifiedPath);
     this.operation = operation;
     this.sourceAccountId = sourceAccountId;
     this.sourceEntityId = sourceEntityId;
-    this.sourceEntityVersionIds = sourceEntityVersionIds;
-    this.createdAt = createdAt;
-    this.createdByAccountId = createdByAccountId;
+    this.appliedToSourceAt = appliedToSourceAt;
+    this.appliedToSourceByAccountId = appliedToSourceByAccountId;
+    this.removedFromSourceAt = removedFromSourceAt;
+    this.removedFromSourceByAccountId = removedFromSourceByAccountId;
+    this.updatedAt = updatedAt;
+    this.updatedByAccountId = updatedByAccountId;
   }
 
   static isPathValid(path: string): boolean {
@@ -188,7 +212,7 @@ class __Aggregation {
           return field;
         }
 
-        return (entity) => entity.properties[field];
+        return (entity) => get(entity.properties, field);
       }),
       multiSort.map(({ desc }) => (desc ? "desc" : "asc")),
     );
@@ -213,16 +237,16 @@ class __Aggregation {
 
     Link.validatePath(stringifiedPath);
 
-    /** @todo: check entity type to see if there is an inverse relationship needs to be created */
-
     const { accountId: sourceAccountId, entityId: sourceEntityId } = source;
 
     if (
-      await Aggregation.getEntityAggregation(client, {
+      await Aggregation.getEntityAggregationByPath(client, {
         source,
         stringifiedPath,
       })
     ) {
+      /** @todo: consider supporting multiple aggregations at the same path */
+
       throw new Error("Cannot create aggregation that already exists");
     }
 
@@ -237,7 +261,7 @@ class __Aggregation {
     return mapDbAggregationToModel(dbAggregation);
   }
 
-  static async getEntityAggregation(
+  static async getEntityAggregationByPath(
     client: DbClient,
     params: {
       source: Entity;
@@ -247,14 +271,23 @@ class __Aggregation {
     const { source, stringifiedPath } = params;
     const { accountId: sourceAccountId, entityId: sourceEntityId } = source;
 
-    const dbAggregation = await client.getEntityAggregation({
+    const dbAggregation = await client.getEntityAggregationByPath({
       sourceAccountId,
       sourceEntityId,
-      sourceEntityVersionId: source.metadata.versioned
-        ? source.entityVersionId
-        : undefined,
       path: stringifiedPath,
     });
+
+    return dbAggregation ? mapDbAggregationToModel(dbAggregation) : null;
+  }
+
+  static async getAggregationById(
+    client: DbClient,
+    params: {
+      sourceAccountId: string;
+      aggregationId: string;
+    },
+  ): Promise<Aggregation | null> {
+    const dbAggregation = await client.getAggregation(params);
 
     return dbAggregation ? mapDbAggregationToModel(dbAggregation) : null;
   }
@@ -263,17 +296,16 @@ class __Aggregation {
     client: DbClient,
     params: {
       source: Entity;
+      activeAt?: Date;
     },
   ): Promise<Aggregation[]> {
-    const { source } = params;
+    const { source, activeAt } = params;
     const { accountId: sourceAccountId, entityId: sourceEntityId } = source;
 
     const dbAggregations = await client.getEntityAggregations({
       sourceAccountId,
       sourceEntityId,
-      sourceEntityVersionId: source.metadata.versioned
-        ? source.entityVersionId
-        : undefined,
+      activeAt,
     });
 
     return dbAggregations.map(mapDbAggregationToModel);
@@ -283,26 +315,31 @@ class __Aggregation {
     client: DbClient,
     params: {
       operation: AggregateOperationInput;
+      updatedByAccountId: string;
     },
   ): Promise<Aggregation> {
-    const operation: UnresolvedGQLAggregateOperation = {
-      ...params.operation,
-      itemsPerPage: params.operation.itemsPerPage ?? 10,
-      pageNumber: params.operation.pageNumber ?? 1,
-    };
-    const { sourceEntityVersionIds } = await client.updateAggregationOperation({
+    const updatedDbAggregation = await client.updateAggregationOperation({
       sourceAccountId: this.sourceAccountId,
-      sourceEntityId: this.sourceEntityId,
-      path: this.stringifiedPath,
-      operation,
+      aggregationId: this.aggregationId,
+      updatedOperation: {
+        ...params.operation,
+        itemsPerPage: params.operation.itemsPerPage ?? 10,
+        pageNumber: params.operation.pageNumber ?? 1,
+      },
+      updatedByAccountId: params.updatedByAccountId,
     });
-    this.operation = operation;
-    this.sourceEntityVersionIds = sourceEntityVersionIds;
+
+    merge(this, mapDbAggregationToModel(updatedDbAggregation));
 
     return this;
   }
 
-  async getResults(client: DbClient): Promise<Entity[]> {
+  async getResults(
+    client: DbClient,
+    params?: {
+      disablePagination?: boolean;
+    },
+  ): Promise<Entity[]> {
     const {
       entityTypeId,
       entityTypeVersionId,
@@ -323,22 +360,42 @@ class __Aggregation {
       latestOnly: true,
     });
 
-    const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
-
     const filteredEntities = multiFilter
       ? Aggregation.filterEntities(entities, multiFilter)
       : entities;
 
-    const results = (
-      multiSort
-        ? Aggregation.sortEntities(filteredEntities, multiSort)
-        : filteredEntities
-    ).slice(startIndex, endIndex);
+    const sortedEntities = multiSort
+      ? Aggregation.sortEntities(filteredEntities, multiSort)
+      : filteredEntities;
 
     /** @todo: filter source entity from results? */
 
-    return results;
+    const { disablePagination } = params ?? {};
+
+    if (disablePagination) {
+      return sortedEntities;
+    }
+
+    const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
+
+    return sortedEntities.slice(startIndex, endIndex);
+  }
+
+  async getPageCount(client: DbClient): Promise<number> {
+    const { itemsPerPage } = this.operation;
+
+    /**
+     * @todo: implement more performant way of determining the number of
+     * possible results
+     */
+    const numberOfPossibleResults = (
+      await this.getResults(client, {
+        disablePagination: true,
+      })
+    ).length;
+
+    return Math.ceil(numberOfPossibleResults / itemsPerPage);
   }
 
   async delete(
@@ -347,19 +404,17 @@ class __Aggregation {
   ): Promise<void> {
     const { deletedByAccountId } = params;
     await client.deleteAggregation({
-      deletedByAccountId,
       sourceAccountId: this.sourceAccountId,
-      sourceEntityId: this.sourceEntityId,
-      path: this.stringifiedPath,
+      aggregationId: this.aggregationId,
+      deletedByAccountId,
     });
   }
 
   async toGQLLinkedAggregation(
     client: DbClient,
   ): Promise<UnresolvedGQLLinkedAggregation> {
-    const { itemsPerPage } = this.operation;
-
     return {
+      aggregationId: this.aggregationId,
       sourceAccountId: this.sourceAccountId,
       sourceEntityId: this.sourceEntityId,
       path: this.stringifiedPath,
@@ -369,9 +424,7 @@ class __Aggregation {
          * @todo: move this into a field resolver so that it is only
          * calculated when the field is requested
          */
-        pageCount: Math.ceil(
-          (await this.getResults(client)).length / itemsPerPage,
-        ),
+        pageCount: await this.getPageCount(client),
       },
     };
   }

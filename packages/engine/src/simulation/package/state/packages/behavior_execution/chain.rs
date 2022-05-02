@@ -1,15 +1,10 @@
 use arrow::{array::ArrayData, record_batch::RecordBatch};
+use memory::arrow::{new_buffer, new_offsets_buffer, ColumnChange, IntoArrowChange};
+use stateful::{agent::AgentBatch, state::StateColumn};
 
-use super::{
-    BehaviorIdInnerDataType, BehaviorIds, ColumnChange, DatastoreResult, Error, IntoArrowChange,
-    Result, StateColumn, BEHAVIOR_INDEX_INNER_COUNT,
-};
-use crate::{
-    datastore::{
-        arrow::batch_conversion::{new_buffer, new_offsets_buffer},
-        batch::AgentBatch,
-    },
-    simulation::package::state::packages::behavior_execution::config::BehaviorId,
+use crate::simulation::package::state::packages::behavior_execution::{
+    config::BehaviorId, BehaviorIdInnerDataType, BehaviorIds, Error, Result,
+    BEHAVIOR_INDEX_INNER_COUNT,
 };
 
 pub fn gather_behavior_chains(
@@ -111,7 +106,7 @@ pub struct ChainList {
 }
 
 impl IntoArrowChange for ChainList {
-    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ColumnChange> {
+    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> memory::Result<ColumnChange> {
         debug_assert!(self.inner.len() >= range.end);
         let num_agents = range.end - range.start;
         let chains = &self.inner[range.start..range.end];

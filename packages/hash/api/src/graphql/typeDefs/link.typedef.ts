@@ -48,6 +48,13 @@ export const linkTypedef = gql`
     destinationEntityVersionId: ID
   }
 
+  extend type Query {
+    """
+    Retrieve a link
+    """
+    getLink(sourceAccountId: ID!, linkId: ID!): Link!
+  }
+
   extend type Mutation {
     """
     Create a link

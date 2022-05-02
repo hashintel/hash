@@ -2,7 +2,7 @@ import { Box, SxProps, Theme } from "@mui/material";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
-import { SpinnerIcon } from "../../../components/icons";
+import { SpinnerIcon } from "../../../shared/icons";
 
 export interface SuggesterProps<T> {
   options: T[];

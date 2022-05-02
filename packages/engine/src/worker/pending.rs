@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use super::{Error, Result};
 use crate::{
-    simulation::{enum_dispatch::TaskMessage, task::Task},
+    language::Language,
+    simulation::task::{msg::TaskMessage, Task},
     types::TaskId,
-    Language,
+    worker::{Error, Result},
 };
 
 #[allow(dead_code)]

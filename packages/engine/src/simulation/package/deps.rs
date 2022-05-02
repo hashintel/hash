@@ -1,5 +1,7 @@
-use super::{context, init, output, state};
-use crate::simulation::{package::name::PackageName, Error, Result};
+use crate::simulation::{
+    package::{context, init, name::PackageName, output, state},
+    Error, Result,
+};
 
 #[derive(Clone, Default)]
 pub struct Dependencies {
@@ -78,7 +80,7 @@ impl PackageName {
     pub fn get_all_dependencies(&self) -> Result<Dependencies> {
         let mut merged = Dependencies::new();
         for dependency in self.get_dependencies()?.into_iter_deps() {
-            merged.add_dependency_with_ignore(dependency.clone())?;
+            merged.add_dependency_with_ignore(dependency)?;
             let deps = dependency.get_all_dependencies()?;
             for dep in deps.into_iter_deps() {
                 merged.add_dependency_with_ignore(dep)?;
@@ -96,10 +98,11 @@ pub mod tests {
 
     use super::*;
     use crate::{
-        config::WorkerPoolConfig,
-        proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
+        config::{ExperimentConfig, WorkerPoolConfig},
+        proto::{
+            ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase,
+        },
         simulation::{Error, Result},
-        ExperimentConfig,
     };
 
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {
@@ -133,31 +136,30 @@ pub mod tests {
     fn validate_dependencies() -> Result<()> {
         let experiment_config = &Arc::new(ExperimentConfig {
             packages: Arc::new(Default::default()),
-            run: Arc::new(
-                ExperimentRunBase {
-                    name: String::new().into(),
-                    id: Uuid::new_v4(),
-                    project_base: ProjectBase {
-                        name: String::new(),
-                        initial_state: InitialState {
-                            name: InitialStateName::InitJson,
-                            src: String::new(),
-                        },
-                        globals_src: String::new(),
-                        experiments_src: None,
-                        behaviors: vec![],
-                        datasets: vec![],
-                        packages: vec![],
+            run: Arc::new(ExperimentRunRepr::ExperimentRunBase(ExperimentRunBase {
+                name: String::new().into(),
+                id: Uuid::new_v4(),
+                project_base: ProjectBase {
+                    name: String::new(),
+                    initial_state: InitialState {
+                        name: InitialStateName::InitJson,
+                        src: String::new(),
                     },
-                }
-                .into(),
-            ),
+                    globals_src: String::new(),
+                    experiments_src: None,
+                    behaviors: vec![],
+                    datasets: vec![],
+                    packages: vec![],
+                },
+            })),
             worker_pool: Arc::new(WorkerPoolConfig {
                 worker_base_config: Default::default(),
                 num_workers: 0,
             }),
             target_max_group_size: 100_000,
             base_globals: Default::default(),
+            js_runner_initial_heap_constraint: None,
+            js_runner_max_heap_size: None,
         });
         validate!(context, experiment_config, PackageName::Context);
         validate!(init, experiment_config, PackageName::Init);

@@ -7,8 +7,7 @@ pub mod comms;
 use self::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
 };
-pub use super::error::{Error, Result};
-use crate::proto::SimulationShortId;
+use crate::{proto::SimulationShortId, worker::error::Result};
 
 /// TODO: DOC
 #[async_trait::async_trait]
