@@ -36,7 +36,10 @@ use memory::{
     shared_memory::{arrow_continuation, Metaversion, Segment},
 };
 use stateful::{
-    agent::AgentBatch, field::PackageId, global::Globals, message::MessageBatch,
+    agent::AgentBatch,
+    field::PackageId,
+    global::{Globals, SharedDatasets},
+    message::MessageBatch,
     state::StateWriteProxy,
 };
 use tokio::{
@@ -47,7 +50,6 @@ use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use crate::{
-    datastore::shared_store::SharedDatasets,
     proto::SimulationShortId,
     worker::{
         runner::comms::{

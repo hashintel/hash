@@ -1,10 +1,8 @@
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
 use memory::shared_memory::{Metaversion, Segment};
+use stateful::global::SharedDatasets;
 
-use crate::{
-    datastore::shared_store::SharedDatasets,
-    worker::runner::{comms::PackageMsgs, python::Result},
-};
+use crate::worker::runner::{comms::PackageMsgs, python::Result};
 
 pub fn pkgs_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,

@@ -7,12 +7,15 @@ use std::{
 
 use arrow::datatypes::Schema;
 use execution::{runner::RunnerConfig, task::SharedStore, worker_pool::WorkerIndex};
-use stateful::{agent::AgentSchema, field::PackageId, global::Globals};
+use stateful::{
+    agent::AgentSchema,
+    field::PackageId,
+    global::{Globals, SharedDatasets},
+};
 use tracing::Span;
 
 use crate::{
     config::EngineConfig,
-    datastore::shared_store::SharedDatasets,
     proto::{ExperimentId, SimulationShortId},
     simulation::package::worker_init::PackageInitMsgForWorker,
 };

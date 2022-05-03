@@ -1,10 +1,10 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use stateful::global::SharedDatasets;
 use tracing::{Instrument, Span};
 
 use crate::{
     config::{ExperimentConfig, StoreConfig},
-    datastore::shared_store::SharedDatasets,
     env::{Environment, OrchClient},
     experiment::{
         apply_globals_changes,

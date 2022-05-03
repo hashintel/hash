@@ -1,7 +1,9 @@
 use core::fmt;
+use std::{collections::HashMap, sync::Arc};
 
 use memory::shared_memory::{MemoryId, Metaversion, Segment};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::Result;
 
@@ -97,5 +99,27 @@ impl fmt::Debug for SharedDataset {
                 },
             )
             .finish()
+    }
+}
+
+/// This is an object we use to manage sharing access to data that's static across simulation runs
+/// within an experiment, such as datasets.
+#[derive(Clone)]
+pub struct SharedDatasets {
+    pub datasets: HashMap<String, Arc<Dataset>>,
+}
+
+impl SharedDatasets {
+    pub fn new(datasets: &[SharedDataset], memory_base_id: Uuid) -> Result<SharedDatasets> {
+        let mut dataset_batches = HashMap::with_capacity(datasets.len());
+        for dataset in datasets {
+            let dataset_name = dataset.shortname.clone();
+            let dataset_batch = Dataset::from_shared(dataset, MemoryId::new(memory_base_id))?;
+            dataset_batches.insert(dataset_name, Arc::new(dataset_batch));
+        }
+
+        Ok(SharedDatasets {
+            datasets: dataset_batches,
+        })
     }
 }
