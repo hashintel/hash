@@ -21,7 +21,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@opensearch-project/opensearch": "1.0.0",
+    "@opensearch-project/opensearch": "1.1.0",
     "apollo-datasource": "3.3.0",
     "blockprotocol": "0.0.7",
     "dotenv-flow": "3.2.0",
