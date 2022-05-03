@@ -4,12 +4,13 @@ use execution::{
     package::PersistenceConfig,
     worker_pool::{WorkerAllocation, WorkerIndex},
 };
+use simulation_structure::SimulationShortId;
 use stateful::global::Globals;
 
 use crate::{
     config::{EngineConfig, ExperimentConfig, SimRunConfig, StoreConfig},
     experiment::controller::error::Result,
-    proto::{ExperimentPackageConfig, SimulationShortId},
+    proto::ExperimentPackageConfig,
 };
 
 pub struct SimConfigurer {

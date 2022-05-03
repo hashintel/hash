@@ -1,4 +1,5 @@
 use futures::FutureExt;
+use simulation_structure::SimulationShortId;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 use super::comms::{
@@ -11,10 +12,7 @@ use context::{AgentContext, GroupContext, SimContext};
 pub use error::{Error, Result};
 use state::{AgentState, GroupState, SimState, StateSnapshot};
 */
-use crate::{
-    proto::SimulationShortId,
-    worker::{Error as WorkerError, Result as WorkerResult},
-};
+use crate::worker::{Error as WorkerError, Result as WorkerResult};
 
 pub struct RustRunner {
     _outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,

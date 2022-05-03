@@ -35,6 +35,7 @@ use memory::{
     arrow::{ArrowBatch, ColumnChange},
     shared_memory::{arrow_continuation, Metaversion, Segment},
 };
+use simulation_structure::SimulationShortId;
 use stateful::{
     agent::AgentBatch,
     field::PackageId,
@@ -49,19 +50,16 @@ use tokio::{
 use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
-use crate::{
-    proto::SimulationShortId,
-    worker::{
-        runner::comms::{
-            inbound::InboundToRunnerMsgPayload,
-            outbound::{
-                OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, UserError,
-                UserWarning,
-            },
-            ExperimentInitRunnerMsg, NewSimulationRun,
+use crate::worker::{
+    runner::comms::{
+        inbound::InboundToRunnerMsgPayload,
+        outbound::{
+            OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, UserError,
+            UserWarning,
         },
-        Result as WorkerResult,
+        ExperimentInitRunnerMsg, NewSimulationRun,
     },
+    Result as WorkerResult,
 };
 
 type Object<'scope> = v8::Local<'scope, v8::Object>;

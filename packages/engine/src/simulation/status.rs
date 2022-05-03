@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
+use simulation_structure::SimulationShortId;
 
 use crate::{
     output::OutputPersistenceResultRepr,
-    proto::SimulationShortId,
     simulation::{command::StopCommand, Result},
     worker::RunnerError,
 };

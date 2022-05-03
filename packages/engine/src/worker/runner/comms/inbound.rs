@@ -6,11 +6,9 @@ use execution::{
     task::TaskId,
     worker::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
 };
+use simulation_structure::SimulationShortId;
 
-use crate::{
-    proto::SimulationShortId,
-    worker::runner::comms::{NewSimulationRun, StateInterimSync},
-};
+use crate::worker::runner::comms::{NewSimulationRun, StateInterimSync};
 
 /// TODO: DOC
 pub enum InboundToRunnerMsgPayload {

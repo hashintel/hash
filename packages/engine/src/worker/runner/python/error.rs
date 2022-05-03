@@ -1,7 +1,8 @@
+use simulation_structure::SimulationShortId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-use crate::{proto::SimulationShortId, worker::runner::comms::inbound::InboundToRunnerMsgPayload};
+use crate::worker::runner::comms::inbound::InboundToRunnerMsgPayload;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

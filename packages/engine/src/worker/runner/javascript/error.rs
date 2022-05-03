@@ -1,15 +1,13 @@
 use arrow::{datatypes::DataType, error::ArrowError};
+use simulation_structure::SimulationShortId;
 use stateful::field::PackageId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 use tracing::Span;
 
-use crate::{
-    proto::SimulationShortId,
-    worker::runner::comms::{
-        inbound::InboundToRunnerMsgPayload,
-        outbound::{OutboundFromRunnerMsg, PackageError, UserError},
-    },
+use crate::worker::runner::comms::{
+    inbound::InboundToRunnerMsgPayload,
+    outbound::{OutboundFromRunnerMsg, PackageError, UserError},
 };
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

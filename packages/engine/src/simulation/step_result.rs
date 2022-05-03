@@ -1,5 +1,6 @@
+use simulation_structure::SimulationShortId;
+
 use crate::{
-    proto::SimulationShortId,
     simulation::{agent_control::AgentControl, step_output::SimulationStepOutput},
     worker::RunnerError,
 };

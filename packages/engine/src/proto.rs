@@ -7,6 +7,7 @@ use std::{
 use execution::package::PackageInitConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
+use simulation_structure::SimulationShortId;
 use stateful::global::{Dataset, Globals};
 use uuid::Uuid;
 
@@ -17,7 +18,6 @@ pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
 pub type ExperimentId = Uuid;
 pub type SimulationRegisteredId = String;
-pub type SimulationShortId = u32;
 
 #[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize, Deserialize)]
 pub struct ExperimentName(String);

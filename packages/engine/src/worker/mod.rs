@@ -21,6 +21,7 @@ use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
+use simulation_structure::SimulationShortId;
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
@@ -39,7 +40,6 @@ use self::{
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
-    proto::SimulationShortId,
     worker::{
         pending::{PendingGroup, PendingWorkerTask},
         runner::comms::inbound::InboundToRunnerMsgPayload,

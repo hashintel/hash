@@ -7,6 +7,7 @@ use std::{
 
 use arrow::datatypes::Schema;
 use execution::{runner::RunnerConfig, task::SharedStore, worker_pool::WorkerIndex};
+use simulation_structure::SimulationShortId;
 use stateful::{
     agent::AgentSchema,
     field::PackageId,
@@ -15,8 +16,7 @@ use stateful::{
 use tracing::Span;
 
 use crate::{
-    config::EngineConfig,
-    proto::{ExperimentId, SimulationShortId},
+    config::EngineConfig, proto::ExperimentId,
     simulation::package::worker_init::PackageInitMsgForWorker,
 };
 

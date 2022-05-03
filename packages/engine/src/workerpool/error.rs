@@ -2,7 +2,7 @@ use execution::task::TaskResultOrCancelled;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-use crate::{proto, worker};
+use crate::worker;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -42,7 +42,7 @@ pub enum Error {
     TerminateConfirmAlreadySent,
 
     #[error("Missing simulation with id {0}")]
-    MissingSimulationWithId(proto::SimulationShortId),
+    MissingSimulationWithId(simulation_structure::SimulationShortId),
 
     #[error("Channel for sending cancel task messages has unexpectedly closed")]
     CancelClosed,

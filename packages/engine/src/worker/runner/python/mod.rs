@@ -19,6 +19,7 @@ use execution::{
     task::TaskId,
 };
 use futures::FutureExt;
+use simulation_structure::SimulationShortId;
 use tokio::{
     process::Command,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -27,16 +28,13 @@ use tokio::{
 
 pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};
-use crate::{
-    proto::SimulationShortId,
-    worker::{
-        runner::comms::{
-            inbound::InboundToRunnerMsgPayload,
-            outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
-            ExperimentInitRunnerMsg,
-        },
-        Error as WorkerError, Result as WorkerResult,
+use crate::worker::{
+    runner::comms::{
+        inbound::InboundToRunnerMsgPayload,
+        outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
+        ExperimentInitRunnerMsg,
     },
+    Error as WorkerError, Result as WorkerResult,
 };
 
 pub struct PythonRunner {

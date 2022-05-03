@@ -989,6 +989,7 @@ dependencies = [
  "serde-aux",
  "serde_json",
  "shared_memory",
+ "simulation_structure",
  "stateful",
  "strum_macros",
  "surf",
@@ -2115,6 +2116,10 @@ checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "simulation_structure"
+version = "0.0.0"
 
 [[package]]
 name = "slab"

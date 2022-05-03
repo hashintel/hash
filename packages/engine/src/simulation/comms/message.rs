@@ -3,10 +3,11 @@ use execution::{
     task::{SharedStore, TaskId},
     worker::SyncPayload,
 };
+use simulation_structure::SimulationShortId;
 use stateful::field::PackageId;
 use tracing::Span;
 
-use crate::{proto::SimulationShortId, simulation::comms::active::ActiveTaskExecutorComms};
+use crate::simulation::comms::active::ActiveTaskExecutorComms;
 
 #[derive(derive_new::new, Debug)]
 pub struct WrappedTask {

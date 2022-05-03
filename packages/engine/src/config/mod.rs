@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use execution::package::{PackageCreatorConfig, PersistenceConfig};
+use simulation_structure::SimulationShortId;
 use stateful::{global::Globals, state::StateCreateParameters};
 
 pub use self::{
@@ -11,11 +12,7 @@ pub use self::{
     simulation::Config as SimulationConfig,
     store::Config as StoreConfig,
 };
-use crate::{
-    env::Environment,
-    proto::{ExperimentRunTrait, SimulationShortId},
-    Args,
-};
+use crate::{env::Environment, proto::ExperimentRunTrait, Args};
 
 mod engine;
 mod error;

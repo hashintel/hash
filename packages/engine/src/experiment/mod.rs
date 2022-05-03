@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
+use simulation_structure::SimulationShortId;
 use stateful::global::Globals;
 use tokio::task::JoinHandle;
 use tracing::Instrument;
@@ -85,15 +86,15 @@ pub struct Initializer {
 #[derive(Debug)]
 pub enum ExperimentControl {
     StartSim {
-        sim_id: proto::SimulationShortId,
+        sim_id: SimulationShortId,
         changed_globals: serde_json::Value,
         max_num_steps: usize,
         span_id: SpanId,
     },
     // TODO: add span_ids
-    PauseSim(proto::SimulationShortId),
-    ResumeSim(proto::SimulationShortId),
-    StopSim(proto::SimulationShortId),
+    PauseSim(SimulationShortId),
+    ResumeSim(SimulationShortId),
+    StopSim(SimulationShortId),
 }
 
 pub fn init_exp_package(

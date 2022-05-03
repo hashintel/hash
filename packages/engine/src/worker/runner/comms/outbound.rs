@@ -9,12 +9,10 @@ use execution::{
 };
 use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use serde::{Deserialize, Serialize};
+use simulation_structure::SimulationShortId;
 use tracing::Span;
 
-use crate::{
-    proto::SimulationShortId,
-    worker::{self, Error, Result},
-};
+use crate::worker::{self, Error, Result};
 
 #[derive(Debug, Default, Clone)]
 pub struct RunnerError {

@@ -12,6 +12,7 @@ flatbuffers_gen = { path = "lib/flatbuffers_gen" }
 nano = { path = "lib/nano", default-features = false }
 memory = { path = "lib/memory" }
 stateful = { path = "lib/stateful" }
+simulation_structure = { path = "lib/simulation_structure" }
 execution = { path = "lib/execution" }
 
 arr_macro = "0.1.3"

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use futures::FutureExt;
+use simulation_structure::SimulationShortId;
 use tokio::time::Duration;
 
 use crate::{
@@ -8,7 +9,6 @@ use crate::{
     datastore::store::Store,
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
     output::SimulationOutputPersistenceRepr,
-    proto::SimulationShortId,
     simulation::{
         agent_control::AgentControl,
         comms::Comms,

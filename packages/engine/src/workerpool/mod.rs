@@ -12,6 +12,7 @@ use futures::{
     stream::{FuturesUnordered, StreamExt},
 };
 use rand::prelude::SliceRandom;
+use simulation_structure::SimulationShortId;
 use stateful::field::PackageId;
 use tokio::{pin, task::JoinHandle};
 use tracing::{Instrument, Span};
@@ -28,7 +29,6 @@ use self::{
 };
 use crate::{
     config::{self},
-    proto::SimulationShortId,
     simulation::comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
     worker::{
         runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},

@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
 use serde::Serialize;
+use simulation_structure::SimulationShortId;
 
 use crate::{
     output::{buffer::RELATIVE_PARTS_FOLDER, error::Result},
-    proto::{ExperimentId, SimulationShortId},
+    proto::ExperimentId,
 };
 
 /// Maximum size of a string kept in memory.

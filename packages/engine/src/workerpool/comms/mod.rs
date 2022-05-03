@@ -4,6 +4,7 @@ pub mod terminate;
 pub mod top;
 
 use execution::{task::TaskId, worker::SyncPayload, worker_pool::WorkerIndex};
+use simulation_structure::SimulationShortId;
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::Receiver,
@@ -16,7 +17,6 @@ pub use self::{
     terminate::TerminateRecv,
 };
 use crate::{
-    proto::SimulationShortId,
     worker::{
         runner::comms::{
             outbound::{PackageError, RunnerError, UserError, UserWarning},

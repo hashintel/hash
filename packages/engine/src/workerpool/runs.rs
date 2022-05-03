@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
 use execution::worker_pool::WorkerAllocation;
+use simulation_structure::SimulationShortId;
 
-use crate::{
-    proto::SimulationShortId,
-    workerpool::{Error, Result},
-};
+use crate::workerpool::{Error, Result};
 
 #[derive(Default)]
 pub struct SimulationRuns {

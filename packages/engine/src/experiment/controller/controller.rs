@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use simulation_structure::SimulationShortId;
 use stateful::global::SharedDatasets;
 use tracing::{Instrument, Span};
 
@@ -20,7 +21,7 @@ use crate::{
         ExperimentControl,
     },
     output::OutputPersistenceCreatorRepr,
-    proto::{EngineMsg, EngineStatus, ExperimentRunTrait, SimulationShortId},
+    proto::{EngineMsg, EngineStatus, ExperimentRunTrait},
     simulation::{
         comms::Comms,
         controller::{runs::SimulationRuns, sim_control::SimControl, SimulationController},

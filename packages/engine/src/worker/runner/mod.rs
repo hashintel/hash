@@ -4,10 +4,12 @@ pub mod rust;
 
 pub mod comms;
 
+use simulation_structure::SimulationShortId;
+
 use self::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
 };
-use crate::{proto::SimulationShortId, worker::error::Result};
+use crate::worker::error::Result;
 
 /// TODO: DOC
 #[async_trait::async_trait]

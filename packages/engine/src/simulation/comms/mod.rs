@@ -31,12 +31,13 @@ use execution::{
     task::{SharedStore, Task, TaskId},
     worker::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
 };
+use simulation_structure::SimulationShortId;
 use stateful::{agent::Agent, context::Context, field::PackageId, state::StateReadProxy};
 use uuid::Uuid;
 
 use self::message::{EngineToWorkerPoolMsg, WrappedTask};
 use super::{command::Commands, task::active::ActiveTask, Error, Result};
-use crate::{proto::SimulationShortId, workerpool::comms::MainMsgSend};
+use crate::workerpool::comms::MainMsgSend;
 
 /// A simulation-specific object containing a sender to communicate with the worker-pool, and a
 /// shared collection of commands.
