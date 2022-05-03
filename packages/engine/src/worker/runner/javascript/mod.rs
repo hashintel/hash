@@ -208,6 +208,7 @@ impl ModuleMap {
             .map_err(|err| Error::MissingJavascriptImport(path.to_string(), err.to_string()))?;
         let js_source_code = new_js_string(scope, &source_code);
         let js_path = new_js_string(scope, path);
+        let source_map_url = new_js_string(scope, "");
         let source = v8::script_compiler::Source::new(
             js_source_code,
             Some(&v8::ScriptOrigin::new(
@@ -217,7 +218,7 @@ impl ModuleMap {
                 0,
                 false,
                 0,
-                js_path.into(),
+                source_map_url.into(),
                 false,
                 false,
                 true,
