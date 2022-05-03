@@ -225,6 +225,7 @@ impl ModuleMap {
                 0,
                 0,
                 false,
+                // Unique identifier for scripts, source: https://chromedevtools.github.io/devtools-protocol/v8/Runtime/#type-ScriptId
                 0,
                 source_map_url.into(),
                 false,
