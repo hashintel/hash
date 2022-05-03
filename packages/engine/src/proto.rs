@@ -6,7 +6,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use stateful::globals::Globals;
+use stateful::global::{Globals, SharedDataset};
 use uuid::Uuid;
 
 use crate::simulation::status::SimStatus;
@@ -55,12 +55,9 @@ impl FromStr for ExperimentName {
     }
 }
 
-use crate::{
-    simulation::enum_dispatch::enum_dispatch,
-    worker::{
-        runner::comms::outbound::{PackageError, UserError, UserWarning},
-        RunnerError,
-    },
+use crate::worker::{
+    runner::comms::outbound::{PackageError, UserError, UserWarning},
+    RunnerError,
 };
 
 /// The message type sent from the engine to the orchestrator.
@@ -144,30 +141,6 @@ impl EngineStatus {
             EngineStatus::UserWarnings(..) => "UserWarnings",
             EngineStatus::PackageError(..) => "PackageError",
         }
-    }
-}
-
-#[derive(Deserialize, Serialize, Clone)]
-pub struct SharedDataset {
-    pub name: Option<String>,
-    pub shortname: String,
-    pub filename: String,
-    pub url: Option<String>,
-    /// Whether the downloadable dataset is a csv
-    pub raw_csv: bool,
-    pub data: Option<String>,
-}
-
-impl Debug for SharedDataset {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SharedDataset")
-            .field("name", &self.name)
-            .field("shortname", &self.shortname)
-            .field("filename", &self.filename)
-            .field("url", &self.url)
-            .field("raw_csv", &self.raw_csv)
-            .field("data", &CleanOption(&self.data))
-            .finish()
     }
 }
 
@@ -354,12 +327,11 @@ pub enum ExtendedExperimentPackageConfig {
     Optimization(OptimizationExperimentConfig),
 }
 
-#[enum_dispatch(ExperimentRunTrait)]
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum ExperimentRunRepr {
-    ExperimentRunBase,
-    ExperimentRun,
-    ExtendedExperimentRun,
+    ExperimentRunBase(ExperimentRunBase),
+    ExperimentRun(ExperimentRun),
+    ExtendedExperimentRun(ExtendedExperimentRun),
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -381,7 +353,6 @@ pub struct ExtendedExperimentRun {
     pub package_config: ExtendedExperimentPackageConfig,
 }
 
-#[enum_dispatch]
 pub trait ExperimentRunTrait: Clone + for<'a> Deserialize<'a> + Serialize {
     fn base(&self) -> &ExperimentRunBase;
     fn base_mut(&mut self) -> &mut ExperimentRunBase;
@@ -427,6 +398,32 @@ impl ExperimentRunTrait for ExtendedExperimentRun {
 
     fn package_config(&self) -> PackageConfig<'_> {
         PackageConfig::ExtendedExperimentPackageConfig(&self.package_config)
+    }
+}
+
+impl ExperimentRunTrait for ExperimentRunRepr {
+    fn base(&self) -> &ExperimentRunBase {
+        match self {
+            Self::ExperimentRun(inner) => inner.base(),
+            Self::ExperimentRunBase(inner) => inner.base(),
+            Self::ExtendedExperimentRun(inner) => inner.base(),
+        }
+    }
+
+    fn base_mut(&mut self) -> &mut ExperimentRunBase {
+        match self {
+            Self::ExperimentRun(inner) => inner.base_mut(),
+            Self::ExperimentRunBase(inner) => inner.base_mut(),
+            Self::ExtendedExperimentRun(inner) => inner.base_mut(),
+        }
+    }
+
+    fn package_config(&self) -> PackageConfig<'_> {
+        match self {
+            Self::ExperimentRun(inner) => inner.package_config(),
+            Self::ExperimentRunBase(inner) => inner.package_config(),
+            Self::ExtendedExperimentRun(inner) => inner.package_config(),
+        }
     }
 }
 

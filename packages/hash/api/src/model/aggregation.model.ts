@@ -212,7 +212,7 @@ class __Aggregation {
           return field;
         }
 
-        return (entity) => entity.properties[field];
+        return (entity) => get(entity.properties, field);
       }),
       multiSort.map(({ desc }) => (desc ? "desc" : "asc")),
     );
@@ -332,6 +332,21 @@ class __Aggregation {
     merge(this, mapDbAggregationToModel(updatedDbAggregation));
 
     return this;
+  }
+
+  async getSourceEntity(client: DbClient): Promise<Entity> {
+    const sourceEntity = await Entity.getEntityLatestVersion(client, {
+      accountId: this.sourceAccountId,
+      entityId: this.sourceEntityId,
+    });
+
+    if (!sourceEntity) {
+      throw new Error(
+        `Critical: source entity of aggregation with aggregationId ${this.aggregationId} not found`,
+      );
+    }
+
+    return sourceEntity;
   }
 
   async getResults(

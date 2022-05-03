@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use stateful::globals::Globals;
+use stateful::global::Globals;
 use tokio::task::JoinHandle;
 use tracing::Instrument;
 
@@ -18,7 +18,6 @@ use crate::{
     types::SpanId,
 };
 
-pub type SharedDataset = proto::SharedDataset;
 pub type SharedBehavior = proto::SharedBehavior;
 pub type SimPackageArgs = proto::SimPackageArgs;
 pub type Simulation = proto::ProjectBase;

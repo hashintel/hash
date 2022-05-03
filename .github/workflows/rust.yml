@@ -198,12 +198,16 @@ jobs:
           - ""
     env:
       OUTPUT_DIRECTORY: test-results
+      RUST_BACKTRACE: 1
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
 
       - name: Remove default members
-        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+        run: |
+          # Backup `Config.toml` to restore it later so that `git diff` does not report any changes
+          cp -v "${{ matrix.directory }}/Cargo.toml" "${{ matrix.directory }}/Cargo.toml.orig"
+          sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
         id: toolchain
@@ -246,6 +250,12 @@ jobs:
 
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
+
+      # Non-empty diff could be a Cargo.lock that wasn't committed.
+      - name: Ensure empty git diff
+        run: |
+          mv -v "${{ matrix.directory }}/Cargo.toml.orig" "${{ matrix.directory }}/Cargo.toml"
+          git --no-pager diff --exit-code --color
 
   bench:
     name: bench

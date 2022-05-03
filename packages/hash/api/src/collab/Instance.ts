@@ -1,5 +1,5 @@
 import { ApolloClient } from "@apollo/client";
-import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
+import { RealtimeMessage } from "@hashintel/hash-backend-utils/realtime";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import {
@@ -17,6 +17,10 @@ import {
 import {
   GetBlocksQuery,
   GetBlocksQueryVariables,
+  GetLinkedAggregationQuery,
+  GetLinkedAggregationQueryVariables,
+  GetLinkQuery,
+  GetLinkQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
   LatestEntityRef,
@@ -28,6 +32,10 @@ import {
   getPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
 import {
+  getLinkedAggregationIdentifierFieldsQuery,
+  getLinkQuery,
+} from "@hashintel/hash-shared/queries/link.queries";
+import {
   createNecessaryEntities,
   updatePageMutation,
 } from "@hashintel/hash-shared/save";
@@ -36,6 +44,10 @@ import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
+import {
+  AggregationVersion,
+  LinkVersion,
+} from "@hashintel/hash-backend-utils/pgTables";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -116,7 +128,7 @@ export class Instance {
     }, POSITION_CLEANUP_INTERVAL);
 
     this.unsubscribeFromEntityWatcher = this.entityWatcher.subscribe(
-      (entityVersion) => this.processEntityVersion(entityVersion),
+      (message) => this.processWatcherMessage(message),
     );
   }
 
@@ -170,7 +182,7 @@ export class Instance {
    * talk to the GraphQL server to resolve links on the incoming entity, and
    * walkValueForEntity cannot handle async operations
    */
-  private async processEntityVersion(entityVersion: EntityVersion) {
+  private async processWatcherMessage({ table, record }: RealtimeMessage) {
     if (this.errored) {
       return;
     }
@@ -203,16 +215,108 @@ export class Instance {
         ({ accountId, entityId }) => `${accountId}/${entityId}`,
       );
 
-      const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
-      const entityVersionRef = getEntityRef(entityVersion);
+      /**
+       * This fetches entity references relevant to the provided LinkVersion or AggregationVersion.
+       * Multiple entity refs may be returned, as a LinkVersion has both a source and a destination.
+       * The LinkedEntities for a destination can change if any of its properties are resolved via incoming links.
+       * This uses {@link getEntityRef} to memoize the refs, so they can be checked against refs
+       * acquired through that function directly.
+       */
+      const getEntityRefsFromLinkOrAggregation = (
+        recordToGetIdsFrom: LinkVersion | AggregationVersion,
+      ): Promise<LatestEntityRef[]> => {
+        const variables =
+          "linkId" in recordToGetIdsFrom
+            ? {
+                sourceAccountId: recordToGetIdsFrom.sourceAccountId,
+                linkId: recordToGetIdsFrom.linkId,
+              }
+            : {
+                sourceAccountId: recordToGetIdsFrom.sourceAccountId,
+                aggregationId: recordToGetIdsFrom.aggregationId,
+              };
+        return this.fallbackClient
+          .query<
+            GetLinkQuery | GetLinkedAggregationQuery,
+            GetLinkQueryVariables | GetLinkedAggregationQueryVariables
+          >({
+            query:
+              "linkId" in recordToGetIdsFrom
+                ? getLinkQuery
+                : getLinkedAggregationIdentifierFieldsQuery,
+            variables,
+            fetchPolicy: "network-only",
+          })
+          .then(({ data }) => {
+            if ("getLink" in data) {
+              const {
+                sourceAccountId,
+                sourceEntityId,
+                destinationAccountId,
+                destinationEntityId,
+              } = data.getLink;
+              return [
+                getEntityRef({
+                  accountId: sourceAccountId,
+                  entityId: sourceEntityId,
+                }),
+                getEntityRef({
+                  accountId: destinationAccountId,
+                  entityId: destinationEntityId,
+                }),
+              ];
+            } else {
+              const { sourceAccountId, sourceEntityId } =
+                data.getLinkedAggregation;
+              return [
+                getEntityRef({
+                  accountId: sourceAccountId,
+                  entityId: sourceEntityId,
+                }),
+              ];
+            }
+          });
+      };
 
+      const recordUpdatedAt = new Date(record.updatedAt).getTime();
+
+      const affectedEntityRefs: LatestEntityRef[] =
+        table === "entity_versions"
+          ? [getEntityRef(record)] // an entity itself has been updated - get its ref
+          : await getEntityRefsFromLinkOrAggregation(record); // a link or linked aggregation has been updated - get the affected entities
+
+      /**
+       * Determine which blocks to refresh by checking if any of the entities within it are affected
+       */
       const blocksToRefresh = new Set(
         flatMapBlocks(this.savedContents, (entity, blockEntity) => {
           const entityRef = getEntityRef(entity);
 
+          // check if the entity itself is affected
+          let affected = affectedEntityRefs.includes(entityRef);
+
+          if (!affected && "linkedEntities" in entity) {
+            // this is the entity within the block, i.e. the 'child' entity
+            // check if any of its linked entities or linked aggregations are affected
+            // we don't need to check this if we already know it's affected
+            affected =
+              entity.linkedEntities.some((linkedEntity) =>
+                affectedEntityRefs.includes(getEntityRef(linkedEntity)),
+              ) ||
+              entity.linkedAggregations.some(
+                ({ sourceAccountId, sourceEntityId }) =>
+                  affectedEntityRefs.includes(
+                    getEntityRef({
+                      accountId: sourceAccountId,
+                      entityId: sourceEntityId,
+                    }),
+                  ),
+              );
+          }
+
           if (
-            entityRef === entityVersionRef &&
-            entityVersionTime > new Date(entity.updatedAt).getTime()
+            affected &&
+            recordUpdatedAt > new Date(entity.updatedAt).getTime()
           ) {
             return [getEntityRef(blockEntity)];
           }

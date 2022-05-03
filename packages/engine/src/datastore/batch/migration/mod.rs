@@ -5,17 +5,14 @@ use std::{borrow::Cow, mem, sync::Arc};
 use arrow::{self, array::Array, record_batch::RecordBatch, util::bit_util};
 use memory::{
     arrow::meta::{self, Buffer, Node, NodeMapping},
-    shared_memory::{padding, Segment},
+    shared_memory::{padding, MemoryId, Segment},
 };
-use stateful::{agent::AgentSchema, message::MessageSchema};
+use stateful::{
+    agent::{AgentBatch, AgentSchema},
+    message::{MessageBatch, MessageSchema},
+};
 
-use crate::{
-    datastore::{
-        batch::{AgentBatch, MessageBatch},
-        error::{Error, Result},
-    },
-    proto::ExperimentId,
-};
+use crate::datastore::error::{Error, Result};
 
 type Offset = i32;
 
@@ -151,24 +148,21 @@ impl<'a> BufferActions<'a> {
         &self,
         agent_schema: &Arc<AgentSchema>,
         message_schema: &Arc<MessageSchema>,
-        experiment_id: &ExperimentId,
+        agent_memory_id: MemoryId,
+        message_memory_id: MemoryId,
         worker_index: usize,
     ) -> Result<(AgentBatch, MessageBatch)> {
         let mut memory = AgentBatch::get_prepared_memory_for_data(
             agent_schema,
             &self.new_dynamic_meta,
-            experiment_id,
+            agent_memory_id,
         )?;
         self.flush_memory(&mut memory)?;
 
         let agent_batch =
             AgentBatch::from_segment(memory, Some(agent_schema.as_ref()), Some(worker_index))?;
-        let message_batch = MessageBatch::empty_from_agent_batch(
-            &agent_batch,
-            &message_schema.arrow,
-            Arc::clone(&message_schema.static_meta),
-            experiment_id,
-        )?;
+        let message_batch =
+            MessageBatch::empty_from_agent_batch(&agent_batch, message_schema, message_memory_id)?;
 
         Ok((agent_batch, message_batch))
     }
@@ -427,7 +421,7 @@ impl<'a> BufferActions<'a> {
             "Can't flush migration changes when haven't loaded latest persisted agent batch"
         );
         debug_assert!(
-            offsets_start_at_zero(batch.segment(), batch.static_meta(), batch.dynamic_meta(),)
+            offsets_start_at_zero(batch.segment(), batch.static_meta(), batch.dynamic_meta())
                 .is_ok(),
             "Can't flush migration changes, because agent batch already contains invalid offsets"
         );
@@ -1349,14 +1343,14 @@ fn offsets_start_at_zero(
 pub(super) mod test {
     use rand::Rng;
     use serde::{Deserialize, Serialize};
-    use stateful::message::MessageSchema;
+    use stateful::{
+        agent::{arrow::PREVIOUS_INDEX_FIELD_KEY, IntoAgents},
+        message::MessageSchema,
+    };
     use uuid::Uuid;
 
     use super::*;
-    use crate::{
-        datastore::{arrow::batch_conversion::IntoAgents, test_utils::gen_schema_and_test_agents},
-        simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
-    };
+    use crate::datastore::test_utils::gen_schema_and_test_agents;
 
     #[derive(Serialize, Deserialize)]
     pub struct Foo {
@@ -1423,9 +1417,13 @@ pub(super) mod test {
 
         let (agent_schema, json_agents) = gen_schema_and_test_agents(num_agents, 0)?;
 
-        let agents =
-            AgentBatch::from_agent_states(json_agents.as_slice(), &agent_schema, &experiment_id)?;
-        let agents_clone = AgentBatch::duplicate_from(&agents, &agent_schema, &experiment_id)?;
+        let agents = AgentBatch::from_agent_states(
+            json_agents.as_slice(),
+            &agent_schema,
+            MemoryId::new(experiment_id),
+        )?;
+        let agents_clone =
+            AgentBatch::duplicate_from(&agents, &agent_schema, MemoryId::new(experiment_id))?;
 
         let mut pool = vec![agents];
         let batch_index = Some(0);
@@ -1461,27 +1459,28 @@ pub(super) mod test {
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
-            &experiment_id,
+            &msg_schema,
+            MemoryId::new(experiment_id),
         )?;
 
-        let new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+        let new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
-            &experiment_id,
+            &msg_schema,
+            MemoryId::new(experiment_id),
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
-        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         remove_indices.iter().rev().for_each(|i| {
             json_agents.remove(*i);
         });
-        let agents =
-            AgentBatch::from_agent_states(json_agents.as_slice(), &agent_schema, &experiment_id)?;
+        let agents = AgentBatch::from_agent_states(
+            json_agents.as_slice(),
+            &agent_schema,
+            MemoryId::new(experiment_id),
+        )?;
         println!("Thru JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
         assert_eq!(new_json_agents, json_agents);
@@ -1500,11 +1499,18 @@ pub(super) mod test {
         let (_, mut json_create_agents) =
             gen_schema_and_test_agents(num_create_agents, num_agents as u64)?;
 
-        let agents =
-            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
-        let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
-        let create_agents =
-            AgentBatch::from_agent_states(json_create_agents.as_slice(), &schema, &experiment_id)?;
+        let agents = AgentBatch::from_agent_states(
+            json_agents.as_slice(),
+            &schema,
+            MemoryId::new(experiment_id),
+        )?;
+        let agents_clone =
+            AgentBatch::duplicate_from(&agents, &schema, MemoryId::new(experiment_id))?;
+        let create_agents = AgentBatch::from_agent_states(
+            json_create_agents.as_slice(),
+            &schema,
+            MemoryId::new(experiment_id),
+        )?;
 
         let mut pool = vec![agents];
         let batch_index = Some(0);
@@ -1538,25 +1544,26 @@ pub(super) mod test {
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
-            &experiment_id,
+            &msg_schema,
+            MemoryId::new(experiment_id),
         )?;
 
-        let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+        let mut new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
-            &experiment_id,
+            &msg_schema,
+            MemoryId::new(experiment_id),
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
-        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         json_agents.append(&mut json_create_agents);
-        let agents =
-            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
+        let agents = AgentBatch::from_agent_states(
+            json_agents.as_slice(),
+            &schema,
+            MemoryId::new(experiment_id),
+        )?;
         println!("Thru JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
         json_agents.iter_mut().for_each(|v| {
@@ -1581,11 +1588,18 @@ pub(super) mod test {
         let (schema, json_agents) = gen_schema_and_test_agents(num_agents, 0)?;
         let (_, json_agents_2) = gen_schema_and_test_agents(num_agents_2, num_agents as u64)?;
 
-        let agents =
-            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
-        let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
-        let agents_2 =
-            AgentBatch::from_agent_states(json_agents_2.as_slice(), &schema, &experiment_id)?;
+        let agents = AgentBatch::from_agent_states(
+            json_agents.as_slice(),
+            &schema,
+            MemoryId::new(experiment_id),
+        )?;
+        let agents_clone =
+            AgentBatch::duplicate_from(&agents, &schema, MemoryId::new(experiment_id))?;
+        let agents_2 = AgentBatch::from_agent_states(
+            json_agents_2.as_slice(),
+            &schema,
+            MemoryId::new(experiment_id),
+        )?;
 
         let mut pool = vec![agents, agents_2];
         let batch_index = Some(0);
@@ -1623,27 +1637,28 @@ pub(super) mod test {
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
-            &experiment_id,
+            &msg_schema,
+            MemoryId::new(experiment_id),
         )?;
 
-        let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+        let mut new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
-            &experiment_id,
+            &msg_schema,
+            MemoryId::new(experiment_id),
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
-        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         select_indices
             .iter()
             .for_each(|i| json_agents.push(json_agents_2[*i].clone()));
-        let agents =
-            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
+        let agents = AgentBatch::from_agent_states(
+            json_agents.as_slice(),
+            &schema,
+            MemoryId::new(experiment_id),
+        )?;
         println!("Thru JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
 
@@ -1674,13 +1689,23 @@ pub(super) mod test {
         let (_, json_agents_2) =
             gen_schema_and_test_agents(num_agents_2, (num_agents + num_create_agents) as u64)?;
 
-        let agents =
-            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
-        let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
-        let agents_2 =
-            AgentBatch::from_agent_states(json_agents_2.as_slice(), &schema, &experiment_id)?;
-        let create_agents =
-            AgentBatch::from_agent_states(json_create_agents.as_slice(), &schema, &experiment_id)?;
+        let agents = AgentBatch::from_agent_states(
+            json_agents.as_slice(),
+            &schema,
+            MemoryId::new(experiment_id),
+        )?;
+        let agents_clone =
+            AgentBatch::duplicate_from(&agents, &schema, MemoryId::new(experiment_id))?;
+        let agents_2 = AgentBatch::from_agent_states(
+            json_agents_2.as_slice(),
+            &schema,
+            MemoryId::new(experiment_id),
+        )?;
+        let create_agents = AgentBatch::from_agent_states(
+            json_create_agents.as_slice(),
+            &schema,
+            MemoryId::new(experiment_id),
+        )?;
 
         let mut pool = vec![agents, agents_2];
         let batch_index = Some(0);
@@ -1723,22 +1748,20 @@ pub(super) mod test {
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
-            &experiment_id,
+            &msg_schema,
+            MemoryId::new(experiment_id),
         )?;
 
-        let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+        let mut new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
 
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
-            &msg_schema.arrow,
-            msg_schema.static_meta.clone(),
-            &experiment_id,
+            &msg_schema,
+            MemoryId::new(experiment_id),
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
-        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         remove_indices.iter().rev().for_each(|i| {
             json_agents.remove(*i);
         });
@@ -1746,8 +1769,11 @@ pub(super) mod test {
             .iter()
             .for_each(|i| json_agents.push(json_agents_2[*i].clone()));
         json_agents.append(&mut json_create_agents);
-        let agents =
-            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
+        let agents = AgentBatch::from_agent_states(
+            json_agents.as_slice(),
+            &schema,
+            MemoryId::new(experiment_id),
+        )?;
         println!("Thru JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
 

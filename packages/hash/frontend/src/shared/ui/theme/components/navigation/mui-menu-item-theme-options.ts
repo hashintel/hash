@@ -2,10 +2,10 @@ import {
   Components,
   Theme,
   menuItemClasses,
-  dividerClasses,
   listItemTextClasses,
   listItemIconClasses,
   listItemAvatarClasses,
+  listItemSecondaryActionClasses,
 } from "@mui/material";
 
 export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
@@ -14,14 +14,23 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
     disableTouchRipple: true,
   },
   styleOverrides: {
-    root: ({ ownerState, theme }) => ({
+    root: ({ theme }) => ({
       borderRadius: "4px",
       padding: theme.spacing(1, 1.5),
       ...theme.typography.smallTextLabels,
 
-      "&:hover": {
-        backgroundColor: theme.palette.gray[20],
-        color: theme.palette.gray[80],
+      [`& .${listItemIconClasses.root}`]: {
+        color: theme.palette.gray[50],
+        minWidth: "unset",
+        marginRight: 12,
+        alignItems: "flex-start",
+      },
+
+      [`& .${listItemAvatarClasses.root}`]: {
+        border: "2px solid transparent",
+        marginRight: "12px",
+        borderRadius: "50%",
+        minWidth: "unset",
       },
 
       [`& .${listItemTextClasses.primary}`]: {
@@ -37,19 +46,44 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
         color: theme.palette.gray[50],
       },
 
-      [`& .${listItemIconClasses.root}`]: {
+      [`& .${listItemSecondaryActionClasses.root}`]: {
+        ...theme.typography.smallTextLabels,
+        fontWeight: 500,
         color: theme.palette.gray[50],
-        minWidth: "unset",
-        marginRight: 12,
+
+        "& svg": {
+          fontSize: 12,
+          color: "currentColor",
+        },
       },
 
-      [`& .${listItemAvatarClasses.root}`]: {
-        border: "2px solid transparent",
-        marginRight: "12px",
-        borderRadius: "50%",
-        minWidth: "unset",
+      // HOVER STYLES
+      "&:hover": {
+        backgroundColor: theme.palette.gray[20],
+        color: theme.palette.gray[80],
+
+        [`& .${listItemIconClasses.root}`]: {
+          color: theme.palette.gray[60],
+        },
+
+        [`& .${listItemTextClasses.primary}`]: {
+          color: theme.palette.gray[90],
+        },
+
+        [`& .${listItemTextClasses.secondary}`]: {
+          color: theme.palette.gray[70],
+        },
+
+        [`& .${listItemAvatarClasses.root}`]: {
+          borderColor: theme.palette.white,
+        },
+
+        [`& .${listItemSecondaryActionClasses.root}`]: {
+          color: theme.palette.gray[70],
+        },
       },
 
+      // FOCUS STYLES
       "&:focus": {
         outline: "none",
       },
@@ -80,17 +114,11 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
           [`& .${listItemAvatarClasses.root}`]: {
             borderColor: theme.palette.white,
           },
+
+          [`& .${listItemSecondaryActionClasses.root}`]: {
+            color: theme.palette.blue[30],
+          },
         },
-
-      ...(!ownerState.disableGutters && {
-        marginLeft: theme.spacing(0.5),
-        marginRight: theme.spacing(0.5),
-      }),
-
-      [`& + .${dividerClasses.root}`]: {
-        marginTop: theme.spacing(0.75),
-        marginBottom: theme.spacing(0.75),
-      },
     }),
   },
 };

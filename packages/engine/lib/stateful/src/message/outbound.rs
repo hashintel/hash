@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     agent::Agent,
     message::{payload, SYSTEM_MESSAGE},
+    Result,
 };
 
 /// This error represents the prettified display string of any internal errors
@@ -38,27 +39,31 @@ impl fmt::Display for Error {
 
 impl StdError for Error {}
 
-/*
- * We want Serde to deserialize a message to the correct enum variant,
- * and to do so, we need to emulate tagged unions. The matter is complicated
- * by the fact that our tag, the field "type", can be any string! So we want
- * to pick the Message::CreateAgent variant if "type" is "create_agent",
- * Message::RemoveAgent if "type" is "remove_agent", and Message::Generic if
- * "type" has any other value.
- *
- * To do this, we create two enums with a single variant, CreateAgent and
- * RemoveAgent. Message::CreateAgent has a field "type" of type CreateAgent:
- * this means that serde will match it correctly when "type" is "create_agent"!
- * Same holds for "remove_agent". Finally, if it cannot match either variant,
- * Serde will fall back to Message::Generic.
- *
- * Since we are at it, I've also done the same with the "hash" id, as it is
- * another requirement for Message::CreateAgent and Message::RemoveAgent.
- */
+// We want Serde to deserialize a message to the correct enum variant, and to do so, we need to
+// emulate tagged unions. The matter is complicated by the fact that our tag, the field "type", can
+// be any string! So we want to pick the Message::CreateAgent variant if "type" is "create_agent",
+// Message::RemoveAgent if "type" is "remove_agent", and Message::Generic if "type" has any other
+// value.
+//
+// To do this, we create two enums with a single variant, CreateAgent and RemoveAgent.
+// Message::CreateAgent has a field "type" of type CreateAgent: this means that serde will match it
+// correctly when "type" is "create_agent"! Same holds for "remove_agent". Finally, if it cannot
+// match either variant, Serde will fall back to Message::Generic.
+//
+// Since we are at it, I've also done the same with the "hash" id, as it is another requirement for
+// Message::CreateAgent and Message::RemoveAgent.
+/// A message sent by an [`Agent`].
+///
+/// Currently, three types of [built-in messages] are available: `"create_agent"`, `"remove_agent"`,
+/// and `"stop"`. For [messages sent] to other agents, a [`Generic`] message is used.
+///
+/// [built-in messages]: https://hash.ai/docs/simulation/creating-simulations/agent-messages/built-in-message-handlers
+/// [messages sent]: https://hash.ai/docs/simulation/creating-simulations/agent-messages/sending-messages
+/// [`Generic`]: Self::Generic
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 #[allow(clippy::large_enum_variant)]
-pub enum Outbound {
+pub enum Message {
     /*
 
     TUTORIAL: ADD A NEW MESSAGE TYPE
@@ -68,17 +73,17 @@ pub enum Outbound {
 
     1) Pick a name for the message. Let's say CloneAgent
 
-    2) Add the variant inside OutboundMessage, alongh with the inner struct:
+    2) Add the variant inside OutboundMessage, along with the inner struct:
 
-        CloneAgent(OutboundCloneAgentMessage)
+        CloneAgent(payload::CloneAgent)
 
     3) Define the inner struct:
 
         #[derive(Clone, Serialize, Deserialize, Debug)]
-        pub struct OutboundCloneAgentMessage {
-           r#type: CloneAgent,
+        pub struct CloneAgent {
+           r#type: kind::CloneAgent,
            to: hash,
-           pub data: CloneAgentPayload,
+           pub data: payload::CloneAgentData,
         }
 
     4) Define a special, one-variant enum named CloneAgent: it will allow
@@ -93,7 +98,7 @@ pub enum Outbound {
     5) Define the payload, that is, the shape of the "data" field.
 
         #[derive(Clone, Serialize, Deserialize, Debug)]
-        pub struct CloneAgentPayload {
+        pub struct CloneAgentData {
             pub agent_id: String,
             pub agent_name_prefix: String,
             // whatever you want
@@ -112,25 +117,38 @@ pub enum Outbound {
         }
 
     */
-    CreateAgent(payload::OutboundCreateAgent),
-    RemoveAgent(payload::OutboundRemoveAgent),
-    StopSim(payload::OutboundStopSim),
+    /// `"create_agent"` sent to `"hash"` will create a new agent specified by its payload.
+    CreateAgent(payload::CreateAgent),
+    /// `"remove_agent"` sent to `"hash"` will remove the specified agent.
+    RemoveAgent(payload::RemoveAgent),
+    /// `"stop"` sent to `"hash"` will attempt to stop the current simulation run.
+    StopSim(payload::StopSim),
+    /// A message to be sent between agents with a JSON payload
     Generic(payload::Generic),
 }
 
 fn is_system_message(kind: &str) -> bool {
-    kind == payload::OutboundCreateAgent::KIND || kind == payload::OutboundRemoveAgent::KIND
+    kind == payload::CreateAgent::KIND || kind == payload::RemoveAgent::KIND
 }
 
-impl Outbound {
-    #[must_use]
-    pub fn new(msg: payload::Generic) -> Outbound {
-        Outbound::Generic(msg)
+impl Message {
+    pub(in crate::message) fn new(to: &[&str], r#type: &str, data_string: &str) -> Result<Message> {
+        let to_clone = to.iter().map(|v| (*v).to_string()).collect();
+
+        Ok(Self::Generic(payload::Generic {
+            to: to_clone,
+            r#type: r#type.to_string(),
+            data: if data_string.is_empty() {
+                None
+            } else {
+                Some(serde_json::Value::from(data_string))
+            },
+        }))
     }
 
     fn is_json_message_remove_agent(value: &serde_json::Value) -> bool {
         if let Some(serde_json::Value::String(kind)) = value.get("type") {
-            return kind == payload::OutboundRemoveAgent::KIND;
+            return kind == payload::RemoveAgent::KIND;
         }
         false
     }
@@ -142,7 +160,7 @@ impl Outbound {
         if value.get("data").is_none() {
             if let Some(obj) = value.as_object_mut() {
                 let agent_id = state.agent_id.clone();
-                match serde_json::to_value(payload::OutboundRemoveAgentData { agent_id }) {
+                match serde_json::to_value(payload::RemoveAgentData { agent_id }) {
                     Ok(value) => {
                         obj.insert(String::from("data"), value);
                     }
@@ -172,12 +190,12 @@ impl Outbound {
     fn preprocess(value: &mut serde_json::Value, state: &Agent) -> Result<(), Error> {
         // if the message has a recipient, and the recipient is the hash engine, make sure its a
         // valid message type
-        Outbound::ensure_has_recipient(value);
-        if Outbound::is_hash_engine_message(value) {
-            Outbound::ensure_is_valid_hash_engine_message(value)?;
+        Message::ensure_has_recipient(value);
+        if Message::is_hash_engine_message(value) {
+            Message::ensure_is_valid_hash_engine_message(value)?;
         }
-        if Outbound::is_json_message_remove_agent(value) {
-            Outbound::infer_remove_agent_with_state(value, state)?;
+        if Message::is_json_message_remove_agent(value) {
+            Message::infer_remove_agent_with_state(value, state)?;
         }
         Ok(())
     }
@@ -218,11 +236,11 @@ impl Outbound {
     /// # Errors
     /// This function will error if the provided `value` is not valid json
     /// OR if the `Outbound::preprocess` function fails.
-    pub fn from_json_value_with_state(
+    fn from_json_value_with_state(
         mut value: serde_json::Value,
         agent_state: &Agent,
-    ) -> Result<Outbound, Error> {
-        Outbound::preprocess(&mut value, agent_state)?;
+    ) -> Result<Message, Error> {
+        Message::preprocess(&mut value, agent_state)?;
         match serde_json::from_value(value) {
             Ok(msg) => Ok(msg),
             Err(serde_err) => Err(Error::UnknownSerdeError(serde_err)),
@@ -235,15 +253,15 @@ impl Outbound {
     ///
     /// This function will panic if `value` is not a valid JSON array.
     /// TODO: Make sure this function is named as unchecekd to prevent unknown panics
-    pub fn from_json_array_with_state(
+    pub(in crate) fn from_json_array_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
-    ) -> Result<Vec<Outbound>, Error> {
+    ) -> Result<Vec<Message>, Error> {
         match value {
             serde_json::Value::Array(items) => {
                 let mut messages = Vec::with_capacity(items.len());
                 for json_value in items {
-                    messages.push(Outbound::from_json_value_with_state(
+                    messages.push(Message::from_json_value_with_state(
                         json_value,
                         agent_state,
                     )?);
@@ -252,18 +270,6 @@ impl Outbound {
             }
             // this should not happen
             _ => panic!("from_json_array_with_state() called with non array json value"),
-        }
-    }
-
-    #[must_use]
-    // TODO: UNUSED: Needs triage
-    pub fn unchecked_from_json_value_with_state(
-        value: serde_json::Value,
-        agent_state: &Agent,
-    ) -> Outbound {
-        match Outbound::from_json_value_with_state(value, agent_state) {
-            Ok(m) => m,
-            Err(e) => panic!("{}", e),
         }
     }
 }

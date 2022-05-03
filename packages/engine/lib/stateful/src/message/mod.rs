@@ -1,18 +1,41 @@
-// TODO: DOC: Add module level docs for describing the high level concepts agent messages
+//! Messages to send to and from [`Agent`]s.
+//!
+//! For a high-level concept of an messages, please see the [HASH documentation].
+//!
+//! This module contains [`Message`] and the accompanying API for handling messages sent from agents
+//! to agents or from agents to the engine. Depending on the type of the message, [`Message`]
+//! provides different variants, please see its documentation for more information.
+//!
+//! [`Message`]s are laid out in-memory in [`MessageBatch`]es according to the representation
+//! defined by [`MessageSchema`]. Multiple [`MessageBatch`]es are collected in a [`MessagePool`]
+//! which is interacted with through the [`MessageLoader`] and [`MessageReader`].
+//!
+//! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/agent-messages
+//! [`Agent`]: crate::agent::Agent
 
 pub mod payload;
 
-mod inbound;
+pub(crate) mod arrow;
+
+mod batch;
 mod kind;
+mod loader;
+mod map;
 mod outbound;
+mod pool;
 mod schema;
 
-pub(in crate) use self::outbound::Error as OutboundError;
 pub use self::{
-    inbound::Inbound,
+    batch::MessageBatch,
+    loader::{MessageLoader, RawMessage},
+    map::MessageMap,
+    outbound::Message,
+    pool::{MessagePool, MessageReader},
+    schema::MessageSchema,
+};
+pub(in crate) use self::{
     kind::{CreateAgent, RemoveAgent, StopSim},
-    outbound::Outbound,
-    schema::{MessageSchema, MESSAGE_ARROW_FIELDS, MESSAGE_BATCH_SCHEMA, MESSAGE_COLUMN_NAME},
+    outbound::Error as OutboundError,
 };
 
 // System-message recipient

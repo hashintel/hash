@@ -1,19 +1,19 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
+use memory::shared_memory::MemoryId;
+use stateful::{
+    context::{Context, ContextColumn, PreContext},
+    state::{State, StateReadProxy, StateSnapshot},
+};
 use tracing::{Instrument, Span};
 
 use crate::{
     config::SimRunConfig,
-    datastore::table::{
-        context::{Context, PreContext},
-        proxy::StateReadProxy,
-        state::{view::StateSnapshot, State},
-    },
     proto::ExperimentRunTrait,
     simulation::{
         error::{Error, Result},
-        package::{context, context::ContextColumn, init, output, state},
+        package::{context, init, output, state},
         step_output::SimulationStepOutput,
     },
 };
@@ -67,7 +67,7 @@ impl InitPackages {
         }
 
         tracing::trace!("Init packages finished, building state");
-        let state = State::from_agent_states(&agents, sim_config)?;
+        let state = State::from_agent_states(&agents, sim_config.to_state_create_parameters())?;
         Ok(state)
     }
 }
@@ -136,8 +136,8 @@ impl StepPackages {
 
         let context = Context::from_columns(
             columns,
-            sim_run_config.sim.store.clone(),
-            &sim_run_config.exp.run.base().id,
+            &sim_run_config.sim.store.context_schema,
+            MemoryId::new(sim_run_config.exp.run.base().id),
         )?;
         Ok(context)
     }
@@ -201,7 +201,10 @@ impl StepPackages {
                 Ok(package_column_writers?
                     .into_iter()
                     .map(|context_column| {
-                        (context_column.field_key.value().to_string(), context_column)
+                        (
+                            context_column.field_key().value().to_string(),
+                            context_column,
+                        )
                     })
                     .collect::<Vec<(String, ContextColumn)>>())
             })

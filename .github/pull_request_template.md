@@ -3,9 +3,13 @@
 <!-- Explain, at a high level, what this does and why. -->
 <!-- Use the 'What does this change?' section to list more specific implementation details. -->
 
-## ⚠️ Known issues
+## 🔗 Related links
 
-<!-- Are there known issues / intentionally omitted functionality? Flag them here to save reviewers doing so -->
+<!-- Add links to any context it is worth capturing (e.g. Issues, Discussions, Discord, Asana) -->
+<!-- Mark any links which are not publically accessible as _(internal)_ -->
+<!-- Don't rely on links to explain the PR, especially internal ones: use the sections above -->
+
+- [Asana task](link) _(internal)_
 
 ## 🚫 Blocked by
 
@@ -14,10 +18,6 @@
 
 - [ ] ...
 
-## 🐾 Next steps
-
-<!-- Are there are planned/suggested follow ups which are related but won't be done in this PR? -->
-
 ## 🔍 What does this change?
 
 <!-- Use a bullet list to explain your changes in more detail, if it would be helpful. -->
@@ -25,19 +25,19 @@
 
 - ...
 
-### 📜 Does this require a change to the docs?
+## 📜 Does this require a change to the docs?
 
 <!-- If this adds a user facing feature or modifies how an existing feature is used, it likely needs a docs change. -->
 
 - The docs for x need updating to explain that y
 
-## 🔗 Related links
+## ⚠️ Known issues
 
-<!-- Add links to any context it is worth capturing (e.g. Issues, Discussions, Discord, Asana) -->
-<!-- Mark any links which are not publically accessible as _(internal)_ -->
-<!-- Don't rely on links to explain the PR, especially internal ones: use the sections above -->
+<!-- Are there known issues / intentionally omitted functionality? Flag them here to save reviewers doing so -->
 
-- [Asana task](link) _(internal)_
+## 🐾 Next steps
+
+<!-- Are there are planned/suggested follow ups which are related but won't be done in this PR? -->
 
 ## 🛡 What tests cover this?
 

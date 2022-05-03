@@ -1,6 +1,3 @@
-import { BlockMetadata } from "blockprotocol";
-import produce from "immer";
-import { BlockConfig, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import {
   createContext,
   Dispatch,
@@ -11,56 +8,21 @@ import {
   useMemo,
   useState,
 } from "react";
+import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 
-import { isProduction } from "../lib/config";
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
-
-export type RemoteBlockMetadata = BlockMetadata & {
-  componentId: string;
-};
-
-type UserBlocks = RemoteBlockMetadata[];
+import { BlocksMetaMap } from "./page/createEditorView";
 
 interface UserBlocksContextState {
-  value: UserBlocks;
-  setValue: Dispatch<SetStateAction<UserBlocks>>;
+  value: BlocksMetaMap;
+  setValue: Dispatch<SetStateAction<BlocksMetaMap>>;
   blockFetchFailed: boolean;
 }
 
 /** @private enforces use of custom provider */
 const UserBlocksContext = createContext<UserBlocksContextState | null>(null);
 
-const mergeBlocksData = (
-  oldBlocksData: UserBlocks,
-  newBlocksData: UserBlocks,
-): UserBlocks => {
-  return produce(oldBlocksData, (draftUserBlocks) => {
-    for (const latestUserBlock of newBlocksData) {
-      const matchingUserBlockIndex = draftUserBlocks.findIndex(
-        (userBlock) => userBlock.name === latestUserBlock.name,
-      );
-
-      // @todo Remove need for @ts-expect-error here
-      if (matchingUserBlockIndex === -1) {
-        // @ts-expect-error TS warns `Type instantiation is excessively deep` but this isn't a problem here
-        draftUserBlocks.push(latestUserBlock);
-      } else if (
-        // in development, overwrite the locally cached block if the source has changed
-        (!isProduction &&
-          draftUserBlocks[matchingUserBlockIndex]?.source !==
-            latestUserBlock.source) ||
-        // overwrite the locally cached block if loading a different version
-        draftUserBlocks[matchingUserBlockIndex]?.version !==
-          latestUserBlock.version
-      ) {
-        // @ts-expect-error TS warns `Type instantiation is excessively deep` but this isn't a problem here
-        draftUserBlocks[matchingUserBlockIndex] = latestUserBlock;
-      }
-    }
-  });
-};
-
-export const UserBlocksProvider: FC<{ value: UserBlocks }> = ({
+export const UserBlocksProvider: FC<{ value: BlocksMetaMap }> = ({
   value: initialUserBlocks,
   children,
 }) => {
@@ -68,7 +30,7 @@ export const UserBlocksProvider: FC<{ value: UserBlocks }> = ({
     initialUserBlocks,
     "hash-workspace-user-blocks",
     (nextInitialItems, prevInitialItems) => {
-      return mergeBlocksData(prevInitialItems, nextInitialItems);
+      return { ...prevInitialItems, ...nextInitialItems };
     },
   );
 
@@ -96,17 +58,16 @@ export const UserBlocksProvider: FC<{ value: UserBlocks }> = ({
             }
             return response.json();
           })
-          .then(async ({ results: responseData }) => {
-            const resolvedMetadata = await Promise.all(
-              (responseData as BlockConfig[]).map(
-                async (metadata) =>
-                  (
-                    await fetchBlockMeta(metadata.componentId)
-                  ).componentMetadata,
-              ),
-            );
+          .then(async (responseData) => {
+            const apiProvidedBlocksMetaMap: BlocksMetaMap = {};
+            for (const { componentId } of responseData.results) {
+              apiProvidedBlocksMetaMap[componentId] = await fetchBlockMeta(
+                componentId,
+              );
+            }
+
             setValue((prevValue) => {
-              return mergeBlocksData(prevValue, resolvedMetadata);
+              return { ...prevValue, ...apiProvidedBlocksMetaMap };
             });
           })
           .catch((error) => {

@@ -2,15 +2,16 @@ import { BlockVariant } from "blockprotocol";
 import { VFC } from "react";
 import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 
 import { Suggester } from "./Suggester";
-import { RemoteBlockMetadata, useUserBlocks } from "../../userBlocks";
+import { useUserBlocks } from "../../userBlocks";
 import { useFilteredBlocks } from "./useFilteredBlocks";
 import { WarnIcon } from "../../../shared/icons";
 
 export interface BlockSuggesterProps {
   search?: string;
-  onChange(variant: BlockVariant, block: RemoteBlockMetadata): void;
+  onChange(variant: BlockVariant, block: BlockMeta["componentMetadata"]): void;
   sx?: SxProps<Theme>;
 }
 

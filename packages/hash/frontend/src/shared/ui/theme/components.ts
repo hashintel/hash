@@ -1,9 +1,11 @@
 import { Components, Theme } from "@mui/material/styles";
+import { MuiChipThemeOptions } from "./components/data-display/mui-chip-theme-options";
 import {
   MuiIconButtonThemeOptions,
   MuiListItemButtonThemeOptions,
   MuiListItemTextThemeOptions,
   MuiTooltipThemeOptions,
+  MuiListItemSecondaryActionThemeOptions,
 } from "./components/data-display";
 import {
   MuiDrawerThemeOptions,
@@ -19,6 +21,7 @@ import {
   MuiSwitchThemeOptions,
 } from "./components/inputs";
 import { MuiCssBaselineThemeOptions } from "./components/utils";
+import { MuiSelectThemeOptions } from "./components/inputs/mui-select-theme-options";
 
 export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
@@ -28,11 +31,15 @@ export const components: Components<Theme> = {
   MuiSwitch: MuiSwitchThemeOptions,
   MuiRadio: MuiRadioThemeOptions,
   MuiCheckbox: MuiCheckboxThemeOptions,
+  MuiSelect: MuiSelectThemeOptions,
   /** ===== DATA DISPLAY ===== */
+  MuiChip: MuiChipThemeOptions,
   MuiIconButton: MuiIconButtonThemeOptions,
   MuiTooltip: MuiTooltipThemeOptions,
   MuiListItemButton: MuiListItemButtonThemeOptions,
   MuiListItemText: MuiListItemTextThemeOptions,
+  MuiListItemSecondaryAction: MuiListItemSecondaryActionThemeOptions,
+
   /** ===== FEEDBACK ===== */
   /** ===== SURFACES ===== */
   /** ===== NAVIGATION ===== */

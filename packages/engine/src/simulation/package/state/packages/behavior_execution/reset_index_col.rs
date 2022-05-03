@@ -1,8 +1,9 @@
 use arrow::{array::ArrayData, datatypes::DataType};
-use memory::arrow::{new_buffer, ColumnChange};
+use memory::arrow::{new_buffer, ColumnChange, IntoArrowChange};
+use stateful::state::StateColumn;
 
 use crate::simulation::package::state::packages::behavior_execution::{
-    BehaviorIndexInnerDataType, DatastoreResult, IntoArrowChange, Result, StateColumn,
+    BehaviorIndexInnerDataType, Result,
 };
 
 pub fn reset_index_col(behavior_index_col_index: usize) -> Result<StateColumn> {
@@ -16,7 +17,7 @@ pub struct ResetIndexCol {
 }
 
 impl IntoArrowChange for ResetIndexCol {
-    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ColumnChange> {
+    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> memory::Result<ColumnChange> {
         let num_agents = range.end - range.start;
 
         // new_buffer delegates to a method that zeroes the memory so we don't need to initialize
