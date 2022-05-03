@@ -7,7 +7,7 @@ use std::{
 use execution::package::PackageInitConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use stateful::global::{Globals, SharedDataset};
+use stateful::global::{Dataset, Globals};
 use uuid::Uuid;
 
 use crate::simulation::status::SimStatus;
@@ -163,7 +163,7 @@ pub struct ProjectBase {
     pub name: String,
     pub globals_src: String,
     pub experiments_src: Option<String>,
-    pub datasets: Vec<SharedDataset>,
+    pub datasets: Vec<Dataset>,
     pub package_init: PackageInitConfig,
 }
 

@@ -20,7 +20,7 @@ use hash_engine_lib::{
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
-use stateful::global::SharedDataset;
+use stateful::global::Dataset;
 use uuid::Uuid;
 
 use crate::ExperimentType;
@@ -41,7 +41,7 @@ pub struct Manifest {
     /// A list of all behaviors in the project.
     pub behaviors: Vec<Behavior>,
     /// A list of all datasets in the project.
-    pub datasets: Vec<SharedDataset>,
+    pub datasets: Vec<Dataset>,
     /// JSON string describing the [`Globals`](hash_engine_lib::config::Globals) object.
     pub globals_json: Option<String>,
     /// JSON string describing the analysis that's calculated by the
@@ -296,7 +296,7 @@ impl Manifest {
     }
 
     /// Adds the provided `dataset` to the list of datasets.
-    pub fn add_dataset(&mut self, dataset: SharedDataset) {
+    pub fn add_dataset(&mut self, dataset: Dataset) {
         self.datasets.push(dataset);
     }
 
@@ -324,7 +324,7 @@ impl Manifest {
         }
 
         let filename = path.file_name().unwrap().to_string_lossy().to_string();
-        self.add_dataset(SharedDataset {
+        self.add_dataset(Dataset {
             name: Some(filename.clone()),
             shortname: filename.clone(),
             filename,
@@ -618,7 +618,7 @@ fn get_behavior_from_dependency_projects(
 fn get_dataset_from_dependency_projects(
     dependency_name: &str,
     dependency_projects: &HashMap<PathBuf, Manifest>,
-) -> Result<SharedDataset> {
+) -> Result<Dataset> {
     let mut dependency_path = PathBuf::from(&dependency_name);
     let file_name = dependency_path
         .file_name()

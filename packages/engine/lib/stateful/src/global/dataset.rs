@@ -7,27 +7,61 @@ use uuid::Uuid;
 
 use crate::Result;
 
+/// Record for a [`Dataset`] pointing to a file.
+///
+/// A `Dataset` can either be stored as JSON or as CSV.
+#[derive(Deserialize, Serialize, Clone)]
+pub struct Dataset {
+    pub name: Option<String>,
+    pub shortname: String,
+    pub filename: String,
+    pub url: Option<String>,
+    /// Whether the downloadable dataset is a csv
+    pub raw_csv: bool,
+    pub data: Option<String>,
+}
+
+impl fmt::Debug for Dataset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SharedDataset")
+            .field("name", &self.name)
+            .field("shortname", &self.shortname)
+            .field("filename", &self.filename)
+            .field("url", &self.url)
+            .field("raw_csv", &self.raw_csv)
+            .field(
+                "data",
+                if self.data.is_some() {
+                    &"Some(...)"
+                } else {
+                    &"None"
+                },
+            )
+            .finish()
+    }
+}
+
 /// Represents arbitrary data plainly stored in [`memory`].
 ///
 /// For a high-level concept of datasets, please see the [HASH documentation].
 ///
 /// In comparison to [`Globals`], a [`Dataset`] is stored in a memory [`Segment`] and can be
-/// constructed from a [`SharedDataset`]. Its data can be accessed by [`data()`].
+/// constructed from a [`Dataset`]. Its data can be accessed by [`data()`].
 ///
 /// [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/datasets
 /// [`Globals`]: crate::global::Globals
 /// [`Segment`]: memory::shared_memory::Segment
 /// [`data()`]: Self::data
-pub struct Dataset {
+pub struct SharedDataset {
     segment: Segment,
 }
 
-impl Dataset {
+impl SharedDataset {
     pub fn segment(&self) -> &Segment {
         &self.segment
     }
 
-    pub fn from_shared(dataset: &SharedDataset, memory_id: MemoryId) -> Result<Self> {
+    pub fn from_shared(dataset: &Dataset, memory_id: MemoryId) -> Result<Self> {
         let metaversion = Metaversion::default().to_le_bytes();
         let dataset_name = &dataset.shortname;
         let mut header = vec![0u8; metaversion.len() + dataset_name.len()];
@@ -68,53 +102,19 @@ impl Dataset {
     }
 }
 
-/// Record for a [`Dataset`] pointing to a file.
-///
-/// A `SharedDataset` can either be stored as JSON or as CSV.
-#[derive(Deserialize, Serialize, Clone)]
-pub struct SharedDataset {
-    pub name: Option<String>,
-    pub shortname: String,
-    pub filename: String,
-    pub url: Option<String>,
-    /// Whether the downloadable dataset is a csv
-    pub raw_csv: bool,
-    pub data: Option<String>,
-}
-
-impl fmt::Debug for SharedDataset {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SharedDataset")
-            .field("name", &self.name)
-            .field("shortname", &self.shortname)
-            .field("filename", &self.filename)
-            .field("url", &self.url)
-            .field("raw_csv", &self.raw_csv)
-            .field(
-                "data",
-                if self.data.is_some() {
-                    &"Some(...)"
-                } else {
-                    &"None"
-                },
-            )
-            .finish()
-    }
-}
-
 /// This is an object we use to manage sharing access to data that's static across simulation runs
 /// within an experiment, such as datasets.
 #[derive(Clone)]
 pub struct SharedDatasets {
-    pub datasets: HashMap<String, Arc<Dataset>>,
+    pub datasets: HashMap<String, Arc<SharedDataset>>,
 }
 
 impl SharedDatasets {
-    pub fn new(datasets: &[SharedDataset], memory_base_id: Uuid) -> Result<SharedDatasets> {
+    pub fn new(datasets: &[Dataset], memory_base_id: Uuid) -> Result<SharedDatasets> {
         let mut dataset_batches = HashMap::with_capacity(datasets.len());
         for dataset in datasets {
             let dataset_name = dataset.shortname.clone();
-            let dataset_batch = Dataset::from_shared(dataset, MemoryId::new(memory_base_id))?;
+            let dataset_batch = SharedDataset::from_shared(dataset, MemoryId::new(memory_base_id))?;
             dataset_batches.insert(dataset_name, Arc::new(dataset_batch));
         }
 
