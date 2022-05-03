@@ -1,14 +1,11 @@
-use execution::worker_pool::WorkerIndex;
+use execution::{runner::comms::ExperimentInitRunnerMsg, worker_pool::WorkerIndex};
 use nng::{Aio, Socket};
 use simulation_structure::ExperimentId;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
-use crate::worker::runner::{
-    comms::ExperimentInitRunnerMsg,
-    python::{
-        error::{Error, Result},
-        fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
-    },
+use crate::worker::runner::python::{
+    error::{Error, Result},
+    fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
 };
 
 fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {

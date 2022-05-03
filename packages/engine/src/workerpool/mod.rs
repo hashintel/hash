@@ -3,7 +3,7 @@ use std::{future::Future, pin::Pin, sync::Arc};
 
 use execution::{
     package::PackageTask,
-    runner::comms::NewSimulationRun,
+    runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
     task::{SharedStore, Task, TaskDistributionConfig, TaskId},
     worker::{SyncPayload, WorkerConfig},
     worker_pool::{WorkerIndex, WorkerPoolConfig, WorkerPoolHandler},
@@ -31,11 +31,7 @@ use self::{
 use crate::{
     config::{self},
     simulation::comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
-    worker::{
-        runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase},
-        task::WorkerTask,
-        WorkerController,
-    },
+    worker::{task::WorkerTask, WorkerController},
     workerpool::comms::{
         top::WorkerPoolToExpCtlMsg, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
         WorkerToWorkerPoolMsg,

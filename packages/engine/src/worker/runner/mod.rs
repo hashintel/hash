@@ -2,12 +2,11 @@ pub mod javascript;
 pub mod python;
 pub mod rust;
 
-pub mod comms;
-
-use execution::runner::comms::{InboundToRunnerMsgPayload, OutboundFromRunnerMsg};
+use execution::runner::comms::{
+    ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg,
+};
 use simulation_structure::SimulationShortId;
 
-use self::comms::ExperimentInitRunnerMsg;
 use crate::worker::error::Result;
 
 /// TODO: DOC

@@ -15,8 +15,8 @@ use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration
 use execution::{
     runner::{
         comms::{
-            InboundToRunnerMsgPayload, NewSimulationRun, OutboundFromRunnerMsg,
-            OutboundFromRunnerMsgPayload, RunnerTaskMessage,
+            ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,
+            OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerTaskMessage,
         },
         Language, MessageTarget, RunnerConfig,
     },
@@ -34,10 +34,7 @@ use tracing::{Instrument, Span};
 pub use self::error::{Error, Result};
 use self::{
     pending::PendingWorkerTasks,
-    runner::{
-        comms::ExperimentInitRunnerMsg, javascript::JavaScriptRunner, python::PythonRunner,
-        rust::RustRunner,
-    },
+    runner::{javascript::JavaScriptRunner, python::PythonRunner, rust::RustRunner},
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{

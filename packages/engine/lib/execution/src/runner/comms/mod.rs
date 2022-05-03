@@ -4,7 +4,7 @@ mod outbound;
 use std::{collections::HashMap, fmt, sync::Arc};
 
 use arrow::datatypes::Schema;
-use simulation_structure::SimulationShortId;
+use simulation_structure::{ExperimentId, SimulationShortId};
 use stateful::{
     agent::AgentSchema,
     field::PackageId,
@@ -20,10 +20,10 @@ pub use self::{
     },
 };
 use crate::{
-    runner::MessageTarget,
+    runner::{MessageTarget, RunnerConfig},
     task::{SharedStore, TaskId, TaskMessage},
     worker::PackageInitMsgForWorker,
-    worker_pool::WorkerAllocation,
+    worker_pool::{WorkerAllocation, WorkerIndex},
     Error, Result,
 };
 
@@ -126,5 +126,51 @@ pub struct DatastoreSimulationPayload {
 impl fmt::Debug for DatastoreSimulationPayload {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("DatastoreSimulationPayload")
+    }
+}
+
+// TODO: UNUSED: Needs triage
+pub struct DatastoreInit {
+    pub agent_batch_schema: Vec<u8>,
+    pub message_batch_schema: Vec<u8>,
+    pub context_batch_schema: Vec<u8>,
+    pub shared_context: SharedDatasets,
+}
+
+#[derive(Clone)]
+pub struct ExperimentInitRunnerMsgBase {
+    pub experiment_id: ExperimentId,
+    pub shared_context: Arc<SharedDatasets>,
+    pub package_config: Arc<PackageMsgs>,
+    pub runner_config: RunnerConfig,
+}
+
+#[derive(Clone)]
+pub struct ExperimentInitRunnerMsg {
+    pub experiment_id: ExperimentId,
+    pub worker_index: WorkerIndex,
+    pub shared_context: Arc<SharedDatasets>,
+    pub package_config: Arc<PackageMsgs>,
+    pub runner_config: RunnerConfig,
+}
+
+impl ExperimentInitRunnerMsg {
+    pub fn new(
+        base: &ExperimentInitRunnerMsgBase,
+        worker_index: WorkerIndex,
+    ) -> ExperimentInitRunnerMsg {
+        let ExperimentInitRunnerMsgBase {
+            experiment_id,
+            shared_context,
+            package_config,
+            runner_config,
+        } = base.clone();
+        ExperimentInitRunnerMsg {
+            experiment_id,
+            worker_index,
+            shared_context,
+            package_config,
+            runner_config,
+        }
     }
 }

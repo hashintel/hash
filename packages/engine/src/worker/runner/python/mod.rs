@@ -14,8 +14,8 @@ use std::{
 use execution::{
     runner::{
         comms::{
-            InboundToRunnerMsgPayload, OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload,
-            RunnerTaskMessage, SentTask,
+            ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg,
+            OutboundFromRunnerMsgPayload, RunnerTaskMessage, SentTask,
         },
         Language,
     },
@@ -31,9 +31,7 @@ use tokio::{
 
 pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};
-use crate::worker::{
-    runner::comms::ExperimentInitRunnerMsg, Error as WorkerError, Result as WorkerResult,
-};
+use crate::worker::{Error as WorkerError, Result as WorkerResult};
 
 pub struct PythonRunner {
     // Args to RunnerImpl::new
