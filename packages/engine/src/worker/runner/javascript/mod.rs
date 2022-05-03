@@ -293,7 +293,7 @@ pub fn module_resolve_callback<'s>(
     _import_assertions: v8::Local<'s, v8::FixedArray>,
     _referrer: v8::Local<'s, v8::Module>,
 ) -> Option<v8::Local<'s, v8::Module>> {
-    // Safe: we are in a callback
+    // SAFETY: we are in a callback
     let mut scope = unsafe { v8::CallbackScope::new(context) };
     let specifier = specifier.to_rust_string_lossy(&mut scope);
 
