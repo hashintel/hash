@@ -6,7 +6,7 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
-use execution::{runner::RunnerConfig, task::SharedStore, worker_pool::WorkerIndex};
+use execution::{runner::RunnerConfig, worker_pool::WorkerIndex};
 use simulation_structure::SimulationShortId;
 use stateful::{
     agent::AgentSchema,
@@ -22,11 +22,6 @@ use crate::{
 
 pub mod inbound;
 pub mod outbound;
-
-#[derive(Debug)]
-pub struct StateInterimSync {
-    pub shared_store: SharedStore,
-}
 
 // TODO: UNUSED: Needs triage
 pub struct DatastoreInit {

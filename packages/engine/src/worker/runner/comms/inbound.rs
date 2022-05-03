@@ -2,13 +2,13 @@
 use std::fmt;
 
 use execution::{
-    runner::comms::RunnerTaskMessage,
+    runner::comms::{RunnerTaskMessage, StateInterimSync},
     task::TaskId,
     worker::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
 };
 use simulation_structure::SimulationShortId;
 
-use crate::worker::runner::comms::{NewSimulationRun, StateInterimSync};
+use crate::worker::runner::comms::NewSimulationRun;
 
 /// TODO: DOC
 pub enum InboundToRunnerMsgPayload {

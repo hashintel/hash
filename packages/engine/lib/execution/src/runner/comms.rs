@@ -77,3 +77,8 @@ impl TargetedRunnerTaskMsg {
         })
     }
 }
+
+#[derive(Debug)]
+pub struct StateInterimSync {
+    pub shared_store: SharedStore,
+}
