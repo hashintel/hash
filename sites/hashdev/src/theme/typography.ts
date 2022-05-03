@@ -85,7 +85,7 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: 1.4,
     color: customColors.gray[70],
     textTransform: "uppercase",
-    letterSpacing: "0.05em",
+    letterSpacing: "0.03em",
   },
   hashFooterHeading: {
     fontSize: "var(--step--1)",
