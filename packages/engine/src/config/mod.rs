@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
-use execution::package::{PackageCreatorConfig, PersistenceConfig};
+use execution::{
+    package::{PackageCreatorConfig, PersistenceConfig},
+    worker_pool::WorkerAllocation,
+};
 use simulation_structure::SimulationShortId;
 use stateful::{global::Globals, state::StateCreateParameters};
 
 pub use self::{
-    engine::Config as EngineConfig,
     error::{Error, Result},
     experiment::Config as ExperimentConfig,
     package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
@@ -14,7 +16,6 @@ pub use self::{
 };
 use crate::{env::Environment, proto::ExperimentRunTrait, Args};
 
-mod engine;
 mod error;
 mod experiment;
 mod package;
@@ -44,7 +45,7 @@ impl SimRunConfig {
         global: &Arc<ExperimentConfig>,
         id: SimulationShortId,
         globals: Globals,
-        engine: EngineConfig,
+        worker_allocation: WorkerAllocation,
         store: StoreConfig,
         persistence: PersistenceConfig,
         max_num_steps: usize,
@@ -52,7 +53,7 @@ impl SimRunConfig {
         let local = simulation_config(
             id,
             globals,
-            engine,
+            worker_allocation,
             global,
             store,
             persistence,
@@ -66,7 +67,7 @@ impl SimRunConfig {
 
     pub fn to_state_create_parameters(&self) -> StateCreateParameters {
         StateCreateParameters {
-            target_min_groups: self.sim.engine.num_workers,
+            target_min_groups: self.exp.worker_pool.num_workers,
             target_group_size: MIN_AGENTS_PER_GROUP..self.exp.target_max_group_size,
             memory_base_id: self.exp.run.base().id,
             agent_schema: Arc::clone(&self.sim.store.agent_schema),
@@ -78,7 +79,7 @@ impl SimRunConfig {
 fn simulation_config(
     id: SimulationShortId,
     globals: Globals,
-    engine: EngineConfig,
+    worker_allocation: WorkerAllocation,
     _global: &ExperimentConfig,
     store: StoreConfig,
     persistence: PersistenceConfig,
@@ -91,7 +92,7 @@ fn simulation_config(
             globals,
             persistence,
         },
-        engine: Arc::new(engine),
+        worker_allocation: Arc::new(worker_allocation),
         store: Arc::new(store),
         max_num_steps,
     })

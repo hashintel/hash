@@ -244,7 +244,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 NewSimulationRun {
                     span: Span::current(),
                     short_id: sim_short_id,
-                    engine_config: Arc::clone(&sim_config.sim.engine),
+                    worker_allocation: Arc::clone(&sim_config.sim.worker_allocation),
                     packages: sim_start_msgs,
                     datastore: datastore_payload,
                     globals: globals.clone(),

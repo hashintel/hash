@@ -269,7 +269,7 @@ impl WorkerPoolController {
         match msg {
             ExperimentToWorkerPoolMsg::NewSimulationRun(payload) => {
                 self.simulation_runs
-                    .push(payload.short_id, &payload.engine_config.worker_allocation)?;
+                    .push(payload.short_id, payload.worker_allocation.as_ref().clone())?;
                 self.register_simulation(payload).await?
             }
         }

@@ -15,10 +15,10 @@ impl SimulationRuns {
     pub fn push(
         &mut self,
         sim_id: SimulationShortId,
-        worker_allocation: &WorkerAllocation,
+        worker_allocation: WorkerAllocation,
     ) -> Result<()> {
         self.worker_allocations
-            .try_insert(sim_id, worker_allocation.clone())
+            .try_insert(sim_id, worker_allocation)
             .map_err(|_| Error::from("Occupied hashmap key"))?;
         Ok(())
     }

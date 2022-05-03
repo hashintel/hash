@@ -8,7 +8,7 @@ use simulation_structure::SimulationShortId;
 use stateful::global::Globals;
 
 use crate::{
-    config::{EngineConfig, ExperimentConfig, SimRunConfig, StoreConfig},
+    config::{ExperimentConfig, SimRunConfig, StoreConfig},
     experiment::controller::error::Result,
     proto::ExperimentPackageConfig,
 };
@@ -46,16 +46,11 @@ impl SimConfigurer {
         max_num_steps: usize,
     ) -> Result<SimRunConfig> {
         let worker_allocation = self.worker_allocator.next();
-        let num_workers = worker_allocation.len();
-        let engine = EngineConfig {
-            worker_allocation,
-            num_workers,
-        };
         let config = SimRunConfig::new(
             exp_config,
             id,
             globals,
-            engine,
+            worker_allocation,
             store_config,
             persistence_config,
             max_num_steps,

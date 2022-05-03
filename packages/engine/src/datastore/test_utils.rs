@@ -20,9 +20,7 @@ use stateful::{
 use uuid::Uuid;
 
 use crate::{
-    config::{
-        EngineConfig, ExperimentConfig, PackageConfig, SimRunConfig, SimulationConfig, StoreConfig,
-    },
+    config::{ExperimentConfig, PackageConfig, SimRunConfig, SimulationConfig, StoreConfig},
     datastore::{error::Error, schema::last_state_index_key},
     proto::{ExperimentRunBase, ExperimentRunRepr, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
@@ -309,10 +307,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
                 globals,
             },
             store,
-            engine: Arc::new(EngineConfig {
-                worker_allocation: Vec::new(),
-                num_workers: 0,
-            }),
+            worker_allocation: Arc::new(Vec::new()),
             max_num_steps: 0,
         }),
     }

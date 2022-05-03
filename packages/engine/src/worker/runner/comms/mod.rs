@@ -6,7 +6,10 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
-use execution::{runner::RunnerConfig, worker_pool::WorkerIndex};
+use execution::{
+    runner::RunnerConfig,
+    worker_pool::{WorkerAllocation, WorkerIndex},
+};
 use simulation_structure::SimulationShortId;
 use stateful::{
     agent::AgentSchema,
@@ -15,10 +18,7 @@ use stateful::{
 };
 use tracing::Span;
 
-use crate::{
-    config::EngineConfig, proto::ExperimentId,
-    simulation::package::worker_init::PackageInitMsgForWorker,
-};
+use crate::{proto::ExperimentId, simulation::package::worker_init::PackageInitMsgForWorker};
 
 pub mod inbound;
 pub mod outbound;
@@ -38,7 +38,7 @@ pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
 pub struct NewSimulationRun {
     pub span: Span,
     pub short_id: SimulationShortId,
-    pub engine_config: Arc<EngineConfig>,
+    pub worker_allocation: Arc<WorkerAllocation>,
     pub packages: PackageMsgs,
     pub datastore: DatastoreSimulationPayload,
     pub globals: Arc<Globals>,
