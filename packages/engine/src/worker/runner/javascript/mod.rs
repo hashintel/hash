@@ -179,7 +179,15 @@ fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s
     })
 }
 
-/// Cache module to not evaluate them twice
+/// Caches module to not evaluate them twice as this is against the Javascript spec.
+///
+/// > Each time this operation is called with a specific referencingScriptOrModule, specifier pair
+/// as arguments it must return the same Module Record instance if it completes normally.
+///
+/// > After reviewing the specification, you know that a JavaScript module is evaluated once. Also,
+/// when importing modules from the same path, the same module instance is returned.
+///
+/// [source](https://dmitripavlutin.com/javascript-module-import-twice/)
 struct ModuleMap {
     path_to_module: HashMap<String, v8::Global<v8::Module>>,
 }
