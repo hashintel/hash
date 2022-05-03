@@ -21,21 +21,21 @@ use crate::{
     Error, Result,
 };
 
-pub struct ScriptInit<C> {
+pub struct JsPyInit<C> {
     initial_state: InitialState,
     comms: PackageComms<C>,
 }
 
-impl<C> MaybeCpuBound for ScriptInit<C> {
+impl<C> MaybeCpuBound for JsPyInit<C> {
     fn cpu_bound(&self) -> bool {
         false
     }
 }
 
-impl<C: Send> Package for ScriptInit<C> {}
+impl<C: Send> Package for JsPyInit<C> {}
 
 #[async_trait]
-impl<C: Comms> InitPackage for ScriptInit<C> {
+impl<C: Comms> InitPackage for JsPyInit<C> {
     async fn run(&mut self) -> Result<Vec<Agent>> {
         let task = match &self.initial_state.name {
             InitialStateName::InitPy => InitTask::PyInitTask(PyInitTask {
@@ -71,14 +71,14 @@ impl<C: Comms> InitPackage for ScriptInit<C> {
     }
 }
 
-pub struct ScriptInitCreator;
+pub struct JsPyInitCreator;
 
-impl PackageCreator for ScriptInitCreator {
+impl PackageCreator for JsPyInitCreator {
     // TODO: Since the init.js/py file is the same for the whole experiment consider sending it out
     //   here instead of inside `PyInitTask` and `JsInitTask`
 }
 
-impl<C: Comms> InitPackageCreator<C> for ScriptInitCreator {
+impl<C: Comms> InitPackageCreator<C> for JsPyInitCreator {
     fn create(
         &self,
         _config: &PackageCreatorConfig,
@@ -87,7 +87,7 @@ impl<C: Comms> InitPackageCreator<C> for ScriptInitCreator {
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &init_config.initial_state.name {
-            InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(ScriptInit {
+            InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(JsPyInit {
                 initial_state: init_config.initial_state.clone(),
                 comms,
             })),

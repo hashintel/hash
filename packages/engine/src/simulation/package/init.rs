@@ -4,7 +4,7 @@ use std::{
 };
 
 use execution::package::{
-    init::{js_py::ScriptInitCreator, json::JsonInitCreator, InitPackageCreator, InitPackageName},
+    init::{js_py::JsPyInitCreator, json::JsonInitCreator, InitPackageCreator, InitPackageName},
     PackageInitConfig,
 };
 
@@ -22,7 +22,7 @@ impl PackageCreators {
         use InitPackageName::{JsPy, Json};
         let mut m = HashMap::<_, Box<dyn InitPackageCreator<Comms>>>::new();
         m.insert(Json, Box::new(JsonInitCreator));
-        m.insert(JsPy, Box::new(ScriptInitCreator));
+        m.insert(JsPy, Box::new(JsPyInitCreator));
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize Init Package Creators"))?;

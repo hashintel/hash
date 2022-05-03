@@ -6,7 +6,7 @@ use stateful::field::PackageId;
 
 use crate::{
     package::{
-        init::{js_py::ScriptInitCreator, json::JsonInitCreator},
+        init::{js_py::JsPyInitCreator, json::JsonInitCreator},
         Dependencies, PackageCreator, PackageIdGenerator, PackageMetadata, PackageType,
     },
     Error, Result,
@@ -55,7 +55,7 @@ lazy_static! {
         });
         m.insert(JsPy, PackageMetadata {
             id: id_creator.next(),
-            dependencies: ScriptInitCreator::dependencies(),
+            dependencies: JsPyInitCreator::dependencies(),
         });
         m
     };

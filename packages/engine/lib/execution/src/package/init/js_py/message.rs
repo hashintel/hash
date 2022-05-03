@@ -5,8 +5,11 @@ use stateful::agent::Agent;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum JsPyInitTaskMessage {
+    #[serde(rename = "StartMessage")]
     Start(StartMessage),
+    #[serde(rename = "SuccessMessage")]
     Success(SuccessMessage),
+    #[serde(rename = "FailedMessage")]
     Failed(FailedMessage),
 }
 
