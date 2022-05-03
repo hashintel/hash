@@ -1,5 +1,8 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
+use execution::runner::PythonRunner;
+use memory::shared_memory;
+use simulation_structure::ExperimentId;
 use stateful::global::SharedDatasets;
 use tracing::Instrument;
 
@@ -17,12 +20,12 @@ use crate::{
         package::ExperimentPackage,
     },
     output::{
-        local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreatorRepr,
+        buffer::remove_experiment_parts, local::LocalOutputPersistence, none::NoOutputPersistence,
+        OutputPersistenceCreatorRepr,
     },
     proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
-    workerpool,
-    workerpool::{comms::terminate::TerminateSend, WorkerPoolController},
+    workerpool::{self, comms::terminate::TerminateSend, WorkerPoolController},
     Error as CrateError,
 };
 
@@ -351,4 +354,17 @@ fn worker_pool_exit_logic(
     };
 
     false
+}
+
+/// Forcefully clean-up resources created by the experiment
+pub fn cleanup_experiment(experiment_id: ExperimentId) {
+    if let Err(err) = shared_memory::cleanup_by_base_id(experiment_id) {
+        tracing::warn!("{}", err);
+    }
+
+    if let Err(err) = PythonRunner::cleanup(experiment_id) {
+        tracing::warn!("{}", err);
+    }
+
+    remove_experiment_parts(experiment_id);
 }

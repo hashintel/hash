@@ -1,17 +1,24 @@
-import { useState, useRef, useCallback, VFC } from "react";
+import { useState, useCallback, VFC } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
-  ListItemButton,
-  Typography,
-  useMediaQuery,
+  ListItemSecondaryAction,
+  listItemSecondaryActionClasses,
+  ListItemText,
+  Menu,
+  MenuItem,
   useTheme,
 } from "@mui/material";
 import { useKeys } from "rooks";
 import { useRouter } from "next/router";
 
+import {
+  usePopupState,
+  bindMenu,
+  bindTrigger,
+} from "material-ui-popup-state/hooks";
 import { FontAwesomeIcon } from "../../icons";
-import { Link, Popover } from "../../ui";
+import { Link } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { useRouteAccountInfo } from "../../routing";
@@ -20,17 +27,13 @@ export const ActionsDropdownInner: VFC<{
   accountId: string;
 }> = ({ accountId }) => {
   const router = useRouter();
-
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-
-  const buttonRef = useRef(null);
-
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { createUntitledPage } = useCreatePage(accountId);
-
-  const id = open ? "actions-popover" : undefined;
+  const popupState = usePopupState({
+    variant: "popover",
+    popupId: "actions-dropdown-menu",
+  });
 
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {
@@ -41,14 +44,14 @@ export const ActionsDropdownInner: VFC<{
     setLoading(true);
     try {
       await createUntitledPage();
-      setOpen(false);
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);
     } finally {
+      popupState.close();
       setLoading(false);
     }
-  }, [createUntitledPage, loading]);
+  }, [createUntitledPage, loading, popupState]);
 
   const newEntityTypeRoute = `/${accountId}/types/new`;
 
@@ -65,25 +68,18 @@ export const ActionsDropdownInner: VFC<{
             xs: 1,
             md: 1.5,
           },
-          color: open ? palette.common.white : palette.gray[40],
-          backgroundColor: open ? palette.blue["70"] : palette.gray[20],
-
-          ":hover": {
-            color: palette.gray[50],
-          },
+          color: popupState.isOpen ? palette.common.white : palette.gray[40],
+          backgroundColor: popupState.isOpen
+            ? palette.blue["70"]
+            : palette.gray[20],
         })}
-        ref={buttonRef}
-        onClick={() => setOpen(!open)}
-        open={open}
+        {...bindTrigger(popupState)}
       >
         <FontAwesomeIcon icon={faPlus} />
       </HeaderIconButton>
 
-      <Popover
-        id={id}
-        open={open}
-        anchorEl={buttonRef.current}
-        onClose={() => setOpen(false)}
+      <Menu
+        {...bindMenu(popupState)}
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "right",
@@ -99,60 +95,33 @@ export const ActionsDropdownInner: VFC<{
             borderRadius: "6px",
             marginTop: 1,
             border: `1px solid ${theme.palette.gray["20"]}`,
+
+            [`.${listItemSecondaryActionClasses.root}`]: {
+              display: { xs: "none", md: "block" },
+            },
           },
         }}
       >
-        <Box>
-          <ListItemButton
-            sx={{
-              mx: 0.5,
-              mt: 0.5,
-              borderRadius: 1,
-              lineHeight: 1,
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-            onClick={addPage}
-          >
-            <Typography variant="smallTextLabels">Create page</Typography>
-            {!isMobile && <Typography variant="microText">Opt + P</Typography>}
-          </ListItemButton>
-          <ListItemButton
-            sx={{
-              mx: 0.5,
-              borderRadius: 1,
-              lineHeight: 1,
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-            onClick={() => setOpen(false)}
-          >
-            <Typography variant="smallTextLabels">Create entity</Typography>
-            {!isMobile && <Typography variant="microText">Opt + E</Typography>}
-          </ListItemButton>
-          <Link
-            noLinkStyle
-            href={newEntityTypeRoute}
-            onClick={() => setOpen(false)}
-          >
-            <ListItemButton
-              sx={{
-                mx: 0.5,
-                mb: 0.5,
-                borderRadius: 1,
-                lineHeight: 1,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              <Typography variant="smallTextLabels">Create type</Typography>
-              {!isMobile && (
-                <Typography variant="microText">Opt + T</Typography>
-              )}
-            </ListItemButton>
-          </Link>
-        </Box>
-      </Popover>
+        <MenuItem
+          onClick={() => {
+            void addPage();
+            popupState.close();
+          }}
+        >
+          <ListItemText primary="Create page" />
+          <ListItemSecondaryAction>Opt + P</ListItemSecondaryAction>
+        </MenuItem>
+        <MenuItem onClick={popupState.close}>
+          <ListItemText primary="Create entity" />
+          <ListItemSecondaryAction>Opt + E</ListItemSecondaryAction>
+        </MenuItem>
+        <Link noLinkStyle href={newEntityTypeRoute}>
+          <MenuItem onClick={popupState.close}>
+            <ListItemText primary="Create Type" />
+            <ListItemSecondaryAction>Opt + T</ListItemSecondaryAction>
+          </MenuItem>
+        </Link>
+      </Menu>
     </Box>
   );
 };

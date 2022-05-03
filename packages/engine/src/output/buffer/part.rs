@@ -110,3 +110,21 @@ impl OutputPartBuffer {
         Ok((self.current, self.parts))
     }
 }
+
+pub fn remove_experiment_parts(experiment_id: ExperimentId) {
+    let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
+    match std::fs::remove_dir_all(&path) {
+        Ok(_) => {
+            tracing::trace!(
+                experiment = %experiment_id,
+                "Removed parts folder for experiment {experiment_id}: {path:?}"
+            );
+        }
+        Err(err) => {
+            tracing::warn!(
+                experiment = %experiment_id,
+                "Could not clean up {path:?}: {err}"
+            );
+        }
+    }
+}

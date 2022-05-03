@@ -387,9 +387,13 @@ class __Page extends Entity {
 
   async removeBlock(
     client: DbClient,
-    params: { position: number; removedByAccountId: string },
+    params: {
+      position: number;
+      removedByAccountId: string;
+      allowRemovingFinal?: boolean;
+    },
   ) {
-    const { position } = params;
+    const { allowRemovingFinal, position } = params;
 
     const contentLinks = await this.getOutgoingLinks(client, {
       path: ["contents"],
@@ -407,7 +411,7 @@ class __Page extends Entity {
       );
     }
 
-    if (contentLinks.length === 1) {
+    if (!allowRemovingFinal && contentLinks.length === 1) {
       throw new Error("Cannot remove final block from page");
     }
 

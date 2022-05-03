@@ -3,6 +3,7 @@ import { linkFieldsFragment } from "./link.queries";
 
 export const linkedAggregationsFragment = gql`
   fragment LinkedAggregationsFields on LinkedAggregation {
+    aggregationId
     sourceAccountId
     sourceEntityId
     path

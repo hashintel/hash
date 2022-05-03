@@ -20,7 +20,7 @@
     "hot-shots": "8.5.0",
     "slonik": "24.1.2",
     "ts-node": "10.4.0",
-    "typescript": "4.6.2"
+    "typescript": "4.6.3"
   },
   "devDependencies": {
     "@types/node": "16.7.6",

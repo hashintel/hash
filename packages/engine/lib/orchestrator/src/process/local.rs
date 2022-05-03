@@ -6,7 +6,7 @@ use std::{
 use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine_lib::{
-    output::buffer::{cleanup_experiment, EngineExitStatus},
+    experiment::controller::run::cleanup_experiment,
     proto::EngineMsg,
     utils::{LogFormat, LogLevel, OutputLocation},
 };
@@ -31,11 +31,7 @@ pub struct LocalProcess {
 
 #[async_trait]
 impl process::Process for LocalProcess {
-    async fn exit_and_cleanup(
-        mut self: Box<Self>,
-        experiment_id: ExperimentId,
-        exit_status: EngineExitStatus,
-    ) -> Result<()> {
+    async fn exit_and_cleanup(mut self: Box<Self>, experiment_id: ExperimentId) -> Result<()> {
         // Kill the child process as it didn't stop on its own
         let kill_result = self
             .child
@@ -49,7 +45,7 @@ impl process::Process for LocalProcess {
             })
             .wrap_err("Could not kill the process");
 
-        cleanup_experiment(&experiment_id, exit_status);
+        cleanup_experiment(experiment_id);
 
         debug!("Cleaned up local engine process for experiment");
         kill_result

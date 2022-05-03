@@ -48,6 +48,13 @@ export const linkTypedef = gql`
     destinationEntityVersionId: ID
   }
 
+  extend type Query {
+    """
+    Retrieve a link
+    """
+    getLink(sourceAccountId: ID!, linkId: ID!): Link!
+  }
+
   extend type Mutation {
     """
     Create a link
@@ -56,6 +63,6 @@ export const linkTypedef = gql`
     """
     Delete a link using its id
     """
-    deleteLink(sourceAccountId: ID!, sourceEntityId: ID!, linkId: ID!): Boolean!
+    deleteLink(sourceAccountId: ID!, linkId: ID!): Boolean!
   }
 `;

@@ -79,7 +79,7 @@ export class ComponentView implements NodeView<Schema> {
 
   constructor(
     private node: ProsemirrorNode<Schema>,
-    public view: EditorView<Schema>,
+    public editorView: EditorView<Schema>,
     public getPos: () => number,
     private renderPortal: RenderPortal,
     private meta: BlockMeta,
@@ -107,8 +107,8 @@ export class ComponentView implements NodeView<Schema> {
 
     this.dom.appendChild(this.target);
 
-    this.store = entityStorePluginState(view.state).store;
-    this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
+    this.store = entityStorePluginState(editorView.state).store;
+    this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
       this.store = store;
       this.update(this.node);
     });
@@ -120,7 +120,7 @@ export class ComponentView implements NodeView<Schema> {
     this.node = node;
 
     if (isComponentNode(node) && componentNodeToId(node) === this.componentId) {
-      const blockDraftId: string = this.view.state.doc
+      const blockDraftId: string = this.editorView.state.doc
         .resolve(this.getPos())
         .node(2).attrs.draftId;
 

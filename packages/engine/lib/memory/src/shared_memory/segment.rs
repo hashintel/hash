@@ -1,5 +1,6 @@
-use std::{borrow::Borrow, env, fmt, mem, path::Path};
+use std::{env, fmt, mem, path::Path};
 
+use glob::GlobError;
 use shared_memory::{Shmem, ShmemConf};
 use uuid::Uuid;
 
@@ -45,7 +46,7 @@ impl<'a> Buffers<'a> {
 /// An identifier for a shared memory [`Segment`].
 ///
 /// Holds a UUID and a random suffix. The UUID can be reused for different [`Segment`]s and can all
-/// be cleaned up by calling [`MemoryId::clean_up`].
+/// be cleaned up by calling [`cleanup_by_base_id`].
 #[derive(Debug, PartialEq)]
 pub struct MemoryId {
     id: Uuid,
@@ -75,8 +76,8 @@ impl MemoryId {
     }
 
     /// Returns the prefix used for the identifier.
-    fn prefix<Id: Borrow<Uuid>>(id: Id) -> String {
-        let id = id.borrow().to_simple_ref();
+    fn prefix(id: Uuid) -> String {
+        let id = id.to_simple_ref();
         if cfg!(target_os = "macos") {
             // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
             // And we need to_string otherwise it's not truncated when formatting
@@ -85,25 +86,11 @@ impl MemoryId {
             format!("shm_{id}")
         }
     }
-
-    /// Clean up generated shared memory segments associated with a given `MemoryId`.
-    pub fn clean_up<Id: Borrow<Uuid>>(id: Id) {
-        // TODO: macOS does not store the shared memory FDs at `/dev/shm/`. Maybe it's not storing
-        //   FDs at all. Find out if they are stored somewhere and remove them instead, otherwise we
-        //   have to figure out a way to remove them without relying on the file-system.
-        let shm_files = glob::glob(&format!("/dev/shm/{}_*", Self::prefix(id)));
-
-        shm_files.into_iter().flatten().flatten().for_each(|path| {
-            if let Err(err) = std::fs::remove_file(&path) {
-                tracing::warn!("Could not clean up {path:?}: {err}");
-            }
-        });
-    }
 }
 
 impl fmt::Display for MemoryId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let prefix = Self::prefix(self);
+        let prefix = Self::prefix(self.base_id());
         if cfg!(target_os = "macos") {
             // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
             write!(fmt, "{}_{:.7}", prefix, self.suffix)
@@ -113,10 +100,23 @@ impl fmt::Display for MemoryId {
     }
 }
 
-impl Borrow<Uuid> for &MemoryId {
-    fn borrow(&self) -> &Uuid {
-        &self.id
+/// Clean up generated shared memory segments associated with a given `MemoryId`.
+pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
+    // TODO: macOS does not store the shared memory FDs at `/dev/shm/`. Maybe it's not storing
+    //   FDs at all. Find out if they are stored somewhere and remove them instead, otherwise we
+    //   have to figure out a way to remove them without relying on the file-system.
+    let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
+        .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
+
+    for path in shm_files {
+        if let Err(err) = path
+            .map_err(GlobError::into_error)
+            .and_then(std::fs::remove_file)
+        {
+            tracing::warn!("Could not remove shared memory file: {err}");
+        }
     }
+    Ok(())
 }
 
 /// A memory-mapped shared memory segment.

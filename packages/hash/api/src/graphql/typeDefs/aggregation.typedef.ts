@@ -74,6 +74,14 @@ export const aggregationTypedef = gql`
       accountId: ID!
       operation: AggregateOperationInput!
     ): AggregationResponse!
+
+    """
+    Retrieve a linked aggregation
+    """
+    getLinkedAggregation(
+      sourceAccountId: ID!
+      aggregationId: ID!
+    ): LinkedAggregation!
   }
 
   extend type Mutation {
@@ -91,17 +99,12 @@ export const aggregationTypedef = gql`
     """
     updateLinkedAggregationOperation(
       sourceAccountId: ID!
-      sourceEntityId: ID!
-      path: String!
+      aggregationId: ID!
       updatedOperation: AggregateOperationInput!
     ): LinkedAggregation!
     """
     Delete an entity's linked aggregation
     """
-    deleteLinkedAggregation(
-      sourceAccountId: ID!
-      sourceEntityId: ID!
-      path: String!
-    ): Boolean!
+    deleteLinkedAggregation(sourceAccountId: ID!, aggregationId: ID!): Boolean!
   }
 `;

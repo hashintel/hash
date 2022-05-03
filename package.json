@@ -2,19 +2,21 @@
   "private": true,
   "description": "HASH monorepo",
   "workspaces": [
-    "sites/dev",
+    "sites/hashdev",
     "packages/blocks/*",
     "packages/engine/apache-arrow-js-bundle",
     "packages/hash/api",
-    "packages/hash/datastore",
     "packages/hash/backend-utils",
+    "packages/hash/datastore",
+    "packages/hash/eslint-config",
     "packages/hash/frontend",
     "packages/hash/integration",
     "packages/hash/playwright",
     "packages/hash/realtime",
     "packages/hash/search-loader",
     "packages/hash/shared",
-    "packages/hash/task-executor"
+    "packages/hash/task-executor",
+    "packages/hash/tsconfig"
   ],
   "scripts": {
     "codegen": "yarn workspace @hashintel/hash-api codegen && yarn workspace @hashintel/hash-frontend codegen && yarn workspace @hashintel/hash-integration codegen && yarn workspace @hashintel/hash-shared codegen",
@@ -58,6 +60,7 @@
     ]
   },
   "resolutions": {
+    "blockprotocol": "0.0.7",
     "node-fetch": "^2.6.7",
     "prettier": "2.5.1",
     "webpack": "^5"

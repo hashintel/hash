@@ -1,14 +1,21 @@
-import { useMemo, useRef, useState, VoidFunctionComponent } from "react";
+import { useMemo, VoidFunctionComponent } from "react";
 import {
   Box,
   Typography,
   Divider,
-  ListItemButton,
   Tooltip,
+  Menu,
+  MenuItem,
+  ListItemText,
 } from "@mui/material";
 
+import {
+  usePopupState,
+  bindMenu,
+  bindTrigger,
+} from "material-ui-popup-state/hooks";
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
-import { Avatar, Link, Popover } from "../../ui";
+import { Avatar } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 type AccountDropdownProps = {
@@ -22,11 +29,10 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
   logout,
   user,
 }) => {
-  const buttonRef = useRef(null);
-
-  const [open, setOpen] = useState(false);
-
-  const id = open ? "account-popover" : undefined;
+  const popupState = usePopupState({
+    variant: "popover",
+    popupId: "account-dropdown-menu",
+  });
 
   const userPrimaryEmail = useMemo(() => {
     const primaryEmail = user.properties.emails.find((email) => email.primary);
@@ -63,15 +69,13 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
         placement="bottom"
       >
         <HeaderIconButton
-          onClick={() => setOpen(!open)}
-          ref={buttonRef}
+          {...bindTrigger(popupState)}
           rounded
           sx={{
             height: 32,
             width: 32,
             padding: 0,
           }}
-          open={open}
           data-testid="user-avatar"
         >
           {avatar ? (
@@ -86,11 +90,11 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           )}
         </HeaderIconButton>
       </Tooltip>
-      <Popover
-        id={id}
-        open={open}
-        anchorEl={buttonRef.current}
-        onClose={() => setOpen(false)}
+
+      {/* @todo override dense prop for menu item  */}
+      {/* the menu items here should have a dense prop */}
+      <Menu
+        {...bindMenu(popupState)}
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "right",
@@ -103,66 +107,51 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           elevation: 4,
           sx: ({ palette }) => ({
             width: 225,
-            borderRadius: "6px",
             marginTop: 1,
             border: `1px solid ${palette.gray["20"]}`,
           }),
         }}
-        sx={({ palette }) => ({
-          color: palette.gray[40],
-        })}
       >
-        <Box px={2} pt={1} pb={1.5}>
+        <Box px={1.5} pt={1} pb={0.25} display="flex" flexDirection="column">
           <Typography
             variant="smallTextLabels"
             sx={({ palette }) => ({
               color: palette.gray[80],
-              fontWeight: 700,
+              fontWeight: 500,
             })}
           >
             {user.properties.preferredName}
           </Typography>
           {userPrimaryEmail && (
             <Typography
-              component="p"
               variant="microText"
-              sx={({ palette }) => ({ color: palette.gray[60], lineHeight: 1 })}
+              sx={({ palette }) => ({ color: palette.gray[70] })}
             >
               {userPrimaryEmail}
             </Typography>
           )}
         </Box>
-        <Divider sx={({ palette }) => ({ borderColor: palette.gray[30] })} />
-        <Box>
-          <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
-            <ListItemButton
-              sx={{
-                m: 0.5,
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="smallTextLabels" sx={{ lineHeight: 1 }}>
-                Account Settings
-              </Typography>
-            </ListItemButton>
-          </Link>
-          <Divider sx={({ palette }) => ({ borderColor: palette.gray[30] })} />
-          <ListItemButton
-            sx={{
-              m: 0.5,
-              borderRadius: 0.5,
+        <Divider />
+        <MenuItem onClick={popupState.close}>
+          <ListItemText primary="Account Settings" />
+        </MenuItem>
+        <MenuItem onClick={popupState.close}>
+          <ListItemText primary="Appearance" />
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={logout}>
+          <ListItemText
+            primary="Sign Out"
+            primaryTypographyProps={{
+              // @todo MenuItem should have a prop faded that handles this
+              // remove the need for important
+              sx: ({ palette }) => ({
+                color: `${palette.gray[60]} !important`,
+              }),
             }}
-            onClick={logout}
-          >
-            <Typography
-              variant="smallTextLabels"
-              sx={({ palette }) => ({ lineHeight: 1, color: palette.gray[60] })}
-            >
-              Sign Out
-            </Typography>
-          </ListItemButton>
-        </Box>
-      </Popover>
+          />
+        </MenuItem>
+      </Menu>
     </Box>
   );
 };

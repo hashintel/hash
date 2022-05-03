@@ -685,6 +685,7 @@ dependencies = [
  "flatbuffers_gen",
  "float-cmp",
  "futures",
+ "glob",
  "kdtree",
  "lazy_static",
  "memory",
