@@ -26,7 +26,7 @@ To run HASH locally, please follow these steps:
     ## ≥ 2.17
     
     node --version
-    ## ≥ 16.13 and < 17.00 (`@opensearch-project/opensearch` currently does not support node 17)
+    ## ≥ 16.13, < 17 or ≥ 18.0, < 19
     
     yarn --version
     ## ≥ 1.16
