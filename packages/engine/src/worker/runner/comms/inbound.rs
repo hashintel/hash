@@ -1,10 +1,13 @@
 //! TODO: DOC
 use std::fmt;
 
-use execution::{runner::comms::RunnerTaskMessage, task::TaskId};
+use execution::{
+    runner::comms::RunnerTaskMessage,
+    task::TaskId,
+    worker::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
+};
 
 use crate::{
-    datastore::table::sync::{ContextBatchSync, StateSync, WaitableStateSync},
     proto::SimulationShortId,
     worker::runner::comms::{NewSimulationRun, StateInterimSync},
 };
@@ -20,6 +23,16 @@ pub enum InboundToRunnerMsgPayload {
     TerminateSimulationRun,
     TerminateRunner,
     NewSimulationRun(NewSimulationRun),
+}
+
+impl From<SyncPayload> for InboundToRunnerMsgPayload {
+    fn from(payload: SyncPayload) -> Self {
+        match payload {
+            SyncPayload::State(s) => Self::StateSync(s),
+            SyncPayload::StateSnapshot(s) => Self::StateSnapshotSync(s),
+            SyncPayload::ContextBatch(c) => Self::ContextBatchSync(c),
+        }
+    }
 }
 
 impl InboundToRunnerMsgPayload {

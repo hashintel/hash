@@ -15,7 +15,7 @@ use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration
 use execution::{
     runner::{comms::RunnerTaskMessage, Language, MessageTarget, RunnerConfig},
     task::{SharedState, SharedStore, TaskId, TaskMessage, TaskResultOrCancelled},
-    worker::{RunnerSpawnConfig, WorkerConfig, WorkerHandler},
+    worker::{RunnerSpawnConfig, SyncPayload, WorkerConfig, WorkerHandler},
 };
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
@@ -39,7 +39,6 @@ use self::{
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
-    datastore::table::sync::SyncPayload,
     proto::SimulationShortId,
     worker::{
         pending::{PendingGroup, PendingWorkerTask},

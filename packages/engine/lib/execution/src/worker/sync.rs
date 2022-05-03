@@ -3,30 +3,18 @@ use std::{fmt, sync::Arc};
 use futures::future::join_all;
 use stateful::{context::ContextBatch, state::StateReadProxy};
 
-use crate::{
-    simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender},
-    worker::{
-        runner::comms::inbound::InboundToRunnerMsgPayload, Error as WorkerError,
-        Result as WorkerResult,
-    },
-};
+use crate::{Error, Result};
 
-/// A state sync message with a tokio channel, so that
-/// the sender of the message can wait for the state
-/// sync to complete and find out whether the state
-/// sync succeeded.
-///
-/// Fields:
-/// `completion_sender`: Used by the receiver/handler of the
-///                                        message after finishing or failing to
-///                                        sync state, to notify the sender of the
-///                                        message that the state sync completed.
-/// `agent_pool`: Agent batches to load state from
-/// `message_pool`: Message batches to load state from
-// TODO: remove derive_new from structs with all pub fields
-#[derive(derive_new::new)]
+pub type SyncCompletionReceiver = tokio::sync::oneshot::Receiver<Result<()>>;
+pub type SyncCompletionSender = tokio::sync::oneshot::Sender<Result<()>>;
+
+/// A state sync message with a tokio channel, so that the sender of the message can wait for the
+/// state sync to complete and find out whether the state sync succeeded.
 pub struct WaitableStateSync {
+    /// Used by the receiver/handler of the message after finishing or failing to sync state, to
+    /// notify the sender of the message that the state sync completed.
     pub completion_sender: SyncCompletionSender,
+    /// Proxies to load state from
     pub state_proxy: StateReadProxy,
 }
 
@@ -73,7 +61,7 @@ impl WaitableStateSync {
             .map(|recv_result| {
                 recv_result.expect("Couldn't receive waitable sync result from child")
             })
-            .collect::<WorkerResult<Vec<()>>>()
+            .collect::<Result<Vec<()>>>()
             .map(|_| ());
         self.completion_sender
             .send(result)
@@ -82,7 +70,7 @@ impl WaitableStateSync {
     }
 }
 
-#[derive(derive_new::new, Clone)]
+#[derive(Clone)]
 pub struct StateSync {
     pub state_proxy: StateReadProxy,
 }
@@ -93,7 +81,7 @@ impl fmt::Debug for StateSync {
     }
 }
 
-#[derive(derive_new::new, Clone)]
+#[derive(Clone)]
 pub struct ContextBatchSync {
     pub context_batch: Arc<ContextBatch>,
     pub current_step: usize,
@@ -118,21 +106,11 @@ pub enum SyncPayload {
 }
 
 impl SyncPayload {
-    pub fn try_clone(&self) -> WorkerResult<Self> {
+    pub fn try_clone(&self) -> Result<Self> {
         match self {
-            Self::State(_) => Err(WorkerError::from("Waitable sync message can't be cloned")),
+            Self::State(_) => Err(Error::from("Waitable sync message can't be cloned")),
             Self::StateSnapshot(s) => Ok(Self::StateSnapshot(s.clone())),
             Self::ContextBatch(s) => Ok(Self::ContextBatch(s.clone())),
-        }
-    }
-}
-
-impl From<SyncPayload> for InboundToRunnerMsgPayload {
-    fn from(payload: SyncPayload) -> Self {
-        match payload {
-            SyncPayload::State(s) => Self::StateSync(s),
-            SyncPayload::StateSnapshot(s) => Self::StateSnapshotSync(s),
-            SyncPayload::ContextBatch(c) => Self::ContextBatchSync(c),
         }
     }
 }

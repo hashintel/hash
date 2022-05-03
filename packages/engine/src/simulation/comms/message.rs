@@ -1,17 +1,12 @@
 use execution::{
     package::PackageTask,
     task::{SharedStore, TaskId},
+    worker::SyncPayload,
 };
 use stateful::field::PackageId;
 use tracing::Span;
 
-use crate::{
-    datastore::table::sync::SyncPayload, proto::SimulationShortId,
-    simulation::comms::active::ActiveTaskExecutorComms, worker::Result as WorkerResult,
-};
-
-pub type SyncCompletionReceiver = tokio::sync::oneshot::Receiver<WorkerResult<()>>;
-pub type SyncCompletionSender = tokio::sync::oneshot::Sender<WorkerResult<()>>;
+use crate::{proto::SimulationShortId, simulation::comms::active::ActiveTaskExecutorComms};
 
 #[derive(derive_new::new, Debug)]
 pub struct WrappedTask {

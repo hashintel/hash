@@ -28,6 +28,7 @@ use execution::{
         Language, MessageTarget,
     },
     task::{PartialSharedState, SharedState, SharedStore, TaskId, TaskMessage},
+    worker::{ContextBatchSync, StateSync, WaitableStateSync},
 };
 use futures::{Future, FutureExt};
 use memory::{
@@ -46,10 +47,7 @@ use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use crate::{
-    datastore::{
-        shared_store::SharedDatasets,
-        table::sync::{ContextBatchSync, StateSync, WaitableStateSync},
-    },
+    datastore::shared_store::SharedDatasets,
     proto::SimulationShortId,
     worker::{
         runner::comms::{

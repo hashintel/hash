@@ -154,7 +154,7 @@ pub enum Error {
 impl Error {
     /// TODO: This is a temporary fix for the dependency cycle
     ///       between simulation and worker errors.
-    pub fn state_sync(worker_error: crate::worker::Error) -> Self {
+    pub fn state_sync(worker_error: execution::Error) -> Self {
         Self::StateSync(format!("{:?}", worker_error))
     }
 }

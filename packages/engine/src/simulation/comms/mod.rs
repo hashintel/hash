@@ -29,18 +29,14 @@ use async_trait::async_trait;
 use execution::{
     package::PackageTask,
     task::{SharedStore, Task, TaskId},
+    worker::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
 };
 use stateful::{agent::Agent, context::Context, field::PackageId, state::StateReadProxy};
 use uuid::Uuid;
 
 use self::message::{EngineToWorkerPoolMsg, WrappedTask};
 use super::{command::Commands, task::active::ActiveTask, Error, Result};
-use crate::{
-    datastore::table::sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
-    proto::SimulationShortId,
-    simulation::comms::message::SyncCompletionReceiver,
-    workerpool::comms::MainMsgSend,
-};
+use crate::{proto::SimulationShortId, workerpool::comms::MainMsgSend};
 
 /// A simulation-specific object containing a sender to communicate with the worker-pool, and a
 /// shared collection of commands.
@@ -160,13 +156,15 @@ impl Comms {
         &self,
         context: &Context,
         current_step: usize,
-        state_group_start_indices: &Arc<Vec<usize>>,
+        state_group_start_indices: Arc<Vec<usize>>,
     ) -> Result<()> {
         tracing::trace!("Synchronizing context batch");
         // Synchronize the context batch
-        let indices = Arc::clone(state_group_start_indices);
-        let sync_msg =
-            ContextBatchSync::new(Arc::clone(context.global_batch()), current_step, indices);
+        let sync_msg = ContextBatchSync {
+            context_batch: Arc::clone(context.global_batch()),
+            current_step,
+            state_group_start_indices,
+        };
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
