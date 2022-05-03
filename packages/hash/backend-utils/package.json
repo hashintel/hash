@@ -27,7 +27,7 @@
     "dotenv-flow": "3.2.0",
     "redis": "3.1.2",
     "slonik": "24.1.2",
-    "wait-on": "6.0.0",
+    "wait-on": "6.0.1",
     "winston": "3.3.3"
   },
   "devDependencies": {
