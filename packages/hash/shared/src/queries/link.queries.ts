@@ -85,16 +85,8 @@ export const createLinkMutation = gql`
 `;
 
 export const deleteLinkMutation = gql`
-  mutation deleteLink(
-    $sourceAccountId: ID!
-    $sourceEntityId: ID!
-    $linkId: ID!
-  ) {
-    deleteLink(
-      sourceAccountId: $sourceAccountId
-      sourceEntityId: $sourceEntityId
-      linkId: $linkId
-    )
+  mutation deleteLink($sourceAccountId: ID!, $linkId: ID!) {
+    deleteLink(sourceAccountId: $sourceAccountId, linkId: $linkId)
   }
 `;
 
@@ -111,6 +103,7 @@ export const createLinkedAggregationMutation = gql`
       path: $path
       operation: $operation
     ) {
+      aggregationId
       sourceAccountId
       sourceEntityId
       path
@@ -140,16 +133,15 @@ export const createLinkedAggregationMutation = gql`
 export const updateLinkedAggregationMutation = gql`
   mutation updateLinkedAggregationOperation(
     $sourceAccountId: ID!
-    $sourceEntityId: ID!
-    $path: String!
+    $aggregationId: ID!
     $updatedOperation: AggregateOperationInput!
   ) {
     updateLinkedAggregationOperation(
       sourceAccountId: $sourceAccountId
-      sourceEntityId: $sourceEntityId
-      path: $path
+      aggregationId: $aggregationId
       updatedOperation: $updatedOperation
     ) {
+      aggregationId
       sourceAccountId
       sourceEntityId
       path
@@ -173,5 +165,14 @@ export const updateLinkedAggregationMutation = gql`
         pageCount
       }
     }
+  }
+`;
+
+export const deleteLinkedAggregationMutation = gql`
+  mutation deleteLinkedAggregation($sourceAccountId: ID!, $aggregationId: ID!) {
+    deleteLinkedAggregation(
+      sourceAccountId: $sourceAccountId
+      aggregationId: $aggregationId
+    )
   }
 `;
