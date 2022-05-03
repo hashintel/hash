@@ -1,5 +1,5 @@
-name: Warm-up repo
-description: Prepares Node and Yarn dependencies
+name: Docker ECR login
+description: Authenticate with AWS, sigh Docker into ECR
 
 inputs:
   AWS_ACCESS_KEY_ID:
