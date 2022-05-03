@@ -283,8 +283,8 @@ impl ModuleMap {
     }
 }
 
-/// Callback called for each `import ...` in JS files. It will read the file, compile the source
-/// code and evaluate it. Modules are only compiled and evaluated once.
+/// Callback called for each `import ...` in JS files. It reads the file, compiles the source
+/// code, and evaluated it. Modules are only compiled and evaluated once.
 // Simple example without any caching: https://gist.github.com/surusek/4c05e4dcac6b82d18a1a28e6742fc23e
 // More elaborate example with caching and multiple types of imports: https://github.com/denoland/deno/blob/f7e7f548499eff8d2df0872d1340ddcdfa028c45/core/bindings.rs#L1344
 fn module_resolve_callback<'s>(
