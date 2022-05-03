@@ -13,7 +13,9 @@ export const executeTaskTypedef = gql`
     """
     repository: String!
     """
-    The date from which you'd like to replicate data from GitHub in the format YYYY-MM-DDT00:00:00Z. For the streams which support this configuration, only data generated on or after the start date will be replicated. This field doesn't apply to all streams
+    The date from which you'd like to replicate data from GitHub in the format YYYY-MM-DDT00:00:00Z.
+    For the streams which support this configuration, only data generated on or after the start date will be replicated.
+    This field doesn't apply to all streams
     """
     start_date: String!
     credentials: GithubCredentials!

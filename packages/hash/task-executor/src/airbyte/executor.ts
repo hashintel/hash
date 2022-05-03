@@ -157,7 +157,7 @@ export class BaseExecutor implements AirbyteExecutor {
     const recordMessages = messages
       .filter((message) => message.type === "RECORD" && message.record)
       .map((message) => message.record!);
-    if (recordMessages) {
+    if (recordMessages.length > 0) {
       console.log(`There were ${recordMessages.length} records`);
       return recordMessages;
     } else {

@@ -5,6 +5,7 @@ import { executeTask } from "./execution";
 import { GithubIngestor } from "./tasks/source-github";
 import { ConfiguredAirbyteCatalog } from "./airbyte/protocol";
 
+/** @todo - Could be from env-var */
 const port = 5010;
 
 const app = express();
@@ -19,7 +20,7 @@ app.post("/python", (_, res) => {
 app.post("/github/spec", (_, res) => {
   new GithubIngestor()
     .runSpec()
-    .then((result) => res.status(200).send(JSON.stringify(result)))
+    .then((result) => res.status(200).json(result))
     .catch((err) => res.status(500).json({ error: err.toString() }));
 });
 
@@ -27,7 +28,7 @@ app.post("/github/check", (req, res) => {
   const config = req.body;
   new GithubIngestor()
     .runCheck(config)
-    .then((result) => res.status(200).send(JSON.stringify(result)))
+    .then((result) => res.status(200).json(result))
     .catch((err) => {
       res.status(500).json({ error: err.toString() });
     });
@@ -55,7 +56,7 @@ app.post("/github/discover", (req, res) => {
         `${process.cwd()}/src/tasks/source-github/secrets/catalog.json`,
         JSON.stringify(configuredCatalog),
       );
-      res.status(200).send(JSON.stringify(result));
+      res.status(200).json(result);
     })
     .catch((err) => res.status(500).json({ error: err.toString() }));
 });
@@ -69,7 +70,7 @@ app.post("/github/read", (req, res) => {
   );
   new GithubIngestor()
     .runRead(config, configuredCatalog)
-    .then((result) => res.status(200).send(JSON.stringify(result)))
+    .then((result) => res.status(200).json(result))
     .catch((err) => res.status(500).json({ error: err.toString() }));
 });
 
