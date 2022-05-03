@@ -1,6 +1,6 @@
 use crate::{
     package::init::{
-        script::{JsPyInitTaskMessage, StartMessage},
+        js_py::{JsPyInitTaskMessage, StartMessage},
         InitTaskMessage,
     },
     runner::MessageTarget,

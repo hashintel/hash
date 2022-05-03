@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::package::init::script::JsPyInitTaskMessage;
+use crate::package::init::js_py::JsPyInitTaskMessage;
 
 /// All init package task messages are registered in this enum
 #[derive(Clone, Debug, Serialize, Deserialize)]

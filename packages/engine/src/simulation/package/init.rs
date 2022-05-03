@@ -4,7 +4,7 @@ use std::{
 };
 
 use execution::package::{
-    init::{json::JsonInitCreator, script::ScriptInitCreator, InitPackageCreator, InitPackageName},
+    init::{js_py::ScriptInitCreator, json::JsonInitCreator, InitPackageCreator, InitPackageName},
     PackageInitConfig,
 };
 

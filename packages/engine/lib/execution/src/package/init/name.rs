@@ -6,7 +6,7 @@ use stateful::field::PackageId;
 
 use crate::{
     package::{
-        init::{json::JsonInitCreator, script::ScriptInitCreator},
+        init::{js_py::ScriptInitCreator, json::JsonInitCreator},
         Dependencies, PackageCreator, PackageIdGenerator, PackageMetadata, PackageType,
     },
     Error, Result,

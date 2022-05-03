@@ -1,5 +1,5 @@
 use crate::{
-    package::init::script::{JsInitTask, PyInitTask},
+    package::init::js_py::{JsInitTask, PyInitTask},
     task::{SharedStore, TargetedTaskMessage, Task},
     worker::WorkerHandler,
     worker_pool::WorkerPoolHandler,
