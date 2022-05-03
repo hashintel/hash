@@ -394,21 +394,6 @@ class __Entity {
     return aggregations;
   }
 
-  async getAggregationByPath(
-    client: DbClient,
-    params: {
-      stringifiedPath: string;
-    },
-  ) {
-    const { stringifiedPath } = params;
-    const aggregation = await Aggregation.getEntityAggregationByPath(client, {
-      source: this,
-      stringifiedPath,
-    });
-
-    return aggregation;
-  }
-
   async getOutgoingLinks(
     client: DbClient,
     params?: {
