@@ -1,11 +1,10 @@
 use crate::{
     package::init::script::{JsInitTask, PyInitTask},
-    task::{SharedStore, Task},
+    task::{SharedStore, TargetedTaskMessage, Task},
+    worker::WorkerHandler,
+    worker_pool::WorkerPoolHandler,
     Error, Result,
 };
-use crate::task::TargetedTaskMessage;
-use crate::worker::WorkerHandler;
-use crate::worker_pool::WorkerPoolHandler;
 
 /// All init package tasks are registered in this enum
 #[derive(Clone, Debug)]
