@@ -25,7 +25,9 @@ use execution::{
     package::PackageType,
     runner::{
         comms::{
-            InboundToRunnerMsgPayload, NewSimulationRun, RunnerTaskMessage, TargetedRunnerTaskMsg,
+            InboundToRunnerMsgPayload, NewSimulationRun, OutboundFromRunnerMsg,
+            OutboundFromRunnerMsgPayload, PackageError, RunnerTaskMessage, TargetedRunnerTaskMsg,
+            UserError, UserWarning,
         },
         Language, MessageTarget,
     },
@@ -52,16 +54,7 @@ use tokio::{
 use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
-use crate::worker::{
-    runner::comms::{
-        outbound::{
-            OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, UserError,
-            UserWarning,
-        },
-        ExperimentInitRunnerMsg,
-    },
-    Result as WorkerResult,
-};
+use crate::worker::{runner::comms::ExperimentInitRunnerMsg, Result as WorkerResult};
 
 type Object<'scope> = v8::Local<'scope, v8::Object>;
 type Value<'scope> = v8::Local<'scope, v8::Value>;

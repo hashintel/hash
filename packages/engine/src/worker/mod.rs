@@ -14,7 +14,10 @@ use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration
 
 use execution::{
     runner::{
-        comms::{InboundToRunnerMsgPayload, NewSimulationRun, RunnerTaskMessage},
+        comms::{
+            InboundToRunnerMsgPayload, NewSimulationRun, OutboundFromRunnerMsg,
+            OutboundFromRunnerMsgPayload, RunnerTaskMessage,
+        },
         Language, MessageTarget, RunnerConfig,
     },
     task::{SharedState, SharedStore, TaskId, TaskMessage, TaskResultOrCancelled},
@@ -28,16 +31,11 @@ use simulation_structure::SimulationShortId;
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
-pub use self::error::{Error, Result, RunnerError};
+pub use self::error::{Error, Result};
 use self::{
     pending::PendingWorkerTasks,
     runner::{
-        comms::{
-            outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
-            ExperimentInitRunnerMsg,
-        },
-        javascript::JavaScriptRunner,
-        python::PythonRunner,
+        comms::ExperimentInitRunnerMsg, javascript::JavaScriptRunner, python::PythonRunner,
         rust::RustRunner,
     },
     task::{WorkerTask, WorkerTaskResultOrCancelled},

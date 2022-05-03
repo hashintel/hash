@@ -1,4 +1,5 @@
 mod inbound;
+mod outbound;
 
 use std::{collections::HashMap, fmt, sync::Arc};
 
@@ -11,7 +12,13 @@ use stateful::{
 };
 use tracing::Span;
 
-pub use self::inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload};
+pub use self::{
+    inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
+    outbound::{
+        OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, RunnerError, UserError,
+        UserWarning,
+    },
+};
 use crate::{
     runner::MessageTarget,
     task::{SharedStore, TaskId, TaskMessage},

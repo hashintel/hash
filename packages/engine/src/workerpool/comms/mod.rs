@@ -4,7 +4,10 @@ pub mod terminate;
 pub mod top;
 
 use execution::{
-    runner::comms::NewSimulationRun, task::TaskId, worker::SyncPayload, worker_pool::WorkerIndex,
+    runner::comms::{NewSimulationRun, PackageError, RunnerError, UserError, UserWarning},
+    task::TaskId,
+    worker::SyncPayload,
+    worker_pool::WorkerIndex,
 };
 use simulation_structure::SimulationShortId;
 use tokio::sync::{
@@ -19,10 +22,7 @@ pub use self::{
     terminate::TerminateRecv,
 };
 use crate::{
-    worker::{
-        runner::comms::outbound::{PackageError, RunnerError, UserError, UserWarning},
-        task::{WorkerTask, WorkerTaskResultOrCancelled},
-    },
+    worker::task::{WorkerTask, WorkerTaskResultOrCancelled},
     workerpool::{
         comms::terminate::TerminateMessage,
         error::{Error, Result},

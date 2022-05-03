@@ -8,8 +8,6 @@ use stateful::global::SharedDatasets;
 
 use crate::proto::ExperimentId;
 
-pub mod outbound;
-
 // TODO: UNUSED: Needs triage
 pub struct DatastoreInit {
     pub agent_batch_schema: Vec<u8>,

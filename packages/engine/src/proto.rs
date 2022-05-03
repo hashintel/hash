@@ -4,7 +4,13 @@ use std::{
     str::FromStr,
 };
 
-use execution::package::PackageInitConfig;
+use execution::{
+    package::PackageInitConfig,
+    runner::{
+        comms::{PackageError, UserError, UserWarning},
+        RunnerError,
+    },
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use simulation_structure::SimulationShortId;
@@ -55,11 +61,6 @@ impl FromStr for ExperimentName {
         Ok(Self(s.to_string()))
     }
 }
-
-use crate::worker::{
-    runner::comms::outbound::{PackageError, UserError, UserWarning},
-    RunnerError,
-};
 
 /// The message type sent from the engine to the orchestrator.
 #[derive(Serialize, Deserialize, Debug)]

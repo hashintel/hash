@@ -1,10 +1,10 @@
+use execution::runner::RunnerError;
 use serde::{Deserialize, Serialize};
 use simulation_structure::SimulationShortId;
 
 use crate::{
     output::OutputPersistenceResultRepr,
     simulation::{command::StopCommand, Result},
-    worker::RunnerError,
 };
 
 // Sent from sim runs to experiment main loop.

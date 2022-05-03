@@ -4,10 +4,10 @@ pub mod rust;
 
 pub mod comms;
 
-use execution::runner::comms::InboundToRunnerMsgPayload;
+use execution::runner::comms::{InboundToRunnerMsgPayload, OutboundFromRunnerMsg};
 use simulation_structure::SimulationShortId;
 
-use self::comms::{outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg};
+use self::comms::ExperimentInitRunnerMsg;
 use crate::worker::error::Result;
 
 /// TODO: DOC

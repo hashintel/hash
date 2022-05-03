@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use execution::runner::RunnerError;
 use futures::FutureExt;
 use simulation_structure::SimulationShortId;
 use tokio::time::Duration;
@@ -20,7 +21,6 @@ use crate::{
         package::run::Packages,
         status::SimStatus,
     },
-    worker::RunnerError,
 };
 
 enum LoopControl {

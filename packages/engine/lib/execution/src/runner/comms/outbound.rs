@@ -1,18 +1,19 @@
 use std::collections::HashMap;
 
-use execution::{
-    runner::{
-        comms::{SentTask, TargetedRunnerTaskMsg},
-        Language,
-    },
-    task::TaskId,
-};
 use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use serde::{Deserialize, Serialize};
 use simulation_structure::SimulationShortId;
 use tracing::Span;
 
-use crate::worker::{self, Error, Result};
+use crate::{
+    runner::{
+        self,
+        comms::{SentTask, TargetedRunnerTaskMsg},
+        Language,
+    },
+    task::TaskId,
+    Error, Result,
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct RunnerError {
@@ -23,8 +24,8 @@ pub struct RunnerError {
 }
 
 impl RunnerError {
-    pub fn into_sendable(self, is_warning: bool) -> worker::RunnerError {
-        worker::RunnerError {
+    pub fn into_sendable(self, is_warning: bool) -> runner::RunnerError {
+        runner::RunnerError {
             message: self.message,
             code: None,
             line_number: self.line_number,

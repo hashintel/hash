@@ -687,6 +687,7 @@ dependencies = [
  "kdtree",
  "lazy_static",
  "memory",
+ "nng",
  "rayon",
  "serde",
  "serde_json",
