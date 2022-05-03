@@ -94,7 +94,7 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
 
     #[error("Couldn't access javascript file {0}: {1}")]
-    MissingJavascriptImport(String, String),
+    AccessJavascriptImport(String, String),
 }
 
 impl From<&str> for Error {

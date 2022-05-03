@@ -99,7 +99,7 @@ impl<'s> JsPackage<'s> {
 
         let namespace: Object<'_> = match import_and_get_module_namespace(scope, &path) {
             Ok(s) => s,
-            Err(Error::MissingJavascriptImport(..)) => {
+            Err(Error::AccessJavascriptImport(..)) => {
                 tracing::debug!("Couldn't read package file. It might intentionally not exist.");
                 // Packages don't have to use JS.
                 let undefined = v8::undefined(scope).into();
@@ -205,7 +205,7 @@ impl ModuleMap {
         }
 
         let source_code = read_file(path)
-            .map_err(|err| Error::MissingJavascriptImport(path.to_string(), err.to_string()))?;
+            .map_err(|err| Error::AccessJavascriptImport(path.to_string(), format!("{err}")))?;
         let js_source_code = new_js_string(scope, &source_code);
         let js_path = new_js_string(scope, path);
         let source_map_url = new_js_string(scope, "");
