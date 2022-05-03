@@ -23,7 +23,6 @@ pub mod state;
 
 pub mod creator;
 pub mod run;
-pub mod worker_init;
 
 #[cfg(test)]
 pub mod tests {

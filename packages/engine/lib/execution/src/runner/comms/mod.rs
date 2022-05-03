@@ -1,10 +1,22 @@
-use std::collections::HashMap;
+mod inbound;
 
-use stateful::field::PackageId;
+use std::{collections::HashMap, fmt, sync::Arc};
 
+use arrow::datatypes::Schema;
+use simulation_structure::SimulationShortId;
+use stateful::{
+    agent::AgentSchema,
+    field::PackageId,
+    global::{Globals, SharedDatasets},
+};
+use tracing::Span;
+
+pub use self::inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload};
 use crate::{
     runner::MessageTarget,
     task::{SharedStore, TaskId, TaskMessage},
+    worker::PackageInitMsgForWorker,
+    worker_pool::WorkerAllocation,
     Error, Result,
 };
 
@@ -81,4 +93,31 @@ impl TargetedRunnerTaskMsg {
 #[derive(Debug)]
 pub struct StateInterimSync {
     pub shared_store: SharedStore,
+}
+
+#[derive(Clone, Debug)]
+pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
+
+#[derive(Debug, Clone)]
+pub struct NewSimulationRun {
+    pub span: Span,
+    pub short_id: SimulationShortId,
+    pub worker_allocation: Arc<WorkerAllocation>,
+    pub packages: PackageMsgs,
+    pub datastore: DatastoreSimulationPayload,
+    pub globals: Arc<Globals>,
+}
+
+#[derive(Clone)]
+pub struct DatastoreSimulationPayload {
+    pub agent_batch_schema: Arc<AgentSchema>,
+    pub message_batch_schema: Arc<Schema>,
+    pub context_batch_schema: Arc<Schema>,
+    pub shared_store: Arc<SharedDatasets>,
+}
+
+impl fmt::Debug for DatastoreSimulationPayload {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("DatastoreSimulationPayload")
+    }
 }

@@ -7,6 +7,7 @@ edition = "2021"
 flatbuffers_gen = { path = "../flatbuffers_gen" }
 memory = { path = "../memory" }
 stateful = { path = "../stateful" }
+simulation_structure = { path = "../simulation_structure" }
 
 arrow = { version = "10.0.0", default-features = false }
 async-trait = "0.1.48"

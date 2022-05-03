@@ -1,14 +1,13 @@
 //! TODO: DOC
 use std::fmt;
 
-use execution::{
-    runner::comms::{RunnerTaskMessage, StateInterimSync},
+use simulation_structure::SimulationShortId;
+
+use crate::{
+    runner::comms::{NewSimulationRun, RunnerTaskMessage, StateInterimSync},
     task::TaskId,
     worker::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
 };
-use simulation_structure::SimulationShortId;
-
-use crate::worker::runner::comms::NewSimulationRun;
 
 /// TODO: DOC
 pub enum InboundToRunnerMsgPayload {
@@ -36,15 +35,15 @@ impl From<SyncPayload> for InboundToRunnerMsgPayload {
 impl InboundToRunnerMsgPayload {
     pub fn as_str(&self) -> &'static str {
         match self {
-            InboundToRunnerMsgPayload::TaskMsg(_) => "TaskMsg",
-            InboundToRunnerMsgPayload::CancelTask(_) => "CancelTask",
-            InboundToRunnerMsgPayload::StateSync(_) => "StateSync",
-            InboundToRunnerMsgPayload::StateSnapshotSync(_) => "StateSnapshotSync",
-            InboundToRunnerMsgPayload::ContextBatchSync(_) => "ContextBatchSync",
-            InboundToRunnerMsgPayload::StateInterimSync(_) => "StateInterimSync",
-            InboundToRunnerMsgPayload::TerminateSimulationRun => "TerminateSimulationRun",
-            InboundToRunnerMsgPayload::TerminateRunner => "TerminateRunner",
-            InboundToRunnerMsgPayload::NewSimulationRun(_) => "NewSimulationRun",
+            Self::TaskMsg(_) => "TaskMsg",
+            Self::CancelTask(_) => "CancelTask",
+            Self::StateSync(_) => "StateSync",
+            Self::StateSnapshotSync(_) => "StateSnapshotSync",
+            Self::ContextBatchSync(_) => "ContextBatchSync",
+            Self::StateInterimSync(_) => "StateInterimSync",
+            Self::TerminateSimulationRun => "TerminateSimulationRun",
+            Self::TerminateRunner => "TerminateRunner",
+            Self::NewSimulationRun(_) => "NewSimulationRun",
         }
     }
 }

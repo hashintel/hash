@@ -3,7 +3,9 @@ pub mod main;
 pub mod terminate;
 pub mod top;
 
-use execution::{task::TaskId, worker::SyncPayload, worker_pool::WorkerIndex};
+use execution::{
+    runner::comms::NewSimulationRun, task::TaskId, worker::SyncPayload, worker_pool::WorkerIndex,
+};
 use simulation_structure::SimulationShortId;
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -18,10 +20,7 @@ pub use self::{
 };
 use crate::{
     worker::{
-        runner::comms::{
-            outbound::{PackageError, RunnerError, UserError, UserWarning},
-            NewSimulationRun,
-        },
+        runner::comms::outbound::{PackageError, RunnerError, UserError, UserWarning},
         task::{WorkerTask, WorkerTaskResultOrCancelled},
     },
     workerpool::{

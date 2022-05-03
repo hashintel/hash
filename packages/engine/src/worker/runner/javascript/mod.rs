@@ -24,7 +24,9 @@ use arrow::{
 use execution::{
     package::PackageType,
     runner::{
-        comms::{RunnerTaskMessage, TargetedRunnerTaskMsg},
+        comms::{
+            InboundToRunnerMsgPayload, NewSimulationRun, RunnerTaskMessage, TargetedRunnerTaskMsg,
+        },
         Language, MessageTarget,
     },
     task::{PartialSharedState, SharedState, SharedStore, TaskId, TaskMessage},
@@ -52,12 +54,11 @@ use tracing::{Instrument, Span};
 pub use self::error::{Error, Result};
 use crate::worker::{
     runner::comms::{
-        inbound::InboundToRunnerMsgPayload,
         outbound::{
             OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, UserError,
             UserWarning,
         },
-        ExperimentInitRunnerMsg, NewSimulationRun,
+        ExperimentInitRunnerMsg,
     },
     Result as WorkerResult,
 };

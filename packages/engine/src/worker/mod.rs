@@ -13,7 +13,10 @@ pub mod task;
 use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration};
 
 use execution::{
-    runner::{comms::RunnerTaskMessage, Language, MessageTarget, RunnerConfig},
+    runner::{
+        comms::{InboundToRunnerMsgPayload, NewSimulationRun, RunnerTaskMessage},
+        Language, MessageTarget, RunnerConfig,
+    },
     task::{SharedState, SharedStore, TaskId, TaskMessage, TaskResultOrCancelled},
     worker::{RunnerSpawnConfig, SyncPayload, WorkerConfig, WorkerHandler},
 };
@@ -31,7 +34,7 @@ use self::{
     runner::{
         comms::{
             outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
-            ExperimentInitRunnerMsg, NewSimulationRun,
+            ExperimentInitRunnerMsg,
         },
         javascript::JavaScriptRunner,
         python::PythonRunner,
@@ -40,10 +43,7 @@ use self::{
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
-    worker::{
-        pending::{PendingGroup, PendingWorkerTask},
-        runner::comms::inbound::InboundToRunnerMsgPayload,
-    },
+    worker::pending::{PendingGroup, PendingWorkerTask},
     workerpool::comms::{
         WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
         WorkerToWorkerPoolMsg,

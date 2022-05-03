@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use execution::runner::comms::{DatastoreSimulationPayload, NewSimulationRun};
 use simulation_structure::SimulationShortId;
 use stateful::global::SharedDatasets;
 use tracing::{Instrument, Span};
@@ -30,9 +31,7 @@ use crate::{
         Error as SimulationError,
     },
     utils,
-    worker::runner::comms::{
-        DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun,
-    },
+    worker::runner::comms::ExperimentInitRunnerMsgBase,
     workerpool::{
         self,
         comms::{

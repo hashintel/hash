@@ -3,7 +3,7 @@ use arrow::{
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
 };
 use execution::{
-    runner::MessageTarget,
+    runner::{comms::InboundToRunnerMsgPayload, MessageTarget},
     task::{PartialSharedState, SharedState, SharedStore},
     worker_pool::WorkerIndex,
 };
@@ -17,12 +17,9 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 use crate::{
     proto::ExperimentId,
-    worker::runner::{
-        comms::inbound::InboundToRunnerMsgPayload,
-        python::{
-            error::{Error, Result},
-            fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
-        },
+    worker::runner::python::{
+        error::{Error, Result},
+        fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
     },
 };
 

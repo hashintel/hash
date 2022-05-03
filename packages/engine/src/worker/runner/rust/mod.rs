@@ -1,10 +1,9 @@
+use execution::runner::comms::InboundToRunnerMsgPayload;
 use futures::FutureExt;
 use simulation_structure::SimulationShortId;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use super::comms::{
-    inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
-};
+use super::comms::{outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg};
 /*
 use behavior_execution::BehaviorPackage;
 use behaviors::NativeState;

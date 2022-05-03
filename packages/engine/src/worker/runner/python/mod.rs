@@ -13,7 +13,7 @@ use std::{
 
 use execution::{
     runner::{
-        comms::{RunnerTaskMessage, SentTask},
+        comms::{InboundToRunnerMsgPayload, RunnerTaskMessage, SentTask},
         Language,
     },
     task::TaskId,
@@ -30,7 +30,6 @@ pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};
 use crate::worker::{
     runner::comms::{
-        inbound::InboundToRunnerMsgPayload,
         outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
         ExperimentInitRunnerMsg,
     },

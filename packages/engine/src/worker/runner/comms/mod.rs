@@ -1,26 +1,13 @@
-use std::{
-    collections::HashMap,
-    fmt,
-    fmt::{Debug, Formatter},
-    sync::Arc,
-};
+use std::sync::Arc;
 
-use arrow::datatypes::Schema;
 use execution::{
-    runner::RunnerConfig,
-    worker_pool::{WorkerAllocation, WorkerIndex},
+    runner::{comms::PackageMsgs, RunnerConfig},
+    worker_pool::WorkerIndex,
 };
-use simulation_structure::SimulationShortId;
-use stateful::{
-    agent::AgentSchema,
-    field::PackageId,
-    global::{Globals, SharedDatasets},
-};
-use tracing::Span;
+use stateful::global::SharedDatasets;
 
-use crate::{proto::ExperimentId, simulation::package::worker_init::PackageInitMsgForWorker};
+use crate::proto::ExperimentId;
 
-pub mod inbound;
 pub mod outbound;
 
 // TODO: UNUSED: Needs triage
@@ -29,33 +16,6 @@ pub struct DatastoreInit {
     pub message_batch_schema: Vec<u8>,
     pub context_batch_schema: Vec<u8>,
     pub shared_context: SharedDatasets,
-}
-
-#[derive(Clone, Debug)]
-pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
-
-#[derive(Debug, Clone)]
-pub struct NewSimulationRun {
-    pub span: Span,
-    pub short_id: SimulationShortId,
-    pub worker_allocation: Arc<WorkerAllocation>,
-    pub packages: PackageMsgs,
-    pub datastore: DatastoreSimulationPayload,
-    pub globals: Arc<Globals>,
-}
-
-#[derive(derive_new::new, Clone)]
-pub struct DatastoreSimulationPayload {
-    pub agent_batch_schema: Arc<AgentSchema>,
-    pub message_batch_schema: Arc<Schema>,
-    pub context_batch_schema: Arc<Schema>,
-    pub shared_store: Arc<SharedDatasets>,
-}
-
-impl Debug for DatastoreSimulationPayload {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("DatastoreSimulationPayload")
-    }
 }
 
 #[derive(Clone)]
