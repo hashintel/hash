@@ -12,7 +12,6 @@ import {
   BlockProtocolLinkGroup,
   BlockProtocolUpdateEntitiesAction,
   BlockProtocolUploadFileFunction,
-  SingleTargetLinkFields,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import React, {
@@ -119,7 +118,7 @@ function getLinkedEntities(params: {
 
 const isSingleTargetLink = (
   link: BlockProtocolLink,
-): link is BlockProtocolLink & SingleTargetLinkFields => "linkId" in link;
+): link is BlockProtocolLink => "linkId" in link;
 
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
@@ -275,7 +274,6 @@ export const Media: BlockComponent<
                   .filter(isSingleTargetLink)
                   .map((link) => ({
                     sourceAccountId: accountId,
-                    sourceEntityId: link.sourceEntityId,
                     linkId: link.linkId,
                   })),
               );
