@@ -205,7 +205,7 @@ impl ModuleMap {
         }
 
         let source_code = read_file(path)
-            .map_err(|err| Error::AccessJavascriptImport(path.to_string(), format!("{err}")))?;
+            .map_err(|err| Error::AccessJavascriptImport(path.to_string(), err.to_string()))?;
         let js_source_code = new_js_string(scope, &source_code);
         let js_path = new_js_string(scope, path);
         let source_map_url = new_js_string(scope, "");
