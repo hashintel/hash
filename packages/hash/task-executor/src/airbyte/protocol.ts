@@ -1,7 +1,7 @@
 /**
  * auto-generated from
  * https://github.com/airbytehq/airbyte/blob/master/airbyte-protocol/models/src/main/resources/airbyte_protocol/airbyte_protocol.yaml
- * converted to JSON, using
+ * converted to JSON and then converted to Typescript Interfaces, using
  * https://transform.tools/json-schema-to-typescript
  */
 
