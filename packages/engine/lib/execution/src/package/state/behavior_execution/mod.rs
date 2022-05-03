@@ -51,17 +51,17 @@ pub struct BehaviorExecutionCreator {
 }
 
 impl BehaviorExecutionCreator {
-    pub fn new<C: Comms>(config: &PackageInitConfig) -> Result<Box<dyn StatePackageCreator<C>>> {
+    pub fn new<C: Comms>(config: &PackageInitConfig) -> Result<Self> {
         // TODO: Packages shouldn't have to set the source
         let package_id = PackageName::State(StatePackageName::BehaviorExecution).get_id()?;
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(package_id));
         let behavior_map = BehaviorMap::try_from((config, &field_spec_creator))?;
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
 
-        Ok(Box::new(BehaviorExecutionCreator {
+        Ok(Self {
             behavior_ids: Some(Arc::new(behavior_ids)),
             behavior_map: Some(Arc::new(behavior_map)),
-        }))
+        })
     }
 
     fn get_behavior_ids(&self) -> Result<&Arc<BehaviorIds>> {

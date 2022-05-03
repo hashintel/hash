@@ -24,7 +24,10 @@ impl PackageCreators {
         tracing::debug!("Initializing State Package Creators");
         use StatePackageName::{BehaviorExecution, Topology};
         let mut m = HashMap::<_, Box<dyn StatePackageCreator<Comms>>>::new();
-        m.insert(BehaviorExecution, BehaviorExecutionCreator::new(config)?);
+        m.insert(
+            BehaviorExecution,
+            Box::new(BehaviorExecutionCreator::new::<Comms>(config)?),
+        );
         m.insert(Topology, Box::new(TopologyCreator));
         self.0
             .set(m)
