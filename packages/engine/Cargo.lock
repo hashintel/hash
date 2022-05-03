@@ -1627,6 +1627,7 @@ dependencies = [
  "rand_distr",
  "serde",
  "serde_json",
+ "simulation_structure",
  "stateful",
  "tokio",
  "tracing",
@@ -2122,6 +2123,9 @@ dependencies = [
 [[package]]
 name = "simulation_structure"
 version = "0.0.0"
+dependencies = [
+ "uuid",
+]
 
 [[package]]
 name = "slab"

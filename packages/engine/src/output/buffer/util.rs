@@ -1,6 +1,7 @@
 use memory::shared_memory::MemoryId;
+use simulation_structure::ExperimentId;
 
-use crate::{output::buffer::RELATIVE_PARTS_FOLDER, proto::ExperimentId};
+use crate::output::buffer::RELATIVE_PARTS_FOLDER;
 
 // TODO: move this to top-level
 #[derive(PartialEq, Eq, Clone)]

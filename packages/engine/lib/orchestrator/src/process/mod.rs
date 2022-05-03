@@ -6,11 +6,9 @@ use std::process::ExitStatus;
 
 use async_trait::async_trait;
 use error::Result;
-use hash_engine_lib::{
-    output::buffer::EngineExitStatus,
-    proto::{EngineMsg, ExperimentId},
-};
+use hash_engine_lib::{output::buffer::EngineExitStatus, proto::EngineMsg};
 pub use local::{LocalCommand, LocalProcess};
+use simulation_structure::ExperimentId;
 
 /// The engine-subprocess running in the background.
 ///

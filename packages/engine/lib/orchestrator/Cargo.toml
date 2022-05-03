@@ -7,6 +7,7 @@ edition = "2021"
 error = { path = "../../lib/error", features = ["spantrace"] }
 nano = { path = "../nano", default-features = false }
 stateful = { path = "../stateful", default-features = false }
+simulation_structure = { path = "../simulation_structure" }
 execution = { path = "../execution", default-features = false }
 hash_engine_lib = { path = "../..", default-features = false }
 hash_engine = { path = "../../bin/hash_engine", default-features = false, artifact = "bin" }

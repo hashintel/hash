@@ -11,16 +11,13 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use memory::shared_memory::arrow_continuation;
 use nng::{options::Options, Aio, Socket};
-use simulation_structure::SimulationShortId;
+use simulation_structure::{ExperimentId, SimulationShortId};
 use stateful::state::StateReadProxy;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
-use crate::{
-    proto::ExperimentId,
-    worker::runner::python::{
-        error::{Error, Result},
-        fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
-    },
+use crate::worker::runner::python::{
+    error::{Error, Result},
+    fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
 };
 
 /// Only used for sending messages to the Python process

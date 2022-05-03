@@ -13,16 +13,14 @@ use execution::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use simulation_structure::SimulationShortId;
+use simulation_structure::{ExperimentId, SimulationShortId};
 use stateful::global::{Dataset, Globals};
-use uuid::Uuid;
 
 use crate::simulation::status::SimStatus;
 
 // TODO: UNUSED: Needs triage
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
-pub type ExperimentId = Uuid;
 pub type SimulationRegisteredId = String;
 
 #[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize, Deserialize)]

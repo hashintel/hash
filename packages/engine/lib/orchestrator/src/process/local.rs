@@ -7,9 +7,10 @@ use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine_lib::{
     output::buffer::{cleanup_experiment, EngineExitStatus},
-    proto::{EngineMsg, ExperimentId},
+    proto::EngineMsg,
     utils::{LogFormat, LogLevel, OutputLocation},
 };
+use simulation_structure::ExperimentId;
 
 use crate::process;
 

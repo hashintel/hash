@@ -1,7 +1,7 @@
 use std::io::{BufReader, BufWriter};
 
 use execution::package::output::Output;
-use simulation_structure::SimulationShortId;
+use simulation_structure::{ExperimentId, SimulationShortId};
 
 use crate::{
     config::SimRunConfig,
@@ -11,7 +11,7 @@ use crate::{
         local::{config::LocalPersistenceConfig, result::LocalPersistenceResult},
         SimulationOutputPersistenceRepr,
     },
-    proto::{ExperimentId, ExperimentName},
+    proto::ExperimentName,
     simulation::step_output::SimulationStepOutput,
 };
 

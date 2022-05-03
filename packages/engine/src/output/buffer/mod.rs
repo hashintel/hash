@@ -11,16 +11,13 @@ use execution::package::{
     OutputPackagesSimConfig, PackageName,
 };
 use serde::Serialize;
-use simulation_structure::SimulationShortId;
+use simulation_structure::{ExperimentId, SimulationShortId};
 
 pub use self::{
     part::OutputPartBuffer,
     util::{cleanup_experiment, EngineExitStatus},
 };
-use crate::{
-    output::error::{Error, Result},
-    proto::ExperimentId,
-};
+use crate::output::error::{Error, Result};
 
 const RELATIVE_PARTS_FOLDER: &str = "./parts";
 

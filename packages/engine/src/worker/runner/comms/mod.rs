@@ -4,9 +4,8 @@ use execution::{
     runner::{comms::PackageMsgs, RunnerConfig},
     worker_pool::WorkerIndex,
 };
+use simulation_structure::ExperimentId;
 use stateful::global::SharedDatasets;
-
-use crate::proto::ExperimentId;
 
 // TODO: UNUSED: Needs triage
 pub struct DatastoreInit {
