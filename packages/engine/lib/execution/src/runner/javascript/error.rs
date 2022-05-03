@@ -1,17 +1,18 @@
 use arrow::{datatypes::DataType, error::ArrowError};
-use execution::runner::comms::{
-    InboundToRunnerMsgPayload, OutboundFromRunnerMsg, PackageError, UserError,
-};
 use simulation_structure::SimulationShortId;
 use stateful::field::PackageId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 use tracing::Span;
 
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+use crate::runner::comms::{
+    InboundToRunnerMsgPayload, OutboundFromRunnerMsg, PackageError, UserError,
+};
+
+pub type JavaScriptResult<T, E = JavaScriptError> = std::result::Result<T, E>;
 
 #[derive(ThisError, Debug)]
-pub enum Error {
+pub enum JavaScriptError {
     #[error("{0}")]
     Unique(String),
 
@@ -26,9 +27,6 @@ pub enum Error {
 
     #[error("Unsupported flush datatype: {0:?}")]
     FlushType(DataType),
-
-    #[error("Datastore: {0}")]
-    Datastore(#[from] crate::datastore::Error),
 
     // TODO: Missing sim in JS runtime? (Currently just internal JS error.)
     // TODO: JSON parse error?
@@ -90,14 +88,14 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
 }
 
-impl From<&str> for Error {
+impl From<&str> for JavaScriptError {
     fn from(s: &str) -> Self {
-        Error::Unique(s.to_string())
+        Self::Unique(s.to_string())
     }
 }
 
-impl From<String> for Error {
+impl From<String> for JavaScriptError {
     fn from(s: String) -> Self {
-        Error::Unique(s)
+        Self::Unique(s)
     }
 }

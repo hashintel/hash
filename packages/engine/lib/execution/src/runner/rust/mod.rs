@@ -1,10 +1,3 @@
-use execution::runner::comms::{
-    ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg,
-};
-use futures::FutureExt;
-use simulation_structure::SimulationShortId;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-
 /*
 use behavior_execution::BehaviorPackage;
 use behaviors::NativeState;
@@ -12,7 +5,13 @@ use context::{AgentContext, GroupContext, SimContext};
 pub use error::{Error, Result};
 use state::{AgentState, GroupState, SimState, StateSnapshot};
 */
-use crate::worker::{Error as WorkerError, Result as WorkerResult};
+use futures::FutureExt;
+use simulation_structure::SimulationShortId;
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+
+use crate::runner::comms::{
+    ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg,
+};
 
 pub struct RustRunner {
     _outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
@@ -21,7 +20,7 @@ pub struct RustRunner {
 }
 
 impl RustRunner {
-    pub fn new(spawn: bool, _init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
+    pub fn new(spawn: bool, _init_msg: ExperimentInitRunnerMsg) -> crate::Result<Self> {
         let (outbound_sender, outbound_receiver) = unbounded_channel();
         Ok(Self {
             _outbound_sender: outbound_sender,
@@ -34,7 +33,7 @@ impl RustRunner {
         &self,
         _sim_id: Option<SimulationShortId>,
         _msg: InboundToRunnerMsgPayload,
-    ) -> WorkerResult<()> {
+    ) -> crate::Result<()> {
         Ok(())
     }
 
@@ -42,19 +41,19 @@ impl RustRunner {
         &self,
         _sim_id: Option<SimulationShortId>,
         _msg: InboundToRunnerMsgPayload,
-    ) -> WorkerResult<()> {
+    ) -> crate::Result<()> {
         tracing::trace!("Received message to send to Rust Runner: {:?}", &_msg);
         Ok(())
     }
 
-    pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
+    pub async fn recv(&mut self) -> crate::Result<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
             .await
-            .ok_or_else(|| WorkerError::from("Rust outbound receive"))
+            .ok_or_else(|| crate::Error::from("Rust outbound receive"))
     }
 
-    pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
+    pub async fn recv_now(&mut self) -> crate::Result<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }
 
@@ -62,7 +61,7 @@ impl RustRunner {
         false
     }
 
-    pub async fn run(&mut self) -> WorkerResult<()> {
+    pub async fn run(&mut self) -> crate::Result<()> {
         Ok(())
     }
 }
@@ -102,7 +101,7 @@ pub struct RustRunner {
 }
 
 impl RustRunner {
-    pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
+    pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> crate::Result<Self> {
         let mut behavior_execution = None;
         for (pkg_id, pkg_init) in init_msg.package_config.0 {
             if pkg_init.name == "behavior_execution" {
@@ -129,31 +128,31 @@ impl RustRunner {
         &self,
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
-    ) -> WorkerResult<()> {
+    ) -> crate::Result<()> {
         self.inbound_sender
             .send((sim_id, msg))
-            .map_err(|e| WorkerError::Rust(Error::InboundSend(e)))
+            .map_err(|e| crate::Error::Rust(Error::InboundSend(e)))
     }
 
     pub async fn send_if_spawned(
         &self,
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
-    ) -> WorkerResult<()> {
+    ) -> crate::Result<()> {
         if self.spawned {
             self.send(sim_id, msg).await?;
         }
         Ok(())
     }
 
-    pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
+    pub async fn recv(&mut self) -> crate::Result<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
             .await
-            .ok_or(WorkerError::Rust(Error::OutboundReceive))
+            .ok_or(crate::Error::Rust(Error::OutboundReceive))
     }
 
-    pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
+    pub async fn recv_now(&mut self) -> crate::Result<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }
 
@@ -161,7 +160,7 @@ impl RustRunner {
         self.spawned
     }
 
-    pub async fn run(&mut self) -> WorkerResult<()> {
+    pub async fn run(&mut self) -> crate::Result<()> {
         if !self.spawned {
             return Ok(());
         }

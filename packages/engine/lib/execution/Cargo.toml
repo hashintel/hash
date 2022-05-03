@@ -11,6 +11,7 @@ simulation_structure = { path = "../simulation_structure" }
 
 arrow = { version = "10.0.0", default-features = false }
 async-trait = "0.1.48"
+flatbuffers = "2.1.1"
 float-cmp = "0.8.0"
 futures = { version = "0.3.6" }
 kdtree = "0.6.0"
@@ -23,3 +24,6 @@ thiserror = "1.0.21"
 tokio = { version = "1.5.0", features = ["sync"] }
 tracing = "0.1.29"
 uuid = { version = "0.8.1" }
+# Only temporary, use the crates.io release when ArrayBuffer::new_backing_store_from_ptr is available
+# https://github.com/denoland/rusty_v8/pull/926
+v8 = { git = "https://github.com/hashdeps/rusty_v8", rev = "0bf4d26961697591baf54bc4ceb0d15d3f195f86" }

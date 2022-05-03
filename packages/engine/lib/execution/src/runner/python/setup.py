@@ -28,9 +28,8 @@ def find_directory(pattern, path):
 def last_modified(path):
     return os.path.getmtime(path)
 
-
 library_dirs = sorted(
-    find_directory("libmemory.so", f"{script_path}/../../../../"),
+    find_directory("libmemory.so", f"{script_path}/../../../../../"),
     key=last_modified,
     reverse=True,
 )

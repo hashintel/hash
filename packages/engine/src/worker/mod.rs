@@ -7,7 +7,6 @@
 
 mod error;
 mod pending;
-pub mod runner;
 pub mod task;
 
 use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration};
@@ -18,7 +17,7 @@ use execution::{
             ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,
             OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerTaskMessage,
         },
-        Language, MessageTarget, RunnerConfig,
+        JavaScriptRunner, Language, MessageTarget, PythonRunner, RunnerConfig, RustRunner,
     },
     task::{SharedState, SharedStore, TaskId, TaskMessage, TaskResultOrCancelled},
     worker::{RunnerSpawnConfig, SyncPayload, WorkerConfig, WorkerHandler},
@@ -34,7 +33,6 @@ use tracing::{Instrument, Span};
 pub use self::error::{Error, Result};
 use self::{
     pending::PendingWorkerTasks,
-    runner::{javascript::JavaScriptRunner, python::PythonRunner, rust::RustRunner},
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
@@ -162,14 +160,14 @@ impl WorkerController {
                                     // Runner finished -- didn't time out
                                     match runner_result {
                                         Err(e) => return Err(e.into()),
-                                        Ok(Err(e)) => return Err(e),
+                                        Ok(Err(e)) => return Err(e.into()),
                                         Ok(Ok(_)) => {}
                                     }
                                 }
                             }
                             // Either none of the runners exited or none of
                             // them returned an error, so return `recv_err`.
-                            return Err(recv_err);
+                            return Err(Error::from(recv_err));
                         }
                     }
                 }
@@ -813,7 +811,7 @@ impl WorkerController {
     }
 
     /// Waits for a message from any spawned worker.
-    async fn recv_from_runners(&mut self) -> Result<OutboundFromRunnerMsg> {
+    async fn recv_from_runners(&mut self) -> execution::Result<OutboundFromRunnerMsg> {
         tokio::select! {
             res = self.py.recv(), if self.py.spawned() => {
                 res

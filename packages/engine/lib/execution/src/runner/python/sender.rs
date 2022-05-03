@@ -2,11 +2,6 @@ use arrow::{
     datatypes::Schema,
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
 };
-use execution::{
-    runner::{comms::InboundToRunnerMsgPayload, MessageTarget},
-    task::{PartialSharedState, SharedState, SharedStore},
-    worker_pool::WorkerIndex,
-};
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use memory::shared_memory::arrow_continuation;
@@ -15,9 +10,15 @@ use simulation_structure::{ExperimentId, SimulationShortId};
 use stateful::state::StateReadProxy;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
-use crate::worker::runner::python::{
-    error::{Error, Result},
-    fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
+pub use crate::runner::python::{PythonError, PythonResult};
+use crate::{
+    runner::{
+        comms::InboundToRunnerMsgPayload,
+        python::fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
+        MessageTarget,
+    },
+    task::{PartialSharedState, SharedState, SharedStore},
+    worker_pool::WorkerIndex,
 };
 
 /// Only used for sending messages to the Python process
@@ -27,11 +28,11 @@ pub struct NngSender {
     // Used in the aio to send nng messages to the Python process.
     to_py: Socket,
     aio: Aio,
-    aio_result_receiver: UnboundedReceiver<Result<()>>,
+    aio_result_receiver: UnboundedReceiver<PythonResult<()>>,
 }
 
 impl NngSender {
-    pub fn new(experiment_id: ExperimentId, worker_index: WorkerIndex) -> Result<Self> {
+    pub fn new(experiment_id: ExperimentId, worker_index: WorkerIndex) -> PythonResult<Self> {
         let route = format!("ipc://{}-topy{}", experiment_id, worker_index);
         let to_py = Socket::new(nng::Protocol::Pair0)?;
         to_py.set_opt::<nng::options::SendBufferSize>(30)?;
@@ -52,7 +53,7 @@ impl NngSender {
                         "External worker receiving socket tried to send but failed w/ error: {}",
                         err
                     );
-                    match aio_result_sender.send(Err(Error::NngSend(msg, err))) {
+                    match aio_result_sender.send(Err(PythonError::NngSend(msg, err))) {
                         Ok(_) => {}
                         Err(err) => {
                             tracing::warn!(
@@ -66,7 +67,7 @@ impl NngSender {
             nng::AioResult::Sleep(res) => {
                 if let Err(err) = res {
                     tracing::error!("AIO sleep error: {}", err);
-                    aio_result_sender.send(Err(Error::Nng(err))).unwrap();
+                    aio_result_sender.send(Err(PythonError::Nng(err))).unwrap();
                 }
             }
             nng::AioResult::Recv(_) => {
@@ -83,7 +84,7 @@ impl NngSender {
         })
     }
 
-    pub fn init(&self) -> Result<()> {
+    pub fn init(&self) -> PythonResult<()> {
         self.to_py.dial(&self.route)?;
         Ok(())
     }
@@ -93,7 +94,7 @@ impl NngSender {
         sim_id: Option<SimulationShortId>,
         msg: &InboundToRunnerMsgPayload,
         task_payload_json: &Option<serde_json::Value>,
-    ) -> Result<()> {
+    ) -> PythonResult<()> {
         // TODO: (option<SimId>, inbound payload) --> flatbuffers --> nng
         let msg = inbound_to_nng(sim_id, msg, task_payload_json)?;
         self.aio.wait();
@@ -101,12 +102,12 @@ impl NngSender {
             .send_async(&self.aio, msg)
             .map_err(|(msg, err)| {
                 tracing::warn!("Send failed: {:?}", (&msg, &err));
-                Error::NngSend(msg, err)
+                PythonError::NngSend(msg, err)
             })?;
         Ok(())
     }
 
-    pub async fn get_send_result(&mut self) -> Option<Result<()>> {
+    pub async fn get_send_result(&mut self) -> Option<PythonResult<()>> {
         self.aio_result_receiver.recv().await
     }
 }
@@ -116,7 +117,7 @@ fn inbound_to_nng(
     sim_id: Option<SimulationShortId>,
     msg: &InboundToRunnerMsgPayload,
     task_payload_json: &Option<serde_json::Value>,
-) -> Result<nng::Message> {
+) -> PythonResult<nng::Message> {
     let mut fbb = flatbuffers::FlatBufferBuilder::new();
     let fbb = &mut fbb;
 
@@ -287,10 +288,11 @@ fn inbound_to_nng(
     Ok(nanomsg)
 }
 
+#[allow(clippy::type_complexity)]
 fn state_sync_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     state_proxy: &StateReadProxy,
-) -> Result<(
+) -> PythonResult<(
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
 )> {

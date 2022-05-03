@@ -8,7 +8,7 @@ VENV_ACTIVATE_PATH="$SCRIPT_DIR/runner_venv/bin/activate"
 . $VENV_ACTIVATE_PATH
 
 # Find the latest "hash_engine_lib" compiled shared library
-LATEST_LIBRARY=$(find "$SCRIPT_DIR/../../../../target" -name "libmemory.so" -print0 | xargs -r -0 ls -1 -t | head -1)
+LATEST_LIBRARY=$(find "$SCRIPT_DIR/../../../../../target" -name "libmemory.so" -print0 | xargs -r -0 ls -1 -t | head -1)
 LATEST_LIBRARY_DIR=$(dirname "$LATEST_LIBRARY")
 
 if [ -z "${SCRIPT_DIR-}" ]

@@ -11,16 +11,6 @@ use std::{
     sync::Arc,
 };
 
-use execution::{
-    runner::{
-        comms::{
-            ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg,
-            OutboundFromRunnerMsgPayload, RunnerTaskMessage, SentTask,
-        },
-        Language,
-    },
-    task::TaskId,
-};
 use futures::FutureExt;
 use simulation_structure::SimulationShortId;
 use tokio::{
@@ -29,9 +19,19 @@ use tokio::{
     task::JoinError,
 };
 
-pub use self::error::{Error, Result};
+pub use self::error::{PythonError, PythonResult};
 use self::{receiver::NngReceiver, sender::NngSender};
-use crate::worker::{Error as WorkerError, Result as WorkerResult};
+use crate::{
+    runner::{
+        comms::{
+            ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg,
+            OutboundFromRunnerMsgPayload, RunnerTaskMessage, SentTask,
+        },
+        Language,
+    },
+    task::TaskId,
+    Error, Result,
+};
 
 pub struct PythonRunner {
     // Args to RunnerImpl::new
@@ -46,7 +46,7 @@ pub struct PythonRunner {
 }
 
 impl PythonRunner {
-    pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
+    pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> Result<Self> {
         let (inbound_sender, inbound_receiver) = unbounded_channel();
         let (outbound_sender, outbound_receiver) = unbounded_channel();
         Ok(Self {
@@ -63,33 +63,33 @@ impl PythonRunner {
         &self,
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
-    ) -> WorkerResult<()> {
+    ) -> Result<()> {
         tracing::trace!("Sending message to Python: {:?}", &msg);
         self.inbound_sender
             .send((sim_id, msg))
-            .map_err(|e| WorkerError::Python(Error::InboundSend(e)))
+            .map_err(|e| Error::Python(PythonError::InboundSend(e)))
     }
 
     pub async fn send_if_spawned(
         &self,
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
-    ) -> WorkerResult<()> {
+    ) -> Result<()> {
         if self.spawned() {
             self.send(sim_id, msg).await?;
         }
         Ok(())
     }
 
-    pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
+    pub async fn recv(&mut self) -> Result<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
             .await
-            .ok_or(WorkerError::Python(Error::OutboundReceive))
+            .ok_or(Error::Python(PythonError::OutboundReceive))
     }
 
     // TODO: Duplication with other runners (move into worker?)
-    pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
+    pub async fn recv_now(&mut self) -> Result<Option<OutboundFromRunnerMsg>> {
         // TODO: `now_or_never` on a receiver can very rarely drop messages (known
         //       issue with tokio). Replace with better solution once tokio has one.
         self.recv().now_or_never().transpose()
@@ -102,8 +102,7 @@ impl PythonRunner {
 
     pub async fn run(
         &mut self,
-    ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>
-    {
+    ) -> Result<Pin<Box<dyn Future<Output = StdResult<Result<()>, JoinError>> + Send>>> {
         // TODO: Duplication with other runners (move into worker?)
         tracing::debug!("Running Python runner");
         if !self.spawn {
@@ -111,8 +110,14 @@ impl PythonRunner {
         }
 
         let init_msg = Arc::clone(&self.init_msg);
-        let inbound_receiver = self.inbound_receiver.take().ok_or(Error::AlreadyRunning)?;
-        let outbound_sender = self.outbound_sender.take().ok_or(Error::AlreadyRunning)?;
+        let inbound_receiver = self
+            .inbound_receiver
+            .take()
+            .ok_or(PythonError::AlreadyRunning)?;
+        let outbound_sender = self
+            .outbound_sender
+            .take()
+            .ok_or(PythonError::AlreadyRunning)?;
 
         let f = async move { _run(init_msg, inbound_receiver, outbound_sender).await };
         Ok(Box::pin(tokio::task::spawn(f)))
@@ -123,17 +128,17 @@ async fn _run(
     init_msg: Arc<ExperimentInitRunnerMsg>,
     mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
-) -> WorkerResult<()> {
+) -> Result<()> {
     // Open sockets for Python process to connect to (i.e. start listening).
     let mut nng_sender = NngSender::new(init_msg.experiment_id, init_msg.worker_index)?;
     let mut nng_receiver = NngReceiver::new(init_msg.experiment_id, init_msg.worker_index)?;
 
     // Spawn Python process.
     let mut cmd = Command::new("sh");
-    cmd.arg("./src/worker/runner/python/run.sh")
+    cmd.arg("./lib/execution/src/runner/python/run.sh")
         .arg(&init_msg.experiment_id.to_string())
         .arg(&init_msg.worker_index.to_string());
-    let _process = cmd.spawn().map_err(Error::Spawn)?;
+    let _process = cmd.spawn().map_err(PythonError::Spawn)?;
     tracing::debug!("Started Python process {}", init_msg.worker_index);
 
     // Send init message to Python process.
@@ -181,11 +186,11 @@ async fn _run(
                 match inbound {
                     InboundToRunnerMsgPayload::TerminateRunner => break 'select_loop,
                     InboundToRunnerMsgPayload::StateSync(sync) => {
-                        let sim_id = sim_id.ok_or_else(|| WorkerError::from("Missing simulation id"))?;
+                        let sim_id = sim_id.ok_or_else(|| Error::from("Missing simulation id"))?;
                         if let Entry::Vacant(entry) = sync_completion_senders.entry(sim_id) {
                             entry.insert(sync.completion_sender);
                         } else {
-                            return Err(Error::AlreadyAwaiting.into());
+                            return Err(PythonError::AlreadyAwaiting.into());
                         }
                     }
                     InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
@@ -209,7 +214,7 @@ async fn _run(
                 }
             }
             outbound = nng_receiver.get_recv_result() => {
-                let outbound = outbound.map_err(WorkerError::from)?;
+                let outbound = outbound.map_err(Error::from)?;
                 let outbound = OutboundFromRunnerMsg::try_from_nng(
                     outbound,
                     Language::Python,
@@ -228,7 +233,7 @@ async fn _run(
                 if let OutboundFromRunnerMsgPayload::SyncCompletion = &outbound.payload {
                     sync_completion_senders
                         .remove(&outbound.sim_id)
-                        .ok_or(Error::NotAwaiting)?
+                        .ok_or(PythonError::NotAwaiting)?
                         .send(Ok(()))
                         .map_err(|error| Error::from(format!(
                             "Couldn't send state sync completion from Python: {error:?}"

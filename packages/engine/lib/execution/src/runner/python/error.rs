@@ -1,17 +1,15 @@
-use execution::runner::comms::InboundToRunnerMsgPayload;
 use simulation_structure::SimulationShortId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+use crate::runner::comms::InboundToRunnerMsgPayload;
+
+pub type PythonResult<T, E = PythonError> = std::result::Result<T, E>;
 
 #[derive(ThisError, Debug)]
-pub enum Error {
+pub enum PythonError {
     #[error("{0}")]
     Unique(String),
-
-    #[error("Datastore: {0}")]
-    Datastore(#[from] crate::datastore::Error),
 
     #[error("Can't start Python runner again when it is already running")]
     AlreadyRunning,
@@ -53,14 +51,14 @@ pub enum Error {
     NotAwaiting,
 }
 
-impl From<&str> for Error {
+impl From<&str> for PythonError {
     fn from(s: &str) -> Self {
-        Error::Unique(s.to_string())
+        Self::Unique(s.to_string())
     }
 }
 
-impl From<String> for Error {
+impl From<String> for PythonError {
     fn from(s: String) -> Self {
-        Error::Unique(s)
+        Self::Unique(s)
     }
 }

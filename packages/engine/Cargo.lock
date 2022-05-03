@@ -681,6 +681,7 @@ version = "0.0.0"
 dependencies = [
  "arrow",
  "async-trait",
+ "flatbuffers",
  "flatbuffers_gen",
  "float-cmp",
  "futures",
@@ -697,6 +698,7 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+ "v8",
 ]
 
 [[package]]
@@ -1003,7 +1005,6 @@ dependencies = [
  "tracing-subscriber",
  "tracing-texray",
  "uuid",
- "v8",
 ]
 
 [[package]]

@@ -1,14 +1,17 @@
-use execution::{runner::comms::ExperimentInitRunnerMsg, worker_pool::WorkerIndex};
 use nng::{Aio, Socket};
 use simulation_structure::ExperimentId;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
-use crate::worker::runner::python::{
-    error::{Error, Result},
-    fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
+pub use crate::runner::python::{PythonError, PythonResult};
+use crate::{
+    runner::{
+        comms::ExperimentInitRunnerMsg,
+        python::fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
+    },
+    worker_pool::WorkerIndex,
 };
 
-fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
+fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> PythonResult<nng::Message> {
     // TODO: initial buffer size
     let mut fbb = flatbuffers::FlatBufferBuilder::new();
     let experiment_id =
@@ -50,7 +53,7 @@ pub struct NngReceiver {
 }
 
 impl NngReceiver {
-    pub fn new(experiment_id: ExperimentId, worker_index: WorkerIndex) -> Result<Self> {
+    pub fn new(experiment_id: ExperimentId, worker_index: WorkerIndex) -> PythonResult<Self> {
         let route = format!("ipc://{}-frompy{}", experiment_id, worker_index);
         let from_py = Socket::new(nng::Protocol::Pair0)?;
         from_py.listen(&route)?;
@@ -78,24 +81,24 @@ impl NngReceiver {
         })
     }
 
-    pub fn init(&self, init_msg: &ExperimentInitRunnerMsg) -> Result<()> {
+    pub fn init(&self, init_msg: &ExperimentInitRunnerMsg) -> PythonResult<()> {
         let _init_request = self.from_py.recv()?;
         self.from_py // Only case where `from_py` is used for sending
             .send(experiment_init_to_nng(init_msg)?)
-            .map_err(|(msg, err)| Error::NngSend(msg, err))?;
+            .map_err(|(msg, err)| PythonError::NngSend(msg, err))?;
 
         let _init_ack = self.from_py.recv()?;
         self.from_py.recv_async(&self.aio)?;
         Ok(())
     }
 
-    pub async fn get_recv_result(&mut self) -> Result<nng::Message> {
+    pub async fn get_recv_result(&mut self) -> PythonResult<nng::Message> {
         // TODO: Return `Option::None` instead of using ok_or to convert to an Err?
         let nng_msg = self
             .aio_result_receiver
             .recv()
             .await
-            .ok_or(Error::OutboundReceive)?;
+            .ok_or(PythonError::OutboundReceive)?;
 
         self.from_py.recv_async(&self.aio)?;
         Ok(nng_msg)

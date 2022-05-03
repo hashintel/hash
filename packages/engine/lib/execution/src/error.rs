@@ -1,6 +1,10 @@
 use thiserror::Error as ThisError;
+use tokio::sync::mpsc::error::SendError;
 
-use crate::task::{SharedContext, SharedState};
+use crate::{
+    runner::{comms::OutboundFromRunnerMsg, JavaScriptError, PythonError},
+    task::{SharedContext, SharedState},
+};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -15,6 +19,12 @@ pub enum Error {
 
     #[error("Stateful error: {0}")]
     Stateful(#[from] stateful::Error),
+
+    #[error("JavaScript error: {0}")]
+    JavaScript(#[from] JavaScriptError),
+
+    #[error("Python error: {0}")]
+    Python(#[from] PythonError),
 
     #[error("Arrow Error: {0}")]
     Arrow(#[from] arrow::error::ArrowError),
@@ -66,6 +76,9 @@ pub enum Error {
 
     #[error("KdTree error: {0}")]
     KdTree(#[from] kdtree::ErrorKind),
+
+    #[error("Couldn't send outbound message from runner: {0}")]
+    OutboundSend(#[from] SendError<OutboundFromRunnerMsg>),
 }
 
 impl Error {

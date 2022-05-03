@@ -1,14 +1,13 @@
-use execution::runner::comms::PackageMsgs;
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
 use memory::shared_memory::{Metaversion, Segment};
 use stateful::global::SharedDatasets;
 
-use crate::worker::runner::python::Result;
+use crate::runner::{comms::PackageMsgs, python::PythonResult};
 
 pub fn pkgs_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     pkgs: &PackageMsgs,
-) -> Result<WIPOffset<flatbuffers_gen::package_config_generated::PackageConfig<'f>>> {
+) -> PythonResult<WIPOffset<flatbuffers_gen::package_config_generated::PackageConfig<'f>>> {
     let pkgs = pkgs
         .0
         .iter()
@@ -34,7 +33,7 @@ pub fn pkgs_to_fbs<'f>(
                 },
             ))
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect::<PythonResult<Vec<_>>>()?;
 
     let pkgs = fbb.create_vector(&pkgs);
     Ok(

@@ -1,6 +1,7 @@
 use std::{self, ptr::NonNull};
 
-use super::{new_js_string, Error, Result};
+use super::new_js_string;
+use crate::runner::{javascript::JavaScriptResult, JavaScriptError};
 
 /// C representation of Arrow array data nodes
 #[repr(C)]
@@ -23,7 +24,7 @@ impl<'s> DataFfi<'s> {
     pub(crate) fn new_from_js(
         scope: &mut v8::HandleScope<'s>,
         data: v8::Local<'s, v8::Object>,
-    ) -> Result<DataFfi<'s>> {
+    ) -> JavaScriptResult<DataFfi<'s>> {
         let len_num: v8::Local<'s, v8::Number> = get_data_property(scope, data, "len")?;
         let null_count_num: v8::Local<'s, v8::Number> =
             get_data_property(scope, data, "null_count")?;
@@ -31,7 +32,7 @@ impl<'s> DataFfi<'s> {
         let buffers: v8::Local<'s, v8::Array> = get_data_property(scope, data, "buffers")?;
         let n_buffers = buffers.length();
         if n_buffers > 2 {
-            return Err(Error::V8(format!(
+            return Err(JavaScriptError::V8(format!(
                 "Invalid buffers length ({}), expected no more than 2",
                 buffers.length()
             )));
@@ -46,11 +47,11 @@ impl<'s> DataFfi<'s> {
             .enumerate()
         {
             let buffer_value = buffers.get_index(scope, buffer_idx as u32).ok_or_else(|| {
-                Error::V8(format!("Could not access index {buffer_idx} on buffers"))
+                JavaScriptError::V8(format!("Could not access index {buffer_idx} on buffers"))
             })?;
             let buffer: v8::Local<'s, v8::ArrayBuffer> =
                 buffer_value.try_into().map_err(|err| {
-                    Error::V8(format!(
+                    JavaScriptError::V8(format!(
                         "Could not convert buffer_value from Value to ArrayBuffer: {err}"
                     ))
                 })?;
@@ -90,7 +91,7 @@ fn get_data_property<'s, T>(
     scope: &mut v8::HandleScope<'s>,
     data: v8::Local<'s, v8::Object>,
     property: &str,
-) -> Result<v8::Local<'s, T>>
+) -> JavaScriptResult<v8::Local<'s, T>>
 where
     v8::Local<'s, T>: TryFrom<v8::Local<'s, v8::Value>>,
     <v8::Local<'s, T> as TryFrom<v8::Local<'s, v8::Value>>>::Error: std::fmt::Display,
@@ -98,12 +99,12 @@ where
     let js_key = new_js_string(scope, property);
 
     let len_value = data.get(scope, js_key.into()).ok_or_else(|| {
-        Error::V8(format!(
+        JavaScriptError::V8(format!(
             "Could not get {property} property from data object"
         ))
     })?;
     len_value.try_into().map_err(|err| {
-        Error::V8(format!(
+        JavaScriptError::V8(format!(
             "Could not convert {property} from Value to {}: {err}",
             std::any::type_name::<T>().rsplit_once(':').unwrap().1
         ))

@@ -1,3 +1,5 @@
+#![feature(map_try_insert, is_sorted)]
+
 mod error;
 pub mod package;
 pub mod runner;

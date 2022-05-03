@@ -21,19 +21,6 @@ use arrow::{
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
     util::bit_util,
 };
-use execution::{
-    package::PackageType,
-    runner::{
-        comms::{
-            ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,
-            OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, RunnerTaskMessage,
-            TargetedRunnerTaskMsg, UserError, UserWarning,
-        },
-        Language, MessageTarget,
-    },
-    task::{PartialSharedState, SharedState, SharedStore, TaskId, TaskMessage},
-    worker::{ContextBatchSync, StateSync, WaitableStateSync},
-};
 use futures::{Future, FutureExt};
 use memory::{
     arrow::{ArrowBatch, ColumnChange},
@@ -53,8 +40,21 @@ use tokio::{
 };
 use tracing::{Instrument, Span};
 
-pub use self::error::{Error, Result};
-use crate::worker::Result as WorkerResult;
+pub use self::error::{JavaScriptError, JavaScriptResult};
+use crate::{
+    package::PackageType,
+    runner::{
+        comms::{
+            ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,
+            OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, RunnerTaskMessage,
+            TargetedRunnerTaskMsg, UserError, UserWarning,
+        },
+        javascript::{JavaScriptError as Error, JavaScriptResult as Result},
+        Language, MessageTarget,
+    },
+    task::{PartialSharedState, SharedState, SharedStore, TaskId, TaskMessage},
+    worker::{ContextBatchSync, StateSync, WaitableStateSync},
+};
 
 type Object<'scope> = v8::Local<'scope, v8::Object>;
 type Value<'scope> = v8::Local<'scope, v8::Value>;
@@ -275,31 +275,34 @@ impl<'s> Embedded<'s> {
     ) -> Result<Self> {
         let arrow = eval_file(
             scope,
-            "./src/worker/runner/javascript/apache-arrow-bundle.js",
+            "./lib/execution/src/runner/javascript/apache-arrow-bundle.js",
         )?;
-        let hash_stdlib = eval_file(scope, "./src/worker/runner/javascript/hash_stdlib.js")?;
+        let hash_stdlib = eval_file(
+            scope,
+            "./lib/execution/src/runner/javascript/hash_stdlib.js",
+        )?;
         let hash_util = import_file(
             scope,
             context,
-            "./src/worker/runner/javascript/hash_util.js",
+            "./lib/execution/src/runner/javascript/hash_util.js",
             &[arrow],
         )?;
         let batches_prototype = import_file(
             scope,
             context,
-            "./src/worker/runner/javascript/batch.js",
+            "./lib/execution/src/runner/javascript/batch.js",
             &[arrow, hash_util],
         )?;
 
         let ctx_import = import_file(
             scope,
             context,
-            "./src/worker/runner/javascript/context.js",
+            "./lib/execution/src/runner/javascript/context.js",
             &[hash_util],
         )?;
         let ctx_import: Array<'_> = ctx_import.try_into().map_err(|err| {
             Error::FileImport(
-                "./src/worker/runner/javascript/context.js".to_string(),
+                "./lib/execution/src/runner/javascript/context.js".to_string(),
                 format!("Couldn't get array (of functions) from 'context.js': {err}"),
             )
         })?;
@@ -325,13 +328,13 @@ impl<'s> Embedded<'s> {
         let gen_state = import_file(
             scope,
             context,
-            "./src/worker/runner/javascript/state.js",
+            "./lib/execution/src/runner/javascript/state.js",
             &[hash_util],
         )?;
         let fns = import_file(
             scope,
             context,
-            "./src/worker/runner/javascript/runner.js",
+            "./lib/execution/src/runner/javascript/runner.js",
             &[
                 arrow,
                 batches_prototype,
@@ -343,7 +346,7 @@ impl<'s> Embedded<'s> {
         )?;
         let fns: Array<'_> = fns.try_into().map_err(|err| {
             Error::FileImport(
-                "./src/worker/runner/javascript/runner.js".into(),
+                "./lib/execution/src/runner/javascript/runner.js".into(),
                 format!("Couldn't get array (of functions) from 'runner.js': {err}"),
             )
         })?;
@@ -1592,7 +1595,7 @@ impl<'s> ThreadLocalRunner<'s> {
     /// - a value from Javascript could not be parsed,
     /// - the task errored, or
     /// - the state could not be flushed to the datastore.
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
     fn run_task(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
@@ -1842,7 +1845,7 @@ pub struct JavaScriptRunner {
 }
 
 impl JavaScriptRunner {
-    pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
+    pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> crate::Result<Self> {
         let (inbound_sender, inbound_receiver) = unbounded_channel();
         let (outbound_sender, outbound_receiver) = unbounded_channel();
 
@@ -1860,7 +1863,7 @@ impl JavaScriptRunner {
         &self,
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
-    ) -> WorkerResult<()> {
+    ) -> crate::Result<()> {
         tracing::trace!("Sending message to JavaScript: {msg:?}");
         self.inbound_sender
             .send((Span::current(), sim_id, msg))
@@ -1871,14 +1874,14 @@ impl JavaScriptRunner {
         &self,
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
-    ) -> WorkerResult<()> {
+    ) -> crate::Result<()> {
         if self.spawned() {
             self.send(sim_id, msg).await?;
         }
         Ok(())
     }
 
-    pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
+    pub async fn recv(&mut self) -> crate::Result<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
             .await
@@ -1886,7 +1889,7 @@ impl JavaScriptRunner {
     }
 
     // TODO: UNUSED: Needs triage
-    pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
+    pub async fn recv_now(&mut self) -> crate::Result<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }
 
@@ -1896,7 +1899,7 @@ impl JavaScriptRunner {
 
     pub async fn run(
         &mut self,
-    ) -> WorkerResult<Pin<Box<dyn Future<Output = Result<WorkerResult<()>, JoinError>> + Send>>>
+    ) -> crate::Result<Pin<Box<dyn Future<Output = Result<crate::Result<()>, JoinError>> + Send>>>
     {
         // TODO: Move tokio spawn into worker?
         tracing::debug!("Running JavaScript runner");
@@ -1921,7 +1924,7 @@ fn run_experiment(
         InboundToRunnerMsgPayload,
     )>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
-) -> WorkerResult<()> {
+) -> crate::Result<()> {
     // Single threaded runtime only
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -1998,7 +2001,7 @@ fn new_js_string<'s>(
     s: impl AsRef<str>,
 ) -> v8::Local<'s, v8::String> {
     let s = s.as_ref();
-    v8::String::new(scope, s).expect(&format!("Could not create JS String: {s}"))
+    v8::String::new(scope, s).unwrap_or_else(|| panic!("Could not create JS String: {s}"))
 }
 
 // Returns the new max heap size.
