@@ -9,7 +9,7 @@
 // - Even though `rusty_v8` returns an `Option` on `Object::get`, if the object does not have the
 //   property the result will be `Some(undefined)` rather than `None`.
 //
-// - Modules always evaluate to a `promise` that resolves to `undefined` without the "--harmony_top_level_await" flag, https://github.com/denoland/deno/issues/3696#issuecomment-578488613.
+// - Modules always evaluate to a `promise` which resolves to `undefined` without the "--harmony_top_level_await" flag, https://github.com/denoland/deno/issues/3696#issuecomment-578488613.
 //   To access values inside a module use v8::Module::get_module_namespace.
 
 mod data_ffi;
