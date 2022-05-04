@@ -179,12 +179,12 @@ fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s
     })
 }
 
-/// Caches module to not evaluate them twice as this is against the Javascript spec.
+/// Caches module to not evaluate them twice as this is against the [JavaScript Specifications].
 ///
-/// > Each time this operation is called with a specific referencingScriptOrModule, specifier pair
-/// as arguments it must return the same Module Record instance if it completes normally.
+/// > Each time this operation is called with a specific `referencingScriptOrModule`, `specifier`
+///   pair as arguments it must return the same Module Record instance if it completes normally.
 ///
-/// [source](https://tc39.es/ecma262/#sec-hostresolveimportedmodule)
+/// [JavaScript Specifications](https://tc39.es/ecma262/#sec-hostresolveimportedmodule)
 struct ModuleMap {
     path_to_module: HashMap<String, v8::Global<v8::Module>>,
 }
