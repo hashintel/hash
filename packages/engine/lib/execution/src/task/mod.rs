@@ -24,14 +24,14 @@ pub trait Task {
 
     /// Defines if a [`Task`] has a distributed (split across [`worker`]s) execution.
     ///
-    /// [`Task`]: crate::simulation::task::Task
+    /// [`Task`]: crate::task::Task
     /// [`worker`]: crate::worker
     fn distribution(&self) -> TaskDistributionConfig {
         TaskDistributionConfig::None
     }
 
     /// Ensures that the [`Task`] variant has the correct permissions on the [`SharedState`] and
-    /// [`SharedContext`] objects that make up the [`TaskSharedStore`].
+    /// [`SharedContext`] objects that make up the [`SharedStore`].
     ///
     /// The intended implementation, is that this trait is implemented for each package-group, e.g.
     /// rather than being implemented on `JsPyInitTask`, it's implemented on the [`InitTask`]
@@ -41,13 +41,14 @@ pub trait Task {
     ///
     /// The implementation should error with [`AccessNotAllowed`] if the permissions don't match up.
     ///
-    /// [`Task`]: crate::simulation::task::Task
-    /// [`SharedState`]: crate::datastore::table::task_shared_store::SharedState
-    /// [`SharedContext`]: crate::datastore::table::task_shared_store::SharedContext
-    /// [`AccessNotAllowed`]: crate::simulation::error::Error::AccessNotAllowed
+    /// [`Task`]: crate::task::Task
+    /// [`InitTask`]: crate::package::init::InitTask
+    /// [`SharedState`]: crate::task::SharedState
+    /// [`SharedContext`]: crate::task::SharedContext
+    /// [`SharedStore`]: crate::task::SharedStore
+    /// [`AccessNotAllowed`]: crate::error::Error::AccessNotAllowed
     fn verify_store_access(&self, access: &SharedStore) -> Result<()>;
 }
-
 #[async_trait]
 pub trait ActiveTask: Send {
     /// Waits for a [`TaskResultOrCancelled`] from the associated [`Task`] and returns the
@@ -59,7 +60,7 @@ pub trait ActiveTask: Send {
     /// [`TaskResultOrCancelled`].
     /// - If the [`Task`] was cancelled during execution.
     ///
-    /// [`Task`]: crate::simulation::task::Task
+    /// [`Task`]: crate::task::Task
     async fn drive_to_completion(mut self) -> Result<TaskMessage>;
 }
 

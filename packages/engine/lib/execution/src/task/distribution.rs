@@ -22,19 +22,19 @@ pub struct StateBatchDistribution {
 
 /// Defines if and how a [`Task`] is executed across multiple [`worker`]s).
 ///
-/// [`Task`]: crate::simulation::task::Task
+/// [`Task`]: crate::task::Task
 /// [`worker`]: crate::worker
 pub enum TaskDistributionConfig {
     /// The [`Task`] is split up and executed on multiple [`worker`]s, with access to
     /// [`AgentBatch`]s as defined in the [`StateBatchDistribution`] object.
     ///
-    /// [`Task`]: crate::simulation::task::Task
+    /// [`Task`]: crate::task::Task
     /// [`worker`]: crate::worker
-    /// [`AgentBatch`]: crate::datastore::batch::agent::Batch
+    /// [`AgentBatch`]: stateful::agent::AgentBatch
     Distributed(StateBatchDistribution),
     /// The [`Task`] isn't distributed across [`worker`]s.
     ///
-    /// [`Task`]: crate::simulation::task::Task
+    /// [`Task`]: crate::task::Task
     /// [`worker`]: crate::worker
     None,
 }

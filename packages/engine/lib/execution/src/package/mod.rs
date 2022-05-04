@@ -2,8 +2,8 @@
 //!
 //! The following example will guide through creating and enabling a new, simple state package.
 //!
-//! First of all, the [`Package`](`state::Package`) and its
-//! [`PackageCreator`](state::PackageCreator) has to be created:
+//! First of all, the [`StatePackage`](`state::StatePackage`) and its
+//! [`StatePackageCreator`](state::StatePackageCreator) has to be created:
 //!
 //! ```
 //! # use std::sync::Arc;
@@ -59,8 +59,8 @@
 //! }
 //! ```
 //!
-//! Next, the package needs to be added to the known package [`Name`](state::Name)s, to the
-//! [`METADATA`](state::METADATA), and to the [`PackageCreator`](state::PackageCreator):
+//! Next, the package needs to be added `StatePackageName`, to the
+//! `METADATA`, and to the `PackageCreators`:
 //!
 //! ```
 //! # use std::{collections::HashMap, sync::Arc};
@@ -120,7 +120,7 @@
 //!
 //! As a final step, the package has to be loaded. As currently there is no way for configuring
 //! packages dynamically, this should be added to the default packages in the package
-//! [`Config`](crate::config::PackageConfig):
+//! `PackageConfig`:
 //!
 //! ```
 //! # struct Config;

@@ -13,10 +13,10 @@ use crate::{
 pub trait Comms: Send + Sync + 'static {
     type ActiveTask: ActiveTask;
 
-    /// Takes a given [`Task`] object, and starts its execution on the [`workerpool`], returning an
+    /// Takes a given [`Task`] object, and starts its execution on the [`worker_pool`], returning an
     /// [`ActiveTask`] to track its progress.
     ///
-    /// [`workerpool`]: crate::workerpool
+    /// [`worker_pool`]: crate::worker_pool
     async fn new_task(
         &self,
         package_id: PackageId,

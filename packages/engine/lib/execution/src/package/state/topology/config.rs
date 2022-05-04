@@ -395,7 +395,7 @@ impl Default for TopologyConfig {
 impl TopologyConfig {
     /// Creates a topology configuration from [`Globals`].
     ///
-    /// If a value is not set, it will fallback as specified in [`Config::default()`].
+    /// If a value is not set, it will fallback as specified in [`TopologyConfig::default()`].
     ///
     /// # Panics
     ///

@@ -17,7 +17,7 @@ use crate::{
 /// Refer to the [`Task`] docs for more information on how this is implemented, and how these
 /// variants are defined.
 ///
-/// [`Task`]: crate::simulation::task::Task
+/// [`Task`]: crate::task::Task
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TaskMessage {
     Init(InitTaskMessage),
@@ -29,7 +29,7 @@ pub enum TaskMessage {
 /// A [`TaskMessage`] to be forwarded to the given [`MessageTarget`] as part of the execution of a
 /// [`Task`].
 ///
-/// [`Task`]: crate::simulation::task::Task
+/// [`Task`]: crate::task::Task
 pub struct TargetedTaskMessage {
     pub target: MessageTarget,
     pub payload: TaskMessage,
@@ -38,7 +38,7 @@ pub struct TargetedTaskMessage {
 /// Marks either the final [`TaskMessage`] of a [`Task`]'s execution chain, or indicates a
 /// cancellation.
 ///
-/// [`Task`]: crate::simulation::task::Task
+/// [`Task`]: crate::task::Task
 #[derive(Debug, Clone)]
 pub enum TaskResultOrCancelled {
     Result(TaskMessage),

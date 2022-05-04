@@ -3,10 +3,11 @@ use crate::runner::Language;
 /// Possible targets for a [`TargetedTaskMessage`] to be forwarded to by the `Worker`.
 ///
 /// The execution chain of a `Task` is described within the docs for the
-/// [`Task`](crate::simulation::task) module. This enum marks all possible targets that a [`Task`]
-/// can be sent to.
+/// [`task`](crate::task) module. This enum marks all possible targets that a [`Task`] can be sent
+/// to.
 ///
-/// [`TargetedTaskMessage`]: crate::simulation::task::msg::TargetedTaskMessage
+/// [`Task`]: crate::task::Task
+/// [`TargetedTaskMessage`]: crate::task::TargetedTaskMessage
 #[derive(Debug, Clone, Copy)]
 pub enum MessageTarget {
     /// The message should be forwarded to _package.rs_ implementation and executed on the Rust
@@ -22,12 +23,12 @@ pub enum MessageTarget {
     /// decided by passing it to the [`WorkerHandler::handle_worker_message()`] implementation of
     /// the [`Task`].
     ///
-    /// [`Task`]: crate::simulation::task::Task
-    /// [`WorkerHandler::handle_worker_message()`]: crate::simulation::task::handler::worker::WorkerHandler::handle_worker_message
+    /// [`Task`]: crate::task::Task
+    /// [`WorkerHandler::handle_worker_message()`]: crate::worker::WorkerHandler::handle_worker_message
     Dynamic,
     /// The [`Task`] execution has finished, and the message is the terminating (result) message.
     ///
-    /// [`Task`]: crate::simulation::task::Task
+    /// [`Task`]: crate::task::Task
     Main,
 }
 
