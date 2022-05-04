@@ -1,3 +1,5 @@
+//! Messages to be sent to or received from the runners.
+
 mod inbound;
 mod outbound;
 
