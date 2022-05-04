@@ -96,7 +96,7 @@ pub enum Error {
     #[error("Couldn't access JavaScript file {0}: {1}")]
     AccessJavascriptImport(String, String),
 
-    #[error("Exception occured in javascript: {0}{}", match .1 {
+    #[error("Exception occurred in JavaScript: {0}{}", match .1 {
         Some(exception_message) => format!(", with exception message: {exception_message}"),
         None => String::new()
     })]
