@@ -1,6 +1,10 @@
 on:
+  # We could allow configuring environment here.
+  workflow_dispatch: {}
   push:
     branches: [main]
+    paths:
+      - packages/hash/**
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -29,24 +33,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: ./.github/actions/docker-ecr-login
-        with:
-          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-
-      # Build images and push to ECR
-      - name: Build and push api
-        uses: docker/build-push-action@v2
+      - name: Docker image build through docker-build-push
+        uses: ./.github/actions/docker-build-push
         env:
           HASH_API_IMAGE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}ecr
         with:
-          # The Dockerfile is in a leaf-folder without access to what it needs.
-          # Thus the context is within the root, while the dockerfile is deeply nested.
-          context: ${{ github.workspace }}
-          push: true
-          file: ${{ github.workspace }}/packages/hash/docker/api/prod/Dockerfile
-          tags: ${{ env.AWS_ECR_URL }}/${{ env.HASH_API_IMAGE_NAME }}:latest , ${{ env.AWS_ECR_URL }}/${{ env.HASH_API_IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
+          SHORTNAME: "api"
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/hash/docker/api/prod/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
+          IMAGE_NAME: ${{ env.HASH_API_IMAGE_NAME }}
 
   build-realtime:
     name: Build and push HASH realtime image
@@ -54,23 +52,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: ./.github/actions/docker-ecr-login
-        with:
-          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-
-      - name: Build and push realtime
-        uses: docker/build-push-action@v2
+      - name: Docker image build through docker-build-push
+        uses: ./.github/actions/docker-build-push
         env:
           HASH_REALTIME_IMAGE_NAME: ${{ env.HASH_REALTIME_RESOURCE_NAME }}ecr
         with:
-          context: ${{ github.workspace }}
-          push: true
-          file: ${{ github.workspace }}/packages/hash/docker/realtime/prod/Dockerfile
-          tags: ${{ env.AWS_ECR_URL }}/${{ env.HASH_REALTIME_IMAGE_NAME }}:latest , ${{ env.AWS_ECR_URL }}/${{ env.HASH_REALTIME_IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
+          SHORTNAME: "realtime"
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/hash/docker/realtime/prod/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
+          IMAGE_NAME: ${{ env.HASH_REALTIME_IMAGE_NAME }}
 
   build-searchloader:
     name: Build and push HASH searchloader image
@@ -78,23 +71,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: ./.github/actions/docker-ecr-login
-        with:
-          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-
-      - name: Build and push search-loader
-        uses: docker/build-push-action@v2
+      - name: Docker image build through docker-build-push
+        uses: ./.github/actions/docker-build-push
         env:
           HASH_SEARCHLOADER_IMAGE_NAME: ${{ env.HASH_SEARCHLOADER_RESOURCE_NAME }}ecr
         with:
-          context: ${{ github.workspace }}
-          push: true
-          file: ${{ github.workspace }}/packages/hash/docker/search-loader/prod/Dockerfile
-          tags: ${{ env.AWS_ECR_URL }}/${{ env.HASH_SEARCHLOADER_IMAGE_NAME }}:latest , ${{ env.AWS_ECR_URL }}/${{ env.HASH_SEARCHLOADER_IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
+          SHORTNAME: "search-loader"
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/hash/docker/search-loader/prod/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
+          IMAGE_NAME: ${{ env.HASH_SEARCHLOADER_IMAGE_NAME }}
 
   deploy:
     name: Deploy HASH images
@@ -111,6 +99,12 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
+
+      # Node is used for migrating the DB
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 16
+          cache: yarn
 
       - name: Prepare dev tools for DB migration
         run: yarn install
