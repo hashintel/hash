@@ -1,3 +1,5 @@
+import * as hash_util from "./src/worker/runner/javascript/hash_util.js";
+
 const InboxMessage = function (ctx_msg_pool, msg_loc) {
   this.__pool = ctx_msg_pool;
   this.__loc = msg_loc; // i_group, i_agent, i_msg
@@ -87,7 +89,7 @@ const getters = {
   },
 };
 
-const start_sim = (experiment, sim, init_message, init_context) => {
+export const start_sim = (experiment, sim, init_message, init_context) => {
   return {
     loaders: loaders,
     getters: getters,
