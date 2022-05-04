@@ -184,13 +184,13 @@ fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s
 ///
 /// [JavaScript Specifications](https://tc39.es/ecma262/#sec-hostresolveimportedmodule)
 struct ModuleMap {
-    path_to_module: HashMap<String, v8::Global<v8::Module>>,
+    modules_by_path: HashMap<String, v8::Global<v8::Module>>,
 }
 
 impl ModuleMap {
     fn new() -> Self {
         Self {
-            path_to_module: HashMap::new(),
+            modules_by_path: HashMap::new(),
         }
     }
 }
@@ -204,7 +204,7 @@ fn import_module<'s>(
         .expect("ModuleMap is not present in isolate slots")
         .clone();
 
-    if let Some(module) = module_map.borrow().path_to_module.get(path) {
+    if let Some(module) = module_map.borrow().modules_by_path.get(path) {
         return Ok(v8::Local::new(scope, module));
     }
 
@@ -276,7 +276,7 @@ fn import_module<'s>(
         ));
     }
 
-    module_map.borrow_mut().path_to_module.insert(
+    module_map.borrow_mut().modules_by_path.insert(
         path.to_string(),
         v8::Global::new(&mut try_catch_scope, module),
     );
