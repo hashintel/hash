@@ -66,8 +66,8 @@ const ConfigurationInput: VoidFunctionComponent<{
     if (
       type === "number" ||
       (Array.isArray(type) &&
-        type.includes("number") &&
-        type.includes("string"))
+        type.includes("string") &&
+        type.includes("number"))
     ) {
       onChange(Number.isNaN(+newValue) ? newValue : Number(newValue));
     } else {
