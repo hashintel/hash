@@ -1,3 +1,11 @@
+//! Definitions to run a [`package`].
+//!
+//! A [`Task`] contains information to run a package. Each [`PackageType`] has different tasks
+//! depending on the packages.
+//!
+//! [`package`]: crate::package
+//! [`PackageType`]: crate::package::PackageType
+
 mod cancel;
 mod distribution;
 mod message;
@@ -18,6 +26,9 @@ pub(crate) use self::{
 };
 use crate::Result;
 
+/// Information to run a [`Package`].
+///
+/// [`Package`]: crate::package::Package
 pub trait Task {
     /// Provides a human-readable name of the [`Task`], e.g. `"BehaviorExecution"`.
     fn name(&self) -> &'static str;
@@ -64,4 +75,5 @@ pub trait ActiveTask: Send {
     async fn drive_to_completion(mut self) -> Result<TaskMessage>;
 }
 
+/// Unique identified for a [`Task`].
 pub type TaskId = u128;
