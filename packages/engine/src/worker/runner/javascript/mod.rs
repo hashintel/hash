@@ -292,7 +292,9 @@ fn module_resolve_callback<'s>(
     context: v8::Local<'s, v8::Context>,
     // path of the module trying to get imported
     specifier: v8::Local<'s, v8::String>,
+    // Should be safe to ignore for now as an unsupported Javascript feature. https://v8.dev/features/import-assertions
     _import_assertions: v8::Local<'s, v8::FixedArray>,
+    // Not used for now, a description can be found at https://github.com/denoland/rusty_v8/blob/25dd770570b77dfaa5a27a7dcee6fa660781640f/src/isolate.rs#L109
     _referrer: v8::Local<'s, v8::Module>,
 ) -> Option<v8::Local<'s, v8::Module>> {
     // SAFETY: we are in a callback
