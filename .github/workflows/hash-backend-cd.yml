@@ -13,6 +13,8 @@ env:
   # Format: "env.id.region.rds.amazonaws.com/database"
   HASH_POSTGRES_HOST_DB: ${{ secrets.HASH_POSTGRES_HOST_DB }}
 
+  GH_RUN_ID: ${{ github.run_id }}
+
   HASH_API_RESOURCE_NAME: ${{ secrets.HASH_API_RESOURCE_NAME }}
   HASH_REALTIME_RESOURCE_NAME: ${{ secrets.HASH_REALTIME_RESOURCE_NAME }}
   HASH_SEARCHLOADER_RESOURCE_NAME: ${{ secrets.HASH_SEARCHLOADER_RESOURCE_NAME }}
@@ -44,7 +46,7 @@ jobs:
           context: ${{ github.workspace }}
           push: true
           file: ${{ github.workspace }}/packages/hash/docker/api/prod/Dockerfile
-          tags: ${{ env.AWS_ECR_URL }}/${{ env.HASH_API_IMAGE_NAME }}:latest
+          tags: ${{ env.AWS_ECR_URL }}/${{ env.HASH_API_IMAGE_NAME }}:latest , ${{ env.AWS_ECR_URL }}/${{ env.HASH_API_IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
 
   build-realtime:
     name: Build and push HASH realtime image
@@ -66,7 +68,7 @@ jobs:
           context: ${{ github.workspace }}
           push: true
           file: ${{ github.workspace }}/packages/hash/docker/realtime/prod/Dockerfile
-          tags: ${{ env.AWS_ECR_URL }}/${{ env.HASH_REALTIME_IMAGE_NAME }}:latest
+          tags: ${{ env.AWS_ECR_URL }}/${{ env.HASH_REALTIME_IMAGE_NAME }}:latest , ${{ env.AWS_ECR_URL }}/${{ env.HASH_REALTIME_IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
@@ -90,7 +92,7 @@ jobs:
           context: ${{ github.workspace }}
           push: true
           file: ${{ github.workspace }}/packages/hash/docker/search-loader/prod/Dockerfile
-          tags: ${{ env.AWS_ECR_URL }}/${{ env.HASH_SEARCHLOADER_IMAGE_NAME }}:latest
+          tags: ${{ env.AWS_ECR_URL }}/${{ env.HASH_SEARCHLOADER_IMAGE_NAME }}:latest , ${{ env.AWS_ECR_URL }}/${{ env.HASH_SEARCHLOADER_IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
