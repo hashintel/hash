@@ -48,7 +48,6 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
     const module = { exports };
     // eslint-disable-next-line no-new-func,@typescript-eslint/no-implied-eval
     const func = new Function("require", "module", "exports", source);
-
     func(requires, module, exports);
 
     /**

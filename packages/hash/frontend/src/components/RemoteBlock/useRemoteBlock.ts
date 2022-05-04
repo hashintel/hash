@@ -75,9 +75,6 @@ export const useRemoteBlock: UseRemoteBlockHook = (
 
     blockLoaderFn(url, signal)
       .then((module) => {
-        // console.log("url => ", url)
-        // console.log("module => ", module)
-        // console.log(module.default)
         update({
           loading: false,
           err: undefined,
