@@ -123,32 +123,40 @@ const CreateNewSeriesDefinition: React.FC<{
     [newDefinition.entityType],
   );
 
-  const handleCreate = () => {
+  const handleCreate = React.useCallback(() => {
+    const {
+      entityType,
+      xAxisPropertyKey,
+      yAxisPropertyKey,
+      seriesName,
+      seriesType,
+    } = newDefinition;
     if (
-      !newDefinition.entityType ||
-      !newDefinition.xAxisPropertyKey ||
-      !newDefinition.yAxisPropertyKey ||
-      !newDefinition.seriesName
+      !entityType ||
+      !xAxisPropertyKey ||
+      !yAxisPropertyKey ||
+      !seriesName ||
+      !seriesType
     ) {
       return;
     }
     void createDefinition({
       definition: {
-        seriesType: newDefinition.seriesType,
-        seriesName: `${newDefinition.entityType.title} Series`,
-        entityTypeId: newDefinition.entityType.entityTypeId,
-        xAxisPropertyKey: newDefinition.xAxisPropertyKey,
-        yAxisPropertyKey: newDefinition.yAxisPropertyKey,
+        seriesType,
+        seriesName,
+        entityTypeId: entityType.entityTypeId,
+        xAxisPropertyKey,
+        yAxisPropertyKey,
       },
     }).then(() => {
       reset();
     });
-  };
+  }, [newDefinition, createDefinition, reset]);
 
-  const handleCancel = () => {
+  const handleCancel = React.useCallback(() => {
     reset();
     cancel();
-  };
+  }, [reset, cancel]);
 
   return (
     <>
