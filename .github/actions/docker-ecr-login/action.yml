@@ -1,0 +1,38 @@
+name: Docker ECR login
+description: Authenticate with AWS, sigh Docker into ECR
+
+inputs:
+  AWS_ACCESS_KEY_ID:
+    description: AWS access key id
+    required: true
+  AWS_SECRET_ACCESS_KEY:
+    description: AWS secret access key
+    required: true
+  AWS_REGION:
+    description: AWS region
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # Set up AWS ECR login
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ inputs.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    # Configure Docker with Buildx and caching
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    # Docker images use Yarn cache which is shared with the rest of the repo, use that.
+    - uses: actions/setup-node@v2
+      with:
+        node-version: 16
+        cache: yarn
