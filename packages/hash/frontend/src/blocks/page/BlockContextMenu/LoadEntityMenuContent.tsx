@@ -10,7 +10,7 @@ import {
   MenuList,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
-import { useCallback, useEffect, useRef, VFC } from "react";
+import { useCallback, useEffect, useMemo, useRef, VFC } from "react";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { useBlockView } from "../BlockViewContext";
 import { FontAwesomeIcon } from "../../../shared/icons";
@@ -74,17 +74,38 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
     [blockView, entityId, popupState],
   );
 
-  // @todo filter entities displayed
   // should only include block entities and
   // should not include current entity displayed in the block
+  // should not include duplicate entities
+  const filteredEntities = useMemo(() => {
+    const uniqueEntityIds = new Set();
+    return entities.filter((entity) => {
+      if (Object.keys(entity.properties?.entity?.properties).length === 0) {
+        return false;
+      }
 
-  const filteredEntities = entities.filter((entity) => {
-    return (
-      Object.keys(entity.properties?.entity?.properties).length > 0 &&
-      entity.properties?.entity.entityId !==
-        blockData?.properties.entity.entityId
-    );
-  });
+      // think of a better name
+      const targetEntityId = entity.properties?.entity.entityId;
+
+      // if the target entity is the same as the current one the block is linked to
+      // return
+      if (targetEntityId === blockData?.properties.entity.entityId) {
+        return false;
+      }
+
+      const isDuplicate = uniqueEntityIds.has(targetEntityId);
+
+      uniqueEntityIds.add(targetEntityId);
+
+      // We could have 2 block entities linked to the same entity
+      // this ensures the entity doesn't appear twice
+      if (isDuplicate) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [entities, blockData]);
 
   return (
     <MenuList>
