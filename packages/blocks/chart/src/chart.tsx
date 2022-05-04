@@ -567,30 +567,33 @@ const mapSeriesDefinitionsToEChartSeries = (params: {
               formatter: ({ name, data }) => `${name} ${data}`,
             }
           : undefined,
-        data: aggregationResults.map((properties) => {
-          if (!properties[xAxisPropertyKey]) {
-            throw new Error(
-              `No property with key '${xAxisPropertyKey}' found on entity`,
-            );
-          }
-          if (!properties[xAxisPropertyKey]) {
-            throw new Error(
-              `No property with key '${xAxisPropertyKey}' found on entity`,
-            );
-          }
+        data: aggregationResults
+          .map<[number, number]>((properties) => {
+            if (!properties[xAxisPropertyKey]) {
+              throw new Error(
+                `No property with key '${xAxisPropertyKey}' found on entity`,
+              );
+            }
+            if (!properties[xAxisPropertyKey]) {
+              throw new Error(
+                `No property with key '${xAxisPropertyKey}' found on entity`,
+              );
+            }
 
-          const xValue = properties[xAxisPropertyKey];
-          if (typeof xValue !== "number") {
-            throw new Error("The x value is not a number");
-          }
+            const xValue = properties[xAxisPropertyKey];
+            if (typeof xValue !== "number") {
+              throw new Error("The x value is not a number");
+            }
 
-          const yValue = properties[yAxisPropertyKey];
-          if (typeof yValue !== "number") {
-            throw new Error("The y value is not a number");
-          }
+            const yValue = properties[yAxisPropertyKey];
+            if (typeof yValue !== "number") {
+              throw new Error("The y value is not a number");
+            }
 
-          return [xValue, yValue];
-        }),
+            return [xValue, yValue];
+          })
+          // sort the series in order of their x value
+          .sort(([ax], [bx]) => ax - bx),
       };
     },
   );
