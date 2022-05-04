@@ -176,7 +176,8 @@ fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s
         .map_err(|err| Error::Eval(path.into(), format!("Execution error: {err}")))
 }
 
-/// Caches module to not evaluate them twice as this is against the [JavaScript Specifications].
+/// Caches modules to avoid evaluating them twice which is against the [JavaScript
+/// Specifications].
 ///
 /// > Each time this operation is called with a specific `referencingScriptOrModule`, `specifier`
 ///   pair as arguments it must return the same Module Record instance if it completes normally.
