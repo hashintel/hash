@@ -99,8 +99,11 @@ impl<'s> JsPackage<'s> {
 
         let namespace: Object<'_> = match import_and_get_module_namespace(scope, &path) {
             Ok(s) => s,
-            Err(Error::AccessJavascriptImport(..)) => {
-                tracing::debug!("Couldn't read package file. It might intentionally not exist.");
+            Err(Error::AccessJavascriptImport(file_path, err)) => {
+                tracing::debug!(
+                    "Couldn't read package file {file_path}. It might intentionally not exist: \
+                     {err}"
+                );
                 // Packages don't have to use JS.
                 let undefined = v8::undefined(scope).into();
                 let fns = v8::Array::new_with_elements(scope, &[undefined; 3]);
