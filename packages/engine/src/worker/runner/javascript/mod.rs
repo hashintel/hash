@@ -211,7 +211,7 @@ fn import_module<'s>(
         .map_err(|err| Error::AccessJavascriptImport(path.to_string(), err.to_string()))?;
     let js_source_code = new_js_string(scope, &source_code);
     let js_path = new_js_string(scope, path);
-    let source_map_url = new_js_string(scope, "");
+    let source_map_url = v8::undefined(scope);
     let source = v8::script_compiler::Source::new(
         js_source_code,
         Some(&v8::ScriptOrigin::new(
