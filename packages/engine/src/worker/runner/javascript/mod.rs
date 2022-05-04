@@ -133,7 +133,7 @@ impl<'s> JsPackage<'s> {
                 if !(func_or_undefined.is_function() || func_or_undefined.is_undefined()) {
                     return Err(Error::PackageImport(
                         path.clone(),
-                        format!("{fn_name} should be a function, not {func_or_undefined:?}"),
+                        format!("{fn_name} should be a function"),
                     ));
                 }
 
