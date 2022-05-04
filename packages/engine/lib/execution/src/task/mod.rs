@@ -6,13 +6,15 @@ mod shared_store;
 use async_trait::async_trait;
 
 pub use self::{
-    cancel::{CancelTask, TaskCancelled},
-    distribution::{StateBatchDistribution, TaskDistributionConfig},
-    message::{TargetedTaskMessage, TaskMessage, TaskResultOrCancelled},
-    shared_store::{
-        PartialSharedState, PartialStateReadProxy, PartialStateWriteProxy, SharedContext,
-        SharedState, SharedStore, TaskSharedStoreBuilder,
-    },
+    cancel::CancelTask,
+    distribution::TaskDistributionConfig,
+    message::{TaskMessage, TaskResultOrCancelled},
+    shared_store::{SharedState, SharedStore},
+};
+pub(crate) use self::{
+    distribution::StateBatchDistribution,
+    message::TargetedTaskMessage,
+    shared_store::{PartialSharedState, SharedContext, TaskSharedStoreBuilder},
 };
 use crate::Result;
 

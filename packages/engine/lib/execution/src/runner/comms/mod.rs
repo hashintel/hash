@@ -31,8 +31,7 @@ use crate::{
 /// but for which the runner hasn't yet gotten back the corresponding outbound task.
 /// This data is useful for reconstructing the outbound message struct later (i.e.
 /// converting the outbound FlatBuffers message into a Rust struct).
-// TODO: UNUSED: Needs triage
-pub struct SentTask {
+pub(crate) struct SentTask {
     /// Task shared store from inbound task message.
     pub shared_store: SharedStore,
     /// Top two levels of nesting of task (when serialized as JSON)
@@ -55,9 +54,7 @@ pub struct TargetedRunnerTaskMsg {
 }
 
 impl TargetedRunnerTaskMsg {
-    // TODO: UNUSED: Needs triage
-    #[allow(unreachable_code, unused_variables)]
-    pub fn try_from_fbs(
+    pub(crate) fn try_from_fbs(
         task_msg: flatbuffers_gen::task_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
@@ -129,8 +126,8 @@ impl fmt::Debug for DatastoreSimulationPayload {
     }
 }
 
-// TODO: UNUSED: Needs triage
-pub struct DatastoreInit {
+#[allow(dead_code)]
+struct DatastoreInit {
     pub agent_batch_schema: Vec<u8>,
     pub message_batch_schema: Vec<u8>,
     pub context_batch_schema: Vec<u8>,

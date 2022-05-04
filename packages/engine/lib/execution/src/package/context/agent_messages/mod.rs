@@ -65,7 +65,7 @@ impl PackageCreator for AgentMessagesCreator {
     }
 }
 
-struct AgentMessages {
+pub struct AgentMessages {
     context_field_spec_accessor: FieldSpecMapAccessor,
 }
 

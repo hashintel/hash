@@ -1,6 +1,5 @@
 use arrow::{datatypes::DataType, error::ArrowError};
 use simulation_structure::SimulationShortId;
-use stateful::field::PackageId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 use tracing::Span;
@@ -56,9 +55,6 @@ pub enum JavaScriptError {
 
     #[error("User JavaScript errors: {0:?}")]
     User(Vec<UserError>),
-
-    #[error("Duplicate package (id, name): {0:?}, {1:?}")]
-    DuplicatePackage(PackageId, String),
 
     #[error("Duplicate simulation run id: {0}")]
     DuplicateSimulationRun(SimulationShortId),

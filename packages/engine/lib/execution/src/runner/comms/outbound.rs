@@ -139,7 +139,7 @@ pub enum OutboundFromRunnerMsgPayload {
 }
 
 impl OutboundFromRunnerMsgPayload {
-    pub fn try_from_fbs(
+    pub(crate) fn try_from_fbs(
         parsed_msg: flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
@@ -283,7 +283,7 @@ pub struct OutboundFromRunnerMsg {
 }
 
 impl OutboundFromRunnerMsg {
-    pub fn try_from_nng(
+    pub(crate) fn try_from_nng(
         msg: nng::Message,
         source: Language,
         sent_tasks: &mut HashMap<TaskId, SentTask>,

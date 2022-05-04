@@ -170,7 +170,7 @@ pub use self::{
 };
 use crate::Result;
 
-pub trait PackageCreator: Sync + Send {
+pub trait PackageCreator: Send + Sync {
     /// A message sent to all workers before running any packages.
     ///
     /// This allows package creators to pass any kind of configuration from their Rust runtime to

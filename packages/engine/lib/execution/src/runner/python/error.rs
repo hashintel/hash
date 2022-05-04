@@ -14,17 +14,8 @@ pub enum PythonError {
     #[error("Can't start Python runner again when it is already running")]
     AlreadyRunning,
 
-    #[error("Couldn't import package {0}: {1}")]
-    PackageImport(String, String), // First element is path/name.
-
-    #[error("Missing simulation run with id {0}")]
-    MissingSimRun(SimulationShortId),
-
     #[error("Couldn't spawn Python child process: {0:?}")]
     Spawn(std::io::Error),
-
-    #[error("Couldn't send terminate message to Python: {0}")]
-    TerminateSend(SendError<()>),
 
     #[error("Couldn't send inbound message to runner: {0}")]
     InboundSend(#[from] SendError<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>),

@@ -74,7 +74,7 @@ impl<C> ContextPackageCreator<C> for NeighborsCreator {
 
 impl PackageCreator for NeighborsCreator {}
 
-struct Neighbors {
+pub struct Neighbors {
     topology: Arc<TopologyConfig>,
     context_field_spec_accessor: FieldSpecMapAccessor,
 }

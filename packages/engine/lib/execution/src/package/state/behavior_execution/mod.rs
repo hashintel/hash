@@ -135,7 +135,7 @@ impl<C: Comms> StatePackageCreator<C> for BehaviorExecutionCreator {
     }
 }
 
-struct BehaviorExecution<C> {
+pub struct BehaviorExecution<C> {
     behavior_ids: Arc<BehaviorIds>,
     behavior_ids_col_index: usize,
     behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],

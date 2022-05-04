@@ -66,7 +66,7 @@ impl<C> ContextPackageCreator<C> for ApiRequestsCreator {
 
 impl PackageCreator for ApiRequestsCreator {}
 
-struct ApiRequests {
+pub struct ApiRequests {
     custom_message_handlers: Option<Vec<String>>,
     context_field_spec_accessor: FieldSpecMapAccessor,
 }

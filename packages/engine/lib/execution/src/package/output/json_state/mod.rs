@@ -23,7 +23,7 @@ use crate::{
     Error, Result,
 };
 
-struct JsonState {
+pub struct JsonState {
     agent_schema: Arc<AgentSchema>,
     output_config: JsonStateOutputConfig,
 }

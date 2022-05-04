@@ -30,7 +30,7 @@ use crate::{
     Error, Result,
 };
 
-struct Analysis {
+pub struct Analysis {
     analyzer: Analyzer,
 }
 
