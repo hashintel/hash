@@ -1993,7 +1993,7 @@ fn new_js_string<'s>(
     v8::String::new(scope, s).expect(&format!("Could not create JS String: {s}"))
 }
 
-/// Helper function to get the exception from a [`v8::TryCatch`]
+/// Returns the exception from a [`v8::TryCatch`] scope.
 ///
 /// # Panics
 ///
