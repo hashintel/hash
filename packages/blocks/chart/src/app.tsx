@@ -3,11 +3,11 @@ import { BlockProtocolEntityType } from "blockprotocol";
 
 import { BlockComponent } from "blockprotocol/react";
 import {
-  Graph,
-  GraphConfigProperties,
+  Chart,
+  ChartConfigProperties,
   SeriesDefinition,
   SeriesType,
-} from "./graph";
+} from "./chart";
 
 const generateUniqueSeriesId = (params: {
   seriesDefinitions: SeriesDefinition[];
@@ -29,9 +29,9 @@ const generateUniqueSeriesId = (params: {
   return potentialSeriesId;
 };
 
-type GraphEntityConfigProperties = Partial<GraphConfigProperties>;
+type ChartEntityConfigProperties = Partial<ChartConfigProperties>;
 
-type GraphEntityProperties = {
+type ChartEntityProperties = {
   title?: string;
   xAxisLabel?: string;
   yAxisLabel?: string;
@@ -42,9 +42,9 @@ type GraphEntityProperties = {
     xAxisPropertyKey: string;
     yAxisPropertyKey: string;
   }[];
-} & GraphEntityConfigProperties;
+} & ChartEntityConfigProperties;
 
-type AppProps = GraphEntityProperties;
+type AppProps = ChartEntityProperties;
 
 export const App: BlockComponent<AppProps> = ({
   entityId,
@@ -63,10 +63,10 @@ export const App: BlockComponent<AppProps> = ({
   displayLegend = false,
 }) => {
   if (!linkedAggregations) {
-    throw new Error("linkedAggregations is required to render the Graph block");
+    throw new Error("linkedAggregations is required to render the Chart block");
   }
 
-  const currentConfigProperties = React.useMemo<GraphConfigProperties>(
+  const currentConfigProperties = React.useMemo<ChartConfigProperties>(
     () => ({
       displayDataPointLabels,
       displayLegend,
@@ -74,7 +74,7 @@ export const App: BlockComponent<AppProps> = ({
     [displayDataPointLabels, displayLegend],
   );
 
-  const currentProperties = React.useMemo<GraphEntityProperties>(
+  const currentProperties = React.useMemo<ChartEntityProperties>(
     () => ({
       title,
       xAxisLabel,
@@ -92,7 +92,7 @@ export const App: BlockComponent<AppProps> = ({
   React.useEffect(() => {
     if (!aggregateEntityTypes) {
       throw new Error(
-        "aggregateEntityTypes is required to render the Graph block",
+        "aggregateEntityTypes is required to render the Chart block",
       );
     }
     void aggregateEntityTypes({ accountId }).then(({ results }) =>
@@ -100,13 +100,13 @@ export const App: BlockComponent<AppProps> = ({
     );
   }, [aggregateEntityTypes, accountId]);
 
-  const updateGraphEntityProperties = React.useCallback(
-    async (updatedProperties: Partial<GraphEntityProperties>) => {
+  const updateChartEntityProperties = React.useCallback(
+    async (updatedProperties: Partial<ChartEntityProperties>) => {
       if (!updateEntities) {
-        throw new Error("updateEntities is required to render the Graph block");
+        throw new Error("updateEntities is required to render the Chart block");
       }
       if (!entityId) {
-        throw new Error("entityId is required to render the Graph block");
+        throw new Error("entityId is required to render the Chart block");
       }
 
       await updateEntities([
@@ -208,7 +208,7 @@ export const App: BlockComponent<AppProps> = ({
         params.updatedDefinition.seriesName
         /** @todo: check these values actually changed */
       ) {
-        await updateGraphEntityProperties({
+        await updateChartEntityProperties({
           series: [
             ...series.slice(0, seriesIndex),
             {
@@ -234,7 +234,7 @@ export const App: BlockComponent<AppProps> = ({
     [
       series,
       linkedAggregations,
-      updateGraphEntityProperties,
+      updateChartEntityProperties,
       updateLinkedAggregations,
     ],
   );
@@ -255,7 +255,7 @@ export const App: BlockComponent<AppProps> = ({
       const { seriesType, xAxisPropertyKey, yAxisPropertyKey, seriesName } =
         definition;
 
-      await updateGraphEntityProperties({
+      await updateChartEntityProperties({
         series: [
           ...series,
           {
@@ -281,7 +281,7 @@ export const App: BlockComponent<AppProps> = ({
     },
     [
       series,
-      updateGraphEntityProperties,
+      updateChartEntityProperties,
       createLinkedAggregations,
       seriesDefinitions,
       accountId,
@@ -307,7 +307,7 @@ export const App: BlockComponent<AppProps> = ({
         );
       }
 
-      await updateGraphEntityProperties({
+      await updateChartEntityProperties({
         series: series.filter(({ seriesId }) => seriesId !== params.seriesId),
       });
 
@@ -319,7 +319,7 @@ export const App: BlockComponent<AppProps> = ({
       ]);
     },
     [
-      updateGraphEntityProperties,
+      updateChartEntityProperties,
       deleteLinkedAggregations,
       accountId,
       linkedAggregations,
@@ -328,10 +328,10 @@ export const App: BlockComponent<AppProps> = ({
   );
 
   return (
-    <Graph
+    <Chart
       title={title}
       updateTitle={(updatedTitle) =>
-        updateGraphEntityProperties({ title: updatedTitle })
+        updateChartEntityProperties({ title: updatedTitle })
       }
       yAxisName={xAxisLabel}
       xAxisName={yAxisLabel}

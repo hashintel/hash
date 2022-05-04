@@ -33,12 +33,12 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 const seriesNameAutocompleteMaxWidth = 150;
 const deleteButtonWidth = 85;
 
-type EditableGraphTitleProps = {
+type EditableChartTitleProps = {
   title: string;
   updateTitle: (updatedTitle: string) => Promise<void>;
 };
 
-const EditableGraphTitle: React.FC<EditableGraphTitleProps> = ({
+const EditableChartTitle: React.FC<EditableChartTitleProps> = ({
   title: initialTitle,
   updateTitle,
 }) => {
@@ -289,7 +289,7 @@ const CreateNewSeriesDefinition: React.FC<{
   );
 };
 
-const EditableGraphSeriesDefinition: React.FC<{
+const EditableChartSeriesDefinition: React.FC<{
   possibleEntityTypes: BlockProtocolEntityType[];
   seriesDefinition: SeriesDefinition;
   updateSeriesDefinition: (params: {
@@ -469,7 +469,7 @@ const EditableGraphSeriesDefinition: React.FC<{
   );
 };
 
-const EditableGraphSeriesDefinitions: React.FC<{
+const EditableChartSeriesDefinitions: React.FC<{
   possibleEntityTypes: BlockProtocolEntityType[];
   seriesDefinitions: SeriesDefinition[];
   updateSeriesDefinition: (params: {
@@ -499,7 +499,7 @@ const EditableGraphSeriesDefinitions: React.FC<{
   return (
     <>
       {seriesDefinitions.map((seriesDefinition) => (
-        <EditableGraphSeriesDefinition
+        <EditableChartSeriesDefinition
           key={seriesDefinition.seriesId}
           possibleEntityTypes={possibleEntityTypes}
           seriesDefinition={seriesDefinition}
@@ -538,14 +538,14 @@ const EditableGraphSeriesDefinitions: React.FC<{
 
 type EChartSeries = NonNullable<ECOption["series"]>;
 
-export type GraphConfigProperties = {
+export type ChartConfigProperties = {
   displayDataPointLabels: boolean;
   displayLegend: boolean;
 };
 
 const mapSeriesDefinitionsToEChartSeries = (params: {
   seriesDefinitions: SeriesDefinition[];
-  config: GraphConfigProperties;
+  config: ChartConfigProperties;
 }): EChartSeries =>
   params.seriesDefinitions.map(
     ({
@@ -595,7 +595,7 @@ const mapSeriesDefinitionsToEChartSeries = (params: {
     },
   );
 
-type GraphProps = {
+type ChartProps = {
   title: string;
   updateTitle: (newTitle: string) => Promise<void>;
   xAxisName: string;
@@ -612,10 +612,10 @@ type GraphProps = {
     definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
   }) => Promise<void>;
   deleteSeriesDefinition: (params: { seriesId: string }) => Promise<void>;
-  config: GraphConfigProperties;
+  config: ChartConfigProperties;
 };
 
-export const Graph: React.FC<GraphProps> = ({
+export const Chart: React.FC<ChartProps> = ({
   title,
   updateTitle,
   xAxisName,
@@ -634,7 +634,7 @@ export const Graph: React.FC<GraphProps> = ({
 
   return (
     <>
-      <EditableGraphTitle title={title} updateTitle={updateTitle} />
+      <EditableChartTitle title={title} updateTitle={updateTitle} />
       <EChart
         options={{
           /** @todo: figure out why this isn't working */
@@ -654,7 +654,7 @@ export const Graph: React.FC<GraphProps> = ({
           series,
         }}
       />
-      <EditableGraphSeriesDefinitions
+      <EditableChartSeriesDefinitions
         possibleEntityTypes={possibleEntityTypes}
         seriesDefinitions={seriesDefinitions}
         updateSeriesDefinition={updateSeriesDefinition}
