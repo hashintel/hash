@@ -122,12 +122,11 @@ impl<'s> JsPackage<'s> {
                 // Get the function `Value` from the namespace
                 let func_or_undefined: Value<'_> = namespace
                     .get(&mut try_catch_scope, js_fn_name.into())
-                    .ok_or_else(|| {
-                        let exception = exception_as_error(&mut try_catch_scope);
-
+                    .ok_or_else(|| exception_as_error(&mut try_catch_scope))
+                    .map_err(|err| {
                         Error::PackageImport(
                             path.clone(),
-                            format!("Could not get function from package: {exception}"),
+                            format!("Could not get function from package: {err}"),
                         )
                     })?;
 
@@ -230,21 +229,17 @@ fn import_module<'s>(
         )),
     );
     let mut try_catch_scope = v8::TryCatch::new(scope);
-    let module =
-        v8::script_compiler::compile_module(&mut try_catch_scope, source).ok_or_else(|| {
-            let exception = exception_as_error(&mut try_catch_scope);
-
-            Error::Eval(path.to_string(), format!("Compile error: {exception}"))
-        })?;
+    let module = v8::script_compiler::compile_module(&mut try_catch_scope, source)
+        .ok_or_else(|| exception_as_error(&mut try_catch_scope))
+        .map_err(|err| Error::Eval(path.to_string(), format!("Compile error: {err}")))?;
 
     module
         .instantiate_module(&mut try_catch_scope, module_resolve_callback)
-        .ok_or_else(|| {
-            let exception = exception_as_error(&mut try_catch_scope);
-
+        .ok_or_else(|| exception_as_error(&mut try_catch_scope))
+        .map_err(|err| {
             Error::PackageImport(
                 path.to_string(),
-                format!("Could not instantiate code for package: {exception}"),
+                format!("Could not instantiate code for package: {err}"),
             )
         })?;
 
@@ -255,14 +250,15 @@ fn import_module<'s>(
         ));
     }
 
-    module.evaluate(&mut try_catch_scope).ok_or_else(|| {
-        let exception = exception_as_error(&mut try_catch_scope);
-
-        Error::PackageImport(
-            path.to_string(),
-            format!("Could not evaluate code for package: {exception}"),
-        )
-    })?;
+    module
+        .evaluate(&mut try_catch_scope)
+        .ok_or_else(|| exception_as_error(&mut try_catch_scope))
+        .map_err(|err| {
+            Error::PackageImport(
+                path.to_string(),
+                format!("Could not evaluate code for package: {err}"),
+            )
+        })?;
 
     // `v8::Module::evaluate` can return `Some` even though the evaluation didn't
     // succeed
