@@ -113,6 +113,7 @@ export const Table: BlockComponent<AppProps> = ({
   aggregateEntities,
   aggregateEntityTypes,
   createLinkedAggregations,
+  deleteLinkedAggregations,
   entityId,
   entityTypeId,
   entityTypes: schemas,
@@ -452,8 +453,8 @@ export const Table: BlockComponent<AppProps> = ({
         );
       }
 
-      if (updatedEntityTypeId && tableData.linkedAggregation) {
-        if (tableData?.linkedAggregation) {
+      if (updatedEntityTypeId) {
+        if (tableData.linkedAggregation) {
           void updateLinkedAggregations([
             cleanUpdateLinkedAggregationAction({
               sourceAccountId: accountId,
@@ -478,14 +479,22 @@ export const Table: BlockComponent<AppProps> = ({
             },
           ]);
         }
+      } else if (tableData.linkedAggregation) {
+        void deleteLinkedAggregations?.([
+          {
+            sourceAccountId: accountId,
+            aggregationId: tableData.linkedAggregation.aggregationId,
+          },
+        ]);
       }
     },
     [
       accountId,
+      createLinkedAggregations,
+      deleteLinkedAggregations,
       entityId,
       tableData.linkedAggregation,
       updateLinkedAggregations,
-      createLinkedAggregations,
     ],
   );
 
