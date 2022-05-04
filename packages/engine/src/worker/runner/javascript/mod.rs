@@ -313,6 +313,7 @@ impl<'s> Embedded<'s> {
     fn import_common_js_files(scope: &mut v8::HandleScope<'s>) -> Result<Self> {
         // `hash_stdlib` can't be imported as a module because it needs to be available globally for
         // behaviors.
+        // TODO: stop evaluating the file and use proper import for behaviors. https://app.asana.com/0/1199548034582004/1202225025969133/f
         let hash_stdlib = eval_file(scope, "./src/worker/runner/javascript/hash_stdlib.js")?;
         let hash_stdlib_str = new_js_string(scope, "hash_stdlib");
         scope
