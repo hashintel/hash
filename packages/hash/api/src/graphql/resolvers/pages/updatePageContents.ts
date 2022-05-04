@@ -84,8 +84,6 @@ export const updatePageContents: Resolver<
           (swapBlockData): swapBlockData is SwapBlockData => !!swapBlockData,
         )
         .map(async (swapBlockData) => {
-          console.log(swapBlockData, "\n\n\n\n");
-
           const block = await Block.getBlockById(client, {
             accountId: swapBlockData.accountId,
             entityId: swapBlockData.entityId,
@@ -103,6 +101,24 @@ export const updatePageContents: Resolver<
           if (!blockDataEntity) {
             throw new Error("");
           }
+
+          const blockEntity = await Entity.getEntityLatestVersion(client, {
+            accountId: swapBlockData.accountId,
+            entityId: swapBlockData.entityId,
+          });
+
+          // forced updatedAt property to update.
+          // This is done because the frontend currently uses to `updatedAt` property
+          // to determine the most recent entity, when it comes across an entity that
+          // is also present in entity store. That field doesn't get updated when a block's
+          // data is swapped.
+          // This shouldn't be done since we can check if a block's data has been swapped by
+          // checking `createdAt` value of the outgoing `$.data` link.
+          // This is should be removed once the frontend has been refactored to full rely on links
+          await blockEntity?.updateEntityProperties(client, {
+            updatedByAccountId: swapBlockData.accountId,
+            properties: blockEntity.properties,
+          });
 
           return await block.updateBlockData(client, {
             updatedDataEntity: blockDataEntity,
