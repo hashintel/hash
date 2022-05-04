@@ -1,3 +1,5 @@
+//! Package to create an API request and store the result in the context.
+
 mod fields;
 mod handlers;
 mod response;

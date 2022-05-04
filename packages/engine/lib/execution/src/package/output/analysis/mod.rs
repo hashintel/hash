@@ -1,3 +1,5 @@
+//! Defines metrics to be used to plot simulation data.
+
 #[macro_use]
 mod macros;
 

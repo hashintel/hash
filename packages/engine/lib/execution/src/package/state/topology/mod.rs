@@ -1,3 +1,5 @@
+//! Corrects position and direction of agents according to the simulations topology.
+
 mod config;
 
 use std::sync::Arc;

@@ -1,3 +1,5 @@
+//! Raw state data output.
+
 mod config;
 mod output;
 

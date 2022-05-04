@@ -1,3 +1,5 @@
+//! Initial state generation from a fixed JSON file.
+
 use async_trait::async_trait;
 use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 

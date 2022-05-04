@@ -1,3 +1,5 @@
+//! Executing behaviors on agents in language runners.
+
 mod behavior;
 mod chain;
 mod config;

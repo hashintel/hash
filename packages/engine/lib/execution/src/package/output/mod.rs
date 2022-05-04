@@ -1,3 +1,15 @@
+//! Packages for feedback on the simulation runs State.
+//!
+//! [`OutputPackage`]s only have read access to the [`State`] and [`Context`] and are able to
+//! return an [`Output`].
+//!
+//! For implementations please see the submodules of this module.
+//!
+//! [`State`]: stateful::state::State
+//! [`Context`]: stateful::context::Context
+//! [`Agent`]: stateful::agent::Agent
+//! [`AgentMessages`]: crate::package::context::agent_messages::AgentMessages
+
 pub mod analysis;
 pub mod json_state;
 

@@ -1,3 +1,17 @@
+//! State packages determine how the agent state changes.
+//!
+//! [`StatePackage`]s are able to modify the current [`State`] and has read access to the
+//! [`Context`]. However, it's **not** possible to add new [`Agent`]s directly to the [`State`] as
+//! the ordering of the [`State`] is important. To add or remove [`Agent`]s, use the
+//! [`AgentMessages`] context package.
+//!
+//! For implementations please see the submodules of this module.
+//!
+//! [`State`]: stateful::state::State
+//! [`Context`]: stateful::context::Context
+//! [`Agent`]: stateful::agent::Agent
+//! [`AgentMessages`]: crate::package::context::agent_messages::AgentMessages
+
 pub mod behavior_execution;
 pub mod topology;
 

@@ -1,3 +1,5 @@
+//! Messages sending between agents and to the engine.
+
 mod collected;
 mod fields;
 mod indices;

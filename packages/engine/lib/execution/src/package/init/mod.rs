@@ -1,3 +1,13 @@
+//! Creation of the engines initial state.
+//!
+//! [`InitPackage`]s are responsible to *create* the [`State`]. They get their data only when
+//! creating the package or by messages, no [`State`] or [`Context`] is passed to a package.
+//!
+//! For implementations please see the submodules of this module.
+//!
+//! [`State`]: stateful::state::State
+//! [`Context`]: stateful::context::Context
+
 pub mod js_py;
 pub mod json;
 

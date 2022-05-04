@@ -1,3 +1,13 @@
+//! Context packages determine how the context looks like.
+//!
+//! [`ContextPackage`]s are the only type of packages, which are able to modify the [`Context`]. It
+//! has read access to the [`State`].
+//!
+//! For implementations please see the submodules of this module.
+//!
+//! [`State`]: stateful::state::State
+//! [`Context`]: stateful::context::Context
+
 pub mod agent_messages;
 pub mod api_requests;
 pub mod neighbors;

@@ -1,4 +1,51 @@
-//! # Creating a new package
+//! # The hEngine Package System
+//!
+//! The Package System defines the building blocks of HASH Simulation, specifying the stages of
+//! execution, and the types of logic that can be ran.
+//!
+//! The only invariant that the engine expects of a simulation project is that it creates a set of
+//! [`Agent`]s backed by the data defined in [`stateful`], which may have their state changed as
+//! simulation time progresses.
+//!
+//! The rest of the engine logic itself is defined within packages, self-contained implementations
+//! that can affect the simulation initialisation, logic, and outputs.
+//!
+//! For example, if the [`BehaviorExecution`] State Package is enabled, then the engine will execute
+//! behaviors on agents, depending on the behavior lists of the agents.
+//!
+//! [`Agent`]: stateful::agent::Agent
+//! [`BehaviorExecution`]: state::behavior_execution::BehaviorExecution
+//!
+//! ## Package types
+//!
+//! The [`Package`] System consists of 4 types of interfaces for 4 types of simulation packages:
+//! - [`init`]alization
+//! - [`context`]
+//! - [`state`]
+//! - [`output`]
+//!
+//! Each of these have different effects and entry points. All packages are either independent or
+//! state explicit [`Dependencies`] on other [`Package`]s. Also, all packages can be stateful. As
+//! statefulness implies initialization of state, each stateful package can have an initialization
+//! phase, either in [`PackageCreator::init_message()`] or in [`Package::start_message()`].
+//!
+//! For more information on the different [`PackageType`]s please see the corresponding module
+//! documentation.
+//!
+//! ## Package execution
+//!
+//! The [`InitPackage`]s will be run only once at the beginning of a simulation.
+//! [`context`], [`state`], and [`output`] packages will be run in every simulation step in that
+//! order. [`ContextPackage`]s and [`OutputPackage`]s will run in parallel, while [`StatePackage`]s
+//! are running sequentially. This is because each [`PackageType`] has a different signature when
+//! invoking and [`StatePackage`]s requires write access to the [`State`](stateful::state::State).
+//!
+//! [`InitPackage`]: init::InitPackage
+//! [`ContextPackage`]: context::ContextPackage
+//! [`StatePackage`]: state::StatePackage
+//! [`OutputPackage`]: output::OutputPackage
+//!
+//! ## Creating a new package
 //!
 //! The following example will guide through creating and enabling a new, simple state package.
 //!
@@ -212,6 +259,10 @@ pub trait Package: Send {
     }
 }
 
+/// Packages, which are running in parallel, may be bound by the CPU.
+///
+/// If a package is CPU bound, it's executed on a separate thread, otherwise it's executed in the
+/// same thread.
 pub trait MaybeCpuBound {
     fn cpu_bound(&self) -> bool;
 }

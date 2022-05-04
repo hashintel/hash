@@ -1,3 +1,5 @@
+//! Generates the initial state from a provided JavaScript or Python script.
+
 mod message;
 mod task;
 
