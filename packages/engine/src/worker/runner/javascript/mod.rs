@@ -2005,23 +2005,19 @@ where
     let exception = try_catch_scope
         .exception()
         .expect("Expected try catch scope to have caught an exception");
-    let exception_message = try_catch_scope.message();
 
-    let mut returned_string = exception
+    let exception_message = try_catch_scope.message().map(|exception_message| {
+        exception_message
+            .get(try_catch_scope.as_mut())
+            .to_rust_string_lossy(try_catch_scope.as_mut())
+    });
+
+    let exception_string = exception
         .to_string(try_catch_scope.as_mut())
         .unwrap()
         .to_rust_string_lossy(try_catch_scope.as_mut());
 
-    if let Some(exception_message) = exception_message {
-        returned_string.push_str(", Exception message: ");
-        returned_string.push_str(
-            &exception_message
-                .get(try_catch_scope.as_mut())
-                .to_rust_string_lossy(try_catch_scope.as_mut()),
-        )
-    }
-
-    Error::V8(returned_string)
+    Error::JavascriptException(exception_string, exception_message)
 }
 
 fn import_and_get_module_namespace<'s>(
