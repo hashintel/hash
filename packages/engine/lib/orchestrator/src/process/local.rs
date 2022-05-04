@@ -1,4 +1,5 @@
 use std::{
+    fs::remove_file,
     path::{Path, PathBuf},
     process::ExitStatus,
 };
@@ -43,6 +44,9 @@ impl process::Process for LocalProcess {
                 _ => Err(Report::new(e)),
             })
             .wrap_err("Could not kill the process");
+
+        remove_file(format!("run-{experiment_id}"))
+            .wrap_err("Couldn't remove the engine socket file.")?;
 
         cleanup_experiment(experiment_id);
 
