@@ -45,8 +45,21 @@ impl process::Process for LocalProcess {
             })
             .wrap_err("Could not kill the process");
 
-        remove_file(format!("run-{experiment_id}"))
-            .wrap_err("Couldn't remove the engine socket file.")?;
+        let engine_socket_path = format!("run-{experiment_id}");
+        match std::fs::remove_file(&engine_socket_path) {
+            Ok(_) => {
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Removed file {engine_socket_path:?} that should've been cleanup by the engine."
+                );
+            }
+            Err(err) => {
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Could not clean up {engine_socket_path:?}: {err}"
+                );
+            }
+        }
 
         cleanup_experiment(experiment_id);
 
