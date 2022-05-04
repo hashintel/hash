@@ -165,18 +165,14 @@ fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s
     let source_code = read_file(path)?;
     let js_source_code = new_js_string(scope, &source_code);
     let mut try_catch_scope = v8::TryCatch::new(scope);
-    let script =
-        v8::Script::compile(&mut try_catch_scope, js_source_code, None).ok_or_else(|| {
-            let exception = exception_as_error(&mut try_catch_scope);
+    let script = v8::Script::compile(&mut try_catch_scope, js_source_code, None)
+        .ok_or_else(|| exception_as_error(&mut try_catch_scope))
+        .map_err(|err| Error::Eval(path.into(), format!("Compile error: {err}")))?;
 
-            Error::Eval(path.into(), format!("Compile error: {exception}"))
-        })?;
-
-    script.run(&mut try_catch_scope).ok_or_else(|| {
-        let exception = exception_as_error(&mut try_catch_scope);
-
-        Error::Eval(path.into(), format!("Execution error: {exception}"))
-    })
+    script
+        .run(&mut try_catch_scope)
+        .ok_or_else(|| exception_as_error(&mut try_catch_scope))
+        .map_err(|err| Error::Eval(path.into(), format!("Execution error: {err}")))
 }
 
 /// Caches module to not evaluate them twice as this is against the [JavaScript Specifications].
