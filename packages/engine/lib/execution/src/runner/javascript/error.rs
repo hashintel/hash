@@ -82,6 +82,15 @@ pub enum JavaScriptError {
 
     #[error("serde: {0:?}")]
     Serde(#[from] serde_json::Error),
+
+    #[error("Couldn't access JavaScript file {0}: {1}")]
+    AccessJavascriptImport(String, String),
+
+    #[error("Exception occurred in JavaScript: {0}{}", match .1 {
+        Some(exception_message) => format!(", with exception message: {exception_message}"),
+        None => String::new()
+    })]
+    JavascriptException(String, Option<String>),
 }
 
 impl From<&str> for JavaScriptError {

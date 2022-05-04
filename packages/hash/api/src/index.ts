@@ -245,6 +245,18 @@ const main = async () => {
     cors: CORS_CONFIG,
   });
 
+  // Start the HTTP server before setting up collab
+  // This is done because the Redis client blocks when instantiated
+  // and we must ensure that the health checks are available ASAP.
+  // It is not a problem to set up collab after the fact that we begin listening.
+  await new Promise<void>((resolve) => {
+    httpServer.listen({ port }, () => {
+      logger.info(`Listening on port ${port}`);
+      logger.info(`GraphQL path: ${apolloServer.graphqlPath}`);
+      resolve();
+    });
+  });
+
   // Connect to Redis queue for collab
   const collabRedisClient = new AsyncRedisClient(logger, {
     host: getRequiredEnv("HASH_REDIS_HOST"),
@@ -262,15 +274,6 @@ const main = async () => {
   const collabApp = await createCollabApp(collabRedisQueue);
   shutdown.addCleanup("collabApp", async () => collabApp.stop());
   app.use("/collab-backend", collabApp.router);
-
-  // Start the HTTP server
-  await new Promise<void>((resolve) => {
-    httpServer.listen({ port }, () => {
-      logger.info(`Listening on port ${port}`);
-      logger.info(`GraphQL path: ${apolloServer.graphqlPath}`);
-      resolve();
-    });
-  });
 };
 
 void main().catch(async (err) => {
