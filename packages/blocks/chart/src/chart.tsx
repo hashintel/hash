@@ -90,9 +90,22 @@ export type SeriesDefinition = {
 
 const parsePossiblePropertyKeysFromEntityType = (
   entityType: BlockProtocolEntityType,
-) =>
+): string[] =>
   entityType.properties && typeof entityType.properties === "object"
-    ? Object.keys(entityType.properties)
+    ? Object.entries(entityType.properties)
+        .filter(
+          ([_, propertyDefinition]) =>
+            typeof propertyDefinition === "object" &&
+            !Array.isArray(propertyDefinition) &&
+            ((typeof propertyDefinition.type === "string" &&
+              (propertyDefinition.type === "number" ||
+                propertyDefinition.type === "integer")) ||
+              (typeof propertyDefinition.type === "object" &&
+                Array.isArray(propertyDefinition.type) &&
+                (propertyDefinition.type.includes("number") ||
+                  propertyDefinition.type.includes("integer")))),
+        )
+        .map(([propertyKey]) => propertyKey)
     : [];
 
 const CreateNewSeriesDefinition: React.FC<{
@@ -576,30 +589,17 @@ const mapSeriesDefinitionsToEChartSeries = (params: {
             }
           : undefined,
         data: aggregationResults
-          .map<[number, number]>((properties) => {
-            if (!properties[xAxisPropertyKey]) {
-              throw new Error(
-                `No property with key '${xAxisPropertyKey}' found on entity`,
-              );
-            }
-            if (!properties[xAxisPropertyKey]) {
-              throw new Error(
-                `No property with key '${xAxisPropertyKey}' found on entity`,
-              );
-            }
-
-            const xValue = properties[xAxisPropertyKey];
-            if (typeof xValue !== "number") {
-              throw new Error("The x value is not a number");
-            }
-
-            const yValue = properties[yAxisPropertyKey];
-            if (typeof yValue !== "number") {
-              throw new Error("The y value is not a number");
-            }
-
-            return [xValue, yValue];
-          })
+          .map<[unknown, unknown]>((properties) => [
+            properties[xAxisPropertyKey],
+            properties[yAxisPropertyKey],
+          ])
+          .filter(
+            (pair): pair is [number, number] =>
+              !!pair[0] &&
+              typeof pair[0] === "number" &&
+              !!pair[1] &&
+              typeof pair[1] === "number",
+          )
           // sort the series in order of their x value
           .sort(([ax], [bx]) => ax - bx),
       };
