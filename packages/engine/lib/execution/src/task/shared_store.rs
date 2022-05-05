@@ -33,7 +33,7 @@ impl TaskSharedStore {
 
 /// Partial write access to the state pools.
 ///
-/// This only holds a subset of the state pools' batches specified by `group_indices`. Used in
+/// This only holds a subset of the agent and message batches specified by `group_indices`. Used in
 /// [`PartialSharedState`] to have read and write access to different batches.
 #[derive(Debug)]
 pub struct PartialStateWriteProxy {
