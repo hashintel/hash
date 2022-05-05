@@ -46,7 +46,7 @@ impl process::Process for LocalProcess {
             .wrap_err("Could not kill the process");
 
         let engine_socket_path = format!("run-{experiment_id}");
-        match std::fs::remove_file(&engine_socket_path) {
+        match remove_file(&engine_socket_path) {
             Ok(_) => {
                 tracing::warn!(
                     experiment = %experiment_id,
