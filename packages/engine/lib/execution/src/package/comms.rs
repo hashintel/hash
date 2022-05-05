@@ -70,12 +70,24 @@ impl<C: Comms> PackageComms<C> {
             .await
     }
 
-    // TODO: UNUSED: triage
+    /// Adds a command to create the specified [`Agent`].
+    ///
+    /// # Errors
+    ///
+    /// This function can fail if it's unable to acquire a write lock.
+    // TODO: This is currently unused as messages are used to add agents, however, other packages
+    //   may should be able to add agents as well
     pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
         self.comms.add_create_agent_command(agent)
     }
 
-    // TODO: UNUSED: triage
+    /// Adds a command to removed the [`Agent`] specified by it's `agent_id`.
+    ///
+    /// # Errors
+    ///
+    /// This function can fail if it's unable to acquire a write lock.
+    // TODO: This is currently unused as messages are used to remove agents, however, other packages
+    //   may should be able to remove agents as well
     pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
         self.comms.add_remove_agent_command(uuid)
     }
