@@ -42,7 +42,7 @@ mod pending;
 pub mod runs;
 
 /// TODO: DOC
-pub struct WorkerPoolController {
+pub struct WorkerPool {
     workers: Option<Vec<Worker>>,
     comms: WorkerPoolCommsWithWorkers,
     simulation_runs: SimulationRuns,
@@ -55,7 +55,7 @@ pub struct WorkerPoolController {
     worker_config: Option<WorkerConfig>,
 }
 
-impl WorkerPoolController {
+impl WorkerPool {
     pub fn new_with_sender(
         config: Arc<config::ExperimentConfig>,
         experiment_control_recv: ExpMsgRecv,
@@ -74,7 +74,7 @@ impl WorkerPoolController {
         let pending_tasks = PendingWorkerPoolTasks::default();
 
         Ok((
-            WorkerPoolController {
+            WorkerPool {
                 workers: None,
                 comms,
                 simulation_runs,

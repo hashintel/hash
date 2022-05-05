@@ -25,7 +25,7 @@ use crate::{
     },
     proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
-    workerpool::WorkerPoolController,
+    workerpool::WorkerPool,
     Error as CrateError,
 };
 
@@ -121,13 +121,12 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         worker_pool::comms::top::new_pair();
     let (mut worker_pool_terminate_send, worker_pool_terminate_recv) =
         worker_pool::comms::terminate::new_pair();
-    let (mut worker_pool_controller, worker_pool_send_base) =
-        WorkerPoolController::new_with_sender(
-            exp_config.clone(),
-            experiment_to_worker_pool_recv,
-            worker_pool_terminate_recv,
-            worker_pool_controller_send,
-        )?;
+    let (mut worker_pool_controller, worker_pool_send_base) = WorkerPool::new_with_sender(
+        exp_config.clone(),
+        experiment_to_worker_pool_recv,
+        worker_pool_terminate_recv,
+        worker_pool_controller_send,
+    )?;
 
     // Start up the experiment package (simple/single)
     let experiment_package = ExperimentPackage::new(exp_config.clone())
