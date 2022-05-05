@@ -31,7 +31,7 @@ impl TaskSharedStore {
     }
 }
 
-/// Partial write access to the agent and message pool.
+/// Partial write access to the agent pool and message pool.
 ///
 /// This only holds a subset of the agent and message batches specified by `group_indices`. Used in
 /// [`PartialSharedState`] to have read and write access to different batches.
@@ -41,7 +41,7 @@ pub struct PartialStateWriteProxy {
     pub state_proxy: StateWriteProxy,
 }
 
-/// Partial read access to the agent and message pool.
+/// Partial read access to the agent pool and message pool.
 ///
 /// This only holds a subset of the agent and message batches specified by `group_indices`. Used in
 /// [`PartialSharedState`] to have read and write access to different batches.
@@ -51,7 +51,7 @@ pub struct PartialStateReadProxy {
     pub state_proxy: StateReadProxy,
 }
 
-/// Fine-grained access to the agent and message pool.
+/// Fine-grained access to the agent pool and message pool.
 ///
 /// Can either hold proxies for all batches (read or write) or partially borrow a subset of batches.
 #[derive(Debug)]
@@ -138,7 +138,7 @@ impl TaskSharedStoreBuilder {
     }
 }
 
-/// Partial read or write access to the agent and message pool.
+/// Partial read or write access to the agent pool and message pool.
 ///
 /// This enables both read and write access to different non-overlapping subsets of the state.
 #[derive(Debug)]
