@@ -6,7 +6,7 @@ pub mod top;
 use execution::{
     runner::comms::{NewSimulationRun, PackageError, RunnerError, UserError, UserWarning},
     task::TaskId,
-    worker::SyncPayload,
+    worker::{SyncPayload, WorkerTask, WorkerTaskResultOrCancelled},
     worker_pool::WorkerIndex,
 };
 use simulation_structure::SimulationShortId;
@@ -21,12 +21,9 @@ pub use self::{
     main::{new_no_sim, MainMsgRecv, MainMsgSend},
     terminate::TerminateRecv,
 };
-use crate::{
-    worker::task::{WorkerTask, WorkerTaskResultOrCancelled},
-    workerpool::{
-        comms::terminate::TerminateMessage,
-        error::{Error, Result},
-    },
+use crate::workerpool::{
+    comms::terminate::TerminateMessage,
+    error::{Error, Result},
 };
 
 #[derive(Debug)]

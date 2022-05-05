@@ -5,7 +5,7 @@ use execution::{
     package::PackageTask,
     runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
     task::{Task, TaskDistributionConfig, TaskId, TaskSharedStore},
-    worker::{SyncPayload, WorkerConfig},
+    worker::{SyncPayload, WorkerConfig, WorkerTask},
     worker_pool::{WorkerIndex, WorkerPoolConfig, WorkerPoolHandler},
 };
 use futures::{
@@ -31,7 +31,7 @@ use self::{
 use crate::{
     config::{self},
     simulation::comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
-    worker::{task::WorkerTask, Worker},
+    worker::Worker,
     workerpool::comms::{
         top::WorkerPoolToExpCtlMsg, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
         WorkerToWorkerPoolMsg,
@@ -423,8 +423,13 @@ impl WorkerPoolController {
         Ok((
             triples
                 .into_iter()
-                .map(|(worker, task, store)| {
-                    (worker, WorkerTask::new(task_id, package_id, task, store))
+                .map(|(worker, task, shared_store)| {
+                    (worker, WorkerTask {
+                        task_id,
+                        package_id,
+                        task,
+                        shared_store,
+                    })
                 })
                 .collect(),
             original_task,

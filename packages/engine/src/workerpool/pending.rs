@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use execution::{
     package::PackageTask,
     task::{CancelTask, TaskId, TaskMessage, TaskResultOrCancelled},
+    worker::WorkerTaskResultOrCancelled,
     worker_pool::{WorkerIndex, WorkerPoolHandler},
 };
 use tokio::sync::oneshot;
 
 use crate::{
     simulation::comms::active::ActiveTaskExecutorComms,
-    worker::task::WorkerTaskResultOrCancelled,
     workerpool::{Error, Result},
 };
 

@@ -2,6 +2,7 @@ mod config;
 mod handler;
 mod init;
 mod sync;
+mod task;
 
 pub use self::{
     config::{RunnerSpawnConfig, WorkerConfig},
@@ -11,4 +12,5 @@ pub use self::{
         ContextBatchSync, StateSync, SyncCompletionReceiver, SyncCompletionSender, SyncPayload,
         WaitableStateSync,
     },
+    task::{WorkerTask, WorkerTaskResultOrCancelled},
 };

@@ -7,7 +7,6 @@
 
 mod error;
 mod pending;
-pub mod task;
 
 use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration};
 
@@ -20,7 +19,10 @@ use execution::{
         JavaScriptRunner, Language, MessageTarget, PythonRunner, RunnerConfig, RustRunner,
     },
     task::{SharedState, TaskId, TaskMessage, TaskResultOrCancelled, TaskSharedStore},
-    worker::{RunnerSpawnConfig, SyncPayload, WorkerConfig, WorkerHandler},
+    worker::{
+        RunnerSpawnConfig, SyncPayload, WorkerConfig, WorkerHandler, WorkerTask,
+        WorkerTaskResultOrCancelled,
+    },
 };
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
@@ -31,10 +33,7 @@ use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
-use self::{
-    pending::PendingWorkerTasks,
-    task::{WorkerTask, WorkerTaskResultOrCancelled},
-};
+use self::pending::PendingWorkerTasks;
 use crate::{
     worker::pending::{PendingGroup, PendingWorkerTask},
     workerpool::comms::{
@@ -607,7 +606,7 @@ impl Worker {
     /// [`PartialSharedState::split_into_individual_per_group`]: crate::datastore::table::task_shared_store::PartialSharedState::split_into_individual_per_group
     async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
         let task_id = task.task_id;
-        let msg = WorkerHandler::start_message(&task.inner)?;
+        let msg = WorkerHandler::start_message(&task.task)?;
 
         let context = task.shared_store.context().clone();
         let shared_stores = match task.shared_store.state {
@@ -670,7 +669,7 @@ impl Worker {
         if self
             .tasks
             .inner
-            .insert(task_id, PendingWorkerTask::new(task.inner, pending_groups))
+            .insert(task_id, PendingWorkerTask::new(task.task, pending_groups))
             .is_some()
         {
             return Err(Error::TaskAlreadyExists(task_id));
