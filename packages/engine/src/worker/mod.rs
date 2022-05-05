@@ -19,7 +19,7 @@ use execution::{
         },
         JavaScriptRunner, Language, MessageTarget, PythonRunner, RunnerConfig, RustRunner,
     },
-    task::{SharedState, SharedStore, TaskId, TaskMessage, TaskResultOrCancelled},
+    task::{SharedState, TaskId, TaskMessage, TaskResultOrCancelled, TaskSharedStore},
     worker::{RunnerSpawnConfig, SyncPayload, WorkerConfig, WorkerHandler},
 };
 use futures::{
@@ -402,7 +402,7 @@ impl WorkerController {
         group_index: Option<usize>,
         _source: Language,
         message: TaskMessage,
-        shared_store: SharedStore,
+        shared_store: TaskSharedStore,
     ) -> Result<()> {
         // `shared_store` metaversioning should have been kept updated
         // by the runners, so it doesn't need to be updated at this point.
@@ -623,7 +623,7 @@ impl WorkerController {
                     let group_index = shared_state.indices()[0];
                     (
                         Some(group_index),
-                        SharedStore::new(SharedState::Partial(shared_state), context.clone()),
+                        TaskSharedStore::new(SharedState::Partial(shared_state), context.clone()),
                     )
                 })
                 .collect(),

@@ -35,7 +35,7 @@ use simulation_structure::SimulationShortId;
 use stateful::{
     agent::AgentBatch,
     field::PackageId,
-    global::{Globals, SharedDatasets},
+    global::{Globals, SharedStore},
     message::MessageBatch,
     state::StateWriteProxy,
 };
@@ -57,7 +57,7 @@ use crate::{
         javascript::{JavaScriptError as Error, JavaScriptResult as Result},
         Language, MessageTarget,
     },
-    task::{PartialSharedState, SharedState, SharedStore, TaskId, TaskMessage},
+    task::{PartialSharedState, SharedState, TaskId, TaskMessage, TaskSharedStore},
     worker::{ContextBatchSync, StateSync, WaitableStateSync},
 };
 
@@ -420,7 +420,7 @@ fn current_step_to_js<'s>(scope: &mut v8::HandleScope<'s>, current_step: usize) 
 }
 
 fn batches_from_shared_store(
-    shared_store: &SharedStore,
+    shared_store: &TaskSharedStore,
 ) -> Result<(Vec<&AgentBatch>, Vec<&MessageBatch>, Vec<usize>)> {
     // TODO: Remove duplication between read and write access
     Ok(match &shared_store.state {
@@ -803,7 +803,7 @@ fn get_next_task<'s>(
 impl<'s> ThreadLocalRunner<'s> {
     fn load_datasets(
         scope: &mut v8::HandleScope<'s>,
-        shared_ctx: &SharedDatasets,
+        shared_ctx: &SharedStore,
     ) -> Result<Value<'s>> {
         let js_datasets = v8::Object::new(scope);
         for (dataset_name, dataset) in shared_ctx.datasets.iter() {
@@ -1337,7 +1337,7 @@ impl<'s> ThreadLocalRunner<'s> {
         &mut self,
         scope: &mut v8::HandleScope<'s>,
         sim_run_id: SimulationShortId,
-        shared_store: &mut SharedStore,
+        shared_store: &mut TaskSharedStore,
         return_val: Object<'s>,
     ) -> Result<()> {
         let (proxy, group_indices) = match &mut shared_store.state {
@@ -1575,7 +1575,7 @@ impl<'s> ThreadLocalRunner<'s> {
         package_id: PackageId,
         task_id: TaskId,
         wrapper: &serde_json::Value,
-        mut shared_store: SharedStore,
+        mut shared_store: TaskSharedStore,
     ) -> Result<(
         TargetedRunnerTaskMsg,
         Option<Vec<UserWarning>>,
@@ -1693,7 +1693,7 @@ impl<'s> ThreadLocalRunner<'s> {
         &mut self,
         scope: &mut v8::HandleScope<'s>,
         sim_id: SimulationShortId,
-        shared_store: &SharedStore,
+        shared_store: &TaskSharedStore,
     ) -> Result<()> {
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;

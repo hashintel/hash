@@ -17,7 +17,7 @@ use crate::{
         python::fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
         MessageTarget,
     },
-    task::{PartialSharedState, SharedState, SharedStore},
+    task::{PartialSharedState, SharedState, TaskSharedStore},
     worker_pool::WorkerIndex,
 };
 
@@ -316,7 +316,7 @@ fn state_sync_to_fbs<'f>(
 // TODO: Reduce code duplication between enum variants.
 fn shared_store_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
-    shared_store: &SharedStore,
+    shared_store: &TaskSharedStore,
 ) -> WIPOffset<flatbuffers_gen::sync_state_interim_generated::StateInterimSync<'f>> {
     let (agent_batches, msg_batches, indices) = match &shared_store.state {
         SharedState::None => (vec![], vec![], vec![]),

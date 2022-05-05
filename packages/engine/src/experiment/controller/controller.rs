@@ -4,7 +4,7 @@ use execution::runner::comms::{
     DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun,
 };
 use simulation_structure::SimulationShortId;
-use stateful::global::SharedDatasets;
+use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 
 use crate::{
@@ -48,7 +48,7 @@ pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
     // TODO: unused, remove?
     exp_base_config: Arc<ExperimentConfig>,
     env: Environment,
-    shared_store: Arc<SharedDatasets>,
+    shared_store: Arc<SharedStore>,
     worker_pool_send: ExpMsgSend,
     worker_pool_controller_recv: WorkerPoolMsgRecv,
     experiment_package_comms: ExperimentPackageComms,
@@ -400,7 +400,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         exp_config: Arc<ExperimentConfig>,
         exp_base_config: Arc<ExperimentConfig>,
         env: Environment,
-        shared_store: Arc<SharedDatasets>,
+        shared_store: Arc<SharedStore>,
         worker_pool_send: ExpMsgSend,
         worker_pool_controller_recv: WorkerPoolMsgRecv,
         experiment_package_comms: ExperimentPackageComms,

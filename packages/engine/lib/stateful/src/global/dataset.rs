@@ -102,15 +102,16 @@ impl SharedDataset {
     }
 }
 
-/// This is an object we use to manage sharing access to data that's static across simulation runs
-/// within an experiment, such as datasets.
+/// Holds static data across simulation runs within an experiment.
+///
+/// It's used to manage sharing access to data, such as datasets.
 #[derive(Clone)]
-pub struct SharedDatasets {
+pub struct SharedStore {
     pub datasets: HashMap<String, Arc<SharedDataset>>,
 }
 
-impl SharedDatasets {
-    pub fn new(datasets: &[Dataset], memory_base_id: Uuid) -> Result<SharedDatasets> {
+impl SharedStore {
+    pub fn new(datasets: &[Dataset], memory_base_id: Uuid) -> Result<SharedStore> {
         let mut dataset_batches = HashMap::with_capacity(datasets.len());
         for dataset in datasets {
             let dataset_name = dataset.shortname.clone();
@@ -118,7 +119,7 @@ impl SharedDatasets {
             dataset_batches.insert(dataset_name, Arc::new(dataset_batch));
         }
 
-        Ok(SharedDatasets {
+        Ok(SharedStore {
             datasets: dataset_batches,
         })
     }

@@ -17,7 +17,7 @@ pub use self::{
     cancel::CancelTask,
     distribution::TaskDistributionConfig,
     message::{TaskMessage, TaskResultOrCancelled},
-    shared_store::{SharedState, SharedStore},
+    shared_store::{SharedState, TaskSharedStore},
 };
 pub(crate) use self::{
     distribution::StateBatchDistribution,
@@ -58,7 +58,7 @@ pub trait Task {
     /// [`SharedContext`]: crate::task::SharedContext
     /// [`SharedStore`]: crate::task::SharedStore
     /// [`AccessNotAllowed`]: crate::error::Error::AccessNotAllowed
-    fn verify_store_access(&self, access: &SharedStore) -> Result<()>;
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()>;
 }
 #[async_trait]
 pub trait ActiveTask: Send {

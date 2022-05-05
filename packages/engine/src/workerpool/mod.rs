@@ -4,7 +4,7 @@ use std::{future::Future, pin::Pin, sync::Arc};
 use execution::{
     package::PackageTask,
     runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
-    task::{SharedStore, Task, TaskDistributionConfig, TaskId},
+    task::{Task, TaskDistributionConfig, TaskId, TaskSharedStore},
     worker::{SyncPayload, WorkerConfig},
     worker_pool::{WorkerIndex, WorkerPoolConfig, WorkerPoolHandler},
 };
@@ -385,7 +385,7 @@ impl WorkerPoolController {
         sim_id: SimulationShortId,
         task_id: TaskId,
         package_id: PackageId,
-        shared_store: SharedStore,
+        shared_store: TaskSharedStore,
         task: PackageTask,
     ) -> Result<(Vec<(WorkerIndex, WorkerTask)>, DistributionController)> {
         let worker_list = self.simulation_runs.get_worker_allocation(sim_id)?;

@@ -1,8 +1,8 @@
 use crate::{
     package::{state::behavior_execution::ExecuteBehaviorsTask, PackageTask},
     task::{
-        SharedStore, StateBatchDistribution, TargetedTaskMessage, Task, TaskDistributionConfig,
-        TaskMessage,
+        StateBatchDistribution, TargetedTaskMessage, Task, TaskDistributionConfig, TaskMessage,
+        TaskSharedStore,
     },
     worker::WorkerHandler,
     worker_pool::{SplitConfig, WorkerPoolHandler},
@@ -32,7 +32,7 @@ impl Task for StateTask {
         }
     }
 
-    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
         // All combinations (as of now) are allowed (but still being explicit)

@@ -19,7 +19,7 @@ use crate::{
         Comms, MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
         PackageInitConfig, PackageTask,
     },
-    task::{ActiveTask, SharedStore, TaskMessage},
+    task::{ActiveTask, TaskMessage, TaskSharedStore},
     Error, Result,
 };
 
@@ -56,7 +56,7 @@ impl<C: Comms> InitPackage for JsPyInit<C> {
             }
         };
 
-        let shared_store = SharedStore::default();
+        let shared_store = TaskSharedStore::default();
         let active_task = self
             .comms
             .new_task(PackageTask::Init(task), shared_store)

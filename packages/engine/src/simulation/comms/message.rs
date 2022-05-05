@@ -1,6 +1,6 @@
 use execution::{
     package::PackageTask,
-    task::{SharedStore, TaskId},
+    task::{TaskId, TaskSharedStore},
     worker::SyncPayload,
 };
 use simulation_structure::SimulationShortId;
@@ -15,7 +15,7 @@ pub struct WrappedTask {
     pub package_id: PackageId,
     pub inner: PackageTask,
     pub comms: ActiveTaskExecutorComms,
-    pub shared_store: SharedStore,
+    pub shared_store: TaskSharedStore,
 }
 
 #[derive(Debug)]

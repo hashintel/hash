@@ -1,5 +1,5 @@
 use crate::{
-    task::{SharedStore, Task},
+    task::{Task, TaskSharedStore},
     worker::WorkerHandler,
     worker_pool::WorkerPoolHandler,
     Error, Result,
@@ -15,7 +15,7 @@ impl Task for ContextTask {
         unimplemented!()
     }
 
-    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
         if (state.is_readonly() || state.is_disabled()) && context.is_disabled() {

@@ -1,6 +1,6 @@
 use execution::{
     package::PackageTask,
-    task::{SharedStore, TaskId, TaskResultOrCancelled},
+    task::{TaskId, TaskResultOrCancelled, TaskSharedStore},
 };
 use stateful::field::PackageId;
 
@@ -9,7 +9,7 @@ pub struct WorkerTask {
     pub task_id: TaskId,
     pub package_id: PackageId,
     pub inner: PackageTask,
-    pub shared_store: SharedStore,
+    pub shared_store: TaskSharedStore,
 }
 
 #[derive(Debug, Clone)]

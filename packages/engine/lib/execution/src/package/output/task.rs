@@ -1,5 +1,5 @@
 use crate::{
-    task::SharedStore, worker::WorkerHandler, worker_pool::WorkerPoolHandler, Error, Result,
+    task::TaskSharedStore, worker::WorkerHandler, worker_pool::WorkerPoolHandler, Error, Result,
 };
 
 /// All output package tasks are registered in this enum
@@ -12,7 +12,7 @@ impl crate::task::Task for OutputTask {
         unimplemented!()
     }
 
-    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
         // TODO: This check is useless currently as we don't encapsulate the run logic of output

@@ -28,7 +28,7 @@ use std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use execution::{
     package::PackageTask,
-    task::{SharedStore, Task, TaskId},
+    task::{Task, TaskId, TaskSharedStore},
     worker::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
 };
 use simulation_structure::SimulationShortId;
@@ -188,7 +188,7 @@ impl execution::package::Comms for Comms {
         &self,
         package_id: PackageId,
         task: PackageTask,
-        shared_store: SharedStore,
+        shared_store: TaskSharedStore,
     ) -> execution::Result<ActiveTask> {
         let task_id = uuid::Uuid::new_v4().as_u128();
         let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store)?;
@@ -213,7 +213,7 @@ fn wrap_task(
     task_id: TaskId,
     package_id: PackageId,
     task: PackageTask,
-    shared_store: SharedStore,
+    shared_store: TaskSharedStore,
 ) -> Result<(WrappedTask, ActiveTask)> {
     task.verify_store_access(&shared_store)?;
     let (owner_channels, executor_channels) = active::comms();

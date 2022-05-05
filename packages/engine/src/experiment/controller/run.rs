@@ -3,7 +3,7 @@ use std::{pin::Pin, sync::Arc, time::Duration};
 use execution::runner::PythonRunner;
 use memory::shared_memory;
 use simulation_structure::ExperimentId;
-use stateful::global::SharedDatasets;
+use stateful::global::SharedStore;
 use tracing::Instrument;
 
 use crate::{
@@ -109,7 +109,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let exp_base_config = Arc::new(exp_config.to_base()?);
     // Spin up the shared store (includes the entities which are
     // shared across the whole experiment run)
-    let shared_store = Arc::new(SharedDatasets::new(
+    let shared_store = Arc::new(SharedStore::new(
         &exp_base_config.run.base().project_base.datasets,
         exp_base_config.run.base().id,
     )?);

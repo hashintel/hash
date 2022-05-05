@@ -10,7 +10,7 @@ use simulation_structure::{ExperimentId, SimulationShortId};
 use stateful::{
     agent::AgentSchema,
     field::PackageId,
-    global::{Globals, SharedDatasets},
+    global::{Globals, SharedStore},
 };
 use tracing::Span;
 
@@ -23,7 +23,7 @@ pub use self::{
 };
 use crate::{
     runner::{MessageTarget, RunnerConfig},
-    task::{SharedStore, TaskId, TaskMessage},
+    task::{TaskId, TaskMessage, TaskSharedStore},
     worker::PackageInitMsgForWorker,
     worker_pool::{WorkerAllocation, WorkerIndex},
     Error, Result,
@@ -35,7 +35,7 @@ use crate::{
 /// converting the outbound FlatBuffers message into a Rust struct).
 pub(crate) struct SentTask {
     /// Task shared store from inbound task message.
-    pub shared_store: SharedStore,
+    pub shared_store: TaskSharedStore,
     /// Top two levels of nesting of task (when serialized as JSON)
     pub task_wrapper: serde_json::Value,
 }
@@ -46,7 +46,7 @@ pub struct RunnerTaskMessage {
     pub task_id: TaskId,
     pub group_index: Option<usize>,
     pub payload: TaskMessage,
-    pub shared_store: SharedStore,
+    pub shared_store: TaskSharedStore,
 }
 
 #[derive(Debug)]
@@ -98,7 +98,7 @@ impl TargetedRunnerTaskMsg {
 
 #[derive(Debug)]
 pub struct StateInterimSync {
-    pub shared_store: SharedStore,
+    pub shared_store: TaskSharedStore,
 }
 
 #[derive(Clone, Debug)]
@@ -119,7 +119,7 @@ pub struct DatastoreSimulationPayload {
     pub agent_batch_schema: Arc<AgentSchema>,
     pub message_batch_schema: Arc<Schema>,
     pub context_batch_schema: Arc<Schema>,
-    pub shared_store: Arc<SharedDatasets>,
+    pub shared_store: Arc<SharedStore>,
 }
 
 impl fmt::Debug for DatastoreSimulationPayload {
@@ -133,13 +133,13 @@ struct DatastoreInit {
     pub agent_batch_schema: Vec<u8>,
     pub message_batch_schema: Vec<u8>,
     pub context_batch_schema: Vec<u8>,
-    pub shared_context: SharedDatasets,
+    pub shared_context: SharedStore,
 }
 
 #[derive(Clone)]
 pub struct ExperimentInitRunnerMsgBase {
     pub experiment_id: ExperimentId,
-    pub shared_context: Arc<SharedDatasets>,
+    pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
     pub runner_config: RunnerConfig,
 }
@@ -148,7 +148,7 @@ pub struct ExperimentInitRunnerMsgBase {
 pub struct ExperimentInitRunnerMsg {
     pub experiment_id: ExperimentId,
     pub worker_index: WorkerIndex,
-    pub shared_context: Arc<SharedDatasets>,
+    pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
     pub runner_config: RunnerConfig,
 }

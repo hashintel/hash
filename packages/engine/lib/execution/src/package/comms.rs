@@ -4,7 +4,7 @@ use tracing::Instrument;
 
 use crate::{
     package::{PackageTask, PackageType},
-    task::{ActiveTask, SharedStore, Task},
+    task::{ActiveTask, Task, TaskSharedStore},
     Result,
 };
 
@@ -21,7 +21,7 @@ pub trait Comms: Send + Sync + 'static {
         &self,
         package_id: PackageId,
         task: PackageTask,
-        shared_store: SharedStore,
+        shared_store: TaskSharedStore,
     ) -> Result<Self::ActiveTask>;
 }
 
@@ -45,7 +45,7 @@ impl<C: Comms> PackageComms<C> {
     pub async fn new_task(
         &self,
         task: PackageTask,
-        shared_store: SharedStore,
+        shared_store: TaskSharedStore,
     ) -> Result<C::ActiveTask> {
         let task_name = task.name();
 

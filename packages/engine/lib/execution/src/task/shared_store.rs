@@ -16,12 +16,12 @@ use crate::{
 /// If the `state` can accessed (i.e. `state` is not `SharedState::None`), it holds read-only,
 /// read-write, partially borrowed proxies to agents and messages.
 #[derive(Default, Debug)]
-pub struct SharedStore {
+pub struct TaskSharedStore {
     pub state: SharedState,
     context: SharedContext,
 }
 
-impl SharedStore {
+impl TaskSharedStore {
     pub fn new(state: SharedState, context: SharedContext) -> Self {
         Self { state, context }
     }
@@ -113,7 +113,7 @@ impl SharedContext {
 
 #[derive(Default)]
 pub struct TaskSharedStoreBuilder {
-    inner: SharedStore,
+    inner: TaskSharedStore,
 }
 
 impl TaskSharedStoreBuilder {
@@ -121,7 +121,7 @@ impl TaskSharedStoreBuilder {
         Self::default()
     }
 
-    pub fn build(self) -> SharedStore {
+    pub fn build(self) -> TaskSharedStore {
         self.inner
     }
 
@@ -250,7 +250,7 @@ fn distribute_batches<A, M>(
     (stores, split_config)
 }
 
-impl SharedStore {
+impl TaskSharedStore {
     /// Number of agents in the sim that can be accessed through this store
     fn n_accessible_agents(&self) -> usize {
         match &self.state {
@@ -390,7 +390,7 @@ impl SharedStore {
     }
 }
 
-impl SharedStore {
+impl TaskSharedStore {
     /// Fallible clone. Fails with write access to state.
     fn try_clone(&self) -> Result<Self> {
         let state = match &self.state {

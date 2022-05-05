@@ -1,6 +1,6 @@
 use crate::{
     package::init::js_py::{JsInitTask, PyInitTask},
-    task::{SharedStore, TargetedTaskMessage, Task},
+    task::{TargetedTaskMessage, Task, TaskSharedStore},
     worker::WorkerHandler,
     worker_pool::WorkerPoolHandler,
     Error, Result,
@@ -21,7 +21,7 @@ impl Task for InitTask {
         }
     }
 
-    fn verify_store_access(&self, access: &SharedStore) -> Result<()> {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
         if state.is_disabled() && context.is_disabled() {
