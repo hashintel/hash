@@ -10,6 +10,7 @@ use crate::{
     Error, Result,
 };
 
+// TODO: Come up with a better name. Also probably rename `BehaviorKeys` to `BehaviorFields`.
 #[derive(Clone)]
 pub struct BehaviorFieldMap {
     shared: Behavior,
