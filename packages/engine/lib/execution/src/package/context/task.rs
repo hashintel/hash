@@ -1,5 +1,5 @@
 use crate::{
-    task::{Task, TaskSharedStore},
+    task::{StoreAccessValidator, Task, TaskDistributionConfig, TaskSharedStore},
     worker::WorkerHandler,
     worker_pool::WorkerPoolHandler,
     Error, Result,
@@ -8,13 +8,19 @@ use crate::{
 /// All context package tasks are registered in this enum
 // #[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
-pub struct ContextTask {}
+pub enum ContextTask {}
 
 impl Task for ContextTask {
     fn name(&self) -> &'static str {
-        unimplemented!()
+        unimplemented!("`ContextTask` does not contain variants")
     }
 
+    fn distribution(&self) -> TaskDistributionConfig {
+        unimplemented!("`ContextTask` does not contain variants")
+    }
+}
+
+impl StoreAccessValidator for ContextTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();

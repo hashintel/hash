@@ -28,7 +28,7 @@ use std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use execution::{
     package::PackageTask,
-    task::{Task, TaskId, TaskSharedStore},
+    task::{StoreAccessValidator, TaskId, TaskSharedStore},
     worker::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
 };
 use simulation_structure::SimulationShortId;

@@ -1,7 +1,7 @@
 use crate::{
     package::{state::behavior_execution::ExecuteBehaviorsTask, PackageTask},
     task::{
-        StateBatchDistribution, TargetedTaskMessage, Task, TaskDistributionConfig, TaskMessage,
+        StoreAccessValidator, TargetedTaskMessage, Task, TaskDistributionConfig, TaskMessage,
         TaskSharedStore,
     },
     worker::WorkerHandler,
@@ -18,20 +18,18 @@ pub enum StateTask {
 impl Task for StateTask {
     fn name(&self) -> &'static str {
         match self {
-            Self::ExecuteBehaviorsTask(_) => "BehaviorExecution",
+            Self::ExecuteBehaviorsTask(task) => task.name(),
         }
     }
 
     fn distribution(&self) -> TaskDistributionConfig {
         match self {
-            Self::ExecuteBehaviorsTask(_) => {
-                TaskDistributionConfig::Distributed(StateBatchDistribution {
-                    partitioned_batches: true,
-                })
-            }
+            Self::ExecuteBehaviorsTask(task) => task.distribution(),
         }
     }
+}
 
+impl StoreAccessValidator for StateTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();

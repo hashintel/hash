@@ -1,5 +1,8 @@
 use crate::{
-    task::TaskSharedStore, worker::WorkerHandler, worker_pool::WorkerPoolHandler, Error, Result,
+    task::{StoreAccessValidator, Task, TaskDistributionConfig, TaskSharedStore},
+    worker::WorkerHandler,
+    worker_pool::WorkerPoolHandler,
+    Error, Result,
 };
 
 /// All output package tasks are registered in this enum
@@ -7,11 +10,17 @@ use crate::{
 #[derive(Clone, Debug)]
 pub enum OutputTask {}
 
-impl crate::task::Task for OutputTask {
+impl Task for OutputTask {
     fn name(&self) -> &'static str {
-        unimplemented!()
+        unimplemented!("`OutputTask` does not contain variants")
     }
 
+    fn distribution(&self) -> TaskDistributionConfig {
+        unimplemented!("`OutputTask` does not contain variants")
+    }
+}
+
+impl StoreAccessValidator for OutputTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();

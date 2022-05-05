@@ -40,7 +40,10 @@ pub trait Task {
     fn distribution(&self) -> TaskDistributionConfig {
         TaskDistributionConfig::None
     }
+}
 
+/// Validates if a [`Task`] is allowed to access a [`TaskSharedStore`].
+pub trait StoreAccessValidator: Task {
     /// Ensures that the [`Task`] variant has the correct permissions on the [`SharedState`] and
     /// [`SharedContext`] objects that make up the [`SharedStore`].
     ///
@@ -60,6 +63,7 @@ pub trait Task {
     /// [`AccessNotAllowed`]: crate::error::Error::AccessNotAllowed
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()>;
 }
+
 #[async_trait]
 pub trait ActiveTask: Send {
     /// Waits for a [`TaskResultOrCancelled`] from the associated [`Task`] and returns the

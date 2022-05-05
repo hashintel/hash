@@ -1,6 +1,8 @@
 use crate::{
     package::init::js_py::{JsInitTask, PyInitTask},
-    task::{TargetedTaskMessage, Task, TaskSharedStore},
+    task::{
+        StoreAccessValidator, TargetedTaskMessage, Task, TaskDistributionConfig, TaskSharedStore,
+    },
     worker::WorkerHandler,
     worker_pool::WorkerPoolHandler,
     Error, Result,
@@ -16,11 +18,20 @@ pub enum InitTask {
 impl Task for InitTask {
     fn name(&self) -> &'static str {
         match self {
-            Self::JsInitTask(_) => "JsInit",
-            Self::PyInitTask(_) => "PyInit",
+            Self::JsInitTask(task) => task.name(),
+            Self::PyInitTask(task) => task.name(),
         }
     }
 
+    fn distribution(&self) -> TaskDistributionConfig {
+        match self {
+            Self::JsInitTask(task) => task.distribution(),
+            Self::PyInitTask(task) => task.distribution(),
+        }
+    }
+}
+
+impl StoreAccessValidator for InitTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();

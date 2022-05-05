@@ -4,7 +4,7 @@ use crate::{
         InitTaskMessage,
     },
     runner::MessageTarget,
-    task::{TargetedTaskMessage, TaskMessage},
+    task::{TargetedTaskMessage, Task, TaskMessage},
     worker::WorkerHandler,
     Result,
 };
@@ -12,6 +12,12 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct JsInitTask {
     pub initial_state_source: String,
+}
+
+impl Task for JsInitTask {
+    fn name(&self) -> &'static str {
+        "JsInit"
+    }
 }
 
 impl WorkerHandler for JsInitTask {
@@ -30,6 +36,12 @@ impl WorkerHandler for JsInitTask {
 #[derive(Clone, Debug)]
 pub struct PyInitTask {
     pub initial_state_source: String,
+}
+
+impl Task for PyInitTask {
+    fn name(&self) -> &'static str {
+        "PyInit"
+    }
 }
 
 impl WorkerHandler for PyInitTask {

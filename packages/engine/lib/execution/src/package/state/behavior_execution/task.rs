@@ -4,7 +4,9 @@ use crate::{
         PackageTask,
     },
     runner::MessageTarget,
-    task::{TargetedTaskMessage, TaskMessage},
+    task::{
+        StateBatchDistribution, TargetedTaskMessage, Task, TaskDistributionConfig, TaskMessage,
+    },
     worker::WorkerHandler,
     worker_pool::{SplitConfig, WorkerPoolHandler},
     Error, Result,
@@ -13,6 +15,18 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct ExecuteBehaviorsTask {
     pub target: MessageTarget,
+}
+
+impl Task for ExecuteBehaviorsTask {
+    fn name(&self) -> &'static str {
+        "BehaviorExecution"
+    }
+
+    fn distribution(&self) -> TaskDistributionConfig {
+        TaskDistributionConfig::Distributed(StateBatchDistribution {
+            partitioned_batches: true,
+        })
+    }
 }
 
 impl WorkerHandler for ExecuteBehaviorsTask {

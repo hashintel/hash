@@ -1,6 +1,9 @@
 use crate::{
     package::{context::ContextTask, init::InitTask, output::OutputTask, state::StateTask},
-    task::{TargetedTaskMessage, Task, TaskDistributionConfig, TaskMessage, TaskSharedStore},
+    task::{
+        StoreAccessValidator, TargetedTaskMessage, Task, TaskDistributionConfig, TaskMessage,
+        TaskSharedStore,
+    },
     worker::WorkerHandler,
     worker_pool::{SplitConfig, WorkerPoolHandler},
     Result,
@@ -37,7 +40,9 @@ impl Task for PackageTask {
             Self::Output(inner) => inner.distribution(),
         }
     }
+}
 
+impl StoreAccessValidator for PackageTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         match self {
             Self::Init(inner) => inner.verify_store_access(access),
