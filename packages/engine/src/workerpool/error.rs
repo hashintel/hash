@@ -2,8 +2,6 @@ use execution::task::TaskResultOrCancelled;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-use crate::worker;
-
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(ThisError, Debug)]
@@ -13,9 +11,6 @@ pub enum Error {
 
     #[error("Execution error: {0}")]
     Execution(#[from] execution::Error),
-
-    #[error("Worker error: {0}")]
-    Worker(#[from] worker::Error),
 
     #[error("Simulation error: {0}")]
     Simulation(#[from] crate::simulation::Error),

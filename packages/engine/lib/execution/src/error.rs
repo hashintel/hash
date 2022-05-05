@@ -2,8 +2,8 @@ use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
 use crate::{
-    runner::{JavaScriptError, PythonError},
-    task::{SharedContext, SharedState},
+    runner::{JavaScriptError, MessageTarget, PythonError},
+    task::{SharedContext, SharedState, TaskId},
     worker_pool::WorkerIndex,
 };
 
@@ -89,6 +89,15 @@ pub enum Error {
 
     #[error("Terminate confirm already sent")]
     TerminateConfirmAlreadySent,
+
+    #[error("Unexpected target for a message {0:?}")]
+    UnexpectedTarget(MessageTarget),
+
+    #[error("Task already exists (id: {0})")]
+    TaskAlreadyExists(TaskId),
+
+    #[error("Tokio Join Error: {0}")]
+    TokioJoin(#[from] tokio::task::JoinError),
 
     #[error("{0}")]
     RwLock(String),

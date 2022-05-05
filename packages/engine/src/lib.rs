@@ -46,7 +46,6 @@ pub mod proto;
 pub mod simulation;
 pub mod types;
 pub mod utils;
-pub mod worker;
 pub mod workerpool;
 
 pub use self::{

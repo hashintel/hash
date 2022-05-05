@@ -5,7 +5,7 @@ use execution::{
     package::PackageTask,
     runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
     task::{Task, TaskDistributionConfig, TaskId, TaskSharedStore},
-    worker::{SyncPayload, WorkerConfig, WorkerTask},
+    worker::{SyncPayload, Worker, WorkerConfig, WorkerTask},
     worker_pool::{
         comms,
         comms::{
@@ -35,10 +35,7 @@ use self::{
     pending::{DistributionController, PendingWorkerPoolTask, PendingWorkerPoolTasks},
     runs::SimulationRuns,
 };
-use crate::{
-    config::{self},
-    worker::Worker,
-};
+use crate::config::{self};
 
 mod error;
 mod pending;
