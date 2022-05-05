@@ -50,7 +50,7 @@ impl process::Process for LocalProcess {
             Ok(_) => {
                 tracing::warn!(
                     experiment = %experiment_id,
-                    "Removed file {engine_socket_path:?} that should've been cleanup by the engine."
+                    "Removed file {engine_socket_path:?} that should've been cleanup."
                 );
             }
             Err(err) => {
