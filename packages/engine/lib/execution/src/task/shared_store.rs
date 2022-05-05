@@ -140,7 +140,7 @@ impl TaskSharedStoreBuilder {
 
 /// Partial read or write access to the state pools.
 ///
-/// This enables both, read and write access, to different, non-overlapping subsets of the state.
+/// This enables both read and write access to different non-overlapping subsets of the state.
 #[derive(Debug)]
 pub enum PartialSharedState {
     Write(PartialStateWriteProxy),
