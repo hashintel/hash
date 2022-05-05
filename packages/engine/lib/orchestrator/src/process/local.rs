@@ -53,6 +53,7 @@ impl process::Process for LocalProcess {
                     "Removed file {engine_socket_path:?} that should've been cleaned up."
                 );
             }
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
             Err(err) => {
                 tracing::warn!(
                     experiment = %experiment_id,
