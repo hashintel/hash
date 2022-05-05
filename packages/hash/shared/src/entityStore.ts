@@ -24,7 +24,9 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   //  keep a dict of entity ids to draft ids, and vice versa
   draftId: string;
 
-  entityVersionCreatedAt: string;
+  // we probably don't need entityVersionCreatedAt
+  entityVersionCreatedAt?: string;
+  updatedAt: string;
 
   linkGroups?: Type extends { linkGroups: any }
     ? Type["linkGroups"]
@@ -153,8 +155,8 @@ export const createEntityStore = (
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
           if (
-            new Date(draftData[draftId]!.entityVersionCreatedAt).getTime() >
-            new Date(draftEntity.entityVersionCreatedAt).getTime()
+            new Date(draftData[draftId]!.updatedAt).getTime() >
+            new Date(draftEntity.updatedAt).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
           }

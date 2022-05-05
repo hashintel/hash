@@ -195,7 +195,7 @@ const updateBlockEntity = (
       entityId: targetEntity.entityId,
       properties: targetEntity.properties,
       // might not need this?
-      entityVersionCreatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     draftEntityStore[targetEntityDraftId] = targetDraftEntity;
@@ -350,6 +350,7 @@ const entityStoreReducer = (
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
           entityVersionCreatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           properties: {},
         };
       });

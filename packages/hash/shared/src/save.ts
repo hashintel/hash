@@ -14,13 +14,12 @@ import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import {
-  draftEntityForEntityId,
+  getDraftEntityFromEntityId,
   DraftEntity,
   EntityStore,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
-import { draftIdForEntity } from "./entityStorePlugin";
 import {
   BlockEntity,
   blockEntityIdExists,
@@ -315,10 +314,12 @@ const updateBlocks = defineOperation(
               });
             }
           } else {
-            const draftBlock =
-              entityStore.draft[draftIdForEntity(savedEntity.entityId)];
+            const draftBlock = getDraftEntityFromEntityId(
+              entityStore.draft,
+              savedEntity.entityId,
+            );
             const draftChildEntityId = draftBlock?.properties.entity?.entityId;
-            const draftChildEntityWithDraftId = draftEntityForEntityId(
+            const draftChildEntityWithDraftId = getDraftEntityFromEntityId(
               entityStore.draft,
               draftChildEntityId,
             );
