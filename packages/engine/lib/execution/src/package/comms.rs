@@ -70,12 +70,12 @@ impl<C: Comms> PackageComms<C> {
             .await
     }
 
-    #[allow(dead_code)]
+    // TODO: UNUSED: triage
     pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
         self.comms.add_create_agent_command(agent)
     }
 
-    #[allow(dead_code)]
+    // TODO: UNUSED: triage
     pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
         self.comms.add_remove_agent_command(uuid)
     }
