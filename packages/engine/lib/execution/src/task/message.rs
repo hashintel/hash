@@ -46,23 +46,29 @@ pub enum TaskResultOrCancelled {
 }
 
 impl TaskMessage {
-    /// Removes contextually redundant information by extracting the inner TaskMessage type that is
-    /// defined by a package.
+    /// Removes contextually redundant information by extracting the inner [`TaskMessage`] type that
+    /// is defined by a package.
     ///
-    /// # Returns: (inner: serde_json::Value, wrapper: serde_json::Value)
-    /// * inner - The interior TaskMessage objects defined by a package
-    /// * wrapper - The two levels of nesting that were unwrapped from the inner
+    /// # Returns: `(inner, wrapper)`
+    ///
+    ///   * `inner` - The interior TaskMessage objects defined by a package
+    ///   * `wrapper` - The two levels of nesting that were unwrapped from the inner
+    ///
     ///
     /// # Reasoning:
-    /// To have a flexible interface we use enum_dispatch to have a hierarchy of task message types.
-    /// This causes complications when looking at serializing or deserializing as enum_dispatch
-    /// effectively transforms the variants of `TaskMessage` into wrapper types like Variant(inner).
-    /// Because of this, the serialization causes multiple nested JSON objects. Due to the design,
-    /// we can guarantee that the top *two* levels are redundant information for the recipients and
-    /// senders of the messages themselves. `TaskMessage` acts as the root  object and is therefore
-    /// not labelled within the JSON. The package-type variant, e.g. `InitTaskMessage` and the
-    /// package variant, e.g. `JsPyInitTaskMessage`, will appear within the JSON object and can be
-    /// removed. These two wrapping levels are returned alongside the nested JSON object.
+    ///
+    /// To have a flexible interface we use an enumeration to have a hierarchy of task message
+    /// types. This causes complications when looking at serializing or deserializing as
+    /// an enum effectively transforms the variants of [`TaskMessage`] into wrapper types
+    /// like `Variant(inner)`. Because of this, the serialization causes multiple nested JSON
+    /// objects.
+    ///
+    /// Due to the design, we can guarantee that the top *two* levels are redundant
+    /// information for the recipients and senders of the messages themselves. [`TaskMessage`]
+    /// acts as the root  object and is therefore not labelled within the JSON. The package-type
+    /// variant, e.g. `InitTaskMessage` and the package variant, e.g. `JsPyInitTaskMessage`,
+    /// will appear within the JSON object and can be removed. These two wrapping levels are
+    /// returned alongside the nested JSON object.
     pub fn extract_inner_msg_with_wrapper(self) -> Result<(serde_json::Value, serde_json::Value)> {
         let json_val = serde_json::to_value(self)?;
         let (wrapper, inner_msg) = _swap_doubly_nested_val(json_val, serde_json::Value::Null);
@@ -70,27 +76,41 @@ impl TaskMessage {
     }
 
     /// Tries to create a TaskMessage from a deserialized variant of a package's task message, and a
-    /// wrapper JSON object like the one produced by `extract_inner_msg_with_wrapper`. It does this
-    /// by swapping the given value with the one that's doubly nested within the wrapper object.
+    /// wrapper JSON object like the one produced by [`extract_inner_msg_with_wrapper()`]. It does
+    /// this by swapping the given value with the one that's doubly nested within the wrapper
+    /// object.
+    ///
+    /// [`extract_inner_msg_with_wrapper()`]: Self::extract_inner_msg_with_wrapper
     ///
     /// # Parameters:
-    /// * inner_msg: serde_json::Value - The deserialized inner task message. The serialization of
-    ///   this should be something like the following (take note that message type is not the root
-    ///   object or serialization will fail): ```json { "Success": { "agent_json": "some_json" } }
-    ///   ```
-    ///  * wrapper: serde_json::Value - A (possibly incomplete) Value representing a serialized
-    ///    `TaskMessage`. Structure should match something like the following (take note that
-    ///    "TaskMessage" is the root object and therefore does not appear as a key within the JSON):
-    ///    ```json { "InitTaskMessage": { "JsPyInitTaskMessage": null } } ```
+    ///
+    ///  * `inner_msg`: The deserialized inner task message. The serialization of this should be
+    ///    something like the following (take note that message type is not the root object or
+    ///    serialization will fail):
+    ///
+    ///    ```json
+    ///    { "Success": { "agent_json": "some_json" } }
+    ///    ```
+    ///
+    ///   * `wrapper`: A (possibly incomplete) value representing a serialized `TaskMessage`.
+    ///     Structure should match something like the following (take note that `"TaskMessage"` is
+    ///     the root object and therefore does not appear as a key within the JSON):
+    ///
+    ///     ```json
+    ///     { "askMessage": { "JsPyInitTaskMessage": null } }
+    ///     ```
+    ///
     ///
     /// ## Notes
+    ///
     /// The somewhat confusing inconsistency with root objects is for ergonomics when using these
     /// functions within the context they were designed for, that is:
-    /// * Getting a TaskMessage
-    /// * Serializing the TaskMessage
-    /// * Extracting the inner to send to package-implemented runner code, and saving the wrapper
-    /// * Receiving a response, and using the previous wrapper to rewrap response
-    /// * Deserializing the response
+    ///
+    ///   * Getting a [`TaskMessage`]
+    ///   * Serializing the [`TaskMessage`]
+    ///   * Extracting the inner to send to package-implemented runner code, and saving the wrapper
+    ///   * Receiving a response, and using the previous wrapper to rewrap response
+    ///   * Deserializing the response
     pub fn try_from_inner_msg_and_wrapper(
         inner_msg: serde_json::Value,
         wrapper: serde_json::Value,

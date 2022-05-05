@@ -45,7 +45,7 @@ pub trait Task {
 /// Validates if a [`Task`] is allowed to access a [`TaskSharedStore`].
 pub trait StoreAccessValidator: Task {
     /// Ensures that the [`Task`] variant has the correct permissions on the [`SharedState`] and
-    /// [`SharedContext`] objects that make up the [`SharedStore`].
+    /// [`SharedContext`] objects that make up the [`TaskSharedStore`].
     ///
     /// The intended implementation, is that this trait is implemented for each package-group, e.g.
     /// rather than being implemented on `JsPyInitTask`, it's implemented on the [`InitTask`]
@@ -59,7 +59,6 @@ pub trait StoreAccessValidator: Task {
     /// [`InitTask`]: crate::package::init::InitTask
     /// [`SharedState`]: crate::task::SharedState
     /// [`SharedContext`]: crate::task::SharedContext
-    /// [`SharedStore`]: crate::task::SharedStore
     /// [`AccessNotAllowed`]: crate::error::Error::AccessNotAllowed
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()>;
 }

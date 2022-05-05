@@ -1,10 +1,23 @@
-//! # Workers, language runners and the hEngine Package System
+//! Execution logic to run experiments and simulations.
 //!
-//! This crate contains the Package System defined in the [`package`] module, the [`task`]s used
-//! to drive this, and the language [`runner`]s to run a [`Package`](package::Package). To organize
-//! the [`runner`]s, [`worker`]s and [`worker_pool`]s are provided.
+//! This crate is split into two main parts:
+//! - the hEngine Package System, and
+//! - the execution of [`Package`]s.
+//!
+//! The Package System is defined in the [`package`] module. For running those [`Package`]s,
+//! a [`runner`] for each supported [`Language`] is provided. [`task`] defines an interface
+//! to communicate between those.
+//!
+//! All types of language [`runner`]s are stored in one [`Worker`], so for three languages, the
+//! [`Worker`] contains three runners, one per language. To handle multiple [`Worker`]s, the
+//! [`WorkerPool`] acts as an interface for driving the [`Worker`]s.
 //!
 //! For more information please consult the corresponding modules.
+//!
+//! [`Package`]: crate::package::Package
+//! [`Worker`]: crate::worker::Worker
+//! [`WorkerPool`]: crate::worker_pool::WorkerPool
+//! [`Language`]: crate::runner::Language
 
 #![feature(map_try_insert, is_sorted)]
 
