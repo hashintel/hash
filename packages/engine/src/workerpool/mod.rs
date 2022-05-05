@@ -31,7 +31,7 @@ use self::{
 use crate::{
     config::{self},
     simulation::comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
-    worker::{task::WorkerTask, WorkerController},
+    worker::{task::WorkerTask, Worker},
     workerpool::comms::{
         top::WorkerPoolToExpCtlMsg, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
         WorkerToWorkerPoolMsg,
@@ -45,7 +45,7 @@ pub mod runs;
 
 /// TODO: DOC
 pub struct WorkerPoolController {
-    worker_controllers: Option<Vec<WorkerController>>,
+    worker_controllers: Option<Vec<Worker>>,
     comms: WorkerPoolCommsWithWorkers,
     simulation_runs: SimulationRuns,
     pending_tasks: PendingWorkerPoolTasks,
@@ -107,7 +107,7 @@ impl WorkerPoolController {
         self.worker_controllers = Some(
             try_join_all(worker_comms.into_iter().map(|comms| {
                 let init = ExperimentInitRunnerMsg::new(&exp_init_base, *comms.index());
-                WorkerController::spawn(worker_config.clone(), comms, init)
+                Worker::spawn(worker_config.clone(), comms, init)
             }))
             .await
             .map_err(|e| Error::from(e.to_string()))?,

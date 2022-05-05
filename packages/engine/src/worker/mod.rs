@@ -53,7 +53,7 @@ use crate::{
 /// - Start a task with a target language
 /// - Handle language switches
 /// - Upon completion return a completion message
-pub struct WorkerController {
+pub struct Worker {
     py: PythonRunner,
     js: JavaScriptRunner,
     rs: RustRunner,
@@ -66,14 +66,14 @@ pub struct WorkerController {
 }
 
 // TODO: impl drop for worker controller?
-impl WorkerController {
+impl Worker {
     /// Spawns a new worker controller, containing a runner for each language: JavaScript,
     /// Python, and Rust and initialize the
     pub async fn spawn(
         worker_config: WorkerConfig,
         worker_pool_comms: WorkerCommsWithWorkerPool,
         exp_init: ExperimentInitRunnerMsg,
-    ) -> Result<WorkerController> {
+    ) -> Result<Self> {
         tracing::debug!("Spawning worker controller");
         let RunnerSpawnConfig {
             python,
@@ -81,7 +81,7 @@ impl WorkerController {
             rust,
         } = worker_config.spawn;
         // TODO: Rust, JS
-        Ok(WorkerController {
+        Ok(Self {
             py: PythonRunner::new(python, exp_init.clone())?,
             js: JavaScriptRunner::new(javascript, exp_init.clone())?,
             rs: RustRunner::new(rust, exp_init)?,
