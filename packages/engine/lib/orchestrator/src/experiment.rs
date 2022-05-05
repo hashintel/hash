@@ -276,7 +276,7 @@ impl Experiment {
             env: ExecutionEnvironment::None, // We don't connect to the API
             dyn_payloads: serde_json::Map::from_iter(map_iter),
         };
-        if let Err(mut err) = engine_process
+        if let Err(err) = engine_process
             .send(&proto::EngineMsg::Init(init_message))
             .await
             .wrap_err("Could not send `Init` message")
@@ -290,7 +290,7 @@ impl Experiment {
                 .await
                 .wrap_err("Failed to cleanup after failed start")
             {
-                err = err.wrap(cleanup_err);
+                warn!("{cleanup_err}");
             }
             bail!(err);
         }
