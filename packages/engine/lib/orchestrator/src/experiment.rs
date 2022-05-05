@@ -282,7 +282,7 @@ impl Experiment {
             .wrap_err("Could not send `Init` message")
         {
             // TODO: Wait for threads to finish before starting a forced cleanup
-            warn!("Engine didn't exit gracefully, waiting for threads to finish.");
+            warn!("Engine didn't exit gracefully, waiting for subprocesses to finish.");
             std::thread::sleep(std::time::Duration::from_secs(1));
 
             engine_process
