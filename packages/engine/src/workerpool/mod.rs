@@ -6,7 +6,19 @@ use execution::{
     runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
     task::{Task, TaskDistributionConfig, TaskId, TaskSharedStore},
     worker::{SyncPayload, WorkerConfig, WorkerTask},
-    worker_pool::{WorkerIndex, WorkerPoolConfig, WorkerPoolHandler},
+    worker_pool::{
+        comms,
+        comms::{
+            experiment::{ExpMsgRecv, ExperimentToWorkerPoolMsg},
+            main::{MainMsgRecv, MainMsgSendBase},
+            message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
+            terminate::TerminateRecv,
+            top::{WorkerPoolMsgSend, WorkerPoolToExpCtlMsg},
+            WorkerCommsWithWorkerPool, WorkerPoolCommsWithWorkers, WorkerPoolToWorkerMsg,
+            WorkerPoolToWorkerMsgPayload, WorkerToWorkerPoolMsg,
+        },
+        WorkerIndex, WorkerPoolConfig, WorkerPoolHandler,
+    },
 };
 use futures::{
     future::try_join_all,
@@ -20,25 +32,14 @@ use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use self::{
-    comms::{
-        experiment::ExperimentToWorkerPoolMsg, main::MainMsgSendBase, top::WorkerPoolMsgSend,
-        ExpMsgRecv, MainMsgRecv, TerminateRecv, WorkerCommsWithWorkerPool,
-        WorkerPoolCommsWithWorkers,
-    },
     pending::{DistributionController, PendingWorkerPoolTask, PendingWorkerPoolTasks},
     runs::SimulationRuns,
 };
 use crate::{
     config::{self},
-    simulation::comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
     worker::Worker,
-    workerpool::comms::{
-        top::WorkerPoolToExpCtlMsg, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
-        WorkerToWorkerPoolMsg,
-    },
 };
 
-pub mod comms;
 mod error;
 mod pending;
 pub mod runs;
@@ -70,7 +71,7 @@ impl WorkerPoolController {
         } = (*config.worker_pool).clone();
 
         let (comms, worker_comms) = comms::new_pool_comms(num_workers);
-        let (sim_send_base, sim_recv) = comms::new_no_sim();
+        let (sim_send_base, sim_recv) = comms::main::new_no_sim();
 
         let simulation_runs = SimulationRuns::default();
         let pending_tasks = PendingWorkerPoolTasks::default();
@@ -116,7 +117,7 @@ impl WorkerPoolController {
         Ok(())
     }
 
-    async fn register_simulation(&mut self, payload: NewSimulationRun) -> Result<()> {
+    async fn register_simulation(&mut self, payload: NewSimulationRun) -> execution::Result<()> {
         // TODO: Only send to workers that simulation run is registered with
         self.send_to_all_workers(WorkerPoolToWorkerMsg::new_simulation_run(payload))
     }
@@ -218,7 +219,7 @@ impl WorkerPoolController {
                     task_id,
                     task_msg.package_id,
                     task_msg.shared_store,
-                    task_msg.inner,
+                    task_msg.task,
                 )?;
                 let pending =
                     PendingWorkerPoolTask::new(task_id, channels, distribution_controller);
@@ -375,7 +376,7 @@ impl WorkerPoolController {
         self.comms.send(index, msg).map_err(Error::from)
     }
 
-    fn send_to_all_workers(&mut self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
+    fn send_to_all_workers(&mut self, msg: WorkerPoolToWorkerMsg) -> execution::Result<()> {
         self.comms.send_all(msg)
     }
 

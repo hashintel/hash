@@ -4,14 +4,11 @@ use execution::{
     package::PackageTask,
     task::{CancelTask, TaskId, TaskMessage, TaskResultOrCancelled},
     worker::WorkerTaskResultOrCancelled,
-    worker_pool::{WorkerIndex, WorkerPoolHandler},
+    worker_pool::{comms::active::ActiveTaskExecutorComms, WorkerIndex, WorkerPoolHandler},
 };
 use tokio::sync::oneshot;
 
-use crate::{
-    simulation::comms::active::ActiveTaskExecutorComms,
-    workerpool::{Error, Result},
-};
+use crate::workerpool::{Error, Result};
 
 type HasTerminated = bool;
 

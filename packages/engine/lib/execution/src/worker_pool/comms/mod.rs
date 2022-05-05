@@ -1,14 +1,10 @@
+pub mod active;
 pub mod experiment;
 pub mod main;
+pub mod message;
 pub mod terminate;
 pub mod top;
 
-use execution::{
-    runner::comms::{NewSimulationRun, PackageError, RunnerError, UserError, UserWarning},
-    task::TaskId,
-    worker::{SyncPayload, WorkerTask, WorkerTaskResultOrCancelled},
-    worker_pool::WorkerIndex,
-};
 use simulation_structure::SimulationShortId;
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -16,14 +12,13 @@ use tokio::sync::{
 };
 use tracing::Span;
 
-pub use self::{
-    experiment::ExpMsgRecv,
-    main::{new_no_sim, MainMsgRecv, MainMsgSend},
-    terminate::TerminateRecv,
-};
-use crate::workerpool::{
-    comms::terminate::TerminateMessage,
-    error::{Error, Result},
+use self::terminate::TerminateMessage;
+use crate::{
+    runner::comms::{NewSimulationRun, PackageError, RunnerError, UserError, UserWarning},
+    task::TaskId,
+    worker::{SyncPayload, WorkerTask, WorkerTaskResultOrCancelled},
+    worker_pool::{comms::terminate::TerminateRecv, WorkerIndex},
+    Error, Result,
 };
 
 #[derive(Debug)]
@@ -127,11 +122,7 @@ impl WorkerCommsWithWorkerPool {
         &self.index
     }
 
-    pub fn send(
-        &self,
-        sim_id: SimulationShortId,
-        msg: WorkerToWorkerPoolMsg,
-    ) -> crate::worker::Result<()> {
+    pub fn send(&self, sim_id: SimulationShortId, msg: WorkerToWorkerPoolMsg) -> Result<()> {
         self.send_to_wp.send((self.index, sim_id, msg))?;
         Ok(())
     }
@@ -140,10 +131,10 @@ impl WorkerCommsWithWorkerPool {
     /// Note: This should only be called once
     /// It's necessary as receives require mutable borrows and the WorkerCommsWithWorkerPool struct
     /// will cause issues with immutable borrows at the same time, when used in a Tokio select! loop
-    pub fn take_recv(&mut self) -> crate::worker::Result<UnboundedReceiver<WorkerPoolToWorkerMsg>> {
+    pub fn take_recv(&mut self) -> Result<UnboundedReceiver<WorkerPoolToWorkerMsg>> {
         self.recv_from_wp
             .take()
-            .ok_or_else(|| crate::worker::Error::from("Couldn't take `recv_from_wp`"))
+            .ok_or_else(|| Error::from("Couldn't take `recv_from_wp`"))
     }
 
     /// Returns the receiver for termination signals from the WorkerPool.

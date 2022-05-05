@@ -1,7 +1,13 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use execution::runner::comms::{
-    DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun,
+use execution::{
+    runner::comms::{DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun},
+    worker_pool::comms::{
+        experiment::{ExpMsgSend, ExperimentToWorkerPoolMsg},
+        main::MainMsgSendBase,
+        terminate::TerminateRecv,
+        top::{WorkerPoolMsgRecv, WorkerPoolToExpCtlMsg},
+    },
 };
 use simulation_structure::SimulationShortId;
 use stateful::global::SharedStore;
@@ -33,14 +39,6 @@ use crate::{
         Error as SimulationError,
     },
     utils,
-    workerpool::{
-        self,
-        comms::{
-            experiment::{ExpMsgSend, ExperimentToWorkerPoolMsg},
-            top::{WorkerPoolMsgRecv, WorkerPoolToExpCtlMsg},
-            TerminateRecv,
-        },
-    },
 };
 
 pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
@@ -55,7 +53,7 @@ pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
     output_persistence_service_creator: P,
     sim_run_tasks: SimulationRuns,
     sim_senders: HashMap<SimulationShortId, SimCtlSend>,
-    worker_pool_send_base: workerpool::comms::main::MainMsgSendBase,
+    worker_pool_send_base: MainMsgSendBase,
     package_creators: PackageCreators,
     sim_configurer: SimConfigurer,
     sim_status_send: SimStatusSend,
@@ -405,7 +403,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         worker_pool_controller_recv: WorkerPoolMsgRecv,
         experiment_package_comms: ExperimentPackageComms,
         output_persistence_service_creator: P,
-        worker_pool_send_base: workerpool::comms::main::MainMsgSendBase,
+        worker_pool_send_base: MainMsgSendBase,
         package_creators: PackageCreators,
         sim_configurer: SimConfigurer,
         sim_status_send: SimStatusSend,

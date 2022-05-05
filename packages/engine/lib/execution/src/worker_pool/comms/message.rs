@@ -1,19 +1,19 @@
-use execution::{
-    package::PackageTask,
-    task::{TaskId, TaskSharedStore},
-    worker::SyncPayload,
-};
 use simulation_structure::SimulationShortId;
 use stateful::field::PackageId;
 use tracing::Span;
 
-use crate::simulation::comms::active::ActiveTaskExecutorComms;
+use crate::{
+    package::PackageTask,
+    task::{TaskId, TaskSharedStore},
+    worker::SyncPayload,
+    worker_pool::comms::active::ActiveTaskExecutorComms,
+};
 
-#[derive(derive_new::new, Debug)]
+#[derive(Debug)]
 pub struct WrappedTask {
     pub task_id: TaskId,
     pub package_id: PackageId,
-    pub inner: PackageTask,
+    pub task: PackageTask,
     pub comms: ActiveTaskExecutorComms,
     pub shared_store: TaskSharedStore,
 }

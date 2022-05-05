@@ -23,6 +23,10 @@ use execution::{
         RunnerSpawnConfig, SyncPayload, WorkerConfig, WorkerHandler, WorkerTask,
         WorkerTaskResultOrCancelled,
     },
+    worker_pool::comms::{
+        WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
+        WorkerToWorkerPoolMsg,
+    },
 };
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
@@ -34,13 +38,7 @@ use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use self::pending::PendingWorkerTasks;
-use crate::{
-    worker::pending::{PendingGroup, PendingWorkerTask},
-    workerpool::comms::{
-        WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
-        WorkerToWorkerPoolMsg,
-    },
-};
+use crate::worker::pending::{PendingGroup, PendingWorkerTask};
 
 /// A task worker.
 ///

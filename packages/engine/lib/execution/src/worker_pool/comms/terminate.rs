@@ -5,7 +5,7 @@ use tokio::{
     time::timeout,
 };
 
-use crate::workerpool::error::{Error, Result};
+use crate::{Error, Result};
 
 // TODO: Make the termination logic more cohesive, one implementation can probably be shared across
 //   runners, workers, workerpool, and possibly others too. An example of the disconnect right now

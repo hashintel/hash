@@ -2,8 +2,9 @@ use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
 use crate::{
-    runner::{comms::OutboundFromRunnerMsg, JavaScriptError, PythonError},
+    runner::{JavaScriptError, PythonError},
     task::{SharedContext, SharedState},
+    worker_pool::WorkerIndex,
 };
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -77,8 +78,17 @@ pub enum Error {
     #[error("KdTree error: {0}")]
     KdTree(#[from] kdtree::ErrorKind),
 
-    #[error("Couldn't send outbound message from runner: {0}")]
-    OutboundSend(#[from] SendError<OutboundFromRunnerMsg>),
+    #[error("Missing worker with index {0}")]
+    MissingWorkerWithIndex(WorkerIndex),
+
+    #[error("Terminate message already sent")]
+    TerminateMessageAlreadySent,
+
+    #[error("Terminate message not sent")]
+    TerminateMessageNotSent,
+
+    #[error("Terminate confirm already sent")]
+    TerminateConfirmAlreadySent,
 
     #[error("{0}")]
     RwLock(String),
@@ -103,6 +113,15 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
+    }
+}
+
+impl<T> From<SendError<T>> for Error
+where
+    T: std::fmt::Debug,
+{
+    fn from(e: SendError<T>) -> Self {
+        Error::Unique(format!("Tokio Send Error: {:?}", e))
     }
 }
 

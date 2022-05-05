@@ -1,7 +1,7 @@
 use simulation_structure::SimulationShortId;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-use crate::{simulation::comms::message::EngineToWorkerPoolMsg, workerpool::error::Result};
+use crate::{worker_pool::comms::message::EngineToWorkerPoolMsg, Result};
 
 // TODO: move span out of msg?
 pub struct MainMsgRecv {
@@ -24,7 +24,7 @@ pub fn new_no_sim() -> (MainMsgSendBase, MainMsgRecv) {
 }
 
 impl MainMsgSend {
-    pub(crate) fn send(&self, msg: EngineToWorkerPoolMsg) -> Result<()> {
+    pub fn send(&self, msg: EngineToWorkerPoolMsg) -> Result<()> {
         tracing::trace!("Sending msg to worker pool: {:?}", &msg);
         self.inner.send(msg)?;
         Ok(())
@@ -41,7 +41,7 @@ impl MainMsgSendBase {
 }
 
 impl MainMsgRecv {
-    pub(crate) async fn recv(&mut self) -> Option<EngineToWorkerPoolMsg> {
+    pub async fn recv(&mut self) -> Option<EngineToWorkerPoolMsg> {
         self.inner.recv().await
     }
 }
