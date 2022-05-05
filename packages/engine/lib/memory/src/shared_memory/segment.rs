@@ -326,7 +326,7 @@ impl Segment {
     // We can't resize memory on macos
     #[cfg(target_os = "macos")]
     pub fn shrink_memory_with_data_length(&mut self, _data_length: usize) -> Result<BufferChange> {
-        Ok(BufferChange(false, false))
+        Ok(BufferChange::new(false, false))
     }
 
     #[cfg(not(target_os = "macos"))]

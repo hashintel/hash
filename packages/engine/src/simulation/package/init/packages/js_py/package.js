@@ -1,4 +1,4 @@
-_prepare_user_trace = (error, trace) => {
+const _prepare_user_trace = (error, trace) => {
   // TODO: Check that line numbers aren't off by 2
   const frames = [];
   for (var i = 0; i < trace.length; ++i) {
@@ -40,7 +40,13 @@ const _load_init_fn = (console, source) => {
   }
 };
 
-const run_task = (experiment, _sim, task_message, _group_state, context) => {
+export const run_task = (
+  experiment,
+  _sim,
+  task_message,
+  _group_state,
+  context,
+) => {
   if (!task_message.hasOwnProperty("StartMessage")) {
     throw new Error(`unknown message type received for run_task'`);
   }

@@ -5,8 +5,8 @@
 Open-source resources and tools for developers who want to build the future of
 decision-making with HASH.
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped
-with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app)
+The [hash.dev](https://hash.dev/) website is a [Next.js](https://nextjs.org/)
+project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app)
 .
 
 ## Getting Started
