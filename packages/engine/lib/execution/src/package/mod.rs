@@ -220,8 +220,9 @@ use crate::Result;
 pub trait PackageCreator: Send + Sync {
     /// A message sent to all workers before running any packages.
     ///
+    ///
     /// This allows package creators to pass any kind of configuration from their Rust runtime to
-    /// their Language Runner counterpart all.
+    /// their Language Runner counterpart for the experiment.
     ///
     /// Compared to [`Package::start_message()`], the data returned with this method will be
     /// available for all simulations. Also, this should not be implemented for packages but
