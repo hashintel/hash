@@ -276,10 +276,21 @@ impl Experiment {
             env: ExecutionEnvironment::None, // We don't connect to the API
             dyn_payloads: serde_json::Map::from_iter(map_iter),
         };
-        engine_process
+        if let Err(err) = engine_process
             .send(&proto::EngineMsg::Init(init_message))
             .await
-            .wrap_err("Could not send `Init` message")?;
+            .wrap_err("Could not send `Init` message")
+        {
+            // TODO: Wait for threads to finish before starting a forced cleanup
+            warn!("Engine didn't exit gracefully, waiting for threads to finish.");
+            std::thread::sleep(std::time::Duration::from_secs(1));
+
+            engine_process
+                .exit_and_cleanup(experiment_run.base.id)
+                .await
+                .wrap_err("Failed to cleanup after failed start")?;
+            bail!(err);
+        }
         debug!("Sent init message to \"{experiment_name}\"");
 
         let mut graceful_finish = true;
@@ -406,6 +417,13 @@ impl Experiment {
                 }
             }
         }
+
+        if !graceful_finish {
+            // TODO: Wait for threads to finish before starting a forced cleanup
+            warn!("Engine didn't exit gracefully, waiting for threads to finish.");
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+
         debug!("Performing cleanup");
         engine_process
             .exit_and_cleanup(experiment_run.base.id)
