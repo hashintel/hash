@@ -46,6 +46,7 @@ export const useBlockProtocolCreateEntityTypes = (): {
               );
             }
             return {
+              accountId: data.createEntityType.accountId,
               entityTypeId: data.createEntityType.entityId,
               ...data.createEntityType.properties,
             };
