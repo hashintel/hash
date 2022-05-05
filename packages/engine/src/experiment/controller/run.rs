@@ -1,6 +1,10 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
-use execution::{runner::PythonRunner, worker_pool, worker_pool::comms::terminate::TerminateSend};
+use execution::{
+    runner::PythonRunner,
+    worker_pool,
+    worker_pool::{comms::terminate::TerminateSend, WorkerPool},
+};
 use memory::shared_memory;
 use simulation_structure::ExperimentId;
 use stateful::global::SharedStore;
@@ -25,7 +29,6 @@ use crate::{
     },
     proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
-    workerpool::WorkerPool,
     Error as CrateError,
 };
 
@@ -96,7 +99,7 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
 
 type ExperimentPackageResult = Option<ExperimentResult<()>>;
 type ExperimentControllerResult = Option<Result<()>>;
-type WorkerPoolResult = Option<crate::workerpool::Result<()>>;
+type ExecutionResult = Option<execution::Result<()>>;
 
 async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     exp_config: ExperimentConfig,
@@ -121,8 +124,8 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         worker_pool::comms::top::new_pair();
     let (mut worker_pool_terminate_send, worker_pool_terminate_recv) =
         worker_pool::comms::terminate::new_pair();
-    let (mut worker_pool_controller, worker_pool_send_base) = WorkerPool::new_with_sender(
-        exp_config.clone(),
+    let (mut worker_pool, worker_pool_send_base) = WorkerPool::new_with_sender(
+        &exp_config.worker_pool,
         experiment_to_worker_pool_recv,
         worker_pool_terminate_recv,
         worker_pool_controller_send,
@@ -168,16 +171,14 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     // Get the experiment-level initialization payload for workers
     let exp_init_msg_base = experiment_controller.exp_init_msg_base().await?;
     // TODO: does this need to even be async
-    worker_pool_controller
-        .spawn_workers(exp_init_msg_base)
-        .await?;
+    worker_pool.spawn_workers(exp_init_msg_base).await?;
 
     let mut worker_pool_controller_handle =
-        tokio::spawn(async move { worker_pool_controller.run().await }.in_current_span());
+        tokio::spawn(async move { worker_pool.run().await }.in_current_span());
     let mut experiment_controller_handle =
         tokio::spawn(async move { experiment_controller.run().await }.in_current_span());
 
-    let mut worker_pool_result: WorkerPoolResult = None;
+    let mut worker_pool_result: ExecutionResult = None;
     let mut experiment_package_result: ExperimentPackageResult = None;
     let mut experiment_controller_result: ExperimentControllerResult = None;
     let mut exit_timeout = None;
@@ -277,7 +278,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
 #[inline]
 fn experiment_package_exit_logic(
     experiment_controller_result: &ExperimentControllerResult,
-    worker_pool_result: &WorkerPoolResult,
+    worker_pool_result: &ExecutionResult,
     experiment_controller_terminate_send: &mut TerminateSend,
     exit_timeout: &mut Option<Pin<Box<tokio::time::Sleep>>>,
 ) -> Result<bool> {
@@ -309,7 +310,7 @@ fn experiment_package_exit_logic(
 #[inline]
 fn experiment_controller_exit_logic(
     experiment_package_result: &ExperimentPackageResult,
-    worker_pool_result: &WorkerPoolResult,
+    worker_pool_result: &ExecutionResult,
     worker_pool_terminate_send: &mut TerminateSend,
     exit_timeout: &mut Option<Pin<Box<tokio::time::Sleep>>>,
 ) -> Result<bool> {
