@@ -135,7 +135,11 @@ const load_behaviors = (experiment, behavior_descs) => {
 //     "behaviorIndex": agent_state => agent_state[BEHAVIOR_INDEX_FIELD_KEY]
 // }
 
-const start_experiment = (experiment, init_message, experiment_context) => {
+export const start_experiment = (
+  experiment,
+  init_message,
+  experiment_context,
+) => {
   load_behaviors(experiment, init_message);
 };
 
@@ -164,7 +168,7 @@ const postprocess = (agent_state) => {
   if (direction) fill3(direction);
 };
 
-const run_task = (
+export const run_task = (
   experiment,
   sim,
   task_message,

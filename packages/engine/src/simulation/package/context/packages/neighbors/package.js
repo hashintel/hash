@@ -1,3 +1,5 @@
+import * as hash_util from "./src/worker/runner/javascript/hash_util.js";
+
 const json_deepcopy = hash_util.json_deepcopy;
 
 /// Neighbor getters (`neighbor.your_state_field`)
@@ -93,7 +95,7 @@ const loaders = {
   // and doesn't need a custom loader due to the double underscores.
 };
 
-const start_sim = (_experiment, _sim, _init_message, init_context) => {
+export const start_sim = (_experiment, _sim, _init_message, init_context) => {
   const Neighbor = gen_neighbor(init_context.agent_schema);
   const getters = {
     neighbors: gen_neighbor_getter(Neighbor),

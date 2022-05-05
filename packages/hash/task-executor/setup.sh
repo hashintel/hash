@@ -46,5 +46,5 @@ echo "Running $(python --version) from $(which python)"
 
 echo "Installing python dependencies"
 python -m pip install --upgrade pip
-python -m pip install -r "${SCRIPT_DIR}/requirements.txt"
+python -m pip install -r "${SCRIPT_DIR}/requirements.lock"
 return
