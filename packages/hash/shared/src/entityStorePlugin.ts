@@ -194,8 +194,7 @@ const updateBlockEntity = (
       draftId: targetEntityDraftId,
       entityId: targetEntity.entityId,
       properties: targetEntity.properties,
-      // might not need this?
-      updatedAt: new Date().toISOString(),
+      updatedAt: targetEntity.updatedAt,
     };
 
     draftEntityStore[targetEntityDraftId] = targetDraftEntity;
@@ -211,11 +210,6 @@ const updateBlockEntity = (
   if (!isDraftBlockEntity(draftBlockEntity)) {
     throw new Error("draftId provided does not point to a BlockEntity");
   }
-
-  // we shouldn't need to update this since the api is meant to
-  // handle it.
-  // @todo remove the need for this
-  // draftBlockEntity.entityVersionCreatedAt = new Date().toISOString();
 
   draftBlockEntity.properties.entity = targetDraftEntity;
 };

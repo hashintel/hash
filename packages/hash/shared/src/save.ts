@@ -202,7 +202,10 @@ const insertBlocks = defineOperation(
             componentId: componentNodeToId(node),
             accountId,
             // @todo support new non-text nodes
+
             entity: {
+              // This causes an issue with variant blocks like the embed block
+              // where a particular variant gets reset to the default variant.
               entityProperties: node.type.isTextblock
                 ? textBlockNodeToEntityProperties(node)
                 : {},
@@ -335,7 +338,6 @@ const updateBlocks = defineOperation(
                   savedChildEntity.properties,
                 )
               ) {
-                // console.log("got here")
                 if (draftChildEntity.entityId !== savedChildEntity.entityId) {
                   updates.push({
                     swapBlockData: {
@@ -348,14 +350,18 @@ const updateBlocks = defineOperation(
                 } else {
                   // figure out why it also gets to this point
                   // after getting to the conditional above
-                  // console.log("got to else too")
-                  // updates.push({
-                  //   updateEntity: {
-                  //     entityId: savedChildEntity.entityId,
-                  //     accountId: savedChildEntity.accountId,
-                  //     properties: draftChildEntity.properties,
-                  //   },
-                  // });
+                  console.log("got to else too", {
+                    entityId: savedChildEntity.entityId,
+                    accountId: savedChildEntity.accountId,
+                    properties: draftChildEntity.properties,
+                  });
+                  updates.push({
+                    updateEntity: {
+                      entityId: savedChildEntity.entityId,
+                      accountId: savedChildEntity.accountId,
+                      properties: draftChildEntity.properties,
+                    },
+                  });
                 }
               }
             }
@@ -363,8 +369,11 @@ const updateBlocks = defineOperation(
 
           return updates;
         }),
-      (action) =>
-        action?.updateEntity?.entityId || action?.swapBlockData?.entityId,
+      // (action) =>
+      //   action?.swapBlockData?.entityId
+      //     ? `update_entity_${action?.swapBlockData?.entityId}`
+      //     : `swap_block_${action.updateEntity?.entityId}`,
+      (action) => action.updateEntity?.entityId,
     );
 
     return [actions, entities] as const;

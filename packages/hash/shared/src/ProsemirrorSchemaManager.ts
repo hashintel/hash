@@ -271,8 +271,7 @@ export class ProsemirrorSchemaManager {
    *  This assumes the block info has been fetched and the
    *  entities (block entity and child entity)
    *  @todo this only works for non-text blocks,
-   *  It should be updated to handle text blocks when
-   *  https://github.com/hashintel/hash/pull/490 is in
+   *  It should be updated to handle text blocks
    */
   createLocalBlock({
     targetComponentId,
@@ -665,15 +664,6 @@ export class ProsemirrorSchemaManager {
       this.view.state,
     ).store;
 
-    // debugger;
-
-    // const textContent =
-    //   childrenForTextEntity(
-    //     draftEntityForEntityId(updatedStore.draft, targetEntity.entityId)
-    //       ?.properties,
-    //     this.schema,
-    //   ) ?? [];
-
     const newBlockNode = this.createLocalBlock({
       targetComponentId: blockEntity.properties.componentId,
       draftBlockId: createDraftIdForEntity(blockEntity.entityId),
@@ -682,16 +672,6 @@ export class ProsemirrorSchemaManager {
         targetEntity.entityId,
       )?.draftId,
     });
-
-    // const newBlockNode = this.createLocalBlock({
-    //   targetComponentId: blockEntity.properties.componentId,
-    //   draftBlockId: draftIdForEntity(blockEntity.entityId),
-    //   draftChildEntityId: draftEntityForEntityId(
-    //     updatedStore.draft,
-    //     targetEntity.entityId,
-    //   )?.draftId,
-    //   textContent,
-    // });
 
     tr.replaceRangeWith(pos, pos + newBlockNode.nodeSize, newBlockNode);
     this.view.dispatch(tr);

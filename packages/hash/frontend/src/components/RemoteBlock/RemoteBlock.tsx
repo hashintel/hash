@@ -59,14 +59,6 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     );
   }
 
-  // added this for debugging purposes
-  // should remove before making a PR
-  Component.displayName =
-    sourceUrl
-      .split("/main")
-      .slice(0, -1)?.[0]
-      ?.replace("https://blockprotocol.org/blocks/", "") ?? "Component";
-
   return (
     <Component
       {...blockFunctions}
