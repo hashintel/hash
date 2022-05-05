@@ -76,33 +76,6 @@ impl Comms {
         let taken = std::mem::take(&mut *cmds);
         Ok(taken)
     }
-
-    /// Adds a [`CreateCommand`] for a given [`Agent`] to the [`Commands`] stored in self.
-    ///
-    /// # Errors
-    ///
-    /// This function can fail if it's unable to acquire a write lock on the [`Commands`] object.
-    ///
-    /// [`CreateCommand`]: crate::simulation::command::CreateCommand
-    // TODO: UNUSED: Needs triage
-    pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
-        let cmds = &mut self.cmds.try_write()?;
-        cmds.add_create(agent);
-        Ok(())
-    }
-
-    /// Adds a [`RemoveCommand`] for a given agent's `Uuid` to the [`Commands`] stored in self.
-    ///
-    /// # Errors
-    /// This function can fail if it's unable to acquire a write lock on the [`Commands`] object.
-    ///
-    /// [`RemoveCommand`]: crate::simulation::command::RemoveCommand
-    // TODO: UNUSED: Needs triage
-    pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
-        let cmds = &mut self.cmds.try_write()?;
-        cmds.add_remove(uuid);
-        Ok(())
-    }
 }
 
 // Datastore synchronization methods
@@ -196,6 +169,16 @@ impl execution::package::Comms for Comms {
             .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))
             .map_err(|e| execution::Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(active)
+    }
+
+    fn add_create_agent_command(&mut self, agent: Agent) -> execution::Result<()> {
+        self.cmds.try_write()?.add_create(agent);
+        Ok(())
+    }
+
+    fn add_remove_agent_command(&mut self, agent_id: Uuid) -> execution::Result<()> {
+        self.cmds.try_write()?.add_remove(agent_id);
+        Ok(())
     }
 }
 

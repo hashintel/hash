@@ -1,6 +1,7 @@
 use async_trait::async_trait;
-use stateful::field::PackageId;
+use stateful::{agent::Agent, field::PackageId};
 use tracing::Instrument;
+use uuid::Uuid;
 
 use crate::{
     package::{PackageTask, PackageType},
@@ -23,6 +24,20 @@ pub trait Comms: Send + Sync + 'static {
         task: PackageTask,
         shared_store: TaskSharedStore,
     ) -> Result<Self::ActiveTask>;
+
+    /// Adds a command to create the specified [`Agent`].
+    ///
+    /// # Errors
+    ///
+    /// This function can fail if it's unable to acquire a write lock.
+    fn add_create_agent_command(&mut self, agent: Agent) -> Result<()>;
+
+    /// Adds a command to removed the [`Agent`] specified by it's `agent_id`.
+    ///
+    /// # Errors
+    ///
+    /// This function can fail if it's unable to acquire a write lock.
+    fn add_remove_agent_command(&mut self, agent_id: Uuid) -> Result<()>;
 }
 
 pub struct PackageComms<C> {
@@ -55,13 +70,13 @@ impl<C: Comms> PackageComms<C> {
             .await
     }
 
-    //     // TODO: UNUSED: Needs triage
-    //     pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
-    //         self.comms.add_create_agent_command(agent)
-    //     }
-    //
-    //     // TODO: UNUSED: Needs triage
-    //     pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
-    //         self.comms.add_remove_agent_command(uuid)
-    //     }
+    #[allow(dead_code)]
+    pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
+        self.comms.add_create_agent_command(agent)
+    }
+
+    #[allow(dead_code)]
+    pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
+        self.comms.add_remove_agent_command(uuid)
+    }
 }

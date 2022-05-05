@@ -79,6 +79,9 @@ pub enum Error {
 
     #[error("Couldn't send outbound message from runner: {0}")]
     OutboundSend(#[from] SendError<OutboundFromRunnerMsg>),
+
+    #[error("{0}")]
+    RwLock(String),
 }
 
 impl Error {
@@ -100,5 +103,17 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
+    }
+}
+
+impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>> for Error {
+    fn from(_: std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>) -> Self {
+        Error::RwLock("RwLock write error".into())
+    }
+}
+
+impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>> for Error {
+    fn from(_: std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>) -> Self {
+        Error::RwLock("RwLock write error".into())
     }
 }
