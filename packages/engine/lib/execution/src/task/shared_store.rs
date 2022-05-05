@@ -14,7 +14,7 @@ use crate::{
 /// Holds proxies to access the state and information, if the context is readable.
 ///
 /// If the `state` can accessed (i.e. `state` is not `SharedState::None`), it holds read-only,
-/// read-write, partially borrowed proxies to the state pools.
+/// read-write, partially borrowed proxies to agents and messages.
 #[derive(Default, Debug)]
 pub struct SharedStore {
     pub state: SharedState,
