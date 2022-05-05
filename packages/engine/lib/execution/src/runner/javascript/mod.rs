@@ -1731,7 +1731,7 @@ impl<'s> ThreadLocalRunner<'s> {
         .map_err(|err| format!("Could not run state_snapshot_sync Function: {err}"))?;
 
         // State snapshots are part of context, not state, so don't need to
-        // sync Rust state pools.
+        // sync Rust agent and message pool.
         Ok(())
     }
 
