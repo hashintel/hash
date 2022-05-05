@@ -76,8 +76,8 @@ impl TaskMessage {
     /// # Parameters:
     /// * inner_msg: serde_json::Value - The deserialized inner task message. The serialization of
     ///   this should be something like the following (take note that message type is not the root
-    ///   object or serialization will fail): ```json { "SuccessMessage": { "agent_json":
-    ///   "some_json" } } ```
+    ///   object or serialization will fail): ```json { "Success": { "agent_json": "some_json" } }
+    ///   ```
     ///  * wrapper: serde_json::Value - A (possibly incomplete) Value representing a serialized
     ///    `TaskMessage`. Structure should match something like the following (take note that
     ///    "TaskMessage" is the root object and therefore does not appear as a key within the JSON):

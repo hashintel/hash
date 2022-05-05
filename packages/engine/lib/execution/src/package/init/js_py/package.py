@@ -28,10 +28,10 @@ def _load_initializer(code):
 
 
 def run_task(_experiment, _sim, task_message, _group_state, context):
-    if "StartMessage" not in task_message:
-        raise Exception("Unknown message type received, expected a StartMessage")
+    if "Start" not in task_message:
+        raise Exception("Unknown message type received, expected a Start")
 
-    state_src = task_message["StartMessage"]["initial_state_source"]
+    state_src = task_message["Start"]["initial_state_source"]
     init_fn = _load_initializer(code=state_src)
 
     try:
@@ -47,7 +47,7 @@ def run_task(_experiment, _sim, task_message, _group_state, context):
         raise UserCodeError(short_msg="init function must return a list")
 
     try:
-        data = json.dumps({"SuccessMessage": {
+        data = json.dumps({"Success": {
             "agents": agents,
         }})
     except (TypeError, ValueError) as e:

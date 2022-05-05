@@ -47,11 +47,11 @@ export const run_task = (
   _group_state,
   context,
 ) => {
-  if (!task_message.hasOwnProperty("StartMessage")) {
+  if (!task_message.hasOwnProperty("Start")) {
     throw new Error(`unknown message type received for run_task'`);
   }
 
-  const source = task_message.StartMessage.initial_state_source;
+  const source = task_message.Start.initial_state_source;
 
   // Reset `experiment.logged`, because it might have been written to
   // during a previous `run_task` call.
@@ -102,7 +102,7 @@ export const run_task = (
   let task_as_str;
   try {
     const msg = {
-      SuccessMessage: {
+      Success: {
         agents: agents,
       },
     };
