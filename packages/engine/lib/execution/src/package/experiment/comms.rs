@@ -3,6 +3,7 @@ pub mod update;
 use simulation_structure::SimulationShortId;
 
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum ExperimentControl {
     StartSim {
         sim_id: SimulationShortId,
