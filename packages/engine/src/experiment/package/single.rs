@@ -1,31 +1,18 @@
-use std::sync::Arc;
-
 use execution::package::experiment::{
     comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
     SingleRunExperimentConfig,
 };
 use simulation_structure::SimulationShortId;
 
-use crate::{
-    config::ExperimentConfig,
-    experiment::error::{Error, Result},
-};
+use crate::experiment::error::{Error, Result};
 
 pub struct SingleRunExperiment {
-    _experiment_config: Arc<ExperimentConfig>,
-    // TODO: unused, remove?
     config: SingleRunExperimentConfig,
 }
 
 impl SingleRunExperiment {
-    pub fn new(
-        experiment_config: &Arc<ExperimentConfig>,
-        config: SingleRunExperimentConfig,
-    ) -> Result<SingleRunExperiment> {
-        Ok(SingleRunExperiment {
-            _experiment_config: experiment_config.clone(),
-            config,
-        })
+    pub fn new(config: SingleRunExperimentConfig) -> Result<SingleRunExperiment> {
+        Ok(SingleRunExperiment { config })
     }
 
     pub async fn run(

@@ -2,8 +2,6 @@ pub mod controller;
 mod error;
 pub mod package;
 
-use std::sync::Arc;
-
 use execution::package::experiment::{
     comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv},
     ExperimentPackageConfig,
@@ -15,7 +13,7 @@ use tokio::task::JoinHandle;
 use tracing::Instrument;
 
 pub use self::error::{Error, Result};
-use crate::{config::ExperimentConfig, proto};
+use crate::proto;
 
 pub type Simulation = proto::ProjectBase;
 pub type PackageDataField = proto::PackageDataField;
@@ -81,23 +79,19 @@ pub struct Initializer {
 }
 
 pub fn init_exp_package(
-    experiment_config: Arc<ExperimentConfig>,
     exp_package_config: ExperimentPackageConfig,
     pkg_to_exp: ExpPkgCtlSend,
     exp_pkg_update_recv: ExpPkgUpdateRecv,
 ) -> Result<JoinHandle<Result<()>>> {
     let future = match exp_package_config {
         ExperimentPackageConfig::Simple(config) => {
-            let pkg = package::simple::SimpleExperiment::new(&experiment_config, config)?;
+            let pkg = package::simple::SimpleExperiment::new(config)?;
             tokio::spawn(
                 async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),
             )
         }
         ExperimentPackageConfig::SingleRun(config) => {
-            let pkg = package::single::SingleRunExperiment::new(
-                &Arc::new(experiment_config.as_ref().into()),
-                config,
-            )?;
+            let pkg = package::single::SingleRunExperiment::new(config)?;
             tokio::spawn(
                 async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),
             )

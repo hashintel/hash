@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use execution::package::experiment::{
     comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
@@ -6,14 +6,9 @@ use execution::package::experiment::{
 };
 use simulation_structure::SimulationShortId;
 
-use crate::{
-    config::ExperimentConfig,
-    experiment::error::{Error, Result},
-};
+use crate::experiment::error::{Error, Result};
 
 pub struct SimpleExperiment {
-    _experiment_config: Arc<ExperimentConfig>,
-    // TODO: unused, remove?
     config: SimpleExperimentConfig,
 }
 
@@ -51,14 +46,8 @@ impl<'a> SimQueue<'a> {
 }
 
 impl SimpleExperiment {
-    pub fn new(
-        experiment_config: &Arc<ExperimentConfig>,
-        config: SimpleExperimentConfig,
-    ) -> Result<SimpleExperiment> {
-        Ok(SimpleExperiment {
-            _experiment_config: experiment_config.clone(),
-            config,
-        })
+    pub fn new(config: SimpleExperimentConfig) -> Result<SimpleExperiment> {
+        Ok(SimpleExperiment { config })
     }
 
     pub async fn run(
