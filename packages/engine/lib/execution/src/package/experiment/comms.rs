@@ -1,3 +1,4 @@
+pub mod control;
 pub mod update;
 
 use simulation_structure::SimulationShortId;
