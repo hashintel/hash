@@ -71,7 +71,7 @@ pub struct Worker {
 // TODO: impl drop for worker?
 impl Worker {
     /// Spawns a new worker, containing a runner for each language: JavaScript, Python, and Rust and
-    /// initialize them by sending the [`ExperimentInitRunnerMsg`].
+    /// initializes them by sending the [`ExperimentInitRunnerMsg`].
     pub async fn spawn(
         worker_config: WorkerConfig,
         worker_pool_comms: WorkerCommsWithWorkerPool,
