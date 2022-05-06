@@ -1,6 +1,6 @@
 //! Communication channels and messages for running the [`WorkerPool`].
 //!
-//! This module contains channals and messages for different purposes:
+//! This module contains channels and messages for different purposes:
 //!   * [`main`]: Channels to drive [`WorkerPool`]
 //!   * [`message`]: Messages belonging to the [`main`] module
 //!   * [`active`]: Communication with an [`ActiveTask`]

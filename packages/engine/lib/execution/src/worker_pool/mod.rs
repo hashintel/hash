@@ -1,4 +1,4 @@
-//! Handling multiple workers simultaneously.
+//! Management of [`Workers`] and the orchestration of [`Task`]s executed on them.
 //!
 //! This module defines the [`WorkerPool`] and accompanying API. For configuring the [`WorkerPool`],
 //! the [`WorkerPoolConfig`] is used, which itself contains the information to configure the
@@ -49,7 +49,7 @@ use crate::{
     Error, Result,
 };
 
-/// Maintains multiple [`Worker`]s.
+/// Orchestrates multiple [`Worker`]s and [`Task`]s executed on them.
 ///
 /// The `WorkerPool` is created by passing the communication channels defined in [`comms`] by
 /// calling [`new_with_sender()`]. See the [`comms`] module for more information about different

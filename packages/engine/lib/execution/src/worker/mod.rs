@@ -1,5 +1,8 @@
-//! Defines the three different language runners for JavaScript, Python, and Rust and the
-//! accompanying API.
+//! Defines the task worker and accompanying API.
+//!
+//! The [`Worker`] contains and orchestrates the [language runners].
+//!
+//! [language runners]: crate::runner
 
 mod config;
 mod handler;
