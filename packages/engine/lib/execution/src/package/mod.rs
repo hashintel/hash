@@ -203,6 +203,7 @@ mod name;
 mod package_type;
 mod task;
 
+use self::dependencies::Dependencies;
 pub(crate) use self::name::{PackageIdGenerator, PackageMetadata};
 pub use self::{
     comms::{Comms, PackageComms},
@@ -210,7 +211,6 @@ pub use self::{
         OutputPackagesSimConfig, PackageCreatorConfig, PackageInitConfig, PersistenceConfig,
         SimPackageArgs,
     },
-    dependencies::Dependencies,
     name::PackageName,
     package_type::PackageType,
     task::PackageTask,

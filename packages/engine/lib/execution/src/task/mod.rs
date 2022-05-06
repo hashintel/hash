@@ -15,14 +15,13 @@ use async_trait::async_trait;
 
 pub use self::{
     cancel::CancelTask,
-    distribution::TaskDistributionConfig,
     message::{TaskMessage, TaskResultOrCancelled},
-    shared_store::{SharedState, TaskSharedStore},
+    shared_store::TaskSharedStore,
 };
 pub(crate) use self::{
-    distribution::StateBatchDistribution,
+    distribution::{StateBatchDistribution, TaskDistributionConfig},
     message::TargetedTaskMessage,
-    shared_store::{PartialSharedState, SharedContext, TaskSharedStoreBuilder},
+    shared_store::{PartialSharedState, SharedContext, SharedState, TaskSharedStoreBuilder},
 };
 use crate::Result;
 

@@ -1,7 +1,7 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
 use execution::{
-    runner::PythonRunner,
+    worker::Worker,
     worker_pool,
     worker_pool::{comms::terminate::TerminateSend, WorkerPool},
 };
@@ -362,7 +362,7 @@ pub fn cleanup_experiment(experiment_id: ExperimentId) {
         tracing::warn!("{}", err);
     }
 
-    if let Err(err) = PythonRunner::cleanup(experiment_id) {
+    if let Err(err) = Worker::cleanup(experiment_id) {
         tracing::warn!("{}", err);
     }
 

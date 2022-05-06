@@ -18,18 +18,18 @@ use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
-use simulation_structure::SimulationShortId;
+use simulation_structure::{ExperimentId, SimulationShortId};
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
+use self::pending::{CancelState, PendingGroup, PendingWorkerTask, PendingWorkerTasks};
 pub use self::{
     config::{RunnerSpawnConfig, WorkerConfig},
-    handler::WorkerHandler,
     init::PackageInitMsgForWorker,
-    sync::{
-        ContextBatchSync, StateSync, SyncCompletionReceiver, SyncCompletionSender, SyncPayload,
-        WaitableStateSync,
-    },
+    sync::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
+};
+pub(crate) use self::{
+    handler::WorkerHandler,
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
@@ -41,7 +41,6 @@ use crate::{
         JavaScriptRunner, Language, MessageTarget, PythonRunner, RunnerConfig, RustRunner,
     },
     task::{SharedState, TaskId, TaskMessage, TaskResultOrCancelled, TaskSharedStore},
-    worker::pending::{CancelState, PendingGroup, PendingWorkerTask, PendingWorkerTasks},
     worker_pool::comms::{
         WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
         WorkerToWorkerPoolMsg,
@@ -106,6 +105,10 @@ impl Worker {
             Ok(()) => self.shutdown(),
             Err(e) => self.shutdown_with_error(e),
         }
+    }
+
+    pub fn cleanup(experiment_id: ExperimentId) -> Result<()> {
+        PythonRunner::cleanup(experiment_id)
     }
 
     fn shutdown(&mut self) -> Result<()> {

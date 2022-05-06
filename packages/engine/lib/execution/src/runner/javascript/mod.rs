@@ -1859,6 +1859,7 @@ impl JavaScriptRunner {
     }
 
     // TODO: UNUSED: Needs triage
+    #[allow(dead_code)]
     pub async fn recv_now(&mut self) -> crate::Result<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }

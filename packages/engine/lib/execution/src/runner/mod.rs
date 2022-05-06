@@ -17,11 +17,9 @@ mod error;
 mod language;
 mod target;
 
-pub use self::{
-    config::RunnerConfig,
-    error::RunnerError,
+pub use self::{config::RunnerConfig, error::RunnerError, language::Language};
+pub(crate) use self::{
     javascript::{JavaScriptError, JavaScriptRunner},
-    language::Language,
     python::{PythonError, PythonRunner},
     rust::RustRunner,
     target::MessageTarget,

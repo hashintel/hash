@@ -5,9 +5,8 @@ pub mod comms;
 
 mod config;
 mod handler;
-
 mod pending;
-pub mod runs;
+mod runs;
 
 use futures::{
     future::try_join_all,
@@ -19,6 +18,7 @@ use stateful::field::PackageId;
 use tokio::{pin, task::JoinHandle};
 use tracing::{Instrument, Span};
 
+pub use self::config::{WorkerAllocation, WorkerIndex, WorkerPoolConfig};
 use self::{
     comms::{
         experiment::{ExpMsgRecv, ExperimentToWorkerPoolMsg},
@@ -32,10 +32,7 @@ use self::{
     pending::{DistributionController, PendingWorkerPoolTask, PendingWorkerPoolTasks},
     runs::SimulationRuns,
 };
-pub use self::{
-    config::{SplitConfig, WorkerAllocation, WorkerIndex, WorkerPoolConfig},
-    handler::WorkerPoolHandler,
-};
+pub(crate) use self::{config::SplitConfig, handler::WorkerPoolHandler};
 use crate::{
     package::PackageTask,
     runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
