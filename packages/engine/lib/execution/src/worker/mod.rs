@@ -1,9 +1,5 @@
-//! The `worker` module defines the three different language runners for JavaScript, Python, and
-//! Rust and the accompanying API for their tasks and communication.
-//!
-//! The [`runner`] module contains the implementations for the languages and the
-//! [communication module](runner::comms). The [`task`] module defines tasks executed in the
-//! runners.
+//! Defines the three different language runners for JavaScript, Python, and Rust and the
+//! accompanying API.
 
 mod config;
 mod handler;

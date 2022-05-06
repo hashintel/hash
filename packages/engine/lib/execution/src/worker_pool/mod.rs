@@ -1,4 +1,12 @@
-//! TODO: DOC
+//! Handling multiple workers simultaneously.
+//!
+//! This module defines the [`WorkerPool`] and accompanying API. For configuring the [`WorkerPool`],
+//! the [`WorkerPoolConfig`] is used, which itself contains the information to configure the
+//! [`Worker`]s.
+//!
+//! For communication between the [`WorkerPool`] and [`Worker`]s, the [`comms`] module provides
+//! channel-based communication messages.
+
 use std::{future::Future, pin::Pin};
 
 pub mod comms;
@@ -41,7 +49,18 @@ use crate::{
     Error, Result,
 };
 
-/// TODO: DOC
+/// Maintains multiple [`Worker`]s.
+///
+/// The `WorkerPool` is created by passing the communication channels defined in [`comms`] by
+/// calling [`new_with_sender()`]. See the [`comms`] module for more information about different
+/// communication channels and messages.
+///
+/// To spawn [`Worker`]s, [`spawn_workers()`] is used. After the workers has been spawned, they can
+/// be started by calling [`run()`].
+///
+/// [`new_with_sender()`]: Self::new_with_sender
+/// [`spawn_workers()`]: Self::spawn_workers
+/// [`run()`]: Self::run
 pub struct WorkerPool {
     worker_controllers: Option<Vec<Worker>>,
     comms: WorkerPoolCommsWithWorkers,
@@ -85,6 +104,10 @@ impl WorkerPool {
         ))
     }
 
+    /// Spawns the [`Worker`]s.
+    ///
+    /// It creates the communication channels to the workers and creates the [`Worker`]s with the
+    /// [`WorkerConfig`] provided in [`WorkerPoolConfig`] when creating the `WorkerPool`.
     pub async fn spawn_workers(
         &mut self,
         exp_init_base: ExperimentInitRunnerMsgBase,
@@ -141,7 +164,9 @@ impl WorkerPool {
         Ok(fut)
     }
 
-    /// TODO: DOC
+    /// Runs the worker pool.
+    // TODO: DOC: Describe communication between worker pool and engine/experiment/simulations
+    //   Probably point to different `comms` submodules as well
     pub async fn run(mut self) -> Result<()> {
         tracing::debug!("Running Worker Pool Controller");
         pin!(let workers = self.run_worker_controllers()?;);
