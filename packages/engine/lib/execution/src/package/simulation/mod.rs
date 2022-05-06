@@ -57,7 +57,7 @@
 //! #
 //! # use async_trait::async_trait;
 //! # use execution::{
-//! #     package::{
+//! #     package::simulation::{
 //! #         state::{StatePackage, StatePackageCreator},
 //! #         Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
 //! #     },
@@ -68,7 +68,7 @@
 //! pub struct GreetingPackage;
 //!
 //! impl Package for GreetingPackage {
-//!     fn start_message(&self) -> Result<serde_json::Value> {
+//!     fn simulation_setup_message(&self) -> Result<serde_json::Value> {
 //!         Ok(serde_json::Value::Null)
 //!     }
 //! }
@@ -88,7 +88,7 @@
 //! pub struct GreetingCreator;
 //!
 //! impl PackageCreator for GreetingCreator {
-//!     fn init_message(&self) -> Result<serde_json::Value> {
+//!     fn worker_init_message(&self) -> Result<serde_json::Value> {
 //!         Ok(serde_json::Value::Null)
 //!     }
 //! }
@@ -113,7 +113,7 @@
 //! # use std::{collections::HashMap, sync::Arc};
 //! #
 //! # use execution::{
-//! #     package::{Dependencies, PackageInitConfig, PackageType},
+//! #     package::simulation::{Dependencies, PackageInitConfig, PackageType},
 //! #     Result,
 //! # };
 //! # use stateful::field::PackageId;
