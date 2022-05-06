@@ -1,10 +1,14 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use execution::runner::comms::{
+    DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun,
+};
+use simulation_structure::SimulationShortId;
+use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 
 use crate::{
-    config::{ExperimentConfig, PersistenceConfig, StoreConfig},
-    datastore::shared_store::SharedStore,
+    config::{ExperimentConfig, StoreConfig},
     env::{Environment, OrchClient},
     experiment::{
         apply_globals_changes,
@@ -20,7 +24,7 @@ use crate::{
         ExperimentControl,
     },
     output::OutputPersistenceCreatorRepr,
-    proto::{EngineMsg, EngineStatus, ExperimentRunTrait, SimulationShortId},
+    proto::{EngineMsg, EngineStatus, ExperimentRunTrait},
     simulation::{
         comms::Comms,
         controller::{runs::SimulationRuns, sim_control::SimControl, SimulationController},
@@ -29,9 +33,6 @@ use crate::{
         Error as SimulationError,
     },
     utils,
-    worker::runner::comms::{
-        DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun,
-    },
     workerpool::{
         self,
         comms::{
@@ -200,11 +201,15 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         );
 
         // Create the datastore configuration (requires schemas)
-        let store_config =
-            StoreConfig::new_sim(&self.exp_base_config, &globals, &self.package_creators)?;
+        let store_config = StoreConfig::new_sim(
+            &self.exp_base_config.run.base().project_base.package_init,
+            &globals,
+            &self.package_creators,
+        )?;
         // Create the persistence configuration
-        let persistence_config =
-            PersistenceConfig::new_sim(&self.exp_base_config, &globals, &self.package_creators)?;
+        let persistence_config = self
+            .package_creators
+            .create_persistent_config(&self.exp_base_config, &globals)?;
         // Start the persistence service
         let persistence_service = self
             .output_persistence_service_creator
@@ -239,7 +244,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 NewSimulationRun {
                     span: Span::current(),
                     short_id: sim_short_id,
-                    engine_config: Arc::clone(&sim_config.sim.engine),
+                    worker_allocation: Arc::clone(&sim_config.sim.worker_allocation),
                     packages: sim_start_msgs,
                     datastore: datastore_payload,
                     globals: globals.clone(),
@@ -297,15 +302,17 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     }
 
     pub async fn exp_init_msg_base(&self) -> Result<ExperimentInitRunnerMsgBase> {
-        let pkg_start_msgs = self.package_creators.get_worker_exp_start_msgs()?;
+        let pkg_start_msgs = self.package_creators.init_message()?;
         Ok(ExperimentInitRunnerMsgBase {
             experiment_id: self.exp_base_config.run.base().id,
             shared_context: self.shared_store.clone(),
             package_config: Arc::new(pkg_start_msgs),
-            js_runner_initial_heap_constraint: self
+            runner_config: self
                 .exp_base_config
-                .js_runner_initial_heap_constraint,
-            js_runner_max_heap_size: self.exp_base_config.js_runner_max_heap_size,
+                .worker_pool
+                .worker_config
+                .runner_config
+                .clone(),
         })
     }
 

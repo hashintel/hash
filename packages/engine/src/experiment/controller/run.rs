@@ -1,11 +1,13 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
+use execution::runner::PythonRunner;
 use memory::shared_memory;
+use simulation_structure::ExperimentId;
+use stateful::global::SharedStore;
 use tracing::Instrument;
 
 use crate::{
     config::ExperimentConfig,
-    datastore::shared_store::SharedStore,
     env::Environment,
     experiment::{
         controller::{
@@ -21,11 +23,9 @@ use crate::{
         buffer::remove_experiment_parts, local::LocalOutputPersistence, none::NoOutputPersistence,
         OutputPersistenceCreatorRepr,
     },
-    proto::{EngineStatus, ExperimentId, ExperimentRunTrait, PackageConfig},
+    proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
-    worker::runner::python,
-    workerpool,
-    workerpool::{comms::terminate::TerminateSend, WorkerPoolController},
+    workerpool::{self, comms::terminate::TerminateSend, WorkerPoolController},
     Error as CrateError,
 };
 
@@ -109,7 +109,10 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let exp_base_config = Arc::new(exp_config.to_base()?);
     // Spin up the shared store (includes the entities which are
     // shared across the whole experiment run)
-    let shared_store = Arc::new(SharedStore::new(&exp_base_config)?);
+    let shared_store = Arc::new(SharedStore::new(
+        &exp_base_config.run.base().project_base.datasets,
+        exp_base_config.run.base().id,
+    )?);
 
     // Set up the worker pool controller and all communications with it
     let (experiment_to_worker_pool_send, experiment_to_worker_pool_recv) =
@@ -138,7 +141,10 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     };
 
     let worker_allocator = SimConfigurer::new(package_config, exp_config.worker_pool.num_workers);
-    let package_creators = PackageCreators::from_config(&exp_config.packages, &exp_config)?;
+    let package_creators = PackageCreators::from_config(
+        &exp_config.packages,
+        &exp_config.run.base().project_base.package_init,
+    )?;
     let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
     let mut orch_client = env.orch_client.try_clone()?;
     let (mut experiment_controller_terminate_send, experiment_controller_terminate_recv) =
@@ -356,7 +362,7 @@ pub fn cleanup_experiment(experiment_id: ExperimentId) {
         tracing::warn!("{}", err);
     }
 
-    if let Err(err) = python::cleanup_runner(experiment_id) {
+    if let Err(err) = PythonRunner::cleanup(experiment_id) {
         tracing::warn!("{}", err);
     }
 

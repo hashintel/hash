@@ -15,6 +15,8 @@ import {
   LinkGroup,
   UnknownEntity,
 } from "../../graphql/apiTypes.gen";
+import { useBlockProtocolCreateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityTypes";
+import { useBlockProtocolCreateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntitities";
 import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
 import { useBlockProtocolUpdateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinks";
@@ -59,6 +61,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { createLinkedAggregations } =
     useBlockProtocolCreateLinkedAggregations();
   const { createLinks } = useBlockProtocolCreateLinks();
+  const { createEntities } = useBlockProtocolCreateEntities();
+  const { createEntityTypes } = useBlockProtocolCreateEntityTypes();
   const { deleteLinkedAggregations } =
     useBlockProtocolDeleteLinkedAggregations();
   const { deleteLinks } = useBlockProtocolDeleteLinks();
@@ -102,6 +106,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const functions = {
     aggregateEntityTypes,
     aggregateEntities,
+    createEntities,
+    createEntityTypes,
     createLinkedAggregations,
     createLinks,
     deleteLinkedAggregations,

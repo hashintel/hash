@@ -1,9 +1,7 @@
+use simulation_structure::SimulationShortId;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-use crate::{
-    proto::SimulationShortId, simulation::comms::message::EngineToWorkerPoolMsg,
-    workerpool::error::Result,
-};
+use crate::{simulation::comms::message::EngineToWorkerPoolMsg, workerpool::error::Result};
 
 // TODO: move span out of msg?
 pub struct MainMsgRecv {

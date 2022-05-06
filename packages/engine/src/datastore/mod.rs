@@ -9,7 +9,6 @@ pub mod arrow;
 pub mod batch;
 mod error;
 pub mod schema;
-pub mod shared_store;
 pub mod store;
 pub mod table;
 #[cfg(test)]

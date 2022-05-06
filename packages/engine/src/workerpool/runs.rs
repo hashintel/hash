@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{
-    config::WorkerAllocation,
-    proto::SimulationShortId,
-    workerpool::{Error, Result},
-};
+use execution::worker_pool::WorkerAllocation;
+use simulation_structure::SimulationShortId;
+
+use crate::workerpool::{Error, Result};
 
 #[derive(Default)]
 pub struct SimulationRuns {
@@ -16,10 +15,10 @@ impl SimulationRuns {
     pub fn push(
         &mut self,
         sim_id: SimulationShortId,
-        worker_allocation: &WorkerAllocation,
+        worker_allocation: WorkerAllocation,
     ) -> Result<()> {
         self.worker_allocations
-            .try_insert(sim_id, worker_allocation.clone())
+            .try_insert(sim_id, worker_allocation)
             .map_err(|_| Error::from("Occupied hashmap key"))?;
         Ok(())
     }

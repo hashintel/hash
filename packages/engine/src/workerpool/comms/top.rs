@@ -1,9 +1,7 @@
+use execution::runner::comms::{PackageError, RunnerError, UserError, UserWarning};
+use simulation_structure::SimulationShortId;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use crate::{
-    proto::SimulationShortId,
-    worker::runner::comms::outbound::{PackageError, RunnerError, UserError, UserWarning},
-};
 // This is for communications between the worker pool and the simulation top-level controller.
 // Mainly used only for passing errors and warnings.
 

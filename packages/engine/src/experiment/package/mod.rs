@@ -3,6 +3,7 @@ pub mod single;
 
 use std::sync::Arc;
 
+use simulation_structure::SimulationShortId;
 use tokio::task::JoinHandle;
 
 use crate::{
@@ -12,7 +13,7 @@ use crate::{
         error::Result,
         init_exp_package,
     },
-    proto::{ExperimentRunTrait, PackageConfig, SimulationShortId},
+    proto::{ExperimentRunTrait, PackageConfig},
 };
 
 pub struct ExperimentPackageComms {

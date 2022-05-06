@@ -3,6 +3,13 @@ pub mod main;
 pub mod terminate;
 pub mod top;
 
+use execution::{
+    runner::comms::{NewSimulationRun, PackageError, RunnerError, UserError, UserWarning},
+    task::TaskId,
+    worker::SyncPayload,
+    worker_pool::WorkerIndex,
+};
+use simulation_structure::SimulationShortId;
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::Receiver,
@@ -15,16 +22,7 @@ pub use self::{
     terminate::TerminateRecv,
 };
 use crate::{
-    datastore::table::sync::SyncPayload,
-    proto::SimulationShortId,
-    types::{TaskId, WorkerIndex},
-    worker::{
-        runner::comms::{
-            outbound::{PackageError, RunnerError, UserError, UserWarning},
-            NewSimulationRun,
-        },
-        task::{WorkerTask, WorkerTaskResultOrCancelled},
-    },
+    worker::task::{WorkerTask, WorkerTaskResultOrCancelled},
     workerpool::{
         comms::terminate::TerminateMessage,
         error::{Error, Result},
@@ -185,7 +183,7 @@ impl WorkerPoolCommsWithWorkers {
         terminate::TerminateSend,
     )> {
         self.send_to_w
-            .get(worker_index)
+            .get(worker_index.index())
             .ok_or(Error::MissingWorkerWithIndex(worker_index))
     }
 
@@ -197,7 +195,7 @@ impl WorkerPoolCommsWithWorkers {
         terminate::TerminateSend,
     )> {
         self.send_to_w
-            .get_mut(worker_index)
+            .get_mut(worker_index.index())
             .ok_or(Error::MissingWorkerWithIndex(worker_index))
     }
 
@@ -229,7 +227,8 @@ impl WorkerPoolCommsWithWorkers {
     pub async fn send_terminate_all(&mut self) -> Result<()> {
         // No need to join all as this is called on exit
         for worker_index in 0..self.send_to_w.len() {
-            self.send_terminate_and_confirm(worker_index).await?;
+            self.send_terminate_and_confirm(WorkerIndex::new(worker_index))
+                .await?;
         }
         Ok(())
     }
@@ -247,12 +246,12 @@ pub fn new_pool_comms(
     let (send_to_wp, recv_from_w) = unbounded_channel();
     let mut send_to_w = Vec::with_capacity(num_workers);
     let worker_comms = (0..num_workers)
-        .map(|index| {
+        .map(|worker_index| {
             let (sender, recv_from_wp) = unbounded_channel();
             let (terminate_send, terminate_recv) = terminate::new_pair();
             send_to_w.push((sender, terminate_send));
             WorkerCommsWithWorkerPool {
-                index,
+                index: WorkerIndex::new(worker_index),
                 send_to_wp: send_to_wp.clone(),
                 recv_from_wp: Some(recv_from_wp),
                 terminate_recv,
