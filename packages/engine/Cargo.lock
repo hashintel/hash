@@ -676,6 +676,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7531096570974c3a9dcf9e4b8e1cede1ec26cf5046219fb3b9d897503b9be59"
 
 [[package]]
+name = "execution"
+version = "0.0.0"
+dependencies = [
+ "arrow",
+ "async-trait",
+ "flatbuffers",
+ "flatbuffers_gen",
+ "float-cmp",
+ "futures",
+ "glob",
+ "kdtree",
+ "lazy_static",
+ "memory",
+ "nng",
+ "rayon",
+ "serde",
+ "serde_json",
+ "simulation_structure",
+ "stateful",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+ "v8",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -946,13 +973,12 @@ dependencies = [
  "csv",
  "derive-new",
  "error",
+ "execution",
  "flatbuffers",
  "flatbuffers_gen",
- "float-cmp",
  "futures",
  "glob",
  "http-types",
- "kdtree",
  "lazy_static",
  "memory",
  "nano",
@@ -968,6 +994,7 @@ dependencies = [
  "serde-aux",
  "serde_json",
  "shared_memory",
+ "simulation_structure",
  "stateful",
  "strum_macros",
  "surf",
@@ -979,7 +1006,6 @@ dependencies = [
  "tracing-subscriber",
  "tracing-texray",
  "uuid",
- "v8",
 ]
 
 [[package]]
@@ -1594,6 +1620,7 @@ dependencies = [
  "async-trait",
  "clap",
  "error",
+ "execution",
  "hash_engine",
  "hash_engine_lib",
  "nano",
@@ -1602,6 +1629,7 @@ dependencies = [
  "rand_distr",
  "serde",
  "serde_json",
+ "simulation_structure",
  "stateful",
  "tokio",
  "tracing",
@@ -2092,6 +2120,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "simulation_structure"
+version = "0.0.0"
+dependencies = [
+ "uuid",
 ]
 
 [[package]]

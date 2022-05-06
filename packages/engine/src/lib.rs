@@ -41,13 +41,11 @@ pub mod env;
 mod error;
 pub mod experiment;
 pub mod fetch;
-pub mod language;
 pub mod output;
 pub mod proto;
 pub mod simulation;
 pub mod types;
 pub mod utils;
-pub mod worker;
 pub mod workerpool;
 
 pub use self::{

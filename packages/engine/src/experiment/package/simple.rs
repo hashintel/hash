@@ -1,5 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
+use simulation_structure::SimulationShortId;
+
 use crate::{
     config::ExperimentConfig,
     experiment::{
@@ -7,7 +9,7 @@ use crate::{
         error::{Error, Result},
         ExperimentControl,
     },
-    proto::{SimpleExperimentConfig, SimulationShortId},
+    proto::SimpleExperimentConfig,
 };
 
 pub struct SimpleExperiment {

@@ -16,7 +16,7 @@
     "@hashintel/hash-api": "0.0.0",
     "@hashintel/hash-backend-utils": "0.0.0",
     "@hashintel/hash-shared": "0.0.0",
-    "@opensearch-project/opensearch": "1.0.0",
+    "@opensearch-project/opensearch": "1.1.0",
     "hot-shots": "8.5.0",
     "slonik": "24.1.2",
     "ts-node": "10.4.0",

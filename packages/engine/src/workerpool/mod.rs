@@ -1,54 +1,49 @@
 //! TODO: DOC
-pub mod comms;
-mod error;
-mod pending;
-pub mod runs;
-
 use std::{future::Future, pin::Pin, sync::Arc};
 
+use execution::{
+    package::PackageTask,
+    runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
+    task::{Task, TaskDistributionConfig, TaskId, TaskSharedStore},
+    worker::{SyncPayload, Worker, WorkerConfig, WorkerTask},
+    worker_pool::{
+        comms,
+        comms::{
+            experiment::{ExpMsgRecv, ExperimentToWorkerPoolMsg},
+            main::{MainMsgRecv, MainMsgSendBase},
+            message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
+            terminate::TerminateRecv,
+            top::{WorkerPoolMsgSend, WorkerPoolToExpCtlMsg},
+            WorkerCommsWithWorkerPool, WorkerPoolCommsWithWorkers, WorkerPoolToWorkerMsg,
+            WorkerPoolToWorkerMsgPayload, WorkerToWorkerPoolMsg,
+        },
+        WorkerIndex, WorkerPoolConfig, WorkerPoolHandler,
+    },
+};
 use futures::{
     future::try_join_all,
     stream::{FuturesUnordered, StreamExt},
 };
 use rand::prelude::SliceRandom;
+use simulation_structure::SimulationShortId;
 use stateful::field::PackageId;
 use tokio::{pin, task::JoinHandle};
 use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use self::{
-    comms::{
-        experiment::ExperimentToWorkerPoolMsg, main::MainMsgSendBase, top::WorkerPoolMsgSend,
-        ExpMsgRecv, MainMsgRecv, TerminateRecv, WorkerCommsWithWorkerPool,
-        WorkerPoolCommsWithWorkers,
-    },
     pending::{DistributionController, PendingWorkerPoolTask, PendingWorkerPoolTasks},
     runs::SimulationRuns,
 };
-use crate::{
-    config,
-    config::{TaskDistributionConfig, Worker, WorkerPoolConfig},
-    datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
-    proto::SimulationShortId,
-    simulation::{
-        comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
-        task::{args::GetTaskArgs, handler::WorkerPoolHandler, Task},
-    },
-    types::{TaskId, WorkerIndex},
-    worker::{
-        runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
-        task::WorkerTask,
-        WorkerController,
-    },
-    workerpool::comms::{
-        top::WorkerPoolToExpCtlMsg, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
-        WorkerToWorkerPoolMsg,
-    },
-};
+use crate::config::{self};
+
+mod error;
+mod pending;
+pub mod runs;
 
 /// TODO: DOC
 pub struct WorkerPoolController {
-    worker_controllers: Option<Vec<WorkerController>>,
+    workers: Option<Vec<Worker>>,
     comms: WorkerPoolCommsWithWorkers,
     simulation_runs: SimulationRuns,
     pending_tasks: PendingWorkerPoolTasks,
@@ -57,7 +52,7 @@ pub struct WorkerPoolController {
     terminate_recv: TerminateRecv,
     top_send: WorkerPoolMsgSend,
     worker_comms: Option<Vec<WorkerCommsWithWorkerPool>>,
-    worker_base_config: Option<config::WorkerConfig>,
+    worker_config: Option<WorkerConfig>,
 }
 
 impl WorkerPoolController {
@@ -68,19 +63,19 @@ impl WorkerPoolController {
         worker_pool_controller_send: WorkerPoolMsgSend,
     ) -> Result<(Self, MainMsgSendBase)> {
         let WorkerPoolConfig {
-            worker_base_config,
+            worker_config,
             num_workers,
         } = (*config.worker_pool).clone();
 
         let (comms, worker_comms) = comms::new_pool_comms(num_workers);
-        let (sim_send_base, sim_recv) = comms::new_no_sim();
+        let (sim_send_base, sim_recv) = comms::main::new_no_sim();
 
         let simulation_runs = SimulationRuns::default();
         let pending_tasks = PendingWorkerPoolTasks::default();
 
         Ok((
             WorkerPoolController {
-                worker_controllers: None,
+                workers: None,
                 comms,
                 simulation_runs,
                 pending_tasks,
@@ -89,7 +84,7 @@ impl WorkerPoolController {
                 terminate_recv,
                 top_send: worker_pool_controller_send,
                 worker_comms: Some(worker_comms),
-                worker_base_config: Some(worker_base_config),
+                worker_config: Some(worker_config),
             },
             sim_send_base,
         ))
@@ -103,14 +98,14 @@ impl WorkerPoolController {
             .worker_comms
             .take()
             .ok_or_else(|| Error::from("missing worker comms"))?;
-        let worker_base_config = self
-            .worker_base_config
+        let worker_config = self
+            .worker_config
             .take()
             .ok_or_else(|| Error::from("missing worker base config"))?;
-        self.worker_controllers = Some(
+        self.workers = Some(
             try_join_all(worker_comms.into_iter().map(|comms| {
                 let init = ExperimentInitRunnerMsg::new(&exp_init_base, *comms.index());
-                WorkerController::spawn(worker_base_config.clone(), comms, init)
+                Worker::spawn(worker_config.clone(), comms, init)
             }))
             .await
             .map_err(|e| Error::from(e.to_string()))?,
@@ -119,19 +114,16 @@ impl WorkerPoolController {
         Ok(())
     }
 
-    async fn register_simulation(&mut self, payload: NewSimulationRun) -> Result<()> {
+    async fn register_simulation(&mut self, payload: NewSimulationRun) -> execution::Result<()> {
         // TODO: Only send to workers that simulation run is registered with
         self.send_to_all_workers(WorkerPoolToWorkerMsg::new_simulation_run(payload))
     }
 
-    fn run_worker_controllers(&mut self) -> Result<JoinHandle<Result<Vec<()>>>> {
+    fn run_workers(&mut self) -> Result<JoinHandle<Result<Vec<()>>>> {
         tracing::debug!("Running workers");
-        let worker_controllers = self
-            .worker_controllers
-            .take()
-            .ok_or(Error::MissingWorkerControllers)?;
+        let workers = self.workers.take().ok_or(Error::MissingWorker)?;
 
-        let futs = worker_controllers
+        let futs = workers
             .into_iter()
             .map(|mut c| {
                 tokio::spawn(async move { c.run().await.map_err(Error::from) }.in_current_span())
@@ -154,7 +146,7 @@ impl WorkerPoolController {
     /// TODO: DOC
     pub async fn run(mut self) -> Result<()> {
         tracing::debug!("Running Worker Pool Controller");
-        pin!(let workers = self.run_worker_controllers()?;);
+        pin!(let workers = self.run_workers()?;);
         pin!(let terminate_recv = self.terminate_recv.take_recv()?;);
 
         // `pending_syncs` contains futures that wait for state sync responses
@@ -221,13 +213,13 @@ impl WorkerPoolController {
                     task_id,
                     task_msg.package_id,
                     task_msg.shared_store,
-                    task_msg.inner,
+                    task_msg.task,
                 )?;
                 let pending =
                     PendingWorkerPoolTask::new(task_id, channels, distribution_controller);
                 self.pending_tasks.inner.insert(task_id, pending);
-                tasks.into_iter().try_for_each(|(worker, task)| {
-                    self.send_to_worker(worker.index(), WorkerPoolToWorkerMsg::task(sim_id, task))
+                tasks.into_iter().try_for_each(|(worker_index, task)| {
+                    self.send_to_worker(worker_index, WorkerPoolToWorkerMsg::task(sim_id, task))
                 })?;
             }
             EngineToWorkerPoolMsgPayload::Sync(sync) => {
@@ -242,11 +234,12 @@ impl WorkerPoolController {
                 let (worker_msgs, worker_completion_receivers) =
                     sync.create_children(self.comms.num_workers());
                 for (worker_index, msg) in worker_msgs.into_iter().enumerate() {
-                    self.comms.send(worker_index, WorkerPoolToWorkerMsg {
-                        span: Span::current(),
-                        sim_id: Some(sim_id),
-                        payload: WorkerPoolToWorkerMsgPayload::Sync(SyncPayload::State(msg)),
-                    })?;
+                    self.comms
+                        .send(WorkerIndex::new(worker_index), WorkerPoolToWorkerMsg {
+                            span: Span::current(),
+                            sim_id: Some(sim_id),
+                            payload: WorkerPoolToWorkerMsgPayload::Sync(SyncPayload::State(msg)),
+                        })?;
                 }
                 let fut = async move {
                     let sync = sync;
@@ -268,7 +261,7 @@ impl WorkerPoolController {
         match msg {
             ExperimentToWorkerPoolMsg::NewSimulationRun(payload) => {
                 self.simulation_runs
-                    .push(payload.short_id, &payload.engine_config.worker_allocation)?;
+                    .push(payload.short_id, payload.worker_allocation.as_ref().clone())?;
                 self.register_simulation(payload).await?
             }
         }
@@ -278,7 +271,7 @@ impl WorkerPoolController {
     /// TODO: DOC
     async fn handle_worker_msg(
         &mut self,
-        worker: WorkerIndex,
+        worker_index: WorkerIndex,
         sim_id: SimulationShortId,
         worker_msg: WorkerToWorkerPoolMsg,
     ) -> Result<()> {
@@ -290,7 +283,7 @@ impl WorkerPoolController {
                     .inner
                     .get_mut(&res.task_id)
                     .ok_or(Error::MissingPendingTask(task_id))?;
-                if pending_task.handle_result_or_cancel(Worker::new(worker), res)? {
+                if pending_task.handle_result_or_cancel(worker_index, res)? {
                     // Remove pending task because it has terminated (completed OR cancelled)
                     // Unwrap must work, since we've checked the key exists in the hashmap
                     self.pending_tasks.inner.remove(&task_id).unwrap();
@@ -347,20 +340,22 @@ impl WorkerPoolController {
             if let Some(task) = self.pending_tasks.inner.get(&id) {
                 match &task.distribution_controller {
                     DistributionController::Distributed {
-                        active_workers,
+                        active_worker_indices,
                         received_results: _,
                         reference_task: _,
                     } => {
-                        for worker in active_workers {
+                        for worker_index in active_worker_indices {
                             self.send_to_worker(
-                                worker.index(),
+                                *worker_index,
                                 WorkerPoolToWorkerMsg::cancel_task(task.task_id),
                             )?;
                         }
                     }
-                    DistributionController::Single { active_worker } => {
+                    DistributionController::Single {
+                        active_worker: active_worker_index,
+                    } => {
                         self.send_to_worker(
-                            active_worker.index(),
+                            *active_worker_index,
                             WorkerPoolToWorkerMsg::cancel_task(task.task_id),
                         )?;
                     }
@@ -375,7 +370,7 @@ impl WorkerPoolController {
         self.comms.send(index, msg).map_err(Error::from)
     }
 
-    fn send_to_all_workers(&mut self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
+    fn send_to_all_workers(&mut self, msg: WorkerPoolToWorkerMsg) -> execution::Result<()> {
         self.comms.send_all(msg)
     }
 
@@ -386,15 +381,15 @@ impl WorkerPoolController {
         task_id: TaskId,
         package_id: PackageId,
         shared_store: TaskSharedStore,
-        task: Task,
-    ) -> Result<(Vec<(Worker, WorkerTask)>, DistributionController)> {
+        task: PackageTask,
+    ) -> Result<(Vec<(WorkerIndex, WorkerTask)>, DistributionController)> {
         let worker_list = self.simulation_runs.get_worker_allocation(sim_id)?;
 
         let (triples, original_task) =
             if let TaskDistributionConfig::Distributed(distribution) = task.distribution() {
                 let (distributed_tables, split_config) =
                     shared_store.distribute(&distribution, worker_list)?;
-                let tasks: Vec<Task> = task.split_task(&split_config)?;
+                let tasks: Vec<PackageTask> = task.split_task(&split_config)?;
                 (
                     tasks
                         .into_iter()
@@ -402,7 +397,7 @@ impl WorkerPoolController {
                         .map(|(task, (worker, store))| (worker, task, store))
                         .collect::<Vec<_>>(),
                     DistributionController::Distributed {
-                        active_workers: worker_list.clone(),
+                        active_worker_indices: worker_list.clone(),
                         received_results: Vec::with_capacity(worker_list.len()),
                         reference_task: task,
                     },
@@ -411,7 +406,7 @@ impl WorkerPoolController {
                 let worker = worker_list
                     .choose(&mut rand::thread_rng())
                     .ok_or_else(|| Error::from("Unexpected: No Workers"))?;
-                // Pass the task to the worker controller, don't keep a local copy
+                // Pass the task to the worker, don't keep a local copy
                 (
                     vec![(*worker, task, shared_store)],
                     DistributionController::Single {
@@ -423,8 +418,13 @@ impl WorkerPoolController {
         Ok((
             triples
                 .into_iter()
-                .map(|(worker, task, store)| {
-                    (worker, WorkerTask::new(task_id, package_id, task, store))
+                .map(|(worker, task, shared_store)| {
+                    (worker, WorkerTask {
+                        task_id,
+                        package_id,
+                        task,
+                        shared_store,
+                    })
                 })
                 .collect(),
             original_task,

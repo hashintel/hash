@@ -4,7 +4,7 @@ target/
 # Python artifacts
 runner_venv/
 build/
-src/worker/runner/python/wrappers.c*
+lib/execution/src/runner/python/wrappers.c*
 
 # Runtime
 *-topy*

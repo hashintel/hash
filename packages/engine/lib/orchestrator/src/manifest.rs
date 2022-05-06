@@ -9,16 +9,18 @@ use std::{
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
+use execution::package::{
+    init::{InitialState, InitialStateName},
+    state::behavior_execution::Behavior,
+    PackageInitConfig, SimPackageArgs,
+};
 use hash_engine_lib::{
     fetch::parse_raw_csv_into_json,
-    proto::{
-        ExperimentRun, ExperimentRunBase, InitialState, InitialStateName, ProjectBase,
-        SharedBehavior, SimPackageArgs,
-    },
+    proto::{ExperimentRun, ExperimentRunBase, ProjectBase},
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
-use stateful::global::SharedDataset;
+use stateful::global::Dataset;
 use uuid::Uuid;
 
 use crate::ExperimentType;
@@ -37,9 +39,9 @@ pub struct Manifest {
     /// The initial state for the simulation.
     pub initial_state: Option<InitialState>,
     /// A list of all behaviors in the project.
-    pub behaviors: Vec<SharedBehavior>,
+    pub behaviors: Vec<Behavior>,
     /// A list of all datasets in the project.
-    pub datasets: Vec<SharedDataset>,
+    pub datasets: Vec<Dataset>,
     /// JSON string describing the [`Globals`](hash_engine_lib::config::Globals) object.
     pub globals_json: Option<String>,
     /// JSON string describing the analysis that's calculated by the
@@ -181,7 +183,7 @@ impl Manifest {
             {
                 DependencyType::Behavior(extension) => {
                     let behavior = if &extension == ".rs" {
-                        SharedBehavior {
+                        Behavior {
                             id: dependency_name.to_string(),
                             name: dependency_name.to_string(),
                             shortnames: vec![],
@@ -211,7 +213,7 @@ impl Manifest {
     }
 
     /// Adds the provided `behavior` to the list of behaviors.
-    pub fn add_behavior(&mut self, behavior: SharedBehavior) {
+    pub fn add_behavior(&mut self, behavior: Behavior) {
         self.behaviors.push(behavior);
     }
 
@@ -245,7 +247,7 @@ impl Manifest {
             .ok_or_else(|| report!("Could not find parent folder for behavior file: {path:?}"))?;
         let key_path = folder_path.join(&format!("{file_name}.json"));
 
-        self.add_behavior(SharedBehavior {
+        self.add_behavior(Behavior {
             // `id`, `name` and `shortnames` may be updated later if this behavior is a dependency
             id: file_name.clone(),
             name: file_name,
@@ -294,7 +296,7 @@ impl Manifest {
     }
 
     /// Adds the provided `dataset` to the list of datasets.
-    pub fn add_dataset(&mut self, dataset: SharedDataset) {
+    pub fn add_dataset(&mut self, dataset: Dataset) {
         self.datasets.push(dataset);
     }
 
@@ -322,7 +324,7 @@ impl Manifest {
         }
 
         let filename = path.file_name().unwrap().to_string_lossy().to_string();
-        self.add_dataset(SharedDataset {
+        self.add_dataset(Dataset {
             name: Some(filename.clone()),
             shortname: filename.clone(),
             filename,
@@ -487,19 +489,21 @@ impl Manifest {
     pub fn read(self, experiment_type: ExperimentType) -> Result<ExperimentRun> {
         let project_base = ProjectBase {
             name: self.project_name,
-            initial_state: self
-                .initial_state
-                .ok_or_else(|| report!("Project must specify an initial state file."))?,
             globals_src: self.globals_json.unwrap_or_else(|| "{}".to_string()),
             experiments_src: self.experiments_json,
-            behaviors: self.behaviors,
             datasets: self.datasets,
             // TODO: allow packages themselves to implement resolvers for local projects to build
             // this   field
-            packages: vec![SimPackageArgs {
-                name: "analysis".into(),
-                data: SerdeValue::String(self.analysis_json.unwrap_or_default()),
-            }],
+            package_init: PackageInitConfig {
+                packages: vec![SimPackageArgs {
+                    name: "analysis".into(),
+                    data: SerdeValue::String(self.analysis_json.unwrap_or_default()),
+                }],
+                behaviors: self.behaviors,
+                initial_state: self
+                    .initial_state
+                    .ok_or_else(|| report!("Project must specify an initial state file."))?,
+            },
         };
 
         let name = match &experiment_type {
@@ -548,7 +552,7 @@ fn get_dependency_type_from_name(dependency_name: &str) -> Result<DependencyType
 fn get_behavior_from_dependency_projects(
     dependency_name: &str,
     dependency_projects: &HashMap<PathBuf, Manifest>,
-) -> Result<SharedBehavior> {
+) -> Result<Behavior> {
     let mut name = dependency_name.to_string();
     let mut possible_names = Vec::with_capacity(4);
 
@@ -614,7 +618,7 @@ fn get_behavior_from_dependency_projects(
 fn get_dataset_from_dependency_projects(
     dependency_name: &str,
     dependency_projects: &HashMap<PathBuf, Manifest>,
-) -> Result<SharedDataset> {
+) -> Result<Dataset> {
     let mut dependency_path = PathBuf::from(&dependency_name);
     let file_name = dependency_path
         .file_name()

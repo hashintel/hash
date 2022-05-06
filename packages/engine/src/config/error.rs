@@ -6,6 +6,9 @@ pub enum Error {
     #[error("Config error: {0}")]
     Unique(String),
 
+    #[error("Execution error: {0}")]
+    Execution(#[from] execution::Error),
+
     #[error("Simulation error: {0}")]
     Simulation(#[from] crate::simulation::Error),
 
