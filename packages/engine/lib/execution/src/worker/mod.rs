@@ -1,9 +1,8 @@
-//! The `worker` module defines the three different language runners for JavaScript, Python, and
-//! Rust and the accompanying API for their tasks and communication.
+//! Defines the task worker and accompanying API.
 //!
-//! The [`runner`] module contains the implementations for the languages and the
-//! [communication module](runner::comms). The [`task`] module defines tasks executed in the
-//! runners.
+//! The [`Worker`] contains and orchestrates the [language runners].
+//!
+//! [language runners]: crate::runner
 
 mod config;
 mod handler;
@@ -18,18 +17,18 @@ use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
-use simulation_structure::SimulationShortId;
+use simulation_structure::{ExperimentId, SimulationShortId};
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
+use self::pending::{CancelState, PendingGroup, PendingWorkerTask, PendingWorkerTasks};
 pub use self::{
     config::{RunnerSpawnConfig, WorkerConfig},
-    handler::WorkerHandler,
     init::PackageInitMsgForWorker,
-    sync::{
-        ContextBatchSync, StateSync, SyncCompletionReceiver, SyncCompletionSender, SyncPayload,
-        WaitableStateSync,
-    },
+    sync::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
+};
+pub(crate) use self::{
+    handler::WorkerHandler,
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
@@ -41,7 +40,6 @@ use crate::{
         JavaScriptRunner, Language, MessageTarget, PythonRunner, RunnerConfig, RustRunner,
     },
     task::{SharedState, TaskId, TaskMessage, TaskResultOrCancelled, TaskSharedStore},
-    worker::pending::{CancelState, PendingGroup, PendingWorkerTask, PendingWorkerTasks},
     worker_pool::comms::{
         WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
         WorkerToWorkerPoolMsg,
@@ -56,6 +54,9 @@ use crate::{
 ///
 /// A worker is only driven by the [`WorkerPool`] by sending [`Task`]s, please see their
 /// documentation for further information.
+///
+/// [`WorkerPool`]: crate::worker_pool::WorkerPool
+/// [`Task`]: crate::task::Task
 pub struct Worker {
     py: PythonRunner,
     js: JavaScriptRunner,
@@ -106,6 +107,10 @@ impl Worker {
             Ok(()) => self.shutdown(),
             Err(e) => self.shutdown_with_error(e),
         }
+    }
+
+    pub fn cleanup(experiment_id: ExperimentId) -> Result<()> {
+        PythonRunner::cleanup(experiment_id)
     }
 
     fn shutdown(&mut self) -> Result<()> {

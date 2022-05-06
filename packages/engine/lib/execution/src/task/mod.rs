@@ -1,10 +1,10 @@
-//! Definitions to run a [`package`].
+//! Definitions to run a simulation [`package`].
 //!
 //! A [`Task`] contains information to run a package. Each [`PackageType`] has different tasks
 //! depending on the packages.
 //!
-//! [`package`]: crate::package
-//! [`PackageType`]: crate::package::PackageType
+//! [`package`]: crate::package::simulation
+//! [`PackageType`]: crate::package::simulation::PackageType
 
 mod cancel;
 mod distribution;
@@ -15,20 +15,19 @@ use async_trait::async_trait;
 
 pub use self::{
     cancel::CancelTask,
-    distribution::TaskDistributionConfig,
     message::{TaskMessage, TaskResultOrCancelled},
-    shared_store::{SharedState, TaskSharedStore},
+    shared_store::{SharedContext, SharedState, TaskSharedStore},
 };
 pub(crate) use self::{
-    distribution::StateBatchDistribution,
+    distribution::{StateBatchDistribution, TaskDistributionConfig},
     message::TargetedTaskMessage,
-    shared_store::{PartialSharedState, SharedContext, TaskSharedStoreBuilder},
+    shared_store::{PartialSharedState, TaskSharedStoreBuilder},
 };
 use crate::Result;
 
 /// Information to run a [`Package`].
 ///
-/// [`Package`]: crate::package::Package
+/// [`Package`]: crate::package::simulation::Package
 pub trait Task {
     /// Provides a human-readable name of the [`Task`], e.g. `"BehaviorExecution"`.
     fn name(&self) -> &'static str;
@@ -56,7 +55,7 @@ pub trait StoreAccessValidator: Task {
     /// The implementation should error with [`AccessNotAllowed`] if the permissions don't match up.
     ///
     /// [`Task`]: crate::task::Task
-    /// [`InitTask`]: crate::package::init::InitTask
+    /// [`InitTask`]: crate::package::simulation::init::InitTask
     /// [`SharedState`]: crate::task::SharedState
     /// [`SharedContext`]: crate::task::SharedContext
     /// [`AccessNotAllowed`]: crate::error::Error::AccessNotAllowed

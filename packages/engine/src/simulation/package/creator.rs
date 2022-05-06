@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use execution::{
-    package::{
+    package::simulation::{
         context::ContextPackageCreator, init::InitPackageCreator, output::OutputPackageCreator,
         state::StatePackageCreator, OutputPackagesSimConfig, PackageComms, PackageInitConfig,
         PackageName, PackageType, PersistenceConfig,

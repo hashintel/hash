@@ -1,10 +1,11 @@
-/*
-use behavior_execution::BehaviorPackage;
-use behaviors::NativeState;
-use context::{AgentContext, GroupContext, SimContext};
-pub use error::{Error, Result};
-use state::{AgentState, GroupState, SimState, StateSnapshot};
-*/
+#![allow(dead_code)]
+
+// use behavior_execution::BehaviorPackage;
+// use behaviors::NativeState;
+// use context::{AgentContext, GroupContext, SimContext};
+// pub use error::{Error, Result};
+// use state::{AgentState, GroupState, SimState, StateSnapshot};
+
 use futures::FutureExt;
 use simulation_structure::SimulationShortId;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};

@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 mod part;
 
-use execution::package::{
+use execution::package::simulation::{
     output::{
         analysis::{AnalysisOutput, AnalysisOutputConfig, AnalysisSingleOutput},
         OutputPackageName,

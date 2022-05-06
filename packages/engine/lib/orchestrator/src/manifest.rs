@@ -9,7 +9,7 @@ use std::{
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
-use execution::package::{
+use execution::package::simulation::{
     init::{InitialState, InitialStateName},
     state::behavior_execution::Behavior,
     PackageInitConfig, SimPackageArgs,
