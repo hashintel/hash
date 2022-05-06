@@ -1,11 +1,12 @@
 use serde::Deserialize;
+use simulation_structure::ExperimentId;
 use thiserror::Error as ThisError;
 use tokio::time::Duration;
 
 use crate::{
     proto::{
-        EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentId, ExperimentRunRepr,
-        ExperimentRunTrait, InitMessage,
+        EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentRunRepr, ExperimentRunTrait,
+        InitMessage,
     },
     Args,
 };

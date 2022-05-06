@@ -11,7 +11,6 @@ import {
   BlockProtocolEntity,
   BlockProtocolLink,
   JSONObject,
-  SingleTargetLinkFields,
 } from "blockprotocol";
 import { tw } from "twind";
 
@@ -180,7 +179,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
               (
                 linkOnField,
               ): linkOnField is {
-                link: BlockProtocolLink & SingleTargetLinkFields;
+                link: BlockProtocolLink;
                 linkedEntity: BlockProtocolEntity;
               } => {
                 return isSingleTargetLink(linkOnField.link);

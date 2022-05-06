@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::StreamExt;
-use stateful::global::SharedDataset;
+use stateful::global::Dataset;
 
 use crate::{
     proto::{ExperimentRunRepr, ExperimentRunTrait, FetchedDataset},
@@ -17,7 +17,7 @@ pub trait FetchDependencies {
 }
 
 #[async_trait]
-impl FetchDependencies for SharedDataset {
+impl FetchDependencies for Dataset {
     async fn fetch_deps(&mut self) -> Result<()> {
         if self.data.is_some() {
             return Ok(());
@@ -58,7 +58,7 @@ impl FetchDependencies for ExperimentRunRepr {
             futures::stream::iter(datasets.into_iter().map(|mut dataset| {
                 tokio::spawn(async move {
                     dataset.fetch_deps().await?;
-                    Ok::<SharedDataset, Error>(dataset)
+                    Ok::<Dataset, Error>(dataset)
                 })
             }))
             .buffer_unordered(100)

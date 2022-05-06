@@ -1,35 +1,77 @@
-import { createServer, IncomingMessage, ServerResponse } from "http";
+import express from "express";
+import { json } from "body-parser";
+import { readFileSync, writeFileSync } from "fs";
 import { executeTask } from "./execution";
+import { GithubIngestor } from "./tasks/source-github";
+import { ConfiguredAirbyteCatalog } from "./airbyte/protocol";
 
+/** @todo - Could be from env-var */
 const port = 5010;
 
-const requestHandler = async (
-  request: IncomingMessage,
-  response: ServerResponse,
-) => {
-  const url = request.url;
-  let result = "Fallback response";
-  try {
-    if (url === "/python") {
-      result = await executeTask("python", ["-m", "src.tasks.demo"]);
-    }
-  } catch (err: any) {
-    console.log(err);
-    response.statusCode = 500;
-    response.end(JSON.stringify(err));
-    return;
-  }
+const app = express();
+app.use(json());
 
-  response.end(JSON.stringify(result));
-};
-
-// eslint-disable-next-line @typescript-eslint/no-misused-promises -- createServer doesn't accept a `Promise<void>` as it expects just a void return signature but we don't want to block
-const server = createServer(requestHandler);
-
-server.on("error", (err) => {
-  console.error(`Error occurred: ${err}`);
+app.post("/python", (_, res) => {
+  executeTask("python", ["-m", "src.tasks.demo"])
+    .then((result) => res.status(200).json(result))
+    .catch((err) => res.status(500).json(err));
 });
 
-server.listen(port, () => {
-  console.log(`Server is listening on ${port}`);
+app.post("/github/spec", (_, res) => {
+  new GithubIngestor()
+    .runSpec()
+    .then((result) => res.status(200).json(result))
+    .catch((err) => res.status(500).json({ error: err.toString() }));
 });
+
+app.post("/github/check", (req, res) => {
+  const config = req.body;
+  new GithubIngestor()
+    .runCheck(config)
+    .then((result) => res.status(200).json(result))
+    .catch((err) => {
+      res.status(500).json({ error: err.toString() });
+    });
+});
+
+app.post("/github/discover", (req, res) => {
+  const config = req.body;
+  new GithubIngestor()
+    .runDiscover(config)
+    .then((result) => {
+      const configuredCatalog: ConfiguredAirbyteCatalog = {
+        streams: result.map((airbyteStream) => {
+          return {
+            stream: airbyteStream,
+            sync_mode:
+              "full_refresh" /** @todo - We don't want to always default to this */,
+            destination_sync_mode:
+              "overwrite" /** @todo - This doesn't matter right now as we haven't built a destination connector */,
+          };
+        }),
+      };
+
+      /** @todo - This should be configurable by the user, and we shouldn't just write it to disk like this */
+      writeFileSync(
+        `${process.cwd()}/src/tasks/source-github/secrets/catalog.json`,
+        JSON.stringify(configuredCatalog),
+      );
+      res.status(200).json(result);
+    })
+    .catch((err) => res.status(500).json({ error: err.toString() }));
+});
+
+app.post("/github/read", (req, res) => {
+  const config = req.body;
+  const configuredCatalog = JSON.parse(
+    readFileSync(
+      `${process.cwd()}/src/tasks/source-github/secrets/catalog.json`,
+    ).toString(),
+  );
+  new GithubIngestor()
+    .runRead(config, configuredCatalog)
+    .then((result) => res.status(200).json(result))
+    .catch((err) => res.status(500).json({ error: err.toString() }));
+});
+
+app.listen(port, () => console.log(`Listening on port ${port}...`));

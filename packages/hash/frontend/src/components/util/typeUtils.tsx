@@ -1,5 +1,5 @@
-import { BlockProtocolLink, SingleTargetLinkFields } from "blockprotocol";
+import { BlockProtocolLink } from "blockprotocol";
 
 export const isSingleTargetLink = (
   link: BlockProtocolLink,
-): link is BlockProtocolLink & SingleTargetLinkFields => "linkId" in link;
+): link is BlockProtocolLink => "linkId" in link;
