@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use execution::{
-    package::PersistenceConfig,
+    package::simulation::PersistenceConfig,
     worker_pool::{WorkerAllocation, WorkerIndex},
 };
 use simulation_structure::SimulationShortId;

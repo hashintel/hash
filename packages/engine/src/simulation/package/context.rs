@@ -3,7 +3,7 @@ use std::{
     lazy::SyncOnceCell,
 };
 
-use execution::package::{
+use execution::package::simulation::{
     context::{
         agent_messages::AgentMessagesCreator, api_requests::ApiRequestsCreator,
         neighbors::NeighborsCreator, ContextPackageCreator, ContextPackageName,

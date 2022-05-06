@@ -1,4 +1,4 @@
-use execution::package::output::Output;
+use execution::package::simulation::output::Output;
 
 pub struct SimulationStepOutput(pub Vec<Output>);
 

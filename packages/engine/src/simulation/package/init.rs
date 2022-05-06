@@ -3,7 +3,7 @@ use std::{
     lazy::SyncOnceCell,
 };
 
-use execution::package::{
+use execution::package::simulation::{
     init::{js_py::JsPyInitCreator, json::JsonInitCreator, InitPackageCreator, InitPackageName},
     PackageInitConfig,
 };

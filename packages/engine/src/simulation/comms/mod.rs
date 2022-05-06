@@ -23,7 +23,7 @@ use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use execution::{
-    package::PackageTask,
+    package::simulation::PackageTask,
     task::{StoreAccessValidator, TaskId, TaskSharedStore},
     worker::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
     worker_pool,
@@ -149,7 +149,7 @@ impl Comms {
 }
 
 #[async_trait]
-impl execution::package::Comms for Comms {
+impl execution::package::simulation::Comms for Comms {
     type ActiveTask = ActiveTask;
 
     /// Takes a given [`Task`] object, and starts its execution on the [`workerpool`], returning an

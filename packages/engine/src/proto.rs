@@ -5,7 +5,7 @@ use std::{
 };
 
 use execution::{
-    package::PackageInitConfig,
+    package::simulation::PackageInitConfig,
     runner::{
         comms::{PackageError, UserError, UserWarning},
         RunnerError,

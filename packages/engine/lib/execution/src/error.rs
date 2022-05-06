@@ -59,7 +59,9 @@ pub enum Error {
     InvalidBehaviorTaskMessage(crate::task::TaskMessage),
 
     #[error("Behavior Key Error: {0}")]
-    BehaviorKeyJsonError(#[from] crate::package::state::behavior_execution::BehaviorKeyJsonError),
+    BehaviorKeyJsonError(
+        #[from] crate::package::simulation::state::behavior_execution::BehaviorKeyJsonError,
+    ),
 
     #[error("Tokio oneshot recv: {0}")]
     TokioOneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),

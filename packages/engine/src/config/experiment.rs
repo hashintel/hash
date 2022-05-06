@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use execution::{
-    package::init::{InitPackageName, InitialStateName},
+    package::simulation::init::{InitPackageName, InitialStateName},
     runner::RunnerConfig,
     worker::{RunnerSpawnConfig, WorkerConfig},
     worker_pool::WorkerPoolConfig,

@@ -1,6 +1,6 @@
 use std::io::{BufReader, BufWriter};
 
-use execution::package::output::Output;
+use execution::package::simulation::output::Output;
 use simulation_structure::{ExperimentId, SimulationShortId};
 
 use crate::{

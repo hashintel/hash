@@ -2,7 +2,7 @@ pub mod config;
 pub mod result;
 mod sim;
 
-use execution::package::PersistenceConfig;
+use execution::package::simulation::PersistenceConfig;
 use simulation_structure::{ExperimentId, SimulationShortId};
 
 use self::{config::LocalPersistenceConfig, sim::LocalSimulationOutputPersistence};

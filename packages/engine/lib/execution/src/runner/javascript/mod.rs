@@ -47,7 +47,7 @@ use tracing::{Instrument, Span};
 
 pub use self::error::{JavaScriptError, JavaScriptResult};
 use crate::{
-    package::PackageType,
+    package::simulation::PackageType,
     runner::{
         comms::{
             ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,
