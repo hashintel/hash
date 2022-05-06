@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    package::PackageTask,
+    package::simulation::PackageTask,
     runner::Language,
     task::{TaskId, TaskMessage},
     Error, Result,

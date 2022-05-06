@@ -3,7 +3,7 @@ use stateful::field::PackageId;
 use tracing::Span;
 
 use crate::{
-    package::PackageTask,
+    package::simulation::PackageTask,
     task::{TaskId, TaskSharedStore},
     worker::SyncPayload,
     worker_pool::comms::active::ActiveTaskExecutorComms,

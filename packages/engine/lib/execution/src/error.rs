@@ -1,3 +1,4 @@
+use simulation_structure::SimulationShortId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
@@ -58,7 +59,9 @@ pub enum Error {
     InvalidBehaviorTaskMessage(crate::task::TaskMessage),
 
     #[error("Behavior Key Error: {0}")]
-    BehaviorKeyJsonError(#[from] crate::package::state::behavior_execution::BehaviorKeyJsonError),
+    BehaviorKeyJsonError(
+        #[from] crate::package::simulation::state::behavior_execution::BehaviorKeyJsonError,
+    ),
 
     #[error("Tokio oneshot recv: {0}")]
     TokioOneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
@@ -101,6 +104,27 @@ pub enum Error {
 
     #[error("{0}")]
     RwLock(String),
+
+    #[error("Missing simulation with id {0}")]
+    MissingSimulationWithId(SimulationShortId),
+
+    #[error("Channel for sending cancel task messages has unexpectedly closed")]
+    CancelClosed,
+
+    #[error("Missing worker")]
+    MissingWorker,
+
+    #[error("Missing pending task with id {0}")]
+    MissingPendingTask(TaskId),
+
+    #[error("Missing one-shot task result sender to send result with")]
+    NoResultSender,
+
+    #[error("Error receiving from experiment main loop: {0}")]
+    ExperimentRecv(String),
+
+    #[error("Missing simulation run with id {0}")]
+    MissingSimulationRun(SimulationShortId),
 }
 
 impl Error {

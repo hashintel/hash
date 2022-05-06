@@ -26,9 +26,6 @@ pub enum Error {
     #[error("Output error: {0}")]
     Output(#[from] crate::output::Error),
 
-    #[error("Worker Pool error: {0}")]
-    WorkerPool(#[from] crate::workerpool::Error),
-
     #[error("Datastore error: {0}")]
     Datastore(#[from] crate::datastore::Error),
 

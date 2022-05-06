@@ -337,7 +337,7 @@ If you haven't created and exported a project from [hCore], it's also possible t
 
 ### Simulation Outputs
 
-> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. Currently, the engine has two main form of outputs, one coming from the [json_state package](./lib/execution/src/package/output/json_state) and the other from the [analysis package](./lib/execution/src/package/output/analysis).
+> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. Currently, the engine has two main form of outputs, one coming from the [json_state package](./lib/execution/src/package/simulation/output/json_state) and the other from the [analysis package](./lib/execution/src/package/simulation/output/analysis).
 
 At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<PROJECT NAME>/<EXPERIMENT NAME>/<EXPERIMENT ID>/<SIMULATION ID>` directories.
 
@@ -360,7 +360,7 @@ During the run, the output may be buffered into the `./parts` folder in multiple
 
 > **WIP** - This feature is currently unstable
 
-[hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./lib/execution/src/package/output/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
+[hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./lib/execution/src/package/simulation/output/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
 
 ### Logging
 

@@ -47,7 +47,7 @@ use tracing::{Instrument, Span};
 
 pub use self::error::{JavaScriptError, JavaScriptResult};
 use crate::{
-    package::PackageType,
+    package::simulation::PackageType,
     runner::{
         comms::{
             ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,
@@ -73,7 +73,7 @@ struct JsPackage<'s> {
 }
 
 fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
-    format!("./lib/execution/src/package/{pkg_type}/{name}/package.js")
+    format!("./lib/execution/src/package/simulation/{pkg_type}/{name}/package.js")
 }
 
 /// TODO: DOC add docstrings on impl'd methods
@@ -1859,6 +1859,7 @@ impl JavaScriptRunner {
     }
 
     // TODO: UNUSED: Needs triage
+    #[allow(dead_code)]
     pub async fn recv_now(&mut self) -> crate::Result<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }

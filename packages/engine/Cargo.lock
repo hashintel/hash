@@ -415,6 +415,7 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "error",
+ "execution",
  "hash_engine_lib",
  "orchestrator",
  "serde",
@@ -690,6 +691,7 @@ dependencies = [
  "lazy_static",
  "memory",
  "nng",
+ "rand 0.8.4",
  "rayon",
  "serde",
  "serde_json",
