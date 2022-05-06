@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use execution::package::PackageInitConfig;
+use execution::package::simulation::PackageInitConfig;
 use stateful::{
     agent::AgentSchema, context::ContextSchema, global::Globals, message::MessageSchema,
 };

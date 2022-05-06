@@ -8,7 +8,7 @@ import hash_util
 
 def get_pkg_path(pkg_name, pkg_type):
     # The engine should be started from the engine's root directory in the repo.
-    return Path(f"./lib/execution/src/package/{pkg_type}/{pkg_name}/package.py")
+    return Path(f"./lib/execution/src/package/simulation/{pkg_type}/{pkg_name}/package.py")
 
 
 def load_fns(pkg_name, pkg_type):

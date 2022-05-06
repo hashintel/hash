@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use tokio::sync::oneshot;
 
 use crate::{
-    package::PackageTask,
+    package::simulation::PackageTask,
     task::{CancelTask, TaskId, TaskMessage, TaskResultOrCancelled},
     worker::WorkerTaskResultOrCancelled,
     worker_pool::{comms::active::ActiveTaskExecutorComms, WorkerIndex, WorkerPoolHandler},

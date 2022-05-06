@@ -1,6 +1,7 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
 use execution::{
+    package::experiment::ExperimentPackage,
     worker::Worker,
     worker_pool,
     worker_pool::{comms::terminate::TerminateSend, WorkerPool},
@@ -21,7 +22,6 @@ use crate::{
             sim_configurer::SimConfigurer,
         },
         error::{Error as ExperimentError, Result as ExperimentResult},
-        package::ExperimentPackage,
     },
     output::{
         buffer::remove_experiment_parts, local::LocalOutputPersistence, none::NoOutputPersistence,
@@ -130,10 +130,16 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         worker_pool_send,
     )?;
 
-    // Start up the experiment package (simple/single)
-    let experiment_package = ExperimentPackage::new(exp_config.clone())
-        .await
-        .map_err(|experiment_err| Error::from(experiment_err.to_string()))?;
+    let experiment_package = if let PackageConfig::ExperimentPackageConfig(package_config) =
+        exp_config.run.package_config()
+    {
+        // Start up the experiment package (simple/single)
+        ExperimentPackage::new(package_config.clone())
+            .await
+            .map_err(|experiment_err| Error::from(experiment_err.to_string()))?
+    } else {
+        unreachable!();
+    };
     let mut experiment_package_handle = experiment_package.join_handle;
 
     let package_config = match exp_config.run.package_config() {
@@ -209,7 +215,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                 };
 
                 // The experiment package should finish first
-                experiment_package_result = Some(res);
+                experiment_package_result = Some(res.map_err(ExperimentError::from));
                 if experiment_package_exit_logic(
                     &experiment_controller_result,
                     &worker_pool_result,

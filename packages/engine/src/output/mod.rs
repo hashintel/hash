@@ -1,4 +1,4 @@
-use execution::package::PersistenceConfig;
+use execution::package::simulation::PersistenceConfig;
 use serde::Serialize;
 use simulation_structure::SimulationShortId;
 
