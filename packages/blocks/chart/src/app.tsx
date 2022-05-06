@@ -194,7 +194,7 @@ export const App: BlockComponent<AppProps> = ({
           {
             sourceAccountId: previousAggregation.sourceAccountId,
             aggregationId: previousAggregation.aggregationId,
-            data: {
+            operation: {
               entityTypeId: params.updatedDefinition.entityTypeId,
             },
           },
