@@ -1,7 +1,8 @@
+use execution::task::TaskResultOrCancelled;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-use crate::{proto, simulation::task::msg::TaskResultOrCancelled, worker};
+use crate::worker;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -9,6 +10,9 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum Error {
     #[error("{0}")]
     Unique(String),
+
+    #[error("Execution error: {0}")]
+    Execution(#[from] execution::Error),
 
     #[error("Worker error: {0}")]
     Worker(#[from] worker::Error),
@@ -26,7 +30,7 @@ pub enum Error {
     TaskResultSend(SendError<TaskResultOrCancelled>),
 
     #[error("Missing worker with index {0}")]
-    MissingWorkerWithIndex(crate::types::WorkerIndex),
+    MissingWorkerWithIndex(execution::worker_pool::WorkerIndex),
 
     #[error("Terminate message already sent")]
     TerminateMessageAlreadySent,
@@ -38,7 +42,7 @@ pub enum Error {
     TerminateConfirmAlreadySent,
 
     #[error("Missing simulation with id {0}")]
-    MissingSimulationWithId(proto::SimulationShortId),
+    MissingSimulationWithId(simulation_structure::SimulationShortId),
 
     #[error("Channel for sending cancel task messages has unexpectedly closed")]
     CancelClosed,
@@ -50,7 +54,7 @@ pub enum Error {
     UnexpectedWorkerCommsDrop,
 
     #[error("Missing pending task with id {0}")]
-    MissingPendingTask(crate::types::TaskId),
+    MissingPendingTask(execution::task::TaskId),
 
     #[error("Missing one-shot task result sender to send result with")]
     NoResultSender,

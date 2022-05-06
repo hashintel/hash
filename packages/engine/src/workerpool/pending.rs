@@ -1,19 +1,14 @@
 use std::collections::HashMap;
 
+use execution::{
+    package::PackageTask,
+    task::{CancelTask, TaskId, TaskMessage, TaskResultOrCancelled},
+    worker_pool::{WorkerIndex, WorkerPoolHandler},
+};
 use tokio::sync::oneshot;
 
 use crate::{
-    config::Worker,
-    simulation::{
-        comms::active::ActiveTaskExecutorComms,
-        task::{
-            cancel::CancelTask,
-            handler::WorkerPoolHandler,
-            msg::{TaskMessage, TaskResultOrCancelled},
-            Task,
-        },
-    },
-    types::TaskId,
+    simulation::comms::active::ActiveTaskExecutorComms,
     worker::task::WorkerTaskResultOrCancelled,
     workerpool::{Error, Result},
 };
@@ -22,12 +17,12 @@ type HasTerminated = bool;
 
 pub enum DistributionController {
     Distributed {
-        active_workers: Vec<Worker>,
-        received_results: Vec<(Worker, TaskMessage)>,
-        reference_task: Task,
+        active_worker_indices: Vec<WorkerIndex>,
+        received_results: Vec<(WorkerIndex, TaskMessage)>,
+        reference_task: PackageTask,
     },
     Single {
-        active_worker: Worker,
+        active_worker: WorkerIndex,
     },
 }
 
@@ -45,12 +40,12 @@ impl PendingWorkerPoolTask {
     /// TODO: DOC
     fn handle_result_state(
         &mut self,
-        worker: Worker,
+        worker: WorkerIndex,
         _task_id: TaskId,
         result: TaskMessage,
     ) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
-            active_workers: active_workers_comms,
+            active_worker_indices: active_workers_comms,
             received_results,
             reference_task,
         } = &mut self.distribution_controller
@@ -86,12 +81,16 @@ impl PendingWorkerPoolTask {
 
     /// TODO: DOC
     #[allow(unused_variables, unreachable_code)]
-    fn handle_cancel_state(&mut self, worker: Worker, _task_id: TaskId) -> Result<HasTerminated> {
+    fn handle_cancel_state(
+        &mut self,
+        worker: WorkerIndex,
+        _task_id: TaskId,
+    ) -> Result<HasTerminated> {
         todo!("Cancel messages are not implemented yet");
         // see https://app.asana.com/0/1199548034582004/1202011714603653/f
 
         if let DistributionController::Distributed {
-            active_workers: active_workers_comms,
+            active_worker_indices: active_workers_comms,
             received_results: _,
             reference_task: _,
         } = &mut self.distribution_controller
@@ -124,7 +123,7 @@ impl PendingWorkerPoolTask {
     #[allow(unreachable_code)]
     pub fn handle_result_or_cancel(
         &mut self,
-        worker: Worker,
+        worker: WorkerIndex,
         result_or_cancelled: WorkerTaskResultOrCancelled,
     ) -> Result<HasTerminated> {
         if self.cancelling

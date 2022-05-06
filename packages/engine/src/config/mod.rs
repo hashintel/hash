@@ -1,37 +1,26 @@
-mod engine;
-mod error;
-mod experiment;
-mod package;
-mod persistence;
-mod simulation;
-mod store;
-mod task_distribution;
-pub mod topology;
-mod worker;
-mod worker_pool;
-
 use std::sync::Arc;
 
+use execution::{
+    package::{PackageCreatorConfig, PersistenceConfig},
+    worker_pool::WorkerAllocation,
+};
+use simulation_structure::SimulationShortId;
 use stateful::{global::Globals, state::StateCreateParameters};
 
 pub use self::{
-    engine::{Config as EngineConfig, Worker, WorkerAllocation},
     error::{Error, Result},
     experiment::Config as ExperimentConfig,
     package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
-    persistence::Config as PersistenceConfig,
     simulation::Config as SimulationConfig,
     store::Config as StoreConfig,
-    task_distribution::{Config as TaskDistributionConfig, StateBatchDistribution},
-    topology::Config as TopologyConfig,
-    worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig},
-    worker_pool::Config as WorkerPoolConfig,
 };
-use crate::{
-    env::Environment,
-    proto::{ExperimentRunTrait, SimulationShortId},
-    Args,
-};
+use crate::{env::Environment, proto::ExperimentRunTrait, Args};
+
+mod error;
+mod experiment;
+mod package;
+mod simulation;
+mod store;
 
 pub const MIN_AGENTS_PER_GROUP: usize = 10;
 
@@ -56,7 +45,7 @@ impl SimRunConfig {
         global: &Arc<ExperimentConfig>,
         id: SimulationShortId,
         globals: Globals,
-        engine: EngineConfig,
+        worker_allocation: WorkerAllocation,
         store: StoreConfig,
         persistence: PersistenceConfig,
         max_num_steps: usize,
@@ -64,7 +53,7 @@ impl SimRunConfig {
         let local = simulation_config(
             id,
             globals,
-            engine,
+            worker_allocation,
             global,
             store,
             persistence,
@@ -78,7 +67,7 @@ impl SimRunConfig {
 
     pub fn to_state_create_parameters(&self) -> StateCreateParameters {
         StateCreateParameters {
-            target_min_groups: self.sim.engine.num_workers,
+            target_min_groups: self.exp.worker_pool.num_workers,
             target_group_size: MIN_AGENTS_PER_GROUP..self.exp.target_max_group_size,
             memory_base_id: self.exp.run.base().id,
             agent_schema: Arc::clone(&self.sim.store.agent_schema),
@@ -90,7 +79,7 @@ impl SimRunConfig {
 fn simulation_config(
     id: SimulationShortId,
     globals: Globals,
-    engine: EngineConfig,
+    worker_allocation: WorkerAllocation,
     _global: &ExperimentConfig,
     store: StoreConfig,
     persistence: PersistenceConfig,
@@ -98,10 +87,13 @@ fn simulation_config(
 ) -> Result<SimulationConfig> {
     Ok(SimulationConfig {
         id,
-        globals: Arc::new(globals),
-        engine: Arc::new(engine),
+        package_creator: PackageCreatorConfig {
+            agent_schema: Arc::clone(&store.agent_schema),
+            globals,
+            persistence,
+        },
+        worker_allocation: Arc::new(worker_allocation),
         store: Arc::new(store),
-        persistence,
         max_num_steps,
     })
 }

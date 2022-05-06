@@ -1,8 +1,6 @@
-use serde::{Deserialize, Serialize};
+use execution::runner::{JavaScriptError, PythonError};
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
-
-use crate::worker::runner::{javascript::Error as JavaScriptError, python::Error as PythonError};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -12,13 +10,16 @@ pub enum Error {
     Unique(String),
 
     #[error("Unexpected target for a message {0:?}")]
-    UnexpectedTarget(super::runner::comms::MessageTarget),
+    UnexpectedTarget(execution::runner::MessageTarget),
 
     #[error("Datastore: {0}")]
     Datastore(#[from] crate::datastore::Error),
 
+    #[error("Execution error: {0}")]
+    Execution(#[from] execution::Error),
+
     #[error("Task already exists (id: {0})")]
-    TaskAlreadyExists(crate::types::TaskId),
+    TaskAlreadyExists(execution::task::TaskId),
 
     #[error("Python runner error: {0}")]
     Python(#[from] PythonError),
@@ -63,17 +64,4 @@ where
     fn from(e: SendError<T>) -> Self {
         Error::Unique(format!("Tokio Send Error: {:?}", e))
     }
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
-pub struct RunnerError {
-    // TODO: Rename, because "runner errors" should always be internal,
-    //       but this might not be.
-    pub message: Option<String>,
-    pub code: Option<i32>,
-    pub line_number: Option<i32>,
-    pub file_name: Option<String>,
-    pub details: Option<String>,
-    pub is_warning: bool,
-    pub is_internal: bool,
 }

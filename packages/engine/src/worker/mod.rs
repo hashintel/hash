@@ -7,49 +7,36 @@
 
 mod error;
 mod pending;
-pub mod runner;
 pub mod task;
 
 use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration};
 
+use execution::{
+    runner::{
+        comms::{
+            ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,
+            OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerTaskMessage,
+        },
+        JavaScriptRunner, Language, MessageTarget, PythonRunner, RunnerConfig, RustRunner,
+    },
+    task::{SharedState, TaskId, TaskMessage, TaskResultOrCancelled, TaskSharedStore},
+    worker::{RunnerSpawnConfig, SyncPayload, WorkerConfig, WorkerHandler},
+};
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
+use simulation_structure::SimulationShortId;
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
-pub use self::error::{Error, Result, RunnerError};
+pub use self::error::{Error, Result};
 use self::{
     pending::PendingWorkerTasks,
-    runner::{
-        comms::{
-            outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
-            ExperimentInitRunnerMsg, NewSimulationRun, RunnerTaskMsg,
-        },
-        javascript::JavaScriptRunner,
-        python::PythonRunner,
-        rust::RustRunner,
-    },
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
-    config::{WorkerConfig, WorkerSpawnConfig},
-    datastore::table::{
-        sync::SyncPayload,
-        task_shared_store::{SharedState, TaskSharedStore},
-    },
-    language::Language,
-    proto::SimulationShortId,
-    simulation::task::{
-        handler::WorkerHandler,
-        msg::{TaskMessage, TaskResultOrCancelled},
-    },
-    types::TaskId,
-    worker::{
-        pending::{PendingGroup, PendingWorkerTask},
-        runner::comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
-    },
+    worker::pending::{PendingGroup, PendingWorkerTask},
     workerpool::comms::{
         WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
         WorkerToWorkerPoolMsg,
@@ -72,7 +59,7 @@ pub struct WorkerController {
     rs: RustRunner,
 
     // TODO: unused, remove?
-    _config: WorkerConfig,
+    _runner_config: RunnerConfig,
 
     worker_pool_comms: WorkerCommsWithWorkerPool,
     tasks: PendingWorkerTasks,
@@ -83,22 +70,22 @@ impl WorkerController {
     /// Spawns a new worker controller, containing a runner for each language: JavaScript,
     /// Python, and Rust and initialize the
     pub async fn spawn(
-        config: WorkerConfig,
+        worker_config: WorkerConfig,
         worker_pool_comms: WorkerCommsWithWorkerPool,
         exp_init: ExperimentInitRunnerMsg,
     ) -> Result<WorkerController> {
         tracing::debug!("Spawning worker controller");
-        let WorkerSpawnConfig {
+        let RunnerSpawnConfig {
             python,
             javascript,
             rust,
-        } = config.spawn;
+        } = worker_config.spawn;
         // TODO: Rust, JS
         Ok(WorkerController {
             py: PythonRunner::new(python, exp_init.clone())?,
             js: JavaScriptRunner::new(javascript, exp_init.clone())?,
             rs: RustRunner::new(rust, exp_init)?,
-            _config: config,
+            _runner_config: worker_config.runner_config,
             worker_pool_comms,
             tasks: PendingWorkerTasks::default(),
         })
@@ -173,14 +160,14 @@ impl WorkerController {
                                     // Runner finished -- didn't time out
                                     match runner_result {
                                         Err(e) => return Err(e.into()),
-                                        Ok(Err(e)) => return Err(e),
+                                        Ok(Err(e)) => return Err(e.into()),
                                         Ok(Ok(_)) => {}
                                     }
                                 }
                             }
                             // Either none of the runners exited or none of
                             // them returned an error, so return `recv_err`.
-                            return Err(recv_err);
+                            return Err(Error::from(recv_err));
                         }
                     }
                 }
@@ -485,14 +472,14 @@ impl WorkerController {
     async fn run_task_handler_on_outbound(
         &mut self,
         sim_id: SimulationShortId,
-        msg: RunnerTaskMsg,
+        msg: RunnerTaskMessage,
         source: Language,
     ) -> Result<()> {
         if let Some(pending) = self.tasks.inner.get_mut(&msg.task_id) {
             let next = WorkerHandler::handle_worker_message(&mut pending.inner, msg.payload)?;
             match next.target {
                 MessageTarget::Rust => {
-                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
                         package_id: msg.package_id,
                         task_id: msg.task_id,
                         group_index: msg.group_index,
@@ -509,7 +496,7 @@ impl WorkerController {
                         .active_runner = Language::Rust;
                 }
                 MessageTarget::Python => {
-                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
                         package_id: msg.package_id,
                         task_id: msg.task_id,
                         group_index: msg.group_index,
@@ -527,7 +514,7 @@ impl WorkerController {
                         .active_runner = Language::Python;
                 }
                 MessageTarget::JavaScript => {
-                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
                         package_id: msg.package_id,
                         task_id: msg.task_id,
                         group_index: msg.group_index,
@@ -645,7 +632,7 @@ impl WorkerController {
         let mut pending_groups = vec![];
 
         for (group_index, shared_store) in shared_stores {
-            let runner_msg = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+            let runner_msg = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
                 task_id,
                 package_id: task.package_id,
                 group_index,
@@ -824,7 +811,7 @@ impl WorkerController {
     }
 
     /// Waits for a message from any spawned worker.
-    async fn recv_from_runners(&mut self) -> Result<OutboundFromRunnerMsg> {
+    async fn recv_from_runners(&mut self) -> execution::Result<OutboundFromRunnerMsg> {
         tokio::select! {
             res = self.py.recv(), if self.py.spawned() => {
                 res

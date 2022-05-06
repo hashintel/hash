@@ -2,11 +2,13 @@ pub mod config;
 pub mod result;
 mod sim;
 
+use execution::package::PersistenceConfig;
+use simulation_structure::{ExperimentId, SimulationShortId};
+
 use self::{config::LocalPersistenceConfig, sim::LocalSimulationOutputPersistence};
 use crate::{
-    config::PersistenceConfig,
     output::{buffer::Buffers, error::Result, OutputPersistenceCreatorRepr},
-    proto::{ExperimentId, ExperimentName, SimulationShortId},
+    proto::ExperimentName,
 };
 
 #[derive(derive_new::new)]

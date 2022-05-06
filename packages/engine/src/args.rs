@@ -1,11 +1,9 @@
 use std::path::PathBuf;
 
 use clap::{AppSettings, Parser};
+use simulation_structure::ExperimentId;
 
-use crate::{
-    proto::ExperimentId,
-    utils::{LogFormat, LogLevel, OutputLocation},
-};
+use crate::utils::{LogFormat, LogLevel, OutputLocation};
 
 /// Arguments passed to hEngine
 #[derive(Debug, Parser)]
