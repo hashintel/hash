@@ -1,5 +1,8 @@
 use std::io::{BufReader, BufWriter};
 
+use execution::package::output::Output;
+use simulation_structure::{ExperimentId, SimulationShortId};
+
 use crate::{
     config::SimRunConfig,
     output::{
@@ -8,8 +11,8 @@ use crate::{
         local::{config::LocalPersistenceConfig, result::LocalPersistenceResult},
         SimulationOutputPersistenceRepr,
     },
-    proto::{ExperimentId, ExperimentName, SimulationShortId},
-    simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
+    proto::ExperimentName,
+    simulation::step_output::SimulationStepOutput,
 };
 
 #[derive(derive_new::new)]
@@ -84,7 +87,10 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         // Globals
         let globals_path = path.join("globals.json");
         std::fs::File::create(&globals_path)?;
-        std::fs::write(&globals_path, serde_json::to_string(&config.sim.globals)?)?;
+        std::fs::write(
+            &globals_path,
+            serde_json::to_string(&config.sim.package_creator.globals)?,
+        )?;
 
         Ok(LocalPersistenceResult::new(
             path.canonicalize()?.to_string_lossy().to_string(),

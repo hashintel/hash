@@ -2,21 +2,18 @@ use std::{collections::HashMap, sync::Arc};
 
 mod part;
 
+use execution::package::{
+    output::{
+        analysis::{AnalysisOutput, AnalysisOutputConfig, AnalysisSingleOutput},
+        OutputPackageName,
+    },
+    OutputPackagesSimConfig, PackageName,
+};
 use serde::Serialize;
+use simulation_structure::{ExperimentId, SimulationShortId};
 
 pub use self::part::{remove_experiment_parts, OutputPartBuffer};
-use crate::{
-    output::error::{Error, Result},
-    proto::{ExperimentId, SimulationShortId},
-    simulation::package::{
-        name::PackageName,
-        output,
-        output::packages::{
-            analysis::{AnalysisOutput, AnalysisSingleOutput},
-            OutputPackagesSimConfig,
-        },
-    },
-};
+use crate::output::error::{Error, Result};
 
 // TODO: We might want to use a temporary folder (like "/tmp" or "/var/tmp") instead.
 const RELATIVE_PARTS_FOLDER: &str = "./parts";
@@ -51,10 +48,9 @@ impl AnalysisBuffer {
     pub fn new(output_packages_config: &OutputPackagesSimConfig) -> Result<AnalysisBuffer> {
         let value = output_packages_config
             .map
-            .get(&PackageName::Output(output::Name::Analysis))
+            .get(&PackageName::Output(OutputPackageName::Analysis))
             .ok_or_else(|| Error::from("Missing analysis config"))?;
-        let config: output::packages::analysis::AnalysisOutputConfig =
-            serde_json::from_value(value.clone())?;
+        let config: AnalysisOutputConfig = serde_json::from_value(value.clone())?;
         let buffer = AnalysisBuffer {
             manifest: config.manifest.clone(),
             buffers: config.outputs.keys().map(|v| (v.clone(), vec![])).collect(),

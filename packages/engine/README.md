@@ -140,7 +140,7 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 ### Project Setup / Building
 
 - Run `cargo build`
-- Setup a Python environment by running `./src/worker/runner/python/setup.sh` and follow the instructions from the help.
+- Setup a Python environment by running `./lib/execution/src/runner/python/setup.sh` and follow the instructions from the help.
 
 > **WIP** - In the future, setting up Python will only be required if Python behaviors are present, but for now it is always required.
 
@@ -337,7 +337,7 @@ If you haven't created and exported a project from [hCore], it's also possible t
 
 ### Simulation Outputs
 
-> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. Currently, the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
+> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. Currently, the engine has two main form of outputs, one coming from the [json_state package](./lib/execution/src/package/output/json_state) and the other from the [analysis package](./lib/execution/src/package/output/analysis).
 
 At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<PROJECT NAME>/<EXPERIMENT NAME>/<EXPERIMENT ID>/<SIMULATION ID>` directories.
 
@@ -360,7 +360,7 @@ During the run, the output may be buffered into the `./parts` folder in multiple
 
 > **WIP** - This feature is currently unstable
 
-[hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
+[hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./lib/execution/src/package/output/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
 
 ### Logging
 
@@ -380,11 +380,11 @@ Experiments are started through the [CLI](./bin/cli), the main entry-point to th
 
 #### Workers
 
-Most logic relating to the model (including, most importantly, user provided behaviors) is executed on [Runners](./src/worker/runner). These are execution environments implemented in Python, JavaScript, or Rust. One of each Language Runner is managed by a single [Worker](./src/worker). Workers then in turn belong to a Worker Pool, a collection of Workers that serve a single experiment.
+Most logic relating to the model (including, most importantly, user provided behaviors) is executed on [Runners](./lib/execution/src/runner). These are execution environments implemented in Python, JavaScript, or Rust. One of each Language Runner is managed by a single [Worker](./lib/execution/src/worker). Workers then in turn belong to a Worker Pool, a collection of Workers that serve a single experiment.
 
 #### Simulation Runs and the Package System
 
-After initialization, the core of the flow of a [simulation](./src/simulation) is handled within the 'main loop', a pipeline of logic that's applied to each step of the simulation. At the core of this implementation is the Simulation Package System.
+After initialization, the core of the flow of a simulation is handled within the 'main loop', a pipeline of logic that's applied to each step of the simulation. At the core of this implementation is the Simulation Package System.
 
 A Simulation Package is a contained set of logic belonging to one of the following types:
 
@@ -403,10 +403,10 @@ Output packages are responsible for creating feedback to be given to the user ab
 
 Upon using the initialization packages to initialize the run, the main loop is started which consists of a pipeline going from context packages -> state packages -> output packages for every step.
 
-The packages utilize a [communication implementation](./src/simulation/comms) to interface with the [Workers](./src/worker) mostly through the use of defined types of [Tasks](./src/simulation/task). The communication therefore defines the control-flow of the Runner's executions. Any substantial data that isn't encapsulated within a message is shared that between Packages and Runners through the [DataStore](./src/datastore).
+The packages utilize a [communication implementation](./lib/execution/src/runner/comms) to interface with the [Workers](./lib/execution/src/worker) mostly through the use of defined types of [Tasks](./lib/execution/src/task). The communication therefore defines the control-flow of the Runner's executions. Any substantial data that isn't encapsulated within a message is shared that between Packages and Runners through the [`stateful` crate](./lib/stateful).
 
-#### DataStore
+#### Stateful
 
-The [DataStore](./src/datastore) is the backend responsible for keeping the data between the simulation run main loops and language runners in sync. It encapsulates logic surrounding read/write access, as well as low-level shared memory representation.
+The [`stateful` crate](./lib/stateful) is the backend responsible for keeping the data between the simulation run main loops and language runners in sync. It encapsulates logic surrounding read/write access, as well as low-level shared memory representation.
 
 [hcore]: https://core.hash.ai?utm_medium=organic&utm_source=github_readme_engine

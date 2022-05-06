@@ -1,5 +1,14 @@
 use std::{collections::HashMap, sync::Arc};
 
+use execution::{
+    package::{
+        context::ContextPackageCreator, init::InitPackageCreator, output::OutputPackageCreator,
+        state::StatePackageCreator, OutputPackagesSimConfig, PackageComms, PackageInitConfig,
+        PackageName, PackageType, PersistenceConfig,
+    },
+    runner::comms::PackageMsgs,
+    worker::PackageInitMsgForWorker,
+};
 use stateful::{
     agent::AgentSchema,
     context::ContextSchema,
@@ -13,55 +22,50 @@ use stateful::{
 use crate::{
     config::{ExperimentConfig, PackageConfig, SimRunConfig},
     datastore::schema::last_state_index_key,
+    proto::ExperimentRunTrait,
     simulation::{
-        comms::{package::PackageComms, Comms},
+        comms::Comms,
         package::{
-            context, init,
-            name::PackageName,
-            output,
-            output::packages::OutputPackagesSimConfig,
+            context, init, output,
             run::{InitPackages, Packages, StepPackages},
             state,
-            worker_init::PackageInitMsgForWorker,
-            PackageType,
         },
         Error, Result,
     },
-    worker::runner::comms::PackageMsgs,
 };
 
 pub struct PackageCreators {
     init: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn init::PackageCreator>,
+        &'static Box<dyn InitPackageCreator<Comms>>,
     )>,
     context: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn context::PackageCreator>,
+        &'static Box<dyn ContextPackageCreator<Comms>>,
     )>,
     state: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn state::PackageCreator>,
+        &'static Box<dyn StatePackageCreator<Comms>>,
     )>,
     output: Vec<(
         PackageId,
         PackageName,
-        &'static Box<dyn output::PackageCreator>,
+        &'static Box<dyn OutputPackageCreator<Comms>>,
     )>,
 }
 
 impl PackageCreators {
     pub fn from_config(
         package_config: &PackageConfig,
-        experiment_config: &Arc<ExperimentConfig>,
+        init_config: &PackageInitConfig,
     ) -> Result<PackageCreators> {
-        init::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
-        context::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
-        output::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
-        state::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
+        init::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
+        context::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
+        output::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
+        state::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
 
         let init = package_config
             .init_packages()
@@ -116,11 +120,23 @@ impl PackageCreators {
         })
     }
 
-    pub fn get_worker_exp_start_msgs(&self) -> Result<PackageMsgs> {
+    pub fn create_persistent_config(
+        &self,
+        exp_config: &ExperimentConfig,
+        globals: &Globals,
+    ) -> Result<PersistenceConfig> {
+        let output_config = self.get_output_persistence_config(
+            &exp_config.run.base().project_base.package_init,
+            globals,
+        )?;
+        Ok(PersistenceConfig { output_config })
+    }
+
+    pub fn init_message(&self) -> Result<PackageMsgs> {
         // TODO: generics to avoid code duplication
         let mut msgs = HashMap::new();
         for (id, name, creator) in &self.init {
-            let payload = creator.get_worker_exp_start_msg()?;
+            let payload = creator.worker_init_message()?;
             let wrapped = PackageInitMsgForWorker {
                 name: *name,
                 r#type: PackageType::Init,
@@ -131,7 +147,7 @@ impl PackageCreators {
         }
 
         for (id, name, creator) in &self.context {
-            let payload = creator.get_worker_exp_start_msg()?;
+            let payload = creator.worker_init_message()?;
             let wrapped = PackageInitMsgForWorker {
                 name: *name,
                 r#type: PackageType::Context,
@@ -142,7 +158,7 @@ impl PackageCreators {
         }
 
         for (id, name, creator) in &self.state {
-            let payload = creator.get_worker_exp_start_msg()?;
+            let payload = creator.worker_init_message()?;
             let wrapped = PackageInitMsgForWorker {
                 name: *name,
                 r#type: PackageType::State,
@@ -153,7 +169,7 @@ impl PackageCreators {
         }
 
         for (id, name, creator) in &self.output {
-            let payload = creator.get_worker_exp_start_msg()?;
+            let payload = creator.worker_init_message()?;
             let wrapped = PackageInitMsgForWorker {
                 name: *name,
                 r#type: PackageType::Output,
@@ -180,14 +196,15 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    config,
+                    &config.sim.package_creator,
+                    &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Init),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
                         state_field_spec_map.clone(),
                     ),
                 )?;
-                let start_msg = package.get_worker_sim_start_msg()?;
+                let start_msg = package.simulation_setup_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::Init,
@@ -203,7 +220,8 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    config,
+                    &config.sim.package_creator,
+                    &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Context),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -214,7 +232,7 @@ impl PackageCreators {
                         Arc::clone(context_field_spec_map),
                     ),
                 )?;
-                let start_msg = package.get_worker_sim_start_msg()?;
+                let start_msg = package.simulation_setup_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::Context,
@@ -230,14 +248,15 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    config,
+                    &config.sim.package_creator,
+                    &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::State),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
-                let start_msg = package.get_worker_sim_start_msg()?;
+                let start_msg = package.simulation_setup_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::State,
@@ -253,14 +272,15 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    config,
+                    &config.sim.package_creator,
+                    &config.exp.run.base().project_base.package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Output),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
-                let start_msg = package.get_worker_sim_start_msg()?;
+                let start_msg = package.simulation_setup_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::State,
@@ -280,14 +300,14 @@ impl PackageCreators {
 
     pub fn get_output_persistence_config(
         &self,
-        exp_config: &ExperimentConfig,
+        config: &PackageInitConfig,
         globals: &Globals,
     ) -> Result<OutputPackagesSimConfig> {
         let mut map = HashMap::new();
         self.output
             .iter()
             .try_for_each::<_, Result<()>>(|(_id, name, creator)| {
-                let config = creator.persistence_config(exp_config, globals)?;
+                let config = creator.persistence_config(config, globals)?;
                 map.insert(*name, config);
                 Ok(())
             })?;
@@ -296,7 +316,7 @@ impl PackageCreators {
 
     pub fn get_agent_schema(
         &self,
-        exp_config: &ExperimentConfig,
+        package_init_config: &PackageInitConfig,
         globals: &Globals,
     ) -> Result<AgentSchema> {
         let mut field_spec_map = FieldSpecMap::empty();
@@ -307,7 +327,7 @@ impl PackageCreators {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
-                    exp_config,
+                    package_init_config,
                     globals,
                     &field_spec_creator,
                 )?)?;
@@ -320,7 +340,7 @@ impl PackageCreators {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
-                    exp_config,
+                    package_init_config,
                     globals,
                     &field_spec_creator,
                 )?)?;
@@ -333,7 +353,7 @@ impl PackageCreators {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
-                    exp_config,
+                    package_init_config,
                     globals,
                     &field_spec_creator,
                 )?)?;
@@ -346,7 +366,7 @@ impl PackageCreators {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_state_field_specs(
-                    exp_config,
+                    package_init_config,
                     globals,
                     &field_spec_creator,
                 )?)?;
@@ -361,7 +381,7 @@ impl PackageCreators {
 
     pub fn get_context_schema(
         &self,
-        exp_config: &ExperimentConfig,
+        package_init_config: &PackageInitConfig,
         globals: &Globals,
     ) -> Result<ContextSchema, Error> {
         let mut field_spec_map = FieldSpecMap::empty();
@@ -371,7 +391,7 @@ impl PackageCreators {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(FieldSource::Package(*package_id));
                 field_spec_map.try_extend(creator.get_context_field_specs(
-                    exp_config,
+                    package_init_config,
                     globals,
                     &field_spec_creator,
                 )?)?;
@@ -391,22 +411,22 @@ impl PackageCreators {
         init: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn init::PackageCreator>,
+            &'static Box<dyn InitPackageCreator<Comms>>,
         )>,
         context: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn context::PackageCreator>,
+            &'static Box<dyn ContextPackageCreator<Comms>>,
         )>,
         state: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn state::PackageCreator>,
+            &'static Box<dyn StatePackageCreator<Comms>>,
         )>,
         output: Vec<(
             PackageId,
             PackageName,
-            &'static Box<dyn output::PackageCreator>,
+            &'static Box<dyn OutputPackageCreator<Comms>>,
         )>,
     ) -> Self {
         Self {

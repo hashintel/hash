@@ -26,7 +26,7 @@ export const useBlockProtocolUpdateLinkedAggregations = (): {
         const results: BlockProtocolLinkedAggregation[] = [];
         // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
         for (const action of actions) {
-          if (action.data.entityTypeId == null) {
+          if (action.operation.entityTypeId == null) {
             // @todo we should allow aggregating without narrowing the type
             throw new Error(
               "An aggregation operation must have an entityTypeId",
@@ -44,8 +44,8 @@ export const useBlockProtocolUpdateLinkedAggregations = (): {
               ...action,
               updatedOperation: {
                 // @todo this shouldn't be necessary
-                ...action.data,
-                entityTypeId: action.data.entityTypeId,
+                ...action.operation,
+                entityTypeId: action.operation.entityTypeId,
               },
               sourceAccountId: action.sourceAccountId,
             },
