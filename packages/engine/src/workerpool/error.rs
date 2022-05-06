@@ -2,8 +2,6 @@ use execution::task::TaskResultOrCancelled;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-use crate::worker;
-
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(ThisError, Debug)]
@@ -13,9 +11,6 @@ pub enum Error {
 
     #[error("Execution error: {0}")]
     Execution(#[from] execution::Error),
-
-    #[error("Worker error: {0}")]
-    Worker(#[from] worker::Error),
 
     #[error("Simulation error: {0}")]
     Simulation(#[from] crate::simulation::Error),
@@ -47,10 +42,10 @@ pub enum Error {
     #[error("Channel for sending cancel task messages has unexpectedly closed")]
     CancelClosed,
 
-    #[error("Missing worker controllers")]
-    MissingWorkerControllers,
+    #[error("Missing worker")]
+    MissingWorker,
 
-    #[error("The communications with worker controllers has been unexpectedly dropped")]
+    #[error("The communications with worker has been unexpectedly dropped")]
     UnexpectedWorkerCommsDrop,
 
     #[error("Missing pending task with id {0}")]

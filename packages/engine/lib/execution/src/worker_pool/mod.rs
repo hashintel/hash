@@ -1,3 +1,5 @@
+pub mod comms;
+
 mod config;
 mod handler;
 

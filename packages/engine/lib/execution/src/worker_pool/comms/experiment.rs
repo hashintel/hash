@@ -1,8 +1,7 @@
-use execution::runner::comms::NewSimulationRun;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tracing::Span;
 
-use crate::workerpool::error::Result;
+use crate::{runner::comms::NewSimulationRun, Result};
 
 #[derive(Debug)]
 pub enum ExperimentToWorkerPoolMsg {
@@ -14,7 +13,7 @@ pub struct ExpMsgSend {
 }
 
 impl ExpMsgSend {
-    pub(crate) async fn send(&mut self, msg: ExperimentToWorkerPoolMsg) -> Result<()> {
+    pub async fn send(&mut self, msg: ExperimentToWorkerPoolMsg) -> Result<()> {
         self.inner.send((Span::current(), msg))?;
         Ok(())
     }
@@ -25,7 +24,7 @@ pub struct ExpMsgRecv {
 }
 
 impl ExpMsgRecv {
-    pub(crate) async fn recv(&mut self) -> Option<(Span, ExperimentToWorkerPoolMsg)> {
+    pub async fn recv(&mut self) -> Option<(Span, ExperimentToWorkerPoolMsg)> {
         self.inner.recv().await
     }
 }

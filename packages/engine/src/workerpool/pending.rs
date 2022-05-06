@@ -3,15 +3,12 @@ use std::collections::HashMap;
 use execution::{
     package::PackageTask,
     task::{CancelTask, TaskId, TaskMessage, TaskResultOrCancelled},
-    worker_pool::{WorkerIndex, WorkerPoolHandler},
+    worker::WorkerTaskResultOrCancelled,
+    worker_pool::{comms::active::ActiveTaskExecutorComms, WorkerIndex, WorkerPoolHandler},
 };
 use tokio::sync::oneshot;
 
-use crate::{
-    simulation::comms::active::ActiveTaskExecutorComms,
-    worker::task::WorkerTaskResultOrCancelled,
-    workerpool::{Error, Result},
-};
+use crate::workerpool::{Error, Result};
 
 type HasTerminated = bool;
 
