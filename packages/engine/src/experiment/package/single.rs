@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use execution::package::experiment::comms::{
-    control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl,
+use execution::package::experiment::{
+    comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
+    SingleRunExperimentConfig,
 };
 use simulation_structure::SimulationShortId;
 
 use crate::{
     config::ExperimentConfig,
     experiment::error::{Error, Result},
-    proto::SingleRunExperimentConfig,
 };
 
 pub struct SingleRunExperiment {

@@ -8,6 +8,7 @@ description = "The hEngine Command line interface"
 [dependencies]
 hash_engine_lib = { path = "../..", default-features = false }
 error = { path = "../../lib/error", features = ["spantrace"] }
+execution = { path = "../../lib/execution", default-features = false }
 orchestrator = { path = "../../lib/orchestrator", default-features = false, features = ["clap"] }
 
 clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }

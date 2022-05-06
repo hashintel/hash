@@ -1,11 +1,10 @@
-use std::{
-    convert::Infallible,
-    fmt::{Debug, Display, Formatter},
-    str::FromStr,
-};
+use core::fmt;
 
 use execution::{
-    package::simulation::PackageInitConfig,
+    package::{
+        experiment::{ExperimentName, ExperimentPackageConfig},
+        simulation::PackageInitConfig,
+    },
     runner::{
         comms::{PackageError, UserError, UserWarning},
         RunnerError,
@@ -22,43 +21,6 @@ use crate::simulation::status::SimStatus;
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
 pub type SimulationRegisteredId = String;
-
-#[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize, Deserialize)]
-pub struct ExperimentName(String);
-
-impl ExperimentName {
-    pub fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-}
-
-impl Debug for ExperimentName {
-    #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(&self.0, f)
-    }
-}
-
-impl Display for ExperimentName {
-    #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self.0, f)
-    }
-}
-
-impl From<String> for ExperimentName {
-    fn from(name: String) -> Self {
-        Self(name)
-    }
-}
-
-impl FromStr for ExperimentName {
-    type Err = Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.to_string()))
-    }
-}
 
 /// The message type sent from the engine to the orchestrator.
 #[derive(Serialize, Deserialize, Debug)]
@@ -203,28 +165,6 @@ impl<'de> Deserialize<'de> for MetricObjective {
     }
 }
 
-// TODO: investigate if the renames are still needed
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
-pub struct SimpleExperimentConfig {
-    /// The experiment name
-    pub experiment_name: ExperimentName,
-    /// The global properties changed for each simulation run
-    #[serde(rename = "changedProperties")]
-    pub changed_globals: Vec<SerdeValue>,
-    /// Number of steps each run should go for
-    #[serde(rename = "numSteps")]
-    pub num_steps: usize,
-    /// Maximum amount of simulations that can be ran in parallel - None is unlimited
-    pub max_sims_in_parallel: Option<usize>,
-}
-
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
-pub struct SingleRunExperimentConfig {
-    /// Number of steps the run should go for
-    #[serde(rename = "numSteps")]
-    pub num_steps: usize,
-}
-
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
 pub struct OptimizationExperimentConfigPayload {
     /// The metric to optimize for
@@ -263,12 +203,6 @@ pub enum PackageConfig<'a> {
     EmptyPackageConfig,
     ExperimentPackageConfig(&'a ExperimentPackageConfig),
     ExtendedExperimentPackageConfig(&'a ExtendedExperimentPackageConfig),
-}
-
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
-pub enum ExperimentPackageConfig {
-    Simple(SimpleExperimentConfig),
-    SingleRun(SingleRunExperimentConfig),
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
@@ -395,11 +329,11 @@ pub struct ProcessedExperimentRun {
 /// i.e. debug::Debug now outputs: `Some(..)`
 struct CleanOption<'a, T>(&'a Option<T>);
 
-impl<T> Debug for CleanOption<'_, T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl<T> fmt::Debug for CleanOption<'_, T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
-            Some(_) => f.write_str("Some(..)"),
-            None => f.write_str("None"),
+            Some(_) => fmt.write_str("Some(..)"),
+            None => fmt.write_str("None"),
         }
     }
 }

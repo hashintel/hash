@@ -415,6 +415,7 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "error",
+ "execution",
  "hash_engine_lib",
  "orchestrator",
  "serde",

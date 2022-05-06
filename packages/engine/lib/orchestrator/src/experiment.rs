@@ -5,13 +5,13 @@
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 use error::{bail, ensure, report, Result, ResultExt};
+use execution::package::experiment::{
+    ExperimentName, ExperimentPackageConfig, SimpleExperimentConfig, SingleRunExperimentConfig,
+};
 use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
     output::local::config::LocalPersistenceConfig,
-    proto::{
-        self, ExecutionEnvironment, ExperimentName, ExperimentPackageConfig, ExperimentRunBase,
-        ExperimentRunRepr, SimpleExperimentConfig, SingleRunExperimentConfig,
-    },
+    proto::{self, ExecutionEnvironment, ExperimentRunBase, ExperimentRunRepr},
     simulation::command::StopStatus,
     utils::{LogFormat, LogLevel, OutputLocation},
 };

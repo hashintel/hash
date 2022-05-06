@@ -4,7 +4,10 @@ pub mod package;
 
 use std::sync::Arc;
 
-use execution::package::experiment::comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv};
+use execution::package::experiment::{
+    comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv},
+    ExperimentPackageConfig,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use stateful::global::Globals;
@@ -17,7 +20,6 @@ use crate::{config::ExperimentConfig, proto};
 pub type Simulation = proto::ProjectBase;
 pub type PackageDataField = proto::PackageDataField;
 pub type MetricObjective = proto::MetricObjective;
-pub type PackageName = proto::ExperimentPackageConfig;
 pub type ExperimentRun = proto::ExperimentRun;
 
 // TODO: UNUSED: Needs triage
@@ -80,18 +82,18 @@ pub struct Initializer {
 
 pub fn init_exp_package(
     experiment_config: Arc<ExperimentConfig>,
-    exp_package_config: proto::ExperimentPackageConfig,
+    exp_package_config: ExperimentPackageConfig,
     pkg_to_exp: ExpPkgCtlSend,
     exp_pkg_update_recv: ExpPkgUpdateRecv,
 ) -> Result<JoinHandle<Result<()>>> {
     let future = match exp_package_config {
-        proto::ExperimentPackageConfig::Simple(config) => {
+        ExperimentPackageConfig::Simple(config) => {
             let pkg = package::simple::SimpleExperiment::new(&experiment_config, config)?;
             tokio::spawn(
                 async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),
             )
         }
-        proto::ExperimentPackageConfig::SingleRun(config) => {
+        ExperimentPackageConfig::SingleRun(config) => {
             let pkg = package::single::SingleRunExperiment::new(
                 &Arc::new(experiment_config.as_ref().into()),
                 config,
