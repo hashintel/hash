@@ -179,7 +179,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
 
     let mut worker_pool_result: ExecutionResult = None;
     let mut experiment_package_result: ExperimentPackageResult = None;
-    let mut experiment_result: ExperimentControllerResult = None;
+    let mut experiment_controller_result: ExperimentControllerResult = None;
     let mut exit_timeout = None;
 
     let mut successful_exit = true;
@@ -194,7 +194,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                 err = format!(
                     "Timed out with experiment package {}, controller {}, worker pool {}",
                     experiment_package_result.is_some(),
-                    experiment_result.is_some(),
+                    experiment_controller_result.is_some(),
                     worker_pool_result.is_some(),
                 );
                 break;
@@ -211,7 +211,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                 // The experiment package should finish first
                 experiment_package_result = Some(res);
                 if experiment_package_exit_logic(
-                    &experiment_result,
+                    &experiment_controller_result,
                     &worker_pool_result,
                     &mut experiment_controller_terminate_send,
                     &mut exit_timeout
@@ -219,7 +219,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                     break;
                 }
             }
-            Ok(res) = &mut experiment_controller_handle, if experiment_result.is_none() => {
+            Ok(res) = &mut experiment_controller_handle, if experiment_controller_result.is_none() => {
                 if let Err(ref inner_err) = res {
                     tracing::error!("Error from experiment controller: {}", inner_err);
                     successful_exit = false;
@@ -229,7 +229,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                 };
 
                 // The experiment controller should ideally finish after the experiment package has finished
-                experiment_result = Some(res);
+                experiment_controller_result = Some(res);
 
                 if experiment_controller_exit_logic(
                     &experiment_package_result,
@@ -251,7 +251,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
 
                 worker_pool_result = Some(res);
 
-                if worker_pool_exit_logic(&experiment_package_result, &experiment_result, &mut exit_timeout) {
+                if worker_pool_exit_logic(&experiment_package_result, &experiment_controller_result, &mut exit_timeout) {
                     break;
                 }
             }
