@@ -62,7 +62,7 @@ use crate::{
 /// [`spawn_workers()`]: Self::spawn_workers
 /// [`run()`]: Self::run
 pub struct WorkerPool {
-    worker_controllers: Option<Vec<Worker>>,
+    worker: Option<Vec<Worker>>,
     comms: WorkerPoolCommsWithWorkers,
     simulation_runs: SimulationRuns,
     pending_tasks: PendingWorkerPoolTasks,
@@ -79,7 +79,7 @@ impl WorkerPool {
         config: &WorkerPoolConfig,
         experiment_control_recv: ExpMsgRecv,
         terminate_recv: TerminateRecv,
-        worker_pool_controller_send: WorkerPoolMsgSend,
+        worker_pool_send: WorkerPoolMsgSend,
     ) -> Result<(Self, MainMsgSendBase)> {
         let (comms, worker_comms) = comms::new_pool_comms(config.num_workers);
         let (sim_send_base, sim_recv) = comms::main::new_no_sim();
@@ -89,14 +89,14 @@ impl WorkerPool {
 
         Ok((
             WorkerPool {
-                worker_controllers: None,
+                worker: None,
                 comms,
                 simulation_runs,
                 pending_tasks,
                 sim_recv,
                 exp_recv: experiment_control_recv,
                 terminate_recv,
-                top_send: worker_pool_controller_send,
+                top_send: worker_pool_send,
                 worker_comms: Some(worker_comms),
                 worker_config: Some(config.worker_config.clone()),
             },
@@ -120,7 +120,7 @@ impl WorkerPool {
             .worker_config
             .take()
             .ok_or_else(|| Error::from("missing worker base config"))?;
-        self.worker_controllers = Some(
+        self.worker = Some(
             try_join_all(worker_comms.into_iter().map(|comms| {
                 let init = ExperimentInitRunnerMsg::new(&exp_init_base, *comms.index());
                 Worker::spawn(worker_config.clone(), comms, init)
@@ -137,14 +137,11 @@ impl WorkerPool {
         self.send_to_all_workers(WorkerPoolToWorkerMsg::new_simulation_run(payload))
     }
 
-    fn run_worker_controllers(&mut self) -> Result<JoinHandle<Result<Vec<()>>>> {
+    fn run_workers(&mut self) -> Result<JoinHandle<Result<Vec<()>>>> {
         tracing::debug!("Running workers");
-        let worker_controllers = self
-            .worker_controllers
-            .take()
-            .ok_or(Error::MissingWorkerControllers)?;
+        let workers = self.worker.take().ok_or(Error::MissingWorker)?;
 
-        let futs = worker_controllers
+        let futs = workers
             .into_iter()
             .map(|mut c| {
                 tokio::spawn(async move { c.run().await.map_err(Error::from) }.in_current_span())
@@ -168,8 +165,8 @@ impl WorkerPool {
     // TODO: DOC: Describe communication between worker pool and engine/experiment/simulations
     //   Probably point to different `comms` submodules as well
     pub async fn run(mut self) -> Result<()> {
-        tracing::debug!("Running Worker Pool Controller");
-        pin!(let workers = self.run_worker_controllers()?;);
+        tracing::debug!("Running Worker Pool");
+        pin!(let workers = self.run_workers()?;);
         pin!(let terminate_recv = self.terminate_recv.take_recv()?;);
 
         // `pending_syncs` contains futures that wait for state sync responses
@@ -433,7 +430,7 @@ impl WorkerPool {
                 let worker = worker_list
                     .choose(&mut rand::thread_rng())
                     .ok_or_else(|| Error::from("Unexpected: No Workers"))?;
-                // Pass the task to the worker controller, don't keep a local copy
+                // Pass the task to the worker, don't keep a local copy
                 (
                     vec![(*worker, task, shared_store)],
                     DistributionController::Single {

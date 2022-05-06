@@ -48,7 +48,7 @@ pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
     env: Environment,
     shared_store: Arc<SharedStore>,
     worker_pool_send: ExpMsgSend,
-    worker_pool_controller_recv: WorkerPoolMsgRecv,
+    worker_pool_recv: WorkerPoolMsgRecv,
     experiment_package_comms: ExperimentPackageComms,
     output_persistence_service_creator: P,
     sim_run_tasks: SimulationRuns,
@@ -135,7 +135,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         Ok(self.orch_client().send(EngineStatus::SimStop(id)).await?)
     }
 
-    async fn handle_worker_pool_controller_msg(
+    async fn handle_worker_pool_msg(
         &mut self,
         id: SimulationShortId,
         msg: WorkerPoolToExpCtlMsg,
@@ -362,9 +362,9 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 Some(msg) = self.sim_status_recv.recv() => {
                     self.handle_sim_status(msg).await?;
                 }
-                msg = self.worker_pool_controller_recv.recv() => {
+                msg = self.worker_pool_recv.recv() => {
                     if let Some((id, msg)) = msg {
-                        self.handle_worker_pool_controller_msg(id, msg).await?;
+                        self.handle_worker_pool_msg(id, msg).await?;
                     }
                 }
                 Ok(msg) = self.env.orch_listener.recv::<EngineMsg>() => {
@@ -400,7 +400,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         env: Environment,
         shared_store: Arc<SharedStore>,
         worker_pool_send: ExpMsgSend,
-        worker_pool_controller_recv: WorkerPoolMsgRecv,
+        worker_pool_recv: WorkerPoolMsgRecv,
         experiment_package_comms: ExperimentPackageComms,
         output_persistence_service_creator: P,
         worker_pool_send_base: MainMsgSendBase,
@@ -416,7 +416,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             env,
             shared_store,
             worker_pool_send,
-            worker_pool_controller_recv,
+            worker_pool_recv,
             experiment_package_comms,
             output_persistence_service_creator,
             sim_run_tasks: Default::default(),

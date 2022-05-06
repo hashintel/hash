@@ -117,18 +117,17 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         exp_base_config.run.base().id,
     )?);
 
-    // Set up the worker pool controller and all communications with it
+    // Set up the worker pool and all communications with it
     let (experiment_to_worker_pool_send, experiment_to_worker_pool_recv) =
         worker_pool::comms::experiment::new_pair();
-    let (worker_pool_controller_send, worker_pool_controller_recv) =
-        worker_pool::comms::top::new_pair();
+    let (worker_pool_send, worker_pool_recv) = worker_pool::comms::top::new_pair();
     let (mut worker_pool_terminate_send, worker_pool_terminate_recv) =
         worker_pool::comms::terminate::new_pair();
     let (mut worker_pool, worker_pool_send_base) = WorkerPool::new_with_sender(
         &exp_config.worker_pool,
         experiment_to_worker_pool_recv,
         worker_pool_terminate_recv,
-        worker_pool_controller_send,
+        worker_pool_send,
     )?;
 
     // Start up the experiment package (simple/single)
@@ -157,7 +156,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         env,
         shared_store,
         experiment_to_worker_pool_send,
-        worker_pool_controller_recv,
+        worker_pool_recv,
         experiment_package.comms,
         output_persistence_service_creator,
         worker_pool_send_base,
@@ -173,14 +172,14 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     // TODO: does this need to even be async
     worker_pool.spawn_workers(exp_init_msg_base).await?;
 
-    let mut worker_pool_controller_handle =
+    let mut worker_pool_handle =
         tokio::spawn(async move { worker_pool.run().await }.in_current_span());
     let mut experiment_controller_handle =
         tokio::spawn(async move { experiment_controller.run().await }.in_current_span());
 
     let mut worker_pool_result: ExecutionResult = None;
     let mut experiment_package_result: ExperimentPackageResult = None;
-    let mut experiment_controller_result: ExperimentControllerResult = None;
+    let mut experiment_result: ExperimentControllerResult = None;
     let mut exit_timeout = None;
 
     let mut successful_exit = true;
@@ -195,7 +194,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                 err = format!(
                     "Timed out with experiment package {}, controller {}, worker pool {}",
                     experiment_package_result.is_some(),
-                    experiment_controller_result.is_some(),
+                    experiment_result.is_some(),
                     worker_pool_result.is_some(),
                 );
                 break;
@@ -212,7 +211,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                 // The experiment package should finish first
                 experiment_package_result = Some(res);
                 if experiment_package_exit_logic(
-                    &experiment_controller_result,
+                    &experiment_result,
                     &worker_pool_result,
                     &mut experiment_controller_terminate_send,
                     &mut exit_timeout
@@ -220,7 +219,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                     break;
                 }
             }
-            Ok(res) = &mut experiment_controller_handle, if experiment_controller_result.is_none() => {
+            Ok(res) = &mut experiment_controller_handle, if experiment_result.is_none() => {
                 if let Err(ref inner_err) = res {
                     tracing::error!("Error from experiment controller: {}", inner_err);
                     successful_exit = false;
@@ -230,7 +229,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                 };
 
                 // The experiment controller should ideally finish after the experiment package has finished
-                experiment_controller_result = Some(res);
+                experiment_result = Some(res);
 
                 if experiment_controller_exit_logic(
                     &experiment_package_result,
@@ -241,7 +240,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                     break;
                 }
             }
-            Ok(res) = &mut worker_pool_controller_handle, if worker_pool_result.is_none() => {
+            Ok(res) = &mut worker_pool_handle, if worker_pool_result.is_none() => {
                 if let Err(ref inner_err) = res {
                     tracing::error!("Error from worker pool: {}", inner_err);
                     successful_exit = false;
@@ -252,7 +251,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
 
                 worker_pool_result = Some(res);
 
-                if worker_pool_exit_logic(&experiment_package_result, &experiment_controller_result, &mut exit_timeout) {
+                if worker_pool_exit_logic(&experiment_package_result, &experiment_result, &mut exit_timeout) {
                     break;
                 }
             }

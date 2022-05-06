@@ -51,6 +51,9 @@ use crate::{
 ///
 /// A worker is only driven by the [`WorkerPool`] by sending [`Task`]s, please see their
 /// documentation for further information.
+///
+/// [`WorkerPool`]: crate::worker_pool::WorkerPool
+/// [`Task`]: crate::task::Task
 pub struct Worker {
     py: PythonRunner,
     js: JavaScriptRunner,

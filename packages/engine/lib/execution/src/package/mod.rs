@@ -27,7 +27,8 @@
 //! Each of these have different effects and entry points. All packages are either independent or
 //! state explicit [`Dependencies`] on other [`Package`]s. Also, all packages can be stateful. As
 //! statefulness implies initialization of state, each stateful package can have an initialization
-//! phase, either in [`PackageCreator::init_message()`] or in [`Package::start_message()`].
+//! phase, either in [`PackageCreator::worker_init_message()`] or in
+//! [`Package::simulation_setup_message()`].
 //!
 //! For more information on the different [`PackageType`]s please see the corresponding module
 //! documentation.
