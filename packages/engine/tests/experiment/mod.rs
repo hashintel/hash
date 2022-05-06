@@ -165,11 +165,8 @@ pub async fn run_test_suite(
     assert_ne!(samples, 0, "SAMPLES must be at least 1");
 
     for (experiment_type, expected_outputs) in experiments {
-        // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's `OUT_DIR` is
-        // used.
-        //
-        // `env!("OUT_DIR")` is currently the only reason we have an empty `build.rs`. If it is
-        // removed, consider deleting the `build.rs` file.
+        // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's
+        // `CARGO_TARGET_TMPDIR` is used.
         let mut output_folder = PathBuf::from(
             std::env::var("OUTPUT_DIRECTORY")
                 .unwrap_or_else(|_| env!("CARGO_TARGET_TMPDIR").to_string()),
