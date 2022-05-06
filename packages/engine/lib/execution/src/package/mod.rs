@@ -68,7 +68,7 @@
 //! pub struct GreetingPackage;
 //!
 //! impl Package for GreetingPackage {
-//!     fn start_message(&self) -> Result<serde_json::Value> {
+//!     fn simulation_start_message(&self) -> Result<serde_json::Value> {
 //!         Ok(serde_json::Value::Null)
 //!     }
 //! }
@@ -88,7 +88,7 @@
 //! pub struct GreetingCreator;
 //!
 //! impl PackageCreator for GreetingCreator {
-//!     fn init_message(&self) -> Result<serde_json::Value> {
+//!     fn worker_init_message(&self) -> Result<serde_json::Value> {
 //!         Ok(serde_json::Value::Null)
 //!     }
 //! }
@@ -223,9 +223,9 @@ pub trait PackageCreator: Send + Sync {
     /// This allows package creators to pass any kind of configuration from their Rust runtime to
     /// their Language Runner counterpart for the experiment.
     ///
-    /// Compared to [`Package::start_message()`], the data returned with this method will be
-    /// available for all simulations and is sent **once per experiment**.
-    fn init_message(&self) -> Result<serde_json::Value> {
+    /// Compared to [`Package::simulation_start_message()`], the data returned with this method will
+    /// be available for all simulations and is sent **once per experiment**.
+    fn worker_init_message(&self) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
     }
 
@@ -251,10 +251,10 @@ pub trait Package: Send {
     /// This allows packages to pass any kind of configuration from their Rust runtime to their
     /// Language Runner counterpart for a specific simulation.
     ///
-    /// Compared to [`PackageCreator::init_message()`], the data returned with this method will only
-    /// be available for that specific simulation where the package has been instantiated and is
-    /// sent **once per simulation**.
-    fn start_message(&self) -> Result<serde_json::Value> {
+    /// Compared to [`PackageCreator::worker_init_message()`], the data returned with this method
+    /// will only be available for that specific simulation where the package has been instantiated
+    /// and is sent **once per simulation**.
+    fn simulation_start_message(&self) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
     }
 }

@@ -86,7 +86,7 @@ impl BehaviorExecutionCreator {
 }
 
 impl PackageCreator for BehaviorExecutionCreator {
-    fn init_message(&self) -> Result<serde_json::Value> {
+    fn worker_init_message(&self) -> Result<serde_json::Value> {
         let msg = exp_init_message(self.get_behavior_ids()?, self.get_behavior_map()?)?;
         Ok(serde_json::to_value(msg)?)
     }

@@ -62,7 +62,7 @@ impl<C> ContextPackageCreator<C> for AgentMessagesCreator {
 }
 
 impl PackageCreator for AgentMessagesCreator {
-    fn init_message(&self) -> Result<Value> {
+    fn worker_init_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
@@ -78,7 +78,7 @@ impl MaybeCpuBound for AgentMessages {
 }
 
 impl Package for AgentMessages {
-    fn start_message(&self) -> Result<Value> {
+    fn simulation_start_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
