@@ -171,7 +171,8 @@ pub async fn run_test_suite(
         // `env!("OUT_DIR")` is currently the only reason we have an empty `build.rs`. If it is
         // removed, consider deleting the `build.rs` file.
         let mut output_folder = PathBuf::from(
-            std::env::var("OUTPUT_DIRECTORY").unwrap_or_else(|_| env!("OUT_DIR").to_string()),
+            std::env::var("OUTPUT_DIRECTORY")
+                .unwrap_or_else(|_| env!("CARGO_TARGET_TMPDIR").to_string()),
         );
         for module in test_path.split("::") {
             output_folder.push(module);
