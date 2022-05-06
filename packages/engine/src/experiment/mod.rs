@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use simulation_structure::SimulationShortId;
 use stateful::global::Globals;
 use tokio::task::JoinHandle;
 use tracing::Instrument;
@@ -16,7 +15,6 @@ use crate::{
     config::ExperimentConfig,
     experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
     proto,
-    types::SpanId,
 };
 
 pub type Simulation = proto::ProjectBase;
@@ -81,20 +79,6 @@ pub fn apply_globals_changes(base: Globals, changes: &SerdeValue) -> Result<Glob
 pub struct Initializer {
     pub name: String,
     pub src: String,
-}
-
-#[derive(Debug)]
-pub enum ExperimentControl {
-    StartSim {
-        sim_id: SimulationShortId,
-        changed_globals: serde_json::Value,
-        max_num_steps: usize,
-        span_id: SpanId,
-    },
-    // TODO: add span_ids
-    PauseSim(SimulationShortId),
-    ResumeSim(SimulationShortId),
-    StopSim(SimulationShortId),
 }
 
 pub fn init_exp_package(

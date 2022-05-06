@@ -62,9 +62,10 @@ pub mod sim_status {
 }
 
 pub mod exp_pkg_ctl {
+    use execution::package::experiment::comms::ExperimentControl;
     use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-    use crate::experiment::{controller::Result, ExperimentControl};
+    use crate::experiment::controller::Result;
 
     pub struct ExpPkgCtlSend {
         inner: UnboundedSender<ExperimentControl>,

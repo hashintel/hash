@@ -1,3 +1,4 @@
+use execution::package::experiment::comms::ExperimentControl;
 use serde_json::Value as SerdeValue;
 use thiserror::Error as ThisError;
 
@@ -27,7 +28,7 @@ pub enum Error {
     DuplicateSimId(String),
 
     #[error("Error sending control to experiment main loop: {0:?}")]
-    ExperimentSend(#[from] tokio::sync::mpsc::error::SendError<super::ExperimentControl>),
+    ExperimentSend(#[from] tokio::sync::mpsc::error::SendError<ExperimentControl>),
 
     #[error("Error receiving from experiment main loop: {0}")]
     ExperimentRecv(String),

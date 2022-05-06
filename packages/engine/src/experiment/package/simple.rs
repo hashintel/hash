@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use execution::package::experiment::comms::ExperimentControl;
 use simulation_structure::SimulationShortId;
 
 use crate::{
@@ -7,7 +8,6 @@ use crate::{
     experiment::{
         controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
         error::{Error, Result},
-        ExperimentControl,
     },
     proto::SimpleExperimentConfig,
 };
