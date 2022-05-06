@@ -1,9 +1,7 @@
+use execution::package::experiment::ExperimentPackageConfig;
 use thiserror::Error as ThisError;
 
-use crate::{
-    proto,
-    simulation::{controller::sim_control::SimControl, status::SimStatus},
-};
+use crate::simulation::{controller::sim_control::SimControl, status::SimStatus};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -109,7 +107,7 @@ pub enum Error {
     TokioJoin(#[from] tokio::task::JoinError),
 
     #[error("Unknown experiment package: {0:?}")]
-    UnknownExperimentPackage(proto::ExperimentPackageConfig),
+    UnknownExperimentPackage(ExperimentPackageConfig),
 
     #[error("Unknown simulation package: {0}")]
     UnknownSimPackage(String),

@@ -9,7 +9,7 @@ pub mod run;
 #[cfg(test)]
 pub mod tests {
     use execution::{
-        package::{
+        package::simulation::{
             init::{InitialState, InitialStateName},
             PackageInitConfig, PackageName,
         },

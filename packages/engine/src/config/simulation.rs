@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use execution::{package::PackageCreatorConfig, worker_pool::WorkerAllocation};
+use execution::{package::simulation::PackageCreatorConfig, worker_pool::WorkerAllocation};
 use simulation_structure::SimulationShortId;
 
 use crate::config::StoreConfig;

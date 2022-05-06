@@ -8,7 +8,8 @@ use std::{
 
 use clap::{AppSettings, Parser};
 use error::{Result, ResultExt};
-use hash_engine_lib::{proto::ExperimentName, utils::init_logger};
+use execution::package::experiment::ExperimentName;
+use hash_engine_lib::utils::init_logger;
 use orchestrator::{Experiment, ExperimentConfig, Manifest, Server};
 
 /// Arguments passed to the CLI

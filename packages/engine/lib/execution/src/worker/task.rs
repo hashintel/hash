@@ -1,7 +1,7 @@
 use stateful::field::PackageId;
 
 use crate::{
-    package::PackageTask,
+    package::simulation::PackageTask,
     task::{TaskId, TaskResultOrCancelled, TaskSharedStore},
 };
 

@@ -1,3 +1,4 @@
+use execution::package::experiment::comms::ExperimentControl;
 use serde_json::Value as SerdeValue;
 use thiserror::Error as ThisError;
 
@@ -10,6 +11,9 @@ use crate::experiment::controller::Error as ControllerError;
 pub enum Error {
     #[error("{0}")]
     Unique(String),
+
+    #[error("Execution error: {0}")]
+    Execution(#[from] execution::Error),
 
     #[error("Controller error: {0}")]
     Controller(#[from] ControllerError),
@@ -27,10 +31,7 @@ pub enum Error {
     DuplicateSimId(String),
 
     #[error("Error sending control to experiment main loop: {0:?}")]
-    ExperimentSend(#[from] tokio::sync::mpsc::error::SendError<super::ExperimentControl>),
-
-    #[error("Error receiving from experiment main loop: {0}")]
-    ExperimentRecv(String),
+    ExperimentSend(#[from] tokio::sync::mpsc::error::SendError<ExperimentControl>),
 
     #[error("Optimization experiment package data doesn't contain maximum number of runs")]
     MissingMaxRuns,
