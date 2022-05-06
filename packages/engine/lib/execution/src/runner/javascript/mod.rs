@@ -73,7 +73,7 @@ struct JsPackage<'s> {
 }
 
 fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
-    format!("./lib/execution/src/package/{pkg_type}/{name}/package.js")
+    format!("./lib/execution/src/package/simulation/{pkg_type}/{name}/package.js")
 }
 
 /// TODO: DOC add docstrings on impl'd methods
