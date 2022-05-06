@@ -1,5 +1,12 @@
 use std::sync::Arc;
 
+use execution::{
+    package::simulation::{
+        init::{InitialState, InitialStateName},
+        PackageCreatorConfig, PackageInitConfig,
+    },
+    worker_pool::WorkerPoolConfig,
+};
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use stateful::{
@@ -13,12 +20,9 @@ use stateful::{
 use uuid::Uuid;
 
 use crate::{
-    config::{
-        EngineConfig, ExperimentConfig, PackageConfig, PersistenceConfig, SimRunConfig,
-        SimulationConfig, StoreConfig, WorkerPoolConfig,
-    },
+    config::{ExperimentConfig, PackageConfig, SimRunConfig, SimulationConfig, StoreConfig},
     datastore::{error::Error, schema::last_state_index_key},
-    proto::{ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase},
+    proto::{ExperimentRunBase, ExperimentRunRepr, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
@@ -245,24 +249,35 @@ fn make_dummy_agent(seed: u64) -> Result<Agent, Error> {
 }
 
 pub fn dummy_sim_run_config() -> SimRunConfig {
-    let project_base = ProjectBase {
-        name: "project_name".to_string(),
+    let package_init = PackageInitConfig {
         initial_state: InitialState {
             name: InitialStateName::InitJson,
             src: "{}".to_string(),
         },
+        behaviors: Vec::new(),
+        packages: Vec::new(),
+    };
+
+    let globals = Globals::default();
+
+    // We can't use `PackageCreators::from_config` as it will initialise the global static
+    // `SyncOnceCell`s multiple times (thus erroring) if we run multiple tests at once
+    let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
+
+    let store = Arc::new(StoreConfig::new_sim(&package_init, &globals, &package_creators).unwrap());
+
+    let project_base = ProjectBase {
+        name: "project_name".to_string(),
         globals_src: "{}".to_string(),
         experiments_src: None,
-        behaviors: Vec::new(),
         datasets: Vec::new(),
-        packages: Vec::new(),
+        package_init,
     };
     let base = ExperimentRunBase {
         name: "experiment_name".to_string().into(),
         id: Uuid::new_v4(),
         project_base,
     };
-    let globals = Globals::default();
 
     let exp_config = Arc::new(ExperimentConfig {
         packages: Arc::new(PackageConfig {
@@ -274,33 +289,26 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         run: Arc::new(ExperimentRunRepr::ExperimentRunBase(base)),
         target_max_group_size: 100_000,
         worker_pool: Arc::new(WorkerPoolConfig {
-            worker_base_config: Default::default(),
+            worker_config: Default::default(),
             num_workers: 0,
         }),
         base_globals: globals.clone(),
-        js_runner_initial_heap_constraint: None,
-        js_runner_max_heap_size: None,
     });
-
-    // We can't use `PackageCreators::from_config` as it will initialise the global static
-    // `SyncOnceCell`s multiple times (thus erroring) if we run multiple tests at once
-    let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
 
     SimRunConfig {
         exp: Arc::clone(&exp_config),
         sim: Arc::new(SimulationConfig {
             id: 0,
-            globals: Arc::default(),
-            store: Arc::new(
-                StoreConfig::new_sim(&exp_config, &globals, &package_creators).unwrap(),
-            ),
-            engine: Arc::new(EngineConfig {
-                worker_allocation: Vec::new(),
-                num_workers: 0,
-            }),
+            package_creator: PackageCreatorConfig {
+                agent_schema: Arc::clone(&store.agent_schema),
+                persistence: package_creators
+                    .create_persistent_config(&exp_config, &globals)
+                    .unwrap(),
+                globals,
+            },
+            store,
+            worker_allocation: Arc::new(Vec::new()),
             max_num_steps: 0,
-            persistence: PersistenceConfig::new_sim(&exp_config, &globals, &package_creators)
-                .unwrap(),
         }),
     }
 }

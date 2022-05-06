@@ -10,7 +10,7 @@ We value the work of security researchers who help keep our users safe. To respo
 
 We maintain a bug bounty program that rewards security researchers who responsibly disclose vulnerabilities contained within certain HASH-authored code, including some of that which has been made available in this repository. More information can be found at [hash.ai/security](https://hash.ai/security)
 
-**Please note:** vulnerabilities in our public repositories that stem from user-authored contributions may not be covered by this program.
+**Please note:** vulnerabilities in our public repositories that stem from contributions authored by users outside of the `hashintel` GitHub organization are not guaranteed to be covered by this program.
 
 ## Support
 

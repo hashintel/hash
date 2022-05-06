@@ -1,8 +1,7 @@
-use crate::{
-    proto::SimulationShortId,
-    simulation::{agent_control::AgentControl, step_output::SimulationStepOutput},
-    worker::RunnerError,
-};
+use execution::runner::RunnerError;
+use simulation_structure::SimulationShortId;
+
+use crate::simulation::{agent_control::AgentControl, step_output::SimulationStepOutput};
 
 pub struct SimulationStepResult {
     // TODO: UNUSED: Needs triage

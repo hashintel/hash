@@ -149,7 +149,7 @@ jobs:
         if: ${{ success() || failure() }}
         run: |
           yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
-          yarn wait-on --timeout 30000 http://localhost:5001
+          yarn wait-on --timeout 30000 http://0.0.0.0:5001
         env:
           NODE_ENV: test
 
@@ -204,14 +204,14 @@ jobs:
         if: ${{ success() || failure() }}
         run: |
           yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
-          yarn wait-on --timeout 30000 http://localhost:5001
+          yarn wait-on --timeout 30000 http://0.0.0.0:5001
 
       - name: Build and launch frontend
         if: ${{ success() || failure() }}
         run: |
           yarn workspace @hashintel/hash-frontend next build
           yarn workspace @hashintel/hash-frontend start 2>&1 | tee var/logs/frontend.log & ## ampersand enables background mode
-          yarn wait-on --timeout 30000 http://localhost:3000
+          yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - run: yarn playwright install-deps chrome firefox
         if: ${{ success() || failure() }}

@@ -5,6 +5,7 @@ pub mod sim_control;
 
 use std::sync::Arc;
 
+use simulation_structure::SimulationShortId;
 use tokio::task::JoinHandle;
 use tracing::Instrument;
 
@@ -19,7 +20,6 @@ use crate::{
         simulation::{new_pair, SimCtlRecv, SimCtlSend},
     },
     output::SimulationOutputPersistenceRepr,
-    proto::SimulationShortId,
     simulation::{comms::Comms, package::run::Packages},
 };
 

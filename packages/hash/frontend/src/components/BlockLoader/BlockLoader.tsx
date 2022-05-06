@@ -15,10 +15,15 @@ import {
   LinkGroup,
   UnknownEntity,
 } from "../../graphql/apiTypes.gen";
+import { useBlockProtocolCreateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityTypes";
+import { useBlockProtocolCreateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntitities";
 import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
 import { useBlockProtocolUpdateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinks";
 import { useBlockLoaded } from "../../blocks/onBlockLoaded";
+import { useBlockProtocolCreateLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregations";
+import { useBlockProtocolUpdateLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregations";
+import { useBlockProtocolDeleteLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregations";
 
 type BlockLoaderProps = {
   accountId: string;
@@ -53,10 +58,18 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 }) => {
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { createLinkedAggregations } =
+    useBlockProtocolCreateLinkedAggregations();
   const { createLinks } = useBlockProtocolCreateLinks();
+  const { createEntities } = useBlockProtocolCreateEntities();
+  const { createEntityTypes } = useBlockProtocolCreateEntityTypes();
+  const { deleteLinkedAggregations } =
+    useBlockProtocolDeleteLinkedAggregations();
   const { deleteLinks } = useBlockProtocolDeleteLinks();
   const { updateEntities } = useBlockProtocolUpdateEntities();
   const { uploadFile } = useFileUpload();
+  const { updateLinkedAggregations } =
+    useBlockProtocolUpdateLinkedAggregations();
   const { updateLinks } = useBlockProtocolUpdateLinks();
 
   const flattenedProperties = useMemo(() => {
@@ -93,13 +106,18 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const functions = {
     aggregateEntityTypes,
     aggregateEntities,
+    createEntities,
+    createEntityTypes,
+    createLinkedAggregations,
     createLinks,
+    deleteLinkedAggregations,
     deleteLinks,
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
     updateEntities,
-    updateLinks,
     uploadFile,
+    updateLinks,
+    updateLinkedAggregations,
   };
 
   const onBlockLoaded = useBlockLoaded();
