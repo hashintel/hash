@@ -1,7 +1,4 @@
-//! # The hEngine Package System
-//!
-//! The Package System defines the building blocks of HASH Simulation, specifying the stages of
-//! execution, and the types of logic that can be ran.
+//! # Simulation packages
 //!
 //! The only invariant that the engine expects of a simulation project is that it creates a set of
 //! [`Agent`]s backed by the data defined in [`stateful`], which may have their state changed as
@@ -18,7 +15,8 @@
 //!
 //! ## Package types
 //!
-//! The [`Package`] System consists of 4 types of interfaces for 4 types of simulation packages:
+//! The the simulation [`Package`] System consists of 4 types of interfaces for 4 types of
+//! simulation packages:
 //! - [`init`]alization
 //! - [`context`]
 //! - [`state`]
@@ -27,7 +25,8 @@
 //! Each of these have different effects and entry points. All packages are either independent or
 //! state explicit [`Dependencies`] on other [`Package`]s. Also, all packages can be stateful. As
 //! statefulness implies initialization of state, each stateful package can have an initialization
-//! phase, either in [`PackageCreator::init_message()`] or in [`Package::start_message()`].
+//! phase, either in [`PackageCreator::worker_init_message()`] or in
+//! [`Package::simulation_setup_message()`].
 //!
 //! For more information on the different [`PackageType`]s please see the corresponding module
 //! documentation.

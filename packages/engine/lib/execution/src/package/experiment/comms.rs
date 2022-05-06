@@ -3,7 +3,7 @@ pub(crate) mod update;
 
 use simulation_structure::SimulationShortId;
 
-use crate::package::experiment::comms::{control::ExpPkgCtlRecv, update::ExpPkgUpdateSend};
+pub use self::{control::ExpPkgCtlRecv, update::ExpPkgUpdateSend};
 
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names)]

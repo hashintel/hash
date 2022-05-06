@@ -10,7 +10,7 @@
 //! [`State`]: stateful::state::State
 //! [`Context`]: stateful::context::Context
 //! [`Agent`]: stateful::agent::Agent
-//! [`AgentMessages`]: crate::package::context::agent_messages::AgentMessages
+//! [`AgentMessages`]: crate::package::simulation::context::agent_messages::AgentMessages
 
 pub mod behavior_execution;
 pub mod topology;

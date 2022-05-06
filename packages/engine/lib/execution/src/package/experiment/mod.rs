@@ -1,3 +1,15 @@
+//! # Experiment packages
+//!
+//! [`ExperimentPackage`]s are aware of the metadata of a simulation run, e.g. the number of steps
+//! to run a simulation. They are able to start/stop/pause a simulation.
+//!
+//! They are created with the [`ExperimentPackageConfig`] and can be controlled by sending
+//! [`StepUpdate`] messages through [`ExperimentPackageComms`] and handling its
+//! [`ExperimentControl`] messages.
+//!
+//! [`StepUpdate`]: comms::StepUpdate
+//! [`ExperimentControl`]: comms::ExperimentControl
+
 pub mod comms;
 
 mod config;
