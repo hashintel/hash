@@ -3,6 +3,8 @@ pub mod update;
 
 use simulation_structure::SimulationShortId;
 
+use crate::package::experiment::comms::{control::ExpPkgCtlRecv, update::ExpPkgUpdateSend};
+
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names)]
 pub enum ExperimentControl {
@@ -16,4 +18,9 @@ pub enum ExperimentControl {
     PauseSim(SimulationShortId),
     ResumeSim(SimulationShortId),
     StopSim(SimulationShortId),
+}
+
+pub struct ExperimentPackageComms {
+    pub step_update_sender: ExpPkgUpdateSend,
+    pub ctl_recv: ExpPkgCtlRecv,
 }

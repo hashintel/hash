@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use execution::{
-    package::experiment::comms::{update::StepUpdate, ExperimentControl},
+    package::experiment::comms::{update::StepUpdate, ExperimentControl, ExperimentPackageComms},
     runner::comms::{DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun},
     worker_pool::comms::{
         experiment::{ExpMsgSend, ExperimentToWorkerPoolMsg},
@@ -27,7 +27,6 @@ use crate::{
             error::{Error, Result},
             sim_configurer::SimConfigurer,
         },
-        package::ExperimentPackageComms,
     },
     output::OutputPersistenceCreatorRepr,
     proto::{EngineMsg, EngineStatus, ExperimentRunTrait},

@@ -3,7 +3,7 @@ pub mod single;
 
 use std::sync::Arc;
 
-use execution::package::experiment::comms::{control::ExpPkgCtlRecv, update::ExpPkgUpdateSend};
+use execution::package::experiment::comms::ExperimentPackageComms;
 use tokio::task::JoinHandle;
 
 use crate::{
@@ -11,11 +11,6 @@ use crate::{
     experiment::{error::Result, init_exp_package},
     proto::{ExperimentRunTrait, PackageConfig},
 };
-
-pub struct ExperimentPackageComms {
-    pub step_update_sender: ExpPkgUpdateSend,
-    pub ctl_recv: ExpPkgCtlRecv,
-}
 
 pub struct ExperimentPackage {
     pub join_handle: JoinHandle<Result<()>>,
