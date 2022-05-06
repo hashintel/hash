@@ -1,10 +1,13 @@
 use std::time::Duration;
 
 use async_trait::async_trait;
-use execution::task::{CancelTask, TaskMessage, TaskResultOrCancelled};
+use execution::{
+    task::{CancelTask, TaskMessage, TaskResultOrCancelled},
+    worker_pool::comms::active::ActiveTaskOwnerComms,
+};
 use tokio::time::timeout;
 
-use crate::simulation::{comms::active::ActiveTaskOwnerComms, Error, Result};
+use crate::simulation::{Error, Result};
 
 /// A sibling struct to a [`Task`] that is currently being executed to allow management of
 /// communication with, and tracking of, a [`Task`]'s status.

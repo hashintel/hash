@@ -1,14 +1,15 @@
-use execution::{
+use stateful::field::PackageId;
+
+use crate::{
     package::PackageTask,
     task::{TaskId, TaskResultOrCancelled, TaskSharedStore},
 };
-use stateful::field::PackageId;
 
-#[derive(derive_new::new, Debug)]
+#[derive(Debug)]
 pub struct WorkerTask {
     pub task_id: TaskId,
     pub package_id: PackageId,
-    pub inner: PackageTask,
+    pub task: PackageTask,
     pub shared_store: TaskSharedStore,
 }
 

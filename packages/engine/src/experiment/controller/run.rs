@@ -1,6 +1,6 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
-use execution::runner::PythonRunner;
+use execution::{runner::PythonRunner, worker_pool, worker_pool::comms::terminate::TerminateSend};
 use memory::shared_memory;
 use simulation_structure::ExperimentId;
 use stateful::global::SharedStore;
@@ -25,7 +25,7 @@ use crate::{
     },
     proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
-    workerpool::{self, comms::terminate::TerminateSend, WorkerPoolController},
+    workerpool::WorkerPoolController,
     Error as CrateError,
 };
 
@@ -116,11 +116,11 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
 
     // Set up the worker pool controller and all communications with it
     let (experiment_to_worker_pool_send, experiment_to_worker_pool_recv) =
-        workerpool::comms::experiment::new_pair();
+        worker_pool::comms::experiment::new_pair();
     let (worker_pool_controller_send, worker_pool_controller_recv) =
-        workerpool::comms::top::new_pair();
+        worker_pool::comms::top::new_pair();
     let (mut worker_pool_terminate_send, worker_pool_terminate_recv) =
-        workerpool::comms::terminate::new_pair();
+        worker_pool::comms::terminate::new_pair();
     let (mut worker_pool_controller, worker_pool_send_base) =
         WorkerPoolController::new_with_sender(
             exp_config.clone(),
@@ -148,7 +148,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
     let mut orch_client = env.orch_client.try_clone()?;
     let (mut experiment_controller_terminate_send, experiment_controller_terminate_recv) =
-        workerpool::comms::terminate::new_pair();
+        worker_pool::comms::terminate::new_pair();
     let experiment_controller = ExperimentController::new(
         exp_config,
         exp_base_config,

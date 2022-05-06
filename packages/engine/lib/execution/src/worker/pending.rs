@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
-use execution::{
+use crate::{
     package::PackageTask,
     runner::Language,
     task::{TaskId, TaskMessage},
+    Error, Result,
 };
-
-use crate::worker::{Error, Result};
 
 #[allow(dead_code)]
 pub enum CancelState {
@@ -21,17 +20,14 @@ impl Default for CancelState {
 }
 
 // TODO: DOC
-#[derive(derive_new::new)]
 pub struct PendingWorkerTask {
-    pub inner: PackageTask,
+    pub task: PackageTask,
     /// Groups that resulted in sub-tasks being created, that haven't yet returned a final
     /// [`TaskMessage`]
     pub pending_groups: Vec<PendingGroup>,
     /// A list of [`TaskMessage`]s sent by sub-tasks that have finished executing
-    #[new(default)]
     pub final_task_messages: Vec<TaskMessage>,
     // TODO: UNUSED: Needs triage
-    #[new(default)]
     pub cancelling: CancelState,
 }
 
