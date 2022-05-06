@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use execution::{
-    package::experiment::comms::{update::StepUpdate, ExperimentControl, ExperimentPackageComms},
+    package::experiment::comms::{ExperimentControl, ExperimentPackageComms, StepUpdate},
     runner::comms::{DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun},
     worker_pool::comms::{
         experiment::{ExpMsgSend, ExperimentToWorkerPoolMsg},

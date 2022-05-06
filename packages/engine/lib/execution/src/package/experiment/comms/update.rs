@@ -1,16 +1,8 @@
 //! Communication for update the experiment packages at each simulation step.
 
-use simulation_structure::SimulationShortId;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use crate::Result;
-
-#[derive(Debug)]
-pub struct StepUpdate {
-    pub sim_id: SimulationShortId,
-    pub was_error: bool,
-    pub stop_signal: bool,
-}
+use crate::{package::experiment::comms::StepUpdate, Result};
 
 #[derive(Clone)]
 pub struct ExpPkgUpdateSend {

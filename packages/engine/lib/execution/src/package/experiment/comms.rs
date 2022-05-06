@@ -1,5 +1,5 @@
-pub mod control;
-pub mod update;
+pub(crate) mod control;
+pub(crate) mod update;
 
 use simulation_structure::SimulationShortId;
 
@@ -23,4 +23,11 @@ pub enum ExperimentControl {
 pub struct ExperimentPackageComms {
     pub step_update_sender: ExpPkgUpdateSend,
     pub ctl_recv: ExpPkgCtlRecv,
+}
+
+#[derive(Debug)]
+pub struct StepUpdate {
+    pub sim_id: SimulationShortId,
+    pub was_error: bool,
+    pub stop_signal: bool,
 }
