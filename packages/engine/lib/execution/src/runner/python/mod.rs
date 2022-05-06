@@ -89,6 +89,7 @@ impl PythonRunner {
     }
 
     // TODO: Duplication with other runners (move into worker?)
+    #[allow(dead_code)]
     pub async fn recv_now(&mut self) -> Result<Option<OutboundFromRunnerMsg>> {
         // TODO: `now_or_never` on a receiver can very rarely drop messages (known
         //       issue with tokio). Replace with better solution once tokio has one.

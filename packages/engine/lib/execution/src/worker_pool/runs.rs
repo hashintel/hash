@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use execution::worker_pool::WorkerAllocation;
 use simulation_structure::SimulationShortId;
 
-use crate::workerpool::{Error, Result};
+use crate::{worker_pool::WorkerAllocation, Error, Result};
 
 #[derive(Default)]
 pub struct SimulationRuns {

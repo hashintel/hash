@@ -1,3 +1,16 @@
+//! Communication channels and messages for running the [`WorkerPool`].
+//!
+//! This module contains channels and messages for different purposes:
+//!   * [`main`]: Channels to drive [`WorkerPool`]
+//!   * [`message`]: Messages belonging to the [`main`] module
+//!   * [`active`]: Communication with an [`ActiveTask`]
+//!   * [`experiment`]: Communication with an [`ExperimentPackage`]
+//!   * [`terminate`]: API for terminating the [`WorkerPool`]
+//!   * [`top`]: Communication to the top-level simulation controller
+//!
+//! [`WorkerPool`]: crate::worker_pool::WorkerPool
+//! [`ActiveTask`]: crate::task::ActiveTask
+
 pub mod active;
 pub mod experiment;
 pub mod main;

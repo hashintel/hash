@@ -690,6 +690,7 @@ dependencies = [
  "lazy_static",
  "memory",
  "nng",
+ "rand 0.8.4",
  "rayon",
  "serde",
  "serde_json",

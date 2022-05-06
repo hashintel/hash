@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
-use execution::{
+use tokio::sync::oneshot;
+
+use crate::{
     package::PackageTask,
     task::{CancelTask, TaskId, TaskMessage, TaskResultOrCancelled},
     worker::WorkerTaskResultOrCancelled,
     worker_pool::{comms::active::ActiveTaskExecutorComms, WorkerIndex, WorkerPoolHandler},
+    Error, Result,
 };
-use tokio::sync::oneshot;
-
-use crate::workerpool::{Error, Result};
 
 type HasTerminated = bool;
 
@@ -24,12 +24,10 @@ pub enum DistributionController {
 }
 
 /// TODO: DOC
-#[derive(derive_new::new)]
 pub struct PendingWorkerPoolTask {
     pub task_id: TaskId,
     pub comms: ActiveTaskExecutorComms,
     pub distribution_controller: DistributionController,
-    #[new(default)]
     pub cancelling: bool,
 }
 
