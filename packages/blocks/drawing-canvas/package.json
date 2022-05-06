@@ -22,20 +22,18 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@tldraw/tldraw": "1.11.0",
+    "@tldraw/tldraw": "1.11.1",
     "blockprotocol": "0.0.8",
-    "lodash": "4.17.21",
-    "mobx": "6.5.0",
     "react-resizable": "^3.0.4"
   },
   "devDependencies": {
     "block-scripts": "0.0.5",
+    "mobx": "6.5.0",
     "mock-block-dock": "0.0.8",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
   "peerDependencies": {
-    "lodash": "^4.17.21",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
