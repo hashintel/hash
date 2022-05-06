@@ -49,16 +49,13 @@ use crate::{
     Error, Result,
 };
 
-/// A task worker.
+/// A task worker containing three dedicated language runners.
 ///
-/// Represents three dedicated language workers.
+/// Depending on the [`RunnerSpawnConfig`] provided to the `Worker`, different language runners may
+/// be enabled or disabled.
 ///
-/// ## Running a task
-///
-/// There are three phases to running a task:
-/// - Start a task with a target language
-/// - Handle language switches
-/// - Upon completion return a completion message
+/// A worker is only driven by the [`WorkerPool`] by sending [`Task`]s, please see their
+/// documentation for further information.
 pub struct Worker {
     py: PythonRunner,
     js: JavaScriptRunner,
