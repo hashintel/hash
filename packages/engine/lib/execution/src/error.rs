@@ -1,3 +1,4 @@
+use simulation_structure::SimulationShortId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
@@ -101,6 +102,21 @@ pub enum Error {
 
     #[error("{0}")]
     RwLock(String),
+
+    #[error("Missing simulation with id {0}")]
+    MissingSimulationWithId(SimulationShortId),
+
+    #[error("Channel for sending cancel task messages has unexpectedly closed")]
+    CancelClosed,
+
+    #[error("Missing worker")]
+    MissingWorker,
+
+    #[error("Missing pending task with id {0}")]
+    MissingPendingTask(TaskId),
+
+    #[error("Missing one-shot task result sender to send result with")]
+    NoResultSender,
 }
 
 impl Error {
