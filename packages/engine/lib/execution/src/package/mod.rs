@@ -223,7 +223,7 @@ pub trait PackageCreator: Send + Sync {
     /// This allows package creators to pass any kind of configuration from their Rust runtime to
     /// their Language Runner counterpart for the experiment.
     ///
-    /// Compared to [`Package::simulation_start_message()`], the data returned with this method will
+    /// Compared to [`Package::simulation_setup_message()`], the data returned with this method will
     /// be available for all simulations and is sent **once per experiment**.
     fn worker_init_message(&self) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
