@@ -204,7 +204,7 @@ impl PackageCreators {
                         state_field_spec_map.clone(),
                     ),
                 )?;
-                let start_msg = package.simulation_start_message()?;
+                let start_msg = package.simulation_setup_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::Init,
@@ -232,7 +232,7 @@ impl PackageCreators {
                         Arc::clone(context_field_spec_map),
                     ),
                 )?;
-                let start_msg = package.simulation_start_message()?;
+                let start_msg = package.simulation_setup_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::Context,
@@ -256,7 +256,7 @@ impl PackageCreators {
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
-                let start_msg = package.simulation_start_message()?;
+                let start_msg = package.simulation_setup_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::State,
@@ -280,7 +280,7 @@ impl PackageCreators {
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
-                let start_msg = package.simulation_start_message()?;
+                let start_msg = package.simulation_setup_message()?;
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: *package_name,
                     r#type: PackageType::State,

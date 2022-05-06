@@ -78,7 +78,7 @@ impl MaybeCpuBound for AgentMessages {
 }
 
 impl Package for AgentMessages {
-    fn simulation_start_message(&self) -> Result<Value> {
+    fn simulation_setup_message(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

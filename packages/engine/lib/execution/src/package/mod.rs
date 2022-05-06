@@ -68,7 +68,7 @@
 //! pub struct GreetingPackage;
 //!
 //! impl Package for GreetingPackage {
-//!     fn simulation_start_message(&self) -> Result<serde_json::Value> {
+//!     fn simulation_setup_message(&self) -> Result<serde_json::Value> {
 //!         Ok(serde_json::Value::Null)
 //!     }
 //! }
@@ -254,7 +254,7 @@ pub trait Package: Send {
     /// Compared to [`PackageCreator::worker_init_message()`], the data returned with this method
     /// will only be available for that specific simulation where the package has been instantiated
     /// and is sent **once per simulation**.
-    fn simulation_start_message(&self) -> Result<serde_json::Value> {
+    fn simulation_setup_message(&self) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
     }
 }
