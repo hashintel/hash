@@ -5,13 +5,13 @@
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 use error::{bail, ensure, report, Result, ResultExt};
+use execution::package::experiment::{
+    ExperimentName, ExperimentPackageConfig, SimpleExperimentConfig, SingleRunExperimentConfig,
+};
 use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
     output::local::config::LocalPersistenceConfig,
-    proto::{
-        self, ExecutionEnvironment, ExperimentName, ExperimentPackageConfig, ExperimentRunBase,
-        ExperimentRunRepr, SimpleExperimentConfig, SingleRunExperimentConfig,
-    },
+    proto::{self, ExecutionEnvironment, ExperimentRunBase, ExperimentRunRepr},
     simulation::command::StopStatus,
     utils::{LogFormat, LogLevel, OutputLocation},
 };
@@ -276,10 +276,24 @@ impl Experiment {
             env: ExecutionEnvironment::None, // We don't connect to the API
             dyn_payloads: serde_json::Map::from_iter(map_iter),
         };
-        engine_process
+        if let Err(err) = engine_process
             .send(&proto::EngineMsg::Init(init_message))
             .await
-            .wrap_err("Could not send `Init` message")?;
+            .wrap_err("Could not send `Init` message")
+        {
+            // TODO: Wait for threads to finish before starting a forced cleanup
+            warn!("Engine didn't exit gracefully, waiting for subprocesses to finish.");
+            std::thread::sleep(Duration::from_secs(1));
+
+            if let Err(cleanup_err) = engine_process
+                .exit_and_cleanup(experiment_run.base.id)
+                .await
+                .wrap_err("Failed to cleanup after failed start")
+            {
+                warn!("{cleanup_err}");
+            }
+            bail!(err);
+        }
         debug!("Sent init message to \"{experiment_name}\"");
 
         let mut graceful_finish = true;
@@ -406,6 +420,13 @@ impl Experiment {
                 }
             }
         }
+
+        if !graceful_finish {
+            // TODO: Wait for threads to finish before starting a forced cleanup
+            warn!("Engine didn't exit gracefully, waiting for subprocesses to finish.");
+            std::thread::sleep(Duration::from_secs(1));
+        }
+
         debug!("Performing cleanup");
         engine_process
             .exit_and_cleanup(experiment_run.base.id)

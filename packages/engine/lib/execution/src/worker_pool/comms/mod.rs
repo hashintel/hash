@@ -10,6 +10,7 @@
 //!
 //! [`WorkerPool`]: crate::worker_pool::WorkerPool
 //! [`ActiveTask`]: crate::task::ActiveTask
+//! [`ExperimentPackage`]: crate::package::experiment::ExperimentPackage
 
 pub mod active;
 pub mod experiment;

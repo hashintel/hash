@@ -42,7 +42,7 @@ use self::{
 };
 pub(crate) use self::{config::SplitConfig, handler::WorkerPoolHandler};
 use crate::{
-    package::PackageTask,
+    package::simulation::PackageTask,
     runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
     task::{Task, TaskDistributionConfig, TaskId, TaskSharedStore},
     worker::{SyncPayload, Worker, WorkerConfig, WorkerTask},
