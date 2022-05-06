@@ -3,7 +3,7 @@ import {
   MutationUpdateLinkedAggregationOperationArgs,
   Resolver,
 } from "../../apiTypes.gen";
-import { Entity, UnresolvedGQLLinkedAggregation } from "../../../model";
+import { Aggregation, UnresolvedGQLLinkedAggregation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const updateLinkedAggregationOperation: Resolver<
@@ -13,28 +13,19 @@ export const updateLinkedAggregationOperation: Resolver<
   MutationUpdateLinkedAggregationOperationArgs
 > = async (
   _,
-  { sourceAccountId, sourceEntityId, path, updatedOperation },
+  { sourceAccountId, aggregationId, updatedOperation },
   { dataSources, user },
 ) =>
   dataSources.db.transaction(async (client) => {
-    const source = await Entity.getEntityLatestVersion(client, {
-      accountId: sourceAccountId,
-      entityId: sourceEntityId,
-    });
-
-    if (!source) {
-      const msg = `entity with fixed ID ${sourceEntityId} not found in account ${sourceAccountId}`;
-      throw new ApolloError(msg, "NOT_FOUND");
-    }
-
-    const aggregation = await source.getAggregationByPath(client, {
-      stringifiedPath: path,
+    const aggregation = await Aggregation.getAggregationById(client, {
+      sourceAccountId,
+      aggregationId,
     });
 
     /** @todo: lock aggregation on retrieval? */
 
     if (!aggregation) {
-      const msg = `aggregation with path '${path}' not found on entity with fixed ID ${source.entityId}`;
+      const msg = `aggregation with aggregation ID '${aggregationId}' not found`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
 

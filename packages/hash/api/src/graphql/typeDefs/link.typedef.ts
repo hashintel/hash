@@ -63,6 +63,6 @@ export const linkTypedef = gql`
     """
     Delete a link using its id
     """
-    deleteLink(sourceAccountId: ID!, sourceEntityId: ID!, linkId: ID!): Boolean!
+    deleteLink(sourceAccountId: ID!, linkId: ID!): Boolean!
   }
 `;

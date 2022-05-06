@@ -5,14 +5,13 @@
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 use error::{bail, ensure, report, Result, ResultExt};
+use execution::package::experiment::{
+    ExperimentName, ExperimentPackageConfig, SimpleExperimentConfig, SingleRunExperimentConfig,
+};
 use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
     output::local::config::LocalPersistenceConfig,
-    proto,
-    proto::{
-        ExecutionEnvironment, ExperimentId, ExperimentName, ExperimentPackageConfig,
-        ExperimentRunBase, ExperimentRunRepr, SimpleExperimentConfig, SingleRunExperimentConfig,
-    },
+    proto::{self, ExecutionEnvironment, ExperimentRunBase, ExperimentRunRepr},
     simulation::command::StopStatus,
     utils::{LogFormat, LogLevel, OutputLocation},
 };
@@ -20,6 +19,7 @@ use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as SerdeValue};
+use simulation_structure::ExperimentId;
 use tokio::time::{sleep, timeout};
 
 use crate::{experiment_server::Handler, process};

@@ -1,4 +1,4 @@
-use crate::simulation::package::output::packages::Output;
+use execution::package::simulation::output::Output;
 
 pub struct SimulationStepOutput(pub Vec<Output>);
 

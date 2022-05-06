@@ -8,11 +8,11 @@ jobTitle: "Head of Design at HASH"
 date: "April 24th, 2022"
 ---
 
-This guide is for developers who want to build blocks with the [Block Protocol](https://blockprotocol.org). The protocol allows you build reusable blocks that will work in any application that also follows the protocol. It acts as the communication layer between an application and a block. The block and the application don't need to know anything about how the other is built. They only need to follow the protocol to work seamlessly together.
+This guide is for developers who want to build blocks with the [Block Protocol](https://blockprotocol.org). The protocol allows you to build blocks that will work in any application that also follows the protocol. It acts as the communication layer between an application and a block. The block and the application don't need to know anything about how the other is built. They only need to follow the protocol to work seamlessly together.
 
 ![A diagram of a set of blocks connected through the Block Protocol to an embedding application on the other side](blog/1_block-design/DesignGuidelines_2.png)
 
-This opens up a world of possibilities; as a developer you can build any block you can dream up, publish it to the [Block Hub](https://blockprotocol.org/hub) or [npm](https://www.npmjs.com/), and allow other developers to download and use it in any protocol-compliant application.
+This opens up a world of possibilities; as a developer, you can build any block you like and publish it to the [Block Hub](https://blockprotocol.org/hub) or [npm](https://www.npmjs.com/). Other developers can then download and use it in any protocol-compliant application.
 
 This also raises some new challenges though. For your blocks to be successful, loved, and widely used, they need to look and feel great across a wide variety of contexts. **Which means you have to design them well.**
 
@@ -81,7 +81,7 @@ Usability and user experience design (UX) is a whole discipline in its own right
 There's a reason designers won't stop banging on about minimalism and simplicity. Adding in fancy details, decorations, or flashy animations that don't need to be there will increase the visual complexity of your block.
 It may take users longer to figure out how to use the block, or may get in the way of whatever they're trying to do with it.
 
-In practice, this means avoiding loud, wild visual design choices. Like adding a leopard pattern to your form background, or using a funky 1960's font for labels.
+In practice, this means avoiding loud, wild visual design choices. Like adding a leopard pattern to your form background, or using a funky 1960s font for labels.
 
 <img
   src="blog/1_block-design/DesignGuidelines_3.png"
@@ -90,7 +90,7 @@ In practice, this means avoiding loud, wild visual design choices. Like adding a
   alt="Two callout boxes. The first has very plain styling and limited use of color. The second has a leopard background, many bold colors, and an unconventional novelty font."
 />
 
-Because blocks will be used in a wide variety of situations, it is _extra important_ to make them boring enough to blend in with the wallpaper. Use color sparingly, and only to highlight active areas or draw attention to important elements like call to action buttons. Avoid noisy patterns or textures. Only use animation for subtle transitions, or to communicate the state of the elements to users.
+Because blocks will be used in a wide variety of situations, it is _extra important_ to make them boring enough to blend in with the wallpaper. Use color sparingly, and only to highlight active areas or draw attention to important elements like call-to-action buttons. Avoid noisy patterns or textures. Only use animation for subtle transitions, or to communicate the state of the elements to users.
 
 ### 2. Use standard scales for spacing and typography
 
@@ -155,7 +155,7 @@ To make this easy and quick for users, show them an empty state with:
   alt="Two placeholder screens. The first shows a clear CTA in the middle for users to upload an image. The second shows a user dragging and dropping a file into the area."
 />
 
-Once they have entered or selected data, ensure you design a loading state that lets them know if they need to wait a moment for the data to load. If the loading process might take a while, giving them buttons to pause and resume it may also be a good idea. Clear feedback and [visibilty of system status](https://www.google.com/search?q=ux+visibility+system+status) is always critical to help users feel informed and in control.
+Once they have entered or selected data, ensure you design a loading state that lets them know if they need to wait a moment for the data to load. If the loading process might take a while, giving them buttons to pause and resume may also be a good idea. Giving users clear feedback and [visibility of system status](https://www.nngroup.com/articles/visibility-system-status/) helps them feel informed and in control.
 
 <img
   src="blog/1_block-design/DesignGuidelines_6.png"
@@ -197,7 +197,7 @@ It turns out using indicators of depth like drop shadows, inner shadows, and lay
 
 ### 6. Make your blocks A11y accessible
 
-[A11y](https://www.a11yproject.com/) accessibility covers a wide range of design practices that help make web interfaces easier to use for everyone. Especially people who might be visually, physically, or cognitively impared while they're using your block.
+[A11y](https://www.a11yproject.com/) accessibility covers a wide range of design practices that help make web interfaces easier to use for everyone. Especially people who might be visually, physically, or cognitively impaired while they're using your block.
 
 The a11y project has a great [checklist](https://www.a11yproject.com/checklist/#content) you can work through to make sure your blocks meet the basic requirements.
 
@@ -226,7 +226,11 @@ When we have to use a control or input element that is physically separated or d
 
 ### 9. Follow conventional icon semantics and use labels
 
-There's nothing less enticing than a mysterious icon in the corner of an app that gives you no indication of what it might do. Take you to a new page? Delete all the data you just entered? Who knows!
+We strongly recommend you use icons in your blocks. They help reinforce meaning on buttons and menus, and work as visual cues that users can quickly scan. It's also important that you use icons from a well-designed and consistent library. Here's a few great libraries to consider: [Font Awesome](https://fontawesome.com/), [Feather Icons](https://feathericons.com/), and [Hero Icons](https://heroicons.com/).
+
+You should use conventional icons that users have seen before. While there are no guaranteed _universal_ icons, it's safe to assume users will recognise the magnifying glass for search <span>🔍</span>, gear icon for settings <span>⚙️</span>, and down/up/left/right icons <span>⬆ ⬇</span> for navigational menus and buttons.
+
+You should also be cautious about using non-conventional or novel icons. There's nothing less enticing than a mysterious icon in the corner of an app that gives you no indication of what it might do. Take you to a new page? Delete all the data you just entered? Who knows!
 
 <img
   src="blog/1_block-design/DesignGuidelines_9.png"
@@ -235,7 +239,7 @@ There's nothing less enticing than a mysterious icon in the corner of an app tha
   alt="A row of uncommon icons without labels."
 />
 
-Ideally, icons should always have text labels next to them. This prevents users from having to guess what the icon means. This is especially important if you're using icons that aren't widely used in other applications.
+The easiest way to solve this is to always put text labels next to icons. This prevents users from having to guess what the icon means. This is especially important if you're using icons that aren't widely used in other applications.
 
 <img
   src="blog/1_block-design/DesignGuidelines_10.png"
@@ -250,6 +254,6 @@ Since we live in a world where we don't have infinite screen space, it can be tr
 
 ## Working with designers
 
-At this point, some of you might be overwhelmed by the number of things you need to consider when designing blocks. Design is hard! There's a reason it's an entire specialised profession that takes decades to master.
+At this point, some of you might be overwhelmed by the number of things you need to consider when designing blocks. Design is hard! There's a reason it's a specialized profession that takes decades to master.
 
-If you're working on a block and you want it to be _really_ great, you should find a designer to come work on it with you.
+If you're working on a block and you want it to be _really_ great, you should find a designer to come work on it with you. There sadly aren't many designers involved in open source projects, often because of the time commitment it takes to fully understand a project and what it needs. It isn't as easy to hop in and start contributing design work in the same way we can with code. Thankfully, block-sized projects are smaller in scope than most OS ventures. They also have an explict need for great UX and visual design. Which makes them the perfect side project to pitch to your designer friends.

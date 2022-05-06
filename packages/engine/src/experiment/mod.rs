@@ -1,29 +1,16 @@
 pub mod controller;
 mod error;
-pub mod package;
-
-use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use stateful::global::Globals;
-use tokio::task::JoinHandle;
-use tracing::Instrument;
 
 pub use self::error::{Error, Result};
-use crate::{
-    config::ExperimentConfig,
-    experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
-    proto,
-    types::SpanId,
-};
+use crate::proto;
 
-pub type SharedBehavior = proto::SharedBehavior;
-pub type SimPackageArgs = proto::SimPackageArgs;
 pub type Simulation = proto::ProjectBase;
 pub type PackageDataField = proto::PackageDataField;
 pub type MetricObjective = proto::MetricObjective;
-pub type PackageName = proto::ExperimentPackageConfig;
 pub type ExperimentRun = proto::ExperimentRun;
 
 // TODO: UNUSED: Needs triage
@@ -82,44 +69,4 @@ pub fn apply_globals_changes(base: Globals, changes: &SerdeValue) -> Result<Glob
 pub struct Initializer {
     pub name: String,
     pub src: String,
-}
-
-#[derive(Debug)]
-pub enum ExperimentControl {
-    StartSim {
-        sim_id: proto::SimulationShortId,
-        changed_globals: serde_json::Value,
-        max_num_steps: usize,
-        span_id: SpanId,
-    },
-    // TODO: add span_ids
-    PauseSim(proto::SimulationShortId),
-    ResumeSim(proto::SimulationShortId),
-    StopSim(proto::SimulationShortId),
-}
-
-pub fn init_exp_package(
-    experiment_config: Arc<ExperimentConfig>,
-    exp_package_config: proto::ExperimentPackageConfig,
-    pkg_to_exp: ExpPkgCtlSend,
-    exp_pkg_update_recv: ExpPkgUpdateRecv,
-) -> Result<JoinHandle<Result<()>>> {
-    let future = match exp_package_config {
-        proto::ExperimentPackageConfig::Simple(config) => {
-            let pkg = package::simple::SimpleExperiment::new(&experiment_config, config)?;
-            tokio::spawn(
-                async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),
-            )
-        }
-        proto::ExperimentPackageConfig::SingleRun(config) => {
-            let pkg = package::single::SingleRunExperiment::new(
-                &Arc::new(experiment_config.as_ref().into()),
-                config,
-            )?;
-            tokio::spawn(
-                async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),
-            )
-        }
-    };
-    Ok(future)
 }

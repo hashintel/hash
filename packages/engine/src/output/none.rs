@@ -1,12 +1,13 @@
+use execution::package::simulation::PersistenceConfig;
 use serde_json::Value;
+use simulation_structure::SimulationShortId;
 
 use crate::{
-    config::{PersistenceConfig, SimRunConfig},
+    config::SimRunConfig,
     output::{
         error::Result, OutputPersistenceCreatorRepr, OutputPersistenceResultRepr,
         SimulationOutputPersistenceRepr,
     },
-    proto::SimulationShortId,
     simulation::step_output::SimulationStepOutput,
 };
 

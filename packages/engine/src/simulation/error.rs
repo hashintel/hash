@@ -1,8 +1,6 @@
 use stateful::agent::Agent;
 use thiserror::Error as ThisError;
 
-use crate::datastore::table::task_shared_store::{SharedContext, SharedState};
-
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(ThisError, Debug)]
@@ -15,6 +13,9 @@ pub enum Error {
 
     #[error("Stateful error: {0}")]
     Stateful(#[from] stateful::Error),
+
+    #[error("Execution error: {0}")]
+    Execution(#[from] execution::Error),
 
     #[error("Env error: {0}")]
     Env(#[from] crate::env::Error),
@@ -101,9 +102,6 @@ pub enum Error {
     #[error("The number of parallel workers should be a power of 2")]
     NumParallelWorkers,
 
-    #[error("Invalid type of task message for behavior execution: {0:?}")]
-    InvalidBehaviorTaskMessage(crate::simulation::task::msg::TaskMessage),
-
     #[error("Invalid behavior bytes: {0:?} ({1:?})")]
     InvalidBehaviorBytes(Vec<u8>, Result<String, std::string::FromUtf8Error>),
 
@@ -134,19 +132,8 @@ pub enum Error {
     #[error("Got 'started' message from handler in middle of simulation run")]
     UnexpectedStartedMessage,
 
-    #[error("KdTree error: {0}")]
-    KdTree(#[from] kdtree::ErrorKind),
-
-    #[error("{0}")]
-    CustomApiMessageError(
-        #[from] super::package::context::packages::api_requests::CustomApiMessageError,
-    ),
-
     #[error("Tokio Join Error: {0}")]
     TokioJoin(#[from] tokio::task::JoinError),
-
-    #[error("Globals parse error. Invalid format for field: {0}")]
-    GlobalsParseError(String),
 
     #[error("Arrow Error: {0}")]
     Arrow(#[from] arrow::error::ArrowError),
@@ -156,12 +143,6 @@ pub enum Error {
          ContextAccess: {1}."
     )]
     AccessNotAllowed(String, String, String),
-
-    #[error("Distribution node handling is not implemented for this message type")]
-    DistributionNodeHandlerNotImplemented,
-
-    #[error("Worker node handling is not implemented for this message type")]
-    WorkerNodeHandlerNotImplemented,
 
     #[error("{0}")]
     RwLock(String),
@@ -173,16 +154,14 @@ pub enum Error {
 impl Error {
     /// TODO: This is a temporary fix for the dependency cycle
     ///       between simulation and worker errors.
-    pub fn state_sync(worker_error: crate::worker::Error) -> Self {
+    pub fn state_sync(worker_error: execution::Error) -> Self {
         Self::StateSync(format!("{:?}", worker_error))
     }
+}
 
-    pub fn access_not_allowed(
-        state: &SharedState,
-        ctx: &SharedContext,
-        package_type: String,
-    ) -> Self {
-        Self::AccessNotAllowed(format!("{:?}", state), format!("{:?}", ctx), package_type)
+impl From<Error> for execution::Error {
+    fn from(error: Error) -> Self {
+        execution::Error::from(error.to_string())
     }
 }
 

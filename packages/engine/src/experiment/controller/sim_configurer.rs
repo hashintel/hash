@@ -1,14 +1,15 @@
 use std::sync::Arc;
 
+use execution::{
+    package::{experiment::ExperimentPackageConfig, simulation::PersistenceConfig},
+    worker_pool::{WorkerAllocation, WorkerIndex},
+};
+use simulation_structure::SimulationShortId;
 use stateful::global::Globals;
 
 use crate::{
-    config::{
-        EngineConfig, ExperimentConfig, PersistenceConfig, SimRunConfig, StoreConfig,
-        WorkerAllocation,
-    },
+    config::{ExperimentConfig, SimRunConfig, StoreConfig},
     experiment::controller::error::Result,
-    proto::{ExperimentPackageConfig, SimulationShortId},
 };
 
 pub struct SimConfigurer {
@@ -44,16 +45,11 @@ impl SimConfigurer {
         max_num_steps: usize,
     ) -> Result<SimRunConfig> {
         let worker_allocation = self.worker_allocator.next();
-        let num_workers = worker_allocation.len();
-        let engine = EngineConfig {
-            worker_allocation,
-            num_workers,
-        };
         let config = SimRunConfig::new(
             exp_config,
             id,
             globals,
-            engine,
+            worker_allocation,
             store_config,
             persistence_config,
             max_num_steps,
@@ -74,7 +70,7 @@ impl WorkerAllocator {
             .map(|_| {
                 let w = self.next_worker;
                 self.next_worker = (w + 1) % self.num_workers;
-                crate::config::Worker::new(w)
+                WorkerIndex::new(w)
             })
             .collect()
     }
