@@ -1,5 +1,5 @@
 diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index 20a9bbd..c1dd91d 100644
+index c12bfa6..9cd7ed6 100644
 --- a/node_modules/blockprotocol/core.d.ts
 +++ b/node_modules/blockprotocol/core.d.ts
 @@ -1,3 +1,6 @@
@@ -9,15 +9,6 @@ index 20a9bbd..c1dd91d 100644
  // ---------------------------- UTILITIES ----------------------------- //
  
  type DistributedOmit<T, K extends PropertyKey> = T extends T
-@@ -27,7 +30,7 @@ export type BlockVariant = {
-   /**
-    * @deprecated - Use the `name` field instead.
-    */
--  displayName: string;
-+  displayName?: string;
-   properties: JSONObject;
-   examples?: JSONObject[] | null;
- };
 @@ -191,10 +194,12 @@ export type BlockProtocolMultiFilter = {
    operator: BlockProtocolMultiFilterOperatorType;
  };
