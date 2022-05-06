@@ -33,9 +33,6 @@ pub enum Error {
     #[error("Error sending control to experiment main loop: {0:?}")]
     ExperimentSend(#[from] tokio::sync::mpsc::error::SendError<ExperimentControl>),
 
-    #[error("Error receiving from experiment main loop: {0}")]
-    ExperimentRecv(String),
-
     #[error("Optimization experiment package data doesn't contain maximum number of runs")]
     MissingMaxRuns,
 

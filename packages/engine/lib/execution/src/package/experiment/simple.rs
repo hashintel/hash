@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 
-use execution::package::experiment::{
-    comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
-    SimpleExperimentConfig,
-};
 use simulation_structure::SimulationShortId;
 
-use crate::experiment::error::{Error, Result};
+use crate::{
+    package::experiment::{
+        comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
+        SimpleExperimentConfig,
+    },
+    Error, Result,
+};
 
 pub struct SimpleExperiment {
     config: SimpleExperimentConfig,

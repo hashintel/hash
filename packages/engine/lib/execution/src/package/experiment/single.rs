@@ -1,10 +1,10 @@
-use execution::package::experiment::{
-    comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
-    SingleRunExperimentConfig,
+use crate::{
+    package::experiment::{
+        comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
+        SingleRunExperimentConfig,
+    },
+    Error, Result,
 };
-use simulation_structure::SimulationShortId;
-
-use crate::experiment::error::{Error, Result};
 
 pub struct SingleRunExperiment {
     config: SingleRunExperimentConfig,
@@ -23,7 +23,7 @@ impl SingleRunExperiment {
         tracing::debug!("Calling run on single package");
         let msg = ExperimentControl::StartSim {
             span_id: tracing::Span::current().id(),
-            sim_id: 1 as SimulationShortId,
+            sim_id: 1,
             changed_globals: serde_json::Map::new().into(), // Don't change globals
             max_num_steps: self.config.num_steps,
         };

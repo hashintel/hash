@@ -1,16 +1,9 @@
 pub mod controller;
 mod error;
-pub mod package;
 
-use execution::package::experiment::{
-    comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv},
-    ExperimentPackageConfig,
-};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use stateful::global::Globals;
-use tokio::task::JoinHandle;
-use tracing::Instrument;
 
 pub use self::error::{Error, Result};
 use crate::proto;
@@ -76,26 +69,4 @@ pub fn apply_globals_changes(base: Globals, changes: &SerdeValue) -> Result<Glob
 pub struct Initializer {
     pub name: String,
     pub src: String,
-}
-
-pub fn init_exp_package(
-    exp_package_config: ExperimentPackageConfig,
-    pkg_to_exp: ExpPkgCtlSend,
-    exp_pkg_update_recv: ExpPkgUpdateRecv,
-) -> Result<JoinHandle<Result<()>>> {
-    let future = match exp_package_config {
-        ExperimentPackageConfig::Simple(config) => {
-            let pkg = package::simple::SimpleExperiment::new(config)?;
-            tokio::spawn(
-                async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),
-            )
-        }
-        ExperimentPackageConfig::SingleRun(config) => {
-            let pkg = package::single::SingleRunExperiment::new(config)?;
-            tokio::spawn(
-                async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),
-            )
-        }
-    };
-    Ok(future)
 }

@@ -119,6 +119,12 @@ pub enum Error {
 
     #[error("Missing one-shot task result sender to send result with")]
     NoResultSender,
+
+    #[error("Error receiving from experiment main loop: {0}")]
+    ExperimentRecv(String),
+
+    #[error("Missing simulation run with id {0}")]
+    MissingSimulationRun(SimulationShortId),
 }
 
 impl Error {
