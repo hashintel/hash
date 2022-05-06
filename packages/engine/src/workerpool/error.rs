@@ -42,10 +42,10 @@ pub enum Error {
     #[error("Channel for sending cancel task messages has unexpectedly closed")]
     CancelClosed,
 
-    #[error("Missing worker controllers")]
-    MissingWorkerControllers,
+    #[error("Missing worker")]
+    MissingWorker,
 
-    #[error("The communications with worker controllers has been unexpectedly dropped")]
+    #[error("The communications with worker has been unexpectedly dropped")]
     UnexpectedWorkerCommsDrop,
 
     #[error("Missing pending task with id {0}")]

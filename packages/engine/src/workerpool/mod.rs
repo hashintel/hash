@@ -43,7 +43,7 @@ pub mod runs;
 
 /// TODO: DOC
 pub struct WorkerPoolController {
-    worker_controllers: Option<Vec<Worker>>,
+    workers: Option<Vec<Worker>>,
     comms: WorkerPoolCommsWithWorkers,
     simulation_runs: SimulationRuns,
     pending_tasks: PendingWorkerPoolTasks,
@@ -75,7 +75,7 @@ impl WorkerPoolController {
 
         Ok((
             WorkerPoolController {
-                worker_controllers: None,
+                workers: None,
                 comms,
                 simulation_runs,
                 pending_tasks,
@@ -102,7 +102,7 @@ impl WorkerPoolController {
             .worker_config
             .take()
             .ok_or_else(|| Error::from("missing worker base config"))?;
-        self.worker_controllers = Some(
+        self.workers = Some(
             try_join_all(worker_comms.into_iter().map(|comms| {
                 let init = ExperimentInitRunnerMsg::new(&exp_init_base, *comms.index());
                 Worker::spawn(worker_config.clone(), comms, init)
@@ -119,14 +119,11 @@ impl WorkerPoolController {
         self.send_to_all_workers(WorkerPoolToWorkerMsg::new_simulation_run(payload))
     }
 
-    fn run_worker_controllers(&mut self) -> Result<JoinHandle<Result<Vec<()>>>> {
+    fn run_workers(&mut self) -> Result<JoinHandle<Result<Vec<()>>>> {
         tracing::debug!("Running workers");
-        let worker_controllers = self
-            .worker_controllers
-            .take()
-            .ok_or(Error::MissingWorkerControllers)?;
+        let workers = self.workers.take().ok_or(Error::MissingWorker)?;
 
-        let futs = worker_controllers
+        let futs = workers
             .into_iter()
             .map(|mut c| {
                 tokio::spawn(async move { c.run().await.map_err(Error::from) }.in_current_span())
@@ -149,7 +146,7 @@ impl WorkerPoolController {
     /// TODO: DOC
     pub async fn run(mut self) -> Result<()> {
         tracing::debug!("Running Worker Pool Controller");
-        pin!(let workers = self.run_worker_controllers()?;);
+        pin!(let workers = self.run_workers()?;);
         pin!(let terminate_recv = self.terminate_recv.take_recv()?;);
 
         // `pending_syncs` contains futures that wait for state sync responses
@@ -409,7 +406,7 @@ impl WorkerPoolController {
                 let worker = worker_list
                     .choose(&mut rand::thread_rng())
                     .ok_or_else(|| Error::from("Unexpected: No Workers"))?;
-                // Pass the task to the worker controller, don't keep a local copy
+                // Pass the task to the worker, don't keep a local copy
                 (
                     vec![(*worker, task, shared_store)],
                     DistributionController::Single {

@@ -71,16 +71,16 @@ pub struct Worker {
     tasks: PendingWorkerTasks,
 }
 
-// TODO: impl drop for worker controller?
+// TODO: impl drop for worker?
 impl Worker {
-    /// Spawns a new worker controller, containing a runner for each language: JavaScript,
-    /// Python, and Rust and initialize the
+    /// Spawns a new worker, containing a runner for each language: JavaScript, Python, and Rust and
+    /// initialize them by sending the [`ExperimentInitRunnerMsg`].
     pub async fn spawn(
         worker_config: WorkerConfig,
         worker_pool_comms: WorkerCommsWithWorkerPool,
         exp_init: ExperimentInitRunnerMsg,
     ) -> Result<Self> {
-        tracing::debug!("Spawning worker controller");
+        tracing::debug!("Spawning worker");
         let RunnerSpawnConfig {
             python,
             javascript,

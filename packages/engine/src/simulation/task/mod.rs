@@ -69,10 +69,10 @@
 //!
 //! Note: [`Task`]s are also automatically further split-up _within_ [`worker`]s according to the
 //! `Group`s of agents they're being executed on. More information can be found on the
-//! [`WorkerController::spawn_task()`] docs.
+//! [`Worker::spawn_task()`] docs.
 //!
 //! [`AgentBatch`]: crate::datastore::batch::agent::Batch
 //! [`PendingWorkerPoolTask::handle_result_state`]: crate::workerpool::pending::PendingWorkerPoolTask::handle_result_state
-//! [`WorkerController::spawn_task()`]: crate::worker::WorkerController::spawn_task
+//! [`Worker::spawn_task()`]: execution::worker::Worker::spawn_task
 
 pub mod active;
