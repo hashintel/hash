@@ -3,16 +3,12 @@ pub mod single;
 
 use std::sync::Arc;
 
-use simulation_structure::SimulationShortId;
+use execution::package::experiment::comms::update::ExpPkgUpdateSend;
 use tokio::task::JoinHandle;
 
 use crate::{
     config::ExperimentConfig,
-    experiment::{
-        controller::comms::{exp_pkg_ctl::ExpPkgCtlRecv, exp_pkg_update::ExpPkgUpdateSend},
-        error::Result,
-        init_exp_package,
-    },
+    experiment::{controller::comms::exp_pkg_ctl::ExpPkgCtlRecv, error::Result, init_exp_package},
     proto::{ExperimentRunTrait, PackageConfig},
 };
 
@@ -34,7 +30,7 @@ impl ExperimentPackage {
             _ => unreachable!(),
         };
         let (step_update_sender, exp_pkg_update_recv) =
-            super::controller::comms::exp_pkg_update::new_pair();
+            execution::package::experiment::comms::update::new_pair();
         let join_handle = init_exp_package(
             exp_config.clone(),
             package_config.clone(),
@@ -48,11 +44,4 @@ impl ExperimentPackage {
 
         Ok(ExperimentPackage { join_handle, comms })
     }
-}
-
-#[derive(Debug)]
-pub struct StepUpdate {
-    pub sim_id: SimulationShortId,
-    pub was_error: bool,
-    pub stop_signal: bool,
 }

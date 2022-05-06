@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use execution::package::experiment::comms::ExperimentControl;
+use execution::package::experiment::comms::{update::ExpPkgUpdateRecv, ExperimentControl};
 use simulation_structure::SimulationShortId;
 
 use crate::{
     config::ExperimentConfig,
     experiment::{
-        controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
+        controller::comms::exp_pkg_ctl::ExpPkgCtlSend,
         error::{Error, Result},
     },
     proto::SingleRunExperimentConfig,

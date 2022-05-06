@@ -4,6 +4,7 @@ pub mod package;
 
 use std::sync::Arc;
 
+use execution::package::experiment::comms::update::ExpPkgUpdateRecv;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use stateful::global::Globals;
@@ -12,9 +13,7 @@ use tracing::Instrument;
 
 pub use self::error::{Error, Result};
 use crate::{
-    config::ExperimentConfig,
-    experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
-    proto,
+    config::ExperimentConfig, experiment::controller::comms::exp_pkg_ctl::ExpPkgCtlSend, proto,
 };
 
 pub type Simulation = proto::ProjectBase;
