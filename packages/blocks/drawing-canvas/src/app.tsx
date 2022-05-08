@@ -24,6 +24,10 @@ type ResizeCallbackData = {
 // to upload images. Currently images are saved in base64 form
 // in the document and that isn't optimal
 
+// @todo consider storing the document in .tldr files (which are uploaded
+// via upload file hook) instead of JSON format. It's possible for the
+// document to get very large, so storing in JSON
+
 export const App: BlockComponent<AppProps> = ({
   entityId,
   entityTypeId,
