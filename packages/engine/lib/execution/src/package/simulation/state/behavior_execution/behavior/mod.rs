@@ -26,6 +26,12 @@ pub struct Behavior {
     pub behavior_keys_src: Option<String>,
 }
 
+impl Behavior {
+    pub fn is_python(&self) -> bool {
+        self.name.ends_with(".py")
+    }
+}
+
 impl fmt::Debug for Behavior {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("SharedBehavior")

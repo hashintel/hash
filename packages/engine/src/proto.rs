@@ -225,6 +225,17 @@ pub struct ExperimentRunBase {
     pub project_base: ProjectBase,
 }
 
+impl ExperimentRunBase {
+    /// Returns `true` is the experiment has any Python behavior.
+    pub fn has_python_behavior(&self) -> bool {
+        self.project_base
+            .package_init
+            .behaviors
+            .iter()
+            .any(|behavior| behavior.is_python())
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRun {
     pub base: ExperimentRunBase,
