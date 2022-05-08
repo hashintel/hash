@@ -1,10 +1,8 @@
+use execution::package::simulation::PersistenceConfig;
 use serde::Serialize;
+use simulation_structure::SimulationShortId;
 
-use crate::{
-    config::{PersistenceConfig, SimRunConfig},
-    proto::SimulationShortId,
-    simulation::step_output::SimulationStepOutput,
-};
+use crate::{config::SimRunConfig, simulation::step_output::SimulationStepOutput};
 
 pub mod buffer;
 

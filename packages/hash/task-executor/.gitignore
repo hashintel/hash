@@ -1,0 +1,2 @@
+# Necessary for as long as the task-executor creates a local catalog.json 
+src/tasks/source-github/secrets

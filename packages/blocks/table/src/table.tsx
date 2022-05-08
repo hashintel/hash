@@ -90,7 +90,7 @@ const getLinkedAggregation = (params: {
 
 const cleanUpdateLinkedAggregationAction = (
   action: BlockProtocolUpdateLinkedAggregationActionFragment & {
-    data: Omit<BlockProtocolAggregateOperationInput, "multiSort"> & {
+    operation: Omit<BlockProtocolAggregateOperationInput, "multiSort"> & {
       __typename?: string;
       pageCount?: number | null;
       multiSort?: (BlockProtocolSort & { __typename?: string })[] | null;
@@ -98,9 +98,9 @@ const cleanUpdateLinkedAggregationAction = (
   },
 ) => {
   return produce(action, (draftAction) => {
-    delete draftAction.data.pageCount;
-    delete draftAction.data.__typename;
-    for (const sort of draftAction.data.multiSort ?? []) {
+    delete draftAction.operation.pageCount;
+    delete draftAction.operation.__typename;
+    for (const sort of draftAction.operation.multiSort ?? []) {
       delete sort?.__typename;
     }
   });
@@ -113,6 +113,7 @@ export const Table: BlockComponent<AppProps> = ({
   aggregateEntities,
   aggregateEntityTypes,
   createLinkedAggregations,
+  deleteLinkedAggregations,
   entityId,
   entityTypeId,
   entityTypes: schemas,
@@ -302,7 +303,7 @@ export const Table: BlockComponent<AppProps> = ({
         cleanUpdateLinkedAggregationAction({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           aggregationId: matchingLinkedAggregation.aggregationId,
-          data: newLinkedData.operation,
+          operation: newLinkedData.operation,
         }),
       ]);
     },
@@ -452,13 +453,13 @@ export const Table: BlockComponent<AppProps> = ({
         );
       }
 
-      if (updatedEntityTypeId && tableData.linkedAggregation) {
-        if (tableData?.linkedAggregation) {
+      if (updatedEntityTypeId) {
+        if (tableData.linkedAggregation) {
           void updateLinkedAggregations([
             cleanUpdateLinkedAggregationAction({
               sourceAccountId: accountId,
               aggregationId: tableData.linkedAggregation.aggregationId,
-              data: {
+              operation: {
                 entityTypeId: updatedEntityTypeId,
                 // There is scope to include other options if entity properties overlap
                 itemsPerPage:
@@ -478,14 +479,22 @@ export const Table: BlockComponent<AppProps> = ({
             },
           ]);
         }
+      } else if (tableData.linkedAggregation) {
+        void deleteLinkedAggregations?.([
+          {
+            sourceAccountId: accountId,
+            aggregationId: tableData.linkedAggregation.aggregationId,
+          },
+        ]);
       }
     },
     [
       accountId,
+      createLinkedAggregations,
+      deleteLinkedAggregations,
       entityId,
       tableData.linkedAggregation,
       updateLinkedAggregations,
-      createLinkedAggregations,
     ],
   );
 

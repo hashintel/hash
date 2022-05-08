@@ -1,9 +1,7 @@
+use execution::package::experiment::ExperimentPackageConfig;
 use thiserror::Error as ThisError;
 
-use crate::{
-    proto,
-    simulation::{controller::sim_control::SimControl, status::SimStatus},
-};
+use crate::simulation::{controller::sim_control::SimControl, status::SimStatus};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -47,12 +45,6 @@ pub enum Error {
 
     #[error("Datastore error: {0}")]
     Datastore(#[from] crate::datastore::Error),
-
-    #[error("Worker error: {0}")]
-    Worker(#[from] crate::worker::Error),
-
-    #[error("Worker pool error: {0}")]
-    WorkerPool(#[from] crate::workerpool::Error),
 
     #[error("Simulation error: {0}")]
     Simulation(#[from] crate::simulation::Error),
@@ -115,7 +107,7 @@ pub enum Error {
     TokioJoin(#[from] tokio::task::JoinError),
 
     #[error("Unknown experiment package: {0:?}")]
-    UnknownExperimentPackage(proto::ExperimentPackageConfig),
+    UnknownExperimentPackage(ExperimentPackageConfig),
 
     #[error("Unknown simulation package: {0}")]
     UnknownSimPackage(String),
