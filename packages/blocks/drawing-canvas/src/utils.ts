@@ -7,7 +7,7 @@ import { TDDocument, TDExport, TldrawApp } from "@tldraw/tldraw";
  * @see https://github.com/tldraw/tldraw/blob/main/apps/www/pages/api/export.ts
  */
 
-export async function handleExport(info: TDExport) {
+export const handleExport = async (info: TDExport) => {
   if (info.serialized) {
     const link = document.createElement("a");
     link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(
@@ -16,10 +16,22 @@ export async function handleExport(info: TDExport) {
     link.download = `${info.name}.${info.type}`;
     link.click();
   }
-}
+};
 
-export const getInitialDocument = (document: string | undefined, entityId) => {
+/**
+ * Parses the document string to return a TDD document
+ * If the document is undefined or invalid, it returns a
+ * default TDD document with it's id set to entityId
+ */
+export const getInitialDocument = (
+  document: string | undefined,
+  entityId: string,
+): TDDocument => {
   try {
+    if (!document) {
+      throw new Error("");
+    }
+
     return JSON.parse(document) as TDDocument;
   } catch (err) {
     return {
