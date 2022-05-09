@@ -81,7 +81,6 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
         return false;
       }
 
-      // think of a better name
       const targetEntityId = entity.properties?.entity.entityId;
 
       // if the target entity is the same as the current one the block is linked to

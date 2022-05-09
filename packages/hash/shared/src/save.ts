@@ -321,39 +321,42 @@ const updateBlocks = defineOperation(
               entityStore.draft,
               savedEntity.entityId,
             );
-            const draftChildEntityId = draftBlock?.properties.entity?.entityId;
-            const draftChildEntityWithDraftId = getDraftEntityFromEntityId(
-              entityStore.draft,
-              draftChildEntityId,
-            );
+            if (isBlockEntity(draftBlock)) {
+              const draftChildEntityId =
+                draftBlock?.properties.entity?.entityId;
+              const draftChildEntityWithDraftId = getDraftEntityFromEntityId(
+                entityStore.draft,
+                draftChildEntityId,
+              );
 
-            if (draftChildEntityWithDraftId && draftChildEntityId) {
-              const { draftId: _, ...draftChildEntity } =
-                draftChildEntityWithDraftId;
+              if (draftChildEntityWithDraftId && draftChildEntityId) {
+                const { draftId: _, ...draftChildEntity } =
+                  draftChildEntityWithDraftId;
 
-              // Check if a block's data has been updated
-              if (
-                draftChildEntity &&
-                !isEqual(
-                  draftChildEntity.properties,
-                  savedChildEntity.properties,
-                )
-              ) {
-                // If the block's data was updated and the entityId changed
-                // then the block data was swapped. Push swapBlockData action
-                if (draftChildEntity.entityId !== savedChildEntity.entityId) {
-                  updates.push({
-                    swapBlockData: {
-                      entityId: savedEntity.entityId,
-                      accountId: savedEntity.accountId,
-                      newEntityAccountId: draftChildEntity.accountId!,
-                      newEntityEntityId: draftChildEntity.entityId!,
-                    },
-                  });
-                } else {
-                  // If the block's data was updated and the entityId
-                  // didn't change, push an updateEntity action
-                  // @todo push an updateEntity action
+                // Check if a block's data has been updated
+                if (
+                  draftChildEntity &&
+                  !isEqual(
+                    draftChildEntity.properties,
+                    savedChildEntity.properties,
+                  )
+                ) {
+                  // If the block's data was updated and the entityId changed
+                  // then the block data was swapped. Push swapBlockData action
+                  if (draftChildEntity.entityId !== savedChildEntity.entityId) {
+                    updates.push({
+                      swapBlockData: {
+                        entityId: savedEntity.entityId,
+                        accountId: savedEntity.accountId,
+                        newEntityAccountId: draftChildEntity.accountId!,
+                        newEntityEntityId: draftChildEntity.entityId!,
+                      },
+                    });
+                  } else {
+                    // If the block's data was updated and the entityId
+                    // didn't change, push an updateEntity action
+                    // @todo push an updateEntity action
+                  }
                 }
               }
             }

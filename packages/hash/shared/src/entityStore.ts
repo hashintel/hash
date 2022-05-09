@@ -78,7 +78,8 @@ export const isDraftBlockEntity = (
 export const getDraftEntityFromEntityId = (
   draft: EntityStore["draft"],
   entityId: string,
-) => Object.values(draft).find((entity) => entity.entityId === entityId);
+): DraftEntity<EntityStoreType> | undefined =>
+  Object.values(draft).find((entity) => entity.entityId === entityId);
 
 const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
