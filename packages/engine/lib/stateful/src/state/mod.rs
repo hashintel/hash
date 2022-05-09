@@ -2,9 +2,9 @@
 //!
 //! For a high-level concept of the state, please see the [HASH documentation].
 //!
-//! A [`State`] associates [`Agent`]s and [`Message`]s. It stores [`StatePools`] inside, which
-//! itself is a wrapper for [`AgentPool`] and [`MessagePool`]. To provide a similar access like
-//! provided by the [`proxy`] module, [`StateReadProxy`] and [`StateWriteProxy`] are provided.
+//! A [`State`] associates [`Agent`]s and [`Message`]s. It stores [`StateBatchPools`] inside, which
+//! itself is a wrapper for [`AgentBatchPool`] and [`MessageBatchPool`]. To provide a similar access
+//! like provided by the [`proxy`] module, [`StateReadProxy`] and [`StateWriteProxy`] are provided.
 //!
 //! To reference to an [`Agent`] and to a [`Message`], [`AgentIndex`] and [`MessageReference`] is
 //! used.
@@ -27,11 +27,11 @@ pub use self::{
     column::StateColumn,
     proxy::{StateReadProxy, StateWriteProxy},
     references::{AgentIndex, MessageReference},
-    view::{StatePools, StateSnapshot},
+    view::{StateBatchPools, StateSnapshot},
 };
 use crate::{
-    agent::{Agent, AgentBatch, AgentPool, AgentSchema},
-    message::{MessageBatch, MessageMap, MessagePool, MessageSchema},
+    agent::{Agent, AgentBatch, AgentBatchPool, AgentSchema},
+    message::{MessageBatch, MessageBatchPool, MessageMap, MessageSchema},
     proxy::BatchPool,
     Result,
 };
@@ -55,7 +55,7 @@ pub struct StateCreateParameters {
 /// [`Message`]: crate::message::Message
 pub struct State {
     /// View into the current step's Agent state.
-    state: StatePools,
+    state: StateBatchPools,
 
     /// Cumulative number of agents in the first `i` batches of the pools, i.e. index of first
     /// agent of each group in combined pool.
@@ -113,9 +113,9 @@ impl State {
         }
 
         Ok(Self {
-            state: StatePools {
-                agent_pool: AgentPool::new(agent_batches),
-                message_pool: MessagePool::new(message_batches),
+            state: StateBatchPools {
+                agent_pool: AgentBatchPool::new(agent_batches),
+                message_pool: MessageBatchPool::new(message_batches),
             },
             removed_batches: Vec::new(),
             num_agents,
@@ -170,19 +170,19 @@ impl State {
         MessageMap::new(&self.message_pool().read_proxies()?)
     }
 
-    pub fn agent_pool(&self) -> &AgentPool {
+    pub fn agent_pool(&self) -> &AgentBatchPool {
         &self.state.agent_pool
     }
 
-    pub fn agent_pool_mut(&mut self) -> &mut AgentPool {
+    pub fn agent_pool_mut(&mut self) -> &mut AgentBatchPool {
         &mut self.state.agent_pool
     }
 
-    pub fn message_pool(&self) -> &MessagePool {
+    pub fn message_pool(&self) -> &MessageBatchPool {
         &self.state.message_pool
     }
 
-    pub fn state_mut(&mut self) -> &mut StatePools {
+    pub fn state_mut(&mut self) -> &mut StateBatchPools {
         &mut self.state
     }
 
@@ -208,7 +208,8 @@ impl State {
 
     /// Reset the messages of the [`State`].
     ///
-    /// Uses the [`MessagePool`] shared memories as the base for the new message pool for [`State`].
+    /// Uses the [`MessageBatchPool`] shared memories as the base for the new message pool for
+    /// [`State`].
     ///
     /// Returns the old messages so they can be used later for reference.
     ///
@@ -222,8 +223,8 @@ impl State {
     /// [`Message`]: crate::message::Message
     pub fn reset_messages(
         &mut self,
-        mut old_context_message_pool: MessagePool,
-    ) -> Result<MessagePool> {
+        mut old_context_message_pool: MessageBatchPool,
+    ) -> Result<MessageBatchPool> {
         let agent_proxies = self.agent_pool().read_proxies()?;
         old_context_message_pool.reset(
             &agent_proxies,

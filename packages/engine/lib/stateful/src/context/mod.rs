@@ -2,9 +2,9 @@
 //!
 //! For a high-level concept of the context, please see the [HASH documentation].
 //!
-//! The main structure in this module is [`Context`]. It's holding a snapshot of the [`StatePools`]
-//! from the previous step and is used for providing global information like [`Globals`] and
-//! [`Dataset`]s.
+//! The main structure in this module is [`Context`]. It's holding a snapshot of the
+//! [`StateBatchPools`] from the previous step and is used for providing global information like
+//! [`Globals`] and [`Dataset`]s.
 //!
 //! The [`Context`] has an in-memory representation defined by [`ContextSchema`] and can be
 //! used by [`ContextBatch`]. Writing to a [`ContextBatch`] is encapsulated in [`ContextColumn`] and
@@ -29,10 +29,10 @@ pub use self::{
     schema::ContextSchema,
 };
 use crate::{
-    agent::{AgentBatch, AgentPool, AgentSchema},
-    message::MessagePool,
+    agent::{AgentBatch, AgentBatchPool, AgentSchema},
+    message::MessageBatchPool,
     proxy::BatchPool,
-    state::{State, StatePools},
+    state::{State, StateBatchPools},
     Error, Result,
 };
 
@@ -51,7 +51,7 @@ use crate::{
 pub struct Context {
     batch: Arc<ContextBatch>,
     /// View of the state from the previous step.
-    previous_state: StatePools,
+    previous_state: StateBatchPools,
 
     /// The IDs of the batches that were removed between this step and the last.
     removed_batches: Vec<String>,
@@ -73,20 +73,23 @@ impl Context {
         )?;
         Ok(Self {
             batch: Arc::new(context_batch),
-            previous_state: StatePools {
-                agent_pool: AgentPool::empty(),
-                message_pool: MessagePool::empty(),
+            previous_state: StateBatchPools {
+                agent_pool: AgentBatchPool::empty(),
+                message_pool: MessageBatchPool::empty(),
             },
             removed_batches: Vec::new(),
         })
     }
 
-    pub fn take_agent_pool(&mut self) -> AgentPool {
-        std::mem::replace(&mut self.previous_state.agent_pool, AgentPool::empty())
+    pub fn take_agent_pool(&mut self) -> AgentBatchPool {
+        std::mem::replace(&mut self.previous_state.agent_pool, AgentBatchPool::empty())
     }
 
-    pub fn take_message_pool(&mut self) -> MessagePool {
-        std::mem::replace(&mut self.previous_state.message_pool, MessagePool::empty())
+    pub fn take_message_pool(&mut self) -> MessageBatchPool {
+        std::mem::replace(
+            &mut self.previous_state.message_pool,
+            MessageBatchPool::empty(),
+        )
     }
 
     pub fn removed_batches(&mut self) -> &mut Vec<String> {
@@ -207,8 +210,8 @@ impl Context {
 
 /// A subset of the [`Context`] that's used while running context packages.
 ///
-/// This is required as the [`MessagePool`] and [`AgentPool`] are possibly invalid and unneeded
-/// while building/updating the [`Context`].
+/// This is required as the [`MessageBatchPool`] and [`AgentBatchPool`] are possibly invalid and
+/// unneeded while building/updating the [`Context`].
 pub struct PreContext {
     batch: Arc<ContextBatch>,
     /// Local metadata
@@ -219,7 +222,7 @@ impl PreContext {
     /// TODO: DOC
     pub fn finalize(
         self,
-        state_snapshot: StatePools,
+        state_snapshot: StateBatchPools,
         column_writers: &[&ContextColumn],
         num_agents: usize,
     ) -> Result<Context> {
