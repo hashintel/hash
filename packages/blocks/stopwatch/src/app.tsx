@@ -32,12 +32,12 @@ const formatDuration = (duration: number) => {
   } else {
     return `${minutes}:${seconds}.${millis}`;
   }
-}
+};
 
-function lastLap(laps: number[]): number {
+const getLastLap = (laps: number[]): number => {
   const last = laps.slice(-1)[0];
   return last === undefined ? 0 : last;
-}
+};
 
 export const App: BlockComponent<AppProps> = ({
   entityId,
@@ -97,7 +97,7 @@ export const App: BlockComponent<AppProps> = ({
       const current = +new Date() - +start_;
       setAllLaps((allLaps_new) => allLaps_new + current);
       update(
-        [...laps_.slice(0, laps_.length - 1), lastLap(laps_) + current],
+        [...laps_.slice(0, laps_.length - 1), getLastLap(laps_) + current],
         null,
       );
     } else {
@@ -111,7 +111,7 @@ export const App: BlockComponent<AppProps> = ({
       setAllLaps((allLaps_new) => allLaps_new + current);
       setCurrentLap(0);
       update(
-        [...laps_.slice(0, laps_.length - 1), lastLap(laps_) + current, 0],
+        [...laps_.slice(0, laps_.length - 1), getLastLap(laps_) + current, 0],
         new Date(),
       );
     } else {
@@ -135,7 +135,7 @@ export const App: BlockComponent<AppProps> = ({
             <li key={`lap-${i + 1}`}>{formatDuration(lap)}</li>
           ))}
           <li key={`lap-${laps_.length}`}>
-            {formatDuration(lastLap(laps_) + currentLap)}
+            {formatDuration(getLastLap(laps_) + currentLap)}
           </li>
         </ol>
       )}
