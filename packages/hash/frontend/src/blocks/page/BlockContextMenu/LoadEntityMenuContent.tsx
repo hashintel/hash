@@ -76,7 +76,9 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
 
   const filteredEntities = useMemo(() => {
     const uniqueEntityIds = new Set();
-    return entities.filter((entity) => {
+    return entities.filter((entity: unknown) => {
+      if (!isBlockEntity(entity)) return false;
+
       if (Object.keys(entity.properties?.entity?.properties).length === 0) {
         return false;
       }
@@ -85,7 +87,10 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
 
       // if the target entity is the same as the current one the block is linked to
       // return
-      if (targetEntityId === blockData?.properties.entity.entityId) {
+      if (
+        isBlockEntity(blockData) &&
+        targetEntityId === blockData?.properties.entity.entityId
+      ) {
         return false;
       }
 
