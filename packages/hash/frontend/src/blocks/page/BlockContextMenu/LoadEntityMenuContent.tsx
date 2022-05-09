@@ -53,12 +53,7 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
 
   const handleClick = useCallback(
     (targetEntity: BlockEntity) => {
-      // Right now we only handle entities that are created by a block.
-      // This will be updated later on to also handle entities that have a similar
-      // schema with the block's data
-      const targetData = isBlockEntity(targetEntity)
-        ? targetEntity.properties.entity
-        : null;
+      const targetData = targetEntity.properties.entity;
 
       if (!entityId || !targetData) {
         return;
@@ -76,7 +71,10 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
 
   const filteredEntities = useMemo(() => {
     const uniqueEntityIds = new Set();
-    return entities.filter((entity: unknown) => {
+    return (entities as unknown as BlockEntity[]).filter((entity) => {
+      // Right now we only handle entities that are created by a block.
+      // This will be updated later on to also handle entities that have a similar
+      // schema with the block's data
       if (!isBlockEntity(entity)) return false;
 
       if (Object.keys(entity.properties?.entity?.properties).length === 0) {
@@ -138,15 +136,11 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
       </Box>
       {filteredEntities.map((entity) => {
         return (
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore -- @todo fix typings
           <MenuItem key={entity.entityId} onClick={() => handleClick(entity)}>
             <ListItemIcon>
               <FontAwesomeIcon icon={faAsterisk} />
             </ListItemIcon>
             <ListItemText
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore -- @todo fix typings
               primary={entity.properties.entity.entityId}
               primaryTypographyProps={{
                 noWrap: true,
