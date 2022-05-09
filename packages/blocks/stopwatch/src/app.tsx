@@ -6,7 +6,7 @@ type AppProps = {
   laps: number[];
 };
 
-function formatDuration(duration: number) {
+const formatDuration = (duration: number) => {
   const MILLISECONDS = 1;
   const SECONDS = 1000 * MILLISECONDS;
   const MINUTES = 60 * SECONDS;

@@ -1,7 +1,7 @@
 {
   "name": "stopwatch",
   "version": "0.0.0",
-  "description": "timer block",
+  "description": "stopwatch block",
   "keywords": [
     "blockprotocol",
     "blocks"
