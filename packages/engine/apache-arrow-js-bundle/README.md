@@ -13,7 +13,8 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
 
 ### Modifying for use in the Engine
 
-- Manually modify the bundle, adding `return arrow` underneath `arrow = __webpack_exports__;` at the very bottom of the file [1]
+- Manually modify the bundle, adding `export` to `var arrow;` at the very top of the file [1]
+- Manually modify the bundle, adding `return arrow` underneath `arrow = __webpack_exports__;` at the very bottom of the file
 - Manually modify `class MessageReader` to re-export the `VectorLoader` as follows [2]:
 
   ```javascript
@@ -42,9 +43,8 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
 - From the `./packages/engine` folder run:
   `cp apache-arrow-js-bundle/dist/apache-arrow-bundle.js lib/execution/src/runner/javascript/apache-arrow-bundle.js`
 
-> [1] Unfortunately at this time we haven't figured out how to generate the exact format we need for the way we load scripts into V8 (through `eval`ing).
+> [1] Unfortunately at this time we haven't figured out how to generate the exact format we need for the way we load modules into V8.
 > This is why we require the bundle to be manually modified.
-> Due to using `eval` we need the module to be the return result of the file, rather than a normal module that you can import.
 >
 > If anyone has ideas on how to resolve this, suggestions are welcome.
 >
