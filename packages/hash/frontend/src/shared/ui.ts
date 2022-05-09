@@ -9,6 +9,8 @@ export * from "./ui/text-field";
 export * from "./ui/form-inline";
 export * from "./ui/chip";
 export * from "./ui/chip-group";
+export * from "./ui/menu-item";
+export * from "./ui/select";
 
 export * from "./ui/theme";
 export * from "./ui/utils";

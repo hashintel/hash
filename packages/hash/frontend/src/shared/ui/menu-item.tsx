@@ -16,6 +16,7 @@ export type MenuItemProps = {
   faded?: boolean;
 } & MuiMenuItemProps;
 
+// todo: override dense prop styling
 export const MenuItem: FC<MenuItemProps> = forwardRef(
   ({ children, href, sx = [], faded, ...props }, ref) => {
     const linkProps = useMemo(() => {
