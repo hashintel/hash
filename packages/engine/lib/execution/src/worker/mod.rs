@@ -188,14 +188,14 @@ impl Worker {
                     self.worker_pool_comms.confirm_terminate().map_err(|err| Error::from(format!("Failed to send confirmation of terminating workers: {:?}", err)))?;
                     break;
                 }
-                py_res = &mut py_handle => {
+                py_res = &mut py_handle, if self.py.spawned() => {
                     tracing::warn!("Python runner finished unexpectedly: {py_res:?}");
                     py_res??;
                     // TODO: send termination to js_handle
                     js_handle.await??;
                     return Ok(());
                 }
-                js_res = &mut js_handle => {
+                js_res = &mut js_handle, if self.js.spawned() => {
                     tracing::warn!("Javascript runner finished unexpectedly: {js_res:?}");
                     js_res??;
                     // TODO: send termination to py_handle
@@ -713,19 +713,27 @@ impl Worker {
         // TODO: Change to `children(n)` for `n` enabled runners and adjust the following lines as
         //       well.
         debug_assert!(!self.rs.spawned());
-        let (runner_msgs, runner_receivers) = sync.create_children(2);
-        let messages: [_; 2] = runner_msgs
+        let (runner_msgs, runner_receivers) =
+            sync.create_children(self.js.spawned() as usize + self.py.spawned() as usize);
+        let mut messages = runner_msgs
             .into_iter()
-            .map(InboundToRunnerMsgPayload::StateSync)
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
-        let [js_msg, py_msg /* rs_msg */] = messages;
-        tokio::try_join!(
-            self.js.send_if_spawned(sim_id, js_msg),
-            self.py.send_if_spawned(sim_id, py_msg),
+            .map(InboundToRunnerMsgPayload::StateSync);
+        let (js_res, py_res) = tokio::join!(
+            futures::future::OptionFuture::from(
+                self.js
+                    .spawned()
+                    .then(|| self.js.send(sim_id, messages.next().unwrap()))
+            ),
+            futures::future::OptionFuture::from(
+                self.py
+                    .spawned()
+                    .then(|| self.py.send(sim_id, messages.next().unwrap()))
+            ),
             // self.rs.send_if_spawned(sim_id, rs_msg),
-        )?;
+        );
+        js_res.transpose()?;
+        py_res.transpose()?;
+
         let fut = async move {
             // Capture `sync` in lambda.
             let sync = sync;
