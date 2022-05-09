@@ -154,7 +154,7 @@ mod frame;
 mod iter;
 mod macros;
 mod report;
-pub mod tags;
+// pub mod tags;
 
 use alloc::boxed::Box;
 use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
@@ -227,7 +227,7 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// use core::fmt;
 /// use std::path::{Path, PathBuf};
 ///
-/// use provider::{Provider, Requisition};
+/// use provider::{Demand, Provider};
 /// use error::{Report, ResultExt};
 ///
 /// #[derive(Debug)]
@@ -267,10 +267,10 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// }
 ///
 /// impl Provider for RuntimeError {
-///     fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
+///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
 /// }
 /// impl Provider for ConfigError {
-///     fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
+///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
 /// }
 ///
 /// # #[allow(unused_variables)]
@@ -456,9 +456,9 @@ pub struct Frames<'r> {
 ///
 /// [`I::Type`]: provider::TypeTag::Type
 #[must_use]
-pub struct Requests<'r, I> {
+pub struct Requests<'r, T: ?Sized> {
     frames: Frames<'r>,
-    _marker: PhantomData<I>,
+    _marker: PhantomData<&'r T>,
 }
 
 #[cfg(test)]
@@ -469,7 +469,7 @@ pub(crate) mod test_helper {
     };
     use core::{fmt, fmt::Formatter};
 
-    use provider::{Provider, Requisition, TypeTag};
+    use provider::{Demand, Provider};
 
     use crate::Report;
 
@@ -485,15 +485,9 @@ pub(crate) mod test_helper {
         }
     }
 
-    pub struct TagA;
-
-    impl TypeTag<'_> for TagA {
-        type Type = u32;
-    }
-
     impl Provider for ContextA {
-        fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-            req.provide::<TagA>(self.0);
+        fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+            demand.provide_ref(&self.0);
         }
     }
 
@@ -506,15 +500,9 @@ pub(crate) mod test_helper {
         }
     }
 
-    pub struct TagB;
-
-    impl TypeTag<'_> for TagB {
-        type Type = i32;
-    }
-
     impl Provider for ContextB {
-        fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-            req.provide::<TagB>(self.0);
+        fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+            demand.provide_ref(&self.0);
         }
     }
 
