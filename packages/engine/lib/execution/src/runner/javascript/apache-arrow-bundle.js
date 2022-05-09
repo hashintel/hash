@@ -1376,8 +1376,9 @@ export var arrow;
           // (initially ASCII), iso-2022-jp lead (initially 0x00), and
           // iso-2022-jp output flag (initially unset).
           /** @type {number} */ (this.iso2022jp_decoder_state = states.ASCII),
-            /** @type {number} */ (this.iso2022jp_decoder_output_state =
-              states.ASCII),
+            /** @type {number} */ (
+              this.iso2022jp_decoder_output_state = states.ASCII
+            ),
             /** @type {number} */ (this.iso2022jp_lead = 0x00),
             /** @type {boolean} */ (this.iso2022jp_output_flag = false);
         }
