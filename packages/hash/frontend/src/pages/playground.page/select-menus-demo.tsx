@@ -11,13 +11,12 @@ import {
   ListItemIcon,
   ListItemSecondaryAction,
   ListItemText,
-  MenuItem,
   MenuList,
   Select,
   Stack,
 } from "@mui/material";
 import { FontAwesomeIcon } from "../../shared/icons";
-import { Avatar, Chip } from "../../shared/ui";
+import { Avatar, Chip, MenuItem } from "../../shared/ui";
 import { SelectWithSearch } from "./select/select-with-search";
 import { SelectWithSearchAndCheckbox } from "./select/select-with-search-checkbox";
 

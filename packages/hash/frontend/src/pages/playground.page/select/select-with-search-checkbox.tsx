@@ -7,12 +7,11 @@ import {
   InputLabel,
   ListItemIcon,
   ListItemText,
-  MenuItem,
   Select,
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import { FontAwesomeIcon } from "../../../shared/icons";
-import { Button, Chip, TextField } from "../../../shared/ui";
+import { Button, Chip, TextField, MenuItem } from "../../../shared/ui";
 
 const MENU_ITEMS = [
   "Edit",

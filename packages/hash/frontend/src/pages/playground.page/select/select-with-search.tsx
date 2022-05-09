@@ -3,11 +3,10 @@ import {
   FormControl,
   InputLabel,
   ListItemText,
-  MenuItem,
   Select,
 } from "@mui/material";
 import { useMemo, useState } from "react";
-import { TextField } from "../../../shared/ui";
+import { TextField, MenuItem } from "../../../shared/ui";
 
 const MENU_ITEMS = [
   "Poslight",
