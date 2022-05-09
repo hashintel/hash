@@ -2,7 +2,7 @@ import { JSONObject } from "blockprotocol";
 import { Client, ClientOptions, errors } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
 
-import { sleep } from "@hashintel/hash-shared/sleep";
+import { sleep } from "../utils";
 import { Logger } from "../logger";
 import {
   SearchAdapter,

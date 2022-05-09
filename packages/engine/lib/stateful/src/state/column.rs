@@ -5,9 +5,9 @@ use crate::{agent::AgentBatch, proxy::PoolWriteProxy, Result};
 /// Encapsulates the functionality of writing a specific column within the state batches.
 ///
 /// Wrapping the logic within this struct allows any type implementing [`IntoArrowChange`] to
-/// write the [`ColumnChange`] to an [`AgentPool`].
+/// write the [`ColumnChange`] to an [`AgentBatchPool`].
 ///
-/// [`AgentPool`]: crate::agent::AgentPool
+/// [`AgentBatchPool`]: crate::agent::AgentBatchPool
 pub struct StateColumn {
     inner: Box<dyn IntoArrowChange + Send + Sync>,
 }
