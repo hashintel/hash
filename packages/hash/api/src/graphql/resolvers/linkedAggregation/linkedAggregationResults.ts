@@ -1,6 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 import { GraphQLContext } from "../../context";
 import {
+  Aggregation,
   Entity,
   UnresolvedGQLLinkedAggregation,
   UnresolvedGQLUnknownEntity,
@@ -11,7 +12,11 @@ export const linkedAggregationResults: Resolver<
   UnresolvedGQLUnknownEntity[],
   UnresolvedGQLLinkedAggregation,
   GraphQLContext
-> = async ({ sourceAccountId, sourceEntityId, path }, _, { dataSources }) => {
+> = async (
+  { sourceAccountId, sourceEntityId, aggregationId },
+  _,
+  { dataSources },
+) => {
   const source = await Entity.getEntityLatestVersion(dataSources.db, {
     accountId: sourceAccountId,
     entityId: sourceEntityId,
@@ -22,12 +27,13 @@ export const linkedAggregationResults: Resolver<
     throw new ApolloError(msg, "NOT_FOUND");
   }
 
-  const aggregation = await source.getAggregationByPath(dataSources.db, {
-    stringifiedPath: path,
+  const aggregation = await Aggregation.getAggregationById(dataSources.db, {
+    sourceAccountId,
+    aggregationId,
   });
 
   if (!aggregation) {
-    const msg = `aggregation with path ${path} not on entity with fixed ID ${sourceEntityId}`;
+    const msg = `aggregation with aggregation ID ${aggregationId} not on entity with fixed ID ${sourceEntityId}`;
     throw new ApolloError(msg, "NOT_FOUND");
   }
 

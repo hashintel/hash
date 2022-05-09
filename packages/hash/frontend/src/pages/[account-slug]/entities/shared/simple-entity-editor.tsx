@@ -228,7 +228,6 @@ export const SimpleEntityEditor: VoidFunctionComponent<
             {
               ...action,
               sourceAccountId: accountId,
-              sourceEntityId: entityId,
             },
           ]).then((res) => {
             refetchEntity?.();

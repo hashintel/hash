@@ -1,4 +1,5 @@
 use std::{
+    fs::remove_file,
     path::{Path, PathBuf},
     process::ExitStatus,
 };
@@ -7,9 +8,10 @@ use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine_lib::{
     experiment::controller::run::cleanup_experiment,
-    proto::{EngineMsg, ExperimentId},
+    proto::EngineMsg,
     utils::{LogFormat, LogLevel, OutputLocation},
 };
+use simulation_structure::ExperimentId;
 
 use crate::process;
 
@@ -43,6 +45,23 @@ impl process::Process for LocalProcess {
                 _ => Err(Report::new(e)),
             })
             .wrap_err("Could not kill the process");
+
+        let engine_socket_path = format!("run-{experiment_id}");
+        match remove_file(&engine_socket_path) {
+            Ok(_) => {
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Removed file {engine_socket_path:?} that should've been cleaned up."
+                );
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => {
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Could not clean up {engine_socket_path:?}: {err}"
+                );
+            }
+        }
 
         cleanup_experiment(experiment_id);
 

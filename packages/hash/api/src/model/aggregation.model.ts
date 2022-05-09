@@ -334,6 +334,21 @@ class __Aggregation {
     return this;
   }
 
+  async getSourceEntity(client: DbClient): Promise<Entity> {
+    const sourceEntity = await Entity.getEntityLatestVersion(client, {
+      accountId: this.sourceAccountId,
+      entityId: this.sourceEntityId,
+    });
+
+    if (!sourceEntity) {
+      throw new Error(
+        `Critical: source entity of aggregation with aggregationId ${this.aggregationId} not found`,
+      );
+    }
+
+    return sourceEntity;
+  }
+
   async getResults(
     client: DbClient,
     params?: {

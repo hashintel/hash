@@ -8,11 +8,8 @@ use std::{
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
-use hash_engine_lib::{
-    language::Language,
-    proto::ExperimentName,
-    utils::{LogFormat, LogLevel, OutputLocation},
-};
+use execution::{package::experiment::ExperimentName, runner::Language};
+use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;

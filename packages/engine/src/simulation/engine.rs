@@ -178,7 +178,11 @@ impl Engine {
         // Synchronize context with workers. `context` won't change
         // again until the next step.
         self.comms
-            .context_batch_sync(&context, current_step, state.group_start_indices())
+            .context_batch_sync(
+                &context,
+                current_step,
+                Arc::clone(state.group_start_indices()),
+            )
             .instrument(tracing::info_span!("context_sync"))
             .await?;
 
