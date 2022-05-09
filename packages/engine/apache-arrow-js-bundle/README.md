@@ -26,19 +26,6 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
       ...
   ```
 
-- Manually modify `class StructBuilder` to have a new `setValid` method [3]:
-
-  ```javascript
-  class StructBuilder extends Builder {
-    setValid(index, valid) {
-      if (!super.setValid(index, valid)) {
-        this.children.forEach((child) => child.setValid(index, valid));
-      }
-      return valid;
-    }
-    ...
-  ```
-
 - From the `./packages/engine` folder run:
   `cp apache-arrow-js-bundle/dist/apache-arrow-bundle.js lib/execution/src/runner/javascript/apache-arrow-bundle.js`
 
@@ -49,5 +36,3 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
 >
 > [2] To be able to load Vectors individually from memory without needing to duplicate the Schema and storing it alongside the batch, we currently have decided to use some internal functions.
 > We've opened a [StackOverflow question](https://stackoverflow.com/questions/71145338/is-there-a-way-to-read-a-recordbatch-from-bytes-and-pass-in-the-schema-directly) (and are open to opening a JIRA ticket, and or PR to the main repo), in the hopes that we can remove the need to do this.
->
-> [3] There's a bug in Arrow to do with appending nulls to Structs, we've opened a [JIRA ticket](https://issues.apache.org/jira/browse/ARROW-15705) and associated [PR to fix it](https://github.com/apache/arrow/pull/12451)
