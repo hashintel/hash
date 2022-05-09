@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::{self, File},
-    io::{self, BufReader},
+    io::BufReader,
     iter,
     path::{Path, PathBuf},
     time::{Duration, Instant},
@@ -329,12 +329,10 @@ pub async fn run_test<P: AsRef<Path>>(
         .wrap_err("Could not run experiment")?;
     let duration = now.elapsed();
 
-    let mut last_sim_id = 0;
     let outputs = iter::repeat(&output_base_directory)
         .enumerate()
         .take(num_outputs_expected)
         .map(|(sim_id, base_dir)| {
-            last_sim_id = sim_id;
             let output_dir = base_dir.join((sim_id + 1).to_string());
 
             let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
@@ -348,16 +346,12 @@ pub async fn run_test<P: AsRef<Path>>(
         })
         .collect::<Result<_>>()?;
 
-    match fs::read_dir(output_base_directory.join((last_sim_id + 2).to_string()))
-        .map_err(|err| err.kind())
-    {
-        Err(io::ErrorKind::NotFound) => {}
-        _ => {
-            return Err(report!(
-                "Expected {num_outputs_expected} outputs but more were generated."
-            ));
-        }
-    }
+    ensure!(
+        output_base_directory
+            .join((num_outputs_expected + 1).to_string())
+            .exists(),
+        "Expected {num_outputs_expected} outputs but more were generated."
+    );
 
     Ok(TestOutput { outputs, duration })
 }
