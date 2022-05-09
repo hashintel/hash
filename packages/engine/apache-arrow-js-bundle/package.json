@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@zxing/text-encoding": "^0.9.0",
-    "apache-arrow": "^7.0.0"
+    "apache-arrow": "^8.0.0"
   },
   "devDependencies": {
     "html-webpack-plugin": "^5.5.0",
