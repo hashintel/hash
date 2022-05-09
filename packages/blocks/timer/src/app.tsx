@@ -19,24 +19,24 @@ export const App: BlockComponent<AppProps> = ({
   target = null,
   millis = 0,
 }) => {
-  const [millis_, setMillis] = useState(millis);
-  const [target_, setTarget] = useState(
+  const [localMillis, setLocalMillis] = useState(millis);
+  const [localTarget, setLocalTarget] = useState(
     target === null ? null : new Date(target),
   );
 
   useEffect(() => {
-    setTarget(target);
-    setMillis(millis);
+    setLocalTarget(target);
+    setLocalMillis(millis);
   }, [target, millis]);
 
   const isActive = useCallback(() => {
-    return target_ !== null;
-  }, [target_]);
+    return localTarget !== null;
+  }, [localTarget]);
 
   const update = useCallback(
     (target_data, millis_data) => {
-      setMillis(millis_data);
-      setTarget(target_data);
+      setLocalMillis(millis_data);
+      setLocalTarget(target_data);
       if (updateEntities) {
         void updateEntities([
           {
@@ -55,26 +55,26 @@ export const App: BlockComponent<AppProps> = ({
 
   useEffect(() => {
     let interval: any = null;
-    if (target_ !== null) {
+    if (localTarget !== null) {
       interval = setInterval(() => {
-        if (+target_ <= +new Date()) {
-          setMillis(0);
-          setTarget(null);
+        if (+localTarget <= +new Date()) {
+          setLocalMillis(0);
+          setLocalTarget(null);
         } else {
-          setMillis(+target_ - +new Date());
+          setLocalMillis(+localTarget - +new Date());
         }
       }, 1000 / 10);
     } else {
       clearInterval(interval);
     }
     return () => clearInterval(interval);
-  }, [target_]);
+  }, [localTarget]);
 
   const start_stop = () => {
-    if (target_ !== null) {
-      update(null, +target_ - +new Date());
+    if (localTarget !== null) {
+      update(null, +localTarget - +new Date());
     } else {
-      update(+new Date() + millis_, millis_);
+      update(+new Date() + localMillis, localMillis);
     }
   };
 
@@ -88,7 +88,7 @@ export const App: BlockComponent<AppProps> = ({
           inputFormat="HH:mm:ss"
           mask="__:__:__"
           label="timer"
-          value={millis_ + new Date(0).getTimezoneOffset() * 60000}
+          value={localMillis + new Date(0).getTimezoneOffset() * 60000}
           onChange={(date: Date | null) => {
             if (date !== null) {
               update(null, +date - new Date(0).getTimezoneOffset() * 60000);
