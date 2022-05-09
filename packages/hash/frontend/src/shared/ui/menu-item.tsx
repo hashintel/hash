@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-restricted-imports
-import Link from "next/link";
+// import Link from "next/link";
 import {
   listItemIconClasses,
   listItemTextClasses,
@@ -7,8 +7,8 @@ import {
   MenuItemProps as MuiMenuItemProps,
   typographyClasses,
 } from "@mui/material";
-import { FC, forwardRef, ReactNode, useMemo } from "react";
-import { isHrefExternal } from "./link";
+import { FC, forwardRef, ReactNode } from "react";
+import { Link } from "./link";
 
 export type MenuItemProps = {
   children: ReactNode;
@@ -19,18 +19,6 @@ export type MenuItemProps = {
 // todo: override dense prop styling
 export const MenuItem: FC<MenuItemProps> = forwardRef(
   ({ children, href, sx = [], faded, ...props }, ref) => {
-    const linkProps = useMemo(() => {
-      if (href && isHrefExternal(href)) {
-        return {
-          rel: "noopener",
-          target: "_blank",
-          href,
-        };
-      }
-
-      return {};
-    }, [href]);
-
     const Component = (
       <MuiMenuItem
         sx={[
@@ -48,15 +36,18 @@ export const MenuItem: FC<MenuItemProps> = forwardRef(
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
         {...props}
-        {...linkProps}
         ref={ref}
       >
         {children}
       </MuiMenuItem>
     );
 
-    if (href && !isHrefExternal(href)) {
-      return <Link href={href}>{Component}</Link>;
+    if (href) {
+      return (
+        <Link noLinkStyle href={href}>
+          {Component}
+        </Link>
+      );
     }
 
     return Component;
