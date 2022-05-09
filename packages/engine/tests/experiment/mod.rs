@@ -207,7 +207,6 @@ pub async fn run_test_suite(
                     project_name.clone(),
                     experiment_config,
                     language,
-                    expected_outputs.len(),
                     target_max_group_size,
                 )
                 .await;
@@ -234,7 +233,9 @@ pub async fn run_test_suite(
                 expected_outputs.len(),
                 test_output.outputs.len(),
                 "Number of expected outputs does not match number of returned simulation results \
-                 for experiment"
+                 for experiment, expected {} found {}.",
+                expected_outputs.len(),
+                test_output.outputs.len()
             );
 
             for (output_idx, ((states, globals, analysis), expected)) in test_output
@@ -291,7 +292,6 @@ pub async fn run_test<P: AsRef<Path>>(
     project_name: String,
     experiment_config: ExperimentConfig,
     language: Option<Language>,
-    num_outputs_expected: usize,
     target_max_group_size: Option<usize>,
 ) -> Result<TestOutput> {
     let project_path = project_path.as_ref();
@@ -329,12 +329,11 @@ pub async fn run_test<P: AsRef<Path>>(
         .wrap_err("Could not run experiment")?;
     let duration = now.elapsed();
 
-    let outputs = iter::repeat(&output_base_directory)
+    let outputs = iter::repeat(output_base_directory)
         .enumerate()
-        .take(num_outputs_expected)
-        .map(|(sim_id, base_dir)| {
-            let output_dir = base_dir.join((sim_id + 1).to_string());
-
+        .map(|(sim_id, base_dir)| base_dir.join((sim_id + 1).to_string()))
+        .take_while(|output_dir| output_dir.exists())
+        .map(|output_dir| {
             let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
                 .wrap_err("Could not read JSON state")?;
             let globals = parse_file(Path::new(&output_dir).join("globals.json"))
@@ -345,13 +344,6 @@ pub async fn run_test<P: AsRef<Path>>(
             Ok((json_state, globals, analysis_outputs))
         })
         .collect::<Result<_>>()?;
-
-    ensure!(
-        output_base_directory
-            .join((num_outputs_expected + 1).to_string())
-            .exists(),
-        "Expected {num_outputs_expected} outputs but more were generated."
-    );
 
     Ok(TestOutput { outputs, duration })
 }
