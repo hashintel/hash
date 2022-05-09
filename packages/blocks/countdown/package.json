@@ -34,7 +34,7 @@
   },
   "block-scripts": {
     "devPort": 9090,
-    "servePort": 63212
+    "servePort": 63215
   },
   "blockprotocol": {
     "displayName": "Template",
