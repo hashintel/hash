@@ -310,6 +310,7 @@ pub async fn run_test_suite(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run_test<P: AsRef<Path>>(
     experiment_type: ExperimentType,
     project_path: P,
