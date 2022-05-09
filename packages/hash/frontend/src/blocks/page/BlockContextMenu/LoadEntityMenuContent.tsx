@@ -74,9 +74,6 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
     [blockView, entityId, popupState],
   );
 
-  // should only include block entities and
-  // should not include current entity displayed in the block
-  // should not include duplicate entities
   const filteredEntities = useMemo(() => {
     const uniqueEntityIds = new Set();
     return entities.filter((entity) => {

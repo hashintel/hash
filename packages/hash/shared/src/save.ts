@@ -331,6 +331,7 @@ const updateBlocks = defineOperation(
               const { draftId: _, ...draftChildEntity } =
                 draftChildEntityWithDraftId;
 
+              // Check if a block's data has been updated
               if (
                 draftChildEntity &&
                 !isEqual(
@@ -338,6 +339,8 @@ const updateBlocks = defineOperation(
                   savedChildEntity.properties,
                 )
               ) {
+                // If the block's data was updated and the entityId changed
+                // then the block data was swapped. Push swapBlockData action
                 if (draftChildEntity.entityId !== savedChildEntity.entityId) {
                   updates.push({
                     swapBlockData: {
@@ -348,20 +351,9 @@ const updateBlocks = defineOperation(
                     },
                   });
                 } else {
-                  // figure out why it also gets to this point
-                  // after getting to the conditional above
-                  console.log("got to else too", {
-                    entityId: savedChildEntity.entityId,
-                    accountId: savedChildEntity.accountId,
-                    properties: draftChildEntity.properties,
-                  });
-                  updates.push({
-                    updateEntity: {
-                      entityId: savedChildEntity.entityId,
-                      accountId: savedChildEntity.accountId,
-                      properties: draftChildEntity.properties,
-                    },
-                  });
+                  // If the block's data was updated and the entityId
+                  // didn't change, push an updateEntity action
+                  // @todo push an updateEntity action
                 }
               }
             }
@@ -369,11 +361,16 @@ const updateBlocks = defineOperation(
 
           return updates;
         }),
-      // (action) =>
-      //   action?.swapBlockData?.entityId
-      //     ? `update_entity_${action?.swapBlockData?.entityId}`
-      //     : `swap_block_${action.updateEntity?.entityId}`,
-      (action) => action.updateEntity?.entityId,
+      (action) => {
+        if (action?.swapBlockData?.entityId) {
+          return `swap_block_${action?.swapBlockData?.entityId}`;
+        }
+        if (action?.updateEntity?.entityId) {
+          return `update_entity_${action.updateEntity?.entityId}`;
+        }
+
+        return null;
+      },
     );
 
     return [actions, entities] as const;
@@ -677,8 +674,6 @@ export const updatePageMutation = async (
     entityStore,
     createdEntities,
   );
-
-  console.log("actions ==>", JSON.stringify(actions), "\n\n\n\n");
 
   const res = await client.mutate<
     UpdatePageContentsMutation,
