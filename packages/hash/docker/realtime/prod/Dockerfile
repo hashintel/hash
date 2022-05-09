@@ -8,8 +8,6 @@ COPY yarn.lock .
 RUN yarn install --frozen-lockfile --production --ignore-scripts --prefer-offline
 
 # Also ensure that api node modules can be cached
-COPY packages/hash/api/package.json packages/hash/api/
-COPY packages/hash/shared/package.json packages/hash/shared/
 COPY packages/hash/backend-utils/package.json packages/hash/backend-utils/
 COPY packages/hash/realtime/package.json packages/hash/realtime/
 RUN yarn workspace @hashintel/hash-realtime install --frozen-lockfile --ignore-scripts --prefer-offline
@@ -17,8 +15,6 @@ RUN yarn workspace @hashintel/hash-realtime install --frozen-lockfile --ignore-s
 COPY tsconfig.base.json .
 
 COPY packages/hash/backend-utils packages/hash/backend-utils
-COPY packages/hash/api packages/hash/api
-COPY packages/hash/shared packages/hash/shared
 COPY packages/hash/realtime packages/hash/realtime
 
 #########################################################################################
