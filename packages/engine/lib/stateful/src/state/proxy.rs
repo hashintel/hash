@@ -4,7 +4,7 @@ use crate::{
     agent::AgentBatch,
     message::MessageBatch,
     proxy::{BatchPool, BatchReadProxy, BatchWriteProxy, PoolReadProxy, PoolWriteProxy},
-    state::StatePools,
+    state::StateBatchPools,
     Result,
 };
 
@@ -41,7 +41,7 @@ impl Debug for StateReadProxy {
 }
 
 impl StateReadProxy {
-    pub(crate) fn new(state: &StatePools) -> Result<Self> {
+    pub(crate) fn new(state: &StateBatchPools) -> Result<Self> {
         Ok(StateReadProxy {
             agent_proxies: state.agent_pool.read_proxies()?,
             message_proxies: state.message_pool.read_proxies()?,
@@ -50,7 +50,7 @@ impl StateReadProxy {
 
     // TODO: UNUSED: Needs triage
     #[allow(dead_code)]
-    pub(crate) fn new_partial(state: &StatePools, group_indices: &[usize]) -> Result<Self> {
+    pub(crate) fn new_partial(state: &StateBatchPools, group_indices: &[usize]) -> Result<Self> {
         Ok(StateReadProxy {
             agent_proxies: state.agent_pool.partial_read_proxies(group_indices)?,
             message_proxies: state.message_pool.partial_read_proxies(group_indices)?,
@@ -118,7 +118,7 @@ impl
 }
 
 impl StateWriteProxy {
-    pub(crate) fn new(state: &mut StatePools) -> Result<Self> {
+    pub(crate) fn new(state: &mut StateBatchPools) -> Result<Self> {
         Ok(StateWriteProxy {
             agent_proxies: state.agent_pool.write_proxies()?,
             message_proxies: state.message_pool.write_proxies()?,
@@ -127,7 +127,10 @@ impl StateWriteProxy {
 
     // TODO: UNUSED: Needs triage
     #[allow(dead_code)]
-    pub(crate) fn new_partial(state: &mut StatePools, group_indices: &[usize]) -> Result<Self> {
+    pub(crate) fn new_partial(
+        state: &mut StateBatchPools,
+        group_indices: &[usize],
+    ) -> Result<Self> {
         Ok(StateWriteProxy {
             agent_proxies: state.agent_pool.partial_write_proxies(group_indices)?,
             message_proxies: state.message_pool.partial_write_proxies(group_indices)?,

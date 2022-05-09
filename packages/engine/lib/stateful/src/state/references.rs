@@ -1,12 +1,12 @@
-/// A record pointing to a specific agent inside of an [`AgentPool`].
+/// A record pointing to a specific agent inside of an [`AgentBatchPool`].
 ///
-/// [`AgentPool`]: crate::agent::AgentPool
+/// [`AgentBatchPool`]: crate::agent::AgentBatchPool
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AgentIndex {
-    /// Index of the [`AgentBatch`] inside of a [`AgentPool`]
+    /// Index of the [`AgentBatch`] inside of a [`AgentBatchPool`]
     ///
     /// [`AgentBatch`]: crate::agent::AgentBatch
-    /// [`AgentPool`]: crate::agent::AgentPool
+    /// [`AgentBatchPool`]: crate::agent::AgentBatchPool
     pub group_index: u32,
     /// Index of the agent inside of an [`AgentBatch`]
     ///
@@ -15,12 +15,12 @@ pub struct AgentIndex {
 }
 
 /// A reference to a [`Message`] by an [`Agent`] and the [`MessageBatch`] inside of a
-/// [`MessagePool`].
+/// [`MessageBatchPool`].
 ///
 /// [`Agent`]: crate::agent::Agent
 /// [`Message`]: crate::message::Message
 /// [`MessageBatch`]: crate::message::MessageBatch
-/// [`MessagePool`]: crate::message::MessagePool
+/// [`MessageBatchPool`]: crate::message::MessageBatchPool
 #[derive(Clone, Debug)]
 pub struct MessageReference {
     pub batch_index: usize,
