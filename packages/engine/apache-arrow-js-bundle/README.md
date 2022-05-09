@@ -14,7 +14,6 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
 ### Modifying for use in the Engine
 
 - Manually modify the bundle, adding `export` to `var arrow;` at the very top of the file [1]
-- Manually modify the bundle, adding `return arrow` underneath `arrow = __webpack_exports__;` at the very bottom of the file
 - Manually modify `class MessageReader` to re-export the `VectorLoader` as follows [2]:
 
   ```javascript

@@ -22054,6 +22054,5 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
   })();
 
   arrow = __webpack_exports__;
-  return arrow;
   /******/
 })();
