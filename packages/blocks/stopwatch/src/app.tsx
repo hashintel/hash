@@ -46,23 +46,25 @@ export const App: BlockComponent<AppProps> = ({
   start = null,
   laps = [0],
 }) => {
-  const [start_, setStart] = useState(start !== null ? new Date(start) : null);
-  const [laps_, setLaps] = useState(laps.length < 1 ? [0] : laps);
+  const [localStart, setLocalStart] = useState(
+    start !== null ? new Date(start) : null,
+  );
+  const [localLaps, setLocalLaps] = useState(laps.length < 1 ? [0] : laps);
   const [currentLap, setCurrentLap] = useState(
-    start_ !== null ? +new Date() - +start_ : 0,
+    localStart !== null ? +new Date() - +localStart : 0,
   );
   const [allLaps, setAllLaps] = useState(laps.reduce((a, b) => a + b, 0));
 
   useEffect(() => {
-    setLaps(laps.length < 1 ? [0] : laps);
-    setStart(start !== null ? new Date(start) : null);
+    setLocalLaps(laps.length < 1 ? [0] : laps);
+    setLocalStart(start !== null ? new Date(start) : null);
     setAllLaps(laps.reduce((a, b) => a + b, 0));
   }, [laps, start]);
 
   const update = useCallback(
     (laps_data, start_data) => {
-      setLaps(laps_data);
-      setStart(start_data);
+      setLocalLaps(laps_data);
+      setLocalStart(start_data);
       if (updateEntities) {
         void updateEntities([
           {
@@ -81,37 +83,44 @@ export const App: BlockComponent<AppProps> = ({
 
   useEffect(() => {
     let interval: any = null;
-    if (start_ !== null) {
+    if (localStart !== null) {
       interval = setInterval(() => {
-        setCurrentLap(+new Date() - +start_);
+        setCurrentLap(+new Date() - +localStart);
       }, 1000 / 60);
     } else {
       clearInterval(interval);
       setCurrentLap(0);
     }
     return () => clearInterval(interval);
-  }, [start_]);
+  }, [localStart]);
 
   const start_stop = () => {
-    if (start_ !== null) {
-      const current = +new Date() - +start_;
+    if (localStart !== null) {
+      const current = +new Date() - +localStart;
       setAllLaps((allLaps_new) => allLaps_new + current);
       update(
-        [...laps_.slice(0, laps_.length - 1), getLastLap(laps_) + current],
+        [
+          ...localLaps.slice(0, localLaps.length - 1),
+          getLastLap(localLaps) + current,
+        ],
         null,
       );
     } else {
-      update(laps_, new Date());
+      update(localLaps, new Date());
     }
   };
 
   const lap_reset = () => {
-    if (start_ !== null) {
-      const current = +new Date() - +start_;
+    if (localStart !== null) {
+      const current = +new Date() - +localStart;
       setAllLaps((allLaps_new) => allLaps_new + current);
       setCurrentLap(0);
       update(
-        [...laps_.slice(0, laps_.length - 1), getLastLap(laps_) + current, 0],
+        [
+          ...localLaps.slice(0, localLaps.length - 1),
+          getLastLap(localLaps) + current,
+          0,
+        ],
         new Date(),
       );
     } else {
@@ -123,19 +132,19 @@ export const App: BlockComponent<AppProps> = ({
   return (
     <>
       <button type="button" onClick={start_stop}>
-        {start_ !== null ? "stop" : allLaps === 0 ? "start" : "continue"}
+        {localStart !== null ? "stop" : allLaps === 0 ? "start" : "continue"}
       </button>
       <button type="button" onClick={lap_reset}>
-        {start_ !== null ? "lap" : "reset"}
+        {localStart !== null ? "lap" : "reset"}
       </button>
       <p>{formatDuration(allLaps + currentLap)}</p>
-      {laps_.length > 1 && (
+      {localLaps.length > 1 && (
         <ol>
-          {laps_.slice(0, laps_.length - 1).map((lap, i) => (
+          {localLaps.slice(0, localLaps.length - 1).map((lap, i) => (
             <li key={`lap-${i + 1}`}>{formatDuration(lap)}</li>
           ))}
-          <li key={`lap-${laps_.length}`}>
-            {formatDuration(getLastLap(laps_) + currentLap)}
+          <li key={`lap-${localLaps.length}`}>
+            {formatDuration(getLastLap(localLaps) + currentLap)}
           </li>
         </ol>
       )}
