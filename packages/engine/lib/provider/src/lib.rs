@@ -1,257 +1,337 @@
 //! Contains the [`Provider`] trait and accompanying API, which enable trait objects to provide data
 //! based on typed requests, an alternate form of runtime reflection.
 //!
-//! [`Provider`] and the associated APIs support generic, type-driven access to data, and a
-//! mechanism for implementers to provide such data. The key parts of the interface are the
-//! [`Provider`] trait for objects which can provide data, and the [`request_by_type_tag`] function
-//! for data from an object which implements [`Provider`]. Note that end users should not call
-//! requesting [`request_by_type_tag`] directly, it is a helper function for intermediate
-//! implementers to use to implement a user-facing interface.
+//! # `Provider` and `Demand`
 //!
-//! Typically, a data provider is a trait object of a trait which extends [`Provider`]. A user will
-//! request data from the trait object by specifying the type or a type tag (a type tag is a type
-//! used only as a type parameter to identify the type which the user wants to receive).
+//! `Provider` and the associated APIs support generic, type-driven access to data, and a mechanism
+//! for implementers to provide such data. The key parts of the interface are the `Provider`
+//! trait for objects which can provide data, and the [`request_value`] and [`request_ref`]
+//! functions for requesting data from an object which implements `Provider`. Generally, end users
+//! should not call `request_*` directly, they are helper functions for intermediate implementers
+//! to use to implement a user-facing interface.
+//!
+//! Typically, a data provider is a trait object of a trait which extends `Provider`. A user will
+//! request data from a trait object by specifying the type of the data.
 //!
 //! ## Data flow
 //!
-//! * A user requests an object, which is delegated to [`request_by_type_tag`]
-//! * [`request_by_type_tag`] creates a [`Requisition`] object and passes it to
-//!   [`Provider::provide`]
-//! * The object provider's implementation of [`Provider::provide`] tries providing values of
-//!   different types using `Requisition::provide_*`. If the type tag matches the type requested by
-//!   the user, it will be stored in the [`Requisition`] object.
-//! * [`request_by_type_tag`] unpacks the [`Requisition`] object and returns any stored value to the
-//!   user.
+//! * A user requests an object of a specific type, which is delegated to `request_value` or
+//!   `request_ref`
+//! * `request_*` creates a `Demand` object and passes it to `Provider::provide`
+//! * The data provider's implementation of `Provider::provide` tries providing values of different
+//!   types using `Demand::provide_*`. If the type matches the type requested by the user, the value
+//!   will be stored in the `Demand` object.
+//! * `request_*` unpacks the `Demand` object and returns any stored value to the user.
 //!
-//! # Examples
-// Taken from https://github.com/rust-lang/rfcs/pull/3192
+//! ## Examples
 //!
-//! To provide data for example on an error type, the [`Provider`] API enables:
+//! ```
+//! use provider::{request_ref, Demand, Provider};
 //!
-//! ```rust
-//! # #![feature(backtrace)]
-//! use std::backtrace::Backtrace;
-//!
-//! use provider::{tags, Provider, Requisition, TypeTag};
-//!
-//! struct MyError {
-//!     backtrace: Backtrace,
-//!     suggestion: String,
+//! // Definition of MyTrait, a data provider.
+//! trait MyTrait: Provider {
+//!     // ...
 //! }
 //!
-//! impl Provider for MyError {
-//!     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-//!         req.provide_ref(&self.backtrace)
-//!             .provide_ref(self.suggestion.as_str());
+//! // Methods on `MyTrait` trait objects.
+//! impl dyn MyTrait + '_ {
+//!     /// Get a reference to a field of the implementing struct.
+//!     pub fn get_context_by_ref<T: ?Sized + 'static>(&self) -> Option<&T> {
+//!         request_ref::<T, _>(self)
 //!     }
 //! }
 //!
-//! trait MyErrorTrait: Provider {}
+//! // Downstream implementation of `MyTrait` and `Provider`.
+//! # struct SomeConcreteType { some_string: String }
+//! impl MyTrait for SomeConcreteType {
+//!     // ...
+//! }
 //!
-//! impl MyErrorTrait for MyError {}
-//!
-//! impl dyn MyErrorTrait {
-//!     fn request_ref<T: ?Sized + 'static>(&self) -> Option<&T> {
-//!         provider::request_by_type_tag::<'_, tags::Ref<T>, _>(self)
+//! impl Provider for SomeConcreteType {
+//!     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+//!         // Provide a string reference. We could provide multiple values with
+//!         // different types here.
+//!         demand.provide_ref::<String>(&self.some_string);
 //!     }
+//! }
+//!
+//! // Downstream usage of `MyTrait`.
+//! fn use_my_trait(obj: &dyn MyTrait) {
+//!     // Request a &String from obj.
+//!     let _ = obj.get_context_by_ref::<String>().unwrap();
 //! }
 //! ```
 //!
-//! In another module or crate, this can be requested for any `dyn MyErrorTrait`, not just
-//! `MyError`:
-//! ```rust
-//! # #![feature(backtrace)]
-//! # use std::backtrace::Backtrace;
-//! # use provider::{Provider, Requisition, TypeTag, tags};
-//! # struct MyError { backtrace: Backtrace, suggestion: String }
-//! # impl Provider for MyError {
-//! #     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-//! #         req.provide_ref(&self.backtrace)
-//! #             .provide_ref(self.suggestion.as_str());
-//! #     }
-//! # }
-//! # trait MyErrorTrait: Provider {}
-//! # impl MyErrorTrait for MyError {}
-//! # impl dyn MyErrorTrait {
-//! #     fn request_ref<T: ?Sized + 'static>(&self) -> Option<&T> {
-//! #         provider::request_by_type_tag::<'_, tags::Ref<T>, _>(self)
-//! #     }
-//! # }
-//! fn report_error(e: &(dyn MyErrorTrait + 'static)) {
-//!     // Generic error handling
-//!     # const _: &str = stringify! {
-//!     ...
-//!     # };
-//!
-//!     // print backtrace
-//!     if let Some(backtrace) = e.request_ref::<Backtrace>() {
-//!         println!("{backtrace:?}")
-//!     }
-//!     # assert!(e.request_ref::<Backtrace>().is_some());
-//!
-//!     // print suggestion text
-//!     if let Some(suggestions) = e.request_ref::<str>() {
-//!         println!("Suggestion: {suggestions}")
-//!     }
-//!     # assert_eq!(e.request_ref::<str>().unwrap(), "Do it correctly next time!");
-//! }
-//!
-//! fn main() {
-//!     let error = MyError {
-//!         backtrace: Backtrace::capture(),
-//!         suggestion: "Do it correctly next time!".to_string(),
-//!     };
-//!
-//!     report_error(&error);
-//! }
-//! ```
+//! In this example, if the concrete type of `obj` in `use_my_trait` is `SomeConcreteType`, then
+//! the `get_context_ref` call will return a reference to `obj.some_string` with type `&String`.
 
-// Heavily inspired by https://github.com/rust-lang/project-error-handling/issues/3:
-//   The project-error-handling tries to improves the error trait. In order to move the trait into
-//   `core`, an alternative solution to backtrace provisioning had to be found. This is, where the
-//   provider API comes from.
-//
-//   TODO: replace library with https://github.com/rust-lang/project-error-handling/issues/3.
+#![no_std]
 
-#![warn(missing_docs, clippy::pedantic, clippy::nursery)]
+///////////////////////////////////////////////////////////////////////////////
+// Provider trait
+///////////////////////////////////////////////////////////////////////////////
 
-pub mod tags;
+use core::{any::TypeId, mem};
 
-mod internal;
-mod requisition;
-
-use core::any::TypeId;
-
-use self::internal::{TagValue, Tagged};
-use crate::requisition::{ConcreteRequisition, RequisitionImpl};
-
-/// Trait implemented by a type which can dynamically provide tagged values.
+/// Trait implemented by a type which can dynamically provide values based on type.
 pub trait Provider {
-    /// Object providers should implement this method to provide *all* values they are able to
-    /// provide using `req`.
-    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>);
+    /// Data providers should implement this method to provide *all* values they are able to
+    /// provide by using `demand`.
+    ///
+    /// # Examples
+    ///
+    /// Provides a reference to a field with type `String` as a `&str`.
+    ///
+    /// ```rust
+    /// use provider::{Demand, Provider};
+    /// # struct SomeConcreteType { field: String }
+    ///
+    /// impl Provider for SomeConcreteType {
+    ///     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+    ///         demand.provide_ref::<str>(&self.field);
+    ///     }
+    /// }
+    /// ```
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>);
 }
 
-/// Request a specific value by a given tag from the [`Provider`].
-pub fn request_by_type_tag<'p, I, P: Provider + ?Sized>(provider: &'p P) -> Option<I::Type>
+/// Request a value from the `Provider`.
+///
+/// # Examples
+///
+/// Get a string value from a provider.
+///
+/// ```rust
+/// use provider::{request_value, Provider};
+///
+/// fn get_string<P: Provider>(provider: &P) -> String {
+///     request_value::<String, _>(provider).unwrap()
+/// }
+/// ```
+pub fn request_value<'a, T, P>(provider: &'a P) -> Option<T>
 where
-    I: TypeTag<'p>,
+    T: 'static,
+    P: Provider + ?Sized,
 {
-    let mut req: ConcreteRequisition<'p, I> = RequisitionImpl {
-        tagged: TagValue(None),
-    };
-    provider.provide(&mut Requisition(&mut req));
-    req.tagged.0
+    request_by_type_tag::<'a, tags::Value<T>, P>(provider)
 }
 
-/// This trait is implemented by specific `TypeTag` types in order to allow describing a type which
-/// can be requested for a given lifetime `'p`.
+/// Request a reference from the `Provider`.
 ///
-/// A few example implementations for type-driven `TypeTag`s can be found in the [`tags`] module,
-/// although crates may also implement their own tags for more complex types with internal
-/// lifetimes.
-pub trait TypeTag<'p>: Sized + 'static {
-    /// The type of values which may be tagged by this `TypeTag` for the given lifetime.
-    type Type: 'p;
+/// # Examples
+///
+/// Get a string reference from a provider.
+///
+/// ```rust
+/// use provider::{request_ref, Provider};
+///
+/// fn get_str<P: Provider>(provider: &P) -> &str {
+///     request_ref::<str, _>(provider).unwrap()
+/// }
+/// ```
+pub fn request_ref<'a, T, P>(provider: &'a P) -> Option<&'a T>
+where
+    T: 'static + ?Sized,
+    P: Provider + ?Sized,
+{
+    request_by_type_tag::<'a, tags::Ref<tags::MaybeSizedValue<T>>, P>(provider)
 }
 
-/// A helper object for providing objects by type.
+/// Request a specific value by tag from the `Provider`.
+fn request_by_type_tag<'a, I, P>(provider: &'a P) -> Option<I::Reified>
+where
+    I: tags::Type<'a>,
+    P: Provider + ?Sized,
+{
+    let mut tagged = TaggedOption::<'a, I>(None);
+    provider.provide(tagged.as_demand());
+    tagged.0
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Demand and its methods
+///////////////////////////////////////////////////////////////////////////////
+
+/// A helper object for providing data by type.
 ///
-/// An object provider provides values by calling this type's provide methods. Note, that
-/// `Requisition` is a wrapper around a mutable reference to a [`TypeTag`]ged value.
-pub struct Requisition<'p, 'r>(&'r mut RequisitionImpl<dyn Tagged<'p> + 'p>);
+/// A data provider provides values by calling this type's provide methods.
+#[repr(transparent)]
+pub struct Demand<'a>(dyn Erased<'a> + 'a);
 
-#[cfg(test)]
-pub(crate) mod tests {
-    use crate::{tags, Provider, Requisition, TypeTag};
-
-    struct CustomTagA;
-
-    impl<'p> TypeTag<'p> for CustomTagA {
-        type Type = usize;
+impl<'a> Demand<'a> {
+    /// Provide a value or other type with only static lifetimes.
+    ///
+    /// # Examples
+    ///
+    /// Provides a `String` by cloning.
+    ///
+    /// ```rust
+    /// use provider::{Demand, Provider};
+    /// # struct SomeConcreteType { field: String }
+    ///
+    /// impl Provider for SomeConcreteType {
+    ///     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+    ///         demand.provide_value::<String, _>(|| self.field.clone());
+    ///     }
+    /// }
+    /// ```
+    pub fn provide_value<T, F>(&mut self, fulfil: F) -> &mut Self
+    where
+        T: 'static,
+        F: FnOnce() -> T,
+    {
+        self.provide_with::<tags::Value<T>, F>(fulfil)
     }
 
-    struct CustomTagB;
-
-    impl<'p> TypeTag<'p> for CustomTagB {
-        type Type = usize;
+    /// Provide a reference, note that the referee type must be bounded by `'static`,
+    /// but may be unsized.
+    ///
+    /// # Examples
+    ///
+    /// Provides a reference to a field as a `&str`.
+    ///
+    /// ```rust
+    /// use provider::{Demand, Provider};
+    /// # struct SomeConcreteType { field: String }
+    ///
+    /// impl Provider for SomeConcreteType {
+    ///     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+    ///         demand.provide_ref::<str>(&self.field);
+    ///     }
+    /// }
+    /// ```
+    pub fn provide_ref<T: ?Sized + 'static>(&mut self, value: &'a T) -> &mut Self {
+        self.provide::<tags::Ref<tags::MaybeSizedValue<T>>>(value)
     }
 
-    pub struct MyError {
-        value: usize,
-        reference: usize,
-        custom_tag_a: usize,
-        custom_tag_b: usize,
-        option: Option<usize>,
-        result_ok: Result<u32, i32>,
-        result_err: Result<i32, u32>,
-    }
-
-    impl Provider for MyError {
-        fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-            req.provide_value(|| self.value)
-                .provide_ref(&self.reference)
-                .provide_with::<CustomTagA, _>(|| self.custom_tag_a)
-                .provide::<CustomTagB>(self.custom_tag_b)
-                .provide::<tags::OptionTag<tags::Value<usize>>>(self.option)
-                .provide::<tags::ResultTag<tags::Value<u32>, tags::Value<i32>>>(self.result_ok)
-                .provide::<tags::ResultTag<tags::Value<i32>, tags::Value<u32>>>(self.result_err);
+    /// Provide a value with the given `Type` tag.
+    fn provide<I>(&mut self, value: I::Reified) -> &mut Self
+    where
+        I: tags::Type<'a>,
+    {
+        if let Some(res @ TaggedOption(None)) = self.0.downcast_mut::<I>() {
+            res.0 = Some(value);
         }
+        self
     }
 
-    pub const ERR: MyError = MyError {
-        value: 1,
-        reference: 2,
-        custom_tag_a: 3,
-        custom_tag_b: 4,
-        option: Some(5),
-        result_ok: Ok(6),
-        result_err: Err(7),
-    };
+    /// Provide a value with the given `Type` tag, using a closure to prevent unnecessary work.
+    fn provide_with<I, F>(&mut self, fulfil: F) -> &mut Self
+    where
+        I: tags::Type<'a>,
+        F: FnOnce() -> I::Reified,
+    {
+        if let Some(res @ TaggedOption(None)) = self.0.downcast_mut::<I>() {
+            res.0 = Some(fulfil());
+        }
+        self
+    }
+}
 
-    #[test]
-    fn provide_value() {
-        assert_eq!(
-            crate::request_by_type_tag::<tags::Value<usize>, _>(&ERR),
-            Some(1)
-        );
+///////////////////////////////////////////////////////////////////////////////
+// Type tags
+///////////////////////////////////////////////////////////////////////////////
+
+mod tags {
+    //! Type tags are used to identify a type using a separate value. This module includes type tags
+    //! for some very common types.
+    //!
+    //! Many users of the provider APIs will not need to use type tags at all. But if you want to
+    //! use them with more complex types (typically those including lifetime parameters), you will
+    //! need to write your own tags.
+
+    use core::marker::PhantomData;
+
+    /// This trait is implemented by specific tag types in order to allow
+    /// describing a type which can be requested for a given lifetime `'a`.
+    ///
+    /// A few example implementations for type-driven tags can be found in this
+    /// module, although crates may also implement their own tags for more
+    /// complex types with internal lifetimes.
+    pub trait Type<'a>: Sized + 'static {
+        /// The type of values which may be tagged by this tag for the given
+        /// lifetime.
+        type Reified: 'a;
     }
 
-    #[test]
-    fn provide_ref() {
-        assert_eq!(
-            crate::request_by_type_tag::<tags::Ref<usize>, _>(&ERR),
-            Some(&2)
-        );
+    /// Similar to the [`Type`] trait, but represents a type which may be unsized (i.e., has a
+    /// `'Sized` bound). E.g., `str`.
+    pub trait MaybeSizedType<'a>: Sized + 'static {
+        type Reified: 'a + ?Sized;
     }
 
-    #[test]
-    fn provide_with() {
-        assert_eq!(crate::request_by_type_tag::<CustomTagA, _>(&ERR), Some(3));
+    impl<'a, T: Type<'a>> MaybeSizedType<'a> for T {
+        type Reified = T::Reified;
     }
 
-    #[test]
-    fn provide() {
-        assert_eq!(crate::request_by_type_tag::<CustomTagB, _>(&ERR), Some(4));
+    /// Type-based tag for types bounded by `'static`, i.e., with no borrowed elements.
+    #[derive(Debug)]
+    pub struct Value<T: 'static>(PhantomData<T>);
+
+    impl<'a, T: 'static> Type<'a> for Value<T> {
+        type Reified = T;
     }
 
-    #[test]
-    fn tags() {
-        assert_eq!(
-            crate::request_by_type_tag::<tags::OptionTag<tags::Value<usize>>, _>(&ERR),
-            Some(Some(5))
-        );
-        assert_eq!(
-            crate::request_by_type_tag::<tags::ResultTag<tags::Value<u32>, tags::Value<i32>>, _>(
-                &ERR
-            ),
-            Some(Ok(6))
-        );
-        assert_eq!(
-            crate::request_by_type_tag::<tags::ResultTag<tags::Value<i32>, tags::Value<u32>>, _>(
-                &ERR
-            ),
-            Some(Err(7))
-        );
+    /// Type-based tag similar to [`Value`] but which may be unsized (i.e., has a `'Sized` bound).
+    #[derive(Debug)]
+    pub struct MaybeSizedValue<T: ?Sized + 'static>(PhantomData<T>);
+
+    impl<'a, T: ?Sized + 'static> MaybeSizedType<'a> for MaybeSizedValue<T> {
+        type Reified = T;
+    }
+
+    /// Type-based tag for `&'a T` types.
+    #[derive(Debug)]
+    pub struct Ref<I>(PhantomData<I>);
+
+    impl<'a, I: MaybeSizedType<'a>> Type<'a> for Ref<I> {
+        type Reified = &'a I::Reified;
+    }
+}
+
+/// An `Option` with a type tag `I`.
+///
+/// Since this struct implements `Erased`, the type can be erased to make a dynamically typed
+/// option. The type can be checked dynamically using `Erased::tag_id` and since this is statically
+/// checked for the concrete type, there is some degree of type safety.
+#[repr(transparent)]
+struct TaggedOption<'a, I: tags::Type<'a>>(Option<I::Reified>);
+
+impl<'a, I: tags::Type<'a>> TaggedOption<'a, I> {
+    fn as_demand(&mut self) -> &mut Demand<'a> {
+        // SAFETY: transmuting `&mut (dyn Erased<'a> + 'a)` to `&mut Demand<'a>` is safe since
+        // `Demand` is repr(transparent) and holds only a `dyn Erased<'a> + 'a`.
+        unsafe { mem::transmute(self as &mut (dyn Erased<'a> + 'a)) }
+    }
+}
+
+/// Represents a type-erased but identifiable object.
+///
+/// This trait is exclusively implemented by the `TaggedOption` type.
+trait Erased<'a>: 'a {
+    /// The `TypeId` of the erased type.
+    fn tag_id(&self) -> TypeId;
+}
+
+impl<'a, I: tags::Type<'a>> Erased<'a> for TaggedOption<'a, I> {
+    fn tag_id(&self) -> TypeId {
+        TypeId::of::<I>()
+    }
+}
+
+impl<'a> dyn Erased<'a> {
+    /// Returns some reference to the dynamic value if it is tagged with `I`,
+    /// or `None` otherwise.
+    #[inline]
+    fn downcast_mut<I>(&mut self) -> Option<&mut TaggedOption<'a, I>>
+    where
+        I: tags::Type<'a>,
+    {
+        if self.tag_id() == TypeId::of::<I>() {
+            // SAFETY: Just checked whether we're pointing to an I.
+            Some(unsafe { &mut *(self as *mut Self as *mut TaggedOption<'a, I>) })
+        } else {
+            None
+        }
     }
 }
