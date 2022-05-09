@@ -36,15 +36,15 @@ type AppProps = {
 //   );
 // };
 
-function formatDate(date: Date, rangeSelection: boolean) {
+const formatDate = (date: Date, rangeSelection: boolean) => {
   if (rangeSelection) {
     return format(date, "PPP");
   } else {
     return formatRelative(date, new Date());
   }
-}
+};
 
-function formatRange(range: Range) {
+const formatRange = (range: Range) => {
   if (range.start !== null && range.end !== null) {
     return `${formatDate(range.start, range.end !== null)} - ${formatDate(
       range.end,
@@ -53,9 +53,9 @@ function formatRange(range: Range) {
   } else {
     return "";
   }
-}
+};
 
-function calculateTime(range: Range, strict: boolean) {
+const calculateTime = (range: Range, strict: boolean) => {
   if (range.start === null) {
     return {
       prefix: "",
@@ -95,7 +95,7 @@ function calculateTime(range: Range, strict: boolean) {
     offset: formatDate(date, range.end !== null),
     postfix: "",
   };
-}
+};
 
 export const App: BlockComponent<AppProps> = ({
   interval = {
