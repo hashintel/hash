@@ -1,7 +1,8 @@
 use futures::stream::{FuturesOrdered, StreamExt};
+use simulation_structure::SimulationShortId;
 use tokio::task::JoinHandle;
 
-use crate::{proto::SimulationShortId, simulation::controller::Result};
+use crate::simulation::controller::Result;
 
 #[derive(Default)]
 pub struct SimulationRuns {
