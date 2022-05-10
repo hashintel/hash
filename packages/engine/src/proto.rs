@@ -228,15 +228,13 @@ pub struct ExperimentRunBase {
 impl ExperimentRunBase {
     /// Returns `true` if the experiment uses Python init or has any Python behavior.
     pub fn requires_python_runner(&self) -> bool {
-        matches!(
-            self.project_base.package_init.initial_state.name,
-            InitialStateName::InitPy
-        ) || self
-            .project_base
-            .package_init
-            .behaviors
-            .iter()
-            .any(|behavior| behavior.is_python())
+        self.project_base.package_init.initial_state.name == InitialStateName::InitPy
+            || self
+                .project_base
+                .package_init
+                .behaviors
+                .iter()
+                .any(|behavior| behavior.is_python())
     }
 }
 
