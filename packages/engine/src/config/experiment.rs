@@ -57,7 +57,7 @@ impl Config {
         let run = Arc::new(experiment_run);
 
         let worker_config = WorkerConfig {
-            spawn: run.base().runner_spawn_config(),
+            spawn: run.base().create_runner_spawn_config(),
             runner_config: RunnerConfig {
                 js_runner_initial_heap_constraint,
                 js_runner_max_heap_size,

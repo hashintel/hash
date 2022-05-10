@@ -229,7 +229,7 @@ pub struct ExperimentRunBase {
 impl ExperimentRunBase {
     /// Returns a `RunnerSpawnConfig` matching the config required by the files present in the
     /// experiment.
-    pub fn runner_spawn_config(&self) -> RunnerSpawnConfig {
+    pub fn create_runner_spawn_config(&self) -> RunnerSpawnConfig {
         RunnerSpawnConfig {
             python: self.requires_runner(Language::Python),
             rust: self.requires_runner(Language::Rust),
