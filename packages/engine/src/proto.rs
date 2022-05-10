@@ -7,7 +7,7 @@ use execution::{
     },
     runner::{
         comms::{PackageError, UserError, UserWarning},
-        RunnerError,
+        Language, RunnerError,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -234,7 +234,12 @@ impl ExperimentRunBase {
                 .package_init
                 .behaviors
                 .iter()
-                .any(|behavior| behavior.is_python())
+                .any(|behavior| {
+                    behavior
+                        .language()
+                        .map(|language| language == Language::Python)
+                        .unwrap_or(false)
+                })
     }
 }
 
