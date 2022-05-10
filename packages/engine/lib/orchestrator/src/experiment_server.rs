@@ -245,7 +245,7 @@ impl Server {
                     }
                 },
                 r = socket.recv::<proto::OrchestratorMsg>() => match r {
-                    Err(e) => { log_error(e); },
+                    Err(e) => { let _ = log_error(e); },
                     Ok(msg) => {
                         let _ = self.dispatch_message(msg).map_err(log_error);
                     }
