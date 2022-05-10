@@ -227,7 +227,7 @@ pub struct ExperimentRunBase {
 }
 
 impl ExperimentRunBase {
-    /// Returns a `RunnerSpawnConfig` matching the config required by the files present in the
+    /// Returns a [`RunnerSpawnConfig`] matching the config required by the files present in the
     /// experiment.
     pub fn create_runner_spawn_config(&self) -> RunnerSpawnConfig {
         RunnerSpawnConfig {
