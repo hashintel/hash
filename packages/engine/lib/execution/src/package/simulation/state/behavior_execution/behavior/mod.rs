@@ -8,6 +8,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 pub use self::{error::BehaviorKeyJsonError, field::BehaviorMap};
+use crate::runner::Language;
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Behavior {
@@ -28,7 +29,9 @@ pub struct Behavior {
 
 impl Behavior {
     pub fn is_python(&self) -> bool {
-        self.name.ends_with(".py")
+        Language::from_file_name(&self.name)
+            .map(|language| language == Language::Python)
+            .unwrap_or(false)
     }
 }
 
