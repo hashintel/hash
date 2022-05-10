@@ -3,6 +3,7 @@ import {
   Box,
   BoxProps,
   Collapse,
+  FormHelperText,
   InputLabel,
   outlinedInputClasses,
   Select as MuiSelect,
@@ -28,8 +29,6 @@ export type SelectProps = {
 // when the default Select component from MUI is used
 // see select-with-search-checkbox.tsx in playground.page
 // @todo figure out why this happens and fix
-
-// @todo
 
 export const Select: FC<SelectProps> = forwardRef(
   (
@@ -61,23 +60,13 @@ export const Select: FC<SelectProps> = forwardRef(
           {children}
         </MuiSelect>
         <Collapse in={!!helperText}>
-          <Box display="flex" alignItems="center" mt={1}>
-            <FontAwesomeIcon
-              sx={({ palette }) => ({
-                mr: 1,
-                color: palette.orange[50],
-              })}
-              icon={faCircleExclamation}
-            />
-            <Typography
-              variant="microText"
-              sx={({ palette }) => ({
-                color: palette.orange[80],
-              })}
-            >
-              {helperText}
-            </Typography>
-          </Box>
+          <FormHelperText
+            error
+            sx={{ display: "flex", alignItems: "center", mt: 1 }}
+          >
+            <FontAwesomeIcon icon={faCircleExclamation} />
+            <Typography variant="smallTextLabels">{helperText}</Typography>
+          </FormHelperText>
         </Collapse>
       </Box>
     );
