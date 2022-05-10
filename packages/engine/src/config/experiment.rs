@@ -60,7 +60,7 @@ impl Config {
         // TODO: Ask packages for what language execution they require. Done for Python.
         let worker_config = WorkerConfig {
             spawn: RunnerSpawnConfig {
-                python: run.base().has_python_behavior(),
+                python: run.base().has_python_init_or_behavior(),
                 rust: false,
                 javascript: true,
             },

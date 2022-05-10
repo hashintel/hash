@@ -3,7 +3,7 @@ use core::fmt;
 use execution::{
     package::{
         experiment::{ExperimentName, ExperimentPackageConfig},
-        simulation::PackageInitConfig,
+        simulation::{init::InitialStateName, PackageInitConfig},
     },
     runner::{
         comms::{PackageError, UserError, UserWarning},
@@ -226,9 +226,13 @@ pub struct ExperimentRunBase {
 }
 
 impl ExperimentRunBase {
-    /// Returns `true` is the experiment has any Python behavior.
-    pub fn has_python_behavior(&self) -> bool {
-        self.project_base
+    /// Returns `true` if the experiment uses Python init or has any Python behavior.
+    pub fn has_python_init_or_behavior(&self) -> bool {
+        matches!(
+            self.project_base.package_init.initial_state.name,
+            InitialStateName::InitPy
+        ) || self
+            .project_base
             .package_init
             .behaviors
             .iter()
