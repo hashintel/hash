@@ -242,7 +242,6 @@ impl ExperimentRunBase {
     fn requires_runner(&self, language: Language) -> bool {
         #[allow(clippy::match_like_matches_macro)]
         let requires_init = match (language, &self.project_base.package_init.initial_state.name) {
-            (Language::JavaScript, InitialStateName::InitJson) => true,
             (Language::JavaScript, InitialStateName::InitJs) => true,
             (Language::Python, InitialStateName::InitPy) => true,
             _ => false,
