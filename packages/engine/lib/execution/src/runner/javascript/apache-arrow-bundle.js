@@ -3168,6 +3168,7 @@ export var arrow;
       makeVector: () => /* reexport */ makeVector,
       tableFromArrays: () => /* reexport */ tableFromArrays,
       tableFromIPC: () => /* reexport */ tableFromIPC,
+      tableFromJSON: () => /* reexport */ tableFromJSON,
       tableToIPC: () => /* reexport */ tableToIPC,
       util: () => /* reexport */ util,
       vectorFromArray: () => /* reexport */ vectorFromArray,
@@ -5062,16 +5063,20 @@ PERFORMANCE OF THIS SOFTWARE.
     /** @ignore */
     function bignumToNumber(bn) {
       const { buffer, byteOffset, length, signed: signed } = bn;
-      const words = new Int32Array(buffer, byteOffset, length);
-      let number = 0,
-        i = 0;
-      const n = words.length;
-      let hi, lo;
-      while (i < n) {
-        lo = words[i++];
-        hi = words[i++];
-        signed || (hi = hi >>> 0);
-        number += (lo >>> 0) + hi * Math.pow(i, 32);
+      const words = new BigUint64ArrayCtor(buffer, byteOffset, length);
+      const negative =
+        signed && words[words.length - 1] & (BigInt(1) << BigInt(63));
+      let number = negative ? BigInt(1) : BigInt(0);
+      let i = BigInt(0);
+      if (!negative) {
+        for (const word of words) {
+          number += word * (BigInt(1) << (BigInt(32) * i++));
+        }
+      } else {
+        for (const word of words) {
+          number += ~word * (BigInt(1) << (BigInt(32) * i++));
+        }
+        number *= BigInt(-1);
       }
       return number;
     }
@@ -6482,8 +6487,8 @@ PERFORMANCE OF THIS SOFTWARE.
     };
     /** @ignore */
     const setVariableWidthBytes = (values, valueOffsets, index, value) => {
-      const { [index]: x, [index + 1]: y } = valueOffsets;
-      if (x != null && y != null) {
+      if (index + 1 < valueOffsets.length) {
+        const { [index]: x, [index + 1]: y } = valueOffsets;
         values.set(value.subarray(0, y - x), x);
       }
     };
@@ -6514,7 +6519,6 @@ PERFORMANCE OF THIS SOFTWARE.
           return setFloat16(data, index, value);
         case Precision.SINGLE:
         case Precision.DOUBLE:
-        default:
           return setFloat(data, index, value);
       }
     };
@@ -6633,7 +6637,7 @@ PERFORMANCE OF THIS SOFTWARE.
     /** @ignore */
     const setMap = (data, index, value) => {
       const values = data.children[0];
-      const valueOffsets = data.valueOffsets;
+      const { valueOffsets } = data;
       const set = instance.getVisitFn(values);
       let { [index]: idx, [index + 1]: end } = valueOffsets;
       const entries =
@@ -6921,7 +6925,7 @@ PERFORMANCE OF THIS SOFTWARE.
           instance.visit(row[kParent].children[idx], row[kRowIndex], val);
           // Cache key/val lookups
           return Reflect.set(row, key, val);
-        } else if (Reflect.has(row, key)) {
+        } else if (Reflect.has(row, key) || typeof key === "symbol") {
           return Reflect.set(row, key, val);
         }
         return false;
@@ -6971,8 +6975,12 @@ PERFORMANCE OF THIS SOFTWARE.
     const getNull = (_data, _index) => null;
     /** @ignore */
     const getVariableWidthBytes = (values, valueOffsets, index) => {
-      const { [index]: x, [index + 1]: y } = valueOffsets;
-      return x != null && y != null ? values.subarray(x, y) : null;
+      if (index + 1 >= valueOffsets.length) {
+        return null;
+      }
+      const x = valueOffsets[index];
+      const y = valueOffsets[index + 1];
+      return values.subarray(x, y);
     };
     /** @ignore */
     const getBool = ({ offset, values }, index) => {
@@ -7071,19 +7079,18 @@ PERFORMANCE OF THIS SOFTWARE.
       BN.decimal(values.subarray(stride * index, stride * (index + 1)));
     /** @ignore */
     const getList = (data, index) => {
-      const { valueOffsets, stride } = data;
-      const { [index * stride]: begin } = valueOffsets;
-      const { [index * stride + 1]: end } = valueOffsets;
-      const child = data.children[0];
+      const { valueOffsets, stride, children } = data;
+      const { [index * stride]: begin, [index * stride + 1]: end } =
+        valueOffsets;
+      const child = children[0];
       const slice = child.slice(begin, end - begin);
       return new Vector([slice]);
     };
     /** @ignore */
     const getMap = (data, index) => {
-      const { valueOffsets } = data;
-      const { [index]: begin } = valueOffsets;
-      const { [index + 1]: end } = valueOffsets;
-      const child = data.children[0];
+      const { valueOffsets, children } = data;
+      const { [index]: begin, [index + 1]: end } = valueOffsets;
+      const child = children[0];
       return new MapRow(child.slice(begin, end - begin));
     };
     /** @ignore */
@@ -7135,8 +7142,8 @@ PERFORMANCE OF THIS SOFTWARE.
     };
     /** @ignore */
     const getFixedSizeList = (data, index) => {
-      const { stride } = data;
-      const child = data.children[0];
+      const { stride, children } = data;
+      const child = children[0];
       const slice = child.slice(index * stride, stride);
       return new Vector([slice]);
     };
@@ -8644,8 +8651,8 @@ PERFORMANCE OF THIS SOFTWARE.
       visitBool(____, _) {
         return 1 / 8;
       }
-      visitDecimal(____, _) {
-        return 16;
+      visitDecimal(data, _) {
+        return data.type.bitWidth / 8;
       }
       visitDate(data, _) {
         return (data.type.unit + 1) * 4;
@@ -8659,28 +8666,32 @@ PERFORMANCE OF THIS SOFTWARE.
       visitInterval(data, _) {
         return (data.type.unit + 1) * 4;
       }
-      visitStruct(data, _) {
-        return this.visitMany(
-          data.children,
-          data.children.map(() => _),
-        ).reduce(sum, 0);
+      visitStruct(data, i) {
+        return data.children.reduce(
+          (total, child) => total + bytelength_instance.visit(child, i),
+          0,
+        );
       }
       visitFixedSizeBinary(data, _) {
         return data.type.byteWidth;
       }
-      visitMap(data, _) {
-        return this.visitMany(
-          data.children,
-          data.children.map(() => _),
-        ).reduce(sum, 0);
+      visitMap(data, i) {
+        // 4 + 4 for the indices
+        return (
+          8 +
+          data.children.reduce(
+            (total, child) => total + bytelength_instance.visit(child, i),
+            0,
+          )
+        );
       }
-      visitDictionary(data, _) {
+      visitDictionary(data, i) {
         var _a;
         return (
           data.type.indices.bitWidth / 8 +
           (((_a = data.dictionary) === null || _a === void 0
             ? void 0
-            : _a.getByteLength(data.values[_])) || 0)
+            : _a.getByteLength(data.values[i])) || 0)
         );
       }
     }
@@ -15194,28 +15205,29 @@ PERFORMANCE OF THIS SOFTWARE.
 
     /** @ignore */
     class StructBuilder extends Builder {
+      setValue(index, value) {
+        const { children, type } = this;
+        switch (Array.isArray(value) || value.constructor) {
+          case true:
+            return type.children.forEach((_, i) =>
+              children[i].set(index, value[i]),
+            );
+          case Map:
+            return type.children.forEach((f, i) =>
+              children[i].set(index, value.get(f.name)),
+            );
+          default:
+            return type.children.forEach((f, i) =>
+              children[i].set(index, value[f.name]),
+            );
+        }
+      }
+      /** @inheritdoc */
       setValid(index, valid) {
         if (!super.setValid(index, valid)) {
           this.children.forEach((child) => child.setValid(index, valid));
         }
         return valid;
-      }
-      setValue(index, value) {
-        const children = this.children;
-        switch (Array.isArray(value) || value.constructor) {
-          case true:
-            return this.type.children.forEach((_, i) =>
-              children[i].set(index, value[i]),
-            );
-          case Map:
-            return this.type.children.forEach((f, i) =>
-              children[i].set(index, value.get(f.name)),
-            );
-          default:
-            return this.type.children.forEach((f, i) =>
-              children[i].set(index, value[f.name]),
-            );
-        }
       }
       addChild(child, name = `${this.numChildren}`) {
         const childIndex = this.children.push(child);
@@ -15574,246 +15586,9 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       }
     }
     /** @ignore */
-    const builderctor_instance = new GetBuilderCtor(); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/factories.mjs
+    const builderctor_instance = new GetBuilderCtor(); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/typecomparator.mjs
 
     //# sourceMappingURL=builderctor.mjs.map
-
-    // Licensed to the Apache Software Foundation (ASF) under one
-    // or more contributor license agreements.  See the NOTICE file
-    // distributed with this work for additional information
-    // regarding copyright ownership.  The ASF licenses this file
-    // to you under the Apache License, Version 2.0 (the
-    // "License"); you may not use this file except in compliance
-    // with the License.  You may obtain a copy of the License at
-    //
-    //   http://www.apache.org/licenses/LICENSE-2.0
-    //
-    // Unless required by applicable law or agreed to in writing,
-    // software distributed under the License is distributed on an
-    // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-    // KIND, either express or implied.  See the License for the
-    // specific language governing permissions and limitations
-    // under the License.
-
-    function makeBuilder(options) {
-      const type = options.type;
-      const builder = new (builderctor_instance.getVisitFn(type)())(options);
-      if (type.children && type.children.length > 0) {
-        const children = options["children"] || [];
-        const defaultOptions = { nullValues: options["nullValues"] };
-        const getChildOptions = Array.isArray(children)
-          ? (_, i) => children[i] || defaultOptions
-          : ({ name }) => children[name] || defaultOptions;
-        for (const [index, field] of type.children.entries()) {
-          const { type } = field;
-          const opts = getChildOptions(field, index);
-          builder.children.push(
-            makeBuilder(Object.assign(Object.assign({}, opts), { type })),
-          );
-        }
-      }
-      return builder;
-    }
-    function vectorFromArray(init, type) {
-      if (
-        init instanceof Data ||
-        init instanceof Vector ||
-        init.type instanceof DataType ||
-        ArrayBuffer.isView(init)
-      ) {
-        return makeVector(init);
-      }
-      const options = {
-        type: type !== null && type !== void 0 ? type : inferType(init),
-        nullValues: [null],
-      };
-      const chunks = [...builderThroughIterable(options)(init)];
-      const vector =
-        chunks.length === 1 ? chunks[0] : chunks.reduce((a, b) => a.concat(b));
-      if (DataType.isDictionary(vector.type)) {
-        return vector.memoize();
-      }
-      return vector;
-    }
-    /** @ignore */
-    function inferType(value) {
-      if (value.length === 0) {
-        return new Null();
-      }
-      let nullsCount = 0;
-      // @ts-ignore
-      let arraysCount = 0;
-      // @ts-ignore
-      let objectsCount = 0;
-      let numbersCount = 0;
-      let stringsCount = 0;
-      let bigintsCount = 0;
-      let booleansCount = 0;
-      let datesCount = 0;
-      for (const val of value) {
-        if (val == null) {
-          ++nullsCount;
-          continue;
-        }
-        switch (typeof val) {
-          case "bigint":
-            ++bigintsCount;
-            continue;
-          case "boolean":
-            ++booleansCount;
-            continue;
-          case "number":
-            ++numbersCount;
-            continue;
-          case "string":
-            ++stringsCount;
-            continue;
-          case "object":
-            if (Array.isArray(val)) {
-              ++arraysCount;
-            } else if (
-              Object.prototype.toString.call(val) === "[object Date]"
-            ) {
-              ++datesCount;
-            } else {
-              ++objectsCount;
-            }
-            continue;
-        }
-        throw new TypeError(
-          "Unable to infer Vector type from input values, explicit type declaration expected",
-        );
-      }
-      if (numbersCount + nullsCount === value.length) {
-        return new Float64();
-      } else if (stringsCount + nullsCount === value.length) {
-        return new Dictionary(new Utf8(), new Int32());
-      } else if (bigintsCount + nullsCount === value.length) {
-        return new Int64();
-      } else if (booleansCount + nullsCount === value.length) {
-        return new Bool();
-      } else if (datesCount + nullsCount === value.length) {
-        return new DateMillisecond();
-      }
-      // TODO: add more types to infererence
-      throw new TypeError(
-        "Unable to infer Vector type from input values, explicit type declaration expected",
-      );
-    }
-    /**
-     * Transform a synchronous `Iterable` of arbitrary JavaScript values into a
-     * sequence of Arrow Vector<T> following the chunking semantics defined in
-     * the supplied `options` argument.
-     *
-     * This function returns a function that accepts an `Iterable` of values to
-     * transform. When called, this function returns an Iterator of `Vector<T>`.
-     *
-     * The resulting `Iterator<Vector<T>>` yields Vectors based on the
-     * `queueingStrategy` and `highWaterMark` specified in the `options` argument.
-     *
-     * * If `queueingStrategy` is `"count"` (or omitted), The `Iterator<Vector<T>>`
-     *   will flush the underlying `Builder` (and yield a new `Vector<T>`) once the
-     *   Builder's `length` reaches or exceeds the supplied `highWaterMark`.
-     * * If `queueingStrategy` is `"bytes"`, the `Iterator<Vector<T>>` will flush
-     *   the underlying `Builder` (and yield a new `Vector<T>`) once its `byteLength`
-     *   reaches or exceeds the supplied `highWaterMark`.
-     *
-     * @param {IterableBuilderOptions<T, TNull>} options An object of properties which determine the `Builder` to create and the chunking semantics to use.
-     * @returns A function which accepts a JavaScript `Iterable` of values to
-     *          write, and returns an `Iterator` that yields Vectors according
-     *          to the chunking semantics defined in the `options` argument.
-     * @nocollapse
-     */
-    function builderThroughIterable(options) {
-      const { ["queueingStrategy"]: queueingStrategy = "count" } = options;
-      const {
-        ["highWaterMark"]: highWaterMark = queueingStrategy !== "bytes"
-          ? Number.POSITIVE_INFINITY
-          : Math.pow(2, 14),
-      } = options;
-      const sizeProperty =
-        queueingStrategy !== "bytes" ? "length" : "byteLength";
-      return function* (source) {
-        let numChunks = 0;
-        const builder = makeBuilder(options);
-        for (const value of source) {
-          if (builder.append(value)[sizeProperty] >= highWaterMark) {
-            ++numChunks && (yield builder.toVector());
-          }
-        }
-        if (builder.finish().length > 0 || numChunks === 0) {
-          yield builder.toVector();
-        }
-      };
-    }
-    /**
-     * Transform an `AsyncIterable` of arbitrary JavaScript values into a
-     * sequence of Arrow Vector<T> following the chunking semantics defined in
-     * the supplied `options` argument.
-     *
-     * This function returns a function that accepts an `AsyncIterable` of values to
-     * transform. When called, this function returns an AsyncIterator of `Vector<T>`.
-     *
-     * The resulting `AsyncIterator<Vector<T>>` yields Vectors based on the
-     * `queueingStrategy` and `highWaterMark` specified in the `options` argument.
-     *
-     * * If `queueingStrategy` is `"count"` (or omitted), The `AsyncIterator<Vector<T>>`
-     *   will flush the underlying `Builder` (and yield a new `Vector<T>`) once the
-     *   Builder's `length` reaches or exceeds the supplied `highWaterMark`.
-     * * If `queueingStrategy` is `"bytes"`, the `AsyncIterator<Vector<T>>` will flush
-     *   the underlying `Builder` (and yield a new `Vector<T>`) once its `byteLength`
-     *   reaches or exceeds the supplied `highWaterMark`.
-     *
-     * @param {IterableBuilderOptions<T, TNull>} options An object of properties which determine the `Builder` to create and the chunking semantics to use.
-     * @returns A function which accepts a JavaScript `AsyncIterable` of values
-     *          to write, and returns an `AsyncIterator` that yields Vectors
-     *          according to the chunking semantics defined in the `options`
-     *          argument.
-     * @nocollapse
-     */
-    function builderThroughAsyncIterable(options) {
-      const { ["queueingStrategy"]: queueingStrategy = "count" } = options;
-      const {
-        ["highWaterMark"]: highWaterMark = queueingStrategy !== "bytes"
-          ? Number.POSITIVE_INFINITY
-          : Math.pow(2, 14),
-      } = options;
-      const sizeProperty =
-        queueingStrategy !== "bytes" ? "length" : "byteLength";
-      return function (source) {
-        return __asyncGenerator(this, arguments, function* () {
-          var e_1, _a;
-          let numChunks = 0;
-          const builder = makeBuilder(options);
-          try {
-            for (
-              var source_1 = __asyncValues(source), source_1_1;
-              (source_1_1 = yield __await(source_1.next())), !source_1_1.done;
-
-            ) {
-              const value = source_1_1.value;
-              if (builder.append(value)[sizeProperty] >= highWaterMark) {
-                ++numChunks && (yield yield __await(builder.toVector()));
-              }
-            }
-          } catch (e_1_1) {
-            e_1 = { error: e_1_1 };
-          } finally {
-            try {
-              if (source_1_1 && !source_1_1.done && (_a = source_1.return))
-                yield __await(_a.call(source_1));
-            } finally {
-              if (e_1) throw e_1.error;
-            }
-          }
-          if (builder.finish().length > 0 || numChunks === 0) {
-            yield yield __await(builder.toVector());
-          }
-        });
-      };
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/typecomparator.mjs
-
-    //# sourceMappingURL=factories.mjs.map
 
     // Licensed to the Apache Software Foundation (ASF) under one
     // or more contributor license agreements.  See the NOTICE file
@@ -16035,9 +15810,281 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     }
     function compareTypes(type, other) {
       return typecomparator_instance.visit(type, other);
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/recordbatch.mjs
+    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/factories.mjs
 
     //# sourceMappingURL=typecomparator.mjs.map
+
+    // Licensed to the Apache Software Foundation (ASF) under one
+    // or more contributor license agreements.  See the NOTICE file
+    // distributed with this work for additional information
+    // regarding copyright ownership.  The ASF licenses this file
+    // to you under the Apache License, Version 2.0 (the
+    // "License"); you may not use this file except in compliance
+    // with the License.  You may obtain a copy of the License at
+    //
+    //   http://www.apache.org/licenses/LICENSE-2.0
+    //
+    // Unless required by applicable law or agreed to in writing,
+    // software distributed under the License is distributed on an
+    // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    // KIND, either express or implied.  See the License for the
+    // specific language governing permissions and limitations
+    // under the License.
+
+    function makeBuilder(options) {
+      const type = options.type;
+      const builder = new (builderctor_instance.getVisitFn(type)())(options);
+      if (type.children && type.children.length > 0) {
+        const children = options["children"] || [];
+        const defaultOptions = { nullValues: options["nullValues"] };
+        const getChildOptions = Array.isArray(children)
+          ? (_, i) => children[i] || defaultOptions
+          : ({ name }) => children[name] || defaultOptions;
+        for (const [index, field] of type.children.entries()) {
+          const { type } = field;
+          const opts = getChildOptions(field, index);
+          builder.children.push(
+            makeBuilder(Object.assign(Object.assign({}, opts), { type })),
+          );
+        }
+      }
+      return builder;
+    }
+    function vectorFromArray(init, type) {
+      if (
+        init instanceof Data ||
+        init instanceof Vector ||
+        init.type instanceof DataType ||
+        ArrayBuffer.isView(init)
+      ) {
+        return makeVector(init);
+      }
+      const options = {
+        type: type !== null && type !== void 0 ? type : inferType(init),
+        nullValues: [null],
+      };
+      const chunks = [...builderThroughIterable(options)(init)];
+      const vector =
+        chunks.length === 1 ? chunks[0] : chunks.reduce((a, b) => a.concat(b));
+      if (DataType.isDictionary(vector.type)) {
+        return vector.memoize();
+      }
+      return vector;
+    }
+    /**
+     * Creates a {@link Table} from an array of objects.
+     *
+     * @param array A table of objects.
+     */
+    function tableFromJSON(array) {
+      const vector = vectorFromArray(array);
+      const batch = new RecordBatch(
+        new schema_Schema(vector.type.children),
+        vector.data[0],
+      );
+      return new Table(batch);
+    }
+    function inferType(value) {
+      if (value.length === 0) {
+        return new Null();
+      }
+      let nullsCount = 0;
+      let arraysCount = 0;
+      let objectsCount = 0;
+      let numbersCount = 0;
+      let stringsCount = 0;
+      let bigintsCount = 0;
+      let booleansCount = 0;
+      let datesCount = 0;
+      for (const val of value) {
+        if (val == null) {
+          ++nullsCount;
+          continue;
+        }
+        switch (typeof val) {
+          case "bigint":
+            ++bigintsCount;
+            continue;
+          case "boolean":
+            ++booleansCount;
+            continue;
+          case "number":
+            ++numbersCount;
+            continue;
+          case "string":
+            ++stringsCount;
+            continue;
+          case "object":
+            if (Array.isArray(val)) {
+              ++arraysCount;
+            } else if (
+              Object.prototype.toString.call(val) === "[object Date]"
+            ) {
+              ++datesCount;
+            } else {
+              ++objectsCount;
+            }
+            continue;
+        }
+        throw new TypeError(
+          "Unable to infer Vector type from input values, explicit type declaration expected",
+        );
+      }
+      if (numbersCount + nullsCount === value.length) {
+        return new Float64();
+      } else if (stringsCount + nullsCount === value.length) {
+        return new Dictionary(new Utf8(), new Int32());
+      } else if (bigintsCount + nullsCount === value.length) {
+        return new Int64();
+      } else if (booleansCount + nullsCount === value.length) {
+        return new Bool();
+      } else if (datesCount + nullsCount === value.length) {
+        return new DateMillisecond();
+      } else if (arraysCount + nullsCount === value.length) {
+        const array = value;
+        const childType = inferType(
+          array[array.findIndex((ary) => ary != null)],
+        );
+        if (
+          array.every(
+            (ary) => ary == null || compareTypes(childType, inferType(ary)),
+          )
+        ) {
+          return new List(new schema_Field("", childType, true));
+        }
+      } else if (objectsCount + nullsCount === value.length) {
+        const fields = new Map();
+        for (const row of value) {
+          for (const key of Object.keys(row)) {
+            if (!fields.has(key) && row[key] != null) {
+              // use the type inferred for the first instance of a found key
+              fields.set(
+                key,
+                new schema_Field(key, inferType([row[key]]), true),
+              );
+            }
+          }
+        }
+        return new Struct([...fields.values()]);
+      }
+      throw new TypeError(
+        "Unable to infer Vector type from input values, explicit type declaration expected",
+      );
+    }
+    /**
+     * Transform a synchronous `Iterable` of arbitrary JavaScript values into a
+     * sequence of Arrow Vector<T> following the chunking semantics defined in
+     * the supplied `options` argument.
+     *
+     * This function returns a function that accepts an `Iterable` of values to
+     * transform. When called, this function returns an Iterator of `Vector<T>`.
+     *
+     * The resulting `Iterator<Vector<T>>` yields Vectors based on the
+     * `queueingStrategy` and `highWaterMark` specified in the `options` argument.
+     *
+     * * If `queueingStrategy` is `"count"` (or omitted), The `Iterator<Vector<T>>`
+     *   will flush the underlying `Builder` (and yield a new `Vector<T>`) once the
+     *   Builder's `length` reaches or exceeds the supplied `highWaterMark`.
+     * * If `queueingStrategy` is `"bytes"`, the `Iterator<Vector<T>>` will flush
+     *   the underlying `Builder` (and yield a new `Vector<T>`) once its `byteLength`
+     *   reaches or exceeds the supplied `highWaterMark`.
+     *
+     * @param {IterableBuilderOptions<T, TNull>} options An object of properties which determine the `Builder` to create and the chunking semantics to use.
+     * @returns A function which accepts a JavaScript `Iterable` of values to
+     *          write, and returns an `Iterator` that yields Vectors according
+     *          to the chunking semantics defined in the `options` argument.
+     * @nocollapse
+     */
+    function builderThroughIterable(options) {
+      const { ["queueingStrategy"]: queueingStrategy = "count" } = options;
+      const {
+        ["highWaterMark"]: highWaterMark = queueingStrategy !== "bytes"
+          ? Number.POSITIVE_INFINITY
+          : Math.pow(2, 14),
+      } = options;
+      const sizeProperty =
+        queueingStrategy !== "bytes" ? "length" : "byteLength";
+      return function* (source) {
+        let numChunks = 0;
+        const builder = makeBuilder(options);
+        for (const value of source) {
+          if (builder.append(value)[sizeProperty] >= highWaterMark) {
+            ++numChunks && (yield builder.toVector());
+          }
+        }
+        if (builder.finish().length > 0 || numChunks === 0) {
+          yield builder.toVector();
+        }
+      };
+    }
+    /**
+     * Transform an `AsyncIterable` of arbitrary JavaScript values into a
+     * sequence of Arrow Vector<T> following the chunking semantics defined in
+     * the supplied `options` argument.
+     *
+     * This function returns a function that accepts an `AsyncIterable` of values to
+     * transform. When called, this function returns an AsyncIterator of `Vector<T>`.
+     *
+     * The resulting `AsyncIterator<Vector<T>>` yields Vectors based on the
+     * `queueingStrategy` and `highWaterMark` specified in the `options` argument.
+     *
+     * * If `queueingStrategy` is `"count"` (or omitted), The `AsyncIterator<Vector<T>>`
+     *   will flush the underlying `Builder` (and yield a new `Vector<T>`) once the
+     *   Builder's `length` reaches or exceeds the supplied `highWaterMark`.
+     * * If `queueingStrategy` is `"bytes"`, the `AsyncIterator<Vector<T>>` will flush
+     *   the underlying `Builder` (and yield a new `Vector<T>`) once its `byteLength`
+     *   reaches or exceeds the supplied `highWaterMark`.
+     *
+     * @param {IterableBuilderOptions<T, TNull>} options An object of properties which determine the `Builder` to create and the chunking semantics to use.
+     * @returns A function which accepts a JavaScript `AsyncIterable` of values
+     *          to write, and returns an `AsyncIterator` that yields Vectors
+     *          according to the chunking semantics defined in the `options`
+     *          argument.
+     * @nocollapse
+     */
+    function builderThroughAsyncIterable(options) {
+      const { ["queueingStrategy"]: queueingStrategy = "count" } = options;
+      const {
+        ["highWaterMark"]: highWaterMark = queueingStrategy !== "bytes"
+          ? Number.POSITIVE_INFINITY
+          : Math.pow(2, 14),
+      } = options;
+      const sizeProperty =
+        queueingStrategy !== "bytes" ? "length" : "byteLength";
+      return function (source) {
+        return __asyncGenerator(this, arguments, function* () {
+          var e_1, _a;
+          let numChunks = 0;
+          const builder = makeBuilder(options);
+          try {
+            for (
+              var source_1 = __asyncValues(source), source_1_1;
+              (source_1_1 = yield __await(source_1.next())), !source_1_1.done;
+
+            ) {
+              const value = source_1_1.value;
+              if (builder.append(value)[sizeProperty] >= highWaterMark) {
+                ++numChunks && (yield yield __await(builder.toVector()));
+              }
+            }
+          } catch (e_1_1) {
+            e_1 = { error: e_1_1 };
+          } finally {
+            try {
+              if (source_1_1 && !source_1_1.done && (_a = source_1.return))
+                yield __await(_a.call(source_1));
+            } finally {
+              if (e_1) throw e_1.error;
+            }
+          }
+          if (builder.finish().length > 0 || numChunks === 0) {
+            yield yield __await(builder.toVector());
+          }
+        });
+      };
+    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/recordbatch.mjs
+
+    //# sourceMappingURL=factories.mjs.map
 
     // Licensed to the Apache Software Foundation (ASF) under one
     // or more contributor license agreements.  See the NOTICE file
@@ -16347,7 +16394,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       /**
        * Returns a string representation of the Table rows.
        *
-       * @returns  A string representation of the Table rows.
+       * @returns A string representation of the Table rows.
        */
       toString() {
         return `[\n  ${this.toArray().join(",\n  ")}\n]`;
@@ -16368,7 +16415,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       /**
        * Return a zero-copy sub-section of this Table.
        *
-       * @param start The beginning of the specified portion of the Table.
+       * @param begin The beginning of the specified portion of the Table.
        * @param end The end of the specified portion of the Table. This is exclusive of the element at the index 'end'.
        */
       slice(begin, end) {
@@ -16547,7 +16594,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
      * })
      * ```
      *
-     * @param Input an object of typed arrays or JavaScript arrays.
+     * @param input Input an object of typed arrays or JavaScript arrays.
      * @returns A new Table.
      */
     function tableFromArrays(input) {
@@ -19038,6 +19085,9 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     }
     /** @ignore */
     function decodeRecordBatch(batch, version = MetadataVersion.V4) {
+      if (batch.compression() !== null) {
+        throw new Error("Record batch compression not implemented");
+      }
       return new message_RecordBatch(
         batch.length(),
         decodeFieldNodes(batch),
@@ -22054,6 +22104,5 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
   })();
 
   arrow = __webpack_exports__;
-  return arrow;
   /******/
 })();
