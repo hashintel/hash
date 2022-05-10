@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 import DatePicker from "react-datepicker";
@@ -13,10 +13,10 @@ import {
 
 import "react-datepicker/dist/react-datepicker.css";
 
-type Range = {
+interface Interval {
   start: Date | null;
   end: Date | null;
-};
+}
 
 type AppProps = {
   interval: {
@@ -27,15 +27,6 @@ type AppProps = {
   strict: boolean;
 };
 
-// const Checkbox = ({ label, value, onChange }) => {
-//   return (
-//     <label>
-//       <input type="checkbox" checked={value} onChange={onChange} />
-//       {label}
-//     </label>
-//   );
-// };
-
 const formatDate = (date: Date, rangeSelection: boolean) => {
   if (rangeSelection) {
     return format(date, "PPP");
@@ -44,19 +35,19 @@ const formatDate = (date: Date, rangeSelection: boolean) => {
   }
 };
 
-const formatRange = (range: Range) => {
-  if (range.start !== null && range.end !== null) {
-    return `${formatDate(range.start, range.end !== null)} - ${formatDate(
-      range.end,
-      range.end !== null,
+const formatRange = (interval: Interval) => {
+  if (interval.start !== null && interval.end !== null) {
+    return `${formatDate(interval.start, true)} - ${formatDate(
+      interval.end,
+      true,
     )}`;
   } else {
     return "";
   }
 };
 
-const calculateTime = (range: Range, strict: boolean) => {
-  if (range.start === null) {
+const calculateTime = (interval: Interval, strict: boolean) => {
+  if (interval.start === null) {
     return {
       prefix: "",
       offset: "Please select a date",
@@ -66,19 +57,19 @@ const calculateTime = (range: Range, strict: boolean) => {
 
   let relative;
   let date;
-  if (isFuture(range.start)) {
-    date = range.start;
+  if (isFuture(interval.start)) {
+    date = interval.start;
     relative = "until";
-  } else if (range.end !== null && isPast(range.end)) {
-    date = range.end;
+  } else if (interval.end !== null && isPast(interval.end)) {
+    date = interval.end;
     relative = "since";
-  } else if (range.end === null) {
-    date = range.start;
+  } else if (interval.end === null) {
+    date = interval.start;
     relative = "since";
   } else {
     return {
       prefix: "",
-      offset: formatRange(range),
+      offset: formatRange(interval),
       postfix: "is now",
     };
   }
@@ -92,7 +83,7 @@ const calculateTime = (range: Range, strict: boolean) => {
 
   return {
     prefix: `${distance} ${relative}`,
-    offset: formatDate(date, range.end !== null),
+    offset: formatDate(date, interval.end !== null),
     postfix: "",
   };
 };
@@ -108,22 +99,47 @@ export const App: BlockComponent<AppProps> = ({
   accountId,
   updateEntities,
 }) => {
-  const [range, setRange] = useState<Range>({
+  const [localInterval, setLocalInterval] = useState<Interval>({
     start: !interval.start ? null : new Date(interval.start),
     end: !interval.end ? null : new Date(interval.end),
   });
-  const [rangeSelection, setRangeSelection] = useState(selectsRange);
+  const [localSelectsRange, setLocalSelectsRange] = useState(selectsRange);
 
   const [clock, setClock] = useState({ now: new Date() });
   const tick = () => setClock({ now: new Date() });
 
+  const update = useCallback(
+    (interval: Interval, selectsRange: boolean) => {
+      setLocalInterval(interval);
+      setLocalSelectsRange(selectsRange);
+      if (updateEntities) {
+        void updateEntities([
+          {
+            entityId,
+            accountId,
+            data: {
+              interval,
+              selectsRange,
+            },
+          },
+        ]);
+      }
+    },
+    [entityId, accountId, updateEntities],
+  );
+
   useEffect(() => {
-    setRange({
+    const newInterval = {
       start: !interval.start ? null : new Date(interval.start),
       end: !interval.end ? null : new Date(interval.end),
-    });
-    setRangeSelection(selectsRange);
-  }, [interval, selectsRange, strict]);
+    };
+    if (
+      newInterval.start !== localInterval.start ||
+      newInterval.end !== localInterval.end
+    )
+      setLocalInterval(newInterval);
+    if (selectsRange != localSelectsRange) setLocalSelectsRange(selectsRange);
+  }, [interval]);
 
   useEffect(() => {
     // Tick at least once per second
@@ -131,56 +147,34 @@ export const App: BlockComponent<AppProps> = ({
     setInterval(tick, 1000);
   }, []);
 
-  useEffect(() => {
-    setRange(range);
-    tick();
-    if (updateEntities) {
-      void updateEntities([
-        {
-          entityId,
-          accountId,
-          data: {
-            interval: range,
-            selectsRange: rangeSelection,
-          },
-        },
-      ]);
-    }
-  }, [range, rangeSelection, entityId, accountId, updateEntities]);
-
-  useEffect(() => {
-    if (rangeSelection && range.start !== null) {
-      setRange({
-        start: new Date(range.start.setHours(0, 0, 0, 0)),
-        end: null,
-      });
-    } else setRange({ start: range.start, end: null });
-  }, [rangeSelection, range.start]);
-
-  const [timeOffset, setTimeOffset] = useState(calculateTime(range, strict));
+  const [timeOffset, setTimeOffset] = useState(
+    calculateTime(localInterval, strict),
+  );
   useEffect(
-    () => setTimeOffset(calculateTime(range, strict)),
-    [clock, range, strict],
+    () => setTimeOffset(calculateTime(localInterval, strict)),
+    [clock, localInterval, strict],
   ); // Update offset on tick
 
   const [isOpen, setIsOpen] = useState(false);
   const open = () => setIsOpen(true);
   const close = () => setIsOpen(false);
 
-  const onChange = (changes: Date | [Date | null, Date | null]) => {
+  const onChange = (changes: Date | [Date | null, Date | null] | null) => {
+    console.log(`onChange(${JSON.stringify(changes)})`);
     if (Array.isArray(changes)) {
-      setRange({ start: changes[0], end: changes[1] });
-      if (changes[1] !== null) close();
-    } else if (changes === null) {
-      setRange({ start: null, end: null });
+      if (changes[1] !== null) {
+        close();
+      }
+      update({ start: changes[0], end: changes[1] }, true);
     } else {
-      setRange({ start: changes, end: null });
+      close();
+      update({ start: changes, end: null }, false);
     }
   };
 
   const datepicker = useRef<DatePicker>(null);
   useEffect(() => {
-    if (datepicker.current && isOpen) datepicker.current.setOpen(true);
+    if (datepicker.current) datepicker.current.setOpen(isOpen);
   }, [isOpen]);
 
   return (
@@ -195,23 +189,26 @@ export const App: BlockComponent<AppProps> = ({
         <div style={{ display: "inline-block" }}>
           <DatePicker
             ref={datepicker}
-            selected={range.start}
-            startDate={range.start}
-            endDate={range.end}
+            selected={localInterval.start}
+            startDate={localInterval.start}
+            endDate={localInterval.end}
             onChange={onChange}
             onCalendarClose={close}
-            onSelect={() => rangeSelection || close()}
-            dateFormat={rangeSelection ? "P" : "Pp"}
-            selectsRange={rangeSelection}
-            showTimeInput={!rangeSelection}
+            onSelect={() => localSelectsRange || close()}
+            dateFormat={localSelectsRange ? "P" : "Pp"}
+            selectsRange={localSelectsRange}
+            showTimeInput={!localSelectsRange}
             showWeekNumbers
             todayButton="Today"
           >
-            {/* <Checkbox */}
-            {/*  label="Range selection" */}
-            {/*  value={rangeSelection} */}
-            {/*  onChange={() => setRangeSelection(!rangeSelection)} */}
-            {/* /> */}
+            <label>
+              <input
+                type="checkbox"
+                checked={localSelectsRange}
+                onChange={() => setLocalSelectsRange(!localSelectsRange)}
+              />
+              Range selection
+            </label>
           </DatePicker>
         </div>
       )}{" "}
