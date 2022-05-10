@@ -125,9 +125,8 @@ impl Worker {
     }
 
     async fn _run(&mut self) -> Result<()> {
-        // TODO: Rust
         let mut py_handle = self.py.run().await?;
-        // let mut rs_handle = self.rs.run().await?;
+        let mut rs_handle = self.rs.run().await?;
         let mut js_handle = self.js.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
@@ -194,6 +193,8 @@ impl Worker {
                     py_res??;
                     // TODO: send termination to js_handle
                     js_handle.await??;
+                    // TODO: send termination to rs_handle
+                    rs_handle.await??;
                     return Ok(());
                 }
                 js_res = &mut js_handle, if self.js.spawned() => {
@@ -201,13 +202,24 @@ impl Worker {
                     js_res??;
                     // TODO: send termination to py_handle
                     py_handle.await??;
+                    // TODO: send termination to rs_handle
+                    rs_handle.await??;
+                    return Ok(());
+                }
+                rs_res = &mut rs_handle, if self.rs.spawned() => {
+                    tracing::warn!("Rust runner finished unexpectedly: {rs_res:?}");
+                    rs_res??;
+                    // TODO: send termination to py_handle
+                    py_handle.await??;
+                    // TODO: send termination to js_handle
+                    js_handle.await??;
                     return Ok(());
                 }
             }
         }
 
         py_handle.await??;
-        // rs_handle.await??;
+        rs_handle.await??;
         js_handle.await??;
 
         Ok(())
