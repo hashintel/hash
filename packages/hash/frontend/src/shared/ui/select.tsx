@@ -9,9 +9,15 @@ export type SelectProps = {
 } & MuiSelectProps;
 
 export const Select: FC<SelectProps> = forwardRef(
-  ({ children, ...props }, ref) => {
+  ({ children, sx = [], ...props }, ref) => {
     return (
-      <MuiSelect {...props} ref={ref}>
+      <MuiSelect
+        // sx={[({ palette }) => ({
+
+        // }), ...(Array.isArray(sx) ? sx : [sx])]}
+        {...props}
+        ref={ref}
+      >
         {children}
       </MuiSelect>
     );

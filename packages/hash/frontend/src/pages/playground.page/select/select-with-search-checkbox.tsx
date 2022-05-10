@@ -75,7 +75,12 @@ export const SelectWithSearchAndCheckbox = () => {
           />
         </Box>
         {filteredMenuItems.map((item) => (
-          <MenuItem key={item} value={item} onClick={() => toggleItem(item)}>
+          <MenuItem
+            key={item}
+            value={item}
+            onClick={() => toggleItem(item)}
+            noSelectBackground
+          >
             <ListItemIcon>
               <Checkbox checked={selectedOptions.includes(item)} />
             </ListItemIcon>

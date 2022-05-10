@@ -194,7 +194,7 @@ export const SelectMenusDemo = () => {
           defaultValue={["Multiple"]}
         >
           {["Multiple", "values", "in", "chips"].map((item) => (
-            <MenuItem key={item} value={item}>
+            <MenuItem key={item} value={item} noSelectBackground>
               <ListItemIcon>
                 <Checkbox />
               </ListItemIcon>
@@ -214,7 +214,7 @@ export const SelectMenusDemo = () => {
           defaultValue={["Multiple", "values"]}
         >
           {["Multiple", "values", "in", "chips"].map((item) => (
-            <MenuItem key={item} value={item}>
+            <MenuItem key={item} value={item} noSelectBackground>
               <ListItemIcon>
                 <Checkbox />
               </ListItemIcon>
@@ -456,19 +456,19 @@ export const SelectMenusDemo = () => {
         }}
       >
         <MenuList>
-          <MenuItem value="10">
+          <MenuItem value="10" noSelectBackground>
             <ListItemIcon>
               <Checkbox />
             </ListItemIcon>
             <ListItemText primary="Account Settings" />
           </MenuItem>
-          <MenuItem value="20">
+          <MenuItem value="20" noSelectBackground>
             <ListItemIcon>
               <Checkbox />
             </ListItemIcon>
             <ListItemText primary="Account Settings" />
           </MenuItem>
-          <MenuItem value="30">
+          <MenuItem value="30" noSelectBackground>
             <ListItemIcon>
               <Checkbox />
             </ListItemIcon>
@@ -477,7 +477,7 @@ export const SelectMenusDemo = () => {
         </MenuList>
         {/*  */}
         <MenuList>
-          <MenuItem value="10">
+          <MenuItem value="10" noSelectBackground>
             <ListItemIcon>
               <Checkbox />
             </ListItemIcon>
@@ -486,7 +486,7 @@ export const SelectMenusDemo = () => {
             </ListItemIcon>
             <ListItemText primary="Account Settings" />
           </MenuItem>
-          <MenuItem value="20">
+          <MenuItem value="20" noSelectBackground>
             <ListItemIcon>
               <Checkbox />
             </ListItemIcon>
@@ -495,7 +495,7 @@ export const SelectMenusDemo = () => {
             </ListItemIcon>
             <ListItemText primary="Account Settings" />
           </MenuItem>
-          <MenuItem value="30">
+          <MenuItem value="30" noSelectBackground>
             <ListItemIcon>
               <Checkbox />
             </ListItemIcon>
