@@ -20,8 +20,8 @@ interface Interval {
 
 type AppProps = {
   interval: {
-    start?: Date | string;
-    end?: Date | string;
+    start?: string | null;
+    end?: string | null;
   };
   selectsRange: boolean;
   strict: boolean;
