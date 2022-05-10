@@ -787,21 +787,15 @@ export const getDestinationEntityOfLink = async (
   conn: Connection,
   link: DbLink,
 ): Promise<DbEntity> => {
-  const destinationEntity = link.destinationEntityVersionId
-    ? await getEntity(conn, {
-        accountId: link.destinationAccountId,
-        entityVersionId: link.destinationEntityVersionId,
-      })
-    : await getEntityLatestVersion(conn, {
-        accountId: link.destinationAccountId,
-        entityId: link.destinationEntityId,
-      });
+  const destinationEntity = await getEntityLatestVersion(conn, {
+    accountId: link.destinationAccountId,
+    entityId: link.destinationEntityId,
+  });
 
   if (!destinationEntity) {
     throw new DbEntityNotFoundError({
       accountId: link.destinationAccountId,
       entityId: link.destinationEntityId,
-      entityVersionId: link.destinationEntityVersionId,
     });
   }
 

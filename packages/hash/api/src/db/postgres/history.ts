@@ -166,7 +166,6 @@ export const getImpliedEntityHistory = async (
           (link): OutgoingLink => ({
             accountId: link.sourceAccountId,
             entityId: link.sourceEntityId,
-            entityVersionId: link.destinationEntityVersionId,
             /** @todo: fix this type when fixing implied history resolver */
             validForSourceEntityVersionIds: (link as any)
               .sourceEntityVersionIds,

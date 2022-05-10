@@ -190,7 +190,6 @@ export const insertLink = async (
           null,
           dbLink.destinationAccountId,
           dbLink.destinationEntityId,
-          dbLink.destinationEntityVersionId ?? null,
         ],
         sql`, `,
       )})
@@ -226,8 +225,6 @@ export const mapDbRowsToDbLink = (
     dbLinkWithVersionRow.removed_from_source_by_account_id ?? undefined,
   destinationAccountId: dbLinkWithVersionRow.destination_account_id,
   destinationEntityId: dbLinkWithVersionRow.destination_entity_id,
-  destinationEntityVersionId:
-    dbLinkWithVersionRow.destination_entity_version_id ?? undefined,
   updatedAt: new Date(dbLinkWithVersionRow.updated_at),
   updatedByAccountId: dbLinkWithVersionRow.updated_by_account_id,
 });

@@ -92,12 +92,6 @@ export type DbLink = {
 
   destinationEntityId: string;
 
-  /**
-   * Optional way to pin the link to a specific
-   * version of the destination entity.
-   */
-  destinationEntityVersionId?: string;
-
   updatedAt: Date;
   updatedByAccountId: string;
 };
@@ -484,8 +478,6 @@ export interface DbClient {
     sourceEntityVersionIds: Set<string>;
     destinationAccountId: string;
     destinationEntityId: string;
-    /** See docs for {@link DbLink.destinationEntityVersionId} */
-    destinationEntityVersionId?: string;
   }): Promise<DbLink>;
 
   /**
