@@ -140,7 +140,7 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 ### Project Setup / Building
 
 - Run `cargo build`
-- If Python behaviors are present, you have to setup a Python environment by running `./lib/execution/src/runner/python/setup.sh` and follow the instructions from the help.
+- **optional:** If Python initialization or Python behaviors are used, set up a Python environment by running `./lib/execution/src/runner/python/setup.sh` and follow the instructions from the help.
 
 ### Running for development
 
