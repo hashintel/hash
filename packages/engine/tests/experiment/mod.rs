@@ -182,14 +182,30 @@ pub async fn run_test_suite(
 
             let mut test_output = None;
             for log_level in &log_levels {
+                if let Some(log_level) = log_level {
+                    tracing::info!("Running test with log level `{log_level}`... ");
+                }
+
+                let output = output_folder.clone();
+
+                let experiment_config = ExperimentConfig {
+                    num_workers: num_cpus::get(),
+                    log_format: LogFormat::Pretty,
+                    log_folder: output.join("log"),
+                    log_level: *log_level,
+                    output_folder: output,
+                    output_location: OutputLocation::File("output.log".into()),
+                    start_timeout,
+                    wait_timeout,
+                    js_runner_initial_heap_constraint: None,
+                    js_runner_max_heap_size: None,
+                };
+
                 let test_result = run_test(
                     experiment_type.clone(),
                     &project_path,
                     project_name.clone(),
-                    *log_level,
-                    output_folder.clone(),
-                    start_timeout,
-                    wait_timeout,
+                    experiment_config,
                     language,
                     target_max_group_size,
                 )
@@ -197,8 +213,22 @@ pub async fn run_test_suite(
 
                 match test_result {
                     Ok(outputs) => {
-                        test_output = Some(outputs);
-                        break;
+                        if expected_outputs.len() == outputs.outputs.len() {
+                            test_output = Some(outputs);
+                            break;
+                        }
+
+                        if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            tracing::error!("Logs:");
+                            eprintln!("{log}");
+                        }
+                        tracing::error!("Test failed");
+                        tracing::error!(
+                            "Number of expected outputs does not match number of returned \
+                             simulation results for experiment, expected {} found {}.",
+                            expected_outputs.len(),
+                            outputs.outputs.len()
+                        );
                     }
                     Err(err) => {
                         tracing::error!("Test failed");
@@ -211,56 +241,8 @@ pub async fn run_test_suite(
                 }
             }
 
-            let test_output = test_output.expect("Could not run experiment");
-
-            if expected_outputs.len() != test_output.outputs.len() {
-                let mut fail_test_output = None;
-
-                let log_level = log_levels
-                    .last()
-                    .expect("There should be at least one log level.");
-
-                let test_result = run_test(
-                    experiment_type.clone(),
-                    &project_path,
-                    project_name.clone(),
-                    *log_level,
-                    output_folder.clone(),
-                    start_timeout,
-                    wait_timeout,
-                    language,
-                    target_max_group_size,
-                )
-                .await;
-
-                match test_result {
-                    Ok(outputs) => {
-                        fail_test_output = Some(outputs);
-                    }
-                    Err(err) => {
-                        tracing::error!("Test failed");
-                        tracing::error!("Err:\n{err:?}");
-                        if let Ok(log) = fs::read_to_string(&log_file_path) {
-                            tracing::error!("Logs:");
-                            eprintln!("{log}");
-                        }
-                    }
-                }
-
-                let fail_test_output = fail_test_output.expect("Could not run experiment");
-
-                if let Ok(log) = fs::read_to_string(&log_file_path) {
-                    tracing::error!("Logs:");
-                    eprintln!("{log}");
-                }
-
-                panic!(
-                    "Number of expected outputs does not match number of returned simulation \
-                     results for experiment, expected {} found {}.",
-                    expected_outputs.len(),
-                    fail_test_output.outputs.len()
-                );
-            }
+            let test_output =
+                test_output.expect("Could not run experiment or unexpected number of outputs");
 
             for (output_idx, ((states, globals, analysis), expected)) in test_output
                 .outputs
@@ -310,36 +292,15 @@ pub async fn run_test_suite(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn run_test<P: AsRef<Path>>(
     experiment_type: ExperimentType,
     project_path: P,
     project_name: String,
-    log_level: Option<LogLevel>,
-    output_folder: PathBuf,
-    start_timeout: f64,
-    wait_timeout: f64,
+    experiment_config: ExperimentConfig,
     language: Option<Language>,
     target_max_group_size: Option<usize>,
 ) -> Result<TestOutput> {
-    if let Some(log_level) = log_level {
-        tracing::info!("Running test with log level `{log_level}`... ");
-    }
-
     let project_path = project_path.as_ref();
-
-    let experiment_config = ExperimentConfig {
-        num_workers: num_cpus::get(),
-        log_format: LogFormat::Pretty,
-        log_folder: output_folder.join("log"),
-        log_level,
-        output_folder,
-        output_location: OutputLocation::File("output.log".into()),
-        start_timeout,
-        wait_timeout,
-        js_runner_initial_heap_constraint: None,
-        js_runner_max_heap_size: None,
-    };
 
     let nng_listen_url = {
         let uuid = uuid::Uuid::new_v4();
