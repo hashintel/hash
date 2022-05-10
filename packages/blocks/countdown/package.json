@@ -1,7 +1,7 @@
 {
   "name": "countdown",
   "version": "0.0.0",
-  "description": "countdown block",
+  "description": "Countdown to a time and date",
   "keywords": [
     "blockprotocol",
     "blocks"
