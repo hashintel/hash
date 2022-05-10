@@ -14,6 +14,7 @@ mod task;
 use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration};
 
 use futures::{
+    future::OptionFuture,
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
@@ -719,12 +720,12 @@ impl Worker {
             .into_iter()
             .map(InboundToRunnerMsgPayload::StateSync);
         let (js_res, py_res) = tokio::join!(
-            futures::future::OptionFuture::from(
+            OptionFuture::from(
                 self.js
                     .spawned()
                     .then(|| self.js.send(sim_id, messages.next().unwrap()))
             ),
-            futures::future::OptionFuture::from(
+            OptionFuture::from(
                 self.py
                     .spawned()
                     .then(|| self.py.send(sim_id, messages.next().unwrap()))
