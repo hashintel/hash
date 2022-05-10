@@ -13,16 +13,9 @@ import {
 
 import "react-datepicker/dist/react-datepicker.css";
 
-interface Interval {
+type AppProps = {
   start: Date | null;
   end: Date | null;
-}
-
-type AppProps = {
-  interval: {
-    start?: string | null;
-    end?: string | null;
-  };
   selectsRange: boolean;
   strict: boolean;
 };
@@ -35,19 +28,20 @@ const formatDate = (date: Date, rangeSelection: boolean) => {
   }
 };
 
-const formatRange = (interval: Interval) => {
-  if (interval.start !== null && interval.end !== null) {
-    return `${formatDate(interval.start, true)} - ${formatDate(
-      interval.end,
-      true,
-    )}`;
+const formatRange = (start: Date | null, end: Date | null) => {
+  if (start !== null && end !== null) {
+    return `${formatDate(start, true)} - ${formatDate(end, true)}`;
   } else {
     return "";
   }
 };
 
-const calculateTime = (interval: Interval, strict: boolean) => {
-  if (interval.start === null) {
+const calculateTime = (
+  start: Date | null,
+  end: Date | null,
+  strict: boolean,
+) => {
+  if (start === null) {
     return {
       prefix: "",
       offset: "Please select a date",
@@ -57,19 +51,19 @@ const calculateTime = (interval: Interval, strict: boolean) => {
 
   let relative;
   let date;
-  if (isFuture(interval.start)) {
-    date = interval.start;
+  if (isFuture(start)) {
+    date = start;
     relative = "until";
-  } else if (interval.end !== null && isPast(interval.end)) {
-    date = interval.end;
+  } else if (end !== null && isPast(end)) {
+    date = end;
     relative = "since";
-  } else if (interval.end === null) {
-    date = interval.start;
+  } else if (end === null) {
+    date = start;
     relative = "since";
   } else {
     return {
       prefix: "",
-      offset: formatRange(interval),
+      offset: formatRange(start, end),
       postfix: "is now",
     };
   }
@@ -83,43 +77,45 @@ const calculateTime = (interval: Interval, strict: boolean) => {
 
   return {
     prefix: `${distance} ${relative}`,
-    offset: formatDate(date, interval.end !== null),
+    offset: formatDate(date, end !== null),
     postfix: "",
   };
 };
 
 export const App: BlockComponent<AppProps> = ({
-  interval = {
-    start: null,
-    end: null,
-  },
+  start = null,
+  end = null,
   selectsRange = false,
   strict = false,
   entityId,
   accountId,
   updateEntities,
 }) => {
-  const [localInterval, setLocalInterval] = useState<Interval>({
-    start: !interval.start ? null : new Date(interval.start),
-    end: !interval.end ? null : new Date(interval.end),
-  });
+  const [localStart, setLocalStart] = useState<Date | null>(
+    !start ? null : new Date(start),
+  );
+  const [localEnd, setLocalEnd] = useState<Date | null>(
+    !end ? null : new Date(end),
+  );
   const [localSelectsRange, setLocalSelectsRange] = useState(selectsRange);
 
   const [clock, setClock] = useState({ now: new Date() });
   const tick = () => setClock({ now: new Date() });
 
   const update = useCallback(
-    (interval: Interval, selectsRange: boolean) => {
-      setLocalInterval(interval);
-      setLocalSelectsRange(selectsRange);
+    (newStart: Date | null, newEnd: Date | null, newSelectsRange: boolean) => {
+      setLocalStart(newStart);
+      setLocalEnd(newEnd);
+      setLocalSelectsRange(newSelectsRange);
       if (updateEntities) {
         void updateEntities([
           {
             entityId,
             accountId,
             data: {
-              interval,
-              selectsRange,
+              start: newStart,
+              end: newEnd,
+              selectsRange: newSelectsRange,
             },
           },
         ]);
@@ -129,17 +125,13 @@ export const App: BlockComponent<AppProps> = ({
   );
 
   useEffect(() => {
-    const newInterval = {
-      start: !interval.start ? null : new Date(interval.start),
-      end: !interval.end ? null : new Date(interval.end),
-    };
-    if (
-      newInterval.start !== localInterval.start ||
-      newInterval.end !== localInterval.end
-    )
-      setLocalInterval(newInterval);
-    if (selectsRange != localSelectsRange) setLocalSelectsRange(selectsRange);
-  }, [interval]);
+    setLocalStart(!start ? null : new Date(start));
+    setLocalEnd(!end ? null : new Date(end));
+  }, [start, end]);
+
+  useEffect(() => {
+    setLocalSelectsRange(selectsRange);
+  }, [selectsRange]);
 
   useEffect(() => {
     // Tick at least once per second
@@ -148,11 +140,11 @@ export const App: BlockComponent<AppProps> = ({
   }, []);
 
   const [timeOffset, setTimeOffset] = useState(
-    calculateTime(localInterval, strict),
+    calculateTime(localStart, localEnd, strict),
   );
   useEffect(
-    () => setTimeOffset(calculateTime(localInterval, strict)),
-    [clock, localInterval, strict],
+    () => setTimeOffset(calculateTime(localStart, localEnd, strict)),
+    [clock, localStart, localEnd, strict],
   ); // Update offset on tick
 
   const [isOpen, setIsOpen] = useState(false);
@@ -160,15 +152,14 @@ export const App: BlockComponent<AppProps> = ({
   const close = () => setIsOpen(false);
 
   const onChange = (changes: Date | [Date | null, Date | null] | null) => {
-    console.log(`onChange(${JSON.stringify(changes)})`);
     if (Array.isArray(changes)) {
       if (changes[1] !== null) {
         close();
       }
-      update({ start: changes[0], end: changes[1] }, true);
+      update(changes[0], changes[1], true);
     } else {
       close();
-      update({ start: changes, end: null }, false);
+      update(changes, null, false);
     }
   };
 
@@ -189,9 +180,9 @@ export const App: BlockComponent<AppProps> = ({
         <div style={{ display: "inline-block" }}>
           <DatePicker
             ref={datepicker}
-            selected={localInterval.start}
-            startDate={localInterval.start}
-            endDate={localInterval.end}
+            selected={localStart}
+            startDate={localStart}
+            endDate={localEnd}
             onChange={onChange}
             onCalendarClose={close}
             onSelect={() => localSelectsRange || close()}
