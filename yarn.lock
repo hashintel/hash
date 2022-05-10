@@ -8578,6 +8578,13 @@ blockprotocol@0.0.8:
   dependencies:
     "@types/react" "^17.0.39"
 
+blockprotocol@0.0.9:
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.9.tgz#322f203d1385c51c84a34a1cccf248a31cfae84d"
+  integrity sha512-ZtQJ4sCNoX3euWsH3SYQgkusWQ6qgSgexF2cOrGPbICfBvYpRRIFol6KqMZiULd0y0q0GifMgtBpZN8T0lfM0A==
+  dependencies:
+    "@types/react" "^17.0.39"
+
 bluebird@^3.3.5, bluebird@^3.7.1:
   version "3.7.2"
   resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-3.7.2.tgz#9f229c15be272454ffa973ace0dbee79a1b0c36f"
@@ -16056,6 +16063,15 @@ mock-block-dock@0.0.8:
   integrity sha512-CBI83tj546pBgBU7X+ifkh751imPhq22eMNDipsnThGcsxU9MsNYxJwIRS33u8lJLD6ycB1apHSQgaLyJ61zHA==
   dependencies:
     blockprotocol "0.0.8"
+    lodash "^4.17.21"
+    uuid "^8.3.2"
+
+mock-block-dock@0.0.9:
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.9.tgz#2197dae3159c7591032cb19e3ebcc7c096129a07"
+  integrity sha512-sLLEx2Nn73vTqDeR/wYGdFsvX50K9M1FBUK8KA28cBwOROwjxxOMJdZJ0P1AjDRBOpeh/l5oRzOPL7Bwuau/1A==
+  dependencies:
+    blockprotocol "0.0.9"
     lodash "^4.17.21"
     uuid "^8.3.2"
 

@@ -39,6 +39,7 @@ export const getGithubEntityTypes = (
 
   Promise.all(results)
     .then((entityTypesResults) => {
+      console.log({ entityTypesResults });
       const entityTypes: BlockProtocolEntityType[] = entityTypesResults.flatMap(
         (entityTypeResult) => entityTypeResult.results,
       );
