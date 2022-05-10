@@ -64,3 +64,5 @@ export const MenuItem: FC<MenuItemProps> = forwardRef(
     return Component;
   },
 );
+
+MenuItem.displayName = "MenuItem";

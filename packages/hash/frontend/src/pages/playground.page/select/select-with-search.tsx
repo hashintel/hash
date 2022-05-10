@@ -1,12 +1,6 @@
-import {
-  Box,
-  FormControl,
-  InputLabel,
-  ListItemText,
-  Select,
-} from "@mui/material";
+import { Box, FormControl, InputLabel, ListItemText } from "@mui/material";
 import { useMemo, useState } from "react";
-import { TextField, MenuItem } from "../../../shared/ui";
+import { TextField, MenuItem, Select } from "../../../shared/ui";
 
 const MENU_ITEMS = [
   "Poslight",

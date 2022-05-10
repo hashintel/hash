@@ -4,14 +4,12 @@ import {
   Checkbox,
   Divider,
   FormControl,
-  InputLabel,
   ListItemIcon,
   ListItemText,
-  Select,
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import { FontAwesomeIcon } from "../../../shared/icons";
-import { Button, Chip, TextField, MenuItem } from "../../../shared/ui";
+import { Button, Chip, TextField, MenuItem, Select } from "../../../shared/ui";
 
 const MENU_ITEMS = [
   "Edit",
@@ -43,13 +41,9 @@ export const SelectWithSearchAndCheckbox = () => {
 
   return (
     <FormControl>
-      <InputLabel
-        sx={{ visibility: "visible", color: "red" }}
-        shrink={false}
-        disableAnimation
-        variant="standard"
-      />
       <Select
+        label="Select with checkbox"
+        labelId="select-with-checkbox"
         multiple
         fullWidth
         renderValue={(selected) => (

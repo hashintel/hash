@@ -7,16 +7,16 @@ import {
 import {
   Box,
   Checkbox,
+  FormControl,
   ListItemAvatar,
   ListItemIcon,
   ListItemSecondaryAction,
   ListItemText,
   MenuList,
-  Select,
   Stack,
 } from "@mui/material";
 import { FontAwesomeIcon } from "../../shared/icons";
-import { Avatar, Chip, MenuItem } from "../../shared/ui";
+import { Avatar, Chip, MenuItem, Select } from "../../shared/ui";
 import { SelectWithSearch } from "./select/select-with-search";
 import { SelectWithSearchAndCheckbox } from "./select/select-with-search-checkbox";
 
@@ -128,47 +128,6 @@ export const SelectMenusDemo = () => {
           </MenuItem>
         </Select>
       </Stack>
-      {/* Using TextField instead  */}
-      {/* <Stack
-        direction="row"
-        alignItems="center"
-        spacing={2}
-        mb={2}
-        sx={{
-          "& > *": {
-            minWidth: 300,
-          },
-        }}
-      >
-        <TextField
-          select
-          value="10"
-          SelectProps={{
-            value: "10",
-          }}
-        >
-          <MenuItem value="10">Tom Cooka</MenuItem>
-        </TextField>
-        <TextField
-          select
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <FontAwesomeIcon icon={faStar} />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                <Typography sx={({ palette }) => ({ color: palette.gray[50] })}>
-                  @tomcook
-                </Typography>
-              </InputAdornment>
-            ),
-          }}
-        >
-          <MenuItem value="10">Tom Cook</MenuItem>
-        </TextField>
-      </Stack> */}
       {/* Chips */}
       <Stack
         direction="row"
@@ -507,9 +466,33 @@ export const SelectMenusDemo = () => {
         </MenuList>
       </Stack>
       <Box mb={6} />
+      {/*  */}
       <Stack
         direction="row"
         alignItems="center"
+        spacing={4}
+        mb={2}
+        sx={{
+          "& > *": {
+            minWidth: 250,
+          },
+        }}
+      >
+        <FormControl>
+          <Select
+            label="Select type"
+            value="10"
+            error
+            helperText="Please select a type to continue"
+          >
+            <MenuItem value="10">Tom Cook</MenuItem>
+          </Select>
+        </FormControl>
+      </Stack>
+      <Box mb={6} />
+      <Stack
+        direction="row"
+        alignItems="flex-end"
         spacing={4}
         mb={2}
         sx={{
