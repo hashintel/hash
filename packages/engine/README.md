@@ -102,7 +102,7 @@ Depending on your needs, different dependencies are required. Building this proj
         git checkout $latestTag
         ```
 
-- Python [3.7.x] is required if Python behaviors are present.
+- Python [3.7.x] is required for Python initialization or Python behaviors.
 
   - Python installation guidance from [their website](https://www.python.org/downloads/)
 
