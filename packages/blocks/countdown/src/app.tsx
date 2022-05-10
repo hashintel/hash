@@ -14,8 +14,8 @@ import {
 import "react-datepicker/dist/react-datepicker.css";
 
 type AppProps = {
-  start: Date | null;
-  end: Date | null;
+  start: string | null;
+  end: string | null;
   selectsRange: boolean;
   strict: boolean;
 };
