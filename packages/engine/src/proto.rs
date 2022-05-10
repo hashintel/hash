@@ -3,11 +3,11 @@ use core::fmt;
 use execution::{
     package::{
         experiment::{ExperimentName, ExperimentPackageConfig},
-        simulation::PackageInitConfig,
+        simulation::{init::InitialStateName, PackageInitConfig},
     },
     runner::{
         comms::{PackageError, UserError, UserWarning},
-        RunnerError,
+        Language, RunnerError,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -223,6 +223,24 @@ pub struct ExperimentRunBase {
     pub name: ExperimentName,
     pub id: ExperimentId,
     pub project_base: ProjectBase,
+}
+
+impl ExperimentRunBase {
+    /// Returns `true` if the experiment uses Python init or has any Python behavior.
+    pub fn requires_python_runner(&self) -> bool {
+        self.project_base.package_init.initial_state.name == InitialStateName::InitPy
+            || self
+                .project_base
+                .package_init
+                .behaviors
+                .iter()
+                .any(|behavior| {
+                    behavior
+                        .language()
+                        .map(|language| language == Language::Python)
+                        .unwrap_or(false)
+                })
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
