@@ -21,7 +21,6 @@ export const linksColumnNames = [
   "removed_from_source_by_account_id",
   "destination_account_id",
   "destination_entity_id",
-  "destination_entity_version_id",
 ];
 
 export const linksColumnNamesSQL = mapColumnNamesToSQL(linksColumnNames);
@@ -38,7 +37,6 @@ export type DbLinkRow = {
   removed_from_source_by_account_id: string | null;
   destination_account_id: string;
   destination_entity_id: string;
-  destination_entity_version_id: string | null;
 };
 
 export type DbLinkWithVersionRow = DbLinkRow & DbLinkVersionRow;
