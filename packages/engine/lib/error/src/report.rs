@@ -133,7 +133,7 @@ impl<C> Report<C> {
 
     /// Converts the `Report<Context>` to `Report<()>` without modifying the frame stack.
     #[allow(clippy::missing_const_for_fn)] // False positive
-    pub fn generalise(self) -> Report {
+    pub fn generalize(self) -> Report {
         Report {
             inner: self.inner,
             _context: PhantomData,

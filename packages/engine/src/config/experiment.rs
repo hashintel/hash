@@ -56,11 +56,11 @@ impl Config {
 
         let run = Arc::new(experiment_run);
 
-        // TODO: Rust, Python
-        // TODO: Ask packages for what language execution they require.
+        // TODO: Rust
+        // TODO: Ask packages for what language execution they require. Done for Python.
         let worker_config = WorkerConfig {
             spawn: RunnerSpawnConfig {
-                python: true,
+                python: run.base().requires_python_runner(),
                 rust: false,
                 javascript: true,
             },
