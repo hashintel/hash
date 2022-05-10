@@ -227,7 +227,7 @@ pub struct ExperimentRunBase {
 
 impl ExperimentRunBase {
     /// Returns `true` if the experiment uses Python init or has any Python behavior.
-    pub fn has_python_init_or_behavior(&self) -> bool {
+    pub fn requires_python_runner(&self) -> bool {
         matches!(
             self.project_base.package_init.initial_state.name,
             InitialStateName::InitPy
