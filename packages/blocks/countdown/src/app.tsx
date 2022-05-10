@@ -134,7 +134,7 @@ export const App: BlockComponent<AppProps> = ({
   }, [selectsRange]);
 
   useEffect(() => {
-    // Tick at least once per second
+    // Tick at most once per second
     // It might take slightly longer than a second depending on how long it takes to get through other events
     setInterval(tick, 1000);
   }, []);
