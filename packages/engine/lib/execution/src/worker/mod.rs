@@ -723,15 +723,14 @@ impl Worker {
             return Ok(());
         };
 
-        // TODO: Change to `children(n)` for `n` enabled runners and adjust the following lines as
-        //       well.
         debug_assert!(!self.rs.spawned());
-        let (runner_msgs, runner_receivers) =
-            sync.create_children(self.js.spawned() as usize + self.py.spawned() as usize);
+        let (runner_msgs, runner_receivers) = sync.create_children(
+            self.js.spawned() as usize + self.py.spawned() as usize + self.rs.spawned() as usize,
+        );
         let mut messages = runner_msgs
             .into_iter()
             .map(InboundToRunnerMsgPayload::StateSync);
-        let (js_res, py_res) = tokio::join!(
+        let (js_res, py_res, rs_res) = tokio::join!(
             OptionFuture::from(
                 self.js
                     .spawned()
@@ -742,10 +741,15 @@ impl Worker {
                     .spawned()
                     .then(|| self.py.send(sim_id, messages.next().unwrap()))
             ),
-            // self.rs.send_if_spawned(sim_id, rs_msg),
+            OptionFuture::from(
+                self.rs
+                    .spawned()
+                    .then(|| self.rs.send(sim_id, messages.next().unwrap()))
+            ),
         );
         js_res.transpose()?;
         py_res.transpose()?;
+        rs_res.transpose()?;
 
         let fut = async move {
             // Capture `sync` in lambda.
