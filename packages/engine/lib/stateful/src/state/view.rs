@@ -1,18 +1,18 @@
 use crate::{
-    agent::{AgentBatch, AgentPool},
-    message::{MessageBatch, MessageMap, MessagePool},
+    agent::{AgentBatch, AgentBatchPool},
+    message::{MessageBatch, MessageBatchPool, MessageMap},
     state::{StateReadProxy, StateWriteProxy},
     Result,
 };
 
-/// Unification of [`AgentPool`]s and [`MessagePool`]s for simultaneous access.
+/// Unification of [`AgentBatchPool`]s and [`MessageBatchPool`]s for simultaneous access.
 #[derive(Clone)]
-pub struct StatePools {
-    pub agent_pool: AgentPool,
-    pub message_pool: MessagePool,
+pub struct StateBatchPools {
+    pub agent_pool: AgentBatchPool,
+    pub message_pool: MessageBatchPool,
 }
 
-impl StatePools {
+impl StateBatchPools {
     pub fn read(&self) -> Result<StateReadProxy> {
         StateReadProxy::new(self)
     }
@@ -22,7 +22,7 @@ impl StatePools {
     }
 }
 
-impl Extend<(AgentBatch, MessageBatch)> for StatePools {
+impl Extend<(AgentBatch, MessageBatch)> for StateBatchPools {
     fn extend<T: IntoIterator<Item = (AgentBatch, MessageBatch)>>(&mut self, iter: T) {
         let iter = iter.into_iter();
         let n = iter.size_hint().0;
@@ -37,8 +37,8 @@ impl Extend<(AgentBatch, MessageBatch)> for StatePools {
     }
 }
 
-/// Associates the [`StatePools`] with a [`MessageMap`].
+/// Associates the [`StateBatchPools`] with a [`MessageMap`].
 pub struct StateSnapshot {
-    pub state: StatePools,
+    pub state: StateBatchPools,
     pub message_map: MessageMap,
 }

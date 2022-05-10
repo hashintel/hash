@@ -1,4 +1,6 @@
-use crate::{package::PackageTask, task::TaskMessage, worker_pool::SplitConfig, Error, Result};
+use crate::{
+    package::simulation::PackageTask, task::TaskMessage, worker_pool::SplitConfig, Error, Result,
+};
 
 pub trait WorkerPoolHandler {
     /// When a Chunked/Parallel task is initialized

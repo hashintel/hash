@@ -1,9 +1,11 @@
+use simulation_structure::SimulationShortId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
 use crate::{
-    runner::{comms::OutboundFromRunnerMsg, JavaScriptError, PythonError},
-    task::{SharedContext, SharedState},
+    runner::{JavaScriptError, MessageTarget, PythonError},
+    task::{SharedContext, SharedState, TaskId},
+    worker_pool::WorkerIndex,
 };
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -57,7 +59,9 @@ pub enum Error {
     InvalidBehaviorTaskMessage(crate::task::TaskMessage),
 
     #[error("Behavior Key Error: {0}")]
-    BehaviorKeyJsonError(#[from] crate::package::state::behavior_execution::BehaviorKeyJsonError),
+    BehaviorKeyJsonError(
+        #[from] crate::package::simulation::state::behavior_execution::BehaviorKeyJsonError,
+    ),
 
     #[error("Tokio oneshot recv: {0}")]
     TokioOneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
@@ -77,11 +81,50 @@ pub enum Error {
     #[error("KdTree error: {0}")]
     KdTree(#[from] kdtree::ErrorKind),
 
-    #[error("Couldn't send outbound message from runner: {0}")]
-    OutboundSend(#[from] SendError<OutboundFromRunnerMsg>),
+    #[error("Missing worker with index {0}")]
+    MissingWorkerWithIndex(WorkerIndex),
+
+    #[error("Terminate message already sent")]
+    TerminateMessageAlreadySent,
+
+    #[error("Terminate message not sent")]
+    TerminateMessageNotSent,
+
+    #[error("Terminate confirm already sent")]
+    TerminateConfirmAlreadySent,
+
+    #[error("Unexpected target for a message {0:?}")]
+    UnexpectedTarget(MessageTarget),
+
+    #[error("Task already exists (id: {0})")]
+    TaskAlreadyExists(TaskId),
+
+    #[error("Tokio Join Error: {0}")]
+    TokioJoin(#[from] tokio::task::JoinError),
 
     #[error("{0}")]
     RwLock(String),
+
+    #[error("Missing simulation with id {0}")]
+    MissingSimulationWithId(SimulationShortId),
+
+    #[error("Channel for sending cancel task messages has unexpectedly closed")]
+    CancelClosed,
+
+    #[error("Missing worker")]
+    MissingWorker,
+
+    #[error("Missing pending task with id {0}")]
+    MissingPendingTask(TaskId),
+
+    #[error("Missing one-shot task result sender to send result with")]
+    NoResultSender,
+
+    #[error("Error receiving from experiment main loop: {0}")]
+    ExperimentRecv(String),
+
+    #[error("Missing simulation run with id {0}")]
+    MissingSimulationRun(SimulationShortId),
 }
 
 impl Error {
@@ -103,6 +146,15 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
+    }
+}
+
+impl<T> From<SendError<T>> for Error
+where
+    T: std::fmt::Debug,
+{
+    fn from(e: SendError<T>) -> Self {
+        Error::Unique(format!("Tokio Send Error: {:?}", e))
     }
 }
 

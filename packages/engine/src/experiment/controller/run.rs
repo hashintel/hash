@@ -1,6 +1,11 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
-use execution::runner::PythonRunner;
+use execution::{
+    package::experiment::ExperimentPackage,
+    worker::Worker,
+    worker_pool,
+    worker_pool::{comms::terminate::TerminateSend, WorkerPool},
+};
 use memory::shared_memory;
 use simulation_structure::ExperimentId;
 use stateful::global::SharedStore;
@@ -17,7 +22,6 @@ use crate::{
             sim_configurer::SimConfigurer,
         },
         error::{Error as ExperimentError, Result as ExperimentResult},
-        package::ExperimentPackage,
     },
     output::{
         buffer::remove_experiment_parts, local::LocalOutputPersistence, none::NoOutputPersistence,
@@ -25,7 +29,6 @@ use crate::{
     },
     proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
-    workerpool::{self, comms::terminate::TerminateSend, WorkerPoolController},
     Error as CrateError,
 };
 
@@ -96,7 +99,7 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
 
 type ExperimentPackageResult = Option<ExperimentResult<()>>;
 type ExperimentControllerResult = Option<Result<()>>;
-type WorkerPoolResult = Option<crate::workerpool::Result<()>>;
+type ExecutionResult = Option<execution::Result<()>>;
 
 async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     exp_config: ExperimentConfig,
@@ -114,25 +117,29 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         exp_base_config.run.base().id,
     )?);
 
-    // Set up the worker pool controller and all communications with it
+    // Set up the worker pool and all communications with it
     let (experiment_to_worker_pool_send, experiment_to_worker_pool_recv) =
-        workerpool::comms::experiment::new_pair();
-    let (worker_pool_controller_send, worker_pool_controller_recv) =
-        workerpool::comms::top::new_pair();
+        worker_pool::comms::experiment::new_pair();
+    let (worker_pool_send, worker_pool_recv) = worker_pool::comms::top::new_pair();
     let (mut worker_pool_terminate_send, worker_pool_terminate_recv) =
-        workerpool::comms::terminate::new_pair();
-    let (mut worker_pool_controller, worker_pool_send_base) =
-        WorkerPoolController::new_with_sender(
-            exp_config.clone(),
-            experiment_to_worker_pool_recv,
-            worker_pool_terminate_recv,
-            worker_pool_controller_send,
-        )?;
+        worker_pool::comms::terminate::new_pair();
+    let (mut worker_pool, worker_pool_send_base) = WorkerPool::new_with_sender(
+        &exp_config.worker_pool,
+        experiment_to_worker_pool_recv,
+        worker_pool_terminate_recv,
+        worker_pool_send,
+    )?;
 
-    // Start up the experiment package (simple/single)
-    let experiment_package = ExperimentPackage::new(exp_config.clone())
-        .await
-        .map_err(|experiment_err| Error::from(experiment_err.to_string()))?;
+    let experiment_package = if let PackageConfig::ExperimentPackageConfig(package_config) =
+        exp_config.run.package_config()
+    {
+        // Start up the experiment package (simple/single)
+        ExperimentPackage::new(package_config.clone())
+            .await
+            .map_err(|experiment_err| Error::from(experiment_err.to_string()))?
+    } else {
+        unreachable!();
+    };
     let mut experiment_package_handle = experiment_package.join_handle;
 
     let package_config = match exp_config.run.package_config() {
@@ -148,14 +155,14 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
     let mut orch_client = env.orch_client.try_clone()?;
     let (mut experiment_controller_terminate_send, experiment_controller_terminate_recv) =
-        workerpool::comms::terminate::new_pair();
+        worker_pool::comms::terminate::new_pair();
     let experiment_controller = ExperimentController::new(
         exp_config,
         exp_base_config,
         env,
         shared_store,
         experiment_to_worker_pool_send,
-        worker_pool_controller_recv,
+        worker_pool_recv,
         experiment_package.comms,
         output_persistence_service_creator,
         worker_pool_send_base,
@@ -169,16 +176,14 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     // Get the experiment-level initialization payload for workers
     let exp_init_msg_base = experiment_controller.exp_init_msg_base().await?;
     // TODO: does this need to even be async
-    worker_pool_controller
-        .spawn_workers(exp_init_msg_base)
-        .await?;
+    worker_pool.spawn_workers(exp_init_msg_base).await?;
 
-    let mut worker_pool_controller_handle =
-        tokio::spawn(async move { worker_pool_controller.run().await }.in_current_span());
+    let mut worker_pool_handle =
+        tokio::spawn(async move { worker_pool.run().await }.in_current_span());
     let mut experiment_controller_handle =
         tokio::spawn(async move { experiment_controller.run().await }.in_current_span());
 
-    let mut worker_pool_result: WorkerPoolResult = None;
+    let mut worker_pool_result: ExecutionResult = None;
     let mut experiment_package_result: ExperimentPackageResult = None;
     let mut experiment_controller_result: ExperimentControllerResult = None;
     let mut exit_timeout = None;
@@ -210,7 +215,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                 };
 
                 // The experiment package should finish first
-                experiment_package_result = Some(res);
+                experiment_package_result = Some(res.map_err(ExperimentError::from));
                 if experiment_package_exit_logic(
                     &experiment_controller_result,
                     &worker_pool_result,
@@ -241,7 +246,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                     break;
                 }
             }
-            Ok(res) = &mut worker_pool_controller_handle, if worker_pool_result.is_none() => {
+            Ok(res) = &mut worker_pool_handle, if worker_pool_result.is_none() => {
                 if let Err(ref inner_err) = res {
                     tracing::error!("Error from worker pool: {}", inner_err);
                     successful_exit = false;
@@ -278,7 +283,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
 #[inline]
 fn experiment_package_exit_logic(
     experiment_controller_result: &ExperimentControllerResult,
-    worker_pool_result: &WorkerPoolResult,
+    worker_pool_result: &ExecutionResult,
     experiment_controller_terminate_send: &mut TerminateSend,
     exit_timeout: &mut Option<Pin<Box<tokio::time::Sleep>>>,
 ) -> Result<bool> {
@@ -310,7 +315,7 @@ fn experiment_package_exit_logic(
 #[inline]
 fn experiment_controller_exit_logic(
     experiment_package_result: &ExperimentPackageResult,
-    worker_pool_result: &WorkerPoolResult,
+    worker_pool_result: &ExecutionResult,
     worker_pool_terminate_send: &mut TerminateSend,
     exit_timeout: &mut Option<Pin<Box<tokio::time::Sleep>>>,
 ) -> Result<bool> {
@@ -362,7 +367,7 @@ pub fn cleanup_experiment(experiment_id: ExperimentId) {
         tracing::warn!("{}", err);
     }
 
-    if let Err(err) = PythonRunner::cleanup(experiment_id) {
+    if let Err(err) = Worker::cleanup(experiment_id) {
         tracing::warn!("{}", err);
     }
 

@@ -19,25 +19,24 @@ inbound completion messages from multiple workers and combine them into one such
 main package definition can be agnostic of how work was distributed.
  */
 
-pub mod active;
-
-pub mod message;
-
 use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use execution::{
-    package::PackageTask,
+    package::simulation::PackageTask,
     task::{StoreAccessValidator, TaskId, TaskSharedStore},
     worker::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
+    worker_pool,
+    worker_pool::comms::{
+        main::MainMsgSend,
+        message::{EngineToWorkerPoolMsg, WrappedTask},
+    },
 };
 use simulation_structure::SimulationShortId;
 use stateful::{agent::Agent, context::Context, field::PackageId, state::StateReadProxy};
 use uuid::Uuid;
 
-use self::message::{EngineToWorkerPoolMsg, WrappedTask};
 use super::{command::Commands, task::active::ActiveTask, Error, Result};
-use crate::workerpool::comms::MainMsgSend;
 
 /// A simulation-specific object containing a sender to communicate with the worker-pool, and a
 /// shared collection of commands.
@@ -150,7 +149,7 @@ impl Comms {
 }
 
 #[async_trait]
-impl execution::package::Comms for Comms {
+impl execution::package::simulation::Comms for Comms {
     type ActiveTask = ActiveTask;
 
     /// Takes a given [`Task`] object, and starts its execution on the [`workerpool`], returning an
@@ -199,8 +198,14 @@ fn wrap_task(
     shared_store: TaskSharedStore,
 ) -> Result<(WrappedTask, ActiveTask)> {
     task.verify_store_access(&shared_store)?;
-    let (owner_channels, executor_channels) = active::comms();
-    let wrapped = WrappedTask::new(task_id, package_id, task, executor_channels, shared_store);
+    let (owner_channels, executor_channels) = worker_pool::comms::active::comms();
+    let wrapped = WrappedTask {
+        task_id,
+        package_id,
+        task,
+        comms: executor_channels,
+        shared_store,
+    };
     let active = ActiveTask::new(owner_channels);
     Ok((wrapped, active))
 }

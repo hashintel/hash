@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use execution::{
-    package::{
+    package::simulation::{
         init::{InitialState, InitialStateName},
         PackageCreatorConfig, PackageInitConfig,
     },

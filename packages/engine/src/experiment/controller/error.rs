@@ -11,6 +11,9 @@ pub enum Error {
     #[error("Stateful error: {0}")]
     Stateful(#[from] stateful::Error),
 
+    #[error("Execution error: {0}")]
+    Execution(#[from] execution::Error),
+
     #[error("Env error: {0}")]
     Env(#[from] crate::env::Error),
 
@@ -22,9 +25,6 @@ pub enum Error {
 
     #[error("Output error: {0}")]
     Output(#[from] crate::output::Error),
-
-    #[error("Worker Pool error: {0}")]
-    WorkerPool(#[from] crate::workerpool::Error),
 
     #[error("Datastore error: {0}")]
     Datastore(#[from] crate::datastore::Error),
