@@ -118,6 +118,10 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
           [`& .${listItemSecondaryActionClasses.root}`]: {
             color: theme.palette.blue[30],
           },
+
+          /**
+           * @todo add styles for when ownerState.dense = true
+           */
         },
     }),
   },

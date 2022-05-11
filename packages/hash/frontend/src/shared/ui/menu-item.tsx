@@ -1,11 +1,12 @@
 import {
   listItemIconClasses,
   listItemTextClasses,
+  // eslint-disable-next-line no-restricted-imports
   MenuItem as MuiMenuItem,
   MenuItemProps as MuiMenuItemProps,
   typographyClasses,
 } from "@mui/material";
-import { FC, forwardRef, ReactNode } from "react";
+import { VFC, forwardRef, ReactNode } from "react";
 import { Link } from "./link";
 
 export type MenuItemProps = {
@@ -15,15 +16,11 @@ export type MenuItemProps = {
   noSelectBackground?: boolean;
 } & MuiMenuItemProps;
 
-// todo: override dense prop styling
-export const MenuItem: FC<MenuItemProps> = forwardRef(
+export const MenuItem: VFC<MenuItemProps> = forwardRef(
   (
     { children, href, sx = [], faded, selected, noSelectBackground, ...props },
     ref,
   ) => {
-    // @todo see if it's possible to check react children to see if Checkbox is present
-    // that way we don't have to explicitly pass in noSelectBackground
-
     const Component = (
       <MuiMenuItem
         sx={[
