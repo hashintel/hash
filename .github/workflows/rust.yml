@@ -388,10 +388,11 @@ jobs:
 
       - name: Enable default features for nng
         run: |
-          # Search for `nng` dependencies and replace `nng = { version = "<version>" ... }` with `nng = "<version>"
-          sed -E 's/nng = \{ version = "(.*)".*}/nng = "\1"/' \
-            -i packages/engine/lib/nano/Cargo.toml \
-            -i packages/engine/lib/execution/Cargo.toml
+          # Search for `nng` dependencies and enable default features
+          while read -r crate; do
+            nng_line=$(grep -n '^nng = ' "$crate/Cargo.toml" | cut -d: -f1)
+            sed "${nng_line}s/default-features = false/default-features = true/" -i "$crate/Cargo.toml"
+          done <<< "$(find . -name Cargo.toml -printf '%h\n')"
 
       - name: Install Rust
         id: toolchain
