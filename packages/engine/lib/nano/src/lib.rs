@@ -29,7 +29,6 @@
 #![warn(
     clippy::pedantic,
     clippy::nursery,
-    clippy::restriction,
     reason = "All clippy warnings are enabled by default"
 )]
 // TODO: DOC
@@ -41,15 +40,6 @@
 #![allow(
     clippy::missing_inline_in_public_items,
     reason = "We didn't any serious optimization work until now"
-)]
-#![allow(
-    clippy::blanket_clippy_restriction_lints,
-    clippy::implicit_return,
-    clippy::expect_used,
-    clippy::unreachable,
-    clippy::integer_arithmetic,
-    clippy::pattern_type_mismatch,
-    reason = "Allow lints, which are too verbose to be applied"
 )]
 #![allow(
     clippy::redundant_pub_crate,
