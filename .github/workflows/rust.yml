@@ -147,7 +147,10 @@ jobs:
         run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Enable default features for nng
-        run: sed -E 's/nng = \{ version = "(.*)".*}/nng = "\1"/' -i packages/engine/lib/nano/Cargo.toml
+        run: |
+          # Search for `nng` dependencies and replace `nng = { version = "<version>" ... }` with `nng = "<version>"
+          sed -E 's/nng = \{ version = "(.*)".*}/nng = "\1"/' -i packages/engine/lib/nano/Cargo.toml
+          sed -E 's/nng = \{ version = "(.*)".*}/nng = "\1"/' -i packages/engine/lib/execution/Cargo.toml
 
       - name: Install Rust
         id: toolchain
