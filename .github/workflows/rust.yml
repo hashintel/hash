@@ -40,7 +40,7 @@ jobs:
           available_crates="$(find . -name Cargo.toml -printf '%h\n' | sed 's:./::' | sort | tac)"
           changed_files="$(git diff --name-only HEAD^ HEAD)"
 
-          # All jobs for all crates will run if any of those paths changes
+          # All jobs for all crates will run if any of these paths changes
           always_run_on=(".github" "rust-toolchain.toml")
 
           # We ensure, that `miri` will run for these crates
