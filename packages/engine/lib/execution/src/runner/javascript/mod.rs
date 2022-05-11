@@ -1218,6 +1218,7 @@ impl<'s> ThreadLocalRunner<'s> {
         }
 
         // TODO: Either move to Arrow2 or fix the validation error
+        // Arrow2 task: https://app.asana.com/0/1199548034582004/1201999214936733/f
         //
         // Arrow's null checking fails for a couple of tests when trying to validate the
         // conversion from JS to Rust. This is likely a false-positive and will be fixed by moving
