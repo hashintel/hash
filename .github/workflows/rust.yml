@@ -147,7 +147,7 @@ jobs:
         run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Enable default features for nng
-        run: sed -E 's/nng = \{ version = "(.*)".*}/nng = "\1"/' -i ${{ matrix.directory }}/Cargo.toml
+        run: sed -E 's/nng = \{ version = "(.*)".*}/nng = "\1"/' -i packages/engine/lib/nano/Cargo.toml
 
       - name: Install Rust
         id: toolchain
@@ -214,7 +214,7 @@ jobs:
           sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Enable default features for nng
-        run: sed -E 's/nng = \{ version = "(.*)".*}/nng = "\1"/' -i ${{ matrix.directory }}/Cargo.toml
+        run: sed -E 's/nng = \{ version = "(.*)".*}/nng = "\1"/' -i packages/engine/lib/nano/Cargo.toml
 
       - name: Install Rust
         id: toolchain
