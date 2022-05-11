@@ -1,7 +1,7 @@
 {
   "name": "github-pr-overview",
   "version": "0.0.0",
-  "description": "github-pr-overview block",
+  "description": "Display an overview of a GitHub Pull Request, including a timeline of key events",
   "keywords": [
     "blockprotocol",
     "blocks",
@@ -40,7 +40,7 @@
     "port": 63222
   },
   "blockprotocol": {
-    "displayName": "Github Pull-Request Overview",
+    "displayName": "GitHub Pull-Request Overview",
     "examples": [
       {}
     ],
