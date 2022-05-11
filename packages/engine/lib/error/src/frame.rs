@@ -8,9 +8,8 @@ use core::{
     fmt::Formatter,
     mem::ManuallyDrop,
     panic::Location,
-    ptr::{self, NonNull},
+    ptr::{self, addr_of, NonNull},
 };
-use std::ptr::addr_of;
 
 use provider::{self, Demand, Provider};
 
