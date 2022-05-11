@@ -75,7 +75,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
     }
   | {
       type: "updateBlockEntityProperties";
-      payload: { blockEntitydraftId: string; targetEntity: EntityStoreType };
+      payload: { blockEntityDraftId: string; targetEntity: EntityStoreType };
     }
 );
 
@@ -286,9 +286,9 @@ const entityStoreReducer = (
     }
 
     case "updateBlockEntityProperties": {
-      if (!state.store.draft[action.payload.blockEntitydraftId]) {
+      if (!state.store.draft[action.payload.blockEntityDraftId]) {
         throw new Error(
-          `Block missing to merge entity properties -> ${action.payload.blockEntitydraftId}`,
+          `Block missing to merge entity properties -> ${action.payload.blockEntityDraftId}`,
         );
       }
 
@@ -303,7 +303,7 @@ const entityStoreReducer = (
 
         updateBlockEntity(
           draftState.store.draft,
-          action.payload.blockEntitydraftId,
+          action.payload.blockEntityDraftId,
           action.payload.targetEntity,
         );
       });

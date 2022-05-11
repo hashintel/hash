@@ -16,7 +16,13 @@ import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createRef, forwardRef, useMemo, useRef } from "react";
+import {
+  createRef,
+  forwardRef,
+  useMemo,
+  useRef,
+  ForwardRefRenderFunction,
+} from "react";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../shared/icons";
 import { BlockViewContext, useBlockView } from "./BlockViewContext";
@@ -35,102 +41,98 @@ type BlockHandleProps = {
   onTypeChange: BlockSuggesterProps["onChange"];
 };
 
-export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ deleteBlock, entityId, entityStore, onTypeChange }, ref) => {
-    const blockMenuRef = useRef(null);
-    const contextMenuPopupState = usePopupState({
-      variant: "popover",
-      popupId: "block-context-menu",
-    });
+export const BlockHandleComponent: ForwardRefRenderFunction<
+  HTMLDivElement,
+  BlockHandleProps
+> = ({ deleteBlock, entityId, entityStore, onTypeChange }, ref) => {
+  const blockMenuRef = useRef(null);
+  const contextMenuPopupState = usePopupState({
+    variant: "popover",
+    popupId: "block-context-menu",
+  });
 
-    const configMenuPopupState = usePopupState({
-      variant: "popover",
-      popupId: "block-config-menu",
-    });
+  const configMenuPopupState = usePopupState({
+    variant: "popover",
+    popupId: "block-config-menu",
+  });
 
-    const blockSuggesterProps: BlockSuggesterProps = useMemo(
-      () => ({
-        onChange: (variant, block) => {
-          onTypeChange(variant, block);
-          contextMenuPopupState.close();
-        },
-      }),
-      [onTypeChange, contextMenuPopupState],
-    );
+  const blockSuggesterProps: BlockSuggesterProps = useMemo(
+    () => ({
+      onChange: (variant, block) => {
+        onTypeChange(variant, block);
+        contextMenuPopupState.close();
+      },
+    }),
+    [onTypeChange, contextMenuPopupState],
+  );
 
-    const { value: blocksMetaMap } = useUserBlocks();
+  const { value: blocksMetaMap } = useUserBlocks();
 
-    /**
-     * The context and config menu use data from the draft store to subscribe to the latest local changes.
-     * Because some blocks update the API directly, bypassing collab and the entity store,
-     * data in the menus can get out of sync with data in those blocks for a few seconds.
-     * The update is eventually received by collab via the db realtime subscription, and the store updated.
-     * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
-     * @todo remove this comment when all updates are sent via collab
-     */
-    const blockEntity = entityId
-      ? getDraftEntityFromEntityId(entityStore.draft, entityId) ?? null
-      : null;
+  /**
+   * The context and config menu use data from the draft store to subscribe to the latest local changes.
+   * Because some blocks update the API directly, bypassing collab and the entity store,
+   * data in the menus can get out of sync with data in those blocks for a few seconds.
+   * The update is eventually received by collab via the db realtime subscription, and the store updated.
+   * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
+   * @todo remove this comment when all updates are sent via collab
+   */
+  const blockEntity = entityId
+    ? getDraftEntityFromEntityId(entityStore.draft, entityId) ?? null
+    : null;
 
-    if (blockEntity && !isBlockEntity(blockEntity)) {
-      throw new Error(`Non-block entity ${entityId} loaded into BlockView.`);
+  if (blockEntity && !isBlockEntity(blockEntity)) {
+    throw new Error(`Non-block entity ${entityId} loaded into BlockView.`);
+  }
+
+  const blockView = useBlockView();
+
+  const updateChildEntity = (properties: JSONObject) => {
+    const childEntity = blockEntity?.properties.entity;
+    if (!childEntity) {
+      throw new Error(`No child entity on block to update`);
     }
+    blockView.manager.updateEntityProperties(childEntity.entityId, properties);
+  };
 
-    const blockView = useBlockView();
+  const blockSchema = blockEntity
+    ? blocksMetaMap[blockEntity.properties.componentId]?.componentSchema
+    : null;
 
-    const updateChildEntity = (properties: JSONObject) => {
-      const childEntity = blockEntity?.properties.entity;
-      if (!childEntity) {
-        throw new Error(`No child entity on block to update`);
-      }
-      blockView.manager.updateEntityProperties(
-        childEntity.entityId,
-        properties,
-      );
-    };
+  return (
+    <Box
+      ref={ref}
+      sx={{
+        position: "relative",
+        cursor: "pointer",
+        height: 24,
+      }}
+      data-testid="block-changer"
+    >
+      <DragVerticalIcon {...bindTrigger(contextMenuPopupState)} />
 
-    const blockSchema = blockEntity
-      ? blocksMetaMap[blockEntity.properties.componentId]?.componentSchema
-      : null;
+      <BlockContextMenu
+        blockEntity={blockEntity}
+        blockSuggesterProps={blockSuggesterProps}
+        deleteBlock={deleteBlock}
+        entityId={entityId}
+        openConfigMenu={configMenuPopupState.open}
+        popupState={contextMenuPopupState}
+        ref={blockMenuRef}
+      />
 
-    return (
-      <Box
-        ref={ref}
-        sx={{
-          position: "relative",
-          cursor: "pointer",
-          height: 24,
-        }}
-        data-testid="block-changer"
-      >
-        <DragVerticalIcon {...bindTrigger(contextMenuPopupState)} />
+      <BlockConfigMenu
+        anchorRef={ref}
+        blockEntity={blockEntity}
+        blockSchema={blockSchema}
+        closeMenu={configMenuPopupState.close}
+        updateConfig={(properties: JSONObject) => updateChildEntity(properties)}
+        popupState={configMenuPopupState}
+      />
+    </Box>
+  );
+};
 
-        <BlockContextMenu
-          blockEntity={blockEntity}
-          blockSuggesterProps={blockSuggesterProps}
-          deleteBlock={deleteBlock}
-          entityId={entityId}
-          openConfigMenu={configMenuPopupState.open}
-          popupState={contextMenuPopupState}
-          ref={blockMenuRef}
-        />
-
-        <BlockConfigMenu
-          anchorRef={ref}
-          blockEntity={blockEntity}
-          blockSchema={blockSchema}
-          closeMenu={configMenuPopupState.close}
-          updateConfig={(properties: JSONObject) =>
-            updateChildEntity(properties)
-          }
-          popupState={configMenuPopupState}
-        />
-      </Box>
-    );
-  },
-);
-
-BlockHandle.displayName = "BlockHandle";
+export const BlockHandle = forwardRef(BlockHandleComponent);
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;

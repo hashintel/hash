@@ -652,7 +652,7 @@ export class ProsemirrorSchemaManager {
       type: "updateBlockEntityProperties",
       payload: {
         targetEntity,
-        blockEntitydraftId: mustGetDraftEntityFromEntityId(
+        blockEntityDraftId: mustGetDraftEntityFromEntityId(
           entityStore.draft,
           blockEntity.entityId,
         ).draftId,
