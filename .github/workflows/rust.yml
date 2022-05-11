@@ -391,7 +391,7 @@ jobs:
           # Search for `nng` dependencies and enable default features
           while read -r crate; do
             nng_line=$((grep -n '^nng = ' "$crate/Cargo.toml" || true) | cut -d: -f1)
-            [[ $nng_line != '' ]] && sed "${nng_line}s/default-features = false/default-features = true/" -i "$crate/Cargo.toml"
+            [[ $nng_line != '' ]] && sed "${nng_line}s/default-features = false/default-features = true/" -i "$crate/Cargo.toml" || true
           done <<< "$(find . -name Cargo.toml -printf '%h\n')"
 
       - name: Install Rust
