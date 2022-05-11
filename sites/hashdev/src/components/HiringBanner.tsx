@@ -21,8 +21,8 @@ export const HiringBanner = () => {
           cursor: "pointer",
           /** background */
           background: {
-            xs: "linear-gradient(96.49deg, #4d6aff -20%, #6f4cfa 40%)",
-            lg: "linear-gradient(90.78deg, #c2efff -25%, #4d6aff 25%, #6f4cfa 100%)",
+            xs: "linear-gradient(96.49deg, #599dfc -20%, #664df2 40%)",
+            lg: "linear-gradient(90.78deg, #5bc5fd -15%, #4e7cf9 25%, #664df2 100%)",
           },
           "&:after": {
             content: "''",
@@ -64,7 +64,7 @@ export const HiringBanner = () => {
               justifyContent: "center",
               alignSelf: { xs: "flex-start", lg: "center" },
               backgroundColor: "#F0F9FF",
-              color: "#6F59EC",
+              color: "#4d6aff",
               mr: 2,
               flexShrink: 0,
             }}
@@ -76,7 +76,7 @@ export const HiringBanner = () => {
             <Typography
               variant="hashSmallText"
               sx={{
-                color: "#D8F1F8",
+                color: "#eeeffa",
                 fontWeight: "medium",
                 mr: { xs: 0, lg: 1.5 },
                 mb: { xs: 1.5, lg: 0 },
