@@ -138,12 +138,16 @@ jobs:
         toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
         flags:
           - --all-features
+          - --no-default-features
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
 
       - name: Remove default members
         run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+
+      - name: Enable default features for nng
+        run: sed -E 's/nng = \{ version = "(.*)".*}/nng = "\1"/' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
         id: toolchain
@@ -195,7 +199,7 @@ jobs:
         toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
         flags:
           - --all-features
-          - ""
+          - --no-default-features
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
@@ -208,6 +212,9 @@ jobs:
           # Backup `Config.toml` to restore it later so that `git diff` does not report any changes
           cp -v "${{ matrix.directory }}/Cargo.toml" "${{ matrix.directory }}/Cargo.toml.orig"
           sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+
+      - name: Enable default features for nng
+        run: sed -E 's/nng = \{ version = "(.*)".*}/nng = "\1"/' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
         id: toolchain
