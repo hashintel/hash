@@ -6,7 +6,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
-  Checkbox,
   FormControl,
   ListItemAvatar,
   ListItemIcon,
