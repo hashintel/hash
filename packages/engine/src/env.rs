@@ -1,11 +1,13 @@
+use error::{Report, ResultExt};
 use serde::Deserialize;
+use simulation_structure::ExperimentId;
 use thiserror::Error as ThisError;
 use tokio::time::Duration;
 
 use crate::{
     proto::{
-        EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentId, ExperimentRunRepr,
-        ExperimentRunTrait, InitMessage,
+        EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentRunRepr, ExperimentRunTrait,
+        InitMessage,
     },
     Args,
 };
@@ -21,8 +23,8 @@ pub enum Error {
     #[error("Env error: {0}")]
     Unique(String),
 
-    #[error("Nano error: {0}")]
-    Nano(#[from] nano::Error),
+    #[error("Nano error: {0:?}")]
+    Nano(Report<nano::ErrorKind>),
 
     #[error("Unexpected message to the engine, expected an init message")]
     UnexpectedEngineMsgExpectedInit,
@@ -40,6 +42,12 @@ impl From<String> for Error {
     }
 }
 
+impl From<Report<nano::ErrorKind>> for Error {
+    fn from(report: Report<nano::ErrorKind>) -> Self {
+        Self::Nano(report)
+    }
+}
+
 pub struct OrchClient {
     url: String,
     experiment_id: ExperimentId,
@@ -48,7 +56,8 @@ pub struct OrchClient {
 
 impl OrchClient {
     pub fn new(url: &str, experiment_id: ExperimentId) -> Result<Self> {
-        let client = nano::Client::new(url, 1)?;
+        let client = nano::Client::new(url, 1)
+            .wrap_err_lazy(|| format!("Could not create orchestrator client for {url:?}"))?;
         Ok(OrchClient {
             url: url.into(),
             experiment_id,

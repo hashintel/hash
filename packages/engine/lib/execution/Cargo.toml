@@ -1,0 +1,33 @@
+[package]
+name = "execution"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+flatbuffers_gen = { path = "../flatbuffers_gen" }
+memory = { path = "../memory" }
+stateful = { path = "../stateful" }
+simulation_structure = { path = "../simulation_structure" }
+
+arrow = { version = "10.0.0", default-features = false }
+async-trait = "0.1.48"
+flatbuffers = "2.1.1"
+float-cmp = "0.8.0"
+futures = { version = "0.3.6" }
+glob = "0.3.0"
+kdtree = "0.6.0"
+lazy_static = "1.4.0"
+nng = { version = "1.0.1", default-features = false }
+rand = "0.8.3"
+rayon = "1.4.1"
+serde = { version = "1.0.111", features = ["derive"] }
+serde_json = "1.0.59"
+thiserror = "1.0.21"
+tokio = { version = "1.18.2", features = ["macros", "rt", "sync", "process", "time"] }
+tracing = "0.1.29"
+uuid = { version = "0.8.1" }
+v8 = "0.42.0"
+
+[features]
+default = ["build-nng"]
+build-nng = ["nng/build-nng"]

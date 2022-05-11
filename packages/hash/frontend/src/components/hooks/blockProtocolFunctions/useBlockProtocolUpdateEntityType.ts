@@ -62,6 +62,7 @@ export const useBlockProtocolUpdateEntityType = (): {
         }
 
         results.push({
+          accountId: data.updateEntityType.accountId,
           entityTypeId: data.updateEntityType.entityId,
           ...data.updateEntityType.properties,
         });

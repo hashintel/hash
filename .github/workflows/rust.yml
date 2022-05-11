@@ -43,7 +43,7 @@ jobs:
 
           while read -r file; do
             while read -r crate; do
-              if [[ $file =~ $crate ]] || [[ $file =~ .github ]]; then
+              if [[ $file =~ $crate ]] || [[ $file =~ .github ]] || [[ $file =~ rust-toolchain.toml ]]; then
                 changed_crates=$(echo -e "${crate}\n$changed_crates")
               fi
             done <<< "$available_crates"
@@ -246,7 +246,7 @@ jobs:
         if: matrix.directory == 'packages/engine'
         working-directory: ${{ matrix.directory }}
         run: |
-          src/worker/runner/python/setup.sh python3.7
+          lib/execution/src/runner/python/setup.sh python3.7
 
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
@@ -315,7 +315,7 @@ jobs:
         if: matrix.directory == 'packages/engine'
         working-directory: ${{ matrix.directory }}
         run: |
-          src/worker/runner/python/setup.sh python3.7
+          lib/execution/src/runner/python/setup.sh python3.7
 
       - name: Run tests
         run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1

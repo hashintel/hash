@@ -1,9 +1,7 @@
 use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData};
 
-use provider::TypeTag;
-
 use super::Frame;
-use crate::{tags::FrameSource, Frames, Report, Requests};
+use crate::{Frames, Report, Requests};
 
 impl<'r> Frames<'r> {
     pub(super) const fn new<C>(report: &'r Report<C>) -> Self {
@@ -18,7 +16,7 @@ impl<'r> Iterator for Frames<'r> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.current.take().map(|current| {
-            self.current = current.request::<FrameSource>();
+            self.current = current.request_ref::<Frame>();
             current
         })
     }
@@ -32,7 +30,7 @@ impl fmt::Debug for Frames<'_> {
     }
 }
 
-impl<'r, I> Requests<'r, I> {
+impl<'r, T: ?Sized> Requests<'r, T> {
     pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
         Self {
             frames: report.frames(),
@@ -41,17 +39,20 @@ impl<'r, I> Requests<'r, I> {
     }
 }
 
-impl<'r, I: TypeTag<'r>> Iterator for Requests<'r, I> {
-    type Item = I::Type;
+impl<'r, T> Iterator for Requests<'r, T>
+where
+    T: ?Sized + 'static,
+{
+    type Item = &'r T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.frames.by_ref().find_map(Frame::request::<I>)
+        self.frames.by_ref().find_map(Frame::request_ref)
     }
 }
 
-impl<'r, I: TypeTag<'r>> FusedIterator for Requests<'r, I> {}
+impl<'r, T> FusedIterator for Requests<'r, T> where T: ?Sized + 'static {}
 
-impl<I> Clone for Requests<'_, I> {
+impl<T: ?Sized> Clone for Requests<'_, T> {
     fn clone(&self) -> Self {
         Self {
             frames: self.frames.clone(),
@@ -60,9 +61,9 @@ impl<I> Clone for Requests<'_, I> {
     }
 }
 
-impl<'r, I: TypeTag<'r>> fmt::Debug for Requests<'r, I>
+impl<'r, T> fmt::Debug for Requests<'r, T>
 where
-    I::Type: fmt::Debug,
+    T: ?Sized + fmt::Debug + 'static,
 {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()

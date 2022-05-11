@@ -1,4 +1,5 @@
 use std::{
+    fs::remove_file,
     path::{Path, PathBuf},
     process::ExitStatus,
 };
@@ -7,9 +8,10 @@ use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine_lib::{
     experiment::controller::run::cleanup_experiment,
-    proto::{EngineMsg, ExperimentId},
+    proto::EngineMsg,
     utils::{LogFormat, LogLevel, OutputLocation},
 };
+use simulation_structure::ExperimentId;
 
 use crate::process;
 
@@ -44,6 +46,23 @@ impl process::Process for LocalProcess {
             })
             .wrap_err("Could not kill the process");
 
+        let engine_socket_path = format!("run-{experiment_id}");
+        match remove_file(&engine_socket_path) {
+            Ok(_) => {
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Removed file {engine_socket_path:?} that should've been cleaned up."
+                );
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => {
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Could not clean up {engine_socket_path:?}: {err}"
+                );
+            }
+        }
+
         cleanup_experiment(experiment_id);
 
         debug!("Cleaned up local engine process for experiment");
@@ -60,14 +79,24 @@ impl process::Process for LocalProcess {
         // We create the client on the first call here, rather than when the LocalCommand is run,
         // because the engine process needs some time before it's ready to accept NNG connections.
         if self.client.is_none() {
-            self.client = Some(nano::Client::new(&self.engine_url, 1)?);
+            self.client = Some(
+                nano::Client::new(&self.engine_url, 1)
+                    .wrap_err_lazy(|| {
+                        format!(
+                            "Could not create nano client for engine at {:?}",
+                            self.engine_url
+                        )
+                    })
+                    .map_err(Report::generalize)?,
+            );
         }
         self.client
             .as_mut()
             .unwrap()
             .send(msg)
             .await
-            .map_err(Report::from)
+            .wrap_err("Could not send engine message")
+            .map_err(Report::generalize)
     }
 
     async fn wait(&mut self) -> Result<ExitStatus> {

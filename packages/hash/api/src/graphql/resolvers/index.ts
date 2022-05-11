@@ -70,7 +70,13 @@ import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationR
 import { orgEmailInvitationLinkedEntities } from "./orgEmailInvitation/linkedEntities";
 import { orgInvitationLinkLinkedEntities } from "./orgInvitationLink/linkedEntities";
 import { pageSearchResultConnection } from "./paginationConnection/pageSearchResultConnection";
-import { executeDemoTask } from "./taskExecutor";
+import {
+  executeDemoTask,
+  executeGithubSpecTask,
+  executeGithubCheckTask,
+  executeGithubDiscoverTask,
+  executeGithubReadTask,
+} from "./taskExecutor";
 import { getLink } from "./link/getLink";
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
 
@@ -136,7 +142,12 @@ export const resolvers = {
     verifyEmail,
     sendLoginCode,
     loginWithLoginCode,
+    // Task execution
     executeDemoTask,
+    executeGithubSpecTask,
+    executeGithubCheckTask,
+    executeGithubDiscoverTask: loggedInAndSignedUp(executeGithubDiscoverTask),
+    executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
   },
 
   JSONObject: GraphQLJSON,

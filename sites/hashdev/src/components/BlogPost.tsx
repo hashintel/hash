@@ -7,6 +7,7 @@ import { createContext, FC, useContext, VFC } from "react";
 import { FRONTEND_URL } from "../config";
 import { Link } from "./Link";
 import { mdxImageClasses } from "./MdxImage";
+import { FaIcon } from "./icons/FaIcon";
 
 export type BlogPostPagePhoto = {
   src: string;
@@ -119,24 +120,6 @@ export const BlogPostHead: VFC<{
             },
           })}
         >
-          <Link href="/blog" mb={3} display="block">
-            <Typography
-              variant="hashSmallCaps"
-              sx={{
-                color: "orange.700",
-                borderBottom: 1,
-                borderBottomColor: "yellow.400",
-                pb: "4px",
-
-                "&:hover": {
-                  color: "orange.900",
-                  borderBottomColor: "yellow.700",
-                },
-              }}
-            >
-              BACK TO BLOG
-            </Typography>
-          </Link>
           <Stack direction={{ xs: "column", md: "row" }} alignItems="center">
             <Box
               sx={(theme) => ({
@@ -147,6 +130,34 @@ export const BlogPostHead: VFC<{
                 },
               })}
             >
+              <Link href="/blog" mb={3} display="block">
+                <FaIcon
+                  name="arrow-left"
+                  type="regular"
+                  sx={{
+                    width: "0.85rem",
+                    height: "0.85rem",
+                    marginRight: "8px",
+                    color: "orange.700",
+                  }}
+                />
+                <Typography
+                  variant="hashSmallCaps"
+                  sx={{
+                    color: "orange.700",
+                    borderBottom: 1,
+                    borderBottomColor: "yellow.400",
+                    pb: "4px",
+
+                    "&:hover": {
+                      color: "orange.900",
+                      borderBottomColor: "yellow.700",
+                    },
+                  }}
+                >
+                  BACK TO BLOG
+                </Typography>
+              </Link>
               {title ? (
                 <Typography variant="hashHeading1" mb={3}>
                   {title}

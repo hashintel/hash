@@ -1,9 +1,8 @@
 import { JSONObject } from "blockprotocol";
-import { Client, ClientOptions } from "@opensearch-project/opensearch";
-import { ResponseError } from "@opensearch-project/opensearch/lib/errors";
+import { Client, ClientOptions, errors } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
 
-import { sleep } from "@hashintel/hash-shared/sleep";
+import { sleep } from "../utils";
 import { Logger } from "../logger";
 import {
   SearchAdapter,
@@ -369,7 +368,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         scroll_id: openSearchCursor,
       });
     } catch (ex) {
-      if (ex instanceof ResponseError && ex.statusCode === 404) {
+      if (ex instanceof errors.ResponseError && ex.statusCode === 404) {
         throw new Error(
           "OpenSearch could not execute query. Perhaps the cursor is closed or the query is malformed?",
         );
