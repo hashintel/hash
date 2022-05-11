@@ -57,6 +57,6 @@ const RECV_EXPECT_MESSAGE: &str = "Could not receive message from nng";
 
 pub use self::{
     client::Client,
-    error::{Error, Result},
+    error::{ErrorKind, Result},
     server::Server,
 };
