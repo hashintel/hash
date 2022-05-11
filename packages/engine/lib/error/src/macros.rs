@@ -44,7 +44,7 @@ pub mod __private {
     }
 
     pub fn report(args: fmt::Arguments) -> Report {
-        Report::new(args.to_string())
+        Report::new(alloc::string::ToString::to_string(&args))
     }
 }
 
