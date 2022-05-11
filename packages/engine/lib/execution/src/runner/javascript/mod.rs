@@ -169,7 +169,7 @@ fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s
 /// Specifications].
 ///
 /// > Each time this operation is called with a specific `referencingScriptOrModule`, `specifier`
-///   pair as arguments it must return the same Module Record instance if it completes normally.
+/// > pair as arguments it must return the same Module Record instance if it completes normally.
 ///
 /// [JavaScript Specifications](https://tc39.es/ecma262/#sec-hostresolveimportedmodule)
 struct ModuleMap {
