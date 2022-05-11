@@ -89,45 +89,15 @@ export const updatePageContents: Resolver<
             entityId: swapBlockData.entityId,
           });
 
-          const blockDataEntity = await Entity.getEntityLatestVersion(client, {
-            accountId: swapBlockData.newEntityAccountId,
-            entityId: swapBlockData.newEntityEntityId,
-          });
-
           if (!block) {
             throw new Error(
               `Block with entityId ${swapBlockData.entityId} not found`,
             );
           }
 
-          if (!blockDataEntity) {
-            throw new Error(
-              `Target entity with entityId ${swapBlockData.newEntityEntityId} not found`,
-            );
-          }
-
-          const blockEntity = await Entity.getEntityLatestVersion(client, {
-            accountId: swapBlockData.accountId,
-            entityId: swapBlockData.entityId,
-          });
-
-          // forced updatedAt property to update.
-          // This is done because the frontend currently uses to `updatedAt` property
-          // to determine the most recent entity, when it comes across an entity that
-          // is also present in entity store. When a block's data is swapped, the updatedAt
-          // field of the block doesn't change and hence the current frontend setup won't know
-          // the most recent entity.
-          //
-          // This shouldn't be done since we can check if a block's data has been swapped by
-          // checking `createdAt` value of the outgoing `$.data` link.
-          // This is should be removed once the frontend has been refactored to full rely on links
-          await blockEntity?.updateEntityProperties(client, {
-            updatedByAccountId: swapBlockData.accountId,
-            properties: blockEntity.properties,
-          });
-
-          return await block.updateBlockData(client, {
-            updatedDataEntity: blockDataEntity,
+          return await block.swapBlockData(client, {
+            targetDataAccountId: swapBlockData.newEntityAccountId,
+            targetDataEntityId: swapBlockData.newEntityEntityId,
             updatedByAccountId: user.accountId,
           });
         }),

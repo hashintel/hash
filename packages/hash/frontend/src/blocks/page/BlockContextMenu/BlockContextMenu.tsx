@@ -46,7 +46,7 @@ type BlockContextMenuProps = {
 
 const LOAD_BLOCK_ENTITY_UI = "hash-load-entity-ui";
 
-const BlockContextMenuComponent: ForwardRefRenderFunction<
+const BlockContextMenu: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockContextMenuProps
 > = (
@@ -267,4 +267,6 @@ const BlockContextMenuComponent: ForwardRefRenderFunction<
   );
 };
 
-export const BlockContextMenu = forwardRef(BlockContextMenuComponent);
+export const BlockContextMenuForwardedRef = forwardRef(BlockContextMenu);
+
+export { BlockContextMenuForwardedRef as BlockContextMenu };
