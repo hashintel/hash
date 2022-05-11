@@ -8,6 +8,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 pub use self::{error::BehaviorKeyJsonError, field::BehaviorMap};
+use crate::{runner::Language, Result};
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Behavior {
@@ -24,6 +25,12 @@ pub struct Behavior {
     pub behavior_src: Option<String>,
     /// Behavior key definition for this behavior
     pub behavior_keys_src: Option<String>,
+}
+
+impl Behavior {
+    pub fn language(&self) -> Result<Language> {
+        Language::from_file_name(&self.name)
+    }
 }
 
 impl fmt::Debug for Behavior {

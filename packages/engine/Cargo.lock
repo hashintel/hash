@@ -1428,7 +1428,9 @@ dependencies = [
 name = "nano"
 version = "0.0.0"
 dependencies = [
+ "error",
  "nng",
+ "provider",
  "serde",
  "serde_json",
  "thiserror",

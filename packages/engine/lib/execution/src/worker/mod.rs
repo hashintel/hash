@@ -14,6 +14,7 @@ mod task;
 use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration};
 
 use futures::{
+    future::OptionFuture,
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
@@ -124,9 +125,8 @@ impl Worker {
     }
 
     async fn _run(&mut self) -> Result<()> {
-        // TODO: Rust
         let mut py_handle = self.py.run().await?;
-        // let mut rs_handle = self.rs.run().await?;
+        let mut rs_handle = self.rs.run().await?;
         let mut js_handle = self.js.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
@@ -188,25 +188,38 @@ impl Worker {
                     self.worker_pool_comms.confirm_terminate().map_err(|err| Error::from(format!("Failed to send confirmation of terminating workers: {:?}", err)))?;
                     break;
                 }
-                py_res = &mut py_handle => {
+                py_res = &mut py_handle, if self.py.spawned() => {
                     tracing::warn!("Python runner finished unexpectedly: {py_res:?}");
                     py_res??;
                     // TODO: send termination to js_handle
                     js_handle.await??;
+                    // TODO: send termination to rs_handle
+                    rs_handle.await??;
                     return Ok(());
                 }
-                js_res = &mut js_handle => {
+                js_res = &mut js_handle, if self.js.spawned() => {
                     tracing::warn!("Javascript runner finished unexpectedly: {js_res:?}");
                     js_res??;
                     // TODO: send termination to py_handle
                     py_handle.await??;
+                    // TODO: send termination to rs_handle
+                    rs_handle.await??;
+                    return Ok(());
+                }
+                rs_res = &mut rs_handle, if self.rs.spawned() => {
+                    tracing::warn!("Rust runner finished unexpectedly: {rs_res:?}");
+                    rs_res??;
+                    // TODO: send termination to py_handle
+                    py_handle.await??;
+                    // TODO: send termination to js_handle
+                    js_handle.await??;
                     return Ok(());
                 }
             }
         }
 
         py_handle.await??;
-        // rs_handle.await??;
+        rs_handle.await??;
         js_handle.await??;
 
         Ok(())
@@ -710,22 +723,34 @@ impl Worker {
             return Ok(());
         };
 
-        // TODO: Change to `children(n)` for `n` enabled runners and adjust the following lines as
-        //       well.
         debug_assert!(!self.rs.spawned());
-        let (runner_msgs, runner_receivers) = sync.create_children(2);
-        let messages: [_; 2] = runner_msgs
+        let (runner_msgs, runner_receivers) = sync.create_children(
+            self.js.spawned() as usize + self.py.spawned() as usize + self.rs.spawned() as usize,
+        );
+        let mut messages = runner_msgs
             .into_iter()
-            .map(InboundToRunnerMsgPayload::StateSync)
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
-        let [js_msg, py_msg /* rs_msg */] = messages;
-        tokio::try_join!(
-            self.js.send_if_spawned(sim_id, js_msg),
-            self.py.send_if_spawned(sim_id, py_msg),
-            // self.rs.send_if_spawned(sim_id, rs_msg),
-        )?;
+            .map(InboundToRunnerMsgPayload::StateSync);
+        let (js_res, py_res, rs_res) = tokio::join!(
+            OptionFuture::from(
+                self.js
+                    .spawned()
+                    .then(|| self.js.send(sim_id, messages.next().unwrap()))
+            ),
+            OptionFuture::from(
+                self.py
+                    .spawned()
+                    .then(|| self.py.send(sim_id, messages.next().unwrap()))
+            ),
+            OptionFuture::from(
+                self.rs
+                    .spawned()
+                    .then(|| self.rs.send(sim_id, messages.next().unwrap()))
+            ),
+        );
+        js_res.transpose()?;
+        py_res.transpose()?;
+        rs_res.transpose()?;
+
         let fut = async move {
             // Capture `sync` in lambda.
             let sync = sync;
