@@ -12,6 +12,7 @@ import {
 import { PopupState } from "material-ui-popup-state/core";
 import { useCallback, useEffect, useMemo, useRef, VFC } from "react";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { EntityFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { useBlockView } from "../BlockViewContext";
 import { FontAwesomeIcon } from "../../../shared/icons";
 import { useRouteAccountInfo } from "../../../shared/routing";
@@ -70,34 +71,38 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
 
   const filteredEntities = useMemo(() => {
     const uniqueEntityIds = new Set();
-    return (entities as unknown as BlockEntity[]).filter((entity) => {
-      // Right now we only handle entities that are created by a block.
-      // This will be updated later on to also handle entities that have a similar
-      // schema with the block's data
-      if (!isBlockEntity(entity)) return false;
+    // EntityFieldsFragment has fields BlockEntity doesn't - so TypeScript is complaining about this type guard
+    // @todo figure out how to remove this cast
+    return (entities as (EntityFieldsFragment | BlockEntity)[]).filter(
+      (entity): entity is BlockEntity => {
+        // Right now we only handle entities that are created by a block.
+        // This will be updated later on to also handle entities that have a similar
+        // schema with the block's data
+        if (!isBlockEntity(entity)) return false;
 
-      // don't include entities that have empty data
-      if (Object.keys(entity.properties.entity.properties).length === 0) {
-        return false;
-      }
+        // don't include entities that have empty data
+        if (Object.keys(entity.properties.entity.properties).length === 0) {
+          return false;
+        }
 
-      const targetEntityId = entity.properties.entity.entityId;
+        const targetEntityId = entity.properties.entity.entityId;
 
-      // don't include the current entity the block is tied to
-      if (targetEntityId === blockEntity?.properties.entity.entityId) {
-        return false;
-      }
+        // don't include the current entity the block is tied to
+        if (targetEntityId === blockEntity?.properties.entity.entityId) {
+          return false;
+        }
 
-      // don't include duplicates
-      if (uniqueEntityIds.has(targetEntityId)) {
+        // don't include duplicates
+        if (uniqueEntityIds.has(targetEntityId)) {
+          uniqueEntityIds.add(targetEntityId);
+          return false;
+        }
+
         uniqueEntityIds.add(targetEntityId);
-        return false;
-      }
 
-      uniqueEntityIds.add(targetEntityId);
-
-      return true;
-    });
+        return true;
+      },
+    );
   }, [entities, blockEntity]);
 
   return (
