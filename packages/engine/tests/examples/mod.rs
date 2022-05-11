@@ -48,11 +48,11 @@ mod model_market {
 }
 
 // https://core.hash.ai/@hash/wildfires-regrowth/9.8.0
-mod wildfire_regrowth {
+mod wildfires_regrowth {
     use crate::run_test;
 
-    run_test!(wildfire_regrowth, experiment: test_experiment);
-    run_test!(wildfire_regrowth, experiment: lightning_chance_linspace);
+    run_test!(wildfires_regrowth, experiment: test_experiment);
+    run_test!(wildfires_regrowth, experiment: lightning_chance_linspace);
 }
 
 // https://core.hash.ai/@hash/ant-foraging/7.4.0
