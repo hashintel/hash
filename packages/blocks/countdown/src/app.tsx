@@ -136,7 +136,9 @@ export const App: BlockComponent<AppProps> = ({
   useEffect(() => {
     // Tick at most once per second
     // It might take slightly longer than a second depending on how long it takes to get through other events
-    setInterval(tick, 1000);
+    const tickInterval = setInterval(tick, 1000);
+
+    return () => clearInterval(tickInterval);
   }, []);
 
   const [timeOffset, setTimeOffset] = useState(
