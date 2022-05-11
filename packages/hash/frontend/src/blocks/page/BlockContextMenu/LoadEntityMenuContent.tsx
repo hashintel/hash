@@ -33,16 +33,19 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   // and this can cause some bugs.
   // @todo make this a subscription
   const entityStore = entityStorePluginState(blockView.editorView.state).store;
-  const blockData = entityId ? entityStore.saved[entityId] : null;
+  // savedEntity and blockEntity are the same. savedEntity variable
+  // is needed to get proper typing on blockEntity
+  const savedEntity = entityId ? entityStore.saved[entityId] : null;
+  const blockEntity = isBlockEntity(savedEntity) ? savedEntity : null;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: entities, loading } = useAccountEntities({
     accountId,
     entityTypeFilter: {
-      componentId: isBlockEntity(blockData)
-        ? blockData?.properties.componentId
+      componentId: isBlockEntity(blockEntity)
+        ? blockEntity?.properties.componentId
         : undefined,
     },
-    skip: !(isBlockEntity(blockData) && !!accountId),
+    skip: !(isBlockEntity(blockEntity) && !!accountId),
   });
 
   useEffect(() => {
@@ -77,34 +80,29 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
       // schema with the block's data
       if (!isBlockEntity(entity)) return false;
 
-      if (Object.keys(entity.properties?.entity?.properties).length === 0) {
+      // don't include entities that have empty data
+      if (Object.keys(entity.properties.entity.properties).length === 0) {
         return false;
       }
 
-      const targetEntityId = entity.properties?.entity.entityId;
+      const targetEntityId = entity.properties.entity.entityId;
 
-      // if the target entity is the same as the current one the block is linked to
-      // return
-      if (
-        isBlockEntity(blockData) &&
-        targetEntityId === blockData?.properties.entity.entityId
-      ) {
+      // don't include the current entity the block is tied to
+      if (targetEntityId === blockEntity?.properties.entity.entityId) {
         return false;
       }
 
-      const isDuplicate = uniqueEntityIds.has(targetEntityId);
+      // don't include duplicates
+      if (uniqueEntityIds.has(targetEntityId)) {
+        uniqueEntityIds.add(targetEntityId);
+        return false;
+      }
 
       uniqueEntityIds.add(targetEntityId);
 
-      // We could have 2 block entities linked to the same entity
-      // this ensures the entity doesn't appear twice
-      if (isDuplicate) {
-        return false;
-      }
-
       return true;
     });
-  }, [entities, blockData]);
+  }, [entities, blockEntity]);
 
   return (
     <MenuList>
