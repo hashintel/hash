@@ -419,10 +419,12 @@ jobs:
             ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Setup miri
+        working-directory: ${{ matrix.directory }}
         run: cargo miri setup
 
       - name: Run miri
-        run: cargo miri test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
+        working-directory: ${{ matrix.directory }}
+        run: cargo miri test ${{ matrix.flags }}
 
   merging-enabled:
     name: merging enabled
