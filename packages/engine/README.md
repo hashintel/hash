@@ -85,10 +85,6 @@ Depending on your needs, different dependencies are required. Building this proj
 
 - a C++ compiler, pkg-config, openssl development files (see [Possible Dependencies and Debugging](#possible-dependencies-and-debugging))
 
-- Python [3.7.x]
-
-  - Python installation guidance from [their website](https://www.python.org/downloads/)
-
 - Please also see [macOS Developer Specific Instructions](#macos-developer-specific-instructions) if you are running macOS
 
 ### Optional dependencies
@@ -105,6 +101,10 @@ Depending on your needs, different dependencies are required. Building this proj
         latestTag=$(git describe --tags $(git rev-list --tags --max-count=1))
         git checkout $latestTag
         ```
+
+- Python [3.7.x] is required for Python initialization or Python behaviors.
+
+  - Python installation guidance from [their website](https://www.python.org/downloads/)
 
 ### macOS Developer Specific Instructions
 
@@ -140,11 +140,7 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 ### Project Setup / Building
 
 - Run `cargo build`
-- Setup a Python environment by running `./lib/execution/src/runner/python/setup.sh` and follow the instructions from the help.
-
-> **WIP** - In the future, setting up Python will only be required if Python behaviors are present, but for now it is always required.
-
-The initial setup time may be long at the moment. We need to use a fork of `rusty_v8` but expect significant improvement after [rusty_v8#926](https://github.com/denoland/rusty_v8/pull/926) is merged and a new crates.io release is made.
+- **optional:** If Python initialization or Python behaviors are used, set up a Python environment by running `./lib/execution/src/runner/python/setup.sh` and follow the instructions from the help.
 
 ### Running for development
 

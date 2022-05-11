@@ -5,8 +5,8 @@
 //! The main struct in this module is [`Agent`]. It contains all agent fields as an accessible
 //! struct. Its fields are represented by [`AgentStateField`], which is based on the [`field`] API.
 //! A group of [`Agent`]s has an in-memory representation defined by [`AgentSchema`] and can be used
-//! by [`AgentBatch`] or, in case of multiple groups of [`Agent`]s, [`AgentPool`]. To convert an
-//! [`AgentBatch`] to [`Vec`]`<`[`Agent`]`>`, the [`IntoAgents`] trait is used.
+//! by [`AgentBatch`] or, in case of multiple groups of [`Agent`]s, [`AgentBatchPool`]. To convert
+//! an [`AgentBatch`] to [`Vec`]`<`[`Agent`]`>`, the [`IntoAgents`] trait is used.
 //!
 //! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/anatomy-of-an-agent
 //! [`field`]: crate::field
@@ -21,7 +21,7 @@ mod schema;
 pub mod arrow;
 
 pub use self::{
-    arrow::{AgentBatch, AgentPool},
+    arrow::{AgentBatch, AgentBatchPool},
     field::{Agent, AgentStateField},
     into_agent::IntoAgents,
     name::AgentName,
