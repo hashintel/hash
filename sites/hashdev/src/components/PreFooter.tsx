@@ -1,8 +1,17 @@
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { BoxProps } from "@mui/system";
 import axios from "axios";
-import { useState, VFC } from "react";
+import { useRouter } from "next/router";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  VFC,
+} from "react";
 import { unstable_batchedUpdates } from "react-dom";
+import { FRONTEND_URL } from "../config";
 import { Button } from "./Button";
 import { FaIcon } from "./icons/FaIcon";
 import { NAV_HEIGHT } from "./Navbar";
@@ -16,11 +25,39 @@ export const Subscribe: VFC<BoxProps> = (props) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [userJoined, setUserJoined] = useState<boolean>(false);
+  const router = useRouter();
+  const subscribeElmId = "subscribe";
+  const inputRef = useRef<HTMLInputElement>();
+
+  const hashChangeHandler = useCallback((path: string) => {
+    const url = new URL(path, FRONTEND_URL);
+
+    if (url.hash === `#${subscribeElmId}`) {
+      inputRef.current?.focus();
+    }
+  }, []);
+
+  const pageLoadPath = useRef(router.asPath);
+  const hasTriggeredPageLoadEffect = useRef(false);
+  useEffect(() => {
+    if (!hasTriggeredPageLoadEffect.current) {
+      hasTriggeredPageLoadEffect.current = true;
+      hashChangeHandler(pageLoadPath.current);
+    }
+  }, [hashChangeHandler]);
+
+  useLayoutEffect(() => {
+    router.events.on("hashChangeComplete", hashChangeHandler);
+
+    return () => {
+      router.events.off("hashChangeComplete", hashChangeHandler);
+    };
+  }, [hashChangeHandler, router]);
 
   return (
     <Box
       {...props}
-      id="subscribe"
+      id={subscribeElmId}
       sx={{
         pt: `${NAV_HEIGHT}px`,
         mt: `-${NAV_HEIGHT}px`,
@@ -149,6 +186,7 @@ export const Subscribe: VFC<BoxProps> = (props) => {
                   placeholder="you@example.com"
                   error={error !== null}
                   helperText={error !== null ? error : undefined}
+                  inputRef={inputRef}
                 />
                 <Button
                   variant="primary"
