@@ -146,6 +146,7 @@ export const App: BlockComponent<AppProps> = ({
     setPullRequest,
     setBlockState,
   ]);
+
   React.useEffect(() => {
     if (
       selectedPullRequestId !== undefined &&
