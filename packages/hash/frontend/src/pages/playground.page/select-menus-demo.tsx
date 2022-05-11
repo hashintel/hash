@@ -16,7 +16,13 @@ import {
   Stack,
 } from "@mui/material";
 import { FontAwesomeIcon } from "../../shared/icons";
-import { Avatar, Chip, MenuItem, Select } from "../../shared/ui";
+import {
+  Avatar,
+  Chip,
+  MenuCheckboxItem,
+  MenuItem,
+  Select,
+} from "../../shared/ui";
 import { SelectWithSearch } from "./select/select-with-search";
 import { SelectWithSearchAndCheckbox } from "./select/select-with-search-checkbox";
 
@@ -140,12 +146,11 @@ export const SelectMenusDemo = () => {
           },
         }}
       >
-        {/* @todo add styles for chips */}
         <Select
           multiple
           renderValue={(selected) => (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-              {selected.map((value) => (
+              {(selected as string[]).map((value) => (
                 <Chip key={value} label={value} size="xs" color="blue" />
               ))}
             </Box>
@@ -153,19 +158,16 @@ export const SelectMenusDemo = () => {
           defaultValue={["Multiple"]}
         >
           {["Multiple", "values", "in", "chips"].map((item) => (
-            <MenuItem key={item} value={item} noSelectBackground>
-              <ListItemIcon>
-                <Checkbox />
-              </ListItemIcon>
+            <MenuCheckboxItem key={item} value={item} noSelectBackground>
               <ListItemText primary={item} />
-            </MenuItem>
+            </MenuCheckboxItem>
           ))}
         </Select>
         <Select
           multiple
           renderValue={(selected) => (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-              {selected.map((value) => (
+              {(selected as string[]).map((value) => (
                 <Chip key={value} label={value} size="xs" color="red" />
               ))}
             </Box>
@@ -173,12 +175,9 @@ export const SelectMenusDemo = () => {
           defaultValue={["Multiple", "values"]}
         >
           {["Multiple", "values", "in", "chips"].map((item) => (
-            <MenuItem key={item} value={item} noSelectBackground>
-              <ListItemIcon>
-                <Checkbox />
-              </ListItemIcon>
+            <MenuCheckboxItem key={item} value={item} noSelectBackground>
               <ListItemText primary={item} />
-            </MenuItem>
+            </MenuCheckboxItem>
           ))}
         </Select>
         {/*  */}
@@ -415,54 +414,36 @@ export const SelectMenusDemo = () => {
         }}
       >
         <MenuList>
-          <MenuItem value="10" noSelectBackground>
-            <ListItemIcon>
-              <Checkbox />
-            </ListItemIcon>
+          <MenuCheckboxItem value="10">
             <ListItemText primary="Account Settings" />
-          </MenuItem>
-          <MenuItem value="20" noSelectBackground>
-            <ListItemIcon>
-              <Checkbox />
-            </ListItemIcon>
+          </MenuCheckboxItem>
+          <MenuCheckboxItem value="20" noSelectBackground>
             <ListItemText primary="Account Settings" />
-          </MenuItem>
-          <MenuItem value="30" noSelectBackground>
-            <ListItemIcon>
-              <Checkbox />
-            </ListItemIcon>
+          </MenuCheckboxItem>
+          <MenuCheckboxItem value="30" noSelectBackground>
             <ListItemText primary="Account Settings" />
-          </MenuItem>
+          </MenuCheckboxItem>
         </MenuList>
         {/*  */}
         <MenuList>
-          <MenuItem value="10" noSelectBackground>
-            <ListItemIcon>
-              <Checkbox />
-            </ListItemIcon>
+          <MenuCheckboxItem value="10" noSelectBackground>
             <ListItemIcon>
               <FontAwesomeIcon icon={faPerson} />
             </ListItemIcon>
             <ListItemText primary="Account Settings" />
-          </MenuItem>
-          <MenuItem value="20" noSelectBackground>
-            <ListItemIcon>
-              <Checkbox />
-            </ListItemIcon>
+          </MenuCheckboxItem>
+          <MenuCheckboxItem value="20" noSelectBackground>
             <ListItemIcon>
               <FontAwesomeIcon icon={faPerson} />
             </ListItemIcon>
             <ListItemText primary="Account Settings" />
-          </MenuItem>
-          <MenuItem value="30" noSelectBackground>
-            <ListItemIcon>
-              <Checkbox />
-            </ListItemIcon>
+          </MenuCheckboxItem>
+          <MenuCheckboxItem value="30" noSelectBackground>
             <ListItemIcon>
               <FontAwesomeIcon icon={faPerson} />
             </ListItemIcon>
             <ListItemText primary="Account Settings" />
-          </MenuItem>
+          </MenuCheckboxItem>
         </MenuList>
       </Stack>
       <Box mb={6} />

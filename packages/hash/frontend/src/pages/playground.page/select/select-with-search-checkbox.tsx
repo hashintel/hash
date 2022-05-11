@@ -1,15 +1,14 @@
 import { faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
-import {
-  Box,
-  Checkbox,
-  Divider,
-  FormControl,
-  ListItemIcon,
-  ListItemText,
-} from "@mui/material";
+import { Box, Divider, FormControl, ListItemText } from "@mui/material";
 import { useMemo, useState } from "react";
 import { FontAwesomeIcon } from "../../../shared/icons";
-import { Button, Chip, TextField, MenuItem, Select } from "../../../shared/ui";
+import {
+  Button,
+  Chip,
+  TextField,
+  Select,
+  MenuCheckboxItem,
+} from "../../../shared/ui";
 
 const MENU_ITEMS = [
   "Edit",
@@ -69,17 +68,14 @@ export const SelectWithSearchAndCheckbox = () => {
           />
         </Box>
         {filteredMenuItems.map((item) => (
-          <MenuItem
+          <MenuCheckboxItem
             key={item}
             value={item}
             onClick={() => toggleItem(item)}
-            noSelectBackground
+            selected={selectedOptions.includes(item)}
           >
-            <ListItemIcon>
-              <Checkbox checked={selectedOptions.includes(item)} />
-            </ListItemIcon>
             <ListItemText primary={item} />
-          </MenuItem>
+          </MenuCheckboxItem>
         ))}
         <Divider />
         <Box p={0.5}>
