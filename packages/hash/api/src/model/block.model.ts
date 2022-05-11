@@ -124,30 +124,48 @@ class __Block extends Entity {
     return firstLink.getDestination(client);
   }
 
-  async updateBlockData(
+  async swapBlockData(
     client: DbClient,
-    params: { updatedByAccountId: string; updatedDataEntity: Entity },
+    params: {
+      updatedByAccountId: string;
+      targetDataEntityId: string;
+      targetDataAccountId: string;
+    },
   ): Promise<Entity> {
-    const { updatedByAccountId, updatedDataEntity } = params;
-    const blockDataLinks = await this.getOutgoingLinks(client, {
-      path: ["data"],
-    });
+    const { updatedByAccountId, targetDataEntityId, targetDataAccountId } =
+      params;
+    const [blockDataLinks, targetBlockData] = await Promise.all([
+      this.getOutgoingLinks(client, {
+        path: ["data"],
+      }),
+      Entity.getEntityLatestVersion(client, {
+        accountId: targetDataAccountId,
+        entityId: targetDataEntityId,
+      }),
+    ]);
 
-    const [previousBlockDataLink, ...otherLinks] = blockDataLinks;
+    if (!targetBlockData) {
+      throw new Error(
+        `Critical: target entity with entityId ${targetDataEntityId} and accountId ${targetDataAccountId} not found`,
+      );
+    }
+
+    if (blockDataLinks.length > 1) {
+      throw new Error(
+        `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has more than one linked block data entity`,
+      );
+    }
+
+    const previousBlockDataLink = blockDataLinks[0];
 
     if (!previousBlockDataLink) {
       throw new Error(
         `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has no linked block data entity`,
       );
     }
-    if (otherLinks.length > 0) {
-      throw new Error(
-        `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has more than one linked block data entity`,
-      );
-    }
 
     if (
-      previousBlockDataLink.destinationEntityId === updatedDataEntity.entityId
+      previousBlockDataLink.destinationEntityId === targetBlockData.entityId
     ) {
       const previousBlockData = await this.getBlockData(client);
       return previousBlockData;
@@ -158,12 +176,32 @@ class __Block extends Entity {
     });
 
     await this.createOutgoingLink(client, {
-      destination: updatedDataEntity,
+      destination: targetBlockData,
       createdByAccountId: updatedByAccountId,
       stringifiedPath: "$.data",
     });
 
-    return updatedDataEntity;
+    /**
+     * force updatedAt property to update.
+     * This is done because the frontend currently uses to `updatedAt` property
+     * to determine the most recent entity, when it comes across an entity that
+     * is also present in entity store. When a block's data is swapped, the updatedAt
+     * field of the block doesn't change and hence the current frontend setup won't know
+     * the most recent entity.
+     *
+     * This shouldn't be done since we can check if a block's data has been swapped by
+     * checking `createdAt` value of the outgoing `$.data` link.
+     * This is should be removed once the frontend has been refactored to full rely on links
+     *
+     * @todo remove this
+     */
+
+    await this.partialPropertiesUpdate(client, {
+      properties: {},
+      updatedByAccountId,
+    });
+
+    return targetBlockData;
   }
 }
 
