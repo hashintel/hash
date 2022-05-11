@@ -174,7 +174,7 @@ const updateEntitiesByDraftId = (
  * @param blockEntityDraftId draft id of the Block Entity whose child entity should be changed
  * @param targetEntity entity to be changed to
  */
-const updateBlockEntity = (
+const swapBlockData = (
   draftEntityStore: Draft<EntityStore["draft"]>,
   blockEntityDraftId: string,
   targetEntity: EntityStoreType,
@@ -186,7 +186,7 @@ const updateBlockEntity = (
 
   // Add target entity to draft store if it is not
   // present there
-  // @todo consider moving this to updateBlockData
+  // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
   if (!targetDraftEntity) {
     const targetEntityDraftId = createDraftIdForEntity(targetEntity.entityId);
     targetDraftEntity = {
@@ -202,13 +202,10 @@ const updateBlockEntity = (
 
   const draftBlockEntity = draftEntityStore[blockEntityDraftId];
 
-  // these two conditionals can be merged into 1
-  if (!draftBlockEntity) {
-    throw new Error("Block to update not present in store");
-  }
-
   if (!isDraftBlockEntity(draftBlockEntity)) {
-    throw new Error("draftId provided does not point to a BlockEntity");
+    throw new Error(
+      `BlockEntity not present in draft store. Draft Id => ${blockEntityDraftId}`,
+    );
   }
 
   draftBlockEntity.properties.entity = targetDraftEntity;
@@ -301,7 +298,7 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        updateBlockEntity(
+        swapBlockData(
           draftState.store.draft,
           action.payload.blockEntityDraftId,
           action.payload.targetEntity,
@@ -343,7 +340,6 @@ const entityStoreReducer = (
           accountId: action.payload.accountId,
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
-          entityVersionCreatedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           properties: {},
         };

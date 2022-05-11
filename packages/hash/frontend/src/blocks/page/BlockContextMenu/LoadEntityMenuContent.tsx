@@ -62,11 +62,7 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
         return;
       }
 
-      blockView.manager.updateBlockData(
-        entityId,
-        targetData,
-        blockView.getPos(),
-      );
+      blockView.manager.swapBlockData(entityId, targetData, blockView.getPos());
       popupState?.close();
     },
     [blockView, entityId, popupState],

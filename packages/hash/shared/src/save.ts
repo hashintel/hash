@@ -317,46 +317,34 @@ const updateBlocks = defineOperation(
               });
             }
           } else {
-            const draftBlock = getDraftEntityFromEntityId(
+            const draftBlockEntity = getDraftEntityFromEntityId(
               entityStore.draft,
               savedEntity.entityId,
             );
-            if (isBlockEntity(draftBlock)) {
-              const draftChildEntityId =
-                draftBlock?.properties.entity?.entityId;
-              const draftChildEntityWithDraftId = getDraftEntityFromEntityId(
+            if (isBlockEntity(draftBlockEntity)) {
+              const draftBlockData = getDraftEntityFromEntityId(
                 entityStore.draft,
-                draftChildEntityId,
+                draftBlockEntity?.properties.entity.entityId,
               );
 
-              if (draftChildEntityWithDraftId && draftChildEntityId) {
-                const { draftId: _, ...draftChildEntity } =
-                  draftChildEntityWithDraftId;
-
-                // Check if a block's data has been updated
-                if (
-                  draftChildEntity &&
-                  !isEqual(
-                    draftChildEntity.properties,
-                    savedChildEntity.properties,
-                  )
-                ) {
-                  // If the block's data was updated and the entityId changed
-                  // then the block data was swapped. Push swapBlockData action
-                  if (draftChildEntity.entityId !== savedChildEntity.entityId) {
-                    updates.push({
-                      swapBlockData: {
-                        entityId: savedEntity.entityId,
-                        accountId: savedEntity.accountId,
-                        newEntityAccountId: draftChildEntity.accountId!,
-                        newEntityEntityId: draftChildEntity.entityId!,
-                      },
-                    });
-                  } else {
-                    // If the block's data was updated and the entityId
-                    // didn't change, push an updateEntity action
-                    // @todo push an updateEntity action
-                  }
+              // Check if block data changed by comparing properties
+              if (
+                draftBlockData &&
+                !isEqual(draftBlockData.properties, savedChildEntity.properties)
+              ) {
+                // If the entityId is different then the blockData was swapped
+                if (draftBlockData.entityId !== savedChildEntity.entityId) {
+                  updates.push({
+                    swapBlockData: {
+                      entityId: savedEntity.entityId,
+                      accountId: savedEntity.accountId,
+                      newEntityAccountId: draftBlockData.accountId!,
+                      newEntityEntityId: draftBlockData.entityId!,
+                    },
+                  });
+                } else {
+                  // @todo check if the block data changed and push
+                  // an updateEntity action
                 }
               }
             }
@@ -444,6 +432,7 @@ const calculateSaveActions = (
     createdEntities,
   );
   [actions] = updateBlocks(actions, blocks, draftBlockEntityNodes, entityStore);
+
   return actions;
 };
 

@@ -618,11 +618,7 @@ export class ProsemirrorSchemaManager {
    * to point to the targetEntity and updating the prosemirror tree to render
    * the block with updated content
    */
-  updateBlockData(
-    entityId: string,
-    targetEntity: EntityStoreType,
-    pos: number,
-  ) {
+  swapBlockData(entityId: string, targetEntity: EntityStoreType, pos: number) {
     if (!this.view) {
       throw new Error("Cannot trigger updateBlock without view");
     }
