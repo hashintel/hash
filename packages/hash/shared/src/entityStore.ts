@@ -24,8 +24,6 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   //  keep a dict of entity ids to draft ids, and vice versa
   draftId: string;
 
-  // we probably don't need entityVersionCreatedAt
-  entityVersionCreatedAt?: string;
   updatedAt: string;
 
   linkGroups?: Type extends { linkGroups: any }
