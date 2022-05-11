@@ -85,7 +85,7 @@ export const App: BlockComponent<AppProps> = ({
         width: newData.width ?? localState.width,
       };
 
-      void updateEntities([
+      void updateEntities?.([
         {
           entityId,
           entityTypeId,
