@@ -1,32 +1,36 @@
-#![allow(dead_code)]
-
 // use behavior_execution::BehaviorPackage;
 // use behaviors::NativeState;
 // use context::{AgentContext, GroupContext, SimContext};
 // pub use error::{Error, Result};
 // use state::{AgentState, GroupState, SimState, StateSnapshot};
 
-use futures::FutureExt;
-use simulation_structure::SimulationShortId;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use std::{pin::Pin, result::Result as StdResult};
 
-use crate::runner::comms::{
-    ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg,
+use futures::{Future, FutureExt};
+use simulation_structure::SimulationShortId;
+use tokio::{
+    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    task::JoinError,
+};
+
+use crate::{
+    runner::comms::{ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg},
+    Result,
 };
 
 pub struct RustRunner {
     _outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
     outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
-    _spawned: bool,
+    spawn: bool,
 }
 
 impl RustRunner {
-    pub fn new(spawn: bool, _init_msg: ExperimentInitRunnerMsg) -> crate::Result<Self> {
+    pub fn new(spawn: bool, _init_msg: ExperimentInitRunnerMsg) -> Result<Self> {
         let (outbound_sender, outbound_receiver) = unbounded_channel();
         Ok(Self {
             _outbound_sender: outbound_sender,
             outbound_receiver,
-            _spawned: spawn,
+            spawn,
         })
     }
 
@@ -34,7 +38,7 @@ impl RustRunner {
         &self,
         _sim_id: Option<SimulationShortId>,
         _msg: InboundToRunnerMsgPayload,
-    ) -> crate::Result<()> {
+    ) -> Result<()> {
         Ok(())
     }
 
@@ -42,28 +46,36 @@ impl RustRunner {
         &self,
         _sim_id: Option<SimulationShortId>,
         _msg: InboundToRunnerMsgPayload,
-    ) -> crate::Result<()> {
+    ) -> Result<()> {
         tracing::trace!("Received message to send to Rust Runner: {:?}", &_msg);
         Ok(())
     }
 
-    pub async fn recv(&mut self) -> crate::Result<OutboundFromRunnerMsg> {
+    pub async fn recv(&mut self) -> Result<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
             .await
             .ok_or_else(|| crate::Error::from("Rust outbound receive"))
     }
 
-    pub async fn recv_now(&mut self) -> crate::Result<Option<OutboundFromRunnerMsg>> {
+    // TODO: UNUSED: Needs triage
+    #[allow(dead_code)]
+    pub async fn recv_now(&mut self) -> Result<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }
 
     pub fn spawned(&self) -> bool {
-        false
+        self.spawn
     }
 
-    pub async fn run(&mut self) -> crate::Result<()> {
-        Ok(())
+    pub async fn run(
+        &mut self,
+    ) -> Result<Pin<Box<dyn Future<Output = StdResult<Result<()>, JoinError>> + Send>>> {
+        if !self.spawned() {
+            return Ok(Box::pin(async move { Ok(Ok(())) }));
+        }
+
+        panic!("Rust runner is not implemented yet but was spawned and is trying to run.");
     }
 }
 

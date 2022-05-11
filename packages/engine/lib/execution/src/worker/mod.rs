@@ -125,9 +125,8 @@ impl Worker {
     }
 
     async fn _run(&mut self) -> Result<()> {
-        // TODO: Rust
         let mut py_handle = self.py.run().await?;
-        // let mut rs_handle = self.rs.run().await?;
+        let mut rs_handle = self.rs.run().await?;
         let mut js_handle = self.js.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
@@ -194,6 +193,8 @@ impl Worker {
                     py_res??;
                     // TODO: send termination to js_handle
                     js_handle.await??;
+                    // TODO: send termination to rs_handle
+                    rs_handle.await??;
                     return Ok(());
                 }
                 js_res = &mut js_handle, if self.js.spawned() => {
@@ -201,13 +202,24 @@ impl Worker {
                     js_res??;
                     // TODO: send termination to py_handle
                     py_handle.await??;
+                    // TODO: send termination to rs_handle
+                    rs_handle.await??;
+                    return Ok(());
+                }
+                rs_res = &mut rs_handle, if self.rs.spawned() => {
+                    tracing::warn!("Rust runner finished unexpectedly: {rs_res:?}");
+                    rs_res??;
+                    // TODO: send termination to py_handle
+                    py_handle.await??;
+                    // TODO: send termination to js_handle
+                    js_handle.await??;
                     return Ok(());
                 }
             }
         }
 
         py_handle.await??;
-        // rs_handle.await??;
+        rs_handle.await??;
         js_handle.await??;
 
         Ok(())
@@ -711,15 +723,14 @@ impl Worker {
             return Ok(());
         };
 
-        // TODO: Change to `children(n)` for `n` enabled runners and adjust the following lines as
-        //       well.
         debug_assert!(!self.rs.spawned());
-        let (runner_msgs, runner_receivers) =
-            sync.create_children(self.js.spawned() as usize + self.py.spawned() as usize);
+        let (runner_msgs, runner_receivers) = sync.create_children(
+            self.js.spawned() as usize + self.py.spawned() as usize + self.rs.spawned() as usize,
+        );
         let mut messages = runner_msgs
             .into_iter()
             .map(InboundToRunnerMsgPayload::StateSync);
-        let (js_res, py_res) = tokio::join!(
+        let (js_res, py_res, rs_res) = tokio::join!(
             OptionFuture::from(
                 self.js
                     .spawned()
@@ -730,10 +741,15 @@ impl Worker {
                     .spawned()
                     .then(|| self.py.send(sim_id, messages.next().unwrap()))
             ),
-            // self.rs.send_if_spawned(sim_id, rs_msg),
+            OptionFuture::from(
+                self.rs
+                    .spawned()
+                    .then(|| self.rs.send(sim_id, messages.next().unwrap()))
+            ),
         );
         js_res.transpose()?;
         py_res.transpose()?;
+        rs_res.transpose()?;
 
         let fut = async move {
             // Capture `sync` in lambda.
