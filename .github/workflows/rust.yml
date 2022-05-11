@@ -267,9 +267,11 @@ jobs:
       - name: Ensure empty git diff
         run: |
           # Restore files modified for CI
-          git checkout HEAD -- ${{ matrix.directory }}/Cargo.toml
-          git checkout HEAD -- packages/engine/lib/nano/Cargo.toml
-          git checkout HEAD -- packages/engine/lib/execution/Cargo.toml
+          git checkout HEAD -- \
+            ${{ matrix.directory }}/Cargo.toml \
+            packages/engine/lib/nano/Cargo.toml \
+            packages/engine/lib/execution/Cargo.toml
+
           git --no-pager diff --exit-code --color
 
   bench:
