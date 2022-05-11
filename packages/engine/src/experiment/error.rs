@@ -51,9 +51,6 @@ pub enum Error {
     #[error("Python child process spawn")]
     PythonSpawn(std::io::Error),
 
-    #[error("nng: {0:?}")]
-    Nng(#[from] nng::Error),
-
     #[error("serde: {0:?}")]
     Serde(#[from] serde_json::Error),
 
