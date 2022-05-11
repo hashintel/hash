@@ -79,14 +79,24 @@ impl process::Process for LocalProcess {
         // We create the client on the first call here, rather than when the LocalCommand is run,
         // because the engine process needs some time before it's ready to accept NNG connections.
         if self.client.is_none() {
-            self.client = Some(nano::Client::new(&self.engine_url, 1)?);
+            self.client = Some(
+                nano::Client::new(&self.engine_url, 1)
+                    .wrap_err_lazy(|| {
+                        format!(
+                            "Could not create nano client for engine at {:?}",
+                            self.engine_url
+                        )
+                    })
+                    .map_err(Report::generalize)?,
+            );
         }
         self.client
             .as_mut()
             .unwrap()
             .send(msg)
             .await
-            .map_err(Report::from)
+            .wrap_err("Could not send engine message")
+            .map_err(Report::generalize)
     }
 
     async fn wait(&mut self) -> Result<ExitStatus> {
