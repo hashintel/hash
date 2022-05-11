@@ -3,6 +3,7 @@ import {
   BlockProtocolEntity,
   BlockProtocolEntityType,
 } from "blockprotocol";
+import { BlockState } from "./app";
 
 export function isDefined<T>(val: T | undefined | null): val is T {
   return val !== undefined && val !== null;
@@ -24,6 +25,7 @@ export const getGithubEntityTypes = (
   accountId: string | null | undefined,
   numPages: number,
   setGithubEntityTypeIds: (x: any) => void,
+  setBlockState: (x: any) => void,
 ) => {
   const results = Array(numPages)
     .fill(undefined)
@@ -62,6 +64,8 @@ export const getGithubEntityTypes = (
           [GITHUB_ENTITY_TYPES.IssueEvent]: issueEventTypeId,
         };
         setGithubEntityTypeIds(githubTypeIds);
+      } else {
+        setBlockState(BlockState.Error);
       }
     })
     .catch((err) => {

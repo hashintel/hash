@@ -16,6 +16,7 @@ import {
   PullRequestIdentifier,
 } from "./types";
 import { GithubPrTimeline } from "./timeline";
+import { BlockState } from "./app";
 
 export const Reviewer = (login: string, avatar_url?: string | null) => (
   <Stack direction="row" spacing={1}>
@@ -34,11 +35,18 @@ export type GithubPrOverviewProps = {
   reviews: GithubReview[];
   events: GithubIssueEvent[];
   setSelectedPullRequestId: (x?: PullRequestIdentifier) => void;
+  setBlockState: (x: any) => void;
 };
 
 export const GithubPrOverview: React.FunctionComponent<
   GithubPrOverviewProps
-> = ({ pullRequest, reviews, events, setSelectedPullRequestId }) => {
+> = ({
+  pullRequest,
+  reviews,
+  events,
+  setSelectedPullRequestId,
+  setBlockState,
+}) => {
   const uniqueReviewers = uniqBy(
     reviews.map((review) => {
       return { login: review.user!.login, avatar_url: review.user!.avatar_url };
@@ -117,7 +125,10 @@ export const GithubPrOverview: React.FunctionComponent<
           </div>
 
           <IconButton
-            onClick={() => setSelectedPullRequestId()}
+            onClick={() => {
+              setSelectedPullRequestId();
+              setBlockState(BlockState.Loading);
+            }}
             style={{
               position: "absolute",
               top: 0,

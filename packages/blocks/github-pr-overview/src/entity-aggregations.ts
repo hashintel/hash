@@ -3,6 +3,7 @@ import {
   BlockProtocolAggregateEntitiesResult,
 } from "blockprotocol";
 import { uniqBy } from "lodash";
+import { BlockState } from "./app";
 
 import {
   GithubIssueEvent,
@@ -62,6 +63,7 @@ export const collectPrsAndSetState = (
   accountId: string | null | undefined,
   numPages: number,
   setState: (x: any) => void,
+  setBlockState: (x: any) => void,
 ) => {
   const results = Array(numPages)
     .fill(undefined)
@@ -85,6 +87,9 @@ export const collectPrsAndSetState = (
       }
 
       setState(mappedPullRequests);
+      if (mappedPullRequests.size === 0) {
+        setBlockState(BlockState.Error);
+      }
     })
     .catch((err) => {
       throw err;
