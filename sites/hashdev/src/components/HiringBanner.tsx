@@ -33,8 +33,8 @@ export const HiringBanner = () => {
             width: "100%",
             /** background on hover */
             background: {
-              xs: "linear-gradient(87.78deg, #4d6aff 0%, #6f4cfa 80%)",
-              lg: "linear-gradient(90.8deg, #c2efff -20%, #4d6aff 40%, #6f4cfa 125%)",
+              xs: "linear-gradient(96.49deg, #4a91f5 -20%, #583eee 40%)",
+              lg: "linear-gradient(90.78deg, #53c3ff -15%, #4a91f5 25%, #583eee 100%)",
             },
             opacity: 0,
             transition: transitions.create("opacity"),
