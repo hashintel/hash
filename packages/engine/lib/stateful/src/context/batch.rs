@@ -27,12 +27,13 @@ const UPPER_BOUND_DATA_SIZE_MULTIPLIER: usize = 3;
 /// Contains the information required to build the context, which is accessible in the language
 /// runners.
 ///
-/// Data within the `ContextBatch` can rely on the contents of the [`AgentPool`] and [`MessagePool`]
-/// within the [`Context`] object. For example, the list of neighbors in the [`ContextBatch`]
-/// is a collection of indices pointing to different agents within the [`AgentPool`].
+/// Data within the `ContextBatch` can rely on the contents of the [`AgentBatchPool`] and
+/// [`MessageBatchPool`] within the [`Context`] object. For example, the list of neighbors in the
+/// [`ContextBatch`] is a collection of indices pointing to different agents within the
+/// [`AgentBatchPool`].
 ///
-/// [`AgentPool`]: crate::agent::AgentPool
-/// [`MessagePool`]: crate::message::MessagePool
+/// [`AgentBatchPool`]: crate::agent::AgentBatchPool
+/// [`MessageBatchPool`]: crate::message::MessageBatchPool
 /// [`Context`]: crate::context::Context
 pub struct ContextBatch {
     segment: Segment,
