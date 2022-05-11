@@ -43,7 +43,7 @@ jobs:
 
           while read -r file; do
             while read -r crate; do
-              if [[ $file =~ $crate ]] || [[ $file =~ .github ]]; then
+              if [[ $file =~ $crate ]] || [[ $file =~ .github ]] || [[ $file =~ rust-toolchain.toml ]]; then
                 changed_crates=$(echo -e "${crate}\n$changed_crates")
               fi
             done <<< "$available_crates"
