@@ -47,7 +47,7 @@ export const SelectWithSearchAndCheckbox = () => {
         fullWidth
         renderValue={(selected) => (
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-            {selected.map((value) => (
+            {(selected as string[]).map((value) => (
               <Chip key={value} label={value} size="xs" color="blue" />
             ))}
           </Box>
