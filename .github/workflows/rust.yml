@@ -26,6 +26,7 @@ jobs:
       clippy: ${{ steps.crates.outputs.clippy }}
       test: ${{ steps.crates.outputs.test }}
       bench: ${{ steps.crates.outputs.bench }}
+      miri: ${{ steps.crates.outputs.miri }}
       samples: ${{ steps.samples.outputs.samples }}
       toolchains: ${{ steps.toolchains.outputs.toolchains }}
     steps:
