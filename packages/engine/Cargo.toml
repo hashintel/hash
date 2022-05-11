@@ -8,6 +8,7 @@ members = [".", "bin/*", "lib/*"]
 default-members = [".", "bin/*", "lib/*"]
 
 [dependencies]
+error = { path = "lib/error", features = ["spantrace"] }
 flatbuffers_gen = { path = "lib/flatbuffers_gen" }
 nano = { path = "lib/nano", default-features = false }
 memory = { path = "lib/memory" }

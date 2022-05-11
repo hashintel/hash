@@ -213,8 +213,22 @@ pub async fn run_test_suite(
 
                 match test_result {
                     Ok(outputs) => {
-                        test_output = Some(outputs);
-                        break;
+                        if expected_outputs.len() == outputs.outputs.len() {
+                            test_output = Some(outputs);
+                            break;
+                        }
+
+                        if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            tracing::error!("Logs:");
+                            eprintln!("{log}");
+                        }
+                        tracing::error!("Test failed");
+                        tracing::error!(
+                            "Number of expected outputs does not match number of returned \
+                             simulation results for experiment, expected {} found {}.",
+                            expected_outputs.len(),
+                            outputs.outputs.len()
+                        );
                     }
                     Err(err) => {
                         tracing::error!("Test failed");
@@ -227,16 +241,8 @@ pub async fn run_test_suite(
                 }
             }
 
-            let test_output = test_output.expect("Could not run experiment");
-
-            assert_eq!(
-                expected_outputs.len(),
-                test_output.outputs.len(),
-                "Number of expected outputs does not match number of returned simulation results \
-                 for experiment, expected {} found {}.",
-                expected_outputs.len(),
-                test_output.outputs.len()
-            );
+            let test_output =
+                test_output.expect("Could not run experiment or unexpected number of outputs");
 
             for (output_idx, ((states, globals, analysis), expected)) in test_output
                 .outputs
