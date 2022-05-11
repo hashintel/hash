@@ -6,7 +6,7 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Cancel from "@mui/icons-material/Cancel";
 import { uniqBy } from "lodash";
-import moment from "moment";
+import formatDistance from "date-fns/formatDistance";
 
 import {
   GithubIssueEvent,
@@ -55,8 +55,11 @@ export const GithubPrOverview: React.FunctionComponent<
   );
 
   const timeToClose =
-    pullRequest.closed_at != null
-      ? moment(pullRequest.closed_at).from(moment(pullRequest.created_at), true)
+    pullRequest.created_at != null && pullRequest.closed_at != null
+      ? formatDistance(
+          new Date(pullRequest.closed_at),
+          new Date(pullRequest.created_at),
+        )
       : undefined;
 
   /** @todo - Get colours from theme? */
