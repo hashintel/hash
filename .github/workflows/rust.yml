@@ -41,7 +41,7 @@ jobs:
           changed_files="$(git diff --name-only HEAD^ HEAD)"
 
           # All jobs for all crates will run if any of these paths changes
-          always_run_on=(".github" "rust-toolchain.toml")
+          always_run_on=(".github" "rust-toolchain.toml" "Cargo.toml" "Cargo.lock")
 
           # Ensure that `miri` runs for these crates
           run_miri_for=("packages/engine/lib/error" "packages/engine/lib/provider")
