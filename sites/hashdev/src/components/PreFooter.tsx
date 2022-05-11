@@ -21,12 +21,13 @@ import { TextField } from "./TextField";
 const EMAIL_REGEX =
   /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
+const subscribeElmId = "subscribe";
+
 export const Subscribe: VFC<BoxProps> = (props) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [userJoined, setUserJoined] = useState<boolean>(false);
   const router = useRouter();
-  const subscribeElmId = "subscribe";
   const inputRef = useRef<HTMLInputElement>();
 
   const hashChangeHandler = useCallback((path: string) => {
@@ -39,6 +40,7 @@ export const Subscribe: VFC<BoxProps> = (props) => {
 
   const pageLoadPath = useRef(router.asPath);
   const hasTriggeredPageLoadEffect = useRef(false);
+
   useEffect(() => {
     if (!hasTriggeredPageLoadEffect.current) {
       hasTriggeredPageLoadEffect.current = true;
@@ -46,7 +48,7 @@ export const Subscribe: VFC<BoxProps> = (props) => {
     }
   }, [hashChangeHandler]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     router.events.on("hashChangeComplete", hashChangeHandler);
 
     return () => {
