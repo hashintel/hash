@@ -12,11 +12,11 @@ use crate::{
 ///
 /// All fields (except for messages) that agents' have are persisted in the Agent Pool.
 #[derive(Clone)]
-pub struct AgentPool {
+pub struct AgentBatchPool {
     batches: Vec<Arc<RwLock<AgentBatch>>>,
 }
 
-impl AgentPool {
+impl AgentBatchPool {
     /// Creates a new pool from [`AgentBatch`]es.
     ///
     /// Because of the way `BatchPools` are organized it's required that the [`AgentBatch`]es are
@@ -42,7 +42,7 @@ impl AgentPool {
     }
 }
 
-impl BatchPool for AgentPool {
+impl BatchPool for AgentBatchPool {
     type Batch = AgentBatch;
 
     fn len(&self) -> usize {
