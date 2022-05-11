@@ -227,6 +227,8 @@ const insertBlocks = defineOperation(
  *          not necessary for the pipeline of calculations. Be wary of this.
  * @todo handle contents of block changing
  * @todo compare entities with draft entities to catch changes not contained in ProseMirror tree
+ * @todo rewrite this to work from the entity store and not the prosemirror tree. Can start with
+ *       removing text block specific changes
  */
 const updateBlocks = defineOperation(
   (
