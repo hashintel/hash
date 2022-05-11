@@ -27,7 +27,7 @@ export const getGithubEntityTypes = (
   setGithubEntityTypeIds: (x: any) => void,
   setBlockState: (x: any) => void,
 ) => {
-  const results = Array(numPages)
+  const promises = Array(numPages)
     .fill(undefined)
     .map((_, pageNumber) =>
       /** @todo - These should be links to a PR entity really */
@@ -39,7 +39,7 @@ export const getGithubEntityTypes = (
       }),
     );
 
-  Promise.all(results)
+  Promise.all(promises)
     .then((entityTypesResults) => {
       const entityTypes: BlockProtocolEntityType[] = entityTypesResults.flatMap(
         (entityTypeResult) => entityTypeResult.results,

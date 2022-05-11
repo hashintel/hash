@@ -65,13 +65,13 @@ export const collectPrsAndSetState = (
   setState: (x: any) => void,
   setBlockState: (x: any) => void,
 ) => {
-  const results = Array(numPages)
+  const promises = Array(numPages)
     .fill(undefined)
     .map((_, pageNumber) =>
       getPrs(githubPullRequestTypeId, aggregateEntities, accountId, pageNumber),
     );
 
-  Promise.all(results)
+  Promise.all(promises)
     .then((entitiesResults) => {
       const entities: GithubPullRequest[] = entitiesResults
         .flatMap((entityResult) => entityResult?.results)
@@ -147,7 +147,7 @@ export const collectReviewsAndSetState = (
   setState: (x: any) => void,
   selectedPullRequest: PullRequestIdentifier,
 ) => {
-  const results = Array(numPages)
+  const promises = Array(numPages)
     .fill(undefined)
     .map((_, pageNumber) =>
       getReviews(
@@ -159,7 +159,7 @@ export const collectReviewsAndSetState = (
       ),
     );
 
-  Promise.all(results)
+  Promise.all(promises)
     .then((entitiesResults) => {
       const entities: GithubReview[] = entitiesResults
         .flatMap((entityResult) => entityResult?.results)
@@ -230,7 +230,7 @@ export const collectPrEventsAndSetState = (
   setState: (x: any) => void,
   selectedPullRequest: PullRequestIdentifier,
 ) => {
-  const results = Array(numPages)
+  const promises = Array(numPages)
     .fill(undefined)
     .map((_, pageNumber) =>
       /** @todo - These should be links to a PR entity really */
@@ -243,7 +243,7 @@ export const collectPrEventsAndSetState = (
       ),
     );
 
-  Promise.all(results)
+  Promise.all(promises)
     .then((entitiesResults) => {
       const entities: GithubIssueEvent[] = entitiesResults
         .flatMap((entityResult) => entityResult?.results)
