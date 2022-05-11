@@ -2,14 +2,7 @@ import { Box, Container, Stack, Typography } from "@mui/material";
 import { BoxProps } from "@mui/system";
 import axios from "axios";
 import { useRouter } from "next/router";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  VFC,
-} from "react";
+import { useCallback, useEffect, useRef, useState, VFC } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { FRONTEND_URL } from "../config";
 import { Button } from "./Button";
