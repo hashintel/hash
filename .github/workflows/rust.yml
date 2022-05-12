@@ -177,7 +177,10 @@ jobs:
 
       - name: Run clippy
         run: |
+          # Even though we want to test without default features, NNG is a requirement for running so we either have to
+          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
           required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+
           cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} $required_features -- -D warnings
 
       - name: Annotate
@@ -256,7 +259,10 @@ jobs:
 
       - name: Run tests
         run: |
+          # Even though we want to test without default features, NNG is a requirement for running so we either have to
+          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
           required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+
           cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} $required_features
 
       # Non-empty diff could be a Cargo.lock that wasn't committed.
