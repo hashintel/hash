@@ -146,14 +146,6 @@ jobs:
       - name: Remove default members
         run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
-      - name: Enable default features for nng
-        run: |
-          # Search for `nng` dependencies and enable default features
-          while read -r crate; do
-            nng_line=$((grep -n '^nng = ' "$crate/Cargo.toml" || true) | cut -d: -f1)
-            [[ $nng_line != '' ]] && sed "${nng_line}s/default-features = false/default-features = true/" -i "$crate/Cargo.toml" || true
-          done <<< "$(find . -name Cargo.toml -printf '%h\n')"
-
       - name: Install Rust
         id: toolchain
         uses: actions-rs/toolchain@v1
@@ -180,7 +172,9 @@ jobs:
             ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Run clippy
-        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} -- -D warnings
+        run: |
+          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "build-nng" || echo "")
+          cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} --features $required_features -- -D warnings
 
       - name: Annotate
         if: ${{ failure() }}
@@ -214,14 +208,6 @@ jobs:
 
       - name: Remove default members
         run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
-
-      - name: Enable default features for nng
-        run: |
-          # Search for `nng` dependencies and enable default features
-          while read -r crate; do
-            nng_line=$((grep -n '^nng = ' "$crate/Cargo.toml" || true) | cut -d: -f1)
-            [[ $nng_line != '' ]] && sed "${nng_line}s/default-features = false/default-features = true/" -i "$crate/Cargo.toml" || true
-          done <<< "$(find . -name Cargo.toml -printf '%h\n')"
 
       - name: Install Rust
         id: toolchain
@@ -263,15 +249,15 @@ jobs:
           lib/execution/src/runner/python/setup.sh python3.7
 
       - name: Run tests
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
+        run: |
+          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "build-nng" || echo "")
+          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} --features $required_features
 
       # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
         run: |
           # Restore files modified for CI
-          while read -r crate; do
-            git checkout HEAD -- "$crate/Cargo.toml"
-          done <<< "$(find . -name Cargo.toml -printf '%h\n')"
+          git checkout HEAD -- "${{ matrix.directory }}/Cargo.toml"
 
           git --no-pager diff --exit-code --color
 
