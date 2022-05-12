@@ -153,7 +153,6 @@ extern crate alloc;
 
 mod ext;
 mod frame;
-#[cfg(feature = "hooks")]
 mod hook;
 mod iter;
 mod macros;

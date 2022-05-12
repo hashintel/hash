@@ -1,3 +1,4 @@
+#![cfg(feature = "hooks")]
 #![allow(clippy::module_name_repetitions)]
 
 use core::fmt;
@@ -31,6 +32,7 @@ static DISPLAY_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 /// assert_eq!(format!("{report:?}"), "custom debug implementation");
 /// # Ok(()) }
 /// ```
+#[cfg(feature = "hooks")]
 pub fn set_debug_hook<H>(hook: H) -> Result<()>
 where
     H: Fn(&Report<()>, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
@@ -42,6 +44,7 @@ where
 }
 
 /// Returns the hook, which was previously set by [`set_debug_hook`], if any.
+#[cfg(feature = "hooks")]
 pub fn debug_hook() -> Option<
     &'static (impl Fn(&Report<()>, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static),
 > {
@@ -68,6 +71,7 @@ pub fn debug_hook() -> Option<
 /// assert_eq!(report.to_string(), "custom display implementation");
 /// # Ok(()) }
 /// ```
+#[cfg(feature = "hooks")]
 pub fn set_display_hook<H>(hook: H) -> Result<()>
 where
     H: Fn(&Report<()>, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
@@ -79,6 +83,7 @@ where
 }
 
 /// Returns the hook, which was previously set by [`display_hook`], if any.
+#[cfg(feature = "hooks")]
 pub fn display_hook() -> Option<
     &'static (impl Fn(&Report<()>, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static),
 > {
