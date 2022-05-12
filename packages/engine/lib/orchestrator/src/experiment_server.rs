@@ -1,4 +1,4 @@
-//! Provides infrastructure to communicate with the [`hash_engine`] subprocess.
+//! Provides infrastructure to communicate with the `hash_engine` subprocess.
 
 use std::{collections::HashMap, fmt::Display};
 
@@ -15,7 +15,7 @@ type MsgReceiver = mpsc::UnboundedReceiver<proto::EngineStatus>;
 type CtrlSender = mpsc::Sender<(Ctrl, ResultSender)>;
 type CtrlReceiver = mpsc::Receiver<(Ctrl, ResultSender)>;
 
-/// Control signal to be sent to the [`hash_engine`]-sub[process](crate::process).
+/// Control signal to be sent to the `hash_engine`-sub[process](crate::process).
 enum Ctrl {
     /// Signal to register a new experiment
     Register {
@@ -30,7 +30,7 @@ enum Ctrl {
 }
 
 /// A connection to receive [`EngineStatus`](proto::EngineStatus)es from an
-/// [`hash_engine`]-sub[process].
+/// `hash_engine`-sub[process](crate::process).
 pub struct Handle {
     id: ExperimentId,
     msg_rx: MsgReceiver,
@@ -123,7 +123,7 @@ impl Handler {
     }
 }
 
-/// A server for handling messages from the [`hash_engine`]-sub[process](crate::process).
+/// A server for handling messages from the `hash_engine`-sub[process](crate::process).
 pub struct Server {
     url: String,
     ctrl_rx: CtrlReceiver,

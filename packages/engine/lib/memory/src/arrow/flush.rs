@@ -60,9 +60,7 @@ pub trait GrowableColumn<D: GrowableArrayData>: Sized {
 ///
 /// This trait is useful for batches with dynamically sized Arrow columns, such as string columns,
 /// and Arrow batches whose number of elements can change due to the number of agents changing, such
-/// as components of state or context, or [`PreparedBatch`] used by Python FFI.
-///
-/// [`PreparedBatch`]: crate::ffi::flush::PreparedBatch
+/// as components of state or context, or `PreparedBatch` used by Python FFI.
 // TODO: Move `flush_changes` outside of trait and make it a function with type parameters and
 //       remove the type parameters from the trait? (would simplify impl of this trait a bit; still
 //       couldn't make the trait public (outside the datastore) though due to `memory_mut`)
