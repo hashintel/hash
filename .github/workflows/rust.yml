@@ -26,6 +26,7 @@ jobs:
       clippy: ${{ steps.crates.outputs.clippy }}
       test: ${{ steps.crates.outputs.test }}
       bench: ${{ steps.crates.outputs.bench }}
+      miri: ${{ steps.crates.outputs.miri }}
       doc: ${{ steps.crates.outputs.doc }}
       samples: ${{ steps.samples.outputs.samples }}
       toolchains: ${{ steps.toolchains.outputs.toolchains }}
@@ -40,13 +41,20 @@ jobs:
           available_crates="$(find . -name Cargo.toml -printf '%h\n' | sed 's:./::' | sort | tac)"
           changed_files="$(git diff --name-only HEAD^ HEAD)"
 
-          changed_crates=""
+          # All jobs for all crates will run if any of these paths changes
+          always_run_on=(".github" "rust-toolchain.toml" "Cargo.toml" "Cargo.lock")
 
+          changed_crates=""
           while read -r file; do
             while read -r crate; do
-              if [[ $file =~ $crate ]] || [[ $file =~ .github ]] || [[ $file =~ rust-toolchain.toml ]]; then
+              if [[ $file =~ $crate ]]; then
                 changed_crates=$(echo -e "${crate}\n$changed_crates")
               fi
+              for always_run_crate in "${always_run_on[@]}"; do
+                if [[ $file =~ $always_run_crate ]]; then
+                  changed_crates=$(echo -e "${crate}\n$changed_crates")
+                fi
+              done
             done <<< "$available_crates"
           done <<< "$changed_files"
 
@@ -64,12 +72,14 @@ jobs:
           echo "::set-output name=clippy::$changed_crates"
           echo "::set-output name=test::$test_crates"
           echo "::set-output name=bench::$bench_crates"
+          echo "::set-output name=miri::$test_crates"
           echo "::set-output name=doc::$changed_crates"
 
           echo "run \`cargo fmt\` for: $(echo "$changed_crates" | jq -r)"
           echo "run \`cargo clippy\` for: $(echo "$changed_crates" | jq -r)"
           echo "run \`cargo test\` for: $(echo "$test_crates" | jq -r)"
           echo "run \`cargo test --release\` for: $(echo "$bench_crates" | jq -r)"
+          echo "run \`cargo miri\` for: $(echo "$test_crates" | jq -r)"
           echo "run \`cargo doc\` for: $(echo "$changed_crates" | jq -r)"
 
       - name: Find toolchain
@@ -358,6 +368,67 @@ jobs:
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
+  miri:
+    name: miri
+    needs: setup
+    if: needs.setup.outputs.miri != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.setup.outputs.miri) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        flags:
+          - --no-default-features
+          - --all-features
+    env:
+      OUTPUT_DIRECTORY: test-results
+      RUST_BACKTRACE: 1
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Remove default members
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+
+      - name: Install Rust
+        id: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+          components: miri
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/checkouts
+            **/target/
+          key: ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+            ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}
+
+      - name: Setup miri
+        working-directory: ${{ matrix.directory }}
+        run: cargo miri setup
+
+      - name: Run miri
+        working-directory: ${{ matrix.directory }}
+        run: |
+          # Even though we want to test without default features, NNG is a requirement for running so we either have to
+          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
+          required_features=$(cat Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+
+          cargo miri test ${{ matrix.flags }} $required_features
+
   doc:
     name: doc
     needs: setup
@@ -429,7 +500,7 @@ jobs:
 
   merging-enabled:
     name: merging enabled
-    needs: [rustfmt, clippy, test, bench, doc]
+    needs: [rustfmt, clippy, test, bench, miri, doc]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -445,6 +516,9 @@ jobs:
       - name: check bench
         run: |
           [[ ${{ needs.bench.result }} =~ success|skipped ]]
+      - name: check miri
+        run: |
+          [[ ${{ needs.miri.result }} =~ success|skipped ]]
       - name: check doc
         run: |
           [[ ${{ needs.doc.result }} =~ success|skipped ]]
