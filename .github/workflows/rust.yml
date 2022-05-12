@@ -240,7 +240,9 @@ jobs:
 
       - name: Build tests
         if: matrix.directory == 'packages/engine'
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
+        run: |
+          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }} $required_features
 
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
