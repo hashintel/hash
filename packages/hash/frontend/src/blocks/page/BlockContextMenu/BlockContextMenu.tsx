@@ -267,6 +267,6 @@ const BlockContextMenu: ForwardRefRenderFunction<
   );
 };
 
-export const BlockContextMenuForwardedRef = forwardRef(BlockContextMenu);
+const BlockContextMenuForwardedRef = forwardRef(BlockContextMenu);
 
 export { BlockContextMenuForwardedRef as BlockContextMenu };

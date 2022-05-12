@@ -42,11 +42,11 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   const { data: entities, loading } = useAccountEntities({
     accountId,
     entityTypeFilter: {
-      componentId: isBlockEntity(blockEntity)
+      componentId: blockEntity
         ? blockEntity?.properties.componentId
         : undefined,
     },
-    skip: !(isBlockEntity(blockEntity) && !!accountId),
+    skip: !(!!blockEntity && !!accountId),
   });
 
   useEffect(() => {
