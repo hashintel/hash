@@ -144,7 +144,7 @@ impl AgentBatch {
 
         let dynamic_meta = batch_message.into_meta(buffers.data().len())?;
 
-        let record_batch = read_record_batch(buffers.data(), batch_message, schema, &[])?;
+        let record_batch = read_record_batch(buffers.data(), batch_message, schema, &[], None)?;
 
         Ok(Self {
             batch: ArrowBatch::new(

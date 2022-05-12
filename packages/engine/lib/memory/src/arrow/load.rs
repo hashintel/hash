@@ -26,5 +26,6 @@ pub fn record_batch(
         record_batch_message,
         schema,
         &[],
+        None,
     )?)
 }

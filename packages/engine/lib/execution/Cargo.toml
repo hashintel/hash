@@ -9,7 +9,7 @@ memory = { path = "../memory" }
 stateful = { path = "../stateful" }
 simulation_structure = { path = "../simulation_structure" }
 
-arrow = { version = "10.0.0", default-features = false }
+arrow = { version = "13.0.0", default-features = false }
 async-trait = "0.1.48"
 flatbuffers = "2.1.1"
 float-cmp = "0.8.0"

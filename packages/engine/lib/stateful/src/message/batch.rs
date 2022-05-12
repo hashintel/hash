@@ -228,9 +228,13 @@ impl MessageBatch {
         let data_length = buffers.data().len();
         let dynamic_meta = batch_message.into_meta(data_length)?;
 
-        let record_batch =
-            read_record_batch(buffers.data(), batch_message, Arc::clone(&schema.arrow), &[
-            ])?;
+        let record_batch = read_record_batch(
+            buffers.data(),
+            batch_message,
+            Arc::clone(&schema.arrow),
+            &[],
+            None,
+        )?;
 
         let persisted = segment.try_read_persisted_metaversion()?;
         Ok(Self {

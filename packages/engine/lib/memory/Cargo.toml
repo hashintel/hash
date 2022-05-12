@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 flatbuffers_gen = { path = "../flatbuffers_gen" }
 
-arrow = { version = "10.0.0", default-features = false, features = ["ipc"] }
+arrow = { version = "13.0.0", default-features = false, features = ["ipc"] }
 flatbuffers = "2.1.1"
 glob = "0.3.0"
 rand = "0.8.3"

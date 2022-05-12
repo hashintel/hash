@@ -78,7 +78,7 @@ impl ContextBatch {
         let rb_msg = ipc::root_as_message(buffers.meta())?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
-        let batch = read_record_batch(buffers.data(), rb_msg, schema, &[])?;
+        let batch = read_record_batch(buffers.data(), rb_msg, schema, &[], None)?;
 
         Ok(Self {
             segment,
@@ -171,7 +171,7 @@ impl ContextBatch {
         let rb_msg = &ipc::root_as_message(buffers.meta())?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
-        self.batch = read_record_batch(buffers.data(), *rb_msg, self.batch.schema(), &[])?;
+        self.batch = read_record_batch(buffers.data(), *rb_msg, self.batch.schema(), &[], None)?;
         self.loaded = persisted;
 
         Ok(())
