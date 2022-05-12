@@ -24,7 +24,7 @@ use tokio::time::{sleep, timeout};
 
 use crate::{experiment_server::Handler, process};
 
-/// Configuration values used when starting a [`hash_engine`] subprocess.
+/// Configuration values used when starting a `hash_engine` subprocess.
 ///
 /// See the [`process`] module for more information.
 #[derive(Debug, Clone, Default)]
@@ -210,7 +210,7 @@ impl Experiment {
     /// Starts an Engine process and runs the experiment on it.
     ///
     /// The `experiment_run` is registered at the server with the provided `handler`, and started
-    /// using [`Process`]. After startup it listens to the messages sent from [`hash_engine`] and
+    /// using [`Process`]. After startup it listens to the messages sent from `hash_engine` and
     /// returns once the experiment has finished.
     ///
     /// [`Process`]: crate::process::Process
