@@ -36,6 +36,7 @@ macro_rules! run_test {
     ($project:ident $(,)? $(#[$attr:meta])* ) => {
         $(#[$attr])*
         #[tokio::test]
+        #[cfg_attr(miri, ignore, allow(unused_attributes))]
         async fn $project() {
             let project_path = std::path::Path::new(file!())
                 .parent()
@@ -60,6 +61,7 @@ macro_rules! run_test {
 
         $(#[$attr])*
         #[tokio::test]
+        #[cfg_attr(miri, ignore, allow(unused_attributes))]
         async fn $project() {
             let project_path = std::path::Path::new(file!())
                 .parent()
@@ -80,6 +82,7 @@ macro_rules! run_test {
     ($project:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
         $(#[$attr])*
         #[tokio::test]
+        #[cfg_attr(miri, ignore, allow(unused_attributes))]
         async fn $experiment() {
             let project_path = std::path::Path::new(file!())
                 .parent()
@@ -103,6 +106,7 @@ macro_rules! run_test {
 
         $(#[$attr])*
         #[tokio::test]
+        #[cfg_attr(miri, ignore, allow(unused_attributes))]
         async fn $experiment() {
             let project_path = std::path::Path::new(file!())
                 .parent()
