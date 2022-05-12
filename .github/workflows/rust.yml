@@ -453,6 +453,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
             ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}
+
       - name: Check public documentation
         uses: actions-rs/cargo@v1
         with:
