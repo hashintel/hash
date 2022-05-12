@@ -141,6 +141,13 @@ impl<C> Report<C> {
         }
     }
 
+    /// Converts the `&Report<Context>` to `&Report<()>` without modifying the frame stack.
+    pub const fn generalized(&self) -> &Report {
+        // SAFETY: `Report` is repr(transparent), so it's safe to cast between `Report<A>` and
+        //         `Report<B>`
+        unsafe { &*(self as *const Self).cast() }
+    }
+
     /// Returns the backtrace of the error, if captured.
     ///
     /// Note, that `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` has to be set to enable backtraces.
@@ -221,6 +228,11 @@ impl<C> Report<C> {
 
 impl<Context> fmt::Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        #[cfg(feature = "hooks")]
+        if let Some(debug_hook) = crate::display_hook() {
+            return debug_hook(self.generalized(), fmt);
+        }
+
         let mut chain = self.frames();
         let error = chain.next().expect("No error occurred");
         fmt::Display::fmt(&error, fmt)?;
@@ -235,6 +247,11 @@ impl<Context> fmt::Display for Report<Context> {
 
 impl<Context> fmt::Debug for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        #[cfg(feature = "hooks")]
+        if let Some(debug_hook) = crate::debug_hook() {
+            return debug_hook(self.generalized(), fmt);
+        }
+
         if fmt.alternate() {
             let mut debug = fmt.debug_struct("Report");
             debug.field("frames", &self.frames());

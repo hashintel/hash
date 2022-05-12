@@ -135,6 +135,7 @@
 //! # Feature flags
 //!
 //! - `std`: Enables support for [`Error`], **enabled** by default
+//! - `hooks`: Enables setting of [`display_hook`] and [`debug_hook`], **enabled** by default
 //! - `backtrace`: Enables the capturing of [`Backtrace`]s, implies `std`, **enabled** by default
 //! - `spantrace`: Enables the capturing of [`SpanTrace`]s, **disabled** by default
 
@@ -152,6 +153,8 @@ extern crate alloc;
 
 mod ext;
 mod frame;
+#[cfg(feature = "hooks")]
+mod hook;
 mod iter;
 mod macros;
 mod report;
@@ -162,6 +165,8 @@ use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
 
 use provider::Provider;
 
+#[cfg(feature = "hooks")]
+pub use self::hook::{debug_hook, display_hook, set_debug_hook, set_display_hook};
 pub use self::macros::*;
 use self::{frame::FrameRepr, report::ReportImpl};
 
@@ -300,6 +305,7 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// }
 /// ```
 #[must_use]
+#[repr(transparent)]
 pub struct Report<C = ()> {
     inner: Box<ReportImpl>,
     _context: PhantomData<C>,

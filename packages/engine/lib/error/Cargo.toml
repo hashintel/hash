@@ -7,9 +7,14 @@ edition = "2021"
 provider = { path = "../provider" }
 
 tracing-error = { version = "0.2.0", optional = true }
+once_cell = { version = "1.10.0", optional = true }
 
 [features]
-default = ["backtrace"]
-backtrace = ["std"]
-spantrace = ["tracing-error"]
+default = ["std", "backtrace", "hooks"]
 std = []
+backtrace = ["std"]
+hooks = ["once_cell"]
+spantrace = ["tracing-error"]
+
+[package.metadata.docs.rs]
+all-features = true
