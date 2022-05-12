@@ -386,14 +386,6 @@ jobs:
       - name: Remove default members
         run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
-      - name: Enable default features for nng
-        run: |
-          # Search for `nng` dependencies and enable default features
-          while read -r crate; do
-            nng_line=$((grep -n '^nng = ' "$crate/Cargo.toml" || true) | cut -d: -f1)
-            [[ $nng_line != '' ]] && sed "${nng_line}s/default-features = false/default-features = true/" -i "$crate/Cargo.toml" || true
-          done <<< "$(find . -name Cargo.toml -printf '%h\n')"
-
       - name: Install Rust
         id: toolchain
         uses: actions-rs/toolchain@v1
@@ -425,7 +417,9 @@ jobs:
 
       - name: Run miri
         working-directory: ${{ matrix.directory }}
-        run: cargo miri test ${{ matrix.flags }}
+        run: |
+          required_features=$(cat Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+          cargo miri test ${{ matrix.flags }} $required_features
 
   merging-enabled:
     name: merging enabled
