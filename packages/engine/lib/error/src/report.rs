@@ -9,7 +9,7 @@ use std::error::Error as StdError;
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
-use crate::{Context, Frames, Message, Report, Requests};
+use crate::{Context, Frames, Message, Report, RequestRef, RequestValue};
 
 #[allow(clippy::module_name_repetitions)]
 pub struct ReportImpl {
@@ -189,9 +189,14 @@ impl<C> Report<C> {
         Frames::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting a reference of type `T`.
-    pub const fn request_ref<T: ?Sized + 'static>(&self) -> Requests<'_, T> {
-        Requests::new(self)
+    /// Creates an iterator over the [`Frame`] stack requesting references of type `T`.
+    pub const fn request_ref<T: ?Sized + 'static>(&self) -> RequestRef<'_, T> {
+        RequestRef::new(self)
+    }
+
+    /// Creates an iterator over the [`Frame`] stack requesting values of type `T`.
+    pub const fn request_value<T: 'static>(&self) -> RequestValue<'_, T> {
+        RequestValue::new(self)
     }
 
     /// Returns if `C` is the type held by any frame inside of the report.
