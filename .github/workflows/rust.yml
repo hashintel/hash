@@ -248,7 +248,10 @@ jobs:
       - name: Build tests
         if: matrix.directory == 'packages/engine'
         run: |
+          # Even though we want to test without default features, NNG is a requirement for running so we either have to
+          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
           required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+
           cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }} $required_features
 
       - name: Setup Python environment
