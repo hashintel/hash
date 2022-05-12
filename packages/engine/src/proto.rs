@@ -66,7 +66,9 @@ pub struct InitMessage {
     /// Unused
     pub env: ExecutionEnvironment,
     /// A JSON object of dynamic configurations for things like packages, see
-    /// [`experiment::controller::config::OUTPUT_PERSISTENCE_KEY`] for an example
+    /// [`OUTPUT_PERSISTENCE_KEY`] for an example
+    ///
+    /// [`OUTPUT_PERSISTENCE_KEY`]: crate::experiment::controller::[`OUTPUT_PERSISTENCE_KEY`]
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
 
