@@ -18,10 +18,11 @@ mod ptr;
 mod segment;
 mod visitor;
 
-pub(in crate) use self::ffi::CSegment;
+pub(crate) use self::ffi::CSegment;
 pub use self::{
     buffer_change::BufferChange,
     continuation::arrow_continuation,
+    markers::Markers,
     metaversion::Metaversion,
     segment::{cleanup_by_base_id, MemoryId, Segment},
 };
