@@ -408,7 +408,10 @@ jobs:
       - name: Run miri
         working-directory: ${{ matrix.directory }}
         run: |
+          # Even though we want to test without default features, NNG is a requirement for running so we either have to
+          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
           required_features=$(cat Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+
           cargo miri test ${{ matrix.flags }} $required_features
 
   doc:
