@@ -142,6 +142,7 @@ jobs:
         toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
         flags:
           - --all-features
+          - --no-default-features
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -175,7 +176,12 @@ jobs:
             ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Run clippy
-        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} -- -D warnings
+        run: |
+          # Even though we want to test without default features, NNG is a requirement for running so we either have to
+          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
+          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+
+          cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} $required_features -- -D warnings
 
       - name: Annotate
         if: ${{ failure() }}
@@ -199,7 +205,7 @@ jobs:
         toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
         flags:
           - --all-features
-          - ""
+          - --no-default-features
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
@@ -208,10 +214,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Remove default members
-        run: |
-          # Backup `Config.toml` to restore it later so that `git diff` does not report any changes
-          cp -v "${{ matrix.directory }}/Cargo.toml" "${{ matrix.directory }}/Cargo.toml.orig"
-          sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
         id: toolchain
@@ -244,7 +247,12 @@ jobs:
 
       - name: Build tests
         if: matrix.directory == 'packages/engine'
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
+        run: |
+          # Even though we want to test without default features, NNG is a requirement for running so we either have to
+          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
+          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+
+          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }} $required_features
 
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
@@ -253,12 +261,19 @@ jobs:
           lib/execution/src/runner/python/setup.sh python3.7
 
       - name: Run tests
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
+        run: |
+          # Even though we want to test without default features, NNG is a requirement for running so we either have to
+          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
+          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+
+          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} $required_features
 
       # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
         run: |
-          mv -v "${{ matrix.directory }}/Cargo.toml.orig" "${{ matrix.directory }}/Cargo.toml"
+          # Restore files modified for CI
+          git checkout HEAD -- "${{ matrix.directory }}/Cargo.toml"
+
           git --no-pager diff --exit-code --color
 
   bench:
