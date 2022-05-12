@@ -1,34 +1,26 @@
+use provider::{Demand, Provider};
 use thiserror::Error as ThisError;
 
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+pub type Result<T, E = ErrorKind> = error::Result<T, E>;
 
-#[derive(ThisError, Debug)]
-#[non_exhaustive]
-pub enum Error {
-    #[error("Serialize/Deserialize error")]
-    Serde(#[from] serde_json::Error),
+#[derive(ThisError, Debug, Copy, Clone)]
+#[allow(clippy::module_name_repetitions)]
+pub enum ErrorKind {
+    #[error("Could not create nano server")]
+    ServerCreation,
 
-    #[error("{0}")]
-    Unique(String),
+    #[error("Could not create nano client")]
+    ClientCreation,
 
-    #[error("NNG error: {0}")]
-    Nng(#[from] nng::Error),
+    #[error("Could not send value")]
+    Send,
 
-    #[error("NNG Recv error: {err}")]
-    NngRecv { err: nng::Error },
-
-    #[error("Tokio oneshot recv: {0}")]
-    TokioOneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
+    #[error("Could not receive value")]
+    Receive,
 }
 
-impl From<&str> for Error {
-    fn from(error: &str) -> Self {
-        Self::Unique(error.to_owned())
-    }
-}
-
-impl From<String> for Error {
-    fn from(error: String) -> Self {
-        Self::Unique(error)
+impl Provider for ErrorKind {
+    fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {
+        // Empty implementation
     }
 }

@@ -23,7 +23,7 @@ const ENGINE_BIN_PATH_FALLBACK: &str = "./target/debug/hash_engine";
 #[cfg(not(debug_assertions))]
 const ENGINE_BIN_PATH_FALLBACK: &str = "./target/release/hash_engine";
 
-/// A local [`hash_engine`] subprocess using the [`std::process`] library.  
+/// A local `hash_engine` subprocess using the [`std::process`] library.  
 pub struct LocalProcess {
     child: tokio::process::Child,
     client: Option<nano::Client>,
@@ -69,7 +69,7 @@ impl process::Process for LocalProcess {
         kill_result
     }
 
-    /// Creates or reuses a [`nano::Client`] to send a message to the [`hash_engine`] subprocess.
+    /// Creates or reuses a [`nano::Client`] to send a message to the `hash_engine` subprocess.
     ///
     /// # Errors
     ///
@@ -79,14 +79,24 @@ impl process::Process for LocalProcess {
         // We create the client on the first call here, rather than when the LocalCommand is run,
         // because the engine process needs some time before it's ready to accept NNG connections.
         if self.client.is_none() {
-            self.client = Some(nano::Client::new(&self.engine_url, 1)?);
+            self.client = Some(
+                nano::Client::new(&self.engine_url, 1)
+                    .wrap_err_lazy(|| {
+                        format!(
+                            "Could not create nano client for engine at {:?}",
+                            self.engine_url
+                        )
+                    })
+                    .map_err(Report::generalize)?,
+            );
         }
         self.client
             .as_mut()
             .unwrap()
             .send(msg)
             .await
-            .map_err(Report::from)
+            .wrap_err("Could not send engine message")
+            .map_err(Report::generalize)
     }
 
     async fn wait(&mut self) -> Result<ExitStatus> {

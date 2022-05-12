@@ -44,7 +44,7 @@ pub mod __private {
     }
 
     pub fn report(args: fmt::Arguments) -> Report {
-        Report::new(args.to_string())
+        Report::new(alloc::string::ToString::to_string(&args))
     }
 }
 
@@ -397,29 +397,29 @@ mod tests {
     fn error() {
         let err = capture_error(|| Err(report!(context: ContextA(10))));
         assert_eq!(err.frames().count(), 1);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A"]);
 
         let err = capture_error(|| Err(report!(context: ContextA(10), "Literal")));
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Literal"]);
 
         let err = capture_error(|| Err(report!(context: ContextA(10), MESSAGE_A)));
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Message A"]);
 
         let var = "foo";
         let err = capture_error(|| Err(report!(context: ContextA(10), "Format String: {}", var)));
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
         let var = "foo";
         let err = capture_error(|| Err(report!(context: ContextA(10), "Format String: {var}")));
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
         let err = capture_error(|| Err(report!("Literal")));
@@ -445,29 +445,29 @@ mod tests {
     fn bail() {
         let err = capture_error(|| bail!(context: ContextA(10)));
         assert_eq!(err.frames().count(), 1);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A"]);
 
         let err = capture_error(|| bail!(context: ContextA(10), "Literal"));
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Literal"]);
 
         let err = capture_error(|| bail!(context: ContextA(10), MESSAGE_A));
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Message A"]);
 
         let var = "foo";
         let err = capture_error(|| bail!(context: ContextA(10), "Format String: {}", var));
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
         let var = "foo";
         let err = capture_error(|| bail!(context: ContextA(10), "Format String: {var}"));
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
         let err = capture_error(|| bail!("Literal"));
@@ -496,7 +496,7 @@ mod tests {
             Ok(())
         });
         assert_eq!(err.frames().count(), 1);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A"]);
 
         let err = capture_error(|| {
@@ -504,7 +504,7 @@ mod tests {
             Ok(())
         });
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Literal"]);
 
         let err = capture_error(|| {
@@ -512,7 +512,7 @@ mod tests {
             Ok(())
         });
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Message A"]);
 
         let var = "foo";
@@ -521,7 +521,7 @@ mod tests {
             Ok(())
         });
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
         let var = "foo";
@@ -530,7 +530,7 @@ mod tests {
             Ok(())
         });
         assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_ref().collect::<Vec<&u32>>(), [&10]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
         let err = capture_error(|| {

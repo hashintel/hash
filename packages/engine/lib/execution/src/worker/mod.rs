@@ -23,14 +23,12 @@ use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
 use self::pending::{CancelState, PendingGroup, PendingWorkerTask, PendingWorkerTasks};
+pub(crate) use self::task::{WorkerTask, WorkerTaskResultOrCancelled};
 pub use self::{
     config::{RunnerSpawnConfig, WorkerConfig},
+    handler::WorkerHandler,
     init::PackageInitMsgForWorker,
     sync::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
-};
-pub(crate) use self::{
-    handler::WorkerHandler,
-    task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
     runner::{
@@ -125,9 +123,8 @@ impl Worker {
     }
 
     async fn _run(&mut self) -> Result<()> {
-        // TODO: Rust
         let mut py_handle = self.py.run().await?;
-        // let mut rs_handle = self.rs.run().await?;
+        let mut rs_handle = self.rs.run().await?;
         let mut js_handle = self.js.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
@@ -194,6 +191,8 @@ impl Worker {
                     py_res??;
                     // TODO: send termination to js_handle
                     js_handle.await??;
+                    // TODO: send termination to rs_handle
+                    rs_handle.await??;
                     return Ok(());
                 }
                 js_res = &mut js_handle, if self.js.spawned() => {
@@ -201,13 +200,24 @@ impl Worker {
                     js_res??;
                     // TODO: send termination to py_handle
                     py_handle.await??;
+                    // TODO: send termination to rs_handle
+                    rs_handle.await??;
+                    return Ok(());
+                }
+                rs_res = &mut rs_handle, if self.rs.spawned() => {
+                    tracing::warn!("Rust runner finished unexpectedly: {rs_res:?}");
+                    rs_res??;
+                    // TODO: send termination to py_handle
+                    py_handle.await??;
+                    // TODO: send termination to js_handle
+                    js_handle.await??;
                     return Ok(());
                 }
             }
         }
 
         py_handle.await??;
-        // rs_handle.await??;
+        rs_handle.await??;
         js_handle.await??;
 
         Ok(())
@@ -273,7 +283,7 @@ impl Worker {
     ///     - [`Javascript`]/[`Python`]/[`Rust`]: The message is forwarded to the corresponding
     ///       language runner and the active runner is set to the language.
     ///     - [`Dynamic`]: The message is forwarded to the language runner determined dynamically.
-    ///     - [`Main`]: Finishes the task if any. See [`finish_task`] for more information.
+    ///     - [`Main`]: Finishes the task if any. See [`handle_end_message`] for more information.
     ///   - [`TaskCancelled`]: Cancels the task if any. See [`handle_cancel_task_confirmation`] for
     ///     more information.
     ///   - [`RunnerError`]/[`RunnerErrors`]: Forwards the error(s) to the worker pool.
@@ -291,7 +301,7 @@ impl Worker {
     ///
     /// [`target`]: MessageTarget
     /// [`handle_cancel_task_confirmation`]: Self::handle_cancel_task_confirmation
-    /// [`finish_task`]: Self::finish_task
+    /// [`handle_end_message`]: Self::handle_end_message
     /// [`JavaScript`]: MessageTarget::JavaScript
     /// [`Python`]: MessageTarget::Python
     /// [`Rust`]: MessageTarget::Rust
@@ -468,11 +478,11 @@ impl Worker {
     ///   Depending on the [`target`], the following actions are executed:
     ///   - [`Javascript`]/[`Python`]/[`Rust`]: The message is forwarded to the corresponding
     ///     language runner and the active runner is set to the language.
-    ///   - [`Main`]: Finishes the task if any. See [`finish_task`] for more information.
+    ///   - [`Main`]: Finishes the task if any. See [`handle_end_message`] for more information.
     ///   - [`Dynamic`] is an unexpected target and will return an error.
     ///
     /// [`target`]: MessageTarget
-    /// [`finish_task`]: Self::finish_task
+    /// [`handle_end_message`]: Self::handle_end_message
     /// [`JavaScript`]: MessageTarget::JavaScript
     /// [`Python`]: MessageTarget::Python
     /// [`Rust`]: MessageTarget::Rust
@@ -613,7 +623,7 @@ impl Worker {
     /// [`SharedState::Partial`] by using the
     /// [`PartialSharedState::split_into_individual_per_group()`] method.
     ///
-    /// [`PartialSharedState::split_into_individual_per_group`]: crate::datastore::table::task_shared_store::PartialSharedState::split_into_individual_per_group
+    /// [`PartialSharedState::split_into_individual_per_group()`]: crate::task::PartialSharedState::split_into_individual_per_group
     async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
         let task_id = task.task_id;
         let msg = WorkerHandler::start_message(&task.task)?;
@@ -711,15 +721,14 @@ impl Worker {
             return Ok(());
         };
 
-        // TODO: Change to `children(n)` for `n` enabled runners and adjust the following lines as
-        //       well.
         debug_assert!(!self.rs.spawned());
-        let (runner_msgs, runner_receivers) =
-            sync.create_children(self.js.spawned() as usize + self.py.spawned() as usize);
+        let (runner_msgs, runner_receivers) = sync.create_children(
+            self.js.spawned() as usize + self.py.spawned() as usize + self.rs.spawned() as usize,
+        );
         let mut messages = runner_msgs
             .into_iter()
             .map(InboundToRunnerMsgPayload::StateSync);
-        let (js_res, py_res) = tokio::join!(
+        let (js_res, py_res, rs_res) = tokio::join!(
             OptionFuture::from(
                 self.js
                     .spawned()
@@ -730,10 +739,15 @@ impl Worker {
                     .spawned()
                     .then(|| self.py.send(sim_id, messages.next().unwrap()))
             ),
-            // self.rs.send_if_spawned(sim_id, rs_msg),
+            OptionFuture::from(
+                self.rs
+                    .spawned()
+                    .then(|| self.rs.send(sim_id, messages.next().unwrap()))
+            ),
         );
         js_res.transpose()?;
         py_res.transpose()?;
+        rs_res.transpose()?;
 
         let fut = async move {
             // Capture `sync` in lambda.

@@ -12,21 +12,21 @@ use crate::simulation::{Error, Result};
 /// A sibling struct to a [`Task`] that is currently being executed to allow management of
 /// communication with, and tracking of, a [`Task`]'s status.
 ///
-/// [`Task`]: crate::simulation::task::Task
+/// [`Task`]: execution::task::Task
 #[derive(derive_new::new)]
 pub struct ActiveTask {
     /// Used by the owning Package to wait for results from the associated [`Task`].
     ///
-    /// [`Task`]: crate::simulation::task::Task
+    /// [`Task`]: execution::task::Task
     comms: ActiveTaskOwnerComms,
     /// Marks whether or not the [`Task`] is still running.
     ///
-    /// [`Task`]: crate::simulation::task::Task
+    /// [`Task`]: execution::task::Task
     #[new(value = "true")]
     running: bool,
     /// Marks whether or not the [`Task`] has been signaled to cancel.
     ///
-    /// [`Task`]: crate::simulation::task::Task
+    /// [`Task`]: execution::task::Task
     #[new(default)]
     cancel_sent: bool,
 }
@@ -42,7 +42,7 @@ impl execution::task::ActiveTask for ActiveTask {
     /// [`TaskResultOrCancelled`].
     /// - If the [`Task`] was cancelled during execution.
     ///
-    /// [`Task`]: crate::simulation::task::Task
+    /// [`Task`]: execution::task::Task
     async fn drive_to_completion(mut self) -> execution::Result<TaskMessage> {
         if self.running {
             let recv = self

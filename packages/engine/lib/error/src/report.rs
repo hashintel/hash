@@ -1,4 +1,4 @@
-pub(super) use alloc::boxed::Box;
+use alloc::boxed::Box;
 use core::{fmt, fmt::Formatter, marker::PhantomData, panic::Location};
 #[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
@@ -9,9 +9,10 @@ use std::error::Error as StdError;
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
-use crate::{Context, Frames, Message, Report, Requests};
+use crate::{Context, Frames, Message, Report, RequestRef, RequestValue};
 
-pub(super) struct ReportImpl {
+#[allow(clippy::module_name_repetitions)]
+pub struct ReportImpl {
     pub(super) frame: Frame,
     #[cfg(feature = "backtrace")]
     backtrace: Option<Backtrace>,
@@ -188,9 +189,14 @@ impl<C> Report<C> {
         Frames::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting a reference of type `T`.
-    pub const fn request_ref<T: ?Sized + 'static>(&self) -> Requests<'_, T> {
-        Requests::new(self)
+    /// Creates an iterator over the [`Frame`] stack requesting references of type `T`.
+    pub const fn request_ref<T: ?Sized + 'static>(&self) -> RequestRef<'_, T> {
+        RequestRef::new(self)
+    }
+
+    /// Creates an iterator over the [`Frame`] stack requesting values of type `T`.
+    pub const fn request_value<T: 'static>(&self) -> RequestValue<'_, T> {
+        RequestValue::new(self)
     }
 
     /// Returns if `C` is the type held by any frame inside of the report.

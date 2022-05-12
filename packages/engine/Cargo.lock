@@ -984,7 +984,6 @@ dependencies = [
  "lazy_static",
  "memory",
  "nano",
- "nng",
  "num_cpus",
  "orchestrator",
  "parking_lot",
@@ -1428,7 +1427,9 @@ dependencies = [
 name = "nano"
 version = "0.0.0"
 dependencies = [
+ "error",
  "nng",
+ "provider",
  "serde",
  "serde_json",
  "thiserror",
