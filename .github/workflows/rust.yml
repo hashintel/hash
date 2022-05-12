@@ -27,6 +27,7 @@ jobs:
       test: ${{ steps.crates.outputs.test }}
       bench: ${{ steps.crates.outputs.bench }}
       miri: ${{ steps.crates.outputs.miri }}
+      doc: ${{ steps.crates.outputs.doc }}
       samples: ${{ steps.samples.outputs.samples }}
       toolchains: ${{ steps.toolchains.outputs.toolchains }}
     steps:
@@ -72,12 +73,14 @@ jobs:
           echo "::set-output name=test::$test_crates"
           echo "::set-output name=bench::$bench_crates"
           echo "::set-output name=miri::$test_crates"
+          echo "::set-output name=doc::$changed_crates"
 
           echo "run \`cargo fmt\` for: $(echo "$changed_crates" | jq -r)"
           echo "run \`cargo clippy\` for: $(echo "$changed_crates" | jq -r)"
           echo "run \`cargo test\` for: $(echo "$test_crates" | jq -r)"
           echo "run \`cargo test --release\` for: $(echo "$bench_crates" | jq -r)"
           echo "run \`cargo miri\` for: $(echo "$test_crates" | jq -r)"
+          echo "run \`cargo doc\` for: $(echo "$changed_crates" | jq -r)"
 
       - name: Find toolchain
         id: toolchains
@@ -410,7 +413,7 @@ jobs:
 
   merging-enabled:
     name: merging enabled
-    needs: [rustfmt, clippy, test, bench, miri]
+    needs: [rustfmt, clippy, test, bench, miri, doc]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -429,3 +432,6 @@ jobs:
       - name: check miri
         run: |
           [[ ${{ needs.miri.result }} =~ success|skipped ]]
+      - name: check doc
+        run: |
+          [[ ${{ needs.doc.result }} =~ success|skipped ]]
