@@ -42,11 +42,10 @@ pub struct Manifest {
     pub behaviors: Vec<Behavior>,
     /// A list of all datasets in the project.
     pub datasets: Vec<Dataset>,
-    /// JSON string describing the [`Globals`](hash_engine_lib::config::Globals) object.
+    /// JSON string describing the [`Globals`](stateful::global::Globals) object.
     pub globals_json: Option<String>,
     /// JSON string describing the analysis that's calculated by the
-    /// [analysis output
-    /// package](hash_engine_lib::simulation::package::output::packages::analysis).
+    /// [analysis output package](execution::package::simulation::output::analysis).
     pub analysis_json: Option<String>,
     /// JSON string describing the structure of available experiments for this project.
     pub experiments_json: Option<String>,
@@ -127,7 +126,7 @@ impl Manifest {
     }
 
     /// Reads the content from the file at the provided `path` describing the
-    /// [`Globals`](hash_engine_lib::config::Globals).
+    /// [`Globals`](stateful::global::Globals).
     ///
     /// # Errors
     ///
@@ -139,7 +138,7 @@ impl Manifest {
 
     /// Reads the content from the file at the provided `path` describing the analysis of the
     /// experiment, calculated by the
-    /// [analysis output package](hash_engine_lib::simulation::package::output::packages::analysis).
+    /// [analysis output package](execution::package::simulation::output::analysis).
     ///
     /// # Errors
     ///
