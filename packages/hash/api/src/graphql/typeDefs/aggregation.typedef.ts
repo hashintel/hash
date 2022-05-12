@@ -37,7 +37,7 @@ export const aggregationTypedef = gql`
 
   type FilterOperation {
     field: String!
-    value: String!
+    value: String
     operator: String!
   }
 
