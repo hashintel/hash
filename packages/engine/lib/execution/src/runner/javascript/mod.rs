@@ -885,12 +885,13 @@ impl<'s> ThreadLocalRunner<'s> {
         &self,
         data_ptr: NonNull<T>,
         data_len: usize,
+        data_capacity: usize,
         target_len: usize,
     ) -> Buffer {
-        if data_len == target_len {
+        if target_len <= data_capacity {
             return Buffer::from_custom_allocation(
                 data_ptr.cast::<u8>(),
-                data_len * std::mem::size_of::<T>(),
+                target_len * std::mem::size_of::<T>(),
                 // JS is taking care of freeing the buffer and Rust should just do nothing
                 Arc::new(()),
             );
@@ -925,6 +926,7 @@ impl<'s> ThreadLocalRunner<'s> {
         &self,
         data_ptr: NonNull<i32>,
         data_len: usize,
+        data_capacity: usize,
         target_len: usize,
     ) -> (Buffer, usize) {
         let offsets = slice::from_raw_parts(data_ptr.as_ptr(), data_len + 1);
@@ -937,11 +939,11 @@ impl<'s> ThreadLocalRunner<'s> {
 
         let last = offsets[data_len];
 
-        if data_len == target_len {
+        if target_len <= data_capacity {
             return (
                 Buffer::from_custom_allocation(
                     data_ptr.cast::<u8>(),
-                    (data_len + 1) * std::mem::size_of::<i32>(),
+                    (target_len + 1) * std::mem::size_of::<i32>(),
                     // JS is taking care of freeing the buffer and Rust should just do nothing
                     Arc::new(()),
                 ),
@@ -978,12 +980,13 @@ impl<'s> ThreadLocalRunner<'s> {
         &self,
         data_ptr: NonNull<u8>,
         data_len: usize,
+        data_capacity: usize,
         target_len: usize,
     ) -> Buffer {
-        if data_len == target_len {
+        if target_len <= data_capacity {
             return Buffer::from_custom_allocation(
                 data_ptr,
-                bit_util::ceil(data_len, 8),
+                bit_util::ceil(target_len, 8),
                 // JS is taking care of freeing the buffer and Rust should just do nothing
                 Arc::new(()),
             );
@@ -1044,6 +1047,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 builder = builder.add_buffer(self.read_boolean_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
                     data.len,
+                    data.buffer_capacities[0],
                     target_len,
                 ));
             },
@@ -1056,6 +1060,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 builder = builder.add_buffer(self.read_primitive_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u16>(),
                     data.len,
+                    data.buffer_capacities[0],
                     target_len,
                 ))
             },
@@ -1068,6 +1073,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 builder = builder.add_buffer(self.read_primitive_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u32>(),
                     data.len,
+                    data.buffer_capacities[0],
                     target_len,
                 ))
             },
@@ -1080,6 +1086,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 builder = builder.add_buffer(self.read_primitive_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<f64>(),
                     data.len,
+                    data.buffer_capacities[0],
                     target_len,
                 ))
             },
@@ -1097,6 +1104,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     self.read_offset_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<i32>(),
                         data.len,
+                        data.buffer_capacities[0],
                         target_len,
                     )
                 };
@@ -1112,6 +1120,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     builder = builder.add_buffer(self.read_primitive_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[1] as *mut u8),
                         last_offset,
+                        data.buffer_capacities[1],
                         last_offset,
                     ));
                 };
@@ -1130,6 +1139,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     self.read_offset_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<i32>(),
                         data.len,
+                        data.buffer_capacities[0],
                         target_len,
                     )
                 };
@@ -1196,6 +1206,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     builder = builder.add_buffer(self.read_primitive_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
                         *size as usize * data.len,
+                        data.buffer_capacities[0],
                         *size as usize * target_len,
                     ));
                 };
@@ -1207,8 +1218,14 @@ impl<'s> ThreadLocalRunner<'s> {
         builder = builder.len(target_len);
         if let Some(null_bits_ptr) = NonNull::new(data.null_bits_ptr as *mut u8) {
             // SAFETY: null-bits are provided by arrow
-            let null_bit_buffer =
-                unsafe { self.read_boolean_buffer(null_bits_ptr, data.len, target_len) };
+            let null_bit_buffer = unsafe {
+                self.read_boolean_buffer(
+                    null_bits_ptr,
+                    data.len,
+                    data.buffer_capacities[0],
+                    target_len,
+                )
+            };
 
             // The `data.null_count` provided is only valid for `data.len`, as the buffer is
             // resized to `target_len`, the `null_count` has to be adjusted.
