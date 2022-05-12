@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Write, sync::Arc};
 
 use crate::{
     package::simulation::output::analysis::analyzer::{AnalysisOperationRepr, AnalysisSourceRepr},
@@ -39,10 +39,11 @@ impl AnalysisSourceRepr {
             let mut error_string = String::new();
             for (output, error) in results {
                 if let Some(error_str) = error {
-                    error_string.push_str(&format!(
+                    let _ = write!(
+                        error_string,
                         "Output with name '{}' has an incorrect definition, errors: {{{}}}. ",
                         output, error_str
-                    ));
+                    );
                 }
             }
             Err(Error::from(format!(

@@ -9,6 +9,7 @@ use execution::{
         comms::{PackageError, UserError, UserWarning},
         Language, RunnerError,
     },
+    worker::RunnerSpawnConfig,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
@@ -226,9 +227,27 @@ pub struct ExperimentRunBase {
 }
 
 impl ExperimentRunBase {
-    /// Returns `true` if the experiment uses Python init or has any Python behavior.
-    pub fn requires_python_runner(&self) -> bool {
-        self.project_base.package_init.initial_state.name == InitialStateName::InitPy
+    /// Returns a [`RunnerSpawnConfig`] matching the config required by the files present in the
+    /// experiment.
+    pub fn create_runner_spawn_config(&self) -> RunnerSpawnConfig {
+        RunnerSpawnConfig {
+            python: self.requires_runner(Language::Python),
+            rust: self.requires_runner(Language::Rust),
+            javascript: self.requires_runner(Language::JavaScript),
+        }
+    }
+
+    /// Returns `true` if the experiment uses the language's init or has any behavior of the
+    /// language.
+    fn requires_runner(&self, language: Language) -> bool {
+        #[allow(clippy::match_like_matches_macro)]
+        let requires_init = match (language, &self.project_base.package_init.initial_state.name) {
+            (Language::JavaScript, InitialStateName::InitJs) => true,
+            (Language::Python, InitialStateName::InitPy) => true,
+            _ => false,
+        };
+
+        requires_init
             || self
                 .project_base
                 .package_init
@@ -237,7 +256,7 @@ impl ExperimentRunBase {
                 .any(|behavior| {
                     behavior
                         .language()
-                        .map(|language| language == Language::Python)
+                        .map(|behavior_lang| behavior_lang == language)
                         .unwrap_or(false)
                 })
     }

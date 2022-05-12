@@ -39,9 +39,9 @@ impl<'r, T: ?Sized> Requests<'r, T> {
     }
 }
 
-impl<'r, T: ?Sized> Iterator for Requests<'r, T>
+impl<'r, T> Iterator for Requests<'r, T>
 where
-    T: 'static,
+    T: ?Sized + 'static,
 {
     type Item = &'r T;
 
@@ -50,7 +50,7 @@ where
     }
 }
 
-impl<'r, T: ?Sized> FusedIterator for Requests<'r, T> where T: 'static {}
+impl<'r, T> FusedIterator for Requests<'r, T> where T: ?Sized + 'static {}
 
 impl<T: ?Sized> Clone for Requests<'_, T> {
     fn clone(&self) -> Self {
@@ -61,9 +61,9 @@ impl<T: ?Sized> Clone for Requests<'_, T> {
     }
 }
 
-impl<'r, T: ?Sized> fmt::Debug for Requests<'r, T>
+impl<'r, T> fmt::Debug for Requests<'r, T>
 where
-    T: fmt::Debug + 'static,
+    T: ?Sized + fmt::Debug + 'static,
 {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()

@@ -6,7 +6,7 @@ use execution::{
         simulation::init::{InitPackageName, InitialStateName},
     },
     runner::RunnerConfig,
-    worker::{RunnerSpawnConfig, WorkerConfig},
+    worker::WorkerConfig,
     worker_pool::WorkerPoolConfig,
 };
 use stateful::global::Globals;
@@ -56,14 +56,8 @@ impl Config {
 
         let run = Arc::new(experiment_run);
 
-        // TODO: Rust
-        // TODO: Ask packages for what language execution they require. Done for Python.
         let worker_config = WorkerConfig {
-            spawn: RunnerSpawnConfig {
-                python: run.base().requires_python_runner(),
-                rust: false,
-                javascript: true,
-            },
+            spawn: run.base().create_runner_spawn_config(),
             runner_config: RunnerConfig {
                 js_runner_initial_heap_constraint,
                 js_runner_max_heap_size,

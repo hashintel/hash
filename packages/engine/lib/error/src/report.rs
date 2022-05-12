@@ -1,4 +1,4 @@
-pub(super) use alloc::boxed::Box;
+use alloc::boxed::Box;
 use core::{fmt, fmt::Formatter, marker::PhantomData, panic::Location};
 #[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
@@ -11,7 +11,8 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 use super::Frame;
 use crate::{Context, Frames, Message, Report, Requests};
 
-pub(super) struct ReportImpl {
+#[allow(clippy::module_name_repetitions)]
+pub struct ReportImpl {
     pub(super) frame: Frame,
     #[cfg(feature = "backtrace")]
     backtrace: Option<Backtrace>,

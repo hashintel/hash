@@ -28,6 +28,8 @@ pub(in crate) fn get_old_message_index(
     //         location is a tuple of two indices), so it must be viewable as a slice of
     //         `[u32; 2]`. (Space is allocated for a tuple even if a row is null.)
     // TODO: Use `TryInto` instead
+    todo!("Fix cast between slices with different sizes");
+    #[allow(clippy::cast_slice_different_sizes)]
     let data_as_tuples = unsafe { &*(child_data_buffer as *const [u32] as *const [[u32; 2]]) };
     let old_message_location = &data_as_tuples[row_index];
 
