@@ -18,3 +18,7 @@ spantrace = ["tracing-error"]
 
 [package.metadata.docs.rs]
 all-features = true
+
+[[example]]
+name = "hooks"
+required-features = ["hooks"]
