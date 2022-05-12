@@ -71,12 +71,12 @@ pub struct State {
 }
 
 impl State {
-    /// Creates a new State object from an array of groups of [`AgentState`]s.
+    /// Creates a new State object from an array of groups of [`Agent`]s.
     ///
     /// Uses the schemas in the provided `sim_config` to validate the provided state, and to create
     /// the agent and message batches. The agent batches use the data provided in
     /// `agent_state_groups`, where each element is a group, and the total elements (i.e.
-    /// [`AgentState`]s) within those groups is `num_agents`.
+    /// [`Agent`]s) within those groups is `num_agents`.
     ///
     /// Effectively converts the `agent_state_groups` from Array-of-Structs into a
     /// Struct-of-Arrays.
