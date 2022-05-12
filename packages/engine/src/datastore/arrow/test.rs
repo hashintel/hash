@@ -86,6 +86,7 @@ fn get_schema() -> Result<()> {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn agent_state_into_record_batch() -> Result<()> {
     let mut failed_agent_seeds = vec![];
 
