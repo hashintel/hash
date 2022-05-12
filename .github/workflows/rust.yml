@@ -26,6 +26,7 @@ jobs:
       clippy: ${{ steps.crates.outputs.clippy }}
       test: ${{ steps.crates.outputs.test }}
       bench: ${{ steps.crates.outputs.bench }}
+      doc: ${{ steps.crates.outputs.doc }}
       samples: ${{ steps.samples.outputs.samples }}
       toolchains: ${{ steps.toolchains.outputs.toolchains }}
     steps:
@@ -63,11 +64,14 @@ jobs:
           echo "::set-output name=clippy::$changed_crates"
           echo "::set-output name=test::$test_crates"
           echo "::set-output name=bench::$bench_crates"
+          echo "::set-output name=doc::$changed_crates"
 
           echo "run \`cargo fmt\` for: $(echo "$changed_crates" | jq -r)"
           echo "run \`cargo clippy\` for: $(echo "$changed_crates" | jq -r)"
           echo "run \`cargo test\` for: $(echo "$test_crates" | jq -r)"
           echo "run \`cargo test --release\` for: $(echo "$bench_crates" | jq -r)"
+          echo "run \`cargo doc\` for: $(echo "$changed_crates" | jq -r)"
+
       - name: Find toolchain
         id: toolchains
         run: |
@@ -339,9 +343,78 @@ jobs:
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
+  doc:
+    name: doc
+    needs: setup
+    if: needs.setup.outputs.doc != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.setup.outputs.doc) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        flags:
+          - --all-features
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Remove default members
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+
+      - name: Install Rust
+        id: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/checkouts
+            **/target/
+          key: ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+            ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}
+
+      - name: Check public documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: rustdoc
+          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --check -D warnings
+
+      - name: Check private documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: rustdoc
+          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --check --document-private-items -D warnings
+
+      - name: Show public coverage
+        if: always()
+        uses: actions-rs/cargo@v1
+        with:
+          command: rustdoc
+          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --show-coverage
+
+      - name: Show private coverage
+        if: always()
+        uses: actions-rs/cargo@v1
+        with:
+          command: rustdoc
+          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --show-coverage --document-private-items
+
   merging-enabled:
     name: merging enabled
-    needs: [rustfmt, clippy, test, bench]
+    needs: [rustfmt, clippy, test, bench, doc]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -357,3 +430,6 @@ jobs:
       - name: check bench
         run: |
           [[ ${{ needs.bench.result }} =~ success|skipped ]]
+      - name: check doc
+        run: |
+          [[ ${{ needs.doc.result }} =~ success|skipped ]]
