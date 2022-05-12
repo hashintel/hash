@@ -43,9 +43,6 @@ jobs:
           # All jobs for all crates will run if any of these paths changes
           always_run_on=(".github" "rust-toolchain.toml" "Cargo.toml" "Cargo.lock")
 
-          # Miri can't run the following crates
-          dont_run_miri_for=("packages/engine")
-
           changed_crates=""
           while read -r file; do
             while read -r crate; do
@@ -66,31 +63,21 @@ jobs:
             test_crates=$(echo -e "${changed_crates}\npackages/engine")
           fi
 
-          miri_crates=""
-          for avoid_crate in "${dont_run_miri_for[@]}"; do
-            while read -r changed_crate; do
-              if [[ $changed_crate != $avoid_crate ]]; then
-                miri_crates=$(echo -e "$changed_crate\n$miri_crates")
-              fi
-            done <<< "$changed_crates"
-          done
-
           changed_crates=$(echo "$changed_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
           bench_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(. == "packages/engine") ]')
           test_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
-          miri_crates=$(echo "$miri_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
 
           echo "::set-output name=rustfmt::$changed_crates"
           echo "::set-output name=clippy::$changed_crates"
           echo "::set-output name=test::$test_crates"
           echo "::set-output name=bench::$bench_crates"
-          echo "::set-output name=miri::$miri_crates"
+          echo "::set-output name=miri::$test_crates"
 
           echo "run \`cargo fmt\` for: $(echo "$changed_crates" | jq -r)"
           echo "run \`cargo clippy\` for: $(echo "$changed_crates" | jq -r)"
           echo "run \`cargo test\` for: $(echo "$test_crates" | jq -r)"
           echo "run \`cargo test --release\` for: $(echo "$bench_crates" | jq -r)"
-          echo "run \`cargo miri\` for: $(echo "$miri_crates" | jq -r)"
+          echo "run \`cargo miri\` for: $(echo "$test_crates" | jq -r)"
 
       - name: Find toolchain
         id: toolchains
