@@ -45,12 +45,11 @@ use async_trait::async_trait;
 
 pub use self::{
     cancel::CancelTask,
-    message::{TaskMessage, TaskResultOrCancelled},
+    message::{TargetedTaskMessage, TaskMessage, TaskResultOrCancelled},
     shared_store::{SharedContext, SharedState, TaskSharedStore},
 };
 pub(crate) use self::{
     distribution::{StateBatchDistribution, TaskDistributionConfig},
-    message::TargetedTaskMessage,
     shared_store::{PartialSharedState, TaskSharedStoreBuilder},
 };
 use crate::Result;

@@ -19,7 +19,7 @@
 //! [`Task::distribution`]: crate::task::Task::distribution
 //! [`TaskMessage`]: crate::task::TaskMessage
 //! [`InitTask`]: crate::package::simulation::init::InitTask
-//! [`PendingWorkerPoolTask`]: crate::worker_pool::PendingWorkerPoolTask
+//! [`PendingWorkerPoolTask`]: crate::worker_pool::--PendingWorkerPoolTask
 //! [`WorkerPoolHandler`]: crate::worker_pool::WorkerPoolHandler
 //! [`WorkerPoolHandler::combine_messages`]: crate::worker_pool::WorkerPoolHandler::combine_messages
 //! [`WorkerPoolHandler::split_task`]: crate::worker_pool::WorkerPoolHandler::split_task
@@ -29,8 +29,8 @@
 
 /// Describes how a distributed [`Task`] has access to Agent [`State`].
 ///
-/// [`Task`]: crate::simulation::task::Task
-/// [`State`]: crate::datastore::table::state::State
+/// [`Task`]: crate::task::Task
+/// [`State`]: stateful::state::State
 #[derive(Default, Debug)]
 pub struct StateBatchDistribution {
     /// - `true` - The [`Task`] is executed across multiple [`worker`]s, and Agent [`State`] is
@@ -43,8 +43,8 @@ pub struct StateBatchDistribution {
     ///
     ///   Because of this, there can only be read-access to the `Group`s.
     ///
-    /// [`Task`]: crate::simulation::task::Task
-    /// [`State`]: crate::datastore::table::state::State
+    /// [`Task`]: crate::task::Task
+    /// [`State`]: stateful::state::State
     /// [`worker`]: crate::worker
     pub partitioned_batches: bool,
 }
