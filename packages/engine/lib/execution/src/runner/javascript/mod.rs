@@ -891,6 +891,7 @@ impl<'s> ThreadLocalRunner<'s> {
             return Buffer::from_custom_allocation(
                 data_ptr.cast::<u8>(),
                 data_len * std::mem::size_of::<T>(),
+                // JS is taking care of freeing the buffer and Rust should just do nothing
                 Arc::new(()),
             );
         }
@@ -941,6 +942,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 Buffer::from_custom_allocation(
                     data_ptr.cast::<u8>(),
                     (data_len + 1) * std::mem::size_of::<i32>(),
+                    // JS is taking care of freeing the buffer and Rust should just do nothing
                     Arc::new(()),
                 ),
                 last as usize,
@@ -982,6 +984,7 @@ impl<'s> ThreadLocalRunner<'s> {
             return Buffer::from_custom_allocation(
                 data_ptr,
                 bit_util::ceil(data_len, 8),
+                // JS is taking care of freeing the buffer and Rust should just do nothing
                 Arc::new(()),
             );
         }
