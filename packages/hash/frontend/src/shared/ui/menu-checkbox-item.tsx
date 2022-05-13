@@ -11,7 +11,7 @@ const MenuCheckboxItem: ForwardRefRenderFunction<
   MenuCheckboxItemProps
 > = ({ selected, children, ...props }, ref) => {
   return (
-    <MenuItem ref={ref} {...props} selected={false}>
+    <MenuItem ref={ref} {...props} noSelectBackground>
       <ListItemIcon>
         <Checkbox checked={selected} />
       </ListItemIcon>
