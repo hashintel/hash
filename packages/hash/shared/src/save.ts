@@ -19,6 +19,7 @@ import {
   EntityStore,
   isBlockEntity,
   isDraftBlockEntity,
+  isCreatedDraftEntity,
 } from "./entityStore";
 import {
   BlockEntity,
@@ -327,7 +328,7 @@ const updateBlocks = defineOperation(
             if (isBlockEntity(draftBlockEntity)) {
               const draftBlockData = getDraftEntityFromEntityId(
                 entityStore.draft,
-                draftBlockEntity?.properties.entity.entityId,
+                draftBlockEntity.properties.entity.entityId,
               );
 
               // Check if block data changed by comparing properties
@@ -346,7 +347,7 @@ const updateBlocks = defineOperation(
                     },
                   });
                 } else {
-                  if (!draftBlockData.accountId) {
+                  if (!isCreatedDraftEntity(draftBlockData)) {
                     throw new Error(
                       "Attempting to update block which has not yet been saved",
                     );
