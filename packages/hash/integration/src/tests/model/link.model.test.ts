@@ -183,9 +183,6 @@ describe("Link model class ", () => {
     expect(retrievedLink.sourceEntityId).toBe(link.sourceEntityId);
     expect(retrievedLink.destinationAccountId).toBe(link.destinationAccountId);
     expect(retrievedLink.destinationEntityId).toBe(link.destinationEntityId);
-    expect(retrievedLink.destinationEntityVersionId).toBe(
-      link.destinationEntityVersionId,
-    );
   });
 
   it("create/delete methods can create/delete indexed links on versioned source entity", async () => {
@@ -279,9 +276,6 @@ describe("Link model class ", () => {
     );
     expect(entityATimestamp3OutgoingLinks[1]!.destinationEntityId).toBe(
       linkAToB.destinationEntityId,
-    );
-    expect(entityATimestamp3OutgoingLinks[1]!.destinationEntityVersionId).toBe(
-      linkAToB.destinationEntityVersionId,
     );
     expect(entityATimestamp3OutgoingLinks[1]!.index).toBe(1);
 

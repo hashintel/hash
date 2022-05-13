@@ -33,6 +33,7 @@ pub mod tests {
     use crate::datastore::test_utils::*;
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     pub fn growable_array_modification() -> Result<()> {
         pub fn modify_name(shmem_os_id: &str) -> Result<Vec<Option<String>>> {
             let mut state_batch = *AgentBatch::from_shmem_os_id(shmem_os_id)?;

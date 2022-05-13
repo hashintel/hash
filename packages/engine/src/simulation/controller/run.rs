@@ -43,12 +43,14 @@ enum LoopControl {
 /// # The Main Loop
 /// The repeating top-level logic of a simulation step.
 /// - Check if the sim has been told to stop by the Experiment Controller
-/// - Tells the simulation engine to take a step [`simulation::engine::Engine::next`]:
+/// - Tells the simulation engine to take a step [`Engine::next()`]:
 ///   - Runs Context Packages in parallel
 ///   - Runs State Packages sequentially
 ///   - Runs Output packages
 /// - Persists Output
 /// - Sends an update on the Step result to the Experiment Controller
+///
+/// [`Engine::next()`]: crate::simulation::engine::Engine::next
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig>,
     comms: Comms,

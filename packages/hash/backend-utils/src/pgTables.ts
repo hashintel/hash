@@ -104,7 +104,6 @@ export class LinkVersion {
     public removedFromSourceByAccountId: string | undefined,
     public destinationAccountId: string,
     public destinationEntityId: string,
-    public destinationEntityVersionId: string | undefined,
     public updatedAt: Date,
     public updatedByAccountId: string,
   ) {}
@@ -125,8 +124,6 @@ export class LinkVersion {
         (row.removed_from_source_by_account_id as string) ?? undefined,
       destinationAccountId: row.destination_account_id as string,
       destinationEntityId: row.destination_entity_id as string,
-      destinationEntityVersionId:
-        (row.destination_entity_version_id as string | undefined) ?? undefined,
       updatedAt: new Date(row.updated_at as string),
       updatedByAccountId: row.updated_by_account_id as string,
     };

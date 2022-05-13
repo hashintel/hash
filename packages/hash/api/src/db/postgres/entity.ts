@@ -671,8 +671,6 @@ export const acquireEntityLock = async (
 
 /** Update the properties of the provided entity by creating a new version.
  * @throws `DbEntityNotFoundError` if the entity does not exist.
- * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
- *          does not exist.
  */
 export const updateVersionedEntity = async (
   conn: Connection,
@@ -754,8 +752,6 @@ const updateNonVersionedEntity = async (
 /** Update an entity, either versioned or non-versioned. Note: the update is applied
  * to the latest version of the entity.
  * @throws `DbEntityNotFoundError` if the entity does not exist.
- * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
- *          does not exist.
  */
 export const updateEntity = async (
   conn: Connection,
@@ -787,21 +783,15 @@ export const getDestinationEntityOfLink = async (
   conn: Connection,
   link: DbLink,
 ): Promise<DbEntity> => {
-  const destinationEntity = link.destinationEntityVersionId
-    ? await getEntity(conn, {
-        accountId: link.destinationAccountId,
-        entityVersionId: link.destinationEntityVersionId,
-      })
-    : await getEntityLatestVersion(conn, {
-        accountId: link.destinationAccountId,
-        entityId: link.destinationEntityId,
-      });
+  const destinationEntity = await getEntityLatestVersion(conn, {
+    accountId: link.destinationAccountId,
+    entityId: link.destinationEntityId,
+  });
 
   if (!destinationEntity) {
     throw new DbEntityNotFoundError({
       accountId: link.destinationAccountId,
       entityId: link.destinationEntityId,
-      entityVersionId: link.destinationEntityVersionId,
     });
   }
 

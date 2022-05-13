@@ -124,7 +124,7 @@ Due to limitations in Cargo at the moment we can't properly check if it's being 
 
   - Using the x86 brew to install `nng` (which will then install an x86 version). This should result in an nng installation at: `/usr/local/Cellar/nng/1.5.2`
 
-- It's then necessary to set the `NNG_PATH` environment variable, similar to `V8_PATH`
+- It's then necessary to set the `NNG_PATH` environment variable
 
   - The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
 
