@@ -359,8 +359,6 @@ const updateBlocks = defineOperation(
                       properties: draftBlockData.properties,
                     },
                   });
-                  // @todo check if the block data changed and push
-                  // an updateEntity action
                 }
               }
             }
