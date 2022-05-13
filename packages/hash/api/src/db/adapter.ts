@@ -264,8 +264,7 @@ export interface DbClient {
    * generated. To create a versioned entity, set the optional parameter `versioned` to
    * `true`. One of `entityTypeId`, `entityTypeVersionId` or `systemTypeName` must be
    * provided.
-   * @throws: `DbInvalidLinksError` if the entity's properties contain a link to an
-   *          entity which does not exist.
+   * @throws DbEntityTypeNotFoundError if the selected entity type does not exist
    * */
   createEntity(params: {
     accountId: string;
@@ -380,8 +379,6 @@ export interface DbClient {
    * @param params.updatedByAccountId the account id of the user that is updating the entity
    * @returns the entity's updated state.
    * @throws `DbEntityNotFoundError` if the entity does not exist.
-   * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
-   *          does not exist.
    */
   updateEntity(params: {
     accountId: string;

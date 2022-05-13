@@ -671,8 +671,6 @@ export const acquireEntityLock = async (
 
 /** Update the properties of the provided entity by creating a new version.
  * @throws `DbEntityNotFoundError` if the entity does not exist.
- * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
- *          does not exist.
  */
 export const updateVersionedEntity = async (
   conn: Connection,
@@ -754,8 +752,6 @@ const updateNonVersionedEntity = async (
 /** Update an entity, either versioned or non-versioned. Note: the update is applied
  * to the latest version of the entity.
  * @throws `DbEntityNotFoundError` if the entity does not exist.
- * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
- *          does not exist.
  */
 export const updateEntity = async (
   conn: Connection,

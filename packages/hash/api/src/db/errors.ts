@@ -74,24 +74,3 @@ export class DbAggregationNotFoundError extends Error {
     this.aggregationId = aggregationId;
   }
 }
-
-export class DbInvalidLinksError extends Error {
-  entity: DbEntity;
-  invalid: { entityId: string; entityVersionId?: string }[];
-
-  constructor(params: {
-    entity: DbEntity;
-    invalid: { entityId: string; entityVersionId?: string }[];
-  }) {
-    const { entity, invalid } = params;
-    super(
-      `entity ${entity.entityId} with version ID ${
-        entity.entityVersionId
-      } and type "${
-        entity.entityTypeName
-      }" links to unknown entities: ${JSON.stringify(invalid)}`,
-    );
-    this.entity = entity;
-    this.invalid = invalid;
-  }
-}
