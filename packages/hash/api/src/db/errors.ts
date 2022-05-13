@@ -1,5 +1,3 @@
-import { DbEntity } from "./adapter";
-
 export class DbEntityNotFoundError extends Error {
   accountId?: string;
   entityId: string;
