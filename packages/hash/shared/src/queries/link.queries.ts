@@ -9,7 +9,6 @@ export const linkFieldsFragment = gql`
     sourceEntityId
     destinationAccountId
     destinationEntityId
-    destinationEntityVersionId
   }
 `;
 
