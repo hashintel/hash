@@ -6,7 +6,6 @@ import {
   InputAdornment,
   ListItemIcon,
   ListItemText,
-  MenuItem,
   MenuList,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
@@ -16,7 +15,7 @@ import { EntityFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.ge
 import { useBlockView } from "../BlockViewContext";
 import { FontAwesomeIcon } from "../../../shared/icons";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { LoadingSpinner, TextField } from "../../../shared/ui";
+import { LoadingSpinner, TextField, MenuItem } from "../../../shared/ui";
 import { useAccountEntities } from "../../../components/hooks/useAccountEntities";
 
 type LoadEntityMenuContentProps = {

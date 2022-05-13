@@ -6,7 +6,6 @@ import {
   listItemSecondaryActionClasses,
   ListItemText,
   Menu,
-  MenuItem,
   useTheme,
 } from "@mui/material";
 import { useKeys } from "rooks";
@@ -18,7 +17,7 @@ import {
   bindTrigger,
 } from "material-ui-popup-state/hooks";
 import { FontAwesomeIcon } from "../../icons";
-import { Link } from "../../ui";
+import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { useRouteAccountInfo } from "../../routing";
@@ -115,12 +114,10 @@ export const ActionsDropdownInner: VFC<{
           <ListItemText primary="Create entity" />
           <ListItemSecondaryAction>Opt + E</ListItemSecondaryAction>
         </MenuItem>
-        <Link noLinkStyle href={newEntityTypeRoute}>
-          <MenuItem onClick={popupState.close}>
-            <ListItemText primary="Create Type" />
-            <ListItemSecondaryAction>Opt + T</ListItemSecondaryAction>
-          </MenuItem>
-        </Link>
+        <MenuItem href={newEntityTypeRoute} onClick={popupState.close}>
+          <ListItemText primary="Create Type" />
+          <ListItemSecondaryAction>Opt + T</ListItemSecondaryAction>
+        </MenuItem>
       </Menu>
     </Box>
   );
