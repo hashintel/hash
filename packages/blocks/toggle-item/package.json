@@ -31,7 +31,7 @@
   },
   "block-scripts": {
     "devPort": 9090,
-    "servePort": 63212
+    "servePort": 63216
   },
   "blockprotocol": {
     "displayName": "Toggle List Item",
