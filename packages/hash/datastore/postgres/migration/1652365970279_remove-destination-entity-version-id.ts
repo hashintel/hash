@@ -4,7 +4,7 @@ import { stripNewLines } from "../util";
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
-  pgm.dropColumn("links", "destination_entity_version_id");
+  pgm.dropColumn("links", "destination_entity_version_id", { ifExists: true });
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
