@@ -11,16 +11,16 @@ import {
   SelectProps as MuiSelectProps,
   Typography,
 } from "@mui/material";
-import { forwardRef, ReactNode, ForwardRefRenderFunction } from "react";
+import { forwardRef, ReactNode, Ref, ReactElement } from "react";
 import { FontAwesomeIcon } from "../icons";
 
-export type SelectProps = {
+export type SelectProps<T = unknown> = {
   children: ReactNode;
   error?: boolean;
   helperText?: ReactNode;
   sx?: BoxProps["sx"];
   selectSx?: MuiSelectProps["sx"];
-} & Omit<MuiSelectProps, "sx">;
+} & Omit<MuiSelectProps<T>, "sx">;
 
 // @todo add custom class for component so it's easier to target the
 // component using css
@@ -29,18 +29,17 @@ export type SelectProps = {
  * @todo add custom class for component so it's easier to target the component using css
  */
 
-/**
- * For some reasons, renderValue prop doesn't properly infer types
- * when we use this wrapper Select component. But works properly
- * when the default Select component from MUI is used
- * Has to do with properly handling the generic.
- * @see https://github.com/mui/material-ui/blob/master/packages/mui-material/src/Select/Select.d.ts
- * @todo fix this
- */
-
-const Select: ForwardRefRenderFunction<HTMLSelectElement, SelectProps> = (
-  { children, sx = [], selectSx = [], error, helperText, label, ...props },
-  ref,
+const Select = <T,>(
+  {
+    children,
+    sx = [],
+    selectSx = [],
+    error,
+    helperText,
+    label,
+    ...props
+  }: SelectProps<T>,
+  ref: Ref<HTMLSelectElement>,
 ) => {
   return (
     <Box sx={sx}>
@@ -79,6 +78,9 @@ const Select: ForwardRefRenderFunction<HTMLSelectElement, SelectProps> = (
   );
 };
 
-const SelectForwardRef = forwardRef(Select);
+// used the type assertion approach in https://stackoverflow.com/a/58473012
+const SelectForwardRef = forwardRef(Select) as <T extends {}>(
+  p: SelectProps<T> & { ref?: Ref<HTMLSelectElement> },
+) => ReactElement;
 
 export { SelectForwardRef as Select };

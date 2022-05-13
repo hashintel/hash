@@ -121,6 +121,7 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
 
           /**
            * @todo add styles for when ownerState.dense = true
+           * This will handle scenarios where the menu item is smaller
            */
         },
     }),
