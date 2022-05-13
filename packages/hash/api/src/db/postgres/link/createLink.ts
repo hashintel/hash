@@ -22,7 +22,6 @@ export const createLink = async (
     sourceEntityId: string;
     destinationAccountId: string;
     destinationEntityId: string;
-    destinationEntityVersionId?: string;
   },
 ): Promise<DbLink> =>
   requireTransaction(existingConnection)(async (conn) => {

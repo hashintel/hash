@@ -8596,10 +8596,10 @@ block-scripts@0.0.6:
     webpack-dev-server "^4.8.1"
     yargs-parser "21.0.1"
 
-blockprotocol@0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.8.tgz#1fef8fc7bcdfc1fb132015a90fd1c962a5cce9c1"
-  integrity sha512-49rvjzpvlbtvZWsO+4c7UmKlDbMrIff6WCwtMk3DF3y/LCNliLREGxNmkOK9OT8NJ2OfubCbziGW9v6tzwCHaw==
+blockprotocol@0.0.9:
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.9.tgz#322f203d1385c51c84a34a1cccf248a31cfae84d"
+  integrity sha512-ZtQJ4sCNoX3euWsH3SYQgkusWQ6qgSgexF2cOrGPbICfBvYpRRIFol6KqMZiULd0y0q0GifMgtBpZN8T0lfM0A==
   dependencies:
     "@types/react" "^17.0.39"
 
@@ -16080,12 +16080,12 @@ mkdirp@^1.0.3, mkdirp@^1.0.4, mkdirp@~1.0.0:
   resolved "https://registry.yarnpkg.com/mkdirp/-/mkdirp-1.0.4.tgz#3eb5ed62622756d79a5f0e2a221dfebad75c2f7e"
   integrity sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==
 
-mock-block-dock@0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.8.tgz#fa96e216475633f208ea3a34a60755cdb1e72821"
-  integrity sha512-CBI83tj546pBgBU7X+ifkh751imPhq22eMNDipsnThGcsxU9MsNYxJwIRS33u8lJLD6ycB1apHSQgaLyJ61zHA==
+mock-block-dock@0.0.9:
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.9.tgz#2197dae3159c7591032cb19e3ebcc7c096129a07"
+  integrity sha512-sLLEx2Nn73vTqDeR/wYGdFsvX50K9M1FBUK8KA28cBwOROwjxxOMJdZJ0P1AjDRBOpeh/l5oRzOPL7Bwuau/1A==
   dependencies:
-    blockprotocol "0.0.8"
+    blockprotocol "0.0.9"
     lodash "^4.17.21"
     uuid "^8.3.2"
 

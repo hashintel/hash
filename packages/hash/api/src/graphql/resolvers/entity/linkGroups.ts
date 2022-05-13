@@ -22,11 +22,10 @@ type LinkGroupsObject = {
 };
 
 /**
- * @returns true if linkA and linkB have the same destination entity (with the same specificed version)
+ * @returns true if linkA and linkB have the same destination entity
  */
 export const linkHasSameDestinationAs = (linkA: Link) => (linkB: Link) =>
-  linkA.destinationEntityId === linkB.destinationEntityId &&
-  linkA.destinationEntityVersionId === linkB.destinationEntityVersionId;
+  linkA.destinationEntityId === linkB.destinationEntityId;
 
 /**
  * Adds the outgoing links to the provided linkGroups object
