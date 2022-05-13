@@ -109,8 +109,8 @@ impl Engine {
     }
 
     /// TODO: DOC, the "see" is wrong
-    /// Finalize state (see [`SimulationEngine::finalize_state`]) and create a new context
-    /// for the agents.
+    /// Finalize state (see [`Engine::finalize_agent_state`]) and create a new context for the
+    /// agents.
     ///
     /// Creating a new context means taking a snapshot of current state
     /// and building a context object for packages to access.

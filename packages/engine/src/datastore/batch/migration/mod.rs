@@ -1339,7 +1339,7 @@ fn offsets_start_at_zero(
     Ok(starts_at_zero)
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 pub(super) mod test {
     use rand::Rng;
     use serde::{Deserialize, Serialize};

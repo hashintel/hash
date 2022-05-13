@@ -9,8 +9,9 @@ import {
   MenuList,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
-import { useCallback, useEffect, useRef, VFC } from "react";
+import { useCallback, useEffect, useMemo, useRef, VFC } from "react";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { EntityFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { useBlockView } from "../BlockViewContext";
 import { FontAwesomeIcon } from "../../../shared/icons";
 import { useRouteAccountInfo } from "../../../shared/routing";
@@ -32,16 +33,19 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
   // and this can cause some bugs.
   // @todo make this a subscription
   const entityStore = entityStorePluginState(blockView.editorView.state).store;
-  const blockData = entityId ? entityStore.saved[entityId] : null;
+  // savedEntity and blockEntity are the same. savedEntity variable
+  // is needed to get proper typing on blockEntity
+  const savedEntity = entityId ? entityStore.saved[entityId] : null;
+  const blockEntity = isBlockEntity(savedEntity) ? savedEntity : null;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: entities, loading } = useAccountEntities({
     accountId,
     entityTypeFilter: {
-      componentId: isBlockEntity(blockData)
-        ? blockData?.properties.componentId
+      componentId: blockEntity
+        ? blockEntity?.properties.componentId
         : undefined,
     },
-    skip: !(isBlockEntity(blockData) && !!accountId),
+    skip: !(!!blockEntity && !!accountId),
   });
 
   useEffect(() => {
@@ -52,30 +56,53 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
 
   const handleClick = useCallback(
     (targetEntity: BlockEntity) => {
-      // Right now we only handle entities that are created by a block.
-      // This will be updated later on to also handle entities that have a similar
-      // schema with the block's data
-      const targetData = isBlockEntity(targetEntity)
-        ? targetEntity.properties.entity
-        : null;
+      const targetData = targetEntity.properties.entity;
 
       if (!entityId || !targetData) {
         return;
       }
 
-      blockView.manager.updateBlockData(
-        entityId,
-        targetData,
-        blockView.getPos(),
-      );
+      blockView.manager.swapBlockData(entityId, targetData, blockView.getPos());
       popupState?.close();
     },
     [blockView, entityId, popupState],
   );
 
-  // @todo filter entities displayed
-  // should only include block entities and
-  // should not include current entity displayed in the block
+  const filteredEntities = useMemo(() => {
+    const uniqueEntityIds = new Set();
+    // EntityFieldsFragment has fields BlockEntity doesn't - so TypeScript is complaining about this type guard
+    // @todo figure out how to remove this cast
+    return (entities as (EntityFieldsFragment | BlockEntity)[]).filter(
+      (entity): entity is BlockEntity => {
+        // Right now we only handle entities that are created by a block.
+        // This will be updated later on to also handle entities that have a similar
+        // schema with the block's data
+        if (!isBlockEntity(entity)) return false;
+
+        // don't include entities that have empty data
+        if (Object.keys(entity.properties.entity.properties).length === 0) {
+          return false;
+        }
+
+        const targetEntityId = entity.properties.entity.entityId;
+
+        // don't include the current entity the block is tied to
+        if (targetEntityId === blockEntity?.properties.entity.entityId) {
+          return false;
+        }
+
+        // don't include duplicates
+        if (uniqueEntityIds.has(targetEntityId)) {
+          uniqueEntityIds.add(targetEntityId);
+          return false;
+        }
+
+        uniqueEntityIds.add(targetEntityId);
+
+        return true;
+      },
+    );
+  }, [entities, blockEntity]);
 
   return (
     <MenuList>
@@ -105,17 +132,13 @@ export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
           }}
         />
       </Box>
-      {entities.map((entity) => {
+      {filteredEntities.map((entity) => {
         return (
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore -- @todo fix typings
           <MenuItem key={entity.entityId} onClick={() => handleClick(entity)}>
             <ListItemIcon>
               <FontAwesomeIcon icon={faAsterisk} />
             </ListItemIcon>
             <ListItemText
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore -- @todo fix typings
               primary={entity.properties.entity.entityId}
               primaryTypographyProps={{
                 noWrap: true,

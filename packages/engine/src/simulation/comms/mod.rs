@@ -47,9 +47,9 @@ pub struct Comms {
     /// A shared mutable [`Commands`] that are merged with those from agent messages, and resolved,
     /// by the Engine each step.
     cmds: Arc<RwLock<Commands>>,
-    /// A sender to communicate with the [`workerpool`].
+    /// A sender to communicate with the [`WorkerPool`].
     ///
-    /// [`workerpool`]: crate::workerpool
+    /// [`WorkerPool`]: execution::worker_pool::WorkerPool
     worker_pool_sender: MainMsgSend,
 }
 
@@ -152,10 +152,11 @@ impl Comms {
 impl execution::package::simulation::Comms for Comms {
     type ActiveTask = ActiveTask;
 
-    /// Takes a given [`Task`] object, and starts its execution on the [`workerpool`], returning an
+    /// Takes a given [`Task`] object, and starts its execution on the [`WorkerPool`], returning an
     /// [`ActiveTask`] to track its progress.
     ///
-    /// [`workerpool`]: crate::workerpool
+    /// [`Task`]: execution::task::Task
+    /// [`WorkerPool`]: execution::worker_pool::WorkerPool
     async fn new_task(
         &self,
         package_id: PackageId,
@@ -183,14 +184,15 @@ impl execution::package::simulation::Comms for Comms {
 
 /// Turns a given [`Task`] into a [`WrappedTask`] and [`ActiveTask`] pair.
 ///
-/// This includes setting up the appropriate communications to be sent to the [`workerpool`] and to
+/// This includes setting up the appropriate communications to be sent to the [`WorkerPool`] and to
 /// be made accessible to the Package that created the task.
 ///
 /// # Errors
 ///
 /// If the [`Task`] needs more access than the provided [`TaskSharedStore`] has.
 ///
-/// [`workerpool`]: crate::workerpool
+/// [`Task`]: execution::task::Task
+/// [`WorkerPool`]: execution::worker_pool::WorkerPool
 fn wrap_task(
     task_id: TaskId,
     package_id: PackageId,

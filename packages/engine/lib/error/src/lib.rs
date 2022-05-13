@@ -29,7 +29,8 @@
 //! Generally comparing this and similar crates like [`anyhow`] or [`eyre`] with crates like
 //! [`thiserror`], context information are stored internally in the latter case, so accessing
 //! context requires to destructuring the error. The former kind of crates relies on composition of
-//! causes, which can either be retrieved directly ([`Report::request`]) or by downcasting.   
+//! causes, which can either be retrieved directly ([`Report::request_ref`] or
+//! [`Report::request_value`]) or by downcasting.
 //!
 //! This crates does not claim to be better than the mentioned crates, it's a different approach to
 //! error handling.
@@ -179,7 +180,7 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// `Report` does not have an context associated. To provide one, the [`provider`] API is used. Use
 /// [`provide_context()`] or [`ResultExt`] to add it, which may also be used to provide more context
 /// information than only a display message. This information can the be retrieved by calling
-/// [`request()`], [`request_ref()`], or [`request_value()`].
+/// [`request_ref()`] or [`request_value()`].
 ///
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
@@ -189,7 +190,6 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// [`frames()`]: Self::frames
 /// [`new()`]: Self::new
 /// [`provide_context()`]: Self::provide_context
-/// [`request()`]: Self::request
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
 ///
@@ -310,9 +310,8 @@ pub struct Report<C = ()> {
 /// `Frame`s are organized as a singly linked list, which can be iterated by calling
 /// [`Report::frames()`]. The head is pointing to the most recent context or contextual message,
 /// the tail is the root error created by [`Report::new()`], [`Report::from_context()`], or
-/// [`Report::from()`]. The next `Frame` can be accessed by [`request`]ing [`tags::FrameSource`].
-///
-/// [`request`]: Self::request
+/// [`Report::from()`]. The next `Frame` can be accessed by requesting it by calling
+/// [`Report::request_ref()`].
 pub struct Frame {
     inner: ManuallyDrop<Box<FrameRepr>>,
     location: &'static Location<'static>,
@@ -448,17 +447,22 @@ pub struct Frames<'r> {
     current: Option<&'r Frame>,
 }
 
-/// Iterator over requested values in the [`Frame`] stack of a [`Report`] for the type specified by
-/// [`I::Type`].
+/// Iterator over requested references in the [`Frame`] stack of a [`Report`].
 ///
-/// Use [`Report::request()`], [`Report::request_ref()`], or [`Report::request_value()`] to create
-/// this iterator.
-///
-/// [`I::Type`]: provider::TypeTag::Type
+/// Use [`Report::request_ref()`] to create this iterator.
 #[must_use]
-pub struct Requests<'r, T: ?Sized> {
+pub struct RequestRef<'r, T: ?Sized> {
     frames: Frames<'r>,
     _marker: PhantomData<&'r T>,
+}
+
+/// Iterator over requested values in the [`Frame`] stack of a [`Report`].
+///
+/// Use [`Report::request_value()`] to create this iterator.
+#[must_use]
+pub struct RequestValue<'r, T> {
+    frames: Frames<'r>,
+    _marker: PhantomData<T>,
 }
 
 #[cfg(test)]
@@ -487,7 +491,7 @@ pub(crate) mod test_helper {
 
     impl Provider for ContextA {
         fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-            demand.provide_ref(&self.0);
+            demand.provide_value(|| self.0);
         }
     }
 
