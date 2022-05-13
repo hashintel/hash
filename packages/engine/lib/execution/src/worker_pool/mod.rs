@@ -1,4 +1,4 @@
-//! Management of [`Workers`] and the orchestration of [`Task`]s executed on them.
+//! Management of [`Worker`]s and the orchestration of [`Task`]s executed on them.
 //!
 //! This module defines the [`WorkerPool`] and accompanying API. For configuring the [`WorkerPool`],
 //! the [`WorkerPoolConfig`] is used, which itself contains the information to configure the
@@ -26,7 +26,6 @@ use stateful::field::PackageId;
 use tokio::{pin, task::JoinHandle};
 use tracing::{Instrument, Span};
 
-pub use self::config::{WorkerAllocation, WorkerIndex, WorkerPoolConfig};
 use self::{
     comms::{
         experiment::{ExpMsgRecv, ExperimentToWorkerPoolMsg},
@@ -37,10 +36,17 @@ use self::{
         WorkerCommsWithWorkerPool, WorkerPoolCommsWithWorkers, WorkerPoolToWorkerMsg,
         WorkerPoolToWorkerMsgPayload, WorkerToWorkerPoolMsg,
     },
-    pending::{DistributionController, PendingWorkerPoolTask, PendingWorkerPoolTasks},
+    pending::DistributionController,
     runs::SimulationRuns,
 };
-pub(crate) use self::{config::SplitConfig, handler::WorkerPoolHandler};
+pub(crate) use self::{
+    config::SplitConfig,
+    pending::{PendingWorkerPoolTask, PendingWorkerPoolTasks},
+};
+pub use self::{
+    config::{WorkerAllocation, WorkerIndex, WorkerPoolConfig},
+    handler::WorkerPoolHandler,
+};
 use crate::{
     package::simulation::PackageTask,
     runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},

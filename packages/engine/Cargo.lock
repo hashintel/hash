@@ -984,7 +984,6 @@ dependencies = [
  "lazy_static",
  "memory",
  "nano",
- "nng",
  "num_cpus",
  "orchestrator",
  "parking_lot",

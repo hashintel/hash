@@ -1563,6 +1563,8 @@ impl<'s> ThreadLocalRunner<'s> {
     /// Returns the next task ([`TargetedRunnerTaskMsg`]) and, if present, warnings
     /// ([`RunnerError`]) and logging statements.
     ///
+    /// [`RunnerError`]: crate::runner::comms::RunnerError
+    ///
     /// # Errors
     ///
     /// May return an error if:
