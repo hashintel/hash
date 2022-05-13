@@ -8,13 +8,11 @@ use core::{
     fmt::Formatter,
     mem::ManuallyDrop,
     panic::Location,
-    ptr::{self, NonNull},
+    ptr::{self, addr_of, NonNull},
 };
-use std::ptr::addr_of;
 
-use provider::{self, tags, Provider, Requisition, TypeTag};
+use provider::{self, Demand, Provider};
 
-use super::tags::{FrameLocation, FrameSource};
 use crate::{Context, Frame, Message};
 
 /// Stores functions to act on the associated context without knowing the internal type.
@@ -47,7 +45,7 @@ impl<E: fmt::Debug> fmt::Debug for MessageRepr<E> {
 impl<E> Provider for MessageRepr<E> {
     // An empty impl is fine as it's not possible to safely create a Requisition outside of the
     // provider API, so this won't cause silent problems
-    fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
+    fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
 }
 
 // std errors don't necessarily implement `Provider`, `std::error::Error` adds an implementation
@@ -71,10 +69,10 @@ impl<E: fmt::Debug> fmt::Debug for ErrorRepr<E> {
 
 #[cfg(feature = "std")]
 impl<E: std::error::Error> Provider for ErrorRepr<E> {
-    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         #[cfg(feature = "backtrace")]
         if let Some(backtrace) = self.0.backtrace() {
-            req.provide_ref(backtrace);
+            demand.provide_ref(backtrace);
         }
     }
 }
@@ -239,22 +237,13 @@ impl Frame {
         self.location
     }
 
-    /// Requests the value specified by [`TypeTag`] from the `Frame` if provided.
-    #[must_use]
-    pub fn request<'p, I>(&'p self) -> Option<I::Type>
-    where
-        I: TypeTag<'p>,
-    {
-        provider::request_by_type_tag::<'p, I, _>(self)
-    }
-
     /// Requests the reference to `T` from the `Frame` if provided.
     #[must_use]
     pub fn request_ref<T>(&self) -> Option<&T>
     where
         T: ?Sized + 'static,
     {
-        self.request::<'_, tags::Ref<T>>()
+        provider::request_ref(self)
     }
 
     /// Requests the value of `T` from the `Frame` if provided.
@@ -263,7 +252,7 @@ impl Frame {
     where
         T: 'static,
     {
-        self.request::<'_, tags::Value<T>>()
+        provider::request_value(self)
     }
 
     /// Returns if `E` is the type held by this frame.
@@ -286,11 +275,11 @@ impl Frame {
 }
 
 impl Provider for Frame {
-    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-        self.inner.unerase().provide(req);
-        req.provide_with::<FrameLocation, _>(|| self.location);
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        self.inner.unerase().provide(demand);
+        demand.provide_value(|| self.location);
         if let Some(source) = &self.source {
-            req.provide_with::<FrameSource, _>(|| source);
+            demand.provide_ref::<Self>(source);
         }
     }
 }

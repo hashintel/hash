@@ -14,7 +14,11 @@ where
     where
         M: Message,
     {
-        self.map_err(|error| Report::from(error).wrap(message))
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(Report::from(error).wrap(message)),
+        }
     }
 
     #[track_caller]
@@ -23,7 +27,11 @@ where
         M: Message,
         F: FnOnce() -> M,
     {
-        self.map_err(|error| Report::from(error).wrap(message()))
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(Report::from(error).wrap(message())),
+        }
     }
 
     #[track_caller]
@@ -31,7 +39,11 @@ where
     where
         C: Context,
     {
-        self.map_err(|error| Report::from(error).provide_context(context))
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(Report::from(error).provide_context(context)),
+        }
     }
 
     #[track_caller]
@@ -40,7 +52,11 @@ where
         C: Context,
         F: FnOnce() -> C,
     {
-        self.map_err(|error| Report::from(error).provide_context(context()))
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(Report::from(error).provide_context(context())),
+        }
     }
 }
 
@@ -52,7 +68,11 @@ impl<T, C> ResultExt<T> for Result<T, C> {
     where
         M: Message,
     {
-        self.map_err(|report| report.wrap(message))
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.wrap(message)),
+        }
     }
 
     #[track_caller]
@@ -61,7 +81,11 @@ impl<T, C> ResultExt<T> for Result<T, C> {
         M: Message,
         F: FnOnce() -> M,
     {
-        self.map_err(|report| report.wrap(message()))
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.wrap(message())),
+        }
     }
 
     #[track_caller]
@@ -69,7 +93,11 @@ impl<T, C> ResultExt<T> for Result<T, C> {
     where
         C2: Context,
     {
-        self.map_err(|report| report.provide_context(context))
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.provide_context(context)),
+        }
     }
 
     #[track_caller]
@@ -78,6 +106,10 @@ impl<T, C> ResultExt<T> for Result<T, C> {
         C2: Context,
         F: FnOnce() -> C2,
     {
-        self.map_err(|report| report.provide_context(context()))
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.provide_context(context())),
+        }
     }
 }

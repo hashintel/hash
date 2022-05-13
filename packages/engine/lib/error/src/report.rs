@@ -1,21 +1,18 @@
-pub(super) use alloc::boxed::Box;
+use alloc::boxed::Box;
 use core::{fmt, fmt::Formatter, marker::PhantomData, panic::Location};
 #[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
 use std::error::Error as StdError;
 
-use provider::{
-    tags::{Ref, Value},
-    TypeTag,
-};
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
-use crate::{tags, Context, Frames, Message, Report, Requests};
+use crate::{Context, Frames, Message, Report, RequestRef, RequestValue};
 
-pub(super) struct ReportImpl {
+#[allow(clippy::module_name_repetitions)]
+pub struct ReportImpl {
     pub(super) frame: Frame,
     #[cfg(feature = "backtrace")]
     backtrace: Option<Backtrace>,
@@ -67,7 +64,7 @@ impl<C> Report<C> {
     {
         #[allow(clippy::option_if_let_else)] // #[track_caller] on closures are unstable
         let location = if let Some(location) =
-            provider::request_by_type_tag::<'_, tags::FrameLocation, _>(&context)
+            provider::request_value::<&'static Location<'static>, _>(&context)
         {
             location
         } else {
@@ -75,20 +72,18 @@ impl<C> Report<C> {
         };
 
         #[cfg(feature = "backtrace")]
-        let backtrace =
-            if provider::request_by_type_tag::<'_, tags::ReportBackTrace, _>(&context).is_some() {
-                None
-            } else {
-                Some(Backtrace::capture())
-            };
+        let backtrace = if provider::request_ref::<Backtrace, _>(&context).is_some() {
+            None
+        } else {
+            Some(Backtrace::capture())
+        };
 
         #[cfg(feature = "spantrace")]
-        let span_trace =
-            if provider::request_by_type_tag::<'_, tags::ReportSpanTrace, _>(&context).is_some() {
-                None
-            } else {
-                Some(SpanTrace::capture())
-            };
+        let span_trace = if provider::request_ref::<SpanTrace, _>(&context).is_some() {
+            None
+        } else {
+            Some(SpanTrace::capture())
+        };
 
         Self::from_frame(
             Frame::from_context(context, location, None),
@@ -139,7 +134,7 @@ impl<C> Report<C> {
 
     /// Converts the `Report<Context>` to `Report<()>` without modifying the frame stack.
     #[allow(clippy::missing_const_for_fn)] // False positive
-    pub fn generalise(self) -> Report {
+    pub fn generalize(self) -> Report {
         Report {
             inner: self.inner,
             _context: PhantomData,
@@ -156,7 +151,7 @@ impl<C> Report<C> {
     pub fn backtrace(&self) -> Option<&Backtrace> {
         let backtrace = self.inner.backtrace.as_ref().unwrap_or_else(|| {
             // Should never panic as it's either stored inside of `Report` or is provided by a frame
-            self.request::<tags::ReportBackTrace>()
+            self.request_ref::<Backtrace>()
                 .next()
                 .expect("Backtrace is not available")
         });
@@ -178,7 +173,7 @@ impl<C> Report<C> {
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         let span_trace = self.inner.span_trace.as_ref().unwrap_or_else(|| {
             // Should never panic as it's either stored inside of `Report` or is provided by a frame
-            self.request::<tags::ReportSpanTrace>()
+            self.request_ref::<SpanTrace>()
                 .next()
                 .expect("SpanTrace is not available")
         });
@@ -194,24 +189,14 @@ impl<C> Report<C> {
         Frames::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting the type specified by [`I::Type`].
-    ///
-    /// [`I::Type`]: provider::TypeTag::Type
-    pub fn request<'p, I: 'static>(&'p self) -> Requests<'p, I>
-    where
-        I: TypeTag<'p>,
-    {
-        Requests::new(self)
+    /// Creates an iterator over the [`Frame`] stack requesting references of type `T`.
+    pub const fn request_ref<T: ?Sized + 'static>(&self) -> RequestRef<'_, T> {
+        RequestRef::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting a reference of type `T`.
-    pub const fn request_ref<T: ?Sized + 'static>(&self) -> Requests<'_, Ref<T>> {
-        Requests::new(self)
-    }
-
-    /// Creates an iterator over the [`Frame`] stack requesting a value of type `T`.
-    pub const fn request_value<T: 'static>(&self) -> Requests<'_, Value<T>> {
-        Requests::new(self)
+    /// Creates an iterator over the [`Frame`] stack requesting values of type `T`.
+    pub const fn request_value<T: 'static>(&self) -> RequestValue<'_, T> {
+        RequestValue::new(self)
     }
 
     /// Returns if `C` is the type held by any frame inside of the report.

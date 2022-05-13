@@ -29,7 +29,8 @@
 //! Generally comparing this and similar crates like [`anyhow`] or [`eyre`] with crates like
 //! [`thiserror`], context information are stored internally in the latter case, so accessing
 //! context requires to destructuring the error. The former kind of crates relies on composition of
-//! causes, which can either be retrieved directly ([`Report::request`]) or by downcasting.   
+//! causes, which can either be retrieved directly ([`Report::request_ref`] or
+//! [`Report::request_value`]) or by downcasting.
 //!
 //! This crates does not claim to be better than the mentioned crates, it's a different approach to
 //! error handling.
@@ -154,7 +155,7 @@ mod frame;
 mod iter;
 mod macros;
 mod report;
-pub mod tags;
+// pub mod tags;
 
 use alloc::boxed::Box;
 use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
@@ -179,7 +180,7 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// `Report` does not have an context associated. To provide one, the [`provider`] API is used. Use
 /// [`provide_context()`] or [`ResultExt`] to add it, which may also be used to provide more context
 /// information than only a display message. This information can the be retrieved by calling
-/// [`request()`], [`request_ref()`], or [`request_value()`].
+/// [`request_ref()`] or [`request_value()`].
 ///
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
@@ -189,7 +190,6 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// [`frames()`]: Self::frames
 /// [`new()`]: Self::new
 /// [`provide_context()`]: Self::provide_context
-/// [`request()`]: Self::request
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
 ///
@@ -227,7 +227,7 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// use core::fmt;
 /// use std::path::{Path, PathBuf};
 ///
-/// use provider::{Provider, Requisition};
+/// use provider::{Demand, Provider};
 /// use error::{Report, ResultExt};
 ///
 /// #[derive(Debug)]
@@ -267,10 +267,10 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// }
 ///
 /// impl Provider for RuntimeError {
-///     fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
+///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
 /// }
 /// impl Provider for ConfigError {
-///     fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
+///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
 /// }
 ///
 /// # #[allow(unused_variables)]
@@ -310,9 +310,8 @@ pub struct Report<C = ()> {
 /// `Frame`s are organized as a singly linked list, which can be iterated by calling
 /// [`Report::frames()`]. The head is pointing to the most recent context or contextual message,
 /// the tail is the root error created by [`Report::new()`], [`Report::from_context()`], or
-/// [`Report::from()`]. The next `Frame` can be accessed by [`request`]ing [`tags::FrameSource`].
-///
-/// [`request`]: Self::request
+/// [`Report::from()`]. The next `Frame` can be accessed by requesting it by calling
+/// [`Report::request_ref()`].
 pub struct Frame {
     inner: ManuallyDrop<Box<FrameRepr>>,
     location: &'static Location<'static>,
@@ -448,17 +447,22 @@ pub struct Frames<'r> {
     current: Option<&'r Frame>,
 }
 
-/// Iterator over requested values in the [`Frame`] stack of a [`Report`] for the type specified by
-/// [`I::Type`].
+/// Iterator over requested references in the [`Frame`] stack of a [`Report`].
 ///
-/// Use [`Report::request()`], [`Report::request_ref()`], or [`Report::request_value()`] to create
-/// this iterator.
-///
-/// [`I::Type`]: provider::TypeTag::Type
+/// Use [`Report::request_ref()`] to create this iterator.
 #[must_use]
-pub struct Requests<'r, I> {
+pub struct RequestRef<'r, T: ?Sized> {
     frames: Frames<'r>,
-    _marker: PhantomData<I>,
+    _marker: PhantomData<&'r T>,
+}
+
+/// Iterator over requested values in the [`Frame`] stack of a [`Report`].
+///
+/// Use [`Report::request_value()`] to create this iterator.
+#[must_use]
+pub struct RequestValue<'r, T> {
+    frames: Frames<'r>,
+    _marker: PhantomData<T>,
 }
 
 #[cfg(test)]
@@ -469,7 +473,7 @@ pub(crate) mod test_helper {
     };
     use core::{fmt, fmt::Formatter};
 
-    use provider::{Provider, Requisition, TypeTag};
+    use provider::{Demand, Provider};
 
     use crate::Report;
 
@@ -485,15 +489,9 @@ pub(crate) mod test_helper {
         }
     }
 
-    pub struct TagA;
-
-    impl TypeTag<'_> for TagA {
-        type Type = u32;
-    }
-
     impl Provider for ContextA {
-        fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-            req.provide::<TagA>(self.0);
+        fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+            demand.provide_value(|| self.0);
         }
     }
 
@@ -506,15 +504,9 @@ pub(crate) mod test_helper {
         }
     }
 
-    pub struct TagB;
-
-    impl TypeTag<'_> for TagB {
-        type Type = i32;
-    }
-
     impl Provider for ContextB {
-        fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-            req.provide::<TagB>(self.0);
+        fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+            demand.provide_ref(&self.0);
         }
     }
 

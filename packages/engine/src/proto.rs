@@ -3,12 +3,13 @@ use core::fmt;
 use execution::{
     package::{
         experiment::{ExperimentName, ExperimentPackageConfig},
-        simulation::PackageInitConfig,
+        simulation::{init::InitialStateName, PackageInitConfig},
     },
     runner::{
         comms::{PackageError, UserError, UserWarning},
-        RunnerError,
+        Language, RunnerError,
     },
+    worker::RunnerSpawnConfig,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
@@ -65,7 +66,9 @@ pub struct InitMessage {
     /// Unused
     pub env: ExecutionEnvironment,
     /// A JSON object of dynamic configurations for things like packages, see
-    /// [`experiment::controller::config::OUTPUT_PERSISTENCE_KEY`] for an example
+    /// [`OUTPUT_PERSISTENCE_KEY`] for an example
+    ///
+    /// [`OUTPUT_PERSISTENCE_KEY`]: crate::experiment::controller::[`OUTPUT_PERSISTENCE_KEY`]
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
 
@@ -223,6 +226,42 @@ pub struct ExperimentRunBase {
     pub name: ExperimentName,
     pub id: ExperimentId,
     pub project_base: ProjectBase,
+}
+
+impl ExperimentRunBase {
+    /// Returns a [`RunnerSpawnConfig`] matching the config required by the files present in the
+    /// experiment.
+    pub fn create_runner_spawn_config(&self) -> RunnerSpawnConfig {
+        RunnerSpawnConfig {
+            python: self.requires_runner(Language::Python),
+            rust: self.requires_runner(Language::Rust),
+            javascript: self.requires_runner(Language::JavaScript),
+        }
+    }
+
+    /// Returns `true` if the experiment uses the language's init or has any behavior of the
+    /// language.
+    fn requires_runner(&self, language: Language) -> bool {
+        #[allow(clippy::match_like_matches_macro)]
+        let requires_init = match (language, &self.project_base.package_init.initial_state.name) {
+            (Language::JavaScript, InitialStateName::InitJs) => true,
+            (Language::Python, InitialStateName::InitPy) => true,
+            _ => false,
+        };
+
+        requires_init
+            || self
+                .project_base
+                .package_init
+                .behaviors
+                .iter()
+                .any(|behavior| {
+                    behavior
+                        .language()
+                        .map(|behavior_lang| behavior_lang == language)
+                        .unwrap_or(false)
+                })
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

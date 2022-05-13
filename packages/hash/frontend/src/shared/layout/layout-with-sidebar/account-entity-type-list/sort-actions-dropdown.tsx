@@ -5,7 +5,6 @@ import {
   ListItemIcon,
   ListItemText,
   Menu,
-  MenuItem,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -19,6 +18,7 @@ import {
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "../../../icons";
+import { MenuItem } from "../../../ui";
 
 export type SortType = "asc" | "desc" | "recent" | "most_used" | "least_used";
 

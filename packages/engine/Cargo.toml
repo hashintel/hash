@@ -8,6 +8,7 @@ members = [".", "bin/*", "lib/*"]
 default-members = [".", "bin/*", "lib/*"]
 
 [dependencies]
+error = { path = "lib/error", features = ["spantrace"] }
 flatbuffers_gen = { path = "lib/flatbuffers_gen" }
 nano = { path = "lib/nano", default-features = false }
 memory = { path = "lib/memory" }
@@ -27,7 +28,6 @@ glob = "0.3.0"
 http-types = "2.6.0"
 lazy_static = "1.4.0"
 num_cpus = "1.13.0"
-nng = { version = "1.0.1", default-features = false }
 parking_lot = "0.11.1"
 rand = "0.8.3"
 rayon = "1.4.1"
@@ -39,7 +39,7 @@ serde-aux = "0.6.1"
 strum_macros = "0.19.4"
 surf = "2.0.0"
 thiserror = "1.0.21"
-tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "process", "time"] }
+tokio = { version = "1.18.2", features = ["macros", "rt-multi-thread", "sync", "process", "time"] }
 tracing = "0.1.29"
 tracing-appender = "0.2.0"
 tracing-error = "0.2.0"
@@ -55,7 +55,7 @@ num_cpus = "1.13.1"
 
 [features]
 default = ["build-nng"]
-build-nng = ["nano/build-nng"]
+build-nng = ["nano/build-nng", "execution/build-nng"]
 texray = ["tracing-texray"]
 
 [build-dependencies.cc]
