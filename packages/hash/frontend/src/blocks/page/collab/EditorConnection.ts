@@ -4,6 +4,7 @@ import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
   entityStorePluginState,
+  TrackedAction,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
@@ -151,15 +152,14 @@ export class EditorConnection {
     if (newEditState) {
       const requestDone = "requestDone" in action && action.requestDone;
 
-      let sendable;
-      if (
-        (this.state.comm === "poll" || requestDone) &&
-        // eslint-disable-next-line no-cond-assign
-        (sendable = this.sendable(newEditState))
-      ) {
+      const sendableState = this.state.comm === "poll" || requestDone;
+      const steps = sendableState ? sendableSteps(newEditState) : null;
+      const actions = sendableState ? this.unsentActions(newEditState) : [];
+
+      if (steps || actions?.length) {
         this.closeRequest();
         this.state = new State(newEditState, "send", nextVersion);
-        this.send(newEditState, sendable);
+        this.send(newEditState, { steps, actions });
       } else if (requestDone) {
         this.state = new State(newEditState, "poll", nextVersion);
         this.poll();
@@ -318,18 +318,17 @@ export class EditorConnection {
     );
   }
 
-  sendable(editState: EditorState<Schema>) {
-    const steps = sendableSteps(editState);
-    if (steps) return { steps };
-  }
-
   // Send the given steps to the server
   send(
     editState: EditorState<Schema>,
-    { steps }: { steps?: ReturnType<typeof sendableSteps> } = {},
+    {
+      steps = null,
+      actions = [],
+    }: {
+      steps?: ReturnType<typeof sendableSteps> | null;
+      actions?: TrackedAction[];
+    } = {},
   ) {
-    const actions = this.unsentActions(editState);
-
     for (const action of actions) {
       this.sentActions.add(action.id);
     }
