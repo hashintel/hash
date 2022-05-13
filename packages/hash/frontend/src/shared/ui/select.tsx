@@ -22,9 +22,6 @@ export type SelectProps<T = unknown> = {
   selectSx?: MuiSelectProps["sx"];
 } & Omit<MuiSelectProps<T>, "sx">;
 
-// @todo add custom class for component so it's easier to target the
-// component using css
-
 /**
  * @todo add custom class for component so it's easier to target the component using css
  */
