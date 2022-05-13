@@ -4,7 +4,7 @@ import { MenuItem, MenuItemProps } from "./menu-item";
 
 export type MenuCheckboxItemProps = {
   children?: ReactNode;
-} & MenuItemProps;
+} & Omit<MenuItemProps, "noSelectBackground">;
 
 const MenuCheckboxItem: ForwardRefRenderFunction<
   HTMLLIElement,

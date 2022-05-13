@@ -157,7 +157,7 @@ export const SelectMenusDemo = () => {
           defaultValue={["Multiple"]}
         >
           {["Multiple", "values", "in", "chips"].map((item) => (
-            <MenuCheckboxItem key={item} value={item} noSelectBackground>
+            <MenuCheckboxItem key={item} value={item}>
               <ListItemText primary={item} />
             </MenuCheckboxItem>
           ))}
@@ -174,7 +174,7 @@ export const SelectMenusDemo = () => {
           defaultValue={["Multiple", "values"]}
         >
           {["Multiple", "values", "in", "chips"].map((item) => (
-            <MenuCheckboxItem key={item} value={item} noSelectBackground>
+            <MenuCheckboxItem key={item} value={item}>
               <ListItemText primary={item} />
             </MenuCheckboxItem>
           ))}
@@ -416,28 +416,28 @@ export const SelectMenusDemo = () => {
           <MenuCheckboxItem value="10">
             <ListItemText primary="Account Settings" />
           </MenuCheckboxItem>
-          <MenuCheckboxItem value="20" noSelectBackground>
+          <MenuCheckboxItem value="20">
             <ListItemText primary="Account Settings" />
           </MenuCheckboxItem>
-          <MenuCheckboxItem value="30" noSelectBackground>
+          <MenuCheckboxItem value="30">
             <ListItemText primary="Account Settings" />
           </MenuCheckboxItem>
         </MenuList>
         {/*  */}
         <MenuList>
-          <MenuCheckboxItem value="10" noSelectBackground>
+          <MenuCheckboxItem value="10">
             <ListItemIcon>
               <FontAwesomeIcon icon={faPerson} />
             </ListItemIcon>
             <ListItemText primary="Account Settings" />
           </MenuCheckboxItem>
-          <MenuCheckboxItem value="20" noSelectBackground>
+          <MenuCheckboxItem value="20">
             <ListItemIcon>
               <FontAwesomeIcon icon={faPerson} />
             </ListItemIcon>
             <ListItemText primary="Account Settings" />
           </MenuCheckboxItem>
-          <MenuCheckboxItem value="30" noSelectBackground>
+          <MenuCheckboxItem value="30">
             <ListItemIcon>
               <FontAwesomeIcon icon={faPerson} />
             </ListItemIcon>
