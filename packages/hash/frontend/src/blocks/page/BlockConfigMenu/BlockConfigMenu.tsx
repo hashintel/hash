@@ -1,13 +1,7 @@
 import { useKey } from "rooks";
 import { get } from "lodash";
 
-import {
-  Checkbox,
-  FormControlLabel,
-  Box,
-  Typography,
-  MenuItem,
-} from "@mui/material";
+import { Checkbox, FormControlLabel, Box, Typography } from "@mui/material";
 import {
   ChangeEvent,
   ForwardedRef,
@@ -22,7 +16,7 @@ import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { bindPopover, PopupState } from "material-ui-popup-state/hooks";
 
 import { TextField } from "../../../shared/ui/text-field";
-import { Popover } from "../../../shared/ui";
+import { Popover, MenuItem } from "../../../shared/ui";
 
 const extractConfigPropertySchemas = (
   blockSchema: JsonSchema,
