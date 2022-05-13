@@ -14,17 +14,18 @@ import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import {
-  BlockEntity,
-  blockEntityIdExists,
-  getTextEntityFromSavedBlock,
-  isDraftTextContainingEntityProperties,
-} from "./entity";
-import {
+  getDraftEntityFromEntityId,
   DraftEntity,
   EntityStore,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
+import {
+  BlockEntity,
+  blockEntityIdExists,
+  getTextEntityFromSavedBlock,
+  isDraftTextContainingEntityProperties,
+} from "./entity";
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
@@ -201,7 +202,10 @@ const insertBlocks = defineOperation(
             componentId: componentNodeToId(node),
             accountId,
             // @todo support new non-text nodes
+
             entity: {
+              // This causes an issue with variant blocks like the embed block
+              // where a particular variant gets reset to the default variant.
               entityProperties: node.type.isTextblock
                 ? textBlockNodeToEntityProperties(node)
                 : {},
@@ -223,6 +227,8 @@ const insertBlocks = defineOperation(
  *          not necessary for the pipeline of calculations. Be wary of this.
  * @todo handle contents of block changing
  * @todo compare entities with draft entities to catch changes not contained in ProseMirror tree
+ * @todo rewrite this to work from the entity store and not the prosemirror tree. Can start with
+ *       removing text block specific changes
  */
 const updateBlocks = defineOperation(
   (
@@ -312,11 +318,52 @@ const updateBlocks = defineOperation(
                 },
               });
             }
+          } else {
+            const draftBlockEntity = getDraftEntityFromEntityId(
+              entityStore.draft,
+              savedEntity.entityId,
+            );
+            if (isBlockEntity(draftBlockEntity)) {
+              const draftBlockData = getDraftEntityFromEntityId(
+                entityStore.draft,
+                draftBlockEntity?.properties.entity.entityId,
+              );
+
+              // Check if block data changed by comparing properties
+              if (
+                draftBlockData &&
+                !isEqual(draftBlockData.properties, savedChildEntity.properties)
+              ) {
+                // If the entityId is different then the blockData was swapped
+                if (draftBlockData.entityId !== savedChildEntity.entityId) {
+                  updates.push({
+                    swapBlockData: {
+                      entityId: savedEntity.entityId,
+                      accountId: savedEntity.accountId,
+                      newEntityAccountId: draftBlockData.accountId!,
+                      newEntityEntityId: draftBlockData.entityId!,
+                    },
+                  });
+                } else {
+                  // @todo check if the block data changed and push
+                  // an updateEntity action
+                }
+              }
+            }
           }
 
           return updates;
         }),
-      (action) => action.updateEntity?.entityId,
+      (action) => {
+        if (action?.swapBlockData?.entityId) {
+          return `swap_block_${action?.swapBlockData?.entityId}`;
+        }
+        if (action?.updateEntity?.entityId) {
+          return `update_entity_${action.updateEntity?.entityId}`;
+        }
+
+        return null;
+      },
     );
 
     return [actions, entities] as const;
@@ -387,6 +434,7 @@ const calculateSaveActions = (
     createdEntities,
   );
   [actions] = updateBlocks(actions, blocks, draftBlockEntityNodes, entityStore);
+
   return actions;
 };
 
