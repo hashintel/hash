@@ -149,6 +149,7 @@ type BlockEntityNodeDescriptor = [EntityNode, number, string | null];
 /**
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
+ * @todo use entity store for this
  */
 const insertBlocks = defineOperation(
   (
@@ -345,6 +346,18 @@ const updateBlocks = defineOperation(
                     },
                   });
                 } else {
+                  if (!draftBlockData.accountId) {
+                    throw new Error(
+                      "Attempting to update block which has not yet been saved",
+                    );
+                  }
+                  updates.push({
+                    updateEntity: {
+                      entityId: draftBlockData.entityId,
+                      accountId: draftBlockData.accountId,
+                      properties: draftBlockData.properties,
+                    },
+                  });
                   // @todo check if the block data changed and push
                   // an updateEntity action
                 }
