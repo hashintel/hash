@@ -1,12 +1,8 @@
 // noinspection BadExpressionStatementJS
-import { arrow } from "./lib/execution/src/runner/javascript/apache-arrow-bundle.js";
-import { Batches } from "./lib/execution/src/runner/javascript/batch.js";
-import {
-  ExperimentContext,
-  SimInitContext,
-  gen_sim_ctx,
-} from "./lib/execution/src/runner/javascript/context.js";
-import { gen_group_state } from "./lib/execution/src/runner/javascript/state.js";
+import { arrow } from "./apache-arrow-bundle";
+import { Batches } from "./batch";
+import { ExperimentContext, SimInitContext, gen_sim_ctx } from "./context";
+import { gen_group_state } from "./state";
 
 const make_hash_set = (fields) => {
   const set = Object.create(null);

@@ -1376,9 +1376,8 @@ export var arrow;
           // (initially ASCII), iso-2022-jp lead (initially 0x00), and
           // iso-2022-jp output flag (initially unset).
           /** @type {number} */ (this.iso2022jp_decoder_state = states.ASCII),
-            /** @type {number} */ (
-              this.iso2022jp_decoder_output_state = states.ASCII
-            ),
+            /** @type {number} */ (this.iso2022jp_decoder_output_state =
+              states.ASCII),
             /** @type {number} */ (this.iso2022jp_lead = 0x00),
             /** @type {boolean} */ (this.iso2022jp_output_flag = false);
         }
@@ -2705,10 +2704,7 @@ export var arrow;
             if (result === finished) break;
             if (result !== null) {
               if (Array.isArray(result))
-                output.push.apply(
-                  output,
-                  /**@type {!Array.<number>}*/ (result),
-                );
+                output.push.apply(output, /**@type {!Array.<number>}*/ result);
               else output.push(result);
             }
             // 3. Otherwise, if result is error, throw a TypeError.
@@ -2722,10 +2718,7 @@ export var arrow;
               if (result === finished) break;
               if (!result) continue;
               if (Array.isArray(result))
-                output.push.apply(
-                  output,
-                  /**@type {!Array.<number>}*/ (result),
-                );
+                output.push.apply(output, /**@type {!Array.<number>}*/ result);
               else output.push(result);
             } while (!input_stream.endOfStream());
             this._decoder = null;
@@ -2888,7 +2881,7 @@ export var arrow;
             result = this._encoder.handler(input, token);
             if (result === finished) break;
             if (Array.isArray(result))
-              output.push.apply(output, /**@type {!Array.<number>}*/ (result));
+              output.push.apply(output, /**@type {!Array.<number>}*/ result);
             else output.push(result);
           }
           // TODO: Align with spec algorithm.
@@ -2897,10 +2890,7 @@ export var arrow;
               result = this._encoder.handler(input, input.read());
               if (result === finished) break;
               if (Array.isArray(result))
-                output.push.apply(
-                  output,
-                  /**@type {!Array.<number>}*/ (result),
-                );
+                output.push.apply(output, /**@type {!Array.<number>}*/ result);
               else output.push(result);
             }
             this._encoder = null;

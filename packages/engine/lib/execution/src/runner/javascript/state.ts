@@ -1,4 +1,4 @@
-import * as hash_util from "./lib/execution/src/runner/javascript/hash_util.js";
+import * as hash_util from "./hash_util";
 
 // TODO: Propagate field specs to runners and use in state and context objects
 const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_7_behavior_index";

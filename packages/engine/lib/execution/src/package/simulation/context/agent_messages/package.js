@@ -1,4 +1,4 @@
-import * as hash_util from "./lib/execution/src/runner/javascript/hash_util.js";
+import * as hash_util from "./src/runner/javascript/hash_util";
 
 const InboxMessage = function (ctx_msg_pool, msg_loc) {
   this.__pool = ctx_msg_pool;

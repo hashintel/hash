@@ -16,7 +16,8 @@ mod data_ffi;
 mod error;
 
 use std::{
-    cell::RefCell, collections::HashMap, fs, pin::Pin, ptr::NonNull, rc::Rc, slice, sync::Arc,
+    cell::RefCell, collections::HashMap, fs, path::PathBuf, pin::Pin, ptr::NonNull, rc::Rc, slice,
+    sync::Arc,
 };
 
 use arrow::{
@@ -73,7 +74,7 @@ struct JsPackage<'s> {
 }
 
 fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
-    format!("./lib/execution/src/package/simulation/{pkg_type}/{name}/package.js")
+    format!("./src/package/simulation/{pkg_type}/{name}/package")
 }
 
 /// TODO: DOC add docstrings on impl'd methods
@@ -174,12 +175,14 @@ fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s
 /// [JavaScript Specifications](https://tc39.es/ecma262/#sec-hostresolveimportedmodule)
 struct ModuleMap {
     modules_by_path: HashMap<String, v8::Global<v8::Module>>,
+    path_by_modules: HashMap<v8::Global<v8::Module>, String>,
 }
 
 impl ModuleMap {
     fn new() -> Self {
         Self {
             modules_by_path: HashMap::new(),
+            path_by_modules: HashMap::new(),
         }
     }
 }
@@ -187,20 +190,22 @@ impl ModuleMap {
 fn import_module<'s>(
     scope: &mut v8::HandleScope<'s>,
     path: &str,
+    referrer_path: Option<&str>,
 ) -> Result<v8::Local<'s, v8::Module>> {
     let module_map = scope
         .get_slot::<Rc<RefCell<ModuleMap>>>()
         .expect("ModuleMap is not present in isolate slots")
         .clone();
 
-    if let Some(module) = module_map.borrow().modules_by_path.get(path) {
+    let source_path = find_source_file(path, referrer_path)?;
+    if let Some(module) = module_map.borrow().modules_by_path.get(&source_path) {
         return Ok(v8::Local::new(scope, module));
     }
 
-    let source_code = read_file(path)
+    let source_code = read_file(&source_path)
         .map_err(|err| Error::AccessJavascriptImport(path.to_string(), err.to_string()))?;
     let js_source_code = new_js_string(scope, &source_code);
-    let js_path = new_js_string(scope, path);
+    let js_path = new_js_string(scope, &source_path);
     let source_map_url = v8::undefined(scope);
     let source = v8::script_compiler::Source::new(
         js_source_code,
@@ -222,6 +227,19 @@ fn import_module<'s>(
     let module = v8::script_compiler::compile_module(&mut try_catch_scope, source)
         .ok_or_else(|| exception_as_error(&mut try_catch_scope))
         .map_err(|err| Error::Eval(path.to_string(), format!("Compile error: {err}")))?;
+
+    {
+        // Instanciating the module will import all its dependencies so it's important that this
+        // module is present in the map when the dependencies try to get their referrer.
+        let global_module = v8::Global::new(&mut try_catch_scope, module);
+        let mut module_map = module_map.borrow_mut();
+        module_map
+            .modules_by_path
+            .insert(source_path.clone(), global_module.clone());
+        module_map
+            .path_by_modules
+            .insert(global_module, source_path);
+    }
 
     module
         .instantiate_module(&mut try_catch_scope, module_resolve_callback)
@@ -265,11 +283,6 @@ fn import_module<'s>(
         ));
     }
 
-    module_map.borrow_mut().modules_by_path.insert(
-        path.to_string(),
-        v8::Global::new(&mut try_catch_scope, module),
-    );
-
     Ok(module)
 }
 
@@ -284,13 +297,22 @@ fn module_resolve_callback<'s>(
     // Should be safe to ignore for now as an unsupported Javascript feature. https://v8.dev/features/import-assertions
     _import_assertions: v8::Local<'s, v8::FixedArray>,
     // Not used for now, a description can be found at https://github.com/denoland/rusty_v8/blob/25dd770570b77dfaa5a27a7dcee6fa660781640f/src/isolate.rs#L109
-    _referrer: v8::Local<'s, v8::Module>,
+    referrer: v8::Local<'s, v8::Module>,
 ) -> Option<v8::Local<'s, v8::Module>> {
     // SAFETY: we are in a callback
     let mut scope = unsafe { v8::CallbackScope::new(context) };
     let specifier = specifier.to_rust_string_lossy(&mut scope);
+    let global_referrer = v8::Global::new(&mut scope, referrer);
+    let referrer_path = scope
+        .get_slot::<Rc<RefCell<ModuleMap>>>()
+        .expect("ModuleMap is not present in isolate slots")
+        .borrow()
+        .path_by_modules
+        .get(&global_referrer)
+        .expect(&format!("Referrer to be already imported. {specifier}"))
+        .clone();
 
-    match import_module(&mut scope, &specifier) {
+    match import_module(&mut scope, &specifier, Some(&referrer_path)) {
         Ok(module) => Some(module),
         Err(err) => {
             tracing::error!("Couldn't import {specifier}, {err}.");
@@ -307,7 +329,7 @@ impl<'s> Embedded<'s> {
         // TODO: stop evaluating the file and use proper import for behaviors. https://app.asana.com/0/1199548034582004/1202225025969133/f
         let hash_stdlib = eval_file(
             scope,
-            "./lib/execution/src/runner/javascript/hash_stdlib.js",
+            "./lib/execution/src/runner/javascript/hash_stdlib.ts",
         )?;
         let hash_stdlib_str = new_js_string(scope, "hash_stdlib");
         scope
@@ -315,7 +337,7 @@ impl<'s> Embedded<'s> {
             .global(scope)
             .set(scope, hash_stdlib_str.into(), hash_stdlib);
 
-        let runner = import_module(scope, "./lib/execution/src/runner/javascript/runner.js")?;
+        let runner = import_module(scope, "./src/runner/javascript/runner", None)?;
 
         // Importing a module doesn't return the items it exports. To access the items it exports we
         // can use `get_module_namespace`. An example of that can be found at https://github.com/v8/v8/blob/25e3225286d08a49812b9728810b4777041a7dd5/test/unittests/objects/modules-unittest.cc#L659
@@ -2023,12 +2045,79 @@ fn import_and_get_module_namespace<'s>(
     scope: &mut v8::HandleScope<'s>,
     path: &str,
 ) -> Result<Object<'s>> {
-    let pkg = import_module(scope, path)?;
+    let pkg = import_module(scope, path, None)?;
 
     Ok(pkg
         .get_module_namespace()
         .to_object(scope)
         .expect("Module is not instantiated"))
+}
+
+// Returns the relative path of the source file starting at the engine crate root.
+fn find_source_file(path_str: &str, referrer_path: Option<&str>) -> Result<String> {
+    const SUPPORTED_EXTENSIONS: [&str; 4] = ["js", "jsx", "ts", "tsx"];
+
+    let path = PathBuf::from(path_str);
+
+    // In order to be compatible with Javascript, Typescript file can't use the ".ts" extension when
+    // importing and will usually not include any extension
+    if path.extension().is_none() {
+        for extension in SUPPORTED_EXTENSIONS {
+            let mut path_with_extension = path.clone();
+            path_with_extension.set_extension(extension);
+            if let Ok(source_file) = find_source_file(
+                path_with_extension
+                    .as_os_str()
+                    .to_str()
+                    .expect("Path to be valid Unicode"),
+                referrer_path,
+            ) {
+                return Ok(source_file);
+            }
+        }
+    }
+
+    if path.is_absolute() {
+        if path.exists() {
+            return Ok(path
+                .as_os_str()
+                .to_str()
+                .expect("Path to be valid Unicode")
+                .to_string());
+        } else {
+            return Err(Error::V8(format!("File {path_str} does not exist")));
+        }
+    }
+
+    // Try to get the file relative to the file importing it
+    if let Some(referrer_path) = referrer_path {
+        let referrer_path = PathBuf::from(referrer_path);
+        let referrer_directory = referrer_path.parent().expect("Referrer path is not a file");
+        let path_from_root = referrer_directory.join(&path);
+        if path_from_root.exists() {
+            return Ok(path_from_root
+                .into_os_string()
+                .into_string()
+                .expect("Path to be valid Unicode"));
+        }
+    }
+
+    // Try to get the file relative to the crate root
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    if let Ok(source_file) = find_source_file(
+        root.join(&path)
+            .as_os_str()
+            .to_str()
+            .expect("Path to be valid Unicode"),
+        None,
+    ) {
+        return Ok(source_file);
+    }
+
+    Err(Error::AccessJavascriptImport(
+        path_str.to_string(),
+        "File does not exist".to_string(),
+    ))
 }
 
 // Returns the new max heap size.
