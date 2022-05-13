@@ -8,11 +8,8 @@ use std::{
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
-use hash_engine_lib::{
-    language::Language,
-    proto::ExperimentName,
-    utils::{LogFormat, LogLevel, OutputLocation},
-};
+use execution::{package::experiment::ExperimentName, runner::Language};
+use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
@@ -165,13 +162,11 @@ pub async fn run_test_suite(
     assert_ne!(samples, 0, "SAMPLES must be at least 1");
 
     for (experiment_type, expected_outputs) in experiments {
-        // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's `OUT_DIR` is
-        // used.
-        //
-        // `env!("OUT_DIR")` is currently the only reason we have an empty `build.rs`. If it is
-        // removed, consider deleting the `build.rs` file.
+        // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's
+        // `CARGO_TARGET_TMPDIR` is used.
         let mut output_folder = PathBuf::from(
-            std::env::var("OUTPUT_DIRECTORY").unwrap_or_else(|_| env!("OUT_DIR").to_string()),
+            std::env::var("OUTPUT_DIRECTORY")
+                .unwrap_or_else(|_| env!("CARGO_TARGET_TMPDIR").to_string()),
         );
         for module in test_path.split("::") {
             output_folder.push(module);
@@ -212,15 +207,28 @@ pub async fn run_test_suite(
                     project_name.clone(),
                     experiment_config,
                     language,
-                    expected_outputs.len(),
                     target_max_group_size,
                 )
                 .await;
 
                 match test_result {
                     Ok(outputs) => {
-                        test_output = Some(outputs);
-                        break;
+                        if expected_outputs.len() == outputs.outputs.len() {
+                            test_output = Some(outputs);
+                            break;
+                        }
+
+                        if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            tracing::error!("Logs:");
+                            eprintln!("{log}");
+                        }
+                        tracing::error!("Test failed");
+                        tracing::error!(
+                            "Number of expected outputs does not match number of returned \
+                             simulation results for experiment, expected {} found {}.",
+                            expected_outputs.len(),
+                            outputs.outputs.len()
+                        );
                     }
                     Err(err) => {
                         tracing::error!("Test failed");
@@ -233,14 +241,8 @@ pub async fn run_test_suite(
                 }
             }
 
-            let test_output = test_output.expect("Could not run experiment");
-
-            assert_eq!(
-                expected_outputs.len(),
-                test_output.outputs.len(),
-                "Number of expected outputs does not match number of returned simulation results \
-                 for experiment"
-            );
+            let test_output =
+                test_output.expect("Could not run experiment or unexpected number of outputs");
 
             for (output_idx, ((states, globals, analysis), expected)) in test_output
                 .outputs
@@ -296,7 +298,6 @@ pub async fn run_test<P: AsRef<Path>>(
     project_name: String,
     experiment_config: ExperimentConfig,
     language: Option<Language>,
-    num_outputs_expected: usize,
     target_max_group_size: Option<usize>,
 ) -> Result<TestOutput> {
     let project_path = project_path.as_ref();
@@ -336,10 +337,9 @@ pub async fn run_test<P: AsRef<Path>>(
 
     let outputs = iter::repeat(output_base_directory)
         .enumerate()
-        .take(num_outputs_expected)
-        .map(|(sim_id, base_dir)| {
-            let output_dir = base_dir.join((sim_id + 1).to_string());
-
+        .map(|(sim_id, base_dir)| base_dir.join((sim_id + 1).to_string()))
+        .take_while(|output_dir| output_dir.exists())
+        .map(|output_dir| {
             let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
                 .wrap_err("Could not read JSON state")?;
             let globals = parse_file(Path::new(&output_dir).join("globals.json"))
@@ -350,6 +350,7 @@ pub async fn run_test<P: AsRef<Path>>(
             Ok((json_state, globals, analysis_outputs))
         })
         .collect::<Result<_>>()?;
+
     Ok(TestOutput { outputs, duration })
 }
 

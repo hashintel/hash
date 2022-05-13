@@ -9,6 +9,6 @@
   },
   {
     "experiment": "sweep_flocks",
-    "expected-outputs": [{}, {}]
+    "expected-outputs": [{}, {}, {}, {}, {}, {}, {}]
   }
 ]

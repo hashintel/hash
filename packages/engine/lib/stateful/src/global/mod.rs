@@ -7,6 +7,6 @@ mod dataset;
 mod globals;
 
 pub use self::{
-    dataset::{Dataset, SharedDataset},
+    dataset::{Dataset, SharedDataset, SharedStore},
     globals::Globals,
 };

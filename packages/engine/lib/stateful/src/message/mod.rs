@@ -7,8 +7,9 @@
 //! provides different variants, please see its documentation for more information.
 //!
 //! [`Message`]s are laid out in-memory in [`MessageBatch`]es according to the representation
-//! defined by [`MessageSchema`]. Multiple [`MessageBatch`]es are collected in a [`MessagePool`]
-//! which is interacted with through the [`MessageLoader`] and [`MessageReader`].
+//! defined by [`MessageSchema`]. Multiple [`MessageBatch`]es are collected in a
+//! [`MessageBatchPool`] which is interacted with through the [`MessageLoader`] and
+//! [`MessageReader`].
 //!
 //! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/agent-messages
 //! [`Agent`]: crate::agent::Agent
@@ -30,7 +31,7 @@ pub use self::{
     loader::{MessageLoader, RawMessage},
     map::MessageMap,
     outbound::Message,
-    pool::{MessagePool, MessageReader},
+    pool::{MessageBatchPool, MessageReader},
     schema::MessageSchema,
 };
 pub(in crate) use self::{

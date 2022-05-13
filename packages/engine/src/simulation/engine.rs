@@ -2,11 +2,11 @@ use std::{mem, sync::Arc};
 
 use memory::shared_memory::MemoryId;
 use stateful::{
-    agent::AgentPool,
+    agent::AgentBatchPool,
     context::Context,
-    message::{MessageMap, MessagePool},
+    message::{MessageBatchPool, MessageMap},
     proxy::BatchPool,
-    state::{State, StatePools, StateSnapshot},
+    state::{State, StateBatchPools, StateSnapshot},
 };
 use tracing::Instrument;
 
@@ -109,8 +109,8 @@ impl Engine {
     }
 
     /// TODO: DOC, the "see" is wrong
-    /// Finalize state (see [`SimulationEngine::finalize_state`]) and create a new context
-    /// for the agents.
+    /// Finalize state (see [`Engine::finalize_agent_state`]) and create a new context for the
+    /// agents.
     ///
     /// Creating a new context means taking a snapshot of current state
     /// and building a context object for packages to access.
@@ -178,7 +178,11 @@ impl Engine {
         // Synchronize context with workers. `context` won't change
         // again until the next step.
         self.comms
-            .context_batch_sync(&context, current_step, state.group_start_indices())
+            .context_batch_sync(
+                &context,
+                current_step,
+                Arc::clone(state.group_start_indices()),
+            )
             .instrument(tracing::info_span!("context_sync"))
             .await?;
 
@@ -251,7 +255,7 @@ impl Engine {
         self.handle_messages(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
         let agent_pool = self.finalize_agent_state(state, context)?;
-        let mut state_view = StatePools {
+        let mut state_view = StateBatchPools {
             agent_pool,
             message_pool,
         };
@@ -292,7 +296,7 @@ impl Engine {
         &mut self,
         state: &mut State,
         context: &mut Context,
-    ) -> Result<MessagePool> {
+    ) -> Result<MessageBatchPool> {
         let message_pool = context.take_message_pool();
         let finalized_message_pool = state.reset_messages(message_pool)?;
         Ok(finalized_message_pool)
@@ -304,7 +308,7 @@ impl Engine {
         &mut self,
         state: &mut State,
         context: &mut Context,
-    ) -> Result<AgentPool> {
+    ) -> Result<AgentBatchPool> {
         context.update_agent_snapshot(
             state,
             &self.config.sim.store.agent_schema,

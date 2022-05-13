@@ -326,7 +326,7 @@ impl Segment {
     // We can't resize memory on macos
     #[cfg(target_os = "macos")]
     pub fn shrink_memory_with_data_length(&mut self, _data_length: usize) -> Result<BufferChange> {
-        Ok(BufferChange(false, false))
+        Ok(BufferChange::new(false, false))
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -358,7 +358,9 @@ impl Segment {
             .expect("Could not read metaversion")
     }
 
-    /// Same as [`read_metaversion`] but return a `Result` instead of panicking.
+    /// Same as [`read_persisted_metaversion()`] but return a `Result` instead of panicking.
+    ///
+    /// [`read_persisted_metaversion()`]: Self::read_persisted_metaversion
     pub fn try_read_persisted_metaversion(&self) -> Result<Metaversion> {
         let header = self.get_header()?;
         let n_header_bytes = header.len();
@@ -383,7 +385,9 @@ impl Segment {
             .expect("Could not set metaversion")
     }
 
-    /// Same as [`write_metaversion`] but return a `Result` instead of panicking.
+    /// Same as [`persist_metaversion()`] but return a `Result` instead of panicking.
+    ///
+    /// [`persist_metaversion()`]: Self::persist_metaversion
     pub fn try_persist_metaversion(&mut self, metaversion: Metaversion) -> Result<()> {
         let header = self.visitor_mut().header_mut();
         let n_header_bytes = header.len();
@@ -542,7 +546,7 @@ impl Segment {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 pub mod tests {
     use super::*;
 

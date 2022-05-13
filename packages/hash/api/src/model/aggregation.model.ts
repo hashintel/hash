@@ -158,31 +158,47 @@ class __Aggregation {
 
           if (typeof item !== "string") return null;
 
+          if (
+            [
+              "CONTAINS",
+              "DOES_NOT_CONTAIN",
+              "IS",
+              "IS_NOT",
+              "ENDS_WITH",
+              "STARTS_WITH",
+            ].includes(filterItem.operator) &&
+            !filterItem.value
+          ) {
+            throw new Error(
+              `You must provide 'value' when using operator '${filterItem.operator}'`,
+            );
+          }
+
           switch (filterItem.operator) {
             case "CONTAINS":
               return item
                 .toLowerCase()
-                .includes(filterItem.value.toLowerCase());
+                .includes(filterItem.value!.toLowerCase());
             case "DOES_NOT_CONTAIN":
               return !item
                 .toLowerCase()
-                .includes(filterItem.value.toLowerCase());
+                .includes(filterItem.value!.toLowerCase());
             case "STARTS_WITH":
               return item
                 .toLowerCase()
-                .startsWith(filterItem.value.toLowerCase());
+                .startsWith(filterItem.value!.toLowerCase());
             case "ENDS_WITH":
               return item
                 .toLowerCase()
-                .endsWith(filterItem.value.toLowerCase());
+                .endsWith(filterItem.value!.toLowerCase());
             case "IS_EMPTY":
               return !item;
             case "IS_NOT_EMPTY":
               return !!item;
             case "IS":
-              return item.toLowerCase() === filterItem.value.toLowerCase();
+              return item.toLowerCase() === filterItem.value!.toLowerCase();
             case "IS_NOT":
-              return item.toLowerCase() !== filterItem.value.toLowerCase();
+              return item.toLowerCase() !== filterItem.value!.toLowerCase();
             default:
               return null;
           }
@@ -332,6 +348,21 @@ class __Aggregation {
     merge(this, mapDbAggregationToModel(updatedDbAggregation));
 
     return this;
+  }
+
+  async getSourceEntity(client: DbClient): Promise<Entity> {
+    const sourceEntity = await Entity.getEntityLatestVersion(client, {
+      accountId: this.sourceAccountId,
+      entityId: this.sourceEntityId,
+    });
+
+    if (!sourceEntity) {
+      throw new Error(
+        `Critical: source entity of aggregation with aggregationId ${this.aggregationId} not found`,
+      );
+    }
+
+    return sourceEntity;
   }
 
   async getResults(

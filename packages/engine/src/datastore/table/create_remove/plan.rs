@@ -1,6 +1,6 @@
 use memory::shared_memory::MemoryId;
 use rayon::prelude::*;
-use stateful::{proxy::BatchPool, state::StatePools};
+use stateful::{proxy::BatchPool, state::StateBatchPools};
 
 use crate::{
     config::SimRunConfig,
@@ -20,7 +20,11 @@ pub struct MigrationPlan<'a> {
 }
 
 impl<'a> MigrationPlan<'a> {
-    pub fn execute(self, state: &mut StatePools, config: &SimRunConfig) -> Result<Vec<String>> {
+    pub fn execute(
+        self,
+        state: &mut StateBatchPools,
+        config: &SimRunConfig,
+    ) -> Result<Vec<String>> {
         // tracing::debug!("Updating");
         self.existing_mutations
             .par_iter()

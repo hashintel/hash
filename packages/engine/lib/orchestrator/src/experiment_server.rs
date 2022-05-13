@@ -1,9 +1,10 @@
-//! Provides infrastructure to communicate with the [`hash_engine`] subprocess.
+//! Provides infrastructure to communicate with the `hash_engine` subprocess.
 
 use std::{collections::HashMap, fmt::Display};
 
-use error::{bail, report, Result, ResultExt};
-use hash_engine_lib::{proto, proto::ExperimentId};
+use error::{bail, report, Report, Result, ResultExt};
+use hash_engine_lib::proto;
+use simulation_structure::ExperimentId;
 use tokio::sync::{mpsc, oneshot};
 
 type ResultSender = oneshot::Sender<Result<()>>;
@@ -14,7 +15,7 @@ type MsgReceiver = mpsc::UnboundedReceiver<proto::EngineStatus>;
 type CtrlSender = mpsc::Sender<(Ctrl, ResultSender)>;
 type CtrlReceiver = mpsc::Receiver<(Ctrl, ResultSender)>;
 
-/// Control signal to be sent to the [`hash_engine`]-sub[process](crate::process).
+/// Control signal to be sent to the `hash_engine`-sub[process](crate::process).
 enum Ctrl {
     /// Signal to register a new experiment
     Register {
@@ -29,7 +30,7 @@ enum Ctrl {
 }
 
 /// A connection to receive [`EngineStatus`](proto::EngineStatus)es from an
-/// [`hash_engine`]-sub[process].
+/// `hash_engine`-sub[process](crate::process).
 pub struct Handle {
     id: ExperimentId,
     msg_rx: MsgReceiver,
@@ -122,7 +123,7 @@ impl Handler {
     }
 }
 
-/// A server for handling messages from the [`hash_engine`]-sub[process](crate::process).
+/// A server for handling messages from the `hash_engine`-sub[process](crate::process).
 pub struct Server {
     url: String,
     ctrl_rx: CtrlReceiver,
@@ -231,8 +232,9 @@ impl Server {
     ///
     /// [`create()`]: Self::create
     pub async fn run(&mut self) -> Result<()> {
-        let mut socket =
-            nano::Server::new(&self.url).wrap_err("Could not create a server socket")?;
+        let mut socket = nano::Server::new(&self.url)
+            .map_err(Report::generalize)
+            .wrap_err_lazy(|| format!("Could not create a server socket for {:?}", self.url))?;
         loop {
             tokio::select! {
                 Some((ctrl, result_tx)) = self.ctrl_rx.recv() => {
@@ -243,7 +245,7 @@ impl Server {
                     }
                 },
                 r = socket.recv::<proto::OrchestratorMsg>() => match r {
-                    Err(e) => { log_error(e); },
+                    Err(e) => { let _ = log_error(e); },
                     Ok(msg) => {
                         let _ = self.dispatch_message(msg).map_err(log_error);
                     }

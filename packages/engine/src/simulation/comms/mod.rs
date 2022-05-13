@@ -19,32 +19,24 @@ inbound completion messages from multiple workers and combine them into one such
 main package definition can be agnostic of how work was distributed.
  */
 
-pub mod active;
-
-pub mod message;
-pub mod package;
-
 use std::sync::{Arc, RwLock};
 
+use async_trait::async_trait;
+use execution::{
+    package::simulation::PackageTask,
+    task::{StoreAccessValidator, TaskId, TaskSharedStore},
+    worker::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
+    worker_pool,
+    worker_pool::comms::{
+        main::MainMsgSend,
+        message::{EngineToWorkerPoolMsg, WrappedTask},
+    },
+};
+use simulation_structure::SimulationShortId;
 use stateful::{agent::Agent, context::Context, field::PackageId, state::StateReadProxy};
 use uuid::Uuid;
 
-use self::message::{EngineToWorkerPoolMsg, WrappedTask};
-use super::{
-    command::Commands,
-    task::{access::StoreAccessVerify, active::ActiveTask, Task},
-    Error, Result,
-};
-use crate::{
-    datastore::table::{
-        sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
-        task_shared_store::TaskSharedStore,
-    },
-    proto::SimulationShortId,
-    simulation::comms::message::SyncCompletionReceiver,
-    types::TaskId,
-    workerpool::comms::MainMsgSend,
-};
+use super::{command::Commands, task::active::ActiveTask, Error, Result};
 
 /// A simulation-specific object containing a sender to communicate with the worker-pool, and a
 /// shared collection of commands.
@@ -55,9 +47,9 @@ pub struct Comms {
     /// A shared mutable [`Commands`] that are merged with those from agent messages, and resolved,
     /// by the Engine each step.
     cmds: Arc<RwLock<Commands>>,
-    /// A sender to communicate with the [`workerpool`].
+    /// A sender to communicate with the [`WorkerPool`].
     ///
-    /// [`workerpool`]: crate::workerpool
+    /// [`WorkerPool`]: execution::worker_pool::WorkerPool
     worker_pool_sender: MainMsgSend,
 }
 
@@ -82,33 +74,6 @@ impl Comms {
         let mut cmds = self.cmds.try_write()?;
         let taken = std::mem::take(&mut *cmds);
         Ok(taken)
-    }
-
-    /// Adds a [`CreateCommand`] for a given [`Agent`] to the [`Commands`] stored in self.
-    ///
-    /// # Errors
-    ///
-    /// This function can fail if it's unable to acquire a write lock on the [`Commands`] object.
-    ///
-    /// [`CreateCommand`]: crate::simulation::command::CreateCommand
-    // TODO: UNUSED: Needs triage
-    pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
-        let cmds = &mut self.cmds.try_write()?;
-        cmds.add_create(agent);
-        Ok(())
-    }
-
-    /// Adds a [`RemoveCommand`] for a given agent's `Uuid` to the [`Commands`] stored in self.
-    ///
-    /// # Errors
-    /// This function can fail if it's unable to acquire a write lock on the [`Commands`] object.
-    ///
-    /// [`RemoveCommand`]: crate::simulation::command::RemoveCommand
-    // TODO: UNUSED: Needs triage
-    pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
-        let cmds = &mut self.cmds.try_write()?;
-        cmds.add_remove(uuid);
-        Ok(())
     }
 }
 
@@ -164,13 +129,15 @@ impl Comms {
         &self,
         context: &Context,
         current_step: usize,
-        state_group_start_indices: &Arc<Vec<usize>>,
+        state_group_start_indices: Arc<Vec<usize>>,
     ) -> Result<()> {
         tracing::trace!("Synchronizing context batch");
         // Synchronize the context batch
-        let indices = Arc::clone(state_group_start_indices);
-        let sync_msg =
-            ContextBatchSync::new(Arc::clone(context.global_batch()), current_step, indices);
+        let sync_msg = ContextBatchSync {
+            context_batch: Arc::clone(context.global_batch()),
+            current_step,
+            state_group_start_indices,
+        };
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
@@ -181,45 +148,66 @@ impl Comms {
     }
 }
 
-impl Comms {
-    /// Takes a given [`Task`] object, and starts its execution on the [`workerpool`], returning an
+#[async_trait]
+impl execution::package::simulation::Comms for Comms {
+    type ActiveTask = ActiveTask;
+
+    /// Takes a given [`Task`] object, and starts its execution on the [`WorkerPool`], returning an
     /// [`ActiveTask`] to track its progress.
     ///
-    /// [`workerpool`]: crate::workerpool
-    pub async fn new_task(
+    /// [`Task`]: execution::task::Task
+    /// [`WorkerPool`]: execution::worker_pool::WorkerPool
+    async fn new_task(
         &self,
         package_id: PackageId,
-        task: Task,
+        task: PackageTask,
         shared_store: TaskSharedStore,
-    ) -> Result<ActiveTask> {
+    ) -> execution::Result<ActiveTask> {
         let task_id = uuid::Uuid::new_v4().as_u128();
         let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store)?;
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))
-            .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
+            .map_err(|e| execution::Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(active)
+    }
+
+    fn add_create_agent_command(&mut self, agent: Agent) -> execution::Result<()> {
+        self.cmds.try_write()?.add_create(agent);
+        Ok(())
+    }
+
+    fn add_remove_agent_command(&mut self, agent_id: Uuid) -> execution::Result<()> {
+        self.cmds.try_write()?.add_remove(agent_id);
+        Ok(())
     }
 }
 
 /// Turns a given [`Task`] into a [`WrappedTask`] and [`ActiveTask`] pair.
 ///
-/// This includes setting up the appropriate communications to be sent to the [`workerpool`] and to
+/// This includes setting up the appropriate communications to be sent to the [`WorkerPool`] and to
 /// be made accessible to the Package that created the task.
 ///
 /// # Errors
 ///
 /// If the [`Task`] needs more access than the provided [`TaskSharedStore`] has.
 ///
-/// [`workerpool`]: crate::workerpool
+/// [`Task`]: execution::task::Task
+/// [`WorkerPool`]: execution::worker_pool::WorkerPool
 fn wrap_task(
     task_id: TaskId,
     package_id: PackageId,
-    task: Task,
+    task: PackageTask,
     shared_store: TaskSharedStore,
 ) -> Result<(WrappedTask, ActiveTask)> {
     task.verify_store_access(&shared_store)?;
-    let (owner_channels, executor_channels) = active::comms();
-    let wrapped = WrappedTask::new(task_id, package_id, task, executor_channels, shared_store);
+    let (owner_channels, executor_channels) = worker_pool::comms::active::comms();
+    let wrapped = WrappedTask {
+        task_id,
+        package_id,
+        task,
+        comms: executor_channels,
+        shared_store,
+    };
     let active = ActiveTask::new(owner_channels);
     Ok((wrapped, active))
 }

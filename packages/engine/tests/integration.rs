@@ -36,6 +36,7 @@ macro_rules! run_test {
     ($project:ident $(,)? $(#[$attr:meta])* ) => {
         $(#[$attr])*
         #[tokio::test]
+        #[cfg_attr(miri, ignore, allow(unused_attributes))]
         async fn $project() {
             let project_path = std::path::Path::new(file!())
                 .parent()
@@ -44,16 +45,23 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($project)), None, None, None).await
+            $crate::experiment::run_test_suite(
+                project_path,
+                concat!(module_path!(), "::", stringify!($project)),
+                None,
+                None,
+                None
+            ).await
         }
     };
     ($project:ident, $language:ident $(,)? $(#[$attr:meta])* ) => {
         // Enable syntax highlighting and code completion
         #[allow(unused)]
-        use hash_engine_lib::language::Language::$language as _;
+        use execution::runner::Language::$language as _;
 
         $(#[$attr])*
         #[tokio::test]
+        #[cfg_attr(miri, ignore, allow(unused_attributes))]
         async fn $project() {
             let project_path = std::path::Path::new(file!())
                 .parent()
@@ -62,12 +70,19 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($project)), Some(hash_engine_lib::language::Language::$language), None, None).await
+            $crate::experiment::run_test_suite(
+                project_path,
+                concat!(module_path!(), "::", stringify!($project)),
+                Some(execution::runner::Language::$language),
+                None,
+                None
+            ).await
         }
     };
     ($project:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
         $(#[$attr])*
         #[tokio::test]
+        #[cfg_attr(miri, ignore, allow(unused_attributes))]
         async fn $experiment() {
             let project_path = std::path::Path::new(file!())
                 .parent()
@@ -76,16 +91,22 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($experiment)), None, Some(stringify!($experiment)), None).await
+            $crate::experiment::run_test_suite(
+                project_path, concat!(module_path!(), "::", stringify!($experiment)),
+                None,
+                Some(stringify!($experiment)),
+                None
+            ).await
         }
     };
     ($project:ident, $language:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
         // Enable syntax highlighting and code completion
         #[allow(unused)]
-        use hash_engine_lib::language::Language::$language as _;
+        use execution::runner::Language::$language as _;
 
         $(#[$attr])*
         #[tokio::test]
+        #[cfg_attr(miri, ignore, allow(unused_attributes))]
         async fn $experiment() {
             let project_path = std::path::Path::new(file!())
                 .parent()
@@ -94,7 +115,13 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($experiment)), Some(hash_engine_lib::language::Language::$language), Some(stringify!($experiment)), None).await
+            $crate::experiment::run_test_suite(
+                project_path,
+                concat!(module_path!(), "::", stringify!($experiment)),
+                Some(execution::runner::Language::$language),
+                Some(stringify!($experiment)),
+                None
+            ).await
         }
     };
 }

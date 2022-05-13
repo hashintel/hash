@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
+use execution::runner::RunnerError;
 use futures::FutureExt;
+use simulation_structure::SimulationShortId;
 use tokio::time::Duration;
 
 use crate::{
@@ -8,7 +10,6 @@ use crate::{
     datastore::store::Store,
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
     output::SimulationOutputPersistenceRepr,
-    proto::SimulationShortId,
     simulation::{
         agent_control::AgentControl,
         comms::Comms,
@@ -20,7 +21,6 @@ use crate::{
         package::run::Packages,
         status::SimStatus,
     },
-    worker::RunnerError,
 };
 
 enum LoopControl {
@@ -43,12 +43,14 @@ enum LoopControl {
 /// # The Main Loop
 /// The repeating top-level logic of a simulation step.
 /// - Check if the sim has been told to stop by the Experiment Controller
-/// - Tells the simulation engine to take a step [`simulation::engine::Engine::next`]:
+/// - Tells the simulation engine to take a step [`Engine::next()`]:
 ///   - Runs Context Packages in parallel
 ///   - Runs State Packages sequentially
 ///   - Runs Output packages
 /// - Persists Output
 /// - Sends an update on the Step result to the Experiment Controller
+///
+/// [`Engine::next()`]: crate::simulation::engine::Engine::next
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig>,
     comms: Comms,
