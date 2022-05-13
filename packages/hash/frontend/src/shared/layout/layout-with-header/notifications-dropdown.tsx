@@ -1,19 +1,13 @@
 import { useState } from "react";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Box, ListItemText, Menu, Typography, useTheme } from "@mui/material";
 import {
   usePopupState,
   bindMenu,
   bindTrigger,
 } from "material-ui-popup-state/hooks";
 
+import { MenuItem } from "../../ui";
 import { FontAwesomeIcon } from "../../icons";
 import { HeaderIconButton } from "./shared/header-icon-button";
 

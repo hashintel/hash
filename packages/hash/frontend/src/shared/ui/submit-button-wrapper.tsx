@@ -80,10 +80,10 @@ export const SubmitButtonWrapper: FC<SubmitButtonWrapperProps> = forwardRef(
         <Collapse in={Boolean(helperText)}>
           <Box display="flex" alignItems="center" mt={1}>
             <FontAwesomeIcon
-              sx={{
+              sx={({ palette }) => ({
                 mr: 1,
-                color: ({ palette }) => palette.orange[50],
-              }}
+                color: palette.orange[50],
+              })}
               icon={faCircleExclamation}
             />
             <Typography
