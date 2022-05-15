@@ -1,0 +1,30 @@
+---
+authorPhoto: blog/2_open-source/david.png
+postPhoto: blog/2_open-source/OpenSource_Cover.png
+title: "Open-source at HASH"
+subtitle: "How our approach to open-source informs what we do"
+author: "David Wilkinson"
+jobTitle: "CEO at HASH"
+date: "May 15th, 2022"
+---
+
+We release a large amount of our code at HASH under either an open-source or fair-source license. In both cases the respective parts of our codebase are public, but there are slightly different terms attached to what you can and can't do with the underlying source code.
+
+Broadly there are three categories of licenses we publish code publicly under at HASH:
+1. Open-source and permissive — e.g. MIT/Apache - in essence these licenses give people the freedom to do pretty much whatever they like, including extend the code and keep it private (making this the most flexible category of license)
+2. Open-source and copyleft — e.g. AGPL - again gives people freedom to use the code however they like, provided if they extend or modify it they contribute those changes back into the open-source as well under the same terms
+3. Fair-source — e.g. SSPL/Elastic - gives people access to and freedom to use code directly, and the ability to self-host the product without reliance on us (its creator). More on these licenses at https://faircode.io/
+
+Since our founding, we’ve been extremely deliberate about how we’ve licensed the various parts of our platform, as well as what we ourselves use in HASH.
+
+First, we contribute original open-source software (OSS) into the ecosystem through our [HASH platform](https://hash.ai/platform/hash) (AGPL), its connectors (MIT/Apache), and our blocks (MIT/Apache). You can [find these](https://github.com/hashintel/hash/tree/main/packages/hash) on GitHub.
+
+Second, we leverage existing OSS within our platform to accelerate development and provide users with best-in-class experiences. This includes great technologies such as OpenSearch (an Apache fork of two other previously open-source projects, Elasticsearch and Kibana), Snowplow (Apache), Meltano (MIT), dbt (Apache), Great Expectations (Apache), and GitLab (MIT). In addition, we use dozens of other open-source packages within our extended codebase.
+
+Third, we publish a lot of the source code for the non-OSS components of our platform (such as [hEngine](https://hash.ai/platform/engine)) publicly under fair-code licenses like the Elastic License/SSPL. This allows any HASH user to utilize our simulation technology freely within their organizations for internal-use, free from restriction, provided they don’t offer this technology to others as a managed service themselves (as that would be competitive with our core business). The Elastic License, for example, imposes just three high-level restrictions on the use of software. First, it is forbidden to provide the product to others as a managed service. Second, it is forbidden to circumvent any license key functionality, or remove/obscure feature protected by those keys. And third, removing or obscuring license, copyright and other legal notices is not allowed.
+
+Finally, we regularly evaluate the competitive landscape to see if we can (a) move private code into public repositories either as fair-code or open-source, and (b) relicense fair-code as open-source. When the environment changes, so do we. In keeping with our mission to continuously reduce and eliminate information failures, our ultimate goal is to have a fully sustainable business with as large an open-source footprint as possible. We can’t even come close to conceiving all the ways our technology might eventually be used by innovative others and it’s important to us to provide future innovators with as much freedom and flexibility as possible — but without compromising our own ability to pursue HASH’s mission over the sustainable long-term.
+
+Our open-source strategy directly counters the claims of certain others within the structured-knowledge and simulation space (such as Wolfram), who argued in a 2019 blog post entitled "Why Wolfram Tech Isn’t Open Source—A Dozen Reasons" that open-sourcing their software would reduce its quality. We passionately but respectfully believe the opposite to be true.
+
+- Good design requires effective decision-making at the top, but benefits from a wide-range of inputs and eyeballs.
