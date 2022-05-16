@@ -4,7 +4,6 @@ import {
   InputAdornment,
   ListItemIcon,
   ListItemText,
-  MenuItem,
   MenuList,
   Typography,
 } from "@mui/material";
@@ -14,7 +13,7 @@ import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
 import { useUserBlocks } from "../../userBlocks";
 import { FontAwesomeIcon } from "../../../shared/icons";
-import { TextField } from "../../../shared/ui";
+import { TextField, MenuItem } from "../../../shared/ui";
 
 type BlockListMenuContentProps = {
   popupState?: PopupState;

@@ -46,11 +46,7 @@ export const linkedEntities: Resolver<
       .filter(
         (link, i, all) =>
           // ...that don't have the source entity as their destination (these are redundant)
-          !(
-            link.destinationEntityId === source.entityId &&
-            (link.destinationEntityVersionId === undefined ||
-              link.destinationEntityVersionId === source.entityVersionId)
-          ) &&
+          !(link.destinationEntityId === source.entityId) &&
           // ...and that are not duplicates
           all.findIndex(linkHasSameDestinationAs(link)) === i,
       )

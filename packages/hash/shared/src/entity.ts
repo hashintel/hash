@@ -15,7 +15,10 @@ import {
   isUnknownObject,
 } from "./util";
 
-type ContentsEntity = PageFieldsFragment["properties"]["contents"][number];
+type ContentsEntity = DistributiveOmit<
+  PageFieldsFragment["properties"]["contents"][number],
+  "__typename"
+>;
 
 export type BlockEntity = DistributiveOmit<ContentsEntity, "properties"> & {
   properties: DistributiveOmit<ContentsEntity["properties"], "entity"> & {

@@ -237,6 +237,31 @@ export const pageTypedef = gql`
   }
 
   """
+  Swap a blocks data
+  """
+  input SwapBlockData {
+    """
+    The account the block resides in
+    """
+    accountId: ID!
+
+    """
+    The Block entity's fixed ID
+    """
+    entityId: ID!
+
+    """
+    The account the new entity resides in
+    """
+    newEntityAccountId: ID!
+
+    """
+    The new entity's fixed ID
+    """
+    newEntityEntityId: ID!
+  }
+
+  """
   An action to perform when updating the contents of a page. Exactly one field must be
   specified.
 
@@ -248,6 +273,7 @@ export const pageTypedef = gql`
     removeBlock: RemoveBlock
     moveBlock: MoveBlock
     updateEntity: UpdateEntity
+    swapBlockData: SwapBlockData
   }
 
   extend type Mutation {

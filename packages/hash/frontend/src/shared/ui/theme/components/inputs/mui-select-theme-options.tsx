@@ -63,10 +63,11 @@ export const MuiSelectThemeOptions: Components<Theme>["MuiSelect"] = {
       },
     }),
     outlined: ({ theme }) => ({
-      [`& ~ .${outlinedInputClasses.notchedOutline}`]: {
-        borderColor: theme.palette.gray[30],
-        boxShadow: theme.boxShadows.xs,
-      },
+      [`& ~ .${outlinedInputClasses.notchedOutline}, &:hover ~ .${outlinedInputClasses.notchedOutline}`]:
+        {
+          borderColor: theme.palette.gray[30],
+          boxShadow: theme.boxShadows.xs,
+        },
 
       [`&:focus ~ .${outlinedInputClasses.notchedOutline}`]: {
         border: `1px solid ${theme.palette.blue[60]}`,
