@@ -1,5 +1,4 @@
 import * as React from "react";
-import moment from "moment";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
@@ -19,6 +18,7 @@ import TimelineContent from "@mui/lab/TimelineContent";
 import TimelineDot from "@mui/lab/TimelineDot";
 import Tooltip from "@mui/material/Tooltip";
 import Popover from "@mui/material/Popover";
+import format from "date-fns/format";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { uniq, intersection, sortBy, startCase } from "lodash";
 import { GithubIssueEvent, GithubPullRequest, GithubReview } from "./types";
@@ -203,9 +203,11 @@ export const GithubPrTimeline: React.FunctionComponent<
                 key={event.id?.toString()}
                 style={{ alignContent: "right" }}
               >
-                <TimelineOppositeContent color="text.secondary">
-                  {moment(event.created_at).format("ddd, Do MMM YYYY[\n]HH:mm")}
-                </TimelineOppositeContent>
+                {event.created_at != null ? (
+                  <TimelineOppositeContent color="text.secondary">
+                    {format(new Date(event.created_at), "iii, do MMM y, HH:mm")}
+                  </TimelineOppositeContent>
+                ) : undefined}
                 <TimelineSeparator>
                   <TimelineDot color={color} />
                   {idx < maxIdx ? <TimelineConnector /> : undefined}

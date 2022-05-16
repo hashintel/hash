@@ -22,7 +22,7 @@
     "@mui/icons-material": "5.4.2",
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
-    "blockprotocol": "0.0.8",
+    "blockprotocol": "0.0.9",
     "date-fns": "2.22.1",
     "lodash": "4.17.21"
   },
