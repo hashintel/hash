@@ -1,8 +1,14 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+} from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
-import { Resizable } from "react-resizable";
+import { Resizable, ResizeCallbackData } from "react-resizable";
 import { handleExport, getInitialDocument } from "./utils";
 import "./base.css";
 
@@ -10,15 +16,20 @@ type AppProps = {
   document: string;
   readOnly: boolean;
   darkMode?: boolean;
-  width?: number | string | undefined;
-  height?: number | string | undefined;
+  width?: number;
+  height?: number;
 };
 
-type ResizeCallbackData = {
-  node: HTMLElement;
-  size: { width: number; height: number };
-  handle: "s" | "w" | "e" | "n" | "sw" | "nw" | "se" | "ne";
+type LocalState = {
+  height: number;
+  width?: number;
+  documentString: string;
+  maxWidth?: number;
+  darkMode?: boolean;
+  readOnly?: boolean;
 };
+
+const BASE_HEIGHT = 500;
 
 // @todo update image upload flow to leverage uploadFile
 // to upload images. Currently images are saved in base64 form
@@ -45,14 +56,39 @@ export const App: BlockComponent<AppProps> = ({
   const rInitialDocument = useRef<TDDocument>(
     getInitialDocument(remoteDocumentString, entityId),
   );
-  const [localState, setLocalState] = useState({
-    height: remoteHeight ?? 500,
-    width: remoteWidth ?? "100%",
+  const [localState, setLocalState] = useState<LocalState>({
+    height: remoteHeight ?? BASE_HEIGHT,
+    ...(remoteWidth && { width: remoteWidth }),
     documentString: remoteDocumentString,
-    maxWidth: "100%",
     darkMode: remoteDarkMode,
     readOnly: remoteReadOnly,
   });
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+
+    const handleResize = () => {
+      const containerWidth = Number(
+        containerRef.current?.getBoundingClientRect().width.toFixed(2),
+      );
+
+      setLocalState((prev) => ({
+        ...prev,
+        maxWidth: containerWidth,
+        ...((!prev.width || (prev.maxWidth && prev.width >= prev.maxWidth)) && {
+          width: containerWidth,
+        }),
+      }));
+    };
+
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     setLocalState((prev) => ({
@@ -177,9 +213,9 @@ export const App: BlockComponent<AppProps> = ({
     <div ref={containerRef} className="drawing-canvas-container">
       <Resizable
         height={localState.height}
-        width={localState.width}
+        width={localState.width!}
         minConstraints={[200, 200]}
-        maxConstraints={[localState.maxWidth, Infinity]}
+        maxConstraints={[localState.maxWidth!, Infinity]}
         onResize={updateDimensions}
         onResizeStop={updateRemoteDimensions}
         resizeHandles={["s", "se", "e", "sw"]}

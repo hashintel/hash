@@ -11,10 +11,10 @@
       "type": "boolean"
     },
     "width": {
-      "type": ["string", "number"]
+      "type": "number"
     },
     "height": {
-      "type": ["string", "number"]
+      "type": "number"
     }
   },
   "configProperties": ["darkMode", "readOnly", "document", "width", "height"],
