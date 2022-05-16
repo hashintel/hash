@@ -1,13 +1,5 @@
 import { VFC, useMemo, useState } from "react";
-import {
-  Divider,
-  ListItemIcon,
-  listItemIconClasses,
-  ListItemText,
-  listItemTextClasses,
-  Menu,
-  MenuItem,
-} from "@mui/material";
+import { Divider, ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import {
   faArrowRight,
@@ -21,6 +13,7 @@ import { faFileAlt, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { useRouteAccountInfo } from "../../../routing";
 import { FontAwesomeIcon } from "../../../icons";
 import { useCreatePage } from "../../../../components/hooks/useCreatePage";
+import { MenuItem } from "../../../ui";
 
 type PageMenuProps = {
   popupState: PopupState;
@@ -104,18 +97,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
           <MenuItem
             // eslint-disable-next-line react/no-array-index-key
             key={index}
-            sx={{
-              // @todo-mui MenuItem should have a faded type, which when applied,
-              // adds this styling
-              ...(index === menuItems.length - 1 && {
-                [`& .${listItemTextClasses.primary}`]: {
-                  color: ({ palette }) => palette.gray[60],
-                },
-                [`& .${listItemIconClasses.root}`]: {
-                  color: ({ palette }) => palette.gray[40],
-                },
-              }),
-            }}
+            faded={title === "Delete"}
             onClick={onClick ?? popupState.close}
           >
             <ListItemIcon>

@@ -71,12 +71,6 @@ The example illustrated above represents the simple case of a depth-1 sub-graph.
 general, the sub-graph may be of arbitrary depth. To handle this general case, we can
 perform a breadth-first search of the graph, where on each iteration, there is a single
 "reference" entity about which its implied links are determined as explained above.
-
-Entities may also make "fixed" links to specific versions of other entities. The procedure
-for deriving the implied history in these circumstances is similar to that outlined in
-the example above, except that when a fixed link is encountered, the checkpoint is
-immediately moved to the linked version, and it's not changed unless a subsequent version
-of the reference entity updates the link.
 */
 
 /** @todo: deprecate this type, and use the DbLink type instead */
@@ -136,6 +130,7 @@ class CheckpointManager {
 
 // @todo: add optional bounds to restrict the implied history within an interval.
 // @todo: we may need to paginate this function.
+// @todo provision for fixed links has been removed – remove related code when fixing history
 /**
  * Get the implied entity history of a given entity.
  * @param conn a connection to the database.
@@ -166,7 +161,6 @@ export const getImpliedEntityHistory = async (
           (link): OutgoingLink => ({
             accountId: link.sourceAccountId,
             entityId: link.sourceEntityId,
-            entityVersionId: link.destinationEntityVersionId,
             /** @todo: fix this type when fixing implied history resolver */
             validForSourceEntityVersionIds: (link as any)
               .sourceEntityVersionIds,

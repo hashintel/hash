@@ -7,17 +7,10 @@ import {
   faFilter,
 } from "@fortawesome/free-solid-svg-icons";
 import pluralize from "pluralize";
-import {
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  listItemTextClasses,
-  listItemIconClasses,
-} from "@mui/material";
+import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/core";
 import { FontAwesomeIcon } from "../../../icons";
-import { Link } from "../../../ui";
+import { MenuItem } from "../../../ui";
 
 type EntityTypeMenuProps = {
   popupState: PopupState;
@@ -77,14 +70,16 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
       {menuItems.map(({ title, icon, onClick, href, faded }, index) => {
         if (href) {
           return (
-            // eslint-disable-next-line react/no-array-index-key
-            <MenuItem key={index} onClick={() => popupState.close()}>
-              <Link sx={{ display: "flex" }} noLinkStyle href={href}>
-                <ListItemIcon>
-                  <FontAwesomeIcon icon={icon} />
-                </ListItemIcon>
-                <ListItemText primary={title} />
-              </Link>
+            <MenuItem
+              href={href}
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              onClick={() => popupState.close()}
+            >
+              <ListItemIcon>
+                <FontAwesomeIcon icon={icon} />
+              </ListItemIcon>
+              <ListItemText primary={title} />
             </MenuItem>
           );
         }
@@ -93,16 +88,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
           <MenuItem
             // eslint-disable-next-line react/no-array-index-key
             key={index}
-            sx={{
-              ...(Boolean(faded) && {
-                [`& .${listItemTextClasses.primary}`]: {
-                  color: ({ palette }) => palette.gray[50],
-                },
-                [`& .${listItemIconClasses.root}`]: {
-                  color: ({ palette }) => palette.gray[40],
-                },
-              }),
-            }}
+            faded={faded}
             onClick={onClick ?? popupState.close}
           >
             <ListItemIcon>
