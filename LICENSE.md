@@ -24,7 +24,7 @@ Attribution-ShareAlike 4.0 International](resources/LICENSE.md) license.
   licensed under version 3 of the GNU Affero General Public License, unless
   otherwise noted.
   
-* Within the `/packages/hash/blocks` folder, all source code is made
+* Within the `/packages/blocks` folder, all source code is made
   available under the MIT License.
 
 # Questions
