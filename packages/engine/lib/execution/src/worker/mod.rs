@@ -23,14 +23,12 @@ use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
 use self::pending::{CancelState, PendingGroup, PendingWorkerTask, PendingWorkerTasks};
+pub(crate) use self::task::{WorkerTask, WorkerTaskResultOrCancelled};
 pub use self::{
     config::{RunnerSpawnConfig, WorkerConfig},
+    handler::WorkerHandler,
     init::PackageInitMsgForWorker,
     sync::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
-};
-pub(crate) use self::{
-    handler::WorkerHandler,
-    task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
 use crate::{
     runner::{
@@ -285,7 +283,7 @@ impl Worker {
     ///     - [`Javascript`]/[`Python`]/[`Rust`]: The message is forwarded to the corresponding
     ///       language runner and the active runner is set to the language.
     ///     - [`Dynamic`]: The message is forwarded to the language runner determined dynamically.
-    ///     - [`Main`]: Finishes the task if any. See [`finish_task`] for more information.
+    ///     - [`Main`]: Finishes the task if any. See [`handle_end_message`] for more information.
     ///   - [`TaskCancelled`]: Cancels the task if any. See [`handle_cancel_task_confirmation`] for
     ///     more information.
     ///   - [`RunnerError`]/[`RunnerErrors`]: Forwards the error(s) to the worker pool.
@@ -303,7 +301,7 @@ impl Worker {
     ///
     /// [`target`]: MessageTarget
     /// [`handle_cancel_task_confirmation`]: Self::handle_cancel_task_confirmation
-    /// [`finish_task`]: Self::finish_task
+    /// [`handle_end_message`]: Self::handle_end_message
     /// [`JavaScript`]: MessageTarget::JavaScript
     /// [`Python`]: MessageTarget::Python
     /// [`Rust`]: MessageTarget::Rust
@@ -480,11 +478,11 @@ impl Worker {
     ///   Depending on the [`target`], the following actions are executed:
     ///   - [`Javascript`]/[`Python`]/[`Rust`]: The message is forwarded to the corresponding
     ///     language runner and the active runner is set to the language.
-    ///   - [`Main`]: Finishes the task if any. See [`finish_task`] for more information.
+    ///   - [`Main`]: Finishes the task if any. See [`handle_end_message`] for more information.
     ///   - [`Dynamic`] is an unexpected target and will return an error.
     ///
     /// [`target`]: MessageTarget
-    /// [`finish_task`]: Self::finish_task
+    /// [`handle_end_message`]: Self::handle_end_message
     /// [`JavaScript`]: MessageTarget::JavaScript
     /// [`Python`]: MessageTarget::Python
     /// [`Rust`]: MessageTarget::Rust
@@ -625,7 +623,7 @@ impl Worker {
     /// [`SharedState::Partial`] by using the
     /// [`PartialSharedState::split_into_individual_per_group()`] method.
     ///
-    /// [`PartialSharedState::split_into_individual_per_group`]: crate::datastore::table::task_shared_store::PartialSharedState::split_into_individual_per_group
+    /// [`PartialSharedState::split_into_individual_per_group()`]: crate::task::PartialSharedState::split_into_individual_per_group
     async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
         let task_id = task.task_id;
         let msg = WorkerHandler::start_message(&task.task)?;

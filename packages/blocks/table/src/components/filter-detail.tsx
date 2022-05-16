@@ -6,6 +6,10 @@ import {
   BlockProtocolAggregateOperationInput,
   BlockProtocolMultiFilterOperatorType,
   BlockProtocolFilterOperatorType,
+  BlockProtocolFilterOperatorWithoutValue,
+  BlockProtocolFilter,
+  BlockProtocolFilterWithValue,
+  BlockProtocolFilterWithoutValue,
 } from "blockprotocol";
 import { unstable_batchedUpdates } from "react-dom";
 import { debounce } from "lodash";
@@ -29,10 +33,15 @@ const MULTI_FILTER_OPERATORS: BlockProtocolMultiFilterOperatorType[] = [
   "OR",
 ];
 
-const FILTER_OPERATORS_WITHOUT_VALUE: BlockProtocolFilterOperatorType[] = [
-  "IS_EMPTY",
-  "IS_NOT_EMPTY",
-];
+const FILTER_OPERATORS_WITHOUT_VALUE: BlockProtocolFilterOperatorWithoutValue[] =
+  ["IS_EMPTY", "IS_NOT_EMPTY"];
+
+const filterHasValue = (
+  filter: BlockProtocolFilter,
+): filter is BlockProtocolFilterWithValue =>
+  !FILTER_OPERATORS_WITHOUT_VALUE.includes(
+    filter.operator as BlockProtocolFilterOperatorWithoutValue,
+  ) && (filter as BlockProtocolFilterWithValue).value != null;
 
 type FilterDetailProps = {
   columns: ColumnInstance<{}>[];
@@ -42,9 +51,9 @@ type FilterDetailProps = {
   multiFilter: BlockProtocolAggregateOperationInput["multiFilter"];
 };
 
-type FilterFieldsWithId = (NonNullable<
-  BlockProtocolAggregateOperationInput["multiFilter"]
->["filters"][number] & { id: string })[];
+type FilterFieldWithId = BlockProtocolFilter & { id: string };
+
+type FilterFieldsWithId = FilterFieldWithId[];
 
 export const FilterDetail: React.VFC<FilterDetailProps> = ({
   columns,
@@ -63,7 +72,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
     ) => {
       const filtersWithoutId = (filterFields ?? filters)
         .filter(({ field }) => Boolean(field))
-        .map(({ field, operator, value }) => ({ field, operator, value }));
+        .map(({ id: _id, ...rest }) => rest);
 
       onFilter({
         operator: newCombinatorFilterOperator ?? combinatorFilterOperator,
@@ -98,18 +107,16 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
 
   const updateField = (
     id: string,
-    data: {
-      field?: string;
-      value?: string;
-      operator?: BlockProtocolFilterOperatorType;
-    },
+    data:
+      | Partial<BlockProtocolFilterWithValue>
+      | Partial<BlockProtocolFilterWithoutValue>,
   ) => {
     const updatedFields = filters.map((item) =>
       item.id === id
-        ? {
+        ? ({
             ...item,
             ...data,
-          }
+          } as FilterFieldWithId)
         : item,
     );
 
@@ -126,14 +133,10 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
 
   if (multiFilter && !filters.length && !isMounted.current) {
     isMounted.current = true;
-    const fieldsWithId = (multiFilter.filters ?? []).map(
-      ({ field, value, operator }) => ({
-        field,
-        value,
-        operator,
-        id: uuid(),
-      }),
-    );
+    const fieldsWithId = (multiFilter.filters ?? []).map((filter) => ({
+      ...filter,
+      id: uuid(),
+    }));
 
     unstable_batchedUpdates(() => {
       setFilters(fieldsWithId);
@@ -204,7 +207,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
                 );
               })}
             </select>
-            {!FILTER_OPERATORS_WITHOUT_VALUE.includes(filter.operator) && (
+            {filterHasValue(filter) && (
               <input
                 placeholder="Value"
                 className={tw`text-sm w-40 border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 px-2`}

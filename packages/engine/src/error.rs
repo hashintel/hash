@@ -82,12 +82,6 @@ pub enum Error {
 
     // #[error("Built in Rust Behaviors: {0}")]
     // BuiltInRustBehavior(#[from] crate::worker::internal::rs::behaviors::Error),
-    #[error("NNG error: {0}")]
-    Nng(#[from] nng::Error),
-
-    #[error("NNG Send error for message: \"{msg:?}\". Error: {err}")]
-    NngSend { msg: nng::Message, err: nng::Error },
-
     #[error("{0}")]
     RwLock(String),
 

@@ -136,8 +136,6 @@ export class PostgresClient implements DbClient {
 
   /**
    * Create a new entity.
-   * @throws: `DbInvalidLinksError` if the entity's properties contain a link to an
-   *          entity which does not exist.
    */
   async createEntity(
     params: Parameters<DbClient["createEntity"]>[0],
@@ -282,8 +280,6 @@ export class PostgresClient implements DbClient {
    * @param params.updatedByAccountId the account id of the user that is updating the entity
    * @returns the entity's updated state.
    * @throws `DbEntityNotFoundError` if the entity does not exist.
-   * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
-   *          does not exist.
    */
   async updateEntity(
     params: Parameters<DbClient["updateEntity"]>[0],

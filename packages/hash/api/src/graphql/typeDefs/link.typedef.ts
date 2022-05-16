@@ -30,12 +30,6 @@ export const linkTypedef = gql`
     The entityId of the link's destination entity.
     """
     destinationEntityId: ID!
-    """
-    The entityVersionId of a specific version of the link's destination entity - defined
-    if this link is pinned to a specific version of the destination entity. If omitted,
-    the link is to the latest version of the destination entity.
-    """
-    destinationEntityVersionId: ID
   }
 
   input CreateLinkInput {
@@ -45,7 +39,6 @@ export const linkTypedef = gql`
     sourceEntityId: ID!
     destinationAccountId: ID!
     destinationEntityId: ID!
-    destinationEntityVersionId: ID
   }
 
   extend type Query {
