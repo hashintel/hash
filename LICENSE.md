@@ -9,8 +9,7 @@ The license for a particular work is defined with following prioritized rules:
 1. Defaults to the MIT License
 
 Source code in this repository is variously licensed under the _MIT License_,
-the _GNU Affero General Public License 3.0_, or dual-licensed under both the
-_Server Side Public License_ and _Elastic License 2.0_.
+the _GNU Affero General Public License 3.0_, or the _Elastic License 2.0_.
 
 Written content, illustrations and graphics published under the `resources`
 folder within this repository are made available under the [Creative Commons
@@ -18,9 +17,8 @@ Attribution-ShareAlike 4.0 International](resources/LICENSE.md) license.
 
 # Quick Reference
 
-* Within the `/packages/engine` folder, source code is dually-licensed under
-  either the Server Side Public License or the Elastic License 2.0, unless
-  otherwise noted, giving users the choice of which license to apply.
+* Within the `/packages/engine` folder, source code is licensed under the
+  Elastic License 2.0, unless otherwise noted.
   
 * Within the `/packages/hash` folder, source code in a given file is
   licensed under version 3 of the GNU Affero General Public License, unless
