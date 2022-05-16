@@ -197,7 +197,6 @@ const getPrEvents = (
           {
             field: "issue.pull_request",
             operator: "IS_NOT_EMPTY",
-            value: "",
           },
           {
             field: "issue.html_url",
