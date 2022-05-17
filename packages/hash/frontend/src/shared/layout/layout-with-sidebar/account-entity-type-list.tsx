@@ -115,7 +115,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
   const router = useRouter();
 
   const [sortType, setSortType] = useState<SortType>("asc");
-  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sortActionsPopupState = usePopupState({
@@ -187,10 +187,8 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               pl={3.75}
               position="relative"
             >
-              {/* @todo: We do not currently have a page for viewing all types.
-                Once we do, we can update this with the right url.
-              */}
-              <Link
+              {/* Commenting this out till it gets implemented */}
+              {/* <Link
                 href="/"
                 noLinkStyle
                 tabIndex={-1}
@@ -208,7 +206,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                 >
                   View All Types
                 </Typography>
-              </Link>
+              </Link> */}
 
               <SearchInput
                 searchVisible={searchVisible}

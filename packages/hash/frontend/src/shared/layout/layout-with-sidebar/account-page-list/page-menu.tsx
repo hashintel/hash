@@ -27,10 +27,10 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
 
   const menuItems = useMemo(
     () => [
-      {
-        title: "Add to bookmarks",
-        icon: faBookmark,
-      },
+      // {
+      //   title: "Add to bookmarks",
+      //   icon: faBookmark,
+      // },
       {
         title: "Add subpage",
         icon: faFileAlt,
@@ -60,48 +60,49 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
           }, 2000);
         },
       },
-      {
-        title: "Duplicate Page",
-        icon: faCopy,
-      },
-      {
-        title: "Rename Page",
-        icon: faPencil,
-      },
-      {
-        title: "Move Page",
-        icon: faArrowRight,
-      },
-      {
-        title: "Make private",
-        icon: faEyeSlash,
-      },
-      {
-        type: "divider",
-      },
-      {
-        title: "Delete",
-        icon: faTrashCan,
-      },
+      // {
+      //   title: "Duplicate Page",
+      //   icon: faCopy,
+      // },
+      // {
+      //   title: "Rename Page",
+      //   icon: faPencil,
+      // },
+      // {
+      //   title: "Move Page",
+      //   icon: faArrowRight,
+      // },
+      // {
+      //   title: "Make private",
+      //   icon: faEyeSlash,
+      // },
+      // {
+      //   type: "divider",
+      // },
+      // {
+      //   title: "Delete",
+      //   icon: faTrashCan,
+      //   faded: true
+      // },
     ],
     [copied, popupState, createSubPage, accountId, entityId],
   );
   return (
     <Menu {...bindMenu(popupState)}>
-      {menuItems.map(({ title, icon, type, onClick }, index) => {
-        if (type === "divider") {
-          // eslint-disable-next-line react/no-array-index-key
-          return <Divider key={index} />;
-        }
+      {menuItems.map(({ title, icon, onClick }, index) => {
+        // if (type === "divider") {
+        //   // eslint-disable-next-line react/no-array-index-key
+        //   return <Divider key={index} />;
+        // }
         return (
           <MenuItem
             // eslint-disable-next-line react/no-array-index-key
             key={index}
-            faded={title === "Delete"}
+            // faded={faded}
             onClick={onClick ?? popupState.close}
           >
             <ListItemIcon>
-              <FontAwesomeIcon icon={icon!} />
+              <FontAwesomeIcon icon={icon} />
             </ListItemIcon>
             <ListItemText primary={title} />
           </MenuItem>

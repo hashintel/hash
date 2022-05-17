@@ -66,7 +66,8 @@ export const PageSidebar: VoidFunctionComponent = () => {
         tooltipTitle="View your inbox and latest activity"
         active={router.pathname === "/[account-slug]"}
       />
-      <TopNavLink
+      {/* Commenting out till it gets implemented */}
+      {/* <TopNavLink
         icon={faZap}
         title="Quick Capture"
         href="/"
@@ -77,7 +78,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         title="Recently visited"
         href="/"
         tooltipTitle="Pages you’ve recently visited"
-      />
+      /> */}
       <Box sx={{ mb: 1.5 }} />
 
       <Box

@@ -30,10 +30,10 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
 
   const menuItems = useMemo(() => {
     return [
-      {
-        title: "Add to Bookmarks",
-        icon: faBookmark,
-      },
+      // {
+      //   title: "Add to Bookmarks",
+      //   icon: faBookmark,
+      // },
       {
         title: `Create new ${pluralize.singular(entityTitle)}`,
         icon: faAdd,
@@ -53,10 +53,10 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
           }, 2000);
         },
       },
-      {
-        title: "Create filtered page",
-        icon: faFilter,
-      },
+      // {
+      //   title: "Create filtered page",
+      //   icon: faFilter,
+      // },
       {
         title: "Delete type",
         icon: faTrash,
