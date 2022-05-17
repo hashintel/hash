@@ -127,7 +127,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
               metadataId={data.page.entityId}
             />
           </div>
-          <div className={tw`mr-4`}>
+          {/* <div className={tw`mr-4`}>
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -150,7 +150,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
                 setPageState={setPageState}
               />
             </div>
-          </div>
+          </div> */}
         </div>
       </header>
 
