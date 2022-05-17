@@ -21,7 +21,9 @@ export const isHrefExternal = (href: string | UrlObject) =>
  */
 
 // Add support for the sx prop for consistency with the other branches.
-const Anchor = styled("a")({});
+const Anchor = styled("a")({
+  color: "inherit",
+});
 
 type NextLinkComposedProps = {
   to: NextLinkProps["href"];
