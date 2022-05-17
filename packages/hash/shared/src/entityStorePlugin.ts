@@ -8,9 +8,9 @@ import { BlockEntity, isDraftTextContainingEntityProperties } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
-  getDraftEntityFromEntityId,
   EntityStore,
   EntityStoreType,
+  getDraftEntityFromEntityId,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
@@ -339,13 +339,30 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        draftState.store.draft[action.payload.draftId] = {
+        /**
+         * Because of an issue with TypeScript, we cannot type this as
+         * `CreatedDraftEntity | NotCreatedDraftEntity`.
+         *
+         * @todo figure out a way of avoiding this
+         */
+        const newDraftEntity = {
           accountId: action.payload.accountId,
-          entityId: action.payload.entityId,
           draftId: action.payload.draftId,
           updatedAt: new Date().toISOString(),
           properties: {},
         };
+
+        if (action.payload.entityId) {
+          draftState.store.draft[action.payload.draftId] = {
+            ...newDraftEntity,
+            entityId: action.payload.entityId,
+          };
+        } else {
+          draftState.store.draft[action.payload.draftId] = {
+            ...newDraftEntity,
+            entityId: null,
+          };
+        }
       });
   }
 

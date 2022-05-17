@@ -43,7 +43,7 @@ type CreatedDraftEntity<Type extends EntityStoreType = EntityStoreType> = {
 } & DraftEntityProperties<Type>;
 
 type NotCreatedDraftEntity<Type extends EntityStoreType = EntityStoreType> = {
-  accountId: null;
+  accountId: null | string;
   entityId: null;
 } & DraftEntityProperties<Type>;
 
@@ -56,9 +56,7 @@ export type EntityStore = {
   draft: Record<string, DraftEntity>;
 };
 
-export const isCreatedDraftEntity = <
-  Type extends EntityStoreType = EntityStoreType,
->(
+export const isCreatedDraftEntity = <Type extends EntityStoreType>(
   draftEntity: DraftEntity<Type>,
 ): draftEntity is CreatedDraftEntity<Type> => !!draftEntity.entityId;
 
@@ -94,7 +92,7 @@ export const isDraftBlockEntity = (
 export const getDraftEntityFromEntityId = (
   draft: EntityStore["draft"],
   entityId: string,
-): DraftEntity<EntityStoreType> | undefined =>
+): DraftEntity | undefined =>
   Object.values(draft).find((entity) => entity.entityId === entityId);
 
 const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
