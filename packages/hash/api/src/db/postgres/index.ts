@@ -48,8 +48,9 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     // See https://github.com/gajus/slonik/issues/174
     // Thank you to exca1iburTheWise on Discord for pointing this out, and coming up with
     // this quick-fix/hack.
-    // @todo: As exca1iburTheWise pointed out We could add apollo query information
+    // @todo: As exca1iburTheWise pointed out we could add apollo query information
     // to the dbadapter to assign distinct connections for each graphql query
+    // See Discord thread: https://discord.com/channels/840573247803097118/938413853325283419/969716625467125810
     const client = new PostgresClient(createPoolConnection(this.pool));
     return await fn(client);
   }
