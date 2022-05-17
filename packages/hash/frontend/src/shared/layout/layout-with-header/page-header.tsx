@@ -71,7 +71,7 @@ export const PageHeader: React.VFC = () => {
         {user ? (
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <ActionsDropdown />
-            <NotificationsDropdown />
+            {/* <NotificationsDropdown /> */}
             <AccountDropdown logout={logout} user={user} />
           </Box>
         ) : (

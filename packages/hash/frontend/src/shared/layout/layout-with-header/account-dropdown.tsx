@@ -131,13 +131,13 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           )}
         </Box>
         <Divider />
-        <MenuItem onClick={popupState.close}>
+        {/* <MenuItem onClick={popupState.close}>
           <ListItemText primary="Account Settings" />
         </MenuItem>
         <MenuItem onClick={popupState.close}>
           <ListItemText primary="Appearance" />
         </MenuItem>
-        <Divider />
+        <Divider /> */}
         <MenuItem onClick={logout} faded>
           <ListItemText primary="Sign Out" />
         </MenuItem>
