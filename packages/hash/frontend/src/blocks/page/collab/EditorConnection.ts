@@ -115,10 +115,7 @@ export class EditorConnection {
           type: "store",
           payload: action.store,
         });
-
-        const result = editorState.apply(tr);
-        this.state = new State(result, "poll", action.version);
-        this.poll();
+        this.pollIfReady(action.version, editorState.apply(tr));
         break;
       }
       case "restart":
@@ -126,8 +123,7 @@ export class EditorConnection {
         this.start();
         break;
       case "poll":
-        this.state = new State(this.state.edit, "poll", nextVersion);
-        this.poll();
+        this.pollIfReady(nextVersion);
         break;
       case "error":
         this.errored = true;
@@ -156,7 +152,12 @@ export class EditorConnection {
       const actions = sendableState ? this.unsentActions(newEditState) : [];
 
       if (steps || actions?.length) {
-        this.closeRequest();
+        if (this.request) {
+          if (this.state.comm === "send") {
+            throw new Error("Cannot send while already in a sending state");
+          }
+          this.closeRequest();
+        }
         this.state = new State(newEditState, "send", nextVersion);
         this.send(newEditState, { steps, actions });
       } else if (requestDone) {
@@ -175,6 +176,14 @@ export class EditorConnection {
     }
   };
 
+  private pollIfReady(nextVersion: number, state = this.state.edit) {
+    if (this.state.comm === "send" && this.request) {
+      throw new Error("Cannot poll while sending");
+    }
+    this.state = new State(state, "poll", nextVersion);
+    this.poll();
+  }
+
   dispatchTransaction = (transaction: Transaction<Schema>, version: number) => {
     this.dispatch({ type: "update", transaction, version });
   };
@@ -187,6 +196,8 @@ export class EditorConnection {
       url += "?forceNewInstance=true";
       localStorage.removeItem(NEW_INSTANCE_KEY);
     }
+
+    this.closeRequest();
 
     this.run(GET(url))
       .then((responseText) => {
@@ -201,6 +212,7 @@ export class EditorConnection {
         return this.manager.ensureDocDefined(doc).then(() => ({ doc, data }));
       })
       .then(({ data, doc }) => {
+        this.closeRequest();
         this.dispatch({
           type: "loaded",
           doc,
@@ -209,6 +221,7 @@ export class EditorConnection {
         });
       })
       .catch((err) => {
+        this.closeRequest();
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
         this.dispatch({ type: "error", error: err });
@@ -286,6 +299,8 @@ export class EditorConnection {
           disableEntityStoreTransactionInterpretation(tr);
         }
 
+        this.closeRequest();
+
         if (
           tr ||
           (typeof data.version !== "undefined" &&
@@ -302,6 +317,8 @@ export class EditorConnection {
         }
       },
       (err) => {
+        this.closeRequest();
+
         if (err.status === 410 || badVersion(err)) {
           // Too far behind. Revert to server state
           // @todo use logger
@@ -360,6 +377,7 @@ export class EditorConnection {
             )
           : this.state.edit.tr;
         const version = JSON.parse(data).version;
+        this.closeRequest();
         this.dispatch({
           type: "update",
           transaction: tr,
@@ -368,6 +386,7 @@ export class EditorConnection {
         });
       },
       (err) => {
+        this.closeRequest();
         removeActions();
         if (err.status === 409) {
           // The client's document conflicts with the server's version.
@@ -396,6 +415,9 @@ export class EditorConnection {
   }
 
   run(request: AbortingPromise<string>) {
+    if (this.request) {
+      throw new Error("Existing request. Must close first");
+    }
     this.request = request;
     return this.request;
   }
