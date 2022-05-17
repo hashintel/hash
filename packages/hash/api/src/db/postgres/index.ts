@@ -43,10 +43,15 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
   }
 
   private async query<T>(fn: (client: DbClient) => Promise<T>): Promise<T> {
-    return await this.pool.connect(async (conn) => {
-      const client = new PostgresClient(createPoolConnection(conn));
-      return await fn(client);
-    });
+    // In order to prevent Slonik from explicitly creating new connections
+    // we use the pool directly as a connection.
+    // See https://github.com/gajus/slonik/issues/174
+    // Thank you to exca1iburTheWise on Discord for pointing this out, and coming up with
+    // this quick-fix/hack.
+    // @todo: As exca1iburTheWise pointed out We could add apollo query information
+    // to the dbadapter to assign distinct connections for each graphql query
+    const client = new PostgresClient(createPoolConnection(this.pool));
+    return await fn(client);
   }
 
   /** Initiate a new database transaction. All `DbAdapter` methods called within
