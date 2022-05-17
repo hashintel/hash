@@ -63,7 +63,6 @@ const NEW_INSTANCE_KEY = "collab-force-new-instance";
 
 export class EditorConnection {
   state = new State(null, "start", 0);
-  backOff = 0;
   request: AbortingPromise<string> | null = null;
   sentActions = new Set<string>();
   errored = false;
@@ -202,7 +201,6 @@ export class EditorConnection {
         return this.manager.ensureDocDefined(doc).then(() => ({ doc, data }));
       })
       .then(({ data, doc }) => {
-        this.backOff = 0;
         this.dispatch({
           type: "loaded",
           doc,
@@ -230,7 +228,6 @@ export class EditorConnection {
       (stringifiedData) => {
         // @todo type this
         const data = JSON.parse(stringifiedData);
-        this.backOff = 0;
 
         if (this.state.edit) {
           const tr = this.state.edit.tr;
@@ -352,7 +349,6 @@ export class EditorConnection {
       POST(`${this.url}/events`, json, "application/json", removeActions),
     ).then(
       (data) => {
-        this.backOff = 0;
         if (!this.state.edit) {
           throw new Error("Cannot receive steps without state");
         }
@@ -376,7 +372,6 @@ export class EditorConnection {
         if (err.status === 409) {
           // The client's document conflicts with the server's version.
           // Poll for changes and then try again.
-          this.backOff = 0;
           this.dispatch({ type: "poll" });
         } else if (badVersion(err)) {
           this.dispatch({ type: "restart" });
