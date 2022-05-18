@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Integration tests for HASH",
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "fix:eslint": "eslint --ext .ts --fix ./src/",
