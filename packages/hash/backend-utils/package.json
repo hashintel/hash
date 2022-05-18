@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "HASH backend utilities",
-  "license": "SSPL-1.0",
+  "license": "AGPL-3.0",
   "exports": {
     "./*": "./src/*.ts"
   },
