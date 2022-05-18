@@ -278,6 +278,10 @@ export const entityTypedef = gql`
     Associated Entities to either create/get and link to this entity.
     """
     linkedEntities: [LinkedEntityDefinition!]
+    """
+    @todo document this
+    """
+    placeholderID: ID
   }
 
   extend type Query {

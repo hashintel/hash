@@ -6,16 +6,13 @@ import {
 import { RealtimeMessage } from "@hashintel/hash-backend-utils/realtime";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import {
-  BlockEntity,
-  flatMapBlocks,
-  isTextContainingEntityProperties,
-} from "@hashintel/hash-shared/entity";
+import { BlockEntity, flatMapBlocks } from "@hashintel/hash-shared/entity";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
   EntityStorePluginAction,
+  EntityStorePluginState,
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
 } from "@hashintel/hash-shared/entityStorePlugin";
@@ -30,7 +27,6 @@ import {
   GetPageQueryVariables,
   LatestEntityRef,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
   getLinkedAggregationIdentifierFieldsQuery,
@@ -40,12 +36,16 @@ import {
   getBlocksQuery,
   getPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
-import { save } from "@hashintel/hash-shared/save";
+import {
+  createNecessaryEntities,
+  updatePageMutation,
+} from "@hashintel/hash-shared/save";
 import { Response } from "express";
 import { isEqual, memoize, pick } from "lodash";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
+import { v4 as uuid } from "uuid";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -79,6 +79,63 @@ type ActionUpdate = {
 };
 
 type Update = StepUpdate | StoreUpdate | ActionUpdate;
+
+const save = async (
+  apolloClient: ApolloClient<unknown>,
+  accountId: string,
+  pageEntityId: string,
+  blocks: BlockEntity[],
+  getDoc: () => ProsemirrorNode<Schema>,
+  getState: () => EntityStorePluginState,
+  updateState: (
+    nextActions: EntityStorePluginAction[],
+  ) => EntityStorePluginState,
+) => {
+  const { createdEntities, ...res } = await createNecessaryEntities(
+    getState(),
+    getDoc(),
+    accountId,
+    apolloClient,
+  );
+
+  updateState(res.actions);
+
+  const placeholders = new Map<string, string>();
+
+  const result = await updatePageMutation(
+    accountId,
+    pageEntityId,
+    getDoc(),
+    blocks,
+    getState().store,
+    apolloClient,
+    createdEntities,
+    (draftId) => {
+      const newPlaceholder = `placeholder-${uuid()}`;
+      placeholders.set(newPlaceholder, draftId);
+      return newPlaceholder;
+    },
+  );
+
+  const newActions: EntityStorePluginAction[] = [];
+
+  for (const placeholder of result.placeholders) {
+    const draftId = placeholders.get(placeholder.placeholderID);
+    if (draftId) {
+      newActions.push({
+        type: "updateEntityId",
+        payload: {
+          draftId,
+          entityId: placeholder.entityID,
+        },
+      });
+    }
+  }
+
+  updateState(newActions);
+
+  return result.page.properties.contents;
+};
 
 // A collaborative editing document instance.
 export class Instance {
@@ -494,83 +551,17 @@ export class Instance {
             return getState();
           };
 
-          const newPage = await save(
+          const getDoc = () => this.state.doc;
+
+          const nextBlocks = await save(
             apolloClient,
             this.accountId,
             this.pageEntityId,
             this.savedContents,
-            this.state.doc,
+            getDoc,
             getState,
             updateState,
           );
-
-          /**
-           * We need to look through our doc for any nodes that were missing
-           * entityIds (i.e, that are new) and insert them from the save.
-           *
-           * @todo allow the client to pick entity ids to remove the need to
-           * do this
-           * @todo just look through the entity store?
-           */
-          this.state.doc.descendants((node, pos) => {
-            const resolved = this.state.doc.resolve(pos);
-            const idx = resolved.index(0);
-            const blockEntity = newPage.properties.contents[idx];
-
-            if (!blockEntity) {
-              throw new Error("Cannot find block node in save result");
-            }
-
-            if (isEntityNode(node)) {
-              let targetEntityId: string;
-
-              if (!node.attrs.draftId) {
-                throw new Error(
-                  "Cannot process save when node missing a draft id",
-                );
-              }
-
-              /**
-               * @todo doesn't update entity id for text containing entities
-               *       when created
-               */
-              switch (resolved.depth) {
-                case 1:
-                  targetEntityId = blockEntity.entityId;
-                  break;
-
-                case 2:
-                  targetEntityId = isTextContainingEntityProperties(
-                    blockEntity.properties.entity.properties,
-                  )
-                    ? blockEntity.properties.entity.properties.text.data
-                        .entityId
-                    : blockEntity.properties.entity.entityId;
-                  break;
-
-                default:
-                  throw new Error("unexpected structure");
-              }
-
-              const entity = getState().store.draft[node.attrs.draftId];
-
-              if (!entity) {
-                throw new Error(
-                  `Cannot find corresponding draft entity for node post-save`,
-                );
-              }
-
-              if (targetEntityId !== entity.entityId) {
-                actions.push({
-                  type: "updateEntityId",
-                  payload: {
-                    draftId: entity.draftId,
-                    entityId: targetEntityId,
-                  },
-                });
-              }
-            }
-          });
 
           if (actions.length) {
             this.addEvents(apolloClient)(
@@ -582,7 +573,7 @@ export class Instance {
             );
           }
 
-          this.updateSavedContents(newPage.properties.contents);
+          this.updateSavedContents(nextBlocks);
         })
         .catch((err) => {
           this.error(err);

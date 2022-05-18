@@ -174,6 +174,7 @@ export const pageTypedef = gql`
   """
   Insert a new block into a page with a corresonding new entity. Exactly one of
   entityTypeId, entityTypeVersionId or systemTypeName must be specified.
+  @todo do not allow creating entities with this, make an action for that
   """
   input InsertNewBlock {
     """
@@ -192,6 +193,10 @@ export const pageTypedef = gql`
     The entity to associate with the new block
     """
     entity: EntityDefinition!
+    """
+    @todo document this
+    """
+    placeholderID: ID
   }
 
   """
@@ -276,6 +281,22 @@ export const pageTypedef = gql`
     swapBlockData: SwapBlockData
   }
 
+  """
+  @todo document
+  """
+  type UpdatePageContentsResultPlaceholder {
+    placeholderID: ID!
+    entityID: ID!
+  }
+
+  """
+  @todo document
+  """
+  type UpdatePageContentsResult {
+    page: Page!
+    placeholders: [UpdatePageContentsResultPlaceholder!]!
+  }
+
   extend type Mutation {
     createPage(accountId: ID!, properties: PageCreationData!): Page!
 
@@ -312,6 +333,6 @@ export const pageTypedef = gql`
       The list of actions to perform on the page.
       """
       actions: [UpdatePageAction!]!
-    ): Page!
+    ): UpdatePageContentsResult!
   }
 `;

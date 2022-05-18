@@ -12,6 +12,7 @@ import {
 } from "@hashintel/hash-shared/queries/entity.queries";
 import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { v4 as uuid } from "uuid";
 import {
   BlockEntity,
   blockEntityIdExists,
@@ -45,6 +46,8 @@ import {
   textBlockNodeToEntityProperties,
 } from "./prosemirror";
 import { updatePageContents } from "./queries/page.queries";
+
+type GetPlaceholder = (draftId: string) => string;
 
 /**
  * Our operations need to combine the actions from the previous operation,
@@ -144,6 +147,7 @@ const moveBlocks = defineOperation(
 type CreatedEntities = Map<number, CreateEntityMutation["createEntity"]>;
 
 type BlockEntityNodeDescriptor = [EntityNode, number, string | null];
+
 /**
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
@@ -155,6 +159,7 @@ const insertBlocks = defineOperation(
     blockEntityNodes: BlockEntityNodeDescriptor[],
     createdEntities: CreatedEntities,
     entityStore: EntityStore,
+    getPlaceholder: GetPlaceholder,
   ) => {
     const actions: UpdatePageAction[] = [];
     const exists = blockEntityIdExists(entities);
@@ -196,6 +201,7 @@ const insertBlocks = defineOperation(
             position: Number(position),
             componentId: draftBlockEntity.properties.componentId,
             accountId: draftBlockEntity.accountId,
+            placeholderID: getPlaceholder(draftBlockEntity.draftId),
             entity: {
               existingEntity: {
                 entityId: createdEntity.entityId,
@@ -214,12 +220,16 @@ const insertBlocks = defineOperation(
             position: Number(position),
             componentId: draftBlockEntity.properties.componentId,
             accountId: draftBlockEntity.accountId,
+            placeholderID: getPlaceholder(draftBlockEntity.draftId),
             entity: {
               entityProperties: draftBlockEntity.properties.entity.properties,
               entityType: {
                 // @todo this needs to use the entity id instead of system type name, as it may not be correct
                 systemTypeName: SystemTypeName.Text,
               },
+              placeholderID: getPlaceholder(
+                draftBlockEntity.properties.entity.draftId,
+              ),
             },
           },
         });
@@ -405,6 +415,7 @@ const calculateSaveActions = (
   blocks: BlockEntity[],
   entityStore: EntityStore,
   createdEntities: CreatedEntities,
+  getPlaceholder: GetPlaceholder,
 ) => {
   let actions: UpdatePageAction[] = [];
 
@@ -441,6 +452,7 @@ const calculateSaveActions = (
     draftBlockEntityNodes,
     createdEntities,
     entityStore,
+    getPlaceholder,
   );
   [actions] = updateBlocks(actions, blocks, draftBlockEntityNodes, entityStore);
 
@@ -473,7 +485,7 @@ const capitalizeComponentName = (cId: string) => {
   );
 };
 
-const createNecessaryEntities = async (
+export const createNecessaryEntities = async (
   entityStore: EntityStorePluginState,
   doc: ProsemirrorNode<Schema>,
   accountId: string,
@@ -661,7 +673,7 @@ const createNecessaryEntities = async (
 /**
  * @todo use draft entity store for this
  */
-const updatePageMutation = async (
+export const updatePageMutation = async (
   accountId: string,
   entityId: string,
   doc: ProsemirrorNode<Schema>,
@@ -669,12 +681,14 @@ const updatePageMutation = async (
   entityStore: EntityStore,
   client: ApolloClient<any>,
   createdEntities: CreatedEntities,
+  getPlaceholder: GetPlaceholder,
 ) => {
   const actions = calculateSaveActions(
     doc,
     blocks,
     entityStore,
     createdEntities,
+    getPlaceholder,
   );
 
   const res = await client.mutate<
@@ -692,35 +706,4 @@ const updatePageMutation = async (
   await client.reFetchObservableQueries();
 
   return res.data.updatePageContents;
-};
-
-export const save = async (
-  apolloClient: ApolloClient<unknown>,
-  accountId: string,
-  pageEntityId: string,
-  blocks: BlockEntity[],
-  doc: ProsemirrorNode<Schema>,
-  getState: () => EntityStorePluginState,
-  updateState: (
-    nextActions: EntityStorePluginAction[],
-  ) => EntityStorePluginState,
-) => {
-  const { createdEntities, ...res } = await createNecessaryEntities(
-    getState(),
-    doc,
-    accountId,
-    apolloClient,
-  );
-
-  updateState(res.actions);
-
-  return await updatePageMutation(
-    accountId,
-    pageEntityId,
-    doc,
-    blocks,
-    getState().store,
-    apolloClient,
-    createdEntities,
-  );
 };

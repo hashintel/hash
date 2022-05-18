@@ -163,7 +163,9 @@ export const updatePageContents = gql`
       entityId: $entityId
       actions: $actions
     ) {
-      ...PageFields
+      page {
+        ...PageFields
+      }
     }
   }
   ${pageFieldsFragment}

@@ -1,15 +1,15 @@
 import { ApolloError, UserInputError } from "apollo-server-errors";
-
-import {
-  Resolver,
-  MutationUpdatePageContentsArgs,
-  UpdatePageAction,
-  UpdateEntity,
-  SwapBlockData,
-} from "../../apiTypes.gen";
+import { produce } from "immer";
 import { Block, Entity, Page, UnresolvedGQLEntity } from "../../../model";
-import { LoggedInGraphQLContext } from "../../context";
 import { exactlyOne } from "../../../util";
+import {
+  MutationUpdatePageContentsArgs,
+  Resolver,
+  SwapBlockData,
+  UpdateEntity,
+  UpdatePageAction,
+} from "../../apiTypes.gen";
+import { LoggedInGraphQLContext } from "../../context";
 
 const validateActionsInput = (actions: UpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
@@ -37,6 +37,17 @@ export const updatePageContents: Resolver<
 > = async (_, { accountId, entityId, actions }, { dataSources, user }) => {
   validateActionsInput(actions);
 
+  /**
+   * Some actions allow you to put in placeholder entityIds which refer to
+   * previous entities created during this mutation. These must always start
+   * with "placeholder-".
+   */
+  const placeholderResults = new Map<string, string>();
+
+  const getRealId = (id: string) => {
+    if (id.startsWith("placeholder-")) return placeholderResults.get(id);
+  };
+
   return await dataSources.db.transaction(async (client) => {
     // Create any _new_ blocks
     const newBlocks = await Promise.all(
@@ -49,13 +60,43 @@ export const updatePageContents: Resolver<
               accountId: blockAccountId,
               componentId: blockComponentId,
               entity: blockDataDefinition,
+              placeholderID,
             } = action.insertNewBlock!;
+
+            const updatedBlockDataDefinition = produce(
+              blockDataDefinition,
+              (draft) => {
+                if (draft.existingEntity) {
+                  const realId = getRealId(draft.existingEntity.entityId);
+                  if (realId) {
+                    draft.existingEntity.entityId = realId;
+                  }
+                }
+                if (draft.entityType?.entityTypeId) {
+                  const realId = getRealId(draft.entityType.entityTypeId);
+                  if (realId) {
+                    draft.entityType.entityTypeId = realId;
+                  }
+                }
+              },
+            );
 
             const blockData = await Entity.createEntityWithLinks(client, {
               accountId: blockAccountId, // assume that the "block entity" is in the same account as the block itself
               user,
-              entityDefinition: blockDataDefinition,
+              entityDefinition: updatedBlockDataDefinition,
             });
+
+            if (
+              updatedBlockDataDefinition.placeholderID?.startsWith(
+                "placeholder-",
+              )
+            ) {
+              placeholderResults.set(
+                updatedBlockDataDefinition.placeholderID,
+                blockData.entityId,
+              );
+            }
 
             const block = await Block.createBlock(client, {
               blockData,
@@ -65,6 +106,10 @@ export const updatePageContents: Resolver<
                 componentId: blockComponentId,
               },
             });
+
+            if (placeholderID?.startsWith("placeholder-")) {
+              placeholderResults.set(placeholderID, block.entityId);
+            }
 
             return block;
           } catch (error) {
@@ -162,6 +207,11 @@ export const updatePageContents: Resolver<
       }
     }
 
-    return page.toGQLUnknownEntity();
+    return {
+      page: page.toGQLUnknownEntity(),
+      placeholders: Array.from(placeholderResults.entries()).map(
+        ([placeholderID, entityID]) => ({ placeholderID, entityID }),
+      ),
+    };
   });
 };

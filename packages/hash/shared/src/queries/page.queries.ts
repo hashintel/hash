@@ -108,7 +108,13 @@ export const updatePageContents = gql`
       entityId: $entityId
       actions: $actions
     ) {
-      ...PageFields
+      page {
+        ...PageFields
+      }
+      placeholders {
+        placeholderID
+        entityID
+      }
     }
   }
   ${pageFieldsFragment}
