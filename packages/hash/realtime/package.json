@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Realtime streaming update server from the HASH datstore",
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "clear-redis": "ts-node ./src/scripts/clear-redis.ts",
     "dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",
