@@ -1,0 +1,58 @@
+{
+  "name": "@hashintel/drawing-canvas",
+  "version": "0.0.0",
+  "description": "A drawing block that leverages tldraw",
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#vu/drawing-canvas",
+    "directory": "packages/blocks/drawing-canvas"
+  },
+  "license": "MIT",
+  "author": "teenoh",
+  "scripts": {
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "@tldraw/tldraw": "1.11.1",
+    "@types/react-resizable": "1.7.4",
+    "blockprotocol": "0.0.9",
+    "react-resizable": "^3.0.4"
+  },
+  "devDependencies": {
+    "block-scripts": "0.0.6",
+    "mobx": "6.5.0",
+    "mock-block-dock": "0.0.9",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "block-scripts": {
+    "port": 6272
+  },
+  "blockprotocol": {
+    "displayName": "Drawing Canvas",
+    "examples": [
+      {
+        "height": 400,
+        "width": "100%",
+        "darkMode": false,
+        "readOnly": false,
+        "document": ""
+      }
+    ],
+    "icon": "public/omega.svg",
+    "image": "public/block-preview.svg"
+  }
+}
