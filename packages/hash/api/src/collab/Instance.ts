@@ -95,6 +95,7 @@ const save = async (
     getState(),
     getDoc(),
     accountId,
+    pageEntityId,
     apolloClient,
   );
 

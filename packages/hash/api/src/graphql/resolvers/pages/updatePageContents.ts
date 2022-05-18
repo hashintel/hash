@@ -20,6 +20,7 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
         action.removeBlock,
         action.updateEntity,
         action.swapBlockData,
+        action.createEntity,
       )
     ) {
       throw new UserInputError(
@@ -29,6 +30,7 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
   }
 };
 
+// @todo these actions need to be processed in order to ensure placeholders work as expected
 export const updatePageContents: Resolver<
   Promise<UnresolvedGQLEntity>,
   {},
@@ -49,6 +51,60 @@ export const updatePageContents: Resolver<
   };
 
   return await dataSources.db.transaction(async (client) => {
+    // Create any _new_ entities
+    await Promise.all(
+      actions
+        .map((action, i) => ({ action, i }))
+        .filter(({ action }) => action.createEntity)
+        .map(async ({ action, i }) => {
+          try {
+            const { entity: entityDefinition, accountId: entityAccountId } =
+              action.createEntity!;
+
+            // @todo remove duplication
+            const updatedEntityDefinition = produce(
+              entityDefinition,
+              (draft) => {
+                if (draft.existingEntity) {
+                  const realId = getRealId(draft.existingEntity.entityId);
+                  if (realId) {
+                    draft.existingEntity.entityId = realId;
+                  }
+                }
+                if (draft.entityType?.entityTypeId) {
+                  const realId = getRealId(draft.entityType.entityTypeId);
+                  if (realId) {
+                    draft.entityType.entityTypeId = realId;
+                  }
+                }
+              },
+            );
+
+            const entity = await Entity.createEntityWithLinks(client, {
+              accountId: entityAccountId,
+              user,
+              entityDefinition: updatedEntityDefinition,
+            });
+
+            if (
+              updatedEntityDefinition.placeholderID?.startsWith("placeholder-")
+            ) {
+              placeholderResults.set(
+                updatedEntityDefinition.placeholderID,
+                entity.entityId,
+              );
+            }
+
+            return entity;
+          } catch (error) {
+            if (error instanceof UserInputError) {
+              throw new UserInputError(`action ${i}: ${error}`);
+            }
+            throw error;
+          }
+        }),
+    );
+
     // Create any _new_ blocks
     const newBlocks = await Promise.all(
       actions

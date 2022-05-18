@@ -12,7 +12,6 @@ import {
 } from "@hashintel/hash-shared/queries/entity.queries";
 import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
-import { v4 as uuid } from "uuid";
 import {
   BlockEntity,
   blockEntityIdExists,
@@ -144,7 +143,7 @@ const moveBlocks = defineOperation(
   },
 );
 
-type CreatedEntities = Map<number, CreateEntityMutation["createEntity"]>;
+type CreatedEntities = Map<number, { accountId: string; entityId: string }>;
 
 type BlockEntityNodeDescriptor = [EntityNode, number, string | null];
 
@@ -489,6 +488,7 @@ export const createNecessaryEntities = async (
   entityStore: EntityStorePluginState,
   doc: ProsemirrorNode<Schema>,
   accountId: string,
+  pageEntityId: string,
   client: ApolloClient<any>,
 ) => {
   const actions: EntityStorePluginAction[] = [];
@@ -660,11 +660,45 @@ export const createNecessaryEntities = async (
         properties: variantEntityProperties,
       },
     });
+    const newVariantEntity = variantEntityResult.data!.createEntity;
 
-    createdEntities.set(
-      blockEntityNodePosition,
-      variantEntityResult.data!.createEntity,
-    );
+    // @todo use proper placeholder
+    const placeholder = `placeholder-entity-updated`;
+    const result = await client.mutate<
+      UpdatePageContentsMutation,
+      UpdatePageContentsMutationVariables
+    >({
+      mutation: updatePageContents,
+      variables: {
+        accountId,
+        entityId: pageEntityId,
+        actions: [
+          {
+            createEntity: {
+              accountId,
+              entity: {
+                placeholderID: placeholder,
+                versioned: true,
+                entityType: {
+                  entityTypeId: desiredEntityTypeId,
+                },
+                entityProperties: variantEntityProperties,
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    const newVariantEntityId =
+      result.data!.updatePageContents.placeholders.find(
+        (p) => p.placeholderID === placeholder,
+      )!.entityID;
+
+    createdEntities.set(blockEntityNodePosition, {
+      accountId,
+      entityId: newVariantEntityId,
+    });
   }
 
   return { actions, createdEntities };

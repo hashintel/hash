@@ -267,6 +267,14 @@ export const pageTypedef = gql`
   }
 
   """
+  @todo document this
+  """
+  input CreateEntityAction {
+    entity: EntityDefinition!
+    accountId: ID!
+  }
+
+  """
   An action to perform when updating the contents of a page. Exactly one field must be
   specified.
 
@@ -279,6 +287,7 @@ export const pageTypedef = gql`
     moveBlock: MoveBlock
     updateEntity: UpdateEntity
     swapBlockData: SwapBlockData
+    createEntity: CreateEntityAction
   }
 
   """
