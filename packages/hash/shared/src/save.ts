@@ -39,7 +39,6 @@ import {
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
 import {
-  componentNodeToId,
   EntityNode,
   findComponentNode,
   isComponentNode,
@@ -149,14 +148,14 @@ type BlockEntityNodeDescriptor = [EntityNode, number, string | null];
 /**
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
- * @todo use entity store for this
+ * @todo set correct entity types on new entities
  */
 const insertBlocks = defineOperation(
   (
     entities: BlockEntity[],
     blockEntityNodes: BlockEntityNodeDescriptor[],
-    accountId: string,
     createdEntities: CreatedEntities,
+    entityStore: EntityStore,
   ) => {
     const actions: UpdatePageAction[] = [];
     const exists = blockEntityIdExists(entities);
@@ -178,7 +177,17 @@ const insertBlocks = defineOperation(
         throw new Error("Unexpected prosemirror structure");
       }
 
-      const [node, nodePosition] = componentNodeResult;
+      const [, nodePosition] = componentNodeResult;
+
+      const draftBlockEntity = blockNode.attrs.draftId
+        ? entityStore.draft[blockNode.attrs.draftId]
+        : null;
+
+      if (!draftBlockEntity || !isDraftBlockEntity(draftBlockEntity)) {
+        throw new Error(
+          "Cannot create block when entity does not yet exist or is corrupt",
+        );
+      }
 
       if (createdEntities.has(nodePosition)) {
         const createdEntity = createdEntities.get(nodePosition)!;
@@ -186,8 +195,8 @@ const insertBlocks = defineOperation(
         actions.push({
           insertNewBlock: {
             position: Number(position),
-            componentId: componentNodeToId(node),
-            accountId,
+            componentId: draftBlockEntity.properties.componentId,
+            accountId: draftBlockEntity.accountId,
             entity: {
               existingEntity: {
                 entityId: createdEntity.entityId,
@@ -197,20 +206,19 @@ const insertBlocks = defineOperation(
           },
         });
       } else {
+        if (draftBlockEntity.entityId) {
+          throw new Error("Cannot insert block when it already exists");
+        }
+
         actions.push({
           insertNewBlock: {
             position: Number(position),
-            componentId: componentNodeToId(node),
-            accountId,
-            // @todo support new non-text nodes
-
+            componentId: draftBlockEntity.properties.componentId,
+            accountId: draftBlockEntity.accountId,
             entity: {
-              // This causes an issue with variant blocks like the embed block
-              // where a particular variant gets reset to the default variant.
-              entityProperties: node.type.isTextblock
-                ? textBlockNodeToEntityProperties(node)
-                : {},
+              entityProperties: draftBlockEntity.properties.entity.properties,
               entityType: {
+                // @todo this needs to use the entity id instead of system type name, as it may not be correct
                 systemTypeName: SystemTypeName.Text,
               },
             },
@@ -226,10 +234,7 @@ const insertBlocks = defineOperation(
 /**
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
- * @todo handle contents of block changing
- * @todo compare entities with draft entities to catch changes not contained in ProseMirror tree
- * @todo rewrite this to work from the entity store and not the prosemirror tree. Can start with
- *       removing text block specific changes
+ * @todo use entity store
  */
 const updateBlocks = defineOperation(
   (
@@ -397,7 +402,6 @@ const updateBlocks = defineOperation(
  *       appearing on the same page
  */
 const calculateSaveActions = (
-  accountId: string,
   doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
   entityStore: EntityStore,
@@ -436,8 +440,8 @@ const calculateSaveActions = (
     actions,
     blocks,
     draftBlockEntityNodes,
-    accountId,
     createdEntities,
+    entityStore,
   );
   [actions] = updateBlocks(actions, blocks, draftBlockEntityNodes, entityStore);
 
@@ -668,7 +672,6 @@ export const updatePageMutation = async (
   createdEntities: CreatedEntities,
 ) => {
   const actions = calculateSaveActions(
-    accountId,
     doc,
     blocks,
     entityStore,
