@@ -96,7 +96,8 @@ export const PageSidebar: VoidFunctionComponent = () => {
         <AccountEntityTypeList accountId={accountId} />
       </Box>
 
-      <Link
+      {/* Commenting this out till it's implemented  */}
+      {/* <Link
         noLinkStyle
         href="/"
         sx={{
@@ -124,7 +125,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         >
           Help and Support
         </Typography>
-      </Link>
+      </Link> */}
     </Drawer>
   );
 };

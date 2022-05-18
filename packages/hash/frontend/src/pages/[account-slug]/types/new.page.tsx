@@ -5,13 +5,13 @@ import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 import { tw } from "twind";
 
+import { Collapse, Typography } from "@mui/material";
 import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import { TextInput } from "../../../components/forms/TextInput";
-import { Button } from "../../../shared/ui";
+import { Button, TextField } from "../../../shared/ui";
 import {
   NextPageWithLayout,
   getLayoutWithSidebar,
@@ -25,9 +25,8 @@ const Page: NextPageWithLayout = () => {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const [createEntityType] = useMutation<
+  const [createEntityType, { loading, error }] = useMutation<
     CreateEntityTypeMutation,
     CreateEntityTypeMutationVariables
   >(createEntityTypeMutation, {
@@ -40,16 +39,15 @@ const Page: NextPageWithLayout = () => {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    setLoading(true);
     createEntityType({ variables: { description, name, accountId } }).catch(
       (err) => {
-        setLoading(false);
-
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error("Could not create EntityType: ", err);
       },
     );
   };
+
+  console.log("error => ", error?.message);
 
   return (
     <>
@@ -64,22 +62,38 @@ const Page: NextPageWithLayout = () => {
       </header>
       <section>
         <form onSubmit={submit}>
-          <div className={tw`max-w-2xl lg:(flex justify-between) mb-8`}>
-            <TextInput
-              className={tw`w-full mb-6 lg:(mb-0 w-72)`}
-              disallowRegExp={/\W/g}
+          <div className={tw`max-w-2xl lg:(flex)`}>
+            <TextField
               label="Name"
-              onChangeText={setName}
+              onChange={(evt) => setName(evt.target.value.replace(/\W/g, ""))}
               value={name}
+              sx={{ marginRight: 2, flex: 1 }}
+              size="large"
+              helperText="Name should be in PasalCase"
+              required
             />
-            <TextInput
-              className={tw`w-full lg:w-72 mb-2`}
+            <TextField
               label="Description"
-              onChangeText={setDescription}
+              onChange={(evt) => setDescription(evt.target.value)}
               value={description}
+              size="large"
+              sx={{ flex: 1.2 }}
             />
           </div>
-          <div>
+
+          <div className={tw`mt-8`}>
+            <Collapse in={!!error?.message}>
+              <Typography
+                sx={({ palette }) => ({
+                  color: palette.orange[60],
+                  mb: 1,
+                  display: "block",
+                })}
+                variant="smallTextParagraphs"
+              >
+                {error?.message}
+              </Typography>
+            </Collapse>
             <Button loading={loading} disabled={loading} type="submit">
               Create Entity Type
             </Button>

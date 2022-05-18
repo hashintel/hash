@@ -91,13 +91,14 @@ const SearchInput: VFC<SearchInputProps> = ({
               },
             },
           }),
-          endAdornment: (
-            <Tooltip title="Clear Search">
-              <IconButton onClick={hideSearchInput} size="small" unpadded>
-                <FontAwesomeIcon icon={faXmark} />
-              </IconButton>
-            </Tooltip>
-          ),
+          // Commenting this out till "View All Types" is implemented
+          // endAdornment: (
+          //   <Tooltip title="Clear Search">
+          //     <IconButton onClick={hideSearchInput} size="small" unpadded>
+          //       <FontAwesomeIcon icon={faXmark} />
+          //     </IconButton>
+          //   </Tooltip>
+          // ),
         }}
       />
     </Fade>
