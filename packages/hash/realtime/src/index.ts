@@ -19,7 +19,7 @@ import { MONITOR_TABLES, generateQueues } from "./config";
 const SLOT_NAME = "realtime";
 
 // The number of milliseconds between queries to the replication slot
-const POLL_INTERVAL_MILLIS = 5_000;
+const POLL_INTERVAL_MILLIS = 150;
 
 // An identifier for this instance of the realtime service. It is used to ensure
 // only a single instance of the service is reading from the replication slot
