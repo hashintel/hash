@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "The data store for HASH",
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "fix:eslint": "eslint --ext .ts --fix .",
     "lint:eslint": "eslint --ext .ts .",
