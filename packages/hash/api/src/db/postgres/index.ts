@@ -9,6 +9,7 @@ import {
 import { PostgresClient } from "./client";
 import { DbAdapter, DbClient } from "../adapter";
 import { createPoolConnection, createTransactionConnection } from "./types";
+import { requireTransaction } from "./util";
 
 export type Config = {
   host: string;
@@ -43,9 +44,24 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
   }
 
   private async query<T>(fn: (client: DbClient) => Promise<T>): Promise<T> {
-    return await this.pool.connect(async (conn) => {
-      const client = new PostgresClient(createPoolConnection(conn));
-      return await fn(client);
+    // In order to prevent Slonik from explicitly creating new connections we
+    // use the pool directly as a connection.
+    // See https://github.com/gajus/slonik/issues/174
+    // Thank you to exca1iburTheWise on Discord for pointing this out,
+    // and coming up with this quick-fix/hack.
+    //
+    // We're ensuring a top level transaction for the connection as is
+    // recommended here https://github.com/gajus/slonik/issues/249#issuecomment-758963217
+    // the top-level transactions acts the same way as .connect(..) on the pool,
+    // but it doesn't explicitly create a new connection.
+    //
+    // @todo: As exca1iburTheWise pointed out we could add apollo query information
+    // to the dbadapter to assign distinct connections for each graphql query
+    // See Discord thread: https://discord.com/channels/840573247803097118/938413853325283419/969716625467125810
+    const poolConn = createPoolConnection(this.pool);
+    return await requireTransaction(poolConn)((transactionConn) => {
+      const client = new PostgresClient(transactionConn);
+      return fn(client);
     });
   }
 
