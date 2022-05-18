@@ -14,18 +14,18 @@ import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import {
+  getDraftEntityFromEntityId,
+  DraftEntity,
+  EntityStore,
+  isBlockEntity,
+  isDraftBlockEntity,
+} from "./entityStore";
+import {
   BlockEntity,
   blockEntityIdExists,
   getTextEntityFromSavedBlock,
   isDraftTextContainingEntityProperties,
 } from "./entity";
-import {
-  DraftEntity,
-  EntityStore,
-  getDraftEntityFromEntityId,
-  isBlockEntity,
-  isDraftBlockEntity,
-} from "./entityStore";
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
@@ -227,10 +227,9 @@ const insertBlocks = defineOperation(
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
  * @todo handle contents of block changing
- * @todo compare entities with draft entities to catch changes not contained in
- *   ProseMirror tree
- * @todo rewrite this to work from the entity store and not the prosemirror
- *   tree. Can start with removing text block specific changes
+ * @todo compare entities with draft entities to catch changes not contained in ProseMirror tree
+ * @todo rewrite this to work from the entity store and not the prosemirror tree. Can start with
+ *       removing text block specific changes
  */
 const updateBlocks = defineOperation(
   (
