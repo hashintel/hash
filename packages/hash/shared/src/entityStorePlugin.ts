@@ -28,7 +28,7 @@ import { collect } from "./util";
 type EntityStorePluginStateListener = (store: EntityStore) => void;
 
 export type TrackedAction = { action: EntityStorePluginAction; id: string };
-type EntityStorePluginState = {
+export type EntityStorePluginState = {
   store: EntityStore;
   listeners: EntityStorePluginStateListener[];
   trackedActions: TrackedAction[];

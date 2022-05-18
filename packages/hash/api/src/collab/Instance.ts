@@ -1,4 +1,8 @@
 import { ApolloClient } from "@apollo/client";
+import {
+  AggregationVersion,
+  LinkVersion,
+} from "@hashintel/hash-backend-utils/pgTables";
 import { RealtimeMessage } from "@hashintel/hash-backend-utils/realtime";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
@@ -13,6 +17,7 @@ import {
   disableEntityStoreTransactionInterpretation,
   EntityStorePluginAction,
   entityStorePluginState,
+  entityStorePluginStateFromTransaction,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   GetBlocksQuery,
@@ -28,26 +33,19 @@ import {
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
-  getBlocksQuery,
-  getPageQuery,
-} from "@hashintel/hash-shared/queries/page.queries";
-import {
   getLinkedAggregationIdentifierFieldsQuery,
   getLinkQuery,
 } from "@hashintel/hash-shared/queries/link.queries";
 import {
-  createNecessaryEntities,
-  updatePageMutation,
-} from "@hashintel/hash-shared/save";
+  getBlocksQuery,
+  getPageQuery,
+} from "@hashintel/hash-shared/queries/page.queries";
+import { save } from "@hashintel/hash-shared/save";
 import { Response } from "express";
 import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
-import {
-  AggregationVersion,
-  LinkVersion,
-} from "@hashintel/hash-backend-utils/pgTables";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -190,19 +188,21 @@ export class Instance {
     try {
       /**
        * This removes any extra properties from a passed object containing an
-       * accountId and entityId, which may be an Entity or a LatestEntityRef, or
+       * accountId and entityId, which may be an Entity or a LatestEntityRef,
+       * or
        * similar, in order to generate a LatestEntityRef with only the
        * specific properties. This allows us to create objects which identify
        * specific entities for use in GraphQL requests or comparisons. Because
-       * TypeScript's "substitutability", this function can be called with objects
-       * with extra properties than those specified.
+       * TypeScript's "substitutability", this function can be called with
+       * objects with extra properties than those specified.
        *
-       * This function is memoized so that the resulting value can be used inside
-       * Map or Set, or for direct comparison, in absence of support for the
-       * Record proposal. The second argument to memoize allows calling this
-       * function with an object.
+       * This function is memoized so that the resulting value can be used
+       * inside Map or Set, or for direct comparison, in absence of support for
+       * the Record proposal. The second argument to memoize allows calling
+       * this function with an object.
        *
-       * This is defined locally as we only need calls to be referentially equal
+       * This is defined locally as we only need calls to be referentially
+       * equal
        * within the scope of `processEntityVersion`.
        *
        * @todo replace this with a Record once the proposal is usable
@@ -216,11 +216,13 @@ export class Instance {
       );
 
       /**
-       * This fetches entity references relevant to the provided LinkVersion or AggregationVersion.
-       * Multiple entity refs may be returned, as a LinkVersion has both a source and a destination.
-       * The LinkedEntities for a destination can change if any of its properties are resolved via incoming links.
-       * This uses {@link getEntityRef} to memoize the refs, so they can be checked against refs
-       * acquired through that function directly.
+       * This fetches entity references relevant to the provided LinkVersion or
+       * AggregationVersion. Multiple entity refs may be returned, as a
+       * LinkVersion has both a source and a destination. The LinkedEntities
+       * for a destination can change if any of its properties are resolved via
+       * incoming links. This uses {@link getEntityRef} to memoize the refs, so
+       * they can be checked against refs acquired through that function
+       * directly.
        */
       const getEntityRefsFromLinkOrAggregation = (
         recordToGetIdsFrom: LinkVersion | AggregationVersion,
@@ -286,7 +288,8 @@ export class Instance {
           : await getEntityRefsFromLinkOrAggregation(record); // a link or linked aggregation has been updated - get the affected entities
 
       /**
-       * Determine which blocks to refresh by checking if any of the entities within it are affected
+       * Determine which blocks to refresh by checking if any of the entities
+       * within it are affected
        */
       const blocksToRefresh = new Set(
         flatMapBlocks(this.savedContents, (entity, blockEntity) => {
@@ -359,14 +362,16 @@ export class Instance {
           return block;
         });
 
+        await this.saveChain.catch();
+
         /**
-         * We should know not to notify consumers of changes they've already been
-         * notified of, but because of a race condition between saves triggered
-         * by collab and saves triggered by frontend blocks, this doesn't
-         * necessarily work, so unfortunately we need to notify on every
-         * notification from realtime right now. This means clients will be
-         * notified about prosemirror changes twice right now. There are no known
-         * downsides to this other than performance.
+         * We should know not to notify consumers of changes they've already
+         * been notified of, but because of a race condition between saves
+         * triggered by collab and saves triggered by frontend blocks, this
+         * doesn't necessarily work, so unfortunately we need to notify on
+         * every notification from realtime right now. This means clients will
+         * be notified about prosemirror changes twice right now. There are no
+         * known downsides to this other than performance.
          *
          * If nextSavedContents === this.savedContents, then we're likely
          * notifying of changes the client is possibly already aware of
@@ -394,8 +399,8 @@ export class Instance {
     this.state = this.state.apply(tr);
     this.savedContents = nextSavedContents;
     /**
-     * @todo remove this – we should be able to send the tracked actions to other
-     *       clients, instead of the whole store
+     * @todo remove this – we should be able to send the tracked actions to
+     *   other clients, instead of the whole store
      */
     this.addUpdates([
       {
@@ -465,45 +470,39 @@ export class Instance {
       return { version: this.version };
     };
 
-  save = (apolloClient: ApolloClient<unknown>) => (clientID: string) => {
-    this.saveChain = this.saveChain
-      .catch()
-      .then(async () => {
-        if (this.errored) {
-          throw new Error("Saving when instance stopped");
-        }
+  save = (apolloClient: ApolloClient<unknown>) => {
+    return (clientID: string) => {
+      this.saveChain = this.saveChain
+        .catch()
+        .then(async () => {
+          if (this.errored) {
+            throw new Error("Saving when instance stopped");
+          }
 
-        const { actions, createdEntities } = await createNecessaryEntities(
-          this.state,
-          this.accountId,
-          apolloClient,
-        );
-
-        if (actions.length) {
-          this.addEvents(apolloClient)(
-            this.version,
-            [],
-            `${clientID}-server`,
-            actions,
-          );
-        }
-
-        return createdEntities;
-      })
-      .then((createdEntities) => {
-        const { doc } = this.state;
-        const store = entityStorePluginState(this.state);
-
-        return updatePageMutation(
-          this.accountId,
-          this.pageEntityId,
-          doc,
-          this.savedContents,
-          entityStorePluginState(this.state).store,
-          apolloClient,
-          createdEntities,
-        ).then((newPage) => {
           const actions: EntityStorePluginAction[] = [];
+          const tr = this.state.tr;
+
+          const getState = () => {
+            return entityStorePluginStateFromTransaction(tr, this.state);
+          };
+
+          const updateState = (nextActions: EntityStorePluginAction[]) => {
+            actions.push(...nextActions);
+            for (const action of actions) {
+              addEntityStoreAction(this.state, tr, action);
+            }
+            return getState();
+          };
+
+          const newPage = await save(
+            apolloClient,
+            this.accountId,
+            this.pageEntityId,
+            this.savedContents,
+            this.state.doc,
+            getState,
+            updateState,
+          );
 
           /**
            * We need to look through our doc for any nodes that were missing
@@ -511,9 +510,10 @@ export class Instance {
            *
            * @todo allow the client to pick entity ids to remove the need to
            * do this
+           * @todo just look through the entity store?
            */
-          doc.descendants((node, pos) => {
-            const resolved = doc.resolve(pos);
+          this.state.doc.descendants((node, pos) => {
+            const resolved = this.state.doc.resolve(pos);
             const idx = resolved.index(0);
             const blockEntity = newPage.properties.contents[idx];
 
@@ -552,7 +552,7 @@ export class Instance {
                   throw new Error("unexpected structure");
               }
 
-              const entity = store.store.draft[node.attrs.draftId];
+              const entity = getState().store.draft[node.attrs.draftId];
 
               if (!entity) {
                 throw new Error(
@@ -583,11 +583,11 @@ export class Instance {
           }
 
           this.updateSavedContents(newPage.properties.contents);
+        })
+        .catch((err) => {
+          this.error(err);
         });
-      })
-      .catch((err) => {
-        this.error(err);
-      });
+    };
   };
 
   addJsonEvents =
@@ -605,9 +605,9 @@ export class Instance {
          * performance. However, it is a quick way to improve stability by
          * reducing moving parts – because it means each client will not try to
          * send another set of updates until the previous updates (even those
-         * from other clients are finished saving). This is a good way to improve
-         * stability until we're more confident in collab not breaking with
-         * frequent updates.
+         * from other clients are finished saving). This is a good way to
+         * improve stability until we're more confident in collab not breaking
+         * with frequent updates.
          *
          * @todo remove this
          */
@@ -637,9 +637,9 @@ export class Instance {
          * performance. However, it is a quick way to improve stability by
          * reducing moving parts – because it means each client will not try to
          * send another set of updates until the previous updates (even those
-         * from other clients are finished saving). This is a good way to improve
-         * stability until we're more confident in collab not breaking with
-         * frequent updates.
+         * from other clients are finished saving). This is a good way to
+         * improve stability until we're more confident in collab not breaking
+         * with frequent updates.
          *
          * @todo remove this
          */

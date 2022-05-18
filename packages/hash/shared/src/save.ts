@@ -3,7 +3,7 @@ import { ApolloClient } from "@apollo/client";
 import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import {
   EntityStorePluginAction,
-  entityStorePluginState,
+  EntityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   createEntity,
@@ -12,20 +12,19 @@ import {
 } from "@hashintel/hash-shared/queries/entity.queries";
 import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
-import { EditorState } from "prosemirror-state";
-import {
-  getDraftEntityFromEntityId,
-  DraftEntity,
-  EntityStore,
-  isBlockEntity,
-  isDraftBlockEntity,
-} from "./entityStore";
 import {
   BlockEntity,
   blockEntityIdExists,
   getTextEntityFromSavedBlock,
   isDraftTextContainingEntityProperties,
 } from "./entity";
+import {
+  DraftEntity,
+  EntityStore,
+  getDraftEntityFromEntityId,
+  isBlockEntity,
+  isDraftBlockEntity,
+} from "./entityStore";
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
@@ -474,12 +473,12 @@ const capitalizeComponentName = (cId: string) => {
   );
 };
 
-export const createNecessaryEntities = async (
-  state: EditorState<Schema>,
+const createNecessaryEntities = async (
+  entityStore: EntityStorePluginState,
+  doc: ProsemirrorNode<Schema>,
   accountId: string,
   client: ApolloClient<any>,
 ) => {
-  const entityStore = entityStorePluginState(state);
   const actions: EntityStorePluginAction[] = [];
 
   const entitiesToCreate = Object.values(entityStore.store.draft).flatMap(
@@ -493,8 +492,8 @@ export const createNecessaryEntities = async (
         ) {
           let blockEntityNodePosition: number | null = null;
 
-          state.doc.descendants((node, pos) => {
-            const resolved = state.doc.resolve(pos);
+          doc.descendants((node, pos) => {
+            const resolved = doc.resolve(pos);
 
             if (isComponentNode(node)) {
               const blockEntityNode = resolved.node(2);
@@ -662,7 +661,7 @@ export const createNecessaryEntities = async (
 /**
  * @todo use draft entity store for this
  */
-export const updatePageMutation = async (
+const updatePageMutation = async (
   accountId: string,
   entityId: string,
   doc: ProsemirrorNode<Schema>,
@@ -693,4 +692,35 @@ export const updatePageMutation = async (
   await client.reFetchObservableQueries();
 
   return res.data.updatePageContents;
+};
+
+export const save = async (
+  apolloClient: ApolloClient<unknown>,
+  accountId: string,
+  pageEntityId: string,
+  blocks: BlockEntity[],
+  doc: ProsemirrorNode<Schema>,
+  getState: () => EntityStorePluginState,
+  updateState: (
+    nextActions: EntityStorePluginAction[],
+  ) => EntityStorePluginState,
+) => {
+  const { createdEntities, ...res } = await createNecessaryEntities(
+    getState(),
+    doc,
+    accountId,
+    apolloClient,
+  );
+
+  updateState(res.actions);
+
+  return await updatePageMutation(
+    accountId,
+    pageEntityId,
+    doc,
+    blocks,
+    getState().store,
+    apolloClient,
+    createdEntities,
+  );
 };
