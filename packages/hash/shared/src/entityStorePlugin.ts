@@ -339,30 +339,13 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        /**
-         * Because of an issue with TypeScript, we cannot type this as
-         * `CreatedDraftEntity | NotCreatedDraftEntity`.
-         *
-         * @todo figure out a way of avoiding this
-         */
-        const newDraftEntity = {
+        draftState.store.draft[action.payload.draftId] = {
           accountId: action.payload.accountId,
+          entityId: action.payload.entityId,
           draftId: action.payload.draftId,
           updatedAt: new Date().toISOString(),
           properties: {},
         };
-
-        if (action.payload.entityId) {
-          draftState.store.draft[action.payload.draftId] = {
-            ...newDraftEntity,
-            entityId: action.payload.entityId,
-          };
-        } else {
-          draftState.store.draft[action.payload.draftId] = {
-            ...newDraftEntity,
-            entityId: null,
-          };
-        }
       });
   }
 

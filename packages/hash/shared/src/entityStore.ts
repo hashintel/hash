@@ -13,7 +13,9 @@ type PropertiesType<Properties extends {}> = Properties extends {
     }
   : Properties;
 
-type DraftEntityProperties<Type extends EntityStoreType = EntityStoreType> = {
+export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
+  accountId: string;
+  entityId: string | null;
   entityTypeId?: string | null;
   entityVersionId?: string | null;
 
@@ -37,28 +39,10 @@ type DraftEntityProperties<Type extends EntityStoreType = EntityStoreType> = {
   ? { properties: PropertiesType<Type["properties"]> }
   : {});
 
-type CreatedDraftEntity<Type extends EntityStoreType = EntityStoreType> = {
-  accountId: string;
-  entityId: string;
-} & DraftEntityProperties<Type>;
-
-type NotCreatedDraftEntity<Type extends EntityStoreType = EntityStoreType> = {
-  accountId: null | string;
-  entityId: null;
-} & DraftEntityProperties<Type>;
-
-export type DraftEntity<Type extends EntityStoreType = EntityStoreType> =
-  | CreatedDraftEntity<Type>
-  | NotCreatedDraftEntity<Type>;
-
 export type EntityStore = {
   saved: Record<string, EntityStoreType>;
   draft: Record<string, DraftEntity>;
 };
-
-export const isCreatedDraftEntity = <Type extends EntityStoreType>(
-  draftEntity: DraftEntity<Type>,
-): draftEntity is CreatedDraftEntity<Type> => !!draftEntity.entityId;
 
 /**
  * @todo should be more robust
