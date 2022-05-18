@@ -333,8 +333,7 @@ const updateBlocks = defineOperation(
 
               // Check if block data changed by comparing properties
               if (
-                draftBlockData &&
-                draftBlockData.entityId &&
+                draftBlockData?.entityId &&
                 !isEqual(draftBlockData.properties, savedChildEntity.properties)
               ) {
                 // If the entityId is different then the blockData was swapped
