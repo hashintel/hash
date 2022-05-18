@@ -237,7 +237,7 @@ const CreateNewSeriesDefinition: React.FC<{
                 onChange={({ target }) =>
                   setNewDefinition((prev) => ({
                     ...prev,
-                    seriesType: target.value as SeriesType,
+                    seriesType: target.value,
                   }))
                 }
               >
@@ -404,7 +404,7 @@ const EditableChartSeriesDefinition: React.FC<{
 
                 void updateSeriesDefinition({
                   updatedDefinition: {
-                    seriesType: target.value as SeriesType,
+                    seriesType: target.value,
                   },
                 }).then(() => {
                   setIsUpdating(false);
