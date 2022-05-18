@@ -1,0 +1,50 @@
+{
+  "name": "github-pr-overview",
+  "version": "0.0.0",
+  "description": "Display an overview of a GitHub Pull Request, including a timeline of key events",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "github",
+    "pullrequest"
+  ],
+  "license": "MIT",
+  "author": "Alfred Mountfield",
+  "scripts": {
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "@mui/icons-material": "5.4.2",
+    "@mui/lab": "5.0.0-alpha.71",
+    "@mui/material": "5.4.3",
+    "blockprotocol": "0.0.9",
+    "date-fns": "2.22.1",
+    "lodash": "4.17.21"
+  },
+  "devDependencies": {
+    "block-scripts": "0.0.6",
+    "mock-block-dock": "0.0.9",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "block-scripts": {
+    "port": 63222
+  },
+  "blockprotocol": {
+    "displayName": "GitHub Pull-Request Overview",
+    "examples": [
+      {}
+    ],
+    "icon": "public/pull-request.svg",
+    "image": "public/block-preview.svg"
+  }
+}
