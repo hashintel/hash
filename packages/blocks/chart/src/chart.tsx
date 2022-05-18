@@ -404,7 +404,7 @@ const EditableChartSeriesDefinition: React.FC<{
 
                 void updateSeriesDefinition({
                   updatedDefinition: {
-                    seriesType: target.value,
+                    seriesType: target.value as SeriesType,
                   },
                 }).then(() => {
                   setIsUpdating(false);
