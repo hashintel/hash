@@ -149,6 +149,7 @@ type BlockEntityNodeDescriptor = [EntityNode, number, string | null];
 /**
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
+ * @todo use entity store for this
  */
 const insertBlocks = defineOperation(
   (
@@ -326,12 +327,12 @@ const updateBlocks = defineOperation(
             if (isBlockEntity(draftBlockEntity)) {
               const draftBlockData = getDraftEntityFromEntityId(
                 entityStore.draft,
-                draftBlockEntity?.properties.entity.entityId,
+                draftBlockEntity.properties.entity.entityId,
               );
 
               // Check if block data changed by comparing properties
               if (
-                draftBlockData &&
+                draftBlockData?.entityId &&
                 !isEqual(draftBlockData.properties, savedChildEntity.properties)
               ) {
                 // If the entityId is different then the blockData was swapped
@@ -340,13 +341,18 @@ const updateBlocks = defineOperation(
                     swapBlockData: {
                       entityId: savedEntity.entityId,
                       accountId: savedEntity.accountId,
-                      newEntityAccountId: draftBlockData.accountId!,
-                      newEntityEntityId: draftBlockData.entityId!,
+                      newEntityAccountId: draftBlockData.accountId,
+                      newEntityEntityId: draftBlockData.entityId,
                     },
                   });
                 } else {
-                  // @todo check if the block data changed and push
-                  // an updateEntity action
+                  updates.push({
+                    updateEntity: {
+                      entityId: draftBlockData.entityId,
+                      accountId: draftBlockData.accountId,
+                      properties: draftBlockData.properties,
+                    },
+                  });
                 }
               }
             }
