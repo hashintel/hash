@@ -237,7 +237,7 @@ const CreateNewSeriesDefinition: React.FC<{
                 onChange={({ target }) =>
                   setNewDefinition((prev) => ({
                     ...prev,
-                    seriesType: target.value,
+                    seriesType: target.value as SeriesType,
                   }))
                 }
               >
