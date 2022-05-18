@@ -4,6 +4,7 @@ import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
   entityStorePluginState,
+  TrackedAction,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
@@ -62,7 +63,6 @@ const NEW_INSTANCE_KEY = "collab-force-new-instance";
 
 export class EditorConnection {
   state = new State(null, "start", 0);
-  backOff = 0;
   request: AbortingPromise<string> | null = null;
   sentActions = new Set<string>();
   errored = false;
@@ -115,10 +115,7 @@ export class EditorConnection {
           type: "store",
           payload: action.store,
         });
-
-        const result = editorState.apply(tr);
-        this.state = new State(result, "poll", action.version);
-        this.poll();
+        this.pollIfReady(action.version, editorState.apply(tr));
         break;
       }
       case "restart":
@@ -126,8 +123,7 @@ export class EditorConnection {
         this.start();
         break;
       case "poll":
-        this.state = new State(this.state.edit, "poll", nextVersion);
-        this.poll();
+        this.pollIfReady(nextVersion);
         break;
       case "error":
         this.errored = true;
@@ -151,15 +147,19 @@ export class EditorConnection {
     if (newEditState) {
       const requestDone = "requestDone" in action && action.requestDone;
 
-      let sendable;
-      if (
-        (this.state.comm === "poll" || requestDone) &&
-        // eslint-disable-next-line no-cond-assign
-        (sendable = this.sendable(newEditState))
-      ) {
-        this.closeRequest();
+      const sendableState = this.state.comm === "poll" || requestDone;
+      const steps = sendableState ? sendableSteps(newEditState) : null;
+      const actions = sendableState ? this.unsentActions(newEditState) : [];
+
+      if (steps || actions?.length) {
+        if (this.request) {
+          if (this.state.comm === "send") {
+            throw new Error("Cannot send while already in a sending state");
+          }
+          this.closeRequest();
+        }
         this.state = new State(newEditState, "send", nextVersion);
-        this.send(newEditState, sendable);
+        this.send(newEditState, { steps, actions });
       } else if (requestDone) {
         this.state = new State(newEditState, "poll", nextVersion);
         this.poll();
@@ -176,6 +176,14 @@ export class EditorConnection {
     }
   };
 
+  private pollIfReady(nextVersion: number, state = this.state.edit) {
+    if (this.state.comm === "send" && this.request) {
+      throw new Error("Cannot poll while sending");
+    }
+    this.state = new State(state, "poll", nextVersion);
+    this.poll();
+  }
+
   dispatchTransaction = (transaction: Transaction<Schema>, version: number) => {
     this.dispatch({ type: "update", transaction, version });
   };
@@ -188,6 +196,8 @@ export class EditorConnection {
       url += "?forceNewInstance=true";
       localStorage.removeItem(NEW_INSTANCE_KEY);
     }
+
+    this.closeRequest();
 
     this.run(GET(url))
       .then((responseText) => {
@@ -202,7 +212,7 @@ export class EditorConnection {
         return this.manager.ensureDocDefined(doc).then(() => ({ doc, data }));
       })
       .then(({ data, doc }) => {
-        this.backOff = 0;
+        this.closeRequest();
         this.dispatch({
           type: "loaded",
           doc,
@@ -211,6 +221,7 @@ export class EditorConnection {
         });
       })
       .catch((err) => {
+        this.closeRequest();
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
         this.dispatch({ type: "error", error: err });
@@ -230,7 +241,6 @@ export class EditorConnection {
       (stringifiedData) => {
         // @todo type this
         const data = JSON.parse(stringifiedData);
-        this.backOff = 0;
 
         if (this.state.edit) {
           const tr = this.state.edit.tr;
@@ -289,6 +299,8 @@ export class EditorConnection {
           disableEntityStoreTransactionInterpretation(tr);
         }
 
+        this.closeRequest();
+
         if (
           tr ||
           (typeof data.version !== "undefined" &&
@@ -305,6 +317,8 @@ export class EditorConnection {
         }
       },
       (err) => {
+        this.closeRequest();
+
         if (err.status === 410 || badVersion(err)) {
           // Too far behind. Revert to server state
           // @todo use logger
@@ -318,18 +332,17 @@ export class EditorConnection {
     );
   }
 
-  sendable(editState: EditorState<Schema>) {
-    const steps = sendableSteps(editState);
-    if (steps) return { steps };
-  }
-
   // Send the given steps to the server
   send(
     editState: EditorState<Schema>,
-    { steps }: { steps?: ReturnType<typeof sendableSteps> } = {},
+    {
+      steps = null,
+      actions = [],
+    }: {
+      steps?: ReturnType<typeof sendableSteps> | null;
+      actions?: TrackedAction[];
+    } = {},
   ) {
-    const actions = this.unsentActions(editState);
-
     for (const action of actions) {
       this.sentActions.add(action.id);
     }
@@ -353,7 +366,6 @@ export class EditorConnection {
       POST(`${this.url}/events`, json, "application/json", removeActions),
     ).then(
       (data) => {
-        this.backOff = 0;
         if (!this.state.edit) {
           throw new Error("Cannot receive steps without state");
         }
@@ -365,6 +377,7 @@ export class EditorConnection {
             )
           : this.state.edit.tr;
         const version = JSON.parse(data).version;
+        this.closeRequest();
         this.dispatch({
           type: "update",
           transaction: tr,
@@ -373,11 +386,11 @@ export class EditorConnection {
         });
       },
       (err) => {
+        this.closeRequest();
         removeActions();
         if (err.status === 409) {
           // The client's document conflicts with the server's version.
           // Poll for changes and then try again.
-          this.backOff = 0;
           this.dispatch({ type: "poll" });
         } else if (badVersion(err)) {
           this.dispatch({ type: "restart" });
@@ -402,6 +415,9 @@ export class EditorConnection {
   }
 
   run(request: AbortingPromise<string>) {
+    if (this.request) {
+      throw new Error("Existing request. Must close first");
+    }
     this.request = request;
     return this.request;
   }

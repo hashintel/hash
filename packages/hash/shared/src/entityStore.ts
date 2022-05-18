@@ -14,8 +14,8 @@ type PropertiesType<Properties extends {}> = Properties extends {
   : Properties;
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
-  accountId?: string | null;
-  entityId: Type["entityId"] | null;
+  accountId: string;
+  entityId: string | null;
   entityTypeId?: string | null;
   entityVersionId?: string | null;
 
@@ -76,7 +76,7 @@ export const isDraftBlockEntity = (
 export const getDraftEntityFromEntityId = (
   draft: EntityStore["draft"],
   entityId: string,
-): DraftEntity<EntityStoreType> | undefined =>
+): DraftEntity | undefined =>
   Object.values(draft).find((entity) => entity.entityId === entityId);
 
 const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
