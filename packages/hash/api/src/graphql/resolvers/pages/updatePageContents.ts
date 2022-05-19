@@ -1,6 +1,12 @@
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { produce } from "immer";
-import { Block, Entity, Page, UnresolvedGQLEntity } from "../../../model";
+import {
+  Block,
+  Entity,
+  EntityType,
+  Page,
+  UnresolvedGQLEntity,
+} from "../../../model";
 import { exactlyOne } from "../../../util";
 import {
   MutationUpdatePageContentsArgs,
@@ -8,6 +14,7 @@ import {
   SwapBlockData,
   UpdateEntity,
   UpdatePageAction,
+  UpdatePageContentsResult,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 
@@ -21,6 +28,7 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
         action.updateEntity,
         action.swapBlockData,
         action.createEntity,
+        action.createEntityType,
       )
     ) {
       throw new UserInputError(
@@ -32,7 +40,11 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
 
 // @todo these actions need to be processed in order to ensure placeholders work as expected
 export const updatePageContents: Resolver<
-  Promise<UnresolvedGQLEntity>,
+  Promise<
+    {
+      page: UnresolvedGQLEntity;
+    } & Omit<UpdatePageContentsResult, "page">
+  >,
   {},
   LoggedInGraphQLContext,
   MutationUpdatePageContentsArgs
@@ -51,6 +63,40 @@ export const updatePageContents: Resolver<
   };
 
   return await dataSources.db.transaction(async (client) => {
+    // Create any _new_ entity types
+    await Promise.all(
+      actions
+        .map((action, i) => ({ action, i }))
+        .filter(({ action }) => action.createEntityType)
+        .map(async ({ action, i }) => {
+          try {
+            const {
+              placeholderID,
+              description,
+              name,
+              schema,
+              accountId: entityTypeAccountId,
+            } = action.createEntityType!;
+
+            const entityType = await EntityType.create(client, {
+              accountId: entityTypeAccountId,
+              createdByAccountId: user.accountId,
+              description: description ?? undefined,
+              name,
+              schema,
+            });
+
+            if (placeholderID?.startsWith("placeholder-")) {
+              placeholderResults.set(placeholderID, entityType.entityId);
+            }
+          } catch (error) {
+            if (error instanceof UserInputError) {
+              throw new UserInputError(`action ${i}: ${error}`);
+            }
+            throw error;
+          }
+        }),
+    );
     // Create any _new_ entities
     await Promise.all(
       actions
@@ -94,8 +140,6 @@ export const updatePageContents: Resolver<
                 entity.entityId,
               );
             }
-
-            return entity;
           } catch (error) {
             if (error instanceof UserInputError) {
               throw new UserInputError(`action ${i}: ${error}`);

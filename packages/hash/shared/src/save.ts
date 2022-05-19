@@ -12,6 +12,7 @@ import {
 } from "@hashintel/hash-shared/queries/entity.queries";
 import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { v4 as uuid } from "uuid";
 import {
   BlockEntity,
   blockEntityIdExists,
@@ -484,6 +485,8 @@ const capitalizeComponentName = (cId: string) => {
   );
 };
 
+const randomPlaceholder = () => `placeholder-${uuid()}`;
+
 export const createNecessaryEntities = async (
   entityStore: EntityStorePluginState,
   doc: ProsemirrorNode<Schema>,
@@ -547,6 +550,8 @@ export const createNecessaryEntities = async (
     textLink,
     blockEntityNodePosition,
   } of entitiesToCreate) {
+    const updatePageContentsActions: UpdatePageAction[] = [];
+
     let variantEntityProperties;
 
     if (textLink.data.entityId) {
@@ -632,38 +637,22 @@ export const createNecessaryEntities = async (
 
       delete jsonSchema.properties.editableRef;
 
-      const res = await client.mutate<
-        CreateEntityTypeSharedMutation,
-        CreateEntityTypeSharedMutationVariables
-      >({
-        mutation: createEntityType,
-        variables: {
+      const entityTypePlaceholder = randomPlaceholder();
+
+      updatePageContentsActions.push({
+        createEntityType: {
           accountId,
           // @todo need to add the text field to this
           schema: jsonSchema,
-          name: capitalizeComponentName(componentId),
+          name: capitalizeComponentName(componentId) + uuid(),
+          placeholderID: entityTypePlaceholder,
         },
       });
 
-      desiredEntityTypeId = res.data!.createEntityType.entityId;
+      desiredEntityTypeId = entityTypePlaceholder;
     }
 
-    const variantEntityResult = await client.mutate<
-      CreateEntityMutation,
-      CreateEntityMutationVariables
-    >({
-      mutation: createEntity,
-      variables: {
-        accountId,
-        entityTypeId: desiredEntityTypeId,
-        versioned: true,
-        properties: variantEntityProperties,
-      },
-    });
-    const newVariantEntity = variantEntityResult.data!.createEntity;
-
-    // @todo use proper placeholder
-    const placeholder = `placeholder-entity-updated`;
+    const variantEntityPlaceholder = randomPlaceholder();
     const result = await client.mutate<
       UpdatePageContentsMutation,
       UpdatePageContentsMutationVariables
@@ -673,11 +662,12 @@ export const createNecessaryEntities = async (
         accountId,
         entityId: pageEntityId,
         actions: [
+          ...updatePageContentsActions,
           {
             createEntity: {
               accountId,
               entity: {
-                placeholderID: placeholder,
+                placeholderID: variantEntityPlaceholder,
                 versioned: true,
                 entityType: {
                   entityTypeId: desiredEntityTypeId,
@@ -692,7 +682,7 @@ export const createNecessaryEntities = async (
 
     const newVariantEntityId =
       result.data!.updatePageContents.placeholders.find(
-        (p) => p.placeholderID === placeholder,
+        ({ placeholderID }) => placeholderID === variantEntityPlaceholder,
       )!.entityID;
 
     createdEntities.set(blockEntityNodePosition, {

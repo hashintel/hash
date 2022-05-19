@@ -275,6 +275,29 @@ export const pageTypedef = gql`
   }
 
   """
+  @todo document this
+  """
+  input CreateEntityTypeAction {
+    accountId: ID!
+    """
+    The name for the type. Must be unique in the given account.
+    """
+    name: String!
+    """
+    A description for the type.
+    """
+    description: String
+    """
+    The schema definition for the entity type, in JSON Schema.
+    """
+    schema: JSONObject
+    """
+    @todo document this
+    """
+    placeholderID: ID!
+  }
+
+  """
   An action to perform when updating the contents of a page. Exactly one field must be
   specified.
 
@@ -288,6 +311,7 @@ export const pageTypedef = gql`
     updateEntity: UpdateEntity
     swapBlockData: SwapBlockData
     createEntity: CreateEntityAction
+    createEntityType: CreateEntityTypeAction
   }
 
   """
