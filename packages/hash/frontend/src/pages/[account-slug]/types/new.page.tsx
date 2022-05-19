@@ -60,11 +60,22 @@ const Page: NextPageWithLayout = () => {
       </header>
       <section>
         <form data-testid="entity-type-creation-form" onSubmit={submit}>
-          <div className={tw`max-w-2xl lg:(flex)`}>
+          <div className={tw`max-w-2xl lg:flex`}>
             <TextField
               name="name"
               label="Name"
-              onChange={(evt) => setName(evt.target.value.replace(/\W/g, ""))}
+              onChange={(evt) => {
+                const cursor = evt.target.selectionStart ?? 0;
+                const newVal = evt.target.value.replace(/\W/g, "");
+                const oldVal = name;
+                setName(newVal);
+                setTimeout(() => {
+                  const finalCursor =
+                    oldVal === newVal ? Math.max(0, cursor - 1) : cursor;
+
+                  evt.target.setSelectionRange(finalCursor, finalCursor);
+                }, 10);
+              }}
               value={name}
               sx={{ marginRight: 2, flex: 1 }}
               size="large"

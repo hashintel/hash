@@ -70,6 +70,10 @@ export const PageHeader: React.VFC = () => {
         {user ? (
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <ActionsDropdown />
+            {/*  
+              Commented out Notifications dropdown because the functionality has not been implemented yet
+              @todo uncomment when functionality has been implemented 
+            */}
             {/* <NotificationsDropdown /> */}
             <AccountDropdown logout={logout} user={user} />
           </Box>
