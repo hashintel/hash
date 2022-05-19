@@ -21,11 +21,6 @@ test("user can create and update entity", async ({ page }) => {
   const entityName = `TestEntity${(Math.random() * 1000).toFixed()}`;
 
   // Fill up entity creation form
-  // await page.click('text=NameDescription >> input[type="text"]');
-  // await page.fill('text=NameDescription >> input[type="text"]', entityName);
-  // await page.click('main :nth-match(input[type="text"], 3)');
-  // await page.fill('main :nth-match(input[type="text"], 3)', "Test Entity");
-
   await page.fill(
     '[data-testid=entity-type-creation-form] input[name="name"]',
     entityName,
