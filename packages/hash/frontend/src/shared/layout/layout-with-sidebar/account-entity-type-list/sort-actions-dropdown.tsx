@@ -10,11 +10,8 @@ import {
 } from "@mui/material";
 import {
   faArrowDownAZ,
-  faArrowDownShortWide,
-  faArrowUpWideShort,
   faArrowUpZA,
   faQuestionCircle,
-  faWandSparkles,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "../../../icons";
