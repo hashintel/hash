@@ -119,7 +119,7 @@ export class BlockView implements NodeView<Schema> {
      */
     return (
       this.blockHandleRef.current?.contains(evt.target as Node) ||
-      (evt.target === this.dragHandleRef.current && evt.type === "mousedown")
+      (evt.target === this.blockHandleRef.current && evt.type === "mousedown")
     );
   }
 
@@ -178,7 +178,7 @@ export class BlockView implements NodeView<Schema> {
       <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-        <Box
+        {/* <Box
           data-testid="block-handle"
           sx={{
             backgroundImage: `url("/drag-icon.png")`,
@@ -188,8 +188,18 @@ export class BlockView implements NodeView<Schema> {
             mr: 1.25,
             backgroundSize: "contain",
             cursor: "pointer",
+            border: "1px solid red"
           }}
           ref={this.dragHandleRef}
+        
+          onClick={this.onDragEnd}
+        /> */}
+        <BlockHandle
+          deleteBlock={this.deleteBlock}
+          entityId={blockEntityId}
+          entityStore={this.store}
+          onTypeChange={this.onBlockChange}
+          ref={this.blockHandleRef}
           onMouseDown={() => {
             /**
              * We only want to allow dragging from the drag handle
@@ -223,13 +233,6 @@ export class BlockView implements NodeView<Schema> {
             this.update(this.node);
           }}
           onClick={this.onDragEnd}
-        />
-        <BlockHandle
-          deleteBlock={this.deleteBlock}
-          entityId={blockEntityId}
-          entityStore={this.store}
-          onTypeChange={this.onBlockChange}
-          ref={this.blockHandleRef}
         />
       </BlockViewContext.Provider>,
       this.selectContainer,
