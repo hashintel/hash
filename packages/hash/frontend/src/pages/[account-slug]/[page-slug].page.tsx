@@ -125,6 +125,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
               metadataId={data.page.entityId}
             />
           </div>
+          {/* 
+            Commented out Version Dropdown and Transfer Page buttons.
+            They will most likely be added back when new designs 
+            for them have been added
+          */}
           {/* <div className={tw`mr-4`}>
             <label>Version</label>
             <div>

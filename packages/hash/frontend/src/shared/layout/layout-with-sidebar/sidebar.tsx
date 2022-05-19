@@ -66,7 +66,13 @@ export const PageSidebar: VoidFunctionComponent = () => {
         tooltipTitle="View your inbox and latest activity"
         active={router.pathname === "/[account-slug]"}
       />
-      {/* Commenting out till it gets implemented */}
+      {/* 
+        Commented out nav links whose functionality have not been 
+        implemented yet
+        
+        @todo uncomment when the functionalities are implemented
+      */}
+
       {/* <TopNavLink
         icon={faZap}
         title="Quick Capture"

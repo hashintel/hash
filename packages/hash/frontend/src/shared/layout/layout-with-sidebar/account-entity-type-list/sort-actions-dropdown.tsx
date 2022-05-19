@@ -25,6 +25,9 @@ type SortActionsDropdownProps = {
   popupState: PopupState;
 };
 
+// Commented out menu items whose functionality have not been
+// implemented yet
+// @todo uncomment when functionality has been implemented
 const menuItems: {
   title: string;
   sortType: SortType;

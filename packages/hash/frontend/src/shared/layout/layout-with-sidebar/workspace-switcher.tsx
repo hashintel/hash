@@ -141,7 +141,10 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
 
         <Divider />
 
-        {/* Commenting out till it gets implemented */}
+        {/*  
+          Commented out menu items whose functionality have not been implemented yet
+          @todo uncomment when functionality has been implemented 
+        */}
         {/* {[
           {
             title: "Workspace Settings",

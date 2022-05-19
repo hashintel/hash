@@ -183,7 +183,13 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               pl={3.75}
               position="relative"
             >
-              {/* Commenting this out till it gets implemented */}
+              {/*
+                Commented this out because the functionality is not present yet 
+                ("View All Pages" screen hasn't been designed/built)
+
+                @todo uncomment when this has been done
+              */}
+
               {/* <Link
                 href="/"
                 noLinkStyle

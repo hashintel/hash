@@ -18,6 +18,9 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
   const { accountId } = useRouteAccountInfo();
   const { createSubPage } = useCreatePage(accountId);
 
+  // Commented out menu items whose functionality have not been
+  // implemented yet
+  // @todo uncomment when functionality has been implemented
   const menuItems = useMemo(
     () => [
       // {
