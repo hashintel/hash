@@ -86,7 +86,15 @@ const SearchInput: VFC<SearchInputProps> = ({
               },
             },
           }),
-          // Commenting this out till "View All Types" is implemented
+
+          // Commented this out because "View All Types" is commented out
+          // Ideally the textfield is meant to appear on top of "View All Types"
+          // when the search icon is clicked, and should close when
+          // close search icon is clicked.
+          // Since "View All Types" isn't displayed at the moment, this
+          // text field will always be visible and as a result there is no need
+          // to show the close search icon.
+          // @todo uncomment when "View All Types" has been implemented
           // endAdornment: (
           //   <Tooltip title="Clear Search">
           //     <IconButton onClick={hideSearchInput} size="small" unpadded>

@@ -2,12 +2,7 @@ import { VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
 import { Box, Drawer, Tooltip } from "@mui/material";
-import {
-  // faHistory,
-  faHome,
-  // faLifeRing,
-  // faZap,
-} from "@fortawesome/free-solid-svg-icons";
+import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { AccountPageList } from "./account-page-list";
 
 import { AccountEntityTypeList } from "./account-entity-type-list";
@@ -102,7 +97,11 @@ export const PageSidebar: VoidFunctionComponent = () => {
         <AccountEntityTypeList accountId={accountId} />
       </Box>
 
-      {/* Commenting this out till it's implemented  */}
+      {/* 
+        Commented this out because its functionality has not been 
+        implemented yet
+        @todo uncomment when this is done
+      */}
       {/* <Link
         noLinkStyle
         href="/"

@@ -110,6 +110,10 @@ export const ActionsDropdownInner: VFC<{
           <ListItemText primary="Create page" />
           <ListItemSecondaryAction>Opt + P</ListItemSecondaryAction>
         </MenuItem>
+        {/*  
+          Commented out menu items whose functionality have not been implemented yet
+          @todo uncomment when functionality has been implemented 
+        */}
         {/* <MenuItem onClick={popupState.close}>
           <ListItemText primary="Create entity" />
           <ListItemSecondaryAction>Opt + E</ListItemSecondaryAction>

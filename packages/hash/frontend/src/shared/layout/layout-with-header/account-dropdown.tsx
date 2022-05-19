@@ -131,6 +131,10 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           )}
         </Box>
         <Divider />
+        {/*  
+          Commented out menu items whose functionality have not been implemented yet
+          @todo uncomment when functionality has been implemented 
+        */}
         {/* <MenuItem onClick={popupState.close}>
           <ListItemText primary="Account Settings" />
         </MenuItem>
