@@ -59,7 +59,13 @@ export const updatePageContents: Resolver<
   const placeholderResults = new Map<string, string>();
 
   const getRealId = (id: string) => {
-    if (id.startsWith("placeholder-")) return placeholderResults.get(id);
+    if (id.startsWith("placeholder-")) {
+      const realId = placeholderResults.get(id);
+      if (!realId) {
+        throw new Error(`Real id for placeholder ${id} missing`);
+      }
+      return realId;
+    }
   };
 
   return await dataSources.db.transaction(async (client) => {
