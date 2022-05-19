@@ -43,21 +43,21 @@ const menuItems: {
     icon: faArrowUpZA,
     sortType: "desc",
   },
-  {
-    title: "Recently Updated",
-    icon: faWandSparkles, // @todo-mui get a free icon that matches the design closely
-    sortType: "recent",
-  },
-  {
-    title: "Most used",
-    icon: faArrowUpWideShort,
-    sortType: "most_used",
-  },
-  {
-    title: "Least used",
-    sortType: "least_used",
-    icon: faArrowDownShortWide,
-  },
+  // {
+  //   title: "Recently Updated",
+  //   icon: faWandSparkles, // @todo-mui get a free icon that matches the design closely
+  //   sortType: "recent",
+  // },
+  // {
+  //   title: "Most used",
+  //   icon: faArrowUpWideShort,
+  //   sortType: "most_used",
+  // },
+  // {
+  //   title: "Least used",
+  //   sortType: "least_used",
+  //   icon: faArrowDownShortWide,
+  // },
 ];
 
 export const SortActionsDropdown: VFC<SortActionsDropdownProps> = ({
