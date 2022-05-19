@@ -1,5 +1,9 @@
 import { useMemo, useState, VFC } from "react";
-import { faLink, faAdd } from "@fortawesome/free-solid-svg-icons";
+import {
+  faLink,
+  faAdd,
+  IconDefinition,
+} from "@fortawesome/free-solid-svg-icons";
 import pluralize from "pluralize";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/core";
@@ -13,6 +17,12 @@ type EntityTypeMenuProps = {
   entityTitle: string;
 };
 
+type MenuItemType = {
+  title: string;
+  icon: IconDefinition;
+  faded?: boolean;
+} & ({ href: string; onClick?: null } | { href?: string; onClick: () => void });
+
 // @todo-mui get free icons that matches the design closely
 export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
   popupState,
@@ -22,7 +32,10 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
 
-  const menuItems = useMemo(() => {
+  // Commented out menu items whose functionality have not been
+  // implemented yet
+  // @todo uncomment when functionality has been implemented
+  const menuItems: MenuItemType[] = useMemo(() => {
     return [
       // {
       //   title: "Add to Bookmarks",
@@ -32,6 +45,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
         title: `Create new ${pluralize.singular(entityTitle)}`,
         icon: faAdd,
         href: `/${accountId}/entities/new?entityTypeId=${entityId}`,
+        faded: false,
       },
       {
         title: copied ? "Copied!" : `Copy Link to ${entityTitle}`,
