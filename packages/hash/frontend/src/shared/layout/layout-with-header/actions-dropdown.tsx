@@ -110,10 +110,10 @@ export const ActionsDropdownInner: VFC<{
           <ListItemText primary="Create page" />
           <ListItemSecondaryAction>Opt + P</ListItemSecondaryAction>
         </MenuItem>
-        <MenuItem onClick={popupState.close}>
+        {/* <MenuItem onClick={popupState.close}>
           <ListItemText primary="Create entity" />
           <ListItemSecondaryAction>Opt + E</ListItemSecondaryAction>
-        </MenuItem>
+        </MenuItem> */}
         <MenuItem href={newEntityTypeRoute} onClick={popupState.close}>
           <ListItemText primary="Create Type" />
           <ListItemSecondaryAction>Opt + T</ListItemSecondaryAction>

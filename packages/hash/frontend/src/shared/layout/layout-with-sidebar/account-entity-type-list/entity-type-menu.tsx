@@ -57,11 +57,11 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
       //   title: "Create filtered page",
       //   icon: faFilter,
       // },
-      {
-        title: "Delete type",
-        icon: faTrash,
-        faded: true,
-      },
+      // {
+      //   title: "Delete type",
+      //   icon: faTrash,
+      //   faded: true,
+      // },
     ];
   }, [accountId, entityId, entityTitle, copied, popupState]);
 
