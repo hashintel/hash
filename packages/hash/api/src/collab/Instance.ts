@@ -866,6 +866,7 @@ export const getInstance =
     if (forceNewInstance || instances[pageEntityId]?.errored) {
       instances[pageEntityId]?.stop();
       delete instances[pageEntityId];
+      instanceCount--;
     }
     const inst =
       instances[pageEntityId] ||
