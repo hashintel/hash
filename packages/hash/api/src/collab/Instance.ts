@@ -38,7 +38,7 @@ import {
 } from "@hashintel/hash-shared/queries/page.queries";
 import {
   createNecessaryEntities,
-  updatePageMutation,
+  updatePageMutationWithActions,
 } from "@hashintel/hash-shared/save";
 import { Response } from "express";
 import { isEqual, memoize, pick } from "lodash";
@@ -103,7 +103,7 @@ const save = async (
 
   const placeholders = new Map<string, string>();
 
-  const result = await updatePageMutation(
+  const [newBlocks, newActions] = await updatePageMutationWithActions(
     accountId,
     pageEntityId,
     getDoc(),
@@ -111,31 +111,19 @@ const save = async (
     getState().store,
     apolloClient,
     createdEntities,
-    (draftId) => {
+    (draftId: string) => {
       const newPlaceholder = `placeholder-${uuid()}`;
       placeholders.set(newPlaceholder, draftId);
       return newPlaceholder;
     },
+    (placeholderId: string) => {
+      return placeholders.get(placeholderId);
+    },
   );
-
-  const newActions: EntityStorePluginAction[] = [];
-
-  for (const placeholder of result.placeholders) {
-    const draftId = placeholders.get(placeholder.placeholderID);
-    if (draftId) {
-      newActions.push({
-        type: "updateEntityId",
-        payload: {
-          draftId,
-          entityId: placeholder.entityID,
-        },
-      });
-    }
-  }
 
   updateState(newActions);
 
-  return result.page.properties.contents;
+  return newBlocks;
 };
 
 // A collaborative editing document instance.

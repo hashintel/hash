@@ -7,7 +7,6 @@ import {
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   createEntity,
-  createEntityType,
   getAccountEntityTypes,
 } from "@hashintel/hash-shared/queries/entity.queries";
 import { isEqual, uniqBy } from "lodash";
@@ -29,8 +28,6 @@ import {
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
-  CreateEntityTypeSharedMutation,
-  CreateEntityTypeSharedMutationVariables,
   GetAccountEntityTypesSharedQuery,
   GetAccountEntityTypesSharedQueryVariables,
   SystemTypeName,
@@ -730,4 +727,43 @@ export const updatePageMutation = async (
   await client.reFetchObservableQueries();
 
   return res.data.updatePageContents;
+};
+
+export const updatePageMutationWithActions = async (
+  accountId: string,
+  pageEntityId: string,
+  doc: ProsemirrorNode<Schema>,
+  blocks: BlockEntity[],
+  store: EntityStore,
+  apolloClient: ApolloClient<unknown>,
+  createdEntities: Map<number, { accountId: string; entityId: string }>,
+  getPlaceholder: (draftId: string) => string,
+  getDraftId: (placeholderId: string) => string | undefined,
+) => {
+  const result = await updatePageMutation(
+    accountId,
+    pageEntityId,
+    doc,
+    blocks,
+    store,
+    apolloClient,
+    createdEntities,
+    getPlaceholder,
+  );
+
+  const newActions: EntityStorePluginAction[] = [];
+
+  for (const placeholder of result.placeholders) {
+    const draftId = getDraftId(placeholder.placeholderID);
+    if (draftId) {
+      newActions.push({
+        type: "updateEntityId",
+        payload: {
+          draftId,
+          entityId: placeholder.entityID,
+        },
+      });
+    }
+  }
+  return [result.page.properties.contents, newActions] as const;
 };
