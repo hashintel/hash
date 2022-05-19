@@ -1,15 +1,8 @@
 import { VFC, useMemo, useState } from "react";
-import { Divider, ListItemIcon, ListItemText, Menu } from "@mui/material";
+import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import {
-  faArrowRight,
-  faBookmark,
-  faCopy,
-  faEyeSlash,
-  faLink,
-  faPencil,
-} from "@fortawesome/free-solid-svg-icons";
-import { faFileAlt, faTrashCan } from "@fortawesome/free-regular-svg-icons";
+import { faLink } from "@fortawesome/free-solid-svg-icons";
+import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { useRouteAccountInfo } from "../../../routing";
 import { FontAwesomeIcon } from "../../../icons";
 import { useCreatePage } from "../../../../components/hooks/useCreatePage";

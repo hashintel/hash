@@ -1,21 +1,21 @@
 import { VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
-import { Box, Drawer, Typography, Tooltip } from "@mui/material";
+import { Box, Drawer, Tooltip } from "@mui/material";
 import {
-  faHistory,
+  // faHistory,
   faHome,
-  faLifeRing,
-  faZap,
+  // faLifeRing,
+  // faZap,
 } from "@fortawesome/free-solid-svg-icons";
 import { AccountPageList } from "./account-page-list";
 
 import { AccountEntityTypeList } from "./account-entity-type-list";
-import { FontAwesomeIcon, SidebarToggleIcon } from "../../icons";
+import { SidebarToggleIcon } from "../../icons";
 import { TopNavLink } from "./top-nav-link";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useSidebarContext } from "./sidebar-context";
-import { IconButton, Link } from "../../ui";
+import { IconButton } from "../../ui";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../routing";
 

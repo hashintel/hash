@@ -17,11 +17,9 @@ import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPos
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
-import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
-import { PageTransferDropdown } from "./[page-slug].page/page-transfer-dropdown";
 import { NextPageWithLayout, getLayoutWithSidebar } from "../../shared/layout";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 

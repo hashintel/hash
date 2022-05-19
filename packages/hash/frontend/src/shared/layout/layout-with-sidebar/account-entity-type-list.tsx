@@ -1,6 +1,5 @@
 import { useState, useMemo, useRef, VFC, useEffect, Ref } from "react";
 import {
-  Typography,
   Box,
   Tooltip,
   outlinedInputClasses,
@@ -8,17 +7,13 @@ import {
   Collapse,
 } from "@mui/material";
 import { TransitionGroup } from "react-transition-group";
-import {
-  faArrowUpAZ,
-  faSearch,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
+import { faArrowUpAZ, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { orderBy } from "lodash";
 import { useRouter } from "next/router";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 import { NavLink } from "./nav-link";
-import { IconButton, Link, TextField } from "../../ui";
+import { IconButton, TextField } from "../../ui";
 import { FontAwesomeIcon } from "../../icons";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
@@ -38,7 +33,7 @@ const SearchInput: VFC<SearchInputProps> = ({
   searchVisible,
   searchInputRef,
   showSearchInput,
-  hideSearchInput,
+  // hideSearchInput,
   onChangeText,
 }) => (
   <>

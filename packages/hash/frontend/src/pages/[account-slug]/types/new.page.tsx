@@ -47,8 +47,6 @@ const Page: NextPageWithLayout = () => {
     );
   };
 
-  console.log("error => ", error?.message);
-
   return (
     <>
       <header className={tw`mb-12`}>

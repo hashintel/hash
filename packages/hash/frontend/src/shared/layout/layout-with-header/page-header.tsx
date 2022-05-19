@@ -6,7 +6,6 @@ import { useUser } from "../../../components/hooks/useUser";
 import { AccountDropdown } from "./account-dropdown";
 import { SearchBar } from "./search-bar";
 import { ActionsDropdown } from "./actions-dropdown";
-import { NotificationsDropdown } from "./notifications-dropdown";
 import { Button, Link } from "../../ui";
 import { HashNavIcon } from "../../icons";
 

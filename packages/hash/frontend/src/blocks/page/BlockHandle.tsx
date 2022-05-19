@@ -27,7 +27,7 @@ type BlockHandleProps = {
 };
 
 const BlockHandle: ForwardRefRenderFunction<
-  HTMLButtonElement,
+  HTMLDivElement,
   BlockHandleProps
 > = (
   { deleteBlock, entityId, entityStore, onTypeChange, onMouseDown, onClick },
@@ -87,7 +87,7 @@ const BlockHandle: ForwardRefRenderFunction<
     : null;
 
   return (
-    <Box ref={ref} data-testid="block-changer">
+    <Box ref={ref} data-testid="block-handle">
       <IconButton
         ref={(el) => {
           if (el && !contextMenuPopupState.setAnchorElUsed) {
@@ -101,6 +101,7 @@ const BlockHandle: ForwardRefRenderFunction<
           onClick?.();
           contextMenuPopupState.open();
         }}
+        data-testid="block-changer"
       >
         <FontAwesomeIcon icon={faEllipsisVertical} />
       </IconButton>

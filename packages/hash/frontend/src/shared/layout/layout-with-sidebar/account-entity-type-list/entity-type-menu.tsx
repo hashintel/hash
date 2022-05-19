@@ -1,11 +1,5 @@
 import { useMemo, useState, VFC } from "react";
-import {
-  faLink,
-  faAdd,
-  faBookmark,
-  faTrash,
-  faFilter,
-} from "@fortawesome/free-solid-svg-icons";
+import { faLink, faAdd } from "@fortawesome/free-solid-svg-icons";
 import pluralize from "pluralize";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/core";
