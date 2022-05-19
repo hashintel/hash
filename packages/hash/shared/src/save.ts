@@ -5,10 +5,7 @@ import {
   EntityStorePluginAction,
   EntityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import {
-  createEntity,
-  getAccountEntityTypes,
-} from "@hashintel/hash-shared/queries/entity.queries";
+import { getAccountEntityTypes } from "@hashintel/hash-shared/queries/entity.queries";
 import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
@@ -26,8 +23,6 @@ import {
   isDraftBlockEntity,
 } from "./entityStore";
 import {
-  CreateEntityMutation,
-  CreateEntityMutationVariables,
   GetAccountEntityTypesSharedQuery,
   GetAccountEntityTypesSharedQueryVariables,
   SystemTypeName,
@@ -484,6 +479,7 @@ const capitalizeComponentName = (cId: string) => {
 
 const randomPlaceholder = () => `placeholder-${uuid()}`;
 
+// @todo consider rewriting not to use doc
 export const createNecessaryEntities = async (
   entityStore: EntityStorePluginState,
   doc: ProsemirrorNode<Schema>,
@@ -540,6 +536,31 @@ export const createNecessaryEntities = async (
   );
 
   const createdEntities: CreatedEntities = new Map();
+  const entityTypeForComponentId = new Map<string, string>();
+  const entityTypes = await client.query<
+    GetAccountEntityTypesSharedQuery,
+    GetAccountEntityTypesSharedQueryVariables
+  >({
+    query: getAccountEntityTypes,
+    variables: { accountId, includeOtherTypesInUse: true },
+    fetchPolicy: "network-only",
+  });
+
+  /**
+   * @todo shouldn't need an existing text entity to find this
+   */
+  const textEntityTypeId = entityTypes.data.getAccountEntityTypes.find(
+    (type) => type.properties.title === "Text",
+  )?.entityId;
+
+  if (!textEntityTypeId) {
+    throw new Error("No text entities exist. Cannot find text entity type id");
+  }
+
+  const updatePageContentsActions: UpdatePageAction[] = [];
+
+  const placeholderIdToDraftId = new Map<string, string>();
+  const blockPositionToPlaceholder = new Map<number, string>();
 
   for (const {
     componentId,
@@ -547,8 +568,6 @@ export const createNecessaryEntities = async (
     textLink,
     blockEntityNodePosition,
   } of entitiesToCreate) {
-    const updatePageContentsActions: UpdatePageAction[] = [];
-
     let variantEntityProperties;
 
     if (textLink.data.entityId) {
@@ -569,25 +588,20 @@ export const createNecessaryEntities = async (
         },
       };
     } else {
-      const textEntityResult = await client.mutate<
-        CreateEntityMutation,
-        CreateEntityMutationVariables
-      >({
-        mutation: createEntity,
-        variables: {
-          properties: textLink.data.properties,
-          systemTypeName: SystemTypeName.Text,
-          accountId,
-          versioned: true,
-        },
-      });
+      const placeholder = randomPlaceholder();
+      placeholderIdToDraftId.set(placeholder, textLink.data.draftId);
 
-      // @todo may not be necessary as may be handled elsewhere
-      actions.push({
-        type: "updateEntityId",
-        payload: {
-          entityId: textEntityResult.data!.createEntity.entityId,
-          draftId: textLink.data.draftId,
+      updatePageContentsActions.push({
+        createEntity: {
+          accountId,
+          entity: {
+            versioned: true,
+            placeholderID: placeholder,
+            entityType: {
+              systemTypeName: SystemTypeName.Text,
+            },
+            entityProperties: textLink.data.properties,
+          },
         },
       });
 
@@ -595,88 +609,103 @@ export const createNecessaryEntities = async (
         ...entity.properties,
         text: {
           __linkedData: {
-            entityTypeId: textEntityResult.data!.createEntity.entityTypeId,
-            entityId: textEntityResult.data!.createEntity.entityId,
+            entityTypeId: textEntityTypeId,
+            entityId: placeholder,
           },
         },
       };
     }
 
-    const entityTypes = await client.query<
-      GetAccountEntityTypesSharedQuery,
-      GetAccountEntityTypesSharedQueryVariables
-    >({
-      query: getAccountEntityTypes,
-      variables: { accountId, includeOtherTypesInUse: true },
-      fetchPolicy: "network-only",
-    });
-
-    const componentMeta = await fetchBlockMeta(componentId);
-
-    // @todo use stored component id for entity type, instead of properties
-    const componentSchemaKeys = Object.keys(
-      componentMeta.componentSchema.properties ?? {},
-    ).sort();
-
-    componentSchemaKeys.splice(componentSchemaKeys.indexOf("editableRef"), 1);
-    let desiredEntityTypeId = entityTypes.data.getAccountEntityTypes.find(
-      (type) =>
-        isEqual(
-          Object.keys(type.properties.properties ?? {}).sort(),
-          componentSchemaKeys,
-        ),
-    )?.entityId;
+    let desiredEntityTypeId: string | undefined =
+      entityTypeForComponentId.get(componentId);
 
     if (!desiredEntityTypeId) {
-      const jsonSchema = JSON.parse(
-        JSON.stringify(componentMeta.componentSchema),
-      );
+      const componentMeta = await fetchBlockMeta(componentId);
 
-      delete jsonSchema.properties.editableRef;
+      // @todo use stored component id for entity type, instead of properties
+      const componentSchemaKeys = Object.keys(
+        componentMeta.componentSchema.properties ?? {},
+      ).sort();
 
-      const entityTypePlaceholder = randomPlaceholder();
+      componentSchemaKeys.splice(componentSchemaKeys.indexOf("editableRef"), 1);
+      desiredEntityTypeId = entityTypes.data.getAccountEntityTypes.find(
+        (type) =>
+          isEqual(
+            Object.keys(type.properties.properties ?? {}).sort(),
+            componentSchemaKeys,
+          ),
+      )?.entityId;
 
-      updatePageContentsActions.push({
-        createEntityType: {
-          accountId,
-          // @todo need to add the text field to this
-          schema: jsonSchema,
-          name: capitalizeComponentName(componentId) + uuid(),
-          placeholderID: entityTypePlaceholder,
-        },
-      });
+      if (!desiredEntityTypeId || true) {
+        const jsonSchema = JSON.parse(
+          JSON.stringify(componentMeta.componentSchema),
+        );
 
-      desiredEntityTypeId = entityTypePlaceholder;
+        delete jsonSchema.properties.editableRef;
+
+        const entityTypePlaceholder = randomPlaceholder();
+
+        updatePageContentsActions.push({
+          createEntityType: {
+            accountId,
+            // @todo need to add the text field to this
+            schema: jsonSchema,
+            name: capitalizeComponentName(componentId) + uuid(),
+            placeholderID: entityTypePlaceholder,
+          },
+        });
+
+        desiredEntityTypeId = entityTypePlaceholder;
+      }
     }
 
+    if (!desiredEntityTypeId) {
+      throw new Error("Cannot find entity type for variant entity");
+    }
+
+    entityTypeForComponentId.set(componentId, desiredEntityTypeId);
+
     const variantEntityPlaceholder = randomPlaceholder();
-    const result = await client.mutate<
-      UpdatePageContentsMutation,
-      UpdatePageContentsMutationVariables
-    >({
-      mutation: updatePageContents,
-      variables: {
+    blockPositionToPlaceholder.set(
+      blockEntityNodePosition,
+      variantEntityPlaceholder,
+    );
+
+    updatePageContentsActions.push({
+      createEntity: {
         accountId,
-        entityId: pageEntityId,
-        actions: [
-          ...updatePageContentsActions,
-          {
-            createEntity: {
-              accountId,
-              entity: {
-                placeholderID: variantEntityPlaceholder,
-                versioned: true,
-                entityType: {
-                  entityTypeId: desiredEntityTypeId,
-                },
-                entityProperties: variantEntityProperties,
-              },
-            },
+        entity: {
+          placeholderID: variantEntityPlaceholder,
+          versioned: true,
+          entityType: {
+            entityTypeId: desiredEntityTypeId,
           },
-        ],
+          entityProperties: variantEntityProperties,
+        },
       },
     });
+  }
 
+  if (!updatePageContentsActions.length) {
+    return { actions, createdEntities };
+  }
+
+  const result = await client.mutate<
+    UpdatePageContentsMutation,
+    UpdatePageContentsMutationVariables
+  >({
+    mutation: updatePageContents,
+    variables: {
+      accountId,
+      entityId: pageEntityId,
+      actions: updatePageContentsActions,
+    },
+  });
+
+  for (const [
+    blockEntityNodePosition,
+    variantEntityPlaceholder,
+  ] of blockPositionToPlaceholder.entries()) {
     const newVariantEntityId =
       result.data!.updatePageContents.placeholders.find(
         ({ placeholderID }) => placeholderID === variantEntityPlaceholder,
@@ -685,6 +714,20 @@ export const createNecessaryEntities = async (
     createdEntities.set(blockEntityNodePosition, {
       accountId,
       entityId: newVariantEntityId,
+    });
+  }
+
+  for (const [placeholderId, draftId] of placeholderIdToDraftId.entries()) {
+    const entityId = result.data!.updatePageContents.placeholders.find(
+      ({ placeholderID }) => placeholderID === placeholderId,
+    )!.entityID;
+
+    actions.push({
+      type: "updateEntityId",
+      payload: {
+        entityId,
+        draftId,
+      },
     });
   }
 

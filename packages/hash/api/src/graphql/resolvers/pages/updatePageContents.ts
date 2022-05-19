@@ -103,57 +103,61 @@ export const updatePageContents: Resolver<
           }
         }),
     );
+
     // Create any _new_ entities
-    await Promise.all(
-      actions
-        .map((action, i) => ({ action, i }))
-        .filter(({ action }) => action.createEntity)
-        .map(async ({ action, i }) => {
-          try {
-            const { entity: entityDefinition, accountId: entityAccountId } =
-              action.createEntity!;
+    for (const { action, i } of actions
+      // eslint-disable-next-line @typescript-eslint/no-shadow
+      .map((action, i) => ({ action, i }))
+      // eslint-disable-next-line @typescript-eslint/no-shadow
+      .filter(({ action }) => action.createEntity)) {
+      try {
+        const { entity: entityDefinition, accountId: entityAccountId } =
+          action.createEntity!;
 
-            // @todo remove duplication
-            const updatedEntityDefinition = produce(
-              entityDefinition,
-              (draft) => {
-                if (draft.existingEntity) {
-                  const realId = getRealId(draft.existingEntity.entityId);
-                  if (realId) {
-                    draft.existingEntity.entityId = realId;
-                  }
-                }
-                if (draft.entityType?.entityTypeId) {
-                  const realId = getRealId(draft.entityType.entityTypeId);
-                  if (realId) {
-                    draft.entityType.entityTypeId = realId;
-                  }
-                }
-              },
-            );
+        const entityPlaceholderId = entityDefinition.placeholderID;
 
-            const entity = await Entity.createEntityWithLinks(client, {
-              accountId: entityAccountId,
-              user,
-              entityDefinition: updatedEntityDefinition,
-            });
-
-            if (
-              updatedEntityDefinition.placeholderID?.startsWith("placeholder-")
-            ) {
-              placeholderResults.set(
-                updatedEntityDefinition.placeholderID,
-                entity.entityId,
-              );
+        // @todo remove duplication
+        const updatedEntityDefinition = produce(entityDefinition, (draft) => {
+          if (draft.existingEntity) {
+            const realId = getRealId(draft.existingEntity.entityId);
+            if (realId) {
+              draft.existingEntity.entityId = realId;
             }
-          } catch (error) {
-            if (error instanceof UserInputError) {
-              throw new UserInputError(`action ${i}: ${error}`);
-            }
-            throw error;
           }
-        }),
-    );
+          if (draft.entityType?.entityTypeId) {
+            const realId = getRealId(draft.entityType.entityTypeId);
+            if (realId) {
+              draft.entityType.entityTypeId = realId;
+            }
+          }
+          if (draft.entityProperties?.text?.__linkedData?.entityId) {
+            const realId = getRealId(
+              draft.entityProperties.text.__linkedData.entityId,
+            );
+            if (realId) {
+              draft.entityProperties.text.__linkedData.entityId = realId;
+            }
+          }
+
+          delete draft.placeholderID;
+        });
+
+        const entity = await Entity.createEntityWithLinks(client, {
+          accountId: entityAccountId,
+          user,
+          entityDefinition: updatedEntityDefinition,
+        });
+
+        if (entityPlaceholderId?.startsWith("placeholder-")) {
+          placeholderResults.set(entityPlaceholderId, entity.entityId);
+        }
+      } catch (error) {
+        if (error instanceof UserInputError) {
+          throw new UserInputError(`action ${i}: ${error}`);
+        }
+        throw error;
+      }
+    }
 
     // Create any _new_ blocks
     const newBlocks = await Promise.all(
@@ -182,6 +186,14 @@ export const updatePageContents: Resolver<
                   const realId = getRealId(draft.entityType.entityTypeId);
                   if (realId) {
                     draft.entityType.entityTypeId = realId;
+                  }
+                }
+                if (draft.entityProperties?.text?.__linkedData?.entityId) {
+                  const realId = getRealId(
+                    draft.entityProperties.text.__linkedData.entityId,
+                  );
+                  if (realId) {
+                    draft.entityProperties.text.__linkedData.entityId = realId;
                   }
                 }
               },
