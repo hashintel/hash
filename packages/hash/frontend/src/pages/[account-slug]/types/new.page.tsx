@@ -59,9 +59,10 @@ const Page: NextPageWithLayout = () => {
         </p>
       </header>
       <section>
-        <form onSubmit={submit}>
+        <form data-testid="entity-type-creation-form" onSubmit={submit}>
           <div className={tw`max-w-2xl lg:(flex)`}>
             <TextField
+              name="name"
               label="Name"
               onChange={(evt) => setName(evt.target.value.replace(/\W/g, ""))}
               value={name}
@@ -71,6 +72,7 @@ const Page: NextPageWithLayout = () => {
               required
             />
             <TextField
+              name="description"
               label="Description"
               onChange={(evt) => setDescription(evt.target.value)}
               value={description}

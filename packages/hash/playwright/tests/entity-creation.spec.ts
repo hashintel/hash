@@ -21,13 +21,22 @@ test("user can create and update entity", async ({ page }) => {
   const entityName = `TestEntity${(Math.random() * 1000).toFixed()}`;
 
   // Fill up entity creation form
-  await page.click('text=NameDescription >> input[type="text"]');
-  await page.fill('text=NameDescription >> input[type="text"]', entityName);
-  await page.click('main :nth-match(input[type="text"], 3)');
-  await page.fill('main :nth-match(input[type="text"], 3)', "Test Entity");
+  // await page.click('text=NameDescription >> input[type="text"]');
+  // await page.fill('text=NameDescription >> input[type="text"]', entityName);
+  // await page.click('main :nth-match(input[type="text"], 3)');
+  // await page.fill('main :nth-match(input[type="text"], 3)', "Test Entity");
+
+  await page.fill(
+    '[data-testid=entity-type-creation-form] input[name="name"]',
+    entityName,
+  );
+  await page.fill(
+    '[data-testid=entity-type-creation-form] input[name="description"]',
+    "Test Entity",
+  );
 
   // Submit entity creation form and wait for page load
-  await page.click("text=NameDescriptionCreate Entity Type >> button");
+  await page.click("[data-testid=entity-type-creation-form] button");
   await page.waitForURL(
     (url) => !!url.pathname.match(/^\/[\w-]+(\/types\/)[\w-]+/),
   );
