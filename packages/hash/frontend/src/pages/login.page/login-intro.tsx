@@ -114,7 +114,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           >
             <button
               type="button"
-              className={tw`focus:outline-none bg(black opacity-70 hover:opacity-90 focus:opacity-90) rounded-lg h-11 px-6 flex items-center text-white mb-10`}
+              className={tw`focus:outline-none border-none cursor-pointer bg(black opacity-70 hover:opacity-90 focus:opacity-90) rounded-lg h-11 px-6 flex items-center text-white mb-10`}
             >
               Create a free account
             </button>
