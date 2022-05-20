@@ -1,21 +1,16 @@
 import { VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
-import { Box, Drawer, Typography, Tooltip } from "@mui/material";
-import {
-  faHistory,
-  faHome,
-  faLifeRing,
-  faZap,
-} from "@fortawesome/free-solid-svg-icons";
+import { Box, Drawer, Tooltip } from "@mui/material";
+import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { AccountPageList } from "./account-page-list";
 
 import { AccountEntityTypeList } from "./account-entity-type-list";
-import { FontAwesomeIcon, SidebarToggleIcon } from "../../icons";
+import { SidebarToggleIcon } from "../../icons";
 import { TopNavLink } from "./top-nav-link";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useSidebarContext } from "./sidebar-context";
-import { IconButton, Link } from "../../ui";
+import { IconButton } from "../../ui";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../routing";
 
@@ -66,7 +61,14 @@ export const PageSidebar: VoidFunctionComponent = () => {
         tooltipTitle="View your inbox and latest activity"
         active={router.pathname === "/[account-slug]"}
       />
-      <TopNavLink
+      {/* 
+        Commented out nav links whose functionality have not been 
+        implemented yet
+        
+        @todo uncomment when the functionalities are implemented
+      */}
+
+      {/* <TopNavLink
         icon={faZap}
         title="Quick Capture"
         href="/"
@@ -77,7 +79,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         title="Recently visited"
         href="/"
         tooltipTitle="Pages you’ve recently visited"
-      />
+      /> */}
       <Box sx={{ mb: 1.5 }} />
 
       <Box
@@ -95,7 +97,12 @@ export const PageSidebar: VoidFunctionComponent = () => {
         <AccountEntityTypeList accountId={accountId} />
       </Box>
 
-      <Link
+      {/* 
+        Commented this out because its functionality has not been 
+        implemented yet
+        @todo uncomment when this is done
+      */}
+      {/* <Link
         noLinkStyle
         href="/"
         sx={{
@@ -123,7 +130,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         >
           Help and Support
         </Typography>
-      </Link>
+      </Link> */}
     </Drawer>
   );
 };

@@ -6,7 +6,6 @@ import { useUser } from "../../../components/hooks/useUser";
 import { AccountDropdown } from "./account-dropdown";
 import { SearchBar } from "./search-bar";
 import { ActionsDropdown } from "./actions-dropdown";
-import { NotificationsDropdown } from "./notifications-dropdown";
 import { Button, Link } from "../../ui";
 import { HashNavIcon } from "../../icons";
 
@@ -71,7 +70,11 @@ export const PageHeader: React.VFC = () => {
         {user ? (
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <ActionsDropdown />
-            <NotificationsDropdown />
+            {/*  
+              Commented out Notifications dropdown because the functionality has not been implemented yet
+              @todo uncomment when functionality has been implemented 
+            */}
+            {/* <NotificationsDropdown /> */}
             <AccountDropdown logout={logout} user={user} />
           </Box>
         ) : (

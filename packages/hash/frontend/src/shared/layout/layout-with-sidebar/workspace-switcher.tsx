@@ -141,7 +141,11 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
 
         <Divider />
 
-        {[
+        {/*  
+          Commented out menu items whose functionality have not been implemented yet
+          @todo uncomment when functionality has been implemented 
+        */}
+        {/* {[
           {
             title: "Workspace Settings",
             href: "/",
@@ -156,7 +160,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             <ListItemText primary={title} />
           </MenuItem>
         ))}
-        <Divider />
+        <Divider /> */}
         <MenuItem faded onClick={() => logout()}>
           <ListItemText primary="Sign out" />
         </MenuItem>

@@ -6,7 +6,6 @@ import {
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { Box } from "@mui/material";
 import { BlockVariant } from "blockprotocol";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
@@ -37,9 +36,6 @@ export class BlockView implements NodeView<Schema> {
 
   /** used to hide node-view specific events from prosemirror */
   blockHandleRef = createRef<HTMLDivElement>();
-
-  /** used to hide dragging-related events from prosemirror */
-  dragHandleRef = createRef<HTMLDivElement>();
 
   private store: EntityStore;
   private unsubscribe: Function;
@@ -119,7 +115,7 @@ export class BlockView implements NodeView<Schema> {
      */
     return (
       this.blockHandleRef.current?.contains(evt.target as Node) ||
-      (evt.target === this.dragHandleRef.current && evt.type === "mousedown")
+      (evt.target === this.blockHandleRef.current && evt.type === "mousedown")
     );
   }
 
@@ -177,19 +173,12 @@ export class BlockView implements NodeView<Schema> {
     this.renderPortal(
       <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-        <Box
-          data-testid="block-handle"
-          sx={{
-            backgroundImage: `url("/drag-icon.png")`,
-            height: 20,
-            width: 20,
-            borderRadius: "50%",
-            mr: 1.25,
-            backgroundSize: "contain",
-            cursor: "pointer",
-          }}
-          ref={this.dragHandleRef}
+        <BlockHandle
+          deleteBlock={this.deleteBlock}
+          entityId={blockEntityId}
+          entityStore={this.store}
+          onTypeChange={this.onBlockChange}
+          ref={this.blockHandleRef}
           onMouseDown={() => {
             /**
              * We only want to allow dragging from the drag handle
@@ -223,13 +212,6 @@ export class BlockView implements NodeView<Schema> {
             this.update(this.node);
           }}
           onClick={this.onDragEnd}
-        />
-        <BlockHandle
-          deleteBlock={this.deleteBlock}
-          entityId={blockEntityId}
-          entityStore={this.store}
-          onTypeChange={this.onBlockChange}
-          ref={this.blockHandleRef}
         />
       </BlockViewContext.Provider>,
       this.selectContainer,

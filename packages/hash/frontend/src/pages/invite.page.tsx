@@ -156,7 +156,7 @@ const Page: NextPageWithLayout = () => {
 
             <button
               type="submit"
-              className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 focus:outline-none rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold`}
+              className={tw`group border-none cursor-pointer disabled:cursor-not-allowed w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 focus:outline-none rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold`}
               disabled={joinOrgLoading || !responsibility}
             >
               {joinOrgLoading ? (

@@ -2,9 +2,7 @@ import { useMemo, useState, VFC } from "react";
 import {
   faLink,
   faAdd,
-  faBookmark,
-  faTrash,
-  faFilter,
+  IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import pluralize from "pluralize";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
@@ -19,6 +17,12 @@ type EntityTypeMenuProps = {
   entityTitle: string;
 };
 
+type MenuItemType = {
+  title: string;
+  icon: IconDefinition;
+  faded?: boolean;
+} & ({ href: string; onClick?: null } | { href?: string; onClick: () => void });
+
 // @todo-mui get free icons that matches the design closely
 export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
   popupState,
@@ -28,16 +32,20 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
 
-  const menuItems = useMemo(() => {
+  // Commented out menu items whose functionality have not been
+  // implemented yet
+  // @todo uncomment when functionality has been implemented
+  const menuItems: MenuItemType[] = useMemo(() => {
     return [
-      {
-        title: "Add to Bookmarks",
-        icon: faBookmark,
-      },
+      // {
+      //   title: "Add to Bookmarks",
+      //   icon: faBookmark,
+      // },
       {
         title: `Create new ${pluralize.singular(entityTitle)}`,
         icon: faAdd,
         href: `/${accountId}/entities/new?entityTypeId=${entityId}`,
+        faded: false,
       },
       {
         title: copied ? "Copied!" : `Copy Link to ${entityTitle}`,
@@ -53,15 +61,15 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
           }, 2000);
         },
       },
-      {
-        title: "Create filtered page",
-        icon: faFilter,
-      },
-      {
-        title: "Delete type",
-        icon: faTrash,
-        faded: true,
-      },
+      // {
+      //   title: "Create filtered page",
+      //   icon: faFilter,
+      // },
+      // {
+      //   title: "Delete type",
+      //   icon: faTrash,
+      //   faded: true,
+      // },
     ];
   }, [accountId, entityId, entityTitle, copied, popupState]);
 

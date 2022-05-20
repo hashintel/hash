@@ -7,5 +7,4 @@ export { default as KeyboardReturnIcon } from "./svg/keyboard-return.svg";
 export { default as PeopleIcon } from "./svg/people.svg";
 export { default as PictureIcon } from "./svg/picture.svg";
 export { default as SpinnerIcon } from "./svg/spinner.svg";
-export { default as HashIcon } from "./svg/hash.svg";
 export { default as LogoIcon } from "./svg/logo.svg";

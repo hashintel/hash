@@ -17,11 +17,9 @@ import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPos
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
-import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
-import { PageTransferDropdown } from "./[page-slug].page/page-transfer-dropdown";
 import { NextPageWithLayout, getLayoutWithSidebar } from "../../shared/layout";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 
@@ -127,7 +125,12 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
               metadataId={data.page.entityId}
             />
           </div>
-          <div className={tw`mr-4`}>
+          {/* 
+            Commented out Version Dropdown and Transfer Page buttons.
+            They will most likely be added back when new designs 
+            for them have been added
+          */}
+          {/* <div className={tw`mr-4`}>
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -150,7 +153,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
                 setPageState={setPageState}
               />
             </div>
-          </div>
+          </div> */}
         </div>
       </header>
 

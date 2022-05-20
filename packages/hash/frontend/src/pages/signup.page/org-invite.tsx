@@ -88,7 +88,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
             Share an invite link
           </p>
           <div
-            className={tw`flex items-center bg-white border(1 gray-300) rounded-lg h-11 pl-5 pr-24 mb-2 w-full relative`}
+            className={tw`flex items-center bg-white border(1 solid gray-300) rounded-lg h-11 pl-5 pr-24 mb-2 w-full relative`}
           >
             <span
               className={tw`whitespace-nowrap overflow-ellipsis overflow-hidden`}
@@ -97,7 +97,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
             </span>
             <button
               type="button"
-              className={tw`absolute right-0 top-0 bottom-0 w-24 flex justify-center items-center text-white rounded-r-lg  ${
+              className={tw`absolute border-none right-0 top-0 bottom-0 w-24 flex justify-center items-center text-white rounded-r-lg  ${
                 copied ? "bg(green-500)" : "bg(blue-500 hover:blue-700)"
               } `}
               disabled={copied}
@@ -137,7 +137,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
         <div className={tw`flex flex-col`}>
           <button
             type="submit"
-            className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center text-white text-sm font-bold mx-auto mb-4`}
+            className={tw`group w-64 border-none cursor-pointer bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center text-white text-sm font-bold mx-auto mb-4`}
             disabled={sendingInvitations}
             onClick={onSubmit}
           >
