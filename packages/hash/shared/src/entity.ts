@@ -34,6 +34,10 @@ export const isTextEntity = (
   entity: EntityStoreType | DraftEntity,
 ): entity is Text => "properties" in entity && "tokens" in entity.properties;
 
+export const isDraftTextEntity = (
+  entity: DraftEntity,
+): entity is DraftEntity<Text> => isTextEntity(entity) && isDraftEntity(entity);
+
 /**
  * @deprecated
  */

@@ -95,6 +95,7 @@ type ComponentNodeAttrs = {};
 export type ComponentNode = NodeWithAttrs<ComponentNodeAttrs>;
 
 export type EntityNode = NodeWithAttrs<{
+  // @todo how can this ever be null?
   draftId: string | null;
 }>;
 
