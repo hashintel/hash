@@ -121,10 +121,13 @@ const transformBlockConfig = ({
 // @todo deal with errors, loading, abort etc.
 export const fetchBlockMeta = async (
   componentId: string,
+  options?: { bustCache: boolean },
 ): Promise<BlockMeta> => {
   const baseUrl = componentIdToUrl(componentId);
 
-  if (blockCache.has(baseUrl)) {
+  if (options?.bustCache) {
+    blockCache.delete(baseUrl);
+  } else if (blockCache.has(baseUrl)) {
     return blockCache.get(baseUrl)!;
   }
 
