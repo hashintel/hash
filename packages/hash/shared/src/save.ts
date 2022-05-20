@@ -401,6 +401,7 @@ const updateBlocks = defineOperation(
  *
  * @todo this needs to be able to handle multiple blocks of the same id
  *       appearing on the same page
+ * @todo use draft entity store for this
  */
 const calculateSaveActions = (
   doc: ProsemirrorNode<Schema>,
@@ -480,7 +481,7 @@ const capitalizeComponentName = (cId: string) => {
 const randomPlaceholder = () => `placeholder-${uuid()}`;
 
 // @todo consider rewriting not to use doc
-export const createNecessaryEntities = async (
+const createNecessaryEntities = async (
   entityStore: EntityStorePluginState,
   doc: ProsemirrorNode<Schema>,
   accountId: string,
@@ -734,45 +735,7 @@ export const createNecessaryEntities = async (
   return { actions, createdEntities };
 };
 
-/**
- * @todo use draft entity store for this
- */
-export const updatePageMutation = async (
-  accountId: string,
-  entityId: string,
-  doc: ProsemirrorNode<Schema>,
-  blocks: BlockEntity[],
-  entityStore: EntityStore,
-  client: ApolloClient<any>,
-  createdEntities: CreatedEntities,
-  getPlaceholder: GetPlaceholder,
-) => {
-  const actions = calculateSaveActions(
-    doc,
-    blocks,
-    entityStore,
-    createdEntities,
-    getPlaceholder,
-  );
-
-  const res = await client.mutate<
-    UpdatePageContentsMutation,
-    UpdatePageContentsMutationVariables
-  >({
-    variables: { actions, accountId, entityId },
-    mutation: updatePageContents,
-  });
-
-  if (!res.data) {
-    throw new Error("Failed");
-  }
-
-  await client.reFetchObservableQueries();
-
-  return res.data.updatePageContents;
-};
-
-export const updatePageMutationWithActions = async (
+const updatePageMutationWithActions = async (
   accountId: string,
   pageEntityId: string,
   doc: ProsemirrorNode<Schema>,
@@ -783,16 +746,29 @@ export const updatePageMutationWithActions = async (
   getPlaceholder: (draftId: string) => string,
   getDraftId: (placeholderId: string) => string | undefined,
 ) => {
-  const result = await updatePageMutation(
-    accountId,
-    pageEntityId,
+  const mutationActions = calculateSaveActions(
     doc,
     blocks,
     store,
-    apolloClient,
     createdEntities,
     getPlaceholder,
   );
+
+  const res = await apolloClient.mutate<
+    UpdatePageContentsMutation,
+    UpdatePageContentsMutationVariables
+  >({
+    variables: { actions: mutationActions, accountId, entityId: pageEntityId },
+    mutation: updatePageContents,
+  });
+
+  if (!res.data) {
+    throw new Error("Failed");
+  }
+
+  await apolloClient.reFetchObservableQueries();
+
+  const result = res.data.updatePageContents;
 
   const newActions: EntityStorePluginAction[] = [];
 
@@ -809,4 +785,50 @@ export const updatePageMutationWithActions = async (
     }
   }
   return [result.page.properties.contents, newActions] as const;
+};
+
+export const save = async (
+  apolloClient: ApolloClient<unknown>,
+  accountId: string,
+  pageEntityId: string,
+  blocks: BlockEntity[],
+  getDoc: () => ProsemirrorNode<Schema>,
+  getState: () => EntityStorePluginState,
+  updateState: (
+    nextActions: EntityStorePluginAction[],
+  ) => EntityStorePluginState,
+) => {
+  const { createdEntities, ...res } = await createNecessaryEntities(
+    getState(),
+    getDoc(),
+    accountId,
+    pageEntityId,
+    apolloClient,
+  );
+
+  updateState(res.actions);
+
+  const placeholders = new Map<string, string>();
+
+  const [newBlocks, newActions] = await updatePageMutationWithActions(
+    accountId,
+    pageEntityId,
+    getDoc(),
+    blocks,
+    getState().store,
+    apolloClient,
+    createdEntities,
+    (draftId: string) => {
+      const newPlaceholder = `placeholder-${uuid()}`;
+      placeholders.set(newPlaceholder, draftId);
+      return newPlaceholder;
+    },
+    (placeholderId: string) => {
+      return placeholders.get(placeholderId);
+    },
+  );
+
+  updateState(newActions);
+
+  return newBlocks;
 };

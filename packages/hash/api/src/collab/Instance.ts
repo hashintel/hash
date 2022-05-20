@@ -12,7 +12,6 @@ import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
   EntityStorePluginAction,
-  EntityStorePluginState,
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
 } from "@hashintel/hash-shared/entityStorePlugin";
@@ -36,16 +35,12 @@ import {
   getBlocksQuery,
   getPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
-import {
-  createNecessaryEntities,
-  updatePageMutationWithActions,
-} from "@hashintel/hash-shared/save";
+import { save } from "@hashintel/hash-shared/save";
 import { Response } from "express";
 import { isEqual, memoize, pick } from "lodash";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
-import { v4 as uuid } from "uuid";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -79,52 +74,6 @@ type ActionUpdate = {
 };
 
 type Update = StepUpdate | StoreUpdate | ActionUpdate;
-
-const save = async (
-  apolloClient: ApolloClient<unknown>,
-  accountId: string,
-  pageEntityId: string,
-  blocks: BlockEntity[],
-  getDoc: () => ProsemirrorNode<Schema>,
-  getState: () => EntityStorePluginState,
-  updateState: (
-    nextActions: EntityStorePluginAction[],
-  ) => EntityStorePluginState,
-) => {
-  const { createdEntities, ...res } = await createNecessaryEntities(
-    getState(),
-    getDoc(),
-    accountId,
-    pageEntityId,
-    apolloClient,
-  );
-
-  updateState(res.actions);
-
-  const placeholders = new Map<string, string>();
-
-  const [newBlocks, newActions] = await updatePageMutationWithActions(
-    accountId,
-    pageEntityId,
-    getDoc(),
-    blocks,
-    getState().store,
-    apolloClient,
-    createdEntities,
-    (draftId: string) => {
-      const newPlaceholder = `placeholder-${uuid()}`;
-      placeholders.set(newPlaceholder, draftId);
-      return newPlaceholder;
-    },
-    (placeholderId: string) => {
-      return placeholders.get(placeholderId);
-    },
-  );
-
-  updateState(newActions);
-
-  return newBlocks;
-};
 
 // A collaborative editing document instance.
 export class Instance {
