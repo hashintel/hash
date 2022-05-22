@@ -12,6 +12,7 @@ import {
 } from "date-fns";
 
 import "react-datepicker/dist/react-datepicker.css";
+import "./base.css";
 
 type AppProps = {
   start: string | null;
