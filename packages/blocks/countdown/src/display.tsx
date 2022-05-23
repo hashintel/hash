@@ -1,17 +1,8 @@
 import React, { VFC } from "react";
-// import { Duration } from "date-fns";
-
-type Duration = {
-  years: number;
-  months: number;
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-};
+import { Duration } from "date-fns";
 
 type DisplayProps = {
-  duration: Duration;
+  duration: Duration | undefined;
 };
 
 const intervals: (keyof Duration)[] = [
@@ -23,7 +14,7 @@ const intervals: (keyof Duration)[] = [
   "seconds",
 ];
 
-const defaultDuration = {
+export const defaultDuration = {
   years: 0,
   months: 0,
   days: 0,
@@ -42,7 +33,7 @@ export const Display: VFC<DisplayProps> = ({ duration = defaultDuration }) => {
   //   }, []);
 
   const filteredIntervals = intervals.filter((interval) => {
-    if (duration[interval] <= 0) {
+    if (!duration[interval] || duration[interval]! <= 0) {
       return false;
     }
     return true;

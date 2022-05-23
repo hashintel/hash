@@ -16,13 +16,11 @@ import {
 import "react-datepicker/dist/react-datepicker.css";
 import "./base.css";
 import "./datepicker-override.css";
-import { Display } from "./display";
+import { defaultDuration, Display } from "./display";
 import { DatePickerInput } from "./date-picker-input";
 
 type AppProps = {
   start: string | null;
-  end: string | null;
-  selectsRange: boolean;
   strict: boolean;
 };
 
@@ -42,11 +40,8 @@ const formatRange = (start: Date | null, end: Date | null) => {
   }
 };
 
-const calculateTime = (
-  start: Date | null,
-  end: Date | null,
-  strict: boolean,
-) => {
+const calculateTime = (start: Date | null, strict: boolean) => {
+  const end = new Date();
   if (start === null) {
     return {
       prefix: "",
@@ -57,7 +52,7 @@ const calculateTime = (
 
   let relative;
   let date;
-  let interval: Duration | undefined = undefined;
+  let interval = defaultDuration;
   if (isFuture(start)) {
     date = start;
     relative = "until";
@@ -96,8 +91,6 @@ const calculateTime = (
 
 export const App: BlockComponent<AppProps> = ({
   start = null,
-  end = null,
-  selectsRange = false,
   strict = false,
   entityId,
   accountId,
@@ -106,19 +99,13 @@ export const App: BlockComponent<AppProps> = ({
   const [localStart, setLocalStart] = useState<Date | null>(
     !start ? null : new Date(start),
   );
-  const [localEnd, setLocalEnd] = useState<Date | null>(
-    !end ? null : new Date(end),
-  );
-  const [localSelectsRange, setLocalSelectsRange] = useState(selectsRange);
 
   const [clock, setClock] = useState({ now: new Date() });
   const tick = () => setClock({ now: new Date() });
 
   const update = useCallback(
-    (newStart: Date | null, newEnd: Date | null, newSelectsRange: boolean) => {
+    (newStart: Date | null) => {
       setLocalStart(newStart);
-      setLocalEnd(newEnd);
-      setLocalSelectsRange(newSelectsRange);
       if (updateEntities) {
         void updateEntities([
           {
@@ -126,8 +113,6 @@ export const App: BlockComponent<AppProps> = ({
             accountId,
             data: {
               start: newStart,
-              end: newEnd,
-              selectsRange: newSelectsRange,
             },
           },
         ]);
@@ -138,12 +123,7 @@ export const App: BlockComponent<AppProps> = ({
 
   useEffect(() => {
     setLocalStart(!start ? null : new Date(start));
-    setLocalEnd(!end ? null : new Date(end));
-  }, [start, end]);
-
-  useEffect(() => {
-    setLocalSelectsRange(selectsRange);
-  }, [selectsRange]);
+  }, [start]);
 
   useEffect(() => {
     // Tick at most once per second
@@ -154,11 +134,11 @@ export const App: BlockComponent<AppProps> = ({
   }, []);
 
   const [timeOffset, setTimeOffset] = useState(
-    calculateTime(localStart, localEnd, strict),
+    calculateTime(localStart, strict),
   );
   useEffect(
-    () => setTimeOffset(calculateTime(localStart, localEnd, strict)),
-    [clock, localStart, localEnd, strict],
+    () => setTimeOffset(calculateTime(localStart, strict)),
+    [clock, localStart, strict],
   ); // Update offset on tick
 
   const [isOpen, setIsOpen] = useState(false);
@@ -166,20 +146,15 @@ export const App: BlockComponent<AppProps> = ({
   const close = () => setIsOpen(false);
 
   const onChange = (changes: Date | [Date | null, Date | null] | null) => {
-    if (Array.isArray(changes)) {
-      if (changes[1] !== null) {
-        close();
-      }
-      update(changes[0], changes[1], true);
-    } else {
-      close();
-      update(changes, null, false);
-    }
+    // close();
+    const newDate = Array.isArray(changes) ? changes[0] : changes;
+    update(newDate);
   };
 
   const datepicker = useRef<DatePicker>(null);
+
   useEffect(() => {
-    if (datepicker.current) datepicker.current.setOpen(isOpen);
+    // if (datepicker.current) datepicker.current.setOpen(isOpen);
   }, [isOpen]);
 
   return (
@@ -209,70 +184,19 @@ export const App: BlockComponent<AppProps> = ({
             ref={datepicker}
             selected={localStart}
             startDate={localStart}
-            endDate={localEnd}
             onChange={onChange}
             // onCalendarClose={close}
-            onSelect={() => localSelectsRange || close()}
-            dateFormat={localSelectsRange ? "P" : "Pp"}
-            selectsRange={localSelectsRange}
-            showTimeInput={!localSelectsRange}
+
+            // onSelect={close}
+
+            // dateFormat={localSelectsRange ? "P" : "Pp"}
+            dateFormat="Pp"
+            showTimeInput
             showWeekNumbers
-            todayButton="Today"
             placeholderText="Select a date"
-          >
-            <label>
-              <input
-                type="checkbox"
-                checked={localSelectsRange}
-                onChange={() => setLocalSelectsRange(!localSelectsRange)}
-              />
-              Range selection
-            </label>
-          </DatePickerInput>
+          />
         </div>
       </div>
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      {timeOffset.prefix}{" "}
-      {isOpen || (
-        <button type="button" onClick={open}>
-          {timeOffset.offset}
-        </button>
-      )}
-      {isOpen && (
-        <div style={{ display: "inline-block" }}>
-          <DatePicker
-            ref={datepicker}
-            selected={localStart}
-            startDate={localStart}
-            endDate={localEnd}
-            onChange={onChange}
-            onCalendarClose={close}
-            onSelect={() => localSelectsRange || close()}
-            dateFormat={localSelectsRange ? "P" : "Pp"}
-            selectsRange={localSelectsRange}
-            showTimeInput={!localSelectsRange}
-            showWeekNumbers
-            todayButton="Today"
-          >
-            <label>
-              <input
-                type="checkbox"
-                checked={localSelectsRange}
-                onChange={() => setLocalSelectsRange(!localSelectsRange)}
-              />
-              Range selection
-            </label>
-          </DatePicker>
-        </div>
-      )}{" "}
-      {timeOffset.postfix}
     </div>
   );
 };
