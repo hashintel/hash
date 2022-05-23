@@ -1,6 +1,5 @@
 import { Container, Stack, Typography } from "@mui/material";
 import { Box, TypographyProps } from "@mui/system";
-import { parse } from "date-fns";
 import Head from "next/head";
 import Image from "next/image";
 import { createContext, FC, useContext, VFC } from "react";
@@ -8,6 +7,36 @@ import { FRONTEND_URL } from "../config";
 import { Link } from "./Link";
 import { mdxImageClasses } from "./MdxImage";
 import { FaIcon } from "./icons/FaIcon";
+
+/**
+ * @param {number} digit
+ * @returns the ordinal suffix of the input digit
+ */
+const nth = (digit: number) => {
+  if (digit > 3 && digit < 21) return "th";
+  switch (digit % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+};
+
+/**
+ * @param {Date} date
+ * @returns the formatted string of the date object (e.g. "May 17th, 2022")
+ */
+const formatDate = (date: Date) => {
+  const year = date.toLocaleString("default", { year: "numeric" });
+  const month = date.toLocaleString("default", { month: "long" });
+  const day = parseInt(date.toLocaleString("default", { day: "numeric" }), 10);
+
+  return `${month} ${day}${nth(day)}, ${year}`;
+};
 
 export type BlogPostPagePhoto = {
   src: string;
@@ -22,8 +51,6 @@ export type BlogPagePhotos = {
 };
 
 export const BlogPostPhotosContext = createContext<BlogPagePhotos | null>(null);
-
-const epoch = new Date(0);
 
 export const useBlogPostPhotos = () => {
   const context = useContext(BlogPostPhotosContext);
@@ -62,16 +89,16 @@ export const BlogPostHead: VFC<{
   subtitle,
   author,
   jobTitle,
-  date,
+  date: dateInput,
   pageTitle = title,
   pageDescription = subtitle,
 }) => {
   const photos = useBlogPostPhotos();
 
   const fullTitle = `${pageTitle ? `${pageTitle} – ` : ""}HASH for Developers`;
-  const dateIso = date
-    ? parse(date, "MMMM do, yyyy", epoch).toISOString()
-    : null;
+
+  const date = dateInput ? new Date(dateInput) : null;
+  const dateIso = date ? date.toISOString() : null;
 
   return (
     <>
@@ -191,7 +218,7 @@ export const BlogPostHead: VFC<{
                       }),
                     ]}
                   >
-                    {date}
+                    {formatDate(date)}
                   </Typography>
                 ) : null}
                 <Stack direction="row">
