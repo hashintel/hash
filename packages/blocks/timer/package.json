@@ -17,8 +17,6 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@mui/material": "5.4.3",
-    "@mui/x-date-pickers": "^5.0.0-alpha.2",
     "blockprotocol": "0.0.9"
   },
   "devDependencies": {
@@ -38,7 +36,9 @@
   "blockprotocol": {
     "displayName": "timer",
     "examples": [
-      {}
+      {
+        "initialDuration": "P10M"
+      }
     ],
     "icon": "public/omega.svg",
     "image": "public/block-preview.svg"
