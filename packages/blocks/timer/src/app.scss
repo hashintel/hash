@@ -17,8 +17,10 @@ $dialSize: 420px;
     background-position: center center;
     border: 2px solid rgba(36, 117, 238, 0.3);
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       border: 2px solid rgb(36, 117, 238);
+      outline: none;
     }
     &:active {
       transform: translateY(1px);
@@ -145,6 +147,16 @@ $dialSize: 420px;
     margin: 8px;
     width: 64px;
     height: 64px;
+
+    &:disabled {
+      opacity: 0.3;
+      border-color: rgb(36, 117, 238);
+      cursor: default;
+
+      &:active {
+        transform: none;
+      }
+    }
   }
 
   .less-time-button {

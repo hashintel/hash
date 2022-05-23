@@ -2,9 +2,10 @@ import "./app.scss";
 
 import React, { useEffect, useState, useCallback } from "react";
 import { BlockComponent } from "blockprotocol/react";
+import { useAutoRefresh } from "./use-auto-refresh";
 // import { parseIsoD } from "date-fns";
 
-type AppProps = {
+type TimerState = {
   /** https://schema.org/Duration */
   initialDuration: string;
   /** https://schema.org/Duration */
@@ -13,43 +14,62 @@ type AppProps = {
   targetDateTime?: string;
 };
 
-export const App: BlockComponent<AppProps> = ({
+type DerivedStatus = "idle" | "running" | "paused" | "finished";
+
+export const App: BlockComponent<TimerState> = ({
+  initialDuration,
+  pauseDuration,
+  targetDateTime,
+
   updateEntities,
   entityId,
   accountId,
-  // targetDateTime = "",
-  // initialDuration,
-  // pauseDuration,
 }) => {
-  // console.log(parseISO());
-  const updateEntity = useCallback(
-    (data: AppProps) => {
-      void updateEntities?.([{ entityId, accountId, data }]);
+  const [timerState, setTimerState] = useState<TimerState>({
+    initialDuration,
+    pauseDuration,
+    targetDateTime,
+  });
+
+  useEffect(() => {
+    setTimerState({ initialDuration, pauseDuration, targetDateTime });
+  }, [initialDuration, pauseDuration, targetDateTime]);
+
+  const updateTimerState = useCallback(
+    (newTimerState: TimerState) => {
+      setTimerState(newTimerState);
+      void updateEntities?.([{ entityId, accountId, data: newTimerState }]);
     },
     [accountId, entityId, updateEntities],
   );
 
-  // const;
-
   const handleReset = () => {
-    updateEntity({ initialDuration: "42" });
+    updateTimerState({ initialDuration: timerState.initialDuration });
   };
 
   const [paused, setPaused] = useState(true);
   const [completed, setCompleted] = useState(0);
 
   useEffect(() => {
+    if (paused) {
+      return;
+    }
     setTimeout(() => {
       setCompleted((completed + 0.001) % 1);
     }, 10);
   });
 
-  const handleStartClick = () => {
+  const handlePlayClick = () => {
     setPaused(false);
+    // updateTimerState({ initialDuration: timerState.initialDuration, targetDateTime })
   };
   const handlePauseClick = () => {
     setPaused(true);
   };
+
+  const derivedStatus = (paused ? "idle" : "running") as DerivedStatus;
+
+  useAutoRefresh(derivedStatus === "running");
 
   return (
     <div className="timer-block">
@@ -65,16 +85,7 @@ export const App: BlockComponent<AppProps> = ({
           value={Math.round(completed * 20) % 2 ? "42:42" : "42\u200842"}
           disabled
         />
-        {paused ? (
-          <button
-            type="button"
-            aria-label="start"
-            className="play-button"
-            onClick={handleStartClick}
-          >
-            <span className="play-button-icon" />
-          </button>
-        ) : (
+        {derivedStatus === "running" ? (
           <button
             type="button"
             aria-label="pause"
@@ -83,6 +94,15 @@ export const App: BlockComponent<AppProps> = ({
           >
             <span className="pause-button-icon" />
           </button>
+        ) : (
+          <button
+            type="button"
+            aria-label="start"
+            className="play-button"
+            onClick={handlePlayClick}
+          >
+            <span className="play-button-icon" />
+          </button>
         )}
       </div>
       <div className="button-row">
@@ -90,6 +110,7 @@ export const App: BlockComponent<AppProps> = ({
           type="button"
           aria-label="Less time"
           className="less-time-button"
+          disabled={derivedStatus !== "idle"}
         />
         <button
           type="button"
@@ -101,6 +122,7 @@ export const App: BlockComponent<AppProps> = ({
           type="button"
           aria-label="More time"
           className="more-time-button"
+          disabled={derivedStatus !== "idle"}
         />
       </div>
     </div>
