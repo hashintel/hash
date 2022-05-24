@@ -45,7 +45,7 @@ export const AccountUsage: VFC<AccountUsageProps> = ({
         {USAGE_OPTIONS.map(({ title, description, icon, value }, index) => (
           <button
             key={value}
-            className={tw`w-52 group relative focus:outline-none ${
+            className={tw`w-52 bg-transparent border-none cursor-pointer group relative focus:outline-none ${
               index === 0 ? "mr-8" : ""
             }`}
             onClick={() => setActiveOption(value)}
@@ -72,7 +72,7 @@ export const AccountUsage: VFC<AccountUsageProps> = ({
       {/* @todo use Button component */}
       <button
         type="submit"
-        className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto`}
+        className={tw`group border-none cursor-pointer w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto`}
         onClick={onSubmit}
         disabled={!activeOption || loading}
       >

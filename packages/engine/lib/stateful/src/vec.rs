@@ -85,24 +85,12 @@ impl Vec3 {
         self / self.magnitude()
     }
 
-    #[must_use]
-    pub fn as_slice(&self) -> &[f64] {
-        let f: *const f64 = &self.0;
-        unsafe { std::slice::from_raw_parts(f, 3) }
-    }
-
     // TODO: I'm not sure if we want truncation vs rounding, so I'm marking this as allowed.
     // TODO: UNUSED: Needs triage
     #[allow(clippy::cast_possible_truncation)]
     #[must_use]
     pub fn as_grid(&self) -> [i64; 3] {
         [self.0 as i64, self.1 as i64, self.2 as i64]
-    }
-}
-
-impl AsRef<[f64]> for Vec3 {
-    fn as_ref(&self) -> &[f64] {
-        self.as_slice()
     }
 }
 
@@ -313,12 +301,6 @@ mod tests {
         assert_eq!(pos.0, 3.0);
         assert_eq!(pos.1, 4.0);
         assert_eq!(pos.2, 5.0);
-
-        let slice = pos.as_slice();
-
-        assert_eq!(slice[0], 3.0);
-        assert_eq!(slice[1], 4.0);
-        assert_eq!(slice[2], 5.0);
 
         let mut pos: Vec3 = Vec3::origin();
         pos[0] = 5.0;

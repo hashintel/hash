@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Loads changes from the hash/realtime package stream into the search service",
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "clear-opensearch": "yarn ts-node ./src/scripts/clear-opensearch.ts",
     "dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",

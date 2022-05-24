@@ -184,7 +184,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
       <h1 className={tw`text-3xl font-bold mb-12`}>Create a team workspace</h1>
       <div className={tw`text-center mb-6`}>
         {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-        <label className={tw`cursor-pointer`}>
+        <label className={tw`flex flex-col cursor-pointer`}>
           {avatarImg ? (
             <img
               className={tw`w-24 h-24 mb-2 rounded-md`}
@@ -200,7 +200,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
               </p>
             </div>
           ) : (
-            <PictureIcon className={tw`w-24 h-24 mb-2 `} />
+            <PictureIcon viewBox="0 0 45 45" className={tw`w-24 h-24 mb-2 `} />
           )}
           <input
             type="file"
@@ -279,7 +279,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
           <p className={tw`text-red-500 mt-3`}>{createOrgErrorMessage}</p>
         )}
         <button
-          className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto mt-6`}
+          className={tw`group cursor-pointer border-none w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto mt-6`}
           onClick={onSubmit}
           disabled={loading || !isValid}
           type="submit"

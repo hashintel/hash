@@ -5,6 +5,7 @@ import {
   MutationUpdatePageContentsArgs,
   UpdatePageAction,
   UpdateEntity,
+  SwapBlockData,
 } from "../../apiTypes.gen";
 import { Block, Entity, Page, UnresolvedGQLEntity } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
@@ -18,6 +19,7 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
         action.moveBlock,
         action.removeBlock,
         action.updateEntity,
+        action.swapBlockData,
       )
     ) {
       throw new UserInputError(
@@ -74,17 +76,44 @@ export const updatePageContents: Resolver<
         }),
     );
 
+    // Perform any block data swapping updates.
+    await Promise.all(
+      actions
+        .map(({ swapBlockData }) => swapBlockData)
+        .filter(
+          (swapBlockData): swapBlockData is SwapBlockData => !!swapBlockData,
+        )
+        .map(async (swapBlockData) => {
+          const block = await Block.getBlockById(client, {
+            accountId: swapBlockData.accountId,
+            entityId: swapBlockData.entityId,
+          });
+
+          if (!block) {
+            throw new Error(
+              `Block with entityId ${swapBlockData.entityId} not found`,
+            );
+          }
+
+          return await block.swapBlockData(client, {
+            targetDataAccountId: swapBlockData.newEntityAccountId,
+            targetDataEntityId: swapBlockData.newEntityEntityId,
+            updatedByAccountId: user.accountId,
+          });
+        }),
+    );
+
     // Perform any entity updates.
     await Promise.all(
       actions
         .map(({ updateEntity }) => updateEntity)
         .filter((updateEntity): updateEntity is UpdateEntity => !!updateEntity)
-        .map(async (updateEntity) =>
-          Entity.updateProperties(client, {
+        .map(async (updateEntity) => {
+          return Entity.updateProperties(client, {
             ...updateEntity,
             updatedByAccountId: user.accountId,
-          }),
-        ),
+          });
+        }),
     );
 
     // Lock the page so that no other concurrent call to this resolver will conflict

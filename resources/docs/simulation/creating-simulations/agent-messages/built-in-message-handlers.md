@@ -77,7 +77,7 @@ def behavior(state, context):
 
 ## Navigation with Mapbox
 
-Message handlers can also be used to access 3rd party APIs during the runtime of a HASH simulation. Presently we support just one external API, _Mapbox_, but in the coming months a number of others will be listed in [hIndex](/index) and the ability to add new APIs will be opened up publicly.
+Message handlers can also be used to access 3rd party APIs during the runtime of a HASH simulation. Within hCore you can interface with _Mapbox_, our first externally-supported API. Additional APIs will be added in the future and you can [contact us](https://hash.ai/contact) to request we whitelist additional services for you. Utilizing hEngine you are free to call out to whatever external services you like.
 
 Using the existing Mapbox API message handler, any agent can request navigation directions between two points. But first, you'll need to activate the Mapbox message handler in your `globals.json` file:
 

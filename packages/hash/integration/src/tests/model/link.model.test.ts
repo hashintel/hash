@@ -18,6 +18,11 @@ let existingUser: User;
 
 let dummyEntityType: EntityType;
 
+const sleep = async (millis: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, millis);
+  });
+
 beforeAll(async () => {
   await recreateDbAndRunSchemaMigrations();
 
@@ -183,9 +188,6 @@ describe("Link model class ", () => {
     expect(retrievedLink.sourceEntityId).toBe(link.sourceEntityId);
     expect(retrievedLink.destinationAccountId).toBe(link.destinationAccountId);
     expect(retrievedLink.destinationEntityId).toBe(link.destinationEntityId);
-    expect(retrievedLink.destinationEntityVersionId).toBe(
-      link.destinationEntityVersionId,
-    );
   });
 
   it("create/delete methods can create/delete indexed links on versioned source entity", async () => {
@@ -230,6 +232,11 @@ describe("Link model class ", () => {
     });
 
     const entityATimestamp2 = new Date();
+
+    // Sleep here in order for the timestamp above not to include the link below.
+    // We re-use connections, so there's no delay in establishing a connection to the DB
+    // which makes the date on the link be the same as the date above.
+    await sleep(10);
 
     const linkAToC = await Link.create(db, {
       createdByAccountId,
@@ -279,9 +286,6 @@ describe("Link model class ", () => {
     );
     expect(entityATimestamp3OutgoingLinks[1]!.destinationEntityId).toBe(
       linkAToB.destinationEntityId,
-    );
-    expect(entityATimestamp3OutgoingLinks[1]!.destinationEntityVersionId).toBe(
-      linkAToB.destinationEntityVersionId,
     );
     expect(entityATimestamp3OutgoingLinks[1]!.index).toBe(1);
 

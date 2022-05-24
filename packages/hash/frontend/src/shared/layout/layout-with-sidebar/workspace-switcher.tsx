@@ -3,11 +3,9 @@ import {
   Box,
   Typography,
   Menu,
-  MenuItem,
   Divider,
   ListItemText,
   ListItemAvatar,
-  listItemTextClasses,
   Tooltip,
 } from "@mui/material";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
@@ -18,7 +16,7 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useUser } from "../../../components/hooks/useUser";
 import { useLogout } from "../../../components/hooks/useLogout";
-import { Avatar, Button, Link } from "../../ui";
+import { Avatar, Button, MenuItem } from "../../ui";
 import { FontAwesomeIcon } from "../../icons";
 import { useRouteAccountInfo } from "../../routing";
 
@@ -128,33 +126,26 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             key={key}
             selected={key === activeWorkspace.accountId}
             onClick={() => popupState.close()}
+            href={url}
           >
-            <Link
-              href={url}
-              noLinkStyle
-              sx={{
-                display: "flex",
-              }}
-            >
-              <ListItemAvatar>
-                <Avatar
-                  size={34}
-                  title={user?.properties.preferredName ?? "U"}
-                />
-              </ListItemAvatar>
-
-              <ListItemText
-                primary={title}
-                secondary={subText}
-                primaryTypographyProps={{ fontWeight: 600 }}
-              />
-            </Link>
+            <ListItemAvatar>
+              <Avatar size={34} title={user?.properties.preferredName ?? "U"} />
+            </ListItemAvatar>
+            <ListItemText
+              primary={title}
+              secondary={subText}
+              primaryTypographyProps={{ fontWeight: 600 }}
+            />
           </MenuItem>
         ))}
 
         <Divider />
 
-        {[
+        {/*  
+          Commented out menu items whose functionality have not been implemented yet
+          @todo uncomment when functionality has been implemented 
+        */}
+        {/* {[
           {
             title: "Workspace Settings",
             href: "/",
@@ -165,21 +156,12 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
           },
         ].map(({ title, href }, index) => (
           // eslint-disable-next-line react/no-array-index-key
-          <MenuItem key={index} onClick={() => popupState.close()}>
-            <Link href={href} noLinkStyle>
-              <ListItemText primary={title} />
-            </Link>
+          <MenuItem key={index} href={href} onClick={() => popupState.close()}>
+            <ListItemText primary={title} />
           </MenuItem>
         ))}
-        <Divider />
-        <MenuItem
-          sx={{
-            [`& .${listItemTextClasses.primary}`]: {
-              color: ({ palette }) => palette.gray[60],
-            },
-          }}
-          onClick={() => logout()}
-        >
+        <Divider /> */}
+        <MenuItem faded onClick={() => logout()}>
           <ListItemText primary="Sign out" />
         </MenuItem>
       </Menu>

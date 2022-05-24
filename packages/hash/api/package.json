@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "API and data store for HASH",
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
@@ -33,7 +33,7 @@
     "apollo-server-errors": "3.1.0",
     "apollo-server-express": "2.25.3",
     "app-root-path": "3.0.0",
-    "blockprotocol": "0.0.8",
+    "blockprotocol": "0.0.9",
     "body-parser": "1.19.0",
     "clipboardy": "2.3.0",
     "connect-pg-simple": "6.2.1",

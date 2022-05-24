@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Realtime streaming update server from the HASH datstore",
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "clear-redis": "ts-node ./src/scripts/clear-redis.ts",
     "dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",
@@ -14,12 +14,14 @@
   },
   "dependencies": {
     "@hashintel/hash-backend-utils": "0.0.0",
+    "set-interval-async": "2.0.3",
     "slonik": "24.1.2",
     "ts-node": "10.4.0",
     "typescript": "4.6.3"
   },
   "devDependencies": {
     "@types/node": "16.7.6",
+    "@types/set-interval-async": "1.0.0",
     "rimraf": "^3.0.2",
     "ts-node-dev": "2.0.0-0"
   }
