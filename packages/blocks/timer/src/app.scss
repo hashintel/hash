@@ -100,12 +100,11 @@ $dialRingWidth: 24px;
       border: 1px solid #dde7f0;
     }
   }
-  .countdown--invalid {
+  .countdown_value_invalid {
     color: #ffb168;
   }
 
-  .play-button,
-  .pause-button {
+  .big-button {
     height: 140px;
     width: 140px;
     border-radius: 50%;
@@ -114,11 +113,12 @@ $dialRingWidth: 24px;
     top: 130px;
 
     &:hover {
+      background-color: #ebf8ff;
       border: 2px solid rgb(36, 117, 238);
     }
   }
 
-  .play-button {
+  .big-button_type_play {
     background-image: linear-gradient(180deg, #2d7ff9 0%, #1a6de8 100%);
     border: 2px solid rgb(36, 117, 238);
 
@@ -127,8 +127,7 @@ $dialRingWidth: 24px;
     }
   }
 
-  .play-button-icon,
-  .pause-button-icon {
+  .big-button__icon {
     position: absolute;
     top: 0;
     left: 0;
@@ -138,12 +137,12 @@ $dialRingWidth: 24px;
     background-position: center center;
   }
 
-  .play-button-icon {
+  .big-button_type_play .big-button__icon {
     background-image: url('data:image/svg+xml;utf8,<svg width="45" height="55" viewBox="0 0 45 55" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0.5 50.8907V4.3593C0.5 1.1879 4.01429 -0.722217 6.67558 1.00269L42.5712 24.2684C45.0038 25.845 45.0038 29.405 42.5712 30.9816L6.67558 54.2473C4.01429 55.9722 0.5 54.0621 0.5 50.8907Z" fill="white"/></svg>');
     background-position-x: 55%;
   }
 
-  .pause-button-icon {
+  .big-button_type_pause .big-button__icon {
     background-image: url('data:image/svg+xml;utf8,<svg width="51" height="56" viewBox="0 0 51 56" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.5" width="20" height="56" rx="4" fill="rgb(41, 124, 247)"/><rect x="30.5" width="20" height="56" rx="4" fill="rgb(41, 124, 247)"/></svg>');
   }
 

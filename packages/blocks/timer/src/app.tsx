@@ -205,19 +205,19 @@ export const App: BlockComponent<TimerState> = ({
           <button
             type="button"
             aria-label="pause"
-            className="pause-button"
+            className="big-button big-button_type_pause"
             onClick={handlePauseClick}
           >
-            <span className="pause-button-icon" />
+            <span className="big-button__icon" />
           </button>
         ) : (
           <button
             type="button"
             aria-label="start"
-            className="play-button"
+            className="big-button big-button_type_play"
             onClick={handlePlayClick}
           >
-            <span className="play-button-icon" />
+            <span className="big-button__icon" />
           </button>
         )}
       </div>
