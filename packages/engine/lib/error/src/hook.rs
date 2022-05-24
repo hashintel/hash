@@ -28,7 +28,7 @@ impl Report {
     ///
     /// # Errors
     ///
-    /// - Returns an error, if the hook was already set
+    /// - Returns an error, if a debug hook was already set
     ///
     /// # Example
     ///
@@ -76,7 +76,7 @@ impl Report {
     ///
     /// # Errors
     ///
-    /// - Returns an error, if the hook was already set
+    /// - Returns an error, if a display hook was already set
     ///
     /// # Example
     ///
