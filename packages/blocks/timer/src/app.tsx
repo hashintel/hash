@@ -12,6 +12,8 @@ import { parseISO } from "date-fns";
 import * as duration from "duration-fns";
 import { useAutoRefresh } from "./app/use-auto-refresh";
 import { calculateDurationStepLength } from "./app/calculate-duration-step-length";
+import { DurationInput } from "./app/duration-input";
+import { TimerStatus } from "./app/timer-status";
 
 type TimerState = {
   /** https://schema.org/Duration */
@@ -23,10 +25,6 @@ type TimerState = {
 };
 
 export type AppProps = TimerState;
-
-type DerivedStatus = "idle" | "running" | "paused" | "finished";
-
-const punctuationSpace = "\u2008"; // same width as :
 
 const minInitialDurationInMs = 1000;
 const maxInitialDurationInMs = 99 * 60 * 1000;
@@ -96,10 +94,14 @@ export const App: BlockComponent<TimerState> = ({
   const remainingDurationInMs = duration.toMilliseconds(remainingDuration);
   const remainingProportion = Math.max(
     0,
-    Math.min(1, 1 - remainingDurationInMs / initialDurationInMs),
+    Math.min(
+      1,
+      1 -
+        remainingDurationInMs / duration.toMilliseconds(parsedInitialDuration),
+    ),
   );
 
-  const derivedStatus: DerivedStatus = parsedPauseDuration
+  const timerStatus: TimerStatus = parsedPauseDuration
     ? "paused"
     : !parsedTargetDateTime
     ? "idle"
@@ -107,17 +109,7 @@ export const App: BlockComponent<TimerState> = ({
     ? "running"
     : "finished";
 
-  useAutoRefresh(derivedStatus === "running");
-
-  const countdownDuration =
-    derivedStatus === "finished" ? parsedInitialDuration : remainingDuration;
-
-  const countdownValue =
-    `${countdownDuration.minutes ?? 0}`.padStart(2, "0") +
-    ("running" && remainingDurationInMs % 1000 >= 500
-      ? punctuationSpace
-      : ":") +
-    `${countdownDuration.seconds ?? 0}`.padStart(2, "0");
+  useAutoRefresh(timerStatus === "running");
 
   const handleReset = () => {
     applyTimerState({ initialDuration: timerState.initialDuration });
@@ -175,6 +167,22 @@ export const App: BlockComponent<TimerState> = ({
     }
   };
 
+  const handleDurationInputChange = (value: duration.Duration) => {
+    const valueInMs = duration.toMilliseconds(value);
+    const acceptedValue =
+      valueInMs > maxInitialDurationInMs
+        ? duration.parse(maxInitialDurationInMs)
+        : valueInMs < minInitialDurationInMs
+        ? duration.parse(minInitialDurationInMs)
+        : value;
+
+    applyTimerState({
+      initialDuration: duration.toString(
+        normalizeDurationMinutesAndSeconds(acceptedValue),
+      ),
+    });
+  };
+
   return (
     <div className="timer-block">
       <div className="dial">
@@ -184,8 +192,16 @@ export const App: BlockComponent<TimerState> = ({
             style={{ animationDelay: `-${remainingProportion * 100}s` }}
           />
         </div>
-        <input className="countdown" value={countdownValue} disabled />
-        {derivedStatus === "running" ? (
+        <DurationInput
+          value={
+            timerStatus === "finished"
+              ? parsedInitialDuration
+              : remainingDuration
+          }
+          timerStatus={timerStatus}
+          onChange={handleDurationInputChange}
+        />
+        {timerStatus === "running" ? (
           <button
             type="button"
             aria-label="pause"
@@ -210,8 +226,8 @@ export const App: BlockComponent<TimerState> = ({
           aria-label="Less time"
           className="less-time-button"
           disabled={
-            derivedStatus === "running" ||
-            derivedStatus === "paused" ||
+            timerStatus === "running" ||
+            timerStatus === "paused" ||
             initialDurationInMs <= minInitialDurationInMs
           }
           onClick={handleLessOrMoreTimeButtonClick}
@@ -221,15 +237,15 @@ export const App: BlockComponent<TimerState> = ({
           aria-label="Reset"
           className="reset-button"
           onClick={handleReset}
-          disabled={derivedStatus === "idle" || derivedStatus === "finished"}
+          disabled={timerStatus === "idle" || timerStatus === "finished"}
           type="button"
         />
         <button
           aria-label="More time"
           className="more-time-button"
           disabled={
-            derivedStatus === "running" ||
-            derivedStatus === "paused" ||
+            timerStatus === "running" ||
+            timerStatus === "paused" ||
             initialDurationInMs >= maxInitialDurationInMs
           }
           onClick={handleLessOrMoreTimeButtonClick}
