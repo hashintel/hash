@@ -39,7 +39,7 @@
     "displayName": "timer",
     "examples": [
       {
-        "initialDuration": "PT10M"
+        "initialDuration": "PT5M"
       }
     ],
     "icon": "public/omega.svg",
