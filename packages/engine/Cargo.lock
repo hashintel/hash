@@ -667,6 +667,7 @@ name = "error"
 version = "0.0.0"
 dependencies = [
  "provider",
+ "rustc_version",
  "tracing-error",
 ]
 

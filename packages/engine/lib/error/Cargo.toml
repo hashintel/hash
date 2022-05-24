@@ -8,8 +8,10 @@ provider = { path = "../provider" }
 
 tracing-error = { version = "0.2.0", optional = true }
 
+[build-dependencies]
+rustc_version = "0.2.3"
+
 [features]
-default = ["backtrace"]
-backtrace = ["std"]
-spantrace = ["tracing-error"]
+default = ["std"]
 std = []
+spantrace = ["tracing-error"]
