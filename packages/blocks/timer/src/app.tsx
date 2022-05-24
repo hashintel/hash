@@ -1,10 +1,17 @@
 import "./app.scss";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  MouseEventHandler,
+} from "react";
 import { BlockComponent } from "blockprotocol/react";
 import { parseISO } from "date-fns";
 import * as duration from "duration-fns";
-import { useAutoRefresh } from "./use-auto-refresh";
+import { useAutoRefresh } from "./app/use-auto-refresh";
+import { calculateDurationStepLength } from "./app/calculate-duration-step-length";
 
 type TimerState = {
   /** https://schema.org/Duration */
@@ -15,11 +22,27 @@ type TimerState = {
   targetDateTime?: string;
 };
 
+export type AppProps = TimerState;
+
 type DerivedStatus = "idle" | "running" | "paused" | "finished";
 
 const punctuationSpace = "\u2008"; // same width as :
 
+const minInitialDurationInMs = 1000;
+const maxInitialDurationInMs = 99 * 60 * 1000;
+
 const isInPast = (date: Date): boolean => date < new Date();
+
+const normalizeDurationMinutesAndSeconds = (
+  durationInput: duration.DurationInput,
+): duration.Duration => {
+  const rawResult = duration.normalize(durationInput);
+  return {
+    ...rawResult,
+    minutes: rawResult.minutes + rawResult.hours * 60,
+    hours: 0,
+  };
+};
 
 export const App: BlockComponent<TimerState> = ({
   updateEntities,
@@ -27,19 +50,23 @@ export const App: BlockComponent<TimerState> = ({
   accountId,
   ...rest
 }) => {
-  const [timerState, setTimerState] = useState<TimerState>({
-    initialDuration: rest.initialDuration,
-    pauseDuration: rest.pauseDuration,
-    targetDateTime: rest.targetDateTime,
-  });
-
-  useEffect(() => {
-    setTimerState({
+  const externalTimerState = useMemo<TimerState>(
+    () => ({
       initialDuration: rest.initialDuration,
       pauseDuration: rest.pauseDuration,
       targetDateTime: rest.targetDateTime,
-    });
-  }, [rest.initialDuration, rest.pauseDuration, rest.targetDateTime]);
+    }),
+    [rest.initialDuration, rest.pauseDuration, rest.targetDateTime],
+  );
+
+  const prevExternalTimerState = useRef(externalTimerState);
+  prevExternalTimerState.current = externalTimerState;
+
+  const [timerState, setTimerState] = useState<TimerState>(externalTimerState);
+
+  if (prevExternalTimerState.current !== externalTimerState) {
+    setTimerState(externalTimerState);
+  }
 
   const applyTimerState = useCallback(
     (newTimerState: TimerState) => {
@@ -61,7 +88,9 @@ export const App: BlockComponent<TimerState> = ({
   const remainingDuration =
     parsedPauseDuration ??
     (parsedTargetDateTime
-      ? duration.between(new Date(), parsedTargetDateTime)
+      ? normalizeDurationMinutesAndSeconds(
+          duration.between(new Date(), parsedTargetDateTime),
+        )
       : parsedInitialDuration);
 
   const initialDurationInMs = duration.toMilliseconds(parsedInitialDuration);
@@ -79,6 +108,18 @@ export const App: BlockComponent<TimerState> = ({
     ? "running"
     : "finished";
 
+  useAutoRefresh(derivedStatus === "running");
+
+  const countdownDuration =
+    derivedStatus === "finished" ? parsedInitialDuration : remainingDuration;
+
+  const countdownValue =
+    `${countdownDuration.minutes ?? 0}`.padStart(2, "0") +
+    ("running" && remainingDurationInMs % 1000 >= 500
+      ? punctuationSpace
+      : ":") +
+    `${countdownDuration.seconds ?? 0}`.padStart(2, "0");
+
   const handleReset = () => {
     applyTimerState({ initialDuration: timerState.initialDuration });
   };
@@ -87,7 +128,7 @@ export const App: BlockComponent<TimerState> = ({
     applyTimerState({
       initialDuration: timerState.initialDuration,
       targetDateTime: duration
-        .apply(new Date(), parsedInitialDuration)
+        .apply(new Date(), parsedPauseDuration ?? parsedInitialDuration)
         .toISOString(),
     });
   };
@@ -99,16 +140,41 @@ export const App: BlockComponent<TimerState> = ({
 
     applyTimerState({
       initialDuration: timerState.initialDuration,
-      pauseDuration: timerState.pauseDuration,
+      pauseDuration: duration
+        .toString(
+          normalizeDurationMinutesAndSeconds(
+            duration.between(new Date(), parsedTargetDateTime),
+          ),
+        )
+        .replace(/,/g, "."),
     });
   };
 
-  useAutoRefresh(derivedStatus === "running");
+  const handleLessOrMoreTimeButtonClick: MouseEventHandler = (event) => {
+    const step = event.currentTarget.classList.contains("less-time-button")
+      ? -1
+      : 1;
 
-  const countdownValue =
-    `${remainingDuration.minutes ?? 0}`.padStart(2, "0") +
-    (remainingDurationInMs % 1000 < 500 ? ":" : punctuationSpace) +
-    `${remainingDuration.seconds ?? 0}`.padStart(2, "0");
+    const stepLength = calculateDurationStepLength(
+      initialDurationInMs + step /* pick sides around edge values like 10s */,
+    );
+
+    const newDurationInMs =
+      Math.round((initialDurationInMs + stepLength * step) / stepLength) *
+      stepLength;
+
+    if (
+      newDurationInMs !== initialDurationInMs &&
+      newDurationInMs >= minInitialDurationInMs &&
+      newDurationInMs <= maxInitialDurationInMs
+    ) {
+      applyTimerState({
+        initialDuration: duration.toString(
+          normalizeDurationMinutesAndSeconds(newDurationInMs),
+        ),
+      });
+    }
+  };
 
   return (
     <div className="timer-block">
@@ -142,22 +208,33 @@ export const App: BlockComponent<TimerState> = ({
       </div>
       <div className="button-row">
         <button
-          type="button"
           aria-label="Less time"
           className="less-time-button"
-          disabled={derivedStatus !== "idle"}
+          disabled={
+            derivedStatus === "running" ||
+            derivedStatus === "paused" ||
+            initialDurationInMs <= minInitialDurationInMs
+          }
+          onClick={handleLessOrMoreTimeButtonClick}
+          type="button"
         />
         <button
-          type="button"
           aria-label="Reset"
           className="reset-button"
           onClick={handleReset}
+          disabled={derivedStatus === "idle" || derivedStatus === "finished"}
+          type="button"
         />
         <button
-          type="button"
           aria-label="More time"
           className="more-time-button"
-          disabled={derivedStatus !== "idle"}
+          disabled={
+            derivedStatus === "running" ||
+            derivedStatus === "paused" ||
+            initialDurationInMs >= maxInitialDurationInMs
+          }
+          onClick={handleLessOrMoreTimeButtonClick}
+          type="button"
         />
       </div>
     </div>

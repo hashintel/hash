@@ -5,7 +5,7 @@ export const useAutoRefresh = (active: boolean, targetFps = 25): void => {
   useEffect(() => {
     if (active) {
       const timeout = setTimeout(() => {
-        setTick(tick + 1);
+        setTick((tick + 1) % Number.MAX_SAFE_INTEGER);
       }, 1000 / targetFps);
       return () => {
         clearTimeout(timeout);
