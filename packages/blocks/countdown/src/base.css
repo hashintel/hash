@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
 /* –––––––––– Root variables –––––––––– */
 
 :root {
@@ -274,9 +276,9 @@
       padding: var(--space-6) 0;
     }
   
-    .title-form {
+    .countdown-title {
       display: flex;
-      border: 1px solid var(--border-color-dark);
+      border: 1px solid transparent;
       border-radius: 6px;
       padding: 10px 14px;
       margin-bottom: 16px;
@@ -285,44 +287,49 @@
       transition: all 0.3s ease;
     }
   
-    .title-form:hover {
+    .countdown-title:hover {
       border: 1px solid var(--border-color-dark);
     }
   
-    .title-form:focus-within {
+    .countdown-title:focus-within {
       width: 360px;
-      padding-right: 48px;
       outline: 1px solid blue;
     }
   
-    .title-form:focus-within button {
+    .countdown-title:focus-within button {
       pointer-events: auto;
       visibility: visible;
     }
   
-  
-    .title-form textarea {
+    .countdown-title textarea, .countdown-title .title-input  {
+      position: relative;
+      border: 1px solid blue;
       flex: 1;
       border: none;
       width: 100%;
       min-width: 140px;
-  
+      width: min-content;
+      max-width: 360px;
       font-size: 24px;
       line-height: 120%;
-  
+      padding-right: 48px;
       color: #37434F; /* gray-90*/
       font-family: sans-serif;
   
       outline: none;
       resize: none;
     }
-  
-    .title-form textarea::placeholder {
-      color: #91A5BA
+
+    .countdown-title .title-input:empty:after {
+      color: #91A5BA;
+      content: attr(placeholder);
+      margin-right: -48px;
+      white-space: nowrap;
+      width: 100%;
+      text-align: center;
     }
   
-  
-    .title-form button {
+    .countdown-title button {
       position: absolute;
       top: 8px;
       right: 8px;
@@ -348,7 +355,6 @@
     margin-bottom: 12px;
     border-radius: 6px;
     display: flex;
-  
   }
   
   .display-grid__item {

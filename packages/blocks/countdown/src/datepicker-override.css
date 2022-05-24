@@ -26,7 +26,6 @@
       border: none;
       flex: 1;
       width: 100%;    
-    
   }
 
   .react-datepicker__input-container input:placeholder-shown {
@@ -40,8 +39,7 @@
   }
 
   .react-datepicker__input-container svg {
-
-
+    color: #758AA1;
   }
 
   .react-datepicker-popper {

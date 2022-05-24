@@ -1,4 +1,4 @@
-import React, { VFC } from "react";
+import React, { ChangeEvent, useEffect, useRef, VFC } from "react";
 
 type CountdownTitleProps = {
   value: string | undefined;
@@ -11,14 +11,27 @@ export const CountdownTitle: VFC<CountdownTitleProps> = ({
   onChangeText,
   onBlur,
 }) => {
+  const textareaEl = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!textareaEl.current) return;
+    textareaEl.current.textContent = value ?? "";
+  }, [value]);
+
+  const handleChange = (evt: ChangeEvent<HTMLDivElement>) => {
+    if (!textareaEl.current) return;
+    textareaEl.current.textContent = evt.target.textContent;
+    onChangeText(evt.currentTarget.textContent ?? "");
+  };
+
   return (
-    <form className="title-form">
-      {/* @todo implementing wrapping into new line as user types */}
-      <textarea
+    <div className="countdown-title">
+      <div
+        ref={textareaEl}
+        className="title-input"
+        contentEditable
         placeholder="Event name"
-        rows={1}
-        value={value}
-        onChange={(evt) => onChangeText(evt.target.value)}
+        onInput={handleChange}
         onBlur={onBlur}
       />
       <button type="button">
@@ -35,6 +48,6 @@ export const CountdownTitle: VFC<CountdownTitleProps> = ({
           />
         </svg>
       </button>
-    </form>
+    </div>
   );
 };

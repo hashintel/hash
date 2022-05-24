@@ -1,8 +1,8 @@
-import React, { VFC } from "react";
-import { Duration } from "date-fns";
+import React, { useEffect, useState, VFC } from "react";
+import { Duration, intervalToDuration, isPast } from "date-fns";
 
 type DisplayProps = {
-  duration: Duration | undefined;
+  targetDate: Date | null;
 };
 
 const intervals: (keyof Duration)[] = [
@@ -23,21 +23,33 @@ export const defaultDuration = {
   seconds: 0,
 } as Duration;
 
-export const Display: VFC<DisplayProps> = ({ duration = defaultDuration }) => {
-  //   console.log("duration => ", duration);
+export const Display: VFC<DisplayProps> = ({ targetDate }) => {
+  const [_, setClock] = useState(new Date());
 
-  //   @todo, seconds/minutes should still remain if hours/days are present
-  //   const x = intervals.reduce<(keyof Duration)[]>((acc, val) => {
+  useEffect(() => {
+    const tick = () => setClock(new Date());
+    // Tick at most once per second
+    // It might take slightly longer than a second depending on how long it takes to get through other events
+    const tickInterval = setInterval(tick, 1000);
 
-  //     return [...acc, val];
-  //   }, []);
+    tick();
 
-  const filteredIntervals = intervals.filter((interval) => {
-    if (!duration[interval] || duration[interval]! <= 0) {
-      return false;
+    return () => clearInterval(tickInterval);
+  }, []);
+
+  const duration = targetDate
+    ? intervalToDuration({
+        start: new Date(),
+        end: targetDate,
+      })
+    : defaultDuration;
+
+  const filteredIntervals = intervals.reduce<(keyof Duration)[]>((acc, val) => {
+    if (duration[val] || acc.length > 0) {
+      return [...acc, val];
     }
-    return true;
-  });
+    return acc;
+  }, []);
 
   const intervalsToDisplay =
     filteredIntervals.length > 0
@@ -49,8 +61,12 @@ export const Display: VFC<DisplayProps> = ({ duration = defaultDuration }) => {
       {intervalsToDisplay.map((item) => {
         return (
           <div key={item} className="display-grid__item">
-            <p>{duration[item] ?? 0}</p>
-            <p>{item}</p>
+            <p>
+              {["seconds", "minutes"].includes(item)
+                ? duration[item]?.toString().padStart(2, "0") ?? "00"
+                : duration[item] ?? "0"}
+            </p>
+            <p>{`${item} ${targetDate && isPast(targetDate) ? "ago" : ""}`}</p>
           </div>
         );
       })}
