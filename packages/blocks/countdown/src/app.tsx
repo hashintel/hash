@@ -12,10 +12,9 @@ import {
   intervalToDuration,
 } from "date-fns";
 
-import "./base.css";
 import "react-datepicker/dist/react-datepicker.css";
+import "./base.css";
 import "./datepicker-override.css";
-import "./styles.css";
 import { defaultDuration, Display } from "./display";
 import { DatePickerInput } from "./date-picker-input";
 import { CountdownTitle } from "./countdown-title";
