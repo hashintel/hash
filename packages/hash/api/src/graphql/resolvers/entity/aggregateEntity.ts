@@ -24,7 +24,7 @@ export const dbAggregateEntity =
     const entities = await Entity.getAccountEntities(db, {
       accountId,
       entityTypeFilter: {
-        entityTypeId,
+        entityTypeId: entityTypeId ?? undefined,
       },
     });
 
