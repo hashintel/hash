@@ -8,11 +8,13 @@
 
 # Allow certain file types
 !*.cjs
+!*.css
 !*.js
 !*.json
 !*.md
 !*.mdx
 !*.mjs
+!*.scss
 !*.ts
 !*.tsx
 !*.yml
