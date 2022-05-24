@@ -10,16 +10,18 @@ import {
   formatRelative,
   format,
   intervalToDuration,
-  Duration,
 } from "date-fns";
 
-import "react-datepicker/dist/react-datepicker.css";
 import "./base.css";
+import "react-datepicker/dist/react-datepicker.css";
 import "./datepicker-override.css";
+import "./styles.css";
 import { defaultDuration, Display } from "./display";
 import { DatePickerInput } from "./date-picker-input";
+import { CountdownTitle } from "./countdown-title";
 
 type AppProps = {
+  title?: string;
   start: string | null;
   strict: boolean;
 };
@@ -39,6 +41,26 @@ const formatRange = (start: Date | null, end: Date | null) => {
     return "";
   }
 };
+
+// replace calculateTime with this
+// const newCalculateTime = (startDate: Date | null) => {
+//   if (startDate === null) return;
+
+//   let interval = defaultDuration;
+
+//   if (isFuture(startDate)) {
+//     interval = intervalToDuration({
+//       start: startDate,
+//       end: new Date(),
+//     });
+//   }
+
+//   return {
+//     interval,
+//   };
+// };
+
+// @todo confirm if we need since / until / is now
 
 const calculateTime = (start: Date | null, strict: boolean) => {
   const end = new Date();
@@ -92,6 +114,7 @@ const calculateTime = (start: Date | null, strict: boolean) => {
 export const App: BlockComponent<AppProps> = ({
   start = null,
   strict = false,
+  title,
   entityId,
   accountId,
   updateEntities,
@@ -99,6 +122,15 @@ export const App: BlockComponent<AppProps> = ({
   const [localStart, setLocalStart] = useState<Date | null>(
     !start ? null : new Date(start),
   );
+
+  const [localTitle, setLocalTitle] = useState(title);
+
+  // const [localData, setLocalData] = useState({
+  //   start: !start ? null : new Date(start),
+  //   title,
+  // });
+
+  // add state for time
 
   const [clock, setClock] = useState({ now: new Date() });
   const tick = () => setClock({ now: new Date() });
@@ -113,13 +145,18 @@ export const App: BlockComponent<AppProps> = ({
             accountId,
             data: {
               start: newStart,
+              title: localTitle,
             },
           },
         ]);
       }
     },
-    [entityId, accountId, updateEntities],
+    [entityId, accountId, updateEntities, localTitle],
   );
+
+  const updateRemoteTitle = useCallback(() => {
+    update(localStart);
+  }, [update, localStart]);
 
   useEffect(() => {
     setLocalStart(!start ? null : new Date(start));
@@ -141,43 +178,25 @@ export const App: BlockComponent<AppProps> = ({
     [clock, localStart, strict],
   ); // Update offset on tick
 
-  const [isOpen, setIsOpen] = useState(false);
-  const open = () => setIsOpen(true);
-  const close = () => setIsOpen(false);
-
   const onChange = (changes: Date | [Date | null, Date | null] | null) => {
-    // close();
     const newDate = Array.isArray(changes) ? changes[0] : changes;
     update(newDate);
   };
 
   const datepicker = useRef<DatePicker>(null);
 
-  useEffect(() => {
-    // if (datepicker.current) datepicker.current.setOpen(isOpen);
-  }, [isOpen]);
+  // useEffect(() => {
+  //   if (datepicker.current) datepicker.current.setOpen(isOpen);
+  // }, [isOpen]);
 
   return (
     <div>
       <div className="countdown-block">
-        <form className="title-form">
-          {/* @todo implementing wrapping into new line as user types */}
-          <textarea placeholder="Event name" rows="1" />
-          <button type="button">
-            <svg
-              width="17"
-              height="17"
-              viewBox="0 0 17 17"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M15.5 4.5C15.5 4.78125 15.375 5.03125 15.1875 5.21875L7.1875 13.2188C7 13.4062 6.75 13.5 6.5 13.5C6.21875 13.5 5.96875 13.4062 5.78125 13.2188L1.78125 9.21875C1.59375 9.03125 1.5 8.78125 1.5 8.5C1.5 7.9375 1.9375 7.5 2.5 7.5C2.75 7.5 3 7.625 3.1875 7.8125L6.5 11.0938L13.7812 3.8125C13.9688 3.625 14.2188 3.5 14.5 3.5C15.0312 3.5 15.5 3.9375 15.5 4.5Z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
-        </form>
+        <CountdownTitle
+          value={localTitle}
+          onChangeText={setLocalTitle}
+          onBlur={updateRemoteTitle}
+        />
         <Display duration={timeOffset.interval} />
         <div style={{ display: "inline-block" }}>
           <DatePickerInput
@@ -185,11 +204,6 @@ export const App: BlockComponent<AppProps> = ({
             selected={localStart}
             startDate={localStart}
             onChange={onChange}
-            // onCalendarClose={close}
-
-            // onSelect={close}
-
-            // dateFormat={localSelectsRange ? "P" : "Pp"}
             dateFormat="Pp"
             showTimeInput
             showWeekNumbers
