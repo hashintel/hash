@@ -38,7 +38,7 @@ fn create_new_entry(
 ) -> Result<(), ErrorKind> {
     match map.entry(key) {
         Entry::Occupied(entry) => {
-            // `bail!` returns `Err(Report)` constructed from it's parameters
+            // `bail!` returns `Err(Report)` constructed from its parameters
             bail!(context: ErrorKind::OccupiedEntry(key, *entry.get()))
         }
         Entry::Vacant(entry) => {
