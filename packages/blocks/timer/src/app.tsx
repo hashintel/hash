@@ -59,12 +59,11 @@ export const App: BlockComponent<TimerState> = ({
     [rest.initialDuration, rest.pauseDuration, rest.targetDateTime],
   );
 
-  const prevExternalTimerState = useRef(externalTimerState);
-  prevExternalTimerState.current = externalTimerState;
-
   const [timerState, setTimerState] = useState<TimerState>(externalTimerState);
 
+  const prevExternalTimerState = useRef(externalTimerState);
   if (prevExternalTimerState.current !== externalTimerState) {
+    prevExternalTimerState.current = externalTimerState;
     setTimerState(externalTimerState);
   }
 
@@ -146,7 +145,7 @@ export const App: BlockComponent<TimerState> = ({
             duration.between(new Date(), parsedTargetDateTime),
           ),
         )
-        .replace(/,/g, "."),
+        .replace(/,/g, "."), // https://github.com/dlevs/duration-fns/issues/26
     });
   };
 
