@@ -3,40 +3,11 @@ import { Box, TypographyProps } from "@mui/system";
 import Head from "next/head";
 import Image from "next/image";
 import { createContext, FC, useContext, VFC } from "react";
+import { format } from "date-fns";
 import { FRONTEND_URL } from "../config";
 import { Link } from "./Link";
 import { mdxImageClasses } from "./MdxImage";
 import { FaIcon } from "./icons/FaIcon";
-
-/**
- * @param {number} digit
- * @returns the ordinal suffix of the input digit
- */
-const nth = (digit: number) => {
-  if (digit > 3 && digit < 21) return "th";
-  switch (digit % 10) {
-    case 1:
-      return "st";
-    case 2:
-      return "nd";
-    case 3:
-      return "rd";
-    default:
-      return "th";
-  }
-};
-
-/**
- * @param {Date} date
- * @returns the formatted string of the date object (e.g. "May 17th, 2022")
- */
-const formatDate = (date: Date) => {
-  const year = date.toLocaleString("default", { year: "numeric" });
-  const month = date.toLocaleString("default", { month: "long" });
-  const day = parseInt(date.toLocaleString("default", { day: "numeric" }), 10);
-
-  return `${month} ${day}${nth(day)}, ${year}`;
-};
 
 export type BlogPostPagePhoto = {
   src: string;
@@ -218,7 +189,7 @@ export const BlogPostHead: VFC<{
                       }),
                     ]}
                   >
-                    {formatDate(date)}
+                    {format(date, "MMMM do, y")}
                   </Typography>
                 ) : null}
                 <Stack direction="row">
