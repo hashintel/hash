@@ -13,6 +13,6 @@ mod py {
     run_test!(access_from_behaviors, Python);
     run_test!(access_from_init, Python);
     // TODO - tests disabled until we make it so that the data actually is immutable
-    run_test!(immutable_from_behaviors, Python, #[ignore]);
-    run_test!(immutable_from_init, Python, #[ignore]);
+    run_test!(immutable_from_behaviors, Python, #[ignore = "bug: Initial data is currently not immutable in Python"]);
+    run_test!(immutable_from_init, Python, #[ignore = "bug: Initial data is currently not immutable in Python"]);
 }
