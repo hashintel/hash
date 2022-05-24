@@ -1,7 +1,19 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap");
 
-$dialRadius: 210px;
-$dialRingWidth: 24px;
+$dialRadius: 150px;
+$dialRingWidth: 16px;
+
+$countdownOffsetY: 80px;
+$countdownFontSize: 50px;
+
+$bigButtonOffsetY: 100px;
+$bigButtonDiameter: 100px;
+
+$smallButtonOffsetY: 18px;
+$smallButtonDiameter: 45px;
+$smallButtonGap: 6px;
+
+$hoverBackgroundColor: #ebf8ff;
 
 .timer-block {
   margin: 0;
@@ -16,14 +28,15 @@ $dialRingWidth: 24px;
     color: rgb(36, 117, 238);
     background-repeat: no-repeat;
     background-position: center center;
-    border: 2px solid rgba(36, 117, 238, 0.3);
+    border: 1.5px solid rgba(36, 117, 238, 0.3);
 
-    &:hover,
-    &:focus-visible {
-      border: 2px solid rgb(36, 117, 238);
+    &:hover:enabled,
+    &:focus-visible:enabled {
+      background-color: $hoverBackgroundColor;
+      border: 1.5px solid rgb(36, 117, 238);
       outline: none;
     }
-    &:active {
+    &:active:enabled {
       transform: translateY(1px);
     }
   }
@@ -78,10 +91,10 @@ $dialRingWidth: 24px;
   }
 
   .countdown {
-    font-size: 72px;
+    font-size: $countdownFontSize;
     position: relative;
     width: 80%;
-    top: 112px;
+    top: $countdownOffsetY;
     border: none;
     color: #37434f;
     background: transparent;
@@ -89,15 +102,15 @@ $dialRingWidth: 24px;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
     text-align: center;
-    height: 72px;
+    height: $countdownFontSize;
     width: $dialRadius * 2 / 1.9;
     display: block;
     margin: 0 auto;
     border-radius: 4px;
     border: 1px solid transparent;
 
-    &:hover:not(disabled) {
-      border: 1px solid #dde7f0;
+    &:hover:enabled {
+      border: 1px solid $hoverBackgroundColor;
     }
   }
   .countdown_value_invalid {
@@ -105,22 +118,22 @@ $dialRingWidth: 24px;
   }
 
   .big-button {
-    height: 140px;
-    width: 140px;
+    height: $bigButtonDiameter;
+    width: $bigButtonDiameter;
     border-radius: 50%;
-    border: 2px solid rgb(36, 117, 238, 0.3);
+    border: 1.5px solid rgb(36, 117, 238, 0.3);
     position: relative;
-    top: 130px;
+    top: $bigButtonOffsetY;
 
     &:hover {
       background-color: #ebf8ff;
-      border: 2px solid rgb(36, 117, 238);
+      border: 1.5px solid rgb(36, 117, 238);
     }
   }
 
   .big-button_type_play {
     background-image: linear-gradient(180deg, #2d7ff9 0%, #1a6de8 100%);
-    border: 2px solid rgb(36, 117, 238);
+    border: 1.5px solid rgb(36, 117, 238);
 
     &:hover {
       background-image: linear-gradient(180deg, #479cff 0%, #2075f2 100%);
@@ -138,45 +151,41 @@ $dialRingWidth: 24px;
   }
 
   .big-button_type_play .big-button__icon {
-    background-image: url('data:image/svg+xml;utf8,<svg width="45" height="55" viewBox="0 0 45 55" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0.5 50.8907V4.3593C0.5 1.1879 4.01429 -0.722217 6.67558 1.00269L42.5712 24.2684C45.0038 25.845 45.0038 29.405 42.5712 30.9816L6.67558 54.2473C4.01429 55.9722 0.5 54.0621 0.5 50.8907Z" fill="white"/></svg>');
+    background-image: url('data:image/svg+xml;utf8,<svg width="33" height="40" viewBox="0 0 33 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0.857422 36.3503V3.11358C0.857422 0.848292 3.36763 -0.516082 5.26855 0.715996L30.9083 17.3343C32.6458 18.4605 32.6458 21.0033 30.9083 22.1295L5.26855 38.7478C3.36763 39.9799 0.857422 38.6156 0.857422 36.3503Z" fill="white"/></svg>');
     background-position-x: 55%;
   }
 
   .big-button_type_pause .big-button__icon {
-    background-image: url('data:image/svg+xml;utf8,<svg width="51" height="56" viewBox="0 0 51 56" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.5" width="20" height="56" rx="4" fill="rgb(41, 124, 247)"/><rect x="30.5" width="20" height="56" rx="4" fill="rgb(41, 124, 247)"/></svg>');
+    background-image: url('data:image/svg+xml;utf8,<svg width="36" height="41" viewBox="0 0 36 41" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.0712891" y="0.14209" width="14.2857" height="40" rx="2.85714" fill="rgb(41, 124, 247)"/><rect x="21.501" y="0.14209" width="14.2857" height="40" rx="2.85714" fill="rgb(41, 124, 247)"/></svg>');
   }
 
   .button-row {
-    margin-top: 24px;
+    margin-top: $smallButtonOffsetY;
   }
 
   .less-time-button,
   .reset-button,
   .more-time-button {
     border-radius: 50%;
-    margin: 8px;
-    width: 64px;
-    height: 64px;
+    margin: $smallButtonGap;
+    width: $smallButtonDiameter;
+    height: $smallButtonDiameter;
 
     &:disabled {
       opacity: 0.3;
       border-color: rgb(36, 117, 238);
       cursor: default;
-
-      &:active {
-        transform: none;
-      }
     }
   }
 
   .less-time-button {
-    background-image: url('data:image/svg+xml;utf8,<svg width="22" height="3" viewBox="0 0 22 3" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21.6004 1.80039C21.6004 2.50039 21.0504 3.00039 20.4004 3.00039H2.00039C1.30039 3.00039 0.800391 2.50039 0.800391 1.85039C0.800391 1.15039 1.30039 0.60039 2.00039 0.60039H20.4004C21.0504 0.60039 21.6004 1.15039 21.6004 1.80039Z" fill="rgb(36, 117, 238)"/></svg>');
+    background-image: url('data:image/svg+xml;utf8,<svg width="16" height="3" viewBox="0 0 16 3" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.5704 1.57011C15.5704 2.07011 15.1776 2.42725 14.7133 2.42725H1.57045C1.07045 2.42725 0.713308 2.07011 0.713308 1.60582C0.713308 1.10582 1.07045 0.712964 1.57045 0.712964H14.7133C15.1776 0.712964 15.5704 1.10582 15.5704 1.57011Z" fill="rgb(36, 117, 238)"/></svg>');
   }
   .reset-button {
-    background-image: url('data:image/svg+xml;utf8,<svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22.9002 14.4504C22.2502 14.2504 21.6002 14.6004 21.4002 15.2504C20.3502 19.0004 16.8502 21.6004 12.9502 21.6004C9.6002 21.6004 6.6002 19.7004 5.1002 16.8004H10.1502C10.8002 16.8004 11.3502 16.3004 11.3502 15.6004C11.3502 14.9504 10.8502 14.4004 10.1502 14.4004H2.1502C1.5002 14.4004 0.950195 14.9504 0.950195 15.6004V23.6004C0.950195 24.3004 1.5002 24.8004 2.1502 24.8004C2.8502 24.8004 3.3502 24.3004 3.3502 23.6004V18.5004C5.3502 21.8504 9.0002 24.0004 12.9502 24.0004C17.9002 24.0004 22.3002 20.7004 23.7002 15.9504C23.9002 15.3004 23.5502 14.6504 22.9002 14.4504ZM23.8002 0.80039C23.1002 0.80039 22.6002 1.35039 22.6002 2.00039V7.15039C20.6002 3.80039 16.9502 1.60039 13.0002 1.60039C8.0502 1.60039 3.6002 4.95039 2.2002 9.70039C2.0502 10.3004 2.4002 11.0004 3.0502 11.1504C3.7002 11.3504 4.3502 11.0004 4.5002 10.3504C5.6002 6.65039 9.1002 4.00039 13.0002 4.00039C16.3002 4.00039 19.3002 5.95039 20.8002 8.80039H15.8002C15.1002 8.80039 14.6002 9.35039 14.6002 10.0004C14.6002 10.7004 15.1002 11.2004 15.8002 11.2004H23.8002C24.4502 11.2004 25.0002 10.7004 25.0002 10.0004V2.00039C25.0002 1.35039 24.4502 0.80039 23.8002 0.80039Z" fill="rgb(36, 117, 238)"/></svg>');
+    background-image: url('data:image/svg+xml;utf8,<svg width="18" height="19" viewBox="0 0 18 19" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.2123 10.7487C15.748 10.6058 15.2838 10.8558 15.1409 11.3201C14.3909 13.9987 11.8909 15.8558 9.10519 15.8558C6.71233 15.8558 4.56947 14.4987 3.49805 12.4272H7.10519C7.56947 12.4272 7.96233 12.0701 7.96233 11.5701C7.96233 11.1058 7.60519 10.713 7.10519 10.713H1.3909C0.926618 10.713 0.533761 11.1058 0.533761 11.5701V17.2844C0.533761 17.7844 0.926618 18.1415 1.3909 18.1415C1.8909 18.1415 2.24805 17.7844 2.24805 17.2844V13.6415C3.67662 16.0344 6.28376 17.5701 9.10519 17.5701C12.6409 17.5701 15.7838 15.213 16.7838 11.8201C16.9266 11.3558 16.6766 10.8915 16.2123 10.7487ZM16.8552 0.998682C16.3552 0.998682 15.998 1.39154 15.998 1.85582V5.53439C14.5695 3.14154 11.9623 1.57011 9.1409 1.57011C5.60519 1.57011 2.42662 3.96297 1.42662 7.35582C1.31947 7.78439 1.56947 8.28439 2.03376 8.39154C2.49805 8.53439 2.96233 8.28439 3.06947 7.82011C3.85519 5.17725 6.35519 3.2844 9.1409 3.2844C11.498 3.2844 13.6409 4.67725 14.7123 6.71297H11.1409C10.6409 6.71297 10.2838 7.10582 10.2838 7.57011C10.2838 8.07011 10.6409 8.42725 11.1409 8.42725H16.8552C17.3195 8.42725 17.7123 8.07011 17.7123 7.57011V1.85582C17.7123 1.39154 17.3195 0.998682 16.8552 0.998682Z" fill="rgb(36, 117, 238)"/></svg>');
   }
   .more-time-button {
-    background-image: url('data:image/svg+xml;utf8,<svg width="26" height="25" viewBox="0 0 26 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M25.1879 12.7499C25.1879 13.5702 24.5433 14.1561 23.7816 14.1561H14.4065V23.5312C14.4065 24.3516 13.7619 24.9961 13.0002 24.9961C12.1799 24.9961 11.5939 24.3516 11.5939 23.5312V14.1561H2.21881C1.39848 14.1561 0.812537 13.5702 0.812537 12.8084C0.812537 11.9881 1.39848 11.3436 2.21881 11.3436H11.5939V1.96846C11.5939 1.20673 12.1799 0.620789 13.0002 0.620789C13.7619 0.620789 14.4065 1.20673 14.4065 1.96846V11.3436H23.7816C24.5433 11.3436 25.1879 11.9881 25.1879 12.7499Z" fill="rgb(36, 117, 238)"/></svg>');
+    background-image: url('data:image/svg+xml;utf8,<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.4308 7.57011C15.4308 8.07011 15.0379 8.42725 14.5737 8.42725H8.85937V14.1415C8.85937 14.6415 8.46651 15.0344 8.00223 15.0344C7.50223 15.0344 7.14509 14.6415 7.14509 14.1415V8.42725H1.4308C0.930803 8.42725 0.57366 8.07011 0.57366 7.60582C0.57366 7.10582 0.930803 6.71296 1.4308 6.71296H7.14509V0.998681C7.14509 0.534396 7.50223 0.177253 8.00223 0.177253C8.46651 0.177253 8.85937 0.534396 8.85937 0.998681V6.71296H14.5737C15.0379 6.71296 15.4308 7.10582 15.4308 7.57011Z" fill="rgb(36, 117, 238)"/></svg>');
   }
 }
 
