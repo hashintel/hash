@@ -9,6 +9,9 @@ provider = { path = "../provider" }
 tracing-error = { version = "0.2.0", optional = true }
 once_cell = { version = "1.10.0", optional = true }
 
+[dev-dependencies]
+serde_json = "1.0.81"
+
 [features]
 default = ["std", "backtrace", "hooks"]
 std = []
@@ -20,5 +23,5 @@ spantrace = ["tracing-error"]
 all-features = true
 
 [[example]]
-name = "hooks"
+name = "json_output"
 required-features = ["hooks"]
