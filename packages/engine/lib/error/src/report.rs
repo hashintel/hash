@@ -229,7 +229,7 @@ impl<C> Report<C> {
 impl<Context> fmt::Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
-        if let Some(debug_hook) = crate::display_hook() {
+        if let Some(debug_hook) = Report::display_hook() {
             return debug_hook(self.generalized(), fmt);
         }
 
@@ -248,7 +248,7 @@ impl<Context> fmt::Display for Report<Context> {
 impl<Context> fmt::Debug for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
-        if let Some(debug_hook) = crate::debug_hook() {
+        if let Some(debug_hook) = Report::debug_hook() {
             return debug_hook(self.generalized(), fmt);
         }
 

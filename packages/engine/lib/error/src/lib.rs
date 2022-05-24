@@ -164,8 +164,6 @@ use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
 
 use provider::Provider;
 
-#[cfg(feature = "hooks")]
-pub use self::hook::{debug_hook, display_hook, set_debug_hook, set_display_hook};
 pub use self::macros::*;
 use self::{frame::FrameRepr, report::ReportImpl};
 

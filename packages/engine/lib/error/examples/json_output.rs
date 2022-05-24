@@ -2,7 +2,7 @@
 
 use std::collections::hash_map::{Entry, HashMap};
 
-use error::{bail, set_debug_hook, Result, ResultExt};
+use error::{bail, Report, Result, ResultExt};
 use serde_json::json;
 
 fn create_new_entry(map: &mut HashMap<&str, u64>, key: &'static str, value: u64) -> Result<()> {
@@ -21,7 +21,7 @@ fn create_new_entry(map: &mut HashMap<&str, u64>, key: &'static str, value: u64)
 fn main() -> Result<()> {
     // When calling the `Debug` implementation, this hook will be executed instead of default
     // implementation
-    set_debug_hook(|report, fmt| {
+    Report::set_debug_hook(|report, fmt| {
         let errors = report.frames().map(ToString::to_string).collect::<Vec<_>>();
 
         if fmt.alternate() {
