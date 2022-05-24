@@ -385,6 +385,7 @@ export class Instance {
       return;
     }
 
+    this.sendUpdates();
     const { tr } = this.state;
     addEntityStoreAction(this.state, tr, {
       type: "mergeNewPageContents",
@@ -392,14 +393,10 @@ export class Instance {
     });
     this.state = this.state.apply(tr);
     this.savedContents = nextSavedContents;
-    this.recordStoreUpdate();
-  }
-
-  /**
-   * @todo remove this – we should be able to send the tracked actions to other
-   *       clients, instead of the whole store
-   */
-  private recordStoreUpdate() {
+    /**
+     * @todo remove this – we should be able to send the tracked actions to other
+     *       clients, instead of the whole store
+     */
     this.addUpdates([
       {
         type: "store",

@@ -36,7 +36,9 @@
               "IconButton",
               "Chip",
               "Popover",
-              "TextField"
+              "TextField",
+              "MenuItem",
+              "Select"
             ],
             "message": "Please use the custom wrapper component in src/shared/ui instead."
           }

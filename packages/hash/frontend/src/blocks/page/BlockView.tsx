@@ -1,8 +1,4 @@
-import {
-  EntityStore,
-  getDraftEntityFromEntityId,
-  isBlockEntity,
-} from "@hashintel/hash-shared/entityStore";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   entityStorePluginState,
   subscribeToEntityStore,
@@ -10,125 +6,18 @@ import {
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { Box } from "@mui/material";
-import { BlockVariant, JSONObject } from "blockprotocol";
-import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import { BlockVariant } from "blockprotocol";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createRef, forwardRef, useMemo, useRef } from "react";
-import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
-import { DragVerticalIcon } from "../../shared/icons";
-import { BlockViewContext, useBlockView } from "./BlockViewContext";
+import { createRef } from "react";
+
+import { BlockViewContext } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
-import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 import styles from "./style.module.css";
 
 import { RenderPortal } from "./usePortals";
-import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
-import { useUserBlocks } from "../userBlocks";
-
-type BlockHandleProps = {
-  deleteBlock: () => void;
-  entityId: string | null;
-  entityStore: EntityStore;
-  onTypeChange: BlockSuggesterProps["onChange"];
-};
-
-export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ deleteBlock, entityId, entityStore, onTypeChange }, ref) => {
-    const blockMenuRef = useRef(null);
-    const contextMenuPopupState = usePopupState({
-      variant: "popover",
-      popupId: "block-context-menu",
-    });
-
-    const configMenuPopupState = usePopupState({
-      variant: "popover",
-      popupId: "block-config-menu",
-    });
-
-    const blockSuggesterProps: BlockSuggesterProps = useMemo(
-      () => ({
-        onChange: (variant, block) => {
-          onTypeChange(variant, block);
-          contextMenuPopupState.close();
-        },
-      }),
-      [onTypeChange, contextMenuPopupState],
-    );
-
-    const { value: blocksMetaMap } = useUserBlocks();
-
-    /**
-     * The context and config menu use data from the draft store to subscribe to the latest local changes.
-     * Because some blocks update the API directly, bypassing collab and the entity store,
-     * data in the menus can get out of sync with data in those blocks for a few seconds.
-     * The update is eventually received by collab via the db realtime subscription, and the store updated.
-     * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
-     * @todo remove this comment when all updates are sent via collab
-     */
-    const blockEntity = entityId
-      ? getDraftEntityFromEntityId(entityStore.draft, entityId) ?? null
-      : null;
-
-    if (blockEntity && !isBlockEntity(blockEntity)) {
-      throw new Error(`Non-block entity ${entityId} loaded into BlockView.`);
-    }
-
-    const blockView = useBlockView();
-
-    const updateChildEntity = (properties: JSONObject) => {
-      const childEntity = blockEntity?.properties.entity;
-      if (!childEntity) {
-        throw new Error(`No child entity on block to update`);
-      }
-      blockView.manager.updateEntityProperties(
-        childEntity.entityId,
-        properties,
-      );
-    };
-
-    const blockSchema = blockEntity
-      ? blocksMetaMap[blockEntity.properties.componentId]?.componentSchema
-      : null;
-
-    return (
-      <Box
-        ref={ref}
-        sx={{
-          position: "relative",
-          cursor: "pointer",
-          height: 24,
-        }}
-        data-testid="block-changer"
-      >
-        <DragVerticalIcon {...bindTrigger(contextMenuPopupState)} />
-
-        <BlockContextMenu
-          blockEntity={blockEntity}
-          blockSuggesterProps={blockSuggesterProps}
-          deleteBlock={deleteBlock}
-          entityId={entityId}
-          openConfigMenu={configMenuPopupState.open}
-          popupState={contextMenuPopupState}
-          ref={blockMenuRef}
-        />
-
-        <BlockConfigMenu
-          anchorRef={ref}
-          blockEntity={blockEntity}
-          blockSchema={blockSchema}
-          closeMenu={configMenuPopupState.close}
-          updateConfig={(properties: JSONObject) =>
-            updateChildEntity(properties)
-          }
-          popupState={configMenuPopupState}
-        />
-      </Box>
-    );
-  },
-);
+import { BlockHandle } from "./BlockHandle";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
@@ -147,9 +36,6 @@ export class BlockView implements NodeView<Schema> {
 
   /** used to hide node-view specific events from prosemirror */
   blockHandleRef = createRef<HTMLDivElement>();
-
-  /** used to hide dragging-related events from prosemirror */
-  dragHandleRef = createRef<HTMLDivElement>();
 
   private store: EntityStore;
   private unsubscribe: Function;
@@ -229,7 +115,7 @@ export class BlockView implements NodeView<Schema> {
      */
     return (
       this.blockHandleRef.current?.contains(evt.target as Node) ||
-      (evt.target === this.dragHandleRef.current && evt.type === "mousedown")
+      (evt.target === this.blockHandleRef.current && evt.type === "mousedown")
     );
   }
 
@@ -287,19 +173,12 @@ export class BlockView implements NodeView<Schema> {
     this.renderPortal(
       <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-        <Box
-          data-testid="block-handle"
-          sx={{
-            backgroundImage: `url("/drag-icon.png")`,
-            height: 20,
-            width: 20,
-            borderRadius: "50%",
-            mr: 1.25,
-            backgroundSize: "contain",
-            cursor: "pointer",
-          }}
-          ref={this.dragHandleRef}
+        <BlockHandle
+          deleteBlock={this.deleteBlock}
+          entityId={blockEntityId}
+          entityStore={this.store}
+          onTypeChange={this.onBlockChange}
+          ref={this.blockHandleRef}
           onMouseDown={() => {
             /**
              * We only want to allow dragging from the drag handle
@@ -333,13 +212,6 @@ export class BlockView implements NodeView<Schema> {
             this.update(this.node);
           }}
           onClick={this.onDragEnd}
-        />
-        <BlockHandle
-          deleteBlock={this.deleteBlock}
-          entityId={blockEntityId}
-          entityStore={this.store}
-          onTypeChange={this.onBlockChange}
-          ref={this.blockHandleRef}
         />
       </BlockViewContext.Provider>,
       this.selectContainer,

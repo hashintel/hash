@@ -14,8 +14,8 @@ type PropertiesType<Properties extends {}> = Properties extends {
   : Properties;
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
-  accountId?: string | null;
-  entityId: Type["entityId"] | null;
+  accountId: string;
+  entityId: string | null;
   entityTypeId?: string | null;
   entityVersionId?: string | null;
 
@@ -24,7 +24,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   //  keep a dict of entity ids to draft ids, and vice versa
   draftId: string;
 
-  entityVersionCreatedAt: string;
+  updatedAt: string;
 
   linkGroups?: Type extends { linkGroups: any }
     ? Type["linkGroups"]
@@ -76,7 +76,8 @@ export const isDraftBlockEntity = (
 export const getDraftEntityFromEntityId = (
   draft: EntityStore["draft"],
   entityId: string,
-) => Object.values(draft).find((entity) => entity.entityId === entityId);
+): DraftEntity | undefined =>
+  Object.values(draft).find((entity) => entity.entityId === entityId);
 
 const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
@@ -153,8 +154,8 @@ export const createEntityStore = (
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
           if (
-            new Date(draftData[draftId]!.entityVersionCreatedAt).getTime() >
-            new Date(draftEntity.entityVersionCreatedAt).getTime()
+            new Date(draftData[draftId]!.updatedAt).getTime() >
+            new Date(draftEntity.updatedAt).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
           }

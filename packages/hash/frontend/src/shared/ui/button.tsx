@@ -7,11 +7,12 @@ import {
   ButtonProps as MuiButtonProps,
   useTheme,
 } from "@mui/material";
-import { VFC, FC, forwardRef, useMemo } from "react";
+import { VFC, forwardRef, useMemo, ReactNode } from "react";
 import { isHrefExternal } from "./link";
 import { LoadingSpinner } from "./loading-spinner";
 
 export type ButtonProps = {
+  children: ReactNode;
   loading?: boolean;
   loadingWithoutText?: boolean;
   disabledTooltipText?: string;
@@ -71,7 +72,7 @@ const LoadingContent: VFC<{
   );
 };
 
-export const Button: FC<ButtonProps> = forwardRef(
+export const Button: VFC<ButtonProps> = forwardRef(
   ({ children, loading, loadingWithoutText, href, sx = [], ...props }, ref) => {
     const linkProps = useMemo(() => {
       if (href && isHrefExternal(href)) {

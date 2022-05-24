@@ -2,13 +2,13 @@
   <img src="https://cdn-us1.hash.ai/assets/hengine-github-readme-header%402x.png">
 </p>
 <div align="center">
- <a href="https://github.com/hashintel/hash/blob/main/packages/engine/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-sspl.svg" alt="Server Side Public License" /></a>
+ <a href="https://github.com/hashintel/hash/blob/main/packages/engine/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-elastic.svg" alt="Elastic License v2" /></a>
  <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
 # hEngine
 
-[HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_engine) (or **hEngine**) is the computational simulation engine at the heart of [HASH](https://hash.ai/platform?utm_medium=organic&utm_source=github_readme_engine), dual-licensed under the Server Side Public License and Elastic License, at your option. The public version available here is our experimental 'next-gen' engine whose architecture and performance characteristics differ significantly to the stable version powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine).
+[HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_engine) (or **hEngine**) is the computational simulation engine at the heart of [HASH](https://hash.ai/platform?utm_medium=organic&utm_source=github_readme_engine). It is publicly and freely available here under the Elastic License. This public version of hEngine is our experimental 'next-gen' engine whose architecture and performance characteristics differ significantly to the stable version powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine).
 
 ## Table of Contents
 
@@ -124,7 +124,7 @@ Due to limitations in Cargo at the moment we can't properly check if it's being 
 
   - Using the x86 brew to install `nng` (which will then install an x86 version). This should result in an nng installation at: `/usr/local/Cellar/nng/1.5.2`
 
-- It's then necessary to set the `NNG_PATH` environment variable, similar to `V8_PATH`
+- It's then necessary to set the `NNG_PATH` environment variable
 
   - The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
 
