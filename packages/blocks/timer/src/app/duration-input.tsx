@@ -10,8 +10,6 @@ import React, {
 } from "react";
 import { TimerStatus } from "./timer-status";
 
-const punctuationSpace = "\u2008"; // same width as :
-
 type DurationInputProps = {
   value: duration.Duration;
   timerStatus: TimerStatus;
@@ -50,12 +48,9 @@ export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
   onChange,
 }) => {
   const valueInMs = duration.toMilliseconds(value);
-  const stringifiedValue =
-    `${value.minutes ?? 0}`.padStart(2, "0") +
-    (timerStatus === "running" && value.milliseconds >= 500
-      ? punctuationSpace
-      : ":") +
-    `${value.seconds ?? 0}`.padStart(2, "0");
+  const stringifiedValue = `${`${value.minutes ?? 0}`.padStart(2, "0")}:${`${
+    value.seconds ?? 0
+  }`.padStart(2, "0")}`;
 
   const [userValue, setUserValue] = useState<undefined | string>();
 
