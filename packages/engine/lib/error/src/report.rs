@@ -257,6 +257,8 @@ impl<Context> fmt::Debug for Report<Context> {
             debug.field("frames", &self.frames());
             #[cfg(feature = "backtrace")]
             debug.field("backtrace", &self.backtrace());
+            #[cfg(feature = "spantrace")]
+            debug.field("span_trace", &self.span_trace());
             debug.finish()
         } else {
             let mut chain = self.frames();
