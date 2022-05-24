@@ -85,7 +85,7 @@ export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
     <input
       ref={inputRef}
       className={`countdown ${
-        typeof userValue === "string" && typeof userValueInMs === "undefined"
+        typeof userValue === "string" && !userValueInMs
           ? "countdown_value_invalid"
           : ""
       }`}
