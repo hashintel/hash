@@ -13,7 +13,14 @@ static DEBUG_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 static DISPLAY_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 
 impl Report {
-    /// Sets a hook, which is called when formatting [`Report`] with the [`Debug`] trait.
+    /// Globally sets a hook, which is called when formatting [`Report`] with the [`Debug`] trait.
+    ///
+    /// As this hook is overwriting the default [`Debug`] implementation, it adds the possibility
+    /// for downstream crates to provide it's own formatting like colored output or a
+    /// machine-readable output (i.e. JSON).
+    ///
+    /// If not set, [`Debug`] will print the latest error, its causes and, if enabled, the
+    /// [`Backtrace`] and [`SpanTrace`].
     ///
     /// [`Debug`]: fmt::Debug
     ///
@@ -52,7 +59,14 @@ impl Report {
         DEBUG_HOOK.get()
     }
 
-    /// Sets a hook, which is called when formatting [`Report`] with the [`Display`] trait.
+    /// Globally sets a hook, which is called when formatting [`Report`] with the [`Display`] trait.
+    ///
+    /// As this hook is overwriting the default [`Display`] implementation, it adds the possibility
+    /// for downstream crates to provide it's own formatting like colored output or a
+    /// machine-readable output (i.e. JSON).
+    ///
+    /// If not set, [`Display`] will print the latest error and, if alternate formatting is enabled
+    /// (`"{:#}"`) and it exist, its direct cause.
     ///
     /// [`Display`]: fmt::Display
     ///
