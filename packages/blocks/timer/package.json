@@ -1,5 +1,5 @@
 {
-  "name": "timer",
+  "name": "@hashintel/block-timer",
   "version": "0.0.0",
   "description": "timer block",
   "keywords": [
