@@ -138,6 +138,9 @@
 //! - `hooks`: Enables setting of [`display_hook`] and [`debug_hook`], **enabled** by default
 //! - `backtrace`: Enables the capturing of [`Backtrace`]s, implies `std`, **enabled** by default
 //! - `spantrace`: Enables the capturing of [`SpanTrace`]s, **disabled** by default
+//!
+//! [`display_hook`]: Report::display_hook
+//! [`debug_hook`]: Report::debug_hook
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(doc, feature(doc_auto_cfg))]

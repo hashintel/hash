@@ -19,10 +19,12 @@ impl Report {
     /// for downstream crates to provide it's own formatting like colored output or a
     /// machine-readable output (i.e. JSON).
     ///
-    /// If not set, [`Debug`] will print the latest error, its causes and, if enabled, the
+    /// If not set, [`Debug`] will print the latest error, its causes and, if captured, the
     /// [`Backtrace`] and [`SpanTrace`].
     ///
     /// [`Debug`]: fmt::Debug
+    /// [`Backtrace`]: std::backtrace::Backtrace
+    /// [`SpanTrace`]: tracing_error::SpanTrace
     ///
     /// # Errors
     ///
@@ -52,6 +54,8 @@ impl Report {
     }
 
     /// Returns the hook, which was previously set by [`set_debug_hook`], if any.
+    ///
+    /// [`set_debug_hook`]: Self::set_debug_hook
     #[cfg(feature = "hooks")]
     pub fn debug_hook()
     -> Option<&'static (impl Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static)>
@@ -66,7 +70,7 @@ impl Report {
     /// machine-readable output (i.e. JSON).
     ///
     /// If not set, [`Display`] will print the latest error and, if alternate formatting is enabled
-    /// (`"{:#}"`) and it exist, its direct cause.
+    /// (`"{:#}"`) and it exists, its direct cause.
     ///
     /// [`Display`]: fmt::Display
     ///
@@ -97,7 +101,9 @@ impl Report {
             .wrap_err("Could not set debug hook")
     }
 
-    /// Returns the hook, which was previously set by [`display_hook`], if any.
+    /// Returns the hook, which was previously set by [`set_display_hook`], if any.
+    ///
+    /// [`set_display_hook`]: Self::set_display_hook
     #[cfg(feature = "hooks")]
     pub fn display_hook()
     -> Option<&'static (impl Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static)>
