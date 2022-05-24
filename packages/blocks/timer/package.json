@@ -17,7 +17,9 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.9"
+    "blockprotocol": "0.0.9",
+    "date-fns": "2.28.0",
+    "duration-fns": "3.0.1"
   },
   "devDependencies": {
     "block-scripts": "0.0.6",
@@ -37,7 +39,7 @@
     "displayName": "timer",
     "examples": [
       {
-        "initialDuration": "P10M"
+        "initialDuration": "PT10M"
       }
     ],
     "icon": "public/omega.svg",

@@ -2,8 +2,9 @@ import "./app.scss";
 
 import React, { useEffect, useState, useCallback } from "react";
 import { BlockComponent } from "blockprotocol/react";
+import { parseISO } from "date-fns";
+import * as duration from "duration-fns";
 import { useAutoRefresh } from "./use-auto-refresh";
-// import { parseIsoD } from "date-fns";
 
 type TimerState = {
   /** https://schema.org/Duration */
@@ -16,26 +17,31 @@ type TimerState = {
 
 type DerivedStatus = "idle" | "running" | "paused" | "finished";
 
-export const App: BlockComponent<TimerState> = ({
-  initialDuration,
-  pauseDuration,
-  targetDateTime,
+const punctuationSpace = "\u2008"; // same width as :
 
+const isInPast = (date: Date): boolean => date < new Date();
+
+export const App: BlockComponent<TimerState> = ({
   updateEntities,
   entityId,
   accountId,
+  ...rest
 }) => {
   const [timerState, setTimerState] = useState<TimerState>({
-    initialDuration,
-    pauseDuration,
-    targetDateTime,
+    initialDuration: rest.initialDuration,
+    pauseDuration: rest.pauseDuration,
+    targetDateTime: rest.targetDateTime,
   });
 
   useEffect(() => {
-    setTimerState({ initialDuration, pauseDuration, targetDateTime });
-  }, [initialDuration, pauseDuration, targetDateTime]);
+    setTimerState({
+      initialDuration: rest.initialDuration,
+      pauseDuration: rest.pauseDuration,
+      targetDateTime: rest.targetDateTime,
+    });
+  }, [rest.initialDuration, rest.pauseDuration, rest.targetDateTime]);
 
-  const updateTimerState = useCallback(
+  const applyTimerState = useCallback(
     (newTimerState: TimerState) => {
       setTimerState(newTimerState);
       void updateEntities?.([{ entityId, accountId, data: newTimerState }]);
@@ -43,33 +49,66 @@ export const App: BlockComponent<TimerState> = ({
     [accountId, entityId, updateEntities],
   );
 
+  const parsedTargetDateTime = timerState.targetDateTime
+    ? parseISO(timerState.targetDateTime)
+    : undefined;
+
+  const parsedInitialDuration = duration.parse(timerState.initialDuration);
+  const parsedPauseDuration = timerState.pauseDuration
+    ? duration.parse(timerState.pauseDuration)
+    : undefined;
+
+  const remainingDuration =
+    parsedPauseDuration ??
+    (parsedTargetDateTime
+      ? duration.between(new Date(), parsedTargetDateTime)
+      : parsedInitialDuration);
+
+  const initialDurationInMs = duration.toMilliseconds(parsedInitialDuration);
+  const remainingDurationInMs = duration.toMilliseconds(remainingDuration);
+  const remainingProportion = Math.max(
+    0,
+    Math.min(1, 1 - remainingDurationInMs / initialDurationInMs),
+  );
+
+  const derivedStatus: DerivedStatus = parsedPauseDuration
+    ? "paused"
+    : !parsedTargetDateTime
+    ? "idle"
+    : remainingDurationInMs > 0
+    ? "running"
+    : "finished";
+
   const handleReset = () => {
-    updateTimerState({ initialDuration: timerState.initialDuration });
+    applyTimerState({ initialDuration: timerState.initialDuration });
   };
-
-  const [paused, setPaused] = useState(true);
-  const [completed, setCompleted] = useState(0);
-
-  useEffect(() => {
-    if (paused) {
-      return;
-    }
-    setTimeout(() => {
-      setCompleted((completed + 0.001) % 1);
-    }, 10);
-  });
 
   const handlePlayClick = () => {
-    setPaused(false);
-    // updateTimerState({ initialDuration: timerState.initialDuration, targetDateTime })
-  };
-  const handlePauseClick = () => {
-    setPaused(true);
+    applyTimerState({
+      initialDuration: timerState.initialDuration,
+      targetDateTime: duration
+        .apply(new Date(), parsedInitialDuration)
+        .toISOString(),
+    });
   };
 
-  const derivedStatus = (paused ? "idle" : "running") as DerivedStatus;
+  const handlePauseClick = () => {
+    if (!parsedTargetDateTime || isInPast(parsedTargetDateTime)) {
+      return;
+    }
+
+    applyTimerState({
+      initialDuration: timerState.initialDuration,
+      pauseDuration: timerState.pauseDuration,
+    });
+  };
 
   useAutoRefresh(derivedStatus === "running");
+
+  const countdownValue =
+    `${remainingDuration.minutes ?? 0}`.padStart(2, "0") +
+    (remainingDurationInMs % 1000 < 500 ? ":" : punctuationSpace) +
+    `${remainingDuration.seconds ?? 0}`.padStart(2, "0");
 
   return (
     <div className="timer-block">
@@ -77,14 +116,10 @@ export const App: BlockComponent<TimerState> = ({
         <div className="dial-ring">
           <div
             className="dial-ring-completion"
-            style={{ animationDelay: `-${completed * 100}s` }}
+            style={{ animationDelay: `-${remainingProportion * 100}s` }}
           />
         </div>
-        <input
-          className="countdown"
-          value={Math.round(completed * 20) % 2 ? "42:42" : "42\u200842"}
-          disabled
-        />
+        <input className="countdown" value={countdownValue} disabled />
         {derivedStatus === "running" ? (
           <button
             type="button"

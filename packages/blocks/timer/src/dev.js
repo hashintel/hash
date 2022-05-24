@@ -13,7 +13,7 @@ const node = document.getElementById("app");
 
 const App = () => (
   <MockBlockDock>
-    <Component entityId="timer" initialDuration="P10M" />
+    <Component entityId="timer" initialDuration="PT10S" />
   </MockBlockDock>
 );
 
