@@ -64,8 +64,6 @@ type CustomTimeInputProps = {
 
 const CustomTimeInput = forwardRef<HTMLInputElement, CustomTimeInputProps>(
   ({ displayTime, setDisplayTime, ...props }, ref) => {
-    const inputRef = useRef<HTMLInputElement>(null);
-
     if (!displayTime) {
       return (
         <button
@@ -81,18 +79,7 @@ const CustomTimeInput = forwardRef<HTMLInputElement, CustomTimeInputProps>(
     return (
       <>
         <input
-          ref={(element) => {
-            if (!ref || !inputRef) return;
-
-            (inputRef as MutableRefObject<HTMLInputElement | null>).current =
-              element;
-            if (typeof ref === "function") {
-              ref(element);
-            } else {
-              // eslint-disable-next-line no-param-reassign
-              ref.current = element;
-            }
-          }}
+          ref={ref}
           type="time"
           className="react-datepicker-time__input"
           placeholder="Time"

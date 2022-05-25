@@ -2,66 +2,90 @@ import React, { useEffect, useState, useCallback } from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 
-import "react-datepicker/dist/react-datepicker.css";
-import "./base.css";
-import "./datepicker-override.css";
 import { Display } from "./display";
 import { DatePickerInput } from "./date-picker-input";
 import { CountdownTitle } from "./countdown-title";
 
+import "./base.css";
+import "react-datepicker/dist/react-datepicker.css";
+import "./styles.css";
+import "./datepicker-override.css";
+
 type AppProps = {
   title?: string;
-  start: string | null;
+  targetDate: string | null;
   displayTime?: boolean;
 };
 
 export const App: BlockComponent<AppProps> = ({
-  start = null,
+  targetDate = null,
   title,
   displayTime,
   entityId,
   accountId,
   updateEntities,
 }) => {
-  const [localStart, setLocalStart] = useState<Date | null>(
-    !start ? null : new Date(start),
+  const [localTargetDate, setLocalTargetDate] = useState<Date | null>(
+    !targetDate ? null : new Date(targetDate),
   );
   const [localTitle, setLocalTitle] = useState(title);
-  // const [displayTime, setDisplayTime] = useState(false);
-
-  // add state for time
+  const [localDisplayTime, setLocalDisplayTime] = useState(false);
 
   useEffect(() => {
-    setLocalStart(!start ? null : new Date(start));
-  }, [start]);
+    setLocalTargetDate(!targetDate ? null : new Date(targetDate));
+  }, [targetDate]);
 
   useEffect(() => {
     setLocalTitle(title);
   }, [title]);
 
+  useEffect(() => {
+    setLocalDisplayTime(!!displayTime);
+  }, [displayTime]);
+
   const updateRemoteData = useCallback(
-    (data?: { title?: string; start?: Date | null }) => {
+    (data?: {
+      title?: string;
+      targetDate?: Date | null;
+      displayTime?: boolean;
+    }) => {
       if (updateEntities) {
         void updateEntities([
           {
             entityId,
             accountId,
             data: {
-              start: data?.start ?? localStart,
+              displayTime: data?.displayTime ?? localDisplayTime,
+              targetDate: data?.targetDate ?? localTargetDate,
               title: data?.title ?? localTitle,
             },
           },
         ]);
       }
     },
-    [entityId, accountId, updateEntities, localTitle, localStart],
+    [
+      entityId,
+      accountId,
+      updateEntities,
+      localTitle,
+      localTargetDate,
+      localDisplayTime,
+    ],
   );
 
   const handleDateChange = useCallback(
     (changes: Date | [Date | null, Date | null] | null) => {
-      const newDate = Array.isArray(changes) ? changes[0] : changes;
-      setLocalStart(newDate);
-      updateRemoteData({ start: newDate });
+      const newTargetDate = Array.isArray(changes) ? changes[0] : changes;
+      setLocalTargetDate(newTargetDate);
+      updateRemoteData({ targetDate: newTargetDate });
+    },
+    [updateRemoteData],
+  );
+
+  const handleDisplayTimeChange = useCallback(
+    (newDisplayTime) => {
+      setLocalDisplayTime(newDisplayTime);
+      updateRemoteData({ displayTime: newDisplayTime });
     },
     [updateRemoteData],
   );
@@ -74,15 +98,15 @@ export const App: BlockComponent<AppProps> = ({
           onChangeText={setLocalTitle}
           onBlur={updateRemoteData}
         />
-        <Display targetDate={localStart} />
+        <Display
+          targetDate={localTargetDate}
+          displayTime={!!localDisplayTime}
+        />
         <DatePickerInput
-          selected={localStart}
+          selected={localTargetDate}
           onChange={handleDateChange}
-          dateFormat="Pp"
-          // showTimeInput
-          showWeekNumbers
-          placeholderText="Select a date"
-          displayTime={displayTime}
+          displayTime={localDisplayTime}
+          setDisplayTime={handleDisplayTimeChange}
         />
       </div>
     </div>

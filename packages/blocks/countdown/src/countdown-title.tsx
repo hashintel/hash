@@ -34,7 +34,7 @@ export const CountdownTitle: VFC<CountdownTitleProps> = ({
         onInput={handleChange}
         onBlur={onBlur}
       />
-      <button type="button">
+      <button onClick={onBlur} type="button">
         <svg
           width="17"
           height="17"
