@@ -38,20 +38,6 @@ const clampDurationInMs = (durationInMs: number): number => {
   );
 };
 
-const parseDurationIfPossible = (
-  value: string | undefined,
-): duration.Duration | undefined => {
-  if (value) {
-    try {
-      return duration.parse(clampDurationInMs(duration.toMilliseconds(value)));
-    } catch {
-      // noop
-    }
-  }
-
-  return undefined;
-};
-
 const normalizeDurationMinutesAndSeconds = (
   durationInput: duration.DurationInput,
 ): duration.Duration => {
@@ -61,6 +47,22 @@ const normalizeDurationMinutesAndSeconds = (
     minutes: rawResult.minutes + rawResult.hours * 60,
     hours: 0,
   };
+};
+
+const parseDurationIfPossible = (
+  value: string | undefined,
+): duration.Duration | undefined => {
+  if (value) {
+    try {
+      return normalizeDurationMinutesAndSeconds(
+        duration.parse(clampDurationInMs(duration.toMilliseconds(value))),
+      );
+    } catch {
+      // noop
+    }
+  }
+
+  return undefined;
 };
 
 export const App: BlockComponent<TimerState> = ({
