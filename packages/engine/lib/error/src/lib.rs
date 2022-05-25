@@ -156,12 +156,12 @@
 
 extern crate alloc;
 
-mod ext;
 mod frame;
 mod hook;
 mod iter;
 mod macros;
 mod report;
+mod result;
 // pub mod tags;
 
 use alloc::boxed::Box;
