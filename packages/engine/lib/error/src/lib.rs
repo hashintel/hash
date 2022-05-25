@@ -149,6 +149,7 @@
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
 #![warn(missing_docs, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
+#![allow(clippy::module_name_repetitions)]
 #![cfg_attr(
     not(miri),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
