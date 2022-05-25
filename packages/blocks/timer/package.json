@@ -42,7 +42,7 @@
         "initialDuration": "PT5M"
       }
     ],
-    "icon": "public/omega.svg",
+    "icon": "public/timer.svg",
     "image": "public/block-preview.svg"
   }
 }
