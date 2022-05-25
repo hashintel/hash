@@ -36,7 +36,10 @@ pub type Result<T, C = ()> = core::result::Result<T, Report<C>>;
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
-pub trait ResultExt<T> {
+pub trait ResultExt {
+    /// Type of the [`Ok`] value in the [`Result`]
+    type Ok;
+
     /// Type of the resulting context `C` inside of [`Report<C>`] when not providing a context.
     type Context;
 
@@ -59,7 +62,7 @@ pub trait ResultExt<T> {
     /// let resource = load_resource(&user, &resource).wrap_err("Could not load resource")?;
     /// # Result::Ok(())
     /// ```
-    fn wrap_err<M>(self, message: M) -> Result<T, Self::Context>
+    fn wrap_err<M>(self, message: M) -> Result<Self::Ok, Self::Context>
     where
         M: Message;
 
@@ -87,7 +90,7 @@ pub trait ResultExt<T> {
     ///     .wrap_err_lazy(|| format!("Could not load resource {resource}"))?;
     /// # Result::Ok(())
     /// ```
-    fn wrap_err_lazy<M, F>(self, op: F) -> Result<T, Self::Context>
+    fn wrap_err_lazy<M, F>(self, op: F) -> Result<Self::Ok, Self::Context>
     where
         M: Message,
         F: FnOnce() -> M;
@@ -97,7 +100,7 @@ pub trait ResultExt<T> {
     ///
     /// [`Frame`]: crate::Frame
     // TODO: come up with a decent example
-    fn provide_context<C>(self, context: C) -> Result<T, C>
+    fn provide_context<C>(self, context: C) -> Result<Self::Ok, C>
     where
         C: Context;
 
@@ -106,18 +109,19 @@ pub trait ResultExt<T> {
     ///
     /// [`Frame`]: crate::Frame
     // TODO: come up with a decent example
-    fn provide_context_lazy<C, F>(self, op: F) -> Result<T, C>
+    fn provide_context_lazy<C, F>(self, op: F) -> Result<Self::Ok, C>
     where
         C: Context,
         F: FnOnce() -> C;
 }
 
 #[cfg(feature = "std")]
-impl<T, E> ResultExt<T> for std::result::Result<T, E>
+impl<T, E> ResultExt for std::result::Result<T, E>
 where
     E: std::error::Error + Send + Sync + 'static,
 {
     type Context = ();
+    type Ok = T;
 
     #[track_caller]
     fn wrap_err<M>(self, message: M) -> Result<T>
@@ -132,7 +136,7 @@ where
     }
 
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T, Self::Context>
+    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T>
     where
         M: Message,
         F: FnOnce() -> M,
@@ -170,8 +174,9 @@ where
     }
 }
 
-impl<T, C> ResultExt<T> for Result<T, C> {
+impl<T, C> ResultExt for Result<T, C> {
     type Context = C;
+    type Ok = T;
 
     #[track_caller]
     fn wrap_err<M>(self, message: M) -> Self
@@ -186,7 +191,7 @@ impl<T, C> ResultExt<T> for Result<T, C> {
     }
 
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T, Self::Context>
+    fn wrap_err_lazy<M, F>(self, message: F) -> Self
     where
         M: Message,
         F: FnOnce() -> M,
