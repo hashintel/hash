@@ -174,6 +174,8 @@ pub trait FutureExt: Future + Sized {
     ///     # }; error::bail!("unknown error")
     /// }
     ///
+    /// # #[cfg(miri)] fn main() {} // Miri can't run `tokio::main`
+    /// # #[cfg(not(miri))]
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
     ///     # async fn fake_main() -> Result<()> { // We want to assert on the result
@@ -217,6 +219,8 @@ pub trait FutureExt: Future + Sized {
     ///     # }; error::bail!("unknown error")
     /// }
     ///
+    /// # #[cfg(miri)] fn main() {} // Miri can't run `tokio::main`
+    /// # #[cfg(not(miri))]
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
     ///     # async fn fake_main() -> Result<()> { // We want to assert on the result
