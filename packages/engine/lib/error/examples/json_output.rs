@@ -1,4 +1,4 @@
-//! Example for output the `Report` as JSON
+//! Example of using `set_debug_hook` to create a custom JSON `Debug` implementation for `Report`
 
 use std::collections::hash_map::{Entry, HashMap};
 
@@ -9,7 +9,7 @@ fn create_new_entry(map: &mut HashMap<&str, u64>, key: &'static str, value: u64)
     match map.entry(key) {
         Entry::Occupied(entry) => {
             // `bail!` returns `Err(Report)` constructed from its parameters
-            bail!("Entry {key:?} is already occupied by {:#X}", *entry.get())
+            bail!("Entry {key:?} is already occupied by {}", *entry.get())
         }
         Entry::Vacant(entry) => {
             entry.insert(value);
@@ -19,8 +19,7 @@ fn create_new_entry(map: &mut HashMap<&str, u64>, key: &'static str, value: u64)
 }
 
 fn main() -> Result<()> {
-    // When calling the `Debug` implementation, this hook will be executed instead of default
-    // implementation
+    // This hook will be executed instead of the default implementation when `Debug` is called
     Report::set_debug_hook(|report, fmt| {
         let errors = report.frames().map(ToString::to_string).collect::<Vec<_>>();
 
@@ -35,17 +34,17 @@ fn main() -> Result<()> {
     let mut config = HashMap::default();
 
     // Create an entry with "foo" as key
-    create_new_entry(&mut config, "foo", 0xDEAD_BEEF).wrap_err("Could not create new entry")?;
+    create_new_entry(&mut config, "foo", 1).wrap_err("Could not create new entry")?;
 
-    // Attempt to create another entry with "foo" as key
+    // Purposefully cause an error by attempting to create another entry with "foo" as key
     let creation_result =
-        create_new_entry(&mut config, "foo", 0xFEED_BEEF).wrap_err("Could not create new entry");
+        create_new_entry(&mut config, "foo", 2).wrap_err("Could not create new entry");
 
     assert_eq!(
         format!("{:?}", creation_result.unwrap_err()),
         json!([
             "Could not create new entry",
-            "Entry \"foo\" is already occupied by 0xDEADBEEF"
+            "Entry \"foo\" is already occupied by 1"
         ])
         .to_string()
     );

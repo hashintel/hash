@@ -13,14 +13,16 @@ static DEBUG_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 static DISPLAY_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 
 impl Report {
-    /// Globally sets a hook, which is called when formatting [`Report`] with the [`Debug`] trait.
+    /// Globally sets a hook which is called when formatting [`Report`] with the [`Debug`] trait.
     ///
-    /// As this hook is overwriting the default [`Debug`] implementation, it adds the possibility
-    /// for downstream crates to provide it's own formatting like colored output or a
-    /// machine-readable output (i.e. JSON).
+    /// By intercepting the default [`Debug`] implementation, this hook adds the possibility for
+    /// downstream crates to provide their own formatting like colored output or a machine-readable
+    /// output (i.e. JSON).
     ///
-    /// If not set, [`Debug`] will print the latest error, its causes and, if captured, the
-    /// [`Backtrace`] and [`SpanTrace`].
+    /// If not set, [`Debug`] will print
+    ///   * The latest error
+    ///   * The errors causes
+    ///   * The [`Backtrace`] and [`SpanTrace`] **if captured**
     ///
     /// [`Debug`]: fmt::Debug
     /// [`Backtrace`]: std::backtrace::Backtrace
@@ -28,7 +30,7 @@ impl Report {
     ///
     /// # Errors
     ///
-    /// - Returns an error, if a debug hook was already set
+    /// - Returns an error if a debug hook was already set
     ///
     /// # Example
     ///
@@ -53,7 +55,7 @@ impl Report {
             .wrap_err("Could not set debug hook")
     }
 
-    /// Returns the hook, which was previously set by [`set_debug_hook`], if any.
+    /// Returns the hook that was previously set by [`set_debug_hook`], if any.
     ///
     /// [`set_debug_hook`]: Self::set_debug_hook
     #[cfg(feature = "hooks")]
@@ -63,10 +65,10 @@ impl Report {
         DEBUG_HOOK.get()
     }
 
-    /// Globally sets a hook, which is called when formatting [`Report`] with the [`Display`] trait.
+    /// Globally sets a hook that is called when formatting [`Report`] with the [`Display`] trait.
     ///
-    /// As this hook is overwriting the default [`Display`] implementation, it adds the possibility
-    /// for downstream crates to provide it's own formatting like colored output or a
+    /// By intercepting the default [`Display`] implementation, this hook adds the possibility
+    /// for downstream crates to provide their own formatting like colored output or a
     /// machine-readable output (i.e. JSON).
     ///
     /// If not set, [`Display`] will print the latest error and, if alternate formatting is enabled
@@ -76,7 +78,7 @@ impl Report {
     ///
     /// # Errors
     ///
-    /// - Returns an error, if a display hook was already set
+    /// - Returns an error if a display hook was already set
     ///
     /// # Example
     ///
@@ -101,7 +103,7 @@ impl Report {
             .wrap_err("Could not set debug hook")
     }
 
-    /// Returns the hook, which was previously set by [`set_display_hook`], if any.
+    /// Returns the hook that was previously set by [`set_display_hook`], if any.
     ///
     /// [`set_display_hook`]: Self::set_display_hook
     #[cfg(feature = "hooks")]
