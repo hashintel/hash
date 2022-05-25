@@ -135,7 +135,6 @@
 //! # Feature flags
 //!
 //! - `std`: Enables support for [`Error`] and, on nightly, [`Backtrace`], **enabled** by default
-//! - `hooks`: Enables setting of [`display_hook`] and [`debug_hook`], **enabled** by default
 //! - `spantrace`: Enables the capturing of [`SpanTrace`]s, **disabled** by default
 //!
 //! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
@@ -158,11 +157,14 @@
 extern crate alloc;
 
 mod frame;
+#[cfg(feature = "futures")]
+mod future_ext;
+#[cfg(feature = "hooks")]
 mod hook;
 mod iter;
 mod macros;
 mod report;
-mod result;
+mod result_ext;
 // pub mod tags;
 
 use alloc::boxed::Box;
@@ -170,10 +172,14 @@ use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
 
 use provider::Provider;
 
+#[cfg(feature = "futures")]
+pub use self::future_ext::{
+    FutureExt, FutureWithContext, FutureWithErr, FutureWithLazyContext, FutureWithLazyErr,
+};
 use self::{frame::FrameRepr, report::ReportImpl};
 pub use self::{
     macros::*,
-    result::{Result, ResultExt},
+    result_ext::{Result, ResultExt},
 };
 
 /// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
