@@ -380,15 +380,16 @@ class __Aggregation {
       itemsPerPage,
     } = this.operation;
     /**
-     * @todo: this returns an array of all entities of the given type in the account.
+     * @todo: this returns an array of all entities of the given type (if any) in the account.
      * We should perform the sorting & filtering in the database for better performance.
      * For pagination, using a database cursor may be an option.
      */
-    const entities = await Entity.getEntitiesByType(client, {
+    const entities = await Entity.getAccountEntities(client, {
       accountId: this.sourceAccountId,
-      entityTypeId,
-      entityTypeVersionId: entityTypeVersionId || undefined,
-      latestOnly: true,
+      entityTypeFilter: {
+        entityTypeId: entityTypeId ?? undefined,
+        entityTypeVersionId: entityTypeVersionId || undefined,
+      },
     });
 
     const filteredEntities = multiFilter
