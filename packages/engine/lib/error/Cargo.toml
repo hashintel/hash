@@ -7,9 +7,27 @@ edition = "2021"
 provider = { path = "../provider" }
 
 tracing-error = { version = "0.2.0", optional = true }
+once_cell = { version = "1.10.0", optional = true }
+pin-project = { version = "1.0.10", optional = true }
+futures-core = { version = "0.3.21", optional = true, default-features = false }
+
+[dev-dependencies]
+serde_json = "1.0.81"
+futures = { version = "0.3.21", default-features = false, features = ["executor"] }
+
+[build-dependencies]
+rustc_version = "0.2.3"
 
 [features]
-default = ["backtrace"]
-backtrace = ["std"]
-spantrace = ["tracing-error"]
+default = ["std", "hooks"]
 std = []
+hooks = ["dep:once_cell"]
+spantrace = ["dep:tracing-error"]
+futures = ["dep:pin-project"]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[[example]]
+name = "json_output"
+required-features = ["hooks"]
