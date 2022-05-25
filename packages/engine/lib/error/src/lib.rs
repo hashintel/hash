@@ -134,13 +134,18 @@
 //!
 //! # Feature flags
 //!
-//! - `std`: Enables support for [`Error`], **enabled** by default
-//! - `backtrace`: Enables the capturing of [`Backtrace`]s, implies `std`, **enabled** by default
+//! - `std`: Enables support for [`Error`] and, on nightly, [`Backtrace`], **enabled** by default
 //! - `spantrace`: Enables the capturing of [`SpanTrace`]s, **disabled** by default
+//!
+//! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
+//! backtraces on non-nightly channels and can be prioritized depending on demand.
+//!
+//! [`display_hook`]: Report::display_hook
+//! [`debug_hook`]: Report::debug_hook
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(doc, feature(doc_auto_cfg))]
-#![cfg_attr(feature = "backtrace", feature(backtrace))]
+#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
+#![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
 #![warn(missing_docs, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
 #![cfg_attr(
