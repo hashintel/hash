@@ -14,6 +14,20 @@ import { Button } from "./Button";
 const internalDomains = ["hash.dev", "hash.ai", "blockprotocol.org"];
 
 /**
+ * @param {string} url - the URL which is parsed
+ * @returns {string | null} - the hostname of the URL if it is a valid URL, otherwise null;
+ */
+const parseHostnameFromUrl = (url: string) => {
+  try {
+    const { hostname } = new URL(url);
+
+    return hostname;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * @param {string | UrlObject} href
  * @returns {boolean} whether or not the provided href URL is external
  */
@@ -34,11 +48,13 @@ export const isHrefExternal = (href: string | UrlObject) => {
   const isMailtoLink = /^(mailto:|#|\/|https:\/\/hash\.dev)/.test(href);
   const isFrontendUrl = href.startsWith(FRONTEND_URL);
 
-  const { hostname } = new URL(href);
+  const hostname = parseHostnameFromUrl(href);
 
-  const isInternalDomain = !!internalDomains.find((internalDomain) =>
-    hostname.endsWith(internalDomain),
-  );
+  const isInternalDomain =
+    hostname &&
+    !!internalDomains.find((internalDomain) =>
+      hostname.endsWith(internalDomain),
+    );
 
   return !isMailtoLink && !isFrontendUrl && !isInternalDomain;
 };
