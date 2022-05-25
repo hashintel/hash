@@ -93,8 +93,7 @@ pub trait ResultExt {
         M: Message,
         F: FnOnce() -> M;
 
-    /// Adds a context provider to the [`Frame`] stack of a [`Report`] returning
-    /// [`Result<T, Context>`]).
+    /// Adds a context provider to the [`Frame`] stack of a [`Report`] returning [`Result<T, C>`].
     ///
     /// [`Frame`]: crate::Frame
     // TODO: come up with a decent example
@@ -103,7 +102,9 @@ pub trait ResultExt {
         C: Context;
 
     /// Lazily adds a context provider to the [`Frame`] stack of a [`Report`] returning
-    /// [`Result<T, C>`]).
+    /// [`Result<T, C>`].
+    ///
+    /// The function is only executed in the `Err` arm.
     ///
     /// [`Frame`]: crate::Frame
     // TODO: come up with a decent example
