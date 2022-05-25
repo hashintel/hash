@@ -131,7 +131,6 @@ impl VTable {
 // repr(C): It must be ensured, that vtable is always stored at the same memory position when
 // casting between `FrameRepr<C>` and `FrameRepr<()>`.
 #[repr(C)]
-#[allow(clippy::module_name_repetitions)]
 pub struct FrameRepr<C = ()> {
     vtable: &'static VTable,
     // As we cast between `FrameRepr<C>` and `FrameRepr<()>`, `_context` must not be used directly,
