@@ -3,6 +3,7 @@ import { Duration, intervalToDuration, isPast } from "date-fns";
 
 type DisplayProps = {
   targetDate: Date | null;
+  displayTime: boolean;
 };
 
 const intervals: (keyof Duration)[] = [
@@ -23,7 +24,7 @@ export const defaultDuration = {
   seconds: 0,
 } as Duration;
 
-export const Display: VFC<DisplayProps> = ({ targetDate }) => {
+export const Display: VFC<DisplayProps> = ({ targetDate, displayTime }) => {
   const [_, setClock] = useState(new Date());
 
   useEffect(() => {
@@ -45,6 +46,9 @@ export const Display: VFC<DisplayProps> = ({ targetDate }) => {
     : defaultDuration;
 
   const filteredIntervals = intervals.reduce<(keyof Duration)[]>((acc, val) => {
+    if (!displayTime && ["hours", "minutes", "seconds"].includes(val)) {
+      return acc;
+    }
     if (duration[val] || acc.length > 0) {
       return [...acc, val];
     }

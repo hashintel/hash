@@ -56,49 +56,88 @@ const CustomInput = forwardRef<
   );
 });
 
-// const CustomTimeInput = forwardRef<
-//   HTMLInputElement,
-//   HTMLAttributes<HTMLInputElement>
-// >(({ ...props }, ref) => {
-//   const inputRef = useRef<HTMLInputElement>(null);
+type CustomTimeInputProps = {
+  onChange?: (val: string) => void;
+  displayTime: boolean;
+  setDisplayTime: (val: boolean) => void;
+} & Omit<HTMLAttributes<HTMLInputElement>, "onChange">;
 
-//   return (
-//     <>
-//       <input
-//         type="time"
-//         ref={(element) => {
-//           if (!ref || !inputRef) return;
+const CustomTimeInput = forwardRef<HTMLInputElement, CustomTimeInputProps>(
+  ({ displayTime, setDisplayTime, ...props }, ref) => {
+    const inputRef = useRef<HTMLInputElement>(null);
 
-//           (inputRef as MutableRefObject<HTMLInputElement | null>).current =
-//             element;
-//           if (typeof ref === "function") {
-//             ref(element);
-//           } else {
-//             // eslint-disable-next-line no-param-reassign
-//             ref.current = element;
-//           }
-//         }}
-//         {...props}
-//       />
-//       <CalenderIcon onClick={() => inputRef.current?.focus()} />
-//     </>
-//   );
-// });
+    if (!displayTime) {
+      return (
+        <button
+          className="react-datepicker-time__btn"
+          type="button"
+          onClick={() => setDisplayTime(true)}
+        >
+          Add time +
+        </button>
+      );
+    }
+
+    return (
+      <>
+        <input
+          ref={(element) => {
+            if (!ref || !inputRef) return;
+
+            (inputRef as MutableRefObject<HTMLInputElement | null>).current =
+              element;
+            if (typeof ref === "function") {
+              ref(element);
+            } else {
+              // eslint-disable-next-line no-param-reassign
+              ref.current = element;
+            }
+          }}
+          type="time"
+          className="react-datepicker-time__input"
+          placeholder="Time"
+          name="time-input"
+          required
+          {...props}
+          onChange={(evt) => {
+            props.onChange?.(evt.target.value || "00:00");
+          }}
+        />
+        <button
+          className="react-datepicker-time__btn react-datepicker-time__btn--remove"
+          type="button"
+          onClick={() => setDisplayTime(false)}
+        >
+          Hide time
+        </button>
+      </>
+    );
+  },
+);
 
 type DatePickerInputProps = {
-  displayTime?: boolean;
+  displayTime: boolean;
+  setDisplayTime: (val: boolean) => void;
 } & ReactDatePickerProps<never, boolean>;
 
 export const DatePickerInput = forwardRef<DatePicker, DatePickerInputProps>(
-  (props, ref) => {
+  ({ displayTime, setDisplayTime, ...props }, ref) => {
     return (
       <div>
         <DatePicker
           ref={ref}
+          placeholderText="Select a date"
+          showWeekNumbers
+          dateFormat={displayTime ? "Pp" : "P"}
           {...props}
           customInput={<CustomInput />}
-          // customTimeInput={<CustomTimeInput />}
-          // showTimeSelectOnly
+          customTimeInput={
+            <CustomTimeInput
+              displayTime={displayTime}
+              setDisplayTime={setDisplayTime}
+            />
+          }
+          showTimeInput
         />
       </div>
     );
