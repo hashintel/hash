@@ -31,12 +31,19 @@ const maxInitialDurationInMs = 99 * 60 * 1000;
 
 const defaultInitialDuration = duration.parse("PT5M");
 
+const clampDurationInMs = (durationInMs: number): number => {
+  return Math.min(
+    maxInitialDurationInMs,
+    Math.max(minInitialDurationInMs, durationInMs),
+  );
+};
+
 const parseDurationIfPossible = (
   value: string | undefined,
 ): duration.Duration | undefined => {
   if (value) {
     try {
-      return duration.parse(value);
+      return duration.parse(clampDurationInMs(duration.toMilliseconds(value)));
     } catch {
       // noop
     }
@@ -180,15 +187,12 @@ export const App: BlockComponent<TimerState> = ({
       initialDurationInMs + step /* pick sides around edge values like 10s */,
     );
 
-    const newDurationInMs =
+    const newDurationInMs = clampDurationInMs(
       Math.round((initialDurationInMs + stepLength * step) / stepLength) *
-      stepLength;
+        stepLength,
+    );
 
-    if (
-      newDurationInMs !== initialDurationInMs &&
-      newDurationInMs >= minInitialDurationInMs &&
-      newDurationInMs <= maxInitialDurationInMs
-    ) {
+    if (newDurationInMs !== initialDurationInMs) {
       applyTimerState({
         initialDuration: duration.toString(
           normalizeDurationMinutesAndSeconds(newDurationInMs),
