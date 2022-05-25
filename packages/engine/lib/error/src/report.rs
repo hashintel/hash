@@ -11,7 +11,6 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 use super::Frame;
 use crate::{Context, Frames, Message, Report, RequestRef, RequestValue};
 
-#[allow(clippy::module_name_repetitions)]
 pub struct ReportImpl {
     pub(super) frame: Frame,
     #[cfg(all(nightly, feature = "std"))]

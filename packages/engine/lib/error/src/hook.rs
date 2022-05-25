@@ -1,5 +1,4 @@
 #![cfg(feature = "hooks")]
-#![allow(clippy::module_name_repetitions)]
 
 use core::fmt;
 

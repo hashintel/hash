@@ -149,6 +149,7 @@
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
 #![warn(missing_docs, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
+#![allow(clippy::module_name_repetitions)]
 #![cfg_attr(
     not(miri),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
@@ -156,12 +157,12 @@
 
 extern crate alloc;
 
-mod ext;
 mod frame;
 mod hook;
 mod iter;
 mod macros;
 mod report;
+mod result;
 // pub mod tags;
 
 use alloc::boxed::Box;
@@ -169,8 +170,11 @@ use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
 
 use provider::Provider;
 
-pub use self::macros::*;
 use self::{frame::FrameRepr, report::ReportImpl};
+pub use self::{
+    macros::*,
+    result::{Result, ResultExt},
+};
 
 /// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
 /// a [`Backtrace`] and a [`SpanTrace`].
@@ -326,38 +330,6 @@ pub struct Frame {
     source: Option<Box<Frame>>,
 }
 
-/// `Result<T, Report<C>>`
-///
-/// A reasonable return type to use throughout an application.
-///
-/// The `Result` type can be used with one or two parameters, where the first parameter represents
-/// the [`Ok`] arm and the second parameter `Context` is used as in [`Report<C>`].
-///
-/// # Examples
-///
-/// `Result` can also be used in `fn main()`:
-///
-/// ```
-/// # fn has_permission(_: usize, _: usize) -> bool { true }
-/// # fn get_user() -> Result<usize> { Ok(0) }
-/// # fn get_resource() -> Result<usize> { Ok(0) }
-/// use error::{ensure, Result};
-///
-/// fn main() -> Result<()> {
-///     let user = get_user()?;
-///     let resource = get_resource()?;
-///
-///     ensure!(
-///         has_permission(user, resource),
-///         "Permission denied for {user} accessing {resource}"
-///     );
-///
-///     //...
-///     # Ok(())
-/// }
-/// ```
-pub type Result<T, C = ()> = core::result::Result<T, Report<C>>;
-
 /// Trait alias for an error context.
 ///
 /// Note: This is currently defined as trait but will be changed to be a trait alias as soon as
@@ -375,76 +347,6 @@ impl<C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static> Context fo
 //   Tracking issue: https://github.com/rust-lang/rust/issues/41517
 pub trait Message: fmt::Display + fmt::Debug + Send + Sync + 'static {}
 impl<M: fmt::Display + fmt::Debug + Send + Sync + 'static> Message for M {}
-
-/// Extension trait for [`Result`][core::result::Result] to provide context information on
-/// [`Report`]s.
-pub trait ResultExt<T> {
-    /// Type of the resulting context `C` inside of [`Report<C>`] when not providing a context.
-    type Context;
-
-    /// Adds new contextual message to the [`Frame`] stack of a [`Report`].
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use error::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<()> { Ok(()) }
-    /// # struct User;
-    /// # struct Resource;
-    /// use error::ResultExt;
-    ///
-    /// # let user = User;
-    /// # let resource = Resource;
-    /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource).wrap_err("Could not load resource")?;
-    /// # Result::Ok(())
-    /// ```
-    fn wrap_err<M>(self, message: M) -> Result<T, Self::Context>
-    where
-        M: Message;
-
-    /// Lazily adds new contextual message to the [`Frame`] stack of a [`Report`].
-    ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use core::fmt;
-    /// # use error::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<()> { Ok(()) }
-    /// # struct User;
-    /// # struct Resource;
-    /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// use error::ResultExt;
-    ///
-    /// # let user = User;
-    /// # let resource = Resource;
-    /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource)
-    ///     .wrap_err_lazy(|| format!("Could not load resource {resource}"))?;
-    /// # Result::Ok(())
-    /// ```
-    fn wrap_err_lazy<M, F>(self, op: F) -> Result<T, Self::Context>
-    where
-        M: Message,
-        F: FnOnce() -> M;
-
-    /// Adds a context provider to the [`Frame`] stack of a [`Report`] returning
-    /// [`Result<T, Context>`]).
-    // TODO: come up with a decent example
-    fn provide_context<C>(self, context: C) -> Result<T, C>
-    where
-        C: Context;
-
-    /// Lazily adds a context provider to the [`Frame`] stack of a [`Report`] returning
-    /// [`Result<T, C>`]).
-    // TODO: come up with a decent example
-    fn provide_context_lazy<C, F>(self, op: F) -> Result<T, C>
-    where
-        C: Context,
-        F: FnOnce() -> C;
-}
 
 /// Iterator over the [`Frame`] stack of a [`Report`].
 ///
