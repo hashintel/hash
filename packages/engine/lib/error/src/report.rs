@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 use core::{fmt, fmt::Formatter, marker::PhantomData, panic::Location};
-#[cfg(feature = "backtrace")]
+#[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
 use std::error::Error as StdError;
@@ -14,7 +14,7 @@ use crate::{Context, Frames, Message, Report, RequestRef, RequestValue};
 #[allow(clippy::module_name_repetitions)]
 pub struct ReportImpl {
     pub(super) frame: Frame,
-    #[cfg(feature = "backtrace")]
+    #[cfg(all(nightly, feature = "std"))]
     backtrace: Option<Backtrace>,
     #[cfg(feature = "spantrace")]
     span_trace: Option<SpanTrace>,
@@ -30,7 +30,7 @@ impl Report<()> {
         // SAFETY: `FrameRepr` is wrapped in `ManuallyDrop`
         Self::from_frame(
             Frame::from_message(message, Location::caller(), None),
-            #[cfg(feature = "backtrace")]
+            #[cfg(all(nightly, feature = "std"))]
             Some(Backtrace::capture()),
             #[cfg(feature = "spantrace")]
             Some(SpanTrace::capture()),
@@ -41,13 +41,13 @@ impl Report<()> {
 impl<C> Report<C> {
     fn from_frame(
         frame: Frame,
-        #[cfg(feature = "backtrace")] backtrace: Option<Backtrace>,
+        #[cfg(all(nightly, feature = "std"))] backtrace: Option<Backtrace>,
         #[cfg(feature = "spantrace")] span_trace: Option<SpanTrace>,
     ) -> Self {
         Self {
             inner: Box::new(ReportImpl {
                 frame,
-                #[cfg(feature = "backtrace")]
+                #[cfg(all(nightly, feature = "std"))]
                 backtrace,
                 #[cfg(feature = "spantrace")]
                 span_trace,
@@ -71,7 +71,7 @@ impl<C> Report<C> {
             Location::caller()
         };
 
-        #[cfg(feature = "backtrace")]
+        #[cfg(all(nightly, feature = "std"))]
         let backtrace = if provider::request_ref::<Backtrace, _>(&context).is_some() {
             None
         } else {
@@ -87,7 +87,7 @@ impl<C> Report<C> {
 
         Self::from_frame(
             Frame::from_context(context, location, None),
-            #[cfg(feature = "backtrace")]
+            #[cfg(all(nightly, feature = "std"))]
             backtrace,
             #[cfg(feature = "spantrace")]
             span_trace,
@@ -106,7 +106,7 @@ impl<C> Report<C> {
                 Location::caller(),
                 Some(Box::new(self.inner.frame)),
             ),
-            #[cfg(feature = "backtrace")]
+            #[cfg(all(nightly, feature = "std"))]
             self.inner.backtrace,
             #[cfg(feature = "spantrace")]
             self.inner.span_trace,
@@ -125,7 +125,7 @@ impl<C> Report<C> {
                 Location::caller(),
                 Some(Box::new(self.inner.frame)),
             ),
-            #[cfg(feature = "backtrace")]
+            #[cfg(all(nightly, feature = "std"))]
             self.inner.backtrace,
             #[cfg(feature = "spantrace")]
             self.inner.span_trace,
@@ -154,7 +154,7 @@ impl<C> Report<C> {
     ///
     /// [`ReportBackTrace`]: crate::tags::ReportBackTrace
     #[must_use]
-    #[cfg(feature = "backtrace")]
+    #[cfg(all(nightly, feature = "std"))]
     pub fn backtrace(&self) -> Option<&Backtrace> {
         let backtrace = self.inner.backtrace.as_ref().unwrap_or_else(|| {
             // Should never panic as it's either stored inside of `Report` or is provided by a frame
@@ -255,7 +255,7 @@ impl<Context> fmt::Debug for Report<Context> {
         if fmt.alternate() {
             let mut debug = fmt.debug_struct("Report");
             debug.field("frames", &self.frames());
-            #[cfg(feature = "backtrace")]
+            #[cfg(all(nightly, feature = "std"))]
             debug.field("backtrace", &self.backtrace());
             #[cfg(feature = "spantrace")]
             debug.field("span_trace", &self.span_trace());
@@ -274,7 +274,7 @@ impl<Context> fmt::Debug for Report<Context> {
                 write!(fmt, "\n             at {}", frame.location())?;
             }
 
-            #[cfg(feature = "backtrace")]
+            #[cfg(all(nightly, feature = "std"))]
             if let Some(backtrace) = self.backtrace() {
                 write!(fmt, "\n\nStack backtrace:\n{backtrace}")?;
             }
@@ -296,7 +296,7 @@ where
 {
     #[track_caller]
     fn from(error: E) -> Self {
-        #[cfg(feature = "backtrace")]
+        #[cfg(all(nightly, feature = "std"))]
         let backtrace = if error.backtrace().is_some() {
             None
         } else {
@@ -305,7 +305,7 @@ where
 
         Self::from_frame(
             Frame::from_std(error, Location::caller(), None),
-            #[cfg(feature = "backtrace")]
+            #[cfg(all(nightly, feature = "std"))]
             backtrace,
             #[cfg(feature = "spantrace")]
             Some(SpanTrace::capture()),

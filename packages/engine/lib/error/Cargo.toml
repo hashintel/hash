@@ -12,10 +12,12 @@ once_cell = { version = "1.10.0", optional = true }
 [dev-dependencies]
 serde_json = "1.0.81"
 
+[build-dependencies]
+rustc_version = "0.2.3"
+
 [features]
-default = ["std", "backtrace", "hooks"]
+default = ["std", "hooks"]
 std = []
-backtrace = ["std"]
 hooks = ["once_cell"]
 spantrace = ["tracing-error"]
 

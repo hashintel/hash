@@ -668,6 +668,7 @@ version = "0.0.0"
 dependencies = [
  "once_cell",
  "provider",
+ "rustc_version",
  "serde_json",
  "tracing-error",
 ]
