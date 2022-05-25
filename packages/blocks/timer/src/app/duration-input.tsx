@@ -8,11 +8,10 @@ import React, {
   useState,
   VoidFunctionComponent,
 } from "react";
-import { TimerStatus } from "./timer-status";
 
 type DurationInputProps = {
   value: duration.Duration;
-  timerStatus: TimerStatus;
+  disabled: boolean;
   onChange: (newValue: duration.Duration) => void;
 };
 
@@ -44,7 +43,7 @@ const parseUserValue = (userValue: string | undefined): number | undefined => {
 
 export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
   value,
-  timerStatus,
+  disabled,
   onChange,
 }) => {
   const valueInMs = duration.toMilliseconds(value);
@@ -93,7 +92,7 @@ export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       onBlur={handleBlur}
-      disabled={timerStatus === "running"}
+      disabled={disabled}
     />
   );
 };

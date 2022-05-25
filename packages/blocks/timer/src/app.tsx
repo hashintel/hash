@@ -198,7 +198,7 @@ export const App: BlockComponent<TimerState> = ({
               ? parsedInitialDuration
               : remainingDuration
           }
-          timerStatus={timerStatus}
+          disabled={timerStatus === "running"}
           onChange={handleDurationInputChange}
         />
         {timerStatus === "running" ? (
