@@ -8,7 +8,7 @@ import React, {
   MouseEventHandler,
 } from "react";
 import { BlockComponent } from "blockprotocol/react";
-import { parseISO } from "date-fns";
+import { parseISO, isValid } from "date-fns";
 import * as duration from "duration-fns";
 import { useAutoRefresh } from "./app/use-auto-refresh";
 import { calculateDurationStepLength } from "./app/calculate-duration-step-length";
@@ -29,7 +29,21 @@ export type AppProps = TimerState;
 const minInitialDurationInMs = 1000;
 const maxInitialDurationInMs = 99 * 60 * 1000;
 
-const isInPast = (date: Date): boolean => date < new Date();
+const defaultInitialDuration = duration.parse("PT5M");
+
+const parseDurationIfPossible = (
+  value: string | undefined,
+): duration.Duration | undefined => {
+  if (value) {
+    try {
+      return duration.parse(value);
+    } catch {
+      // noop
+    }
+  }
+
+  return undefined;
+};
 
 const normalizeDurationMinutesAndSeconds = (
   durationInput: duration.DurationInput,
@@ -68,19 +82,33 @@ export const App: BlockComponent<TimerState> = ({
   const applyTimerState = useCallback(
     (newTimerState: TimerState) => {
       setTimerState(newTimerState);
-      void updateEntities?.([{ entityId, accountId, data: newTimerState }]);
+      void updateEntities?.([
+        {
+          entityId,
+          accountId,
+          data: {
+            pauseDuration: undefined, // Make sure old values are removed if present
+            targetDateTime: undefined,
+            ...newTimerState,
+          },
+        },
+      ]);
     },
     [accountId, entityId, updateEntities],
   );
 
-  const parsedTargetDateTime = timerState.targetDateTime
-    ? parseISO(timerState.targetDateTime)
-    : undefined;
+  let parsedTargetDateTime: Date | undefined = undefined;
+  if (timerState.targetDateTime) {
+    const candidateParsedTargetDateTime = parseISO(timerState.targetDateTime);
+    if (isValid(candidateParsedTargetDateTime)) {
+      parsedTargetDateTime = candidateParsedTargetDateTime;
+    }
+  }
 
-  const parsedInitialDuration = duration.parse(timerState.initialDuration);
-  const parsedPauseDuration = timerState.pauseDuration
-    ? duration.parse(timerState.pauseDuration)
-    : undefined;
+  const parsedInitialDuration =
+    parseDurationIfPossible(timerState.initialDuration) ??
+    defaultInitialDuration;
+  const parsedPauseDuration = parseDurationIfPossible(timerState.pauseDuration);
 
   const remainingDuration =
     parsedPauseDuration ??
@@ -112,12 +140,14 @@ export const App: BlockComponent<TimerState> = ({
   useAutoRefresh(timerStatus === "running");
 
   const handleReset = () => {
-    applyTimerState({ initialDuration: timerState.initialDuration });
+    applyTimerState({
+      initialDuration: duration.toString(parsedInitialDuration),
+    });
   };
 
   const handlePlayClick = () => {
     applyTimerState({
-      initialDuration: timerState.initialDuration,
+      initialDuration: duration.toString(parsedInitialDuration),
       targetDateTime: duration
         .apply(new Date(), parsedPauseDuration ?? parsedInitialDuration)
         .toISOString(),
@@ -125,12 +155,12 @@ export const App: BlockComponent<TimerState> = ({
   };
 
   const handlePauseClick = () => {
-    if (!parsedTargetDateTime || isInPast(parsedTargetDateTime)) {
+    if (!parsedTargetDateTime || parsedTargetDateTime < new Date()) {
       return;
     }
 
     applyTimerState({
-      initialDuration: timerState.initialDuration,
+      initialDuration: duration.toString(parsedInitialDuration),
       pauseDuration: duration
         .toString(
           normalizeDurationMinutesAndSeconds(
