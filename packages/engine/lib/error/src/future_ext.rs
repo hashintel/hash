@@ -174,20 +174,15 @@ pub trait FutureExt: Future + Sized {
     ///     # }; error::bail!("unknown error")
     /// }
     ///
-    /// # #[cfg(miri)] fn main() {} // Miri can't run `tokio::main`
-    /// # #[cfg(not(miri))]
-    /// #[tokio::main]
-    /// async fn main() -> Result<()> {
-    ///     # async fn fake_main() -> Result<()> { // We want to assert on the result
+    /// # let fut = async {
     ///     # let user = User;
     ///     # let resource = Resource;
     ///     // A contextual message can be provided before polling the `Future`
-    ///     load_resource(&user, &resource)
-    ///         .wrap_err("Could not load resource").await?;
-    ///     # Ok(()) }
-    ///     # assert_eq!(fake_main().await.unwrap_err().frames().count(), 2);
-    ///     Ok(())
-    /// }
+    ///     load_resource(&user, &resource).wrap_err("Could not load resource").await
+    /// # };
+    /// # #[cfg(not(miri))] // miri can't `block_on`
+    /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
+    /// # Result::<_>::Ok(())
     /// ```
     #[track_caller]
     fn wrap_err<M>(self, message: M) -> WrappedFuture<Self, M>
@@ -219,20 +214,15 @@ pub trait FutureExt: Future + Sized {
     ///     # }; error::bail!("unknown error")
     /// }
     ///
-    /// # #[cfg(miri)] fn main() {} // Miri can't run `tokio::main`
-    /// # #[cfg(not(miri))]
-    /// #[tokio::main]
-    /// async fn main() -> Result<()> {
-    ///     # async fn fake_main() -> Result<()> { // We want to assert on the result
+    /// # let fut = async {
     ///     # let user = User;
     ///     # let resource = Resource;
     ///     // A contextual message can be provided before polling the `Future`
-    ///     load_resource(&user, &resource)
-    ///         .wrap_err_lazy(|| format!("Could not load resource {resource}")).await?;
-    ///     # Ok(()) }
-    ///     # assert_eq!(fake_main().await.unwrap_err().frames().count(), 2);
-    ///     Ok(())
-    /// }
+    ///     load_resource(&user, &resource).wrap_err_lazy(|| format!("Could not load resource {resource}")).await
+    /// # };
+    /// # #[cfg(not(miri))]
+    /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
+    /// # Result::<_>::Ok(())
     /// ```
     #[track_caller]
     fn wrap_err_lazy<M, F>(self, op: F) -> LazyWrappedFuture<Self, F>
