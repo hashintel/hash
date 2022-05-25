@@ -1,6 +1,38 @@
 #[cfg(feature = "std")]
 use crate::Report;
-use crate::{Context, Message, Result};
+use crate::{Context, Message};
+
+/// [`Result`](std::result::Result)`<T, `[`Report<C>`](Report)`>`
+///
+/// A reasonable return type to use throughout an application.
+///
+/// The `Result` type can be used with one or two parameters, where the first parameter represents
+/// the [`Ok`] arm and the second parameter `Context` is used as in [`Report<C>`].
+///
+/// # Examples
+///
+/// `Result` can also be used in `fn main()`:
+///
+/// ```
+/// # fn has_permission(_: usize, _: usize) -> bool { true }
+/// # fn get_user() -> Result<usize> { Ok(0) }
+/// # fn get_resource() -> Result<usize> { Ok(0) }
+/// use error::{ensure, Result};
+///
+/// fn main() -> Result<()> {
+///     let user = get_user()?;
+///     let resource = get_resource()?;
+///
+///     ensure!(
+///         has_permission(user, resource),
+///         "Permission denied for {user} accessing {resource}"
+///     );
+///
+///     //...
+///     # Ok(())
+/// }
+/// ```
+pub type Result<T, C = ()> = core::result::Result<T, Report<C>>;
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.

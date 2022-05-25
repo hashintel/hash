@@ -170,7 +170,10 @@ use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
 use provider::Provider;
 
 use self::{frame::FrameRepr, report::ReportImpl};
-pub use self::{macros::*, result::ResultExt};
+pub use self::{
+    macros::*,
+    result::{Result, ResultExt},
+};
 
 /// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
 /// a [`Backtrace`] and a [`SpanTrace`].
@@ -325,38 +328,6 @@ pub struct Frame {
     location: &'static Location<'static>,
     source: Option<Box<Frame>>,
 }
-
-/// `Result<T, Report<C>>`
-///
-/// A reasonable return type to use throughout an application.
-///
-/// The `Result` type can be used with one or two parameters, where the first parameter represents
-/// the [`Ok`] arm and the second parameter `Context` is used as in [`Report<C>`].
-///
-/// # Examples
-///
-/// `Result` can also be used in `fn main()`:
-///
-/// ```
-/// # fn has_permission(_: usize, _: usize) -> bool { true }
-/// # fn get_user() -> Result<usize> { Ok(0) }
-/// # fn get_resource() -> Result<usize> { Ok(0) }
-/// use error::{ensure, Result};
-///
-/// fn main() -> Result<()> {
-///     let user = get_user()?;
-///     let resource = get_resource()?;
-///
-///     ensure!(
-///         has_permission(user, resource),
-///         "Permission denied for {user} accessing {resource}"
-///     );
-///
-///     //...
-///     # Ok(())
-/// }
-/// ```
-pub type Result<T, C = ()> = core::result::Result<T, Report<C>>;
 
 /// Trait alias for an error context.
 ///
