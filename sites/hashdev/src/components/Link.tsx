@@ -25,13 +25,9 @@ export const isHrefExternal = (href: string | UrlObject) => {
 
   const isRelativeUrl = href.startsWith("/");
 
-  if (isRelativeUrl) {
-    return href === "/discord";
-  }
-
   const isAnchorFragment = href.startsWith("#");
 
-  if (isAnchorFragment) {
+  if (isRelativeUrl || isAnchorFragment) {
     return false;
   }
 
