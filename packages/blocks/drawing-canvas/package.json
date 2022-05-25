@@ -46,7 +46,6 @@
     "examples": [
       {
         "height": 400,
-        "width": "100%",
         "darkMode": false,
         "readOnly": false,
         "document": ""
