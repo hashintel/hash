@@ -70,7 +70,7 @@ impl<E: fmt::Debug> fmt::Debug for ErrorRepr<E> {
 #[cfg(feature = "std")]
 impl<E: std::error::Error> Provider for ErrorRepr<E> {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        #[cfg(feature = "backtrace")]
+        #[cfg(all(nightly, feature = "std"))]
         if let Some(backtrace) = self.0.backtrace() {
             demand.provide_ref(backtrace);
         }
@@ -131,7 +131,6 @@ impl VTable {
 // repr(C): It must be ensured, that vtable is always stored at the same memory position when
 // casting between `FrameRepr<C>` and `FrameRepr<()>`.
 #[repr(C)]
-#[allow(clippy::module_name_repetitions)]
 pub struct FrameRepr<C = ()> {
     vtable: &'static VTable,
     // As we cast between `FrameRepr<C>` and `FrameRepr<()>`, `_context` must not be used directly,
