@@ -135,6 +135,7 @@
 //! # Feature flags
 //!
 //! - `std`: Enables support for [`Error`] and, on nightly, [`Backtrace`], **enabled** by default
+//! - `hooks`: Enables setting of [`display_hook`] and [`debug_hook`], **enabled** by default
 //! - `spantrace`: Enables the capturing of [`SpanTrace`]s, **disabled** by default
 //!
 //! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
@@ -157,6 +158,7 @@ extern crate alloc;
 
 mod ext;
 mod frame;
+mod hook;
 mod iter;
 mod macros;
 mod report;
@@ -305,6 +307,7 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// }
 /// ```
 #[must_use]
+#[repr(transparent)]
 pub struct Report<C = ()> {
     inner: Box<ReportImpl>,
     _context: PhantomData<C>,
