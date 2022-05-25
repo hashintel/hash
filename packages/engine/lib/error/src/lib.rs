@@ -174,7 +174,7 @@ use provider::Provider;
 
 #[cfg(feature = "futures")]
 pub use self::future_ext::{
-    FutureExt, LazyProviderFuture, LazyWrappedFuture, ProviderFuture, WrappedFuture,
+    FutureExt, FutureWithContext, FutureWithErr, FutureWithLazyContext, FutureWithLazyErr,
 };
 use self::{frame::FrameRepr, report::ReportImpl};
 pub use self::{

@@ -11,13 +11,13 @@ use crate::{Context, Message, Result, ResultExt};
 /// Adaptor returned by [`FutureExt::wrap_err`].
 #[pin_project]
 #[cfg(feature = "futures")]
-pub struct WrappedFuture<Fut, M> {
+pub struct FutureWithErr<Fut, M> {
     #[pin]
     inner: Fut,
     message: Option<M>,
 }
 
-impl<Fut, M> Future for WrappedFuture<Fut, M>
+impl<Fut, M> Future for FutureWithErr<Fut, M>
 where
     Fut: Future,
     Fut::Output: ResultExt,
@@ -46,13 +46,13 @@ where
 /// Adaptor returned by [`FutureExt::wrap_err_lazy`].
 #[pin_project]
 #[cfg(feature = "futures")]
-pub struct LazyWrappedFuture<Fut, F> {
+pub struct FutureWithLazyErr<Fut, F> {
     #[pin]
     inner: Fut,
     op: Option<F>,
 }
 
-impl<Fut, F, M> Future for LazyWrappedFuture<Fut, F>
+impl<Fut, F, M> Future for FutureWithLazyErr<Fut, F>
 where
     Fut: Future,
     Fut::Output: ResultExt,
@@ -80,13 +80,13 @@ where
 /// Adaptor returned by [`FutureExt::provide_context`].
 #[pin_project]
 #[cfg(feature = "futures")]
-pub struct ProviderFuture<Fut, C> {
+pub struct FutureWithContext<Fut, C> {
     #[pin]
     inner: Fut,
     context: Option<C>,
 }
 
-impl<Fut, C> Future for ProviderFuture<Fut, C>
+impl<Fut, C> Future for FutureWithContext<Fut, C>
 where
     Fut: Future,
     Fut::Output: ResultExt,
@@ -115,13 +115,13 @@ where
 /// Adaptor returned by [`FutureExt::provide_context_lazy`].
 #[pin_project]
 #[cfg(feature = "futures")]
-pub struct LazyProviderFuture<Fut, F> {
+pub struct FutureWithLazyContext<Fut, F> {
     #[pin]
     inner: Fut,
     op: Option<F>,
 }
 
-impl<Fut, F, C> Future for LazyProviderFuture<Fut, F>
+impl<Fut, F, C> Future for FutureWithLazyContext<Fut, F>
 where
     Fut: Future,
     Fut::Output: ResultExt,
@@ -185,7 +185,7 @@ pub trait FutureExt: Future + Sized {
     /// # Result::<_>::Ok(())
     /// ```
     #[track_caller]
-    fn wrap_err<M>(self, message: M) -> WrappedFuture<Self, M>
+    fn wrap_err<M>(self, message: M) -> FutureWithErr<Self, M>
     where
         M: Message;
 
@@ -225,7 +225,7 @@ pub trait FutureExt: Future + Sized {
     /// # Result::<_>::Ok(())
     /// ```
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, op: F) -> LazyWrappedFuture<Self, F>
+    fn wrap_err_lazy<M, F>(self, op: F) -> FutureWithLazyErr<Self, F>
     where
         M: Message,
         F: FnOnce() -> M;
@@ -238,7 +238,7 @@ pub trait FutureExt: Future + Sized {
     /// [`poll`]: Future::poll
     // TODO: come up with a decent example
     #[track_caller]
-    fn provide_context<C>(self, context: C) -> ProviderFuture<Self, C>
+    fn provide_context<C>(self, context: C) -> FutureWithContext<Self, C>
     where
         C: Context;
 
@@ -252,7 +252,7 @@ pub trait FutureExt: Future + Sized {
     /// [`poll`]: Future::poll
     // TODO: come up with a decent example
     #[track_caller]
-    fn provide_context_lazy<C, F>(self, context: F) -> LazyProviderFuture<Self, F>
+    fn provide_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
     where
         C: Context,
         F: FnOnce() -> C;
@@ -262,46 +262,46 @@ impl<Fut: Future> FutureExt for Fut
 where
     Fut::Output: ResultExt,
 {
-    fn wrap_err<M>(self, message: M) -> WrappedFuture<Self, M>
+    fn wrap_err<M>(self, message: M) -> FutureWithErr<Self, M>
     where
         M: Message,
     {
-        WrappedFuture {
+        FutureWithErr {
             inner: self,
             message: Some(message),
         }
     }
 
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, op: F) -> LazyWrappedFuture<Self, F>
+    fn wrap_err_lazy<M, F>(self, op: F) -> FutureWithLazyErr<Self, F>
     where
         M: Message,
         F: FnOnce() -> M,
     {
-        LazyWrappedFuture {
+        FutureWithLazyErr {
             inner: self,
             op: Some(op),
         }
     }
 
     #[track_caller]
-    fn provide_context<C>(self, context: C) -> ProviderFuture<Self, C>
+    fn provide_context<C>(self, context: C) -> FutureWithContext<Self, C>
     where
         C: Context,
     {
-        ProviderFuture {
+        FutureWithContext {
             inner: self,
             context: Some(context),
         }
     }
 
     #[track_caller]
-    fn provide_context_lazy<C, F>(self, context: F) -> LazyProviderFuture<Self, F>
+    fn provide_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
     where
         C: Context,
         F: FnOnce() -> C,
     {
-        LazyProviderFuture {
+        FutureWithLazyContext {
             inner: self,
             op: Some(context),
         }
