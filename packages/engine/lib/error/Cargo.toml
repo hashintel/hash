@@ -18,8 +18,8 @@ rustc_version = "0.2.3"
 [features]
 default = ["std", "hooks"]
 std = []
-hooks = ["once_cell"]
-spantrace = ["tracing-error"]
+hooks = ["dep:once_cell"]
+spantrace = ["dep:tracing-error"]
 
 [package.metadata.docs.rs]
 all-features = true
