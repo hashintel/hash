@@ -1,6 +1,4 @@
-#[cfg(feature = "std")]
-use crate::Report;
-use crate::{Context, Message};
+use crate::{Context, Message, Report};
 
 /// [`Result`](std::result::Result)`<T, `[`Report<C>`](Report)`>`
 ///
