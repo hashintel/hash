@@ -1,9 +1,9 @@
 import { Container, Stack, Typography } from "@mui/material";
 import { Box, TypographyProps } from "@mui/system";
-import { parse } from "date-fns";
 import Head from "next/head";
 import Image from "next/image";
 import { createContext, FC, useContext, VFC } from "react";
+import { format } from "date-fns";
 import { FRONTEND_URL } from "../config";
 import { Link } from "./Link";
 import { mdxImageClasses } from "./MdxImage";
@@ -22,8 +22,6 @@ export type BlogPagePhotos = {
 };
 
 export const BlogPostPhotosContext = createContext<BlogPagePhotos | null>(null);
-
-const epoch = new Date(0);
 
 export const useBlogPostPhotos = () => {
   const context = useContext(BlogPostPhotosContext);
@@ -62,16 +60,16 @@ export const BlogPostHead: VFC<{
   subtitle,
   author,
   jobTitle,
-  date,
+  date: dateInput,
   pageTitle = title,
   pageDescription = subtitle,
 }) => {
   const photos = useBlogPostPhotos();
 
   const fullTitle = `${pageTitle ? `${pageTitle} – ` : ""}HASH for Developers`;
-  const dateIso = date
-    ? parse(date, "MMMM do, yyyy", epoch).toISOString()
-    : null;
+
+  const date = dateInput ? new Date(dateInput) : null;
+  const dateIso = date ? date.toISOString() : null;
 
   return (
     <>
@@ -191,7 +189,7 @@ export const BlogPostHead: VFC<{
                       }),
                     ]}
                   >
-                    {date}
+                    {format(date, "MMMM do, y")}
                   </Typography>
                 ) : null}
                 <Stack direction="row">
