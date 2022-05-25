@@ -1,5 +1,3 @@
-#![cfg(feature = "hooks")]
-
 use core::fmt;
 
 use once_cell::sync::OnceCell;
