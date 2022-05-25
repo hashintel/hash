@@ -15,7 +15,7 @@ const internalDomains = ["hash.dev", "hash.ai", "blockprotocol.org"];
 
 /**
  * @param {string} url - the URL which is parsed
- * @returns {string | null} - the hostname of the URL if it is a valid URL, otherwise null;
+ * @returns {string | null} - the hostname of the URL if it is a valid URL, otherwise null
  */
 const parseHostnameFromUrl = (url: string) => {
   try {
