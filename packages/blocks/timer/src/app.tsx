@@ -16,11 +16,11 @@ import { DurationInput } from "./app/duration-input";
 import { TimerStatus } from "./app/timer-status";
 
 type TimerState = {
-  /** https://schema.org/Duration */
+  /** https://en.wikipedia.org/wiki/ISO_8601#Durations */
   initialDuration: string;
-  /** https://schema.org/Duration */
+  /** https://en.wikipedia.org/wiki/ISO_8601#Durations */
   pauseDuration?: string;
-  /** https://schema.org/DateTime */
+  /** https://en.wikipedia.org/wiki/ISO_8601 */
   targetDateTime?: string;
 };
 
