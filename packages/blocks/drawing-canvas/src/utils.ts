@@ -18,46 +18,36 @@ export const handleExport = async (info: TDExport): Promise<void> => {
   }
 };
 
+// @todo improve this
+export const isValidDocumentString = (
+  documentString: string | undefined,
+): documentString is string => {
+  if (typeof documentString !== "string") return false;
+  try {
+    JSON.parse(documentString);
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
+
+export const getDefaultDocument = (entityId: string): TDDocument => {
+  return {
+    ...TldrawApp.defaultDocument,
+    id: entityId,
+  };
+};
+
 /**
  * Parses the document string to return a TDD document
  * If the document is undefined or invalid, it returns a
  * default TDD document with it's id set to entityId
  */
 export const getInitialDocument = (
-  document: string | undefined,
+  documentString: string | undefined,
   entityId: string,
 ): TDDocument => {
-  try {
-    if (!document) {
-      throw new Error("");
-    }
-
-    return JSON.parse(document) as TDDocument;
-  } catch (err) {
-    return {
-      id: entityId,
-      name: "New Document",
-      version: TldrawApp.version,
-      pages: {
-        page: {
-          id: "page",
-          name: "Page 1",
-          childIndex: 1,
-          shapes: {},
-          bindings: {},
-        },
-      },
-      assets: {},
-      pageStates: {
-        page: {
-          id: "page",
-          selectedIds: [],
-          camera: {
-            point: [0, 0],
-            zoom: 1,
-          },
-        },
-      },
-    };
-  }
+  return isValidDocumentString(documentString)
+    ? JSON.parse(documentString)
+    : getDefaultDocument(entityId);
 };
