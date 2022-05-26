@@ -13,7 +13,6 @@ import {
   disableEntityStoreTransactionInterpretation,
   EntityStorePluginAction,
   entityStorePluginState,
-  entityStorePluginStateFromTransaction,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   GetBlocksQuery,
@@ -380,13 +379,21 @@ export class Instance {
     }
   }
 
-  private updateSavedContents(nextSavedContents: BlockEntity[]) {
+  private updateSavedContents(
+    nextSavedContents: BlockEntity[],
+    additionalActions: EntityStorePluginAction[] = [],
+  ) {
     if (this.errored) {
       return;
     }
 
     this.sendUpdates();
     const { tr } = this.state;
+
+    for (const action of additionalActions) {
+      addEntityStoreAction(this.state, tr, action);
+    }
+
     addEntityStoreAction(this.state, tr, {
       type: "mergeNewPageContents",
       payload: nextSavedContents,
@@ -465,58 +472,28 @@ export class Instance {
       return { version: this.version };
     };
 
-  save = (apolloClient: ApolloClient<unknown>) => {
-    return (clientID: string) => {
-      this.saveChain = this.saveChain
-        .catch()
-        .then(async () => {
-          if (this.errored) {
-            throw new Error("Saving when instance stopped");
-          }
+  save = (apolloClient: ApolloClient<unknown>) => (clientID: string) => {
+    this.saveChain = this.saveChain
+      .catch()
+      .then(async () => {
+        if (this.errored) {
+          throw new Error("Saving when instance stopped");
+        }
 
-          const actions: EntityStorePluginAction[] = [];
-          const tr = this.state.tr;
+        const [nextBlocks, actions] = await save(
+          apolloClient,
+          this.accountId,
+          this.pageEntityId,
+          this.savedContents,
+          this.state.doc,
+          entityStorePluginState(this.state).store,
+        );
 
-          const getState = () => {
-            return entityStorePluginStateFromTransaction(tr, this.state);
-          };
-
-          const updateState = (nextActions: EntityStorePluginAction[]) => {
-            actions.push(...nextActions);
-            for (const action of actions) {
-              addEntityStoreAction(this.state, tr, action);
-            }
-            return getState();
-          };
-
-          const getDoc = () => this.state.doc;
-
-          const nextBlocks = await save(
-            apolloClient,
-            this.accountId,
-            this.pageEntityId,
-            this.savedContents,
-            getDoc,
-            getState,
-            updateState,
-          );
-
-          if (actions.length) {
-            this.addEvents(apolloClient)(
-              this.version,
-              [],
-              `${clientID}-server`,
-              actions,
-              false,
-            );
-          }
-
-          this.updateSavedContents(nextBlocks);
-        })
-        .catch((err) => {
-          this.error(err);
-        });
-    };
+        this.updateSavedContents(nextBlocks, actions);
+      })
+      .catch((err) => {
+        this.error(err);
+      });
   };
 
   addJsonEvents =

@@ -480,23 +480,11 @@ export class ProsemirrorSchemaManager {
       }
 
       if (targetComponentId === blockEntity.properties.componentId) {
-        /**
-         * I've temporarily made it so all changes involved text result in
-         * creating a new variant entity, instead of updating the one that's
-         * there. That's because the save mechanism doesn't yet know to process
-         * updates to entities that aren't in the prosemirror document. This
-         * forces the update to be saved anyway, at cost of throw away variant
-         * entities.
-         *
-         * @todo update the existing entity where possible, instead of
-         * creating new ones
-         */
         if (
-          !blockComponentRequiresText(meta.componentSchema)
-          // ||
-          // // isTextContainingEntityProperties(
-          // //   blockEntity.properties.entity.properties,
-          // // )
+          !blockComponentRequiresText(meta.componentSchema) ||
+          isTextContainingEntityProperties(
+            blockEntity.properties.entity.properties,
+          )
         ) {
           /**
            * In the event we're switching to another variant of the same
