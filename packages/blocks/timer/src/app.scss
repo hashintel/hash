@@ -24,6 +24,11 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
   font-family: $fontFamily;
   text-align: center;
 
+  &,
+  * {
+    box-sizing: border-box;
+  }
+
   button {
     background: #fff;
     cursor: pointer;
@@ -114,10 +119,10 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
     font-weight: 600;
     text-align: center;
     line-height: 1em;
-    height: $durationFontSize;
+    height: $durationFontSize + 8px;
     margin: 0 auto;
     padding: 4px;
-    justify-content: center;
+    align-items: center;
     width: auto;
     border-radius: 4px;
 
@@ -129,7 +134,7 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
       font-weight: inherit;
       font-size: inherit;
       font-variant-numeric: inherit;
-      width: 1.4em;
+      width: 1.35em;
       text-align: right;
       height: 1em;
       padding: 0;
