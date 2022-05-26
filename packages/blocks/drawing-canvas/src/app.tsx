@@ -9,11 +9,16 @@ import React, {
 import { BlockComponent } from "blockprotocol/react";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
 import { Resizable, ResizeCallbackData } from "react-resizable";
-import { handleExport, getInitialDocument } from "./utils";
+import {
+  handleExport,
+  getInitialDocument,
+  isValidDocumentString,
+  getDefaultDocument,
+} from "./utils";
 import "./base.css";
 
 type AppProps = {
-  document: string;
+  documentString: string;
   readOnly: boolean;
   darkMode?: boolean;
   width?: number;
@@ -44,7 +49,7 @@ export const App: BlockComponent<AppProps> = ({
   entityTypeId,
   entityTypeVersionId,
   darkMode: remoteDarkMode = false,
-  document: remoteDocumentString,
+  documentString: remoteDocumentString,
   accountId,
   readOnly: remoteReadOnly,
   updateEntities,
@@ -59,7 +64,9 @@ export const App: BlockComponent<AppProps> = ({
   const [localState, setLocalState] = useState<LocalState>({
     height: remoteHeight ?? BASE_HEIGHT,
     ...(remoteWidth && { width: remoteWidth }),
-    documentString: remoteDocumentString,
+    documentString: isValidDocumentString(remoteDocumentString)
+      ? remoteDocumentString
+      : JSON.stringify(getDefaultDocument(entityId)),
     darkMode: remoteDarkMode,
     readOnly: remoteReadOnly,
   });
@@ -104,16 +111,25 @@ export const App: BlockComponent<AppProps> = ({
         remoteWidth == undefined || Number.isNaN(remoteWidth)
           ? prev.width
           : remoteWidth,
-      documentString: remoteDocumentString ?? prev.documentString,
+      documentString: isValidDocumentString(remoteDocumentString)
+        ? remoteDocumentString
+        : prev.documentString,
+      readOnly: !!remoteReadOnly,
     }));
-  }, [remoteDarkMode, remoteHeight, remoteWidth, remoteDocumentString]);
+  }, [
+    remoteDarkMode,
+    remoteHeight,
+    remoteWidth,
+    remoteDocumentString,
+    remoteReadOnly,
+  ]);
 
   const updateRemoteData = useCallback(
     (newData: Partial<AppProps>) => {
       if (!rTldrawApp.current) return;
       const data = {
-        document:
-          newData.document ?? JSON.stringify(rTldrawApp.current.document),
+        documentString:
+          newData.documentString ?? JSON.stringify(rTldrawApp.current.document),
         readOnly:
           newData.readOnly ?? rTldrawApp.current.settings.isReadonlyMode,
         darkMode: newData.darkMode ?? rTldrawApp.current.settings.isDarkMode,
@@ -159,7 +175,7 @@ export const App: BlockComponent<AppProps> = ({
       newDocument.id = entityId;
 
       updateRemoteData({
-        document: JSON.stringify(newDocument),
+        documentString: JSON.stringify(newDocument),
       });
     },
     [entityId, updateRemoteData],
@@ -231,11 +247,11 @@ export const App: BlockComponent<AppProps> = ({
             document={rInitialDocument.current}
             onMount={handleMount}
             onPersist={handlePersist}
-            readOnly={remoteReadOnly}
+            readOnly={localState.readOnly}
             showMultiplayerMenu={false}
             showSponsorLink={false}
             onExport={handleExport}
-            darkMode={remoteDarkMode}
+            darkMode={localState.darkMode}
           />
         </div>
       </Resizable>
