@@ -3,8 +3,8 @@
 $dialRadius: 150px;
 $dialRingWidth: 16px;
 
-$countdownOffsetY: 80px;
-$countdownFontSize: 50px;
+$durationOffsetY: 75px;
+$durationFontSize: 50px;
 
 $bigButtonOffsetY: 100px;
 $bigButtonDiameter: 100px;
@@ -15,11 +15,13 @@ $smallButtonGap: 6px;
 
 $hoverBackgroundColor: #ebf8ff;
 
+$fontFamily: Inter, Helvetica, Arial, sans-serif;
+
 .timer-block {
   margin: 0 auto;
   padding: 0;
   width: $dialRadius * 2;
-  font-family: Inter, Helvetica, Arial, sans-serif;
+  font-family: $fontFamily;
   text-align: center;
 
   button {
@@ -96,35 +98,67 @@ $hoverBackgroundColor: #ebf8ff;
     animation-delay: 100s;
   }
 
-  .countdown {
-    font-size: $countdownFontSize;
+  .duration-container {
+    display: block;
+  }
+
+  .duration {
+    font-size: $durationFontSize;
     position: relative;
-    width: 80%;
-    top: $countdownOffsetY;
+    display: inline-flex;
+    top: $durationOffsetY;
     border: none;
     color: #37434f;
     background: transparent;
-    font-family: Inter, Helvetica, Arial, sans-serif;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
     text-align: center;
-    height: $countdownFontSize;
-    width: calc($dialRadius * 2 / 1.9);
-    display: block;
+    line-height: 1em;
+    height: $durationFontSize;
     margin: 0 auto;
+    padding: 4px;
+    justify-content: center;
+    width: auto;
     border-radius: 4px;
 
-    &:hover:enabled {
+    input {
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-family: inherit;
+      font-weight: inherit;
+      font-size: inherit;
+      font-variant-numeric: inherit;
+      width: 1.4em;
+      text-align: right;
+      height: 1em;
+      padding: 0;
+      margin: 0;
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    span {
+      display: block;
+      margin-top: -4px;
+      user-select: none;
+    }
+  }
+
+  .duration_status_enabled {
+    &:hover {
       outline: 1px solid $hoverBackgroundColor;
     }
 
-    &:focus-visible:enabled,
-    &:focus:enabled {
+    &:focus-within {
       outline: rgb(36, 117, 238) solid 2px;
     }
   }
-  .countdown_value_invalid {
-    color: #ffb168;
+
+  .duration_value_invalid {
+    background: rgba(200, 0, 0, 0.1);
   }
 
   .big-button {

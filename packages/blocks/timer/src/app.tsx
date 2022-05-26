@@ -88,9 +88,19 @@ export const App: BlockComponent<TimerState> = ({
     setTimerState(externalTimerState);
   }
 
+  const startButtonRef = useRef<HTMLButtonElement>(null);
+  const pauseButtonRef = useRef<HTMLButtonElement>(null);
+
   const applyTimerState = useCallback(
     (newTimerState: TimerState) => {
       setTimerState(newTimerState);
+
+      if (newTimerState.pauseDuration) {
+        startButtonRef.current?.focus();
+      } else {
+        pauseButtonRef.current?.focus();
+      }
+
       void updateEntities?.([
         {
           entityId,
@@ -230,19 +240,23 @@ export const App: BlockComponent<TimerState> = ({
             style={{ animationDelay: `-${remainingProportion * 100}s` }}
           />
         </div>
-        <DurationInput
-          value={
-            timerStatus === "finished"
-              ? parsedInitialDuration
-              : remainingDuration
-          }
-          disabled={timerStatus === "running"}
-          onChange={handleDurationInputChange}
-        />
+        <div className="duration-container">
+          <DurationInput
+            value={
+              timerStatus === "finished"
+                ? parsedInitialDuration
+                : remainingDuration
+            }
+            disabled={timerStatus === "running"}
+            onChange={handleDurationInputChange}
+            onSubmit={handlePlayClick}
+          />
+        </div>
         {timerStatus === "running" ? (
           <button
             type="button"
             aria-label="pause"
+            ref={pauseButtonRef}
             className="big-button big-button_type_pause"
             onClick={handlePauseClick}
           >
@@ -252,6 +266,7 @@ export const App: BlockComponent<TimerState> = ({
           <button
             type="button"
             aria-label="start"
+            ref={startButtonRef}
             className="big-button big-button_type_play"
             onClick={handlePlayClick}
           >

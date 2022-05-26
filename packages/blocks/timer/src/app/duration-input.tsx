@@ -4,6 +4,7 @@ import React, {
   FocusEventHandler,
   KeyboardEventHandler,
   useCallback,
+  useMemo,
   useRef,
   useState,
   VoidFunctionComponent,
@@ -13,86 +14,191 @@ type DurationInputProps = {
   value: duration.Duration;
   disabled: boolean;
   onChange: (newValue: duration.Duration) => void;
+  onSubmit: () => void;
 };
 
-const parseUserValue = (userValue: string | undefined): number | undefined => {
-  const cleanedValue = userValue?.replace(/\s/g, "");
-  if (!cleanedValue) {
+type InputTexts = [string, string];
+type InputTextIndex = 0 | 1;
+
+const extractInputIndex = (element: HTMLInputElement): InputTextIndex => {
+  const result = Number.parseInt(element.dataset.index!, 10);
+
+  if (result !== 0 && result !== 1) {
+    throw new Error(`Unexpected input index ${result}`);
+  }
+
+  return result;
+};
+
+const findInputByIndex = (
+  container: HTMLDivElement | null,
+  inputIndex: number,
+): HTMLInputElement | undefined => {
+  return (
+    container?.querySelector<HTMLInputElement>(
+      `input[data-index="${inputIndex}"]`,
+    ) ?? undefined
+  );
+};
+
+const padDigits = (value: number): string => `${value}`.padStart(2, "0");
+
+const convertDurationToInputTexts = (value: duration.Duration): InputTexts => {
+  return [padDigits(value.minutes), padDigits(value.seconds)];
+};
+
+const convertInputTextsToDurationInMs = (
+  inputTexts: InputTexts,
+): number | undefined => {
+  const minutes = Number.parseInt(inputTexts[0] ?? "0", 10);
+  const seconds = Number.parseInt(inputTexts[1] ?? "0", 10);
+  if (
+    !Number.isFinite(minutes) ||
+    !Number.isFinite(seconds) ||
+    seconds < 0 ||
+    seconds > 59 ||
+    minutes < 0 ||
+    minutes > 99 ||
+    (seconds === 0 && minutes === 0)
+  ) {
     return undefined;
   }
 
-  {
-    const [, minutes, seconds] =
-      cleanedValue.match(/^(\d{1,2})[:.](\d{1,2})$/) ?? [];
-    if (minutes && seconds) {
-      return (
-        (Number.parseInt(minutes, 10) * 60 + Number.parseInt(seconds, 10)) *
-        1000
-      );
-    }
-  }
-  {
-    const [, seconds] = cleanedValue.match(/^(\d{1,4})$/) ?? [];
-    if (seconds) {
-      return Number.parseInt(seconds, 10) * 1000;
-    }
-  }
-
-  return undefined;
+  return minutes * 60_000 + seconds * 1000;
 };
 
 export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
   value,
   disabled,
   onChange,
+  onSubmit,
 }) => {
-  const valueInMs = duration.toMilliseconds(value);
-  const stringifiedValue = `${`${value.minutes ?? 0}`.padStart(2, "0")}:${`${
-    value.seconds ?? 0
-  }`.padStart(2, "0")}`;
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const [userValue, setUserValue] = useState<undefined | string>();
+  const valueInMs = useMemo(() => duration.toMilliseconds(value), [value]);
+  const previousValueInMsRef = useRef(valueInMs);
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  const normalizedInputTexts = useMemo(
+    () => convertDurationToInputTexts(value),
+    [value],
+  );
+  const [userInputTexts, setUserInputTexts] = useState(normalizedInputTexts);
 
-  const handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-    setUserValue(event.target.value);
-  };
+  const userValueInMs = useMemo(
+    () => convertInputTextsToDurationInMs(userInputTexts),
+    [userInputTexts],
+  );
 
-  const userValueInMs = parseUserValue(userValue);
+  if (previousValueInMsRef.current !== valueInMs) {
+    previousValueInMsRef.current = valueInMs;
+    setUserInputTexts(normalizedInputTexts);
+  }
 
-  const handleKeyDown = useCallback<KeyboardEventHandler>((event) => {
-    if (event.key === "Enter") {
-      inputRef.current?.blur();
+  const handleInputChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
+    (event) => {
+      const inputIndex = extractInputIndex(event.currentTarget);
+      const sanitizedValue = event.target.value
+        .split("")
+        .filter((char) => char >= "0" && char <= "9")
+        .slice(-2)
+        .join("");
+
+      const newInputTexts = [...userInputTexts] as InputTexts;
+      newInputTexts[inputIndex] = sanitizedValue;
+      setUserInputTexts(newInputTexts);
+    },
+    [userInputTexts],
+  );
+
+  const handleInputKeyDown = useCallback<
+    KeyboardEventHandler<HTMLInputElement>
+  >(
+    (event) => {
+      const inputIndex = extractInputIndex(event.currentTarget);
+
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        const step =
+          (event.key === "ArrowUp" ? 1 : -1) *
+          (inputIndex === 1 ? 1000 : 60000);
+
+        onChange(duration.parse(valueInMs + step));
+        event.preventDefault();
+        return;
+      }
+
+      let inputToJumpTo: HTMLInputElement | undefined = undefined;
+
+      if (
+        event.key === "ArrowLeft" &&
+        event.currentTarget.selectionEnd ===
+          event.currentTarget.selectionStart &&
+        event.currentTarget.selectionStart === 0
+      ) {
+        inputToJumpTo = findInputByIndex(containerRef.current, inputIndex - 1);
+      }
+
+      if (
+        event.key === "ArrowRight" &&
+        event.currentTarget.selectionEnd ===
+          event.currentTarget.selectionStart &&
+        event.currentTarget.selectionEnd === event.currentTarget.value.length
+      ) {
+        inputToJumpTo = findInputByIndex(containerRef.current, inputIndex + 1);
+      }
+
+      if (inputToJumpTo) {
+        inputToJumpTo.setSelectionRange(0, inputToJumpTo.value.length);
+        inputToJumpTo.focus();
+        event.preventDefault();
+        return;
+      }
+
+      if (event.key === "Enter") {
+        setTimeout(() => {
+          onSubmit();
+        }, 50);
+      }
+    },
+    [onChange, onSubmit, valueInMs],
+  );
+
+  const handleInputBlur = useCallback<FocusEventHandler>(() => {
+    const newDurationInMs = convertInputTextsToDurationInMs(userInputTexts);
+    if (newDurationInMs === undefined) {
+      setUserInputTexts(normalizedInputTexts);
+    } else {
+      onChange(duration.parse(newDurationInMs));
     }
-    if (event.key === "Escape") {
-      setUserValue(undefined);
-      setTimeout(() => {
-        inputRef.current?.blur();
-      }, 50);
-    }
-  }, []);
-
-  const handleBlur = useCallback<FocusEventHandler>(() => {
-    if (userValueInMs && valueInMs !== userValueInMs) {
-      onChange(duration.parse(userValueInMs));
-    }
-    setUserValue(undefined);
-  }, [onChange, userValueInMs, valueInMs]);
+  }, [normalizedInputTexts, onChange, userInputTexts]);
 
   return (
-    <input
-      ref={inputRef}
-      className={`countdown ${
-        typeof userValue === "string" && !userValueInMs
-          ? "countdown_value_invalid"
-          : ""
-      }`}
-      value={userValue ?? stringifiedValue}
-      onChange={handleChange}
-      onKeyDown={handleKeyDown}
-      onBlur={handleBlur}
-      disabled={disabled}
-    />
+    <div
+      ref={containerRef}
+      className={[
+        "duration",
+        disabled ? "" : "duration_status_enabled",
+        userValueInMs === undefined ? "duration_value_invalid" : "",
+      ].join(" ")}
+    >
+      <input
+        data-index={0}
+        disabled={disabled}
+        onBlur={handleInputBlur}
+        onChange={handleInputChange}
+        onKeyDown={handleInputKeyDown}
+        tabIndex={disabled ? -1 : undefined}
+        value={userInputTexts[0]}
+      />
+      <span>:</span>
+      <input
+        data-index={1}
+        disabled={disabled}
+        onBlur={handleInputBlur}
+        onChange={handleInputChange}
+        onKeyDown={handleInputKeyDown}
+        tabIndex={disabled ? -1 : undefined}
+        value={userInputTexts[1]}
+      />
+    </div>
   );
 };
