@@ -186,15 +186,17 @@ export const App: BlockComponent<TimerState> = ({
       : 1;
 
     const stepLength = calculateDurationStepLength(
-      initialDurationInMs + step /* pick sides around edge values like 10s */,
+      remainingDurationInMs +
+        step /* pick sides around edge values like 10 seconds */,
     );
 
+    const roundUpOrDown = step > 0 ? Math.floor : Math.ceil;
     const newDurationInMs = clampDurationInMs(
-      Math.round((initialDurationInMs + stepLength * step) / stepLength) *
+      roundUpOrDown((remainingDurationInMs + stepLength * step) / stepLength) *
         stepLength,
     );
 
-    if (newDurationInMs !== initialDurationInMs) {
+    if (newDurationInMs !== remainingDurationInMs) {
       applyTimerState({
         initialDuration: duration.toString(
           normalizeDurationMinutesAndSeconds(newDurationInMs),
