@@ -48,7 +48,7 @@
         "height": 400,
         "darkMode": false,
         "readOnly": false,
-        "document": ""
+        "documentString": ""
       }
     ],
     "icon": "public/omega.svg",
