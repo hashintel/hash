@@ -1,5 +1,5 @@
 use alloc::boxed::Box;
-use core::{fmt, fmt::Formatter, marker::PhantomData, panic::Location};
+use core::{any::Any, fmt, fmt::Formatter, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -205,23 +205,19 @@ impl<C> Report<C> {
         RequestValue::new(self)
     }
 
-    /// Returns if `C` is the type held by any frame inside of the report.
+    /// Returns if `T` is the type held by any frame inside of the report.
+    // TODO: Provide example
     #[must_use]
-    pub fn contains<C2>(&self) -> bool
-    where
-        C2: Context,
-    {
-        self.frames().any(Frame::is::<C2>)
+    pub fn contains<T: Any>(&self) -> bool {
+        self.frames().any(Frame::is::<T>)
     }
 
-    /// Searches the frame stack for a context provider `C` and returns the most recent context
+    /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
+    // TODO: Provide example
     #[must_use]
-    pub fn downcast_ref<C2>(&self) -> Option<&C2>
-    where
-        C2: Context,
-    {
-        self.frames().find_map(Frame::downcast_ref::<C2>)
+    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
+        self.frames().find_map(Frame::downcast_ref::<T>)
     }
 }
 

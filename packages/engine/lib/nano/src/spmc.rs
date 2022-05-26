@@ -40,7 +40,7 @@ impl<T: Send> Sender<T> {
         self.sender
             .send(value)
             .await
-            .map_err(|e| report!(context: ErrorKind::Send, "{e}"))
+            .map_err(|e| report!("{e}").provide_context(ErrorKind::Send))
     }
 }
 

@@ -3,13 +3,15 @@
 
 use alloc::boxed::Box;
 use core::{
-    any::TypeId,
+    any::{Any, TypeId},
     fmt,
     fmt::Formatter,
     mem::ManuallyDrop,
     panic::Location,
     ptr::{self, addr_of, NonNull},
 };
+#[cfg(feature = "std")]
+use std::error::Error;
 
 use provider::{self, Demand, Provider};
 
@@ -26,49 +28,55 @@ struct VTable {
     object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
 }
 
-// Contextual messages don't necessarily implement `Provider`, `Message` adds an empty
-// implementation.
-struct MessageRepr<E>(E);
+/// Wrapper around [`Message`].
+///
+/// As [`Message`] does not necessarily implement [`Provider`], an empty implementation is provided.
+/// If a [`Provider`] is required use it directly instead of [`Message`].
+struct MessageRepr<M: Message>(M);
 
-impl<E: fmt::Display> fmt::Display for MessageRepr<E> {
+impl<C: Message> fmt::Display for MessageRepr<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl<E: fmt::Debug> fmt::Debug for MessageRepr<E> {
+impl<C: Message> fmt::Debug for MessageRepr<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
-impl<E> Provider for MessageRepr<E> {
-    // An empty impl is fine as it's not possible to safely create a Requisition outside of the
-    // provider API, so this won't cause silent problems
-    fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
+impl<C: Message> Provider for MessageRepr<C> {
+    fn provide<'a>(&'a self, _: &mut Demand<'a>) {
+        // Empty definition as `Message` does not convey provider information
+    }
 }
 
-// std errors don't necessarily implement `Provider`, `std::error::Error` adds an implementation
-// providing the backtrace if any.
+/// Wrapper around [`Error`].
+///
+/// As [`Error`] does not necessarily implement [`Provider`], an implementation is provided. As soon
+/// as [`Provider`] is implemented on [`Error`], this struct will be removed and used directly
+/// instead.
 #[cfg(feature = "std")]
+#[repr(transparent)]
 struct ErrorRepr<E>(E);
 
 #[cfg(feature = "std")]
-impl<E: fmt::Display> fmt::Display for ErrorRepr<E> {
+impl<E: Error> fmt::Display for ErrorRepr<E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
 #[cfg(feature = "std")]
-impl<E: fmt::Debug> fmt::Debug for ErrorRepr<E> {
+impl<E: Error> fmt::Debug for ErrorRepr<E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
 #[cfg(feature = "std")]
-impl<E: std::error::Error> Provider for ErrorRepr<E> {
+impl<E: Error> Provider for ErrorRepr<E> {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         #[cfg(all(nightly, feature = "std"))]
         if let Some(backtrace) = self.0.backtrace() {
@@ -169,10 +177,7 @@ impl FrameRepr {
         unsafe { (self.vtable.object_ref)(self) }
     }
 
-    fn downcast<C>(&self) -> Option<NonNull<C>>
-    where
-        C: Context,
-    {
+    fn downcast<C: Any>(&self) -> Option<NonNull<C>> {
         let target = TypeId::of::<C>();
         // Use vtable to attach C's native vtable for the right original type C.
         let addr = unsafe { (self.vtable.object_downcast)(self, target) };
@@ -220,7 +225,7 @@ impl Frame {
         source: Option<Box<Self>>,
     ) -> Self
     where
-        E: std::error::Error + Send + Sync + 'static,
+        E: Error + Send + Sync + 'static,
     {
         // SAFETY: `inner` is wrapped in `ManuallyDrop`
         Self {
@@ -254,22 +259,29 @@ impl Frame {
         provider::request_value(self)
     }
 
-    /// Returns if `E` is the type held by this frame.
+    /// Returns if `T` is the type held by this frame.
     #[must_use]
-    pub fn is<C>(&self) -> bool
-    where
-        C: Context,
-    {
-        self.inner.downcast::<C>().is_some()
+    pub fn is<T: Any>(&self) -> bool {
+        self.downcast_ref::<T>().is_some()
     }
 
-    /// Downcasts this frame if the held provider object is the same as `C`.
+    /// Downcasts this frame if the held provider object is the same as `T`.
     #[must_use]
-    pub fn downcast_ref<C>(&self) -> Option<&C>
-    where
-        C: Context,
-    {
-        self.inner.downcast().map(|addr| unsafe { &*addr.as_ptr() })
+    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
+        #[cfg_attr(not(feature = "std"), allow(clippy::let_and_return))]
+        let downcasted = self.inner.downcast().map(|addr| unsafe { addr.as_ref() });
+
+        #[cfg(feature = "std")]
+        let downcasted = downcasted.or_else(|| {
+            // Fallback for `T: Error` as `Error` is wrapped inside of `ErrorRepr`
+            // TODO: Remove fallback when `Provider` is implemented for `Error` upstream
+            // SAFETY: `ErrorRepr` is `#[repr(transparent)]`
+            self.inner
+                .downcast::<ErrorRepr<T>>()
+                .map(|addr| unsafe { addr.cast().as_ref() })
+        });
+
+        downcasted
     }
 }
 

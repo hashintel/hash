@@ -293,7 +293,7 @@ pub use self::{
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # error::bail!(context: ConfigError::IoError, "No such file");
+///     # return Err(error::report!("No such file").provide_context(ConfigError::IoError));
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     std::fs::read_to_string(path.as_ref()).provide_context(ConfigError::IoError)
 /// }
