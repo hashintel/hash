@@ -19,7 +19,7 @@ import "./base.css";
 
 type AppProps = {
   documentString: string;
-  readOnly: boolean;
+  // readOnly: boolean;
   darkMode?: boolean;
   width?: number;
   height?: number;
@@ -31,7 +31,7 @@ type LocalState = {
   documentString: string;
   maxWidth?: number;
   darkMode?: boolean;
-  readOnly?: boolean;
+  // readOnly?: boolean;
 };
 
 const BASE_HEIGHT = 500;
@@ -40,9 +40,10 @@ const BASE_HEIGHT = 500;
 // to upload images. Currently images are saved in base64 form
 // in the document and that isn't optimal
 
-// @todo consider storing the document in .tldr files (which are uploaded
-// via upload file hook) instead of JSON format. It's possible for the
-// document to get very large, so storing in JSON
+// @todo consider storing the document in a .tldr file (which is uploaded
+// via file upload method) as opposed to the current approach of storing in JSON.
+
+// @todo re-add readOnly feature
 
 export const App: BlockComponent<AppProps> = ({
   entityId,
@@ -51,7 +52,7 @@ export const App: BlockComponent<AppProps> = ({
   darkMode: remoteDarkMode = false,
   documentString: remoteDocumentString,
   accountId,
-  readOnly: remoteReadOnly,
+  // readOnly: remoteReadOnly,
   updateEntities,
   height: remoteHeight,
   width: remoteWidth,
@@ -68,7 +69,7 @@ export const App: BlockComponent<AppProps> = ({
       ? remoteDocumentString
       : JSON.stringify(getDefaultDocument(entityId)),
     darkMode: remoteDarkMode,
-    readOnly: remoteReadOnly,
+    // readOnly: remoteReadOnly,
   });
 
   useLayoutEffect(() => {
@@ -114,14 +115,14 @@ export const App: BlockComponent<AppProps> = ({
       documentString: isValidDocumentString(remoteDocumentString)
         ? remoteDocumentString
         : prev.documentString,
-      readOnly: !!remoteReadOnly,
+      // readOnly: !!remoteReadOnly,
     }));
   }, [
     remoteDarkMode,
     remoteHeight,
     remoteWidth,
     remoteDocumentString,
-    remoteReadOnly,
+    // remoteReadOnly,
   ]);
 
   const updateRemoteData = useCallback(
@@ -130,8 +131,8 @@ export const App: BlockComponent<AppProps> = ({
       const data = {
         documentString:
           newData.documentString ?? JSON.stringify(rTldrawApp.current.document),
-        readOnly:
-          newData.readOnly ?? rTldrawApp.current.settings.isReadonlyMode,
+        // readOnly:
+        //   newData.readOnly ?? rTldrawApp.current.settings.isReadonlyMode,
         darkMode: newData.darkMode ?? rTldrawApp.current.settings.isDarkMode,
         height: newData.height ?? localState.height,
         width: newData.width ?? localState.width,
@@ -188,7 +189,6 @@ export const App: BlockComponent<AppProps> = ({
         localState.documentString,
       ) as TDDocument;
       const app = rTldrawApp.current;
-
       // update document if its id hasn't changed. load document if it has
       if (parsedDocument.id && parsedDocument.id === entityId) {
         app.updateDocument(parsedDocument);
@@ -247,7 +247,7 @@ export const App: BlockComponent<AppProps> = ({
             document={rInitialDocument.current}
             onMount={handleMount}
             onPersist={handlePersist}
-            readOnly={localState.readOnly}
+            // readOnly={localState.readOnly}
             showMultiplayerMenu={false}
             showSponsorLink={false}
             onExport={handleExport}
