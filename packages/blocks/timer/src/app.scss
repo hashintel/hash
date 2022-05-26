@@ -16,7 +16,7 @@ $smallButtonGap: 6px;
 $hoverBackgroundColor: #ebf8ff;
 
 .timer-block {
-  margin: 0;
+  margin: 0 auto;
   padding: 0;
   width: $dialRadius * 2;
   font-family: Inter, Helvetica, Arial, sans-serif;
@@ -42,6 +42,7 @@ $hoverBackgroundColor: #ebf8ff;
   }
 
   .dial {
+    display: block;
     margin: 0 auto;
     width: $dialRadius * 2;
     height: $dialRadius * 2;
