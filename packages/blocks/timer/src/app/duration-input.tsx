@@ -154,6 +154,7 @@ export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
       }
 
       if (event.key === "Enter") {
+        event.currentTarget.blur(); // commit value
         setTimeout(() => {
           onSubmit();
         }, 50);
