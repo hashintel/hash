@@ -189,7 +189,7 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
             </Typography>
           </Project>
           <Project
-            title={<Box sx={{ mt: { xs: 0, md: 5, lg: 8 } }}>HASH</Box>}
+            title={<Box sx={{ mt: { xs: 0, md: 7, lg: 8 } }}>HASH</Box>}
             buttons={
               <Button
                 href="https://github.com/hashintel/hash/tree/main/packages/hash"
@@ -235,7 +235,7 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
             </Typography>
           </Project>
           <Project
-            title="hEngine"
+            title={<Box sx={{ mt: { xs: 0, md: 5, lg: 8 } }}>hEngine</Box>}
             buttons={
               <Button
                 href="https://github.com/hashintel/hash/tree/main/packages/engine"
