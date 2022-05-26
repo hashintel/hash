@@ -8,16 +8,16 @@ use pin_project::pin_project;
 
 use crate::{Context, Message, Result, ResultExt};
 
-/// Adaptor returned by [`FutureExt::wrap_err`].
+/// Adaptor returned by [`FutureExt::add_message`].
 #[pin_project]
 #[cfg(feature = "futures")]
-pub struct FutureWithErr<Fut, M> {
+pub struct FutureWithMessage<Fut, M> {
     #[pin]
     inner: Fut,
     message: Option<M>,
 }
 
-impl<Fut, M> Future for FutureWithErr<Fut, M>
+impl<Fut, M> Future for FutureWithMessage<Fut, M>
 where
     Fut: Future,
     Fut::Output: ResultExt,
@@ -33,7 +33,7 @@ where
 
         // Can't use `map` as `#[track_caller]` is unstable on closures
         match inner.poll(cx) {
-            Poll::Ready(value) => Poll::Ready(value.wrap_err({
+            Poll::Ready(value) => Poll::Ready(value.add_message({
                 message
                     .take()
                     .expect("Cannot poll context after it resolves")
@@ -43,16 +43,16 @@ where
     }
 }
 
-/// Adaptor returned by [`FutureExt::wrap_err_lazy`].
+/// Adaptor returned by [`FutureExt::add_message_lazy`].
 #[pin_project]
 #[cfg(feature = "futures")]
-pub struct FutureWithLazyErr<Fut, F> {
+pub struct FutureWithLazyMessage<Fut, F> {
     #[pin]
     inner: Fut,
     op: Option<F>,
 }
 
-impl<Fut, F, M> Future for FutureWithLazyErr<Fut, F>
+impl<Fut, F, M> Future for FutureWithLazyMessage<Fut, F>
 where
     Fut: Future,
     Fut::Output: ResultExt,
@@ -70,14 +70,14 @@ where
         // Can't use `map` as `#[track_caller]` is unstable on closures
         match inner.poll(cx) {
             Poll::Ready(value) => Poll::Ready(
-                value.wrap_err_lazy(op.take().expect("Cannot poll context after it resolves")),
+                value.add_message_lazy(op.take().expect("Cannot poll context after it resolves")),
             ),
             Poll::Pending => Poll::Pending,
         }
     }
 }
 
-/// Adaptor returned by [`FutureExt::provide_context`].
+/// Adaptor returned by [`FutureExt::add_context`].
 #[pin_project]
 #[cfg(feature = "futures")]
 pub struct FutureWithContext<Fut, C> {
@@ -102,7 +102,7 @@ where
 
         // Can't use `map` as `#[track_caller]` is unstable on closures
         match inner.poll(cx) {
-            Poll::Ready(value) => Poll::Ready(value.provide_context({
+            Poll::Ready(value) => Poll::Ready(value.add_context({
                 context
                     .take()
                     .expect("Cannot poll context after it resolves")
@@ -112,7 +112,7 @@ where
     }
 }
 
-/// Adaptor returned by [`FutureExt::provide_context_lazy`].
+/// Adaptor returned by [`FutureExt::add_context_lazy`].
 #[pin_project]
 #[cfg(feature = "futures")]
 pub struct FutureWithLazyContext<Fut, F> {
@@ -138,11 +138,9 @@ where
 
         // Can't use `map` as `#[track_caller]` is unstable on closures
         match inner.poll(cx) {
-            Poll::Ready(value) => {
-                Poll::Ready(value.provide_context_lazy(
-                    op.take().expect("Cannot poll context after it resolves"),
-                ))
-            }
+            Poll::Ready(value) => Poll::Ready(
+                value.add_context_lazy(op.take().expect("Cannot poll context after it resolves")),
+            ),
             Poll::Pending => Poll::Pending,
         }
     }
@@ -178,14 +176,14 @@ pub trait FutureExt: Future + Sized {
     ///     # let user = User;
     ///     # let resource = Resource;
     ///     // A contextual message can be provided before polling the `Future`
-    ///     load_resource(&user, &resource).wrap_err("Could not load resource").await
+    ///     load_resource(&user, &resource).add_message("Could not load resource").await
     /// # };
     /// # #[cfg(not(miri))] // miri can't `block_on`
     /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
     /// # Result::<_>::Ok(())
     /// ```
     #[track_caller]
-    fn wrap_err<M>(self, message: M) -> FutureWithErr<Self, M>
+    fn add_message<M>(self, message: M) -> FutureWithMessage<Self, M>
     where
         M: Message;
 
@@ -218,14 +216,14 @@ pub trait FutureExt: Future + Sized {
     ///     # let user = User;
     ///     # let resource = Resource;
     ///     // A contextual message can be provided before polling the `Future`
-    ///     load_resource(&user, &resource).wrap_err_lazy(|| format!("Could not load resource {resource}")).await
+    ///     load_resource(&user, &resource).add_message_lazy(|| format!("Could not load resource {resource}")).await
     /// # };
     /// # #[cfg(not(miri))]
     /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
     /// # Result::<_>::Ok(())
     /// ```
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, op: F) -> FutureWithLazyErr<Self, F>
+    fn add_message_lazy<M, F>(self, op: F) -> FutureWithLazyMessage<Self, F>
     where
         M: Message,
         F: FnOnce() -> M;
@@ -238,7 +236,7 @@ pub trait FutureExt: Future + Sized {
     /// [`poll`]: Future::poll
     // TODO: come up with a decent example
     #[track_caller]
-    fn provide_context<C>(self, context: C) -> FutureWithContext<Self, C>
+    fn add_context<C>(self, context: C) -> FutureWithContext<Self, C>
     where
         C: Context;
 
@@ -252,7 +250,7 @@ pub trait FutureExt: Future + Sized {
     /// [`poll`]: Future::poll
     // TODO: come up with a decent example
     #[track_caller]
-    fn provide_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
+    fn add_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
     where
         C: Context,
         F: FnOnce() -> C;
@@ -262,30 +260,30 @@ impl<Fut: Future> FutureExt for Fut
 where
     Fut::Output: ResultExt,
 {
-    fn wrap_err<M>(self, message: M) -> FutureWithErr<Self, M>
+    fn add_message<M>(self, message: M) -> FutureWithMessage<Self, M>
     where
         M: Message,
     {
-        FutureWithErr {
+        FutureWithMessage {
             inner: self,
             message: Some(message),
         }
     }
 
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, op: F) -> FutureWithLazyErr<Self, F>
+    fn add_message_lazy<M, F>(self, op: F) -> FutureWithLazyMessage<Self, F>
     where
         M: Message,
         F: FnOnce() -> M,
     {
-        FutureWithLazyErr {
+        FutureWithLazyMessage {
             inner: self,
             op: Some(op),
         }
     }
 
     #[track_caller]
-    fn provide_context<C>(self, context: C) -> FutureWithContext<Self, C>
+    fn add_context<C>(self, context: C) -> FutureWithContext<Self, C>
     where
         C: Context,
     {
@@ -296,7 +294,7 @@ where
     }
 
     #[track_caller]
-    fn provide_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
+    fn add_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
     where
         C: Context,
         F: FnOnce() -> C,

@@ -87,7 +87,7 @@ impl Handler {
             .map_err(|_| report!("Could not send control message to server"))?;
         result_rx
             .await
-            .wrap_err("Failed to receive response from")?
+            .add_message("Failed to receive response from")?
     }
 
     /// Register a new experiment execution with the server, returning a Handle from which messages
@@ -214,9 +214,9 @@ impl Server {
                 // completes before sending de-registering the experiment.
                 Ok(())
             }
-            Some(sender) => sender
-                .send(msg.body)
-                .wrap_err_lazy(|| format!("Routing message for experiment {}", msg.experiment_id)),
+            Some(sender) => sender.send(msg.body).add_message_lazy(|| {
+                format!("Routing message for experiment {}", msg.experiment_id)
+            }),
         }
     }
 
@@ -234,7 +234,7 @@ impl Server {
     pub async fn run(&mut self) -> Result<()> {
         let mut socket = nano::Server::new(&self.url)
             .map_err(Report::generalize)
-            .wrap_err_lazy(|| format!("Could not create a server socket for {:?}", self.url))?;
+            .add_message_lazy(|| format!("Could not create a server socket for {:?}", self.url))?;
         loop {
             tokio::select! {
                 Some((ctrl, result_tx)) = self.ctrl_rx.recv() => {

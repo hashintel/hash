@@ -22,7 +22,7 @@ pub struct ReportImpl {
 impl Report<()> {
     /// Creates a new `Report` from the provided message.
     #[track_caller]
-    pub fn new<M>(message: M) -> Self
+    pub fn from_message<M>(message: M) -> Self
     where
         M: Message,
     {
@@ -95,7 +95,7 @@ impl<C> Report<C> {
 
     /// Adds a contextual message to the [`Frame`] stack.
     #[track_caller]
-    pub fn wrap<M>(self, message: M) -> Self
+    pub fn add_message<M>(self, message: M) -> Self
     where
         M: Message,
     {
@@ -114,7 +114,7 @@ impl<C> Report<C> {
 
     /// Adds context information to the [`Frame`] stack enforcing a typed `Report`.
     #[track_caller]
-    pub fn provide_context<C2>(self, context: C2) -> Report<C2>
+    pub fn add_context<C2>(self, context: C2) -> Report<C2>
     where
         C2: Context,
     {

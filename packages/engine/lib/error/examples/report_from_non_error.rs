@@ -8,7 +8,7 @@ fn external_api() -> StdResult<String, Box<str>> {
 
 fn wrap_result_example<T>(err: StdResult<T, Box<str>>) -> Result<T> {
     // `ResultExt` is not implemented for non-std-errors or `Option`s
-    err.map_err(|e| Report::new(e).wrap("They saw me errorin', they hatin'"))
+    err.map_err(|e| Report::from_message(e).add_message("They saw me errorin', they hatin'"))
 }
 
 fn main() -> Result<()> {

@@ -41,7 +41,7 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) ->
 
     // We read the behaviors and datasets like loading a dependency
     let mut manifest = Manifest::from_dependency(project_path)
-        .wrap_err_lazy(|| format!("Could not load manifest from {project_path:?}"))?;
+        .add_message_lazy(|| format!("Could not load manifest from {project_path:?}"))?;
 
     // Now load globals and experiments as specified in the documentation of `Manifest`
     let globals_path = project_path.join("src").join("globals.json");
@@ -315,10 +315,10 @@ pub async fn run_test<P: AsRef<Path>>(
     tokio::spawn(async move { experiment_server.run().await });
 
     let manifest = load_manifest(project_path, language)
-        .wrap_err_lazy(|| format!("Could not read project {project_path:?}"))?;
+        .add_message_lazy(|| format!("Could not read project {project_path:?}"))?;
     let experiment_run = manifest
         .read(experiment_type)
-        .wrap_err("Could not read manifest")?;
+        .add_message("Could not read manifest")?;
 
     let experiment = orchestrator::Experiment::new(experiment_config);
 
@@ -332,7 +332,7 @@ pub async fn run_test<P: AsRef<Path>>(
     experiment
         .run(experiment_run, handler, target_max_group_size)
         .await
-        .wrap_err("Could not run experiment")?;
+        .add_message("Could not run experiment")?;
     let duration = now.elapsed();
 
     let outputs = iter::repeat(output_base_directory)
@@ -341,11 +341,11 @@ pub async fn run_test<P: AsRef<Path>>(
         .take_while(|output_dir| output_dir.exists())
         .map(|output_dir| {
             let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
-                .wrap_err("Could not read JSON state")?;
+                .add_message("Could not read JSON state")?;
             let globals = parse_file(Path::new(&output_dir).join("globals.json"))
-                .wrap_err("Could not read globals")?;
+                .add_message("Could not read globals")?;
             let analysis_outputs = parse_file(Path::new(&output_dir).join("analysis_outputs.json"))
-                .wrap_err("Could not read analysis outputs`")?;
+                .add_message("Could not read analysis outputs`")?;
 
             Ok((json_state, globals, analysis_outputs))
         })
@@ -357,9 +357,9 @@ pub async fn run_test<P: AsRef<Path>>(
 fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
-        File::open(path).wrap_err_lazy(|| format!("Could not open file {path:?}"))?,
+        File::open(path).add_message_lazy(|| format!("Could not open file {path:?}"))?,
     ))
-    .wrap_err_lazy(|| format!("Could not parse {path:?}"))
+    .add_message_lazy(|| format!("Could not parse {path:?}"))
 }
 
 pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(ExperimentType, Vec<ExpectedOutput>)>> {
@@ -379,7 +379,7 @@ pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(ExperimentType, Vec<E
     }
 
     Ok(parse_file::<Vec<ConfigValue>, P>(path)
-        .wrap_err("Could not read integration test configuration")?
+        .add_message("Could not read integration test configuration")?
         .into_iter()
         .map(|config_value| match config_value {
             ConfigValue::Simple {
@@ -464,7 +464,7 @@ impl ExpectedOutput {
         for (step, expected_states) in json_state {
             let step = step
                 .parse::<usize>()
-                .wrap_err_lazy(|| format!("Could not parse {step:?} as number of a step"))?;
+                .add_message_lazy(|| format!("Could not parse {step:?} as number of a step"))?;
             let result_states = agent_states
                 .get(step)
                 .ok_or_else(|| report!("Experiment output does not contain {step} steps"))?;

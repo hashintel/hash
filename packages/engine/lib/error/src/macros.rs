@@ -23,7 +23,7 @@ pub mod __private {
             where
                 C: Message,
             {
-                Report::new(context)
+                Report::from_message(context)
             }
         }
 
@@ -44,7 +44,7 @@ pub mod __private {
     }
 
     pub fn report(args: fmt::Arguments) -> Report {
-        Report::new(alloc::string::ToString::to_string(&args))
+        Report::from_message(alloc::string::ToString::to_string(&args))
     }
 }
 
@@ -143,16 +143,16 @@ macro_rules! report {
         $crate::Report::from_context($context)
     });
     (context: $context:expr, $msg:literal $(,)?) => ({
-        $crate::report!($msg).provide_context($context)
+        $crate::report!($msg).add_context($context)
     });
     (context: $context:expr, $err:expr $(,)?) => ({
-        $crate::report!($err).provide_context($context)
+        $crate::report!($err).add_context($context)
     });
     (context: $context:expr, $fmt:expr, $($arg:tt)+) => {
-        $crate::report!($fmt, $($arg)+).provide_context($context)
+        $crate::report!($fmt, $($arg)+).add_context($context)
     };
     ($msg:literal $(,)?) => ({
-        $crate::Report::new($crate::__private::report(core::format_args!($msg)))
+        $crate::Report::from_message($crate::__private::report(core::format_args!($msg)))
     });
     ($err:expr $(,)?) => ({
         use $crate::__private::kinds::*;
@@ -160,7 +160,7 @@ macro_rules! report {
         (&error).__kind().report(error)
     });
     ($fmt:expr, $($arg:tt)+) => {
-        $crate::Report::new($crate::__private::report(core::format_args!($fmt, $($arg)+)))
+        $crate::Report::from_message($crate::__private::report(core::format_args!($fmt, $($arg)+)))
     };
 }
 

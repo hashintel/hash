@@ -57,10 +57,10 @@ pub trait ResultExt {
     /// # let user = User;
     /// # let resource = Resource;
     /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource).wrap_err("Could not load resource")?;
+    /// let resource = load_resource(&user, &resource).add_message("Could not load resource")?;
     /// # Result::Ok(())
     /// ```
-    fn wrap_err<M>(self, message: M) -> Result<Self::Ok, Self::Context>
+    fn add_message<M>(self, message: M) -> Result<Self::Ok, Self::Context>
     where
         M: Message;
 
@@ -85,10 +85,10 @@ pub trait ResultExt {
     /// # let resource = Resource;
     /// # #[allow(unused_variables)]
     /// let resource = load_resource(&user, &resource)
-    ///     .wrap_err_lazy(|| format!("Could not load resource {resource}"))?;
+    ///     .add_message_lazy(|| format!("Could not load resource {resource}"))?;
     /// # Result::Ok(())
     /// ```
-    fn wrap_err_lazy<M, F>(self, op: F) -> Result<Self::Ok, Self::Context>
+    fn add_message_lazy<M, F>(self, op: F) -> Result<Self::Ok, Self::Context>
     where
         M: Message,
         F: FnOnce() -> M;
@@ -97,7 +97,7 @@ pub trait ResultExt {
     ///
     /// [`Frame`]: crate::Frame
     // TODO: come up with a decent example
-    fn provide_context<C>(self, context: C) -> Result<Self::Ok, C>
+    fn add_context<C>(self, context: C) -> Result<Self::Ok, C>
     where
         C: Context;
 
@@ -108,7 +108,7 @@ pub trait ResultExt {
     ///
     /// [`Frame`]: crate::Frame
     // TODO: come up with a decent example
-    fn provide_context_lazy<C, F>(self, op: F) -> Result<Self::Ok, C>
+    fn add_context_lazy<C, F>(self, op: F) -> Result<Self::Ok, C>
     where
         C: Context,
         F: FnOnce() -> C;
@@ -123,19 +123,19 @@ where
     type Ok = T;
 
     #[track_caller]
-    fn wrap_err<M>(self, message: M) -> Result<T>
+    fn add_message<M>(self, message: M) -> Result<T>
     where
         M: Message,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).wrap(message)),
+            Err(error) => Err(Report::from(error).add_message(message)),
         }
     }
 
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T>
+    fn add_message_lazy<M, F>(self, message: F) -> Result<T>
     where
         M: Message,
         F: FnOnce() -> M,
@@ -143,24 +143,24 @@ where
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).wrap(message())),
+            Err(error) => Err(Report::from(error).add_message(message())),
         }
     }
 
     #[track_caller]
-    fn provide_context<C>(self, context: C) -> Result<T, C>
+    fn add_context<C>(self, context: C) -> Result<T, C>
     where
         C: Context,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).provide_context(context)),
+            Err(error) => Err(Report::from(error).add_context(context)),
         }
     }
 
     #[track_caller]
-    fn provide_context_lazy<C, F>(self, context: F) -> Result<T, C>
+    fn add_context_lazy<C, F>(self, context: F) -> Result<T, C>
     where
         C: Context,
         F: FnOnce() -> C,
@@ -168,7 +168,7 @@ where
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).provide_context(context())),
+            Err(error) => Err(Report::from(error).add_context(context())),
         }
     }
 }
@@ -178,19 +178,19 @@ impl<T, C> ResultExt for Result<T, C> {
     type Ok = T;
 
     #[track_caller]
-    fn wrap_err<M>(self, message: M) -> Self
+    fn add_message<M>(self, message: M) -> Self
     where
         M: Message,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(report) => Err(report.wrap(message)),
+            Err(report) => Err(report.add_message(message)),
         }
     }
 
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, message: F) -> Self
+    fn add_message_lazy<M, F>(self, message: F) -> Self
     where
         M: Message,
         F: FnOnce() -> M,
@@ -198,24 +198,24 @@ impl<T, C> ResultExt for Result<T, C> {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(report) => Err(report.wrap(message())),
+            Err(report) => Err(report.add_message(message())),
         }
     }
 
     #[track_caller]
-    fn provide_context<C2>(self, context: C2) -> Result<T, C2>
+    fn add_context<C2>(self, context: C2) -> Result<T, C2>
     where
         C2: Context,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(report) => Err(report.provide_context(context)),
+            Err(report) => Err(report.add_context(context)),
         }
     }
 
     #[track_caller]
-    fn provide_context_lazy<C2, F>(self, context: F) -> Result<T, C2>
+    fn add_context_lazy<C2, F>(self, context: F) -> Result<T, C2>
     where
         C2: Context,
         F: FnOnce() -> C2,
@@ -223,7 +223,7 @@ impl<T, C> ResultExt for Result<T, C> {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(report) => Err(report.provide_context(context())),
+            Err(report) => Err(report.add_context(context())),
         }
     }
 }

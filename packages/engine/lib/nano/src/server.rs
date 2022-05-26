@@ -55,7 +55,7 @@ impl Worker {
     ///
     /// [`Sleep`]: nng::AioResult::Sleep
     fn new(socket: &nng::Socket, sender: MsgSender, url: &str) -> Result<Self, ()> {
-        let ctx_orig = nng::Context::new(socket).wrap_err("Could not create context")?;
+        let ctx_orig = nng::Context::new(socket).add_message("Could not create context")?;
         let ctx = ctx_orig.clone();
 
         let socket_url = url.to_owned();
@@ -87,7 +87,7 @@ impl Worker {
         // Initialize the Aio in the Recv state
         ctx_orig
             .recv(&aio)
-            .wrap_err("Could not receive message from context")?;
+            .add_message("Could not receive message from context")?;
 
         Ok(Self { _aio: aio })
     }
@@ -104,20 +104,20 @@ impl Server {
     /// - the worker could not be created from the provided `url`.
     pub fn new(url: &str) -> Result<Self> {
         let socket = nng::Socket::new(nng::Protocol::Rep0)
-            .wrap_err("Could not create socket")
-            .provide_context(ErrorKind::ServerCreation)?;
+            .add_message("Could not create socket")
+            .add_context(ErrorKind::ServerCreation)?;
         socket
             .listen(url)
-            .wrap_err("Could not listen on socket")
-            .provide_context(ErrorKind::ServerCreation)?;
+            .add_message("Could not listen on socket")
+            .add_context(ErrorKind::ServerCreation)?;
 
         let (sender, receiver) = mpsc::unbounded_channel();
 
         let workers = (0..NUM_WORKERS)
             .map(|_| {
                 Worker::new(&socket, sender.clone(), url)
-                    .wrap_err("Could not create worker")
-                    .provide_context(ErrorKind::ServerCreation)
+                    .add_message("Could not create worker")
+                    .add_context(ErrorKind::ServerCreation)
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -147,7 +147,7 @@ impl Server {
     {
         let msg = self.receiver.recv().await.expect(RECV_EXPECT_MESSAGE);
         serde_json::from_slice::<T>(msg.as_slice())
-            .wrap_err("Could not convert message from JSON")
-            .provide_context(ErrorKind::Receive)
+            .add_message("Could not convert message from JSON")
+            .add_context(ErrorKind::Receive)
     }
 }

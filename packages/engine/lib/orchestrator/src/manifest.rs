@@ -178,7 +178,7 @@ impl Manifest {
         // TODO: How to handle versions
         for dependency_name in self.dependencies.keys() {
             match get_dependency_type_from_name(dependency_name)
-                .wrap_err_lazy(|| format!("Could not read dependency: {dependency_name}"))?
+                .add_message_lazy(|| format!("Could not read dependency: {dependency_name}"))?
             {
                 DependencyType::Behavior(extension) => {
                     let behavior = if &extension == ".rs" {
@@ -191,7 +191,7 @@ impl Manifest {
                         }
                     } else {
                         get_behavior_from_dependency_projects(dependency_name, &dependency_projects)
-                            .wrap_err_lazy(|| {
+                            .add_message_lazy(|| {
                                 format!("Could not get behavior from dependency: {dependency_name}")
                             })?
                     };
@@ -251,10 +251,10 @@ impl Manifest {
             id: file_name.clone(),
             name: file_name,
             shortnames: vec![], // if this is a dependency, then these will be updated later
-            behavior_src: file_contents_opt(&path).wrap_err("Could not read behavior")?,
+            behavior_src: file_contents_opt(&path).add_message("Could not read behavior")?,
             // this may not return anything if file doesn't exist
             behavior_keys_src: file_contents_opt(&key_path)
-                .wrap_err("Could not read behavior keys")?,
+                .add_message("Could not read behavior keys")?,
         });
         Ok(())
     }
@@ -275,7 +275,7 @@ impl Manifest {
         debug!("Reading behaviors in {src_folder:?}");
         for entry in src_folder
             .read_dir()
-            .wrap_err_lazy(|| format!("Could not read behavior directory: {src_folder:?}"))?
+            .add_message_lazy(|| format!("Could not read behavior directory: {src_folder:?}"))?
         {
             match entry {
                 Ok(entry) => {
@@ -283,7 +283,7 @@ impl Manifest {
                     // Filter for `.json` files for behavior keys
                     if file_extension(&path)? != "json" {
                         self.add_behavior_from_file(path)
-                            .wrap_err("Could not add behavior")?;
+                            .add_message("Could not add behavior")?;
                     }
                 }
                 Err(err) => {
@@ -315,11 +315,11 @@ impl Manifest {
             "Not a valid dataset extension: {path:?}"
         );
 
-        let mut data = file_contents(path).wrap_err("Could not read dataset")?;
+        let mut data = file_contents(path).add_message("Could not read dataset")?;
 
         if file_extension == "csv" {
             data = parse_raw_csv_into_json(data)
-                .wrap_err_lazy(|| format!("Could not convert csv into json: {path:?}"))?;
+                .add_message_lazy(|| format!("Could not convert csv into json: {path:?}"))?;
         }
 
         let filename = path.file_name().unwrap().to_string_lossy().to_string();
@@ -349,12 +349,12 @@ impl Manifest {
         debug!("Reading datasets in {src_folder:?}");
         for entry in src_folder
             .read_dir()
-            .wrap_err_lazy(|| format!("Could not read dataset directory: {src_folder:?}"))?
+            .add_message_lazy(|| format!("Could not read dataset directory: {src_folder:?}"))?
         {
             match entry {
                 Ok(entry) => {
                     self.add_dataset_from_file(entry.path())
-                        .wrap_err("Could not add dataset")?;
+                        .add_message("Could not add dataset")?;
                 }
                 Err(err) => {
                     warn!("Could not ready directory entry: {err}");
@@ -430,39 +430,39 @@ impl Manifest {
 
             project
                 .set_initial_state_from_directory(src_folder)
-                .wrap_err("Could not read initial state")?;
+                .add_message("Could not read initial state")?;
 
             if globals_json.exists() {
                 project
                     .set_globals_from_file(globals_json)
-                    .wrap_err("Could not read globals")?;
+                    .add_message("Could not read globals")?;
             }
             if analysis_json.exists() {
                 project
                     .set_analysis_from_file(analysis_json)
-                    .wrap_err("Could not read analysis view")?;
+                    .add_message("Could not read analysis view")?;
             }
 
             if experiments_json.exists() {
                 project
                     .set_experiments_from_file(experiments_json)
-                    .wrap_err("Could not read experiments")?;
+                    .add_message("Could not read experiments")?;
             }
         }
         if dependencies_json.exists() {
             project
                 .set_dependencies_from_file(dependencies_json)
-                .wrap_err("Could not read experiments")?;
+                .add_message("Could not read experiments")?;
         }
         if behaviors_folder.exists() {
             project
                 .add_behaviors_from_directory(behaviors_folder)
-                .wrap_err("Could not read local behaviors")?;
+                .add_message("Could not read local behaviors")?;
         }
         if data_folder.exists() {
             project
                 .add_datasets_from_directory(data_folder)
-                .wrap_err("Could not read local datasets")?;
+                .add_message("Could not read local datasets")?;
         }
 
         let behaviors_deps_folders = local_dependencies_folders(dependencies_folder);
@@ -473,7 +473,7 @@ impl Manifest {
                 Err(err) => Err(err),
             })
             .collect::<Result<HashMap<PathBuf, Self>>>()
-            .wrap_err("Could not read dependencies")?;
+            .add_message("Could not read dependencies")?;
         project.add_dependency_projects(dep_projects)?;
 
         Ok(project)
@@ -675,7 +675,7 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
             }
             None
         })
-        .map(|user_dir| user_dir.path().read_dir().wrap_err_lazy(|| format!("Could not read directory {:?}", user_dir.path())))
+        .map(|user_dir| user_dir.path().read_dir().add_message_lazy(|| format!("Could not read directory {:?}", user_dir.path())))
         .collect::<Result<Vec<_>>>()? // Intermediary collect and iter to handle errors from read_dir
         .into_iter()
         .flatten()
@@ -709,7 +709,7 @@ fn file_extension<P: AsRef<Path>>(path: P) -> Result<String> {
 fn file_contents<P: AsRef<Path>>(path: P) -> Result<String> {
     let path = path.as_ref();
     debug!("Reading contents at path: {path:?}");
-    std::fs::read_to_string(path).wrap_err_lazy(|| format!("Could not read file: {path:?}"))
+    std::fs::read_to_string(path).add_message_lazy(|| format!("Could not read file: {path:?}"))
 }
 
 fn file_contents_opt<P: AsRef<Path>>(path: P) -> Result<Option<String>> {
@@ -724,7 +724,7 @@ fn file_contents_opt<P: AsRef<Path>>(path: P) -> Result<Option<String>> {
 fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
-        File::open(path).wrap_err_lazy(|| format!("Could not read file {path:?}"))?,
+        File::open(path).add_message_lazy(|| format!("Could not read file {path:?}"))?,
     ))
-    .wrap_err_lazy(|| format!("Could not parse {path:?}"))
+    .add_message_lazy(|| format!("Could not parse {path:?}"))
 }

@@ -42,9 +42,9 @@ impl process::Process for LocalProcess {
                 // From `Child::kill` docs: Forces the child process to exit. If the child has
                 // already exited, an InvalidInput error is returned
                 std::io::ErrorKind::InvalidInput => Ok(()),
-                _ => Err(Report::new(e)),
+                _ => Err(Report::from_message(e)),
             })
-            .wrap_err("Could not kill the process");
+            .add_message("Could not kill the process");
 
         let engine_socket_path = format!("run-{experiment_id}");
         match remove_file(&engine_socket_path) {
@@ -81,7 +81,7 @@ impl process::Process for LocalProcess {
         if self.client.is_none() {
             self.client = Some(
                 nano::Client::new(&self.engine_url, 1)
-                    .wrap_err_lazy(|| {
+                    .add_message_lazy(|| {
                         format!(
                             "Could not create nano client for engine at {:?}",
                             self.engine_url
@@ -95,7 +95,7 @@ impl process::Process for LocalProcess {
             .unwrap()
             .send(msg)
             .await
-            .wrap_err("Could not send engine message")
+            .add_message("Could not send engine message")
             .map_err(Report::generalize)
     }
 
@@ -103,7 +103,7 @@ impl process::Process for LocalProcess {
         self.child
             .wait()
             .await
-            .wrap_err("Could not wait for the process to exit")
+            .add_message("Could not wait for the process to exit")
     }
 }
 
@@ -209,7 +209,7 @@ impl process::Command for LocalCommand {
 
         let child = cmd
             .spawn()
-            .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))?;
+            .add_message_lazy(|| format!("Could not run command: {process_path:?}"))?;
         debug!("Spawned local engine process for experiment");
 
         Ok(Box::new(LocalProcess {

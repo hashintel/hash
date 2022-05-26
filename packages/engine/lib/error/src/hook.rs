@@ -49,7 +49,7 @@ impl Report {
         DEBUG_HOOK
             .set(Box::new(hook))
             .map_err(|_| report!("Hook is already set"))
-            .wrap_err("Could not set debug hook")
+            .add_message("Could not set debug hook")
     }
 
     /// Returns the hook that was previously set by [`set_debug_hook`], if any.
@@ -97,7 +97,7 @@ impl Report {
         DISPLAY_HOOK
             .set(Box::new(hook))
             .map_err(|_| report!("Hook is already set"))
-            .wrap_err("Could not set debug hook")
+            .add_message("Could not set debug hook")
     }
 
     /// Returns the hook that was previously set by [`set_display_hook`], if any.

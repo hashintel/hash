@@ -10,7 +10,7 @@
 //! a reflection-like API - the [`provider`]-API - to add context data to a [`Report`]. Using this,
 //! it becomes possible to attach any data to an error. Beyond this, the design also allows Errors
 //! to have additional requirements, such as _enforcing_ the provision of contextual information by
-//! using [`Report::provide_context()`].
+//! using [`Report::add_context()`].
 //!
 //! ### Why not...
 //!
@@ -89,7 +89,7 @@
 //! fn parse_config(config: &HashMap<&str, u64>) -> Result<u64> {
 //!     let key = "abcd-efgh";
 //!     let value =
-//!         lookup_key(&config, key).wrap_err_lazy(|| format!("Could not lookup key {key:?}"))?;
+//!         lookup_key(&config, key).add_message_lazy(|| format!("Could not lookup key {key:?}"))?;
 //!
 //!     Ok(value)
 //! }
@@ -98,7 +98,7 @@
 //!     # fn fake_main() -> Result<()> { // We want to assert on the result
 //!     let config = HashMap::default();
 //!     # #[allow(unused_variables)]
-//!     let config_value = parse_config(&config).wrap_err("Unable to parse config")?;
+//!     let config_value = parse_config(&config).add_message("Unable to parse config")?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...
@@ -174,7 +174,7 @@ use provider::Provider;
 
 #[cfg(feature = "futures")]
 pub use self::future_ext::{
-    FutureExt, FutureWithContext, FutureWithErr, FutureWithLazyContext, FutureWithLazyErr,
+    FutureExt, FutureWithContext, FutureWithLazyContext, FutureWithLazyMessage, FutureWithMessage,
 };
 use self::{frame::FrameRepr, report::ReportImpl};
 pub use self::{
@@ -189,24 +189,24 @@ pub use self::{
 /// the [`Backtrace` documentation][`Backtrace`]. To enable the span trace, [`ErrorLayer`] has to
 /// be enabled.
 ///
-/// Context information can be added by using [`wrap()`] or [`ResultExt`]. The [`Frame`] stack can
-/// be iterated by using [`frames()`].
+/// Context information can be added by using [`add_message()`] or [`ResultExt`]. The [`Frame`]
+/// stack can be iterated by using [`frames()`].
 ///
 /// To enforce context information generation, an optional context [`Provider`] may be used. When
-/// creating a `Report` from a message with [`new()`] or from an std-error by using [`from()`], the
-/// `Report` does not have an context associated. To provide one, the [`provider`] API is used. Use
-/// [`provide_context()`] or [`ResultExt`] to add it, which may also be used to provide more context
-/// information than only a display message. This information can the be retrieved by calling
-/// [`request_ref()`] or [`request_value()`].
+/// creating a `Report` from a message with [`from_message()`] or from an std-error by using
+/// [`from()`], the `Report` does not have an context associated. To provide one, the [`provider`]
+/// API is used. Use [`add_context()`] or [`ResultExt`] to add it, which may also be used to provide
+/// more context information than only a display message. This information can the be retrieved by
+/// calling [`request_ref()`] or [`request_value()`].
 ///
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
-/// [`wrap()`]: Self::wrap
+/// [`add_message()`]: Self::add_message
 /// [`from()`]: Self::from
 /// [`frames()`]: Self::frames
-/// [`new()`]: Self::new
-/// [`provide_context()`]: Self::provide_context
+/// [`from_message()`]: Self::from_message
+/// [`add_context()`]: Self::add_context
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
 ///
@@ -224,9 +224,9 @@ pub use self::{
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     # #[allow(unused_variables)]
 ///     let content = std::fs::read_to_string(config_path)
-///         .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///         .add_message_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # Err(error::report!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///     # Err(error::report!("")).add_message_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 ///     # const _: &str = stringify! {
 ///     ...
@@ -295,7 +295,7 @@ pub use self::{
 ///     # #[cfg(any(miri, not(feature = "std")))]
 ///     # error::bail!(context: ConfigError::IoError, "No such file");
 ///     # #[cfg(all(not(miri), feature = "std"))]
-///     std::fs::read_to_string(path.as_ref()).provide_context(ConfigError::IoError)
+///     std::fs::read_to_string(path.as_ref()).add_context(ConfigError::IoError)
 /// }
 ///
 /// fn main() -> Result<(), Report<RuntimeError>> {
@@ -303,7 +303,7 @@ pub use self::{
 ///     let config_path = "./path/to/config.file";
 ///     # #[allow(unused_variables)]
 ///     let config = read_config(config_path)
-///             .provide_context_lazy(|| RuntimeError::InvalidConfig(PathBuf::from(config_path)))?;
+///             .add_context_lazy(|| RuntimeError::InvalidConfig(PathBuf::from(config_path)))?;
 ///
 ///     # const _: &str = stringify! {
 ///     ...
@@ -327,7 +327,7 @@ pub struct Report<C = ()> {
 ///
 /// `Frame`s are organized as a singly linked list, which can be iterated by calling
 /// [`Report::frames()`]. The head is pointing to the most recent context or contextual message,
-/// the tail is the root error created by [`Report::new()`], [`Report::from_context()`], or
+/// the tail is the root error created by [`Report::from_message()`], [`Report::from_context()`], or
 /// [`Report::from()`]. The next `Frame` can be accessed by requesting it by calling
 /// [`Report::request_ref()`].
 pub struct Frame {

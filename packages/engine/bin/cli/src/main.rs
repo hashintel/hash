@@ -89,7 +89,7 @@ async fn main() -> Result<()> {
         &format!("cli-{now}"),
         &format!("cli-{now}-texray"),
     )
-    .wrap_err("Failed to initialise the logger")?;
+    .add_message("Failed to initialise the logger")?;
 
     let nng_listen_url = format!("ipc://hash-orchestrator-{now}");
 
@@ -99,12 +99,12 @@ async fn main() -> Result<()> {
     let absolute_project_path = args
         .project
         .canonicalize()
-        .wrap_err_lazy(|| format!("Could not canonicalize project path: {:?}", args.project))?;
+        .add_message_lazy(|| format!("Could not canonicalize project path: {:?}", args.project))?;
     let manifest = Manifest::from_local(&absolute_project_path)
-        .wrap_err_lazy(|| format!("Could not read local project {absolute_project_path:?}"))?;
+        .add_message_lazy(|| format!("Could not read local project {absolute_project_path:?}"))?;
     let experiment_run = manifest
         .read(args.r#type.into())
-        .wrap_err("Could not read manifest")?;
+        .add_message("Could not read manifest")?;
 
     let experiment = Experiment::new(args.experiment_config);
 

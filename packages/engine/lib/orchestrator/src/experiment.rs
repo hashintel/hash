@@ -161,7 +161,7 @@ impl ExperimentType {
             )),
             ExperimentType::Simple { name } => Ok(ExperimentPackageConfig::Simple(
                 get_simple_experiment_config(base, name)
-                    .wrap_err("Could not read simple experiment config")?,
+                    .add_message("Could not read simple experiment config")?,
             )),
         }
     }
@@ -225,7 +225,7 @@ impl Experiment {
         let mut engine_handle = handler
             .register_experiment(experiment_run.base.id)
             .await
-            .wrap_err_lazy(|| format!("Could not register experiment \"{experiment_name}\""))?;
+            .add_message_lazy(|| format!("Could not register experiment \"{experiment_name}\""))?;
 
         // Create and start the experiment run
         let cmd = self.create_engine_command(
@@ -235,7 +235,7 @@ impl Experiment {
             self.config.js_runner_initial_heap_constraint,
             self.config.js_runner_max_heap_size,
         );
-        let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
+        let mut engine_process = cmd.run().await.add_message("Could not run experiment")?;
 
         // Wait to receive a message that the experiment has started before sending the init
         // message.
@@ -244,7 +244,7 @@ impl Experiment {
             engine_handle.recv(),
         )
         .await
-        .wrap_err("engine start timeout");
+        .add_message("engine start timeout");
         match msg {
             Ok(proto::EngineStatus::Started) => {}
             Ok(m) => {
@@ -258,7 +258,7 @@ impl Experiment {
                 engine_process
                     .exit_and_cleanup(experiment_run.base.id)
                     .await
-                    .wrap_err("Failed to cleanup after failed start")?;
+                    .add_message("Failed to cleanup after failed start")?;
                 bail!(e);
             }
         };
@@ -279,7 +279,7 @@ impl Experiment {
         if let Err(err) = engine_process
             .send(&proto::EngineMsg::Init(init_message))
             .await
-            .wrap_err("Could not send `Init` message")
+            .add_message("Could not send `Init` message")
         {
             // TODO: Wait for threads to finish before starting a forced cleanup
             warn!("Engine didn't exit gracefully, waiting for subprocesses to finish.");
@@ -288,7 +288,7 @@ impl Experiment {
             if let Err(cleanup_err) = engine_process
                 .exit_and_cleanup(experiment_run.base.id)
                 .await
-                .wrap_err("Failed to cleanup after failed start")
+                .add_message("Failed to cleanup after failed start")
             {
                 warn!("{cleanup_err}");
             }
@@ -431,7 +431,7 @@ impl Experiment {
         engine_process
             .exit_and_cleanup(experiment_run.base.id)
             .await
-            .wrap_err("Could not cleanup after finish")?;
+            .add_message("Could not cleanup after finish")?;
 
         ensure!(graceful_finish, "Engine didn't exit gracefully.");
 
@@ -451,9 +451,9 @@ fn get_simple_experiment_config(
         .clone()
         .ok_or_else(|| report!("Experiment configuration not found: experiments.json"))?;
     let parsed = serde_json::from_str(&experiments_manifest)
-        .wrap_err("Could not parse experiment manifest")?;
+        .add_message("Could not parse experiment manifest")?;
     let plan = create_experiment_plan(&parsed, &experiment_name)
-        .wrap_err("Could not read experiment plan")?;
+        .add_message("Could not read experiment plan")?;
 
     let max_sims_in_parallel = parsed
         .get("max_sims_in_parallel")
@@ -501,7 +501,7 @@ fn create_experiment_plan(
         "multiparameter" => create_multiparameter_variant(selected_experiment, experiments),
         "optimization" => bail!("Not implemented for optimization experiment types"),
         _ => create_basic_variant(selected_experiment, experiment_type)
-            .wrap_err("Could not parse basic variant"),
+            .add_message("Could not parse basic variant"),
     }
 }
 
@@ -518,7 +518,7 @@ fn create_multiparameter_variant(
     }
 
     let var: MultiparameterVariant = serde_json::from_value(selected_experiment.clone())
-        .wrap_err("Could not parse multiparameter variant")?;
+        .add_message("Could not parse multiparameter variant")?;
     let subplans = var
         .runs
         .iter()
@@ -528,11 +528,11 @@ fn create_multiparameter_variant(
                 .ok_or_else(|| {
                     report!("Experiment plan does not define the specified experiment: {run_name}")
                 })
-                .wrap_err("Could not parse experiment file")?;
-            create_basic_variant(selected, run_name).wrap_err("Could not parse basic variant")
+                .add_message("Could not parse experiment file")?;
+            create_basic_variant(selected, run_name).add_message("Could not parse basic variant")
         })
         .collect::<Result<Vec<SimpleExperimentPlan>>>()
-        .wrap_err("Unable to create sub plans")?;
+        .add_message("Unable to create sub plans")?;
 
     let mut variant_list: Vec<ExperimentPlanEntry> = vec![];
     for (i, subplan) in subplans.into_iter().enumerate() {
@@ -575,7 +575,7 @@ fn create_group_variant(
         SimpleExperimentPlan::new(var.steps as usize),
         |mut acc, name| {
             let variants = create_experiment_plan(experiments, name)
-                .wrap_err("Could not read experiment plan")?;
+                .add_message("Could not read experiment plan")?;
             variants.inner.into_iter().for_each(|v| {
                 acc.push(v);
             });
@@ -664,26 +664,26 @@ fn create_monte_carlo_variant_plan(
             let distribution = match self.distribution.as_str() {
                 "normal" => Box::new(
                     Normal::new(self.mean.unwrap_or(1.0), self.std.unwrap_or(1.0))
-                        .wrap_err("Unable to create normal distribution")?,
+                        .add_message("Unable to create normal distribution")?,
                 ) as Box<dyn DynDistribution<f64>>,
                 "log-normal" => Box::new(
                     LogNormal::new(self.mu.unwrap_or(1.0), self.sigma.unwrap_or(1.0))
-                        .wrap_err("Unable to create log-normal distribution")?,
+                        .add_message("Unable to create log-normal distribution")?,
                 ),
                 "poisson" => Box::new(
                     Poisson::new(self.rate.unwrap_or(1.0))
-                        .wrap_err("Unable to create poisson distribution")?,
+                        .add_message("Unable to create poisson distribution")?,
                 ),
                 "beta" => Box::new(
                     Beta::new(self.alpha.unwrap_or(1.0), self.beta.unwrap_or(1.0))
-                        .wrap_err("Unable to create beta distribution")?,
+                        .add_message("Unable to create beta distribution")?,
                 ),
                 "gamma" => Box::new(
                     rand_distr::Gamma::new(self.shape.unwrap_or(1.0), self.scale.unwrap_or(1.0))
-                        .wrap_err("Unable to create gamma distribution")?,
+                        .add_message("Unable to create gamma distribution")?,
                 ),
                 _ => Box::new(
-                    Normal::new(1.0, 1.0).wrap_err("Unable to create normal distribution")?,
+                    Normal::new(1.0, 1.0).add_message("Unable to create normal distribution")?,
                 ),
             };
             Ok(Box::new(move |_, _| {
@@ -714,7 +714,7 @@ fn create_value_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleE
     }
 
     let var: ValueVariant = serde_json::from_value(selected_experiment.clone())
-        .wrap_err("Could not parse value variant")?;
+        .add_message("Could not parse value variant")?;
     let mapper: Mapper = Box::new(|val, _index| val);
     Ok(create_variant_with_mapped_value(
         &var.field,
