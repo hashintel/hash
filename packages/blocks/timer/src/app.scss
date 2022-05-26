@@ -104,7 +104,7 @@ $hoverBackgroundColor: #ebf8ff;
     font-weight: 600;
     text-align: center;
     height: $countdownFontSize;
-    width: $dialRadius * 2 / 1.9;
+    width: calc($dialRadius * 2 / 1.9);
     display: block;
     margin: 0 auto;
     border-radius: 4px;
