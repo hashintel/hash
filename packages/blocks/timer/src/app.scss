@@ -135,7 +135,8 @@ $hoverBackgroundColor: #ebf8ff;
     position: relative;
     top: $bigButtonOffsetY;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       background-color: #ebf8ff;
       border: 1.5px solid rgb(36, 117, 238);
     }
@@ -145,7 +146,8 @@ $hoverBackgroundColor: #ebf8ff;
     background-image: linear-gradient(180deg, #2d7ff9 0%, #1a6de8 100%);
     border: 1.5px solid rgb(36, 117, 238);
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       background-image: linear-gradient(180deg, #479cff 0%, #2075f2 100%);
     }
   }
