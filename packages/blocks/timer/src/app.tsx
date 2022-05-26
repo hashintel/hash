@@ -263,7 +263,6 @@ export const App: BlockComponent<TimerState> = ({
           className="less-time-button"
           disabled={
             timerStatus === "running" ||
-            timerStatus === "paused" ||
             initialDurationInMs <= minInitialDurationInMs
           }
           onClick={handleLessOrMoreTimeButtonClick}
@@ -281,7 +280,6 @@ export const App: BlockComponent<TimerState> = ({
           className="more-time-button"
           disabled={
             timerStatus === "running" ||
-            timerStatus === "paused" ||
             initialDurationInMs >= maxInitialDurationInMs
           }
           onClick={handleLessOrMoreTimeButtonClick}
