@@ -105,7 +105,7 @@ impl Worker {
         if let Err(report) = self
             .ctx
             .send(&self.aio, msg)
-            .map_err(|(_, error)| report!(context: ErrorKind::Send, error))
+            .map_err(|(_, error)| report!(error).provide_context(ErrorKind::Send))
         {
             sender.send(Err(report)).expect(SEND_EXPECT_MESSAGE);
             return;
