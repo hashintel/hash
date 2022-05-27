@@ -56,7 +56,7 @@ impl Report {
     ///
     /// [`set_debug_hook`]: Self::set_debug_hook
     #[cfg(feature = "hooks")]
-    pub fn debug_hook()
+    pub(crate) fn debug_hook()
     -> Option<&'static (impl Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static)>
     {
         DEBUG_HOOK.get()
@@ -104,7 +104,7 @@ impl Report {
     ///
     /// [`set_display_hook`]: Self::set_display_hook
     #[cfg(feature = "hooks")]
-    pub fn display_hook()
+    pub(crate) fn display_hook()
     -> Option<&'static (impl Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static)>
     {
         DISPLAY_HOOK.get()
