@@ -171,161 +171,19 @@ pub mod future;
 #[cfg(feature = "hooks")]
 mod hook;
 
-use alloc::boxed::Box;
-use core::{fmt, marker::PhantomData};
+use core::fmt;
 
 use provider::Provider;
 
 #[cfg(feature = "futures")]
 #[doc(inline)]
 pub use self::future::FutureExt;
-use self::report::ReportImpl;
 pub use self::{
     frame::Frame,
     macros::*,
+    report::Report,
     result_ext::{Result, ResultExt},
 };
-
-/// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
-/// a [`Backtrace`] and a [`SpanTrace`].
-///
-/// To enable the backtrace, make sure `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to
-/// the [`Backtrace` documentation][`Backtrace`]. To enable the span trace, [`ErrorLayer`] has to
-/// be enabled.
-///
-/// Context information can be added by using [`wrap()`] or [`ResultExt`]. The [`Frame`] stack can
-/// be iterated by using [`frames()`].
-///
-/// To enforce context information generation, an optional context [`Provider`] may be used. When
-/// creating a `Report` from a message with [`new()`] or from an std-error by using [`from()`], the
-/// `Report` does not have an context associated. To provide one, the [`provider`] API is used. Use
-/// [`provide_context()`] or [`ResultExt`] to add it, which may also be used to provide more context
-/// information than only a display message. This information can the be retrieved by calling
-/// [`request_ref()`] or [`request_value()`].
-///
-/// [`Backtrace`]: std::backtrace::Backtrace
-/// [`SpanTrace`]: tracing_error::SpanTrace
-/// [`ErrorLayer`]: tracing_error::ErrorLayer
-/// [`wrap()`]: Self::wrap
-/// [`from()`]: Self::from
-/// [`frames()`]: Self::frames
-/// [`new()`]: Self::new
-/// [`provide_context()`]: Self::provide_context
-/// [`request_ref()`]: Self::request_ref
-/// [`request_value()`]: Self::request_value
-///
-/// # Examples
-///
-/// Provide a context for an error:
-///
-///
-/// ```
-/// use error::{ResultExt, Result};
-///
-/// fn main() -> Result<()> {
-///     # fn fake_main() -> Result<(), impl core::fmt::Debug> {
-///     let config_path = "./path/to/config.file";
-///     # #[cfg(all(not(miri), feature = "std"))]
-///     # #[allow(unused_variables)]
-///     let content = std::fs::read_to_string(config_path)
-///         .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
-///     # #[cfg(any(miri, not(feature = "std")))]
-///     # Err(error::report!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
-///
-///     # const _: &str = stringify! {
-///     ...
-///     # };
-///     # Ok(()) }
-///     # let err = fake_main().unwrap_err();
-///     # assert_eq!(err.frames().count(), 2);
-///     # Ok(())
-/// }
-/// ```
-///
-/// Enforce a context for an error:
-///
-/// ```
-/// use core::fmt;
-/// use std::path::{Path, PathBuf};
-///
-/// use provider::{Demand, Provider};
-/// use error::{Report, ResultExt};
-///
-/// #[derive(Debug)]
-/// # #[derive(PartialEq)]
-/// enum RuntimeError {
-///     InvalidConfig(PathBuf),
-/// # }
-/// # const _: &str = stringify! {
-///     ...
-/// }
-/// # ;
-///
-/// #[derive(Debug)]
-/// enum ConfigError {
-///     IoError,
-/// # }
-/// # const _: &str = stringify! {
-///     ...
-/// }
-/// # ;
-///
-/// impl fmt::Display for RuntimeError {
-///     # fn fmt(&self, _fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///     # const _: &str = stringify! {
-///     ...
-///     # };
-///     # Ok(())
-///     # }
-/// }
-/// impl fmt::Display for ConfigError {
-///     # fn fmt(&self, _fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///     # const _: &str = stringify! {
-///     ...
-///     # };
-///     # Ok(())
-///     # }
-/// }
-///
-/// impl Provider for RuntimeError {
-///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
-/// }
-/// impl Provider for ConfigError {
-///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
-/// }
-///
-/// # #[allow(unused_variables)]
-/// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
-///     # #[cfg(any(miri, not(feature = "std")))]
-///     # return Err(error::report!("No such file").provide_context(ConfigError::IoError));
-///     # #[cfg(all(not(miri), feature = "std"))]
-///     std::fs::read_to_string(path.as_ref()).provide_context(ConfigError::IoError)
-/// }
-///
-/// fn main() -> Result<(), Report<RuntimeError>> {
-///     # fn fake_main() -> Result<(), Report<RuntimeError>> {
-///     let config_path = "./path/to/config.file";
-///     # #[allow(unused_variables)]
-///     let config = read_config(config_path)
-///             .provide_context_lazy(|| RuntimeError::InvalidConfig(PathBuf::from(config_path)))?;
-///
-///     # const _: &str = stringify! {
-///     ...
-///     # };
-///     # Ok(()) }
-///     # let err = fake_main().unwrap_err();
-///     # assert_eq!(err.frames().count(), 3);
-///     # assert!(err.contains::<ConfigError>());
-///     # assert_eq!(err.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
-///     # Ok(())
-/// }
-/// ```
-#[must_use]
-#[repr(transparent)]
-pub struct Report<T = ()> {
-    inner: Box<ReportImpl>,
-    _context: PhantomData<T>,
-}
 
 /// Trait alias for an error context.
 ///

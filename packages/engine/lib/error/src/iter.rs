@@ -16,10 +16,11 @@ pub struct Frames<'r> {
 impl<'r> Frames<'r> {
     pub(super) const fn new<C>(report: &'r Report<C>) -> Self {
         Self {
-            current: Some(&report.inner.frame),
+            current: Some(report.frame()),
         }
     }
 }
+
 impl<'r> Iterator for Frames<'r> {
     type Item = &'r Frame;
 
