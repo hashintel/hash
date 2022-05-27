@@ -71,6 +71,7 @@ void (async () => {
 
   const results = new Map<string, Entity>();
 
+  // @todo names should be the same as programatically generated ones
   const requiredBlockTypes = [
     {
       name: "Divider",

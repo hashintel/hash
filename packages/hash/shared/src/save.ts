@@ -67,6 +67,14 @@ const flipMap = <K, V>(draftToPlaceholder: Map<K, V>): Map<V, K> =>
 
 type EntityTypeForComponentResult = [string, UpdatePageAction[]];
 
+const hasComponentId = (
+  properties: unknown,
+): properties is { componentId: string } =>
+  typeof properties === "object" &&
+  properties !== null &&
+  "componentId" in properties &&
+  typeof (properties as any).componentId === "string";
+
 const ensureEntityTypeForComponent = async (
   componentId: string,
   newTypeAccountId: string,
@@ -78,47 +86,41 @@ const ensureEntityTypeForComponent = async (
   let desiredEntityTypeId: string | undefined = cache.get(componentId);
 
   if (!desiredEntityTypeId) {
-    const componentMeta = await fetchBlockMeta(componentId);
-
-    // @todo use stored component id for entity type, instead of properties
-    const componentSchemaKeys = Object.keys(
-      componentMeta.componentSchema.properties ?? {},
-    ).sort();
-
-    componentSchemaKeys.splice(componentSchemaKeys.indexOf("editableRef"), 1);
-    desiredEntityTypeId = entityTypes.find((type) =>
-      isEqual(
-        Object.keys(type.properties.properties ?? {}).sort(),
-        componentSchemaKeys,
-      ),
+    desiredEntityTypeId = entityTypes.find(
+      (type) =>
+        hasComponentId(type.properties) &&
+        type.properties.componentId === componentId,
     )?.entityId;
+  }
 
-    if (!desiredEntityTypeId) {
-      const jsonSchema = JSON.parse(
-        JSON.stringify(componentMeta.componentSchema),
-      );
+  if (!desiredEntityTypeId) {
+    const componentMeta = await fetchBlockMeta(componentId);
+    const jsonSchema = JSON.parse(
+      JSON.stringify(componentMeta.componentSchema),
+    );
 
-      delete jsonSchema.properties.editableRef;
+    delete jsonSchema.properties.editableRef;
 
-      desiredEntityTypeId = randomPlaceholder();
+    jsonSchema.componentId = componentId;
 
-      actions.push({
-        createEntityType: {
-          accountId: newTypeAccountId,
-          // @todo need to handle links better
-          schema: jsonSchema,
-          name: capitalizeComponentName(componentId),
-          placeholderID: desiredEntityTypeId,
-        },
-      });
-    }
+    desiredEntityTypeId = randomPlaceholder();
 
-    cache.set(componentId, desiredEntityTypeId);
+    actions.push({
+      createEntityType: {
+        accountId: newTypeAccountId,
+        // @todo need to handle links better
+        schema: jsonSchema,
+        name: capitalizeComponentName(componentId),
+        placeholderID: desiredEntityTypeId,
+      },
+    });
   }
 
   if (!desiredEntityTypeId) {
     throw new Error("Cannot find entity type for entity");
   }
+
+  cache.set(componentId, desiredEntityTypeId);
 
   return [desiredEntityTypeId, actions];
 };
