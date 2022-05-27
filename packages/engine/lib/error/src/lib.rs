@@ -146,7 +146,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
-#![warn(missing_docs, clippy::pedantic, clippy::nursery)]
+#![warn(
+    missing_docs,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::undocumented_unsafe_blocks
+)]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
 #![allow(clippy::module_name_repetitions)]
 #![cfg_attr(

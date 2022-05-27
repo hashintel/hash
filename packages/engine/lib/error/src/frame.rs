@@ -8,7 +8,7 @@ use core::{
     fmt::Formatter,
     mem::ManuallyDrop,
     panic::Location,
-    ptr::{self, addr_of, NonNull},
+    ptr::{addr_of, NonNull},
 };
 #[cfg(feature = "std")]
 use std::error::Error;
@@ -173,13 +173,13 @@ where
 #[allow(clippy::used_underscore_binding)]
 impl FrameRepr {
     fn unerase(&self) -> &dyn Context {
-        // Use vtable to attach C's native vtable for the right original type C.
+        // SAFETY: Use vtable to attach C's native vtable for the right original type C.
         unsafe { (self.vtable.object_ref)(self) }
     }
 
     fn downcast<C: Any>(&self) -> Option<NonNull<C>> {
         let target = TypeId::of::<C>();
-        // Use vtable to attach C's native vtable for the right original type C.
+        // SAFETY: Use vtable to attach C's native vtable for the right original type C.
         let addr = unsafe { (self.vtable.object_downcast)(self, target) };
         addr.map(NonNull::cast)
     }
@@ -194,8 +194,8 @@ impl Frame {
     where
         C: Context,
     {
-        // SAFETY: `inner` is wrapped in `ManuallyDrop`
         Self {
+            // SAFETY: `inner` is wrapped in `ManuallyDrop`
             inner: unsafe { ManuallyDrop::new(FrameRepr::new(context)) },
             location,
             source,
@@ -210,8 +210,8 @@ impl Frame {
     where
         M: Message,
     {
-        // SAFETY: `inner` is wrapped in `ManuallyDrop`
         Self {
+            // SAFETY: `inner` is wrapped in `ManuallyDrop`
             inner: unsafe { ManuallyDrop::new(FrameRepr::new(MessageRepr(message))) },
             location,
             source,
@@ -227,8 +227,8 @@ impl Frame {
     where
         E: Error + Send + Sync + 'static,
     {
-        // SAFETY: `inner` is wrapped in `ManuallyDrop`
         Self {
+            // SAFETY: `inner` is wrapped in `ManuallyDrop`
             inner: unsafe { ManuallyDrop::new(FrameRepr::new(ErrorRepr(error))) },
             location,
             source,
@@ -269,16 +269,22 @@ impl Frame {
     #[must_use]
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
         #[cfg_attr(not(feature = "std"), allow(clippy::let_and_return))]
-        let downcasted = self.inner.downcast().map(|addr| unsafe { addr.as_ref() });
+        let downcasted = self.inner.downcast().map(|addr| {
+            // SAFETY: Dereferencing is safe as T has the same lifetimes as Self
+            unsafe { addr.as_ref() }
+        });
 
         #[cfg(feature = "std")]
         let downcasted = downcasted.or_else(|| {
             // Fallback for `T: Error` as `Error` is wrapped inside of `ErrorRepr`
             // TODO: Remove fallback when `Provider` is implemented for `Error` upstream
-            // SAFETY: `ErrorRepr` is `#[repr(transparent)]`
-            self.inner
-                .downcast::<ErrorRepr<T>>()
-                .map(|addr| unsafe { addr.cast().as_ref() })
+            // SAFETY: Dereferencing is safe as T has the same lifetimes as Self and casting
+            //   `ErrorRepr<T>` to `T` is safe as `ErrorRepr` is `#[repr(transparent)]`
+            self.inner.downcast::<ErrorRepr<T>>().map(|addr| {
+                // SAFETY: Dereferencing is safe as T has the same lifetimes as Self and casting
+                //   `ErrorRepr<T>` to `T` is safe as `ErrorRepr` is `#[repr(transparent)]`
+                unsafe { addr.cast().as_ref() }
+            })
         });
 
         downcasted
@@ -312,11 +318,11 @@ impl fmt::Display for Frame {
 
 impl Drop for Frame {
     fn drop(&mut self) {
-        unsafe {
-            // Read Box<ErrorImpl<()>> from self.
-            let inner = ptr::read(&self.inner);
-            let erased = ManuallyDrop::into_inner(inner);
+        // SAFETY: `inner` is not used after moving out.
+        let erased = unsafe { ManuallyDrop::take(&mut self.inner) };
 
+        // SAFETY: Use vtable to attach C's native vtable for the right original type C.
+        unsafe {
             // Invoke the vtable's drop behavior.
             (erased.vtable.object_drop)(erased);
         }
