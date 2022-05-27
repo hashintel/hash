@@ -115,7 +115,7 @@ pub trait ResultExt {
 
     // TODO: Temporary, remove before releasing
     //   Currently only used to be backward compatible with hEngine. After binaries and orchestrator
-    //   were adjusted, this can safely be removed.
+    //   are adjusted, this can safely be removed.
     #[doc(hidden)]
     fn generalize(self) -> Result<Self::Ok>;
 }
