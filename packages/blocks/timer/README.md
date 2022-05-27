@@ -2,14 +2,14 @@
 
 The block accepts:
 
-- `initialDuration` \[string] – ISO 8601 duration
-- `pauseDuration` \[string]\[optional] – ISO 8601 duration
-- `targetDateTime` \[string]\[optional] – ISO 8601 date and time
+- `initialDuration` \[string] – ISO 8601 **duration**
+- `pauseDuration` \[string]\[optional] – ISO 8601 **duration**
+- `targetDateTime` \[string]\[optional] – ISO 8601 **date and time**
 
 For example:
 
-- `"PT42M24S"` corresponds to _42 minutes and 24 seconds_
-- `"2022-01-31T12:00:00.000Z"` means _January 31<sup>st</sup>, 2022 at 12:00:00 PM UTC_
+- `"PT42M24S"` corresponds to _42 minutes and 24 seconds_ in ISO 8601 **duration** format
+- `"2022-01-31T12:00:00.000Z"` means _January 31<sup>st</sup>, 2022 at 12:00:00 PM UTC_ in ISO 8601 **date and time** format
 
 Detailed format descriptions can be found at https://en.wikipedia.org/wiki/ISO_8601.
 
