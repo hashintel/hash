@@ -28,6 +28,9 @@ import {
 import { isEntityNode } from "./prosemirror";
 import { updatePageContents } from "./queries/page.queries";
 
+type EntityType =
+  GetAccountEntityTypesSharedQuery["getAccountEntityTypes"][number];
+
 /**
  * @todo this assumption of the slug might be brittle,
  * @todo don't copy from server
@@ -60,6 +63,62 @@ const flipMap = <K, V>(draftToPlaceholder: Map<K, V>): Map<V, K> =>
   new Map(
     Array.from(draftToPlaceholder, ([key, value]) => [value, key] as const),
   );
+
+const ensureEntityTypeForComponent = async (
+  componentId: string,
+  newTypeAccountId: string,
+  entityTypes: EntityType[],
+  cache: Map<string, string>,
+) => {
+  const actions: UpdatePageAction[] = [];
+
+  let desiredEntityTypeId: string | undefined = cache.get(componentId);
+
+  if (!desiredEntityTypeId) {
+    const componentMeta = await fetchBlockMeta(componentId);
+
+    // @todo use stored component id for entity type, instead of properties
+    const componentSchemaKeys = Object.keys(
+      componentMeta.componentSchema.properties ?? {},
+    ).sort();
+
+    componentSchemaKeys.splice(componentSchemaKeys.indexOf("editableRef"), 1);
+    desiredEntityTypeId = entityTypes.find((type) =>
+      isEqual(
+        Object.keys(type.properties.properties ?? {}).sort(),
+        componentSchemaKeys,
+      ),
+    )?.entityId;
+
+    if (!desiredEntityTypeId) {
+      const jsonSchema = JSON.parse(
+        JSON.stringify(componentMeta.componentSchema),
+      );
+
+      delete jsonSchema.properties.editableRef;
+
+      desiredEntityTypeId = randomPlaceholder();
+
+      actions.push({
+        createEntityType: {
+          accountId: newTypeAccountId,
+          // @todo need to handle links better
+          schema: jsonSchema,
+          name: capitalizeComponentName(componentId),
+          placeholderID: desiredEntityTypeId,
+        },
+      });
+    }
+
+    cache.set(componentId, desiredEntityTypeId);
+  }
+
+  if (!desiredEntityTypeId) {
+    throw new Error("Cannot find entity type for entity");
+  }
+
+  return [desiredEntityTypeId, actions] as const;
+};
 
 // @todo write tests
 export const save = async (
@@ -98,57 +157,6 @@ export const save = async (
 
   const draftToPlaceholder = new Map<string, string>();
   const draftBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
-
-  const ensureEntityTypeForComponent = async (componentId: string) => {
-    let desiredEntityTypeId: string | undefined =
-      entityTypeForComponentId.get(componentId);
-
-    if (!desiredEntityTypeId) {
-      const componentMeta = await fetchBlockMeta(componentId);
-
-      // @todo use stored component id for entity type, instead of properties
-      const componentSchemaKeys = Object.keys(
-        componentMeta.componentSchema.properties ?? {},
-      ).sort();
-
-      componentSchemaKeys.splice(componentSchemaKeys.indexOf("editableRef"), 1);
-      desiredEntityTypeId = entityTypes.find((type) =>
-        isEqual(
-          Object.keys(type.properties.properties ?? {}).sort(),
-          componentSchemaKeys,
-        ),
-      )?.entityId;
-
-      if (!desiredEntityTypeId) {
-        const jsonSchema = JSON.parse(
-          JSON.stringify(componentMeta.componentSchema),
-        );
-
-        delete jsonSchema.properties.editableRef;
-
-        desiredEntityTypeId = randomPlaceholder();
-
-        // Placing at front to ensure latter actions can make use of this
-        actions.unshift({
-          createEntityType: {
-            accountId,
-            // @todo need to handle links better
-            schema: jsonSchema,
-            name: capitalizeComponentName(componentId),
-            placeholderID: desiredEntityTypeId,
-          },
-        });
-      }
-
-      entityTypeForComponentId.set(componentId, desiredEntityTypeId);
-    }
-
-    if (!desiredEntityTypeId) {
-      throw new Error("Cannot find entity type for entity");
-    }
-
-    return desiredEntityTypeId;
-  };
 
   for (const draftEntity of Object.values(store.draft)) {
     if (isDraftBlockEntity(draftEntity)) {
@@ -220,11 +228,18 @@ export const save = async (
           throw new Error("Cannot find parent entity");
         }
 
-        entityType = {
-          entityTypeId: await ensureEntityTypeForComponent(
+        const [entityTypeId, newTypeActions] =
+          await ensureEntityTypeForComponent(
             blockEntity.properties.componentId,
-          ),
-        };
+            accountId,
+            entityTypes,
+            entityTypeForComponentId,
+          );
+
+        // Placing at front to ensure latter actions can make use of this
+        actions.unshift(...newTypeActions);
+
+        entityType = { entityTypeId };
 
         if (isDraftTextContainingEntityProperties(properties)) {
           const textEntity = properties.text.data;
