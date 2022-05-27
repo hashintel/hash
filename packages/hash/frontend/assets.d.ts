@@ -3,3 +3,6 @@ declare module "*.svg" {
   // eslint-disable-next-line import/no-default-export -- third-party requirement
   export default ReactComponent;
 }
+
+declare module "*.woff";
+declare module "*.ttf";

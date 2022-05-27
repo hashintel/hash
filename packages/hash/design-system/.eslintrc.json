@@ -1,0 +1,58 @@
+{
+  "parserOptions": {
+    "project": ["./tsconfig.json"]
+  },
+  "plugins": ["@typescript-eslint", "canonical", "unicorn"],
+  "rules": {
+    "jsx-a11y/label-has-associated-control": "off",
+    "import/no-default-export": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@mui/material",
+            "importNames": ["Link"],
+            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
+          },
+          {
+            "name": "next",
+            "importNames": ["Link"],
+            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
+          },
+          {
+            "name": "next/link",
+            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
+          },
+          {
+            "name": "@mui/material/*",
+            "message": "Please import from @mui/material instead"
+          },
+          {
+            "name": "@mui/material",
+            "importNames": [
+              "Avatar",
+              "Button",
+              "IconButton",
+              "Chip",
+              "Popover",
+              "TextField",
+              "MenuItem",
+              "Select"
+            ],
+            "message": "Please use the custom wrapper component in src/shared/ui instead."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["./src/**/*"],
+      "rules": {
+        "canonical/filename-no-index": "error",
+        "unicorn/filename-case": "error"
+      }
+    }
+  ]
+}

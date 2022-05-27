@@ -3,6 +3,7 @@ import { VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { faHome } from "@fortawesome/free-solid-svg-icons";
+import { IconButton } from "../../ui";
 import { AccountPageList } from "./account-page-list";
 
 import { AccountEntityTypeList } from "./account-entity-type-list";
@@ -10,7 +11,7 @@ import { SidebarToggleIcon } from "../../icons";
 import { TopNavLink } from "./top-nav-link";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useSidebarContext } from "./sidebar-context";
-import { IconButton } from "../../ui";
+// import { IconButton } from "../../ui";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../routing";
 
