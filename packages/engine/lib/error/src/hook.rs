@@ -112,7 +112,10 @@ impl Report {
 }
 
 impl<T> Report<T> {
-    /// Converts the `&Report<Context>` to `&Report<()>` without modifying the frame stack.
+    /// Converts the `&Report<T>` to `&Report<()>` without modifying the frame stack.
+    ///
+    /// Changing `Report<T>` to `Report<()>` is only used internally for calling [`debug_hook`] and
+    /// [`display_hook`] and is intentionally not exposed.
     pub(crate) const fn generalized(&self) -> &Report {
         // SAFETY: `Report` is repr(transparent), so it's safe to cast between `Report<A>` and
         //         `Report<B>`
