@@ -139,9 +139,6 @@
 //!
 //! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
 //! backtraces on non-nightly channels and can be prioritized depending on demand.
-//!
-//! [`display_hook`]: Report::display_hook
-//! [`debug_hook`]: Report::debug_hook
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
