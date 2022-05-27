@@ -1,9 +1,8 @@
 import * as React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
-import CircularProgress from "@mui/material/CircularProgress";
+import { Box, CssBaseline, Theme, ThemeProvider } from "@mui/material";
 import { theme } from "@hashintel/hash-design-system";
-import { CssBaseline, ThemeProvider } from "@mui/material";
 import {
   GithubIssueEvent,
   GithubPullRequest,
@@ -14,6 +13,7 @@ import {
   getGithubEntityTypes,
 } from "./types";
 import { GithubPrOverview } from "./overview";
+
 import {
   collectPrEventsAndSetState,
   collectPrsAndSetState,
@@ -21,6 +21,8 @@ import {
   getPrs,
 } from "./entity-aggregations";
 import { PullRequestSelector } from "./pull-request-selector";
+import { LoadingUI } from "./loading-ui";
+import mockData from "../example-graph.json";
 
 export enum BlockState {
   Loading,
@@ -33,19 +35,38 @@ type BlockEntityProperties = {
   selectedPullRequest?: PullRequestIdentifier;
 };
 
+// 13/16px
+// body => 14/17px
+// 16/19px
+// 32/110% or 35px
+
+const customTheme: Theme = {
+  ...theme,
+  typography: {
+    ...theme.typography,
+    // @todo make base font-size 14px
+    // fontSize: 14,
+  },
+};
+
 export const App: BlockComponent<BlockEntityProperties> = ({
   accountId,
   entityId,
   aggregateEntities,
-  selectedPullRequest,
+  // selectedPullRequest,
+  selectedPullRequest = {
+    repository: (mockData.entities[0] as GithubPullRequest).repository,
+    number: (mockData.entities[0] as GithubPullRequest).number,
+  } as PullRequestIdentifier,
   updateEntities,
   aggregateEntityTypes,
 }) => {
   const [blockState, setBlockState] = React.useState(BlockState.Loading);
 
   // selectedPullRequest is just an Identifier, but isn't the associated GithubPullRequestEntity
-  const [selectedPullRequestId, setSelectedPullRequestId] =
-    React.useState(selectedPullRequest);
+  const [selectedPullRequestId, setSelectedPullRequestId] = React.useState<
+    PullRequestIdentifier | undefined
+  >(selectedPullRequest);
 
   const setSelectedPullRequestIdAndPersist = (
     pullRequestId?: PullRequestIdentifier,
@@ -70,7 +91,10 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     React.useState<{ [key in GITHUB_ENTITY_TYPES]: string }>();
 
   const [allPrs, setAllPrs] = React.useState<Map<string, GithubPullRequest>>();
-  const [pullRequest, setPullRequest] = React.useState<GithubPullRequest>();
+  const [pullRequest, setPullRequest] = React.useState<GithubPullRequest>(
+    mockData.entities[0] as GithubPullRequest,
+  );
+  // const [pullRequest, setPullRequest] = React.useState<GithubPullRequest>();
   const [reviews, setReviews] = React.useState<GithubReview[]>();
   const [events, setEvents] = React.useState<GithubIssueEvent[]>();
 
@@ -136,7 +160,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       ).then((pullRequests) => {
         if (pullRequests) {
           const pr = pullRequests.results[0];
-          setPullRequest(pr);
+          if (pr) {
+            setPullRequest(pr);
+          }
         }
       });
     }
@@ -214,11 +240,15 @@ export const App: BlockComponent<BlockEntityProperties> = ({
 
   /** @todo - Filterable list to select a pull-request */
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={customTheme}>
       <CssBaseline />
-      <div>
+      <Box
+        sx={({ palette }) => ({
+          background: palette.gray[20],
+        })}
+      >
         {blockState === BlockState.Loading ? (
-          <CircularProgress />
+          <LoadingUI title="Setting up Block" />
         ) : blockState === BlockState.Selector ? (
           <PullRequestSelector
             setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
@@ -226,7 +256,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           />
         ) : blockState === BlockState.Overview ? (
           <GithubPrOverview
-            pullRequest={pullRequest!}
+            pullRequest={pullRequest}
             reviews={reviews!}
             events={events!}
             setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
@@ -235,7 +265,12 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         ) : (
           <div> Failed To Load Block </div>
         )}
-      </div>
+        <Box
+          sx={{
+            height: 100,
+          }}
+        />
+      </Box>
     </ThemeProvider>
   );
 };

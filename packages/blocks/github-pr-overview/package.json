@@ -30,7 +30,8 @@
     "@mui/material": "5.4.3",
     "blockprotocol": "0.0.10",
     "date-fns": "2.28.0",
-    "lodash": "4.17.21"
+    "lodash": "4.17.21",
+    "react-transition-group": "4.4.2"
   },
   "devDependencies": {
     "block-scripts": "0.0.13",
@@ -49,7 +50,12 @@
   "blockprotocol": {
     "displayName": "GitHub Pull-Request Overview",
     "examples": [
-      {}
+      {
+        "selectedPullRequest": {
+          "repository": "blockprotocol/blockprotocol",
+          "number": 298
+        }
+      }
     ],
     "icon": "public/pull-request.svg",
     "image": "public/block-preview.svg"

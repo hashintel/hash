@@ -1,13 +1,9 @@
 import * as React from "react";
 
-import Autocomplete from "@mui/material/Autocomplete";
-import TextField from "@mui/material/TextField";
-import CircularProgress from "@mui/material/CircularProgress";
-import Grid from "@mui/material/Grid";
-import IconButton from "@mui/material/IconButton";
-import CheckCircle from "@mui/icons-material/CheckCircle";
-
+import { Box, Typography, Autocomplete, TextField } from "@mui/material";
 import { GithubPullRequest } from "./types";
+import { LoadingUI } from "./loading-ui";
+import { GithubIcon } from "./icons";
 
 export type PullRequestSelectorProps = {
   allPrs: Map<string, GithubPullRequest>;
@@ -21,10 +17,10 @@ export const PullRequestSelector: React.FunctionComponent<
   const [selectedPullRequest, setSelectedPullRequest] =
     React.useState<number>();
 
-  const onClick = () => {
+  const onClick = (pullRequest: number) => {
     setSelectedPullRequestId({
       repository: selectedRepository,
-      number: selectedPullRequest,
+      number: pullRequest,
     });
   };
 
@@ -55,53 +51,88 @@ export const PullRequestSelector: React.FunctionComponent<
     setSelectedPullRequest(undefined);
   }, [selectedRepository]);
 
-  return reposToPrIds.size > 0 ? (
-    <Grid container spacing={2} alignItems="center">
-      <Grid item>
-        <Autocomplete
-          value={selectedRepository}
-          onChange={(_, newValue) => {
-            if (newValue !== null) {
-              setSelectedRepository(newValue);
-            }
-          }}
-          disablePortal
-          id="repository-combo-selector"
-          options={Array.from(reposToPrIds.keys())}
-          sx={{ width: 300 }}
-          renderInput={(params) => (
-            <TextField {...params} label="Choose a Repository" />
-          )}
+  // incase we want to fetch the details after selecting repo info
+  // can add a loading state
+  if (false) {
+    return (
+      <LoadingUI
+        title={`Creating your timeline for pull request ${selectedPullRequest}`}
+      />
+    );
+  }
+
+  return (
+    <Box
+      sx={({ palette }) => ({
+        maxWidth: 560,
+        mx: "auto",
+        border: `2px dashed ${palette.gray[40]}`,
+        background: palette.white,
+        pt: 5,
+        pb: 6,
+        px: 10,
+        display: "flex",
+        justifyContent: "center",
+        borderRadius: "6px",
+      })}
+    >
+      <Box
+        sx={{
+          maxWidth: 400,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <GithubIcon
+          sx={({ palette }) => ({
+            height: 56,
+            width: 56,
+            mb: 2,
+            color: palette.gray[80],
+          })}
         />
-      </Grid>
-      {selectedRepository != null ? (
-        <Grid item>
+        <Typography variant="h2" sx={{ textAlign: "center", mb: 3 }}>
+          Select a Github pull request to create a timeline
+        </Typography>
+
+        <Box sx={{ width: 320 }}>
+          <Autocomplete
+            value={selectedRepository}
+            onChange={(_, newValue) => {
+              if (newValue !== null) {
+                setSelectedRepository(newValue);
+              }
+            }}
+            disablePortal
+            id="repository-combo-selector"
+            options={Array.from(reposToPrIds.keys())}
+            fullWidth
+            sx={{ mb: 3 }}
+            renderInput={(params) => (
+              <TextField {...params} label="Choose a Repository" />
+            )}
+          />
           <Autocomplete
             value={selectedPullRequest}
             onChange={(_, newValue) => {
               if (newValue !== null) {
                 setSelectedPullRequest(newValue);
+                onClick(newValue);
               }
             }}
+            disabled={!selectedRepository}
             disablePortal
             id="repository-combo-selector"
-            options={reposToPrIds.get(selectedRepository)!.sort()}
-            sx={{ width: 300 }}
+            options={reposToPrIds.get(selectedRepository!)?.sort() ?? []}
+            fullWidth
             renderInput={(params) => (
               <TextField {...params} label="Choose a Pull Request" />
             )}
           />
-        </Grid>
-      ) : null}
-      {selectedRepository != null && selectedPullRequest != null ? (
-        <Grid item>
-          <IconButton onClick={onClick} size="large">
-            <CheckCircle />
-          </IconButton>
-        </Grid>
-      ) : null}
-    </Grid>
-  ) : (
-    <CircularProgress />
+        </Box>
+      </Box>
+      {/*  */}
+    </Box>
   );
 };
