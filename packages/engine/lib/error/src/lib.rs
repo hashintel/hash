@@ -6,10 +6,10 @@
 //!
 //! Error reporting strategies in Rust are still developing and there are many approaches at the
 //! moment with various pros and cons. This crates takes inspiration from an
-//! [RFC to the core library ](https://github.com/nrc/rfcs/blob/dyno/text/0000-dyno.md) to introduce
-//! a reflection-like API - the [`provider`]-API - to add context data to a [`Report`]. Using this,
-//! it becomes possible to attach any data to an error. Beyond this, the design also allows Errors
-//! to have additional requirements, such as _enforcing_ the provision of contextual information by
+//! [RFC to the core library ](https://rust-lang.github.io/rfcs/3192-dyno.html) to introduce a
+//! reflection-like API - the [`provider`]-API - to add context data to a [`Report`]. Using this, it
+//! becomes possible to attach any data to an error. Beyond this, the design also allows Errors to
+//! have additional requirements, such as _enforcing_ the provision of contextual information by
 //! using [`Report::provide_context()`].
 //!
 //! ### Why not...
@@ -134,11 +134,19 @@
 //!
 //! # Feature flags
 //!
-//! - `std`: Enables support for [`Error`] and, on nightly, [`Backtrace`], **enabled** by default
-//! - `spantrace`: Enables the capturing of [`SpanTrace`]s, **disabled** by default
+//! Feature     | Description                                                             | default
+//! ------------|-------------------------------------------------------------------------|---------
+//! `std`       | Enables support for [`Error`] and, on nightly, [`Backtrace`]            | enabled
+//! `hooks`     | Enables the usage of [`set_display_hook`] and [`set_debug_hook`]        | enabled
+//! `spantrace` | Enables the capturing of [`SpanTrace`]s                                 | disabled
+//! `futures`   | Provides a [`FutureExt`] adaptor                                        | disabled
+//!
 //!
 //! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
 //! backtraces on non-nightly channels and can be prioritized depending on demand.
+//!
+//! [`set_display_hook`]: Report::set_display_hook
+//! [`set_debug_hook`]: Report::set_debug_hook
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
@@ -162,7 +170,7 @@ mod frame;
 pub mod iter;
 mod macros;
 mod report;
-mod result_ext;
+mod result;
 
 #[cfg(feature = "std")]
 mod error;
@@ -182,7 +190,7 @@ pub use self::{
     frame::Frame,
     macros::*,
     report::Report,
-    result_ext::{Result, ResultExt},
+    result::{Result, ResultExt},
 };
 
 /// Trait alias for an error context.
