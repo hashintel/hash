@@ -139,14 +139,16 @@
 //!
 //! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
 //! backtraces on non-nightly channels and can be prioritized depending on demand.
-//!
-//! [`display_hook`]: Report::display_hook
-//! [`debug_hook`]: Report::debug_hook
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
-#![warn(missing_docs, clippy::pedantic, clippy::nursery)]
+#![warn(
+    missing_docs,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::undocumented_unsafe_blocks
+)]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
 #![allow(clippy::module_name_repetitions)]
 #![cfg_attr(
@@ -293,7 +295,7 @@ pub use self::{
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # error::bail!(context: ConfigError::IoError, "No such file");
+///     # return Err(error::report!("No such file").provide_context(ConfigError::IoError));
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     std::fs::read_to_string(path.as_ref()).provide_context(ConfigError::IoError)
 /// }
