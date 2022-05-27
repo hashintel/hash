@@ -244,7 +244,8 @@ impl Experiment {
             engine_handle.recv(),
         )
         .await
-        .wrap_err("engine start timeout");
+        .wrap_err("engine start timeout")
+        .generalize();
         match msg {
             Ok(proto::EngineStatus::Started) => {}
             Ok(m) => {
