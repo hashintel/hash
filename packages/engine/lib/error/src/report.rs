@@ -2,8 +2,6 @@ use alloc::boxed::Box;
 use core::{any::Any, fmt, fmt::Formatter, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
-#[cfg(feature = "std")]
-use std::error::Error as StdError;
 
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
@@ -37,8 +35,8 @@ impl Report<()> {
     }
 }
 
-impl<C> Report<C> {
-    fn from_frame(
+impl<T> Report<T> {
+    pub(crate) fn from_frame(
         frame: Frame,
         #[cfg(all(nightly, feature = "std"))] backtrace: Option<Backtrace>,
         #[cfg(feature = "spantrace")] span_trace: Option<SpanTrace>,
@@ -57,9 +55,9 @@ impl<C> Report<C> {
 
     /// Creates a new `Report<Context>` from a provided scope.
     #[track_caller]
-    pub fn from_context(context: C) -> Self
+    pub fn from_context(context: T) -> Self
     where
-        C: Context,
+        T: Context,
     {
         #[allow(clippy::option_if_let_else)] // #[track_caller] on closures are unstable
         let location = if let Some(location) =
@@ -91,6 +89,18 @@ impl<C> Report<C> {
             #[cfg(feature = "spantrace")]
             span_trace,
         )
+    }
+
+    /// Creates a new `Report<T>` from the provided [`Error`].
+    ///
+    /// [`Error`]: std::error::Error
+    #[track_caller]
+    #[cfg(feature = "std")]
+    pub fn from_error(error: T) -> Self
+    where
+        T: std::error::Error + Send + Sync + 'static,
+    {
+        Self::from(error)
     }
 
     /// Adds a contextual message to the [`Frame`] stack.
@@ -131,20 +141,14 @@ impl<C> Report<C> {
         )
     }
 
-    /// Converts the `Report<Context>` to `Report<()>` without modifying the frame stack.
+    /// Converts the `Report<T>` to `Report<()>` without modifying the frame stack.
+    #[doc(hidden)]
     #[allow(clippy::missing_const_for_fn)] // False positive
     pub fn generalize(self) -> Report {
         Report {
             inner: self.inner,
             _context: PhantomData,
         }
-    }
-
-    /// Converts the `&Report<Context>` to `&Report<()>` without modifying the frame stack.
-    pub const fn generalized(&self) -> &Report {
-        // SAFETY: `Report` is repr(transparent), so it's safe to cast between `Report<A>` and
-        //         `Report<B>`
-        unsafe { &*(self as *const Self).cast() }
     }
 
     /// Returns the backtrace of the error, if captured.
@@ -195,29 +199,29 @@ impl<C> Report<C> {
         Frames::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting references of type `T`.
-    pub const fn request_ref<T: ?Sized + 'static>(&self) -> RequestRef<'_, T> {
+    /// Creates an iterator over the [`Frame`] stack requesting references of type `R`.
+    pub const fn request_ref<R: ?Sized + 'static>(&self) -> RequestRef<'_, R> {
         RequestRef::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting values of type `T`.
-    pub const fn request_value<T: 'static>(&self) -> RequestValue<'_, T> {
+    /// Creates an iterator over the [`Frame`] stack requesting values of type `R`.
+    pub const fn request_value<R: 'static>(&self) -> RequestValue<'_, R> {
         RequestValue::new(self)
     }
 
     /// Returns if `T` is the type held by any frame inside of the report.
     // TODO: Provide example
     #[must_use]
-    pub fn contains<T: Any>(&self) -> bool {
-        self.frames().any(Frame::is::<T>)
+    pub fn contains<C: Any>(&self) -> bool {
+        self.frames().any(Frame::is::<C>)
     }
 
     /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
     // TODO: Provide example
     #[must_use]
-    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
-        self.frames().find_map(Frame::downcast_ref::<T>)
+    pub fn downcast_ref<C: Any>(&self) -> Option<&C> {
+        self.frames().find_map(Frame::downcast_ref::<C>)
     }
 }
 
@@ -281,29 +285,5 @@ impl<Context> fmt::Debug for Report<Context> {
 
             Ok(())
         }
-    }
-}
-
-#[cfg(feature = "std")]
-impl<E> From<E> for Report
-where
-    E: StdError + Send + Sync + 'static,
-{
-    #[track_caller]
-    fn from(error: E) -> Self {
-        #[cfg(all(nightly, feature = "std"))]
-        let backtrace = if error.backtrace().is_some() {
-            None
-        } else {
-            Some(Backtrace::capture())
-        };
-
-        Self::from_frame(
-            Frame::from_std(error, Location::caller(), None),
-            #[cfg(all(nightly, feature = "std"))]
-            backtrace,
-            #[cfg(feature = "spantrace")]
-            Some(SpanTrace::capture()),
-        )
     }
 }

@@ -159,13 +159,16 @@
 extern crate alloc;
 
 mod frame;
-#[cfg(feature = "futures")]
-mod future_ext;
 #[cfg(feature = "hooks")]
 mod hook;
 mod iter;
 mod macros;
 mod report;
+
+#[cfg(feature = "std")]
+mod error;
+#[cfg(feature = "futures")]
+mod future_ext;
 mod result_ext;
 // pub mod tags;
 
@@ -221,7 +224,7 @@ pub use self::{
 /// use error::{ResultExt, Result};
 ///
 /// fn main() -> Result<()> {
-///     # fn fake_main() -> Result<()> {
+///     # fn fake_main() -> Result<(), impl core::fmt::Debug> {
 ///     let config_path = "./path/to/config.file";
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     # #[allow(unused_variables)]
@@ -320,9 +323,9 @@ pub use self::{
 /// ```
 #[must_use]
 #[repr(transparent)]
-pub struct Report<C = ()> {
+pub struct Report<T = ()> {
     inner: Box<ReportImpl>,
-    _context: PhantomData<C>,
+    _context: PhantomData<T>,
 }
 
 /// A single error, contextual message, or error context inside of a [`Report`].

@@ -87,7 +87,7 @@ impl process::Process for LocalProcess {
                             self.engine_url
                         )
                     })
-                    .map_err(Report::generalize)?,
+                    .generalize()?,
             );
         }
         self.client
@@ -96,7 +96,7 @@ impl process::Process for LocalProcess {
             .send(msg)
             .await
             .wrap_err("Could not send engine message")
-            .map_err(Report::generalize)
+            .generalize()
     }
 
     async fn wait(&mut self) -> Result<ExitStatus> {
@@ -104,6 +104,7 @@ impl process::Process for LocalProcess {
             .wait()
             .await
             .wrap_err("Could not wait for the process to exit")
+            .generalize()
     }
 }
 
@@ -209,7 +210,8 @@ impl process::Command for LocalCommand {
 
         let child = cmd
             .spawn()
-            .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))?;
+            .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))
+            .generalize()?;
         debug!("Spawned local engine process for experiment");
 
         Ok(Box::new(LocalProcess {

@@ -2,10 +2,10 @@
 
 use std::{collections::HashMap, fmt::Display};
 
-use error::{bail, report, Report, Result, ResultExt};
-use hash_engine_lib::proto;
+use error::{bail, report, Result, ResultExt};
+use hash_engine_lib::{proto, proto::EngineStatus};
 use simulation_structure::ExperimentId;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};
 
 type ResultSender = oneshot::Sender<Result<()>>;
 type CloseReceiver = mpsc::UnboundedReceiver<ExperimentId>;
@@ -87,7 +87,8 @@ impl Handler {
             .map_err(|_| report!("Could not send control message to server"))?;
         result_rx
             .await
-            .wrap_err("Failed to receive response from")?
+            .wrap_err("Failed to receive response from")
+            .generalize()?
     }
 
     /// Register a new experiment execution with the server, returning a Handle from which messages
@@ -207,7 +208,7 @@ impl Server {
     /// # Errors
     ///
     /// - if the message could not be sent
-    fn dispatch_message(&self, msg: proto::OrchestratorMsg) -> Result<()> {
+    fn dispatch_message(&self, msg: proto::OrchestratorMsg) -> Result<(), SendError<EngineStatus>> {
         match self.routes.get(&msg.experiment_id) {
             None => {
                 // Experiment not found. This can happen if the experiment runner
@@ -233,7 +234,7 @@ impl Server {
     /// [`create()`]: Self::create
     pub async fn run(&mut self) -> Result<()> {
         let mut socket = nano::Server::new(&self.url)
-            .map_err(Report::generalize)
+            .generalize()
             .wrap_err_lazy(|| format!("Could not create a server socket for {:?}", self.url))?;
         loop {
             tokio::select! {
