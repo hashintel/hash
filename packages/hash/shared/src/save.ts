@@ -95,8 +95,6 @@ export const save = async (
   const actions: UpdatePageAction[] = [];
 
   const draftToPlaceholder = new Map<string, string>();
-  const visited = new Set<string>();
-
   const draftBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
   const ensureEntityTypeForComponent = async (componentId: string) => {
@@ -154,12 +152,6 @@ export const save = async (
       draftBlockEntities.set(draftEntity.draftId, draftEntity);
       continue;
     }
-
-    if (visited.has(draftEntity.draftId)) {
-      continue;
-    }
-
-    visited.add(draftEntity.draftId);
 
     if (draftEntity.entityId) {
       const savedEntity = store.saved[draftEntity.entityId];
