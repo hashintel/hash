@@ -3,6 +3,7 @@ import React, {
   FocusEventHandler,
   KeyboardEventHandler,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -94,6 +95,13 @@ export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
     [userInputTexts],
   );
 
+  // onSubmit is called inside setTimeout. If this prop changes between re-renders,
+  // we might end up with stale values in the closure. So calling a ref instead.
+  const onSubmitRef = useRef(onSubmit);
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
+
   const handleInputKeyDown = useCallback<
     KeyboardEventHandler<HTMLInputElement>
   >(
@@ -140,11 +148,11 @@ export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
       if (event.key === "Enter") {
         event.currentTarget.blur(); // commit value
         setTimeout(() => {
-          onSubmit();
+          onSubmitRef.current();
         }, 50);
       }
     },
-    [onChange, onSubmit, value],
+    [onChange, value],
   );
 
   const handleInputBlur = useCallback<FocusEventHandler>(() => {
