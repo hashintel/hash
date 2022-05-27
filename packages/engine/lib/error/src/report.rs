@@ -141,7 +141,8 @@ impl<T> Report<T> {
         )
     }
 
-    /// Converts the `Report<Context>` to `Report<()>` without modifying the frame stack.
+    /// Converts the `Report<T>` to `Report<()>` without modifying the frame stack.
+    #[doc(hidden)]
     #[allow(clippy::missing_const_for_fn)] // False positive
     pub fn generalize(self) -> Report {
         Report {
@@ -198,12 +199,12 @@ impl<T> Report<T> {
         Frames::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting references of type `T`.
+    /// Creates an iterator over the [`Frame`] stack requesting references of type `R`.
     pub const fn request_ref<R: ?Sized + 'static>(&self) -> RequestRef<'_, R> {
         RequestRef::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting values of type `T`.
+    /// Creates an iterator over the [`Frame`] stack requesting values of type `R`.
     pub const fn request_value<R: 'static>(&self) -> RequestValue<'_, R> {
         RequestValue::new(self)
     }
