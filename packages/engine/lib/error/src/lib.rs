@@ -134,15 +134,23 @@
 //!
 //! # Feature flags
 //!
-//! - `std`: Enables support for [`Error`], **enabled** by default
-//! - `backtrace`: Enables the capturing of [`Backtrace`]s, implies `std`, **enabled** by default
+//! - `std`: Enables support for [`Error`] and, on nightly, [`Backtrace`], **enabled** by default
 //! - `spantrace`: Enables the capturing of [`SpanTrace`]s, **disabled** by default
+//!
+//! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
+//! backtraces on non-nightly channels and can be prioritized depending on demand.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(doc, feature(doc_auto_cfg))]
-#![cfg_attr(feature = "backtrace", feature(backtrace))]
-#![warn(missing_docs, clippy::pedantic, clippy::nursery)]
+#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
+#![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
+#![warn(
+    missing_docs,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::undocumented_unsafe_blocks
+)]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
+#![allow(clippy::module_name_repetitions)]
 #![cfg_attr(
     not(miri),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
@@ -150,11 +158,18 @@
 
 extern crate alloc;
 
-mod ext;
 mod frame;
+#[cfg(feature = "hooks")]
+mod hook;
 mod iter;
 mod macros;
 mod report;
+
+#[cfg(feature = "std")]
+mod error;
+#[cfg(feature = "futures")]
+mod future_ext;
+mod result_ext;
 // pub mod tags;
 
 use alloc::boxed::Box;
@@ -162,8 +177,15 @@ use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
 
 use provider::Provider;
 
-pub use self::macros::*;
+#[cfg(feature = "futures")]
+pub use self::future_ext::{
+    FutureExt, FutureWithContext, FutureWithErr, FutureWithLazyContext, FutureWithLazyErr,
+};
 use self::{frame::FrameRepr, report::ReportImpl};
+pub use self::{
+    macros::*,
+    result_ext::{Result, ResultExt},
+};
 
 /// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
 /// a [`Backtrace`] and a [`SpanTrace`].
@@ -202,7 +224,7 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// use error::{ResultExt, Result};
 ///
 /// fn main() -> Result<()> {
-///     # fn fake_main() -> Result<()> {
+///     # fn fake_main() -> Result<(), impl core::fmt::Debug> {
 ///     let config_path = "./path/to/config.file";
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     # #[allow(unused_variables)]
@@ -276,7 +298,7 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # error::bail!(context: ConfigError::IoError, "No such file");
+///     # return Err(error::report!("No such file").provide_context(ConfigError::IoError));
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     std::fs::read_to_string(path.as_ref()).provide_context(ConfigError::IoError)
 /// }
@@ -300,9 +322,10 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// }
 /// ```
 #[must_use]
-pub struct Report<C = ()> {
+#[repr(transparent)]
+pub struct Report<T = ()> {
     inner: Box<ReportImpl>,
-    _context: PhantomData<C>,
+    _context: PhantomData<T>,
 }
 
 /// A single error, contextual message, or error context inside of a [`Report`].
@@ -317,38 +340,6 @@ pub struct Frame {
     location: &'static Location<'static>,
     source: Option<Box<Frame>>,
 }
-
-/// `Result<T, Report<C>>`
-///
-/// A reasonable return type to use throughout an application.
-///
-/// The `Result` type can be used with one or two parameters, where the first parameter represents
-/// the [`Ok`] arm and the second parameter `Context` is used as in [`Report<C>`].
-///
-/// # Examples
-///
-/// `Result` can also be used in `fn main()`:
-///
-/// ```
-/// # fn has_permission(_: usize, _: usize) -> bool { true }
-/// # fn get_user() -> Result<usize> { Ok(0) }
-/// # fn get_resource() -> Result<usize> { Ok(0) }
-/// use error::{ensure, Result};
-///
-/// fn main() -> Result<()> {
-///     let user = get_user()?;
-///     let resource = get_resource()?;
-///
-///     ensure!(
-///         has_permission(user, resource),
-///         "Permission denied for {user} accessing {resource}"
-///     );
-///
-///     //...
-///     # Ok(())
-/// }
-/// ```
-pub type Result<T, C = ()> = core::result::Result<T, Report<C>>;
 
 /// Trait alias for an error context.
 ///
@@ -367,76 +358,6 @@ impl<C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static> Context fo
 //   Tracking issue: https://github.com/rust-lang/rust/issues/41517
 pub trait Message: fmt::Display + fmt::Debug + Send + Sync + 'static {}
 impl<M: fmt::Display + fmt::Debug + Send + Sync + 'static> Message for M {}
-
-/// Extension trait for [`Result`][core::result::Result] to provide context information on
-/// [`Report`]s.
-pub trait ResultExt<T> {
-    /// Type of the resulting context `C` inside of [`Report<C>`] when not providing a context.
-    type Context;
-
-    /// Adds new contextual message to the [`Frame`] stack of a [`Report`].
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use error::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<()> { Ok(()) }
-    /// # struct User;
-    /// # struct Resource;
-    /// use error::ResultExt;
-    ///
-    /// # let user = User;
-    /// # let resource = Resource;
-    /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource).wrap_err("Could not load resource")?;
-    /// # Result::Ok(())
-    /// ```
-    fn wrap_err<M>(self, message: M) -> Result<T, Self::Context>
-    where
-        M: Message;
-
-    /// Lazily adds new contextual message to the [`Frame`] stack of a [`Report`].
-    ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use core::fmt;
-    /// # use error::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<()> { Ok(()) }
-    /// # struct User;
-    /// # struct Resource;
-    /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// use error::ResultExt;
-    ///
-    /// # let user = User;
-    /// # let resource = Resource;
-    /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource)
-    ///     .wrap_err_lazy(|| format!("Could not load resource {resource}"))?;
-    /// # Result::Ok(())
-    /// ```
-    fn wrap_err_lazy<M, F>(self, op: F) -> Result<T, Self::Context>
-    where
-        M: Message,
-        F: FnOnce() -> M;
-
-    /// Adds a context provider to the [`Frame`] stack of a [`Report`] returning
-    /// [`Result<T, Context>`]).
-    // TODO: come up with a decent example
-    fn provide_context<C>(self, context: C) -> Result<T, C>
-    where
-        C: Context;
-
-    /// Lazily adds a context provider to the [`Frame`] stack of a [`Report`] returning
-    /// [`Result<T, C>`]).
-    // TODO: come up with a decent example
-    fn provide_context_lazy<C, F>(self, op: F) -> Result<T, C>
-    where
-        C: Context,
-        F: FnOnce() -> C;
-}
 
 /// Iterator over the [`Frame`] stack of a [`Report`].
 ///

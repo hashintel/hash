@@ -41,7 +41,7 @@ impl fmt::Debug for WorkerHandle {
 }
 
 impl Worker {
-    fn new(url: &str, request_rx: spmc::Receiver<Request>) -> Result<Self, ()> {
+    fn new(url: &str, request_rx: spmc::Receiver<Request>) -> Result<Self, nng::Error> {
         let socket =
             nng::Socket::new(nng::Protocol::Req0).wrap_err("Could not create nng socket")?;
 
@@ -105,7 +105,7 @@ impl Worker {
         if let Err(report) = self
             .ctx
             .send(&self.aio, msg)
-            .map_err(|(_, error)| report!(context: ErrorKind::Send, error))
+            .map_err(|(_, error)| report!(error).provide_context(ErrorKind::Send))
         {
             sender.send(Err(report)).expect(SEND_EXPECT_MESSAGE);
             return;

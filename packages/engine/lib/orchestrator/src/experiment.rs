@@ -244,7 +244,8 @@ impl Experiment {
             engine_handle.recv(),
         )
         .await
-        .wrap_err("engine start timeout");
+        .wrap_err("engine start timeout")
+        .generalize();
         match msg {
             Ok(proto::EngineStatus::Started) => {}
             Ok(m) => {
@@ -451,9 +452,11 @@ fn get_simple_experiment_config(
         .clone()
         .ok_or_else(|| report!("Experiment configuration not found: experiments.json"))?;
     let parsed = serde_json::from_str(&experiments_manifest)
-        .wrap_err("Could not parse experiment manifest")?;
+        .wrap_err("Could not parse experiment manifest")
+        .generalize()?;
     let plan = create_experiment_plan(&parsed, &experiment_name)
-        .wrap_err("Could not read experiment plan")?;
+        .wrap_err("Could not read experiment plan")
+        .generalize()?;
 
     let max_sims_in_parallel = parsed
         .get("max_sims_in_parallel")
@@ -518,7 +521,8 @@ fn create_multiparameter_variant(
     }
 
     let var: MultiparameterVariant = serde_json::from_value(selected_experiment.clone())
-        .wrap_err("Could not parse multiparameter variant")?;
+        .wrap_err("Could not parse multiparameter variant")
+        .generalize()?;
     let subplans = var
         .runs
         .iter()
@@ -570,7 +574,7 @@ fn create_group_variant(
         steps: f64,
         runs: Vec<ExperimentName>,
     }
-    let var: GroupVariant = serde_json::from_value(selected_experiment.clone())?;
+    let var: GroupVariant = serde_json::from_value(selected_experiment.clone()).generalize()?;
     var.runs.iter().try_fold(
         SimpleExperimentPlan::new(var.steps as usize),
         |mut acc, name| {
@@ -664,26 +668,33 @@ fn create_monte_carlo_variant_plan(
             let distribution = match self.distribution.as_str() {
                 "normal" => Box::new(
                     Normal::new(self.mean.unwrap_or(1.0), self.std.unwrap_or(1.0))
-                        .wrap_err("Unable to create normal distribution")?,
+                        .wrap_err("Unable to create normal distribution")
+                        .generalize()?,
                 ) as Box<dyn DynDistribution<f64>>,
                 "log-normal" => Box::new(
                     LogNormal::new(self.mu.unwrap_or(1.0), self.sigma.unwrap_or(1.0))
-                        .wrap_err("Unable to create log-normal distribution")?,
+                        .wrap_err("Unable to create log-normal distribution")
+                        .generalize()?,
                 ),
                 "poisson" => Box::new(
                     Poisson::new(self.rate.unwrap_or(1.0))
-                        .wrap_err("Unable to create poisson distribution")?,
+                        .wrap_err("Unable to create poisson distribution")
+                        .generalize()?,
                 ),
                 "beta" => Box::new(
                     Beta::new(self.alpha.unwrap_or(1.0), self.beta.unwrap_or(1.0))
-                        .wrap_err("Unable to create beta distribution")?,
+                        .wrap_err("Unable to create beta distribution")
+                        .generalize()?,
                 ),
                 "gamma" => Box::new(
                     rand_distr::Gamma::new(self.shape.unwrap_or(1.0), self.scale.unwrap_or(1.0))
-                        .wrap_err("Unable to create gamma distribution")?,
+                        .wrap_err("Unable to create gamma distribution")
+                        .generalize()?,
                 ),
                 _ => Box::new(
-                    Normal::new(1.0, 1.0).wrap_err("Unable to create normal distribution")?,
+                    Normal::new(1.0, 1.0)
+                        .wrap_err("Unable to create normal distribution")
+                        .generalize()?,
                 ),
             };
             Ok(Box::new(move |_, _| {
@@ -693,7 +704,8 @@ fn create_monte_carlo_variant_plan(
         }
     }
 
-    let var: MonteCarloVariant = serde_json::from_value(selected_experiment.clone())?;
+    let var: MonteCarloVariant =
+        serde_json::from_value(selected_experiment.clone()).generalize()?;
     let values: Vec<_> = (0..var.samples as usize).map(|_| 0.into()).collect();
     Ok(create_variant_with_mapped_value(
         &var.field,
@@ -714,7 +726,8 @@ fn create_value_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleE
     }
 
     let var: ValueVariant = serde_json::from_value(selected_experiment.clone())
-        .wrap_err("Could not parse value variant")?;
+        .wrap_err("Could not parse value variant")
+        .generalize()?;
     let mapper: Mapper = Box::new(|val, _index| val);
     Ok(create_variant_with_mapped_value(
         &var.field,
@@ -735,7 +748,7 @@ fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
         start: f64,
         stop: f64,
     }
-    let var: LinspaceVariant = serde_json::from_value(selected_experiment.clone())?;
+    let var: LinspaceVariant = serde_json::from_value(selected_experiment.clone()).generalize()?;
     let values: Vec<_> = (0..var.samples as usize).map(|_| 0.into()).collect();
 
     let closure_var = var.clone();
@@ -769,7 +782,7 @@ fn create_arange_variant_plan(selected_experiment: &SerdeValue) -> Result<Simple
         start: f64,
         stop: f64,
     }
-    let var: ArangeVariant = serde_json::from_value(selected_experiment.clone())?;
+    let var: ArangeVariant = serde_json::from_value(selected_experiment.clone()).generalize()?;
     let mut values = vec![];
     let mut cur = var.start;
     while cur <= var.stop {
@@ -797,7 +810,7 @@ fn create_meshgrid_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
         // [start, stop, num_samples]
         y: [f64; 3], // [start, stop, num_samples]
     }
-    let var: MeshgridVariant = serde_json::from_value(selected_experiment.clone())?;
+    let var: MeshgridVariant = serde_json::from_value(selected_experiment.clone()).generalize()?;
 
     let mut plan = SimpleExperimentPlan::new(var.steps as usize);
     let x_space = linspace(var.x[0], var.x[1], var.x[2] as usize);

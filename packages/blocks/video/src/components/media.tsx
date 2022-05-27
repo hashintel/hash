@@ -11,7 +11,6 @@ import {
   BlockProtocolLink,
   BlockProtocolLinkGroup,
   BlockProtocolUpdateEntitiesAction,
-  BlockProtocolUploadFileFunction,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import React, {
@@ -27,10 +26,6 @@ import { unstable_batchedUpdates } from "react-dom";
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
 import { UploadMediaForm } from "./upload-media-form";
-
-// https://www.typescriptlang.org/docs/handbook/release-notes/overview.html#recursive-conditional-types
-type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
-type FileType = Awaited<ReturnType<BlockProtocolUploadFileFunction>>;
 
 const useDefaultState = <
   T extends number | string | boolean | null | undefined,
@@ -187,15 +182,7 @@ export const Media: BlockComponent<
   }, []);
 
   const updateData = useCallback(
-    ({
-      width,
-      file,
-      src,
-    }: {
-      src: string | undefined;
-      width?: number;
-      file?: FileType;
-    }) => {
+    ({ width, src }: { src: string | undefined; width?: number }) => {
       if (src?.trim()) {
         if (updateEntities && entityId) {
           const updateAction: BlockProtocolUpdateEntitiesAction = {
@@ -210,10 +197,6 @@ export const Media: BlockComponent<
 
           if (width && mediaType === "image") {
             updateAction.data.initialWidth = width;
-          }
-
-          if (file) {
-            updateAction.data.file = file;
           }
 
           if (entityTypeId) {
@@ -292,7 +275,7 @@ export const Media: BlockComponent<
 
             if (isMounted.current) {
               unstable_batchedUpdates(() => {
-                updateData({ src: file.url, file });
+                updateData({ src: file.url });
                 setLoading(false);
               });
             }

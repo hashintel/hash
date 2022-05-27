@@ -1,3 +1,4 @@
+import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import {
   EntityStore,
   getDraftEntityFromEntityId,
@@ -8,7 +9,8 @@ import { JSONObject } from "blockprotocol";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { ForwardRefRenderFunction, useRef, useMemo, forwardRef } from "react";
-import { DragVerticalIcon } from "../../shared/icons";
+import { FontAwesomeIcon } from "../../shared/icons";
+import { IconButton } from "../../shared/ui";
 import { useUserBlocks } from "../userBlocks";
 import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
@@ -20,12 +22,17 @@ type BlockHandleProps = {
   entityId: string | null;
   entityStore: EntityStore;
   onTypeChange: BlockSuggesterProps["onChange"];
+  onMouseDown: () => void;
+  onClick: () => void;
 };
 
 const BlockHandle: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockHandleProps
-> = ({ deleteBlock, entityId, entityStore, onTypeChange }, ref) => {
+> = (
+  { deleteBlock, entityId, entityStore, onTypeChange, onMouseDown, onClick },
+  ref,
+) => {
   const blockMenuRef = useRef(null);
   const contextMenuPopupState = usePopupState({
     variant: "popover",
@@ -80,16 +87,24 @@ const BlockHandle: ForwardRefRenderFunction<
     : null;
 
   return (
-    <Box
-      ref={ref}
-      sx={{
-        position: "relative",
-        cursor: "pointer",
-        height: 24,
-      }}
-      data-testid="block-changer"
-    >
-      <DragVerticalIcon {...bindTrigger(contextMenuPopupState)} />
+    <Box ref={ref} data-testid="block-handle">
+      <IconButton
+        ref={(el) => {
+          if (el && !contextMenuPopupState.setAnchorElUsed) {
+            contextMenuPopupState.setAnchorEl(el);
+          }
+        }}
+        onMouseDown={onMouseDown}
+        unpadded
+        {...bindTrigger(contextMenuPopupState)}
+        onClick={() => {
+          onClick?.();
+          contextMenuPopupState.open();
+        }}
+        data-testid="block-changer"
+      >
+        <FontAwesomeIcon icon={faEllipsisVertical} />
+      </IconButton>
 
       <BlockContextMenu
         blockEntity={blockEntity}

@@ -34,17 +34,29 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
   // Using try / catch prevents 500, but we might not need them in Next v12+.
   try {
     const pages = await Promise.all(
-      getAllPages<BlogPostProps>("blog").map(async (page) => ({
-        ...page,
-        photos: {
-          post: page.data.postPhoto
-            ? await getPhoto(page.data.postPhoto)
-            : null,
-          postSquare: page.data.postPhotoSquare
-            ? await getPhoto(page.data.postPhotoSquare)
-            : null,
-        },
-      })),
+      getAllPages<BlogPostProps>("blog")
+        .sort((pageA, pageB) => {
+          const timeA = pageB.data.date
+            ? new Date(pageB.data.date).getTime()
+            : 0;
+
+          const timeB = pageA.data.date
+            ? new Date(pageA.data.date).getTime()
+            : 0;
+
+          return timeA - timeB;
+        })
+        .map(async (page) => ({
+          ...page,
+          photos: {
+            post: page.data.postPhoto
+              ? await getPhoto(page.data.postPhoto)
+              : null,
+            postSquare: page.data.postPhotoSquare
+              ? await getPhoto(page.data.postPhotoSquare)
+              : null,
+          },
+        })),
     );
 
     return {
