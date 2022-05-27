@@ -278,8 +278,6 @@ impl Frame {
         let downcasted = downcasted.or_else(|| {
             // Fallback for `T: Error` as `Error` is wrapped inside of `ErrorRepr`
             // TODO: Remove fallback when `Provider` is implemented for `Error` upstream
-            // SAFETY: Dereferencing is safe as T has the same lifetimes as Self and casting
-            //   `ErrorRepr<T>` to `T` is safe as `ErrorRepr` is `#[repr(transparent)]`
             self.inner.downcast::<ErrorRepr<T>>().map(|addr| {
                 // SAFETY: Dereferencing is safe as T has the same lifetimes as Self and casting
                 //   `ErrorRepr<T>` to `T` is safe as `ErrorRepr` is `#[repr(transparent)]`
