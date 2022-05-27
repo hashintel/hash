@@ -14,8 +14,15 @@ import { useAutoRefresh } from "./app/use-auto-refresh";
 import { calculateDurationStepLength } from "./app/calculate-duration-step-length";
 import { DurationInput } from "./app/duration-input";
 import { TimerStatus } from "./app/timer-status";
+import { clamp } from "./app/clamp";
 
 type TimerState = {
+  initialDurationInMs: number;
+  pauseDurationInMs?: number;
+  targetTimestamp?: number;
+};
+
+export type AppProps = {
   /** https://en.wikipedia.org/wiki/ISO_8601#Durations */
   initialDuration: string;
   /** https://en.wikipedia.org/wiki/ISO_8601#Durations */
@@ -24,24 +31,16 @@ type TimerState = {
   targetDateTime?: string;
 };
 
-export type AppProps = TimerState;
-
+const defaultInitialDurationInMs = duration.toMilliseconds(
+  duration.parse("PT5M"),
+);
 const minInitialDurationInMs = 1000;
-const maxInitialDurationInMs = 99 * 60 * 1000;
-
-const defaultInitialDuration = duration.parse("PT5M");
-
-const clampDurationInMs = (durationInMs: number): number => {
-  return Math.min(
-    maxInitialDurationInMs,
-    Math.max(minInitialDurationInMs, durationInMs),
-  );
-};
+const maxInitialDurationInMs = (100 * 60 - 1) * 1000;
 
 const normalizeDurationMinutesAndSeconds = (
-  durationInput: duration.DurationInput,
+  value: duration.DurationInput,
 ): duration.Duration => {
-  const rawResult = duration.normalize(durationInput);
+  const rawResult = duration.normalize(value);
   return {
     ...rawResult,
     minutes: rawResult.minutes + rawResult.hours * 60,
@@ -49,13 +48,23 @@ const normalizeDurationMinutesAndSeconds = (
   };
 };
 
+const parseDateIfPossible = (value: string | undefined): number | undefined => {
+  if (value) {
+    const result = parseISO(value);
+    if (isValid(result)) {
+      return result.valueOf();
+    }
+  }
+  return undefined;
+};
+
 const parseDurationIfPossible = (
   value: string | undefined,
-): duration.Duration | undefined => {
+): number | undefined => {
   if (value) {
     try {
-      return normalizeDurationMinutesAndSeconds(
-        duration.parse(clampDurationInMs(duration.toMilliseconds(value))),
+      return duration.toMilliseconds(
+        duration.parse(duration.toMilliseconds(value)),
       );
     } catch {
       // noop
@@ -65,20 +74,27 @@ const parseDurationIfPossible = (
   return undefined;
 };
 
-export const App: BlockComponent<TimerState> = ({
+export const App: BlockComponent<AppProps> = ({
   updateEntities,
   entityId,
   accountId,
   ...rest
 }) => {
-  const externalTimerState = useMemo<TimerState>(
-    () => ({
-      initialDuration: rest.initialDuration,
-      pauseDuration: rest.pauseDuration,
-      targetDateTime: rest.targetDateTime,
-    }),
-    [rest.initialDuration, rest.pauseDuration, rest.targetDateTime],
-  );
+  const externalTimerState = useMemo<TimerState>(() => {
+    const unclampedPauseDuration = parseDurationIfPossible(rest.pauseDuration);
+
+    return {
+      initialDurationInMs: clamp(
+        parseDurationIfPossible(rest.initialDuration) ??
+          defaultInitialDurationInMs,
+        [minInitialDurationInMs, maxInitialDurationInMs],
+      ),
+      pauseDurationInMs: unclampedPauseDuration
+        ? clamp(unclampedPauseDuration, [0, maxInitialDurationInMs])
+        : undefined,
+      targetTimestamp: parseDateIfPossible(rest.targetDateTime),
+    };
+  }, [rest.initialDuration, rest.pauseDuration, rest.targetDateTime]);
 
   const [timerState, setTimerState] = useState<TimerState>(externalTimerState);
 
@@ -95,62 +111,51 @@ export const App: BlockComponent<TimerState> = ({
     (newTimerState: TimerState) => {
       setTimerState(newTimerState);
 
-      if (newTimerState.pauseDuration) {
+      if (newTimerState.pauseDurationInMs) {
         startButtonRef.current?.focus();
       } else {
         pauseButtonRef.current?.focus();
       }
 
-      void updateEntities?.([
-        {
-          entityId,
-          accountId,
-          data: {
-            pauseDuration: undefined, // Make sure old values are removed if present
-            targetDateTime: undefined,
-            ...newTimerState,
-          },
-        },
-      ]);
+      const data: AppProps = {
+        initialDuration: duration.toString(
+          normalizeDurationMinutesAndSeconds(
+            duration.toString(newTimerState.initialDurationInMs),
+          ),
+        ),
+        pauseDuration: newTimerState.pauseDurationInMs
+          ? duration
+              .toString(
+                normalizeDurationMinutesAndSeconds(
+                  newTimerState.pauseDurationInMs,
+                ),
+              )
+              .replace(/,/g, ".") // https://github.com/dlevs/duration-fns/issues/26
+          : undefined,
+        targetDateTime: newTimerState.targetTimestamp
+          ? new Date(newTimerState.targetTimestamp).toISOString()
+          : undefined,
+      };
+
+      void updateEntities?.([{ entityId, accountId, data }]);
     },
     [accountId, entityId, updateEntities],
   );
 
-  let parsedTargetDateTime: Date | undefined = undefined;
-  if (timerState.targetDateTime) {
-    const candidateParsedTargetDateTime = parseISO(timerState.targetDateTime);
-    if (isValid(candidateParsedTargetDateTime)) {
-      parsedTargetDateTime = candidateParsedTargetDateTime;
-    }
-  }
+  const remainingDurationInMs =
+    timerState.pauseDurationInMs ??
+    (timerState.targetTimestamp
+      ? timerState.targetTimestamp - new Date().valueOf()
+      : timerState.initialDurationInMs);
 
-  const parsedInitialDuration =
-    parseDurationIfPossible(timerState.initialDuration) ??
-    defaultInitialDuration;
-  const parsedPauseDuration = parseDurationIfPossible(timerState.pauseDuration);
-
-  const remainingDuration =
-    parsedPauseDuration ??
-    (parsedTargetDateTime
-      ? normalizeDurationMinutesAndSeconds(
-          duration.between(new Date(), parsedTargetDateTime),
-        )
-      : parsedInitialDuration);
-
-  const initialDurationInMs = duration.toMilliseconds(parsedInitialDuration);
-  const remainingDurationInMs = duration.toMilliseconds(remainingDuration);
   const remainingProportion = Math.max(
     0,
-    Math.min(
-      1,
-      1 -
-        remainingDurationInMs / duration.toMilliseconds(parsedInitialDuration),
-    ),
+    Math.min(1, remainingDurationInMs / timerState.initialDurationInMs),
   );
 
-  const timerStatus: TimerStatus = parsedPauseDuration
+  const timerStatus: TimerStatus = timerState.pauseDurationInMs
     ? "paused"
-    : !parsedTargetDateTime
+    : !timerState.targetTimestamp
     ? "idle"
     : remainingDurationInMs > 0
     ? "running"
@@ -160,35 +165,42 @@ export const App: BlockComponent<TimerState> = ({
 
   const handleReset = () => {
     applyTimerState({
-      initialDuration: duration.toString(parsedInitialDuration),
+      initialDurationInMs: timerState.initialDurationInMs,
     });
   };
 
   const handlePlayClick = () => {
     applyTimerState({
-      initialDuration: duration.toString(parsedInitialDuration),
-      targetDateTime: duration
-        .apply(new Date(), parsedPauseDuration ?? parsedInitialDuration)
-        .toISOString(),
+      initialDurationInMs: timerState.initialDurationInMs,
+      targetTimestamp: duration
+        .apply(
+          new Date(),
+          timerState.pauseDurationInMs ?? timerState.initialDurationInMs,
+        )
+        .valueOf(),
     });
   };
 
   const handlePauseClick = () => {
-    if (!parsedTargetDateTime || parsedTargetDateTime < new Date()) {
+    if (
+      !timerState.targetTimestamp ||
+      timerState.targetTimestamp < new Date().valueOf()
+    ) {
       return;
     }
 
     applyTimerState({
-      initialDuration: duration.toString(parsedInitialDuration),
-      pauseDuration: duration
-        .toString(
-          normalizeDurationMinutesAndSeconds(
-            duration.between(new Date(), parsedTargetDateTime),
-          ),
-        )
-        .replace(/,/g, "."), // https://github.com/dlevs/duration-fns/issues/26
+      initialDurationInMs: timerState.initialDurationInMs,
+      pauseDurationInMs: duration.toMilliseconds(
+        duration.between(new Date(), timerState.targetTimestamp),
+      ),
     });
   };
+
+  const displayedDurationInMs =
+    timerStatus === "finished"
+      ? timerState.initialDurationInMs
+      : remainingDurationInMs;
 
   const handleLessOrMoreTimeButtonClick: MouseEventHandler = (event) => {
     const step = event.currentTarget.classList.contains("less-time-button")
@@ -196,38 +208,30 @@ export const App: BlockComponent<TimerState> = ({
       : 1;
 
     const stepLength = calculateDurationStepLength(
-      remainingDurationInMs +
+      displayedDurationInMs +
         step /* pick sides around edge values like 10 seconds */,
     );
 
     const roundUpOrDown = step > 0 ? Math.floor : Math.ceil;
-    const newDurationInMs = clampDurationInMs(
-      roundUpOrDown((remainingDurationInMs + stepLength * step) / stepLength) *
+    const newDurationInMs = clamp(
+      roundUpOrDown((displayedDurationInMs + stepLength * step) / stepLength) *
         stepLength,
+      [minInitialDurationInMs, maxInitialDurationInMs],
     );
 
-    if (newDurationInMs !== remainingDurationInMs) {
+    if (newDurationInMs !== displayedDurationInMs) {
       applyTimerState({
-        initialDuration: duration.toString(
-          normalizeDurationMinutesAndSeconds(newDurationInMs),
-        ),
+        initialDurationInMs: newDurationInMs,
       });
     }
   };
 
-  const handleDurationInputChange = (value: duration.Duration) => {
-    const valueInMs = duration.toMilliseconds(value);
-    const acceptedValue =
-      valueInMs > maxInitialDurationInMs
-        ? duration.parse(maxInitialDurationInMs)
-        : valueInMs < minInitialDurationInMs
-        ? duration.parse(minInitialDurationInMs)
-        : value;
-
+  const handleDurationInputChange = (valueInMs: number): void => {
     applyTimerState({
-      initialDuration: duration.toString(
-        normalizeDurationMinutesAndSeconds(acceptedValue),
-      ),
+      initialDurationInMs: clamp(valueInMs, [
+        minInitialDurationInMs,
+        maxInitialDurationInMs,
+      ]),
     });
   };
 
@@ -237,16 +241,12 @@ export const App: BlockComponent<TimerState> = ({
         <div className="dial-ring">
           <div
             className="dial-ring-completion"
-            style={{ animationDelay: `-${remainingProportion * 100}s` }}
+            style={{ animationDelay: `-${(1 - remainingProportion) * 100}s` }}
           />
         </div>
         <div className="duration-container">
           <DurationInput
-            value={
-              timerStatus === "finished"
-                ? parsedInitialDuration
-                : remainingDuration
-            }
+            value={displayedDurationInMs}
             disabled={timerStatus === "running"}
             onChange={handleDurationInputChange}
             onSubmit={handlePlayClick}
@@ -280,7 +280,7 @@ export const App: BlockComponent<TimerState> = ({
           className="less-time-button"
           disabled={
             timerStatus === "running" ||
-            initialDurationInMs <= minInitialDurationInMs
+            timerState.initialDurationInMs <= minInitialDurationInMs
           }
           onClick={handleLessOrMoreTimeButtonClick}
           type="button"
@@ -297,7 +297,7 @@ export const App: BlockComponent<TimerState> = ({
           className="more-time-button"
           disabled={
             timerStatus === "running" ||
-            initialDurationInMs >= maxInitialDurationInMs
+            timerState.initialDurationInMs >= maxInitialDurationInMs
           }
           onClick={handleLessOrMoreTimeButtonClick}
           type="button"

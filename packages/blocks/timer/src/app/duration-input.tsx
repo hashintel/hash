@@ -1,4 +1,3 @@
-import * as duration from "duration-fns";
 import React, {
   ChangeEventHandler,
   FocusEventHandler,
@@ -9,11 +8,14 @@ import React, {
   useState,
   VoidFunctionComponent,
 } from "react";
+import { clamp } from "./clamp";
 
 type DurationInputProps = {
-  value: duration.Duration;
+  /** milliseconds */
+  value: number;
   disabled: boolean;
-  onChange: (newValue: duration.Duration) => void;
+  /** @param newValue milliseconds */
+  onChange: (newValue: number) => void;
   onSubmit: () => void;
 };
 
@@ -43,28 +45,17 @@ const findInputByIndex = (
 
 const padDigits = (value: number): string => `${value}`.padStart(2, "0");
 
-const convertDurationToInputTexts = (value: duration.Duration): InputTexts => {
-  return [padDigits(value.minutes), padDigits(value.seconds)];
+const convertDurationInMsToInputTexts = (value: number): InputTexts => {
+  const minutes = Math.floor(value / 60000);
+  const seconds = Math.floor(value / 1000) % 60;
+  return [padDigits(minutes), padDigits(seconds)];
 };
 
-const convertInputTextsToDurationInMs = (
-  inputTexts: InputTexts,
-): number | undefined => {
-  const minutes = Number.parseInt(inputTexts[0] ?? "0", 10);
-  const seconds = Number.parseInt(inputTexts[1] ?? "0", 10);
-  if (
-    !Number.isFinite(minutes) ||
-    !Number.isFinite(seconds) ||
-    seconds < 0 ||
-    seconds > 59 ||
-    minutes < 0 ||
-    minutes > 99 ||
-    (seconds === 0 && minutes === 0)
-  ) {
-    return undefined;
-  }
+const convertInputTextsToDurationInMs = (inputTexts: InputTexts): number => {
+  const minutes = Number.parseInt(inputTexts[0] ?? "0", 10) || 0;
+  const seconds = Number.parseInt(inputTexts[1] ?? "0", 10) || 0;
 
-  return minutes * 60_000 + seconds * 1000;
+  return clamp(minutes, [0, 99]) * 60_000 + clamp(seconds, [0, 59]) * 1000;
 };
 
 export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
@@ -74,23 +65,16 @@ export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
   onSubmit,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const valueInMs = useMemo(() => duration.toMilliseconds(value), [value]);
-  const previousValueInMsRef = useRef(valueInMs);
+  const previousValueRef = useRef(value);
 
   const normalizedInputTexts = useMemo(
-    () => convertDurationToInputTexts(value),
+    () => convertDurationInMsToInputTexts(value),
     [value],
   );
   const [userInputTexts, setUserInputTexts] = useState(normalizedInputTexts);
 
-  const userValueInMs = useMemo(
-    () => convertInputTextsToDurationInMs(userInputTexts),
-    [userInputTexts],
-  );
-
-  if (previousValueInMsRef.current !== valueInMs) {
-    previousValueInMsRef.current = valueInMs;
+  if (previousValueRef.current !== value) {
+    previousValueRef.current = value;
     setUserInputTexts(normalizedInputTexts);
   }
 
@@ -121,7 +105,7 @@ export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
           (event.key === "ArrowUp" ? 1 : -1) *
           (inputIndex === 1 ? 1000 : 60000);
 
-        onChange(duration.parse(valueInMs + step));
+        onChange(value + step);
         event.preventDefault();
         return;
       }
@@ -160,26 +144,24 @@ export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
         }, 50);
       }
     },
-    [onChange, onSubmit, valueInMs],
+    [onChange, onSubmit, value],
   );
 
   const handleInputBlur = useCallback<FocusEventHandler>(() => {
-    const newDurationInMs = convertInputTextsToDurationInMs(userInputTexts);
-    if (newDurationInMs === undefined) {
-      setUserInputTexts(normalizedInputTexts);
-    } else {
-      onChange(duration.parse(newDurationInMs));
+    if (userInputTexts === normalizedInputTexts) {
+      return;
     }
+    const newDurationInMs = convertInputTextsToDurationInMs(userInputTexts);
+    onChange(newDurationInMs);
+    setUserInputTexts(normalizedInputTexts);
   }, [normalizedInputTexts, onChange, userInputTexts]);
 
   return (
     <div
       ref={containerRef}
-      className={[
-        "duration",
-        disabled ? "" : "duration_status_enabled",
-        userValueInMs === undefined ? "duration_value_invalid" : "",
-      ].join(" ")}
+      className={["duration", disabled ? "" : "duration_status_enabled"].join(
+        " ",
+      )}
     >
       <input
         data-index={0}
