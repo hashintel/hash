@@ -217,7 +217,7 @@ export const entityTypedef = gql`
     """
     componentId: ID
     """
-    A fixed entity type ID.
+    A fixed entity type ID. This may be a reference to a placeholder set using a previous CreateEntityTypeAction
     """
     entityTypeId: ID
     """
@@ -253,6 +253,9 @@ export const entityTypedef = gql`
   For referring to an existing entity owned by a specific accountId
   """
   input ExistingEntity {
+    """
+    This may be a reference to a placeholder set using placeholderID on a previous EntityDefinition or UpdatePageContentsAction
+    """
     entityId: ID!
     accountId: ID!
   }
@@ -279,7 +282,7 @@ export const entityTypedef = gql`
     """
     linkedEntities: [LinkedEntityDefinition!]
     """
-    @todo document this
+    Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
     """
     placeholderID: ID
   }
