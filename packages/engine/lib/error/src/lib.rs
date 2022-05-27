@@ -173,7 +173,7 @@ mod result_ext;
 // pub mod tags;
 
 use alloc::boxed::Box;
-use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
+use core::{fmt, marker::PhantomData};
 
 use provider::Provider;
 
@@ -181,8 +181,9 @@ use provider::Provider;
 pub use self::future_ext::{
     FutureExt, FutureWithContext, FutureWithErr, FutureWithLazyContext, FutureWithLazyErr,
 };
-use self::{frame::FrameRepr, report::ReportImpl};
+use self::report::ReportImpl;
 pub use self::{
+    frame::Frame,
     macros::*,
     result_ext::{Result, ResultExt},
 };
@@ -326,19 +327,6 @@ pub use self::{
 pub struct Report<T = ()> {
     inner: Box<ReportImpl>,
     _context: PhantomData<T>,
-}
-
-/// A single error, contextual message, or error context inside of a [`Report`].
-///
-/// `Frame`s are organized as a singly linked list, which can be iterated by calling
-/// [`Report::frames()`]. The head is pointing to the most recent context or contextual message,
-/// the tail is the root error created by [`Report::new()`], [`Report::from_context()`], or
-/// [`Report::from()`]. The next `Frame` can be accessed by requesting it by calling
-/// [`Report::request_ref()`].
-pub struct Frame {
-    inner: ManuallyDrop<Box<FrameRepr>>,
-    location: &'static Location<'static>,
-    source: Option<Box<Frame>>,
 }
 
 /// Trait alias for an error context.
