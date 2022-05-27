@@ -24,6 +24,7 @@ import {
   UpdatePageAction,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
+  UpdatePageContentsResultPlaceholder,
 } from "./graphql/apiTypes.gen";
 import { isEntityNode } from "./prosemirror";
 import { updatePageContents } from "./queries/page.queries";
@@ -64,12 +65,14 @@ const flipMap = <K, V>(draftToPlaceholder: Map<K, V>): Map<V, K> =>
     Array.from(draftToPlaceholder, ([key, value]) => [value, key] as const),
   );
 
+type EntityTypeForComponentResult = [string, UpdatePageAction[]];
+
 const ensureEntityTypeForComponent = async (
   componentId: string,
   newTypeAccountId: string,
   entityTypes: EntityType[],
   cache: Map<string, string>,
-) => {
+): Promise<EntityTypeForComponentResult> => {
   const actions: UpdatePageAction[] = [];
 
   let desiredEntityTypeId: string | undefined = cache.get(componentId);
@@ -117,42 +120,19 @@ const ensureEntityTypeForComponent = async (
     throw new Error("Cannot find entity type for entity");
   }
 
-  return [desiredEntityTypeId, actions] as const;
+  return [desiredEntityTypeId, actions];
 };
 
-// @todo write tests
-export const save = async (
-  apolloClient: ApolloClient<unknown>,
+const calculateSaveActions = async (
+  store: EntityStore,
   accountId: string,
-  pageEntityId: string,
+  textEntityTypeId: string,
   blocks: BlockEntity[],
   doc: ProsemirrorNode<Schema>,
-  store: EntityStore,
+  getEntityTypeForComponent: (
+    componentId: string,
+  ) => Promise<EntityTypeForComponentResult>,
 ) => {
-  // @todo can these be cached at all?
-  const entityTypesResult = await apolloClient.query<
-    GetAccountEntityTypesSharedQuery,
-    GetAccountEntityTypesSharedQueryVariables
-  >({
-    query: getAccountEntityTypes,
-    variables: { accountId, includeOtherTypesInUse: true },
-    fetchPolicy: "network-only",
-  });
-
-  const entityTypeForComponentId = new Map<string, string>();
-  const entityTypes = entityTypesResult.data.getAccountEntityTypes;
-
-  /**
-   * @todo shouldn't need an existing text entity to find this
-   */
-  const textEntityTypeId = entityTypes.find(
-    (type) => type.properties.title === "Text",
-  )?.entityId;
-
-  if (!textEntityTypeId) {
-    throw new Error("No text entities exist. Cannot find text entity type id");
-  }
-
   const actions: UpdatePageAction[] = [];
 
   const draftToPlaceholder = new Map<string, string>();
@@ -228,13 +208,9 @@ export const save = async (
           throw new Error("Cannot find parent entity");
         }
 
-        const [entityTypeId, newTypeActions] =
-          await ensureEntityTypeForComponent(
-            blockEntity.properties.componentId,
-            accountId,
-            entityTypes,
-            entityTypeForComponentId,
-          );
+        const [entityTypeId, newTypeActions] = await getEntityTypeForComponent(
+          blockEntity.properties.componentId,
+        );
 
         // Placing at front to ensure latter actions can make use of this
         actions.unshift(...newTypeActions);
@@ -373,6 +349,81 @@ export const save = async (
       beforeBlockDraftIds.splice(position, 0, afterDraftId);
     }
   }
+  const placeholderToDraft = flipMap(draftToPlaceholder);
+
+  return [actions, placeholderToDraft] as const;
+};
+
+const updateEntityIdsForPlaceholders = (
+  placeholders: UpdatePageContentsResultPlaceholder[],
+  placeholderToDraft: Map<string, string>,
+) => {
+  const storeActions: EntityStorePluginAction[] = [];
+
+  for (const placeholder of placeholders) {
+    const draftId = placeholderToDraft.get(placeholder.placeholderID);
+    if (draftId) {
+      storeActions.push({
+        type: "updateEntityId",
+        payload: {
+          draftId,
+          entityId: placeholder.entityID,
+        },
+      });
+    }
+  }
+
+  return storeActions;
+};
+
+// @todo write tests
+export const save = async (
+  apolloClient: ApolloClient<unknown>,
+  accountId: string,
+  pageEntityId: string,
+  blocks: BlockEntity[],
+  doc: ProsemirrorNode<Schema>,
+  store: EntityStore,
+) => {
+  // @todo can these be cached at all?
+  const entityTypesResult = await apolloClient.query<
+    GetAccountEntityTypesSharedQuery,
+    GetAccountEntityTypesSharedQueryVariables
+  >({
+    query: getAccountEntityTypes,
+    variables: { accountId, includeOtherTypesInUse: true },
+    fetchPolicy: "network-only",
+  });
+
+  const entityTypes = entityTypesResult.data.getAccountEntityTypes;
+
+  /**
+   * @todo shouldn't need an existing text entity to find this
+   */
+  const textEntityTypeId = entityTypes.find(
+    (type) => type.properties.title === "Text",
+  )?.entityId;
+
+  if (!textEntityTypeId) {
+    throw new Error("No text entities exist. Cannot find text entity type id");
+  }
+
+  const entityTypeForComponentId = new Map<string, string>();
+
+  const [actions, placeholderToDraft] = await calculateSaveActions(
+    store,
+    accountId,
+    textEntityTypeId,
+    blocks,
+    doc,
+    async (componentId: string) =>
+      await ensureEntityTypeForComponent(
+        componentId,
+        accountId,
+        entityTypes,
+        entityTypeForComponentId,
+      ),
+  );
 
   const res = await apolloClient.mutate<
     UpdatePageContentsMutation,
@@ -388,21 +439,13 @@ export const save = async (
 
   await apolloClient.reFetchObservableQueries();
 
-  const storeActions: EntityStorePluginAction[] = [];
-  const result = res.data.updatePageContents;
-  const placeholderToDraft = flipMap(draftToPlaceholder);
-  for (const placeholder of result.placeholders) {
-    const draftId = placeholderToDraft.get(placeholder.placeholderID);
-    if (draftId) {
-      storeActions.push({
-        type: "updateEntityId",
-        payload: {
-          draftId,
-          entityId: placeholder.entityID,
-        },
-      });
-    }
-  }
+  const storeActions = updateEntityIdsForPlaceholders(
+    res.data.updatePageContents.placeholders,
+    placeholderToDraft,
+  );
 
-  return [result.page.properties.contents, storeActions] as const;
+  return [
+    res.data.updatePageContents.page.properties.contents,
+    storeActions,
+  ] as const;
 };
