@@ -59,7 +59,10 @@ pub mod __private {
         #[cfg(feature = "std")]
         impl ErrorReporter {
             #[inline]
-            pub fn report<C: std::error::Error + Send + Sync + 'static>(self, error: C) -> Report {
+            pub fn report<C: std::error::Error + Send + Sync + 'static>(
+                self,
+                error: C,
+            ) -> Report<C> {
                 Report::from(error)
             }
         }

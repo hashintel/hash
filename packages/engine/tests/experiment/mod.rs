@@ -357,9 +357,12 @@ pub async fn run_test<P: AsRef<Path>>(
 fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
-        File::open(path).wrap_err_lazy(|| format!("Could not open file {path:?}"))?,
+        File::open(path)
+            .wrap_err_lazy(|| format!("Could not open file {path:?}"))
+            .generalize()?,
     ))
     .wrap_err_lazy(|| format!("Could not parse {path:?}"))
+    .generalize()
 }
 
 pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(ExperimentType, Vec<ExpectedOutput>)>> {
@@ -464,7 +467,8 @@ impl ExpectedOutput {
         for (step, expected_states) in json_state {
             let step = step
                 .parse::<usize>()
-                .wrap_err_lazy(|| format!("Could not parse {step:?} as number of a step"))?;
+                .wrap_err_lazy(|| format!("Could not parse {step:?} as number of a step"))
+                .generalize()?;
             let result_states = agent_states
                 .get(step)
                 .ok_or_else(|| report!("Experiment output does not contain {step} steps"))?;

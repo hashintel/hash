@@ -54,7 +54,7 @@ impl Worker {
     /// - a [`Sleep`] message occurred.
     ///
     /// [`Sleep`]: nng::AioResult::Sleep
-    fn new(socket: &nng::Socket, sender: MsgSender, url: &str) -> Result<Self, ()> {
+    fn new(socket: &nng::Socket, sender: MsgSender, url: &str) -> Result<Self, nng::Error> {
         let ctx_orig = nng::Context::new(socket).wrap_err("Could not create context")?;
         let ctx = ctx_orig.clone();
 
