@@ -19,15 +19,13 @@
     "test": "jest"
   },
   "dependencies": {
-    "@emotion/cache": "11.7.1",
-    "@emotion/react": "11.9.0",
-    "@emotion/styled": "11.8.1",
     "@fortawesome/free-solid-svg-icons": "6.0.0",
     "clsx": "1.1.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
   "devDependencies": {
+    "@svgr/webpack": "6.2.1",
     "@types/react": "17.0.39",
     "@types/react-dom": "17.0.8",
     "@typescript-eslint/eslint-plugin": "5.17.0",

@@ -1,9 +1,8 @@
 import * as React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
-import CircularProgress from "@mui/material/CircularProgress";
-import { theme } from "@hashintel/hash-design-system";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { theme } from "@hashintel/hash-design-system";
 import {
   GithubIssueEvent,
   GithubPullRequest,
@@ -14,6 +13,7 @@ import {
   getGithubEntityTypes,
 } from "./types";
 import { GithubPrOverview } from "./overview";
+import { GithubPrOverview as GithubPrOverview1 } from "./overview1";
 import {
   collectPrEventsAndSetState,
   collectPrsAndSetState,
@@ -21,6 +21,8 @@ import {
   getPrs,
 } from "./entity-aggregations";
 import { PullRequestSelector } from "./pull-request-selector";
+import { LoadingUI } from "./loading-ui";
+import { dummyData } from "./dummy";
 
 export enum BlockState {
   Loading,
@@ -37,7 +39,10 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   accountId,
   entityId,
   aggregateEntities,
-  selectedPullRequest,
+  selectedPullRequest = {
+    repository: "blockprotocol/blockprotocol",
+    number: 298,
+  },
   updateEntities,
   aggregateEntityTypes,
 }) => {
@@ -70,7 +75,8 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     React.useState<{ [key in GITHUB_ENTITY_TYPES]: string }>();
 
   const [allPrs, setAllPrs] = React.useState<Map<string, GithubPullRequest>>();
-  const [pullRequest, setPullRequest] = React.useState<GithubPullRequest>();
+  const [pullRequest, setPullRequest] =
+    React.useState<GithubPullRequest>(dummyData);
   const [reviews, setReviews] = React.useState<GithubReview[]>();
   const [events, setEvents] = React.useState<GithubIssueEvent[]>();
 
@@ -218,20 +224,29 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       <CssBaseline />
       <div>
         {blockState === BlockState.Loading ? (
-          <CircularProgress />
+          <LoadingUI title="Setting up Block" />
         ) : blockState === BlockState.Selector ? (
           <PullRequestSelector
             setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
             allPrs={allPrs!}
           />
         ) : blockState === BlockState.Overview ? (
-          <GithubPrOverview
-            pullRequest={pullRequest!}
-            reviews={reviews!}
-            events={events!}
-            setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
-            setBlockState={setBlockState}
-          />
+          <>
+            <GithubPrOverview
+              pullRequest={pullRequest!}
+              reviews={reviews!}
+              events={events!}
+              setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
+              setBlockState={setBlockState}
+            />
+            <GithubPrOverview1
+              pullRequest={pullRequest!}
+              reviews={reviews!}
+              events={events!}
+              setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
+              setBlockState={setBlockState}
+            />
+          </>
         ) : (
           <div> Failed To Load Block </div>
         )}
