@@ -168,9 +168,8 @@ mod report;
 #[cfg(feature = "std")]
 mod error;
 #[cfg(feature = "futures")]
-mod future_ext;
+pub mod future;
 mod result_ext;
-// pub mod tags;
 
 use alloc::boxed::Box;
 use core::{fmt, marker::PhantomData};
@@ -178,9 +177,8 @@ use core::{fmt, marker::PhantomData};
 use provider::Provider;
 
 #[cfg(feature = "futures")]
-pub use self::future_ext::{
-    FutureExt, FutureWithContext, FutureWithErr, FutureWithLazyContext, FutureWithLazyErr,
-};
+#[doc(inline)]
+pub use self::future::FutureExt;
 use self::report::ReportImpl;
 pub use self::{
     frame::Frame,

@@ -1,3 +1,10 @@
+//! Extension for convenient usage of [`Report`]s returned by [`Future`] s.
+//!
+//! Extends [`Future`] with the same methods as [`ResultExt`] but calls the methods on [`poll`]ing.
+//!
+//! [`Report`]: crate::Report
+//! [`poll`]: Future::poll
+
 use core::{
     future::Future,
     pin::Pin,
