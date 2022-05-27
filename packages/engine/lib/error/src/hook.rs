@@ -110,3 +110,12 @@ impl Report {
         DISPLAY_HOOK.get()
     }
 }
+
+impl<T> Report<T> {
+    /// Converts the `&Report<Context>` to `&Report<()>` without modifying the frame stack.
+    pub(crate) const fn generalized(&self) -> &Report {
+        // SAFETY: `Report` is repr(transparent), so it's safe to cast between `Report<A>` and
+        //         `Report<B>`
+        unsafe { &*(self as *const Self).cast() }
+    }
+}

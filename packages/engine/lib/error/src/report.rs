@@ -150,13 +150,6 @@ impl<T> Report<T> {
         }
     }
 
-    /// Converts the `&Report<Context>` to `&Report<()>` without modifying the frame stack.
-    pub const fn generalized(&self) -> &Report {
-        // SAFETY: `Report` is repr(transparent), so it's safe to cast between `Report<A>` and
-        //         `Report<B>`
-        unsafe { &*(self as *const Self).cast() }
-    }
-
     /// Returns the backtrace of the error, if captured.
     ///
     /// Note, that `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` has to be set to enable backtraces.

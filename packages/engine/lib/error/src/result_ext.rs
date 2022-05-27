@@ -112,6 +112,10 @@ pub trait ResultExt {
     where
         C: Context,
         F: FnOnce() -> C;
+
+    // TODO: Temporary, remove before releasing
+    #[doc(hidden)]
+    fn generalize(self) -> Result<Self::Ok>;
 }
 
 #[cfg(feature = "std")]
@@ -171,6 +175,10 @@ where
             Err(error) => Err(Report::from(error).provide_context(context())),
         }
     }
+
+    fn generalize(self) -> Result<T> {
+        self.map_err(|error| Report::from_error(error).generalize())
+    }
 }
 
 impl<T, C> ResultExt for Result<T, C> {
@@ -225,5 +233,9 @@ impl<T, C> ResultExt for Result<T, C> {
             Ok(ok) => Ok(ok),
             Err(report) => Err(report.provide_context(context())),
         }
+    }
+
+    fn generalize(self) -> Result<T> {
+        self.map_err(Report::generalize)
     }
 }
