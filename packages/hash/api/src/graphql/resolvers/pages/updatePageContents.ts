@@ -9,6 +9,7 @@ import {
 } from "../../../model";
 import { exactlyOne } from "../../../util";
 import {
+  EntityDefinition,
   MutationUpdatePageContentsArgs,
   Resolver,
   SwapBlockData,
@@ -38,7 +39,11 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
   }
 };
 
-// @todo these actions need to be processed in order to ensure placeholders work as expected
+const isPlaceholder = (id: unknown): id is string =>
+  typeof id === "string" && id.startsWith("placeholder-");
+
+// @todo these actions need to be processed in order to ensure placeholders
+// work as expected
 export const updatePageContents: Resolver<
   Promise<
     {
@@ -58,17 +63,63 @@ export const updatePageContents: Resolver<
    */
   const placeholderResults = new Map<string, string>();
 
-  const getRealId = (id: string) => {
-    if (id.startsWith("placeholder-")) {
-      const realId = placeholderResults.get(id);
+  const replacePlaceholder = (placeholder: string) => {
+    if (isPlaceholder(placeholder)) {
+      const realId = placeholderResults.get(placeholder);
       if (!realId) {
-        throw new Error(`Real id for placeholder ${id} missing`);
+        throw new Error(`Real id for placeholder ${placeholder} missing`);
       }
       return realId;
+    }
+    return placeholder;
+  };
+
+  const recordEntity = (
+    placeholder: string | null | undefined,
+    entity: { entityId: string },
+  ) => {
+    if (isPlaceholder(placeholder)) {
+      placeholderResults.set(placeholder, entity.entityId);
     }
   };
 
   return await dataSources.db.transaction(async (client) => {
+    const createEntityWithPlaceholders = async (
+      originalDefinition: EntityDefinition,
+      entityAccountId: string,
+    ) => {
+      const entityDefinition = produce(originalDefinition, (draft) => {
+        if (draft.existingEntity) {
+          draft.existingEntity.entityId = replacePlaceholder(
+            draft.existingEntity.entityId,
+          );
+        }
+        if (draft.entityType?.entityTypeId) {
+          draft.entityType.entityTypeId = replacePlaceholder(
+            draft.entityType.entityTypeId,
+          );
+        }
+        if (draft.entityProperties?.text?.__linkedData?.entityId) {
+          draft.entityProperties.text.__linkedData.entityId =
+            replacePlaceholder(
+              draft.entityProperties.text.__linkedData.entityId,
+            );
+        }
+
+        delete draft.placeholderID;
+      });
+
+      const entity = await Entity.createEntityWithLinks(client, {
+        accountId: entityAccountId,
+        user,
+        entityDefinition,
+      });
+
+      recordEntity(entityDefinition.placeholderID, entity);
+
+      return entity;
+    };
+
     // Create any _new_ entity types
     await Promise.all(
       actions
@@ -84,17 +135,16 @@ export const updatePageContents: Resolver<
               accountId: entityTypeAccountId,
             } = action.createEntityType!;
 
-            const entityType = await EntityType.create(client, {
-              accountId: entityTypeAccountId,
-              createdByAccountId: user.accountId,
-              description: description ?? undefined,
-              name,
-              schema,
-            });
-
-            if (placeholderID?.startsWith("placeholder-")) {
-              placeholderResults.set(placeholderID, entityType.entityId);
-            }
+            recordEntity(
+              placeholderID,
+              await EntityType.create(client, {
+                accountId: entityTypeAccountId,
+                createdByAccountId: user.accountId,
+                description: description ?? undefined,
+                name,
+                schema,
+              }),
+            );
           } catch (error) {
             if (error instanceof UserInputError) {
               throw new UserInputError(`action ${i}: ${error}`);
@@ -114,43 +164,7 @@ export const updatePageContents: Resolver<
         const { entity: entityDefinition, accountId: entityAccountId } =
           action.createEntity!;
 
-        const entityPlaceholderId = entityDefinition.placeholderID;
-
-        // @todo remove duplication
-        const updatedEntityDefinition = produce(entityDefinition, (draft) => {
-          if (draft.existingEntity) {
-            const realId = getRealId(draft.existingEntity.entityId);
-            if (realId) {
-              draft.existingEntity.entityId = realId;
-            }
-          }
-          if (draft.entityType?.entityTypeId) {
-            const realId = getRealId(draft.entityType.entityTypeId);
-            if (realId) {
-              draft.entityType.entityTypeId = realId;
-            }
-          }
-          if (draft.entityProperties?.text?.__linkedData?.entityId) {
-            const realId = getRealId(
-              draft.entityProperties.text.__linkedData.entityId,
-            );
-            if (realId) {
-              draft.entityProperties.text.__linkedData.entityId = realId;
-            }
-          }
-
-          delete draft.placeholderID;
-        });
-
-        const entity = await Entity.createEntityWithLinks(client, {
-          accountId: entityAccountId,
-          user,
-          entityDefinition: updatedEntityDefinition,
-        });
-
-        if (entityPlaceholderId?.startsWith("placeholder-")) {
-          placeholderResults.set(entityPlaceholderId, entity.entityId);
-        }
+        await createEntityWithPlaceholders(entityDefinition, entityAccountId);
       } catch (error) {
         if (error instanceof UserInputError) {
           throw new UserInputError(`action ${i}: ${error}`);
@@ -169,52 +183,14 @@ export const updatePageContents: Resolver<
             const {
               accountId: blockAccountId,
               componentId: blockComponentId,
-              entity: blockDataDefinition,
               placeholderID,
             } = action.insertNewBlock!;
 
-            const updatedBlockDataDefinition = produce(
-              blockDataDefinition,
-              (draft) => {
-                if (draft.existingEntity) {
-                  const realId = getRealId(draft.existingEntity.entityId);
-                  if (realId) {
-                    draft.existingEntity.entityId = realId;
-                  }
-                }
-                if (draft.entityType?.entityTypeId) {
-                  const realId = getRealId(draft.entityType.entityTypeId);
-                  if (realId) {
-                    draft.entityType.entityTypeId = realId;
-                  }
-                }
-                if (draft.entityProperties?.text?.__linkedData?.entityId) {
-                  const realId = getRealId(
-                    draft.entityProperties.text.__linkedData.entityId,
-                  );
-                  if (realId) {
-                    draft.entityProperties.text.__linkedData.entityId = realId;
-                  }
-                }
-              },
+            const blockData = await createEntityWithPlaceholders(
+              action.insertNewBlock!.entity,
+              // assume that the "block entity" is in the same account as the block itself
+              blockAccountId,
             );
-
-            const blockData = await Entity.createEntityWithLinks(client, {
-              accountId: blockAccountId, // assume that the "block entity" is in the same account as the block itself
-              user,
-              entityDefinition: updatedBlockDataDefinition,
-            });
-
-            if (
-              updatedBlockDataDefinition.placeholderID?.startsWith(
-                "placeholder-",
-              )
-            ) {
-              placeholderResults.set(
-                updatedBlockDataDefinition.placeholderID,
-                blockData.entityId,
-              );
-            }
 
             const block = await Block.createBlock(client, {
               blockData,
@@ -225,9 +201,7 @@ export const updatePageContents: Resolver<
               },
             });
 
-            if (placeholderID?.startsWith("placeholder-")) {
-              placeholderResults.set(placeholderID, block.entityId);
-            }
+            recordEntity(placeholderID, block);
 
             return block;
           } catch (error) {

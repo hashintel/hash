@@ -50,6 +50,7 @@
     "html-to-text": "8.0.0",
     "http-terminator": "3.0.3",
     "id128": "1.6.6",
+    "immer": "9.0.6",
     "js-yaml": "4.1.0",
     "json-schema": "0.4.0",
     "jsonpath": "1.1.1",
