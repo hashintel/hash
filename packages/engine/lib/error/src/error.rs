@@ -18,7 +18,7 @@ where
 
         Self::from_frame(
             Frame::from_std(error, Location::caller(), None),
-            #[cfg(all(nightly, feature = "std"))]
+            #[cfg(nightly)]
             backtrace,
             #[cfg(feature = "spantrace")]
             Some(tracing_error::SpanTrace::capture()),

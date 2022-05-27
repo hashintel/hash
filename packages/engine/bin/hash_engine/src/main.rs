@@ -19,7 +19,7 @@ async fn main() -> Result<()> {
         &format!("experiment-{}", args.experiment_id),
         &format!("experiment-{}-texray", args.experiment_id),
     )
-    .wrap_err("Failed to initialise the logger")
+    .wrap_err("Failed to initialize the logger")
     .generalize()?;
 
     let mut env = env::<ExperimentRun>(&args)

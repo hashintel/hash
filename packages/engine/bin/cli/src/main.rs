@@ -89,7 +89,7 @@ async fn main() -> Result<()> {
         &format!("cli-{now}"),
         &format!("cli-{now}-texray"),
     )
-    .wrap_err("Failed to initialise the logger")
+    .wrap_err("Failed to initialize the logger")
     .generalize()?;
 
     let nng_listen_url = format!("ipc://hash-orchestrator-{now}");
