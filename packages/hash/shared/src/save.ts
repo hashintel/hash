@@ -71,8 +71,7 @@ export const save = async (
   store: EntityStore,
 ) => {
   // @todo can these be cached at all?
-  const entityTypeForComponentId = new Map<string, string>();
-  const entityTypes = await apolloClient.query<
+  const entityTypesResult = await apolloClient.query<
     GetAccountEntityTypesSharedQuery,
     GetAccountEntityTypesSharedQueryVariables
   >({
@@ -81,10 +80,13 @@ export const save = async (
     fetchPolicy: "network-only",
   });
 
+  const entityTypeForComponentId = new Map<string, string>();
+  const entityTypes = entityTypesResult.data.getAccountEntityTypes;
+
   /**
    * @todo shouldn't need an existing text entity to find this
    */
-  const textEntityTypeId = entityTypes.data.getAccountEntityTypes.find(
+  const textEntityTypeId = entityTypes.find(
     (type) => type.properties.title === "Text",
   )?.entityId;
 
@@ -110,12 +112,11 @@ export const save = async (
       ).sort();
 
       componentSchemaKeys.splice(componentSchemaKeys.indexOf("editableRef"), 1);
-      desiredEntityTypeId = entityTypes.data.getAccountEntityTypes.find(
-        (type) =>
-          isEqual(
-            Object.keys(type.properties.properties ?? {}).sort(),
-            componentSchemaKeys,
-          ),
+      desiredEntityTypeId = entityTypes.find((type) =>
+        isEqual(
+          Object.keys(type.properties.properties ?? {}).sort(),
+          componentSchemaKeys,
+        ),
       )?.entityId;
 
       if (!desiredEntityTypeId) {
@@ -138,6 +139,8 @@ export const save = async (
           },
         });
       }
+
+      entityTypeForComponentId.set(componentId, desiredEntityTypeId);
     }
 
     if (!desiredEntityTypeId) {

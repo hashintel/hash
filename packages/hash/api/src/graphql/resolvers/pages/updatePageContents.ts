@@ -53,7 +53,11 @@ export const updatePageContents: Resolver<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePageContentsArgs
-> = async (_, { accountId, entityId, actions }, { dataSources, user }) => {
+> = async (
+  _,
+  { accountId, entityId: pageEntityId, actions },
+  { dataSources, user },
+) => {
   validateActionsInput(actions);
 
   /**
@@ -65,11 +69,11 @@ export const updatePageContents: Resolver<
 
   const replacePlaceholder = (placeholder: string) => {
     if (isPlaceholder(placeholder)) {
-      const realId = placeholderResults.get(placeholder);
-      if (!realId) {
-        throw new Error(`Real id for placeholder ${placeholder} missing`);
+      const entityId = placeholderResults.get(placeholder);
+      if (!entityId) {
+        throw new Error(`Entity id for placeholder ${placeholder} missing`);
       }
-      return realId;
+      return entityId;
     }
     return placeholder;
   };
@@ -164,7 +168,10 @@ export const updatePageContents: Resolver<
         const { entity: entityDefinition, accountId: entityAccountId } =
           action.createEntity!;
 
-        await createEntityWithPlaceholders(entityDefinition, entityAccountId);
+        recordEntity(
+          entityDefinition.placeholderID,
+          await createEntityWithPlaceholders(entityDefinition, entityAccountId),
+        );
       } catch (error) {
         if (error instanceof UserInputError) {
           throw new UserInputError(`action ${i}: ${error}`);
@@ -255,14 +262,14 @@ export const updatePageContents: Resolver<
 
     // Lock the page so that no other concurrent call to this resolver will conflict
     // with the page update.
-    await Entity.acquireLock(client, { entityId });
+    await Entity.acquireLock(client, { entityId: pageEntityId });
 
     const page = await Page.getPageById(client, {
       accountId,
-      entityId,
+      entityId: pageEntityId,
     });
     if (!page) {
-      const msg = `Page with fixed ID ${entityId} not found in account ${accountId}`;
+      const msg = `Page with fixed ID ${pageEntityId} not found in account ${accountId}`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
