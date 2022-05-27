@@ -159,17 +159,17 @@
 extern crate alloc;
 
 mod frame;
-#[cfg(feature = "hooks")]
-mod hook;
-mod iter;
+pub mod iter;
 mod macros;
 mod report;
+mod result_ext;
 
 #[cfg(feature = "std")]
 mod error;
 #[cfg(feature = "futures")]
 pub mod future;
-mod result_ext;
+#[cfg(feature = "hooks")]
+mod hook;
 
 use alloc::boxed::Box;
 use core::{fmt, marker::PhantomData};
@@ -344,33 +344,6 @@ impl<C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static> Context fo
 //   Tracking issue: https://github.com/rust-lang/rust/issues/41517
 pub trait Message: fmt::Display + fmt::Debug + Send + Sync + 'static {}
 impl<M: fmt::Display + fmt::Debug + Send + Sync + 'static> Message for M {}
-
-/// Iterator over the [`Frame`] stack of a [`Report`].
-///
-/// Use [`Report::frames()`] to create this iterator.
-#[must_use]
-#[derive(Clone)]
-pub struct Frames<'r> {
-    current: Option<&'r Frame>,
-}
-
-/// Iterator over requested references in the [`Frame`] stack of a [`Report`].
-///
-/// Use [`Report::request_ref()`] to create this iterator.
-#[must_use]
-pub struct RequestRef<'r, T: ?Sized> {
-    frames: Frames<'r>,
-    _marker: PhantomData<&'r T>,
-}
-
-/// Iterator over requested values in the [`Frame`] stack of a [`Report`].
-///
-/// Use [`Report::request_value()`] to create this iterator.
-#[must_use]
-pub struct RequestValue<'r, T> {
-    frames: Frames<'r>,
-    _marker: PhantomData<T>,
-}
 
 #[cfg(test)]
 pub(crate) mod test_helper {

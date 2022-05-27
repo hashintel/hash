@@ -7,7 +7,10 @@ use std::backtrace::{Backtrace, BacktraceStatus};
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
-use crate::{Context, Frames, Message, Report, RequestRef, RequestValue};
+use crate::{
+    iter::{Frames, RequestRef, RequestValue},
+    Context, Message, Report,
+};
 
 pub struct ReportImpl {
     pub(super) frame: Frame,
