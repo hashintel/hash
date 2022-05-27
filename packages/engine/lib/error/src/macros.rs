@@ -37,7 +37,10 @@ pub mod __private {
         pub struct ErrorReporter;
         #[cfg(feature = "std")]
         impl ErrorReporter {
-            pub fn report<C: std::error::Error + Send + Sync + 'static>(self, error: C) -> Report {
+            pub fn report<C: std::error::Error + Send + Sync + 'static>(
+                self,
+                error: C,
+            ) -> Report<C> {
                 Report::from(error)
             }
         }
@@ -95,14 +98,14 @@ pub mod __private {
 /// # #[cfg(not(miri))]
 /// # use std::fs;
 /// # use error::report;
-/// # fn func() -> error::Result<()> {
+/// # fn func() -> error::Result<(), impl std::fmt::Debug> {
 /// # #[cfg(not(miri))]
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => return Err(report!(err)),
 /// }
 /// # #[cfg(miri)]
-/// # error::bail!("");
+/// # error::bail!(std::io::Error::from(std::io::ErrorKind::NotFound));
 /// # Ok(())
 /// # }
 /// # let err = func().unwrap_err();
@@ -196,14 +199,14 @@ macro_rules! report {
 /// ```
 /// # use std::fs;
 /// # use error::bail;
-/// # fn func() -> error::Result<()> {
+/// # fn func() -> error::Result<(), impl std::fmt::Debug> {
 /// # #[cfg(not(miri))]
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => bail!(err),
 /// }
 /// # #[cfg(miri)]
-/// # bail!("");
+/// # bail!(std::io::Error::from(std::io::ErrorKind::NotFound));
 /// # Ok(())
 /// # }
 /// # let err = func().unwrap_err();

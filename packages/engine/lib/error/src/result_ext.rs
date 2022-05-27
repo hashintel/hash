@@ -119,11 +119,11 @@ impl<T, E> ResultExt for std::result::Result<T, E>
 where
     E: std::error::Error + Send + Sync + 'static,
 {
-    type Context = ();
+    type Context = E;
     type Ok = T;
 
     #[track_caller]
-    fn wrap_err<M>(self, message: M) -> Result<T>
+    fn wrap_err<M>(self, message: M) -> Result<T, E>
     where
         M: Message,
     {
@@ -135,7 +135,7 @@ where
     }
 
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T>
+    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T, E>
     where
         M: Message,
         F: FnOnce() -> M,
