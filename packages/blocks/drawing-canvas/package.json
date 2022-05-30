@@ -50,7 +50,7 @@
         "documentString": ""
       }
     ],
-    "icon": "public/omega.svg",
-    "image": "public/block-preview.svg"
+    "icon": "public/icon.svg",
+    "image": "public/preview.png"
   }
 }
