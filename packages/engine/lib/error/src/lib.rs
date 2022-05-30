@@ -165,6 +165,7 @@
 )]
 
 extern crate alloc;
+extern crate core;
 
 mod frame;
 pub mod iter;
@@ -190,7 +191,7 @@ pub use self::{
     frame::Frame,
     macros::*,
     report::Report,
-    result::{Result, ResultExt},
+    result::{IntoReport, Result, ResultExt},
 };
 
 /// Trait alias for an error context.

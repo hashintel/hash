@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, fmt::Display};
 
-use error::{bail, report, Result, ResultExt};
+use error::{bail, report, IntoReport, Result, ResultExt};
 use hash_engine_lib::{proto, proto::EngineStatus};
 use simulation_structure::ExperimentId;
 use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};
@@ -87,6 +87,7 @@ impl Handler {
             .map_err(|_| report!("Could not send control message to server"))?;
         result_rx
             .await
+            .report()
             .wrap_err("Failed to receive response from")
             .generalize()?
     }
@@ -217,6 +218,7 @@ impl Server {
             }
             Some(sender) => sender
                 .send(msg.body)
+                .report()
                 .wrap_err_lazy(|| format!("Routing message for experiment {}", msg.experiment_id)),
         }
     }
