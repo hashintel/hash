@@ -5,7 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use error::{Report, Result, ResultExt};
+use error::{IntoReport, Report, Result, ResultExt};
 use hash_engine_lib::{
     experiment::controller::run::cleanup_experiment,
     proto::EngineMsg,
@@ -87,7 +87,7 @@ impl process::Process for LocalProcess {
                             self.engine_url
                         )
                     })
-                    .map_err(Report::generalize)?,
+                    .generalize()?,
             );
         }
         self.client
@@ -96,14 +96,16 @@ impl process::Process for LocalProcess {
             .send(msg)
             .await
             .wrap_err("Could not send engine message")
-            .map_err(Report::generalize)
+            .generalize()
     }
 
     async fn wait(&mut self) -> Result<ExitStatus> {
         self.child
             .wait()
             .await
+            .report()
             .wrap_err("Could not wait for the process to exit")
+            .generalize()
     }
 }
 
@@ -209,7 +211,9 @@ impl process::Command for LocalCommand {
 
         let child = cmd
             .spawn()
-            .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))?;
+            .report()
+            .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))
+            .generalize()?;
         debug!("Spawned local engine process for experiment");
 
         Ok(Box::new(LocalProcess {

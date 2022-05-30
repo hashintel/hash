@@ -56,7 +56,7 @@ impl Report {
     ///
     /// [`set_debug_hook`]: Self::set_debug_hook
     #[cfg(feature = "hooks")]
-    pub fn debug_hook()
+    pub(crate) fn debug_hook()
     -> Option<&'static (impl Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static)>
     {
         DEBUG_HOOK.get()
@@ -104,9 +104,24 @@ impl Report {
     ///
     /// [`set_display_hook`]: Self::set_display_hook
     #[cfg(feature = "hooks")]
-    pub fn display_hook()
+    pub(crate) fn display_hook()
     -> Option<&'static (impl Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static)>
     {
         DISPLAY_HOOK.get()
+    }
+}
+
+impl<T> Report<T> {
+    /// Converts the `&Report<T>` to `&Report<()>` without modifying the frame stack.
+    ///
+    /// Changing `Report<T>` to `Report<()>` is only used internally for calling [`debug_hook`] and
+    /// [`display_hook`] and is intentionally not exposed.
+    ///
+    /// [`debug_hook`]: Self::debug_hook
+    /// [`display_hook`]: Self::display_hook
+    pub(crate) const fn generalized(&self) -> &Report {
+        // SAFETY: `Report` is repr(transparent), so it's safe to cast between `Report<A>` and
+        //         `Report<B>`
+        unsafe { &*(self as *const Self).cast() }
     }
 }

@@ -6,10 +6,10 @@
 //!
 //! Error reporting strategies in Rust are still developing and there are many approaches at the
 //! moment with various pros and cons. This crates takes inspiration from an
-//! [RFC to the core library ](https://github.com/nrc/rfcs/blob/dyno/text/0000-dyno.md) to introduce
-//! a reflection-like API - the [`provider`]-API - to add context data to a [`Report`]. Using this,
-//! it becomes possible to attach any data to an error. Beyond this, the design also allows Errors
-//! to have additional requirements, such as _enforcing_ the provision of contextual information by
+//! [RFC to the core library ](https://rust-lang.github.io/rfcs/3192-dyno.html) to introduce a
+//! reflection-like API - the [`provider`]-API - to add context data to a [`Report`]. Using this, it
+//! becomes possible to attach any data to an error. Beyond this, the design also allows Errors to
+//! have additional requirements, such as _enforcing_ the provision of contextual information by
 //! using [`Report::provide_context()`].
 //!
 //! ### Why not...
@@ -134,19 +134,29 @@
 //!
 //! # Feature flags
 //!
-//! - `std`: Enables support for [`Error`] and, on nightly, [`Backtrace`], **enabled** by default
-//! - `spantrace`: Enables the capturing of [`SpanTrace`]s, **disabled** by default
+//! Feature     | Description                                                             | default
+//! ------------|-------------------------------------------------------------------------|---------
+//! `std`       | Enables support for [`Error`] and, on nightly, [`Backtrace`]            | enabled
+//! `hooks`     | Enables the usage of [`set_display_hook`] and [`set_debug_hook`]        | enabled
+//! `spantrace` | Enables the capturing of [`SpanTrace`]s                                 | disabled
+//! `futures`   | Provides a [`FutureExt`] adaptor                                        | disabled
+//!
 //!
 //! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
 //! backtraces on non-nightly channels and can be prioritized depending on demand.
 //!
-//! [`display_hook`]: Report::display_hook
-//! [`debug_hook`]: Report::debug_hook
+//! [`set_display_hook`]: Report::set_display_hook
+//! [`set_debug_hook`]: Report::set_debug_hook
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
-#![warn(missing_docs, clippy::pedantic, clippy::nursery)]
+#![warn(
+    missing_docs,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::undocumented_unsafe_blocks
+)]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
 #![allow(clippy::module_name_repetitions)]
 #![cfg_attr(
@@ -155,186 +165,34 @@
 )]
 
 extern crate alloc;
+extern crate core;
 
 mod frame;
-#[cfg(feature = "futures")]
-mod future_ext;
-#[cfg(feature = "hooks")]
-mod hook;
-mod iter;
+pub mod iter;
 mod macros;
 mod report;
-mod result_ext;
-// pub mod tags;
+mod result;
 
-use alloc::boxed::Box;
-use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
+#[cfg(feature = "std")]
+mod error;
+#[cfg(feature = "futures")]
+pub mod future;
+#[cfg(feature = "hooks")]
+mod hook;
+
+use core::fmt;
 
 use provider::Provider;
 
 #[cfg(feature = "futures")]
-pub use self::future_ext::{
-    FutureExt, FutureWithContext, FutureWithErr, FutureWithLazyContext, FutureWithLazyErr,
-};
-use self::{frame::FrameRepr, report::ReportImpl};
+#[doc(inline)]
+pub use self::future::FutureExt;
 pub use self::{
+    frame::Frame,
     macros::*,
-    result_ext::{Result, ResultExt},
+    report::Report,
+    result::{IntoReport, Result, ResultExt},
 };
-
-/// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
-/// a [`Backtrace`] and a [`SpanTrace`].
-///
-/// To enable the backtrace, make sure `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to
-/// the [`Backtrace` documentation][`Backtrace`]. To enable the span trace, [`ErrorLayer`] has to
-/// be enabled.
-///
-/// Context information can be added by using [`wrap()`] or [`ResultExt`]. The [`Frame`] stack can
-/// be iterated by using [`frames()`].
-///
-/// To enforce context information generation, an optional context [`Provider`] may be used. When
-/// creating a `Report` from a message with [`new()`] or from an std-error by using [`from()`], the
-/// `Report` does not have an context associated. To provide one, the [`provider`] API is used. Use
-/// [`provide_context()`] or [`ResultExt`] to add it, which may also be used to provide more context
-/// information than only a display message. This information can the be retrieved by calling
-/// [`request_ref()`] or [`request_value()`].
-///
-/// [`Backtrace`]: std::backtrace::Backtrace
-/// [`SpanTrace`]: tracing_error::SpanTrace
-/// [`ErrorLayer`]: tracing_error::ErrorLayer
-/// [`wrap()`]: Self::wrap
-/// [`from()`]: Self::from
-/// [`frames()`]: Self::frames
-/// [`new()`]: Self::new
-/// [`provide_context()`]: Self::provide_context
-/// [`request_ref()`]: Self::request_ref
-/// [`request_value()`]: Self::request_value
-///
-/// # Examples
-///
-/// Provide a context for an error:
-///
-///
-/// ```
-/// use error::{ResultExt, Result};
-///
-/// fn main() -> Result<()> {
-///     # fn fake_main() -> Result<()> {
-///     let config_path = "./path/to/config.file";
-///     # #[cfg(all(not(miri), feature = "std"))]
-///     # #[allow(unused_variables)]
-///     let content = std::fs::read_to_string(config_path)
-///         .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
-///     # #[cfg(any(miri, not(feature = "std")))]
-///     # Err(error::report!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
-///
-///     # const _: &str = stringify! {
-///     ...
-///     # };
-///     # Ok(()) }
-///     # let err = fake_main().unwrap_err();
-///     # assert_eq!(err.frames().count(), 2);
-///     # Ok(())
-/// }
-/// ```
-///
-/// Enforce a context for an error:
-///
-/// ```
-/// use core::fmt;
-/// use std::path::{Path, PathBuf};
-///
-/// use provider::{Demand, Provider};
-/// use error::{Report, ResultExt};
-///
-/// #[derive(Debug)]
-/// # #[derive(PartialEq)]
-/// enum RuntimeError {
-///     InvalidConfig(PathBuf),
-/// # }
-/// # const _: &str = stringify! {
-///     ...
-/// }
-/// # ;
-///
-/// #[derive(Debug)]
-/// enum ConfigError {
-///     IoError,
-/// # }
-/// # const _: &str = stringify! {
-///     ...
-/// }
-/// # ;
-///
-/// impl fmt::Display for RuntimeError {
-///     # fn fmt(&self, _fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///     # const _: &str = stringify! {
-///     ...
-///     # };
-///     # Ok(())
-///     # }
-/// }
-/// impl fmt::Display for ConfigError {
-///     # fn fmt(&self, _fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///     # const _: &str = stringify! {
-///     ...
-///     # };
-///     # Ok(())
-///     # }
-/// }
-///
-/// impl Provider for RuntimeError {
-///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
-/// }
-/// impl Provider for ConfigError {
-///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
-/// }
-///
-/// # #[allow(unused_variables)]
-/// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
-///     # #[cfg(any(miri, not(feature = "std")))]
-///     # error::bail!(context: ConfigError::IoError, "No such file");
-///     # #[cfg(all(not(miri), feature = "std"))]
-///     std::fs::read_to_string(path.as_ref()).provide_context(ConfigError::IoError)
-/// }
-///
-/// fn main() -> Result<(), Report<RuntimeError>> {
-///     # fn fake_main() -> Result<(), Report<RuntimeError>> {
-///     let config_path = "./path/to/config.file";
-///     # #[allow(unused_variables)]
-///     let config = read_config(config_path)
-///             .provide_context_lazy(|| RuntimeError::InvalidConfig(PathBuf::from(config_path)))?;
-///
-///     # const _: &str = stringify! {
-///     ...
-///     # };
-///     # Ok(()) }
-///     # let err = fake_main().unwrap_err();
-///     # assert_eq!(err.frames().count(), 3);
-///     # assert!(err.contains::<ConfigError>());
-///     # assert_eq!(err.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
-///     # Ok(())
-/// }
-/// ```
-#[must_use]
-#[repr(transparent)]
-pub struct Report<C = ()> {
-    inner: Box<ReportImpl>,
-    _context: PhantomData<C>,
-}
-
-/// A single error, contextual message, or error context inside of a [`Report`].
-///
-/// `Frame`s are organized as a singly linked list, which can be iterated by calling
-/// [`Report::frames()`]. The head is pointing to the most recent context or contextual message,
-/// the tail is the root error created by [`Report::new()`], [`Report::from_context()`], or
-/// [`Report::from()`]. The next `Frame` can be accessed by requesting it by calling
-/// [`Report::request_ref()`].
-pub struct Frame {
-    inner: ManuallyDrop<Box<FrameRepr>>,
-    location: &'static Location<'static>,
-    source: Option<Box<Frame>>,
-}
 
 /// Trait alias for an error context.
 ///
@@ -353,33 +211,6 @@ impl<C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static> Context fo
 //   Tracking issue: https://github.com/rust-lang/rust/issues/41517
 pub trait Message: fmt::Display + fmt::Debug + Send + Sync + 'static {}
 impl<M: fmt::Display + fmt::Debug + Send + Sync + 'static> Message for M {}
-
-/// Iterator over the [`Frame`] stack of a [`Report`].
-///
-/// Use [`Report::frames()`] to create this iterator.
-#[must_use]
-#[derive(Clone)]
-pub struct Frames<'r> {
-    current: Option<&'r Frame>,
-}
-
-/// Iterator over requested references in the [`Frame`] stack of a [`Report`].
-///
-/// Use [`Report::request_ref()`] to create this iterator.
-#[must_use]
-pub struct RequestRef<'r, T: ?Sized> {
-    frames: Frames<'r>,
-    _marker: PhantomData<&'r T>,
-}
-
-/// Iterator over requested values in the [`Frame`] stack of a [`Report`].
-///
-/// Use [`Report::request_value()`] to create this iterator.
-#[must_use]
-pub struct RequestValue<'r, T> {
-    frames: Frames<'r>,
-    _marker: PhantomData<T>,
-}
 
 #[cfg(test)]
 pub(crate) mod test_helper {

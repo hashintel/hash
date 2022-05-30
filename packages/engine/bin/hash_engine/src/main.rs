@@ -1,4 +1,4 @@
-use error::{Result, ResultExt};
+use error::{IntoReport, Result, ResultExt};
 use hash_engine_lib::{
     config::experiment_config,
     env::env,
@@ -19,18 +19,24 @@ async fn main() -> Result<()> {
         &format!("experiment-{}", args.experiment_id),
         &format!("experiment-{}-texray", args.experiment_id),
     )
-    .wrap_err("Failed to initialise the logger")?;
+    .report()
+    .wrap_err("Failed to initialize the logger")
+    .generalize()?;
 
     let mut env = env::<ExperimentRun>(&args)
         .await
-        .wrap_err("Could not create environment for experiment")?;
+        .report()
+        .wrap_err("Could not create environment for experiment")
+        .generalize()?;
     // Fetch all dependencies of the experiment run such as datasets
     env.experiment
         .fetch_deps()
         .await
-        .wrap_err("Could not fetch dependencies for experiment")?;
+        .report()
+        .wrap_err("Could not fetch dependencies for experiment")
+        .generalize()?;
     // Generate the configuration for packages from the environment
-    let config = experiment_config(&args, &env).await?;
+    let config = experiment_config(&args, &env).await.report().generalize()?;
 
     tracing::info!(
         "HASH Engine process started for experiment {}",
@@ -39,7 +45,9 @@ async fn main() -> Result<()> {
 
     let experiment_result = run_experiment(config, env)
         .await
-        .wrap_err("Could not run experiment");
+        .report()
+        .wrap_err("Could not run experiment")
+        .generalize();
 
     cleanup_experiment(args.experiment_id);
 

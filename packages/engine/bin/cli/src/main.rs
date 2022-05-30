@@ -7,7 +7,7 @@ use std::{
 };
 
 use clap::{AppSettings, Parser};
-use error::{Result, ResultExt};
+use error::{IntoReport, Result, ResultExt};
 use execution::package::experiment::ExperimentName;
 use hash_engine_lib::utils::init_logger;
 use orchestrator::{Experiment, ExperimentConfig, Manifest, Server};
@@ -89,7 +89,9 @@ async fn main() -> Result<()> {
         &format!("cli-{now}"),
         &format!("cli-{now}-texray"),
     )
-    .wrap_err("Failed to initialise the logger")?;
+    .report()
+    .wrap_err("Failed to initialize the logger")
+    .generalize()?;
 
     let nng_listen_url = format!("ipc://hash-orchestrator-{now}");
 
@@ -99,7 +101,9 @@ async fn main() -> Result<()> {
     let absolute_project_path = args
         .project
         .canonicalize()
-        .wrap_err_lazy(|| format!("Could not canonicalize project path: {:?}", args.project))?;
+        .report()
+        .wrap_err_lazy(|| format!("Could not canonicalize project path: {:?}", args.project))
+        .generalize()?;
     let manifest = Manifest::from_local(&absolute_project_path)
         .wrap_err_lazy(|| format!("Could not read local project {absolute_project_path:?}"))?;
     let experiment_run = manifest

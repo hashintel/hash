@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use error::{bail, ensure, report, Result, ResultExt};
+use error::{bail, ensure, report, IntoReport, Result, ResultExt};
 use execution::package::simulation::{
     init::{InitialState, InitialStateName},
     state::behavior_execution::Behavior,
@@ -275,7 +275,9 @@ impl Manifest {
         debug!("Reading behaviors in {src_folder:?}");
         for entry in src_folder
             .read_dir()
-            .wrap_err_lazy(|| format!("Could not read behavior directory: {src_folder:?}"))?
+            .report()
+            .wrap_err_lazy(|| format!("Could not read behavior directory: {src_folder:?}"))
+            .generalize()?
         {
             match entry {
                 Ok(entry) => {
@@ -319,7 +321,9 @@ impl Manifest {
 
         if file_extension == "csv" {
             data = parse_raw_csv_into_json(data)
-                .wrap_err_lazy(|| format!("Could not convert csv into json: {path:?}"))?;
+                .report()
+                .wrap_err_lazy(|| format!("Could not convert csv into json: {path:?}"))
+                .generalize()?;
         }
 
         let filename = path.file_name().unwrap().to_string_lossy().to_string();
@@ -349,7 +353,9 @@ impl Manifest {
         debug!("Reading datasets in {src_folder:?}");
         for entry in src_folder
             .read_dir()
-            .wrap_err_lazy(|| format!("Could not read dataset directory: {src_folder:?}"))?
+            .report()
+            .wrap_err_lazy(|| format!("Could not read dataset directory: {src_folder:?}"))
+            .generalize()?
         {
             match entry {
                 Ok(entry) => {
@@ -665,7 +671,7 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
     debug!("Parsing the dependencies folder: {dependency_path:?}");
 
     let mut entries = dependency_path
-        .read_dir()?
+        .read_dir().report().generalize()?
         .filter_map(|dir_res| {
             if let Ok(entry) = dir_res {
                 // check it's a folder and matches the pattern of a user namespace (i.e. `@user`)
@@ -675,7 +681,7 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
             }
             None
         })
-        .map(|user_dir| user_dir.path().read_dir().wrap_err_lazy(|| format!("Could not read directory {:?}", user_dir.path())))
+        .map(|user_dir| user_dir.path().read_dir().report().wrap_err_lazy(|| format!("Could not read directory {:?}", user_dir.path())).generalize())
         .collect::<Result<Vec<_>>>()? // Intermediary collect and iter to handle errors from read_dir
         .into_iter()
         .flatten()
@@ -709,7 +715,10 @@ fn file_extension<P: AsRef<Path>>(path: P) -> Result<String> {
 fn file_contents<P: AsRef<Path>>(path: P) -> Result<String> {
     let path = path.as_ref();
     debug!("Reading contents at path: {path:?}");
-    std::fs::read_to_string(path).wrap_err_lazy(|| format!("Could not read file: {path:?}"))
+    std::fs::read_to_string(path)
+        .report()
+        .wrap_err_lazy(|| format!("Could not read file: {path:?}"))
+        .generalize()
 }
 
 fn file_contents_opt<P: AsRef<Path>>(path: P) -> Result<Option<String>> {
@@ -724,7 +733,12 @@ fn file_contents_opt<P: AsRef<Path>>(path: P) -> Result<Option<String>> {
 fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
-        File::open(path).wrap_err_lazy(|| format!("Could not read file {path:?}"))?,
+        File::open(path)
+            .report()
+            .wrap_err_lazy(|| format!("Could not read file {path:?}"))
+            .generalize()?,
     ))
+    .report()
     .wrap_err_lazy(|| format!("Could not parse {path:?}"))
+    .generalize()
 }
