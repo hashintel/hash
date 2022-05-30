@@ -4,7 +4,7 @@
 
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 
-use error::{bail, ensure, report, IntoReport, Result, ResultExt};
+use error::{bail, ensure, report, IntoReport, ResultExt};
 use execution::package::experiment::{
     ExperimentName, ExperimentPackageConfig, SimpleExperimentConfig, SingleRunExperimentConfig,
 };
@@ -22,7 +22,7 @@ use serde_json::{json, Value as SerdeValue};
 use simulation_structure::ExperimentId;
 use tokio::time::{sleep, timeout};
 
-use crate::{experiment_server::Handler, process};
+use crate::{experiment_server::Handler, process, OrchestratorError, Result};
 
 /// Configuration values used when starting a `hash_engine` subprocess.
 ///
@@ -220,7 +220,7 @@ impl Experiment {
         experiment_run: proto::ExperimentRun,
         mut handler: Handler,
         target_max_group_size: Option<usize>,
-    ) -> Result<()> {
+    ) -> Result<(), OrchestratorError> {
         let experiment_name = experiment_run.base.name.clone();
         let mut engine_handle = handler
             .register_experiment(experiment_run.base.id)
@@ -250,10 +250,10 @@ impl Experiment {
         match msg {
             Ok(proto::EngineStatus::Started) => {}
             Ok(m) => {
-                bail!(
+                bail!(OrchestratorError::from(format!(
                     "expected to receive `Started` message but received: `{}`",
                     m.kind()
-                );
+                )));
             }
             Err(e) => {
                 error!("Engine start timeout for experiment \"{experiment_name}\"");
@@ -261,7 +261,7 @@ impl Experiment {
                     .exit_and_cleanup(experiment_run.base.id)
                     .await
                     .wrap_err("Failed to cleanup after failed start")?;
-                bail!(e);
+                bail!(OrchestratorError::from(e));
             }
         };
         debug!("Received start message from \"{experiment_name}\"");
@@ -435,7 +435,10 @@ impl Experiment {
             .await
             .wrap_err("Could not cleanup after finish")?;
 
-        ensure!(graceful_finish, "Engine didn't exit gracefully.");
+        ensure!(
+            graceful_finish,
+            OrchestratorError::from("Engine didn't exit gracefully.")
+        );
 
         Ok(())
     }
@@ -447,24 +450,26 @@ fn get_simple_experiment_config(
     base: &ExperimentRunBase,
     experiment_name: ExperimentName,
 ) -> Result<SimpleExperimentConfig> {
-    let experiments_manifest = base
-        .project_base
-        .experiments_src
-        .clone()
-        .ok_or_else(|| report!("Experiment configuration not found: experiments.json"))?;
+    let experiments_manifest = base.project_base.experiments_src.clone().ok_or_else(|| {
+        report!(OrchestratorError::from(
+            "Experiment configuration not found: experiments.json"
+        ))
+    })?;
     let parsed = serde_json::from_str(&experiments_manifest)
         .report()
         .wrap_err("Could not parse experiment manifest")
-        .generalize()?;
+        .generalize()
+        .map_err(OrchestratorError::from)?;
     let plan = create_experiment_plan(&parsed, &experiment_name)
-        .wrap_err("Could not read experiment plan")
-        .generalize()?;
+        .wrap_err("Could not read experiment plan")?;
 
     let max_sims_in_parallel = parsed
         .get("max_sims_in_parallel")
         .map(|val| {
             val.as_u64().map(|val| val as usize).ok_or_else(|| {
-                report!("max_sims_in_parallel in globals.json was set, but wasn't a valid integer")
+                report!(OrchestratorError::from(
+                    "max_sims_in_parallel in globals.json was set, but wasn't a valid integer"
+                ))
             })
         })
         .transpose()?; // Extract and report the error for failed parsing
@@ -491,20 +496,30 @@ fn create_experiment_plan(
     experiment_name: &ExperimentName,
 ) -> Result<SimpleExperimentPlan> {
     let selected_experiment = experiments.get(experiment_name.as_str()).ok_or_else(|| {
-        report!(
+        report!(OrchestratorError::from(
             "Expected experiments.json to contain the specified experiment definition for \
              experiment with name: {experiment_name}"
-        )
+        ))
     })?;
     let experiment_type = selected_experiment
         .get("type")
-        .ok_or_else(|| report!("Expected experiment definition to contain an experiment type"))?
+        .ok_or_else(|| {
+            report!(OrchestratorError::from(
+                "Expected experiment definition to contain an experiment type"
+            ))
+        })?
         .as_str()
-        .ok_or_else(|| report!("Expected experiment definition type to have a string value"))?;
+        .ok_or_else(|| {
+            report!(OrchestratorError::from(
+                "Expected experiment definition type to have a string value"
+            ))
+        })?;
     match experiment_type {
         "group" => create_group_variant(selected_experiment, experiments),
         "multiparameter" => create_multiparameter_variant(selected_experiment, experiments),
-        "optimization" => bail!("Not implemented for optimization experiment types"),
+        "optimization" => bail!(OrchestratorError::from(
+            "Not implemented for optimization experiment types"
+        )),
         _ => create_basic_variant(selected_experiment, experiment_type)
             .wrap_err("Could not parse basic variant"),
     }
@@ -525,7 +540,8 @@ fn create_multiparameter_variant(
     let var: MultiparameterVariant = serde_json::from_value(selected_experiment.clone())
         .report()
         .wrap_err("Could not parse multiparameter variant")
-        .generalize()?;
+        .generalize()
+        .map_err(OrchestratorError::from)?;
     let subplans = var
         .runs
         .iter()
@@ -533,7 +549,9 @@ fn create_multiparameter_variant(
             let selected = experiments
                 .get(run_name)
                 .ok_or_else(|| {
-                    report!("Experiment plan does not define the specified experiment: {run_name}")
+                    report!(OrchestratorError::from(
+                        "Experiment plan does not define the specified experiment: {run_name}"
+                    ))
                 })
                 .wrap_err("Could not parse experiment file")?;
             create_basic_variant(selected, run_name).wrap_err("Could not parse basic variant")
@@ -579,7 +597,8 @@ fn create_group_variant(
     }
     let var: GroupVariant = serde_json::from_value(selected_experiment.clone())
         .report()
-        .generalize()?;
+        .generalize()
+        .map_err(OrchestratorError::from)?;
     var.runs.iter().try_fold(
         SimpleExperimentPlan::new(var.steps as usize),
         |mut acc, name| {
@@ -603,7 +622,10 @@ fn create_basic_variant(
         "linspace" => create_linspace_variant_plan(selected_experiment),
         "arange" => create_arange_variant_plan(selected_experiment),
         "meshgrid" => create_meshgrid_variant_plan(selected_experiment),
-        _ => bail!("Unknown experiment type: {}", experiment_type),
+        _ => bail!(OrchestratorError::from(format!(
+            "Unknown experiment type: {}",
+            experiment_type
+        ))),
     }
 }
 
@@ -669,7 +691,7 @@ fn create_monte_carlo_variant_plan(
     }
 
     impl MonteCarloVariant {
-        fn sample_distribution_fn(&self) -> Result<Mapper> {
+        fn sample_distribution_fn(&self) -> Result<Mapper, ()> {
             let distribution = match self.distribution.as_str() {
                 "normal" => Box::new(
                     Normal::new(self.mean.unwrap_or(1.0), self.std.unwrap_or(1.0))
@@ -717,12 +739,14 @@ fn create_monte_carlo_variant_plan(
 
     let var: MonteCarloVariant = serde_json::from_value(selected_experiment.clone())
         .report()
-        .generalize()?;
+        .generalize()
+        .map_err(OrchestratorError::from)?;
     let values: Vec<_> = (0..var.samples as usize).map(|_| 0.into()).collect();
     Ok(create_variant_with_mapped_value(
         &var.field,
         &values,
-        &var.sample_distribution_fn()?,
+        &var.sample_distribution_fn()
+            .map_err(OrchestratorError::from)?,
         var.steps as usize,
     ))
 }
@@ -740,7 +764,8 @@ fn create_value_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleE
     let var: ValueVariant = serde_json::from_value(selected_experiment.clone())
         .report()
         .wrap_err("Could not parse value variant")
-        .generalize()?;
+        .generalize()
+        .map_err(OrchestratorError::from)?;
     let mapper: Mapper = Box::new(|val, _index| val);
     Ok(create_variant_with_mapped_value(
         &var.field,
@@ -763,7 +788,8 @@ fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
     }
     let var: LinspaceVariant = serde_json::from_value(selected_experiment.clone())
         .report()
-        .generalize()?;
+        .generalize()
+        .map_err(OrchestratorError::from)?;
     let values: Vec<_> = (0..var.samples as usize).map(|_| 0.into()).collect();
 
     let closure_var = var.clone();
@@ -799,7 +825,8 @@ fn create_arange_variant_plan(selected_experiment: &SerdeValue) -> Result<Simple
     }
     let var: ArangeVariant = serde_json::from_value(selected_experiment.clone())
         .report()
-        .generalize()?;
+        .generalize()
+        .map_err(OrchestratorError::from)?;
     let mut values = vec![];
     let mut cur = var.start;
     while cur <= var.stop {
@@ -829,7 +856,8 @@ fn create_meshgrid_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
     }
     let var: MeshgridVariant = serde_json::from_value(selected_experiment.clone())
         .report()
-        .generalize()?;
+        .generalize()
+        .map_err(OrchestratorError::from)?;
 
     let mut plan = SimpleExperimentPlan::new(var.steps as usize);
     let x_space = linspace(var.x[0], var.x[1], var.x[2] as usize);

@@ -5,7 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use error::{IntoReport, Report, Result, ResultExt};
+use error::{IntoReport, Report, ResultExt};
 use hash_engine_lib::{
     experiment::controller::run::cleanup_experiment,
     proto::EngineMsg,
@@ -13,7 +13,7 @@ use hash_engine_lib::{
 };
 use simulation_structure::ExperimentId;
 
-use crate::process;
+use crate::{process, OrchestratorError, Result};
 
 const ENGINE_BIN_PATH_DEFAULT: &str = env!("CARGO_BIN_FILE_HASH_ENGINE");
 
@@ -42,9 +42,11 @@ impl process::Process for LocalProcess {
                 // From `Child::kill` docs: Forces the child process to exit. If the child has
                 // already exited, an InvalidInput error is returned
                 std::io::ErrorKind::InvalidInput => Ok(()),
-                _ => Err(Report::new(e)),
+                _ => Err(Report::from_error(e)),
             })
-            .wrap_err("Could not kill the process");
+            .wrap_err("Could not kill the process")
+            .generalize()
+            .map_err(OrchestratorError::from);
 
         let engine_socket_path = format!("run-{experiment_id}");
         match remove_file(&engine_socket_path) {
@@ -66,7 +68,7 @@ impl process::Process for LocalProcess {
         cleanup_experiment(experiment_id);
 
         debug!("Cleaned up local engine process for experiment");
-        kill_result
+        Ok(kill_result?)
     }
 
     /// Creates or reuses a [`nano::Client`] to send a message to the `hash_engine` subprocess.
@@ -87,25 +89,30 @@ impl process::Process for LocalProcess {
                             self.engine_url
                         )
                     })
-                    .generalize()?,
+                    .generalize()
+                    .map_err(OrchestratorError::from)?,
             );
         }
-        self.client
+        Ok(self
+            .client
             .as_mut()
             .unwrap()
             .send(msg)
             .await
             .wrap_err("Could not send engine message")
             .generalize()
+            .map_err(OrchestratorError::from)?)
     }
 
     async fn wait(&mut self) -> Result<ExitStatus> {
-        self.child
+        Ok(self
+            .child
             .wait()
             .await
             .report()
             .wrap_err("Could not wait for the process to exit")
             .generalize()
+            .map_err(OrchestratorError::from)?)
     }
 }
 
@@ -213,7 +220,8 @@ impl process::Command for LocalCommand {
             .spawn()
             .report()
             .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))
-            .generalize()?;
+            .generalize()
+            .map_err(OrchestratorError::from)?;
         debug!("Spawned local engine process for experiment");
 
         Ok(Box::new(LocalProcess {
