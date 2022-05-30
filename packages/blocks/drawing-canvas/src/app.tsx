@@ -43,7 +43,7 @@ const BASE_HEIGHT = 500;
 // @todo consider storing the document in a .tldr file (which is uploaded
 // via file upload method) as opposed to the current approach of storing in JSON.
 
-// @todo re-add readOnly feature
+// @todo re-add readOnly feature when https://github.com/tldraw/tldraw/issues/705 is fixed
 
 export const App: BlockComponent<AppProps> = ({
   entityId,
