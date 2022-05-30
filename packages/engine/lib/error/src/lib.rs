@@ -58,7 +58,7 @@
 //! # impl core::fmt::Display for AccessError {
 //! #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
 //! # }
-//! # impl provider::Provider for AccessError { fn provide<'a>(&'a self, _: &mut provider::Demand<'a>) {} }
+//! # impl error::provider::Provider for AccessError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {} }
 //! use error::{ensure, Result};
 //!
 //! fn main() -> Result<(), AccessError> {
@@ -103,7 +103,7 @@
 //! # #[cfg(feature = "std")]
 //! impl Error for LookupError {}
 //! # #[cfg(not(feature = "std"))]
-//! impl provider::Provider for LookupError { fn provide<'a>(&'a self, _: &mut provider::Demand<'a>) {}}
+//! impl error::provider::Provider for LookupError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {}}
 //!
 //! fn lookup_key(map: &HashMap<&str, u64>, key: &str) -> Result<u64, LookupError> {
 //! // `ensure!` returns `Err(Report)` if the condition fails
@@ -210,6 +210,7 @@ mod error;
 pub mod future;
 #[cfg(feature = "hooks")]
 mod hook;
+pub mod provider;
 
 use core::fmt;
 
@@ -253,9 +254,10 @@ pub(crate) mod test_helper {
     };
     use core::{fmt, fmt::Formatter};
 
-    use provider::{Demand, Provider};
-
-    use crate::Report;
+    use crate::{
+        provider::{Demand, Provider},
+        Report,
+    };
 
     #[derive(Debug)]
     pub struct ContextA(pub u32);

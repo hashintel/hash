@@ -4,8 +4,6 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-provider = { path = "../provider" }
-
 tracing-error = { version = "0.2.0", optional = true }
 once_cell = { version = "1.10.0", optional = true }
 pin-project = { version = "1.0.10", optional = true }

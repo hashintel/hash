@@ -13,9 +13,10 @@ use core::{
 #[cfg(feature = "std")]
 use std::error::Error;
 
-use provider::{self, Demand, Provider};
-
-use crate::{Context, Message};
+use crate::{
+    provider::{self, Demand, Provider},
+    Context, Message,
+};
 
 /// A single error, contextual message, or error context inside of a [`Report`].
 ///
