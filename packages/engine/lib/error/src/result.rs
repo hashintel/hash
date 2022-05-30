@@ -120,69 +120,6 @@ pub trait ResultExt {
     fn generalize(self) -> Result<Self::Ok>;
 }
 
-#[cfg(feature = "std")]
-impl<T, E> ResultExt for std::result::Result<T, E>
-where
-    E: std::error::Error + Send + Sync + 'static,
-{
-    type Context = E;
-    type Ok = T;
-
-    #[track_caller]
-    fn wrap_err<M>(self, message: M) -> Result<T, E>
-    where
-        M: Message,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).wrap(message)),
-        }
-    }
-
-    #[track_caller]
-    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T, E>
-    where
-        M: Message,
-        F: FnOnce() -> M,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).wrap(message())),
-        }
-    }
-
-    #[track_caller]
-    fn provide_context<C>(self, context: C) -> Result<T, C>
-    where
-        C: Context,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).provide_context(context)),
-        }
-    }
-
-    #[track_caller]
-    fn provide_context_lazy<C, F>(self, context: F) -> Result<T, C>
-    where
-        C: Context,
-        F: FnOnce() -> C,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).provide_context(context())),
-        }
-    }
-
-    fn generalize(self) -> Result<T> {
-        self.map_err(|error| Report::from_error(error).generalize())
-    }
-}
-
 impl<T, C> ResultExt for Result<T, C> {
     type Context = C;
     type Ok = T;
@@ -239,5 +176,33 @@ impl<T, C> ResultExt for Result<T, C> {
 
     fn generalize(self) -> Result<T> {
         self.map_err(Report::generalize)
+    }
+}
+
+/// Extends [`Result`] to convert the [`Err`] variant to a [`Report`]
+pub trait IntoReport: Sized {
+    /// Type of the [`Ok`] value in the [`Result`]
+    type Ok;
+
+    /// Type of the resulting [`Err`] variant wrapped inside a [`Report<E>`].
+    type Err;
+
+    /// Converts the [`Err`] variant of the [`Result`] to a [`Report`]
+    fn report(self) -> Result<Self::Ok, Self::Err>;
+}
+
+impl<T, E> IntoReport for core::result::Result<T, E>
+where
+    Report<E>: From<E>,
+{
+    type Err = E;
+    type Ok = T;
+
+    #[track_caller]
+    fn report(self) -> Result<T, E> {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(Report::from(error)),
+        }
     }
 }
