@@ -1,6 +1,5 @@
 import { ApolloClient } from "@apollo/client";
 import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { EntityStorePluginAction } from "@hashintel/hash-shared/entityStorePlugin";
 import { getAccountEntityTypes } from "@hashintel/hash-shared/queries/entity.queries";
 import { isEqual, omit } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
@@ -149,8 +148,15 @@ const calculateSaveActions = async (
     if (draftEntity.entityId) {
       const savedEntity = store.saved[draftEntity.entityId];
 
+      /**
+       * This can happen if the saved entity this draft entity belonged to has
+       * been removed from the page post-save. We don't currently flush those
+       * draft entities from the draft entity store when this happens.
+       *
+       * @todo Remove draft entities when they are removed from the page
+       */
       if (!savedEntity) {
-        throw new Error("Saved entity missing");
+        continue;
       }
 
       if (isDraftTextContainingEntityProperties(draftEntity.properties)) {
@@ -264,6 +270,8 @@ const calculateSaveActions = async (
     return draftEntity.draftId;
   });
 
+  const cloned = JSON.parse(JSON.stringify(beforeBlockDraftIds));
+
   const afterBlockDraftIds: string[] = [];
 
   doc.descendants((node) => {
@@ -332,20 +340,32 @@ const calculateSaveActions = async (
       }
 
       const blockPlaceholder = randomPlaceholder();
-      draftToPlaceholder.set(draftEntity.draftId, blockPlaceholder);
+
+      if (!draftEntity.entityId) {
+        draftToPlaceholder.set(draftEntity.draftId, blockPlaceholder);
+      }
 
       actions.push({
-        insertNewBlock: {
+        insertBlock: {
           accountId: draftEntity.accountId,
-          componentId: draftEntity.properties.componentId,
           position,
-          placeholderID: blockPlaceholder,
           entity: {
             existingEntity: {
               accountId: blockData.accountId,
               entityId: dataEntityId,
             },
           },
+          ...(draftEntity.entityId
+            ? {
+                existingBlockEntity: {
+                  accountId: draftEntity.accountId,
+                  entityId: draftEntity.entityId,
+                },
+              }
+            : {
+                placeholderID: blockPlaceholder,
+                componentId: draftEntity.properties.componentId,
+              }),
         },
       });
       beforeBlockDraftIds.splice(position, 0, afterDraftId);
@@ -356,26 +376,21 @@ const calculateSaveActions = async (
   return [actions, placeholderToDraft] as const;
 };
 
+// @todo rename/inline
 const updateEntityIdsForPlaceholders = (
   placeholders: UpdatePageContentsResultPlaceholder[],
   placeholderToDraft: Map<string, string>,
 ) => {
-  const storeActions: EntityStorePluginAction[] = [];
+  const result: Record<string, string> = {};
 
   for (const placeholder of placeholders) {
     const draftId = placeholderToDraft.get(placeholder.placeholderID);
     if (draftId) {
-      storeActions.push({
-        type: "updateEntityId",
-        payload: {
-          draftId,
-          entityId: placeholder.entityID,
-        },
-      });
+      result[draftId] = placeholder.entityID;
     }
   }
 
-  return storeActions;
+  return result;
 };
 
 // @todo write tests
@@ -441,13 +456,13 @@ export const save = async (
 
   await apolloClient.reFetchObservableQueries();
 
-  const storeActions = updateEntityIdsForPlaceholders(
+  const draftToEntityId = updateEntityIdsForPlaceholders(
     res.data.updatePageContents.placeholders,
     placeholderToDraft,
   );
 
   return [
     res.data.updatePageContents.page.properties.contents,
-    storeActions,
+    draftToEntityId,
   ] as const;
 };

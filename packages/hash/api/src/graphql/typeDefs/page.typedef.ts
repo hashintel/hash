@@ -172,11 +172,9 @@ export const pageTypedef = gql`
   }
 
   """
-  Insert a new block into a page with a corresonding new entity. Exactly one of
-  entityTypeId, entityTypeVersionId or systemTypeName must be specified.
-  @todo do not allow creating entities with this, make an action for that
+  Insert a block into a page with a corresponding entity.
   """
-  input InsertNewBlock {
+  input InsertBlock {
     """
     The account ID to create the block and associated entity in.
     """
@@ -188,7 +186,12 @@ export const pageTypedef = gql`
     """
     The block componentId.
     """
-    componentId: ID!
+    componentId: ID
+    """
+    The block entity to insert into the page. You should not set a componentId
+    if you provide this
+    """
+    existingBlockEntity: ExistingEntity
     """
     The entity to associate with the new block
     """
@@ -267,7 +270,7 @@ export const pageTypedef = gql`
   }
 
   """
-  Create an entity, which you can then reference in other actions, such as a InsertNewBlockAction
+  reate an entity, which you can then reference in other actions, such as a InsertBlockAction
   """
   input CreateEntityAction {
     entity: EntityDefinition!
@@ -305,7 +308,7 @@ export const pageTypedef = gql`
   permit unions as input to a mutation
   """
   input UpdatePageAction {
-    insertNewBlock: InsertNewBlock
+    insertBlock: InsertBlock
     removeBlock: RemoveBlock
     moveBlock: MoveBlock
     updateEntity: UpdateEntity

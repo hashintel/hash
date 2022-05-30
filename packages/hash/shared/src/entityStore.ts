@@ -117,11 +117,17 @@ const restoreDraftId = (
 export const createEntityStore = (
   contents: BlockEntity[],
   draftData: Record<string, DraftEntity>,
+  presetDraftIds: Record<string, string> = {},
 ): EntityStore => {
   const saved: EntityStore["saved"] = {};
   const draft: EntityStore["draft"] = {};
 
-  const entityToDraft: Record<string, string> = {};
+  const entityToDraft = Object.fromEntries(
+    Object.entries(presetDraftIds).map(([draftId, entityId]) => [
+      entityId,
+      draftId,
+    ]),
+  );
 
   for (const row of Object.values(draftData)) {
     if (row.entityId) {
@@ -189,7 +195,26 @@ export const createEntityStore = (
   }
 
   for (const [draftId, draftEntity] of Object.entries(draftData)) {
-    draft[draftId] ??= draftEntity;
+    const updated = {
+      ...draftEntity,
+      entityId: presetDraftIds[draftEntity.draftId] ?? draftEntity.entityId,
+    };
+
+    draft[draftId] ??= updated;
+  }
+
+  for (const [draftId, entityId] of Object.entries(presetDraftIds)) {
+    const draftEntity = draft[draftId];
+    if (!draftEntity) {
+      throw new Error("Cannot update relevant entity id");
+    }
+    if (draftEntity.entityId && draftEntity.entityId !== entityId) {
+      throw new Error("Cannot update entity id of existing draft entity");
+    }
+
+    draft[draftId] = produce(draftEntity, (draftDraftEntity) => {
+      draftDraftEntity.entityId = entityId;
+    });
   }
 
   return { saved, draft };

@@ -5087,6 +5087,39 @@
   dependencies:
     "@babel/runtime" "^7.13.10"
 
+"@recordreplay/playwright-config@0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@recordreplay/playwright-config/-/playwright-config-0.3.0.tgz#8dc641fc64b3fb4f786cff9de95fdfb8dfd5c19b"
+  integrity sha512-F61Gmtq/aKhLejkSoyKanEP09qiL5oAcWFlXv4NM25c3eLqhNfd8im0jIYdmggO6mtOofYxMjC/8Rz1EhgGrpQ==
+  dependencies:
+    "@recordreplay/recordings-cli" "^0.10.1"
+
+"@recordreplay/recordings-cli@^0.10.1":
+  version "0.10.3"
+  resolved "https://registry.yarnpkg.com/@recordreplay/recordings-cli/-/recordings-cli-0.10.3.tgz#7190f6e4555712f0c0b1e786599bf5fa869a42ea"
+  integrity sha512-b5Icfoc6olmkYOORC5Gw0VSDUc6i/Xc4PBkdYBt/MjzDSUi/atUzP0+RRyWl4vuP8ECY44BANmni1L7I8rh/qw==
+  dependencies:
+    commander "^7.2.0"
+    ws "^7.5.0"
+
+"@replayio/playwright@0.2.5":
+  version "0.2.5"
+  resolved "https://registry.yarnpkg.com/@replayio/playwright/-/playwright-0.2.5.tgz#b7ebce3e25fd140eb82889d9cc63bf0a815d1e3d"
+  integrity sha512-4F2Feiu9Zj7IFKpLZ1jdd1pnp9s6Vn22WFy6cWir/6o77lPs8wAliwWJlQcg2CrHVcUOTC73eY49wTWsGYPzow==
+  dependencies:
+    "@replayio/replay" "^0.2.1"
+    uuid "^8.3.2"
+
+"@replayio/replay@^0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.2.1.tgz#f27050c0fa98e1a32c893b91dc92722e677e69f0"
+  integrity sha512-SofAWPSG+u57exO+FQ0GKJzjR3Vd1ra0izlbwDf2ADWy8wRoOylgrU2vz8ZifHNE7BimP5lI4ntaUZyD3l0b8g==
+  dependencies:
+    commander "^7.2.0"
+    is-uuid "^1.0.2"
+    superstruct "^0.15.4"
+    ws "^7.5.0"
+
 "@rjsf/core@4.1.1":
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/@rjsf/core/-/core-4.1.1.tgz#6ba23585b0fc891247e795bed1ab2c6ce44755fa"
@@ -14154,6 +14187,11 @@ is-utf8@^0.2.0:
   resolved "https://registry.yarnpkg.com/is-utf8/-/is-utf8-0.2.1.tgz#4b0da1442104d1b336340e80797e865cf39f7d72"
   integrity sha1-Sw2hRCEE0bM2NA6AeX6GXPOffXI=
 
+is-uuid@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/is-uuid/-/is-uuid-1.0.2.tgz#ad1898ddf154947c25c8e54966f48604e9caecc4"
+  integrity sha512-tCByphFcJgf2qmiMo5hMCgNAquNSagOetVetDvBXswGkNfoyEMvGH1yDlF8cbZbKnbVBr4Y5/rlpMz9umxyBkQ==
+
 is-weakref@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/is-weakref/-/is-weakref-1.0.2.tgz#9529f383a9338205e89765e0392efc2f100f06f2"
@@ -20704,6 +20742,11 @@ subscriptions-transport-ws@^0.9.18, subscriptions-transport-ws@^0.9.19:
     symbol-observable "^1.0.4"
     ws "^5.2.0 || ^6.0.0 || ^7.0.0"
 
+superstruct@^0.15.4:
+  version "0.15.4"
+  resolved "https://registry.yarnpkg.com/superstruct/-/superstruct-0.15.4.tgz#e3381dd84ca07e704e19f69eda74eee1a5efb1f9"
+  integrity sha512-eOoMeSbP9ZJChNOm/9RYjE+F36rYR966AAqeG3xhQB02j2sfAUXDp4EQ/7bAOqnlJnuFDB8yvOu50SocvKpUEw==
+
 supports-color@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/supports-color/-/supports-color-2.0.0.tgz#535d045ce6b6363fa40117084629995e9df324c7"
@@ -22548,6 +22591,11 @@ ws@8.2.0:
   version "7.5.5"
   resolved "https://registry.yarnpkg.com/ws/-/ws-7.5.5.tgz#8b4bc4af518cfabd0473ae4f99144287b33eb881"
   integrity sha512-BAkMFcAzl8as1G/hArkxOxq3G7pjUqQ3gzYbLL0/5zNkph70e+lCoxBGnm6AW1+/aiNeV4fnKqZ8m4GZewmH2w==
+
+ws@^7.5.0:
+  version "7.5.8"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-7.5.8.tgz#ac2729881ab9e7cbaf8787fe3469a48c5c7f636a"
+  integrity sha512-ri1Id1WinAX5Jqn9HejiGb8crfRio0Qgu8+MtL36rlTA6RLsMdWt1Az/19A2Qij6uSHUMphEFaTKa4WG+UNHNw==
 
 ws@^8.2.3, ws@^8.4.2:
   version "8.5.0"

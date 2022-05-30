@@ -23,7 +23,7 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
     if (
       !exactlyOne(
-        action.insertNewBlock,
+        action.insertBlock,
         action.moveBlock,
         action.removeBlock,
         action.updateEntity,
@@ -33,7 +33,7 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
       )
     ) {
       throw new UserInputError(
-        `at action ${i}: exactly one of insertNewBlock, moveBlock, removeBlock or updateEntity must be specified`,
+        `at action ${i}: exactly one of insertBlock, moveBlock, removeBlock or updateEntity must be specified`,
       );
     }
   }
@@ -181,32 +181,54 @@ export const updatePageContents: Resolver<
     }
 
     // Create any _new_ blocks
-    const newBlocks = await Promise.all(
+    const insertedBlocks = await Promise.all(
       actions
         .map((action, i) => ({ action, i }))
-        .filter(({ action }) => action.insertNewBlock)
+        .filter(({ action }) => action.insertBlock)
         .map(async ({ action, i }) => {
           try {
             const {
               accountId: blockAccountId,
               componentId: blockComponentId,
+              existingBlockEntity,
               placeholderID,
-            } = action.insertNewBlock!;
+            } = action.insertBlock!;
 
             const blockData = await createEntityWithPlaceholders(
-              action.insertNewBlock!.entity,
+              action.insertBlock!.entity,
               // assume that the "block entity" is in the same account as the block itself
               blockAccountId,
             );
 
-            const block = await Block.createBlock(client, {
-              blockData,
-              createdBy: user,
-              accountId: user.accountId,
-              properties: {
-                componentId: blockComponentId,
-              },
-            });
+            let block: Block;
+
+            if (existingBlockEntity) {
+              const existingBlock = await Block.getBlockById(
+                client,
+                existingBlockEntity,
+              );
+
+              if (!existingBlock) {
+                throw new Error(
+                  "InsertBlock: provided block id does not exist",
+                );
+              }
+
+              block = existingBlock;
+            } else if (blockComponentId) {
+              block = await Block.createBlock(client, {
+                blockData,
+                createdBy: user,
+                accountId: user.accountId,
+                properties: {
+                  componentId: blockComponentId,
+                },
+              });
+            } else {
+              throw new Error(
+                `InsertBlock: at least one of existingBlockEntity or componentId must be provided`,
+              );
+            }
 
             recordEntity(placeholderID, block);
 
@@ -277,10 +299,10 @@ export const updatePageContents: Resolver<
     let insertCount = 0;
     for (const [i, action] of actions.entries()) {
       try {
-        if (action.insertNewBlock) {
+        if (action.insertBlock) {
           await page.insertBlock(client, {
-            block: newBlocks[insertCount]!,
-            position: action.insertNewBlock.position,
+            block: insertedBlocks[insertCount]!,
+            position: action.insertBlock.position,
             insertedByAccountId: user.accountId,
           });
           insertCount += 1;
@@ -295,7 +317,7 @@ export const updatePageContents: Resolver<
             removedByAccountId: user.accountId,
             allowRemovingFinal: actions
               .slice(i + 1)
-              .some((actionToFollow) => actionToFollow.insertNewBlock),
+              .some((actionToFollow) => actionToFollow.insertBlock),
           });
         }
       } catch (err) {

@@ -380,8 +380,9 @@ export class Instance {
   }
 
   private updateSavedContents(
-    nextSavedContents: BlockEntity[],
+    blocks: BlockEntity[],
     additionalActions: EntityStorePluginAction[] = [],
+    draftToEntity: Record<string, string> = {},
   ) {
     if (this.errored) {
       return;
@@ -396,10 +397,13 @@ export class Instance {
 
     addEntityStoreAction(this.state, tr, {
       type: "mergeNewPageContents",
-      payload: nextSavedContents,
+      payload: {
+        blocks,
+        presetDraftIds: draftToEntity,
+      },
     });
     this.state = this.state.apply(tr);
-    this.savedContents = nextSavedContents;
+    this.savedContents = blocks;
     /**
      * @todo remove this – we should be able to send the tracked actions to
      *   other clients, instead of the whole store
@@ -480,7 +484,7 @@ export class Instance {
           throw new Error("Saving when instance stopped");
         }
 
-        const [nextBlocks, actions] = await save(
+        const [nextBlocks, draftToEntity] = await save(
           apolloClient,
           this.accountId,
           this.pageEntityId,
@@ -489,7 +493,7 @@ export class Instance {
           entityStorePluginState(this.state).store,
         );
 
-        this.updateSavedContents(nextBlocks, actions);
+        this.updateSavedContents(nextBlocks, [], draftToEntity);
       })
       .catch((err) => {
         this.error(err);

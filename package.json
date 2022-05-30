@@ -64,6 +64,10 @@
     "prettier": "2.5.1",
     "webpack": "^5"
   },
+  "dependencies": {
+    "@recordreplay/playwright-config": "0.3.0",
+    "@replayio/playwright": "0.2.5"
+  },
   "devDependencies": {
     "algoliasearch": "4.12.1",
     "check-dependency-version-consistency": "2.0.0",
