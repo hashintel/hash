@@ -74,7 +74,7 @@ pub struct SimpleExperimentArgs {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), ()> {
     let args = Args::parse();
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -105,12 +105,17 @@ async fn main() -> Result<()> {
         .wrap_err_lazy(|| format!("Could not canonicalize project path: {:?}", args.project))
         .generalize()?;
     let manifest = Manifest::from_local(&absolute_project_path)
-        .wrap_err_lazy(|| format!("Could not read local project {absolute_project_path:?}"))?;
+        .wrap_err_lazy(|| format!("Could not read local project {absolute_project_path:?}"))
+        .generalize()?;
     let experiment_run = manifest
         .read(args.r#type.into())
-        .wrap_err("Could not read manifest")?;
+        .wrap_err("Could not read manifest")
+        .generalize()?;
 
     let experiment = Experiment::new(args.experiment_config);
 
-    experiment.run(experiment_run, handler, None).await
+    experiment
+        .run(experiment_run, handler, None)
+        .await
+        .generalize()
 }
