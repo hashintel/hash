@@ -1,7 +1,5 @@
 export const calculateDurationStepLength = (durationInMs: number): number => {
-  if (durationInMs <= 1000) {
-    return 0;
-  } else if (durationInMs <= 10_000) {
+  if (durationInMs <= 10_000) {
     return 1000;
   } else if (durationInMs <= 60_000) {
     return 5000;

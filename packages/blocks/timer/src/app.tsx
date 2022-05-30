@@ -200,7 +200,7 @@ export const App: BlockComponent<AppProps> = ({
   const displayedDurationInMs =
     timerStatus === "finished"
       ? timerState.initialDurationInMs
-      : remainingDurationInMs;
+      : Math.floor(remainingDurationInMs / 1000) * 1000;
 
   const handleLessOrMoreTimeButtonClick: MouseEventHandler = (event) => {
     const step = event.currentTarget.classList.contains("less-time-button")
@@ -280,7 +280,7 @@ export const App: BlockComponent<AppProps> = ({
           className="less-time-button"
           disabled={
             timerStatus === "running" ||
-            timerState.initialDurationInMs <= minInitialDurationInMs
+            displayedDurationInMs <= minInitialDurationInMs
           }
           onClick={handleLessOrMoreTimeButtonClick}
           type="button"
@@ -297,7 +297,7 @@ export const App: BlockComponent<AppProps> = ({
           className="more-time-button"
           disabled={
             timerStatus === "running" ||
-            timerState.initialDurationInMs >= maxInitialDurationInMs
+            displayedDurationInMs >= maxInitialDurationInMs
           }
           onClick={handleLessOrMoreTimeButtonClick}
           type="button"
