@@ -4,9 +4,6 @@
     "documentString": {
       "type": "string"
     },
-    "readOnly": {
-      "type": "boolean"
-    },
     "darkMode": {
       "type": "boolean"
     },
@@ -17,13 +14,7 @@
       "type": "number"
     }
   },
-  "configProperties": [
-    "darkMode",
-    "readOnly",
-    "documentString",
-    "width",
-    "height"
-  ],
-  "required": ["documentString", "readOnly"],
+  "configProperties": ["darkMode", "documentString", "width", "height"],
+  "required": ["documentString"],
   "$schema": "http://json-schema.org/draft-07/schema#"
 }

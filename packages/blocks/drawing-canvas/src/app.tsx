@@ -19,7 +19,6 @@ import "./base.css";
 
 type AppProps = {
   documentString: string;
-  // readOnly: boolean;
   darkMode?: boolean;
   width?: number;
   height?: number;
@@ -31,7 +30,6 @@ type LocalState = {
   documentString: string;
   maxWidth?: number;
   darkMode?: boolean;
-  // readOnly?: boolean;
 };
 
 const BASE_HEIGHT = 500;
@@ -52,7 +50,6 @@ export const App: BlockComponent<AppProps> = ({
   darkMode: remoteDarkMode = false,
   documentString: remoteDocumentString,
   accountId,
-  // readOnly: remoteReadOnly,
   updateEntities,
   height: remoteHeight,
   width: remoteWidth,
@@ -69,7 +66,6 @@ export const App: BlockComponent<AppProps> = ({
       ? remoteDocumentString
       : JSON.stringify(getDefaultDocument(entityId)),
     darkMode: remoteDarkMode,
-    // readOnly: remoteReadOnly,
   });
 
   useLayoutEffect(() => {
@@ -115,15 +111,8 @@ export const App: BlockComponent<AppProps> = ({
       documentString: isValidDocumentString(remoteDocumentString)
         ? remoteDocumentString
         : prev.documentString,
-      // readOnly: !!remoteReadOnly,
     }));
-  }, [
-    remoteDarkMode,
-    remoteHeight,
-    remoteWidth,
-    remoteDocumentString,
-    // remoteReadOnly,
-  ]);
+  }, [remoteDarkMode, remoteHeight, remoteWidth, remoteDocumentString]);
 
   const updateRemoteData = useCallback(
     (newData: Partial<AppProps>) => {
@@ -131,8 +120,6 @@ export const App: BlockComponent<AppProps> = ({
       const data = {
         documentString:
           newData.documentString ?? JSON.stringify(rTldrawApp.current.document),
-        // readOnly:
-        //   newData.readOnly ?? rTldrawApp.current.settings.isReadonlyMode,
         darkMode: newData.darkMode ?? rTldrawApp.current.settings.isDarkMode,
         height: newData.height ?? localState.height,
         width: newData.width ?? localState.width,
@@ -247,7 +234,6 @@ export const App: BlockComponent<AppProps> = ({
             document={rInitialDocument.current}
             onMount={handleMount}
             onPersist={handlePersist}
-            // readOnly={localState.readOnly}
             showMultiplayerMenu={false}
             showSponsorLink={false}
             onExport={handleExport}
