@@ -1,6 +1,6 @@
 use core::{fmt, time::Duration};
 
-use error::{report, ResultExt};
+use error::{report, IntoReport, ResultExt};
 use nng::options::{protocol::reqrep::ResendTime, Options, ReconnectMaxTime, ReconnectMinTime};
 use tokio::sync::{mpsc, oneshot};
 
@@ -42,28 +42,36 @@ impl fmt::Debug for WorkerHandle {
 
 impl Worker {
     fn new(url: &str, request_rx: spmc::Receiver<Request>) -> Result<Self, nng::Error> {
-        let socket =
-            nng::Socket::new(nng::Protocol::Req0).wrap_err("Could not create nng socket")?;
+        let socket = nng::Socket::new(nng::Protocol::Req0)
+            .report()
+            .wrap_err("Could not create nng socket")?;
 
-        let builder =
-            nng::DialerBuilder::new(&socket, url).wrap_err("Could not create nng dialer")?;
+        let builder = nng::DialerBuilder::new(&socket, url)
+            .report()
+            .wrap_err("Could not create nng dialer")?;
         builder
             .set_opt::<ReconnectMaxTime>(Some(RECONNECT_MAX_TIME))
+            .report()
             .wrap_err_lazy(|| {
                 format!("Could not set maximum reconnection time to {RECONNECT_MAX_TIME:?}")
             })?;
         builder
             .set_opt::<ReconnectMinTime>(Some(RECONNECT_MIN_TIME))
+            .report()
             .wrap_err_lazy(|| {
                 format!("Could not set minimum reconnection time to {RECONNECT_MIN_TIME:?}")
             })?;
         let dialer = builder
             .start(false)
             .map_err(|(_, error)| error)
+            .report()
             .wrap_err("Could not start nng dialer")?;
 
-        let ctx = nng::Context::new(&socket).wrap_err("Could not create nng context")?;
+        let ctx = nng::Context::new(&socket)
+            .report()
+            .wrap_err("Could not create nng context")?;
         ctx.set_opt::<ResendTime>(Some(RESEND_TIME))
+            .report()
             .wrap_err_lazy(|| format!("Could not set resend time to {RESEND_TIME:?}"))?;
 
         // There will only ever be one message in the channel. But, it needs to be
@@ -81,13 +89,19 @@ impl Worker {
             nng::AioResult::Recv(message) => {
                 // We received the reply.
                 reply_tx
-                    .send(message.map(|_| ()).provide_context(ErrorKind::Receive))
+                    .send(
+                        message
+                            .map(|_| ())
+                            .report()
+                            .provide_context(ErrorKind::Receive),
+                    )
                     .expect(SEND_EXPECT_MESSAGE);
             }
             nng::AioResult::Sleep(_) => {
                 unreachable!("unexpected sleep");
             }
         })
+        .report()
         .wrap_err("Could not create asynchronous I/O context")?;
 
         Ok(Self {
@@ -178,6 +192,7 @@ impl Client {
     pub async fn send<T: serde::Serialize + Sync>(&mut self, msg: &T) -> Result<()> {
         let mut nng_msg = nng::Message::new();
         serde_json::to_writer(&mut nng_msg, msg)
+            .report()
             .wrap_err("Could not serialize message")
             .provide_context(ErrorKind::Send)?;
 

@@ -3,7 +3,7 @@
 
 use core::fmt;
 
-use error::ResultExt;
+use error::{IntoReport, ResultExt};
 use tokio::sync::mpsc;
 
 use crate::{ErrorKind, Result, RECV_EXPECT_MESSAGE, SEND_EXPECT_MESSAGE};
@@ -55,7 +55,9 @@ impl Worker {
     ///
     /// [`Sleep`]: nng::AioResult::Sleep
     fn new(socket: &nng::Socket, sender: MsgSender, url: &str) -> Result<Self, nng::Error> {
-        let ctx_orig = nng::Context::new(socket).wrap_err("Could not create context")?;
+        let ctx_orig = nng::Context::new(socket)
+            .report()
+            .wrap_err("Could not create context")?;
         let ctx = ctx_orig.clone();
 
         let socket_url = url.to_owned();
@@ -87,6 +89,7 @@ impl Worker {
         // Initialize the Aio in the Recv state
         ctx_orig
             .recv(&aio)
+            .report()
             .wrap_err("Could not receive message from context")?;
 
         Ok(Self { _aio: aio })
@@ -104,10 +107,12 @@ impl Server {
     /// - the worker could not be created from the provided `url`.
     pub fn new(url: &str) -> Result<Self> {
         let socket = nng::Socket::new(nng::Protocol::Rep0)
+            .report()
             .wrap_err("Could not create socket")
             .provide_context(ErrorKind::ServerCreation)?;
         socket
             .listen(url)
+            .report()
             .wrap_err("Could not listen on socket")
             .provide_context(ErrorKind::ServerCreation)?;
 
@@ -147,6 +152,7 @@ impl Server {
     {
         let msg = self.receiver.recv().await.expect(RECV_EXPECT_MESSAGE);
         serde_json::from_slice::<T>(msg.as_slice())
+            .report()
             .wrap_err("Could not convert message from JSON")
             .provide_context(ErrorKind::Receive)
     }
