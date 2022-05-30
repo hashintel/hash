@@ -2,7 +2,7 @@ export * from "./ui/avatar";
 // @todo add button and link back to design system
 // had to remove them at first since their logic is
 // tightly coupled with frontend/ code (i.e includes Nextjs specific code)
-// export * from "./ui/button";
+export * from "./ui/button";
 export * from "./ui/icon-button";
 // export * from "./ui/link";
 export * from "./ui/loading-spinner";

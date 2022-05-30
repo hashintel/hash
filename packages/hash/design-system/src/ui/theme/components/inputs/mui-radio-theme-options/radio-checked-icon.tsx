@@ -1,4 +1,4 @@
-import { FC } from "react";
+import React, { FC } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 
 export const RadioCheckedIcon: FC<SvgIconProps> = ({

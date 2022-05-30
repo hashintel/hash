@@ -7,21 +7,19 @@ import {
   typographyClasses,
 } from "@mui/material";
 import { VFC, forwardRef, ReactNode } from "react";
-import { Link } from "./link";
 
 export type MenuItemProps = {
   children?: ReactNode;
-  href?: string;
   faded?: boolean;
   noSelectBackground?: boolean;
 } & MuiMenuItemProps;
 
 export const MenuItem: VFC<MenuItemProps> = forwardRef(
   (
-    { children, href, sx = [], faded, selected, noSelectBackground, ...props },
+    { children, sx = [], faded, selected, noSelectBackground, ...props },
     ref,
   ) => {
-    const Component = (
+    return (
       <MuiMenuItem
         sx={[
           ({ palette }) => ({
@@ -49,16 +47,6 @@ export const MenuItem: VFC<MenuItemProps> = forwardRef(
         {children}
       </MuiMenuItem>
     );
-
-    if (href) {
-      return (
-        <Link noLinkStyle href={href}>
-          {Component}
-        </Link>
-      );
-    }
-
-    return Component;
   },
 );
 

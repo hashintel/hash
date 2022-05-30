@@ -1,79 +1,19 @@
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
-import {
-  Box,
-  /* eslint-disable-next-line -- allow import of original button to extend it */
-  Button as MuiButton,
-  ButtonProps as MuiButtonProps,
-  useTheme,
-} from "@mui/material";
 import { VFC, forwardRef, useMemo, ReactNode } from "react";
+import {
+  /* eslint-disable-next-line -- allow import of original button to extend it */
+  Button as BaseButton,
+  ButtonProps as BaseButtonProps,
+} from "@hashintel/hash-design-system/ui";
 import { isHrefExternal } from "./link";
-import { LoadingSpinner } from "./loading-spinner";
 
 export type ButtonProps = {
   children: ReactNode;
-  loading?: boolean;
-  loadingWithoutText?: boolean;
-  disabledTooltipText?: string;
-} & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
-
-const LoadingContent: VFC<{
-  withText: boolean;
-  variant: ButtonProps["variant"];
-  size: ButtonProps["size"];
-}> = ({ withText, size, variant = "primary" }) => {
-  const theme = useTheme();
-
-  const spinnerSize = useMemo(() => {
-    switch (size) {
-      case "large":
-        return 20;
-      case "medium":
-        return 16;
-      case "xs":
-        return 12;
-      default:
-        return 16;
-    }
-  }, [size]);
-
-  const spinnerColor = useMemo(() => {
-    switch (variant) {
-      case "tertiary":
-      case "tertiary_quiet":
-        return theme.palette.gray[50];
-      default:
-        return "currentColor";
-    }
-  }, [theme, variant]);
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-      }}
-    >
-      <LoadingSpinner color={spinnerColor} size={spinnerSize} thickness={4} />
-
-      {withText && (
-        <Box
-          component="span"
-          sx={{
-            ml: "12px",
-            ...(size === "xs" && { ml: "8px" }),
-          }}
-        >
-          Loading...
-        </Box>
-      )}
-    </Box>
-  );
-};
+} & BaseButtonProps; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
 export const Button: VFC<ButtonProps> = forwardRef(
-  ({ children, loading, loadingWithoutText, href, sx = [], ...props }, ref) => {
+  ({ children, href, ...props }, ref) => {
     const linkProps = useMemo(() => {
       if (href && isHrefExternal(href)) {
         return {
@@ -87,27 +27,9 @@ export const Button: VFC<ButtonProps> = forwardRef(
     }, [href]);
 
     const Component = (
-      <MuiButton
-        sx={[
-          {
-            pointerEvents: loading ? "none" : "auto",
-          },
-          ...(Array.isArray(sx) ? sx : [sx]),
-        ]}
-        {...props}
-        {...linkProps}
-        ref={ref}
-      >
-        {loading ? (
-          <LoadingContent
-            withText={!loadingWithoutText}
-            size={props.size}
-            variant={props.variant}
-          />
-        ) : (
-          children
-        )}
-      </MuiButton>
+      <BaseButton {...props} {...linkProps} ref={ref}>
+        {children}
+      </BaseButton>
     );
 
     if (href && !isHrefExternal(href)) {

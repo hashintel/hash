@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-restricted-imports
-import Link from "next/link";
+
 import {
   Box,
   /* eslint-disable-next-line -- allow import of original button to extend it */
@@ -8,7 +8,6 @@ import {
   useTheme,
 } from "@mui/material";
 import { VFC, forwardRef, useMemo, ReactNode } from "react";
-import { isHrefExternal } from "./link";
 import { LoadingSpinner } from "./loading-spinner";
 
 export type ButtonProps = {
@@ -73,20 +72,8 @@ const LoadingContent: VFC<{
 };
 
 export const Button: VFC<ButtonProps> = forwardRef(
-  ({ children, loading, loadingWithoutText, href, sx = [], ...props }, ref) => {
-    const linkProps = useMemo(() => {
-      if (href && isHrefExternal(href)) {
-        return {
-          rel: "noopener",
-          target: "_blank",
-          href,
-        };
-      }
-
-      return {};
-    }, [href]);
-
-    const Component = (
+  ({ children, loading, loadingWithoutText, sx = [], ...props }, ref) => {
+    return (
       <MuiButton
         sx={[
           {
@@ -95,7 +82,6 @@ export const Button: VFC<ButtonProps> = forwardRef(
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
         {...props}
-        {...linkProps}
         ref={ref}
       >
         {loading ? (
@@ -109,15 +95,5 @@ export const Button: VFC<ButtonProps> = forwardRef(
         )}
       </MuiButton>
     );
-
-    if (href && !isHrefExternal(href)) {
-      return (
-        <Link href={href} passHref>
-          {Component}
-        </Link>
-      );
-    }
-
-    return Component;
   },
 );

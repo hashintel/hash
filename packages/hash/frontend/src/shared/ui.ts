@@ -1,7 +1,7 @@
 // export * from "./ui/avatar";
-export * from "./ui/button";
+
 // export * from "./ui/icon-button";
-export * from "./ui/link";
+
 // export * from "./ui/loading-spinner";
 // export * from "./ui/popover";
 // export * from "./ui/submit-button-wrapper";
@@ -16,3 +16,9 @@ export * from "./ui/link";
 // export * from "./ui/theme";
 // export * from "./ui/utils";
 export * from "@hashintel/hash-design-system/ui";
+
+export * from "./ui/button";
+
+export * from "./ui/menu-item";
+
+export * from "./ui/link";

@@ -2,127 +2,6 @@ import { Components } from "@mui/material";
 
 import { customColors } from "../../palette";
 
-// @todo fix import issue with this
-// import InterLight from "./fonts/inter-light.ttf";
-// import InterRegular from "./fonts/inter-regular.ttf";
-// import InterMedium from "./fonts/inter-medium.ttf";
-// import InterSemibold from "./fonts/inter-semibold.ttf";
-// import InterBold from "./fonts/inter-bold.ttf";
-
-// import OpenSauceTwoLight from "./fonts/OpenSauceTwo-Light.ttf";
-// import OpenSauceTwoLightItalic from "./fonts/OpenSauceTwo-LightItalic.ttf";
-// import OpenSauceTwoRegular from "./fonts/OpenSauceTwo-Regular.ttf";
-// import OpenSauceTwoItalic from "./fonts/OpenSauceTwo-Italic.ttf";
-// import OpenSauceTwoMedium from "./fonts/OpenSauceTwo-Medium.ttf";
-// import OpenSauceTwoMediumItalic from "./fonts/OpenSauceTwo-MediumItalic.ttf";
-// import OpenSauceTwoSemiBold from "./fonts/OpenSauceTwo-SemiBold.ttf";
-// import OpenSauceTwoSemiBoldItalic from "./fonts/OpenSauceTwo-SemiBoldItalic.ttf";
-// import OpenSauceTwoBold from "./fonts/OpenSauceTwo-Bold.ttf";
-// import OpenSauceTwoBoldItalic from "./fonts/OpenSauceTwo-BoldItalic.ttf";
-
-const fontFaces = `
-  /* INTER */
-  @font-face {
-    font-family: 'Inter';
-    font-weight: 300;
-    src: url("/fonts/inter-light.ttf") format("trueType");
-  }
-  @font-face {
-      font-family: 'Inter';
-      font-weight: 400;
-      src: url("/fonts/inter-regular.ttf") format("trueType");
-  }
-  @font-face {
-      font-family: 'Inter';
-      font-weight: 500;
-      src: url("/fonts/inter-medium.ttf") format("trueType");
-  }
-  @font-face {
-    font-family: 'Inter';
-    font-weight: 600;
-    src: url("/fonts/inter-semibold.ttf") format("trueType");
-  }
-  @font-face {
-    font-family: 'Inter';
-    font-weight: 700;
-    src: url("/fonts/inter-bold.ttf") format("trueType");
-  }
-  
-
-  /* OPEN SAUCE TWO */
-  @font-face {
-    font-family: "Open Sauce Two";
-    font-style: normal;
-    font-weight: 300;
-    font-display: swap;
-    src: url("/fonts/OpenSauceTwo-Light.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Open Sauce Two";
-    font-style: italic;
-    font-weight: 300;
-    font-display: swap;
-    src: url("/fonts/OpenSauceTwo-LightItalic.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Open Sauce Two";
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url("/fonts/OpenSauceTwo-Regular.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Open Sauce Two";
-    font-style: italic;
-    font-weight: 400;
-    font-display: swap;
-    src: url("/fonts/OpenSauceTwo-Italic.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Open Sauce Two";
-    font-style: normal;
-    font-weight: 500;
-    font-display: swap;
-    src: url("/fonts/OpenSauceTwo-Medium.ttf") format("truetype"),
-      url("/fonts/OpenSauceTwo-Medium.woff") format("woff");
-  }
-  @font-face {
-    font-family: "Open Sauce Two";
-    font-style: italic;
-    font-weight: 500;
-    font-display: swap;
-    src: url("/fonts/OpenSauceTwo-MediumItalic.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Open Sauce Two";
-    font-style: normal;
-    font-weight: 600;
-    font-display: swap;
-    src: url("/fonts/OpenSauceTwo-SemiBold.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Open Sauce Two";
-    font-style: italic;
-    font-weight: 600;
-    font-display: swap;
-    src: url("/fonts/OpenSauceTwo-SemiBoldItalic.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Open Sauce Two";
-    font-style: normal;
-    font-weight: 700;
-    font-display: swap;
-    src: url("/fonts/OpenSauceTwo-Bold.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Open Sauce Two";
-    font-style: italic;
-    font-weight: 700;
-    font-display: swap;
-    src: url("/fonts/OpenSauceTwo-BoldItalic.ttf") format("truetype");
-  }
-`;
-
 // should be much easier to configure once mui adds support for fluidTypography
 //  @see https://github.com/mui-org/material-ui/issues/15251
 const rootTypographyStyles = `
@@ -236,7 +115,6 @@ export const MuiCssBaselineThemeOptions: Components["MuiCssBaseline"] = {
             box-sizing: border-box;
           }
 
-          ${fontFaces}
 
           html {
             scroll-behavior: smooth;

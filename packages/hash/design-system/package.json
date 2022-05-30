@@ -5,12 +5,12 @@
   "description": "HASH Design System",
   "license": "AGPL-3.0",
   "exports": {
-    "./": "./dist/"
+    "./*": "./src/*.ts"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "dist/*"
+        "src/*"
       ]
     }
   },
@@ -28,12 +28,10 @@
     "@fortawesome/free-solid-svg-icons": "6.0.0",
     "@mui/material": "5.8.1",
     "clsx": "1.1.1",
-    "next": "12.1.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
   "devDependencies": {
-    "@svgr/webpack": "6.2.1",
     "@types/react": "17.0.39",
     "@types/react-dom": "17.0.8",
     "@typescript-eslint/eslint-plugin": "5.17.0",

@@ -1,3 +1,4 @@
+import React from "react";
 import { Components, Theme, svgIconClasses } from "@mui/material";
 import { CheckboxBlankIcon } from "./mui-checkbox-theme-options/checkbox-blank-icon";
 import { CheckboxIcon } from "./mui-checkbox-theme-options/checkbox-icon";
