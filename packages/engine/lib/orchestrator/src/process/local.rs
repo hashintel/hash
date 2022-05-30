@@ -5,7 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use error::{Report, Result, ResultExt};
+use error::{IntoReport, Report, Result, ResultExt};
 use hash_engine_lib::{
     experiment::controller::run::cleanup_experiment,
     proto::EngineMsg,
@@ -103,6 +103,7 @@ impl process::Process for LocalProcess {
         self.child
             .wait()
             .await
+            .report()
             .wrap_err("Could not wait for the process to exit")
             .generalize()
     }
@@ -210,6 +211,7 @@ impl process::Command for LocalCommand {
 
         let child = cmd
             .spawn()
+            .report()
             .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))
             .generalize()?;
         debug!("Spawned local engine process for experiment");
