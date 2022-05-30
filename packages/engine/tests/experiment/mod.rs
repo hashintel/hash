@@ -9,7 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use ::error::{bail, ensure, FutureExt, IntoReport, Report, ResultExt};
+use ::error::{bail, ensure, IntoReport, Report, ResultExt};
 use execution::{package::experiment::ExperimentName, runner::Language};
 use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
@@ -345,8 +345,8 @@ pub async fn run_test<P: AsRef<Path>>(
     let now = Instant::now();
     experiment
         .run(experiment_run, handler, target_max_group_size)
-        .provide_context(TestContext::ExperimentRun)
-        .await?;
+        .await
+        .provide_context(TestContext::ExperimentRun)?;
     let duration = now.elapsed();
 
     let outputs = iter::repeat(output_base_directory)
