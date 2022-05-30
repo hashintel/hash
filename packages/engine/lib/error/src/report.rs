@@ -22,13 +22,13 @@ use crate::{
 /// Context information can be added by using [`wrap()`] or [`ResultExt`]. The [`Frame`] stack can
 /// be iterated by using [`frames()`].
 ///
-/// To enforce context information generation, an context [`Provider`] needs to be used. When
-/// creating a `Report` by using [`from_error()`] or [`from_context()`], the
-/// parameter is used as context in the `Report`. It's also possible to convert a [`Result`]s
-/// [`Err`] variant to a `Report` with [`IntoReport`]. To provide a new context, use
-/// [`provide_context()`] or [`ResultExt`] to add it to the [`Frame`] stack, which may also be used
-/// to provide more context information than only a display message. This information can the be
-/// retrieved by calling [`request_ref()`] or [`request_value()`].
+/// To enforce context information generation, a context [`Provider`] needs to be used. When
+/// creating a `Report` by using [`from_error()`] or [`from_context()`], the parameter is used as
+/// context in the `Report`. It's also possible to convert a [`Result`]s [`Err`] variant to
+/// `Report` with [`IntoReport::report()`]. To provide a new context, use [`provide_context()`] or
+/// [`ResultExt`] to add it to the [`Frame`] stack, which may also be used to provide more context
+/// information than only a display message. This information can the be retrieved by calling
+/// [`request_ref()`] or [`request_value()`].
 ///
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
@@ -36,7 +36,7 @@ use crate::{
 /// [`wrap()`]: Self::wrap
 /// [`from_error()`]: Self::from_error
 /// [`from_context()`]: Self::from_context
-/// [`IntoReport`]: crate::IntoReport
+/// [`IntoReport::report()`]: crate::IntoReport::report
 /// [`frames()`]: Self::frames
 /// [`provide_context()`]: Self::provide_context
 /// [`request_ref()`]: Self::request_ref
