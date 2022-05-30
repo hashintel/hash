@@ -33,8 +33,6 @@ type AppProps = {
   Component: NextPageWithLayout;
 } & NextAppProps;
 
-console.log("palette => ", theme.palette);
-
 const App: React.VoidFunctionComponent<AppProps> = ({
   Component,
   pageProps,
