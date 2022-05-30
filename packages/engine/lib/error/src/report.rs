@@ -22,10 +22,11 @@ use crate::{
 /// Context information can be added by using [`wrap()`] or [`ResultExt`]. The [`Frame`] stack can
 /// be iterated by using [`frames()`].
 ///
-/// To enforce context information generation, an optional context [`Provider`] may be used. When
-/// creating a `Report` from a message with [`new()`] or from an std-error by using [`from()`], the
-/// `Report` does not have an context associated. To provide one, the [`provider`] API is used. Use
-/// [`provide_context()`] or [`ResultExt`] to add it, which may also be used to provide more context
+/// To enforce context information generation, a context [`Provider`] needs to be used. When
+/// creating a `Report` by using [`from_error()`] or [`from_context()`], the parameter is used as
+/// context in the `Report`. It's also possible to convert a [`Result`]s [`Err`] variant to
+/// `Report` with [`IntoReport::report()`]. To provide a new context, use [`provide_context()`] or
+/// [`ResultExt`] to add it to the [`Frame`] stack, which may also be used to provide more context
 /// information than only a display message. This information can the be retrieved by calling
 /// [`request_ref()`] or [`request_value()`].
 ///
@@ -33,9 +34,10 @@ use crate::{
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`wrap()`]: Self::wrap
-/// [`from()`]: Self::from
+/// [`from_error()`]: Self::from_error
+/// [`from_context()`]: Self::from_context
+/// [`IntoReport::report()`]: crate::IntoReport::report
 /// [`frames()`]: Self::frames
-/// [`new()`]: Self::new
 /// [`provide_context()`]: Self::provide_context
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
@@ -48,7 +50,8 @@ use crate::{
 ///
 ///
 /// ```
-/// use error::{ResultExt, Result};
+/// # #[cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
+/// use error::{IntoReport, ResultExt, Result};
 ///
 /// fn main() -> Result<()> {
 ///     # fn fake_main() -> Result<(), impl core::fmt::Debug> {
@@ -56,6 +59,7 @@ use crate::{
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     # #[allow(unused_variables)]
 ///     let content = std::fs::read_to_string(config_path)
+///         .report()
 ///         .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///     # #[cfg(any(miri, not(feature = "std")))]
 ///     # Err(error::report!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
@@ -77,7 +81,8 @@ use crate::{
 /// use std::path::{Path, PathBuf};
 ///
 /// use provider::{Demand, Provider};
-/// use error::{Report, ResultExt};
+/// # #[cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
+/// use error::{IntoReport, Report, ResultExt};
 ///
 /// #[derive(Debug)]
 /// # #[derive(PartialEq)]
@@ -127,7 +132,7 @@ use crate::{
 ///     # #[cfg(any(miri, not(feature = "std")))]
 ///     # return Err(error::report!("No such file").provide_context(ConfigError::IoError));
 ///     # #[cfg(all(not(miri), feature = "std"))]
-///     std::fs::read_to_string(path.as_ref()).provide_context(ConfigError::IoError)
+///     std::fs::read_to_string(path.as_ref()).report().provide_context(ConfigError::IoError)
 /// }
 ///
 /// fn main() -> Result<(), Report<RuntimeError>> {
