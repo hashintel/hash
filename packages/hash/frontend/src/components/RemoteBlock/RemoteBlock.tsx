@@ -1,8 +1,10 @@
 import { BlockProtocolFunctions, BlockProtocolProps } from "blockprotocol";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useRemoteBlock } from "./useRemoteBlock";
+import { EmbedderGraphHandler } from "../../services/embedder-graph";
+import { linkedEntities } from "@hashintel/hash-api/src/graphql/resolvers/entity/linkedEntities";
 
 type RemoteBlockProps = {
   blockFunctions: BlockProtocolFunctions;
@@ -32,6 +34,48 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     onBlockLoaded,
   );
 
+  const [graphService, setGraphService] = useState<EmbedderGraphHandler>();
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (Component && wrapperRef.current) {
+      setGraphService(
+        new EmbedderGraphHandler({
+          callbacks: {
+            updateEntity: async ({ payload }) => {
+              try {
+                const responsePayload = await blockFunctions.updateEntities?.([
+                  payload!,
+                ]);
+                if (!responsePayload) {
+                  throw new Error(
+                    "No response from embedder updateEntities call",
+                  );
+                }
+                return { payload: responsePayload[0]! };
+              } catch (error) {
+                return {
+                  errors: [
+                    { message: (error as Error).message, code: "ERROR" },
+                  ],
+                };
+              }
+            },
+          },
+          element: wrapperRef.current,
+        }),
+      );
+    }
+  }, [blockFunctions, Component]);
+
+  // Not necessary here since we're providing the properties synchronously,
+  // but this is how you'd update values when dealing with self-contained blocks
+  useEffect(() => {
+    if (graphService) {
+      graphService.linkedEntities = blockProperties.linkedEntities;
+    }
+  }, [blockProperties.linkedEntities, graphService]);
+
   if (loading) {
     return <BlockLoadingIndicator />;
   }
@@ -60,10 +104,8 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
   }
 
   return (
-    <Component
-      {...blockFunctions}
-      {...blockProperties}
-      editableRef={editableRef}
-    />
+    <div ref={wrapperRef}>
+      <Component {...blockProperties} editableRef={editableRef} />
+    </div>
   );
 };
