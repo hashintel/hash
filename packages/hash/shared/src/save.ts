@@ -393,7 +393,6 @@ const updateEntityIdsForPlaceholders = (
   return result;
 };
 
-// @todo write tests
 export const save = async (
   apolloClient: ApolloClient<unknown>,
   accountId: string,
