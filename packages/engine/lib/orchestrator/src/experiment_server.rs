@@ -91,7 +91,7 @@ impl Handler {
         result_rx
             .await
             .report()
-            .provide_context(OrchestratorError::from("Failed to receive response from"))?
+            .change_context(OrchestratorError::from("Failed to receive response from"))?
     }
 
     /// Register a new experiment execution with the server, returning a Handle from which messages
@@ -222,10 +222,9 @@ impl Server {
                 // completes before sending de-registering the experiment.
                 Ok(())
             }
-            Some(sender) => sender
-                .send(msg.body)
-                .report()
-                .wrap_err_lazy(|| format!("Routing message for experiment {}", msg.experiment_id)),
+            Some(sender) => sender.send(msg.body).report().attach_message_lazy(|| {
+                format!("Routing message for experiment {}", msg.experiment_id)
+            }),
         }
     }
 
@@ -241,7 +240,7 @@ impl Server {
     ///
     /// [`create()`]: Self::create
     pub async fn run(&mut self) -> Result<()> {
-        let mut socket = nano::Server::new(&self.url).provide_context_lazy(|| {
+        let mut socket = nano::Server::new(&self.url).change_context_lazy(|| {
             OrchestratorError::from(format!(
                 "Could not create a server socket for {:?}",
                 self.url

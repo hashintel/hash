@@ -1,6 +1,9 @@
 use std::{error::Error, fmt, path::PathBuf};
 
-use error::provider::{Demand, Provider};
+use error::{
+    provider::{Demand, Provider},
+    Context,
+};
 use serde_json::Value;
 
 pub type Result<T, C = TestContext> = error::Result<T, C>;
@@ -29,11 +32,7 @@ impl fmt::Display for TestContext {
     }
 }
 
-impl Provider for TestContext {
-    fn provide<'a>(&'a self, _: &mut Demand<'a>) {
-        // Empty implementation
-    }
-}
+impl Context for TestContext {}
 
 #[derive(Debug)]
 pub enum TestError {
