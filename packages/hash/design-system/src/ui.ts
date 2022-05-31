@@ -1,3 +1,5 @@
+import "./theme-override.d";
+
 export * from "./ui/avatar";
 // @todo add button and link back to design system
 // had to remove them at first since their logic is
