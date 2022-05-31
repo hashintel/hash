@@ -5,6 +5,9 @@ use serde_json::Value;
 
 pub type Result<T, C = TestContext> = error::Result<T, C>;
 
+// TODO: Split the enum into multiple structs, so each function have a well defined boundary like
+//   `-> Result<_, Report<ExperimentSetup>>`
+//   see https://app.asana.com/0/1199548034582004/1202369328773771/f
 #[derive(Debug)]
 pub enum TestContext {
     TestSetup,
