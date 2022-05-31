@@ -212,6 +212,8 @@ export const App: BlockComponent<AppProps> = ({
     setBlockState(BlockState.Overview);
   }
 
+  console.log({ theme });
+
   /** @todo - Filterable list to select a pull-request */
   return (
     <ThemeProvider theme={theme}>

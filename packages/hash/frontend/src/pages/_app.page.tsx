@@ -17,7 +17,7 @@ import { theme, createEmotionCache } from "@hashintel/hash-design-system/ui";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import twindConfig from "../../twind.config";
-import "../../styles/globals.scss";
+import "./globals.scss";
 import { useUser } from "../components/hooks/useUser";
 import {
   RouteAccountInfoProvider,

@@ -120,10 +120,6 @@ export const MuiCssBaselineThemeOptions: Components["MuiCssBaseline"] = {
             scroll-behavior: smooth;
           }
 
-          #__next {
-            height: 100%;
-          }
-
           body {
             overflow: auto;
           }          

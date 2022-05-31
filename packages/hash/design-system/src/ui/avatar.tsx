@@ -17,20 +17,17 @@ export const Avatar: VFC<AvatarProps> = ({
   return (
     <Box
       sx={[
-        ({ palette }) => {
-          console.log("pl theme => ", palette);
-          return {
-            width: size,
-            height: size,
-            display: "flex",
-            ...(!src && {
-              alignItems: "center",
-              justifyContent: "center",
-            }),
-            borderRadius: "50%",
-            backgroundColor: palette.blue?.[70],
-          };
-        },
+        ({ palette }) => ({
+          width: size,
+          height: size,
+          display: "flex",
+          ...(!src && {
+            alignItems: "center",
+            justifyContent: "center",
+          }),
+          borderRadius: "50%",
+          backgroundColor: palette.blue[70],
+        }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
       {...otherProps}
