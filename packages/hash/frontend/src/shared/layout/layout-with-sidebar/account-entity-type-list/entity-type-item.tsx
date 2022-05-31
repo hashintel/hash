@@ -3,8 +3,7 @@ import { useRef, VFC } from "react";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 
-import { IconButton, Link } from "../../../ui";
-import { FontAwesomeIcon } from "../../../icons";
+import { IconButton, Link, FontAwesomeIcon } from "../../../ui";
 import { EntityTypeMenu } from "./entity-type-menu";
 
 type EntityTypeItemProps = {
