@@ -36,14 +36,14 @@ fn parse_config(config: &HashMap<&str, u64>) -> Result<u64, LookupError> {
 
     // `ResultExt` provides different methods for adding additional information to the `Report`
     let value =
-        lookup_key(config, key).wrap_err_lazy(|| format!("Could not lookup key {key:?}"))?;
+        lookup_key(config, key).attach_message_lazy(|| format!("Could not lookup key {key:?}"))?;
 
     Ok(value)
 }
 
 fn main() -> Result<(), LookupError> {
     let config = HashMap::default();
-    let _config_value = parse_config(&config).wrap_err("Unable to parse config")?;
+    let _config_value = parse_config(&config).attach_message("Unable to parse config")?;
 
     Ok(())
 }
