@@ -1,5 +1,4 @@
 import { PlaywrightTestConfig, devices } from "@playwright/test";
-// const { devices } = require("@replayio/playwright");
 
 const ci = process.env.CI === "true";
 
@@ -7,7 +6,6 @@ const config: PlaywrightTestConfig = {
   forbidOnly: ci,
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    // { name: "firefox", use: { ...devices["Replay Firefox"] } },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
 
     // TODO: investigate issue with cookie persistence in CI (Ubuntu).
@@ -29,8 +27,6 @@ const config: PlaywrightTestConfig = {
   },
 
   workers: 1, // Concurrent tests break login
-  timeout: 1000 * 60 * 60,
-  expect: { timeout: 10000 },
 };
 
 export default config;
