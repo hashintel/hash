@@ -79,6 +79,7 @@
 //! A contextual message can be provided to lower level errors.
 //!
 //! ```
+//! # // Same as `examples/contextual_messages.rs`. Don't forget to update both
 //! # #[cfg_attr(not(feature = "std"), allow(unused_imports))]
 //! use std::{collections::HashMap, error::Error, fmt};
 //!
