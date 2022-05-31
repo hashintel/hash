@@ -203,7 +203,7 @@ void (async () => {
       [
         "divider1",
         {
-          entityTypeId: newTypeIds.Divider,
+          entityTypeId: newTypeIds.Divider!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -291,7 +291,7 @@ void (async () => {
         "embed1",
         {
           accountId: systemOrg.accountId,
-          entityTypeId: newTypeIds.Embed,
+          entityTypeId: newTypeIds.Embed!,
           createdByAccountId: user.entityId,
           properties: {},
         },
@@ -299,7 +299,7 @@ void (async () => {
       [
         "embed2",
         {
-          entityTypeId: newTypeIds.Embed,
+          entityTypeId: newTypeIds.Embed!,
           accountId: systemOrg.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -308,7 +308,7 @@ void (async () => {
       [
         "img1",
         {
-          entityTypeId: newTypeIds.Image,
+          entityTypeId: newTypeIds.Image!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -317,7 +317,7 @@ void (async () => {
       [
         "img2",
         {
-          entityTypeId: newTypeIds.Image,
+          entityTypeId: newTypeIds.Image!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -326,7 +326,7 @@ void (async () => {
       [
         "code1",
         {
-          entityTypeId: newTypeIds.Code,
+          entityTypeId: newTypeIds.Code!,
           accountId: systemOrg.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -335,7 +335,7 @@ void (async () => {
       [
         "video1",
         {
-          entityTypeId: newTypeIds.Video,
+          entityTypeId: newTypeIds.Video!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -353,7 +353,7 @@ void (async () => {
             country: "UK",
             name: "London",
           },
-          entityTypeId: newTypeIds.Location,
+          entityTypeId: newTypeIds.Location!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
         },
@@ -365,7 +365,7 @@ void (async () => {
             country: "FR",
             name: "Nantes",
           },
-          entityTypeId: newTypeIds.Location,
+          entityTypeId: newTypeIds.Location!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
         },
@@ -377,7 +377,7 @@ void (async () => {
             name: "Example Org",
             url: "https://example.com",
           },
-          entityTypeId: newTypeIds.Company,
+          entityTypeId: newTypeIds.Company!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
         },
@@ -396,14 +396,14 @@ void (async () => {
             name: "Alice Alison",
             employer: {
               __linkedData: {
-                entityTypeId: newTypeIds.Company,
+                entityTypeId: newTypeIds.Company!,
                 entityId: results.get("c1")!.entityId,
               },
             },
           },
           accountId: user.accountId,
           createdByAccountId: user.entityId,
-          entityTypeId: newTypeIds.Person,
+          entityTypeId: newTypeIds.Person!,
         },
       ],
       [
@@ -414,12 +414,12 @@ void (async () => {
             name: "Bob Bobson",
             employer: {
               __linkedData: {
-                entityTypeId: newTypeIds.Company,
+                entityTypeId: newTypeIds.Company!,
                 entityId: results.get("c1")!.entityId,
               },
             },
           },
-          entityTypeId: newTypeIds.Person,
+          entityTypeId: newTypeIds.Person!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
         },
@@ -432,7 +432,7 @@ void (async () => {
       [
         "t1",
         {
-          entityTypeId: newTypeIds.Table,
+          entityTypeId: newTypeIds.Table!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {
@@ -454,7 +454,7 @@ void (async () => {
       [
         "t2",
         {
-          entityTypeId: newTypeIds.Table,
+          entityTypeId: newTypeIds.Table!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {
@@ -470,7 +470,7 @@ void (async () => {
   await table1.createAggregation(db, {
     stringifiedPath: "$.data",
     operation: {
-      entityTypeId: newTypeIds.Person,
+      entityTypeId: newTypeIds.Person!,
       itemsPerPage: 5,
       multiSort: [
         {
