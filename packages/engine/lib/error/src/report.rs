@@ -26,7 +26,7 @@ use crate::{
 /// creating a `Report` by using [`from_error()`] or [`from_context()`], the parameter is used as
 /// context in the `Report`. To provide a new one, use [`provide_context()`] or [`ResultExt`] to add
 /// it, which may also be used to provide more context information than only a display message. This
-/// information can the be retrieved by calling [`request_ref()`] or [`request_value()`].
+/// information can then be retrieved by calling [`request_ref()`] or [`request_value()`].
 ///
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
