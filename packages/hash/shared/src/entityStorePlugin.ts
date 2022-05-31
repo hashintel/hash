@@ -28,7 +28,7 @@ import { collect } from "./util";
 type EntityStorePluginStateListener = (store: EntityStore) => void;
 
 export type TrackedAction = { action: EntityStorePluginAction; id: string };
-export type EntityStorePluginState = {
+type EntityStorePluginState = {
   store: EntityStore;
   listeners: EntityStorePluginStateListener[];
   trackedActions: TrackedAction[];
@@ -70,13 +70,6 @@ export type EntityStorePluginAction = { received?: boolean } & (
         entityId: string | null;
       };
     }
-  // | {
-  //     type: "insertCreatedEntity";
-  //     payload: {
-  //       draftId: string;
-  //       entity: EntityStoreType;
-  //     };
-  //   }
   | {
       type: "updateBlockEntityProperties";
       payload: { blockEntityDraftId: string; targetEntity: EntityStoreType };
@@ -315,30 +308,6 @@ const entityStoreReducer = (
         );
       });
     }
-    //
-    // case "insertCreatedEntity": {
-    //   if (!state.store.draft[action.payload.draftId]) {
-    //     throw new Error("Entity missing to update entity id");
-    //   }
-    //
-    //
-    //   return produce(state, (draftState) => {
-    //     if (!action.received) {
-    //       draftState.trackedActions.push({ action, id: uuid() });
-    //     }
-    //
-    //
-    //     updateEntitiesByDraftId(
-    //       draftState.store.draft,
-    //       action.payload.draftId,
-    //       (draftEntity: Draft<DraftEntity>) => {
-    //         draftEntity.entityId = action.payload.entity.entityId;
-    //       },
-    //     );
-    //
-    //     draftState.store.saved[action.payload.entity.entityId] = action.payload.entity;
-    //   });
-    // }
 
     case "newDraftEntity":
       if (state.store.draft[action.payload.draftId]) {
