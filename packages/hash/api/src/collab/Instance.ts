@@ -464,9 +464,9 @@ export class Instance {
 
         this.sendUpdates();
 
-        if (apolloClient) {
+        if (apolloClient && steps.length + actions.length > 0) {
           // @todo offload saves to a separate process / debounce them
-          this.save(apolloClient)(clientID);
+          this.save(apolloClient)();
         }
       } catch (err) {
         this.error(err);
@@ -476,7 +476,7 @@ export class Instance {
       return { version: this.version };
     };
 
-  save = (apolloClient: ApolloClient<unknown>) => (clientID: string) => {
+  save = (apolloClient: ApolloClient<unknown>) => () => {
     this.saveChain = this.saveChain
       .catch()
       .then(async () => {
@@ -488,7 +488,6 @@ export class Instance {
           apolloClient,
           this.accountId,
           this.pageEntityId,
-          this.savedContents,
           this.state.doc,
           entityStorePluginState(this.state).store,
         );

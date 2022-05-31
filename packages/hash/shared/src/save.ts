@@ -19,6 +19,8 @@ import {
   EntityTypeChoice,
   GetAccountEntityTypesSharedQuery,
   GetAccountEntityTypesSharedQueryVariables,
+  GetPageQuery,
+  GetPageQueryVariables,
   SystemTypeName,
   UpdatePageAction,
   UpdatePageContentsMutation,
@@ -26,7 +28,7 @@ import {
   UpdatePageContentsResultPlaceholder,
 } from "./graphql/apiTypes.gen";
 import { isEntityNode } from "./prosemirror";
-import { updatePageContents } from "./queries/page.queries";
+import { getPageQuery, updatePageContents } from "./queries/page.queries";
 
 type EntityType =
   GetAccountEntityTypesSharedQuery["getAccountEntityTypes"][number];
@@ -270,8 +272,6 @@ const calculateSaveActions = async (
     return draftEntity.draftId;
   });
 
-  const cloned = JSON.parse(JSON.stringify(beforeBlockDraftIds));
-
   const afterBlockDraftIds: string[] = [];
 
   doc.descendants((node) => {
@@ -398,7 +398,6 @@ export const save = async (
   apolloClient: ApolloClient<unknown>,
   accountId: string,
   pageEntityId: string,
-  blocks: BlockEntity[],
   doc: ProsemirrorNode<Schema>,
   store: EntityStore,
 ) => {
@@ -411,6 +410,14 @@ export const save = async (
     variables: { accountId, includeOtherTypesInUse: true },
     fetchPolicy: "network-only",
   });
+
+  const blocks = (
+    await apolloClient.query<GetPageQuery, GetPageQueryVariables>({
+      query: getPageQuery,
+      variables: { accountId, entityId: pageEntityId },
+      fetchPolicy: "network-only",
+    })
+  ).data.page.properties.contents;
 
   const entityTypes = entityTypesResult.data.getAccountEntityTypes;
 
