@@ -163,6 +163,19 @@ export const fetchBlockMeta = async (
       );
     }
 
+    const { devRefreshEndpoint } = metadata;
+    if (
+      typeof window !== "undefined" &&
+      devRefreshEndpoint?.match(/^wss?:\/\//)
+    ) {
+      const socket = new WebSocket(devRefreshEndpoint);
+      socket.addEventListener("message", ({ data }) => {
+        if (data === '{"type":"invalid"}') {
+          window.location.reload();
+        }
+      });
+    }
+
     const result: BlockMeta = {
       componentMetadata: transformBlockConfig({
         metadata,

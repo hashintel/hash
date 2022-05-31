@@ -1,5 +1,5 @@
 diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index c830b93..cd146cd 100644
+index c830b93..3b31537 100644
 --- a/node_modules/blockprotocol/core.d.ts
 +++ b/node_modules/blockprotocol/core.d.ts
 @@ -1,3 +1,6 @@
@@ -9,7 +9,18 @@ index c830b93..cd146cd 100644
  // ---------------------------- UTILITIES ----------------------------- //
  
  type UnknownRecord = Record<string, unknown>;
-@@ -181,15 +184,18 @@ export type BlockProtocolFilterOperatorRequiringValue =
+@@ -49,6 +52,10 @@ export type BlockMetadata = {
+    * A short description of the block, to help users understand its capabilities
+    */
+   description?: string | null;
++  /**
++   * URL of a web socket that reports updates in locally developed blocks. To be used by EAs to self-refresh.
++   */
++  devRefreshEndpoint?: string | null;
+   /**
+    * The display name used for a block
+    */
+@@ -181,15 +188,18 @@ export type BlockProtocolFilterOperatorRequiringValue =
  
  export type BlockProtocolMultiFilterOperatorType = "AND" | "OR";
  
@@ -36,7 +47,7 @@ index c830b93..cd146cd 100644
    operator: BlockProtocolMultiFilterOperatorType;
  };
  
-@@ -513,4 +519,4 @@ export type BlockProtocolProps = {
+@@ -513,4 +523,4 @@ export type BlockProtocolProps = {
    linkedAggregations?: BlockProtocolLinkedAggregation[];
    linkedEntities?: BlockProtocolEntity[];
    linkGroups?: BlockProtocolLinkGroup[];
