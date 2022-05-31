@@ -95,6 +95,7 @@ pub struct FutureWithProvider<Fut, P> {
     provider: Option<P>,
 }
 
+#[cfg(nightly)]
 impl<Fut, P> Future for FutureWithProvider<Fut, P>
 where
     Fut: Future,
@@ -130,6 +131,7 @@ pub struct FutureWithLazyProvider<Fut, F> {
     op: Option<F>,
 }
 
+#[cfg(nightly)]
 impl<Fut, F, M> Future for FutureWithLazyProvider<Fut, F>
 where
     Fut: Future,
