@@ -3,7 +3,7 @@ import * as React from "react";
 import { BlockComponent } from "blockprotocol/react";
 import CircularProgress from "@mui/material/CircularProgress";
 import { theme } from "@hashintel/hash-design-system/ui";
-import { CssBaseline, ThemeProvider, Typography } from "@mui/material";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 import {
   GithubIssueEvent,
   GithubPullRequest,
@@ -212,13 +212,10 @@ export const App: BlockComponent<AppProps> = ({
     setBlockState(BlockState.Overview);
   }
 
-  console.log({ theme });
-
   /** @todo - Filterable list to select a pull-request */
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Typography variant="h1">Hi there</Typography>
       <div>
         {blockState === BlockState.Loading ? (
           <CircularProgress />

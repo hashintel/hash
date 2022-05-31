@@ -15,7 +15,6 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
     "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
     "lint:eslint": "eslint --ext .js,.ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
