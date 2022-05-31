@@ -14,7 +14,7 @@ pub struct Frames<'r> {
 }
 
 impl<'r> Frames<'r> {
-    pub(super) const fn new<C>(report: &'r Report<C>) -> Self {
+    pub(crate) const fn new<C>(report: &'r Report<C>) -> Self {
         Self {
             current: Some(report.frame()),
         }
@@ -26,7 +26,9 @@ impl<'r> Iterator for Frames<'r> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.current.take().map(|current| {
-            self.current = current.request_ref::<Frame>();
+            if let Some(source) = &current.source {
+                self.current = Some(&*source);
+            }
             current
         })
     }
@@ -44,11 +46,13 @@ impl fmt::Debug for Frames<'_> {
 ///
 /// Use [`Report::request_ref()`] to create this iterator.
 #[must_use]
+#[cfg(nightly)]
 pub struct RequestRef<'r, T: ?Sized> {
     frames: Frames<'r>,
     _marker: PhantomData<&'r T>,
 }
 
+#[cfg(nightly)]
 impl<'r, T: ?Sized> RequestRef<'r, T> {
     pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
         Self {
@@ -58,6 +62,7 @@ impl<'r, T: ?Sized> RequestRef<'r, T> {
     }
 }
 
+#[cfg(nightly)]
 impl<'r, T> Iterator for RequestRef<'r, T>
 where
     T: ?Sized + 'static,
@@ -69,8 +74,10 @@ where
     }
 }
 
+#[cfg(nightly)]
 impl<'r, T> FusedIterator for RequestRef<'r, T> where T: ?Sized + 'static {}
 
+#[cfg(nightly)]
 impl<T: ?Sized> Clone for RequestRef<'_, T> {
     fn clone(&self) -> Self {
         Self {
@@ -80,6 +87,7 @@ impl<T: ?Sized> Clone for RequestRef<'_, T> {
     }
 }
 
+#[cfg(nightly)]
 impl<'r, T> fmt::Debug for RequestRef<'r, T>
 where
     T: ?Sized + fmt::Debug + 'static,
@@ -93,11 +101,13 @@ where
 ///
 /// Use [`Report::request_value()`] to create this iterator.
 #[must_use]
+#[cfg(nightly)]
 pub struct RequestValue<'r, T> {
     frames: Frames<'r>,
     _marker: PhantomData<T>,
 }
 
+#[cfg(nightly)]
 impl<'r, T> RequestValue<'r, T> {
     pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
         Self {
@@ -107,6 +117,7 @@ impl<'r, T> RequestValue<'r, T> {
     }
 }
 
+#[cfg(nightly)]
 impl<'r, T> Iterator for RequestValue<'r, T>
 where
     T: 'static,
@@ -118,8 +129,10 @@ where
     }
 }
 
+#[cfg(nightly)]
 impl<'r, T> FusedIterator for RequestValue<'r, T> where T: 'static {}
 
+#[cfg(nightly)]
 impl<T> Clone for RequestValue<'_, T> {
     fn clone(&self) -> Self {
         Self {
@@ -129,6 +142,7 @@ impl<T> Clone for RequestValue<'_, T> {
     }
 }
 
+#[cfg(nightly)]
 impl<'r, T> fmt::Debug for RequestValue<'r, T>
 where
     T: fmt::Debug + 'static,

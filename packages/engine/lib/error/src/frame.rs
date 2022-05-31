@@ -5,7 +5,6 @@ use alloc::boxed::Box;
 use core::{
     any::{Any, TypeId},
     fmt,
-    fmt::Formatter,
     mem::ManuallyDrop,
     panic::Location,
     ptr::{addr_of, NonNull},
@@ -13,10 +12,18 @@ use core::{
 #[cfg(feature = "std")]
 use std::error::Error;
 
-use crate::{
-    provider::{self, Demand, Provider},
-    Context, Message,
-};
+#[cfg(nightly)]
+use crate::provider::{self, Demand, Provider};
+use crate::Context;
+
+#[cfg(nightly)]
+trait Unerased: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static {}
+#[cfg(nightly)]
+impl<T> Unerased for T where T: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static {}
+#[cfg(not(nightly))]
+trait Unerased: fmt::Debug + fmt::Display + Send + Sync + 'static {}
+#[cfg(not(nightly))]
+impl<T> Unerased for T where T: fmt::Debug + fmt::Display + Send + Sync + 'static {}
 
 /// A single error, contextual message, or error context inside of a [`Report`].
 ///
@@ -33,10 +40,27 @@ use crate::{
 pub struct Frame {
     inner: ManuallyDrop<Box<FrameRepr>>,
     location: &'static Location<'static>,
-    source: Option<Box<Frame>>,
+    pub(crate) source: Option<Box<Frame>>,
 }
 
 impl Frame {
+    #[cfg(nightly)]
+    pub(crate) fn from_provider<P>(
+        provider: P,
+        location: &'static Location<'static>,
+        source: Option<Box<Self>>,
+    ) -> Self
+    where
+        P: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static,
+    {
+        Self {
+            // SAFETY: `inner` is wrapped in `ManuallyDrop`
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(provider)) },
+            location,
+            source,
+        }
+    }
+
     pub(crate) fn from_context<C>(
         context: C,
         location: &'static Location<'static>,
@@ -47,7 +71,7 @@ impl Frame {
     {
         Self {
             // SAFETY: `inner` is wrapped in `ManuallyDrop`
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(context)) },
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(ContextRepr(context))) },
             location,
             source,
         }
@@ -59,7 +83,7 @@ impl Frame {
         source: Option<Box<Self>>,
     ) -> Self
     where
-        M: Message,
+        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self {
             // SAFETY: `inner` is wrapped in `ManuallyDrop`
@@ -70,7 +94,7 @@ impl Frame {
     }
 
     #[cfg(feature = "std")]
-    pub(crate) fn from_std<E>(
+    pub(crate) fn from_error<E>(
         error: E,
         location: &'static Location<'static>,
         source: Option<Box<Self>>,
@@ -94,6 +118,7 @@ impl Frame {
 
     /// Requests the reference to `T` from the `Frame` if provided.
     #[must_use]
+    #[cfg(nightly)]
     pub fn request_ref<T>(&self) -> Option<&T>
     where
         T: ?Sized + 'static,
@@ -103,6 +128,7 @@ impl Frame {
 
     /// Requests the value of `T` from the `Frame` if provided.
     #[must_use]
+    #[cfg(nightly)]
     pub fn request_value<T>(&self) -> Option<T>
     where
         T: 'static,
@@ -119,27 +145,14 @@ impl Frame {
     /// Downcasts this frame if the held provider object is the same as `T`.
     #[must_use]
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
-        #[cfg_attr(not(feature = "std"), allow(clippy::let_and_return))]
-        let downcasted = self.inner.downcast().map(|addr| {
+        self.inner.as_ref().downcast().map(|addr| {
             // SAFETY: Dereferencing is safe as T has the same lifetimes as Self
             unsafe { addr.as_ref() }
-        });
-
-        #[cfg(feature = "std")]
-        let downcasted = downcasted.or_else(|| {
-            // Fallback for `T: Error` as `Error` is wrapped inside of `ErrorRepr`
-            // TODO: Remove fallback when `Provider` is implemented for `Error` upstream
-            self.inner.downcast::<ErrorRepr<T>>().map(|addr| {
-                // SAFETY: Dereferencing is safe as T has the same lifetimes as Self and casting
-                //   `ErrorRepr<T>` to `T` is safe as `ErrorRepr` is `#[repr(transparent)]`
-                unsafe { addr.cast().as_ref() }
-            })
-        });
-
-        downcasted
+        })
     }
 }
 
+#[cfg(nightly)]
 impl Provider for Frame {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         self.inner.unerase().provide(demand);
@@ -151,7 +164,7 @@ impl Provider for Frame {
 }
 
 impl fmt::Debug for Frame {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Frame")
             .field("context", &self.inner.unerase())
             .field("location", &self.location)
@@ -185,7 +198,7 @@ impl Drop for Frame {
 /// are stored and called directly.
 struct VTable {
     object_drop: unsafe fn(Box<FrameRepr>),
-    object_ref: unsafe fn(&FrameRepr) -> &dyn Context,
+    object_ref: unsafe fn(&FrameRepr) -> &dyn Unerased,
     object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
 }
 
@@ -193,23 +206,54 @@ struct VTable {
 ///
 /// As [`Message`] does not necessarily implement [`Provider`], an empty implementation is provided.
 /// If a [`Provider`] is required use it directly instead of [`Message`].
-struct MessageRepr<M: Message>(M);
+struct MessageRepr<M>(M);
 
-impl<C: Message> fmt::Display for MessageRepr<C> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+impl<C: fmt::Display> fmt::Display for MessageRepr<C> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl<C: Message> fmt::Debug for MessageRepr<C> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+impl<C: fmt::Debug> fmt::Debug for MessageRepr<C> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
-impl<C: Message> Provider for MessageRepr<C> {
+impl<C: Context> Context for MessageRepr<C> {}
+
+#[cfg(nightly)]
+impl<C: fmt::Display + fmt::Debug + Send + Sync + 'static> Provider for MessageRepr<C> {
     fn provide<'a>(&'a self, _: &mut Demand<'a>) {
         // Empty definition as `Message` does not convey provider information
+    }
+}
+
+/// Wrapper around [`Context`].
+///
+/// As [`Context`] does not necessarily implement [`Provider`], an empty implementation is provided.
+/// If a [`Provider`] is required use it directly instead of [`Context`].
+#[repr(transparent)]
+struct ContextRepr<C>(C);
+
+impl<C: fmt::Display> fmt::Display for ContextRepr<C> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl<C: fmt::Debug> fmt::Debug for ContextRepr<C> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, fmt)
+    }
+}
+
+impl<C: Context> Context for ContextRepr<C> {}
+
+#[cfg(nightly)]
+impl<C> Provider for ContextRepr<C> {
+    fn provide<'a>(&'a self, _: &mut Demand<'a>) {
+        // Empty definition as `Context` does not convey provider information
     }
 }
 
@@ -223,23 +267,26 @@ impl<C: Message> Provider for MessageRepr<C> {
 struct ErrorRepr<E>(E);
 
 #[cfg(feature = "std")]
-impl<E: Error> fmt::Display for ErrorRepr<E> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+impl<E: fmt::Display> fmt::Display for ErrorRepr<E> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
 #[cfg(feature = "std")]
-impl<E: Error> fmt::Debug for ErrorRepr<E> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+impl<E: fmt::Debug> fmt::Debug for ErrorRepr<E> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
 #[cfg(feature = "std")]
+impl<C: Context> Context for ErrorRepr<C> {}
+
+#[cfg(all(nightly, feature = "std"))]
 impl<E: Error> Provider for ErrorRepr<E> {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        #[cfg(all(nightly, feature = "std"))]
+        // ErrorProviderSpec::provide(self, demand);
         if let Some(backtrace) = self.0.backtrace() {
             demand.provide_ref(backtrace);
         }
@@ -252,13 +299,13 @@ impl VTable {
     /// # Safety
     ///
     /// - Layout of `*frame` must match `FrameRepr<C>`.
-    unsafe fn object_drop<C>(frame: Box<FrameRepr>) {
+    unsafe fn object_drop<T>(frame: Box<FrameRepr>) {
         // Attach C's native vtable onto the pointer to `self._context`
         // Note: This must not use `mem::transmute` because it tries to reborrow the `Unique`
         //   contained in `Box`, which must not be done. In practice this probably won't make any
         //   difference by now, but technically it's unsound.
         //   see: https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md
-        let unerased = Box::from_raw(Box::into_raw(frame).cast::<FrameRepr<C>>());
+        let unerased = Box::from_raw(Box::into_raw(frame).cast::<FrameRepr<T>>());
         drop(unerased);
     }
 
@@ -267,9 +314,9 @@ impl VTable {
     /// # Safety
     ///
     /// - Layout of `Self` must match `FrameRepr<C>`.
-    unsafe fn object_ref<C: Context>(frame: &FrameRepr) -> &dyn Context {
+    unsafe fn object_ref<T: Unerased>(frame: &FrameRepr) -> &dyn Unerased {
         // Attach C's native vtable onto the pointer to `self._context`
-        let unerased = (frame as *const FrameRepr).cast::<FrameRepr<C>>();
+        let unerased = (frame as *const FrameRepr).cast::<FrameRepr<T>>();
         // inside of vtable it's allowed to access `_context`
         #[allow(clippy::used_underscore_binding)]
         &(*(unerased))._context
@@ -280,13 +327,13 @@ impl VTable {
     /// # Safety
     ///
     /// - Layout of `Self` must match `FrameRepr<C>`.
-    unsafe fn object_downcast<C: Context>(
+    unsafe fn object_downcast<T: Unerased>(
         frame: &FrameRepr,
         target: TypeId,
     ) -> Option<NonNull<()>> {
-        if TypeId::of::<C>() == target {
+        if TypeId::of::<T>() == target {
             // Attach C's native vtable onto the pointer to `self._context`
-            let unerased = (frame as *const FrameRepr).cast::<FrameRepr<C>>();
+            let unerased = (frame as *const FrameRepr).cast::<FrameRepr<T>>();
             // inside of vtable it's allowed to access `_context`
             #[allow(clippy::used_underscore_binding)]
             let addr = addr_of!((*(unerased))._context) as *mut ();
@@ -307,21 +354,21 @@ struct FrameRepr<C = ()> {
     _context: C,
 }
 
-impl<C> FrameRepr<C>
+impl<T> FrameRepr<T>
 where
-    C: Context,
+    T: Unerased,
 {
     /// Creates a new frame from a context
     ///
     /// # Safety
     ///
     /// Must not be dropped without calling `vtable.object_drop`
-    unsafe fn new(context: C) -> Box<FrameRepr> {
+    unsafe fn new(context: T) -> Box<FrameRepr> {
         let unerased_frame = Self {
             vtable: &VTable {
-                object_drop: VTable::object_drop::<C>,
-                object_ref: VTable::object_ref::<C>,
-                object_downcast: VTable::object_downcast::<C>,
+                object_drop: VTable::object_drop::<T>,
+                object_ref: VTable::object_ref::<T>,
+                object_downcast: VTable::object_downcast::<T>,
             },
             _context: context,
         };
@@ -333,15 +380,32 @@ where
 
 #[allow(clippy::used_underscore_binding)]
 impl FrameRepr {
-    fn unerase(&self) -> &dyn Context {
+    fn unerase(&self) -> &dyn Unerased {
         // SAFETY: Use vtable to attach C's native vtable for the right original type C.
         unsafe { (self.vtable.object_ref)(self) }
     }
 
-    fn downcast<C: Any>(&self) -> Option<NonNull<C>> {
-        let target = TypeId::of::<C>();
-        // SAFETY: Use vtable to attach C's native vtable for the right original type C.
-        let addr = unsafe { (self.vtable.object_downcast)(self, target) };
-        addr.map(NonNull::cast)
+    fn downcast<T: Any>(&self) -> Option<NonNull<T>> {
+        // TODO: Use tagged pointer to store the frame kind
+        //   see https://app.asana.com/0/0/1202366470755781/f
+        // SAFETY: Use vtable to attach C's native vtable for the right original type C. Casting
+        //   between `T` and `ContextRepr<T>`/`ErrorRepr<T>` is safe as those structs are
+        //   `repr(transparent)`.
+        unsafe {
+            if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<T>()) {
+                return Some(addr.cast());
+            }
+
+            if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<ContextRepr<T>>())
+            {
+                return Some(addr.cast());
+            }
+
+            #[cfg(feature = "std")]
+            if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<ErrorRepr<T>>()) {
+                return Some(addr.cast());
+            }
+            None
+        }
     }
 }
