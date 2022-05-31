@@ -356,8 +356,6 @@ export class Instance {
           return block;
         });
 
-        await this.saveChain.catch();
-
         /**
          * We should know not to notify consumers of changes they've already
          * been notified of, but because of a race condition between saves
