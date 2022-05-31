@@ -22,7 +22,7 @@ use crate::{
 /// Context information can be added by using [`wrap()`] or [`ResultExt`]. The [`Frame`] stack can
 /// be iterated by using [`frames()`].
 ///
-/// To enforce context information generation, an context [`Provider`] needs to be used. When
+/// To enforce context information generation, a context [`Provider`] needs to be used. When
 /// creating a `Report` by using [`from_error()`] or [`from_context()`], the parameter is used as
 /// context in the `Report`. To provide a new one, use [`provide_context()`] or [`ResultExt`] to add
 /// it, which may also be used to provide more context information than only a display message. This
