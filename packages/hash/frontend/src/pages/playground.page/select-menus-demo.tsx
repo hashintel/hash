@@ -14,13 +14,13 @@ import {
   MenuList,
   Stack,
 } from "@mui/material";
-import { FontAwesomeIcon } from "../../shared/icons";
 import {
   Avatar,
   Chip,
   MenuCheckboxItem,
   MenuItem,
   Select,
+  FontAwesomeIcon,
 } from "../../shared/ui";
 import { SelectWithSearch } from "./select/select-with-search";
 import { SelectWithSearchAndCheckbox } from "./select/select-with-search-checkbox";

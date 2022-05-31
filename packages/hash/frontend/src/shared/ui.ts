@@ -1,4 +1,4 @@
-export * from "@hashintel/hash-design-system/ui";
+export * from "@hashintel/hash-design-system";
 
 export * from "./ui/button";
 export * from "./ui/menu-item";

@@ -13,9 +13,13 @@ import { useCallback, useEffect, useMemo, useRef, VFC } from "react";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { EntityFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { useBlockView } from "../BlockViewContext";
-import { FontAwesomeIcon } from "../../../shared/icons";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { LoadingSpinner, TextField, MenuItem } from "../../../shared/ui";
+import {
+  LoadingSpinner,
+  TextField,
+  MenuItem,
+  FontAwesomeIcon,
+} from "../../../shared/ui";
 import { useAccountEntities } from "../../../components/hooks/useAccountEntities";
 
 type LoadEntityMenuContentProps = {

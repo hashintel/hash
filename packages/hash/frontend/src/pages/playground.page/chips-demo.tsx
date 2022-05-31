@@ -1,8 +1,7 @@
 /* eslint-disable no-alert -- used for testing purposes */
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Box, Stack } from "@mui/material";
-import { FontAwesomeIcon } from "../../shared/icons";
-import { Chip, ChipGroup } from "../../shared/ui";
+import { Chip, ChipGroup, FontAwesomeIcon } from "../../shared/ui";
 
 export const ChipsDemo = () => {
   return (

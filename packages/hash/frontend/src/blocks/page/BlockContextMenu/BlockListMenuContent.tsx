@@ -12,8 +12,7 @@ import { useRef, useState, VFC } from "react";
 import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
 import { useUserBlocks } from "../../userBlocks";
-import { FontAwesomeIcon } from "../../../shared/icons";
-import { TextField, MenuItem } from "../../../shared/ui";
+import { TextField, MenuItem, FontAwesomeIcon } from "../../../shared/ui";
 
 type BlockListMenuContentProps = {
   popupState?: PopupState;

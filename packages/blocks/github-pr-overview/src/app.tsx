@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 import CircularProgress from "@mui/material/CircularProgress";
-import { theme } from "@hashintel/hash-design-system/ui";
+import { theme } from "@hashintel/hash-design-system";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import {
   GithubIssueEvent,

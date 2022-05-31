@@ -9,7 +9,7 @@ import {
   outlinedInputClasses,
   Theme,
 } from "@mui/material";
-import { FontAwesomeIcon } from "../../../../icons";
+import { FontAwesomeIcon } from "../../../fontawesome-icon";
 
 export const MuiSelectThemeOptions: Components<Theme>["MuiSelect"] = {
   defaultProps: {

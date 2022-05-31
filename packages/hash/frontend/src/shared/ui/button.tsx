@@ -5,7 +5,7 @@ import {
   /* eslint-disable-next-line -- allow import of original button to extend it */
   Button as BaseButton,
   ButtonProps as BaseButtonProps,
-} from "@hashintel/hash-design-system/ui";
+} from "@hashintel/hash-design-system";
 import { isHrefExternal } from "./link";
 
 export type ButtonProps = {

@@ -13,7 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { forwardRef, VFC } from "react";
-import { FontAwesomeIcon } from "../icons";
+import { FontAwesomeIcon } from "./fontawesome-icon";
 
 type TextFieldProps = {
   success?: boolean;

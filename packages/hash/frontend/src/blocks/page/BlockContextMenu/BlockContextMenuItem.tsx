@@ -15,8 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { FontAwesomeIcon } from "../../../shared/icons";
-import { MenuItem } from "../../../shared/ui";
+import { MenuItem, FontAwesomeIcon } from "../../../shared/ui";
 
 type BlockContextMenuItemProps = {
   itemKey: string;

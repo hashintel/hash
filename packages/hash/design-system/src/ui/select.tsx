@@ -12,7 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 import { forwardRef, ReactNode, Ref, ReactElement } from "react";
-import { FontAwesomeIcon } from "../icons";
+import { FontAwesomeIcon } from "./fontawesome-icon";
 
 export type SelectProps<T = unknown> = {
   children: ReactNode;

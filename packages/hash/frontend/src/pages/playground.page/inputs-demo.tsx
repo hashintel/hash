@@ -11,8 +11,12 @@ import {
   InputAdornment,
   Typography,
 } from "@mui/material";
-import { FontAwesomeIcon } from "../../shared/icons";
-import { Button, FormInline, TextField } from "../../shared/ui";
+import {
+  Button,
+  FormInline,
+  TextField,
+  FontAwesomeIcon,
+} from "../../shared/ui";
 
 export const InputsDemo = () => {
   return (

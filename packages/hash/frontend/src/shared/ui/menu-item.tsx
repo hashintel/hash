@@ -2,7 +2,7 @@ import { VFC, forwardRef, ReactNode } from "react";
 import {
   MenuItem as BaseMenuItem,
   MenuItemProps as BaseMenuItemProps,
-} from "@hashintel/hash-design-system/ui";
+} from "@hashintel/hash-design-system";
 import { Link } from "./link";
 
 export type MenuItemProps = {

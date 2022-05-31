@@ -13,7 +13,7 @@ import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { theme, createEmotionCache } from "@hashintel/hash-design-system/ui";
+import { theme, createEmotionCache } from "@hashintel/hash-design-system";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import twindConfig from "../../twind.config";

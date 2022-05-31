@@ -6,7 +6,7 @@ import {
   ChipProps as MuiChipProps,
 } from "@mui/material";
 import { faCircle } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "../icons";
+import { FontAwesomeIcon } from "./fontawesome-icon";
 
 export type ChipProps = {
   hasCircleStartIcon?: boolean;

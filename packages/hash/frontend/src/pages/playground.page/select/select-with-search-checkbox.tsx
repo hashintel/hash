@@ -1,13 +1,13 @@
 import { faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
 import { Box, Divider, FormControl, ListItemText } from "@mui/material";
 import { useMemo, useState } from "react";
-import { FontAwesomeIcon } from "../../../shared/icons";
 import {
   Button,
   Chip,
   TextField,
   Select,
   MenuCheckboxItem,
+  FontAwesomeIcon,
 } from "../../../shared/ui";
 
 const MENU_ITEMS = [

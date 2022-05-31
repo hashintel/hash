@@ -30,7 +30,7 @@ import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 
 import { BlockLoaderInput } from "./BlockLoaderInput";
 import { useUsers } from "../../../components/hooks/useUsers";
-import { FontAwesomeIcon } from "../../../shared/icons";
+import { FontAwesomeIcon } from "../../../shared/ui";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
 import { LoadEntityMenuContent } from "./LoadEntityMenuContent";
 import { BlockListMenuContent } from "./BlockListMenuContent";
