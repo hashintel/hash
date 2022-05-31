@@ -158,7 +158,10 @@ export const updatePageContents: Resolver<
         }),
     );
 
-    // Create any _new_ entities
+    /**
+     * Create any _new_ entities. This is done one at a time in order to allow
+     * you to reference a previous created entity using its placeholder.
+     */
     for (const { action, i } of actions
       // eslint-disable-next-line @typescript-eslint/no-shadow
       .map((action, i) => ({ action, i }))
