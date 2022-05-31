@@ -202,10 +202,10 @@ struct VTable {
     object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
 }
 
-/// Wrapper around [`Message`].
+/// Wrapper around a contextual message.
 ///
-/// As [`Message`] does not necessarily implement [`Provider`], an empty implementation is provided.
-/// If a [`Provider`] is required use it directly instead of [`Message`].
+/// A message does not necessarily implement [`Provider`], an empty implementation is provided.
+/// If a [`Provider`] is required attach it directly rather than attaching a message.
 struct MessageRepr<M>(M);
 
 impl<C: fmt::Display> fmt::Display for MessageRepr<C> {
@@ -225,7 +225,7 @@ impl<C: Context> Context for MessageRepr<C> {}
 #[cfg(nightly)]
 impl<C: fmt::Display + fmt::Debug + Send + Sync + 'static> Provider for MessageRepr<C> {
     fn provide<'a>(&'a self, _: &mut Demand<'a>) {
-        // Empty definition as `Message` does not convey provider information
+        // Empty definition as a contextual message does not convey provider information
     }
 }
 
