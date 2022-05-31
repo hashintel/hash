@@ -399,23 +399,23 @@ export const save = async (
   doc: ProsemirrorNode<Schema>,
   store: EntityStore,
 ) => {
-  // @todo can these be cached at all?
-  const entityTypesResult = await apolloClient.query<
-    GetAccountEntityTypesSharedQuery,
-    GetAccountEntityTypesSharedQueryVariables
-  >({
-    query: getAccountEntityTypes,
-    variables: { accountId, includeOtherTypesInUse: true },
-    fetchPolicy: "network-only",
-  });
-
-  const blocks = (
-    await apolloClient.query<GetPageQuery, GetPageQueryVariables>({
-      query: getPageQuery,
-      variables: { accountId, entityId: pageEntityId },
+  const [entityTypesResult, blocks] = await Promise.all([
+    await apolloClient.query<
+      GetAccountEntityTypesSharedQuery,
+      GetAccountEntityTypesSharedQueryVariables
+    >({
+      query: getAccountEntityTypes,
+      variables: { accountId, includeOtherTypesInUse: true },
       fetchPolicy: "network-only",
-    })
-  ).data.page.properties.contents;
+    }),
+    await apolloClient
+      .query<GetPageQuery, GetPageQueryVariables>({
+        query: getPageQuery,
+        variables: { accountId, entityId: pageEntityId },
+        fetchPolicy: "network-only",
+      })
+      .then((res) => res.data.page.properties.contents),
+  ]);
 
   const entityTypes = entityTypesResult.data.getAccountEntityTypes;
 
