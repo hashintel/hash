@@ -1,3 +1,4 @@
+import { capitalizeComponentName } from "@hashintel/hash-api/src/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import {
@@ -71,37 +72,18 @@ void (async () => {
 
   const results = new Map<string, Entity>();
 
-  // @todo names should be the same as programatically generated ones
   const requiredBlockTypes = [
-    {
-      name: "Divider",
-      componentId: "https://blockprotocol.org/blocks/@hash/divider",
-    },
-    {
-      name: "Embed",
-      componentId: "https://blockprotocol.org/blocks/@hash/embed",
-    },
-    {
-      name: "Image",
-      componentId: "https://blockprotocol.org/blocks/@hash/image",
-    },
-    {
-      name: "Table",
-      componentId: "https://blockprotocol.org/blocks/@hash/table",
-    },
-    {
-      name: "Code",
-      componentId: "https://blockprotocol.org/blocks/@hash/code",
-    },
-    {
-      name: "Video",
-      componentId: "https://blockprotocol.org/blocks/@hash/video",
-    },
-    {
-      name: "Header",
-      componentId: "https://blockprotocol.org/blocks/@hash/header",
-    },
-  ] as const;
+    "https://blockprotocol.org/blocks/@hash/divider",
+    "https://blockprotocol.org/blocks/@hash/embed",
+    "https://blockprotocol.org/blocks/@hash/image",
+    "https://blockprotocol.org/blocks/@hash/table",
+    "https://blockprotocol.org/blocks/@hash/code",
+    "https://blockprotocol.org/blocks/@hash/video",
+    "https://blockprotocol.org/blocks/@hash/header",
+  ].map((componentId) => ({
+    name: capitalizeComponentName(componentId),
+    componentId,
+  }));
 
   const requiredOtherTypes = ["Company", "Location", "Person"] as const;
   // create the types we'll need below so we can assign their ids to entities
