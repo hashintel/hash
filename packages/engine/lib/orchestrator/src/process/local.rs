@@ -44,9 +44,7 @@ impl process::Process for LocalProcess {
                 std::io::ErrorKind::InvalidInput => Ok(()),
                 _ => Err(Report::from_error(e)),
             })
-            .wrap_err("Could not kill the process")
-            .generalize()
-            .map_err(OrchestratorError::from);
+            .provide_context(OrchestratorError::from("Could not kill the process"));
 
         let engine_socket_path = format!("run-{experiment_id}");
         match remove_file(&engine_socket_path) {
@@ -81,17 +79,14 @@ impl process::Process for LocalProcess {
         // We create the client on the first call here, rather than when the LocalCommand is run,
         // because the engine process needs some time before it's ready to accept NNG connections.
         if self.client.is_none() {
-            self.client = Some(
-                nano::Client::new(&self.engine_url, 1)
-                    .wrap_err_lazy(|| {
-                        format!(
-                            "Could not create nano client for engine at {:?}",
-                            self.engine_url
-                        )
-                    })
-                    .generalize()
-                    .map_err(OrchestratorError::from)?,
-            );
+            self.client = Some(nano::Client::new(&self.engine_url, 1).provide_context_lazy(
+                || {
+                    OrchestratorError::from(format!(
+                        "Could not create nano client for engine at {:?}",
+                        self.engine_url
+                    ))
+                },
+            )?);
         }
         Ok(self
             .client
@@ -99,9 +94,7 @@ impl process::Process for LocalProcess {
             .unwrap()
             .send(msg)
             .await
-            .wrap_err("Could not send engine message")
-            .generalize()
-            .map_err(OrchestratorError::from)?)
+            .provide_context(OrchestratorError::from("Could not send engine message"))?)
     }
 
     async fn wait(&mut self) -> Result<ExitStatus> {
@@ -110,9 +103,9 @@ impl process::Process for LocalProcess {
             .wait()
             .await
             .report()
-            .wrap_err("Could not wait for the process to exit")
-            .generalize()
-            .map_err(OrchestratorError::from)?)
+            .provide_context(OrchestratorError::from(
+                "Could not wait for the process to exit",
+            ))?)
     }
 }
 
@@ -216,12 +209,9 @@ impl process::Command for LocalCommand {
         }
         debug!("Running `{cmd:?}`");
 
-        let child = cmd
-            .spawn()
-            .report()
-            .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))
-            .generalize()
-            .map_err(OrchestratorError::from)?;
+        let child = cmd.spawn().report().provide_context_lazy(|| {
+            OrchestratorError::from(format!("Could not run command: {process_path:?}"))
+        })?;
         debug!("Spawned local engine process for experiment");
 
         Ok(Box::new(LocalProcess {

@@ -1619,6 +1619,7 @@ dependencies = [
  "hash_engine_lib",
  "nano",
  "num_cpus",
+ "provider",
  "rand 0.8.4",
  "rand_distr",
  "serde",

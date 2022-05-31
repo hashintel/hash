@@ -295,13 +295,9 @@ impl Manifest {
         );
 
         debug!("Reading behaviors in {src_folder:?}");
-        for entry in src_folder
-            .read_dir()
-            .report()
-            .wrap_err_lazy(|| format!("Could not read behavior directory: {src_folder:?}"))
-            .generalize()
-            .map_err(OrchestratorError::from)?
-        {
+        for entry in src_folder.read_dir().report().provide_context_lazy(|| {
+            OrchestratorError::from(format!("Could not read behavior directory: {src_folder:?}"))
+        })? {
             match entry {
                 Ok(entry) => {
                     let path = entry.path();
@@ -348,9 +344,9 @@ impl Manifest {
         if file_extension == "csv" {
             data = parse_raw_csv_into_json(data)
                 .report()
-                .wrap_err_lazy(|| format!("Could not convert csv into json: {path:?}"))
-                .generalize()
-                .map_err(OrchestratorError::from)?;
+                .provide_context_lazy(|| {
+                    OrchestratorError::from(format!("Could not convert csv into json: {path:?}"))
+                })?;
         }
 
         let filename = path.file_name().unwrap().to_string_lossy().to_string();
@@ -381,13 +377,9 @@ impl Manifest {
         );
 
         debug!("Reading datasets in {src_folder:?}");
-        for entry in src_folder
-            .read_dir()
-            .report()
-            .wrap_err_lazy(|| format!("Could not read dataset directory: {src_folder:?}"))
-            .generalize()
-            .map_err(OrchestratorError::from)?
-        {
+        for entry in src_folder.read_dir().report().provide_context_lazy(|| {
+            OrchestratorError::from(format!("Could not read dataset directory: {src_folder:?}"))
+        })? {
             match entry {
                 Ok(entry) => {
                     self.add_dataset_from_file(entry.path())
@@ -711,8 +703,10 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
 
     let mut entries = dependency_path
         .read_dir()
-        .report().generalize()
-        .map_err(OrchestratorError::from)?
+        .report()
+        .provide_context_lazy(|| {
+            OrchestratorError::from(format!("Could not read dependency directory: {dependency_path:?}"))
+        })?
         .filter_map(|dir_res| {
             if let Ok(entry) = dir_res {
                 // check it's a folder and matches the pattern of a user namespace (i.e. `@user`)
@@ -723,13 +717,13 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
             None
         })
         .map(|user_dir| {
-            Ok(user_dir
+            user_dir
                 .path()
                 .read_dir()
                 .report()
-                .wrap_err_lazy(|| format!("Could not read directory {:?}", user_dir.path()))
-                .generalize()
-                .map_err(OrchestratorError::from)?)
+                .provide_context_lazy(|| {
+                    OrchestratorError::from(format!("Could not read directory {:?}", user_dir.path()))
+                })
         })
         .collect::<Result<Vec<_>>>()? // Intermediary collect and iter to handle errors from read_dir
         .into_iter()
@@ -768,11 +762,9 @@ fn file_extension<P: AsRef<Path>>(path: P) -> Result<String> {
 fn file_contents<P: AsRef<Path>>(path: P) -> Result<String> {
     let path = path.as_ref();
     debug!("Reading contents at path: {path:?}");
-    Ok(std::fs::read_to_string(path)
+    std::fs::read_to_string(path)
         .report()
-        .wrap_err_lazy(|| format!("Could not read file: {path:?}"))
-        .generalize()
-        .map_err(OrchestratorError::from)?)
+        .provide_context_lazy(|| OrchestratorError::from(format!("Could not read file: {path:?}")))
 }
 
 fn file_contents_opt<P: AsRef<Path>>(path: P) -> Result<Option<String>> {
@@ -786,15 +778,11 @@ fn file_contents_opt<P: AsRef<Path>>(path: P) -> Result<Option<String>> {
 
 fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     let path = path.as_ref();
-    Ok(serde_json::from_reader(BufReader::new(
-        File::open(path)
-            .report()
-            .wrap_err_lazy(|| format!("Could not read file {path:?}"))
-            .generalize()
-            .map_err(OrchestratorError::from)?,
+    serde_json::from_reader(BufReader::new(
+        File::open(path).report().provide_context_lazy(|| {
+            OrchestratorError::from(format!("Could not read file {path:?}"))
+        })?,
     ))
     .report()
-    .wrap_err_lazy(|| format!("Could not parse {path:?}"))
-    .generalize()
-    .map_err(OrchestratorError::from)?)
+    .provide_context_lazy(|| OrchestratorError::from(format!("Could not parse {path:?}")))
 }

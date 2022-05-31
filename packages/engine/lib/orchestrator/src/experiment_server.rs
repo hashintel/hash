@@ -91,9 +91,7 @@ impl Handler {
         result_rx
             .await
             .report()
-            .wrap_err("Failed to receive response from")
-            .generalize()
-            .map_err(OrchestratorError::from)?
+            .provide_context(OrchestratorError::from("Failed to receive response from"))?
     }
 
     /// Register a new experiment execution with the server, returning a Handle from which messages
@@ -243,10 +241,12 @@ impl Server {
     ///
     /// [`create()`]: Self::create
     pub async fn run(&mut self) -> Result<()> {
-        let mut socket = nano::Server::new(&self.url)
-            .generalize()
-            .wrap_err_lazy(|| format!("Could not create a server socket for {:?}", self.url))
-            .map_err(OrchestratorError::from)?;
+        let mut socket = nano::Server::new(&self.url).provide_context_lazy(|| {
+            OrchestratorError::from(format!(
+                "Could not create a server socket for {:?}",
+                self.url
+            ))
+        })?;
         loop {
             tokio::select! {
                 Some((ctrl, result_tx)) = self.ctrl_rx.recv() => {

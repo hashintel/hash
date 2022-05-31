@@ -1,41 +1,39 @@
 use std::fmt;
 
-use error::Report;
+use provider::{Demand, Provider};
 
 pub type Result<T, E = OrchestratorError> = error::Result<T, E>;
 
 // TODO: Use proper context type
 #[derive(Debug)]
 pub enum OrchestratorError {
-    Unique(String),
-    Report(Report<()>),
+    UniqueOwned(Box<str>),
+    Unique(&'static str),
 }
 
 impl fmt::Display for OrchestratorError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::UniqueOwned(error) => fmt::Display::fmt(&error, fmt),
             Self::Unique(error) => fmt::Display::fmt(&error, fmt),
-            Self::Report(error) => fmt::Display::fmt(&error, fmt),
         }
     }
 }
 
 impl std::error::Error for OrchestratorError {}
 
-impl From<&str> for OrchestratorError {
-    fn from(error: &str) -> Self {
-        Self::Unique(error.to_owned())
+impl Provider for OrchestratorError {
+    fn provide<'a>(&'a self, _: &mut Demand<'a>) {}
+}
+
+impl From<&'static str> for OrchestratorError {
+    fn from(error: &'static str) -> Self {
+        Self::Unique(error)
     }
 }
 
 impl From<String> for OrchestratorError {
     fn from(error: String) -> Self {
-        Self::Unique(error)
-    }
-}
-
-impl From<Report<()>> for OrchestratorError {
-    fn from(report: Report<()>) -> Self {
-        Self::Report(report)
+        Self::UniqueOwned(error.into_boxed_str())
     }
 }
