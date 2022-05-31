@@ -400,10 +400,6 @@ class __Page extends Entity {
     });
 
     if (position < 0 || position >= contentLinks.length) {
-      setImmediate(() => {
-        process.exit(0);
-      });
-      return;
       throw new UserInputError(`invalid position: ${position}`);
     }
 
