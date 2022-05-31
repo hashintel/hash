@@ -376,8 +376,7 @@ const calculateSaveActions = async (
   return [actions, placeholderToDraft] as const;
 };
 
-// @todo rename/inline
-const updateEntityIdsForPlaceholders = (
+const getDraftEntityIds = (
   placeholders: UpdatePageContentsResultPlaceholder[],
   placeholderToDraft: Map<string, string>,
 ) => {
@@ -462,7 +461,7 @@ export const save = async (
 
   await apolloClient.reFetchObservableQueries();
 
-  const draftToEntityId = updateEntityIdsForPlaceholders(
+  const draftToEntityId = getDraftEntityIds(
     res.data.updatePageContents.placeholders,
     placeholderToDraft,
   );
