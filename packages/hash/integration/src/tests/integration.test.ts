@@ -524,7 +524,6 @@ describe("logged in user ", () => {
     expect(await existingUser.isMemberOfOrg(db, bobOrg.entityId)).toBe(true);
   });
 
-  // @todo add tests for placeholders / createEntity / createEntityType
   describe("can create and update pages", () => {
     let page: PageFieldsFragment;
     const pageHistory: {
