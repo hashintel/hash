@@ -1,6 +1,6 @@
 use std::fmt;
 
-use provider::{Demand, Provider};
+use error::provider::{Demand, Provider};
 
 pub type Result<T, E = OrchestratorError> = error::Result<T, E>;
 
