@@ -40,6 +40,7 @@
     - [Workers](#workers)
     - [Simulation Runs and the Package System](#simulation-runs-and-the-package-system)
     - [DataStore](#datastore)
+- [Contributors](#contributors)
 
 ## Issue Tracking
 
