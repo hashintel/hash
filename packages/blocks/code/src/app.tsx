@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { tw } from "twind";
 
 import { BlockComponent } from "blockprotocol/react";
-import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
 import { CopyIcon } from "./icons";
 import { languages, LanguageType } from "./utils";
 import { Editor } from "./components/editor";
+import { BlockGraphHandler } from "./block-graph";
 
 type AppProps = {
   caption?: string;
@@ -21,7 +21,6 @@ export const App: BlockComponent<AppProps> = ({
   caption,
   content,
   language,
-  updateEntities,
 }) => {
   const [localData, setLocalData] = useState(() => ({
     caption,
@@ -34,6 +33,14 @@ export const App: BlockComponent<AppProps> = ({
   );
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const captionRef = useRef<HTMLInputElement>(null);
+  const blockRef = useRef<HTMLDivElement>(null);
+
+  const [graphService, setGraphService] = useState<BlockGraphHandler>();
+  useEffect(() => {
+    if (blockRef.current) {
+      setGraphService(new BlockGraphHandler({ element: blockRef.current }));
+    }
+  }, []);
 
   useEffect(() => {
     setLocalData({
@@ -52,16 +59,17 @@ export const App: BlockComponent<AppProps> = ({
     });
   };
 
-  const updateRemoteData = (properties: AppProps) => {
-    void updateEntities?.([
-      {
+  const updateRemoteData = async (properties: AppProps) => {
+    if (graphService) {
+      const { payload, errors } = await graphService.updateEntity({
         accountId,
         data: properties,
         entityId,
         entityTypeId,
         entityTypeVersionId,
-      },
-    ] as BlockProtocolUpdateEntitiesAction[]);
+      });
+      console.log({ payload, errors });
+    }
   };
 
   const handleLanguageChange = (newLanguage: LanguageType) => {
@@ -121,7 +129,7 @@ export const App: BlockComponent<AppProps> = ({
   };
 
   return (
-    <div className={tw`w-full`}>
+    <div className={tw`w-full`} ref={blockRef}>
       <div
         className={tw`group px-10 pt-12 pb-3 relative bg-yellow-100 bg-opacity-50 mb-1`}
       >
