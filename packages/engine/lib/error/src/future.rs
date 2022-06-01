@@ -175,7 +175,7 @@ pub trait FutureExt: Future + Sized {
     /// # struct Resource;
     /// # #[derive(Debug)] struct ResourceError;
     /// # impl fmt::Display for ResourceError { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # impl provider::Provider for ResourceError { fn provide<'a>(&'a self, _: &mut provider::Demand<'a>) {} }
+    /// # impl error::provider::Provider for ResourceError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {} }
     /// use error::{FutureExt, Result};
     ///
     /// # #[allow(unused_variables)]
@@ -218,7 +218,7 @@ pub trait FutureExt: Future + Sized {
     /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
     /// # #[derive(Debug)] struct ResourceError;
     /// # impl fmt::Display for ResourceError { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # impl provider::Provider for ResourceError { fn provide<'a>(&'a self, _: &mut provider::Demand<'a>) {} }
+    /// # impl error::provider::Provider for ResourceError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {} }
     /// use error::{FutureExt, Result};
     ///
     /// # #[allow(unused_variables)]

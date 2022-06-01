@@ -26,7 +26,8 @@
 //! ## Examples
 //!
 //! ```
-//! use provider::{request_ref, Demand, Provider};
+//! # #![allow(dead_code)]
+//! use error::provider::{request_ref, Demand, Provider};
 //!
 //! // Definition of MyTrait, a data provider.
 //! trait MyTrait: Provider {
@@ -65,15 +66,13 @@
 //! In this example, if the concrete type of `obj` in `use_my_trait` is `SomeConcreteType`, then
 //! the `get_context_ref` call will return a reference to `obj.some_string` with type `&String`.
 
-#![no_std]
-
 ///////////////////////////////////////////////////////////////////////////////
 // Provider trait
 ///////////////////////////////////////////////////////////////////////////////
 
 extern crate alloc;
 
-use core::{any::TypeId, mem};
+use core::any::TypeId;
 
 /// Trait implemented by a type which can dynamically provide values based on type.
 pub trait Provider {
@@ -85,7 +84,7 @@ pub trait Provider {
     /// Provides a reference to a field with type `String` as a `&str`.
     ///
     /// ```rust
-    /// use provider::{Demand, Provider};
+    /// use error::provider::{Demand, Provider};
     /// # struct SomeConcreteType { field: String }
     ///
     /// impl Provider for SomeConcreteType {
@@ -104,8 +103,9 @@ pub trait Provider {
 /// Get a string value from a provider.
 ///
 /// ```rust
-/// use provider::{request_value, Provider};
+/// use error::provider::{request_value, Provider};
 ///
+/// # #[allow(dead_code)]
 /// fn get_string<P: Provider>(provider: &P) -> String {
 ///     request_value::<String, _>(provider).unwrap()
 /// }
@@ -125,8 +125,9 @@ where
 /// Get a string reference from a provider.
 ///
 /// ```rust
-/// use provider::{request_ref, Provider};
+/// use error::provider::{request_ref, Provider};
 ///
+/// # #[allow(dead_code)]
 /// fn get_str<P: Provider>(provider: &P) -> &str {
 ///     request_ref::<str, _>(provider).unwrap()
 /// }
@@ -161,6 +162,13 @@ where
 pub struct Demand<'a>(dyn Erased<'a> + 'a);
 
 impl<'a> Demand<'a> {
+    /// Create a new `&mut Demand` from a `&mut dyn Erased` trait object.
+    fn new<'b>(erased: &'b mut (dyn Erased<'a> + 'a)) -> &'b mut Demand<'a> {
+        // SAFETY: transmuting `&mut (dyn Erased<'a> + 'a)` to `&mut Demand<'a>` is safe since
+        // `Demand` is repr(transparent).
+        unsafe { &mut *(erased as *mut dyn Erased as *mut Demand) }
+    }
+
     /// Provide a value or other type with only static lifetimes.
     ///
     /// # Examples
@@ -168,7 +176,7 @@ impl<'a> Demand<'a> {
     /// Provides a `String` by cloning.
     ///
     /// ```rust
-    /// use provider::{Demand, Provider};
+    /// use error::provider::{Demand, Provider};
     /// # struct SomeConcreteType { field: String }
     ///
     /// impl Provider for SomeConcreteType {
@@ -193,7 +201,7 @@ impl<'a> Demand<'a> {
     /// Provides a reference to a field as a `&str`.
     ///
     /// ```rust
-    /// use provider::{Demand, Provider};
+    /// use error::provider::{Demand, Provider};
     /// # struct SomeConcreteType { field: String }
     ///
     /// impl Provider for SomeConcreteType {
@@ -301,9 +309,7 @@ struct TaggedOption<'a, I: tags::Type<'a>>(Option<I::Reified>);
 
 impl<'a, I: tags::Type<'a>> TaggedOption<'a, I> {
     fn as_demand(&mut self) -> &mut Demand<'a> {
-        // SAFETY: transmuting `&mut (dyn Erased<'a> + 'a)` to `&mut Demand<'a>` is safe since
-        // `Demand` is repr(transparent) and holds only a `dyn Erased<'a> + 'a`.
-        unsafe { mem::transmute(self as &mut (dyn Erased<'a> + 'a)) }
+        Demand::new(self as &mut (dyn Erased<'a> + 'a))
     }
 }
 
@@ -331,7 +337,7 @@ impl<'a> dyn Erased<'a> {
     {
         if self.tag_id() == TypeId::of::<I>() {
             // SAFETY: Just checked whether we're pointing to an I.
-            Some(unsafe { &mut *(self as *mut Self as *mut TaggedOption<'a, I>) })
+            Some(unsafe { &mut *(self as *mut Self).cast::<TaggedOption<'a, I>>() })
         } else {
             None
         }

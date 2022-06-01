@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 error = { path = "../../lib/error", features = ["spantrace"] }
-provider = { path = "../../lib/provider" }
 nano = { path = "../nano", default-features = false }
 stateful = { path = "../stateful", default-features = false }
 simulation_structure = { path = "../simulation_structure" }

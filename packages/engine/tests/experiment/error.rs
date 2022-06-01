@@ -1,6 +1,6 @@
 use std::{error::Error, fmt, path::PathBuf};
 
-use provider::{Demand, Provider};
+use error::provider::{Demand, Provider};
 use serde_json::Value;
 
 pub type Result<T, C = TestContext> = error::Result<T, C>;

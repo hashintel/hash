@@ -19,7 +19,7 @@ use crate::{Context, Message, Report};
 /// # impl core::fmt::Display for AccessError {
 /// #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
 /// # }
-/// # impl provider::Provider for AccessError { fn provide<'a>(&'a self, _: &mut provider::Demand<'a>) {} }
+/// # impl error::provider::Provider for AccessError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {} }
 /// use error::{ensure, Result};
 ///
 /// fn main() -> Result<(), AccessError> {

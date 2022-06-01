@@ -9,7 +9,7 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 use super::Frame;
 use crate::{
     iter::{Frames, RequestRef, RequestValue},
-    Context, Message,
+    provider, Context, Message,
 };
 
 /// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
@@ -70,7 +70,7 @@ use crate::{
 /// use core::fmt;
 /// use std::path::{Path, PathBuf};
 ///
-/// use provider::{Demand, Provider};
+/// use error::provider::{Demand, Provider};
 /// # #[cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
 /// use error::{IntoReport, Report, ResultExt};
 ///

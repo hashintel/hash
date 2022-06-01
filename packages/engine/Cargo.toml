@@ -48,7 +48,6 @@ tracing-texray = { version = "0.1.2", optional = true }
 uuid = { version = "0.8.1", features = ["v4", "serde"] }
 
 [dev-dependencies]
-provider = { path = "lib/provider" }
 error = { path = "lib/error" }
 orchestrator = { path = "lib/orchestrator", default-features = false }
 num_cpus = "1.13.1"

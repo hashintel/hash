@@ -98,8 +98,10 @@ pub mod __private {
 /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
 ///
-/// use error::Report;
-/// use provider::{Demand, Provider};
+/// use error::{
+///     provider::{Demand, Provider},
+///     Report,
+/// };
 ///
 /// #[derive(Debug)]
 /// struct PermissionDenied(User, Resource);
@@ -176,8 +178,10 @@ macro_rules! report {
 /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
 ///
-/// use error::Report;
-/// use provider::{Demand, Provider};
+/// use error::{
+///     provider::{Demand, Provider},
+///     Report,
+/// };
 ///
 /// #[derive(Debug)]
 /// struct PermissionDenied(User, Resource);
@@ -231,8 +235,10 @@ macro_rules! bail {
 /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
 ///
-/// use error::Report;
-/// use provider::{Demand, Provider};
+/// use error::{
+///     provider::{Demand, Provider},
+///     Report,
+/// };
 ///
 /// #[derive(Debug)]
 /// struct PermissionDenied(User, Resource);
