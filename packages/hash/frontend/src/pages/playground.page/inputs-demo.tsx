@@ -12,11 +12,11 @@ import {
   Typography,
 } from "@mui/material";
 import {
-  Button,
   FormInline,
   TextField,
   FontAwesomeIcon,
-} from "../../shared/ui";
+} from "@hashintel/hash-design-system";
+import { Button } from "../../shared/ui";
 
 export const InputsDemo = () => {
   return (
