@@ -15,7 +15,8 @@ import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { bindPopover, PopupState } from "material-ui-popup-state/hooks";
 
-import { Popover, MenuItem, TextField } from "../../../shared/ui";
+import { Popover, TextField } from "@hashintel/hash-design-system";
+import { MenuItem } from "../../../shared/ui";
 
 const extractConfigPropertySchemas = (
   blockSchema: JsonSchema,

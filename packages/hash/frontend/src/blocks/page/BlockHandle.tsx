@@ -9,7 +9,7 @@ import { JSONObject } from "blockprotocol";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { ForwardRefRenderFunction, useRef, useMemo, forwardRef } from "react";
-import { IconButton, FontAwesomeIcon } from "../../shared/ui";
+import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUserBlocks } from "../userBlocks";
 import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";

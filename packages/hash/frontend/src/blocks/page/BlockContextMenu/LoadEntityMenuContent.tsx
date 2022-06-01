@@ -12,14 +12,14 @@ import { PopupState } from "material-ui-popup-state/core";
 import { useCallback, useEffect, useMemo, useRef, VFC } from "react";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { EntityFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { useBlockView } from "../BlockViewContext";
-import { useRouteAccountInfo } from "../../../shared/routing";
 import {
   LoadingSpinner,
   TextField,
-  MenuItem,
   FontAwesomeIcon,
-} from "../../../shared/ui";
+} from "@hashintel/hash-design-system";
+import { useBlockView } from "../BlockViewContext";
+import { useRouteAccountInfo } from "../../../shared/routing";
+import { MenuItem } from "../../../shared/ui";
 import { useAccountEntities } from "../../../components/hooks/useAccountEntities";
 
 type LoadEntityMenuContentProps = {
