@@ -47,7 +47,10 @@ export const componentIdToUrl = (componentId: string) =>
   componentId.replace(/\/$/, "");
 
 const devReloadEndpointSet = new Set<string>();
-const configureAppReloadWhenBlockChanges = (devReloadEndpoint: string) => {
+const configureAppReloadWhenBlockChanges = (
+  devReloadEndpoint: string,
+  reportProblem: (problem: string) => void,
+) => {
   if (typeof window === "undefined") {
     return;
   }
@@ -58,19 +61,28 @@ const configureAppReloadWhenBlockChanges = (devReloadEndpoint: string) => {
   devReloadEndpointSet.add(devReloadEndpoint);
 
   if (devReloadEndpoint.match(/^wss?:\/\//)) {
-    // Assume webpack dev server socket
-    const socket = new WebSocket(devReloadEndpoint);
-    socket.addEventListener("message", ({ data }) => {
-      try {
-        const messageType = JSON.parse(data).type;
-        if (["invalid", "static-changed"].includes(messageType)) {
-          window.location.reload();
+    try {
+      const socket = new WebSocket(devReloadEndpoint);
+      socket.addEventListener("message", ({ data }) => {
+        try {
+          const messageType = JSON.parse(data).type;
+          // Assume webpack dev server socket
+          if (["invalid", "static-changed"].includes(messageType)) {
+            window.location.reload();
+          }
+        } catch {
+          reportProblem(`Could not parse socket message: ${data}`);
         }
-      } catch {
-        // noop (socket message data could not be parsed)
-      }
-    });
+      });
+    } catch {
+      reportProblem(`Could not connect to socket`);
+    }
+    return;
   }
+
+  reportProblem(
+    `Could not recognise devReloadEndpoint type (expected a websocket) URL`,
+  );
 };
 
 /**
@@ -194,7 +206,15 @@ export const fetchBlockMeta = async (
     // block metadata to be available there. Current implementation reloads
     // the EA even if a locally developed block is not mounted (which should be rare).
     if (metadata.devReloadEndpoint) {
-      configureAppReloadWhenBlockChanges(metadata.devReloadEndpoint);
+      configureAppReloadWhenBlockChanges(
+        metadata.devReloadEndpoint,
+        (problem) => {
+          // eslint-disable-next-line no-console -- @todo consider using logger
+          console.error(
+            `${baseUrl} → block-metadata.json → devReloadEndpoint: ${problem}`,
+          );
+        },
+      );
     }
 
     const result: BlockMeta = {
