@@ -14,9 +14,9 @@ index c830b93..3b31537 100644
     */
    description?: string | null;
 +  /**
-+   * URL of a web socket that reports updates in locally developed blocks. To be used by EAs to self-refresh.
++   * URL of a web socket that reports updates in locally developed blocks. To be used by EAs to auto reload.
 +   */
-+  devRefreshEndpoint?: string | null;
++  devReloadEndpoint?: string | null;
    /**
     * The display name used for a block
     */

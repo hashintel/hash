@@ -46,6 +46,33 @@ const blockCache = new Map<string, Promise<BlockMeta>>();
 export const componentIdToUrl = (componentId: string) =>
   componentId.replace(/\/$/, "");
 
+const devReloadEndpointSet = new Set<string>();
+const configureAppReloadWhenBlockChanges = (devReloadEndpoint: string) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (devReloadEndpointSet.has(devReloadEndpoint)) {
+    return;
+  }
+  devReloadEndpointSet.add(devReloadEndpoint);
+
+  if (devReloadEndpoint.match(/^wss?:\/\//)) {
+    // Assume webpack dev server socket
+    const socket = new WebSocket(devReloadEndpoint);
+    socket.addEventListener("message", ({ data }) => {
+      try {
+        const messageType = JSON.parse(data).type;
+        if (["invalid", "static-changed"].includes(messageType)) {
+          window.location.reload();
+        }
+      } catch {
+        // noop (socket message data could not be parsed)
+      }
+    });
+  }
+};
+
 /**
  * Get an absolute url if the path is not already one.
  */
@@ -163,17 +190,11 @@ export const fetchBlockMeta = async (
       );
     }
 
-    const { devRefreshEndpoint } = metadata;
-    if (
-      typeof window !== "undefined" &&
-      devRefreshEndpoint?.match(/^wss?:\/\//)
-    ) {
-      const socket = new WebSocket(devRefreshEndpoint);
-      socket.addEventListener("message", ({ data }) => {
-        if (data === '{"type":"invalid"}') {
-          window.location.reload();
-        }
-      });
+    // @todo Move this logic to a place where a block is mounted. This requires
+    // block metadata to be available there. Current implementation reloads
+    // the EA even if a locally developed block is not mounted (which should be rare).
+    if (metadata.devReloadEndpoint) {
+      configureAppReloadWhenBlockChanges(metadata.devReloadEndpoint);
     }
 
     const result: BlockMeta = {
