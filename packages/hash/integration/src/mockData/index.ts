@@ -79,7 +79,7 @@ void (async () => {
     "https://blockprotocol.org/blocks/@hash/table",
     "https://blockprotocol.org/blocks/@hash/code",
     "https://blockprotocol.org/blocks/@hash/video",
-    "https://blockprotocol.org/blocks/@hash/header",
+    "http://localhost:63282",
   ].map((componentId) => ({
     name: capitalizeComponentName(componentId),
     componentId,
@@ -494,7 +494,7 @@ void (async () => {
   const blocks: CreateBlockArgs[] = [
     {
       resultsKey: "b1",
-      componentId: "https://blockprotocol.org/blocks/@hash/header",
+      componentId: "http://localhost:63282",
       blockData: results.get("text1")!,
       createdBy: user,
     },
@@ -518,7 +518,7 @@ void (async () => {
     },
     {
       resultsKey: "b5",
-      componentId: "https://blockprotocol.org/blocks/@hash/header",
+      componentId: "http://localhost:63282",
       blockData: results.get("text5")!,
       createdBy: user,
       accountId: systemOrg.accountId,
@@ -553,7 +553,7 @@ void (async () => {
     },
     {
       resultsKey: "b10",
-      componentId: "https://blockprotocol.org/blocks/@hash/header",
+      componentId: "http://localhost:63282",
       blockData: results.get("header1text")!,
       createdBy: user,
       accountId: systemOrg.accountId,
@@ -602,7 +602,7 @@ void (async () => {
     },
     {
       resultsKey: "b17",
-      componentId: "https://blockprotocol.org/blocks/@hash/header",
+      componentId: "http://localhost:63282",
       blockData: results.get("header2text")!,
       createdBy: user,
       accountId: systemOrg.accountId,

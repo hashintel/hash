@@ -8,7 +8,7 @@
  */
 export const defaultBlocks = [
   "https://blockprotocol.org/blocks/@hash/paragraph",
-  "https://blockprotocol.org/blocks/@hash/header",
+  "http://localhost:63282",
   "https://blockprotocol.org/blocks/@hash/callout",
   "https://blockprotocol.org/blocks/@hash/person",
   "https://blockprotocol.org/blocks/@hash/image",

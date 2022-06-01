@@ -1,10 +1,11 @@
 import { BlockProtocolFunctions, BlockProtocolProps } from "blockprotocol";
 import React, { useEffect, useRef, useState } from "react";
 
+import { linkedEntities } from "@hashintel/hash-api/src/graphql/resolvers/entity/linkedEntities";
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useRemoteBlock } from "./useRemoteBlock";
 import { EmbedderGraphHandler } from "../../services/embedder-graph";
-import { linkedEntities } from "@hashintel/hash-api/src/graphql/resolvers/entity/linkedEntities";
+import { EmbedderHookService } from "../../services/embedder-hook";
 
 type RemoteBlockProps = {
   blockFunctions: BlockProtocolFunctions;
@@ -35,36 +36,51 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
   );
 
   const [graphService, setGraphService] = useState<EmbedderGraphHandler>();
+  const [hookService, setHookService] = useState<EmbedderHookService>();
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (Component && wrapperRef.current) {
-      setGraphService(
-        new EmbedderGraphHandler({
+      setHookService(
+        new EmbedderHookService({
+          element: wrapperRef.current,
           callbacks: {
-            updateEntity: async ({ payload }) => {
-              try {
-                const responsePayload = await blockFunctions.updateEntities?.([
-                  payload!,
-                ]);
-                if (!responsePayload) {
-                  throw new Error(
-                    "No response from embedder updateEntities call",
-                  );
-                }
-                return { payload: responsePayload[0]! };
-              } catch (error) {
-                return {
-                  errors: [
-                    { message: (error as Error).message, code: "ERROR" },
-                  ],
-                };
-              }
+            render: ({ payload }) => {
+              console.log("FOO");
+              return {
+                payload: <span ref={editableRef as any} />,
+              };
             },
           },
-          element: wrapperRef.current,
         }),
       );
+      //
+      // setGraphService(
+      //   new EmbedderGraphHandler({
+      //     callbacks: {
+      //       updateEntity: async ({ payload }) => {
+      //         try {
+      //           const responsePayload = await blockFunctions.updateEntities?.([
+      //             payload!,
+      //           ]);
+      //           if (!responsePayload) {
+      //             throw new Error(
+      //               "No response from embedder updateEntities call",
+      //             );
+      //           }
+      //           return { payload: responsePayload[0]! };
+      //         } catch (error) {
+      //           return {
+      //             errors: [
+      //               { message: (error as Error).message, code: "ERROR" },
+      //             ],
+      //           };
+      //         }
+      //       },
+      //     },
+      //     element: wrapperRef.current,
+      //   }),
+      // );
     }
   }, [blockFunctions, Component]);
 
@@ -90,9 +106,11 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
 
   if (typeof Component === "string") {
     /**
-     * This HTML block has no props available to it, unless loaded via FramedBlock.
+     * This HTML block has no props available to it, unless loaded via
+     * FramedBlock.
      * @todo do something about this. throw if not in an iframe?
-     *    or check for iframe status and assign props to window here, not FramedBlock?
+     *    or check for iframe status and assign props to window here, not
+     *   FramedBlock?
      */
     return (
       <HtmlBlock
