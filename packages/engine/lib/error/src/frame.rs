@@ -286,7 +286,6 @@ impl<C: Context> Context for ErrorRepr<C> {}
 #[cfg(all(nightly, feature = "std"))]
 impl<E: Error> Provider for ErrorRepr<E> {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        // ErrorProviderSpec::provide(self, demand);
         if let Some(backtrace) = self.0.backtrace() {
             demand.provide_ref(backtrace);
         }
