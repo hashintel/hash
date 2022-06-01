@@ -9,7 +9,7 @@ use hash_engine_lib::{
 };
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), ()> {
     let args = hash_engine_lib::args();
     let _guard = init_logger(
         args.log_format,

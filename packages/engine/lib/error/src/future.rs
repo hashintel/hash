@@ -170,15 +170,19 @@ pub trait FutureExt: Future + Sized {
     /// # Example
     ///
     /// ```rust
+    /// # use core::fmt;
     /// # struct User;
     /// # struct Resource;
+    /// # #[derive(Debug)] struct ResourceError;
+    /// # impl fmt::Display for ResourceError { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+    /// # impl provider::Provider for ResourceError { fn provide<'a>(&'a self, _: &mut provider::Demand<'a>) {} }
     /// use error::{FutureExt, Result};
     ///
     /// # #[allow(unused_variables)]
-    /// async fn load_resource(user: &User, resource: &Resource) -> Result<()> {
+    /// async fn load_resource(user: &User, resource: &Resource) -> Result<(), ResourceError> {
     ///     # const _: &str = stringify! {
     ///     ...
-    ///     # }; error::bail!("unknown error")
+    ///     # }; error::bail!(ResourceError)
     /// }
     ///
     /// # let fut = async {
@@ -187,9 +191,9 @@ pub trait FutureExt: Future + Sized {
     ///     // A contextual message can be provided before polling the `Future`
     ///     load_resource(&user, &resource).wrap_err("Could not load resource").await
     /// # };
-    /// # #[cfg(not(miri))] // miri can't `block_on`
+    /// # #[cfg(not(miri))]
     /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
-    /// # Result::<_>::Ok(())
+    /// # Result::<_, ResourceError>::Ok(())
     /// ```
     #[track_caller]
     fn wrap_err<M>(self, message: M) -> FutureWithErr<Self, M>
@@ -212,13 +216,16 @@ pub trait FutureExt: Future + Sized {
     /// # struct User;
     /// # struct Resource;
     /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+    /// # #[derive(Debug)] struct ResourceError;
+    /// # impl fmt::Display for ResourceError { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+    /// # impl provider::Provider for ResourceError { fn provide<'a>(&'a self, _: &mut provider::Demand<'a>) {} }
     /// use error::{FutureExt, Result};
     ///
     /// # #[allow(unused_variables)]
-    /// async fn load_resource(user: &User, resource: &Resource) -> Result<()> {
+    /// async fn load_resource(user: &User, resource: &Resource) -> Result<(), ResourceError> {
     ///     # const _: &str = stringify! {
     ///     ...
-    ///     # }; error::bail!("unknown error")
+    ///     # }; error::bail!(ResourceError)
     /// }
     ///
     /// # let fut = async {
@@ -229,7 +236,7 @@ pub trait FutureExt: Future + Sized {
     /// # };
     /// # #[cfg(not(miri))]
     /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
-    /// # Result::<_>::Ok(())
+    /// # Result::<_, ResourceError>::Ok(())
     /// ```
     #[track_caller]
     fn wrap_err_lazy<M, F>(self, op: F) -> FutureWithLazyErr<Self, F>

@@ -1,15 +1,31 @@
-use core::fmt;
+use std::{error::Error, fmt};
 
 use once_cell::sync::OnceCell;
 
-use crate::{report, Report, Result, ResultExt};
+use crate::{Report, Result};
 
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
 static DEBUG_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 static DISPLAY_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 
-impl Report {
+/// A hook can only be set once.
+///
+/// Returned by [`Report::set_debug_hook()`] or [`Report::set_display_hook()`] if a hook was already
+/// set.
+#[derive(Debug, Copy, Clone)]
+#[non_exhaustive]
+pub struct HookAlreadySet;
+
+impl fmt::Display for HookAlreadySet {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Hook can only be set once")
+    }
+}
+
+impl Error for HookAlreadySet {}
+
+impl Report<()> {
     /// Globally sets a hook which is called when formatting [`Report`] with the [`Debug`] trait.
     ///
     /// By intercepting the default [`Debug`] implementation, this hook adds the possibility for
@@ -32,24 +48,25 @@ impl Report {
     /// # Example
     ///
     /// ```
+    /// use std::io::{Error, ErrorKind};
+    ///
     /// use error::{report, Report};
     ///
-    /// # fn main() -> Result<(), error::Report> {
+    /// # fn main() -> Result<(), Report<error::HookAlreadySet>> {
     /// Report::set_debug_hook(|_, fmt| write!(fmt, "custom debug implementation"))?;
     ///
-    /// let report = report!("Bail");
+    /// let report = report!(Error::from(ErrorKind::InvalidInput));
     /// assert_eq!(format!("{report:?}"), "custom debug implementation");
     /// # Ok(()) }
     /// ```
     #[cfg(feature = "hooks")]
-    pub fn set_debug_hook<H>(hook: H) -> Result<()>
+    pub fn set_debug_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
         H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
     {
         DEBUG_HOOK
             .set(Box::new(hook))
-            .map_err(|_| report!("Hook is already set"))
-            .wrap_err("Could not set debug hook")
+            .map_err(|_| Report::from_error(HookAlreadySet))
     }
 
     /// Returns the hook that was previously set by [`set_debug_hook`], if any.
@@ -80,24 +97,25 @@ impl Report {
     /// # Example
     ///
     /// ```
+    /// use std::io::{Error, ErrorKind};
+    ///
     /// use error::{report, Report};
     ///
-    /// # fn main() -> Result<(), error::Report> {
+    /// # fn main() -> Result<(), Report<error::HookAlreadySet>> {
     /// Report::set_display_hook(|_, fmt| write!(fmt, "custom display implementation"))?;
     ///
-    /// let report = report!("Bail");
+    /// let report = report!(Error::from(ErrorKind::InvalidInput));
     /// assert_eq!(report.to_string(), "custom display implementation");
     /// # Ok(()) }
     /// ```
     #[cfg(feature = "hooks")]
-    pub fn set_display_hook<H>(hook: H) -> Result<()>
+    pub fn set_display_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
         H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
     {
         DISPLAY_HOOK
             .set(Box::new(hook))
-            .map_err(|_| report!("Hook is already set"))
-            .wrap_err("Could not set debug hook")
+            .map_err(|_| Report::from_error(HookAlreadySet))
     }
 
     /// Returns the hook that was previously set by [`set_display_hook`], if any.
@@ -119,7 +137,7 @@ impl<T> Report<T> {
     ///
     /// [`debug_hook`]: Self::debug_hook
     /// [`display_hook`]: Self::display_hook
-    pub(crate) const fn generalized(&self) -> &Report {
+    pub(crate) const fn generalized(&self) -> &Report<()> {
         // SAFETY: `Report` is repr(transparent), so it's safe to cast between `Report<A>` and
         //         `Report<B>`
         unsafe { &*(self as *const Self).cast() }

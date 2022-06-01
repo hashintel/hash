@@ -31,3 +31,7 @@ all-features = true
 [[example]]
 name = "json_output"
 required-features = ["hooks"]
+
+[[example]]
+name = "contextual_messages"
+required-features = ["std"]
