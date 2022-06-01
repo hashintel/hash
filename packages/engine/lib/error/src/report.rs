@@ -9,7 +9,7 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 use super::Frame;
 use crate::{
     iter::{Frames, RequestRef, RequestValue},
-    Context, Message,
+    provider, Context, Message,
 };
 
 /// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
@@ -24,11 +24,9 @@ use crate::{
 ///
 /// To enforce context information generation, a context [`Provider`] needs to be used. When
 /// creating a `Report` by using [`from_error()`] or [`from_context()`], the parameter is used as
-/// context in the `Report`. It's also possible to convert a [`Result`]s [`Err`] variant to
-/// `Report` with [`IntoReport::report()`]. To provide a new context, use [`provide_context()`] or
-/// [`ResultExt`] to add it to the [`Frame`] stack, which may also be used to provide more context
-/// information than only a display message. This information can the be retrieved by calling
-/// [`request_ref()`] or [`request_value()`].
+/// context in the `Report`. To provide a new one, use [`provide_context()`] or [`ResultExt`] to add
+/// it, which may also be used to provide more context information than only a display message. This
+/// information can then be retrieved by calling [`request_ref()`] or [`request_value()`].
 ///
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
@@ -36,7 +34,6 @@ use crate::{
 /// [`wrap()`]: Self::wrap
 /// [`from_error()`]: Self::from_error
 /// [`from_context()`]: Self::from_context
-/// [`IntoReport::report()`]: crate::IntoReport::report
 /// [`frames()`]: Self::frames
 /// [`provide_context()`]: Self::provide_context
 /// [`request_ref()`]: Self::request_ref
@@ -50,28 +47,21 @@ use crate::{
 ///
 ///
 /// ```
-/// # #[cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
+/// # #![cfg_attr(any(miri, not(feature = "std")), allow(warnings))]
 /// use error::{IntoReport, ResultExt, Result};
 ///
-/// fn main() -> Result<()> {
-///     # fn fake_main() -> Result<(), impl core::fmt::Debug> {
-///     let config_path = "./path/to/config.file";
-///     # #[cfg(all(not(miri), feature = "std"))]
-///     # #[allow(unused_variables)]
-///     let content = std::fs::read_to_string(config_path)
-///         .report()
-///         .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
-///     # #[cfg(any(miri, not(feature = "std")))]
-///     # Err(error::report!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+/// # #[allow(dead_code)]
+/// # fn fake_main() -> Result<(), std::io::Error> {
+/// let config_path = "./path/to/config.file";
+/// # #[cfg(all(not(miri), feature = "std"))]
+/// # #[allow(unused_variables)]
+/// let content = std::fs::read_to_string(config_path)
+///     .report()
+///     .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
-///     # const _: &str = stringify! {
-///     ...
-///     # };
-///     # Ok(()) }
-///     # let err = fake_main().unwrap_err();
-///     # assert_eq!(err.frames().count(), 2);
-///     # Ok(())
-/// }
+/// # const _: &str = stringify! {
+/// ...
+/// # }; Ok(()) }
 /// ```
 ///
 /// Enforce a context for an error:
@@ -80,7 +70,7 @@ use crate::{
 /// use core::fmt;
 /// use std::path::{Path, PathBuf};
 ///
-/// use provider::{Demand, Provider};
+/// use error::provider::{Demand, Provider};
 /// # #[cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
 /// use error::{IntoReport, Report, ResultExt};
 ///
@@ -130,7 +120,7 @@ use crate::{
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # return Err(error::report!("No such file").provide_context(ConfigError::IoError));
+///     # return Err(error::report!(ConfigError::IoError).wrap("Not supported"));
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     std::fs::read_to_string(path.as_ref()).report().provide_context(ConfigError::IoError)
 /// }
@@ -155,27 +145,9 @@ use crate::{
 /// ```
 #[must_use]
 #[repr(transparent)]
-pub struct Report<T = ()> {
+pub struct Report<T> {
     inner: Box<ReportImpl>,
     _context: PhantomData<T>,
-}
-
-impl Report<()> {
-    /// Creates a new `Report` from the provided message.
-    #[track_caller]
-    pub fn new<M>(message: M) -> Self
-    where
-        M: Message,
-    {
-        // SAFETY: `FrameRepr` is wrapped in `ManuallyDrop`
-        Self::from_frame(
-            Frame::from_message(message, Location::caller(), None),
-            #[cfg(all(nightly, feature = "std"))]
-            Some(Backtrace::capture()),
-            #[cfg(feature = "spantrace")]
-            Some(SpanTrace::capture()),
-        )
-    }
 }
 
 impl<T> Report<T> {
@@ -287,7 +259,7 @@ impl<T> Report<T> {
     /// Converts the `Report<T>` to `Report<()>` without modifying the frame stack.
     #[doc(hidden)]
     #[allow(clippy::missing_const_for_fn)] // False positive
-    pub fn generalize(self) -> Report {
+    pub fn generalize(self) -> Report<()> {
         Report {
             inner: self.inner,
             _context: PhantomData,

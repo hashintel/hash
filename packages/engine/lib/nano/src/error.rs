@@ -1,4 +1,4 @@
-use provider::{Demand, Provider};
+use error::provider::{Demand, Provider};
 use thiserror::Error as ThisError;
 
 pub type Result<T, E = ErrorKind> = error::Result<T, E>;

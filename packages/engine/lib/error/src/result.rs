@@ -13,24 +13,30 @@ use crate::{Context, Message, Report};
 ///
 /// ```
 /// # fn has_permission(_: usize, _: usize) -> bool { true }
-/// # fn get_user() -> Result<usize> { Ok(0) }
-/// # fn get_resource() -> Result<usize> { Ok(0) }
+/// # fn get_user() -> Result<usize, AccessError> { Ok(0) }
+/// # fn get_resource() -> Result<usize, AccessError> { Ok(0) }
+/// # #[derive(Debug)] enum AccessError { PermissionDenied(usize, usize) }
+/// # impl core::fmt::Display for AccessError {
+/// #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
+/// # }
+/// # impl error::provider::Provider for AccessError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {} }
 /// use error::{ensure, Result};
 ///
-/// fn main() -> Result<()> {
+/// fn main() -> Result<(), AccessError> {
 ///     let user = get_user()?;
 ///     let resource = get_resource()?;
 ///
 ///     ensure!(
 ///         has_permission(user, resource),
-///         "Permission denied for {user} accessing {resource}"
+///         AccessError::PermissionDenied(user, resource)
 ///     );
 ///
-///     //...
-///     # Ok(())
+///     # const _: &str = stringify! {
+///     ...
+///     # }; Ok(())
 /// }
 /// ```
-pub type Result<T, C = ()> = core::result::Result<T, Report<C>>;
+pub type Result<T, C> = core::result::Result<T, Report<C>>;
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
@@ -49,7 +55,7 @@ pub trait ResultExt {
     ///
     /// ```
     /// # use error::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<()> { Ok(()) }
+    /// # fn load_resource(_: &User, _: &Resource) -> Result<(), ()> { Ok(()) }
     /// # struct User;
     /// # struct Resource;
     /// use error::ResultExt;
@@ -75,7 +81,7 @@ pub trait ResultExt {
     /// ```
     /// # use core::fmt;
     /// # use error::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<()> { Ok(()) }
+    /// # fn load_resource(_: &User, _: &Resource) -> Result<(), ()> { Ok(()) }
     /// # struct User;
     /// # struct Resource;
     /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
@@ -117,7 +123,7 @@ pub trait ResultExt {
     //   Currently only used to be backward compatible with hEngine. After binaries and orchestrator
     //   are adjusted, this can safely be removed.
     #[doc(hidden)]
-    fn generalize(self) -> Result<Self::Ok>;
+    fn generalize(self) -> Result<Self::Ok, ()>;
 }
 
 impl<T, C> ResultExt for Result<T, C> {
@@ -174,7 +180,7 @@ impl<T, C> ResultExt for Result<T, C> {
         }
     }
 
-    fn generalize(self) -> Result<T> {
+    fn generalize(self) -> Result<T, ()> {
         self.map_err(Report::generalize)
     }
 }

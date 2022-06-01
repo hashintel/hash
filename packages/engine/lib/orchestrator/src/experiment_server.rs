@@ -2,10 +2,12 @@
 
 use std::{collections::HashMap, fmt::Display};
 
-use error::{bail, report, IntoReport, Result, ResultExt};
+use error::{bail, report, IntoReport, ResultExt};
 use hash_engine_lib::{proto, proto::EngineStatus};
 use simulation_structure::ExperimentId;
 use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};
+
+use crate::{OrchestratorError, Result};
 
 type ResultSender = oneshot::Sender<Result<()>>;
 type CloseReceiver = mpsc::UnboundedReceiver<ExperimentId>;
@@ -81,15 +83,15 @@ impl Handler {
     /// - if the response could not be received from the server
     async fn send_ctrl(&mut self, ctrl: Ctrl) -> Result<()> {
         let (result_tx, result_rx) = oneshot::channel();
-        self.ctrl_tx
-            .send((ctrl, result_tx))
-            .await
-            .map_err(|_| report!("Could not send control message to server"))?;
+        self.ctrl_tx.send((ctrl, result_tx)).await.map_err(|_| {
+            report!(OrchestratorError::from(
+                "Could not send control message to server"
+            ))
+        })?;
         result_rx
             .await
             .report()
-            .wrap_err("Failed to receive response from")
-            .generalize()?
+            .provide_context(OrchestratorError::from("Failed to receive response from"))?
     }
 
     /// Register a new experiment execution with the server, returning a Handle from which messages
@@ -168,7 +170,9 @@ impl Server {
             debug!("Registered experiment {id}");
             Ok(())
         } else {
-            bail!("Experiment already registered: {id}")
+            bail!(OrchestratorError::from(
+                "Experiment already registered: {id}"
+            ))
         }
     }
 
@@ -198,9 +202,11 @@ impl Server {
             }
             Ctrl::Register { id, msg_tx } => self.register_experiment(id, msg_tx),
         };
-        result_tx
-            .send(res)
-            .map_err(|_| report!("Could not sent control signal result"))?;
+        result_tx.send(res).map_err(|_| {
+            report!(OrchestratorError::from(
+                "Could not sent control signal result"
+            ))
+        })?;
         Ok(stop)
     }
 
@@ -235,9 +241,12 @@ impl Server {
     ///
     /// [`create()`]: Self::create
     pub async fn run(&mut self) -> Result<()> {
-        let mut socket = nano::Server::new(&self.url)
-            .generalize()
-            .wrap_err_lazy(|| format!("Could not create a server socket for {:?}", self.url))?;
+        let mut socket = nano::Server::new(&self.url).provide_context_lazy(|| {
+            OrchestratorError::from(format!(
+                "Could not create a server socket for {:?}",
+                self.url
+            ))
+        })?;
         loop {
             tokio::select! {
                 Some((ctrl, result_tx)) = self.ctrl_rx.recv() => {

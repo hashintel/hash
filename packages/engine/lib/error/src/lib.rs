@@ -52,17 +52,22 @@
 //!
 //! ```
 //! # fn has_permission(_: usize, _: usize) -> bool { true }
-//! # fn get_user() -> Result<usize> { Ok(0) }
-//! # fn get_resource() -> Result<usize> { Ok(0) }
+//! # fn get_user() -> Result<usize, AccessError> { Ok(0) }
+//! # fn get_resource() -> Result<usize, AccessError> { Ok(0) }
+//! # #[derive(Debug)] enum AccessError { PermissionDenied(usize, usize) }
+//! # impl core::fmt::Display for AccessError {
+//! #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
+//! # }
+//! # impl error::provider::Provider for AccessError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {} }
 //! use error::{ensure, Result};
 //!
-//! fn main() -> Result<()> {
+//! fn main() -> Result<(), AccessError> {
 //!     let user = get_user()?;
 //!     let resource = get_resource()?;
 //!
 //!     ensure!(
 //!         has_permission(user, resource),
-//!         "Permission denied for {user} accessing {resource}"
+//!         AccessError::PermissionDenied(user, resource)
 //!     );
 //!
 //!     # const _: &str = stringify! {
@@ -74,28 +79,54 @@
 //! A contextual message can be provided to lower level errors.
 //!
 //! ```
-//! use std::collections::HashMap;
+//! # // Same as `examples/contextual_messages.rs`. Don't forget to update both
+//! # #[cfg_attr(not(feature = "std"), allow(unused_imports))]
+//! use std::{collections::HashMap, error::Error, fmt};
 //!
 //! use error::{ensure, report, Result, ResultExt};
 //!
-//! fn lookup_key(map: &HashMap<&str, u64>, key: &str) -> Result<u64> {
-//!     ensure!(key.len() == 8, "Key must be 8 characters long");
-//!
-//!     map.get(key)
-//!         .cloned()
-//!         .ok_or_else(|| report!("key does not exist"))
+//! #[derive(Debug)]
+//! enum LookupError {
+//!     InvalidKey,
+//!     NotFound,
 //! }
 //!
-//! fn parse_config(config: &HashMap<&str, u64>) -> Result<u64> {
+//! impl fmt::Display for LookupError {
+//!     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+//!         match self {
+//!             Self::InvalidKey => fmt.write_str("Key must be 8 characters long"),
+//!             Self::NotFound => fmt.write_str("key does not exist"),
+//!         }
+//!     }
+//! }
+//!
+//! # #[cfg(feature = "std")]
+//! impl Error for LookupError {}
+//! # #[cfg(not(feature = "std"))]
+//! impl error::provider::Provider for LookupError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {}}
+//!
+//! fn lookup_key(map: &HashMap<&str, u64>, key: &str) -> Result<u64, LookupError> {
+//! // `ensure!` returns `Err(Report)` if the condition fails
+//!     ensure!(key.len() == 8, LookupError::InvalidKey);
+//!
+//!     // A `Report` can also be created directly
+//!     map.get(key)
+//!         .cloned()
+//!         .ok_or_else(|| report!(LookupError::NotFound))
+//! }
+//!
+//! fn parse_config(config: &HashMap<&str, u64>) -> Result<u64, LookupError> {
 //!     let key = "abcd-efgh";
+//!
+//!     // `ResultExt` provides different methods for adding additional information to the `Report`
 //!     let value =
-//!         lookup_key(&config, key).wrap_err_lazy(|| format!("Could not lookup key {key:?}"))?;
+//!         lookup_key(config, key).wrap_err_lazy(|| format!("Could not lookup key {key:?}"))?;
 //!
 //!     Ok(value)
 //! }
 //!
-//! fn main() -> Result<()> {
-//!     # fn fake_main() -> Result<()> { // We want to assert on the result
+//! fn main() -> Result<(), LookupError> {
+//!     # fn fake_main() -> Result<(), LookupError> { // We want to assert on the result
 //!     let config = HashMap::default();
 //!     # #[allow(unused_variables)]
 //!     let config_value = parse_config(&config).wrap_err("Unable to parse config")?;
@@ -112,13 +143,13 @@
 //!
 //! ```text
 //! Error: Unable to parse config
-//!              at main.rs:23:46
+//!              at main.rs:44:47
 //!
 //! Caused by:
 //!    0: Could not lookup key "abcd-efgh"
-//!              at main.rs:16:34
+//!              at main.rs:37:33
 //!    1: Key must be 8 characters long
-//!              at main.rs:6:5
+//!              at main.rs:24:5
 //!
 //! Stack backtrace:
 //!    0: <error::Report>::new::<error::Report>
@@ -179,6 +210,7 @@ mod error;
 pub mod future;
 #[cfg(feature = "hooks")]
 mod hook;
+pub mod provider;
 
 use core::fmt;
 
@@ -187,6 +219,8 @@ use provider::Provider;
 #[cfg(feature = "futures")]
 #[doc(inline)]
 pub use self::future::FutureExt;
+#[cfg(feature = "hooks")]
+pub use self::hook::HookAlreadySet;
 pub use self::{
     frame::Frame,
     macros::*,
@@ -220,12 +254,10 @@ pub(crate) mod test_helper {
     };
     use core::{fmt, fmt::Formatter};
 
-    use provider::{Demand, Provider};
-
-    use crate::Report;
-
-    pub const MESSAGE_A: &str = "Message A";
-    // pub const MESSAGE_B: &str = "Message B";
+    use crate::{
+        provider::{Demand, Provider},
+        Report,
+    };
 
     #[derive(Debug)]
     pub struct ContextA(pub u32);
@@ -242,6 +274,9 @@ pub(crate) mod test_helper {
         }
     }
 
+    #[cfg(feature = "std")]
+    impl std::error::Error for ContextA {}
+
     #[derive(Debug)]
     pub struct ContextB(pub i32);
 
@@ -256,6 +291,9 @@ pub(crate) mod test_helper {
             demand.provide_ref(&self.0);
         }
     }
+
+    #[cfg(feature = "std")]
+    impl std::error::Error for ContextB {}
 
     pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), Report<E>>) -> Report<E> {
         match closure() {

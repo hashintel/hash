@@ -1,15 +1,43 @@
 //! Example of using `set_debug_hook` to create a custom JSON `Debug` implementation for `Report`
 
-use std::collections::hash_map::{Entry, HashMap};
+use std::{
+    collections::hash_map::{Entry, HashMap},
+    error::Error,
+    fmt,
+};
 
 use error::{bail, Report, Result, ResultExt};
 use serde_json::json;
 
-fn create_new_entry(map: &mut HashMap<&str, u64>, key: &'static str, value: u64) -> Result<()> {
+#[derive(Debug)]
+enum MapError {
+    Occupied { key: &'static str, value: u64 },
+}
+
+impl fmt::Display for MapError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Occupied { key, value } => {
+                write!(fmt, "Entry {key} is already occupied by {value}")
+            }
+        }
+    }
+}
+
+impl Error for MapError {}
+
+fn create_new_entry(
+    map: &mut HashMap<&str, u64>,
+    key: &'static str,
+    value: u64,
+) -> Result<(), MapError> {
     match map.entry(key) {
         Entry::Occupied(entry) => {
-            // `bail!` returns `Err(Report)` constructed from its parameters
-            bail!("Entry {key:?} is already occupied by {}", *entry.get())
+            // `bail!` returns `Err(Report<MapError>)` constructed from its parameters
+            bail!(MapError::Occupied {
+                key,
+                value: *entry.get()
+            })
         }
         Entry::Vacant(entry) => {
             entry.insert(value);
@@ -18,7 +46,7 @@ fn create_new_entry(map: &mut HashMap<&str, u64>, key: &'static str, value: u64)
     Ok(())
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), MapError> {
     // This hook will be executed instead of the default implementation when `Debug` is called
     Report::set_debug_hook(|report, fmt| {
         let errors = report.frames().map(ToString::to_string).collect::<Vec<_>>();

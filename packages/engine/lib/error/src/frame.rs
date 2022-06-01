@@ -13,23 +13,22 @@ use core::{
 #[cfg(feature = "std")]
 use std::error::Error;
 
-use provider::{self, Demand, Provider};
-
-use crate::{Context, Message};
+use crate::{
+    provider::{self, Demand, Provider},
+    Context, Message,
+};
 
 /// A single error, contextual message, or error context inside of a [`Report`].
 ///
 /// `Frame`s are organized as a singly linked list, which can be iterated by calling
 /// [`Report::frames()`]. The head is pointing to the most recent context or contextual message,
-/// the tail is the root error created by [`Report::new()`], [`Report::from_context()`], or
-/// [`Report::from()`]. The next `Frame` can be accessed by requesting it by calling
-/// [`Report::request_ref()`].
+/// the tail is the root error created by [`Report::from_context()`] or [`Report::from_error()`].
+/// The next `Frame` can be accessed by requesting it by calling [`Report::request_ref()`].
 ///
 /// [`Report`]: crate::Report
 /// [`Report::frames()`]: crate::Report::frames
-/// [`Report::new()`]: crate::Report::new
+/// [`Report::from_error()`]: crate::Report::from_error
 /// [`Report::from_context()`]: crate::Report::from_context
-/// [`Report::from()`]: crate::Report::from
 /// [`Report::request_ref()`]: crate::Report::request_ref
 pub struct Frame {
     inner: ManuallyDrop<Box<FrameRepr>>,
