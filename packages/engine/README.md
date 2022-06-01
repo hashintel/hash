@@ -407,9 +407,9 @@ The [`stateful` crate](./lib/stateful) is the backend responsible for keeping th
 
 [hcore]: https://core.hash.ai?utm_medium=organic&utm_source=github_readme_engine
 
-## Maintainers
+## Contributors
 
-hEngine is under active development. Its primary maintainers are:
+hEngine is under active development. Its primary contributors are:
 
 - [Tim Diekmann](https://hash.ai/@timdiekmann) - HASH
 - [Alfie Mountfield](https://hash.ai/@alfie) - HASH
