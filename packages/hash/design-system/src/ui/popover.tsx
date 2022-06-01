@@ -1,4 +1,3 @@
-/* eslint-disable-next-line -- allow import of original popover to extend it */
 import { Popover as MuiPopover, PopoverProps } from "@mui/material";
 import React from "react";
 import { useScrollLock } from "./utils";

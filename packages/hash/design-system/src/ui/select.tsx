@@ -6,7 +6,6 @@ import {
   FormHelperText,
   InputLabel,
   outlinedInputClasses,
-  // eslint-disable-next-line no-restricted-imports
   Select as MuiSelect,
   SelectProps as MuiSelectProps,
   Typography,

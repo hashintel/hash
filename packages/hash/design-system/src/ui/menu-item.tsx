@@ -1,7 +1,6 @@
 import {
   listItemIconClasses,
   listItemTextClasses,
-  // eslint-disable-next-line no-restricted-imports
   MenuItem as MuiMenuItem,
   MenuItemProps as MuiMenuItemProps,
   typographyClasses,

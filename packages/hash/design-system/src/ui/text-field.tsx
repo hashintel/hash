@@ -7,7 +7,6 @@ import {
   Collapse,
   InputAdornment,
   outlinedInputClasses,
-  // eslint-disable-next-line no-restricted-imports
   TextField as MuiTextField,
   TextFieldProps as MuiTextFieldProps,
   Typography,

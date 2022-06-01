@@ -1,7 +1,6 @@
 import { createTheme, ThemeOptions } from "@mui/material/styles";
 import createCache from "@emotion/cache";
 
-import { FC } from "react";
 import { palette } from "./theme/palette";
 import { typography } from "./theme/typography";
 import { shadows, boxShadows, dropShadows } from "./theme/shadows";

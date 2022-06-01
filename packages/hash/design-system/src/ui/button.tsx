@@ -1,8 +1,5 @@
-// eslint-disable-next-line no-restricted-imports
-
 import {
   Box,
-  /* eslint-disable-next-line -- allow import of original button to extend it */
   Button as MuiButton,
   ButtonProps as MuiButtonProps,
   useTheme,
