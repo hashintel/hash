@@ -44,6 +44,20 @@ pub struct Frame {
 }
 
 impl Frame {
+    fn from_unerased<T: Unerased>(
+        unerased: T,
+        location: &'static Location<'static>,
+        source: Option<Box<Self>>,
+    ) -> Self {
+        Self {
+            // SAFETY: `FrameRepr` is wrapped in `ManuallyDrop`. `Frame` implements drop which is
+            // using `vtable.object_drop`.
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(unerased)) },
+            location,
+            source,
+        }
+    }
+
     #[cfg(nightly)]
     pub(crate) fn from_provider<P>(
         provider: P,
@@ -53,12 +67,7 @@ impl Frame {
     where
         P: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static,
     {
-        Self {
-            // SAFETY: `inner` is wrapped in `ManuallyDrop`
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(provider)) },
-            location,
-            source,
-        }
+        Self::from_unerased(provider, location, source)
     }
 
     pub(crate) fn from_context<C>(
@@ -69,12 +78,7 @@ impl Frame {
     where
         C: Context,
     {
-        Self {
-            // SAFETY: `inner` is wrapped in `ManuallyDrop`
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(ContextRepr(context))) },
-            location,
-            source,
-        }
+        Self::from_unerased(ContextRepr(context), location, source)
     }
 
     pub(crate) fn from_message<M>(
@@ -85,12 +89,7 @@ impl Frame {
     where
         M: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self {
-            // SAFETY: `inner` is wrapped in `ManuallyDrop`
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(MessageRepr(message))) },
-            location,
-            source,
-        }
+        Self::from_unerased(MessageRepr(message), location, source)
     }
 
     #[cfg(feature = "std")]
@@ -102,12 +101,7 @@ impl Frame {
     where
         E: Error + Send + Sync + 'static,
     {
-        Self {
-            // SAFETY: `inner` is wrapped in `ManuallyDrop`
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(ErrorRepr(error))) },
-            location,
-            source,
-        }
+        Self::from_provider(ErrorRepr(error), location, source)
     }
 
     /// Returns the location where this `Frame` was created.
