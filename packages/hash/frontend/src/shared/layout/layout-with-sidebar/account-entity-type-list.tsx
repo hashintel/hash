@@ -11,10 +11,14 @@ import { faArrowUpAZ, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { orderBy } from "lodash";
 import { useRouter } from "next/router";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
+import {
+  IconButton,
+  TextField,
+  FontAwesomeIcon,
+} from "@hashintel/hash-design-system";
 import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 import { NavLink } from "./nav-link";
-import { IconButton, TextField } from "../../ui";
-import { FontAwesomeIcon } from "../../icons";
+
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,

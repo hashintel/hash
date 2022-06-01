@@ -18,4 +18,5 @@ export const theme = createTheme({
   components: components as ThemeOptions["components"],
 });
 
-export const createEmotionCache = () => createCache({ key: "css" });
+export const createEmotionCache = (key?: string) =>
+  createCache({ key: key ?? "css" });
