@@ -400,7 +400,7 @@ export const save = async (
   store: EntityStore,
 ) => {
   const [entityTypesResult, blocks] = await Promise.all([
-    await apolloClient.query<
+    apolloClient.query<
       GetAccountEntityTypesSharedQuery,
       GetAccountEntityTypesSharedQueryVariables
     >({
@@ -408,7 +408,7 @@ export const save = async (
       variables: { accountId, includeOtherTypesInUse: true },
       fetchPolicy: "network-only",
     }),
-    await apolloClient
+    apolloClient
       .query<GetPageQuery, GetPageQueryVariables>({
         query: getPageQuery,
         variables: { accountId, entityId: pageEntityId },
