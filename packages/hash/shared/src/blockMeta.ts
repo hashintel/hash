@@ -75,13 +75,13 @@ const configureAppReloadWhenBlockChanges = (
         }
       });
     } catch {
-      reportProblem(`Could not connect to socket`);
+      reportProblem(`Could not connect to a websocket at ${devReloadEndpoint}`);
     }
     return;
   }
 
   reportProblem(
-    `Could not recognise devReloadEndpoint type (expected a websocket) URL`,
+    `URLs like "${devReloadEndpoint}" are not supported (expected a websocket)`,
   );
 };
 
