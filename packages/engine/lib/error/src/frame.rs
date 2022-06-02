@@ -16,7 +16,7 @@ use std::error::Error;
 use crate::provider::{self, Demand, Provider};
 use crate::Context;
 
-/// A [`Frame`] needs to implement all of the dependent traits so it's captured type needs these
+/// A [`Frame`] needs to implement all of the dependent traits so its captured type needs these
 /// traits as well.
 ///
 /// This is a convenient trait alias to avoid writing down each trait explicitly every time.
