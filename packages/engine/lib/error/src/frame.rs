@@ -40,6 +40,7 @@ impl<T> Unerased for T where T: fmt::Debug + fmt::Display + Send + Sync + 'stati
 pub struct Frame {
     inner: ManuallyDrop<Box<FrameRepr>>,
     location: &'static Location<'static>,
+    // `pub(crate)` required for `Frames` implementation for non-nightly builds
     pub(crate) source: Option<Box<Frame>>,
 }
 
