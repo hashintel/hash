@@ -279,16 +279,6 @@ impl<T> Report<T> {
         )
     }
 
-    /// Converts the `Report<T>` to `Report<()>` without modifying the frame stack.
-    #[doc(hidden)]
-    #[allow(clippy::missing_const_for_fn)] // False positive
-    pub fn generalize(self) -> Report<()> {
-        Report {
-            inner: self.inner,
-            _context: PhantomData,
-        }
-    }
-
     /// Returns the backtrace of the error, if captured.
     ///
     /// Note, that `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` has to be set to enable backtraces.
