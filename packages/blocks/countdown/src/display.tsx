@@ -61,10 +61,10 @@ export const Display: VFC<DisplayProps> = ({ targetDate, displayTime }) => {
       : (["days"] as (keyof Duration)[]);
 
   return (
-    <div className="display-grid">
+    <div className="countdown-block__display-grid">
       {intervalsToDisplay.map((item) => {
         return (
-          <div key={item} className="display-grid__item">
+          <div key={item} className="countdown-block__display-grid__item">
             <p>
               {["seconds", "minutes"].includes(item)
                 ? duration[item]?.toString().padStart(2, "0") ?? "00"

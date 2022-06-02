@@ -1,0 +1,170 @@
+/* Countdown Block Styles  */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
+.countdown-block {
+  --font-family: system-ui, "Inter", "Open Sans", "Helvetica Neue", "Arial",
+    sans-serif;
+
+  --font-size-xs: clamp(0.8rem, 0.17vw + 0.76rem, 0.89rem);
+  --font-size-sm: clamp(0.85rem, 0.22vw + 0.83rem, 0.95rem);
+  --font-size-base: clamp(1rem, 0.34vw + 0.91rem, 1.12rem);
+  --font-size-md: clamp(1.25rem, 0.61vw + 1.1rem, 1.58rem);
+  --font-size-lg: clamp(1.56rem, 1vw + 1.31rem, 2.11rem);
+  --font-size-xl: clamp(1.95rem, 1.56vw + 1.56rem, 2.81rem);
+  --font-size-xxl: clamp(2.44rem, 2.38vw + 1.85rem, 3.75rem);
+  --font-size-xxxl: clamp(3.05rem, 3.54vw + 2.17rem, 5rem);
+
+  --neutral-0: #ffffff;
+
+  --brand-primary-base: #0775e3;
+  --brand-primary-hover: #006dc3;
+
+  --primary-text-base: #37434f;
+  --secondary-text-base: #64778c;
+  --tertiary-text-base: #91a5ba;
+
+  --border-color-light: #dde7f0;
+  --border-color-dark: #c1cfde;
+  --border-color-focused: #0775e3;
+
+  --border-radius-1: 0.25rem;
+  --border-radius-1-5: 0.375rem;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 0;
+  font-family: var(--font-family);
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  li,
+  ol {
+    max-width: 60ch;
+  }
+
+  .countdown-title {
+    display: flex;
+    border: 1px solid transparent;
+    margin-bottom: 1rem;
+    position: relative;
+    transition: all 0.3s ease;
+    text-align: center;
+
+    .title-input {
+      position: relative;
+      flex: 1;
+      border: 2px solid transparent;
+      max-width: 22.5rem;
+      font-size: var(--font-size-md);
+      line-height: 120%;
+      border-radius: var(--border-radius-1-5);
+      padding: 0.625rem 0.875rem;
+      color: var(--primary-text-base);
+      text-align: center;
+      outline: none;
+      resize: none;
+
+      &:focus {
+        width: 22.5rem;
+        border: 2px solid var(--border-color-focused);
+        text-align: left;
+        padding-right: 3rem;
+      }
+
+      &:hover {
+        border-color: var(--border-color-dark);
+      }
+
+      &:empty:after {
+        color: var(--tertiary-text-base);
+        content: attr(placeholder);
+        white-space: nowrap;
+        width: 100%;
+        text-align: center;
+      }
+
+      &:focus + button {
+        pointer-events: auto;
+        visibility: visible;
+      }
+    }
+
+    button {
+      border: none;
+      transition: 250ms ease-in-out;
+      border-radius: var(--border-radius-1);
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      bottom: 0.5rem;
+      background-color: var(--brand-primary-base);
+      color: var(--neutral-0);
+      height: 2.125rem;
+      width: 2.125rem;
+      visibility: hidden;
+      pointer-events: none;
+      transition: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      &:hover {
+        cursor: pointer;
+        background-color: var(--brand-primary-hover);
+      }
+    }
+  }
+
+  &__display-grid {
+    border: 1px solid var(--border-color-light);
+    filter: drop-shadow(0px 4px 11px rgba(39, 50, 86, 0.04))
+      drop-shadow(0px 2.59259px 6.44213px rgba(39, 50, 86, 0.08))
+      drop-shadow(0px 0.5px 1px rgba(39, 50, 86, 0.15));
+    margin-bottom: 12px;
+    border-radius: var(--border-radius-1-5);
+    display: flex;
+
+    &__item {
+      min-height: 10rem;
+      min-width: 10rem;
+      padding-top: 2.2rem;
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-right: 1px solid var(--border-color-light);
+
+      &:last-of-type {
+        border-right: none;
+      }
+
+      p:first-of-type {
+        font-size: var(--font-size-xxl);
+        font-weight: 600;
+        line-height: var(--line-height-none);
+        letter-spacing: -2%;
+        color: var(--primary-text-base);
+        margin-bottom: 0.5rem;
+      }
+
+      p:last-of-type {
+        color: var(--secondary-text-base);
+        text-transform: uppercase;
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+      }
+    }
+  }
+}

@@ -6,10 +6,9 @@ import { Display } from "./display";
 import { DatePickerInput } from "./date-picker-input";
 import { CountdownTitle } from "./countdown-title";
 
-import "./base.css";
+import "./styles.scss";
 import "react-datepicker/dist/react-datepicker.css";
-import "./styles.css";
-import "./datepicker-override.css";
+import "./datepicker-override.scss";
 
 type AppProps = {
   title?: string;

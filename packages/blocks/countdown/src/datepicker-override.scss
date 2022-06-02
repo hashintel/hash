@@ -1,0 +1,208 @@
+.countdown-block {
+  .react-datepicker-popper {
+    border-radius: 6px;
+    inset: none;
+    box-shadow: 0px 0.20370370149612427px 0.6296296119689941px 0px
+        hsla(226, 37%, 38%, 0.07),
+      0px 4.237037181854248px 8.100000381469727px 0px hsla(226, 37%, 38%, 0.06),
+      0px 7.129629611968994px 18.3700008392334px 0px hsla(226, 37%, 38%, 0.05),
+      0px 11px 30px 0px hsla(226, 37%, 38%, 0.04);
+
+    &[data-placement^="bottom"] {
+      margin-top: 10px;
+      padding-top: 0;
+
+      .react-datepicker__triangle::before {
+        border-bottom-color: hsla(208, 39%, 90%, 1);
+      }
+
+      .react-datepicker__triangle::after {
+        border-bottom-color: hsla(204, 45%, 98%, 1);
+      }
+    }
+  }
+
+  .react-datepicker {
+    border: 1px solid hsla(208, 39%, 90%, 1);
+    font-family: "Inter", system-ui, sans-serif;
+
+    &__header {
+      padding: 0.75rem;
+      background: hsla(204, 45%, 98%, 1);
+      border-bottom: 1px solid hsla(208, 39%, 90%, 1);
+    }
+
+    &__current-month {
+      color: hsla(210, 18%, 26%, 1);
+      font-size: 1rem;
+      padding: 0.25rem 0;
+      font-weight: 600;
+    }
+
+    &__day-name {
+      font-size: 0.875rem;
+      padding: 0.25rem 0.4rem;
+      color: hsla(212, 17%, 47%, 0.75);
+    }
+
+    &__month {
+      margin: 0.5rem;
+    }
+
+    &__day {
+      font-size: 0.875rem;
+      line-height: 1;
+      padding: 0;
+      height: 40px;
+      width: 40px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      color: hsla(212, 17%, 40%, 0.9);
+      border: 2px solid hsla(204, 87%, 52%, 0);
+      transition: all 200ms ease-in;
+
+      &:hover {
+        background-color: hsla(204, 87%, 52%, 0.1);
+        border: 2px solid hsla(204, 87%, 52%, 0.3);
+        color: hsla(212, 17%, 20%, 1);
+        border-radius: 5rem;
+      }
+
+      &--selected {
+        background: hsla(210, 94%, 46%, 1);
+        color: #ffffff;
+        border-radius: 5rem;
+        border: 2px solid hsla(204, 87%, 52%, 0);
+      }
+
+      &--keyboard-selected {
+        border-radius: 5rem;
+        background: none;
+        border: 2px solid hsla(204, 87%, 52%, 1);
+      }
+    }
+
+    &__navigation {
+      top: 10px;
+
+      &--next {
+        right: 16px;
+      }
+
+      &--previous {
+        left: 16px;
+      }
+
+      &-icon::before {
+        border-color: hsla(212, 17%, 47%, 0.5);
+        border-width: 2px 2px 0 0;
+        top: 6px;
+      }
+
+      &-icon:hover::before {
+        border-color: hsla(212, 17%, 47%, 1);
+      }
+    }
+
+    &__input-container {
+      box-shadow: 0px 1px 2px 0px hsla(220, 43%, 11%, 0.05);
+      padding: 0 16px;
+      border: 1px solid #c1cfde;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+
+      &:hover {
+        background-color: #f7fafc;
+      }
+
+      &:focus-within {
+        border: 2px solid #0775e3;
+      }
+
+      input {
+        font-family: "Inter", system-ui, sans-serif;
+        padding: 12px 0;
+        font-size: 0.875rem;
+        background-color: transparent;
+        color: hsla(212, 17%, 47%, 1);
+        outline: none;
+        border: none;
+        flex: 1;
+        width: 100%;
+
+        &:placeholder-shown {
+          width: 100px;
+        }
+
+        &::placeholder {
+          color: #4d5c6c;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+      }
+
+      svg {
+        color: #758aa1;
+      }
+    }
+
+    &__input-time-container {
+      margin: 0;
+      padding: 0.5rem 1.5rem;
+      background: hsla(204, 45%, 98%, 1);
+      border-top: 1px solid hsla(208, 39%, 90%, 1);
+      display: flex;
+      align-items: center;
+    }
+
+    &-time__caption {
+      font-family: inherit;
+      font-size: 0.875rem;
+      color: hsla(212, 17%, 40%, 1);
+    }
+
+    &__input-time-container
+      .react-datepicker-time__input-container
+      .react-datepicker-time__input {
+      margin-left: 0.5rem;
+    }
+
+    &__time-list-item {
+      font-family: inherit;
+      font-size: 0.875rem;
+      line-height: 1;
+      padding: 0;
+      color: hsla(212, 17%, 40%, 0.9);
+      border: 2px solid hsla(204, 87%, 52%, 0);
+      transition: all 200ms ease-in;
+    }
+
+    &-time__input input {
+      font-family: inherit;
+      padding: 8px 12px;
+      color: hsla(212, 17%, 40%, 0.9);
+      border-radius: 6px;
+      border: 1px solid hsla(210, 30%, 81%, 1);
+      box-shadow: 0px 1px 2px 0px hsla(220, 43%, 11%, 0.05);
+    }
+
+    &-time__btn {
+      color: hsla(212, 17%, 40%, 0.9);
+      padding: 8px 12px;
+      border: 1px solid hsla(210, 30%, 81%, 1);
+      background: transparent;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+
+    &-time__btn:hover {
+      background-color: hsla(204, 87%, 52%, 0.1);
+    }
+
+    &-time__btn--remove {
+      margin-left: 12px;
+    }
+  }
+}
