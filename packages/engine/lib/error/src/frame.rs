@@ -226,8 +226,9 @@ impl<C: fmt::Display + fmt::Debug + Send + Sync + 'static> Provider for MessageR
 
 /// Wrapper around [`Context`].
 ///
-/// As [`Context`] does not necessarily implement [`Provider`], an empty implementation is provided.
-/// If a [`Provider`] is required use it directly instead of [`Context`].
+/// As [`Context`] does not necessarily implement [`Provider`] but [`Unerased`] requires it (on
+/// nightly), an empty implementation is provided. If a [`Provider`] is required use it directly
+/// instead of [`Context`].
 #[repr(transparent)]
 struct ContextRepr<C>(C);
 
