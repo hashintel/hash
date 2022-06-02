@@ -1,44 +1,157 @@
 use alloc::boxed::Box;
-use core::{fmt, fmt::Formatter, marker::PhantomData, panic::Location};
+use core::{any::Any, fmt, fmt::Formatter, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
-#[cfg(feature = "std")]
-use std::error::Error as StdError;
 
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
-use crate::{Context, Frames, Message, Report, RequestRef, RequestValue};
+use crate::{
+    iter::{Frames, RequestRef, RequestValue},
+    provider, Context, Message,
+};
 
-pub struct ReportImpl {
-    pub(super) frame: Frame,
-    #[cfg(all(nightly, feature = "std"))]
-    backtrace: Option<Backtrace>,
-    #[cfg(feature = "spantrace")]
-    span_trace: Option<SpanTrace>,
+/// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
+/// a [`Backtrace`] and a [`SpanTrace`].
+///
+/// To enable the backtrace, make sure `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to
+/// the [`Backtrace` documentation][`Backtrace`]. To enable the span trace, [`ErrorLayer`] has to
+/// be enabled.
+///
+/// Context information can be added by using [`wrap()`] or [`ResultExt`]. The [`Frame`] stack can
+/// be iterated by using [`frames()`].
+///
+/// To enforce context information generation, a context [`Provider`] needs to be used. When
+/// creating a `Report` by using [`from_error()`] or [`from_context()`], the parameter is used as
+/// context in the `Report`. To provide a new one, use [`provide_context()`] or [`ResultExt`] to add
+/// it, which may also be used to provide more context information than only a display message. This
+/// information can then be retrieved by calling [`request_ref()`] or [`request_value()`].
+///
+/// [`Backtrace`]: std::backtrace::Backtrace
+/// [`SpanTrace`]: tracing_error::SpanTrace
+/// [`ErrorLayer`]: tracing_error::ErrorLayer
+/// [`wrap()`]: Self::wrap
+/// [`from_error()`]: Self::from_error
+/// [`from_context()`]: Self::from_context
+/// [`frames()`]: Self::frames
+/// [`provide_context()`]: Self::provide_context
+/// [`request_ref()`]: Self::request_ref
+/// [`request_value()`]: Self::request_value
+/// [`ResultExt`]: crate::ResultExt
+/// [`Provider`]: provider::Provider
+///
+/// # Examples
+///
+/// Provide a context for an error:
+///
+///
+/// ```
+/// # #![cfg_attr(any(miri, not(feature = "std")), allow(warnings))]
+/// use error::{IntoReport, ResultExt, Result};
+///
+/// # #[allow(dead_code)]
+/// # fn fake_main() -> Result<(), std::io::Error> {
+/// let config_path = "./path/to/config.file";
+/// # #[cfg(all(not(miri), feature = "std"))]
+/// # #[allow(unused_variables)]
+/// let content = std::fs::read_to_string(config_path)
+///     .report()
+///     .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///
+/// # const _: &str = stringify! {
+/// ...
+/// # }; Ok(()) }
+/// ```
+///
+/// Enforce a context for an error:
+///
+/// ```
+/// use core::fmt;
+/// use std::path::{Path, PathBuf};
+///
+/// use error::provider::{Demand, Provider};
+/// # #[cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
+/// use error::{IntoReport, Report, ResultExt};
+///
+/// #[derive(Debug)]
+/// # #[derive(PartialEq)]
+/// enum RuntimeError {
+///     InvalidConfig(PathBuf),
+/// # }
+/// # const _: &str = stringify! {
+///     ...
+/// }
+/// # ;
+///
+/// #[derive(Debug)]
+/// enum ConfigError {
+///     IoError,
+/// # }
+/// # const _: &str = stringify! {
+///     ...
+/// }
+/// # ;
+///
+/// impl fmt::Display for RuntimeError {
+///     # fn fmt(&self, _fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+///     # const _: &str = stringify! {
+///     ...
+///     # };
+///     # Ok(())
+///     # }
+/// }
+/// impl fmt::Display for ConfigError {
+///     # fn fmt(&self, _fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+///     # const _: &str = stringify! {
+///     ...
+///     # };
+///     # Ok(())
+///     # }
+/// }
+///
+/// impl Provider for RuntimeError {
+///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
+/// }
+/// impl Provider for ConfigError {
+///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
+/// }
+///
+/// # #[allow(unused_variables)]
+/// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
+///     # #[cfg(any(miri, not(feature = "std")))]
+///     # return Err(error::report!(ConfigError::IoError).wrap("Not supported"));
+///     # #[cfg(all(not(miri), feature = "std"))]
+///     std::fs::read_to_string(path.as_ref()).report().provide_context(ConfigError::IoError)
+/// }
+///
+/// fn main() -> Result<(), Report<RuntimeError>> {
+///     # fn fake_main() -> Result<(), Report<RuntimeError>> {
+///     let config_path = "./path/to/config.file";
+///     # #[allow(unused_variables)]
+///     let config = read_config(config_path)
+///             .provide_context_lazy(|| RuntimeError::InvalidConfig(PathBuf::from(config_path)))?;
+///
+///     # const _: &str = stringify! {
+///     ...
+///     # };
+///     # Ok(()) }
+///     # let err = fake_main().unwrap_err();
+///     # assert_eq!(err.frames().count(), 3);
+///     # assert!(err.contains::<ConfigError>());
+///     # assert_eq!(err.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
+///     # Ok(())
+/// }
+/// ```
+#[must_use]
+#[repr(transparent)]
+pub struct Report<T> {
+    inner: Box<ReportImpl>,
+    _context: PhantomData<T>,
 }
 
-impl Report<()> {
-    /// Creates a new `Report` from the provided message.
-    #[track_caller]
-    pub fn new<M>(message: M) -> Self
-    where
-        M: Message,
-    {
-        // SAFETY: `FrameRepr` is wrapped in `ManuallyDrop`
-        Self::from_frame(
-            Frame::from_message(message, Location::caller(), None),
-            #[cfg(all(nightly, feature = "std"))]
-            Some(Backtrace::capture()),
-            #[cfg(feature = "spantrace")]
-            Some(SpanTrace::capture()),
-        )
-    }
-}
-
-impl<C> Report<C> {
-    fn from_frame(
+impl<T> Report<T> {
+    pub(crate) fn from_frame(
         frame: Frame,
         #[cfg(all(nightly, feature = "std"))] backtrace: Option<Backtrace>,
         #[cfg(feature = "spantrace")] span_trace: Option<SpanTrace>,
@@ -57,9 +170,9 @@ impl<C> Report<C> {
 
     /// Creates a new `Report<Context>` from a provided scope.
     #[track_caller]
-    pub fn from_context(context: C) -> Self
+    pub fn from_context(context: T) -> Self
     where
-        C: Context,
+        T: Context,
     {
         #[allow(clippy::option_if_let_else)] // #[track_caller] on closures are unstable
         let location = if let Some(location) =
@@ -91,6 +204,18 @@ impl<C> Report<C> {
             #[cfg(feature = "spantrace")]
             span_trace,
         )
+    }
+
+    /// Creates a new `Report<T>` from the provided [`Error`].
+    ///
+    /// [`Error`]: std::error::Error
+    #[track_caller]
+    #[cfg(feature = "std")]
+    pub fn from_error(error: T) -> Self
+    where
+        T: std::error::Error + Send + Sync + 'static,
+    {
+        Self::from(error)
     }
 
     /// Adds a contextual message to the [`Frame`] stack.
@@ -131,20 +256,14 @@ impl<C> Report<C> {
         )
     }
 
-    /// Converts the `Report<Context>` to `Report<()>` without modifying the frame stack.
+    /// Converts the `Report<T>` to `Report<()>` without modifying the frame stack.
+    #[doc(hidden)]
     #[allow(clippy::missing_const_for_fn)] // False positive
-    pub fn generalize(self) -> Report {
+    pub fn generalize(self) -> Report<()> {
         Report {
             inner: self.inner,
             _context: PhantomData,
         }
-    }
-
-    /// Converts the `&Report<Context>` to `&Report<()>` without modifying the frame stack.
-    pub const fn generalized(&self) -> &Report {
-        // SAFETY: `Report` is repr(transparent), so it's safe to cast between `Report<A>` and
-        //         `Report<B>`
-        unsafe { &*(self as *const Self).cast() }
     }
 
     /// Returns the backtrace of the error, if captured.
@@ -195,33 +314,35 @@ impl<C> Report<C> {
         Frames::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting references of type `T`.
-    pub const fn request_ref<T: ?Sized + 'static>(&self) -> RequestRef<'_, T> {
+    /// Creates an iterator over the [`Frame`] stack requesting references of type `R`.
+    pub const fn request_ref<R: ?Sized + 'static>(&self) -> RequestRef<'_, R> {
         RequestRef::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting values of type `T`.
-    pub const fn request_value<T: 'static>(&self) -> RequestValue<'_, T> {
+    /// Creates an iterator over the [`Frame`] stack requesting values of type `R`.
+    pub const fn request_value<R: 'static>(&self) -> RequestValue<'_, R> {
         RequestValue::new(self)
     }
 
-    /// Returns if `C` is the type held by any frame inside of the report.
+    /// Returns if `T` is the type held by any frame inside of the report.
+    // TODO: Provide example
     #[must_use]
-    pub fn contains<C2>(&self) -> bool
-    where
-        C2: Context,
-    {
-        self.frames().any(Frame::is::<C2>)
+    pub fn contains<C: Any>(&self) -> bool {
+        self.frames().any(Frame::is::<C>)
     }
 
-    /// Searches the frame stack for a context provider `C` and returns the most recent context
+    /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
+    // TODO: Provide example
     #[must_use]
-    pub fn downcast_ref<C2>(&self) -> Option<&C2>
-    where
-        C2: Context,
-    {
-        self.frames().find_map(Frame::downcast_ref::<C2>)
+    pub fn downcast_ref<C: Any>(&self) -> Option<&C> {
+        self.frames().find_map(Frame::downcast_ref::<C>)
+    }
+}
+
+impl<T> Report<T> {
+    pub(crate) const fn frame(&self) -> &Frame {
+        &self.inner.frame
     }
 }
 
@@ -288,26 +409,10 @@ impl<Context> fmt::Debug for Report<Context> {
     }
 }
 
-#[cfg(feature = "std")]
-impl<E> From<E> for Report
-where
-    E: StdError + Send + Sync + 'static,
-{
-    #[track_caller]
-    fn from(error: E) -> Self {
-        #[cfg(all(nightly, feature = "std"))]
-        let backtrace = if error.backtrace().is_some() {
-            None
-        } else {
-            Some(Backtrace::capture())
-        };
-
-        Self::from_frame(
-            Frame::from_std(error, Location::caller(), None),
-            #[cfg(all(nightly, feature = "std"))]
-            backtrace,
-            #[cfg(feature = "spantrace")]
-            Some(SpanTrace::capture()),
-        )
-    }
+pub struct ReportImpl {
+    pub(super) frame: Frame,
+    #[cfg(all(nightly, feature = "std"))]
+    backtrace: Option<Backtrace>,
+    #[cfg(feature = "spantrace")]
+    span_trace: Option<SpanTrace>,
 }

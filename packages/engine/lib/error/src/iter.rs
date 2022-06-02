@@ -1,12 +1,22 @@
+//! Iterators over [`Frame`]s.
+
 use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData};
 
-use super::Frame;
-use crate::{Frames, Report, RequestRef, RequestValue};
+use crate::{Frame, Report};
+
+/// Iterator over the [`Frame`] stack of a [`Report`].
+///
+/// Use [`Report::frames()`] to create this iterator.
+#[must_use]
+#[derive(Clone)]
+pub struct Frames<'r> {
+    current: Option<&'r Frame>,
+}
 
 impl<'r> Frames<'r> {
     pub(super) const fn new<C>(report: &'r Report<C>) -> Self {
         Self {
-            current: Some(&report.inner.frame),
+            current: Some(report.frame()),
         }
     }
 }
@@ -28,6 +38,15 @@ impl fmt::Debug for Frames<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()
     }
+}
+
+/// Iterator over requested references in the [`Frame`] stack of a [`Report`].
+///
+/// Use [`Report::request_ref()`] to create this iterator.
+#[must_use]
+pub struct RequestRef<'r, T: ?Sized> {
+    frames: Frames<'r>,
+    _marker: PhantomData<&'r T>,
 }
 
 impl<'r, T: ?Sized> RequestRef<'r, T> {
@@ -68,6 +87,15 @@ where
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()
     }
+}
+
+/// Iterator over requested values in the [`Frame`] stack of a [`Report`].
+///
+/// Use [`Report::request_value()`] to create this iterator.
+#[must_use]
+pub struct RequestValue<'r, T> {
+    frames: Frames<'r>,
+    _marker: PhantomData<T>,
 }
 
 impl<'r, T> RequestValue<'r, T> {

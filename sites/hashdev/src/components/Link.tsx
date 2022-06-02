@@ -10,10 +10,54 @@ import { UrlObject } from "url";
 import { FRONTEND_URL } from "../config";
 import { Button } from "./Button";
 
-export const isHrefExternal = (href: string | UrlObject) =>
-  typeof href === "string" &&
-  (href === "/discord" || !/^(mailto:|#|\/|https:\/\/hash\.dev)/.test(href)) &&
-  !href.startsWith(FRONTEND_URL);
+// List of domains that are considered internal (i.e. should not be opened in a new tab)
+const internalDomains = ["hash.dev", "hash.ai", "blockprotocol.org"];
+
+/**
+ * @param {string} url - the URL which is parsed
+ * @returns {string | null} - the hostname of the URL if it is a valid URL, otherwise null
+ */
+const parseHostnameFromUrl = (url: string) => {
+  try {
+    const { hostname } = new URL(url);
+
+    return hostname;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * @param {string | UrlObject} href
+ * @returns {boolean} whether or not the provided href URL is external
+ */
+export const isHrefExternal = (href: string | UrlObject) => {
+  if (typeof href !== "string") {
+    /** @todo: handle NextJs UrlObjects, currently they're always considered external */
+    return false;
+  }
+
+  const isRelativeUrl = href.startsWith("/");
+
+  const isAnchorFragment = href.startsWith("#");
+
+  if (isRelativeUrl || isAnchorFragment) {
+    return false;
+  }
+
+  const isMailtoLink = /^(mailto:|#|\/|https:\/\/hash\.dev)/.test(href);
+  const isFrontendUrl = href.startsWith(FRONTEND_URL);
+
+  const hostname = parseHostnameFromUrl(href);
+
+  const isInternalDomain =
+    hostname &&
+    !!internalDomains.find((internalDomain) =>
+      hostname.endsWith(internalDomain),
+    );
+
+  return !isMailtoLink && !isFrontendUrl && !isInternalDomain;
+};
 
 /**
  * This component is based on

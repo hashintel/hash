@@ -670,7 +670,6 @@ dependencies = [
  "futures-core",
  "once_cell",
  "pin-project",
- "provider",
  "rustc_version",
  "serde_json",
  "tracing-error",
@@ -988,7 +987,6 @@ dependencies = [
  "num_cpus",
  "orchestrator",
  "parking_lot",
- "provider",
  "rand 0.8.4",
  "rayon",
  "regex",
@@ -1430,7 +1428,6 @@ version = "0.0.0"
 dependencies = [
  "error",
  "nng",
- "provider",
  "serde",
  "serde_json",
  "thiserror",
@@ -1782,10 +1779,6 @@ checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
 dependencies = [
  "unicode-xid",
 ]
-
-[[package]]
-name = "provider"
-version = "0.0.0"
 
 [[package]]
 name = "quote"

@@ -12,7 +12,7 @@
     "directory": "packages/blocks/drawing-canvas"
   },
   "license": "MIT",
-  "author": "teenoh",
+  "author": "tldraw",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
@@ -46,7 +46,6 @@
     "examples": [
       {
         "height": 400,
-        "width": "100%",
         "darkMode": false,
         "readOnly": false,
         "document": ""
