@@ -25,6 +25,12 @@ use crate::Context;
 trait Unerased: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static {}
 #[cfg(nightly)]
 impl<T> Unerased for T where T: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static {}
+
+/// Trait alias to require all required traits used on a [`Frame`].
+///
+/// In order to implement these traits on a [`Frame`], the underlying type requires these types as
+/// well. After creation of the [`Frame`] it's erased. To unerase it later on to act on the actual
+/// Frame implementation, this trait is used.
 #[cfg(not(nightly))]
 trait Unerased: fmt::Debug + fmt::Display + Send + Sync + 'static {}
 #[cfg(not(nightly))]
