@@ -164,8 +164,9 @@ impl Provider for Frame {
 
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: Change output depending on FrameKind
         fmt.debug_struct("Frame")
-            .field("context", &self.inner.unerase())
+            .field("object", &self.inner.unerase())
             .field("location", &self.location)
             .finish()
     }
@@ -192,7 +193,7 @@ impl Drop for Frame {
 
 /// Stores functions to act on the associated context without knowing the internal type.
 ///
-/// This works around the limitation of not being able to coerce from `Box<dyn Context>` to
+/// This works around the limitation of not being able to coerce from `Box<dyn Unerased>` to
 /// `Box<dyn Any>` to add downcasting. Also this works around dynamic dispatching, as the functions
 /// are stored and called directly.
 struct VTable {
@@ -308,7 +309,7 @@ impl VTable {
         drop(unerased);
     }
 
-    /// Unerase the context as `&dyn Context`
+    /// Unerase the object as `&dyn Unerased`
     ///
     /// # Safety
     ///
@@ -318,10 +319,10 @@ impl VTable {
         let unerased = (frame as *const FrameRepr).cast::<FrameRepr<T>>();
         // inside of vtable it's allowed to access `_context`
         #[allow(clippy::used_underscore_binding)]
-        &(*(unerased))._context
+        &(*(unerased))._unerased
     }
 
-    /// Downcasts the context to `target`
+    /// Downcasts the object to `target`
     ///
     /// # Safety
     ///
@@ -335,7 +336,7 @@ impl VTable {
             let unerased = (frame as *const FrameRepr).cast::<FrameRepr<T>>();
             // inside of vtable it's allowed to access `_context`
             #[allow(clippy::used_underscore_binding)]
-            let addr = addr_of!((*(unerased))._context) as *mut ();
+            let addr = addr_of!((*(unerased))._unerased) as *mut ();
             Some(NonNull::new_unchecked(addr))
         } else {
             None
@@ -350,26 +351,26 @@ struct FrameRepr<C = ()> {
     vtable: &'static VTable,
     // As we cast between `FrameRepr<C>` and `FrameRepr<()>`, `_context` must not be used directly,
     // only through `vtable`
-    _context: C,
+    _unerased: C,
 }
 
 impl<T> FrameRepr<T>
 where
     T: Unerased,
 {
-    /// Creates a new frame from a context
+    /// Creates a new frame from an unerased object.
     ///
     /// # Safety
     ///
     /// Must not be dropped without calling `vtable.object_drop`
-    unsafe fn new(context: T) -> Box<FrameRepr> {
+    unsafe fn new(object: T) -> Box<FrameRepr> {
         let unerased_frame = Self {
             vtable: &VTable {
                 object_drop: VTable::object_drop::<T>,
                 object_ref: VTable::object_ref::<T>,
                 object_downcast: VTable::object_downcast::<T>,
             },
-            _context: context,
+            _unerased: object,
         };
         let unerased_box = Box::new(unerased_frame);
         // erase the frame by casting the pointer to `FrameBox<()>`
