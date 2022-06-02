@@ -16,10 +16,11 @@ use std::error::Error;
 use crate::provider::{self, Demand, Provider};
 use crate::Context;
 
-/// A [`Frame`] needs to implement all of the dependent traits so its captured type needs these
-/// traits as well.
+/// Trait alias to require all required traits used on a [`Frame`].
 ///
-/// This is a convenient trait alias to avoid writing down each trait explicitly every time.
+/// In order to implement these traits on a [`Frame`], the underlying type requires these types as
+/// well. After creation of the [`Frame`] it's erased. To unerase it later on to act on the actual
+/// Frame implementation, this trait is used.
 #[cfg(nightly)]
 trait Unerased: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static {}
 #[cfg(nightly)]
