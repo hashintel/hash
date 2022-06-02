@@ -1,7 +1,7 @@
 {
   "type": "object",
   "properties": {
-    "documentString": {
+    "serializedDocument": {
       "type": "string"
     },
     "darkMode": {
@@ -14,7 +14,7 @@
       "type": "number"
     }
   },
-  "configProperties": ["darkMode", "documentString", "width", "height"],
-  "required": ["documentString"],
+  "configProperties": ["darkMode", "serializedDocument", "width", "height"],
+  "required": ["serializedDocument"],
   "$schema": "http://json-schema.org/draft-07/schema#"
 }

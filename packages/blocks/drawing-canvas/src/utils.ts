@@ -19,12 +19,12 @@ export const handleExport = async (info: TDExport): Promise<void> => {
 };
 
 // @todo improve this
-export const isValidDocumentString = (
-  documentString: string | undefined,
-): documentString is string => {
-  if (typeof documentString !== "string") return false;
+export const isValidSerializedDocument = (
+  serializedDocument: string | undefined,
+): serializedDocument is string => {
+  if (typeof serializedDocument !== "string") return false;
   try {
-    JSON.parse(documentString);
+    JSON.parse(serializedDocument);
     return true;
   } catch (err) {
     return false;
@@ -44,10 +44,10 @@ export const getDefaultDocument = (entityId: string): TDDocument => {
  * default TDD document with it's id set to entityId
  */
 export const getInitialDocument = (
-  documentString: string | undefined,
+  serializedDocument: string | undefined,
   entityId: string,
 ): TDDocument => {
-  return isValidDocumentString(documentString)
-    ? JSON.parse(documentString)
+  return isValidSerializedDocument(serializedDocument)
+    ? JSON.parse(serializedDocument)
     : getDefaultDocument(entityId);
 };
