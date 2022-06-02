@@ -106,7 +106,7 @@ impl Frame {
     where
         E: Error + Send + Sync + 'static,
     {
-        // TODO: Pass error directly when the Provider API hits stable
+        // TODO: Pass error directly when Provider is implemented on errors
         Self::from_unerased(ErrorRepr(error), location, source)
     }
 
@@ -264,6 +264,7 @@ impl<C> Provider for ContextRepr<C> {
 /// As [`Error`] does not necessarily implement [`Provider`], an implementation is provided. As soon
 /// as [`Provider`] is implemented on [`Error`], this struct will be removed and used directly
 /// instead.
+// TODO: Remove when Provider is implemented on errors
 #[cfg(feature = "std")]
 #[repr(transparent)]
 struct ErrorRepr<E>(E);
