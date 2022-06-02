@@ -16,6 +16,10 @@ use std::error::Error;
 use crate::provider::{self, Demand, Provider};
 use crate::Context;
 
+/// A [`Frame`] needs to implement all of the dependent traits so it's captured type needs these
+/// traits as well.
+///
+/// This is a convenient trait alias to avoid writing down each trait explicitly every time.
 #[cfg(nightly)]
 trait Unerased: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static {}
 #[cfg(nightly)]
