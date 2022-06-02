@@ -56,8 +56,8 @@ impl Frame {
         source: Option<Box<Self>>,
     ) -> Self {
         Self {
-            // SAFETY: `FrameRepr` is wrapped in `ManuallyDrop`. `Frame` implements drop which is
-            // using `vtable.object_drop`.
+            // SAFETY: `FrameRepr` must not be dropped without using the vtable, so it's wrapped in
+            //   `ManuallyDrop`. A custom drop implementation is provided that takes care of this.
             inner: unsafe { ManuallyDrop::new(FrameRepr::new(object)) },
             location,
             source,
