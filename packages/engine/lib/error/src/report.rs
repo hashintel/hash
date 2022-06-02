@@ -338,9 +338,20 @@ impl<T> Report<T> {
     pub fn downcast_ref<C: Any>(&self) -> Option<&C> {
         self.frames().find_map(Frame::downcast_ref::<C>)
     }
-}
 
-impl<T> Report<T> {
+    /// Returns the current context of the `Report`.
+    ///
+    /// If the user want to get the latest context, `current_context` can be called. If the user
+    /// wants to handle the error, the context can then be used to directly access the context's
+    /// type. This is only possible for the latest context as the Report does not have multiple
+    /// generics as this would either require variadic generics or a workaround like tuple-list.
+    ///
+    /// This is one disadvantage of the library in comparison to plain Errors, as in these cases,
+    /// all context types are known.
+    pub fn current_context(&self) -> &T {
+        self.frame().downcast_ref().unwrap()
+    }
+
     pub(crate) const fn frame(&self) -> &Frame {
         &self.inner.frame
     }
