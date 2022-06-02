@@ -256,7 +256,7 @@ pub use self::{
 ///     }
 /// }
 ///
-/// // In this scenario,`Error` is not implemented for `ConfigError` for some reason, so implement
+/// // In this scenario, `Error` is not implemented for `ConfigError` for some reason, so implement
 /// // `Context` manually.
 /// impl Context for ConfigError {}
 ///
