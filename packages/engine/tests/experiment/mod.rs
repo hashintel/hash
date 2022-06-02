@@ -46,21 +46,21 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) ->
 
     // We read the behaviors and datasets like loading a dependency
     let mut manifest = Manifest::from_dependency(project_path)
-        .wrap_err_lazy(|| format!("Could not load manifest from {project_path:?}"))
-        .provide_context(TestContext::ExperimentSetup)?;
+        .attach_message_lazy(|| format!("Could not load manifest from {project_path:?}"))
+        .change_context(TestContext::ExperimentSetup)?;
 
     // Now load globals and experiments as specified in the documentation of `Manifest`
     let globals_path = project_path.join("src").join("globals.json");
     if globals_path.exists() {
         manifest
             .set_globals_from_file(globals_path)
-            .provide_context(TestContext::ExperimentSetup)?;
+            .change_context(TestContext::ExperimentSetup)?;
     }
     let experiments_path = project_path.join("experiments.json");
     if experiments_path.exists() {
         manifest
             .set_experiments_from_file(experiments_path)
-            .provide_context(TestContext::ExperimentSetup)?;
+            .change_context(TestContext::ExperimentSetup)?;
     }
 
     // Load the initial state based on the language. if it is specified, use a `-lang` suffix
@@ -77,11 +77,11 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) ->
         .collect();
     ensure!(
         initial_states.len() == 1,
-        Report::from(TestError::MultipleLanguages).provide_context(TestContext::TestSetup)
+        Report::from(TestError::MultipleLanguages).change_context(TestContext::TestSetup)
     );
     manifest
         .set_initial_state_from_file(&initial_states[0])
-        .provide_context(TestContext::ExperimentSetup)?;
+        .change_context(TestContext::ExperimentSetup)?;
 
     Ok(manifest)
 }
@@ -264,7 +264,7 @@ pub async fn run_test_suite(
             {
                 expected
                     .assert_subset_of(&states, &globals, &analysis)
-                    .provide_context(TestContext::ExperimentOutput)
+                    .change_context(TestContext::ExperimentOutput)
                     .unwrap_or_else(|err| {
                         if let Ok(log) = fs::read_to_string(&log_file_path) {
                             eprintln!("{log}");
@@ -328,11 +328,11 @@ pub async fn run_test<P: AsRef<Path>>(
     tokio::spawn(async move { experiment_server.run().await });
 
     let manifest = load_manifest(project_path, language)
-        .wrap_err_lazy(|| format!("Could not read project {project_path:?}"))?;
+        .attach_message_lazy(|| format!("Could not read project {project_path:?}"))?;
     let experiment_run = manifest
         .read(experiment_type)
-        .wrap_err("Could not read manifest")
-        .provide_context(TestContext::ExperimentSetup)?;
+        .attach_message("Could not read manifest")
+        .change_context(TestContext::ExperimentSetup)?;
 
     let experiment = orchestrator::Experiment::new(experiment_config);
 
@@ -346,7 +346,7 @@ pub async fn run_test<P: AsRef<Path>>(
     experiment
         .run(experiment_run, handler, target_max_group_size)
         .await
-        .provide_context(TestContext::ExperimentRun)?;
+        .change_context(TestContext::ExperimentRun)?;
     let duration = now.elapsed();
 
     let outputs = iter::repeat(output_base_directory)
@@ -355,16 +355,16 @@ pub async fn run_test<P: AsRef<Path>>(
         .take_while(|output_dir| output_dir.exists())
         .map(|output_dir| {
             let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
-                .wrap_err("Could not read JSON state")?;
+                .attach_message("Could not read JSON state")?;
             let globals = parse_file(Path::new(&output_dir).join("globals.json"))
-                .wrap_err("Could not read globals")?;
+                .attach_message("Could not read globals")?;
             let analysis_outputs = parse_file(Path::new(&output_dir).join("analysis_outputs.json"))
-                .wrap_err("Could not read analysis outputs`")?;
+                .attach_message("Could not read analysis outputs`")?;
 
             Ok((json_state, globals, analysis_outputs))
         })
         .collect::<Result<_, TestError>>()
-        .provide_context(TestContext::ExperimentOutput)?;
+        .change_context(TestContext::ExperimentOutput)?;
 
     Ok(TestOutput { outputs, duration })
 }
@@ -374,10 +374,10 @@ fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T, TestErr
     serde_json::from_reader(BufReader::new(
         File::open(path)
             .report()
-            .provide_context_lazy(|| TestError::parse_error(path))?,
+            .change_context_lazy(|| TestError::parse_error(path))?,
     ))
     .report()
-    .provide_context_lazy(|| TestError::parse_error(path))
+    .change_context_lazy(|| TestError::parse_error(path))
 }
 
 pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(ExperimentType, Vec<ExpectedOutput>)>> {
@@ -397,8 +397,8 @@ pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(ExperimentType, Vec<E
     }
 
     Ok(parse_file::<Vec<ConfigValue>, P>(path)
-        .wrap_err("Could not read integration test configuration")
-        .provide_context(TestContext::TestSetup)?
+        .attach_message("Could not read integration test configuration")
+        .change_context(TestContext::TestSetup)?
         .into_iter()
         .map(|config_value| match config_value {
             ConfigValue::Simple {
@@ -477,7 +477,7 @@ impl ExpectedOutput {
             let step = step
                 .parse::<usize>()
                 .report()
-                .provide_context_lazy(|| TestError::invalid_step(step.clone()))?;
+                .change_context_lazy(|| TestError::invalid_step(step.clone()))?;
             let result_states = agent_states
                 .get(step)
                 .ok_or_else(|| TestError::missing_step(step))?;
