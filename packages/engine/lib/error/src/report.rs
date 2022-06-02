@@ -348,11 +348,17 @@ impl<T> Report<T> {
     ///
     /// This is one disadvantage of the library in comparison to plain Errors, as in these cases,
     /// all context types are known.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn current_context(&self) -> &T
     where
         T: Any,
     {
-        self.frame().downcast_ref().unwrap()
+        // Panics if no context is attached which should only happen when using the hooks.
+        self.frame().downcast_ref().expect(
+            "Report does not contain a context. This is considered a bug and should be reported \
+             to https://github.com/hashintel/hash/issues/new",
+        )
     }
 
     pub(crate) const fn frame(&self) -> &Frame {
