@@ -193,11 +193,12 @@ impl Drop for Frame {
     }
 }
 
-/// Stores functions to act on the associated context without knowing the internal type.
+/// Stores functions to act on the underlying [`Frame`] type without knowing the unerased type.
 ///
 /// This works around the limitation of not being able to coerce from `Box<dyn Unerased>` to
 /// `Box<dyn Any>` to add downcasting. Also this works around dynamic dispatching, as the functions
-/// are stored and called directly.
+/// are stored and called directly. In addition this reduces the memory usage by one pointer, as the
+/// `VTable` is stored next to the object.
 struct VTable {
     object_drop: unsafe fn(Box<FrameRepr>),
     object_ref: unsafe fn(&FrameRepr) -> &dyn Unerased,
