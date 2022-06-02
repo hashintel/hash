@@ -10,15 +10,15 @@ pub mod __private {
         //! for macros.
         //!
         //! This is a stable implementation for specialization (only possible within macros, as
-        //! there is no trait bound for this things).
+        //! there is no trait bound for these things).
         //!
         //! The different tags [`ReportTag`], [`ErrorTag`], and [`ContextTag`] have a blanket
         //! implementation returning a concrete type. This type is then used to create a [`Report`].
         //!
         //! [`ErrorTag`] is implemented for `T: `[`Error`]s, [`ContextTag`] is implemented for `&T:
-        //! `[`Context`]s. As [`ContextTag`] is implemented references, [`ErrorTag`] has a higher
-        //! precedence and will be picked up first. So calling `my_error.kind()` will always
-        //! [`ErrorReporter`]. This can then be used to create a [`Report`] by calling
+        //! `[`Context`]s. As [`ContextTag`] is implemented for references, [`ErrorTag`] has a
+        //! higher precedence and will be picked up first. So calling `my_error.__kind()` will
+        //! always return [`ErrorReporter`]. This can then be used to create a [`Report`] by calling
         //! `my_error.__kind().report(my_error)`, which will then use [`Report::from_error`]. For
         //! [`ContextTag`], [`Report::from_context`] will be used.
         //!
@@ -90,7 +90,7 @@ pub mod __private {
         }
     }
 
-    // Import anonymous to allow calling `__kind` but forbid implementing the tag-traits.
+    // Import anonymously to allow calling `__kind` but forbid implementing the tag-traits.
     #[cfg(feature = "std")]
     pub use self::specialization::ErrorTag as _;
     pub use self::specialization::{ContextTag as _, ReportTag as _};

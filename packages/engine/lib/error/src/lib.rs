@@ -226,15 +226,14 @@ pub use self::{
 
 /// Defines the current context of a [`Report`].
 ///
-/// Every [`Error`] also can act as a `Context`. If [`Error`] is not implemented or in a non-std
-/// environment, this trait can be implemented manually. In most cases, implementing this is not
-/// needed.
+/// When in a `std` environment, every [`Error`] is a valid `Context`. This trait is not limited to
+/// [`Error`]s and can also be manually implemented for custom objects.
 ///
 /// [`Error`]: std::error::Error
 ///
 /// ## Example
 ///
-/// Used for creating a [`Report`] or for switching the [`Report`]s context:
+/// Used for creating a [`Report`] or for switching the [`Report`]'s context:
 ///
 /// ```rust
 /// # #![cfg_attr(any(not(feature = "std"), miri), allow(unused_imports))]
@@ -257,7 +256,8 @@ pub use self::{
 ///     }
 /// }
 ///
-/// // `Error` is not implemented for `ConfigError` for any reason, so implement `Context` manually.
+/// // In this scenario,`Error` is not implemented for `ConfigError` for some reason, so implement
+/// // `Context` manually.
 /// impl Context for ConfigError {}
 ///
 /// # #[cfg(any(not(feature = "std"), miri))]
