@@ -106,7 +106,8 @@ impl Frame {
     where
         E: Error + Send + Sync + 'static,
     {
-        Self::from_provider(ErrorRepr(error), location, source)
+        // TODO: Pass error directly when the Provider API hits stable
+        Self::from_unerased(ErrorRepr(error), location, source)
     }
 
     /// Returns the location where this `Frame` was created.
@@ -258,7 +259,7 @@ impl<C> Provider for ContextRepr<C> {
     }
 }
 
-/// Wrapper around [`Error`].
+/// Temporary wrapper around [`Error`] to implement Provider.
 ///
 /// As [`Error`] does not necessarily implement [`Provider`], an implementation is provided. As soon
 /// as [`Provider`] is implemented on [`Error`], this struct will be removed and used directly
