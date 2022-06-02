@@ -50,14 +50,14 @@ pub struct Frame {
 
 impl Frame {
     fn from_unerased<T: Unerased>(
-        unerased: T,
+        object: T,
         location: &'static Location<'static>,
         source: Option<Box<Self>>,
     ) -> Self {
         Self {
             // SAFETY: `FrameRepr` is wrapped in `ManuallyDrop`. `Frame` implements drop which is
             // using `vtable.object_drop`.
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(unerased)) },
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(object)) },
             location,
             source,
         }
@@ -208,22 +208,22 @@ struct VTable {
 /// If a [`Provider`] is required attach it directly rather than attaching a message.
 struct MessageRepr<M>(M);
 
-impl<C: fmt::Display> fmt::Display for MessageRepr<C> {
+impl<M: fmt::Display> fmt::Display for MessageRepr<M> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl<C: fmt::Debug> fmt::Debug for MessageRepr<C> {
+impl<M: fmt::Debug> fmt::Debug for MessageRepr<M> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
-impl<C: Context> Context for MessageRepr<C> {}
+impl<M: Context> Context for MessageRepr<M> {}
 
 #[cfg(nightly)]
-impl<C: fmt::Display + fmt::Debug + Send + Sync + 'static> Provider for MessageRepr<C> {
+impl<M: fmt::Display + fmt::Debug + Send + Sync + 'static> Provider for MessageRepr<M> {
     fn provide<'a>(&'a self, _: &mut Demand<'a>) {
         // Empty definition as a contextual message does not convey provider information
     }
@@ -298,7 +298,7 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `*frame` must match `FrameRepr<C>`.
+    /// - Layout of `*frame` must match `FrameRepr<T>`.
     unsafe fn object_drop<T>(frame: Box<FrameRepr>) {
         // Attach C's native vtable onto the pointer to `self._context`
         // Note: This must not use `mem::transmute` because it tries to reborrow the `Unique`
@@ -313,7 +313,7 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `Self` must match `FrameRepr<C>`.
+    /// - Layout of `Self` must match `FrameRepr<T>`.
     unsafe fn object_ref<T: Unerased>(frame: &FrameRepr) -> &dyn Unerased {
         // Attach C's native vtable onto the pointer to `self._context`
         let unerased = (frame as *const FrameRepr).cast::<FrameRepr<T>>();
@@ -326,7 +326,7 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `Self` must match `FrameRepr<C>`.
+    /// - Layout of `Self` must match `FrameRepr<T>`.
     unsafe fn object_downcast<T: Unerased>(
         frame: &FrameRepr,
         target: TypeId,
@@ -345,13 +345,13 @@ impl VTable {
 }
 
 // repr(C): It must be ensured, that vtable is always stored at the same memory position when
-// casting between `FrameRepr<C>` and `FrameRepr<()>`.
+// casting between `FrameRepr<T>` and `FrameRepr<()>`.
 #[repr(C)]
-struct FrameRepr<C = ()> {
+struct FrameRepr<T = ()> {
     vtable: &'static VTable,
-    // As we cast between `FrameRepr<C>` and `FrameRepr<()>`, `_context` must not be used directly,
+    // As we cast between `FrameRepr<T>` and `FrameRepr<()>`, `_context` must not be used directly,
     // only through `vtable`
-    _unerased: C,
+    _unerased: T,
 }
 
 impl<T> FrameRepr<T>
