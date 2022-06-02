@@ -259,7 +259,7 @@ pub(crate) mod test_helper {
         Report,
     };
 
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct ContextA(pub u32);
 
     impl fmt::Display for ContextA {

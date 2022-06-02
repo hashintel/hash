@@ -348,7 +348,10 @@ impl<T> Report<T> {
     ///
     /// This is one disadvantage of the library in comparison to plain Errors, as in these cases,
     /// all context types are known.
-    pub fn current_context(&self) -> &T {
+    pub fn current_context(&self) -> &T
+    where
+        T: Any,
+    {
         self.frame().downcast_ref().unwrap()
     }
 

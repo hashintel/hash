@@ -286,12 +286,14 @@ mod tests {
     fn error() {
         let err = capture_error(|| Err(report!(ContextA(10))));
         assert!(err.contains::<ContextA>());
+        assert_eq!(err.current_context(), &ContextA(10));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A"]);
 
         let err = report!(err);
         assert!(err.contains::<ContextA>());
+        assert_eq!(err.current_context(), &ContextA(10));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A"]);
@@ -300,6 +302,7 @@ mod tests {
         {
             let io_err = std::io::Error::from(std::io::ErrorKind::Other);
             let err = capture_error(|| Err(report!(io_err)));
+            assert_eq!(err.current_context().kind(), std::io::ErrorKind::Other);
             assert!(err.contains::<std::io::Error>());
             assert_eq!(err.frames().count(), 1);
             assert_eq!(request_messages(&err), ["other error"]);
