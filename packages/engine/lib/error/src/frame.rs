@@ -1,4 +1,4 @@
-// Ensure `_context` is only accessed through vtable
+// Ensure `_unerased` is only accessed through vtable
 #![deny(clippy::used_underscore_binding)]
 
 use alloc::boxed::Box;
@@ -184,7 +184,7 @@ impl Drop for Frame {
         // SAFETY: `inner` is not used after moving out.
         let erased = unsafe { ManuallyDrop::take(&mut self.inner) };
 
-        // SAFETY: Use vtable to attach C's native vtable for the right original type C.
+        // SAFETY: Use vtable to attach T's native vtable for the right original type T.
         unsafe {
             // Invoke the vtable's drop behavior.
             (erased.vtable.object_drop)(erased);
@@ -302,7 +302,7 @@ impl VTable {
     ///
     /// - Layout of `*frame` must match `FrameRepr<T>`.
     unsafe fn object_drop<T>(frame: Box<FrameRepr>) {
-        // Attach C's native vtable onto the pointer to `self._context`
+        // Attach T's native vtable onto the pointer to `self._unerased`
         // Note: This must not use `mem::transmute` because it tries to reborrow the `Unique`
         //   contained in `Box`, which must not be done. In practice this probably won't make any
         //   difference by now, but technically it's unsound.
@@ -317,9 +317,9 @@ impl VTable {
     ///
     /// - Layout of `Self` must match `FrameRepr<T>`.
     unsafe fn object_ref<T: Unerased>(frame: &FrameRepr) -> &dyn Unerased {
-        // Attach C's native vtable onto the pointer to `self._context`
+        // Attach T's native vtable onto the pointer to `self._unerased`
         let unerased = (frame as *const FrameRepr).cast::<FrameRepr<T>>();
-        // inside of vtable it's allowed to access `_context`
+        // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
         &(*(unerased))._unerased
     }
@@ -334,9 +334,9 @@ impl VTable {
         target: TypeId,
     ) -> Option<NonNull<()>> {
         if TypeId::of::<T>() == target {
-            // Attach C's native vtable onto the pointer to `self._context`
+            // Attach T's native vtable onto the pointer to `self._unerased`
             let unerased = (frame as *const FrameRepr).cast::<FrameRepr<T>>();
-            // inside of vtable it's allowed to access `_context`
+            // inside of vtable it's allowed to access `_unerased`
             #[allow(clippy::used_underscore_binding)]
             let addr = addr_of!((*(unerased))._unerased) as *mut ();
             Some(NonNull::new_unchecked(addr))
@@ -351,8 +351,8 @@ impl VTable {
 #[repr(C)]
 struct FrameRepr<T = ()> {
     vtable: &'static VTable,
-    // As we cast between `FrameRepr<T>` and `FrameRepr<()>`, `_context` must not be used directly,
-    // only through `vtable`
+    // As we cast between `FrameRepr<T>` and `FrameRepr<()>`, `_unerased` must not be used
+    // directly, only through `vtable`
     _unerased: T,
 }
 
@@ -383,14 +383,14 @@ where
 #[allow(clippy::used_underscore_binding)]
 impl FrameRepr {
     fn unerase(&self) -> &dyn Unerased {
-        // SAFETY: Use vtable to attach C's native vtable for the right original type C.
+        // SAFETY: Use vtable to attach T's native vtable for the right original type T.
         unsafe { (self.vtable.object_ref)(self) }
     }
 
     fn downcast<T: Any>(&self) -> Option<NonNull<T>> {
         // TODO: Use tagged pointer to store the frame kind
         //   see https://app.asana.com/0/0/1202366470755781/f
-        // SAFETY: Use vtable to attach C's native vtable for the right original type C. Casting
+        // SAFETY: Use vtable to attach T's native vtable for the right original type T. Casting
         //   between `T` and `ContextRepr<T>`/`ErrorRepr<T>` is safe as those structs are
         //   `repr(transparent)`.
         unsafe {
