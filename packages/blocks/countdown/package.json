@@ -1,5 +1,5 @@
 {
-  "name": "countdown",
+  "name": "@hashintel/block-countdown",
   "version": "0.0.0",
   "description": "Countdown to a time and date",
   "keywords": [
