@@ -1,8 +1,8 @@
 use core::fmt;
 use std::sync::Arc;
 
-use error::report;
-use tokio::sync::{mpsc, Mutex};
+use error::Report;
+use tokio::sync::{mpsc, mpsc::error::SendError, Mutex};
 
 use crate::error::{ErrorKind, Result};
 
@@ -40,7 +40,7 @@ impl<T: Send> Sender<T> {
         self.sender
             .send(value)
             .await
-            .map_err(|e| report!(context: ErrorKind::Send, "{e}"))
+            .map_err(|_send_error| Report::from(SendError(())).provide_context(ErrorKind::Send))
     }
 }
 

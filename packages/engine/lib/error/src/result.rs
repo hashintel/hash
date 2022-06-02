@@ -13,24 +13,30 @@ use crate::{Context, Message, Report};
 ///
 /// ```
 /// # fn has_permission(_: usize, _: usize) -> bool { true }
-/// # fn get_user() -> Result<usize> { Ok(0) }
-/// # fn get_resource() -> Result<usize> { Ok(0) }
+/// # fn get_user() -> Result<usize, AccessError> { Ok(0) }
+/// # fn get_resource() -> Result<usize, AccessError> { Ok(0) }
+/// # #[derive(Debug)] enum AccessError { PermissionDenied(usize, usize) }
+/// # impl core::fmt::Display for AccessError {
+/// #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
+/// # }
+/// # impl error::provider::Provider for AccessError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {} }
 /// use error::{ensure, Result};
 ///
-/// fn main() -> Result<()> {
+/// fn main() -> Result<(), AccessError> {
 ///     let user = get_user()?;
 ///     let resource = get_resource()?;
 ///
 ///     ensure!(
 ///         has_permission(user, resource),
-///         "Permission denied for {user} accessing {resource}"
+///         AccessError::PermissionDenied(user, resource)
 ///     );
 ///
-///     //...
-///     # Ok(())
+///     # const _: &str = stringify! {
+///     ...
+///     # }; Ok(())
 /// }
 /// ```
-pub type Result<T, C = ()> = core::result::Result<T, Report<C>>;
+pub type Result<T, C> = core::result::Result<T, Report<C>>;
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
@@ -49,7 +55,7 @@ pub trait ResultExt {
     ///
     /// ```
     /// # use error::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<()> { Ok(()) }
+    /// # fn load_resource(_: &User, _: &Resource) -> Result<(), ()> { Ok(()) }
     /// # struct User;
     /// # struct Resource;
     /// use error::ResultExt;
@@ -75,7 +81,7 @@ pub trait ResultExt {
     /// ```
     /// # use core::fmt;
     /// # use error::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<()> { Ok(()) }
+    /// # fn load_resource(_: &User, _: &Resource) -> Result<(), ()> { Ok(()) }
     /// # struct User;
     /// # struct Resource;
     /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
@@ -112,65 +118,12 @@ pub trait ResultExt {
     where
         C: Context,
         F: FnOnce() -> C;
-}
 
-#[cfg(feature = "std")]
-impl<T, E> ResultExt for std::result::Result<T, E>
-where
-    E: std::error::Error + Send + Sync + 'static,
-{
-    type Context = ();
-    type Ok = T;
-
-    #[track_caller]
-    fn wrap_err<M>(self, message: M) -> Result<T>
-    where
-        M: Message,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).wrap(message)),
-        }
-    }
-
-    #[track_caller]
-    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T>
-    where
-        M: Message,
-        F: FnOnce() -> M,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).wrap(message())),
-        }
-    }
-
-    #[track_caller]
-    fn provide_context<C>(self, context: C) -> Result<T, C>
-    where
-        C: Context,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).provide_context(context)),
-        }
-    }
-
-    #[track_caller]
-    fn provide_context_lazy<C, F>(self, context: F) -> Result<T, C>
-    where
-        C: Context,
-        F: FnOnce() -> C,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(Report::from(error).provide_context(context())),
-        }
-    }
+    // TODO: Temporary, remove before releasing
+    //   Currently only used to be backward compatible with hEngine. After binaries and orchestrator
+    //   are adjusted, this can safely be removed.
+    #[doc(hidden)]
+    fn generalize(self) -> Result<Self::Ok, ()>;
 }
 
 impl<T, C> ResultExt for Result<T, C> {
@@ -224,6 +177,38 @@ impl<T, C> ResultExt for Result<T, C> {
         match self {
             Ok(ok) => Ok(ok),
             Err(report) => Err(report.provide_context(context())),
+        }
+    }
+
+    fn generalize(self) -> Result<T, ()> {
+        self.map_err(Report::generalize)
+    }
+}
+
+/// Extends [`Result`] to convert the [`Err`] variant to a [`Report`]
+pub trait IntoReport: Sized {
+    /// Type of the [`Ok`] value in the [`Result`]
+    type Ok;
+
+    /// Type of the resulting [`Err`] variant wrapped inside a [`Report<E>`].
+    type Err;
+
+    /// Converts the [`Err`] variant of the [`Result`] to a [`Report`]
+    fn report(self) -> Result<Self::Ok, Self::Err>;
+}
+
+impl<T, E> IntoReport for core::result::Result<T, E>
+where
+    Report<E>: From<E>,
+{
+    type Err = E;
+    type Ok = T;
+
+    #[track_caller]
+    fn report(self) -> Result<T, E> {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(Report::from(error)),
         }
     }
 }

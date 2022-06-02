@@ -1,102 +1,94 @@
 #[doc(hidden)]
 pub mod __private {
-    use core::fmt;
+    #![allow(clippy::unused_self)]
+    //! Uses [autoref-based stable specialization](https://github.com/dtolnay/case-studies/blob/master/autoref-specialization/README.md).
+    // TODO: Expand documentation when string literals are forbidden as this will shrink the
+    //   implementation by a fair bit.
 
-    use crate::Report;
+    use crate::{Context, Report};
 
-    pub mod kinds {
-        use core::marker::PhantomData;
-
-        use crate::{Message, Report};
-
-        pub trait AdhocKind: Sized {
-            fn __kind(&self) -> Adhoc {
-                Adhoc
-            }
+    pub trait ReportTag {
+        #[inline]
+        fn __kind(&self) -> Reporter {
+            Reporter
         }
-        impl<T> AdhocKind for &T where T: ?Sized + Message {}
-
-        pub struct Adhoc;
-        impl Adhoc {
-            #[allow(clippy::unused_self)]
-            pub fn report<C>(self, context: C) -> Report
-            where
-                C: Message,
-            {
-                Report::new(context)
-            }
-        }
-
-        pub trait TraitKind<Context>: Sized {
-            fn __kind(&self) -> Trait<Context> {
-                Trait(PhantomData)
-            }
-        }
-        impl<E, Context> TraitKind<Context> for E where E: Into<Report<Context>> {}
-
-        pub struct Trait<Context>(PhantomData<Context>);
-        impl<Context> Trait<Context> {
-            #[allow(clippy::unused_self)]
-            pub fn report<E: Into<Report<Context>>>(self, error: E) -> Report<Context> {
-                error.into()
-            }
+    }
+    impl<T> ReportTag for Report<T> {}
+    pub struct Reporter;
+    impl Reporter {
+        #[inline]
+        pub const fn report<T>(self, report: Report<T>) -> Report<T> {
+            report
         }
     }
 
-    pub fn report(args: fmt::Arguments) -> Report {
-        Report::new(alloc::string::ToString::to_string(&args))
+    #[cfg(feature = "std")]
+    pub trait ErrorTag {
+        #[inline]
+        fn __kind(&self) -> ErrorReporter {
+            ErrorReporter
+        }
+    }
+    #[cfg(feature = "std")]
+    impl<T> ErrorTag for &T where T: ?Sized + std::error::Error + Send + Sync + 'static {}
+    #[cfg(feature = "std")]
+    pub struct ErrorReporter;
+    #[cfg(feature = "std")]
+    impl ErrorReporter {
+        #[inline]
+        #[track_caller]
+        pub fn report<C: std::error::Error + Send + Sync + 'static>(self, error: C) -> Report<C> {
+            Report::from(error)
+        }
+    }
+
+    pub trait ContextTag {
+        #[inline]
+        fn __kind(&self) -> ContextReporter {
+            ContextReporter
+        }
+    }
+    impl<T> ContextTag for T where T: ?Sized + Context {}
+    pub struct ContextReporter;
+    impl ContextReporter {
+        #[inline]
+        #[track_caller]
+        pub fn report<C: Context>(self, context: C) -> Report<C> {
+            Report::from_context(context)
+        }
     }
 }
 
 /// Creates a [`Report`] from the given parameters.
 ///
-/// Optionally a scope can be specified.
+/// The parameters may either be [`Context`] or [`Error`]. The returned [`Report`] will use the the
+/// provided type as context.
 ///
 /// [`Report`]: crate::Report
+/// [`Context`]: crate::Context
+/// [`Error`]: std::error::Error
 ///
 /// # Examples
 ///
-/// Create a [`Report`] from a message:
+/// Create a [`Report`] from [`Error`]:
 ///
 /// ```
-/// # fn has_permission(_: &User, _: &Resource) -> bool { false }
-/// # struct User;
-/// # struct Resource;
-/// # use core::fmt;
-/// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # #![cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
+/// use std::fs;
+///
 /// use error::report;
-///
-/// # fn use_resource(user: User, resource: Resource) -> error::Result<()> {
-/// if !has_permission(&user, &resource) {
-///     return Err(report!("permission denied for accessing {resource}"));
-/// }
-/// # Ok(()) }
-/// # let err = use_resource(User, Resource).unwrap_err();
-/// # assert_eq!(err.frames().count(), 1);
-/// # assert_eq!(err.frames().next().unwrap().to_string(), "permission denied for accessing ");
-/// ```
-///
-/// Create a [`Report`] from an error:
-///
-/// ```
-/// # #[cfg(not(miri))]
-/// # use std::fs;
-/// # use error::report;
-/// # fn func() -> error::Result<()> {
-/// # #[cfg(not(miri))]
+/// # #[cfg(all(not(miri), feature = "std"))]
+/// # #[allow(dead_code)]
+/// # fn wrapper() -> error::Result<(), impl core::fmt::Debug> {
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => return Err(report!(err)),
 /// }
-/// # #[cfg(miri)]
-/// # error::bail!("");
-/// # Ok(())
-/// # }
-/// # let err = func().unwrap_err();
-/// # assert_eq!(err.frames().count(), 1);
+/// # Ok(()) }
 /// ```
 ///
-/// Optionally, a context can be provided:
+/// Create a [`Report`] from [`Context`]:
+///
 /// ```
 /// # fn has_permission(_: &User, _: &Resource) -> bool { false }
 /// # #[derive(Debug)] struct User;
@@ -106,8 +98,10 @@ pub mod __private {
 /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
 ///
-/// use error::Report;
-/// use provider::{Demand, Provider};
+/// use error::{
+///     provider::{Demand, Provider},
+///     Report,
+/// };
 ///
 /// #[derive(Debug)]
 /// struct PermissionDenied(User, Resource);
@@ -126,93 +120,54 @@ pub mod __private {
 ///
 /// # fn use_resource(user: User, resource: Resource) -> Result<(), Report<PermissionDenied>> {
 /// if !has_permission(&user, &resource) {
-///     return Err(report!(
-///         context: PermissionDenied(user, resource),
-///         "permission denied accessing {resource}"
-///     ));
+///     return Err(report!(PermissionDenied(user, resource)));
 /// }
 /// # Ok(()) }
 /// # let err = use_resource(User, Resource).unwrap_err();
-/// # assert_eq!(err.frames().count(), 2);
+/// # assert_eq!(err.frames().count(), 1);
 /// # assert_eq!(err.request_ref::<User>().count(), 1);
 /// # assert_eq!(err.request_ref::<Resource>().count(), 1);
 /// ```
 #[macro_export]
 macro_rules! report {
-    (context: $context:expr $(,)?) => ({
-        $crate::Report::from_context($context)
-    });
-    (context: $context:expr, $msg:literal $(,)?) => ({
-        $crate::report!($msg).provide_context($context)
-    });
-    (context: $context:expr, $err:expr $(,)?) => ({
-        $crate::report!($err).provide_context($context)
-    });
-    (context: $context:expr, $fmt:expr, $($arg:tt)+) => {
-        $crate::report!($fmt, $($arg)+).provide_context($context)
-    };
-    ($msg:literal $(,)?) => ({
-        $crate::Report::new($crate::__private::report(core::format_args!($msg)))
-    });
-    ($err:expr $(,)?) => ({
-        use $crate::__private::kinds::*;
+    ($err:expr $(,)?) => {{
+        use $crate::__private::*;
         let error = $err;
         (&error).__kind().report(error)
-    });
-    ($fmt:expr, $($arg:tt)+) => {
-        $crate::Report::new($crate::__private::report(core::format_args!($fmt, $($arg)+)))
-    };
+    }};
 }
 
 /// Creates a [`Report`] and returns it as [`Result`].
 ///
-/// Shorthand for `return `[`Err`]`(`[`report!(...)`]`)`
+/// Shorthand for `return `Err`(`[`report!(...)`]`)`
 ///
 /// [`Report`]: crate::Report
 /// [`report!(...)`]: report
 ///
 /// # Examples
 ///
-/// Create a [`Report`] from a message:
+/// Create a [`Report`] from [`Error`]:
+///
+/// [`Error`]: std::error::Error
 ///
 /// ```
-/// # fn has_permission(_: &User, _: &Resource) -> bool { false }
-/// # struct User;
-/// # struct Resource;
-/// # use core::fmt;
-/// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # #![cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
+/// use std::fs;
+///
 /// use error::bail;
-///
-/// # fn use_resource(user: User, resource: Resource) -> error::Result<()> {
-/// if !has_permission(&user, &resource) {
-///     bail!("permission denied for accessing {resource}");
-/// }
-/// # Ok(()) }
-/// # let err = use_resource(User, Resource).unwrap_err();
-/// # assert_eq!(err.frames().count(), 1);
-/// # assert_eq!(err.frames().next().unwrap().to_string(), "permission denied for accessing ");
-/// ```
-///
-/// Create a [`Report`] from an error:
-///
-/// ```
-/// # use std::fs;
-/// # use error::bail;
-/// # fn func() -> error::Result<()> {
-/// # #[cfg(not(miri))]
+/// # #[cfg(all(not(miri), feature = "std"))]
+/// # #[allow(dead_code)]
+/// # fn wrapper() -> error::Result<(), impl core::fmt::Debug> {
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => bail!(err),
 /// }
-/// # #[cfg(miri)]
-/// # bail!("");
-/// # Ok(())
-/// # }
-/// # let err = func().unwrap_err();
-/// # assert_eq!(err.frames().count(), 1);
+/// # Ok(()) }
 /// ```
 ///
-/// Optionally, a context can be provided:
+/// Create a [`Report`] from [`Context`]:
+///
+/// [`Context`]: crate::Context
 ///
 /// ```
 /// # fn has_permission(_: &User, _: &Resource) -> bool { false }
@@ -223,8 +178,10 @@ macro_rules! report {
 /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
 ///
-/// use error::Report;
-/// use provider::{Demand, Provider};
+/// use error::{
+///     provider::{Demand, Provider},
+///     Report,
+/// };
 ///
 /// #[derive(Debug)]
 /// struct PermissionDenied(User, Resource);
@@ -243,40 +200,17 @@ macro_rules! report {
 ///
 /// # fn use_resource(user: User, resource: Resource) -> Result<(), Report<PermissionDenied>> {
 /// if !has_permission(&user, &resource) {
-///     bail!(
-///         context: PermissionDenied(user, resource),
-///         "permission denied for accessing {resource}"
-///     );
+///     bail!(PermissionDenied(user, resource));
 /// }
 /// # Ok(()) }
 /// # let err = dbg!(use_resource(User, Resource).unwrap_err());
-/// # assert_eq!(err.frames().count(), 2);
+/// # assert_eq!(err.frames().count(), 1);
 /// # assert_eq!(err.request_ref::<Resource>().count(), 1);
 /// # assert_eq!(err.request_ref::<User>().count(), 1);
 /// ```
 #[macro_export]
 macro_rules! bail {
-    (context: $context:expr $(,)?) => ({
-        return $crate::Result::Err($crate::report!(context: $context))
-    });
-    (context: $context:expr, $msg:literal $(,)?) => ({
-        return $crate::Result::Err($crate::report!(context: $context, $msg))
-    });
-    (context: $context:expr, $err:expr $(,)?) => ({
-        return $crate::Result::Err($crate::report!(context: $context, $err))
-    });
-    (context: $context:expr, $fmt:expr, $($arg:tt)+) => {
-        return $crate::Result::Err($crate::report!(context: $context, $fmt, $($arg)+))
-    };
-    ($msg:literal $(,)?) => ({
-        return $crate::Result::Err($crate::report!($msg))
-    });
-    ($err:expr $(,)?) => ({
-        return $crate::Result::Err($crate::report!($err))
-    });
-    ($fmt:expr, $($arg:tt)+) => {
-        return $crate::Result::Err($crate::report!($fmt, $($arg)+))
-    };
+    ($err:expr $(,)?) => {{ return $crate::Result::Err($crate::report!($err)) }};
 }
 
 /// Ensures `$cond` is met, otherwise return an error.
@@ -288,25 +222,9 @@ macro_rules! bail {
 ///
 /// # Examples
 ///
-/// Create a [`Report`] from a message:
+/// Create a [`Report`] from [`Context`]:
 ///
-/// ```
-/// # fn has_permission(_: &User, _: &Resource) -> bool { false }
-/// # struct User;
-/// # struct Resource;
-/// # use core::fmt;
-/// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-/// use error::ensure;
-///
-/// # fn use_resource(user: User, resource: Resource) -> error::Result<()> {
-/// ensure!(has_permission(&user, &resource), "permission denied for accessing {resource}");
-/// # Ok(()) }
-/// # let err = use_resource(User, Resource).unwrap_err();
-/// # assert_eq!(err.frames().count(), 1);
-/// # assert_eq!(err.frames().next().unwrap().to_string(), "permission denied for accessing ");
-/// ```
-///
-/// Optionally, a context can be provided:
+/// [`Context`]: crate::Context
 ///
 /// ```
 /// # fn has_permission(_: &User, _: &Resource) -> bool { false }
@@ -317,8 +235,10 @@ macro_rules! bail {
 /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
 ///
-/// use error::Report;
-/// use provider::{Demand, Provider};
+/// use error::{
+///     provider::{Demand, Provider},
+///     Report,
+/// };
 ///
 /// #[derive(Debug)]
 /// struct PermissionDenied(User, Resource);
@@ -338,12 +258,11 @@ macro_rules! bail {
 /// # fn use_resource(user: User, resource: Resource) -> Result<(), Report<PermissionDenied>> {
 /// ensure!(
 ///     has_permission(&user, &resource),
-///     context: PermissionDenied(user, resource),
-///     "permission denied for accessing {resource}",
+///     PermissionDenied(user, resource),
 /// );
 /// # Ok(()) }
 /// # let err = use_resource(User, Resource).unwrap_err();
-/// # assert_eq!(err.frames().count(), 2);
+/// # assert_eq!(err.frames().count(), 1);
 /// # assert_eq!(err.request_ref::<User>().count(), 1);
 /// # assert_eq!(err.request_ref::<Resource>().count(), 1);
 /// ```
@@ -351,41 +270,11 @@ macro_rules! bail {
 /// [`Report`]: crate::Report
 #[macro_export]
 macro_rules! ensure {
-    ($cond:expr, context: $context:expr $(,)?) => ({
-        if !$cond {
-            $crate::bail!(context: $context)
-        }
-    });
-    ($cond:expr, context: $context:expr, $msg:literal $(,)?) => ({
-        if !$cond {
-            $crate::bail!(context: $context, $msg)
-        }
-    });
-    ($cond:expr, context: $context:expr, $err:expr $(,)?) => ({
-        if !$cond {
-            $crate::bail!(context: $context, $err)
-        }
-    });
-    ($cond:expr, context: $context:expr, $fmt:expr, $($arg:tt)+) => {
-        if !$cond {
-            $crate::bail!(context: $context, $fmt, $($arg)+)
-        }
-    };
-    ($cond:expr, $msg:literal $(,)?) => ({
-        if !$cond {
-            $crate::bail!($msg)
-        }
-    });
-    ($cond:expr, $err:expr $(,)?) => ({
+    ($cond:expr, $err:expr $(,)?) => {{
         if !$cond {
             $crate::bail!($err)
         }
-    });
-    ($cond:expr, $fmt:expr, $($arg:tt)*) => {
-        if !$cond {
-            $crate::bail!($fmt, $($arg)*)
-        }
-    };
+    }};
 }
 
 #[cfg(test)]
@@ -395,172 +284,79 @@ mod tests {
 
     #[test]
     fn error() {
-        let err = capture_error(|| Err(report!(context: ContextA(10))));
+        let err = capture_error(|| Err(report!(ContextA(10))));
+        assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 1);
         assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A"]);
 
-        let err = capture_error(|| Err(report!(context: ContextA(10), "Literal")));
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Literal"]);
-
-        let err = capture_error(|| Err(report!(context: ContextA(10), MESSAGE_A)));
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Message A"]);
-
-        let var = "foo";
-        let err = capture_error(|| Err(report!(context: ContextA(10), "Format String: {}", var)));
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
-
-        let var = "foo";
-        let err = capture_error(|| Err(report!(context: ContextA(10), "Format String: {var}")));
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
-
-        let err = capture_error(|| Err(report!("Literal")));
+        let err = report!(err);
+        assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Literal"]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
+        assert_eq!(request_messages(&err), ["Context A"]);
 
-        let err = capture_error(|| Err(report!(MESSAGE_A)));
-        assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Message A"]);
-
-        let var = "foo";
-        let err = capture_error(|| Err(report!("Format String: {}", var)));
-        assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Format String: foo"]);
-
-        let var = "foo";
-        let err = capture_error(|| Err(report!("Format String: {var}")));
-        assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Format String: foo"]);
+        #[cfg(feature = "std")]
+        {
+            let io_err = std::io::Error::from(std::io::ErrorKind::Other);
+            let err = capture_error(|| Err(report!(io_err)));
+            assert!(err.contains::<std::io::Error>());
+            assert_eq!(err.frames().count(), 1);
+            assert_eq!(request_messages(&err), ["other error"]);
+        }
     }
 
     #[test]
     fn bail() {
-        let err = capture_error(|| bail!(context: ContextA(10)));
+        let err = capture_error(|| bail!(ContextA(10)));
+        assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 1);
         assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A"]);
 
-        let err = capture_error(|| bail!(context: ContextA(10), "Literal"));
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Literal"]);
-
-        let err = capture_error(|| bail!(context: ContextA(10), MESSAGE_A));
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Message A"]);
-
-        let var = "foo";
-        let err = capture_error(|| bail!(context: ContextA(10), "Format String: {}", var));
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
-
-        let var = "foo";
-        let err = capture_error(|| bail!(context: ContextA(10), "Format String: {var}"));
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
-
-        let err = capture_error(|| bail!("Literal"));
+        let err = report!(err);
+        assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Literal"]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
+        assert_eq!(request_messages(&err), ["Context A"]);
 
-        let err = capture_error(|| bail!(MESSAGE_A));
-        assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Message A"]);
-
-        let var = "foo";
-        let err = capture_error(|| bail!("Format String: {}", var));
-        assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Format String: foo"]);
-
-        let var = "foo";
-        let err = capture_error(|| bail!("Format String: {var}"));
-        assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Format String: foo"]);
+        #[cfg(feature = "std")]
+        {
+            let io_err = std::io::Error::from(std::io::ErrorKind::Other);
+            let err = capture_error(|| bail!(io_err));
+            assert!(err.contains::<std::io::Error>());
+            assert_eq!(err.frames().count(), 1);
+            assert_eq!(request_messages(&err), ["other error"]);
+        }
     }
 
     #[test]
     fn ensure() {
         let err = capture_error(|| {
-            ensure!(false, context: ContextA(10));
+            ensure!(false, ContextA(10));
             Ok(())
         });
+        assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 1);
         assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A"]);
 
-        let err = capture_error(|| {
-            ensure!(false, context: ContextA(10), "Literal");
-            Ok(())
-        });
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Literal"]);
-
-        let err = capture_error(|| {
-            ensure!(false, context: ContextA(10), MESSAGE_A);
-            Ok(())
-        });
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Message A"]);
-
-        let var = "foo";
-        let err = capture_error(|| {
-            ensure!(false, context: ContextA(10), "Format String: {}", var);
-            Ok(())
-        });
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
-
-        let var = "foo";
-        let err = capture_error(|| {
-            ensure!(false, context: ContextA(10), "Format String: {var}");
-            Ok(())
-        });
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
-        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
-
-        let err = capture_error(|| {
-            ensure!(false, "Literal");
-            Ok(())
-        });
+        let err = report!(err);
+        assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Literal"]);
+        assert_eq!(err.request_value().collect::<Vec<u32>>(), [10]);
+        assert_eq!(request_messages(&err), ["Context A"]);
 
-        let err = capture_error(|| {
-            ensure!(false, MESSAGE_A);
-            Ok(())
-        });
-        assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Message A"]);
-
-        let var = "foo";
-        let err = capture_error(|| {
-            ensure!(false, "Format String: {}", var);
-            Ok(())
-        });
-        assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Format String: foo"]);
-
-        let var = "foo";
-        let err = capture_error(|| {
-            ensure!(false, "Format String: {var}");
-            Ok(())
-        });
-        assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Format String: foo"]);
+        #[cfg(feature = "std")]
+        {
+            let io_err = std::io::Error::from(std::io::ErrorKind::Other);
+            let err = capture_error(|| {
+                ensure!(false, io_err);
+                Ok(())
+            });
+            assert!(err.contains::<std::io::Error>());
+            assert_eq!(err.frames().count(), 1);
+            assert_eq!(request_messages(&err), ["other error"]);
+        }
     }
 }

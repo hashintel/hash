@@ -40,6 +40,7 @@
     - [Workers](#workers)
     - [Simulation Runs and the Package System](#simulation-runs-and-the-package-system)
     - [DataStore](#datastore)
+- [Contributors](#contributors)
 
 ## Issue Tracking
 
@@ -406,3 +407,10 @@ The packages utilize a [communication implementation](./lib/execution/src/runner
 The [`stateful` crate](./lib/stateful) is the backend responsible for keeping the data between the simulation run main loops and language runners in sync. It encapsulates logic surrounding read/write access, as well as low-level shared memory representation.
 
 [hcore]: https://core.hash.ai?utm_medium=organic&utm_source=github_readme_engine
+
+## Contributors
+
+hEngine is under active development. Its primary contributors are:
+
+- [Tim Diekmann](https://hash.ai/@timdiekmann) - HASH
+- [Alfie Mountfield](https://hash.ai/@alfie) - HASH
