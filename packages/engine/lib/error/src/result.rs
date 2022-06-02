@@ -137,6 +137,35 @@ pub trait ResultExt {
         P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> P;
 
+    /// Adds the provided object to the [`Frame`] stack.
+    ///
+    /// The object can later be retrieved by calling [`request_value()`].
+    ///
+    /// The function is only executed in the `Err` arm.
+    ///
+    /// [`request_ref()`]: crate::Report::request_ref
+    /// [`Frame`]: crate::Frame
+    #[cfg(nightly)]
+    #[must_use]
+    fn provide<P>(self, provided: P) -> Self
+    where
+        P: fmt::Display + fmt::Debug + Send + Sync + 'static;
+
+    /// Lazily adds the provided object to the [`Frame`] stack.
+    ///
+    /// The object can later be retrieved by calling [`request_value()`].
+    ///
+    /// The function is only executed in the `Err` arm.
+    ///
+    /// [`request_ref()`]: crate::Report::request_ref
+    /// [`Frame`]: crate::Frame
+    #[cfg(nightly)]
+    #[must_use]
+    fn provide_lazy<P, F>(self, provided: F) -> Self
+    where
+        P: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> P;
+
     /// Changes the [`Context`] of a [`Report`] returning [`Result<T, C>`].
     ///
     /// Please see the [`Context`] documentation for more information.
@@ -192,6 +221,33 @@ impl<T, C> ResultExt for Result<T, C> {
         match self {
             Ok(ok) => Ok(ok),
             Err(report) => Err(report.attach_message(message())),
+        }
+    }
+
+    #[cfg(nightly)]
+    #[track_caller]
+    fn provide<P>(self, provided: P) -> Self
+    where
+        P: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.provide(provided)),
+        }
+    }
+
+    #[cfg(nightly)]
+    #[track_caller]
+    fn provide_lazy<P, F>(self, provided: F) -> Self
+    where
+        P: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> P,
+    {
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.provide(provided())),
         }
     }
 

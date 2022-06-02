@@ -258,6 +258,53 @@ impl<T> Report<T> {
         )
     }
 
+    /// Adds the provided object to the [`Frame`] stack.
+    ///
+    /// The object can later be retrieved by calling [`request_value()`].
+    ///
+    /// [`request_ref()`]: Self::request_ref
+    /// [`Frame`]: crate::Frame
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # #![cfg_attr(not(feature = "std"), allow(unused_imports))]
+    /// use std::{fmt, fs};
+    ///
+    /// use error::{IntoReport, ResultExt};
+    ///
+    /// #[derive(Debug)]
+    /// pub struct Suggestion(&'static str);
+    ///
+    /// impl fmt::Display for Suggestion {
+    ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    ///         fmt.write_str(self.0)
+    ///     }
+    /// }
+    ///
+    /// # #[derive(Debug)] struct NoStdError;
+    /// # impl core::fmt::Display for NoStdError { fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+    /// # impl error::Context for NoStdError {}
+    /// # #[cfg(not(feature = "std"))]
+    /// # let error: Result<(), _> = Err(error::report!(NoStdError).provide(Suggestion("Better use a file which exists next time!")));
+    /// # #[cfg(feature = "std")]
+    /// let error = fs::read_to_string("config.txt")
+    ///     .report()
+    ///     .provide(Suggestion("Better use a file which exists next time!"));
+    /// let report = error.unwrap_err();
+    /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
+    ///
+    /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
+    /// ```
+    #[track_caller]
+    #[cfg(nightly)]
+    pub fn provide<P>(self, provided: P) -> Self
+    where
+        P: fmt::Debug + fmt::Display + Send + Sync + 'static,
+    {
+        self.attach_provider(crate::single_provider::SingleProvider(provided))
+    }
+
     /// Adds context information to the [`Frame`] stack enforcing a typed `Report`.
     ///
     /// Please see the [`Context`] documentation for more information.

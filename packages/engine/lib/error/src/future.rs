@@ -124,6 +124,20 @@ implement_lazy_future_adaptor!(
 );
 
 implement_future_adaptor!(
+    FutureWithProvided,
+    provide,
+    Display + Debug + Send + Sync + 'static,
+    Fut::Output
+);
+
+implement_lazy_future_adaptor!(
+    FutureWithLazyProvided,
+    provide_lazy,
+    Display + Debug + Send + Sync + 'static,
+    Fut::Output
+);
+
+implement_future_adaptor!(
     FutureWithContext,
     change_context,
     Context,
@@ -260,6 +274,35 @@ pub trait FutureExt: Future + Sized {
         P: Provider + Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> P;
 
+    /// Adds the provided object to the [`Frame`] stack when [`poll`]ing the [`Future`].
+    ///
+    /// The object can later be retrieved by calling [`request_value()`].
+    ///
+    /// The function is only executed in the `Err` arm.
+    ///
+    /// [`request_ref()`]: crate::Report::request_ref
+    /// [`Frame`]: crate::Frame
+    /// [`poll`]: Future::poll
+    #[cfg(nightly)]
+    fn provide<P>(self, provided: P) -> FutureWithProvided<Self, P>
+    where
+        P: Display + Debug + Send + Sync + 'static;
+
+    /// Lazily adds the provided object to the [`Frame`] stack when [`poll`]ing the [`Future`].
+    ///
+    /// The object can later be retrieved by calling [`request_value()`].
+    ///
+    /// The function is only executed in the `Err` arm.
+    ///
+    /// [`request_ref()`]: crate::Report::request_ref
+    /// [`Frame`]: crate::Frame
+    /// [`poll`]: Future::poll
+    #[cfg(nightly)]
+    fn provide_lazy<P, F>(self, provided: F) -> FutureWithLazyProvided<Self, F>
+    where
+        P: Display + Debug + Send + Sync + 'static,
+        F: FnOnce() -> P;
+
     /// Changes the [`Context`] of a [`Report`] when [`poll`]ing the [`Future`] returning
     /// [`Result<T, C>`].
     ///
@@ -339,6 +382,27 @@ where
         FutureWithLazyProvider {
             future: self,
             inner: Some(provider),
+        }
+    }
+
+    fn provide<P>(self, provided: P) -> FutureWithProvided<Self, P>
+    where
+        P: Display + Debug + Send + Sync + 'static,
+    {
+        FutureWithProvided {
+            future: self,
+            inner: Some(provided),
+        }
+    }
+
+    fn provide_lazy<P, F>(self, provided: F) -> FutureWithLazyProvided<Self, F>
+    where
+        P: Display + Debug + Send + Sync + 'static,
+        F: FnOnce() -> P,
+    {
+        FutureWithLazyProvided {
+            future: self,
+            inner: Some(provided),
         }
     }
 
