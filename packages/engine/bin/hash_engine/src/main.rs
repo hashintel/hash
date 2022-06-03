@@ -20,20 +20,20 @@ async fn main() -> Result<(), ()> {
         &format!("experiment-{}-texray", args.experiment_id),
     )
     .report()
-    .attach_message("Failed to initialize the logger")
+    .attach("Failed to initialize the logger")
     .generalize()?;
 
     let mut env = env::<ExperimentRun>(&args)
         .await
         .report()
-        .attach_message("Could not create environment for experiment")
+        .attach("Could not create environment for experiment")
         .generalize()?;
     // Fetch all dependencies of the experiment run such as datasets
     env.experiment
         .fetch_deps()
         .await
         .report()
-        .attach_message("Could not fetch dependencies for experiment")
+        .attach("Could not fetch dependencies for experiment")
         .generalize()?;
     // Generate the configuration for packages from the environment
     let config = experiment_config(&args, &env).await.report().generalize()?;
@@ -46,7 +46,7 @@ async fn main() -> Result<(), ()> {
     let experiment_result = run_experiment(config, env)
         .await
         .report()
-        .attach_message("Could not run experiment")
+        .attach("Could not run experiment")
         .generalize();
 
     cleanup_experiment(args.experiment_id);

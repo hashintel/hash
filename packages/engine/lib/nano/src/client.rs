@@ -44,35 +44,35 @@ impl Worker {
     fn new(url: &str, request_rx: spmc::Receiver<Request>) -> Result<Self, nng::Error> {
         let socket = nng::Socket::new(nng::Protocol::Req0)
             .report()
-            .attach_message("Could not create nng socket")?;
+            .attach("Could not create nng socket")?;
 
         let builder = nng::DialerBuilder::new(&socket, url)
             .report()
-            .attach_message("Could not create nng dialer")?;
+            .attach("Could not create nng dialer")?;
         builder
             .set_opt::<ReconnectMaxTime>(Some(RECONNECT_MAX_TIME))
             .report()
-            .attach_message_lazy(|| {
+            .attach_lazy(|| {
                 format!("Could not set maximum reconnection time to {RECONNECT_MAX_TIME:?}")
             })?;
         builder
             .set_opt::<ReconnectMinTime>(Some(RECONNECT_MIN_TIME))
             .report()
-            .attach_message_lazy(|| {
+            .attach_lazy(|| {
                 format!("Could not set minimum reconnection time to {RECONNECT_MIN_TIME:?}")
             })?;
         let dialer = builder
             .start(false)
             .map_err(|(_, error)| error)
             .report()
-            .attach_message("Could not start nng dialer")?;
+            .attach("Could not start nng dialer")?;
 
         let ctx = nng::Context::new(&socket)
             .report()
-            .attach_message("Could not create nng context")?;
+            .attach("Could not create nng context")?;
         ctx.set_opt::<ResendTime>(Some(RESEND_TIME))
             .report()
-            .attach_message_lazy(|| format!("Could not set resend time to {RESEND_TIME:?}"))?;
+            .attach_lazy(|| format!("Could not set resend time to {RESEND_TIME:?}"))?;
 
         // There will only ever be one message in the channel. But, it needs to be
         // unbounded because we can't .await inside an nng::Aio.
@@ -102,7 +102,7 @@ impl Worker {
             }
         })
         .report()
-        .attach_message("Could not create asynchronous I/O context")?;
+        .attach("Could not create asynchronous I/O context")?;
 
         Ok(Self {
             _socket: socket,
@@ -156,7 +156,7 @@ impl Client {
         let workers = (0..num_workers)
             .map(|_| {
                 let mut worker = Worker::new(url, receiver.clone())
-                    .attach_message("Could not create nng worker")
+                    .attach("Could not create nng worker")
                     .change_context(ErrorKind::ClientCreation)?;
                 // let (stop_tx, stop_rx) = mpsc::channel(1);
                 let (stop_tx, stop_rx) = mpsc::unbounded_channel();
@@ -193,7 +193,7 @@ impl Client {
         let mut nng_msg = nng::Message::new();
         serde_json::to_writer(&mut nng_msg, msg)
             .report()
-            .attach_message("Could not serialize message")
+            .attach("Could not serialize message")
             .change_context(ErrorKind::Send)?;
 
         let (tx, rx) = oneshot::channel();
@@ -203,7 +203,7 @@ impl Client {
             .expect(SEND_EXPECT_MESSAGE);
         rx.await
             .expect(RECV_EXPECT_MESSAGE)
-            .attach_message("Could not receive response")
+            .attach("Could not receive response")
             .change_context(ErrorKind::Send)
     }
 }

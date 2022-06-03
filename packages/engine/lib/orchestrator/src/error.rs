@@ -5,7 +5,7 @@ pub type Result<T, E = OrchestratorError> = error::Result<T, E>;
 // TODO: Use proper context type
 //   Currently, we capture every error message inside of a generic error message. We want a context
 //   object similar to the one we using in the integration test suite, e.g.
-//   `OrchestratorError::InvalidManifest` with additional information provided by `attach_message`.
+//   `OrchestratorError::InvalidManifest` with additional information provided by `attach`.
 #[derive(Debug)]
 pub enum OrchestratorError {
     UniqueOwned(Box<str>),
