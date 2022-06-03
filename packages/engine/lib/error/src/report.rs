@@ -367,6 +367,12 @@ impl<T> Report<T> {
         self.frames().find_map(Frame::downcast_ref::<A>)
     }
 
+    pub(crate) const fn frame(&self) -> &Frame {
+        &self.inner.frame
+    }
+}
+
+impl<T: Context> Report<T> {
     /// Returns the current context of the `Report`.
     ///
     /// If the user want to get the latest context, `current_context` can be called. If the user
@@ -377,20 +383,19 @@ impl<T> Report<T> {
     /// This is one disadvantage of the library in comparison to plain Errors, as in these cases,
     /// all context types are known.
     #[must_use]
-    #[allow(clippy::missing_panics_doc)]
+    #[allow(clippy::missing_panics_doc)] // Panicking here is a bug
     pub fn current_context(&self) -> &T
     where
         T: Any,
     {
-        // Panics if no context is attached which should only happen when using the hooks.
+        // Panics if there isn't an attached context, which is matching `T`. As it's not possible to
+        // create a `Report` without a valid context and this method can only be called when `T` is
+        // a valid context, it's guaranteed, that the context is available when calling
+        // `current_context`.
         self.downcast_ref().expect(
             "Report does not contain a context. This is considered a bug and should be reported \
              to https://github.com/hashintel/hash/issues/new",
         )
-    }
-
-    pub(crate) const fn frame(&self) -> &Frame {
-        &self.inner.frame
     }
 }
 
