@@ -47,7 +47,7 @@
 //! # Usage
 //!
 //! [`Report`] is supposed to be used as the [`Err`] variant of a `Result`. This crates provides a
-//! [`Result<E, C = ()>`] type alias, which uses [`Report<C>`] as [`Err`] variant and can be used as
+//! [`Result<E, C>`] type alias, which uses [`Report<C>`] as [`Err`] variant and can be used as
 //! return type:
 //!
 //! ```
@@ -76,7 +76,7 @@
 //! }
 //! ```
 //!
-//! A contextual message can be provided to lower level errors.
+//! An attachment can be provided to lower level errors.
 //!
 //! ```
 //! use std::{collections::HashMap, fmt};

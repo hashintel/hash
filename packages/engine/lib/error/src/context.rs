@@ -65,8 +65,6 @@ use crate::Report;
 /// ```
 pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// Provide values which can then be requested by [`Report`].
-    ///
-    /// [`Report`]: crate::Report
     #[cfg(nightly)]
     #[allow(unused_variables)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {}
@@ -78,12 +76,15 @@ where
 {
     #[track_caller]
     #[inline]
-    fn from(error: C) -> Self {
-        Self::from_context(error)
+    fn from(context: C) -> Self {
+        Self::new(context)
     }
 }
 
 /// Turns a [`Context`] into a temporary [`Provider`].
+///
+/// To enable the usage of the [`Provider`] trait without implementing [`Provider`] for [`Context`]
+/// this function wraps a reference to a [`Context`] inside of a [`Provider`]
 // We can't implement `Provider` on Context as `Error` will implement `Provider` and `Context` will
 // be implemented on `Error`. For `request`ing a type from `Context`, we need a `Provider`
 // implementation however.

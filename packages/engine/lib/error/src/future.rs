@@ -94,14 +94,14 @@ macro_rules! implement_lazy_future_adaptor {
 }
 
 implement_future_adaptor!(
-    FutureWithObject,
+    FutureWithAttachment,
     attach,
     Display + Debug + Send + Sync + 'static,
     Fut::Output
 );
 
 implement_lazy_future_adaptor!(
-    FutureWithLazyObject,
+    FutureWithLazyAttachment,
     attach_lazy,
     Display + Debug + Send + Sync + 'static,
     Fut::Output
@@ -153,7 +153,7 @@ pub trait FutureExt: Future + Sized {
     /// # let fut = async {
     ///     # let user = User;
     ///     # let resource = Resource;
-    ///     // A contextual message can be provided before polling the `Future`
+    ///     // An attachment can be added before polling the `Future`
     ///     load_resource(&user, &resource).attach("Could not load resource").await
     /// # };
     /// # #[cfg(not(miri))]
@@ -161,9 +161,9 @@ pub trait FutureExt: Future + Sized {
     /// # Result::<_, ResourceError>::Ok(())
     /// ```
     #[track_caller]
-    fn attach<O>(self, object: O) -> FutureWithObject<Self, O>
+    fn attach<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
     where
-        O: Display + Debug + Send + Sync + 'static;
+        A: Display + Debug + Send + Sync + 'static;
 
     /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`] when
     /// [`poll`]ing the [`Future`].
@@ -196,7 +196,7 @@ pub trait FutureExt: Future + Sized {
     /// # let fut = async {
     ///     # let user = User;
     ///     # let resource = Resource;
-    ///     // A contextual message can be provided before polling the `Future`
+    ///     // An attachment can be added before polling the `Future`
     ///     load_resource(&user, &resource).attach_lazy(|| format!("Could not load resource {resource}")).await
     /// # };
     /// # #[cfg(not(miri))]
@@ -204,10 +204,10 @@ pub trait FutureExt: Future + Sized {
     /// # Result::<_, ResourceError>::Ok(())
     /// ```
     #[track_caller]
-    fn attach_lazy<O, F>(self, object: F) -> FutureWithLazyObject<Self, F>
+    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
     where
-        O: Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> O;
+        A: Display + Debug + Send + Sync + 'static,
+        F: FnOnce() -> A;
 
     /// Changes the [`Context`] of a [`Report`] when [`poll`]ing the [`Future`] returning
     /// [`Result<T, C>`].
@@ -244,25 +244,25 @@ impl<Fut: Future> FutureExt for Fut
 where
     Fut::Output: ResultExt,
 {
-    fn attach<O>(self, object: O) -> FutureWithObject<Self, O>
+    fn attach<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
     where
-        O: Display + Debug + Send + Sync + 'static,
+        A: Display + Debug + Send + Sync + 'static,
     {
-        FutureWithObject {
+        FutureWithAttachment {
             future: self,
-            inner: Some(object),
+            inner: Some(attachment),
         }
     }
 
     #[track_caller]
-    fn attach_lazy<O, F>(self, object: F) -> FutureWithLazyObject<Self, F>
+    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
     where
-        O: Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> O,
+        A: Display + Debug + Send + Sync + 'static,
+        F: FnOnce() -> A,
     {
-        FutureWithLazyObject {
+        FutureWithLazyAttachment {
             future: self,
-            inner: Some(object),
+            inner: Some(attachment),
         }
     }
 

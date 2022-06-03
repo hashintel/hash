@@ -66,9 +66,9 @@ pub trait ResultExt {
     /// # Result::Ok(())
     /// ```
     #[must_use]
-    fn attach<O>(self, object: O) -> Self
+    fn attach<A>(self, attachment: A) -> Self
     where
-        O: fmt::Display + fmt::Debug + Send + Sync + 'static;
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
     /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`].
     ///
@@ -95,10 +95,10 @@ pub trait ResultExt {
     /// # Result::Ok(())
     /// ```
     #[must_use]
-    fn attach_lazy<O, F>(self, object: F) -> Self
+    fn attach_lazy<A, F>(self, attachment: F) -> Self
     where
-        O: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> O;
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> A;
 
     /// Changes the [`Context`] of a [`Report`] returning [`Result<T, C>`].
     ///
@@ -118,7 +118,7 @@ pub trait ResultExt {
     ///
     /// [`Frame`]: crate::Frame
     // TODO: come up with a decent example
-    fn change_context_lazy<C, F>(self, op: F) -> Result<Self::Ok, C>
+    fn change_context_lazy<C, F>(self, context: F) -> Result<Self::Ok, C>
     where
         C: Context,
         F: FnOnce() -> C;
@@ -128,27 +128,27 @@ impl<T, C> ResultExt for Result<T, C> {
     type Ok = T;
 
     #[track_caller]
-    fn attach<M>(self, message: M) -> Self
+    fn attach<A>(self, attachment: A) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach(message)),
+            Err(report) => Err(report.attach(attachment)),
         }
     }
 
     #[track_caller]
-    fn attach_lazy<M, F>(self, message: F) -> Self
+    fn attach_lazy<A, F>(self, attachment: F) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> M,
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> A,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach(message())),
+            Err(report) => Err(report.attach(attachment())),
         }
     }
 

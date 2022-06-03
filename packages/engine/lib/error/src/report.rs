@@ -15,34 +15,31 @@ use crate::{
 };
 use crate::{iter::Frames, Context};
 
-/// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
+/// Contains a [`Frame`] stack consisting of [`Context`]s, attachments, and optionally
 /// a [`Backtrace`] and a [`SpanTrace`].
 ///
 /// To enable the backtrace, make sure `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to
 /// the [`Backtrace` documentation][`Backtrace`]. To enable the span trace, [`ErrorLayer`] has to
 /// be enabled.
 ///
-/// Context information can be added by using [`attach()`] or [`ResultExt`]. The [`Frame`]
-/// stack can be iterated by using [`frames()`].
+/// Attachments can be added by using [`attach()`]. The [`Frame`] stack can be iterated by using
+/// [`frames()`].
 ///
-/// To enforce context information generation, a context [`Provider`] needs to be used. When
-/// creating a `Report` by using [`from_error()`] or [`from_context()`], the parameter is used as
-/// context in the `Report`. To provide a new one, use [`change_context()`] or [`ResultExt`] to add
-/// it, which may also be used to provide more context information than only a display message. This
-/// information can then be retrieved by calling [`request_ref()`] or [`request_value()`].
+/// To enforce context information generation, a [`Context`] needs to be used. When creating a
+/// `Report` by using [`new()`], the passed [`Context`] is used to set the _current
+/// context_ on the `Report`. To provide a new one, use [`change_context()`], which may also be used
+/// to provide more context information than only a display message. This information can then be
+/// retrieved by calling [`request_ref()`] or [`request_value()`].
 ///
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
-/// [`from_error()`]: Self::from_error
-/// [`from_context()`]: Self::from_context
+/// [`new()`]: Self::new
 /// [`frames()`]: Self::frames
 /// [`change_context()`]: Self::change_context
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
-/// [`ResultExt`]: crate::ResultExt
-/// [`Provider`]: crate::provider::Provider
 ///
 /// # Examples
 ///
@@ -167,7 +164,7 @@ impl<T> Report<T> {
 
     /// Creates a new `Report<Context>` from a provided scope.
     #[track_caller]
-    pub fn from_context(context: T) -> Self
+    pub fn new(context: T) -> Self
     where
         T: Context,
     {
@@ -238,12 +235,16 @@ impl<T> Report<T> {
     ///
     /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
     #[track_caller]
-    pub fn attach<O>(self, object: O) -> Self
+    pub fn attach<A>(self, attachment: A) -> Self
     where
-        O: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self::from_frame(
-            Frame::from_object(object, Location::caller(), Some(Box::new(self.inner.frame))),
+            Frame::from_attachment(
+                attachment,
+                Location::caller(),
+                Some(Box::new(self.inner.frame)),
+            ),
             #[cfg(all(nightly, feature = "std"))]
             self.inner.backtrace,
             #[cfg(feature = "spantrace")]

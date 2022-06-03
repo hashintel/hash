@@ -14,17 +14,16 @@ use core::{
 use crate::provider::{self, Demand, Provider};
 use crate::Context;
 
-/// A single error, contextual message, or error context inside of a [`Report`].
+/// A single context or attachment inside of a [`Report`].
 ///
 /// `Frame`s are organized as a singly linked list, which can be iterated by calling
-/// [`Report::frames()`]. The head is pointing to the most recent context or contextual message,
-/// the tail is the root error created by [`Report::from_context()`] or [`Report::from_error()`].
-/// The next `Frame` can be accessed by requesting it by calling [`Report::request_ref()`].
+/// [`Report::frames()`]. The head is pointing to the most recent context or attachment, the tail is
+/// the root context created by [`Report::new()`]. The next `Frame` can be accessed by
+/// requesting it by calling [`Report::request_ref()`].
 ///
 /// [`Report`]: crate::Report
 /// [`Report::frames()`]: crate::Report::frames
-/// [`Report::from_error()`]: crate::Report::from_error
-/// [`Report::from_context()`]: crate::Report::from_context
+/// [`Report::new()`]: crate::Report::new
 /// [`Report::request_ref()`]: crate::Report::request_ref
 pub struct Frame {
     inner: ManuallyDrop<Box<FrameRepr>>,
@@ -51,13 +50,13 @@ impl Frame {
         }
     }
 
-    pub(crate) fn from_object<O>(
-        object: O,
+    pub(crate) fn from_attachment<A>(
+        object: A,
         location: &'static Location<'static>,
         source: Option<Box<Self>>,
     ) -> Self
     where
-        O: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self::from_context(AttachedObject(object), location, source)
     }
@@ -88,13 +87,13 @@ impl Frame {
         provider::request_value(self)
     }
 
-    /// Returns if `T` is the type held by this frame.
+    /// Returns if `T` is the held context or attachment by this frame.
     #[must_use]
     pub fn is<T: Any>(&self) -> bool {
         self.downcast_ref::<T>().is_some()
     }
 
-    /// Downcasts this frame if the held provider object is the same as `T`.
+    /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
         self.inner.as_ref().downcast().map(|addr| {
@@ -156,11 +155,14 @@ struct VTable {
     object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
 }
 
-/// Wrapper around the contextual information stored in a [`Frame`].
+/// Wrapper around an attachment to unify the interface for a [`Frame`].
 ///
-/// A piece of information can be requested by calling [`Report::request_ref`]. It's used for the
-/// [`Display`] and [`Debug`] implementation for a [`Frame`]. If the information is a [`Provider`],
-/// use [`Report::attach_provider`] instead.
+/// A piece of information can be requested by calling [`Report::request_ref()`]. It's used for the
+/// [`Display`] and [`Debug`] implementation for a [`Frame`].
+///
+/// [`Report::request_ref()`]: crate::Report::request_ref
+/// [`Display`]: core::fmt::Display
+/// [`Debug`]: core::fmt::Debug
 struct AttachedObject<T>(T);
 
 impl<T: fmt::Display> fmt::Display for AttachedObject<T> {
@@ -183,18 +185,18 @@ impl<T: fmt::Display + fmt::Debug + Send + Sync + 'static> Context for AttachedO
 }
 
 impl VTable {
-    /// Drops the `frame`
+    /// Drops the `frame`.
     ///
     /// # Safety
     ///
     /// - Layout of `*frame` must match `FrameRepr<T>`.
-    unsafe fn object_drop<T>(frame: Box<FrameRepr>) {
+    unsafe fn object_drop<C: Context>(frame: Box<FrameRepr>) {
         // Attach T's native vtable onto the pointer to `self._unerased`
         // Note: This must not use `mem::transmute` because it tries to reborrow the `Unique`
         //   contained in `Box`, which must not be done. In practice this probably won't make any
         //   difference by now, but technically it's unsound.
         //   see: https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md
-        let unerased = Box::from_raw(Box::into_raw(frame).cast::<FrameRepr<T>>());
+        let unerased = Box::from_raw(Box::into_raw(frame).cast::<FrameRepr<C>>());
         drop(unerased);
     }
 
@@ -202,10 +204,10 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `Self` must match `FrameRepr<T>`.
-    unsafe fn object_ref<T: Context>(frame: &FrameRepr) -> &dyn Context {
+    /// - Layout of `frame` must match `FrameRepr<T>`.
+    unsafe fn object_ref<C: Context>(frame: &FrameRepr) -> &dyn Context {
         // Attach T's native vtable onto the pointer to `self._unerased`
-        let unerased = (frame as *const FrameRepr).cast::<FrameRepr<T>>();
+        let unerased = (frame as *const FrameRepr).cast::<FrameRepr<C>>();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
         &(*(unerased))._unerased
@@ -215,14 +217,14 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `Self` must match `FrameRepr<T>`.
-    unsafe fn object_downcast<T: Context>(
+    /// - Layout of `frame` must match `FrameRepr<T>`.
+    unsafe fn object_downcast<C: Context>(
         frame: &FrameRepr,
         target: TypeId,
     ) -> Option<NonNull<()>> {
-        if TypeId::of::<T>() == target {
+        if TypeId::of::<C>() == target {
             // Attach T's native vtable onto the pointer to `self._unerased`
-            let unerased = (frame as *const FrameRepr).cast::<FrameRepr<T>>();
+            let unerased = (frame as *const FrameRepr).cast::<FrameRepr<C>>();
             // inside of vtable it's allowed to access `_unerased`
             #[allow(clippy::used_underscore_binding)]
             let addr = addr_of!((*(unerased))._unerased) as *mut ();
@@ -243,23 +245,23 @@ struct FrameRepr<T = ()> {
     _unerased: T,
 }
 
-impl<T> FrameRepr<T>
+impl<C> FrameRepr<C>
 where
-    T: Context,
+    C: Context,
 {
-    /// Creates a new frame from an unerased object.
+    /// Creates a new [`Frame`] from an unerased [`Context`] object.
     ///
     /// # Safety
     ///
     /// Must not be dropped without calling `vtable.object_drop`
-    unsafe fn new(object: T) -> Box<FrameRepr> {
+    unsafe fn new(context: C) -> Box<FrameRepr> {
         let unerased_frame = Self {
             vtable: &VTable {
-                object_drop: VTable::object_drop::<T>,
-                object_ref: VTable::object_ref::<T>,
-                object_downcast: VTable::object_downcast::<T>,
+                object_drop: VTable::object_drop::<C>,
+                object_ref: VTable::object_ref::<C>,
+                object_downcast: VTable::object_downcast::<C>,
             },
-            _unerased: object,
+            _unerased: context,
         };
         let unerased_box = Box::new(unerased_frame);
         // erase the frame by casting the pointer to `FrameBox<()>`
