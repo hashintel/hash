@@ -412,6 +412,11 @@ impl FrameRepr {
                 return Some(addr.cast());
             }
 
+            if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<FrameObject<T>>())
+            {
+                return Some(addr.cast());
+            }
+
             #[cfg(feature = "std")]
             if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<ErrorRepr<T>>()) {
                 return Some(addr.cast());
