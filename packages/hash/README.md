@@ -390,3 +390,18 @@ If the service should report metrics to a StatsD server, the following variables
 - `NEXT_PUBLIC_API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
 - `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
 - `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
+
+## Contributors
+
+HASH's development is being led by various employees of _[HASH](https://hash.dev/)_ (the company). The current core team includes:
+
+- Ahmad Atta
+- Alexander Kachkaev
+- Alfie Mountfield
+- Ben Werner
+- Ciaran Morinan
+- Maggie Appleton
+- Nate Higgins
+- Valentino Ugbala
+
+As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).

@@ -1,4 +1,3 @@
-use provider::{Demand, Provider};
 use thiserror::Error as ThisError;
 
 pub type Result<T, E = ErrorKind> = error::Result<T, E>;
@@ -17,10 +16,4 @@ pub enum ErrorKind {
 
     #[error("Could not receive value")]
     Receive,
-}
-
-impl Provider for ErrorKind {
-    fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {
-        // Empty implementation
-    }
 }

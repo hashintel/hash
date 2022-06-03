@@ -46,6 +46,45 @@ const blockCache = new Map<string, Promise<BlockMeta>>();
 export const componentIdToUrl = (componentId: string) =>
   componentId.replace(/\/$/, "");
 
+const devReloadEndpointSet = new Set<string>();
+const configureAppReloadWhenBlockChanges = (
+  devReloadEndpoint: string,
+  reportProblem: (problem: string) => void,
+) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (devReloadEndpointSet.has(devReloadEndpoint)) {
+    return;
+  }
+  devReloadEndpointSet.add(devReloadEndpoint);
+
+  if (devReloadEndpoint.match(/^wss?:\/\//)) {
+    try {
+      const socket = new WebSocket(devReloadEndpoint);
+      socket.addEventListener("message", ({ data }) => {
+        try {
+          const messageType = JSON.parse(data).type;
+          // Assume webpack dev server socket
+          if (["invalid", "static-changed"].includes(messageType)) {
+            window.location.reload();
+          }
+        } catch {
+          reportProblem(`Could not parse socket message: ${data}`);
+        }
+      });
+    } catch {
+      reportProblem(`Could not connect to a websocket at ${devReloadEndpoint}`);
+    }
+    return;
+  }
+
+  reportProblem(
+    `URLs like "${devReloadEndpoint}" are not supported (expected a websocket)`,
+  );
+};
+
 /**
  * Get an absolute url if the path is not already one.
  */
@@ -160,6 +199,21 @@ export const fetchBlockMeta = async (
         `Could not fetch and parse block schema at url ${schemaUrl}: ${
           (err as Error).message
         }`,
+      );
+    }
+
+    // @todo Move this logic to a place where a block is mounted. This requires
+    // block metadata to be available there. Current implementation reloads
+    // the EA even if a locally developed block is not mounted (which should be rare).
+    if (metadata.devReloadEndpoint) {
+      configureAppReloadWhenBlockChanges(
+        metadata.devReloadEndpoint,
+        (problem) => {
+          // eslint-disable-next-line no-console -- @todo consider using logger
+          console.error(
+            `${baseUrl} → block-metadata.json → devReloadEndpoint: ${problem}`,
+          );
+        },
       );
     }
 

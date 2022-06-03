@@ -4,7 +4,6 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-provider = { path = "../provider" }
 error = { path = "../error" }
 
 nng = { version = "1.0.1", default-features = false }

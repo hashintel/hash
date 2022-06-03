@@ -1,3 +1,5 @@
+mod error;
+
 use std::{
     collections::HashMap,
     fs::{self, File},
@@ -7,13 +9,16 @@ use std::{
     time::{Duration, Instant},
 };
 
-use error::{bail, ensure, report, IntoReport, Result, ResultExt};
+use ::error::{bail, ensure, IntoReport, Report, ResultExt};
 use execution::{package::experiment::ExperimentName, runner::Language};
 use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
 use tracing_subscriber::fmt::time::Uptime;
+
+use self::error::{Result, TestContext};
+use crate::experiment::error::TestError;
 
 pub type AgentStates = Value;
 pub type Globals = Value;
@@ -41,16 +46,21 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) ->
 
     // We read the behaviors and datasets like loading a dependency
     let mut manifest = Manifest::from_dependency(project_path)
-        .wrap_err_lazy(|| format!("Could not load manifest from {project_path:?}"))?;
+        .attach_message_lazy(|| format!("Could not load manifest from {project_path:?}"))
+        .change_context(TestContext::ExperimentSetup)?;
 
     // Now load globals and experiments as specified in the documentation of `Manifest`
     let globals_path = project_path.join("src").join("globals.json");
     if globals_path.exists() {
-        manifest.set_globals_from_file(globals_path)?;
+        manifest
+            .set_globals_from_file(globals_path)
+            .change_context(TestContext::ExperimentSetup)?;
     }
     let experiments_path = project_path.join("experiments.json");
     if experiments_path.exists() {
-        manifest.set_experiments_from_file(experiments_path)?;
+        manifest
+            .set_experiments_from_file(experiments_path)
+            .change_context(TestContext::ExperimentSetup)?;
     }
 
     // Load the initial state based on the language. if it is specified, use a `-lang` suffix
@@ -67,9 +77,11 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) ->
         .collect();
     ensure!(
         initial_states.len() == 1,
-        "Exactly one initial state has to be provided for the given language"
+        Report::from(TestError::MultipleLanguages).change_context(TestContext::TestSetup)
     );
-    manifest.set_initial_state_from_file(&initial_states[0])?;
+    manifest
+        .set_initial_state_from_file(&initial_states[0])
+        .change_context(TestContext::ExperimentSetup)?;
 
     Ok(manifest)
 }
@@ -252,6 +264,7 @@ pub async fn run_test_suite(
             {
                 expected
                     .assert_subset_of(&states, &globals, &analysis)
+                    .change_context(TestContext::ExperimentOutput)
                     .unwrap_or_else(|err| {
                         if let Ok(log) = fs::read_to_string(&log_file_path) {
                             eprintln!("{log}");
@@ -315,10 +328,11 @@ pub async fn run_test<P: AsRef<Path>>(
     tokio::spawn(async move { experiment_server.run().await });
 
     let manifest = load_manifest(project_path, language)
-        .wrap_err_lazy(|| format!("Could not read project {project_path:?}"))?;
+        .attach_message_lazy(|| format!("Could not read project {project_path:?}"))?;
     let experiment_run = manifest
         .read(experiment_type)
-        .wrap_err("Could not read manifest")?;
+        .attach_message("Could not read manifest")
+        .change_context(TestContext::ExperimentSetup)?;
 
     let experiment = orchestrator::Experiment::new(experiment_config);
 
@@ -332,7 +346,7 @@ pub async fn run_test<P: AsRef<Path>>(
     experiment
         .run(experiment_run, handler, target_max_group_size)
         .await
-        .wrap_err("Could not run experiment")?;
+        .change_context(TestContext::ExperimentRun)?;
     let duration = now.elapsed();
 
     let outputs = iter::repeat(output_base_directory)
@@ -341,30 +355,29 @@ pub async fn run_test<P: AsRef<Path>>(
         .take_while(|output_dir| output_dir.exists())
         .map(|output_dir| {
             let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
-                .wrap_err("Could not read JSON state")?;
+                .attach_message("Could not read JSON state")?;
             let globals = parse_file(Path::new(&output_dir).join("globals.json"))
-                .wrap_err("Could not read globals")?;
+                .attach_message("Could not read globals")?;
             let analysis_outputs = parse_file(Path::new(&output_dir).join("analysis_outputs.json"))
-                .wrap_err("Could not read analysis outputs`")?;
+                .attach_message("Could not read analysis outputs`")?;
 
             Ok((json_state, globals, analysis_outputs))
         })
-        .collect::<Result<_>>()?;
+        .collect::<Result<_, TestError>>()
+        .change_context(TestContext::ExperimentOutput)?;
 
     Ok(TestOutput { outputs, duration })
 }
 
-fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
+fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T, TestError> {
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
         File::open(path)
             .report()
-            .wrap_err_lazy(|| format!("Could not open file {path:?}"))
-            .generalize()?,
+            .change_context_lazy(|| TestError::parse_error(path))?,
     ))
     .report()
-    .wrap_err_lazy(|| format!("Could not parse {path:?}"))
-    .generalize()
+    .change_context_lazy(|| TestError::parse_error(path))
 }
 
 pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(ExperimentType, Vec<ExpectedOutput>)>> {
@@ -384,7 +397,8 @@ pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(ExperimentType, Vec<E
     }
 
     Ok(parse_file::<Vec<ConfigValue>, P>(path)
-        .wrap_err("Could not read integration test configuration")?
+        .attach_message("Could not read integration test configuration")
+        .change_context(TestContext::TestSetup)?
         .into_iter()
         .map(|config_value| match config_value {
             ConfigValue::Simple {
@@ -405,42 +419,35 @@ pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(ExperimentType, Vec<E
 }
 
 /// Implementation for [`ExpectedOutput::assert_subset_of`]
-fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result<()> {
+fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result<(), TestError> {
     match (subset, superset) {
         (Value::Number(a), Value::Number(b)) if a.is_f64() && b.is_f64() => {
             ensure!(
                 (a.as_f64().unwrap() - b.as_f64().unwrap()).abs() < f64::EPSILON,
-                "Expected `{path} == {a}` but it was `{b}`"
+                TestError::unexpected_output_value(path, subset.clone(), superset.clone())
             );
         }
         (Value::Array(a), Value::Array(b)) => {
             ensure!(
                 a.len() == b.len(),
-                "{path:?}: expected length {}, got {}.\nexpected: {}\ngot: {}",
-                a.len(),
-                b.len(),
-                serde_json::to_string_pretty(a).unwrap(),
-                serde_json::to_string_pretty(b).unwrap(),
+                TestError::unexpected_output_length(path, a.clone(), b.clone())
             );
             for (i, (sub_value, super_value)) in a.iter().zip(b.iter()).enumerate() {
                 assert_subset_value(sub_value, super_value, format!("{path}[{i}]"))?;
             }
         }
         (Value::Object(a), Value::Object(b)) => {
-            for (key, sub_value) in a {
-                if let Some(super_value) = b.get(key) {
-                    assert_subset_value(sub_value, super_value, format!("{path}.{key}"))?;
-                } else {
-                    bail!("{path:?}: {key:?} is not present in the output")
+            for (key, expected) in a {
+                match b.get(key) {
+                    Some(value) => assert_subset_value(expected, value, format!("{path}.{key}"))?,
+                    None => bail!(TestError::output_missing(path, expected.clone())),
                 }
             }
         }
         _ => {
             ensure!(
                 subset == superset,
-                "Expected `{path} == {}` but it was `{}`",
-                serde_json::to_string_pretty(subset).unwrap(),
-                serde_json::to_string_pretty(superset).unwrap()
+                TestError::unexpected_output_value(path, subset.clone(), superset.clone())
             );
         }
     }
@@ -463,18 +470,17 @@ impl ExpectedOutput {
         agent_states: &AgentStates,
         globals: &Globals,
         analysis: &Analysis,
-    ) -> Result<()> {
+    ) -> Result<(), TestError> {
         let mut json_state = self.json_state.iter().collect::<Vec<_>>();
         json_state.sort_unstable_by(|(lhs, _), (rhs, _)| Ord::cmp(lhs, rhs));
         for (step, expected_states) in json_state {
             let step = step
                 .parse::<usize>()
                 .report()
-                .wrap_err_lazy(|| format!("Could not parse {step:?} as number of a step"))
-                .generalize()?;
+                .change_context_lazy(|| TestError::invalid_step(step.clone()))?;
             let result_states = agent_states
                 .get(step)
-                .ok_or_else(|| report!("Experiment output does not contain {step} steps"))?;
+                .ok_or_else(|| TestError::missing_step(step))?;
             assert_subset_value(
                 expected_states,
                 result_states,

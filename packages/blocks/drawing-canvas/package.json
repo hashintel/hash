@@ -24,13 +24,13 @@
   "dependencies": {
     "@tldraw/tldraw": "1.11.1",
     "@types/react-resizable": "1.7.4",
-    "blockprotocol": "0.0.9",
+    "blockprotocol": "0.0.10",
     "react-resizable": "^3.0.4"
   },
   "devDependencies": {
-    "block-scripts": "0.0.6",
+    "block-scripts": "0.0.7",
     "mobx": "6.5.0",
-    "mock-block-dock": "0.0.9",
+    "mock-block-dock": "0.0.10",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
