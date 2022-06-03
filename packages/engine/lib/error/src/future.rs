@@ -276,7 +276,7 @@ pub trait FutureExt: Future + Sized {
 
     /// Adds the provided object to the [`Frame`] stack when [`poll`]ing the [`Future`].
     ///
-    /// The object can later be retrieved by calling [`request_value()`].
+    /// The object can later be retrieved by calling [`request_ref()`].
     ///
     /// The function is only executed in the `Err` arm.
     ///
@@ -290,7 +290,7 @@ pub trait FutureExt: Future + Sized {
 
     /// Lazily adds the provided object to the [`Frame`] stack when [`poll`]ing the [`Future`].
     ///
-    /// The object can later be retrieved by calling [`request_value()`].
+    /// The object can later be retrieved by calling [`request_ref()`].
     ///
     /// The function is only executed in the `Err` arm.
     ///

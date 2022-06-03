@@ -260,7 +260,7 @@ impl<T> Report<T> {
 
     /// Adds the provided object to the [`Frame`] stack.
     ///
-    /// The object can later be retrieved by calling [`request_value()`].
+    /// The object can later be retrieved by calling [`request_ref()`].
     ///
     /// [`request_ref()`]: Self::request_ref
     /// [`Frame`]: crate::Frame

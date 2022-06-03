@@ -139,7 +139,7 @@ pub trait ResultExt {
 
     /// Adds the provided object to the [`Frame`] stack.
     ///
-    /// The object can later be retrieved by calling [`request_value()`].
+    /// The object can later be retrieved by calling [`request_ref()`].
     ///
     /// The function is only executed in the `Err` arm.
     ///
@@ -153,7 +153,7 @@ pub trait ResultExt {
 
     /// Lazily adds the provided object to the [`Frame`] stack.
     ///
-    /// The object can later be retrieved by calling [`request_value()`].
+    /// The object can later be retrieved by calling [`request_ref()`].
     ///
     /// The function is only executed in the `Err` arm.
     ///
