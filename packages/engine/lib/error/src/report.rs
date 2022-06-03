@@ -205,7 +205,7 @@ impl<T> Report<T> {
         )
     }
 
-    /// Adds a contextual information to the [`Frame`] stack.
+    /// Adds contextual information to the [`Frame`] stack.
     ///
     /// ## Example
     ///
