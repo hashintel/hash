@@ -115,7 +115,7 @@
 //!
 //!     // `ResultExt` provides different methods for adding additional information to the `Report`
 //!     let value =
-//!         lookup_key(config, key).attach_message_lazy(|| format!("Could not lookup key {key:?}"))?;
+//!         lookup_key(config, key).attach_lazy(|| format!("Could not lookup key {key:?}"))?;
 //!
 //!     Ok(value)
 //! }
@@ -124,7 +124,7 @@
 //!     # fn fake_main() -> Result<(), LookupError> { // We want to assert on the result
 //!     let config = HashMap::default();
 //!     # #[allow(unused_variables)]
-//!     let config_value = parse_config(&config).attach_message("Unable to parse config")?;
+//!     let config_value = parse_config(&config).attach("Unable to parse config")?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...

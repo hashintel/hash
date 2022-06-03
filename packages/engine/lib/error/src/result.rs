@@ -48,7 +48,7 @@ pub trait ResultExt {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
 
-    /// Adds new contextual message to the [`Frame`] stack of a [`Report`].
+    /// Adds new contextual information to the [`Frame`] stack of a [`Report`].
     ///
     /// [`Frame`]: crate::Frame
     ///
@@ -64,15 +64,15 @@ pub trait ResultExt {
     /// # let user = User;
     /// # let resource = Resource;
     /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource).attach_message("Could not load resource")?;
+    /// let resource = load_resource(&user, &resource).attach("Could not load resource")?;
     /// # Result::Ok(())
     /// ```
     #[must_use]
-    fn attach_message<M>(self, message: M) -> Self
+    fn attach<O>(self, object: O) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static;
+        O: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
-    /// Lazily adds new contextual message to the [`Frame`] stack of a [`Report`].
+    /// Lazily adds new information message to the [`Frame`] stack of a [`Report`].
     ///
     /// The function is only executed in the `Err` arm.
     ///
@@ -93,14 +93,14 @@ pub trait ResultExt {
     /// # let resource = Resource;
     /// # #[allow(unused_variables)]
     /// let resource = load_resource(&user, &resource)
-    ///     .attach_message_lazy(|| format!("Could not load resource {resource}"))?;
+    ///     .attach_lazy(|| format!("Could not load resource {resource}"))?;
     /// # Result::Ok(())
     /// ```
     #[must_use]
-    fn attach_message_lazy<M, F>(self, op: F) -> Self
+    fn attach_lazy<O, F>(self, object: F) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> M;
+        O: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> O;
 
     /// Adds a [`Provider`] to the [`Frame`] stack.
     ///
@@ -137,35 +137,6 @@ pub trait ResultExt {
         P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> P;
 
-    /// Adds the provided object to the [`Frame`] stack.
-    ///
-    /// The object can later be retrieved by calling [`request_ref()`].
-    ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// [`request_ref()`]: crate::Report::request_ref
-    /// [`Frame`]: crate::Frame
-    #[cfg(nightly)]
-    #[must_use]
-    fn provide<P>(self, provided: P) -> Self
-    where
-        P: fmt::Display + fmt::Debug + Send + Sync + 'static;
-
-    /// Lazily adds the provided object to the [`Frame`] stack.
-    ///
-    /// The object can later be retrieved by calling [`request_ref()`].
-    ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// [`request_ref()`]: crate::Report::request_ref
-    /// [`Frame`]: crate::Frame
-    #[cfg(nightly)]
-    #[must_use]
-    fn provide_lazy<P, F>(self, provided: F) -> Self
-    where
-        P: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> P;
-
     /// Changes the [`Context`] of a [`Report`] returning [`Result<T, C>`].
     ///
     /// Please see the [`Context`] documentation for more information.
@@ -200,19 +171,19 @@ impl<T, C> ResultExt for Result<T, C> {
     type Ok = T;
 
     #[track_caller]
-    fn attach_message<M>(self, message: M) -> Self
+    fn attach<M>(self, message: M) -> Self
     where
         M: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach_message(message)),
+            Err(report) => Err(report.attach(message)),
         }
     }
 
     #[track_caller]
-    fn attach_message_lazy<M, F>(self, message: F) -> Self
+    fn attach_lazy<M, F>(self, message: F) -> Self
     where
         M: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> M,
@@ -220,34 +191,7 @@ impl<T, C> ResultExt for Result<T, C> {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach_message(message())),
-        }
-    }
-
-    #[cfg(nightly)]
-    #[track_caller]
-    fn provide<P>(self, provided: P) -> Self
-    where
-        P: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.provide(provided)),
-        }
-    }
-
-    #[cfg(nightly)]
-    #[track_caller]
-    fn provide_lazy<P, F>(self, provided: F) -> Self
-    where
-        P: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> P,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.provide(provided())),
+            Err(report) => Err(report.attach(message())),
         }
     }
 

@@ -290,7 +290,7 @@ mod tests {
     #[test]
     fn report() {
         let err = capture_error(|| Err(report!(ContextA)));
-        let err = err.attach_message("additional message");
+        let err = err.attach("additional message");
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
@@ -305,7 +305,7 @@ mod tests {
         #[cfg(feature = "std")]
         {
             let err = capture_error(|| Err(report!(ContextB)));
-            let err = err.attach_message("additional message");
+            let err = err.attach("additional message");
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
@@ -316,7 +316,7 @@ mod tests {
     #[test]
     fn bail() {
         let err = capture_error(|| bail!(ContextA));
-        let err = err.attach_message("additional message");
+        let err = err.attach("additional message");
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
@@ -331,7 +331,7 @@ mod tests {
         #[cfg(feature = "std")]
         {
             let err = capture_error(|| bail!(ContextB));
-            let err = err.attach_message("additional message");
+            let err = err.attach("additional message");
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
@@ -345,7 +345,7 @@ mod tests {
             ensure!(false, ContextA);
             Ok(())
         });
-        let err = err.attach_message("additional message");
+        let err = err.attach("additional message");
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
@@ -366,7 +366,7 @@ mod tests {
                 ensure!(false, ContextB);
                 Ok(())
             });
-            let err = err.attach_message("additional message");
+            let err = err.attach("additional message");
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);

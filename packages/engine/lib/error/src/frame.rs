@@ -93,15 +93,15 @@ impl Frame {
         Self::from_unerased(ContextRepr(context), location, source)
     }
 
-    pub(crate) fn from_message<M>(
-        message: M,
+    pub(crate) fn from_object<O>(
+        object: O,
         location: &'static Location<'static>,
         source: Option<Box<Self>>,
     ) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        O: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self::from_unerased(MessageRepr(message), location, source)
+        Self::from_unerased(FrameObject(object), location, source)
     }
 
     #[cfg(feature = "std")]
@@ -215,26 +215,26 @@ struct VTable {
 ///
 /// A message does not necessarily implement [`Provider`], an empty implementation is provided.
 /// If a [`Provider`] is required attach it directly rather than attaching a message.
-struct MessageRepr<M>(M);
+struct FrameObject<T>(T);
 
-impl<M: fmt::Display> fmt::Display for MessageRepr<M> {
+impl<T: fmt::Display> fmt::Display for FrameObject<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl<M: fmt::Debug> fmt::Debug for MessageRepr<M> {
+impl<T: fmt::Debug> fmt::Debug for FrameObject<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
-impl<M: Context> Context for MessageRepr<M> {}
+impl<T: Context> Context for FrameObject<T> {}
 
 #[cfg(nightly)]
-impl<M: fmt::Display + fmt::Debug + Send + Sync + 'static> Provider for MessageRepr<M> {
-    fn provide<'a>(&'a self, _: &mut Demand<'a>) {
-        // Empty definition as a contextual message does not convey provider information
+impl<T: 'static> Provider for FrameObject<T> {
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        demand.provide_ref(&self.0);
     }
 }
 

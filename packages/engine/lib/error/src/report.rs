@@ -21,7 +21,7 @@ use crate::{
 /// the [`Backtrace` documentation][`Backtrace`]. To enable the span trace, [`ErrorLayer`] has to
 /// be enabled.
 ///
-/// Context information can be added by using [`attach_message()`] or [`ResultExt`]. The [`Frame`]
+/// Context information can be added by using [`attach()`] or [`ResultExt`]. The [`Frame`]
 /// stack can be iterated by using [`frames()`].
 ///
 /// To enforce context information generation, a context [`Provider`] needs to be used. When
@@ -33,7 +33,7 @@ use crate::{
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
-/// [`attach_message()`]: Self::attach_message
+/// [`attach()`]: Self::attach
 /// [`from_error()`]: Self::from_error
 /// [`from_context()`]: Self::from_context
 /// [`frames()`]: Self::frames
@@ -59,7 +59,7 @@ use crate::{
 /// # #[allow(unused_variables)]
 /// let content = std::fs::read_to_string(config_path)
 ///     .report()
-///     .attach_message_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///     .attach_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
 /// ...
@@ -116,7 +116,7 @@ use crate::{
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # return Err(error::report!(ConfigError::IoError).attach_message("Not supported"));
+///     # return Err(error::report!(ConfigError::IoError).attach("Not supported"));
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     std::fs::read_to_string(path.as_ref()).report().change_context(ConfigError::IoError)
 /// }
@@ -210,18 +210,45 @@ impl<T> Report<T> {
         )
     }
 
-    /// Adds a contextual message to the [`Frame`] stack.
+    /// Adds a contextual information to the [`Frame`] stack.
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # #![cfg_attr(not(feature = "std"), allow(unused_imports))]
+    /// use std::{fmt, fs};
+    ///
+    /// use error::{IntoReport, ResultExt};
+    ///
+    /// #[derive(Debug)]
+    /// pub struct Suggestion(&'static str);
+    ///
+    /// impl fmt::Display for Suggestion {
+    ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    ///         fmt.write_str(self.0)
+    ///     }
+    /// }
+    ///
+    /// # #[derive(Debug)] struct NoStdError;
+    /// # impl core::fmt::Display for NoStdError { fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+    /// # impl error::Context for NoStdError {}
+    /// # #[cfg(any(not(feature = "std"), miri))]
+    /// # let error: Result<(), _> = Err(error::report!(NoStdError).attach(Suggestion("Better use a file which exists next time!")));
+    /// # #[cfg(all(feature = "std", not(miri)))]
+    /// let error = fs::read_to_string("config.txt")
+    ///     .report()
+    ///     .attach(Suggestion("Better use a file which exists next time!"));
+    /// let report = error.unwrap_err();
+    /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
+    ///
+    /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
     #[track_caller]
-    pub fn attach_message<M>(self, message: M) -> Self
+    pub fn attach<O>(self, object: O) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        O: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self::from_frame(
-            Frame::from_message(
-                message,
-                Location::caller(),
-                Some(Box::new(self.inner.frame)),
-            ),
+            Frame::from_object(object, Location::caller(), Some(Box::new(self.inner.frame))),
             #[cfg(all(nightly, feature = "std"))]
             self.inner.backtrace,
             #[cfg(feature = "spantrace")]
@@ -256,53 +283,6 @@ impl<T> Report<T> {
             #[cfg(feature = "spantrace")]
             self.inner.span_trace,
         )
-    }
-
-    /// Adds the provided object to the [`Frame`] stack.
-    ///
-    /// The object can later be retrieved by calling [`request_ref()`].
-    ///
-    /// [`request_ref()`]: Self::request_ref
-    /// [`Frame`]: crate::Frame
-    ///
-    /// ## Example
-    ///
-    /// ```rust
-    /// # #![cfg_attr(not(feature = "std"), allow(unused_imports))]
-    /// use std::{fmt, fs};
-    ///
-    /// use error::{IntoReport, ResultExt};
-    ///
-    /// #[derive(Debug)]
-    /// pub struct Suggestion(&'static str);
-    ///
-    /// impl fmt::Display for Suggestion {
-    ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-    ///         fmt.write_str(self.0)
-    ///     }
-    /// }
-    ///
-    /// # #[derive(Debug)] struct NoStdError;
-    /// # impl core::fmt::Display for NoStdError { fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # impl error::Context for NoStdError {}
-    /// # #[cfg(any(not(feature = "std"), miri))]
-    /// # let error: Result<(), _> = Err(error::report!(NoStdError).provide(Suggestion("Better use a file which exists next time!")));
-    /// # #[cfg(all(feature = "std", not(miri)))]
-    /// let error = fs::read_to_string("config.txt")
-    ///     .report()
-    ///     .provide(Suggestion("Better use a file which exists next time!"));
-    /// let report = error.unwrap_err();
-    /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
-    ///
-    /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
-    /// ```
-    #[track_caller]
-    #[cfg(nightly)]
-    pub fn provide<P>(self, provided: P) -> Self
-    where
-        P: fmt::Debug + fmt::Display + Send + Sync + 'static,
-    {
-        self.attach_provider(crate::single_provider::SingleProvider(provided))
     }
 
     /// Adds context information to the [`Frame`] stack enforcing a typed `Report`.
