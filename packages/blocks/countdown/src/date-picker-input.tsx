@@ -114,8 +114,7 @@ export const DatePickerInput = forwardRef<DatePicker, DatePickerInputProps>(
         <DatePicker
           ref={ref}
           placeholderText="Select a date"
-          showWeekNumbers
-          dateFormat={displayTime ? "Pp" : "P"}
+          dateFormat={displayTime ? "MMM d, yyyy h:mm aa" : "MMM d, yyyy"}
           {...props}
           customInput={<CustomInput />}
           customTimeInput={

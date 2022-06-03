@@ -56,17 +56,18 @@
   .countdown-title {
     display: flex;
     border: 1px solid transparent;
-    margin-bottom: 1rem;
+    margin-bottom: 0.25rem;
     position: relative;
-    transition: all 0.3s ease;
+    transition: 0.3s all ease-in-out;
     text-align: center;
 
     .title-input {
       position: relative;
+      cursor: text;
       flex: 1;
       border: 2px solid transparent;
       max-width: 22.5rem;
-      font-size: var(--font-size-md);
+      font-size: 1.5rem;
       line-height: 120%;
       border-radius: var(--border-radius-1-5);
       padding: 0.625rem 0.875rem;
@@ -74,16 +75,19 @@
       text-align: center;
       outline: none;
       resize: none;
+      display: flex;
+      justify-content: center;
+      transition: 0.3s all ease-in-out;
 
       &:focus {
-        width: 22.5rem;
+        width: 100%;
         border: 2px solid var(--border-color-focused);
         text-align: left;
-        padding-right: 3rem;
+        padding-right: 4rem;
       }
 
       &:hover {
-        border-color: var(--border-color-dark);
+        border-color: var(--border-color-light);
       }
 
       &:empty:after {
@@ -102,16 +106,16 @@
 
     button {
       border: none;
-      transition: 250ms ease-in-out;
+      transition: 0.3s all ease-in-out;
       border-radius: var(--border-radius-1);
       position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      bottom: 0.5rem;
+      top: 0.45rem;
+      right: 0.45rem;
+      bottom: 0.45rem;
       background-color: var(--brand-primary-base);
       color: var(--neutral-0);
-      height: 2.125rem;
-      width: 2.125rem;
+      height: 2.4rem;
+      width: 2.4rem;
       visibility: hidden;
       pointer-events: none;
       transition: none;
@@ -127,6 +131,7 @@
   }
 
   &__display-grid {
+    background: var(--neutral-0);
     border: 1px solid var(--border-color-light);
     filter: drop-shadow(0px 4px 11px rgba(39, 50, 86, 0.04))
       drop-shadow(0px 2.59259px 6.44213px rgba(39, 50, 86, 0.08))
@@ -134,11 +139,12 @@
     margin-bottom: 12px;
     border-radius: var(--border-radius-1-5);
     display: flex;
+    transition: 0.3s all ease-in-out;
 
     &__item {
       min-height: 10rem;
       min-width: 10rem;
-      padding-top: 2.2rem;
+      padding-top: 1.35rem;
       padding-left: 1.25rem;
       padding-right: 1.25rem;
       display: flex;
@@ -151,19 +157,19 @@
       }
 
       p:first-of-type {
-        font-size: var(--font-size-xxl);
-        font-weight: 600;
+        font-size: 4.5rem;
+        font-weight: 700;
         line-height: var(--line-height-none);
-        letter-spacing: -2%;
+        letter-spacing: -4%;
         color: var(--primary-text-base);
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
       }
 
       p:last-of-type {
         color: var(--secondary-text-base);
         text-transform: uppercase;
         font-size: var(--font-size-xs);
-        font-weight: 500;
+        font-weight: 400;
       }
     }
   }
