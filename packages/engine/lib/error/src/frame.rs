@@ -14,26 +14,6 @@ use core::{
 use crate::provider::{self, Demand, Provider};
 use crate::Context;
 
-/// Trait alias to require all required traits used on a [`Frame`].
-///
-/// In order to implement these traits on a [`Frame`], the underlying type requires these types as
-/// well. After creation of the [`Frame`] it's erased. To unerase it later on to act on the actual
-/// Frame implementation, this trait is used.
-#[cfg(nightly)]
-trait Unerased: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static {}
-#[cfg(nightly)]
-impl<T> Unerased for T where T: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static {}
-
-/// Trait alias to require all required traits used on a [`Frame`].
-///
-/// In order to implement these traits on a [`Frame`], the underlying type requires these types as
-/// well. After creation of the [`Frame`] it's erased. To unerase it later on to act on the actual
-/// Frame implementation, this trait is used.
-#[cfg(not(nightly))]
-trait Unerased: fmt::Debug + fmt::Display + Send + Sync + 'static {}
-#[cfg(not(nightly))]
-impl<T> Unerased for T where T: fmt::Debug + fmt::Display + Send + Sync + 'static {}
-
 /// A single error, contextual message, or error context inside of a [`Report`].
 ///
 /// `Frame`s are organized as a singly linked list, which can be iterated by calling
@@ -54,20 +34,6 @@ pub struct Frame {
 }
 
 impl Frame {
-    fn from_unerased<T: Unerased>(
-        object: T,
-        location: &'static Location<'static>,
-        source: Option<Box<Self>>,
-    ) -> Self {
-        Self {
-            // SAFETY: `FrameRepr` must not be dropped without using the vtable, so it's wrapped in
-            //   `ManuallyDrop`. A custom drop implementation is provided that takes care of this.
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(object)) },
-            location,
-            source,
-        }
-    }
-
     pub(crate) fn from_context<C>(
         context: C,
         location: &'static Location<'static>,
@@ -76,7 +42,13 @@ impl Frame {
     where
         C: Context,
     {
-        Self::from_unerased(ContextRepr(context), location, source)
+        Self {
+            // SAFETY: `FrameRepr` must not be dropped without using the vtable, so it's wrapped in
+            //   `ManuallyDrop`. A custom drop implementation is provided that takes care of this.
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(context)) },
+            location,
+            source,
+        }
     }
 
     pub(crate) fn from_object<O>(
@@ -87,7 +59,7 @@ impl Frame {
     where
         O: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self::from_unerased(FrameObject(object), location, source)
+        Self::from_context(AttachedObject(object), location, source)
     }
 
     /// Returns the location where this `Frame` was created.
@@ -174,13 +146,13 @@ impl Drop for Frame {
 
 /// Stores functions to act on the underlying [`Frame`] type without knowing the unerased type.
 ///
-/// This works around the limitation of not being able to coerce from `Box<dyn Unerased>` to
+/// This works around the limitation of not being able to coerce from `Box<dyn Context>` to
 /// `Box<dyn Any>` to add downcasting. Also this works around dynamic dispatching, as the functions
 /// are stored and called directly. In addition this reduces the memory usage by one pointer, as the
 /// `VTable` is stored next to the object.
 struct VTable {
     object_drop: unsafe fn(Box<FrameRepr>),
-    object_ref: unsafe fn(&FrameRepr) -> &dyn Unerased,
+    object_ref: unsafe fn(&FrameRepr) -> &dyn Context,
     object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
 }
 
@@ -189,53 +161,24 @@ struct VTable {
 /// A piece of information can be requested by calling [`Report::request_ref`]. It's used for the
 /// [`Display`] and [`Debug`] implementation for a [`Frame`]. If the information is a [`Provider`],
 /// use [`Report::attach_provider`] instead.
-struct FrameObject<T>(T);
+struct AttachedObject<T>(T);
 
-impl<T: fmt::Display> fmt::Display for FrameObject<T> {
+impl<T: fmt::Display> fmt::Display for AttachedObject<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl<T: fmt::Debug> fmt::Debug for FrameObject<T> {
+impl<T: fmt::Debug> fmt::Debug for AttachedObject<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
-impl<T: Context> Context for FrameObject<T> {}
-
-#[cfg(nightly)]
-impl<T: 'static> Provider for FrameObject<T> {
+impl<T: fmt::Display + fmt::Debug + Send + Sync + 'static> Context for AttachedObject<T> {
+    #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         demand.provide_ref(&self.0);
-    }
-}
-
-/// Wrapper around [`Context`].
-///
-/// As [`Context`] does not necessarily implement [`Provider`] but [`Unerased`] requires it (on
-/// nightly), an empty implementation is provided. If a [`Provider`] is required use it directly
-/// instead of [`Context`].
-#[repr(transparent)]
-struct ContextRepr<C>(C);
-
-impl<C: fmt::Display> fmt::Display for ContextRepr<C> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-impl<C: fmt::Debug> fmt::Debug for ContextRepr<C> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(&self.0, fmt)
-    }
-}
-
-#[cfg(nightly)]
-impl<C: Context> Provider for ContextRepr<C> {
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        self.0.provide(demand);
     }
 }
 
@@ -255,12 +198,12 @@ impl VTable {
         drop(unerased);
     }
 
-    /// Unerase the object as `&dyn Unerased`
+    /// Unerase the object as `&dyn Context`
     ///
     /// # Safety
     ///
     /// - Layout of `Self` must match `FrameRepr<T>`.
-    unsafe fn object_ref<T: Unerased>(frame: &FrameRepr) -> &dyn Unerased {
+    unsafe fn object_ref<T: Context>(frame: &FrameRepr) -> &dyn Context {
         // Attach T's native vtable onto the pointer to `self._unerased`
         let unerased = (frame as *const FrameRepr).cast::<FrameRepr<T>>();
         // inside of vtable it's allowed to access `_unerased`
@@ -273,7 +216,7 @@ impl VTable {
     /// # Safety
     ///
     /// - Layout of `Self` must match `FrameRepr<T>`.
-    unsafe fn object_downcast<T: Unerased>(
+    unsafe fn object_downcast<T: Context>(
         frame: &FrameRepr,
         target: TypeId,
     ) -> Option<NonNull<()>> {
@@ -302,7 +245,7 @@ struct FrameRepr<T = ()> {
 
 impl<T> FrameRepr<T>
 where
-    T: Unerased,
+    T: Context,
 {
     /// Creates a new frame from an unerased object.
     ///
@@ -326,7 +269,7 @@ where
 
 #[allow(clippy::used_underscore_binding)]
 impl FrameRepr {
-    fn unerase(&self) -> &dyn Unerased {
+    fn unerase(&self) -> &dyn Context {
         // SAFETY: Use vtable to attach T's native vtable for the right original type T.
         unsafe { (self.vtable.object_ref)(self) }
     }
@@ -338,12 +281,12 @@ impl FrameRepr {
         //   between `T` and `ContextRepr<T>`/`ErrorRepr<T>` is safe as those structs are
         //   `repr(transparent)`.
         unsafe {
-            if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<ContextRepr<T>>())
-            {
+            if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<T>()) {
                 return Some(addr.cast());
             }
 
-            if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<FrameObject<T>>())
+            if let Some(addr) =
+                (self.vtable.object_downcast)(self, TypeId::of::<AttachedObject<T>>())
             {
                 return Some(addr.cast());
             }
