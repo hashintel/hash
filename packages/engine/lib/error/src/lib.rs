@@ -201,8 +201,7 @@ mod macros;
 mod report;
 mod result;
 
-#[cfg(feature = "std")]
-mod error;
+mod context;
 #[cfg(feature = "futures")]
 pub mod future;
 #[cfg(feature = "hooks")]
@@ -210,83 +209,18 @@ mod hook;
 #[cfg(nightly)]
 pub mod provider;
 
-use core::fmt;
-
 #[cfg(feature = "futures")]
 #[doc(inline)]
 pub use self::future::FutureExt;
 #[cfg(feature = "hooks")]
 pub use self::hook::HookAlreadySet;
 pub use self::{
+    context::Context,
     frame::Frame,
     macros::*,
     report::Report,
     result::{IntoReport, Result, ResultExt},
 };
-
-/// Defines the current context of a [`Report`].
-///
-/// When in a `std` environment, every [`Error`] is a valid `Context`. This trait is not limited to
-/// [`Error`]s and can also be manually implemented for custom objects.
-///
-/// [`Error`]: std::error::Error
-///
-/// ## Example
-///
-/// Used for creating a [`Report`] or for switching the [`Report`]'s context:
-///
-/// ```rust
-/// # #![cfg_attr(any(not(feature = "std"), miri), allow(unused_imports))]
-/// use std::{fmt, fs, io};
-///
-/// use error::{Context, IntoReport, Result, ResultExt};
-///
-/// # type Config = ();
-/// #[derive(Debug)]
-/// pub enum ConfigError {
-///     ParseError,
-/// }
-///
-/// impl fmt::Display for ConfigError {
-///     # #[allow(unused_variables)]
-///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         # const _: &str = stringify! {
-///         ...
-///         # }; Ok(())
-///     }
-/// }
-///
-/// // In this scenario, `Error` is not implemented for `ConfigError` for some reason, so implement
-/// // `Context` manually.
-/// impl Context for ConfigError {}
-///
-/// # #[cfg(any(not(feature = "std"), miri))]
-/// # pub fn read_file(_: &str) -> Result<String, ConfigError> { error::bail!(ConfigError::ParseError) }
-/// # #[cfg(all(feature = "std", not(miri)))]
-/// pub fn read_file(path: &str) -> Result<String, io::Error> {
-///     // Creates a `Report` from `io::Error`, the current context is `io::Error`
-///     fs::read_to_string(path).report()
-/// }
-///
-/// pub fn parse_config(path: &str) -> Result<Config, ConfigError> {
-///     // The return type of `parse_config` requires another context. By calling `change_context`
-///     // the context may be changed.
-///     read_file(path).change_context(ConfigError::ParseError)?;
-///
-///     # const _: &str = stringify! {
-///     ...
-///     # }; Ok(())
-/// }
-/// # let err = parse_config("invalid-path").unwrap_err();
-/// # #[cfg(all(feature = "std", not(miri)))]
-/// # assert!(err.contains::<io::Error>());
-/// # assert!(err.contains::<ConfigError>());
-/// # assert_eq!(err.frames().count(), 2);
-/// ```
-pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {}
-
-#[cfg(feature = "std")]
-impl<C: std::error::Error + Send + Sync + 'static> Context for C {}
 
 #[cfg(test)]
 pub(crate) mod test_helper {

@@ -7,12 +7,13 @@ use std::backtrace::{Backtrace, BacktraceStatus};
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
-use crate::{iter::Frames, Context};
 #[cfg(nightly)]
 use crate::{
+    context::temporary_provider,
     iter::{RequestRef, RequestValue},
-    provider::Provider,
+    provider::request_ref,
 };
+use crate::{iter::Frames, Context};
 
 /// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
 /// a [`Backtrace`] and a [`SpanTrace`].
@@ -170,11 +171,30 @@ impl<T> Report<T> {
     where
         T: Context,
     {
-        #[cfg(all(nightly, feature = "std"))]
-        let backtrace = Some(Backtrace::capture());
+        #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
+        let provider = temporary_provider(&context);
 
-        #[cfg(feature = "spantrace")]
+        #[cfg(all(nightly, feature = "std"))]
+        let backtrace = if request_ref::<Backtrace, _>(&provider).is_some() {
+            None
+        } else {
+            Some(Backtrace::capture())
+        };
+        #[cfg(not(any(nightly, feature = "std")))]
+        let backtrace = Some(SpanTrace::capture());
+
+        #[cfg(all(nightly, feature = "spantrace"))]
+        let span_trace = if request_ref::<SpanTrace, _>(&provider).is_some() {
+            None
+        } else {
+            Some(SpanTrace::capture())
+        };
+        #[cfg(not(any(nightly, feature = "spantrace")))]
         let span_trace = Some(SpanTrace::capture());
+
+        // Context will be moved in the next statement, so we need to drop the temporary provider
+        // first.
+        drop(provider);
 
         Self::from_frame(
             Frame::from_context(context, Location::caller(), None),
@@ -182,31 +202,6 @@ impl<T> Report<T> {
             backtrace,
             #[cfg(feature = "spantrace")]
             span_trace,
-        )
-    }
-
-    /// Creates a new `Report<T>` from the provided [`Error`].
-    ///
-    /// [`Error`]: std::error::Error
-    #[track_caller]
-    #[cfg(feature = "std")]
-    pub fn from_error(error: T) -> Self
-    where
-        T: std::error::Error + Send + Sync + 'static,
-    {
-        #[cfg(nightly)]
-        let backtrace = if error.backtrace().is_some() {
-            None
-        } else {
-            Some(std::backtrace::Backtrace::capture())
-        };
-
-        Self::from_frame(
-            Frame::from_error(error, Location::caller(), None),
-            #[cfg(nightly)]
-            backtrace,
-            #[cfg(feature = "spantrace")]
-            Some(tracing_error::SpanTrace::capture()),
         )
     }
 
@@ -249,35 +244,6 @@ impl<T> Report<T> {
     {
         Self::from_frame(
             Frame::from_object(object, Location::caller(), Some(Box::new(self.inner.frame))),
-            #[cfg(all(nightly, feature = "std"))]
-            self.inner.backtrace,
-            #[cfg(feature = "spantrace")]
-            self.inner.span_trace,
-        )
-    }
-
-    /// Adds a [`Provider`] to the [`Frame`] stack.
-    ///
-    /// The provider is used to [`provide`] values either by calling
-    /// [`request_ref()`]/[`request_value()`] to return an iterator over all specified values, or by
-    /// using the [`Provider`] implementation on a [`Frame`].
-    ///
-    /// [`provide`]: Provider::provide
-    /// [`request_ref()`]: Self::request_ref
-    /// [`request_value()`]: Self::request_value
-    /// [`Frame`]: crate::Frame
-    #[track_caller]
-    #[cfg(nightly)]
-    pub fn attach_provider<P>(self, provider: P) -> Self
-    where
-        P: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static,
-    {
-        Self::from_frame(
-            Frame::from_provider(
-                provider,
-                Location::caller(),
-                Some(Box::new(self.inner.frame)),
-            ),
             #[cfg(all(nightly, feature = "std"))]
             self.inner.backtrace,
             #[cfg(feature = "spantrace")]

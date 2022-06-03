@@ -14,8 +14,6 @@ use core::{
 
 use pin_project::pin_project;
 
-#[cfg(nightly)]
-use crate::provider::Provider;
 use crate::{Context, Result, ResultExt};
 
 macro_rules! implement_future_adaptor {
@@ -106,20 +104,6 @@ implement_lazy_future_adaptor!(
     FutureWithLazyObject,
     attach_lazy,
     Display + Debug + Send + Sync + 'static,
-    Fut::Output
-);
-
-implement_future_adaptor!(
-    FutureWithProvider,
-    attach_provider,
-    Provider + Display + Debug + Send + Sync + 'static,
-    Fut::Output
-);
-
-implement_lazy_future_adaptor!(
-    FutureWithLazyProvider,
-    attach_provider_lazy,
-    Provider + Display + Debug + Send + Sync + 'static,
     Fut::Output
 );
 
@@ -225,41 +209,6 @@ pub trait FutureExt: Future + Sized {
         O: Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> O;
 
-    /// Adds a [`Provider`] to the [`Frame`] stack when [`poll`]ing the [`Future`].
-    ///
-    /// The provider is used to [`provide`] values either by calling
-    /// [`request_ref()`]/[`request_value()`] to return an iterator over all specified values, or by
-    /// using the [`Provider`] implementation on a [`Frame`].
-    ///
-    /// [`provide`]: Provider::provide
-    /// [`request_ref()`]: crate::Report::request_ref
-    /// [`request_value()`]: crate::Report::request_value
-    /// [`Frame`]: crate::Frame
-    /// [`poll`]: Future::poll
-    #[cfg(nightly)]
-    fn attach_provider<P>(self, provider: P) -> FutureWithProvider<Self, P>
-    where
-        P: Provider + Display + Debug + Send + Sync + 'static;
-
-    /// Lazily adds a [`Provider`] to the [`Frame`] stack when [`poll`]ing the [`Future`].
-    ///
-    /// The provider is used to [`provide`] values either by calling
-    /// [`request_ref()`]/[`request_value()`] to return an iterator over all specified values, or by
-    /// using the [`Provider`] implementation on a [`Frame`].
-    ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// [`provide`]: Provider::provide
-    /// [`request_ref()`]: crate::Report::request_ref
-    /// [`request_value()`]: crate::Report::request_value
-    /// [`Frame`]: crate::Frame
-    /// [`poll`]: Future::poll
-    #[cfg(nightly)]
-    fn attach_provider_lazy<P, F>(self, provider: F) -> FutureWithLazyProvider<Self, F>
-    where
-        P: Provider + Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> P;
-
     /// Changes the [`Context`] of a [`Report`] when [`poll`]ing the [`Future`] returning
     /// [`Result<T, C>`].
     ///
@@ -314,31 +263,6 @@ where
         FutureWithLazyObject {
             future: self,
             inner: Some(object),
-        }
-    }
-
-    #[cfg(nightly)]
-    #[track_caller]
-    fn attach_provider<P>(self, provider: P) -> FutureWithProvider<Self, P>
-    where
-        P: Provider + Display + Debug + Send + Sync + 'static,
-    {
-        FutureWithProvider {
-            future: self,
-            inner: Some(provider),
-        }
-    }
-
-    #[cfg(nightly)]
-    #[track_caller]
-    fn attach_provider_lazy<P, F>(self, provider: F) -> FutureWithLazyProvider<Self, F>
-    where
-        P: Provider + Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> P,
-    {
-        FutureWithLazyProvider {
-            future: self,
-            inner: Some(provider),
         }
     }
 

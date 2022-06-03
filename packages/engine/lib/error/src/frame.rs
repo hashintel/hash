@@ -9,8 +9,6 @@ use core::{
     panic::Location,
     ptr::{addr_of, NonNull},
 };
-#[cfg(feature = "std")]
-use std::error::Error;
 
 #[cfg(nightly)]
 use crate::provider::{self, Demand, Provider};
@@ -70,18 +68,6 @@ impl Frame {
         }
     }
 
-    #[cfg(nightly)]
-    pub(crate) fn from_provider<P>(
-        provider: P,
-        location: &'static Location<'static>,
-        source: Option<Box<Self>>,
-    ) -> Self
-    where
-        P: Provider + fmt::Debug + fmt::Display + Send + Sync + 'static,
-    {
-        Self::from_unerased(provider, location, source)
-    }
-
     pub(crate) fn from_context<C>(
         context: C,
         location: &'static Location<'static>,
@@ -102,19 +88,6 @@ impl Frame {
         O: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self::from_unerased(FrameObject(object), location, source)
-    }
-
-    #[cfg(feature = "std")]
-    pub(crate) fn from_error<E>(
-        error: E,
-        location: &'static Location<'static>,
-        source: Option<Box<Self>>,
-    ) -> Self
-    where
-        E: Error + Send + Sync + 'static,
-    {
-        // TODO: Pass error directly when Provider is implemented on errors
-        Self::from_unerased(ErrorRepr(error), location, source)
     }
 
     /// Returns the location where this `Frame` was created.
@@ -259,48 +232,10 @@ impl<C: fmt::Debug> fmt::Debug for ContextRepr<C> {
     }
 }
 
-impl<C: Context> Context for ContextRepr<C> {}
-
 #[cfg(nightly)]
-impl<C> Provider for ContextRepr<C> {
-    fn provide<'a>(&'a self, _: &mut Demand<'a>) {
-        // Empty definition as `Context` does not convey provider information
-    }
-}
-
-/// Temporary wrapper around [`Error`] to implement Provider.
-///
-/// As [`Error`] does not necessarily implement [`Provider`], an implementation is provided. As soon
-/// as [`Provider`] is implemented on [`Error`], this struct will be removed and used directly
-/// instead.
-// TODO: Remove when Provider is implemented on errors
-#[cfg(feature = "std")]
-#[repr(transparent)]
-struct ErrorRepr<E>(E);
-
-#[cfg(feature = "std")]
-impl<E: fmt::Display> fmt::Display for ErrorRepr<E> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-#[cfg(feature = "std")]
-impl<E: fmt::Debug> fmt::Debug for ErrorRepr<E> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(&self.0, fmt)
-    }
-}
-
-#[cfg(feature = "std")]
-impl<C: Context> Context for ErrorRepr<C> {}
-
-#[cfg(all(nightly, feature = "std"))]
-impl<E: Error> Provider for ErrorRepr<E> {
+impl<C: Context> Provider for ContextRepr<C> {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        if let Some(backtrace) = self.0.backtrace() {
-            demand.provide_ref(backtrace);
-        }
+        self.0.provide(demand);
     }
 }
 
@@ -403,10 +338,6 @@ impl FrameRepr {
         //   between `T` and `ContextRepr<T>`/`ErrorRepr<T>` is safe as those structs are
         //   `repr(transparent)`.
         unsafe {
-            if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<T>()) {
-                return Some(addr.cast());
-            }
-
             if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<ContextRepr<T>>())
             {
                 return Some(addr.cast());
@@ -417,10 +348,6 @@ impl FrameRepr {
                 return Some(addr.cast());
             }
 
-            #[cfg(feature = "std")]
-            if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<ErrorRepr<T>>()) {
-                return Some(addr.cast());
-            }
             None
         }
     }
