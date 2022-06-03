@@ -70,7 +70,7 @@ pub trait ResultExt {
     where
         O: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
-    /// Lazily adds new information message to the [`Frame`] stack of a [`Report`].
+    /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`].
     ///
     /// The function is only executed in the `Err` arm.
     ///
