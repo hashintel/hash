@@ -159,12 +159,6 @@ pub trait ResultExt {
     where
         C: Context,
         F: FnOnce() -> C;
-
-    // TODO: Temporary, remove before releasing
-    //   Currently only used to be backward compatible with hEngine. After binaries and orchestrator
-    //   are adjusted, this can safely be removed.
-    #[doc(hidden)]
-    fn generalize(self) -> Result<Self::Ok, ()>;
 }
 
 impl<T, C> ResultExt for Result<T, C> {
@@ -245,10 +239,6 @@ impl<T, C> ResultExt for Result<T, C> {
             Ok(ok) => Ok(ok),
             Err(report) => Err(report.change_context(context())),
         }
-    }
-
-    fn generalize(self) -> Result<T, ()> {
-        self.map_err(Report::generalize)
     }
 }
 

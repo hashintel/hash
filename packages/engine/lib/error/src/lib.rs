@@ -298,7 +298,7 @@ pub(crate) mod test_helper {
 
     use crate::{Context, Report};
 
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct ContextA;
 
     impl fmt::Display for ContextA {
@@ -309,7 +309,7 @@ pub(crate) mod test_helper {
 
     impl Context for ContextA {}
 
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct ContextB;
 
     impl fmt::Display for ContextB {

@@ -306,16 +306,6 @@ impl<T> Report<T> {
         )
     }
 
-    /// Converts the `Report<T>` to `Report<()>` without modifying the frame stack.
-    #[doc(hidden)]
-    #[allow(clippy::missing_const_for_fn)] // False positive
-    pub fn generalize(self) -> Report<()> {
-        Report {
-            inner: self.inner,
-            _context: PhantomData,
-        }
-    }
-
     /// Returns the backtrace of the error, if captured.
     ///
     /// Note, that `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` has to be set to enable backtraces.
@@ -396,6 +386,33 @@ impl<T> Report<T> {
 
     pub(crate) const fn frame(&self) -> &Frame {
         &self.inner.frame
+    }
+}
+
+impl<T: Context> Report<T> {
+    /// Returns the current context of the `Report`.
+    ///
+    /// If the user want to get the latest context, `current_context` can be called. If the user
+    /// wants to handle the error, the context can then be used to directly access the context's
+    /// type. This is only possible for the latest context as the Report does not have multiple
+    /// generics as this would either require variadic generics or a workaround like tuple-list.
+    ///
+    /// This is one disadvantage of the library in comparison to plain Errors, as in these cases,
+    /// all context types are known.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)] // Panicking here is a bug
+    pub fn current_context(&self) -> &T
+    where
+        T: Any,
+    {
+        // Panics if there isn't an attached context which matches `T`. As it's not possible to
+        // create a `Report` without a valid context and this method can only be called when `T` is
+        // a valid context, it's guaranteed that the context is available when calling
+        // `current_context`.
+        self.downcast_ref().expect(
+            "Report does not contain a context. This is considered a bug and should be reported \
+             to https://github.com/hashintel/hash/issues/new",
+        )
     }
 }
 
