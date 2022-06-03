@@ -388,9 +388,9 @@ impl<T: Context> Report<T> {
     where
         T: Any,
     {
-        // Panics if there isn't an attached context, which is matching `T`. As it's not possible to
+        // Panics if there isn't an attached context which matches `T`. As it's not possible to
         // create a `Report` without a valid context and this method can only be called when `T` is
-        // a valid context, it's guaranteed, that the context is available when calling
+        // a valid context, it's guaranteed that the context is available when calling
         // `current_context`.
         self.downcast_ref().expect(
             "Report does not contain a context. This is considered a bug and should be reported \
