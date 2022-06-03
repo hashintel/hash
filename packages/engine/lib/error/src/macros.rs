@@ -297,9 +297,17 @@ mod tests {
         // TODO: check `err.frames().next().kind() == FrameKind::Context`
 
         let err = capture_error(|| Err(report!(err)));
+        let err = err.attach(ContextB);
         assert!(err.contains::<ContextA>());
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(messages(&err), ["additional message", "Context A"]);
+        assert!(err.contains::<ContextB>());
+        #[cfg(nightly)]
+        assert!(err.request_ref::<ContextB>().next().is_some());
+        assert_eq!(err.frames().count(), 3);
+        assert_eq!(messages(&err), [
+            "Context B",
+            "additional message",
+            "Context A"
+        ]);
         // TODO: check `err.frames().next().kind() == FrameKind::Context`
 
         #[cfg(feature = "std")]

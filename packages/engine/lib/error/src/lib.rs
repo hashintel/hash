@@ -312,10 +312,8 @@ pub(crate) mod test_helper {
     impl Context for ContextA {}
 
     #[derive(Debug)]
-    #[cfg(feature = "std")]
     pub struct ContextB;
 
-    #[cfg(feature = "std")]
     impl fmt::Display for ContextB {
         fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
             fmt.write_str("Context B")
