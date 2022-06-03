@@ -186,7 +186,7 @@ struct VTable {
 
 /// Wrapper around the contextual information stored in a [`Frame`].
 ///
-/// An information can be requested by calling [`Report::request_ref`]. It's used for the
+/// A piece of information can be requested by calling [`Report::request_ref`]. It's used for the
 /// [`Display`] and [`Debug`] implementation for a [`Frame`]. If the information is a [`Provider`],
 /// use [`Report::attach_provider`] instead.
 struct FrameObject<T>(T);
