@@ -200,8 +200,6 @@ pub mod iter;
 mod macros;
 mod report;
 mod result;
-#[cfg(nightly)]
-mod single_provider;
 
 #[cfg(feature = "std")]
 mod error;
