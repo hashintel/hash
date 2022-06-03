@@ -12,7 +12,6 @@ const intervals: (keyof Duration)[] = [
   "days",
   "hours",
   "minutes",
-  "seconds",
 ];
 
 export const defaultDuration = {
@@ -21,7 +20,6 @@ export const defaultDuration = {
   days: 0,
   hours: 0,
   minutes: 0,
-  seconds: 0,
 } as Duration;
 
 export const Display: VFC<DisplayProps> = ({ targetDate, displayTime }) => {
@@ -46,7 +44,7 @@ export const Display: VFC<DisplayProps> = ({ targetDate, displayTime }) => {
     : defaultDuration;
 
   const filteredIntervals = intervals.reduce<(keyof Duration)[]>((acc, val) => {
-    if (!displayTime && ["hours", "minutes", "seconds"].includes(val)) {
+    if (!displayTime && ["hours", "minutes"].includes(val)) {
       return acc;
     }
     if (duration[val] || acc.length > 0) {
@@ -66,7 +64,7 @@ export const Display: VFC<DisplayProps> = ({ targetDate, displayTime }) => {
         return (
           <div key={item} className="countdown-block__display-grid__item">
             <p>
-              {["seconds", "minutes"].includes(item)
+              {["minutes"].includes(item)
                 ? duration[item]?.toString().padStart(2, "0") ?? "00"
                 : duration[item] ?? "0"}
             </p>
