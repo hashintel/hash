@@ -80,7 +80,7 @@ pub struct CliError;
 
 impl fmt::Display for CliError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not run engine")
+        fmt.write_str("CLI encountered an error during execution")
     }
 }
 
