@@ -285,9 +285,9 @@ impl<T> Report<T> {
     /// # #[derive(Debug)] struct NoStdError;
     /// # impl core::fmt::Display for NoStdError { fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
     /// # impl error::Context for NoStdError {}
-    /// # #[cfg(not(feature = "std"))]
+    /// # #[cfg(any(not(feature = "std"), miri))]
     /// # let error: Result<(), _> = Err(error::report!(NoStdError).provide(Suggestion("Better use a file which exists next time!")));
-    /// # #[cfg(feature = "std")]
+    /// # #[cfg(all(feature = "std", not(miri)))]
     /// let error = fs::read_to_string("config.txt")
     ///     .report()
     ///     .provide(Suggestion("Better use a file which exists next time!"));
