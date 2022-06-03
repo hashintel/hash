@@ -292,12 +292,14 @@ mod tests {
         let err = capture_error(|| Err(report!(ContextA)));
         let err = err.attach_message("additional message");
         assert!(err.contains::<ContextA>());
+        assert_eq!(err.current_context(), &ContextA);
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
         // TODO: check `err.frames().next().kind() == FrameKind::Context`
 
         let err = capture_error(|| Err(report!(err)));
         assert!(err.contains::<ContextA>());
+        assert_eq!(err.current_context(), &ContextA);
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
         // TODO: check `err.frames().next().kind() == FrameKind::Context`
@@ -306,6 +308,7 @@ mod tests {
         {
             let err = capture_error(|| Err(report!(ContextB)));
             let err = err.attach_message("additional message");
+            assert_eq!(err.current_context(), &ContextB);
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
