@@ -124,14 +124,14 @@ implement_lazy_future_adaptor!(
 );
 
 implement_future_adaptor!(
-    FutureWithProvided,
+    FutureWithProvidedRef,
     provide,
     Display + Debug + Send + Sync + 'static,
     Fut::Output
 );
 
 implement_lazy_future_adaptor!(
-    FutureWithLazyProvided,
+    FutureWithLazyProvidedRef,
     provide_lazy,
     Display + Debug + Send + Sync + 'static,
     Fut::Output
@@ -284,7 +284,7 @@ pub trait FutureExt: Future + Sized {
     /// [`Frame`]: crate::Frame
     /// [`poll`]: Future::poll
     #[cfg(nightly)]
-    fn provide<P>(self, provided: P) -> FutureWithProvided<Self, P>
+    fn provide<P>(self, provided: P) -> FutureWithProvidedRef<Self, P>
     where
         P: Display + Debug + Send + Sync + 'static;
 
@@ -298,7 +298,7 @@ pub trait FutureExt: Future + Sized {
     /// [`Frame`]: crate::Frame
     /// [`poll`]: Future::poll
     #[cfg(nightly)]
-    fn provide_lazy<P, F>(self, provided: F) -> FutureWithLazyProvided<Self, F>
+    fn provide_lazy<P, F>(self, provided: F) -> FutureWithLazyProvidedRef<Self, F>
     where
         P: Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> P;
@@ -385,22 +385,22 @@ where
         }
     }
 
-    fn provide<P>(self, provided: P) -> FutureWithProvided<Self, P>
+    fn provide<P>(self, provided: P) -> FutureWithProvidedRef<Self, P>
     where
         P: Display + Debug + Send + Sync + 'static,
     {
-        FutureWithProvided {
+        FutureWithProvidedRef {
             future: self,
             inner: Some(provided),
         }
     }
 
-    fn provide_lazy<P, F>(self, provided: F) -> FutureWithLazyProvided<Self, F>
+    fn provide_lazy<P, F>(self, provided: F) -> FutureWithLazyProvidedRef<Self, F>
     where
         P: Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> P,
     {
-        FutureWithLazyProvided {
+        FutureWithLazyProvidedRef {
             future: self,
             inner: Some(provided),
         }
