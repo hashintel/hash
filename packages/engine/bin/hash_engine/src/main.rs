@@ -15,7 +15,7 @@ pub struct EngineError;
 
 impl fmt::Display for EngineError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not run engine")
+        fmt.write_str("Engine encountered an error during execution")
     }
 }
 
