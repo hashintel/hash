@@ -184,7 +184,7 @@ struct VTable {
     object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
 }
 
-/// Wrapper around a contextual information living in a [`Frame`].
+/// Wrapper around the contextual information stored in a [`Frame`].
 ///
 /// An information can be requested by calling [`Report::request_ref`]. It's used for the
 /// [`Display`] and [`Debug`] implementation for a [`Frame`]. If the information is a [`Provider`],
