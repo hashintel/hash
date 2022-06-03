@@ -362,6 +362,33 @@ impl<T> Report<T> {
     }
 }
 
+impl<T: Context> Report<T> {
+    /// Returns the current context of the `Report`.
+    ///
+    /// If the user want to get the latest context, `current_context` can be called. If the user
+    /// wants to handle the error, the context can then be used to directly access the context's
+    /// type. This is only possible for the latest context as the Report does not have multiple
+    /// generics as this would either require variadic generics or a workaround like tuple-list.
+    ///
+    /// This is one disadvantage of the library in comparison to plain Errors, as in these cases,
+    /// all context types are known.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)] // Panicking here is a bug
+    pub fn current_context(&self) -> &T
+    where
+        T: Any,
+    {
+        // Panics if there isn't an attached context which matches `T`. As it's not possible to
+        // create a `Report` without a valid context and this method can only be called when `T` is
+        // a valid context, it's guaranteed that the context is available when calling
+        // `current_context`.
+        self.downcast_ref().expect(
+            "Report does not contain a context. This is considered a bug and should be reported \
+             to https://github.com/hashintel/hash/issues/new",
+        )
+    }
+}
+
 impl<Context> fmt::Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
