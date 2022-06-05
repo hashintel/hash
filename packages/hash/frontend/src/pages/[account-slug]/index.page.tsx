@@ -1,9 +1,11 @@
 import { Box, Typography } from "@mui/material";
+import { faWarning } from "@fortawesome/free-solid-svg-icons";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
 import { useRouteAccountInfo } from "../../shared/routing";
+import { FontAwesomeIcon } from "../../shared/icons";
 
 const Page: NextPageWithLayout = () => {
   const { user } = useUser();
@@ -46,21 +48,45 @@ const Page: NextPageWithLayout = () => {
     );
   }
 
-  const workspaceName = ownWorkspace ? "your" : `${thisOrg!.name}'s`;
-
   return (
     <>
-      <Box component="header" mt={1.5}>
-        <Typography mb={2} variant="h1">
-          Hi, {user.properties.preferredName}!
+      <Typography mb={3} variant="h2">
+        Welcome to HASH
+      </Typography>
+      <Box sx={{ maxWidth: "75ch" }}>
+        <Typography mb={3}>
+          HASH is an open-source, data-centric, all-in-one workspace built atop
+          the open <Link href="https://blockprotocol.org">Block Protocol</Link>,
+          allowing users to easily add new block types and functionality to
+          their workspaces.
         </Typography>
-        <Typography mb={2} variant="h3">
-          Welcome to {workspaceName} workspace.
+        <Typography mb={3}>
+          <strong>
+            <FontAwesomeIcon
+              icon={faWarning}
+              sx={({ palette }) => ({
+                color: palette.orange[50],
+                mr: 0.5,
+              })}
+            />{" "}
+            HASH is not ready for production use.
+          </strong>{" "}
+          It is not secure or optimized and is missing key features. Please
+          visit the{" "}
+          <Link href="https://github.com/hashintel/hash/tree/main/packages/hash">
+            GitHub repository
+          </Link>{" "}
+          for the latest updates, or learn about the long-term{" "}
+          <Link href="https://hash.ai">here.</Link>
+        </Typography>
+        <Typography>
+          This version of HASH is intended to be used as a test-harness for
+          developers building Block Protocol-compliant blocks. Please{" "}
+          <Link href="https://github.com/hashintel/hash/tree/main/packages/hash#integration-with-the-block-protocol">
+            read the documentation to get started.
+          </Link>
         </Typography>
       </Box>
-      <Typography>
-        Please select a page from the list, or create a new page.
-      </Typography>
     </>
   );
 };
