@@ -7,7 +7,14 @@ import Tooltip from "@mui/material/Tooltip";
 import Cancel from "@mui/icons-material/Cancel";
 import { uniqBy } from "lodash";
 import formatDistance from "date-fns/formatDistance";
-import { Box, Typography, Button, Divider } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  Divider,
+  AvatarGroup,
+  typographyClasses,
+} from "@mui/material";
 // import { Button } from "@hashintel/hash-design-system";
 import {
   GithubIssueEvent,
@@ -16,7 +23,7 @@ import {
   isDefined,
   PullRequestIdentifier,
 } from "./types";
-import { GithubPrTimeline } from "./timeline";
+import { GithubPrTimeline } from "./timeline1";
 import { BlockState } from "./app";
 import { GithubIcon, PullRequestIcon } from "./icons";
 
@@ -59,6 +66,124 @@ export const Reviewer = (login: string, avatar_url?: string | null) => (
     />
     <span>{login}</span>
   </Stack>
+);
+
+export const Reviews: React.FC<{
+  pendingReviews: { avatar_url: string; login: string }[];
+  completedReviews: { avatar_url: string; login: string }[];
+}> = ({ pendingReviews, completedReviews }) => (
+  <Box>
+    <Typography
+      variant="regularTextParagraphs"
+      sx={({ palette }) => ({ color: palette.gray[90], mb: 1.75 })}
+    >
+      Reviews
+    </Typography>
+    <Stack direction="row" spacing={4}>
+      <Box>
+        <Stack direction="row" alignItems="center">
+          <Typography
+            variant="smallTextLabels"
+            sx={({ palette }) => ({ color: palette.gray[90] })}
+          >
+            Pending
+          </Typography>
+          <Box
+            sx={({ palette }) => ({
+              height: 20,
+              width: 20,
+              borderRadius: "50%",
+              backgroundColor: palette.gray[20],
+              ml: 0.75,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              [`& ${typographyClasses.root}`]: {
+                color: palette.gray[70],
+              },
+            })}
+          >
+            <Typography variant="microText">{pendingReviews.length}</Typography>
+          </Box>
+        </Stack>
+
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <AvatarGroup max={1}>
+            {pendingReviews.map(({ avatar_url }, index) => (
+              <Avatar
+                key={index}
+                src={avatar_url}
+                sx={{ height: 28, width: 28 }}
+              />
+            ))}
+          </AvatarGroup>
+          <Typography
+            sx={({ palette }) => ({
+              color: palette.gray[70],
+            })}
+          >
+            {pendingReviews.map(({ login }, index) => (
+              <span>
+                {login} {index < pendingReviews.length - 1 ? "," : ""}
+              </span>
+            ))}
+          </Typography>
+        </Stack>
+      </Box>
+      <Box>
+        <Stack direction="row" alignItems="center">
+          <Typography
+            variant="smallTextLabels"
+            sx={({ palette }) => ({ color: palette.gray[90] })}
+          >
+            Completed
+          </Typography>
+          <Box
+            sx={({ palette }) => ({
+              height: 20,
+              width: 20,
+              borderRadius: "50%",
+              backgroundColor: palette.gray[20],
+              ml: 0.75,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              [`& ${typographyClasses.root}`]: {
+                color: palette.gray[70],
+              },
+            })}
+          >
+            <Typography variant="microText">
+              {completedReviews.length}
+            </Typography>
+          </Box>
+        </Stack>
+
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <AvatarGroup max={1}>
+            {completedReviews.map(({ avatar_url }, index) => (
+              <Avatar
+                key={index}
+                src={avatar_url}
+                sx={{ height: 28, width: 28 }}
+              />
+            ))}
+          </AvatarGroup>
+          <Typography
+            sx={({ palette }) => ({
+              color: palette.gray[70],
+            })}
+          >
+            {pendingReviews.map(({ login }, index) => (
+              <span>
+                {login} {index < pendingReviews.length - 1 ? "," : ""}
+              </span>
+            ))}
+          </Typography>
+        </Stack>
+      </Box>
+    </Stack>
+  </Box>
 );
 
 export type GithubPrOverviewProps = {
@@ -104,134 +229,111 @@ export const GithubPrOverview: React.FunctionComponent<
   console.log({ pullRequest });
 
   return (
-    <>
-      <Box sx={{ maxWidth: 800, mx: "auto", border: "1px solid red" }}>
-        <Box sx={({ palette }) => ({ backgroundColor: palette.white })}>
-          <Box display="flex" mb={1.5}>
-            <GithubIcon
-              sx={({ palette }) => ({
-                height: 20,
-                width: 20,
-                color: palette.gray[50],
-              })}
-            />
-            <Typography>hashintel/hash</Typography>
-          </Box>
-
-          <Typography
-            sx={({ palette }) => ({ color: palette.gray[90], mb: 2 })}
-            variant="h1"
-          >
-            <Box
-              sx={({ palette }) => ({ color: palette.gray[50] })}
-              component="span"
-            >
-              #453
-            </Box>{" "}
-            Very long title of a pull request that needs to wrap onto another
-            line
-          </Typography>
-          <Box display="flex" alignItems="center">
-            {/*  */}
-            <Box display="flex" alignItems="center" mr={3}>
-              <PRStatus status={status.text.toLowerCase()} />
-              <Typography sx={{ ml: 0.75 }}>within {timeToClose}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center">
-              <Avatar
-                sx={{ height: 20, width: 20, mr: 1 }}
-                // @todo add default image
-                src={pullRequest.user?.avatar_url ?? ""}
-                alt={pullRequest.user?.login ?? "User"}
-              />
-              <Typography
-                variant="smallTextLabels"
-                sx={({ palette }) => ({ color: palette.gray[70], mr: 3 })}
-              >
-                Opened by {pullRequest.user?.login}
-              </Typography>
-              <Button variant="tertiary_quiet">29 reviews</Button>
-            </Box>
-          </Box>
-
-          <Divider />
+    <Box sx={{ maxWidth: 800, mx: "auto" }}>
+      <Box
+        sx={({ palette }) => ({ backgroundColor: palette.white, padding: 3 })}
+      >
+        <Box display="flex" mb={1.5}>
+          <GithubIcon
+            sx={({ palette }) => ({
+              height: 20,
+              width: 20,
+              color: palette.gray[50],
+            })}
+          />
+          <Typography>hashintel/hash</Typography>
         </Box>
-      </Box>
-      {/* <Grid container className="prOverviewContainer">
-       <GithubPrTimeline
-        pullRequest={pullRequest}
-        reviews={reviews}
-        events={events}
-      />
-      <Grid item xs={6} style={{ paddingLeft: "1em" }}>
-        <div style={{ position: "relative" }}>
-          <div>
-            <h1>
-              <span>{pullRequest.repository} </span>
-              <span style={{ color: "grey" }}>#{pullRequest.number}</span>
-            </h1>
-            <h2>
-              <span>Status: </span>
-              <span style={{ color: status.color }}>{status.text}</span>
-            </h2>
-            <Stack>
-              {timeToClose ? (
-                <div>
-                  <span style={{ fontWeight: "bold" }}>Merged After: </span>
-                  {timeToClose}
-                </div>
-              ) : undefined}
-              <div>
-                <span style={{ fontWeight: "bold" }}>Reviews: </span>
-                {reviews.length}
-              </div>
-              <div>
-                {pullRequest.requested_reviewers != null &&
-                pullRequest.requested_reviewers.filter(isDefined).length > 0 ? (
-                  <>
-                    <span style={{ fontWeight: "bold" }}>
-                      Pending New Reviews From:
-                    </span>
-                    {pullRequest.requested_reviewers
-                      ?.filter(isDefined)
-                      .map((reviewer) => (
-                        <div key={reviewer.login}>
-                          {Reviewer(reviewer.login!, reviewer.avatar_url)}
-                        </div>
-                      ))}
-                  </>
-                ) : null}
-              </div>
-              <div>
-                <span style={{ fontWeight: "bold" }}>Reviewed By:</span>
-                {uniqueReviewers.map((reviewer) => (
-                  <div key={reviewer.login}>
-                    {Reviewer(reviewer.login!, reviewer.avatar_url)}
-                  </div>
-                ))}
-              </div>
-            </Stack>
-          </div>
 
-          <IconButton
-            onClick={() => {
-              setSelectedPullRequestId();
-              setBlockState(BlockState.Loading);
-            }}
-            style={{
-              position: "absolute",
-              top: 0,
-              right: "0.3em",
-              zIndex: 3,
-            }}
+        <Typography
+          sx={({ palette }) => ({
+            color: palette.gray[90],
+            mb: 2,
+            fontWeight: 600,
+            // @todo remove
+            fontFamily: "Inter",
+          })}
+          variant="h1"
+        >
+          <Box
+            sx={({ palette }) => ({ color: palette.gray[50] })}
+            component="span"
           >
-            <Tooltip title="Change Pull Request">
-              <Cancel key="cancelButton" />
-            </Tooltip>
-          </IconButton>
-        </div>
-      </Grid>
-    </Grid> */}
-    </>
+            #453
+          </Box>{" "}
+          Very long title of a pull request that needs to wrap onto another line
+        </Typography>
+        <Box display="flex" alignItems="center">
+          {/*  */}
+          <Box display="flex" alignItems="center" mr={3}>
+            <PRStatus status={status.text.toLowerCase()} />
+            <Typography sx={{ ml: 0.75 }}>within {timeToClose}</Typography>
+          </Box>
+          <Box display="flex" alignItems="center">
+            <Avatar
+              sx={{ height: 20, width: 20, mr: 1 }}
+              // @todo add default image
+              src={pullRequest.user?.avatar_url ?? ""}
+              alt={pullRequest.user?.login ?? "User"}
+            />
+            <Typography
+              variant="smallTextLabels"
+              sx={({ palette }) => ({ color: palette.gray[70], mr: 3 })}
+            >
+              Opened by {pullRequest.user?.login}
+            </Typography>
+            <Button variant="tertiary_quiet">29 reviews</Button>
+          </Box>
+        </Box>
+
+        <Divider sx={{ mt: 3, mb: 2 }} />
+
+        <Reviews
+          // pendingReviews={(pullRequest.requested_reviewers ?? [])
+          //   ?.filter(isDefined)
+          //   .map(({ login, avatar_url }) => ({ login, avatar_url }))}
+          // completedReviews={uniqueReviewers}
+          pendingReviews={[
+            {
+              login: "kachkaev",
+              avatar_url: "https://avatars.githubusercontent.com/u/608862?v=4",
+            },
+            {
+              login: "Ciaran",
+              avatar_url: "https://avatars.githubusercontent.com/u/608862?v=4",
+            },
+          ]}
+          completedReviews={[
+            {
+              login: "kachkaev",
+              avatar_url: "https://avatars.githubusercontent.com/u/608862?v=4",
+            },
+            {
+              login: "Ciaran",
+              avatar_url: "https://avatars.githubusercontent.com/u/608862?v=4",
+            },
+          ]}
+        />
+      </Box>
+      <Box
+        sx={{
+          background: `linear-gradient(181.33deg, #F7FAFC 10.89%, rgba(251, 253, 254, 0) 94.8%`,
+          height: 9,
+        }}
+      />
+      <Box
+        sx={({ palette }) => ({
+          backgroundColor: palette.gray[10],
+          height: 580, // this should be max height
+          borderRadius: "0 0 6px 6px",
+          px: 2,
+        })}
+      >
+        <GithubPrTimeline
+          pullRequest={pullRequest}
+          reviews={reviews}
+          events={events}
+        />
+      </Box>
+    </Box>
   );
 };

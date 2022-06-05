@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { Box, CssBaseline, ThemeProvider } from "@mui/material";
 import { theme } from "@hashintel/hash-design-system";
 import {
   GithubIssueEvent,
@@ -222,7 +222,11 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div>
+      <Box
+        sx={({ palette }) => ({
+          background: palette.gray[20],
+        })}
+      >
         {blockState === BlockState.Loading ? (
           <LoadingUI title="Setting up Block" />
         ) : blockState === BlockState.Selector ? (
@@ -250,7 +254,12 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         ) : (
           <div> Failed To Load Block </div>
         )}
-      </div>
+        <Box
+          sx={{
+            height: 100,
+          }}
+        />
+      </Box>
     </ThemeProvider>
   );
 };

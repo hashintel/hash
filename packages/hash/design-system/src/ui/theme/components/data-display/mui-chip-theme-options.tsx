@@ -81,6 +81,7 @@ const getColors = (
 export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
   defaultProps: {
     size: "small",
+    color: "gray",
     deleteIcon: (
       // wrapping the icon in a box makes it possible for us to increase
       // the icons clickable area without increasing the size of the icon
