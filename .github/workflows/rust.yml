@@ -404,9 +404,7 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.miri) }}
-        toolchain:
-          - stable
-          - ${{ needs.setup.outputs.nightly }}
+        toolchain: ${{ needs.setup.outputs.nightly }}
         flags:
           - --no-default-features
           - --all-features

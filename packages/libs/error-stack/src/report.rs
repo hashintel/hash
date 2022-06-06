@@ -187,8 +187,6 @@ impl<T> Report<T> {
         } else {
             Some(Backtrace::capture())
         };
-        #[cfg(all(nightly, not(feature = "std")))]
-        let backtrace = Some(Backtrace::capture());
 
         #[cfg(all(nightly, feature = "spantrace"))]
         let span_trace = if request_ref::<SpanTrace, _>(&provider).is_some() {
