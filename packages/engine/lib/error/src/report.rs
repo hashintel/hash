@@ -24,6 +24,8 @@ use crate::{iter::Frames, Context};
 /// to provide more context information than only a display message. This information can then be
 /// retrieved by calling [`request_ref()`] or [`request_value()`].
 ///
+/// ## `Backtrace` and `SpanTrace`
+///
 /// `Report` is able to provide a [`Backtrace`] and a [`SpanTrace`], which can be retrieved by
 /// calling [`backtrace()`] or [`span_trace()`] respectively. If the root context provides a
 /// [`Backtrace`] or a [`SpanTrace`], those are returned, otherwise, if configured, they are tried
@@ -32,8 +34,6 @@ use crate::{iter::Frames, Context};
 /// [`Backtrace` documentation][`Backtrace`]. To enable capturing of the span trace, an
 /// [`ErrorLayer`] has to be enabled. Please also see the [Feature Flags] section.
 ///
-/// [`Backtrace`]: std::backtrace::Backtrace
-/// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
 /// [`new()`]: Self::new
@@ -167,6 +167,12 @@ impl<T> Report<T> {
     }
 
     /// Creates a new `Report<Context>` from a provided scope.
+    ///
+    /// If `context` does not provide [`Backtrace`]/[`SpanTrace`] thy are attempted to be
+    /// captured. Please see the [`Backtrace` and `SpanTrace` section] of the `Report`
+    /// documentation for more information.
+    ///
+    /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
     #[track_caller]
     pub fn new(context: T) -> Self
     where
