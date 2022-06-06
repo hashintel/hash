@@ -17,9 +17,9 @@ use crate::Context;
 /// A single context or attachment inside of a [`Report`].
 ///
 /// `Frame`s are organized as a singly linked list, which can be iterated by calling
-/// [`Report::frames()`]. The head the current context or attachment, the tail is the root context
-/// created by [`Report::new()`]. The next `Frame` can be accessed by requesting it by
-/// calling [`Report::request_ref()`].
+/// [`Report::frames()`]. The head contains the current context or attachment, and the tail contains
+/// the root context created by [`Report::new()`]. The next `Frame` can be accessed by requesting it
+/// by calling [`Report::request_ref()`].
 ///
 /// [`Report`]: crate::Report
 /// [`Report::frames()`]: crate::Report::frames
