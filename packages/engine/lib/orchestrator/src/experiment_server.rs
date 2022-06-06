@@ -222,9 +222,10 @@ impl Server {
                 // completes before sending de-registering the experiment.
                 Ok(())
             }
-            Some(sender) => sender.send(msg.body).report().attach_message_lazy(|| {
-                format!("Routing message for experiment {}", msg.experiment_id)
-            }),
+            Some(sender) => sender
+                .send(msg.body)
+                .report()
+                .attach_lazy(|| format!("Routing message for experiment {}", msg.experiment_id)),
         }
     }
 

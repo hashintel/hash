@@ -57,7 +57,7 @@ impl Worker {
     fn new(socket: &nng::Socket, sender: MsgSender, url: &str) -> Result<Self, nng::Error> {
         let ctx_orig = nng::Context::new(socket)
             .report()
-            .attach_message("Could not create context")?;
+            .attach("Could not create context")?;
         let ctx = ctx_orig.clone();
 
         let socket_url = url.to_owned();
@@ -90,7 +90,7 @@ impl Worker {
         ctx_orig
             .recv(&aio)
             .report()
-            .attach_message("Could not receive message from context")?;
+            .attach("Could not receive message from context")?;
 
         Ok(Self { _aio: aio })
     }
@@ -108,12 +108,12 @@ impl Server {
     pub fn new(url: &str) -> Result<Self> {
         let socket = nng::Socket::new(nng::Protocol::Rep0)
             .report()
-            .attach_message("Could not create socket")
+            .attach("Could not create socket")
             .change_context(ErrorKind::ServerCreation)?;
         socket
             .listen(url)
             .report()
-            .attach_message("Could not listen on socket")
+            .attach("Could not listen on socket")
             .change_context(ErrorKind::ServerCreation)?;
 
         let (sender, receiver) = mpsc::unbounded_channel();
@@ -121,7 +121,7 @@ impl Server {
         let workers = (0..NUM_WORKERS)
             .map(|_| {
                 Worker::new(&socket, sender.clone(), url)
-                    .attach_message("Could not create worker")
+                    .attach("Could not create worker")
                     .change_context(ErrorKind::ServerCreation)
             })
             .collect::<Result<Vec<_>>>()?;
@@ -153,7 +153,7 @@ impl Server {
         let msg = self.receiver.recv().await.expect(RECV_EXPECT_MESSAGE);
         serde_json::from_slice::<T>(msg.as_slice())
             .report()
-            .attach_message("Could not convert message from JSON")
+            .attach("Could not convert message from JSON")
             .change_context(ErrorKind::Receive)
     }
 }

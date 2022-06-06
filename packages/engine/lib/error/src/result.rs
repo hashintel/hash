@@ -1,7 +1,5 @@
 use core::fmt;
 
-#[cfg(nightly)]
-use crate::provider::Provider;
 use crate::{Context, Report};
 
 /// [`Result`](std::result::Result)`<T, `[`Report<C>`](Report)`>`
@@ -48,7 +46,7 @@ pub trait ResultExt {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
 
-    /// Adds new contextual message to the [`Frame`] stack of a [`Report`].
+    /// Adds new contextual information to the [`Frame`] stack of a [`Report`].
     ///
     /// [`Frame`]: crate::Frame
     ///
@@ -64,15 +62,15 @@ pub trait ResultExt {
     /// # let user = User;
     /// # let resource = Resource;
     /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource).attach_message("Could not load resource")?;
+    /// let resource = load_resource(&user, &resource).attach("Could not load resource")?;
     /// # Result::Ok(())
     /// ```
     #[must_use]
-    fn attach_message<M>(self, message: M) -> Self
+    fn attach<A>(self, attachment: A) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static;
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
-    /// Lazily adds new contextual message to the [`Frame`] stack of a [`Report`].
+    /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`].
     ///
     /// The function is only executed in the `Err` arm.
     ///
@@ -93,49 +91,14 @@ pub trait ResultExt {
     /// # let resource = Resource;
     /// # #[allow(unused_variables)]
     /// let resource = load_resource(&user, &resource)
-    ///     .attach_message_lazy(|| format!("Could not load resource {resource}"))?;
+    ///     .attach_lazy(|| format!("Could not load resource {resource}"))?;
     /// # Result::Ok(())
     /// ```
     #[must_use]
-    fn attach_message_lazy<M, F>(self, op: F) -> Self
+    fn attach_lazy<A, F>(self, attachment: F) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> M;
-
-    /// Adds a [`Provider`] to the [`Frame`] stack.
-    ///
-    /// The provider is used to [`provide`] values either by calling
-    /// [`request_ref()`]/[`request_value()`] to return an iterator over all specified values, or by
-    /// using the [`Provider`] implementation on a [`Frame`].
-    ///
-    /// [`provide`]: Provider::provide
-    /// [`request_ref()`]: crate::Report::request_ref
-    /// [`request_value()`]: crate::Report::request_value
-    /// [`Frame`]: crate::Frame
-    #[cfg(nightly)]
-    #[must_use]
-    fn attach_provider<P>(self, provider: P) -> Self
-    where
-        P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static;
-
-    /// Lazily adds a [`Provider`] to the [`Frame`] stack.
-    ///
-    /// The provider is used to [`provide`] values either by calling
-    /// [`request_ref()`]/[`request_value()`] to return an iterator over all specified values, or by
-    /// using the [`Provider`] implementation on a [`Frame`].
-    ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// [`provide`]: Provider::provide
-    /// [`request_ref()`]: crate::Report::request_ref
-    /// [`request_value()`]: crate::Report::request_value
-    /// [`Frame`]: crate::Frame
-    #[cfg(nightly)]
-    #[must_use]
-    fn attach_provider_lazy<P, F>(self, provider: F) -> Self
-    where
-        P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> P;
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> A;
 
     /// Changes the [`Context`] of a [`Report`] returning [`Result<T, C>`].
     ///
@@ -155,7 +118,7 @@ pub trait ResultExt {
     ///
     /// [`Frame`]: crate::Frame
     // TODO: come up with a decent example
-    fn change_context_lazy<C, F>(self, op: F) -> Result<Self::Ok, C>
+    fn change_context_lazy<C, F>(self, context: F) -> Result<Self::Ok, C>
     where
         C: Context,
         F: FnOnce() -> C;
@@ -165,54 +128,27 @@ impl<T, C> ResultExt for Result<T, C> {
     type Ok = T;
 
     #[track_caller]
-    fn attach_message<M>(self, message: M) -> Self
+    fn attach<A>(self, attachment: A) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach_message(message)),
+            Err(report) => Err(report.attach(attachment)),
         }
     }
 
     #[track_caller]
-    fn attach_message_lazy<M, F>(self, message: F) -> Self
+    fn attach_lazy<A, F>(self, attachment: F) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> M,
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> A,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach_message(message())),
-        }
-    }
-
-    #[cfg(nightly)]
-    #[track_caller]
-    fn attach_provider<P>(self, provider: P) -> Self
-    where
-        P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach_provider(provider)),
-        }
-    }
-
-    #[cfg(nightly)]
-    #[track_caller]
-    fn attach_provider_lazy<P, F>(self, provider: F) -> Self
-    where
-        P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> P,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach_provider(provider())),
+            Err(report) => Err(report.attach(attachment())),
         }
     }
 
