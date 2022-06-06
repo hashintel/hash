@@ -8,7 +8,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git#vu/drawing-canvas-fixes",
+    "url": "https://github.com/hashintel/hash.git",
     "directory": "packages/blocks/drawing"
   },
   "license": "MIT",
