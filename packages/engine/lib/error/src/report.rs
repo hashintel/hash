@@ -18,9 +18,10 @@ use crate::{iter::Frames, Context};
 /// Contains a [`Frame`] stack consisting of [`Context`]s, attachments, and optionally
 /// a [`Backtrace`] and a [`SpanTrace`].
 ///
-/// To enable the backtrace, make sure `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to
-/// the [`Backtrace` documentation][`Backtrace`]. To enable the span trace, [`ErrorLayer`] has to
-/// be enabled.
+/// If the root [`Frame`] contains a [`Backtrace`]/[`SpanTrace`], these are used, otherwise they
+/// are eventually captured. To enable capturing of the backtrace, make sure `RUST_BACKTRACE` or
+/// `RUST_LIB_BACKTRACE` is set according to the [`Backtrace` documentation][`Backtrace`]. To enable
+/// capturing of the span trace, an [`ErrorLayer`] has to be enabled.
 ///
 /// Attachments can be added by using [`attach()`]. The [`Frame`] stack can be iterated by using
 /// [`frames()`].
