@@ -235,7 +235,7 @@ impl VTable {
     /// # Safety
     ///
     /// - Layout of `frame` must match `FrameRepr<C>`.
-    unsafe fn object_downcast_unchecked<C: Context>(frame: &FrameRepr) -> NonNull<()> {
+    const unsafe fn object_downcast_unchecked<C: Context>(frame: &FrameRepr) -> NonNull<()> {
         // Attach T's native vtable onto the pointer to `self._unerased`
         let unerased: *const FrameRepr<C> = (frame as *const FrameRepr).cast();
         // inside of vtable it's allowed to access `_unerased`
