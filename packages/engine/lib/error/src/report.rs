@@ -13,14 +13,7 @@ use crate::iter::{RequestRef, RequestValue};
 use crate::{context::temporary_provider, provider::request_ref};
 use crate::{iter::Frames, Context};
 
-/// Contains a [`Frame`] stack consisting of [`Context`]s, attachments, and optionally
-/// a [`Backtrace`] and a [`SpanTrace`].
-///
-/// If the root [`Frame`] contains a [`Backtrace`]/[`SpanTrace`], these are used, otherwise they
-/// are eventually captured. To enable capturing of the backtrace, make sure `RUST_BACKTRACE` or
-/// `RUST_LIB_BACKTRACE` is set according to the [`Backtrace` documentation][`Backtrace`]. To enable
-/// capturing of the span trace, an [`ErrorLayer`] has to be enabled. Please also look at the
-/// [Feature Flags] section.
+/// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
 ///
 /// Attachments can be added by using [`attach()`]. The [`Frame`] stack can be iterated by using
 /// [`frames()`].
@@ -31,6 +24,14 @@ use crate::{iter::Frames, Context};
 /// to provide more context information than only a display message. This information can then be
 /// retrieved by calling [`request_ref()`] or [`request_value()`].
 ///
+/// `Report` is able to provide a [`Backtrace`] and a [`SpanTrace`], which can be retrieved by
+/// calling [`backtrace()`] or [`span_trace()`] respectively. If the root context provides a
+/// [`Backtrace`] or a [`SpanTrace`], those are returned, otherwise, if configured, they are tried
+/// to be captured when creating a `Report`. To enable capturing of the backtrace, make sure
+/// `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to the
+/// [`Backtrace` documentation][`Backtrace`]. To enable capturing of the span trace, an
+/// [`ErrorLayer`] has to be enabled. Please also see the [Feature Flags] section.
+///
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
@@ -40,6 +41,8 @@ use crate::{iter::Frames, Context};
 /// [`change_context()`]: Self::change_context
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
+/// [`backtrace()`]: Self::backtrace
+/// [`span_trace()`]: Self::span_trace
 /// [Feature Flags]: index.html#feature-flags
 ///
 /// # Examples
