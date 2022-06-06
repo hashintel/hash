@@ -42,7 +42,7 @@ impl process::Process for LocalProcess {
                 // From `Child::kill` docs: Forces the child process to exit. If the child has
                 // already exited, an InvalidInput error is returned
                 std::io::ErrorKind::InvalidInput => Ok(()),
-                _ => Err(Report::from_error(e)),
+                _ => Err(Report::new(e)),
             })
             .change_context(OrchestratorError::from("Could not kill the process"));
 

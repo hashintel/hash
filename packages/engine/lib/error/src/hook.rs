@@ -66,7 +66,7 @@ impl Report<()> {
     {
         DEBUG_HOOK
             .set(Box::new(hook))
-            .map_err(|_| Report::from_error(HookAlreadySet))
+            .map_err(|_| Report::new(HookAlreadySet))
     }
 
     /// Returns the hook that was previously set by [`set_debug_hook`], if any.
@@ -115,7 +115,7 @@ impl Report<()> {
     {
         DISPLAY_HOOK
             .set(Box::new(hook))
-            .map_err(|_| Report::from_error(HookAlreadySet))
+            .map_err(|_| Report::new(HookAlreadySet))
     }
 
     /// Returns the hook that was previously set by [`set_display_hook`], if any.

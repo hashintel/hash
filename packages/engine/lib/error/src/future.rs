@@ -14,8 +14,6 @@ use core::{
 
 use pin_project::pin_project;
 
-#[cfg(nightly)]
-use crate::provider::Provider;
 use crate::{Context, Result, ResultExt};
 
 macro_rules! implement_future_adaptor {
@@ -96,30 +94,16 @@ macro_rules! implement_lazy_future_adaptor {
 }
 
 implement_future_adaptor!(
-    FutureWithMessage,
-    attach_message,
+    FutureWithAttachment,
+    attach,
     Display + Debug + Send + Sync + 'static,
     Fut::Output
 );
 
 implement_lazy_future_adaptor!(
-    FutureWithLazyMessage,
-    attach_message_lazy,
+    FutureWithLazyAttachment,
+    attach_lazy,
     Display + Debug + Send + Sync + 'static,
-    Fut::Output
-);
-
-implement_future_adaptor!(
-    FutureWithProvider,
-    attach_provider,
-    Provider + Display + Debug + Send + Sync + 'static,
-    Fut::Output
-);
-
-implement_lazy_future_adaptor!(
-    FutureWithLazyProvider,
-    attach_provider_lazy,
-    Provider + Display + Debug + Send + Sync + 'static,
     Fut::Output
 );
 
@@ -141,7 +125,7 @@ implement_lazy_future_adaptor!(
 ///
 /// [`Report`]: crate::Report
 pub trait FutureExt: Future + Sized {
-    /// Adds new contextual message to the [`Frame`] stack of a [`Report`] when [`poll`]ing the
+    /// Adds new contextual information to the [`Frame`] stack of a [`Report`] when [`poll`]ing the
     /// [`Future`].
     ///
     /// [`Frame`]: crate::Frame
@@ -169,20 +153,20 @@ pub trait FutureExt: Future + Sized {
     /// # let fut = async {
     ///     # let user = User;
     ///     # let resource = Resource;
-    ///     // A contextual message can be provided before polling the `Future`
-    ///     load_resource(&user, &resource).attach_message("Could not load resource").await
+    ///     // An attachment can be added before polling the `Future`
+    ///     load_resource(&user, &resource).attach("Could not load resource").await
     /// # };
     /// # #[cfg(not(miri))]
     /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
     /// # Result::<_, ResourceError>::Ok(())
     /// ```
     #[track_caller]
-    fn attach_message<M>(self, message: M) -> FutureWithMessage<Self, M>
+    fn attach<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
     where
-        M: Display + Debug + Send + Sync + 'static;
+        A: Display + Debug + Send + Sync + 'static;
 
-    /// Lazily adds new contextual message to the [`Frame`] stack of a [`Report`] when [`poll`]ing
-    /// the [`Future`].
+    /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`] when
+    /// [`poll`]ing the [`Future`].
     ///
     /// The function is only executed in the `Err` arm.
     ///
@@ -212,53 +196,18 @@ pub trait FutureExt: Future + Sized {
     /// # let fut = async {
     ///     # let user = User;
     ///     # let resource = Resource;
-    ///     // A contextual message can be provided before polling the `Future`
-    ///     load_resource(&user, &resource).attach_message_lazy(|| format!("Could not load resource {resource}")).await
+    ///     // An attachment can be added before polling the `Future`
+    ///     load_resource(&user, &resource).attach_lazy(|| format!("Could not load resource {resource}")).await
     /// # };
     /// # #[cfg(not(miri))]
     /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
     /// # Result::<_, ResourceError>::Ok(())
     /// ```
     #[track_caller]
-    fn attach_message_lazy<M, F>(self, message: F) -> FutureWithLazyMessage<Self, F>
+    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
     where
-        M: Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> M;
-
-    /// Adds a [`Provider`] to the [`Frame`] stack when [`poll`]ing the [`Future`].
-    ///
-    /// The provider is used to [`provide`] values either by calling
-    /// [`request_ref()`]/[`request_value()`] to return an iterator over all specified values, or by
-    /// using the [`Provider`] implementation on a [`Frame`].
-    ///
-    /// [`provide`]: Provider::provide
-    /// [`request_ref()`]: crate::Report::request_ref
-    /// [`request_value()`]: crate::Report::request_value
-    /// [`Frame`]: crate::Frame
-    /// [`poll`]: Future::poll
-    #[cfg(nightly)]
-    fn attach_provider<P>(self, provider: P) -> FutureWithProvider<Self, P>
-    where
-        P: Provider + Display + Debug + Send + Sync + 'static;
-
-    /// Lazily adds a [`Provider`] to the [`Frame`] stack when [`poll`]ing the [`Future`].
-    ///
-    /// The provider is used to [`provide`] values either by calling
-    /// [`request_ref()`]/[`request_value()`] to return an iterator over all specified values, or by
-    /// using the [`Provider`] implementation on a [`Frame`].
-    ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// [`provide`]: Provider::provide
-    /// [`request_ref()`]: crate::Report::request_ref
-    /// [`request_value()`]: crate::Report::request_value
-    /// [`Frame`]: crate::Frame
-    /// [`poll`]: Future::poll
-    #[cfg(nightly)]
-    fn attach_provider_lazy<P, F>(self, provider: F) -> FutureWithLazyProvider<Self, F>
-    where
-        P: Provider + Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> P;
+        A: Display + Debug + Send + Sync + 'static,
+        F: FnOnce() -> A;
 
     /// Changes the [`Context`] of a [`Report`] when [`poll`]ing the [`Future`] returning
     /// [`Result<T, C>`].
@@ -295,50 +244,25 @@ impl<Fut: Future> FutureExt for Fut
 where
     Fut::Output: ResultExt,
 {
-    fn attach_message<M>(self, message: M) -> FutureWithMessage<Self, M>
+    fn attach<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
     where
-        M: Display + Debug + Send + Sync + 'static,
+        A: Display + Debug + Send + Sync + 'static,
     {
-        FutureWithMessage {
+        FutureWithAttachment {
             future: self,
-            inner: Some(message),
+            inner: Some(attachment),
         }
     }
 
     #[track_caller]
-    fn attach_message_lazy<M, F>(self, message: F) -> FutureWithLazyMessage<Self, F>
+    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
     where
-        M: Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> M,
+        A: Display + Debug + Send + Sync + 'static,
+        F: FnOnce() -> A,
     {
-        FutureWithLazyMessage {
+        FutureWithLazyAttachment {
             future: self,
-            inner: Some(message),
-        }
-    }
-
-    #[cfg(nightly)]
-    #[track_caller]
-    fn attach_provider<P>(self, provider: P) -> FutureWithProvider<Self, P>
-    where
-        P: Provider + Display + Debug + Send + Sync + 'static,
-    {
-        FutureWithProvider {
-            future: self,
-            inner: Some(provider),
-        }
-    }
-
-    #[cfg(nightly)]
-    #[track_caller]
-    fn attach_provider_lazy<P, F>(self, provider: F) -> FutureWithLazyProvider<Self, F>
-    where
-        P: Provider + Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> P,
-    {
-        FutureWithLazyProvider {
-            future: self,
-            inner: Some(provider),
+            inner: Some(attachment),
         }
     }
 
