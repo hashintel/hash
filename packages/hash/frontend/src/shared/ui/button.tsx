@@ -6,7 +6,7 @@ import {
   Button as BaseButton,
   ButtonProps as BaseButtonProps,
 } from "@hashintel/hash-design-system";
-import { isHrefExternal } from "./link-";
+import { isHrefExternal } from "./link";
 
 export type ButtonProps = {
   children: ReactNode;
