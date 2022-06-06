@@ -62,7 +62,6 @@ jobs:
             done <<< "$available_crates"
           done <<< "$changed_files"
 
-          echo "changed: $changed_crates"
           exclude_stable=""
           while read -r crate; do
             for nightly_toolchain_crate in "${disable_stable_on[@]}"; do
