@@ -103,7 +103,7 @@ jobs:
       - name: Find toolchain
         id: toolchains
         run: |
-          nightly=$(cat $(find . -name rust-toolchain.toml) | grep channel | cut -d\" -f2 | jq -R)
+          nightly=$(cat $(find . -name rust-toolchain.toml) | grep channel | cut -d\" -f2)
           echo "::set-output name=nightly::$nightly"
           echo "use toolchains: $(echo $nightly | jq -r)"
 
