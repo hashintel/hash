@@ -8,11 +8,9 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
 #[cfg(nightly)]
-use crate::{
-    context::temporary_provider,
-    iter::{RequestRef, RequestValue},
-    provider::request_ref,
-};
+use crate::iter::{RequestRef, RequestValue};
+#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
+use crate::{context::temporary_provider, provider::request_ref};
 use crate::{iter::Frames, Context};
 
 /// Contains a [`Frame`] stack consisting of [`Context`]s, attachments, and optionally

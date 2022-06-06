@@ -1,7 +1,9 @@
 use core::fmt;
 
 #[cfg(nightly)]
-use crate::provider::{Demand, Provider};
+use crate::provider::Demand;
+#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
+use crate::provider::Provider;
 use crate::Report;
 
 /// Defines the current context of a [`Report`].
@@ -88,7 +90,7 @@ where
 // We can't implement `Provider` on Context as `Error` will implement `Provider` and `Context` will
 // be implemented on `Error`. For `request`ing a type from `Context`, we need a `Provider`
 // implementation however.
-#[cfg(nightly)]
+#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
 pub fn temporary_provider(context: &impl Context) -> impl Provider + '_ {
     struct ProviderImpl<'a, C>(&'a C);
     impl<C: Context> Provider for ProviderImpl<'_, C> {
