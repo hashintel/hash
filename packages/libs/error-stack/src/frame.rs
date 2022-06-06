@@ -116,10 +116,7 @@ impl Frame {
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
-        self.inner.as_ref().downcast().map(|addr| {
-            // SAFETY: Dereferencing is safe as T has the same lifetimes as Self
-            unsafe { addr.as_ref() }
-        })
+        self.inner.downcast_ref()
     }
 }
 
@@ -317,8 +314,10 @@ impl FrameRepr {
         unsafe { (self.vtable.object_ref)(self) }
     }
 
-    fn downcast<T: Any>(&self) -> Option<NonNull<T>> {
+    fn downcast_ref<T: Any>(&self) -> Option<&T> {
         // SAFETY: Use vtable to attach T's native vtable for the right original type T.
-        unsafe { (self.vtable.object_downcast)(self, TypeId::of::<T>()).map(NonNull::cast) }
+        unsafe {
+            (self.vtable.object_downcast)(self, TypeId::of::<T>()).map(|ptr| ptr.cast().as_ref())
+        }
     }
 }
