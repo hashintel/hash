@@ -106,6 +106,7 @@ impl Report<()> {
     ///
     /// let report = report!(Error::from(ErrorKind::InvalidInput));
     /// assert_eq!(report.to_string(), "custom display implementation");
+    ///
     /// # Ok(()) }
     /// ```
     #[cfg(feature = "hooks")]
