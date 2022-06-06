@@ -173,10 +173,16 @@ export const App: BlockComponent<AppProps> = ({
   useEffect(() => {
     try {
       if (!rTldrawApp.current) return;
+      const app = rTldrawApp.current;
+
+      if (JSON.stringify(app.document) === localState.serializedDocument) {
+        return;
+      }
+
       const parsedDocument = JSON.parse(
         localState.serializedDocument,
       ) as TDDocument;
-      const app = rTldrawApp.current;
+
       // update document if its id hasn't changed. load document if it has
       if (parsedDocument.id && parsedDocument.id === entityId) {
         app.updateDocument(parsedDocument);
