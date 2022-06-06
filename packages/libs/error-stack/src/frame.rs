@@ -160,10 +160,6 @@ impl Drop for Frame {
     }
 }
 
-type ObjectDropFn = unsafe fn(Box<FrameRepr>);
-type ObjectRefFn = unsafe fn(&FrameRepr) -> &dyn Context;
-type ObjectDowncastFn = unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>;
-
 /// Stores functions to act on the underlying [`Frame`] type without knowing the unerased type.
 ///
 /// This works around the limitation of not being able to coerce from `Box<dyn Context>` to
@@ -171,9 +167,9 @@ type ObjectDowncastFn = unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<
 /// are stored and called directly. In addition this reduces the memory usage by one pointer, as the
 /// `VTable` is stored next to the object.
 struct VTable {
-    object_drop: ObjectDropFn,
-    object_ref: ObjectRefFn,
-    object_downcast: ObjectDowncastFn,
+    object_drop: unsafe fn(Box<FrameRepr>),
+    object_ref: unsafe fn(&FrameRepr) -> &dyn Context,
+    object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
 }
 
 /// Wrapper around an attachment to unify the interface for a [`Frame`].
@@ -234,6 +230,20 @@ impl VTable {
         &(*(unerased))._unerased
     }
 
+    /// Downcasts the context to `C`.
+    ///
+    /// # Safety
+    ///
+    /// - Layout of `frame` must match `FrameRepr<C>`.
+    unsafe fn object_downcast_unchecked<C: Context>(frame: &FrameRepr) -> NonNull<()> {
+        // Attach T's native vtable onto the pointer to `self._unerased`
+        let unerased: *const FrameRepr<C> = (frame as *const FrameRepr).cast();
+        // inside of vtable it's allowed to access `_unerased`
+        #[allow(clippy::used_underscore_binding)]
+        let addr = addr_of!((*(unerased))._unerased) as *mut ();
+        NonNull::new_unchecked(addr)
+    }
+
     /// Downcasts the context to `target`.
     ///
     /// # Safety
@@ -244,12 +254,7 @@ impl VTable {
         target: TypeId,
     ) -> Option<NonNull<()>> {
         if TypeId::of::<C>() == target {
-            // Attach T's native vtable onto the pointer to `self._unerased`
-            let unerased: *const FrameRepr<C> = (frame as *const FrameRepr).cast();
-            // inside of vtable it's allowed to access `_unerased`
-            #[allow(clippy::used_underscore_binding)]
-            let addr = addr_of!((*(unerased))._unerased) as *mut ();
-            Some(NonNull::new_unchecked(addr))
+            Some(Self::object_downcast_unchecked::<C>(frame))
         } else {
             None
         }
@@ -265,12 +270,7 @@ impl VTable {
         target: TypeId,
     ) -> Option<NonNull<()>> {
         if TypeId::of::<A>() == target {
-            // Attach T's native vtable onto the pointer to `self._unerased`
-            let unerased: *const FrameRepr<AttachedObject<A>> = (frame as *const FrameRepr).cast();
-            // inside of vtable it's allowed to access `_unerased`
-            #[allow(clippy::used_underscore_binding)]
-            let addr = addr_of!((*(unerased))._unerased) as *mut ();
-            Some(NonNull::new_unchecked(addr))
+            Some(Self::object_downcast_unchecked::<AttachedObject<A>>(frame))
         } else {
             None
         }
