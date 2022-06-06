@@ -194,6 +194,7 @@ impl<T> Report<T> {
 
         // Context will be moved in the next statement, so we need to drop the temporary provider
         // first.
+        #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
         drop(provider);
 
         Self::from_frame(
