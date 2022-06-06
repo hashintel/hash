@@ -1,6 +1,8 @@
 #![allow(clippy::module_inception)]
 
 use std::{
+    error::Error,
+    fmt,
     fmt::Debug,
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
@@ -73,8 +75,19 @@ pub struct SimpleExperimentArgs {
     experiment_name: ExperimentName,
 }
 
+#[derive(Debug)]
+pub struct CliError;
+
+impl fmt::Display for CliError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("CLI encountered an error during execution")
+    }
+}
+
+impl Error for CliError {}
+
 #[tokio::main]
-async fn main() -> Result<(), ()> {
+async fn main() -> Result<(), CliError> {
     let args = Args::parse();
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -90,8 +103,8 @@ async fn main() -> Result<(), ()> {
         &format!("cli-{now}-texray"),
     )
     .report()
-    .attach_message("Failed to initialize the logger")
-    .generalize()?;
+    .attach("Failed to initialize the logger")
+    .change_context(CliError)?;
 
     let nng_listen_url = format!("ipc://hash-orchestrator-{now}");
 
@@ -102,20 +115,20 @@ async fn main() -> Result<(), ()> {
         .project
         .canonicalize()
         .report()
-        .attach_message_lazy(|| format!("Could not canonicalize project path: {:?}", args.project))
-        .generalize()?;
+        .attach_lazy(|| format!("Could not canonicalize project path: {:?}", args.project))
+        .change_context(CliError)?;
     let manifest = Manifest::from_local(&absolute_project_path)
-        .attach_message_lazy(|| format!("Could not read local project {absolute_project_path:?}"))
-        .generalize()?;
+        .attach_lazy(|| format!("Could not read local project {absolute_project_path:?}"))
+        .change_context(CliError)?;
     let experiment_run = manifest
         .read(args.r#type.into())
-        .attach_message("Could not read manifest")
-        .generalize()?;
+        .attach("Could not read manifest")
+        .change_context(CliError)?;
 
     let experiment = Experiment::new(args.experiment_config);
 
     experiment
         .run(experiment_run, handler, None)
         .await
-        .generalize()
+        .change_context(CliError)
 }

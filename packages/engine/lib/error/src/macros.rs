@@ -12,25 +12,18 @@ pub mod __private {
         //! This is a stable implementation for specialization (only possible within macros, as
         //! there is no trait bound for these things).
         //!
-        //! The different tags [`ReportTag`], [`ErrorTag`], and [`ContextTag`] have a blanket
-        //! implementation returning a concrete type. This type is then used to create a [`Report`].
+        //! The different tags [`ReportTag`] and [`ContextTag`] have a blanket implementation
+        //! returning a concrete type. This type is then used to create a [`Report`].
         //!
-        //! [`ErrorTag`] is implemented for `T: `[`Error`]s, [`ContextTag`] is implemented for `&T:
-        //! `[`Context`]s. As [`ContextTag`] is implemented for references, [`ErrorTag`] has a
-        //! higher precedence and will be picked up first. So calling `my_error.__kind()` will
-        //! always return [`ErrorReporter`]. This can then be used to create a [`Report`] by calling
-        //! `my_error.__kind().report(my_error)`, which will then use [`Report::from_error`]. For
-        //! [`ContextTag`], [`Report::from_context`] will be used.
-        //!
-        //! [`ReportTag`] is a special case, which is implemented for any [`Report<T>`], so this has
-        //! the highest precedence when calling `report.__kind()`. This will use an identity
-        //! function when creating a [`Report`] to ensure that no information will be lost.
+        //! [`ContextTag`] is implemented for `T: `[`Context`]s while [`ReportTag`] is implement for
+        //! [`Report`]s. Calling `my_report.__kind()` will always return a [`Reporter`] while
+        //! `my_context.__kind()` will return a [`ContextReporter`] so a [`Report`] has the highest
+        //! precedence when calling `.__kind()`. This will use an identity function when creating a
+        //! [`Report`] to ensure that no information will be lost.
         //!
         //! Note: The methods on the tags are called `__kind` instead of `kind` to avoid misleading
         //! suggestions from the Rust compiler, when calling `kind`. It would suggest implementing a
         //! tag for the type which cannot and should not be implemented.
-        //!
-        //! [`Error`]: std::error::Error
 
         pub trait ReportTag {
             #[inline]
@@ -39,16 +32,6 @@ pub mod __private {
             }
         }
         impl<T> ReportTag for Report<T> {}
-
-        #[cfg(feature = "std")]
-        pub trait ErrorTag {
-            #[inline]
-            fn __kind(&self) -> ErrorReporter {
-                ErrorReporter
-            }
-        }
-        #[cfg(feature = "std")]
-        impl<T> ErrorTag for T where T: ?Sized + std::error::Error + Send + Sync + 'static {}
 
         pub trait ContextTag {
             #[inline]
@@ -67,39 +50,24 @@ pub mod __private {
             }
         }
 
-        #[cfg(feature = "std")]
-        pub struct ErrorReporter;
-        #[cfg(feature = "std")]
-        impl ErrorReporter {
-            #[inline]
-            #[track_caller]
-            pub fn report<C: std::error::Error + Send + Sync + 'static>(
-                self,
-                error: C,
-            ) -> Report<C> {
-                Report::from(error)
-            }
-        }
         pub struct ContextReporter;
         impl ContextReporter {
             #[inline]
             #[track_caller]
             pub fn report<C: Context>(self, context: C) -> Report<C> {
-                Report::from_context(context)
+                Report::new(context)
             }
         }
     }
 
     // Import anonymously to allow calling `__kind` but forbid implementing the tag-traits.
-    #[cfg(feature = "std")]
-    pub use self::specialization::ErrorTag as _;
     pub use self::specialization::{ContextTag as _, ReportTag as _};
 }
 
 /// Creates a [`Report`] from the given parameters.
 ///
-/// The parameters may either be [`Context`] or [`Error`]. The returned [`Report`] will use the the
-/// provided type as context.
+/// The parameters may either be [`Context`] or a [`Report`]. The returned [`Report`] will use the
+/// the provided type as context.
 ///
 /// [`Report`]: crate::Report
 /// [`Context`]: crate::Context
@@ -290,22 +258,34 @@ mod tests {
     #[test]
     fn report() {
         let err = capture_error(|| Err(report!(ContextA)));
-        let err = err.attach_message("additional message");
+        let err = err.attach("additional message");
         assert!(err.contains::<ContextA>());
+        assert_eq!(err.current_context(), &ContextA);
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
         // TODO: check `err.frames().next().kind() == FrameKind::Context`
 
         let err = capture_error(|| Err(report!(err)));
+        let err = err.attach(ContextB);
         assert!(err.contains::<ContextA>());
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(messages(&err), ["additional message", "Context A"]);
+        assert_eq!(err.current_context(), &ContextA);
+        assert!(err.contains::<ContextB>());
+        assert_eq!(err.current_context(), &ContextA);
+        #[cfg(nightly)]
+        assert!(err.request_ref::<ContextB>().next().is_some());
+        assert_eq!(err.frames().count(), 3);
+        assert_eq!(messages(&err), [
+            "Context B",
+            "additional message",
+            "Context A"
+        ]);
         // TODO: check `err.frames().next().kind() == FrameKind::Context`
 
         #[cfg(feature = "std")]
         {
             let err = capture_error(|| Err(report!(ContextB)));
-            let err = err.attach_message("additional message");
+            let err = err.attach("additional message");
+            assert_eq!(err.current_context(), &ContextB);
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
@@ -316,7 +296,7 @@ mod tests {
     #[test]
     fn bail() {
         let err = capture_error(|| bail!(ContextA));
-        let err = err.attach_message("additional message");
+        let err = err.attach("additional message");
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
@@ -331,7 +311,7 @@ mod tests {
         #[cfg(feature = "std")]
         {
             let err = capture_error(|| bail!(ContextB));
-            let err = err.attach_message("additional message");
+            let err = err.attach("additional message");
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
@@ -345,7 +325,7 @@ mod tests {
             ensure!(false, ContextA);
             Ok(())
         });
-        let err = err.attach_message("additional message");
+        let err = err.attach("additional message");
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
@@ -366,7 +346,7 @@ mod tests {
                 ensure!(false, ContextB);
                 Ok(())
             });
-            let err = err.attach_message("additional message");
+            let err = err.attach("additional message");
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);

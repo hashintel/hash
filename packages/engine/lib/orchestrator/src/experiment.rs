@@ -161,7 +161,7 @@ impl ExperimentType {
             )),
             ExperimentType::Simple { name } => Ok(ExperimentPackageConfig::Simple(
                 get_simple_experiment_config(base, name)
-                    .attach_message("Could not read simple experiment config")?,
+                    .attach("Could not read simple experiment config")?,
             )),
         }
     }
@@ -225,9 +225,7 @@ impl Experiment {
         let mut engine_handle = handler
             .register_experiment(experiment_run.base.id)
             .await
-            .attach_message_lazy(|| {
-                format!("Could not register experiment \"{experiment_name}\"")
-            })?;
+            .attach_lazy(|| format!("Could not register experiment \"{experiment_name}\""))?;
 
         // Create and start the experiment run
         let cmd = self.create_engine_command(
@@ -237,7 +235,7 @@ impl Experiment {
             self.config.js_runner_initial_heap_constraint,
             self.config.js_runner_max_heap_size,
         );
-        let mut engine_process = cmd.run().await.attach_message("Could not run experiment")?;
+        let mut engine_process = cmd.run().await.attach("Could not run experiment")?;
 
         // Wait to receive a message that the experiment has started before sending the init
         // message.
@@ -261,7 +259,7 @@ impl Experiment {
                 engine_process
                     .exit_and_cleanup(experiment_run.base.id)
                     .await
-                    .attach_message("Failed to cleanup after failed start")?;
+                    .attach("Failed to cleanup after failed start")?;
                 bail!(e.change_context(OrchestratorError::from(format!(
                     "Engine start timeout for experiment \"{experiment_name}\""
                 ))));
@@ -284,7 +282,7 @@ impl Experiment {
         if let Err(err) = engine_process
             .send(&proto::EngineMsg::Init(init_message))
             .await
-            .attach_message("Could not send `Init` message")
+            .attach("Could not send `Init` message")
         {
             // TODO: Wait for threads to finish before starting a forced cleanup
             warn!("Engine didn't exit gracefully, waiting for subprocesses to finish.");
@@ -293,7 +291,7 @@ impl Experiment {
             if let Err(cleanup_err) = engine_process
                 .exit_and_cleanup(experiment_run.base.id)
                 .await
-                .attach_message("Failed to cleanup after failed start")
+                .attach("Failed to cleanup after failed start")
             {
                 warn!("{cleanup_err}");
             }
@@ -436,7 +434,7 @@ impl Experiment {
         engine_process
             .exit_and_cleanup(experiment_run.base.id)
             .await
-            .attach_message("Could not cleanup after finish")?;
+            .attach("Could not cleanup after finish")?;
 
         ensure!(
             graceful_finish,
@@ -464,7 +462,7 @@ fn get_simple_experiment_config(
             "Could not parse experiment manifest",
         ))?;
     let plan = create_experiment_plan(&parsed, &experiment_name)
-        .attach_message("Could not read experiment plan")?;
+        .attach("Could not read experiment plan")?;
 
     let max_sims_in_parallel = parsed
         .get("max_sims_in_parallel")
@@ -524,7 +522,7 @@ fn create_experiment_plan(
             "Not implemented for optimization experiment types"
         )),
         _ => create_basic_variant(selected_experiment, experiment_type)
-            .attach_message("Could not parse basic variant"),
+            .attach("Could not parse basic variant"),
     }
 }
 
@@ -556,11 +554,11 @@ fn create_multiparameter_variant(
                         "Experiment plan does not define the specified experiment: {run_name}"
                     ))
                 })
-                .attach_message("Could not parse experiment file")?;
-            create_basic_variant(selected, run_name).attach_message("Could not parse basic variant")
+                .attach("Could not parse experiment file")?;
+            create_basic_variant(selected, run_name).attach("Could not parse basic variant")
         })
         .collect::<Result<Vec<SimpleExperimentPlan>>>()
-        .attach_message("Unable to create sub plans")?;
+        .attach("Unable to create sub plans")?;
 
     let mut variant_list: Vec<ExperimentPlanEntry> = vec![];
     for (i, subplan) in subplans.into_iter().enumerate() {
@@ -605,7 +603,7 @@ fn create_group_variant(
         SimpleExperimentPlan::new(var.steps as usize),
         |mut acc, name| {
             let variants = create_experiment_plan(experiments, name)
-                .attach_message("Could not read experiment plan")?;
+                .attach("Could not read experiment plan")?;
             variants.inner.into_iter().for_each(|v| {
                 acc.push(v);
             });
