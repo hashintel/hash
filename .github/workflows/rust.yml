@@ -30,6 +30,7 @@ jobs:
       doc: ${{ steps.crates.outputs.doc }}
       samples: ${{ steps.samples.outputs.samples }}
       toolchains: ${{ steps.toolchains.outputs.toolchains }}
+      include: ${{ steps.crates.outputs.include }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -44,15 +45,29 @@ jobs:
           # All jobs for all crates will run if any of these paths changes
           always_run_on=(".github" "rust-toolchain.toml" "Cargo.toml" "Cargo.lock")
 
+          # Clippy and test jobs will also run on the stable toolchain for these paths
+          stable_toolchain_on=("packages/libs/error-stack")
+
           changed_crates=""
+          include_stable=""
           while read -r file; do
             while read -r crate; do
               if [[ $file =~ $crate ]]; then
                 changed_crates=$(echo -e "${crate}\n$changed_crates")
               fi
+              for stable_toolchain_crate in "${stable_toolchain_on[@]}"; do
+                if [[ $file =~ $stable_toolchain_crate ]]; then
+                  include_stable=$(echo -e "${crate}\n$changed_crates")
+                fi
+              done
               for always_run_crate in "${always_run_on[@]}"; do
                 if [[ $file =~ $always_run_crate ]]; then
                   changed_crates=$(echo -e "${crate}\n$changed_crates")
+                fi
+              done
+              for stable_toolchain_crate in "${stable_toolchain_on[@]}"; do
+                if [[ $crate == "$stable_toolchain_crate" ]]; then
+                  include_stable=$(echo -e "${crate}\n$include_stable")
                 fi
               done
             done <<< "$available_crates"
@@ -67,6 +82,8 @@ jobs:
           changed_crates=$(echo "$changed_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
           bench_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(. == "packages/engine") ]')
           test_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
+          include_stable=$(echo "$include_stable" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
+          include=$(echo "$include_stable" | jq -sc '[ { directory: .[][], toolchain: "stable"} | select(length > 0) ]')
 
           echo "::set-output name=rustfmt::$changed_crates"
           echo "::set-output name=clippy::$changed_crates"
@@ -74,6 +91,7 @@ jobs:
           echo "::set-output name=bench::$bench_crates"
           echo "::set-output name=miri::$test_crates"
           echo "::set-output name=doc::$changed_crates"
+          echo "::set-output name=include::$include"
 
           echo "run \`cargo fmt\` for: $(echo "$changed_crates" | jq -r)"
           echo "run \`cargo clippy\` for: $(echo "$changed_crates" | jq -r)"
@@ -81,6 +99,7 @@ jobs:
           echo "run \`cargo test --release\` for: $(echo "$bench_crates" | jq -r)"
           echo "run \`cargo miri\` for: $(echo "$test_crates" | jq -r)"
           echo "run \`cargo doc\` for: $(echo "$changed_crates" | jq -r)"
+          echo "Also use stable channel for: $(echo "$include_stable" | jq -r)"
 
       - name: Find toolchain
         id: toolchains
@@ -153,6 +172,7 @@ jobs:
         flags:
           - --all-features
           - --no-default-features
+        include: ${{ fromJSON(needs.setup.outputs.include) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -216,6 +236,7 @@ jobs:
         flags:
           - --all-features
           - --no-default-features
+        include: ${{ fromJSON(needs.setup.outputs.include) }}
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
