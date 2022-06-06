@@ -1,7 +1,7 @@
 use core::fmt;
 use std::sync::Arc;
 
-use error::Report;
+use error_stack::Report;
 use tokio::sync::{mpsc, mpsc::error::SendError, Mutex};
 
 use crate::error::{ErrorKind, Result};

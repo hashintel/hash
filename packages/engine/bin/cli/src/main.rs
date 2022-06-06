@@ -9,7 +9,7 @@ use std::{
 };
 
 use clap::{AppSettings, Parser};
-use error::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use execution::package::experiment::ExperimentName;
 use hash_engine_lib::utils::init_logger;
 use orchestrator::{Experiment, ExperimentConfig, Manifest, Server};

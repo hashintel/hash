@@ -1,6 +1,6 @@
 use std::fmt;
 
-pub type Result<T, E = OrchestratorError> = error::Result<T, E>;
+pub type Result<T, E = OrchestratorError> = error_stack::Result<T, E>;
 
 // TODO: Use proper context type
 //   Currently, we capture every error message inside of a generic error message. We want a context

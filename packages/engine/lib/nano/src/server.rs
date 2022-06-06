@@ -3,7 +3,7 @@
 
 use core::fmt;
 
-use error::{IntoReport, ResultExt};
+use error_stack::{IntoReport, ResultExt};
 use tokio::sync::mpsc;
 
 use crate::{ErrorKind, Result, RECV_EXPECT_MESSAGE, SEND_EXPECT_MESSAGE};

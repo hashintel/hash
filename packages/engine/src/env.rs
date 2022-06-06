@@ -1,4 +1,4 @@
-use error::{Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use serde::Deserialize;
 use simulation_structure::ExperimentId;
 use thiserror::Error as ThisError;

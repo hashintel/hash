@@ -58,8 +58,8 @@
 //! # impl core::fmt::Display for AccessError {
 //! #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
 //! # }
-//! # impl error::Context for AccessError {}
-//! use error::{ensure, Result};
+//! # impl error_stack::Context for AccessError {}
+//! use error_stack::{ensure, Result};
 //!
 //! fn main() -> Result<(), AccessError> {
 //!     let user = get_user()?;
@@ -81,7 +81,7 @@
 //! ```
 //! use std::{collections::HashMap, fmt};
 //!
-//! use error::{Context, ensure, report, Result, ResultExt};
+//! use error_stack::{Context, ensure, report, Result, ResultExt};
 //!
 //! #[derive(Debug)]
 //! enum LookupError {

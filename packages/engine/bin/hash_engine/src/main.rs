@@ -1,6 +1,6 @@
 use std::{error::Error, fmt};
 
-use error::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use hash_engine_lib::{
     config::experiment_config,
     env::env,

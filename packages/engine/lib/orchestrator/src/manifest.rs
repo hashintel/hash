@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use error::{bail, ensure, report, IntoReport, ResultExt};
+use error_stack::{bail, ensure, report, IntoReport, ResultExt};
 use execution::package::simulation::{
     init::{InitialState, InitialStateName},
     state::behavior_execution::Behavior,
