@@ -2,7 +2,7 @@
 // example as well. This example is mainly used to generate the output shown in the documentation.
 use std::{collections::HashMap, error::Error, fmt};
 
-use error::{ensure, Report, Result, ResultExt};
+use error_stack::{ensure, Report, Result, ResultExt};
 
 #[derive(Debug)]
 enum LookupError {

@@ -1,6 +1,6 @@
 use core::{fmt, time::Duration};
 
-use error::{report, IntoReport, ResultExt};
+use error_stack::{report, IntoReport, ResultExt};
 use nng::options::{protocol::reqrep::ResendTime, Options, ReconnectMaxTime, ReconnectMinTime};
 use tokio::sync::{mpsc, oneshot};
 

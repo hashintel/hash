@@ -9,7 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use ::error::{bail, ensure, IntoReport, Report, ResultExt};
+use error_stack::{bail, ensure, IntoReport, Report, ResultExt};
 use execution::{package::experiment::ExperimentName, runner::Language};
 use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};

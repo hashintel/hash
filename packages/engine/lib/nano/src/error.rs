@@ -1,6 +1,6 @@
 use thiserror::Error as ThisError;
 
-pub type Result<T, E = ErrorKind> = error::Result<T, E>;
+pub type Result<T, E = ErrorKind> = error_stack::Result<T, E>;
 
 #[derive(ThisError, Debug, Copy, Clone)]
 #[allow(clippy::module_name_repetitions)]
