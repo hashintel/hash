@@ -1,15 +1,15 @@
 {
-  "name": "@hashintel/drawing-canvas",
+  "name": "@hashintel/drawing",
   "version": "0.0.0",
-  "description": "A drawing block that leverages tldraw",
+  "description": "Create a diagram, sketch an idea, or map a process.",
   "keywords": [
     "blockprotocol",
     "blocks"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git#vu/drawing-canvas",
-    "directory": "packages/blocks/drawing-canvas"
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "packages/blocks/drawing"
   },
   "license": "MIT",
   "author": "tldraw",
@@ -42,16 +42,15 @@
     "port": 6272
   },
   "blockprotocol": {
-    "displayName": "Drawing Canvas",
+    "displayName": "Drawing",
     "examples": [
       {
         "height": 400,
         "darkMode": false,
-        "readOnly": false,
-        "document": ""
+        "serializedDocument": ""
       }
     ],
-    "icon": "public/omega.svg",
-    "image": "public/block-preview.svg"
+    "icon": "public/icon.svg",
+    "image": "public/preview.png"
   }
 }
