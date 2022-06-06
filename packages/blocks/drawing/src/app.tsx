@@ -214,7 +214,7 @@ export const App: BlockComponent<AppProps> = ({
   );
 
   return (
-    <div ref={containerRef} className="drawing-canvas-container">
+    <div ref={containerRef} className="drawing-container">
       <Resizable
         height={localState.height}
         width={localState.width!}
