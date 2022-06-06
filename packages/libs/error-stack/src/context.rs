@@ -43,6 +43,7 @@ use crate::Report;
 /// impl Context for ConfigError {}
 ///
 /// # #[cfg(any(not(feature = "std"), miri))]
+///
 /// # pub fn read_file(_: &str) -> Result<String, ConfigError> { error_stack::bail!(ConfigError::ParseError) }
 /// # #[cfg(all(feature = "std", not(miri)))]
 /// pub fn read_file(path: &str) -> Result<String, io::Error> {
