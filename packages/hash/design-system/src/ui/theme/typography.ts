@@ -3,7 +3,7 @@ import { ThemeOptions } from "@mui/material";
 const fallbackFonts = [`"Helvetica"`, `"Arial"`, "sans-serif"];
 
 export const typography: ThemeOptions["typography"] = {
-  fontFamily: [`"Inter"`, ...fallbackFonts].join(", "),
+  fontFamily: ["Inter", ...fallbackFonts].join(", "),
   fontSize: 16,
   htmlFontSize: 16,
 

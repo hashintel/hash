@@ -17,13 +17,16 @@ import {
   Stack,
   Avatar,
   IconButton,
+  Box,
 } from "@mui/material";
 import { format } from "date-fns";
 import { startCase } from "lodash";
 import * as React from "react";
+import { LinkIcon, PullRequestIcon } from "./icons";
 import { GithubPullRequest, GithubReview } from "./types";
 
 const NODE_COLORS = {
+  opened: theme.palette.gray[40],
   reviewed: theme.palette.blue[50],
   review_requested: theme.palette.orange[50],
   mentioned: theme.palette.red[50],
@@ -62,13 +65,12 @@ export type TimelineItemProps = {
   showPopover: boolean;
 } & BaseTimelineItemProps;
 
-// @todo consider extracting this
+// @todo make popover come on hover instead of onClick
 export const TimelineItem: React.FC<TimelineItemProps> = ({
   event,
   color,
   hideConnector,
   setTimelineOpacity,
-  showPopover,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
 
@@ -76,20 +78,69 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
 
   return (
     <BaseTimelineItem className="timelineItem">
-      <TimelineOppositeContent sx={{ flex: "unset" }} color="text.secondary">
+      <TimelineOppositeContent
+        sx={({ typography, palette }) => ({
+          flex: "unset",
+          fontWeight: 500,
+          ...typography.microText,
+          py: 0.75,
+          px: 0,
+          mr: 1.5,
+          color: palette.gray[80],
+          alignSelf: "flex-start",
+        })}
+        color="text.secondary"
+      >
         {event.created_at && format(new Date(event.created_at), "do MMM")}
       </TimelineOppositeContent>
 
-      <TimelineSeparator>
-        <TimelineDot
-          ref={(el) => setAnchorEl(el)}
-          onClick={(evt) => {
-            setAnchorEl(evt.currentTarget);
-            setTimelineOpacity(true);
-          }}
-          color={color}
-        />
-        {hideConnector ? null : <TimelineConnector />}
+      <TimelineSeparator sx={{ width: 30, flex: "unset" }}>
+        {["opened", "merged", "closed"].includes(event.event) ? (
+          <Box
+            onMouseEnter={(evt) => {
+              setAnchorEl(evt.currentTarget);
+              setTimelineOpacity(true);
+            }}
+            sx={({ palette }) => ({
+              height: 28,
+              width: 28,
+              borderRadius: "50%",
+              backgroundColor: palette.white,
+              border: `1px solid ${palette.gray[40]}`,
+              color: palette.gray[40],
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              svg: {
+                fontSize: 12,
+              },
+            })}
+          >
+            <PullRequestIcon />
+          </Box>
+        ) : (
+          <TimelineDot
+            sx={{
+              alignSelf: "center",
+            }}
+            onMouseEnter={(evt) => {
+              setAnchorEl(evt.currentTarget);
+              setTimelineOpacity(true);
+            }}
+            color={color}
+          />
+        )}
+
+        {hideConnector ? null : (
+          <TimelineConnector
+            sx={({ palette }) => ({
+              color: palette.gray[40],
+              width: "1px",
+              my: 0.25,
+              height: 34,
+            })}
+          />
+        )}
       </TimelineSeparator>
       <TimelineContent>
         <Tooltip
@@ -122,8 +173,8 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
         </Tooltip>
       </TimelineContent>
       <Popover
-        // open={!!anchorEl}
-        open={showPopover}
+        open={!!anchorEl}
+        // open={showPopover}
         anchorEl={anchorEl}
         onClose={() => {
           setAnchorEl(null);
@@ -145,24 +196,46 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
           direction="row"
           alignItems="center"
           justifyContent="space-between"
-          mb={1}
+          mb={0.5}
+          position="relative"
         >
-          <Typography>{startCase(event.event)}</Typography>
+          <Typography variant="smallTextLabels" fontWeight={500}>
+            {startCase(event.event)}
+          </Typography>
           {event.html_url && (
-            <IconButton href={event.html_url}>
-              <Link />
+            <IconButton
+              href={event.html_url}
+              sx={{ position: "absolute", top: 0, right: 0 }}
+            >
+              <LinkIcon />
             </IconButton>
           )}
         </Stack>
-        <Typography mb={1.5}>
-          {event.created_at && format(new Date(event.created_at), "do MMM")}
+        <Typography
+          sx={({ palette }) => ({
+            color: palette.gray[60],
+            mb: 1.5,
+            display: "inline-block",
+          })}
+          variant="microText"
+        >
+          {event.created_at &&
+            format(new Date(event.created_at), "h:mm b 'on' do MMM yyyy")}
         </Typography>
         <Stack direction="row" alignItems="center" spacing={1}>
           <Avatar
             sx={{ height: 22, width: 22 }}
             src={event.actor?.avatar_url}
           />
-          <Typography>For {event.actor?.login}</Typography>
+          <Typography
+            sx={({ palette }) => ({
+              color: palette.gray[70],
+              fontWeight: 500,
+            })}
+            variant="microText"
+          >
+            For {event.actor?.login}
+          </Typography>
         </Stack>
       </Popover>
     </BaseTimelineItem>

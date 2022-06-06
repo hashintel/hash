@@ -24,6 +24,7 @@ import { uniq, intersection, sortBy, startCase } from "lodash";
 import { TimelineItem } from "./timeline-item";
 import { GithubIssueEvent, GithubPullRequest, GithubReview } from "./types";
 import { theme } from "@hashintel/hash-design-system/ui";
+import { Divider, MenuList, Stack, Typography } from "@mui/material";
 
 const NODE_COLORS: Record<
   string,
@@ -81,6 +82,42 @@ const Config: React.FunctionComponent<{
 
   return (
     <>
+      <Box
+        sx={({ palette }) => ({
+          padding: "12px 16px",
+          backgroundColor: palette.white,
+          alignSelf: "flex-start",
+        })}
+      >
+        <Typography mb={1.75}>Events</Typography>
+        <ul>
+          {selectedEventTypes.map((eventType) => (
+            <Stack
+              direction="row"
+              alignItems="center"
+              key={eventType}
+              component="li"
+              sx={({ palette, typography }) => ({
+                alignItems: "center",
+                ...typography.microText,
+                color: palette.gray[70],
+              })}
+            >
+              <Box
+                sx={({ palette }) => ({
+                  height: 12,
+                  width: 12,
+                  borderRadius: "50%",
+                  backgroundColor: palette.blue[70],
+                })}
+              />
+              {eventType}
+            </Stack>
+          ))}
+        </ul>
+        <Divider sx={{ mx: "-12px" }} />
+      </Box>
+
       <IconButton
         aria-describedby={id}
         onClick={handleConfigButtonClick}
@@ -189,22 +226,17 @@ export const GithubPrTimeline: React.FunctionComponent<
   console.log({ nodes });
 
   return (
-    <Grid
-      item
-      xs={6}
+    <Stack
+      direction="row"
       style={{
         position: "relative",
         borderRight: "2px solid grey",
         border: "1px solid red",
         transform: "translateX(0)",
       }}
+      spacing="auto"
     >
-      <Config
-        possibleEventTypes={possibleEventTypes}
-        selectedEventTypes={selectedEventTypes}
-        setSelectedEventTypes={setSelectedEventTypes}
-      />
-      <div className="timeline">
+      <Box sx={{ width: 320, border: "1px solid blue" }} className="timeline">
         <Timeline
           position="right"
           style={{
@@ -226,7 +258,12 @@ export const GithubPrTimeline: React.FunctionComponent<
             );
           })}
         </Timeline>
-      </div>
-    </Grid>
+      </Box>
+      <Config
+        possibleEventTypes={possibleEventTypes}
+        selectedEventTypes={selectedEventTypes}
+        setSelectedEventTypes={setSelectedEventTypes}
+      />
+    </Stack>
   );
 };

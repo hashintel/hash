@@ -233,7 +233,7 @@ export const GithubPrOverview: React.FunctionComponent<
       <Box
         sx={({ palette }) => ({ backgroundColor: palette.white, padding: 3 })}
       >
-        <Box display="flex" mb={1.5}>
+        <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
           <GithubIcon
             sx={({ palette }) => ({
               height: 20,
@@ -241,16 +241,20 @@ export const GithubPrOverview: React.FunctionComponent<
               color: palette.gray[50],
             })}
           />
-          <Typography>hashintel/hash</Typography>
-        </Box>
+          <Typography
+            sx={({ palette }) => ({
+              color: palette.gray[80],
+            })}
+          >
+            hashintel/hash
+          </Typography>
+        </Stack>
 
         <Typography
           sx={({ palette }) => ({
             color: palette.gray[90],
             mb: 2,
             fontWeight: 600,
-            // @todo remove
-            fontFamily: "Inter",
           })}
           variant="h1"
         >
@@ -281,7 +285,10 @@ export const GithubPrOverview: React.FunctionComponent<
             >
               Opened by {pullRequest.user?.login}
             </Typography>
-            <Button variant="tertiary_quiet">29 reviews</Button>
+            <Stack direction="row">
+              {/* Add comments icon */}
+              {`${reviews.length} review${reviews.length > 1 ? "s" : ""}`}
+            </Stack>
           </Box>
         </Box>
 
