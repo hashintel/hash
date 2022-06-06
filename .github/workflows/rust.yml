@@ -55,23 +55,22 @@ jobs:
               if [[ $file =~ $crate ]]; then
                 changed_crates=$(echo -e "${crate}\n$changed_crates")
               fi
-              for stable_toolchain_crate in "${stable_toolchain_on[@]}"; do
-                if [[ $file =~ $stable_toolchain_crate ]]; then
-                  include_stable=$(echo -e "${crate}\n$changed_crates")
-                fi
-              done
               for always_run_crate in "${always_run_on[@]}"; do
                 if [[ $file =~ $always_run_crate ]]; then
                   changed_crates=$(echo -e "${crate}\n$changed_crates")
                 fi
               done
-              for stable_toolchain_crate in "${stable_toolchain_on[@]}"; do
-                if [[ $crate == "$stable_toolchain_crate" ]]; then
-                  include_stable=$(echo -e "${crate}\n$include_stable")
-                fi
-              done
             done <<< "$available_crates"
           done <<< "$changed_files"
+
+          include_stable=""
+          while read -r crate; do
+            for stable_toolchain_crate in "${stable_toolchain_on[@]}"; do
+              if [[ "$crate" == "$stable_toolchain_crate" ]]; then
+                include_stable=$(echo -e "${crate}\n$include_stable")
+              fi
+            done
+          done <<< "$changed_crates"
 
           # We always run "packages/engine" tests when a nested crate was changed
           test_crates="$changed_crates"
