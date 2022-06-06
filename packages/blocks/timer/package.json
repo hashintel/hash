@@ -17,13 +17,13 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.9",
+    "blockprotocol": "0.0.10",
     "date-fns": "2.28.0",
     "duration-fns": "3.0.1"
   },
   "devDependencies": {
-    "block-scripts": "0.0.6",
-    "mock-block-dock": "0.0.9",
+    "block-scripts": "0.0.7",
+    "mock-block-dock": "0.0.10",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },

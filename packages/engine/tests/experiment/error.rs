@@ -1,9 +1,9 @@
 use std::{error::Error, fmt, path::PathBuf};
 
-use error::provider::{Demand, Provider};
+use error_stack::Context;
 use serde_json::Value;
 
-pub type Result<T, C = TestContext> = error::Result<T, C>;
+pub type Result<T, C = TestContext> = error_stack::Result<T, C>;
 
 // TODO: Split the enum into multiple structs, so each function have a well defined boundary like
 //   `-> Result<_, Report<ExperimentSetup>>`
@@ -29,11 +29,7 @@ impl fmt::Display for TestContext {
     }
 }
 
-impl Provider for TestContext {
-    fn provide<'a>(&'a self, _: &mut Demand<'a>) {
-        // Empty implementation
-    }
-}
+impl Context for TestContext {}
 
 #[derive(Debug)]
 pub enum TestError {
@@ -145,9 +141,3 @@ impl fmt::Display for TestError {
 }
 
 impl Error for TestError {}
-
-impl Provider for TestError {
-    fn provide<'a>(&'a self, _: &mut Demand<'a>) {
-        // Empty implementation
-    }
-}

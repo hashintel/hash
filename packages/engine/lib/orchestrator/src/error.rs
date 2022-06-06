@@ -1,13 +1,11 @@
 use std::fmt;
 
-use error::provider::{Demand, Provider};
-
-pub type Result<T, E = OrchestratorError> = error::Result<T, E>;
+pub type Result<T, E = OrchestratorError> = error_stack::Result<T, E>;
 
 // TODO: Use proper context type
 //   Currently, we capture every error message inside of a generic error message. We want a context
 //   object similar to the one we using in the integration test suite, e.g.
-//   `OrchestratorError::InvalidManifest` with additional information provided by `attach_message`.
+//   `OrchestratorError::InvalidManifest` with additional information provided by `attach`.
 #[derive(Debug)]
 pub enum OrchestratorError {
     UniqueOwned(Box<str>),
@@ -24,10 +22,6 @@ impl fmt::Display for OrchestratorError {
 }
 
 impl std::error::Error for OrchestratorError {}
-
-impl Provider for OrchestratorError {
-    fn provide<'a>(&'a self, _: &mut Demand<'a>) {}
-}
 
 impl From<&'static str> for OrchestratorError {
     fn from(error: &'static str) -> Self {

@@ -10,7 +10,7 @@
 //! reflection-like API - the [`provider`]-API - to add context data to a [`Report`]. Using this, it
 //! becomes possible to attach any data to an error. Beyond this, the design also allows Errors to
 //! have additional requirements, such as _enforcing_ the provision of contextual information by
-//! using [`Report::provide_context()`].
+//! using [`Report::change_context()`].
 //!
 //! ### Why not...
 //!
@@ -47,7 +47,7 @@
 //! # Usage
 //!
 //! [`Report`] is supposed to be used as the [`Err`] variant of a `Result`. This crates provides a
-//! [`Result<E, C = ()>`] type alias, which uses [`Report<C>`] as [`Err`] variant and can be used as
+//! [`Result<E, C>`] type alias, which uses [`Report<C>`] as [`Err`] variant and can be used as
 //! return type:
 //!
 //! ```
@@ -58,8 +58,8 @@
 //! # impl core::fmt::Display for AccessError {
 //! #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
 //! # }
-//! # impl error::provider::Provider for AccessError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {} }
-//! use error::{ensure, Result};
+//! # impl error_stack::Context for AccessError {}
+//! use error_stack::{ensure, Result};
 //!
 //! fn main() -> Result<(), AccessError> {
 //!     let user = get_user()?;
@@ -76,14 +76,12 @@
 //! }
 //! ```
 //!
-//! A contextual message can be provided to lower level errors.
+//! An attachment can be provided to lower level errors.
 //!
 //! ```
-//! # // Same as `examples/contextual_messages.rs`. Don't forget to update both
-//! # #[cfg_attr(not(feature = "std"), allow(unused_imports))]
-//! use std::{collections::HashMap, error::Error, fmt};
+//! use std::{collections::HashMap, fmt};
 //!
-//! use error::{ensure, report, Result, ResultExt};
+//! use error_stack::{Context, ensure, report, Result, ResultExt};
 //!
 //! #[derive(Debug)]
 //! enum LookupError {
@@ -100,10 +98,7 @@
 //!     }
 //! }
 //!
-//! # #[cfg(feature = "std")]
-//! impl Error for LookupError {}
-//! # #[cfg(not(feature = "std"))]
-//! impl error::provider::Provider for LookupError { fn provide<'a>(&'a self, _: &mut error::provider::Demand<'a>) {}}
+//! impl Context for LookupError {}
 //!
 //! fn lookup_key(map: &HashMap<&str, u64>, key: &str) -> Result<u64, LookupError> {
 //! // `ensure!` returns `Err(Report)` if the condition fails
@@ -120,7 +115,7 @@
 //!
 //!     // `ResultExt` provides different methods for adding additional information to the `Report`
 //!     let value =
-//!         lookup_key(config, key).wrap_err_lazy(|| format!("Could not lookup key {key:?}"))?;
+//!         lookup_key(config, key).attach_lazy(|| format!("Could not lookup key {key:?}"))?;
 //!
 //!     Ok(value)
 //! }
@@ -129,7 +124,7 @@
 //!     # fn fake_main() -> Result<(), LookupError> { // We want to assert on the result
 //!     let config = HashMap::default();
 //!     # #[allow(unused_variables)]
-//!     let config_value = parse_config(&config).wrap_err("Unable to parse config")?;
+//!     let config_value = parse_config(&config).attach("Unable to parse config")?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...
@@ -165,19 +160,22 @@
 //!
 //! # Feature flags
 //!
-//! Feature     | Description                                                             | default
-//! ------------|-------------------------------------------------------------------------|---------
-//! `std`       | Enables support for [`Error`] and, on nightly, [`Backtrace`]            | enabled
-//! `hooks`     | Enables the usage of [`set_display_hook`] and [`set_debug_hook`]        | enabled
-//! `spantrace` | Enables the capturing of [`SpanTrace`]s                                 | disabled
-//! `futures`   | Provides a [`FutureExt`] adaptor                                        | disabled
+//!  Feature   | Description                                                    | implies | default
+//! -----------|----------------------------------------------------------------|---------|--------
+//!  `std`     | Enables support for [`Error`] and, on nightly, [`Backtrace`]   |         | enabled
+//!  `hooks`   |Enables the usage of [`set_display_hook`] and [`set_debug_hook`]| `std`   | enabled
+//! `spantrace`| Enables the capturing of [`SpanTrace`]s                        |         | disabled
+//!  `futures` | Provides a [`FutureExt`] adaptor                               |         | disabled
 //!
 //!
 //! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
 //! backtraces on non-nightly channels and can be prioritized depending on demand.
 //!
+//! If using the nightly compiler the crate may be used together with the [`Provider` API].
+//!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
+//! [`Provider` API]: https://rust-lang.github.io/rfcs/3192-dyno.html
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
@@ -196,7 +194,6 @@
 )]
 
 extern crate alloc;
-extern crate core;
 
 mod frame;
 pub mod iter;
@@ -204,17 +201,13 @@ mod macros;
 mod report;
 mod result;
 
-#[cfg(feature = "std")]
-mod error;
+mod context;
 #[cfg(feature = "futures")]
 pub mod future;
 #[cfg(feature = "hooks")]
 mod hook;
+#[cfg(nightly)]
 pub mod provider;
-
-use core::fmt;
-
-use provider::Provider;
 
 #[cfg(feature = "futures")]
 #[doc(inline)]
@@ -222,29 +215,12 @@ pub use self::future::FutureExt;
 #[cfg(feature = "hooks")]
 pub use self::hook::HookAlreadySet;
 pub use self::{
+    context::Context,
     frame::Frame,
     macros::*,
     report::Report,
     result::{IntoReport, Result, ResultExt},
 };
-
-/// Trait alias for an error context.
-///
-/// Note: This is currently defined as trait but will be changed to be a trait alias as soon as
-///   it's stabilized
-// TODO: change to `pub trait Context = ...`
-//   Tracking issue: https://github.com/rust-lang/rust/issues/41517
-pub trait Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static {}
-impl<C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static> Context for C {}
-
-/// Trait alias for a contextual message.
-///
-/// Note: This is currently defined as trait but will be changed to be a trait alias as soon as
-///   it's stabilized
-// TODO: change to `pub trait Context = ...`
-//   Tracking issue: https://github.com/rust-lang/rust/issues/41517
-pub trait Message: fmt::Display + fmt::Debug + Send + Sync + 'static {}
-impl<M: fmt::Display + fmt::Debug + Send + Sync + 'static> Message for M {}
 
 #[cfg(test)]
 pub(crate) mod test_helper {
@@ -254,13 +230,10 @@ pub(crate) mod test_helper {
     };
     use core::{fmt, fmt::Formatter};
 
-    use crate::{
-        provider::{Demand, Provider},
-        Report,
-    };
+    use crate::{Context, Report};
 
-    #[derive(Debug)]
-    pub struct ContextA(pub u32);
+    #[derive(Debug, PartialEq)]
+    pub struct ContextA;
 
     impl fmt::Display for ContextA {
         fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
@@ -268,27 +241,14 @@ pub(crate) mod test_helper {
         }
     }
 
-    impl Provider for ContextA {
-        fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-            demand.provide_value(|| self.0);
-        }
-    }
+    impl Context for ContextA {}
 
-    #[cfg(feature = "std")]
-    impl std::error::Error for ContextA {}
-
-    #[derive(Debug)]
-    pub struct ContextB(pub i32);
+    #[derive(Debug, PartialEq)]
+    pub struct ContextB;
 
     impl fmt::Display for ContextB {
         fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-            fmt.write_str("Error Kind B")
-        }
-    }
-
-    impl Provider for ContextB {
-        fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-            demand.provide_ref(&self.0);
+            fmt.write_str("Context B")
         }
     }
 
@@ -302,7 +262,7 @@ pub(crate) mod test_helper {
         }
     }
 
-    pub fn request_messages<E>(report: &Report<E>) -> Vec<String> {
+    pub fn messages<E>(report: &Report<E>) -> Vec<String> {
         report.frames().map(ToString::to_string).collect()
     }
 }

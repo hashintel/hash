@@ -9026,10 +9026,10 @@ bl@^4.0.3:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-block-scripts@0.0.6:
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.0.6.tgz#add6402b9611e64fe1b2e29d46ddcf345af4cfbc"
-  integrity sha512-yn+W4IYgsrEZmp724sqOf0QBxBSfE2yOJzF1XkJVPD0AmvVSCo1/c8PYHmrJEAS7PdFSrFHbFB3/f8as4JDq8A==
+block-scripts@0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.0.7.tgz#15c9ed0bc2a379c9b46c82a1b39098d8a29e387a"
+  integrity sha512-0EWc+uk3yrgNFfMRt1fhdV5c9ij9ov6qEJ9t4inphRYklB6ZfSSRjj0tarcH9KupGhxYveWuQjCeHfYuiz1Haw==
   dependencies:
     "@babel/cli" "^7.17.6"
     "@babel/core" "^7.17.9"
@@ -9062,10 +9062,10 @@ block-scripts@0.0.6:
     webpack-dev-server "^4.8.1"
     yargs-parser "21.0.1"
 
-blockprotocol@0.0.9:
-  version "0.0.9"
-  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.9.tgz#322f203d1385c51c84a34a1cccf248a31cfae84d"
-  integrity sha512-ZtQJ4sCNoX3euWsH3SYQgkusWQ6qgSgexF2cOrGPbICfBvYpRRIFol6KqMZiULd0y0q0GifMgtBpZN8T0lfM0A==
+blockprotocol@0.0.10:
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.10.tgz#8ffb1c45ea789d6909012f101b9591b2e6213c7e"
+  integrity sha512-YyEEPQDyf+LGKSoiXjsOXySTvkT9TL/hyh1zKKua2HnsigdDSJ30fjHNWeiXAKO/6VEyjpHFXpEI7mmBjWDyig==
   dependencies:
     "@types/react" "^17.0.39"
 
@@ -16586,12 +16586,12 @@ mobx@6.5.0:
   resolved "https://registry.yarnpkg.com/mobx/-/mobx-6.5.0.tgz#dc2d028b1882737f6e813fc92454381e438b7ad3"
   integrity sha512-pHZ/cySF00FVENDWIDzJyoObFahK6Eg4d0papqm6d7yMkxWTZ/S/csqJX1A3PsYy4t5k3z2QnlwuCfMW5lSEwA==
 
-mock-block-dock@0.0.9:
-  version "0.0.9"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.9.tgz#2197dae3159c7591032cb19e3ebcc7c096129a07"
-  integrity sha512-sLLEx2Nn73vTqDeR/wYGdFsvX50K9M1FBUK8KA28cBwOROwjxxOMJdZJ0P1AjDRBOpeh/l5oRzOPL7Bwuau/1A==
+mock-block-dock@0.0.10:
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.10.tgz#767a23d9743bba77ca7b60f6041d4e4b629e2d2f"
+  integrity sha512-PCbiBXGHLiJuJrls+30aqSYTRmp37rGXjGAqfr4US48PsjSsjV0GJUUH7/6HrXsXrndDaZeL+kj2oh8hoid/GQ==
   dependencies:
-    blockprotocol "0.0.9"
+    blockprotocol "0.0.10"
     lodash "^4.17.21"
     uuid "^8.3.2"
 

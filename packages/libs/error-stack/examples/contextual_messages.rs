@@ -2,7 +2,7 @@
 // example as well. This example is mainly used to generate the output shown in the documentation.
 use std::{collections::HashMap, error::Error, fmt};
 
-use error::{ensure, Report, Result, ResultExt};
+use error_stack::{ensure, Report, Result, ResultExt};
 
 #[derive(Debug)]
 enum LookupError {
@@ -35,15 +35,14 @@ fn parse_config(config: &HashMap<&str, u64>) -> Result<u64, LookupError> {
     let key = "abcd-efgh";
 
     // `ResultExt` provides different methods for adding additional information to the `Report`
-    let value =
-        lookup_key(config, key).wrap_err_lazy(|| format!("Could not lookup key {key:?}"))?;
+    let value = lookup_key(config, key).attach_lazy(|| format!("Could not lookup key {key:?}"))?;
 
     Ok(value)
 }
 
 fn main() -> Result<(), LookupError> {
     let config = HashMap::default();
-    let _config_value = parse_config(&config).wrap_err("Unable to parse config")?;
+    let _config_value = parse_config(&config).attach("Unable to parse config")?;
 
     Ok(())
 }

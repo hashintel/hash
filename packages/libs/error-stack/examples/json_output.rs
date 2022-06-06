@@ -6,7 +6,7 @@ use std::{
     fmt,
 };
 
-use error::{bail, Report, Result, ResultExt};
+use error_stack::{bail, Report, Result, ResultExt};
 use serde_json::json;
 
 #[derive(Debug)]
@@ -18,7 +18,7 @@ impl fmt::Display for MapError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Occupied { key, value } => {
-                write!(fmt, "Entry {key} is already occupied by {value}")
+                write!(fmt, "Entry \"{key}\" is already occupied by {value}")
             }
         }
     }
@@ -62,11 +62,11 @@ fn main() -> Result<(), MapError> {
     let mut config = HashMap::default();
 
     // Create an entry with "foo" as key
-    create_new_entry(&mut config, "foo", 1).wrap_err("Could not create new entry")?;
+    create_new_entry(&mut config, "foo", 1).attach("Could not create new entry")?;
 
     // Purposefully cause an error by attempting to create another entry with "foo" as key
     let creation_result =
-        create_new_entry(&mut config, "foo", 2).wrap_err("Could not create new entry");
+        create_new_entry(&mut config, "foo", 2).attach("Could not create new entry");
 
     assert_eq!(
         format!("{:?}", creation_result.unwrap_err()),

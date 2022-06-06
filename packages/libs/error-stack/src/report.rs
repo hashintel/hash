@@ -7,39 +7,43 @@ use std::backtrace::{Backtrace, BacktraceStatus};
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
-use crate::{
-    iter::{Frames, RequestRef, RequestValue},
-    provider, Context, Message,
-};
+#[cfg(nightly)]
+use crate::iter::{RequestRef, RequestValue};
+#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
+use crate::{context::temporary_provider, provider::request_ref};
+use crate::{iter::Frames, Context};
 
-/// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
-/// a [`Backtrace`] and a [`SpanTrace`].
+/// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
 ///
-/// To enable the backtrace, make sure `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to
-/// the [`Backtrace` documentation][`Backtrace`]. To enable the span trace, [`ErrorLayer`] has to
-/// be enabled.
+/// Attachments can be added by using [`attach()`]. The [`Frame`] stack can be iterated by using
+/// [`frames()`].
 ///
-/// Context information can be added by using [`wrap()`] or [`ResultExt`]. The [`Frame`] stack can
-/// be iterated by using [`frames()`].
+/// To enforce context information generation, a [`Context`] needs to be used. When creating a
+/// `Report` by using [`new()`], the passed [`Context`] is used to set the _current
+/// context_ on the `Report`. To provide a new one, use [`change_context()`], which may also be used
+/// to provide more context information than only a display message. This information can then be
+/// retrieved by calling [`request_ref()`] or [`request_value()`].
 ///
-/// To enforce context information generation, a context [`Provider`] needs to be used. When
-/// creating a `Report` by using [`from_error()`] or [`from_context()`], the parameter is used as
-/// context in the `Report`. To provide a new one, use [`provide_context()`] or [`ResultExt`] to add
-/// it, which may also be used to provide more context information than only a display message. This
-/// information can then be retrieved by calling [`request_ref()`] or [`request_value()`].
+/// ## `Backtrace` and `SpanTrace`
 ///
-/// [`Backtrace`]: std::backtrace::Backtrace
-/// [`SpanTrace`]: tracing_error::SpanTrace
+/// `Report` is able to provide a [`Backtrace`] and a [`SpanTrace`], which can be retrieved by
+/// calling [`backtrace()`] or [`span_trace()`] respectively. If the root context provides a
+/// [`Backtrace`] or a [`SpanTrace`], those are returned, otherwise, if configured, they are tried
+/// to be captured when creating a `Report`. To enable capturing of the backtrace, make sure
+/// `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to the
+/// [`Backtrace` documentation][`Backtrace`]. To enable capturing of the span trace, an
+/// [`ErrorLayer`] has to be enabled. Please also see the [Feature Flags] section.
+///
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
-/// [`wrap()`]: Self::wrap
-/// [`from_error()`]: Self::from_error
-/// [`from_context()`]: Self::from_context
+/// [`attach()`]: Self::attach
+/// [`new()`]: Self::new
 /// [`frames()`]: Self::frames
-/// [`provide_context()`]: Self::provide_context
+/// [`change_context()`]: Self::change_context
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
-/// [`ResultExt`]: crate::ResultExt
-/// [`Provider`]: provider::Provider
+/// [`backtrace()`]: Self::backtrace
+/// [`span_trace()`]: Self::span_trace
+/// [Feature Flags]: index.html#feature-flags
 ///
 /// # Examples
 ///
@@ -48,7 +52,7 @@ use crate::{
 ///
 /// ```
 /// # #![cfg_attr(any(miri, not(feature = "std")), allow(warnings))]
-/// use error::{IntoReport, ResultExt, Result};
+/// use error_stack::{IntoReport, ResultExt, Result};
 ///
 /// # #[allow(dead_code)]
 /// # fn fake_main() -> Result<(), std::io::Error> {
@@ -57,7 +61,7 @@ use crate::{
 /// # #[allow(unused_variables)]
 /// let content = std::fs::read_to_string(config_path)
 ///     .report()
-///     .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///     .attach_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
 /// ...
@@ -67,12 +71,10 @@ use crate::{
 /// Enforce a context for an error:
 ///
 /// ```
-/// use core::fmt;
-/// use std::path::{Path, PathBuf};
+/// use std::{fmt, path::{Path, PathBuf}};
 ///
-/// use error::provider::{Demand, Provider};
 /// # #[cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
-/// use error::{IntoReport, Report, ResultExt};
+/// use error_stack::{Context, IntoReport, Report, ResultExt};
 ///
 /// #[derive(Debug)]
 /// # #[derive(PartialEq)]
@@ -110,19 +112,15 @@ use crate::{
 ///     # }
 /// }
 ///
-/// impl Provider for RuntimeError {
-///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
-/// }
-/// impl Provider for ConfigError {
-///     fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {}
-/// }
+/// impl Context for RuntimeError {}
+/// impl Context for ConfigError {}
 ///
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # return Err(error::report!(ConfigError::IoError).wrap("Not supported"));
+///     # return Err(error_stack::report!(ConfigError::IoError).attach("Not supported"));
 ///     # #[cfg(all(not(miri), feature = "std"))]
-///     std::fs::read_to_string(path.as_ref()).report().provide_context(ConfigError::IoError)
+///     std::fs::read_to_string(path.as_ref()).report().change_context(ConfigError::IoError)
 /// }
 ///
 /// fn main() -> Result<(), Report<RuntimeError>> {
@@ -130,7 +128,7 @@ use crate::{
 ///     let config_path = "./path/to/config.file";
 ///     # #[allow(unused_variables)]
 ///     let config = read_config(config_path)
-///             .provide_context_lazy(|| RuntimeError::InvalidConfig(PathBuf::from(config_path)))?;
+///             .change_context_lazy(|| RuntimeError::InvalidConfig(PathBuf::from(config_path)))?;
 ///
 ///     # const _: &str = stringify! {
 ///     ...
@@ -169,36 +167,45 @@ impl<T> Report<T> {
     }
 
     /// Creates a new `Report<Context>` from a provided scope.
+    ///
+    /// If `context` does not provide [`Backtrace`]/[`SpanTrace`] thy are attempted to be
+    /// captured. Please see the [`Backtrace` and `SpanTrace` section] of the `Report`
+    /// documentation for more information.
+    ///
+    /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
     #[track_caller]
-    pub fn from_context(context: T) -> Self
+    pub fn new(context: T) -> Self
     where
         T: Context,
     {
-        #[allow(clippy::option_if_let_else)] // #[track_caller] on closures are unstable
-        let location = if let Some(location) =
-            provider::request_value::<&'static Location<'static>, _>(&context)
-        {
-            location
-        } else {
-            Location::caller()
-        };
+        #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
+        let provider = temporary_provider(&context);
 
         #[cfg(all(nightly, feature = "std"))]
-        let backtrace = if provider::request_ref::<Backtrace, _>(&context).is_some() {
+        let backtrace = if request_ref::<Backtrace, _>(&provider).is_some() {
             None
         } else {
             Some(Backtrace::capture())
         };
+        #[cfg(not(any(nightly, feature = "std")))]
+        let backtrace = Some(SpanTrace::capture());
 
-        #[cfg(feature = "spantrace")]
-        let span_trace = if provider::request_ref::<SpanTrace, _>(&context).is_some() {
+        #[cfg(all(nightly, feature = "spantrace"))]
+        let span_trace = if request_ref::<SpanTrace, _>(&provider).is_some() {
             None
         } else {
             Some(SpanTrace::capture())
         };
+        #[cfg(not(any(nightly, feature = "spantrace")))]
+        let span_trace = Some(SpanTrace::capture());
+
+        // Context will be moved in the next statement, so we need to drop the temporary provider
+        // first.
+        #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
+        drop(provider);
 
         Self::from_frame(
-            Frame::from_context(context, location, None),
+            Frame::from_context(context, Location::caller(), None),
             #[cfg(all(nightly, feature = "std"))]
             backtrace,
             #[cfg(feature = "spantrace")]
@@ -206,27 +213,46 @@ impl<T> Report<T> {
         )
     }
 
-    /// Creates a new `Report<T>` from the provided [`Error`].
+    /// Adds contextual information to the [`Frame`] stack.
     ///
-    /// [`Error`]: std::error::Error
+    /// ## Example
+    ///
+    /// ```rust
+    /// # #![cfg_attr(not(feature = "std"), allow(unused_imports))]
+    /// use std::{fmt, fs};
+    ///
+    /// use error_stack::{IntoReport, ResultExt};
+    ///
+    /// #[derive(Debug)]
+    /// pub struct Suggestion(&'static str);
+    ///
+    /// impl fmt::Display for Suggestion {
+    ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    ///         fmt.write_str(self.0)
+    ///     }
+    /// }
+    ///
+    /// # #[derive(Debug)] struct NoStdError;
+    /// # impl core::fmt::Display for NoStdError { fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+    /// # impl error_stack::Context for NoStdError {}
+    /// # #[cfg(any(not(feature = "std"), miri))]
+    /// # let error: Result<(), _> = Err(error_stack::report!(NoStdError).attach(Suggestion("Better use a file which exists next time!")));
+    /// # #[cfg(all(feature = "std", not(miri)))]
+    /// let error = fs::read_to_string("config.txt")
+    ///     .report()
+    ///     .attach(Suggestion("Better use a file which exists next time!"));
+    /// let report = error.unwrap_err();
+    /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
+    ///
+    /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
     #[track_caller]
-    #[cfg(feature = "std")]
-    pub fn from_error(error: T) -> Self
+    pub fn attach<A>(self, attachment: A) -> Self
     where
-        T: std::error::Error + Send + Sync + 'static,
-    {
-        Self::from(error)
-    }
-
-    /// Adds a contextual message to the [`Frame`] stack.
-    #[track_caller]
-    pub fn wrap<M>(self, message: M) -> Self
-    where
-        M: Message,
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self::from_frame(
-            Frame::from_message(
-                message,
+            Frame::from_attachment(
+                attachment,
                 Location::caller(),
                 Some(Box::new(self.inner.frame)),
             ),
@@ -238,10 +264,12 @@ impl<T> Report<T> {
     }
 
     /// Adds context information to the [`Frame`] stack enforcing a typed `Report`.
+    ///
+    /// Please see the [`Context`] documentation for more information.
     #[track_caller]
-    pub fn provide_context<C2>(self, context: C2) -> Report<C2>
+    pub fn change_context<C>(self, context: C) -> Report<C>
     where
-        C2: Context,
+        C: Context,
     {
         Report::from_frame(
             Frame::from_context(
@@ -254,16 +282,6 @@ impl<T> Report<T> {
             #[cfg(feature = "spantrace")]
             self.inner.span_trace,
         )
-    }
-
-    /// Converts the `Report<T>` to `Report<()>` without modifying the frame stack.
-    #[doc(hidden)]
-    #[allow(clippy::missing_const_for_fn)] // False positive
-    pub fn generalize(self) -> Report<()> {
-        Report {
-            inner: self.inner,
-            _context: PhantomData,
-        }
     }
 
     /// Returns the backtrace of the error, if captured.
@@ -296,12 +314,15 @@ impl<T> Report<T> {
     #[must_use]
     #[cfg(feature = "spantrace")]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
-        let span_trace = self.inner.span_trace.as_ref().unwrap_or_else(|| {
-            // Should never panic as it's either stored inside of `Report` or is provided by a frame
-            self.request_ref::<SpanTrace>()
-                .next()
-                .expect("SpanTrace is not available")
-        });
+        #[cfg(not(nightly))]
+        let span_trace = self.inner.span_trace.as_ref()?;
+        #[cfg(nightly)]
+        let span_trace = self
+            .inner
+            .span_trace
+            .as_ref()
+            .or_else(|| self.request_ref::<SpanTrace>().next())?;
+
         if span_trace.status() == SpanTraceStatus::CAPTURED {
             Some(span_trace)
         } else {
@@ -315,11 +336,13 @@ impl<T> Report<T> {
     }
 
     /// Creates an iterator over the [`Frame`] stack requesting references of type `R`.
+    #[cfg(nightly)]
     pub const fn request_ref<R: ?Sized + 'static>(&self) -> RequestRef<'_, R> {
         RequestRef::new(self)
     }
 
     /// Creates an iterator over the [`Frame`] stack requesting values of type `R`.
+    #[cfg(nightly)]
     pub const fn request_value<R: 'static>(&self) -> RequestValue<'_, R> {
         RequestValue::new(self)
     }
@@ -327,22 +350,47 @@ impl<T> Report<T> {
     /// Returns if `T` is the type held by any frame inside of the report.
     // TODO: Provide example
     #[must_use]
-    pub fn contains<C: Any>(&self) -> bool {
-        self.frames().any(Frame::is::<C>)
+    pub fn contains<A: Any>(&self) -> bool {
+        self.frames().any(Frame::is::<A>)
     }
 
     /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
     // TODO: Provide example
     #[must_use]
-    pub fn downcast_ref<C: Any>(&self) -> Option<&C> {
-        self.frames().find_map(Frame::downcast_ref::<C>)
+    pub fn downcast_ref<A: Any>(&self) -> Option<&A> {
+        self.frames().find_map(Frame::downcast_ref::<A>)
+    }
+
+    pub(crate) const fn frame(&self) -> &Frame {
+        &self.inner.frame
     }
 }
 
-impl<T> Report<T> {
-    pub(crate) const fn frame(&self) -> &Frame {
-        &self.inner.frame
+impl<T: Context> Report<T> {
+    /// Returns the current context of the `Report`.
+    ///
+    /// If the user want to get the latest context, `current_context` can be called. If the user
+    /// wants to handle the error, the context can then be used to directly access the context's
+    /// type. This is only possible for the latest context as the Report does not have multiple
+    /// generics as this would either require variadic generics or a workaround like tuple-list.
+    ///
+    /// This is one disadvantage of the library in comparison to plain Errors, as in these cases,
+    /// all context types are known.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)] // Panicking here is a bug
+    pub fn current_context(&self) -> &T
+    where
+        T: Any,
+    {
+        // Panics if there isn't an attached context which matches `T`. As it's not possible to
+        // create a `Report` without a valid context and this method can only be called when `T` is
+        // a valid context, it's guaranteed that the context is available when calling
+        // `current_context`.
+        self.downcast_ref().expect(
+            "Report does not contain a context. This is considered a bug and should be reported \
+             to https://github.com/hashintel/hash/issues/new",
+        )
     }
 }
 
