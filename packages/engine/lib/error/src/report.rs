@@ -21,7 +21,8 @@ use crate::{iter::Frames, Context};
 /// If the root [`Frame`] contains a [`Backtrace`]/[`SpanTrace`], these are used, otherwise they
 /// are eventually captured. To enable capturing of the backtrace, make sure `RUST_BACKTRACE` or
 /// `RUST_LIB_BACKTRACE` is set according to the [`Backtrace` documentation][`Backtrace`]. To enable
-/// capturing of the span trace, an [`ErrorLayer`] has to be enabled.
+/// capturing of the span trace, an [`ErrorLayer`] has to be enabled. Please also look at the
+/// [Feature Flags] section.
 ///
 /// Attachments can be added by using [`attach()`]. The [`Frame`] stack can be iterated by using
 /// [`frames()`].
@@ -41,6 +42,7 @@ use crate::{iter::Frames, Context};
 /// [`change_context()`]: Self::change_context
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
+/// [Feature Flags]: index.html#feature-flags
 ///
 /// # Examples
 ///
