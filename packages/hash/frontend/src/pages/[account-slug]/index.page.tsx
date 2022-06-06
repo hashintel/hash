@@ -53,7 +53,7 @@ const Page: NextPageWithLayout = () => {
       <Typography mb={3} variant="h2">
         Welcome to HASH
       </Typography>
-      <Box sx={{ maxWidth: "75ch" }}>
+      <Box maxWidth="75ch">
         <Typography mb={3}>
           HASH is an open-source, data-centric, all-in-one workspace built atop
           the open <Link href="https://blockprotocol.org">Block Protocol</Link>,
