@@ -1,3 +1,3 @@
-export * from "./app-ui/button";
-export * from "./app-ui/menu-item";
-export * from "./app-ui/link";
+export * from "./ui/button";
+export * from "./ui/menu-item";
+export * from "./ui/link";
