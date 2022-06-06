@@ -33,6 +33,24 @@ pub struct Frame {
 }
 
 impl Frame {
+    fn from_unerased<T>(
+        object: T,
+        location: &'static Location<'static>,
+        source: Option<Box<Self>>,
+        vtable: &'static VTable,
+    ) -> Self
+    where
+        T: Context,
+    {
+        Self {
+            // SAFETY: `FrameRepr` must not be dropped without using the vtable, so it's wrapped in
+            //   `ManuallyDrop`. A custom drop implementation is provided that takes care of this.
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(object, vtable)) },
+            location,
+            source,
+        }
+    }
+
     pub(crate) fn from_context<C>(
         context: C,
         location: &'static Location<'static>,
@@ -41,13 +59,11 @@ impl Frame {
     where
         C: Context,
     {
-        Self {
-            // SAFETY: `FrameRepr` must not be dropped without using the vtable, so it's wrapped in
-            //   `ManuallyDrop`. A custom drop implementation is provided that takes care of this.
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(context)) },
-            location,
-            source,
-        }
+        Self::from_unerased(context, location, source, &VTable {
+            object_drop: VTable::object_drop::<C>,
+            object_ref: VTable::object_ref::<C>,
+            object_downcast: VTable::context_downcast::<C>,
+        })
     }
 
     pub(crate) fn from_attachment<A>(
@@ -58,7 +74,11 @@ impl Frame {
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self::from_context(AttachedObject(object), location, source)
+        Self::from_unerased(AttachedObject(object), location, source, &VTable {
+            object_drop: VTable::object_drop::<AttachedObject<A>>,
+            object_ref: VTable::object_ref::<AttachedObject<A>>,
+            object_downcast: VTable::attachment_downcast::<A>,
+        })
     }
 
     /// Returns the location where this `Frame` was created.
@@ -143,6 +163,10 @@ impl Drop for Frame {
     }
 }
 
+type ObjectDropFn = unsafe fn(Box<FrameRepr>);
+type ObjectRefFn = unsafe fn(&FrameRepr) -> &dyn Context;
+type ObjectDowncastFn = unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>;
+
 /// Stores functions to act on the underlying [`Frame`] type without knowing the unerased type.
 ///
 /// This works around the limitation of not being able to coerce from `Box<dyn Context>` to
@@ -150,9 +174,9 @@ impl Drop for Frame {
 /// are stored and called directly. In addition this reduces the memory usage by one pointer, as the
 /// `VTable` is stored next to the object.
 struct VTable {
-    object_drop: unsafe fn(Box<FrameRepr>),
-    object_ref: unsafe fn(&FrameRepr) -> &dyn Context,
-    object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
+    object_drop: ObjectDropFn,
+    object_ref: ObjectRefFn,
+    object_downcast: ObjectDowncastFn,
 }
 
 /// Wrapper around an attachment to unify the interface for a [`Frame`].
@@ -200,7 +224,7 @@ impl VTable {
         drop(unerased);
     }
 
-    /// Unerase the object as `&dyn Context`
+    /// Unerase the object as `&dyn Context`.
     ///
     /// # Safety
     ///
@@ -213,18 +237,39 @@ impl VTable {
         &(*(unerased))._unerased
     }
 
-    /// Downcasts the object to `target`
+    /// Downcasts the context to `target`.
     ///
     /// # Safety
     ///
-    /// - Layout of `frame` must match `FrameRepr<T>`.
-    unsafe fn object_downcast<C: Context>(
+    /// - Layout of `frame` must match `FrameRepr<C>`.
+    unsafe fn context_downcast<C: Context>(
         frame: &FrameRepr,
         target: TypeId,
     ) -> Option<NonNull<()>> {
         if TypeId::of::<C>() == target {
             // Attach T's native vtable onto the pointer to `self._unerased`
-            let unerased = (frame as *const FrameRepr).cast::<FrameRepr<C>>();
+            let unerased: *const FrameRepr<C> = (frame as *const FrameRepr).cast();
+            // inside of vtable it's allowed to access `_unerased`
+            #[allow(clippy::used_underscore_binding)]
+            let addr = addr_of!((*(unerased))._unerased) as *mut ();
+            Some(NonNull::new_unchecked(addr))
+        } else {
+            None
+        }
+    }
+
+    /// Downcasts the attachment to `target`.
+    ///
+    /// # Safety
+    ///
+    /// - Layout of `frame` must match `FrameRepr<AttachedObject<A>>`.
+    unsafe fn attachment_downcast<A: fmt::Display + fmt::Debug + Send + Sync + 'static>(
+        frame: &FrameRepr,
+        target: TypeId,
+    ) -> Option<NonNull<()>> {
+        if TypeId::of::<A>() == target {
+            // Attach T's native vtable onto the pointer to `self._unerased`
+            let unerased: *const FrameRepr<AttachedObject<A>> = (frame as *const FrameRepr).cast();
             // inside of vtable it's allowed to access `_unerased`
             #[allow(clippy::used_underscore_binding)]
             let addr = addr_of!((*(unerased))._unerased) as *mut ();
@@ -254,13 +299,9 @@ where
     /// # Safety
     ///
     /// Must not be dropped without calling `vtable.object_drop`
-    unsafe fn new(context: C) -> Box<FrameRepr> {
+    unsafe fn new(context: C, vtable: &'static VTable) -> Box<FrameRepr> {
         let unerased_frame = Self {
-            vtable: &VTable {
-                object_drop: VTable::object_drop::<C>,
-                object_ref: VTable::object_ref::<C>,
-                object_downcast: VTable::object_downcast::<C>,
-            },
+            vtable,
             _unerased: context,
         };
         let unerased_box = Box::new(unerased_frame);
@@ -277,23 +318,7 @@ impl FrameRepr {
     }
 
     fn downcast<T: Any>(&self) -> Option<NonNull<T>> {
-        // TODO: Use tagged pointer to store the frame kind
-        //   see https://app.asana.com/0/0/1202366470755781/f
-        // SAFETY: Use vtable to attach T's native vtable for the right original type T. Casting
-        //   between `T` and `ContextRepr<T>`/`ErrorRepr<T>` is safe as those structs are
-        //   `repr(transparent)`.
-        unsafe {
-            if let Some(addr) = (self.vtable.object_downcast)(self, TypeId::of::<T>()) {
-                return Some(addr.cast());
-            }
-
-            if let Some(addr) =
-                (self.vtable.object_downcast)(self, TypeId::of::<AttachedObject<T>>())
-            {
-                return Some(addr.cast());
-            }
-
-            None
-        }
+        // SAFETY: Use vtable to attach T's native vtable for the right original type T.
+        unsafe { (self.vtable.object_downcast)(self, TypeId::of::<T>()).map(NonNull::cast) }
     }
 }
