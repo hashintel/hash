@@ -1,4 +1,4 @@
-import { VFC } from "react";
+import * as React from "react";
 import { Box, BoxProps } from "@mui/material";
 
 interface AvatarProps extends BoxProps {
@@ -7,7 +7,7 @@ interface AvatarProps extends BoxProps {
   src?: string;
 }
 
-export const Avatar: VFC<AvatarProps> = ({
+export const Avatar: React.VFC<AvatarProps> = ({
   title,
   size = 20,
   src,

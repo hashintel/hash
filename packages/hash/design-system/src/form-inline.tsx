@@ -1,4 +1,4 @@
-import { FC } from "react";
+import * as React from "react";
 import { Box, buttonClasses, outlinedInputClasses } from "@mui/material";
 
 type FormInlineProps = {};
@@ -11,7 +11,7 @@ type FormInlineProps = {};
  * </FormInline>
  * @see https://www.figma.com/file/gydVGka9FjNEg9E2STwhi2/HASH-Editor?node-id=823%3A67158
  */
-export const FormInline: FC<FormInlineProps> = ({ children }) => {
+export const FormInline: React.FC<FormInlineProps> = ({ children }) => {
   return (
     <Box
       sx={{

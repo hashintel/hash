@@ -5,15 +5,15 @@ import {
   MenuItemProps as MuiMenuItemProps,
   typographyClasses,
 } from "@mui/material";
-import { VFC, forwardRef, ReactNode } from "react";
+import * as React from "react";
 
 export type MenuItemProps = {
-  children?: ReactNode;
+  children?: React.ReactNode;
   faded?: boolean;
   noSelectBackground?: boolean;
 } & MuiMenuItemProps;
 
-export const MenuItem: VFC<MenuItemProps> = forwardRef(
+export const MenuItem: React.VFC<MenuItemProps> = React.forwardRef(
   (
     { children, sx = [], faded, selected, noSelectBackground, ...props },
     ref,

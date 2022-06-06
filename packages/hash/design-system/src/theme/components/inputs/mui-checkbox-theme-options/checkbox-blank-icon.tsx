@@ -1,7 +1,7 @@
-import React, { FC } from "react";
+import * as React from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 
-export const RadioCheckedIcon: FC<SvgIconProps> = ({
+export const CheckboxBlankIcon: React.FC<SvgIconProps> = ({
   sx = [],
   ...otherProps
 }) => {
@@ -13,15 +13,15 @@ export const RadioCheckedIcon: FC<SvgIconProps> = ({
           width: "1em",
           height: "1em",
           fontSize: 16,
-          color: palette.blue[70],
+          color: palette.gray[40],
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
       viewBox="0 0 16 16"
       fill="none"
     >
-      <circle cx="8" cy="8" r="8" fill="currentColor" />
-      <circle cx="8" cy="8" r="3" fill="white" />
+      <rect width="16" height="16" rx="4" fill="currentColor" />
+      <rect x="1" y="1" width="14" height="14" rx="3" fill="white" />
     </SvgIcon>
   );
 };

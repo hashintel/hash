@@ -1,5 +1,5 @@
 import { Box, CircularProgress, circularProgressClasses } from "@mui/material";
-import React, { VFC } from "react";
+import * as React from "react";
 
 const DEFAULT_THICKNESS = 5;
 const DEFAULT_SIZE = 20;
@@ -10,7 +10,7 @@ type LoadingSpinnerProps = {
   color?: string;
 };
 
-export const LoadingSpinner: VFC<LoadingSpinnerProps> = ({
+export const LoadingSpinner: React.VFC<LoadingSpinnerProps> = ({
   size = DEFAULT_SIZE,
   thickness = DEFAULT_THICKNESS,
   color = "currentColor",

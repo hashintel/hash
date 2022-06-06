@@ -3,14 +3,14 @@ import {
   IconButton as MuiIconButton,
   IconButtonProps as MuiIconButtonProps,
 } from "@mui/material";
-import { forwardRef, FC } from "react";
+import * as React from "react";
 
 export type IconButtonProps = {
   unpadded?: boolean;
   rounded?: boolean;
 } & MuiIconButtonProps;
 
-export const IconButton: FC<IconButtonProps> = forwardRef(
+export const IconButton: React.FC<IconButtonProps> = React.forwardRef(
   ({ children, unpadded, rounded, sx = [], ...props }, ref) => {
     return (
       <MuiIconButton

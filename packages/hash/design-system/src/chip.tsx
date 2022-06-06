@@ -1,4 +1,4 @@
-import { FC, forwardRef } from "react";
+import * as React from "react";
 import {
   Chip as MuiChip,
   chipClasses,
@@ -18,7 +18,7 @@ export type ChipProps = {
 // is passed in
 // @see https://github.com/mui/material-ui/blob/master/packages/mui-material/src/Chip/Chip.js#L444-L448
 
-export const Chip: FC<ChipProps> = forwardRef(
+export const Chip: React.FC<ChipProps> = React.forwardRef(
   (
     {
       sx = [],
