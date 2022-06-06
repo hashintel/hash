@@ -3,7 +3,7 @@ import {
   MenuItem as BaseMenuItem,
   MenuItemProps as BaseMenuItemProps,
 } from "@hashintel/hash-design-system";
-import { Link } from "./link";
+import { Link } from "./link-";
 
 export type MenuItemProps = {
   children?: ReactNode;
