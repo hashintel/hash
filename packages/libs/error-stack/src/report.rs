@@ -187,8 +187,6 @@ impl<T> Report<T> {
         } else {
             Some(Backtrace::capture())
         };
-        #[cfg(not(any(nightly, feature = "std")))]
-        let backtrace = Some(SpanTrace::capture());
 
         #[cfg(all(nightly, feature = "spantrace"))]
         let span_trace = if request_ref::<SpanTrace, _>(&provider).is_some() {
@@ -196,7 +194,7 @@ impl<T> Report<T> {
         } else {
             Some(SpanTrace::capture())
         };
-        #[cfg(not(any(nightly, feature = "spantrace")))]
+        #[cfg(all(not(nightly), feature = "spantrace"))]
         let span_trace = Some(SpanTrace::capture());
 
         // Context will be moved in the next statement, so we need to drop the temporary provider
@@ -241,9 +239,12 @@ impl<T> Report<T> {
     /// let error = fs::read_to_string("config.txt")
     ///     .report()
     ///     .attach(Suggestion("Better use a file which exists next time!"));
+    /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = error.unwrap_err();
+    /// # #[cfg(nightly)]
     /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
     ///
+    /// # #[cfg(nightly)]
     /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
     #[track_caller]
     pub fn attach<A>(self, attachment: A) -> Self
