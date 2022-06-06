@@ -1,6 +1,6 @@
 import { Popover as MuiPopover, PopoverProps } from "@mui/material";
 import React from "react";
-import { useScrollLock } from "./utils";
+import { useScrollLock } from "./use-scroll-lock";
 
 /**
  * Custom Popover re-implementing MUI's troublesome scroll-lock mechanism.

@@ -13,7 +13,7 @@ type ChipGroupProps = {
 // </ChipGroup>
 //
 
-export const ChipGroup: FC<ChipGroupProps> = React.forwardRef(
+export const ChipGroup: React.FC<ChipGroupProps> = React.forwardRef(
   ({ children }, ref) => {
     return (
       <Box

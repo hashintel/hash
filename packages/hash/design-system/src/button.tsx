@@ -21,7 +21,7 @@ const LoadingContent: React.VFC<{
 }> = ({ withText, size, variant = "primary" }) => {
   const theme = useTheme();
 
-  const spinnerSize = useMemo(() => {
+  const spinnerSize = React.useMemo(() => {
     switch (size) {
       case "large":
         return 20;
@@ -34,7 +34,7 @@ const LoadingContent: React.VFC<{
     }
   }, [size]);
 
-  const spinnerColor = useMemo(() => {
+  const spinnerColor = React.useMemo(() => {
     switch (variant) {
       case "tertiary":
       case "tertiary_quiet":
