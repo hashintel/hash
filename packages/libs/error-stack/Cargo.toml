@@ -2,6 +2,7 @@
 name = "error-stack"
 version = "0.0.0"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 tracing-error = { version = "0.2.0", optional = true }
