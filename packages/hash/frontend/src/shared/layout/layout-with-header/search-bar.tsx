@@ -10,6 +10,7 @@ import React, {
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
 
+import { IconButton } from "@hashintel/hash-design-system";
 import { getBlockDomId } from "../../../blocks/page/BlockView";
 import {
   SearchPagesQuery,
@@ -19,7 +20,7 @@ import { searchPages } from "../../../graphql/queries/search.queries";
 import { useUser } from "../../../components/hooks/useUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 import { SearchInput } from "./search-bar/search-input";
-import { Button, IconButton, Link } from "../../ui";
+import { Button, Link } from "../../ui";
 import { SearchIcon } from "../../icons";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */

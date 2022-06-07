@@ -3,8 +3,8 @@ import createEmotionServer from "@emotion/server/create-instance";
 import withTwindDocument from "@twind/next/document";
 import NextDocument, { Html, Head, Main, NextScript } from "next/document";
 
+import { createEmotionCache } from "@hashintel/hash-design-system";
 import twindConfig from "../../twind.config";
-import { createEmotionCache } from "../shared/ui";
 
 class Document extends NextDocument {
   render() {
