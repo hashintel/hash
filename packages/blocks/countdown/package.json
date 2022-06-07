@@ -1,5 +1,5 @@
 {
-  "name": "countdown",
+  "name": "@hashintel/block-countdown",
   "version": "0.0.0",
   "description": "Countdown to a time and date",
   "keywords": [
@@ -39,9 +39,13 @@
   "blockprotocol": {
     "displayName": "Countdown",
     "examples": [
-      {}
+      {
+        "title": "The Beta Launch",
+        "targetDate": null,
+        "displayTime": false
+      }
     ],
-    "icon": "public/omega.svg",
-    "image": "public/block-preview.svg"
+    "icon": "public/icon.svg",
+    "image": "public/preview.svg"
   }
 }
