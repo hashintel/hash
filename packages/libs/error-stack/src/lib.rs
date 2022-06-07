@@ -127,7 +127,7 @@
 //! }
 //! ```
 //!
-//! which will produce an error and will output somethink like
+//! which will produce an error and will output something like
 //!
 //! ```text
 //! Could not parse configuration file
