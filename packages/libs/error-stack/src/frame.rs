@@ -314,6 +314,8 @@ impl VTable {
 }
 
 /// Stores a [`Box`] and a [`FrameKind`] by only occupying one pointer in size.
+///
+/// It's guaranteed, that a `TaggedBox` has the same size as `Box`.
 pub struct TaggedBox<T>(usize, PhantomData<Box<T>>);
 
 impl<T> TaggedBox<T> {
@@ -435,5 +437,18 @@ impl FrameRepr {
         unsafe {
             (self.vtable.object_downcast)(self, TypeId::of::<T>()).map(|ptr| ptr.cast().as_ref())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tagged_box_size() {
+        assert_eq!(
+            mem::size_of::<TaggedBox<FrameRepr>>(),
+            mem::size_of::<Box<FrameRepr>>()
+        )
     }
 }
