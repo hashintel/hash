@@ -141,15 +141,28 @@
           width: 100px;
         }
 
+        &:not(:placeholder-shown) {
+          opacity: 0.6;
+
+          & + svg {
+            opacity: 0.6;
+          }
+        }
+
         &::placeholder {
           color: var(--primary-text-base);
           font-size: 0.875rem;
           font-weight: 500;
         }
+
+        &[data-expanded="true"] {
+          width: 160px;
+        }
       }
 
       svg {
-        color: #758aa1;
+        color: var(--tertiary-text-base);
+        transition: 0.3s all ease-in-out;
       }
     }
 

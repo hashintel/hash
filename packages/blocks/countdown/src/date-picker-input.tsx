@@ -29,13 +29,14 @@ const CalenderIcon: FC<{ onClick: () => void }> = ({ onClick }) => {
 
 const CustomInput = forwardRef<
   HTMLInputElement,
-  HTMLAttributes<HTMLInputElement>
+  HTMLAttributes<HTMLInputElement> & { displayTime: boolean }
 >(({ ...props }, ref) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
       <input
+        data-expanded={props.displayTime ? "true" : "false"}
         type="text"
         ref={(element) => {
           if (!ref || !inputRef) return;
@@ -116,7 +117,7 @@ export const DatePickerInput = forwardRef<DatePicker, DatePickerInputProps>(
           placeholderText="Select a date"
           dateFormat={displayTime ? "MMM d, yyyy h:mm aa" : "MMM d, yyyy"}
           {...props}
-          customInput={<CustomInput />}
+          customInput={<CustomInput displayTime={displayTime} />}
           customTimeInput={
             <CustomTimeInput
               displayTime={displayTime}
