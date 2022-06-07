@@ -1,8 +1,6 @@
 //! Iterators over [`Frame`]s.
 
-#[cfg(nightly)]
-use core::marker::PhantomData;
-use core::{fmt, fmt::Formatter, iter::FusedIterator};
+use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData};
 
 use crate::{Frame, Report};
 
