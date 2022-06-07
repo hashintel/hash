@@ -381,7 +381,7 @@ impl<T> TaggedBox<T> {
 
     /// Returns the tag stored inside the pointer
     pub const fn kind(&self) -> FrameKind {
-        // We only store the last bit. If it's `1`, it's an context, otherwise it's an attachment
+        // We only store the last bit. If it's `1`, it's a context, otherwise it's an attachment
         if self.0 & 1 == 1 {
             FrameKind::Context
         } else {
