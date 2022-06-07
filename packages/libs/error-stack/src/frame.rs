@@ -527,5 +527,11 @@ mod tests {
             "A1",
             "Context A"
         ]);
+
+        let report = Report::new(ContextA);
+        let report = report.change_context(ContextB);
+
+        assert_eq!(frame_kinds(&report), [Context, Context]);
+        assert_eq!(messages(&report), ["Context B", "Context A"]);
     }
 }
