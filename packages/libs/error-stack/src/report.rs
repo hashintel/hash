@@ -1,4 +1,4 @@
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
 use core::{any::Any, fmt, fmt::Formatter, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
@@ -12,7 +12,7 @@ use crate::iter::{RequestRef, RequestValue};
 use crate::{context::temporary_provider, provider::request_ref};
 use crate::{
     iter::{Frames, FramesMut},
-    Context, Frame,
+    Context, Frame, FrameKind,
 };
 
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
@@ -449,17 +449,32 @@ impl<Context> fmt::Debug for Report<Context> {
             debug.field("span_trace", &self.span_trace());
             debug.finish()
         } else {
-            let mut chain = self.frames();
-            let error = chain.next().expect("No error occurred");
-            write!(fmt, "{error}")?;
-            write!(fmt, "\n             at {}", error.location())?;
+            let mut context_idx = -1;
+            let mut attachments: Vec<&Frame> = Vec::new();
+            for frame in self.frames() {
+                match frame.kind() {
+                    FrameKind::Context => {
+                        if context_idx == -1 {
+                            write!(fmt, "{frame}")?;
+                        } else {
+                            if context_idx == 0 {
+                                fmt.write_str("\n\nCaused by:")?;
+                            }
+                            write!(fmt, "\n   {context_idx}: {frame}")?;
+                        }
+                        write!(fmt, "\n             at {}", frame.location())?;
 
-            for (idx, frame) in chain.enumerate() {
-                if idx == 0 {
-                    fmt.write_str("\n\nCaused by:")?;
+                        #[allow(clippy::iter_with_drain)] // We re-use the vector
+                        for attachment in attachments.drain(..) {
+                            write!(fmt, "\n      - {attachment}")?;
+                        }
+
+                        context_idx += 1;
+                    }
+                    FrameKind::Attachment => {
+                        attachments.push(frame);
+                    }
                 }
-                write!(fmt, "\n   {idx}: {frame}")?;
-                write!(fmt, "\n             at {}", frame.location())?;
             }
 
             #[cfg(all(nightly, feature = "std"))]
