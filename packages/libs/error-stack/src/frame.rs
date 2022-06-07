@@ -45,8 +45,7 @@ pub enum FrameKind {
 pub struct Frame {
     inner: ManuallyDrop<TaggedBox<FrameRepr>>,
     location: &'static Location<'static>,
-    // `pub(crate)` required for `Frames` implementation for non-nightly builds
-    pub(crate) source: Option<Box<Frame>>,
+    source: Option<Box<Frame>>,
 }
 
 impl Frame {
@@ -117,6 +116,32 @@ impl Frame {
         self.location
     }
 
+    /// Returns a shared reference to the source of this `Frame`.
+    ///
+    /// This corresponds to the `Frame` below this one in a [`Report`].
+    ///
+    /// [`Report`]: crate::Report
+    #[must_use]
+    pub const fn source(&self) -> Option<&Self> {
+        // TODO: Change to `self.source.as_ref().map(Box::as_ref)` when this is possible in a const
+        //   function. On stable toolchain, clippy is not smart enough yet.
+        #[cfg_attr(not(nightly), allow(clippy::needless_match))]
+        match &self.source {
+            Some(source) => Some(source),
+            None => None,
+        }
+    }
+
+    /// Returns a mutable reference to the source of this `Frame`.
+    ///
+    /// This corresponds to the `Frame` below this one in a [`Report`].
+    ///
+    /// [`Report`]: crate::Report
+    #[must_use]
+    pub fn source_mut(&mut self) -> Option<&mut Self> {
+        self.source.as_mut().map(Box::as_mut)
+    }
+
     /// Returns how the `Frame` was created.
     #[must_use]
     pub fn kind(&self) -> FrameKind {
@@ -153,6 +178,12 @@ impl Frame {
     #[must_use]
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
         self.inner.downcast_ref()
+    }
+
+    /// Downcasts this frame if the held context or attachment is the same as `T`.
+    #[must_use]
+    pub fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
+        self.inner.downcast_mut()
     }
 }
 
@@ -438,11 +469,31 @@ impl FrameRepr {
             (self.vtable.object_downcast)(self, TypeId::of::<T>()).map(|ptr| ptr.cast().as_ref())
         }
     }
+
+    fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
+        // SAFETY: Use vtable to attach T's native vtable for the right original type T.
+        unsafe {
+            (self.vtable.object_downcast)(self, TypeId::of::<T>()).map(|ptr| ptr.cast().as_mut())
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[allow(clippy::wildcard_imports)]
+    use crate::test_helper::*;
+    use crate::Report;
+
+    #[test]
+    fn downcast_mut() {
+        let mut report = Report::new(ContextA).attach(String::from("Hello"));
+        let attachment = report.downcast_mut::<String>().unwrap();
+        attachment.push_str(" World!");
+        let messages: Vec<_> = report.frames_mut().map(|frame| frame.to_string()).collect();
+        assert_eq!(messages, ["Hello World!", "Context A"]);
+    }
 
     #[test]
     fn tagged_box_size() {
