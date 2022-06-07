@@ -481,7 +481,6 @@ impl FrameRepr {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[allow(clippy::wildcard_imports)]
     use crate::test_helper::*;
     use crate::Report;
