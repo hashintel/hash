@@ -17,15 +17,15 @@ use core::{
 use crate::provider::{self, Demand, Provider};
 use crate::Context;
 
-/// Representation of the [`Frame`] how it was created.
+/// Classification of the contents of a [`Frame`], determined by how it was created.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FrameKind {
-    /// Frame was created with [`Report::new()`] or [`change_context()`].
+    /// Frame was created through [`Report::new()`] or [`change_context()`].
     ///
     /// [`Report::new()`]: crate::Report::new
     /// [`change_context()`]: crate::Report::change_context
     Context,
-    /// Frame was created with [`attach()`].
+    /// Frame was created through [`attach()`].
     ///
     /// [`attach()`]: crate::Report::attach
     Attachment,
@@ -346,26 +346,28 @@ impl VTable {
 
 /// Stores a [`Box`] and a [`FrameKind`] by only occupying one pointer in size.
 ///
-/// It's guaranteed, that a `TaggedBox` has the same size as `Box`.
+/// It's guaranteed that a `TaggedBox` has the same size as `Box`.
 pub struct TaggedBox<T>(usize, PhantomData<Box<T>>);
 
 impl<T> TaggedBox<T> {
     /// Mask for the pointer.
     ///
     /// For a given pointer width, this will be
+    ///
     ///  - 16 bit: `1111_1111_1111_1110`
     ///  - 32 bit: `1111_1111_1111_1111_1111_1111_1111_1100`
     ///  - 64 bit: `1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1000`
+    ///
     /// so the last bit will *always* be `0`.
     const MASK: usize = !(mem::align_of::<*const T>() - 1);
 
-    /// Creates a new tagged pointer with the tag
+    /// Creates a new tagged pointer with a `FrameKind`.
     ///
     /// # Panics
     ///
-    /// if the tag is too large to be stored next to a pointer
+    /// if the tag is too large to be stored next to a pointer.
     pub fn new(frame: T, kind: FrameKind) -> Self {
-        // Will only fail on 8-bit platforms which Rust currently is not supporting
+        // Will only fail on 8-bit platforms which Rust currently does not support
         assert!(
             mem::align_of::<*const T>() >= 2,
             "Tag can't be stored as tagged pointer"
@@ -379,6 +381,7 @@ impl<T> TaggedBox<T> {
 
     /// Returns the tag stored inside the pointer
     pub const fn kind(&self) -> FrameKind {
+        // We only store the last bit. If it's `1`, it's an context, otherwise it's an attachement
         if self.0 & 1 == 1 {
             FrameKind::Context
         } else {
