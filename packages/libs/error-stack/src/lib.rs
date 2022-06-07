@@ -216,7 +216,7 @@ pub use self::future::FutureExt;
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,
-    frame::Frame,
+    frame::{Frame, FrameKind},
     macros::*,
     report::Report,
     result::{IntoReport, Result, ResultExt},
@@ -230,7 +230,7 @@ pub(crate) mod test_helper {
     };
     use core::{fmt, fmt::Formatter};
 
-    use crate::{Context, Report};
+    use crate::{Context, Frame, FrameKind, Report};
 
     #[derive(Debug, PartialEq)]
     pub struct ContextA;
@@ -264,5 +264,9 @@ pub(crate) mod test_helper {
 
     pub fn messages<E>(report: &Report<E>) -> Vec<String> {
         report.frames().map(ToString::to_string).collect()
+    }
+
+    pub fn kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
+        report.frames().map(Frame::kind).collect()
     }
 }
