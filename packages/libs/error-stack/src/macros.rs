@@ -264,7 +264,10 @@ mod tests {
         assert_eq!(err.current_context(), &ContextA);
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
-        assert_eq!(kinds(&err), [FrameKind::Attachment, FrameKind::Context]);
+        assert_eq!(frame_kinds(&err), [
+            FrameKind::Attachment,
+            FrameKind::Context
+        ]);
 
         let err = capture_error(|| Err(report!(err)));
         let err = err.attach(ContextB);
@@ -280,7 +283,7 @@ mod tests {
             "additional message",
             "Context A"
         ]);
-        assert_eq!(kinds(&err), [
+        assert_eq!(frame_kinds(&err), [
             FrameKind::Attachment,
             FrameKind::Attachment,
             FrameKind::Context
@@ -294,7 +297,10 @@ mod tests {
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
-            assert_eq!(kinds(&err), [FrameKind::Attachment, FrameKind::Context]);
+            assert_eq!(frame_kinds(&err), [
+                FrameKind::Attachment,
+                FrameKind::Context
+            ]);
         }
     }
 
@@ -305,13 +311,19 @@ mod tests {
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
-        assert_eq!(kinds(&err), [FrameKind::Attachment, FrameKind::Context]);
+        assert_eq!(frame_kinds(&err), [
+            FrameKind::Attachment,
+            FrameKind::Context
+        ]);
 
         let err = capture_error(|| bail!(err));
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
-        assert_eq!(kinds(&err), [FrameKind::Attachment, FrameKind::Context]);
+        assert_eq!(frame_kinds(&err), [
+            FrameKind::Attachment,
+            FrameKind::Context
+        ]);
 
         #[cfg(feature = "std")]
         {
@@ -320,7 +332,10 @@ mod tests {
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
-            assert_eq!(kinds(&err), [FrameKind::Attachment, FrameKind::Context]);
+            assert_eq!(frame_kinds(&err), [
+                FrameKind::Attachment,
+                FrameKind::Context
+            ]);
         }
     }
 
@@ -334,7 +349,10 @@ mod tests {
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
-        assert_eq!(kinds(&err), [FrameKind::Attachment, FrameKind::Context]);
+        assert_eq!(frame_kinds(&err), [
+            FrameKind::Attachment,
+            FrameKind::Context
+        ]);
 
         let err = capture_error(|| {
             ensure!(false, err);
@@ -343,7 +361,10 @@ mod tests {
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
-        assert_eq!(kinds(&err), [FrameKind::Attachment, FrameKind::Context]);
+        assert_eq!(frame_kinds(&err), [
+            FrameKind::Attachment,
+            FrameKind::Context
+        ]);
 
         #[cfg(feature = "std")]
         {
@@ -355,7 +376,10 @@ mod tests {
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
-            assert_eq!(kinds(&err), [FrameKind::Attachment, FrameKind::Context]);
+            assert_eq!(frame_kinds(&err), [
+                FrameKind::Attachment,
+                FrameKind::Context
+            ]);
         }
     }
 }

@@ -504,4 +504,28 @@ mod tests {
             mem::size_of::<Box<FrameRepr>>()
         );
     }
+
+    #[test]
+    fn kinds() {
+        use FrameKind::{Attachment, Context};
+
+        let report = Report::new(ContextA);
+        let report = report.attach("A1");
+        let report = report.attach("A2");
+        let report = report.change_context(ContextB);
+        let report = report.attach("B1");
+        let report = report.attach("B2");
+
+        assert_eq!(frame_kinds(&report), [
+            Attachment, Attachment, Context, Attachment, Attachment, Context
+        ]);
+        assert_eq!(messages(&report), [
+            "B2",
+            "B1",
+            "Context B",
+            "A2",
+            "A1",
+            "Context A"
+        ]);
+    }
 }

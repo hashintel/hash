@@ -266,7 +266,7 @@ pub(crate) mod test_helper {
         report.frames().map(ToString::to_string).collect()
     }
 
-    pub fn kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
+    pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
         report.frames().map(Frame::kind).collect()
     }
 }
