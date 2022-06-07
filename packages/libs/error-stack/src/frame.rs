@@ -94,7 +94,8 @@ impl Frame {
     #[must_use]
     pub const fn source(&self) -> Option<&Self> {
         // TODO: Change to `self.source.as_ref().map(Box::as_ref)` when this is possible in a const
-        //   function
+        //   function. On stable toolchain, clippy is not smart enough yet.
+        #[cfg_attr(not(nightly), allow(clippy::needless_match))]
         match &self.source {
             Some(source) => Some(source),
             None => None,
