@@ -10,10 +10,10 @@ import { styled } from "@mui/material/styles";
 import { Button } from "./button";
 import { FRONTEND_URL } from "../../lib/config";
 
+// @todo: update the regex to check against the domain of the hosted version of HASH
 export const isHrefExternal = (href: string | UrlObject) =>
   typeof href === "string" &&
-  (href === "/discord" ||
-    !/^(mailto:|#|\/|https:\/\/blockprotocol\.org)/.test(href)) &&
+  (href === "/discord" || !/^(mailto:|#|\/)/.test(href)) &&
   !href.startsWith(FRONTEND_URL);
 
 /**
