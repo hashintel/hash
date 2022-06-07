@@ -1,63 +1,40 @@
 import { ApolloClient } from "@apollo/client";
 import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { getAccountEntityTypes } from "@hashintel/hash-shared/queries/entity.queries";
-import { isEqual, omit } from "lodash";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
-import { v4 as uuid } from "uuid";
 import {
   BlockEntity,
   isDraftTextContainingEntityProperties,
   isDraftTextEntity,
-} from "./entity";
+} from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
   EntityStore,
   getDraftEntityFromEntityId,
   isDraftBlockEntity,
-} from "./entityStore";
+} from "@hashintel/hash-shared/entityStore";
+import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
+import { isEqual, omit } from "lodash";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { v4 as uuid } from "uuid";
 import {
-  EntityTypeChoice,
-  GetAccountEntityTypesSharedQuery,
-  GetAccountEntityTypesSharedQueryVariables,
-  GetPageQuery,
+  GetAccountEntityTypesQuery,
+  GetAccountEntityTypesQueryVariables,
   GetPageQueryVariables,
-  SystemTypeName,
-  UpdatePageAction,
+  GetPageQuery,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
+  UpdatePageAction,
   UpdatePageContentsResultPlaceholder,
-} from "./graphql/apiTypes.gen";
-import { isEntityNode } from "./prosemirror";
-import { getPageQuery, updatePageContents } from "./queries/page.queries";
+  EntityTypeChoice,
+  SystemTypeName,
+} from "../graphql/apiTypes.gen";
+import { capitalizeComponentName } from "../util";
+import { getAccountEntityTypes } from "./graphql/queries/entityType.queries";
+import {
+  getPageQuery,
+  updatePageContents,
+} from "./graphql/queries/page.queries";
 
-type EntityType =
-  GetAccountEntityTypesSharedQuery["getAccountEntityTypes"][number];
-
-/**
- * @todo this assumption of the slug might be brittle,
- * @todo don't copy from server
- */
-const capitalizeComponentName = (cId: string) => {
-  let componentId = cId;
-
-  // If there's a trailing slash, remove it
-  const indexLastSlash = componentId.lastIndexOf("/");
-  if (indexLastSlash === componentId.length - 1) {
-    componentId = componentId.slice(0, -1);
-  }
-
-  //                      *
-  // "https://example.org/value"
-  const indexAfterLastSlash = componentId.lastIndexOf("/") + 1;
-  return (
-    //                      * and uppercase it
-    // "https://example.org/value"
-    componentId.charAt(indexAfterLastSlash).toUpperCase() +
-    //                       ****
-    // "https://example.org/value"
-    componentId.substring(indexAfterLastSlash + 1)
-  );
-};
+type EntityType = GetAccountEntityTypesQuery["getAccountEntityTypes"][number];
 
 const randomPlaceholder = () => `placeholder-${uuid()}`;
 
@@ -399,15 +376,14 @@ export const save = async (
   doc: ProsemirrorNode<Schema>,
   store: EntityStore,
 ) => {
-  const [entityTypesResult, blocks] = await Promise.all([
-    apolloClient.query<
-      GetAccountEntityTypesSharedQuery,
-      GetAccountEntityTypesSharedQueryVariables
-    >({
-      query: getAccountEntityTypes,
-      variables: { accountId, includeOtherTypesInUse: true },
-      fetchPolicy: "network-only",
-    }),
+  const [entityTypes, blocks] = await Promise.all([
+    apolloClient
+      .query<GetAccountEntityTypesQuery, GetAccountEntityTypesQueryVariables>({
+        query: getAccountEntityTypes,
+        variables: { accountId },
+        fetchPolicy: "network-only",
+      })
+      .then((res) => res.data.getAccountEntityTypes),
     apolloClient
       .query<GetPageQuery, GetPageQueryVariables>({
         query: getPageQuery,
@@ -416,8 +392,6 @@ export const save = async (
       })
       .then((res) => res.data.page.properties.contents),
   ]);
-
-  const entityTypes = entityTypesResult.data.getAccountEntityTypes;
 
   /**
    * @todo shouldn't need an existing text entity to find this

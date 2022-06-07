@@ -1,83 +1,18 @@
 import { gql } from "@apollo/client";
-import { entityFieldsFragment } from "./entity.queries";
 
-const blockFieldsFragment = gql`
-  fragment BlockFields on Block {
-    __typename
-    id
-    entityVersionId
-    entityId
-    accountId
-    updatedAt
-    createdAt
-    entityVersionCreatedAt
-    createdByAccountId
-    entityTypeId
-    properties {
-      __typename
-      componentId
-      entity {
-        ...EntityFields
-      }
-    }
-  }
-  ${entityFieldsFragment}
-`;
-
-const pageFieldsFragment = gql`
-  fragment PageFields on Page {
-    __typename
-    accountId
-    entityId
-    entityVersionId
-    createdAt
-    history {
-      createdAt
-      entityVersionId
-    }
-    properties {
-      __typename
-      archived
-      summary
-      title
-      contents {
-        ...BlockFields
-      }
-    }
-  }
-  ${blockFieldsFragment}
-`;
-
-export const getPageQuery = gql`
-  query getPage($accountId: ID!, $entityId: ID, $versionId: ID) {
+export const getPageTitleQuery = gql`
+  query getPageTitle($accountId: ID!, $entityId: ID!, $versionId: ID) {
     page(
       accountId: $accountId
       entityId: $entityId
       entityVersionId: $versionId
     ) {
-      ...PageFields
+      entityId
+      properties {
+        title
+      }
     }
   }
-  ${pageFieldsFragment}
-`;
-
-export const getBlocksQuery = gql`
-  query getBlocks($blocks: [LatestEntityRef!]!) {
-    blocks(blocks: $blocks) {
-      ...BlockFields
-    }
-  }
-
-  ${blockFieldsFragment}
-`;
-
-export const createPage = gql`
-  mutation createPage($accountId: ID!, $properties: PageCreationData!) {
-    createPage(accountId: $accountId, properties: $properties) {
-      ...PageFields
-    }
-  }
-  ${pageFieldsFragment}
 `;
 
 export const updatePage = gql`
@@ -91,31 +26,8 @@ export const updatePage = gql`
       entityId: $entityId
       properties: $properties
     ) {
-      ...PageFields
+      accountId
+      entityId
     }
   }
-  ${pageFieldsFragment}
-`;
-
-export const updatePageContents = gql`
-  mutation updatePageContents(
-    $accountId: ID!
-    $entityId: ID!
-    $actions: [UpdatePageAction!]!
-  ) {
-    updatePageContents(
-      accountId: $accountId
-      entityId: $entityId
-      actions: $actions
-    ) {
-      page {
-        ...PageFields
-      }
-      placeholders {
-        placeholderID
-        entityID
-      }
-    }
-  }
-  ${pageFieldsFragment}
 `;

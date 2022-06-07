@@ -30,16 +30,14 @@ import {
   getLinkedAggregationIdentifierFieldsQuery,
   getLinkQuery,
 } from "@hashintel/hash-shared/queries/link.queries";
-import {
-  getBlocksQuery,
-  getPageQuery,
-} from "@hashintel/hash-shared/queries/page.queries";
-import { save } from "@hashintel/hash-shared/save";
 import { Response } from "express";
 import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
+import { getBlocksQuery } from "./graphql/queries/blocks.queries";
+import { getPageQuery } from "./graphql/queries/page.queries";
+import { save } from "./save";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";

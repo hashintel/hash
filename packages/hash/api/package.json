@@ -44,6 +44,7 @@
     "express": "4.17.1",
     "express-session": "1.17.2",
     "graphql": "15.5.1",
+    "graphql-tag": "2.12.5",
     "graphql-type-json": "0.3.2",
     "helmet": "4.6.0",
     "hot-shots": "8.5.0",
@@ -73,7 +74,8 @@
     "slonik": "24.1.2",
     "ts-node": "10.4.0",
     "typescript": "4.6.3",
-    "ua-parser-js": "1.0.2"
+    "ua-parser-js": "1.0.2",
+    "uuid": "8.3.2"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.21.5",
