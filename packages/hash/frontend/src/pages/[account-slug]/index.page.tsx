@@ -1,11 +1,11 @@
 import { Box, Typography } from "@mui/material";
 import { faWarning } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
 import { useRouteAccountInfo } from "../../shared/routing";
-import { FontAwesomeIcon } from "../../shared/icons";
 
 const Page: NextPageWithLayout = () => {
   const { user } = useUser();
