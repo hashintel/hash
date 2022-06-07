@@ -16,18 +16,18 @@ import { isEqual, omit } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 import {
+  EntityTypeChoice,
   GetAccountEntityTypesQuery,
   GetAccountEntityTypesQueryVariables,
-  GetPageQueryVariables,
   GetPageQuery,
-  UpdatePageContentsMutation,
-  UpdatePageContentsMutationVariables,
-  UpdatePageAction,
-  UpdatePageContentsResultPlaceholder,
-  EntityTypeChoice,
-  SystemTypeName,
+  GetPageQueryVariables,
   GetTextEntityTypeQuery,
   GetTextEntityTypeQueryVariables,
+  SystemTypeName,
+  UpdatePageAction,
+  UpdatePageContentsMutation,
+  UpdatePageContentsMutationVariables,
+  UpdatePageContentsResultPlaceholder,
 } from "../graphql/apiTypes.gen";
 import { capitalizeComponentName } from "../util";
 import {
