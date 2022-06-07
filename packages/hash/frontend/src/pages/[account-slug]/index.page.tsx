@@ -75,14 +75,15 @@ const Page: NextPageWithLayout = () => {
             GitHub repository
           </Link>{" "}
           for the latest updates, or learn about the long-term{" "}
-          <Link href="https://hash.ai">here.</Link>
+          <Link href="https://hash.ai">here</Link>.
         </Typography>
         <Typography>
           This version of HASH is intended to be used as a test-harness for
           developers building Block Protocol-compliant blocks. Please{" "}
           <Link href="https://github.com/hashintel/hash/tree/main/packages/hash#integration-with-the-block-protocol">
-            read the documentation to get started.
+            read the documentation to get started
           </Link>
+          .
         </Typography>
       </Box>
     </>
