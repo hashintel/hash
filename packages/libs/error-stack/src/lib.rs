@@ -255,6 +255,9 @@ pub(crate) mod test_helper {
     #[cfg(feature = "std")]
     impl std::error::Error for ContextB {}
 
+    #[cfg(not(feature = "std"))]
+    impl Context for ContextB {}
+
     pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), Report<E>>) -> Report<E> {
         match closure() {
             Ok(_) => panic!("Expected an error"),
