@@ -1,5 +1,5 @@
 [package]
-name = "error"
+name = "error-stack"
 version = "0.0.0"
 edition = "2021"
 
@@ -19,7 +19,7 @@ rustc_version = "0.2.3"
 [features]
 default = ["std", "hooks"]
 std = []
-hooks = ["dep:once_cell"]
+hooks = ["dep:once_cell", "std"]
 spantrace = ["dep:tracing-error"]
 futures = ["dep:pin-project"]
 

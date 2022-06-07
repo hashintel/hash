@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, fmt::Display};
 
-use error::{bail, report, IntoReport, ResultExt};
+use error_stack::{bail, report, IntoReport, ResultExt};
 use hash_engine_lib::{proto, proto::EngineStatus};
 use simulation_structure::ExperimentId;
 use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};
@@ -91,7 +91,7 @@ impl Handler {
         result_rx
             .await
             .report()
-            .provide_context(OrchestratorError::from("Failed to receive response from"))?
+            .change_context(OrchestratorError::from("Failed to receive response from"))?
     }
 
     /// Register a new experiment execution with the server, returning a Handle from which messages
@@ -225,7 +225,7 @@ impl Server {
             Some(sender) => sender
                 .send(msg.body)
                 .report()
-                .wrap_err_lazy(|| format!("Routing message for experiment {}", msg.experiment_id)),
+                .attach_lazy(|| format!("Routing message for experiment {}", msg.experiment_id)),
         }
     }
 
@@ -241,7 +241,7 @@ impl Server {
     ///
     /// [`create()`]: Self::create
     pub async fn run(&mut self) -> Result<()> {
-        let mut socket = nano::Server::new(&self.url).provide_context_lazy(|| {
+        let mut socket = nano::Server::new(&self.url).change_context_lazy(|| {
             OrchestratorError::from(format!(
                 "Could not create a server socket for {:?}",
                 self.url

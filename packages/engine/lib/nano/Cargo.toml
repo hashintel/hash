@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-error = { path = "../error" }
+error-stack = { path = "../../../libs/error-stack", features = ["spantrace"] }
 
 nng = { version = "1.0.1", default-features = false }
 serde = { version = "1.0.111", features = ["derive"] }

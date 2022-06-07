@@ -1,11 +1,8 @@
 {
   "type": "object",
   "properties": {
-    "document": {
+    "serializedDocument": {
       "type": "string"
-    },
-    "readOnly": {
-      "type": "boolean"
     },
     "darkMode": {
       "type": "boolean"
@@ -17,7 +14,7 @@
       "type": "number"
     }
   },
-  "configProperties": ["darkMode", "readOnly", "document", "width", "height"],
-  "required": ["document", "readOnly"],
+  "configProperties": ["darkMode", "serializedDocument", "width", "height"],
+  "required": ["serializedDocument"],
   "$schema": "http://json-schema.org/draft-07/schema#"
 }

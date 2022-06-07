@@ -50,9 +50,9 @@ impl Report<()> {
     /// ```
     /// use std::io::{Error, ErrorKind};
     ///
-    /// use error::{report, Report};
+    /// use error_stack::{report, Report};
     ///
-    /// # fn main() -> Result<(), Report<error::HookAlreadySet>> {
+    /// # fn main() -> Result<(), Report<error_stack::HookAlreadySet>> {
     /// Report::set_debug_hook(|_, fmt| write!(fmt, "custom debug implementation"))?;
     ///
     /// let report = report!(Error::from(ErrorKind::InvalidInput));
@@ -66,7 +66,7 @@ impl Report<()> {
     {
         DEBUG_HOOK
             .set(Box::new(hook))
-            .map_err(|_| Report::from_error(HookAlreadySet))
+            .map_err(|_| Report::new(HookAlreadySet))
     }
 
     /// Returns the hook that was previously set by [`set_debug_hook`], if any.
@@ -99,9 +99,9 @@ impl Report<()> {
     /// ```
     /// use std::io::{Error, ErrorKind};
     ///
-    /// use error::{report, Report};
+    /// use error_stack::{report, Report};
     ///
-    /// # fn main() -> Result<(), Report<error::HookAlreadySet>> {
+    /// # fn main() -> Result<(), Report<error_stack::HookAlreadySet>> {
     /// Report::set_display_hook(|_, fmt| write!(fmt, "custom display implementation"))?;
     ///
     /// let report = report!(Error::from(ErrorKind::InvalidInput));
@@ -115,7 +115,7 @@ impl Report<()> {
     {
         DISPLAY_HOOK
             .set(Box::new(hook))
-            .map_err(|_| Report::from_error(HookAlreadySet))
+            .map_err(|_| Report::new(HookAlreadySet))
     }
 
     /// Returns the hook that was previously set by [`set_display_hook`], if any.
