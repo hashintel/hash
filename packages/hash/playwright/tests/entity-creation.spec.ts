@@ -5,11 +5,7 @@ test("user can create and update entity", async ({ page }) => {
   await loginUsingUi({ page, accountShortName: "bob" });
 
   // Check if we are on the user page
-  await expect(
-    page.locator(
-      "text=Please select a page from the list, or create a new page.",
-    ),
-  ).toBeVisible();
+  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
 
   // Go to Create Entity
   await page.locator('[data-testid="create-entity-btn"]').click();
