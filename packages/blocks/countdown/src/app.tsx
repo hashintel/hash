@@ -90,7 +90,7 @@ export const App: BlockComponent<AppProps> = ({
   );
 
   return (
-    <div>
+    <div className="countdown-block-wrapper">
       <div className="countdown-block">
         <CountdownTitle
           value={localTitle}

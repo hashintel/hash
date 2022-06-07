@@ -2,6 +2,11 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 
+.countdown-block-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
 .countdown-block {
   --font-family: system-ui, "Inter", "Open Sans", "Helvetica Neue", "Arial",
     sans-serif;
