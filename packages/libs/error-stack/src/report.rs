@@ -6,12 +6,14 @@ use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
-use super::Frame;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
 use crate::{context::temporary_provider, provider::request_ref};
-use crate::{iter::Frames, Context};
+use crate::{
+    iter::{Frames, FramesMut},
+    Context, Frame,
+};
 
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
 ///
@@ -336,6 +338,11 @@ impl<T> Report<T> {
         Frames::new(self)
     }
 
+    /// Returns an iterator over the [`FramesMut`] stack of the report.
+    pub fn frames_mut(&mut self) -> FramesMut<'_> {
+        FramesMut::new(self)
+    }
+
     /// Creates an iterator over the [`Frame`] stack requesting references of type `R`.
     #[cfg(nightly)]
     pub const fn request_ref<R: ?Sized + 'static>(&self) -> RequestRef<'_, R> {
@@ -363,8 +370,20 @@ impl<T> Report<T> {
         self.frames().find_map(Frame::downcast_ref::<A>)
     }
 
+    /// Searches the frame stack for a context provider `T` and returns the most recent context
+    /// found.
+    // TODO: Provide example
+    #[must_use]
+    pub fn downcast_mut<A: Any>(&mut self) -> Option<&mut A> {
+        self.frames_mut().find_map(Frame::downcast_mut::<A>)
+    }
+
     pub(crate) const fn frame(&self) -> &Frame {
         &self.inner.frame
+    }
+
+    pub(crate) fn frame_mut(&mut self) -> &mut Frame {
+        &mut self.inner.frame
     }
 }
 
