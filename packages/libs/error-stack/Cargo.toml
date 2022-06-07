@@ -1,7 +1,16 @@
 [package]
 name = "error-stack"
 version = "0.0.0"
+authors = ["HASH"]
 edition = "2021"
+rust-version = "1.61.0"
+description = "A context-aware error library with abritrary attached user data"
+documentation = "https://docs.rs/error-stack"
+readme = "README.md"
+homepage = "https://hash.ai"
+repository = "https://github.com/hashintel/hash/tree/main/packages/libs/error-stack"
+keywords = ["error", "library", "stack", "no_std", "api"]
+categories = ["rust-patterns", "no-std"]
 
 [dependencies]
 tracing-error = { version = "0.2.0", optional = true }
@@ -25,6 +34,8 @@ futures = ["dep:pin-project"]
 
 [package.metadata.docs.rs]
 all-features = true
+cargo-args = ["-Z", "unstable-options", "-Z", "rustdoc-scrape-examples=all"]
+targets = ["x86_64-unknown-linux-gnu"]
 
 [[example]]
 name = "json_output"
