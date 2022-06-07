@@ -93,6 +93,8 @@ impl Frame {
     /// [`Report`]: crate::Report
     #[must_use]
     pub const fn source(&self) -> Option<&Self> {
+        // TODO: Change to `self.source.as_ref().map(Box::as_ref)` when this is possible in a const
+        //   function
         match &self.source {
             Some(source) => Some(source),
             None => None,
@@ -106,10 +108,7 @@ impl Frame {
     /// [`Report`]: crate::Report
     #[must_use]
     pub fn source_mut(&mut self) -> Option<&mut Self> {
-        match &mut self.source {
-            Some(source) => Some(source),
-            None => None,
-        }
+        self.source.as_mut().map(Box::as_mut)
     }
 
     /// Requests the reference to `T` from the `Frame` if provided.
