@@ -79,83 +79,79 @@
 //! An attachment can be provided to lower level errors.
 //!
 //! ```
-//! use std::{collections::HashMap, fmt};
-//!
-//! use error_stack::{Context, ensure, report, Result, ResultExt};
-//!
+//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
+//! # use std::{fs, path::Path};
+//! # use error_stack::{Context, IntoReport, Report, ResultExt};
+//! # pub type Config = String;
+//! # #[derive(Debug)] struct ParseConfigError;
+//! # impl ParseConfigError { pub fn new() -> Self { Self } }
+//! # impl std::fmt::Display for ParseConfigError {
+//! #     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//! #         fmt.write_str("Could not parse configuration file")
+//! #     }
+//! # }
+//! # impl Context for ParseConfigError {}
 //! #[derive(Debug)]
-//! enum LookupError {
-//!     InvalidKey,
-//!     NotFound,
-//! }
+//! struct Suggestion(&'static str);
 //!
-//! impl fmt::Display for LookupError {
-//!     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-//!         match self {
-//!             Self::InvalidKey => fmt.write_str("Key must be 8 characters long"),
-//!             Self::NotFound => fmt.write_str("key does not exist"),
-//!         }
+//! impl std::fmt::Display for Suggestion {
+//!     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//!         write!(fmt, "{}", self.0)
 //!     }
 //! }
 //!
-//! impl Context for LookupError {}
+//! impl Context for Suggestion {}
 //!
-//! fn lookup_key(map: &HashMap<&str, u64>, key: &str) -> Result<u64, LookupError> {
-//! // `ensure!` returns `Err(Report)` if the condition fails
-//!     ensure!(key.len() == 8, LookupError::InvalidKey);
+//! fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
+//!     let path = path.as_ref();
+//!     # #[cfg(all(not(miri), feature = "std"))]
+//!     let content = fs::read_to_string(path)
+//!         .report()
+//!         .change_context(ParseConfigError::new())
+//!         .attach(Suggestion("Use a file you can read next time!"))
+//!         .attach_lazy(|| format!("Could not read file {path:?}"))?;
+//!     # #[cfg(any(miri, not(feature = "std")))]
+//!     # let content = String::new();
 //!
-//!     // A `Report` can also be created directly
-//!     map.get(key)
-//!         .cloned()
-//!         .ok_or_else(|| report!(LookupError::NotFound))
+//!     Ok(content)
 //! }
 //!
-//! fn parse_config(config: &HashMap<&str, u64>) -> Result<u64, LookupError> {
-//!     let key = "abcd-efgh";
-//!
-//!     // `ResultExt` provides different methods for adding additional information to the `Report`
-//!     let value =
-//!         lookup_key(config, key).attach_lazy(|| format!("Could not lookup key {key:?}"))?;
-//!
-//!     Ok(value)
+//! fn main() {
+//!     if let Err(report) = parse_config("config.json") {
+//!         eprintln!("{report:?}");
+//!         for suggestion in report.request_ref::<Suggestion>() {
+//!             eprintln!("Suggestion: {suggestion}");
+//!         }
+//!     }
 //! }
-//!
-//! fn main() -> Result<(), LookupError> {
-//!     # fn fake_main() -> Result<(), LookupError> { // We want to assert on the result
-//!     let config = HashMap::default();
-//!     # #[allow(unused_variables)]
-//!     let config_value = parse_config(&config).attach("Unable to parse config")?;
-//!
-//!     # const _: &str = stringify! {
-//!     ...
-//!     # }; Ok(())
-//! }
-//! # assert_eq!(fake_main().unwrap_err().frames().count(), 3);
-//! # Ok(()) }
 //! ```
 //!
-//! which will produce an error and prints it
+//! which will produce an error and will output somethink like
 //!
 //! ```text
-//! Error: Unable to parse config
-//!              at main.rs:44:47
+//! Could not parse configuration file
+//!              at main.rs:17:10
+//!       - Use a file you can read next time!
+//!       - Could not read file "config.json"
 //!
 //! Caused by:
-//!    0: Could not lookup key "abcd-efgh"
-//!              at main.rs:37:33
-//!    1: Key must be 8 characters long
-//!              at main.rs:24:5
+//!    0: No such file or directory (os error 2)
+//!              at main.rs:16:10
 //!
 //! Stack backtrace:
-//!    0: <error::Report>::new::<error::Report>
-//!              at error/src/report.rs:37:18
-//!    1: main::lookup_key
-//!              at main.rs:6:5
-//!    2: main::parse_config
-//!              at main.rs:16:9
-//!    3: main::main
-//!              at main.rs:23:24
-//!    4: ...
+//!    0: error_stack::report::Report<T>::new
+//!              at error-stack/src/report.rs:187:18
+//!    1: error_stack::context::<impl core::convert::From<C> for error::report::Report<C>>::from
+//!              at error-stack/src/context.rs:87:9
+//!    2: <core::result::Result<T,E> as error::result::IntoReport>::report
+//!              at error-stack/src/result.rs:204:31
+//!    3: parse_config
+//!              at main.rs:15:19
+//!    4: main
+//!              at main.rs:25:26
+//!    5: ...
+//!
+//! Suggestion: Use a file you can read next time!
 //! ```
 //!
 //! # Feature flags
