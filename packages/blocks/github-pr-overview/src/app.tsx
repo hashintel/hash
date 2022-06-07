@@ -2,6 +2,8 @@ import * as React from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 import CircularProgress from "@mui/material/CircularProgress";
+import { theme } from "@hashintel/hash-design-system";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 import {
   GithubIssueEvent,
   GithubPullRequest,
@@ -212,25 +214,28 @@ export const App: BlockComponent<AppProps> = ({
 
   /** @todo - Filterable list to select a pull-request */
   return (
-    <div>
-      {blockState === BlockState.Loading ? (
-        <CircularProgress />
-      ) : blockState === BlockState.Selector ? (
-        <PullRequestSelector
-          setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
-          allPrs={allPrs!}
-        />
-      ) : blockState === BlockState.Overview ? (
-        <GithubPrOverview
-          pullRequest={pullRequest!}
-          reviews={reviews!}
-          events={events!}
-          setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
-          setBlockState={setBlockState}
-        />
-      ) : (
-        <div> Failed To Load Block </div>
-      )}
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <div>
+        {blockState === BlockState.Loading ? (
+          <CircularProgress />
+        ) : blockState === BlockState.Selector ? (
+          <PullRequestSelector
+            setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
+            allPrs={allPrs!}
+          />
+        ) : blockState === BlockState.Overview ? (
+          <GithubPrOverview
+            pullRequest={pullRequest!}
+            reviews={reviews!}
+            events={events!}
+            setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
+            setBlockState={setBlockState}
+          />
+        ) : (
+          <div> Failed To Load Block </div>
+        )}
+      </div>
+    </ThemeProvider>
   );
 };

@@ -7,13 +7,6 @@
   "exports": {
     "./*": "./src/*.ts"
   },
-  "typesVersions": {
-    "*": {
-      "*": [
-        "src/*"
-      ]
-    }
-  },
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",

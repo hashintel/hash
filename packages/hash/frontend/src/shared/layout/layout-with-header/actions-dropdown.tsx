@@ -16,7 +16,7 @@ import {
   bindMenu,
   bindTrigger,
 } from "material-ui-popup-state/hooks";
-import { FontAwesomeIcon } from "../../icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";

@@ -226,7 +226,7 @@ export const GithubPrTimeline: React.FunctionComponent<
                             <Button
                               startIcon={<Link />}
                               href={event.html_url}
-                              variant="contained"
+                              variant="primary"
                               size="small"
                             >
                               Link

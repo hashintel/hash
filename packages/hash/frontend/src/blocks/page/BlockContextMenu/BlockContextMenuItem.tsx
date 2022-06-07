@@ -15,7 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { FontAwesomeIcon } from "../../../shared/icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../../shared/ui";
 
 type BlockContextMenuItemProps = {

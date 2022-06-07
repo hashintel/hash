@@ -5,7 +5,10 @@ use alloc::boxed::Box;
 use core::{
     any::{Any, TypeId},
     fmt,
+    marker::PhantomData,
+    mem,
     mem::ManuallyDrop,
+    ops::{Deref, DerefMut},
     panic::Location,
     ptr::{addr_of, NonNull},
 };
@@ -13,6 +16,20 @@ use core::{
 #[cfg(nightly)]
 use crate::provider::{self, Demand, Provider};
 use crate::Context;
+
+/// Classification of the contents of a [`Frame`], determined by how it was created.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum FrameKind {
+    /// Frame was created through [`Report::new()`] or [`change_context()`].
+    ///
+    /// [`Report::new()`]: crate::Report::new
+    /// [`change_context()`]: crate::Report::change_context
+    Context,
+    /// Frame was created through [`attach()`].
+    ///
+    /// [`attach()`]: crate::Report::attach
+    Attachment,
+}
 
 /// A single context or attachment inside of a [`Report`].
 ///
@@ -26,7 +43,7 @@ use crate::Context;
 /// [`Report::new()`]: crate::Report::new
 /// [`Report::request_ref()`]: crate::Report::request_ref
 pub struct Frame {
-    inner: ManuallyDrop<Box<FrameRepr>>,
+    inner: ManuallyDrop<TaggedBox<FrameRepr>>,
     location: &'static Location<'static>,
     source: Option<Box<Frame>>,
 }
@@ -37,6 +54,7 @@ impl Frame {
         location: &'static Location<'static>,
         source: Option<Box<Self>>,
         vtable: &'static VTable,
+        kind: FrameKind,
     ) -> Self
     where
         T: Context,
@@ -44,7 +62,7 @@ impl Frame {
         Self {
             // SAFETY: `FrameRepr` must not be dropped without using the vtable, so it's wrapped in
             //   `ManuallyDrop`. A custom drop implementation is provided that takes care of this.
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(object, vtable)) },
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(object, vtable, kind)) },
             location,
             source,
         }
@@ -58,11 +76,17 @@ impl Frame {
     where
         C: Context,
     {
-        Self::from_unerased(context, location, source, &VTable {
-            object_drop: VTable::object_drop::<C>,
-            object_ref: VTable::object_ref::<C>,
-            object_downcast: VTable::context_downcast::<C>,
-        })
+        Self::from_unerased(
+            context,
+            location,
+            source,
+            &VTable {
+                object_drop: VTable::object_drop::<C>,
+                object_ref: VTable::object_ref::<C>,
+                object_downcast: VTable::context_downcast::<C>,
+            },
+            FrameKind::Context,
+        )
     }
 
     pub(crate) fn from_attachment<A>(
@@ -73,11 +97,17 @@ impl Frame {
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self::from_unerased(AttachedObject(object), location, source, &VTable {
-            object_drop: VTable::object_drop::<AttachedObject<A>>,
-            object_ref: VTable::object_ref::<AttachedObject<A>>,
-            object_downcast: VTable::attachment_downcast::<A>,
-        })
+        Self::from_unerased(
+            AttachedObject(object),
+            location,
+            source,
+            &VTable {
+                object_drop: VTable::object_drop::<AttachedObject<A>>,
+                object_ref: VTable::object_ref::<AttachedObject<A>>,
+                object_downcast: VTable::attachment_downcast::<A>,
+            },
+            FrameKind::Attachment,
+        )
     }
 
     /// Returns the location where this `Frame` was created.
@@ -110,6 +140,12 @@ impl Frame {
     #[must_use]
     pub fn source_mut(&mut self) -> Option<&mut Self> {
         self.source.as_mut().map(Box::as_mut)
+    }
+
+    /// Returns how the `Frame` was created.
+    #[must_use]
+    pub fn kind(&self) -> FrameKind {
+        self.inner.kind()
     }
 
     /// Requests the reference to `T` from the `Frame` if provided.
@@ -164,9 +200,13 @@ impl Provider for Frame {
 
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: Change output depending on FrameKind
+        let field_name = match self.kind() {
+            FrameKind::Context => "context",
+            FrameKind::Attachment => "attachment",
+        };
+
         fmt.debug_struct("Frame")
-            .field("object", &self.inner.unerase())
+            .field(field_name, &self.inner.unerase())
             .field("location", &self.location)
             .finish()
     }
@@ -186,7 +226,7 @@ impl Drop for Frame {
         // SAFETY: Use vtable to attach T's native vtable for the right original type T.
         unsafe {
             // Invoke the vtable's drop behavior.
-            (erased.vtable.object_drop)(erased);
+            (erased.vtable.object_drop)(erased.into_box());
         }
     }
 }
@@ -308,6 +348,91 @@ impl VTable {
     }
 }
 
+/// Stores a [`Box`] and a [`FrameKind`] by only occupying one pointer in size.
+///
+/// It's guaranteed that a `TaggedBox` has the same size as `Box`.
+pub struct TaggedBox<T>(usize, PhantomData<Box<T>>);
+
+impl<T> TaggedBox<T> {
+    /// Mask for the pointer.
+    ///
+    /// For a given pointer width, this will be
+    ///
+    ///  - 16 bit: `1111_1111_1111_1110`
+    ///  - 32 bit: `1111_1111_1111_1111_1111_1111_1111_1100`
+    ///  - 64 bit: `1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1000`
+    ///
+    /// so the last bit will *always* be `0`.
+    const MASK: usize = !(mem::align_of::<*const T>() - 1);
+
+    /// Creates a new tagged pointer with a `FrameKind`.
+    ///
+    /// # Panics
+    ///
+    /// if the tag is too large to be stored next to a pointer.
+    pub fn new(frame: T, kind: FrameKind) -> Self {
+        // Will only fail on 8-bit platforms which Rust currently does not support
+        assert!(
+            mem::align_of::<*const T>() >= 2,
+            "Tag can't be stored as tagged pointer"
+        );
+        let raw = Box::into_raw(Box::new(frame));
+
+        let tag = kind == FrameKind::Context;
+        // Store the tag in the last bit, due to alignment, this is 0 for 16-bit and higher
+        Self(raw as usize | usize::from(tag), PhantomData)
+    }
+
+    /// Returns the tag stored inside the pointer
+    pub const fn kind(&self) -> FrameKind {
+        // We only store the last bit. If it's `1`, it's a context, otherwise it's an attachment
+        if self.0 & 1 == 1 {
+            FrameKind::Context
+        } else {
+            FrameKind::Attachment
+        }
+    }
+
+    /// Returns a pointer to the stored object.
+    const fn ptr(&self) -> NonNull<T> {
+        let ptr = (self.0 & Self::MASK) as *mut T;
+
+        // SAFETY: Pointer was created from `Box::new`
+        unsafe { NonNull::new_unchecked(ptr) }
+    }
+
+    /// Casts the box to another type.
+    ///
+    /// # Safety
+    ///
+    /// - Same as casting between pointers and dereference them later on
+    pub const unsafe fn cast<U>(self) -> TaggedBox<U> {
+        TaggedBox(self.0, PhantomData)
+    }
+
+    /// Converts the tagged box back to a box.
+    pub fn into_box(self) -> Box<T> {
+        // SAFETY: Pointer was created from `Box::new`
+        unsafe { Box::from_raw(self.ptr().as_ptr()) }
+    }
+}
+
+impl<T> Deref for TaggedBox<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        // SAFETY: Pointer was created from `Box::new`
+        unsafe { self.ptr().as_ref() }
+    }
+}
+
+impl<T> DerefMut for TaggedBox<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // SAFETY: Pointer was created from `Box::new`
+        unsafe { self.ptr().as_mut() }
+    }
+}
+
 // repr(C): It must be ensured, that vtable is always stored at the same memory position when
 // casting between `FrameRepr<T>` and `FrameRepr<()>`.
 #[repr(C)]
@@ -327,14 +452,14 @@ where
     /// # Safety
     ///
     /// Must not be dropped without calling `vtable.object_drop`
-    unsafe fn new(context: C, vtable: &'static VTable) -> Box<FrameRepr> {
+    unsafe fn new(context: C, vtable: &'static VTable, kind: FrameKind) -> TaggedBox<FrameRepr> {
         let unerased_frame = Self {
             vtable,
             _unerased: context,
         };
-        let unerased_box = Box::new(unerased_frame);
+        let unerased_box = TaggedBox::new(unerased_frame, kind);
         // erase the frame by casting the pointer to `FrameBox<()>`
-        Box::from_raw(Box::into_raw(unerased_box).cast())
+        unerased_box.cast()
     }
 }
 
@@ -362,6 +487,7 @@ impl FrameRepr {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     #[allow(clippy::wildcard_imports)]
     use crate::test_helper::*;
     use crate::Report;
@@ -373,5 +499,43 @@ mod tests {
         attachment.push_str(" World!");
         let messages: Vec<_> = report.frames_mut().map(|frame| frame.to_string()).collect();
         assert_eq!(messages, ["Hello World!", "Context A"]);
+    }
+
+    #[test]
+    fn tagged_box_size() {
+        assert_eq!(
+            mem::size_of::<TaggedBox<FrameRepr>>(),
+            mem::size_of::<Box<FrameRepr>>()
+        );
+    }
+
+    #[test]
+    fn kinds() {
+        use FrameKind::{Attachment, Context};
+
+        let report = Report::new(ContextA);
+        let report = report.attach("A1");
+        let report = report.attach("A2");
+        let report = report.change_context(ContextB);
+        let report = report.attach("B1");
+        let report = report.attach("B2");
+
+        assert_eq!(frame_kinds(&report), [
+            Attachment, Attachment, Context, Attachment, Attachment, Context
+        ]);
+        assert_eq!(messages(&report), [
+            "B2",
+            "B1",
+            "Context B",
+            "A2",
+            "A1",
+            "Context A"
+        ]);
+
+        let report = Report::new(ContextA);
+        let report = report.change_context(ContextB);
+
+        assert_eq!(frame_kinds(&report), [Context, Context]);
+        assert_eq!(messages(&report), ["Context B", "Context A"]);
     }
 }

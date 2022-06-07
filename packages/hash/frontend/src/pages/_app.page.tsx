@@ -13,11 +13,11 @@ import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { theme, createEmotionCache } from "../shared/ui";
+import { theme, createEmotionCache } from "@hashintel/hash-design-system";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import twindConfig from "../../twind.config";
-import "../../styles/globals.scss";
+import "./globals.scss";
 import { useUser } from "../components/hooks/useUser";
 import {
   RouteAccountInfoProvider,
@@ -71,7 +71,6 @@ const App: React.VoidFunctionComponent<AppProps> = ({
   }
 
   const getLayout = Component.getLayout || getPlainLayout;
-
   return (
     <ApolloProvider client={apolloClient}>
       <CacheProvider value={emotionCache}>
