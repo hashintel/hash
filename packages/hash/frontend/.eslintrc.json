@@ -32,14 +32,17 @@
             "name": "@mui/material",
             "importNames": [
               "Avatar",
-              "Button",
               "IconButton",
               "Chip",
               "Popover",
               "TextField",
-              "MenuItem",
               "Select"
             ],
+            "message": "Please use the custom wrapper component in '@hashintel/hash-design-system' instead."
+          },
+          {
+            "name": "@mui/material",
+            "importNames": ["Button", "MenuItem"],
             "message": "Please use the custom wrapper component in src/shared/ui instead."
           }
         ]

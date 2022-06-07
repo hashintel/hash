@@ -4,7 +4,6 @@ import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { Router, useRouter } from "next/router";
-import { tw } from "twind";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { defaultBlocks } from "@hashintel/hash-shared/defaultBlocks";
@@ -12,13 +11,13 @@ import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import { Box } from "@mui/material";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
 
-import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { NextPageWithLayout, getLayoutWithSidebar } from "../../shared/layout";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
@@ -117,14 +116,12 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
   return (
     <>
       <header>
-        <div className={styles.PageHeader}>
-          <div className={tw`flex flex-col-reverse`}>
-            <PageTitle
-              value={title}
-              accountId={data.page.accountId}
-              metadataId={data.page.entityId}
-            />
-          </div>
+        <Box display="flex">
+          <PageTitle
+            value={title}
+            accountId={data.page.accountId}
+            metadataId={data.page.entityId}
+          />
           {/* 
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs 
@@ -154,7 +151,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
               />
             </div>
           </div> */}
-        </div>
+        </Box>
       </header>
 
       <main>
