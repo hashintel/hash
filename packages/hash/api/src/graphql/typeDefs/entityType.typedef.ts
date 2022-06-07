@@ -6,8 +6,9 @@ export const entityTypeTypedef = gql`
     Get an entity type by its fixed id, which is:
     - entityId on the EntityType itself, or
     - entityTypeId on an Entity of its type)
+    Or, by EntityTypeChoice
     """
-    getEntityType(entityTypeId: ID!): EntityType!
+    getEntityType(entityTypeId: ID, choice: EntityTypeChoice): EntityType!
     """
     Get all EntityTypes belonging to an account.
     Optionally include types in use by the account, but belonging to other accounts.

@@ -8,3 +8,11 @@ export const getAccountEntityTypes = gql`
     }
   }
 `;
+
+export const getTextEntityType = gql`
+  query getTextEntityType {
+    getEntityType(choice: { systemTypeName: Text }) {
+      entityId
+    }
+  }
+`;

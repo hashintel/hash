@@ -1,5 +1,7 @@
+import { ApolloError } from "apollo-server-express";
 import { JSONObject } from "blockprotocol";
 import { Uuid4 } from "id128";
+import { EntityTypeChoice } from "./graphql/apiTypes.gen";
 import { CreateEntityArgs } from "./model";
 import { isSystemType } from "./types/entityTypes";
 
@@ -44,9 +46,9 @@ export const isRecord = (thing: unknown): thing is Record<string, any> => {
 };
 
 /**
- * Builds the argument object for the createEntity function. It checks that exactly
- * one of entityTypeId, entityTypeVersionId or systemTypeName is set, and returns
- * the correct variant of CreateEntityArgs.
+ * Builds the argument object for the createEntity function. It checks that
+ * exactly one of entityTypeId, entityTypeVersionId or systemTypeName is set,
+ * and returns the correct variant of CreateEntityArgs.
  */
 export const createEntityArgsBuilder = (params: {
   accountId: string;
@@ -137,14 +139,16 @@ export const capitalizeComponentName = (cId: string) => {
 };
 
 /**
- * Given a tree structure that has links, flatten into an array with indices pointing to parent.
- * Note, this _will_ behave badly with circular structures!
+ * Given a tree structure that has links, flatten into an array with indices
+ * pointing to parent. Note, this _will_ behave badly with circular structures!
  * This uses BFS.
  * @param graph The graph structure containing `key` for links
  * @param outerKey The key that allows recursive sub-graphs.
- * @param innerKey The key on the object, that contains metadata about the node, which contains the outer type.
+ * @param innerKey The key on the object, that contains metadata about the
+ *   node, which contains the outer type.
  * @param depthLimit The maximum depth a tree may have before bailing.
- * @returns A flattened list of all nodes with an index referring to where in the list the parent is. parentIndex = -1 means root.
+ * @returns A flattened list of all nodes with an index referring to where in
+ *   the list the parent is. parentIndex = -1 means root.
  */
 export const linkedTreeFlatten = <
   // Example: type Entity = { name: string; linkedGraphs?: LinkedEntity[]; };
@@ -228,4 +232,28 @@ export const linkedTreeFlatten = <
   }
 
   return result;
+};
+
+export const validateEntityTypeChoice = (choice: EntityTypeChoice) => {
+  if (
+    /** @todo check that these are uuids */
+    exactlyOne(
+      choice.componentId,
+      choice.entityTypeId,
+      choice.entityTypeVersionId,
+      choice.systemTypeName,
+    )
+  ) {
+    return {
+      componentId: choice.componentId ?? undefined,
+      entityTypeId: choice.entityTypeId ?? undefined,
+      entityTypeVersionId: choice.entityTypeVersionId ?? undefined,
+      systemTypeName: choice.systemTypeName ?? undefined,
+    };
+  } else {
+    throw new ApolloError(
+      `Given filter argument is invalid.`,
+      "INVALID_ENTITY_TYPE_FILTER",
+    );
+  }
 };

@@ -26,9 +26,14 @@ import {
   UpdatePageContentsResultPlaceholder,
   EntityTypeChoice,
   SystemTypeName,
+  GetTextEntityTypeQuery,
+  GetTextEntityTypeQueryVariables,
 } from "../graphql/apiTypes.gen";
 import { capitalizeComponentName } from "../util";
-import { getAccountEntityTypes } from "./graphql/queries/entityType.queries";
+import {
+  getAccountEntityTypes,
+  getTextEntityType,
+} from "./graphql/queries/entityType.queries";
 import {
   getPageQuery,
   updatePageContents,
@@ -376,7 +381,7 @@ export const save = async (
   doc: ProsemirrorNode<Schema>,
   store: EntityStore,
 ) => {
-  const [entityTypes, blocks] = await Promise.all([
+  const [entityTypes, blocks, textEntityTypeId] = await Promise.all([
     apolloClient
       .query<GetAccountEntityTypesQuery, GetAccountEntityTypesQueryVariables>({
         query: getAccountEntityTypes,
@@ -391,18 +396,15 @@ export const save = async (
         fetchPolicy: "network-only",
       })
       .then((res) => res.data.page.properties.contents),
+    apolloClient
+      .query<GetTextEntityTypeQuery, GetTextEntityTypeQueryVariables>({
+        query: getTextEntityType,
+      })
+      .then((res) => res.data.getEntityType.entityId)
+      .catch(() => {
+        throw new Error("Cannot find text entity type id");
+      }),
   ]);
-
-  /**
-   * @todo shouldn't need an existing text entity to find this
-   */
-  const textEntityTypeId = entityTypes.find(
-    (type) => type.properties.title === "Text",
-  )?.entityId;
-
-  if (!textEntityTypeId) {
-    throw new Error("No text entities exist. Cannot find text entity type id");
-  }
 
   const entityTypeForComponentId = new Map<string, string>();
 
