@@ -89,6 +89,8 @@ impl Frame {
     /// Returns a shared reference to the source of this `Frame`.
     ///
     /// This corresponds to the `Frame` below this one in a [`Report`].
+    ///
+    /// [`Report`]: crate::Report
     #[must_use]
     pub const fn source(&self) -> Option<&Self> {
         match &self.source {
@@ -100,6 +102,8 @@ impl Frame {
     /// Returns a mutable reference to the source of this `Frame`.
     ///
     /// This corresponds to the `Frame` below this one in a [`Report`].
+    ///
+    /// [`Report`]: crate::Report
     #[must_use]
     pub fn source_mut(&mut self) -> Option<&mut Self> {
         match &mut self.source {

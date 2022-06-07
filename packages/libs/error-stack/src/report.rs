@@ -338,7 +338,7 @@ impl<T> Report<T> {
         Frames::new(self)
     }
 
-    /// Returns an iterator over the [`FrameMut`] stack of the report.
+    /// Returns an iterator over the [`FramesMut`] stack of the report.
     pub fn frames_mut(&mut self) -> FramesMut<'_> {
         FramesMut::new(self)
     }
