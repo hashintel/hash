@@ -28,7 +28,7 @@ impl<'r> Iterator for Frames<'r> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.current.take().map(|current| {
-            if let Some(source) = &current.source {
+            if let Some(source) = current.source() {
                 self.current = Some(&*source);
             }
             current

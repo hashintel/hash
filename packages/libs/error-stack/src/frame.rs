@@ -28,8 +28,7 @@ use crate::Context;
 pub struct Frame {
     inner: ManuallyDrop<Box<FrameRepr>>,
     location: &'static Location<'static>,
-    // `pub(crate)` required for `Frames` implementation for non-nightly builds
-    pub(crate) source: Option<Box<Frame>>,
+    source: Option<Box<Frame>>,
 }
 
 impl Frame {
@@ -85,6 +84,28 @@ impl Frame {
     #[must_use]
     pub const fn location(&self) -> &'static Location<'static> {
         self.location
+    }
+
+    /// Returns a shared reference to the source of this `Frame`.
+    ///
+    /// This corresponds to the `Frame` below this one in a [`Report`].
+    #[must_use]
+    pub const fn source(&self) -> Option<&Self> {
+        match &self.source {
+            Some(source) => Some(source),
+            None => None,
+        }
+    }
+
+    /// Returns a mutable reference to the source of this `Frame`.
+    ///
+    /// This corresponds to the `Frame` below this one in a [`Report`].
+    #[must_use]
+    pub fn source_mut(&mut self) -> Option<&mut Self> {
+        match &mut self.source {
+            Some(source) => Some(source),
+            None => None,
+        }
     }
 
     /// Requests the reference to `T` from the `Frame` if provided.
