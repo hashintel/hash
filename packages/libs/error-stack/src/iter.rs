@@ -66,7 +66,7 @@ impl<'r> Iterator for FramesMut<'r> {
     fn next(&mut self) -> Option<Self::Item> {
         let current = self.current.take()?;
         // SAFETY: We require a mutable reference to `Report` to create `FramesMut` to get a mutable
-        //   reference to `Frame`. The borrow checker is unable to prove, that subsequent calls to
+        //   reference to `Frame`. The borrow checker is unable to prove that subsequent calls to
         //   `next()` won't access the same data.
         //   NB: It's almost never possible to implement a mutable iterator without `unsafe`.
         unsafe {
