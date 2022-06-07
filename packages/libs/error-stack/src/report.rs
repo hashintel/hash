@@ -363,6 +363,14 @@ impl<T> Report<T> {
         self.frames().find_map(Frame::downcast_ref::<A>)
     }
 
+    /// Searches the frame stack for a context provider `T` and returns the most recent context
+    /// found.
+    // TODO: Provide example
+    #[must_use]
+    pub fn downcast_mut<A: Any>(&mut self) -> Option<&mut A> {
+        self.frames_mut().find_map(Frame::downcast_mut::<A>)
+    }
+
     pub(crate) const fn frame(&self) -> &Frame {
         &self.inner.frame
     }

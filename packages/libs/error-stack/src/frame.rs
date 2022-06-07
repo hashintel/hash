@@ -139,6 +139,12 @@ impl Frame {
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
         self.inner.downcast_ref()
     }
+
+    /// Downcasts this frame if the held context or attachment is the same as `T`.
+    #[must_use]
+    pub fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
+        self.inner.downcast_mut()
+    }
 }
 
 #[cfg(nightly)]
@@ -339,6 +345,13 @@ impl FrameRepr {
         // SAFETY: Use vtable to attach T's native vtable for the right original type T.
         unsafe {
             (self.vtable.object_downcast)(self, TypeId::of::<T>()).map(|ptr| ptr.cast().as_ref())
+        }
+    }
+
+    fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
+        // SAFETY: Use vtable to attach T's native vtable for the right original type T.
+        unsafe {
+            (self.vtable.object_downcast)(self, TypeId::of::<T>()).map(|ptr| ptr.cast().as_mut())
         }
     }
 }
