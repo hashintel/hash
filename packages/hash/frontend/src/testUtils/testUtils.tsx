@@ -3,7 +3,7 @@ import { ThemeProvider } from "@mui/material";
 // eslint-disable-next-line no-restricted-imports
 import { render, RenderOptions } from "@testing-library/react";
 
-import { theme } from "../shared/ui";
+import { theme } from "@hashintel/hash-design-system";
 
 type CustomRenderOptions = RenderOptions & {
   mocks?: Readonly<MockedResponse[]>;

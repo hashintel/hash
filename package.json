@@ -8,6 +8,7 @@
     "packages/hash/api",
     "packages/hash/backend-utils",
     "packages/hash/datastore",
+    "packages/hash/design-system",
     "packages/hash/eslint-config",
     "packages/hash/frontend",
     "packages/hash/integration",

@@ -6,12 +6,13 @@ import { useMutation } from "@apollo/client";
 import { tw } from "twind";
 
 import { Collapse, Typography } from "@mui/material";
+import { TextField } from "@hashintel/hash-design-system";
 import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import { Button, TextField } from "../../../shared/ui";
+import { Button } from "../../../shared/ui";
 import {
   NextPageWithLayout,
   getLayoutWithSidebar,

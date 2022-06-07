@@ -6,7 +6,7 @@ import "prosemirror-view/style/prosemirror.css";
 import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 
-import { Button } from "../../shared/ui";
+import { Button } from "@hashintel/hash-design-system";
 import { BlockLoadedProvider } from "../onBlockLoaded";
 import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";

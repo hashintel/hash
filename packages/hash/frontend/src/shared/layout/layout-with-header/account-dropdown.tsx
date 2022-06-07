@@ -13,8 +13,9 @@ import {
   bindMenu,
   bindTrigger,
 } from "material-ui-popup-state/hooks";
+import { Avatar } from "@hashintel/hash-design-system";
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
-import { Avatar, MenuItem } from "../../ui";
+import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 type AccountDropdownProps = {

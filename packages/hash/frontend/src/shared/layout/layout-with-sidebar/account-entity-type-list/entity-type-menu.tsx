@@ -7,7 +7,7 @@ import {
 import pluralize from "pluralize";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/core";
-import { FontAwesomeIcon } from "../../../icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../../ui";
 
 type EntityTypeMenuProps = {

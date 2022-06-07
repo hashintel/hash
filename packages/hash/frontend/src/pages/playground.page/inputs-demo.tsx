@@ -11,8 +11,12 @@ import {
   InputAdornment,
   Typography,
 } from "@mui/material";
-import { FontAwesomeIcon } from "../../shared/icons";
-import { Button, FormInline, TextField } from "../../shared/ui";
+import {
+  FormInline,
+  TextField,
+  FontAwesomeIcon,
+} from "@hashintel/hash-design-system";
+import { Button } from "../../shared/ui";
 
 export const InputsDemo = () => {
   return (

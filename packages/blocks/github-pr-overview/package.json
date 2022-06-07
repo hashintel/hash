@@ -1,5 +1,5 @@
 {
-  "name": "github-pr-overview",
+  "name": "@hashintel/github-pr-overview",
   "version": "0.0.0",
   "description": "Display an overview of a GitHub Pull Request, including a timeline of key events",
   "keywords": [
@@ -19,6 +19,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
+    "@hashintel/hash-design-system": "0.0.0",
     "@mui/icons-material": "5.4.2",
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
