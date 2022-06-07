@@ -449,6 +449,6 @@ mod tests {
         assert_eq!(
             mem::size_of::<TaggedBox<FrameRepr>>(),
             mem::size_of::<Box<FrameRepr>>()
-        )
+        );
     }
 }
