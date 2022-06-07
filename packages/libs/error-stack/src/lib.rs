@@ -119,6 +119,7 @@
 //! fn main() {
 //!     if let Err(report) = parse_config("config.json") {
 //!         eprintln!("{report:?}");
+//!         # #[cfg(nightly)]
 //!         for suggestion in report.request_ref::<Suggestion>() {
 //!             eprintln!("Suggestion: {suggestion}");
 //!         }
