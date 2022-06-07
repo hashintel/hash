@@ -355,3 +355,19 @@ impl FrameRepr {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[allow(clippy::wildcard_imports)]
+    use crate::test_helper::*;
+    use crate::Report;
+
+    #[test]
+    fn downcast_mut() {
+        let mut report = Report::new(ContextA).attach(String::from("Hello"));
+        let attachment = report.downcast_mut::<String>().unwrap();
+        attachment.push_str(" World!");
+        let messages: Vec<_> = report.frames_mut().map(|frame| frame.to_string()).collect();
+        assert_eq!(messages, ["Hello World!", "Context A"]);
+    }
+}
