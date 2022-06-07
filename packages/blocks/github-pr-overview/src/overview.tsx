@@ -1,13 +1,10 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
 import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
-import Cancel from "@mui/icons-material/Cancel";
 import { uniqBy } from "lodash";
 import formatDistance from "date-fns/formatDistance";
-
+import { Box, Typography, Divider, typographyClasses } from "@mui/material";
+// import { Button } from "@hashintel/hash-design-system";
 import {
   GithubIssueEvent,
   GithubPullRequest,
@@ -16,19 +13,9 @@ import {
   PullRequestIdentifier,
 } from "./types";
 import { GithubPrTimeline } from "./timeline";
-import { BlockState } from "./app";
-
-export const Reviewer = (login: string, avatar_url?: string | null) => (
-  <Stack direction="row" spacing={1}>
-    <Avatar
-      alt={login}
-      src={avatar_url ?? undefined}
-      sx={{ width: "0.8em", height: "0.8em" }}
-      style={{ alignSelf: "center" }}
-    />
-    <span>{login}</span>
-  </Stack>
-);
+import { CommentIcon, GithubIcon, PullRequestIcon } from "./icons";
+import { Reviews } from "./reviews";
+import { getEventTypeColor } from "./utils";
 
 export type GithubPrOverviewProps = {
   pullRequest: GithubPullRequest;
@@ -36,6 +23,32 @@ export type GithubPrOverviewProps = {
   events: GithubIssueEvent[];
   setSelectedPullRequestId: (x?: PullRequestIdentifier) => void;
   setBlockState: (x: any) => void;
+};
+
+const PRStatus: React.FC<{ status: string }> = ({ status }) => {
+  return (
+    <Box
+      sx={({ palette }) => ({
+        display: "inline-flex",
+        alignItems: "center",
+        py: 1.3125,
+        px: 2,
+        color: palette.white,
+        borderRadius: 20,
+        textTransform: "capitalize",
+        backgroundColor: getEventTypeColor(status),
+      })}
+    >
+      <PullRequestIcon sx={{ mr: 0.75, fontSize: 12 }} />
+      <Typography
+        variant="smallTextLabels"
+        fontWeight={500}
+        color="currentcolor"
+      >
+        {status}
+      </Typography>
+    </Box>
+  );
 };
 
 export const GithubPrOverview: React.FunctionComponent<
@@ -65,86 +78,134 @@ export const GithubPrOverview: React.FunctionComponent<
   /** @todo - Get colours from theme? */
   const status =
     pullRequest.merged_at != null
-      ? { text: "Merged", color: "DarkMagenta" }
+      ? "merged"
       : pullRequest.state === "closed"
-      ? { text: "Closed", color: "darkred" }
-      : { text: "Open", color: "green" };
+      ? "closed"
+      : "open";
+
+  console.log({ pullRequest });
 
   return (
-    <Grid container className="prOverviewContainer">
-      <GithubPrTimeline
-        pullRequest={pullRequest}
-        reviews={reviews}
-        events={events}
-      />
-      <Grid item xs={6} style={{ paddingLeft: "1em" }}>
-        <div style={{ position: "relative" }}>
-          <div>
-            <h1>
-              <span>{pullRequest.repository} </span>
-              <span style={{ color: "grey" }}>#{pullRequest.number}</span>
-            </h1>
-            <h2>
-              <span>Status: </span>
-              <span style={{ color: status.color }}>{status.text}</span>
-            </h2>
-            <Stack>
-              {timeToClose ? (
-                <div>
-                  <span style={{ fontWeight: "bold" }}>Merged After: </span>
-                  {timeToClose}
-                </div>
-              ) : undefined}
-              <div>
-                <span style={{ fontWeight: "bold" }}>Reviews: </span>
-                {reviews.length}
-              </div>
-              <div>
-                {pullRequest.requested_reviewers != null &&
-                pullRequest.requested_reviewers.filter(isDefined).length > 0 ? (
-                  <>
-                    <span style={{ fontWeight: "bold" }}>
-                      Pending New Reviews From:
-                    </span>
-                    {pullRequest.requested_reviewers
-                      ?.filter(isDefined)
-                      .map((reviewer) => (
-                        <div key={reviewer.login}>
-                          {Reviewer(reviewer.login!, reviewer.avatar_url)}
-                        </div>
-                      ))}
-                  </>
-                ) : null}
-              </div>
-              <div>
-                <span style={{ fontWeight: "bold" }}>Reviewed By:</span>
-                {uniqueReviewers.map((reviewer) => (
-                  <div key={reviewer.login}>
-                    {Reviewer(reviewer.login!, reviewer.avatar_url)}
-                  </div>
-                ))}
-              </div>
-            </Stack>
-          </div>
+    <Box sx={{ maxWidth: 800, mx: "auto" }}>
+      <Box
+        sx={({ palette }) => ({ backgroundColor: palette.white, padding: 3 })}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          mb={1.5}
+          sx={({ palette }) => ({
+            svg: {
+              height: 20,
+              width: 20,
+              color: palette.gray[50],
+            },
+            [`.${typographyClasses.root}`]: {
+              color: palette.gray[80],
+            },
+          })}
+        >
+          <GithubIcon />
+          <Typography fontWeight={500}>{pullRequest.repository}</Typography>
+        </Stack>
 
-          <IconButton
-            onClick={() => {
-              setSelectedPullRequestId();
-              setBlockState(BlockState.Loading);
-            }}
-            style={{
-              position: "absolute",
-              top: 0,
-              right: "0.3em",
-              zIndex: 3,
-            }}
+        <Typography
+          sx={({ palette }) => ({
+            color: palette.gray[90],
+            mb: 2,
+            fontWeight: 600,
+          })}
+          variant="h1"
+        >
+          <Box
+            sx={({ palette }) => ({ color: palette.gray[50] })}
+            component="span"
           >
-            <Tooltip title="Change Pull Request">
-              <Cancel key="cancelButton" />
-            </Tooltip>
-          </IconButton>
-        </div>
-      </Grid>
-    </Grid>
+            #{pullRequest.number}
+          </Box>{" "}
+          {pullRequest.title}
+        </Typography>
+        <Box display="flex" alignItems="center">
+          {/*  */}
+          <Box display="flex" alignItems="center" mr={3}>
+            <PRStatus status={status} />
+            <Typography variant="smallTextLabels" fontWeight={500} ml={0.75}>
+              within {timeToClose}
+            </Typography>
+          </Box>
+          <Box display="flex" alignItems="center">
+            <Avatar
+              sx={{ height: 20, width: 20, mr: 1 }}
+              // @todo add default image
+              src={pullRequest.user?.avatar_url ?? ""}
+              alt={pullRequest.user?.login ?? "User"}
+            />
+            <Typography
+              variant="smallTextLabels"
+              sx={({ palette }) => ({
+                color: palette.gray[70],
+                mr: 3,
+                fontWeight: 500,
+              })}
+            >
+              Opened by {pullRequest.user?.login}
+            </Typography>
+            <Stack
+              direction="row"
+              alignItems="center"
+              typography="smallTextLabels"
+              sx={({ palette }) => ({
+                color: palette.gray[70],
+                fontWeight: 500,
+                svg: {
+                  color: palette.gray[50],
+                },
+              })}
+            >
+              <CommentIcon sx={{ mr: 1 }} />
+              <span>
+                {`${reviews.length} review${reviews.length > 1 ? "s" : ""}`}
+              </span>
+            </Stack>
+          </Box>
+        </Box>
+
+        <Divider
+          sx={({ palette }) => ({
+            mt: 3,
+            mb: 2,
+            borderColor: palette.gray[30],
+          })}
+        />
+
+        <Reviews
+          pendingReviews={(pullRequest.requested_reviewers ?? [])
+            ?.filter(isDefined)
+            .map(({ login, avatar_url }) => ({ login, avatar_url }))}
+          completedReviews={uniqueReviewers}
+        />
+      </Box>
+      <Box
+        sx={{
+          background: `linear-gradient(181.33deg, #F7FAFC 10.89%, rgba(251, 253, 254, 0) 94.8%`,
+          height: 9,
+        }}
+      />
+      <Box
+        sx={({ palette }) => ({
+          backgroundColor: palette.gray[10],
+          height: 580, // this should be max height
+          borderRadius: "0 0 6px 6px",
+          px: 2,
+        })}
+      >
+        <GithubPrTimeline
+          pullRequest={pullRequest}
+          reviews={reviews}
+          events={events}
+        />
+      </Box>
+    </Box>
   );
 };
