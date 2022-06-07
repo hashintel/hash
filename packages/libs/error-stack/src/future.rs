@@ -140,14 +140,14 @@ pub trait FutureExt: Future + Sized {
     /// # struct Resource;
     /// # #[derive(Debug)] struct ResourceError;
     /// # impl fmt::Display for ResourceError { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # impl error::Context for ResourceError {}
-    /// use error::{FutureExt, Result};
+    /// # impl error_stack::Context for ResourceError {}
+    /// use error_stack::{FutureExt, Result};
     ///
     /// # #[allow(unused_variables)]
     /// async fn load_resource(user: &User, resource: &Resource) -> Result<(), ResourceError> {
     ///     # const _: &str = stringify! {
     ///     ...
-    ///     # }; error::bail!(ResourceError)
+    ///     # }; error_stack::bail!(ResourceError)
     /// }
     ///
     /// # let fut = async {
@@ -183,14 +183,14 @@ pub trait FutureExt: Future + Sized {
     /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
     /// # #[derive(Debug)] struct ResourceError;
     /// # impl fmt::Display for ResourceError { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # impl error::Context for ResourceError {}
-    /// use error::{FutureExt, Result};
+    /// # impl error_stack::Context for ResourceError {}
+    /// use error_stack::{FutureExt, Result};
     ///
     /// # #[allow(unused_variables)]
     /// async fn load_resource(user: &User, resource: &Resource) -> Result<(), ResourceError> {
     ///     # const _: &str = stringify! {
     ///     ...
-    ///     # }; error::bail!(ResourceError)
+    ///     # }; error_stack::bail!(ResourceError)
     /// }
     ///
     /// # let fut = async {

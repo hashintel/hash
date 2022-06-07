@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-error = { path = "../../lib/error", features = ["spantrace"] }
+error-stack = { path = "../../../libs/error-stack", features = ["spantrace"] }
 nano = { path = "../nano", default-features = false }
 stateful = { path = "../stateful", default-features = false }
 simulation_structure = { path = "../simulation_structure" }

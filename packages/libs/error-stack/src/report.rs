@@ -52,7 +52,7 @@ use crate::{iter::Frames, Context};
 ///
 /// ```
 /// # #![cfg_attr(any(miri, not(feature = "std")), allow(warnings))]
-/// use error::{IntoReport, ResultExt, Result};
+/// use error_stack::{IntoReport, ResultExt, Result};
 ///
 /// # #[allow(dead_code)]
 /// # fn fake_main() -> Result<(), std::io::Error> {
@@ -74,7 +74,7 @@ use crate::{iter::Frames, Context};
 /// use std::{fmt, path::{Path, PathBuf}};
 ///
 /// # #[cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
-/// use error::{Context, IntoReport, Report, ResultExt};
+/// use error_stack::{Context, IntoReport, Report, ResultExt};
 ///
 /// #[derive(Debug)]
 /// # #[derive(PartialEq)]
@@ -118,7 +118,7 @@ use crate::{iter::Frames, Context};
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # return Err(error::report!(ConfigError::IoError).attach("Not supported"));
+///     # return Err(error_stack::report!(ConfigError::IoError).attach("Not supported"));
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     std::fs::read_to_string(path.as_ref()).report().change_context(ConfigError::IoError)
 /// }
@@ -187,8 +187,6 @@ impl<T> Report<T> {
         } else {
             Some(Backtrace::capture())
         };
-        #[cfg(not(any(nightly, feature = "std")))]
-        let backtrace = Some(SpanTrace::capture());
 
         #[cfg(all(nightly, feature = "spantrace"))]
         let span_trace = if request_ref::<SpanTrace, _>(&provider).is_some() {
@@ -196,7 +194,7 @@ impl<T> Report<T> {
         } else {
             Some(SpanTrace::capture())
         };
-        #[cfg(not(any(nightly, feature = "spantrace")))]
+        #[cfg(all(not(nightly), feature = "spantrace"))]
         let span_trace = Some(SpanTrace::capture());
 
         // Context will be moved in the next statement, so we need to drop the temporary provider
@@ -221,7 +219,7 @@ impl<T> Report<T> {
     /// # #![cfg_attr(not(feature = "std"), allow(unused_imports))]
     /// use std::{fmt, fs};
     ///
-    /// use error::{IntoReport, ResultExt};
+    /// use error_stack::{IntoReport, ResultExt};
     ///
     /// #[derive(Debug)]
     /// pub struct Suggestion(&'static str);
@@ -234,16 +232,19 @@ impl<T> Report<T> {
     ///
     /// # #[derive(Debug)] struct NoStdError;
     /// # impl core::fmt::Display for NoStdError { fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # impl error::Context for NoStdError {}
+    /// # impl error_stack::Context for NoStdError {}
     /// # #[cfg(any(not(feature = "std"), miri))]
-    /// # let error: Result<(), _> = Err(error::report!(NoStdError).attach(Suggestion("Better use a file which exists next time!")));
+    /// # let error: Result<(), _> = Err(error_stack::report!(NoStdError).attach(Suggestion("Better use a file which exists next time!")));
     /// # #[cfg(all(feature = "std", not(miri)))]
     /// let error = fs::read_to_string("config.txt")
     ///     .report()
     ///     .attach(Suggestion("Better use a file which exists next time!"));
+    /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = error.unwrap_err();
+    /// # #[cfg(nightly)]
     /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
     ///
+    /// # #[cfg(nightly)]
     /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
     #[track_caller]
     pub fn attach<A>(self, attachment: A) -> Self

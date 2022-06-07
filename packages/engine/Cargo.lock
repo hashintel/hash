@@ -414,7 +414,7 @@ name = "cli"
 version = "0.0.0"
 dependencies = [
  "clap",
- "error",
+ "error-stack",
  "execution",
  "hash_engine_lib",
  "orchestrator",
@@ -663,15 +663,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "error"
+name = "error-stack"
 version = "0.0.0"
 dependencies = [
- "futures",
- "futures-core",
  "once_cell",
- "pin-project",
  "rustc_version",
- "serde_json",
  "tracing-error",
 ]
 
@@ -957,7 +953,7 @@ checksum = "eabb4a44450da02c90444cf74558da904edde8fb4e9035a9a6a4e15445af0bd7"
 name = "hash_engine"
 version = "0.0.0"
 dependencies = [
- "error",
+ "error-stack",
  "hash_engine_lib",
  "tokio",
  "tracing",
@@ -974,7 +970,7 @@ dependencies = [
  "clap",
  "csv",
  "derive-new",
- "error",
+ "error-stack",
  "execution",
  "flatbuffers",
  "flatbuffers_gen",
@@ -1426,7 +1422,7 @@ dependencies = [
 name = "nano"
 version = "0.0.0"
 dependencies = [
- "error",
+ "error-stack",
  "nng",
  "serde",
  "serde_json",
@@ -1610,7 +1606,7 @@ version = "0.0.0"
 dependencies = [
  "async-trait",
  "clap",
- "error",
+ "error-stack",
  "execution",
  "hash_engine",
  "hash_engine_lib",

@@ -81,10 +81,10 @@ pub mod __private {
 /// # #![cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
 /// use std::fs;
 ///
-/// use error::report;
+/// use error_stack::report;
 /// # #[cfg(all(not(miri), feature = "std"))]
 /// # #[allow(dead_code)]
-/// # fn wrapper() -> error::Result<(), impl core::fmt::Debug> {
+/// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => return Err(report!(err)),
@@ -102,7 +102,7 @@ pub mod __private {
 /// # let resource = 0;
 /// use core::fmt;
 ///
-/// use error::{report, Context};
+/// use error_stack::{report, Context};
 ///
 /// #[derive(Debug)]
 /// struct PermissionDenied(User, Resource);
@@ -148,10 +148,10 @@ macro_rules! report {
 /// # #![cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
 /// use std::fs;
 ///
-/// use error::bail;
+/// use error_stack::bail;
 /// # #[cfg(all(not(miri), feature = "std"))]
 /// # #[allow(dead_code)]
-/// # fn wrapper() -> error::Result<(), impl core::fmt::Debug> {
+/// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => bail!(err),
@@ -171,7 +171,7 @@ macro_rules! report {
 /// # let resource = 0;
 /// use core::fmt;
 ///
-/// use error::{bail, Context};
+/// use error_stack::{bail, Context};
 ///
 /// #[derive(Debug)]
 /// struct PermissionDenied(User, Resource);
@@ -218,7 +218,7 @@ macro_rules! bail {
 /// # let resource = 0;
 /// # use core::fmt;
 ///
-/// use error::{ensure, Context};
+/// use error_stack::{ensure, Context};
 ///
 /// #[derive(Debug)]
 /// struct PermissionDenied(User, Resource);

@@ -4,7 +4,7 @@
 
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 
-use error::{bail, ensure, report, IntoReport, ResultExt};
+use error_stack::{bail, ensure, report, IntoReport, ResultExt};
 use execution::package::experiment::{
     ExperimentName, ExperimentPackageConfig, SimpleExperimentConfig, SingleRunExperimentConfig,
 };

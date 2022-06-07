@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 hash_engine_lib = { path = "../..", default-features = false }
-error = { path = "../../lib/error", features = ["spantrace"] }
+error-stack = { path = "../../../libs/error-stack", features = ["spantrace"] }
 
 tokio = "1.18.2"
 tracing = "0.1.29"

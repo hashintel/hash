@@ -21,8 +21,8 @@ use crate::{Context, Report};
 /// # impl core::fmt::Display for AccessError {
 /// #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
 /// # }
-/// # impl error::Context for AccessError {}
-/// use error::{ensure, Result};
+/// # impl error_stack::Context for AccessError {}
+/// use error_stack::{ensure, Result};
 ///
 /// fn main() -> Result<(), AccessError> {
 ///     let user = get_user()?;
@@ -53,11 +53,11 @@ pub trait ResultExt {
     /// # Example
     ///
     /// ```
-    /// # use error::Result;
+    /// # use error_stack::Result;
     /// # fn load_resource(_: &User, _: &Resource) -> Result<(), ()> { Ok(()) }
     /// # struct User;
     /// # struct Resource;
-    /// use error::ResultExt;
+    /// use error_stack::ResultExt;
     ///
     /// # let user = User;
     /// # let resource = Resource;
@@ -80,12 +80,12 @@ pub trait ResultExt {
     ///
     /// ```
     /// # use core::fmt;
-    /// # use error::Result;
+    /// # use error_stack::Result;
     /// # fn load_resource(_: &User, _: &Resource) -> Result<(), ()> { Ok(()) }
     /// # struct User;
     /// # struct Resource;
     /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// use error::ResultExt;
+    /// use error_stack::ResultExt;
     ///
     /// # let user = User;
     /// # let resource = Resource;

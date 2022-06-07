@@ -6,7 +6,7 @@ use std::{
     fmt,
 };
 
-use error::{bail, Report, Result, ResultExt};
+use error_stack::{bail, Report, Result, ResultExt};
 use serde_json::json;
 
 #[derive(Debug)]

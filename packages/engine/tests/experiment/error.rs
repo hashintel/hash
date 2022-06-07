@@ -1,9 +1,9 @@
 use std::{error::Error, fmt, path::PathBuf};
 
-use error::Context;
+use error_stack::Context;
 use serde_json::Value;
 
-pub type Result<T, C = TestContext> = error::Result<T, C>;
+pub type Result<T, C = TestContext> = error_stack::Result<T, C>;
 
 // TODO: Split the enum into multiple structs, so each function have a well defined boundary like
 //   `-> Result<_, Report<ExperimentSetup>>`

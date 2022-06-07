@@ -29,7 +29,8 @@ jobs:
       miri: ${{ steps.crates.outputs.miri }}
       doc: ${{ steps.crates.outputs.doc }}
       samples: ${{ steps.samples.outputs.samples }}
-      toolchains: ${{ steps.toolchains.outputs.toolchains }}
+      nightly: ${{ steps.toolchains.outputs.nightly }}
+      exclude: ${{ steps.crates.outputs.exclude }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -43,6 +44,9 @@ jobs:
 
           # All jobs for all crates will run if any of these paths changes
           always_run_on=(".github" "rust-toolchain.toml" "Cargo.toml" "Cargo.lock")
+
+          # Exclude the stable channel for these crates
+          disable_stable_on=("packages/engine")
 
           changed_crates=""
           while read -r file; do
@@ -58,6 +62,15 @@ jobs:
             done <<< "$available_crates"
           done <<< "$changed_files"
 
+          exclude_stable=""
+          while read -r crate; do
+            for nightly_toolchain_crate in "${disable_stable_on[@]}"; do
+              if [[ $crate =~ $nightly_toolchain_crate ]]; then
+                exclude_stable=$(echo -e "${crate}\n$exclude_stable")
+              fi
+            done
+          done <<< "$changed_crates"
+
           # We always run "packages/engine" tests when a nested crate was changed
           test_crates="$changed_crates"
           if echo "$test_crates" | grep -qe "^packages/engine"; then
@@ -67,6 +80,8 @@ jobs:
           changed_crates=$(echo "$changed_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
           bench_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(. == "packages/engine") ]')
           test_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
+          exclude_stable=$(echo "$exclude_stable" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
+          exclude=$(echo "$exclude_stable" | jq -sc '[ { directory: .[][], toolchain: "stable"} | select(length > 0) ]')
 
           echo "::set-output name=rustfmt::$changed_crates"
           echo "::set-output name=clippy::$changed_crates"
@@ -74,6 +89,7 @@ jobs:
           echo "::set-output name=bench::$bench_crates"
           echo "::set-output name=miri::$test_crates"
           echo "::set-output name=doc::$changed_crates"
+          echo "::set-output name=exclude::$exclude"
 
           echo "run \`cargo fmt\` for: $(echo "$changed_crates" | jq -r)"
           echo "run \`cargo clippy\` for: $(echo "$changed_crates" | jq -r)"
@@ -81,13 +97,14 @@ jobs:
           echo "run \`cargo test --release\` for: $(echo "$bench_crates" | jq -r)"
           echo "run \`cargo miri\` for: $(echo "$test_crates" | jq -r)"
           echo "run \`cargo doc\` for: $(echo "$changed_crates" | jq -r)"
+          echo "Won't run stable channel for: $(echo "$exclude_stable" | jq -r)"
 
       - name: Find toolchain
         id: toolchains
         run: |
-          toolchains=$(cat $(find . -name rust-toolchain.toml) | grep channel | cut -d\" -f2 | jq -R | jq -sc)
-          echo "::set-output name=toolchains::$toolchains"
-          echo "use toolchains: $(echo $toolchains | jq -r)"
+          nightly=$(cat $(find . -name rust-toolchain.toml) | grep channel | cut -d\" -f2)
+          echo "::set-output name=nightly::$nightly"
+          echo "use toolchains: $(echo $nightly | jq -r)"
 
       - name: Determine samples
         id: samples
@@ -106,7 +123,8 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.rustfmt) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        toolchain:
+          - ${{ needs.setup.outputs.nightly }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -149,10 +167,13 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.clippy) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        toolchain:
+          - stable
+          - ${{ needs.setup.outputs.nightly }}
         flags:
           - --all-features
           - --no-default-features
+        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -212,10 +233,13 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.test) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        toolchain:
+          - stable
+          - ${{ needs.setup.outputs.nightly }}
         flags:
           - --all-features
           - --no-default-features
+        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
@@ -295,11 +319,14 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.bench) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        toolchain:
+          - stable
+          - ${{ needs.setup.outputs.nightly }}
         tests:
           - integration
         flags:
           - --release
+        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     env:
       OUTPUT_DIRECTORY: test-results
       SAMPLES: ${{ needs.setup.outputs.samples }}
@@ -377,10 +404,12 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.miri) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        toolchain:
+          - ${{ needs.setup.outputs.nightly }}
         flags:
           - --no-default-features
           - --all-features
+        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
@@ -438,7 +467,8 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.doc) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        toolchain:
+          - ${{ needs.setup.outputs.nightly }}
         flags:
           - --all-features
     steps:

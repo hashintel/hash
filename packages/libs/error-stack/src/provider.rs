@@ -27,7 +27,7 @@
 //!
 //! ```
 //! # #![allow(dead_code)]
-//! use error::provider::{request_ref, Demand, Provider};
+//! use error_stack::provider::{request_ref, Demand, Provider};
 //!
 //! // Definition of MyTrait, a data provider.
 //! trait MyTrait: Provider {
@@ -84,7 +84,7 @@ pub trait Provider {
     /// Provides a reference to a field with type `String` as a `&str`.
     ///
     /// ```rust
-    /// use error::provider::{Demand, Provider};
+    /// use error_stack::provider::{Demand, Provider};
     /// # struct SomeConcreteType { field: String }
     ///
     /// impl Provider for SomeConcreteType {
@@ -103,7 +103,7 @@ pub trait Provider {
 /// Get a string value from a provider.
 ///
 /// ```rust
-/// use error::provider::{request_value, Provider};
+/// use error_stack::provider::{request_value, Provider};
 ///
 /// # #[allow(dead_code)]
 /// fn get_string<P: Provider>(provider: &P) -> String {
@@ -125,7 +125,7 @@ where
 /// Get a string reference from a provider.
 ///
 /// ```rust
-/// use error::provider::{request_ref, Provider};
+/// use error_stack::provider::{request_ref, Provider};
 ///
 /// # #[allow(dead_code)]
 /// fn get_str<P: Provider>(provider: &P) -> &str {
@@ -176,7 +176,7 @@ impl<'a> Demand<'a> {
     /// Provides a `String` by cloning.
     ///
     /// ```rust
-    /// use error::provider::{Demand, Provider};
+    /// use error_stack::provider::{Demand, Provider};
     /// # struct SomeConcreteType { field: String }
     ///
     /// impl Provider for SomeConcreteType {
@@ -201,7 +201,7 @@ impl<'a> Demand<'a> {
     /// Provides a reference to a field as a `&str`.
     ///
     /// ```rust
-    /// use error::provider::{Demand, Provider};
+    /// use error_stack::provider::{Demand, Provider};
     /// # struct SomeConcreteType { field: String }
     ///
     /// impl Provider for SomeConcreteType {

@@ -21,7 +21,7 @@ use crate::Report;
 /// # #![cfg_attr(any(not(feature = "std"), miri), allow(unused_imports))]
 /// use std::{fmt, fs, io};
 ///
-/// use error::{Context, IntoReport, Result, ResultExt};
+/// use error_stack::{Context, IntoReport, Result, ResultExt};
 ///
 /// # type Config = ();
 /// #[derive(Debug)]
@@ -43,7 +43,7 @@ use crate::Report;
 /// impl Context for ConfigError {}
 ///
 /// # #[cfg(any(not(feature = "std"), miri))]
-/// # pub fn read_file(_: &str) -> Result<String, ConfigError> { error::bail!(ConfigError::ParseError) }
+/// # pub fn read_file(_: &str) -> Result<String, ConfigError> { error_stack::bail!(ConfigError::ParseError) }
 /// # #[cfg(all(feature = "std", not(miri)))]
 /// pub fn read_file(path: &str) -> Result<String, io::Error> {
 ///     // Creates a `Report` from `io::Error`, the current context is `io::Error`

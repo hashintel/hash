@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, fmt::Display};
 
-use error::{bail, report, IntoReport, ResultExt};
+use error_stack::{bail, report, IntoReport, ResultExt};
 use hash_engine_lib::{proto, proto::EngineStatus};
 use simulation_structure::ExperimentId;
 use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};

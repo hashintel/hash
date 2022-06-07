@@ -9,12 +9,16 @@ import React, {
 import { BlockComponent } from "blockprotocol/react";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
 import { Resizable, ResizeCallbackData } from "react-resizable";
-import { handleExport, getInitialDocument } from "./utils";
+import {
+  handleExport,
+  getInitialDocument,
+  isValidSerializedDocument,
+  getDefaultDocument,
+} from "./utils";
 import "./base.css";
 
 type AppProps = {
-  document: string;
-  readOnly: boolean;
+  serializedDocument: string;
   darkMode?: boolean;
   width?: number;
   height?: number;
@@ -23,10 +27,9 @@ type AppProps = {
 type LocalState = {
   height: number;
   width?: number;
-  documentString: string;
+  serializedDocument: string;
   maxWidth?: number;
   darkMode?: boolean;
-  readOnly?: boolean;
 };
 
 const BASE_HEIGHT = 500;
@@ -35,18 +38,18 @@ const BASE_HEIGHT = 500;
 // to upload images. Currently images are saved in base64 form
 // in the document and that isn't optimal
 
-// @todo consider storing the document in .tldr files (which are uploaded
-// via upload file hook) instead of JSON format. It's possible for the
-// document to get very large, so storing in JSON
+// @todo consider storing the document in a .tldr file (which is uploaded
+// via file upload method) as opposed to the current approach of storing in JSON.
+
+// @todo re-add readOnly feature when https://github.com/tldraw/tldraw/issues/705 is fixed
 
 export const App: BlockComponent<AppProps> = ({
   entityId,
   entityTypeId,
   entityTypeVersionId,
   darkMode: remoteDarkMode = false,
-  document: remoteDocumentString,
+  serializedDocument: remoteSerializedDocument,
   accountId,
-  readOnly: remoteReadOnly,
   updateEntities,
   height: remoteHeight,
   width: remoteWidth,
@@ -54,14 +57,15 @@ export const App: BlockComponent<AppProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const rTldrawApp = useRef<TldrawApp>();
   const rInitialDocument = useRef<TDDocument>(
-    getInitialDocument(remoteDocumentString, entityId),
+    getInitialDocument(remoteSerializedDocument, entityId),
   );
   const [localState, setLocalState] = useState<LocalState>({
     height: remoteHeight ?? BASE_HEIGHT,
     ...(remoteWidth && { width: remoteWidth }),
-    documentString: remoteDocumentString,
+    serializedDocument: isValidSerializedDocument(remoteSerializedDocument)
+      ? remoteSerializedDocument
+      : JSON.stringify(getDefaultDocument(entityId)),
     darkMode: remoteDarkMode,
-    readOnly: remoteReadOnly,
   });
 
   useLayoutEffect(() => {
@@ -104,18 +108,19 @@ export const App: BlockComponent<AppProps> = ({
         remoteWidth == undefined || Number.isNaN(remoteWidth)
           ? prev.width
           : remoteWidth,
-      documentString: remoteDocumentString ?? prev.documentString,
+      serializedDocument: isValidSerializedDocument(remoteSerializedDocument)
+        ? remoteSerializedDocument
+        : prev.serializedDocument,
     }));
-  }, [remoteDarkMode, remoteHeight, remoteWidth, remoteDocumentString]);
+  }, [remoteDarkMode, remoteHeight, remoteWidth, remoteSerializedDocument]);
 
   const updateRemoteData = useCallback(
     (newData: Partial<AppProps>) => {
       if (!rTldrawApp.current) return;
       const data = {
-        document:
-          newData.document ?? JSON.stringify(rTldrawApp.current.document),
-        readOnly:
-          newData.readOnly ?? rTldrawApp.current.settings.isReadonlyMode,
+        serializedDocument:
+          newData.serializedDocument ??
+          JSON.stringify(rTldrawApp.current.document),
         darkMode: newData.darkMode ?? rTldrawApp.current.settings.isDarkMode,
         height: newData.height ?? localState.height,
         width: newData.width ?? localState.width,
@@ -159,7 +164,7 @@ export const App: BlockComponent<AppProps> = ({
       newDocument.id = entityId;
 
       updateRemoteData({
-        document: JSON.stringify(newDocument),
+        serializedDocument: JSON.stringify(newDocument),
       });
     },
     [entityId, updateRemoteData],
@@ -168,10 +173,15 @@ export const App: BlockComponent<AppProps> = ({
   useEffect(() => {
     try {
       if (!rTldrawApp.current) return;
-      const parsedDocument = JSON.parse(
-        localState.documentString,
-      ) as TDDocument;
       const app = rTldrawApp.current;
+
+      if (JSON.stringify(app.document) === localState.serializedDocument) {
+        return;
+      }
+
+      const parsedDocument = JSON.parse(
+        localState.serializedDocument,
+      ) as TDDocument;
 
       // update document if its id hasn't changed. load document if it has
       if (parsedDocument.id && parsedDocument.id === entityId) {
@@ -189,7 +199,7 @@ export const App: BlockComponent<AppProps> = ({
     } catch (err) {
       // todo handle error
     }
-  }, [localState.documentString, entityId, localState.darkMode]);
+  }, [localState.serializedDocument, entityId, localState.darkMode]);
 
   const updateDimensions = useCallback((_, { size }: ResizeCallbackData) => {
     setLocalState((prev) => ({
@@ -210,7 +220,7 @@ export const App: BlockComponent<AppProps> = ({
   );
 
   return (
-    <div ref={containerRef} className="drawing-canvas-container">
+    <div ref={containerRef} className="drawing-container">
       <Resizable
         height={localState.height}
         width={localState.width!}
@@ -231,11 +241,10 @@ export const App: BlockComponent<AppProps> = ({
             document={rInitialDocument.current}
             onMount={handleMount}
             onPersist={handlePersist}
-            readOnly={remoteReadOnly}
             showMultiplayerMenu={false}
             showSponsorLink={false}
             onExport={handleExport}
-            darkMode={remoteDarkMode}
+            darkMode={localState.darkMode}
           />
         </div>
       </Resizable>
