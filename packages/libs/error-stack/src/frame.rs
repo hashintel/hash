@@ -200,9 +200,13 @@ impl Provider for Frame {
 
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: Change output depending on FrameKind
+        let field_name = match self.kind() {
+            FrameKind::Context => "context",
+            FrameKind::Attachment => "attachment",
+        };
+
         fmt.debug_struct("Frame")
-            .field("object", &self.inner.unerase())
+            .field(field_name, &self.inner.unerase())
             .field("location", &self.location)
             .finish()
     }

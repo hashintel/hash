@@ -43,3 +43,7 @@ required-features = ["hooks"]
 [[example]]
 name = "contextual_messages"
 required-features = ["std"]
+
+[[example]]
+name = "parse_config"
+required-features = ["std"]
