@@ -356,7 +356,24 @@ impl<T> Report<T> {
     }
 
     /// Returns if `T` is the type held by any frame inside of the report.
-    // TODO: Provide example
+    ///
+    /// `T` could either be an attachment or a [`Context`].
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use std::{fs, io, path::Path};
+    /// # use error_stack::{IntoReport, Report};
+    /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
+    ///     # const _: &str = stringify! {
+    ///     ...
+    ///     # };
+    ///     # fs::read_to_string(path.as_ref()).report()
+    /// }
+    ///
+    /// let report = read_file("test.txt").unwrap_err();
+    /// assert!(report.contains::<io::Error>());
+    /// ```
     #[must_use]
     pub fn contains<A: Any>(&self) -> bool {
         self.frames().any(Frame::is::<A>)
@@ -364,7 +381,27 @@ impl<T> Report<T> {
 
     /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
-    // TODO: Provide example
+    ///
+    /// `T` could either be an attachment or a [`Context`].
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use std::{fs, path::Path};
+    /// # use error_stack::{IntoReport, Report};
+    /// use std::io;
+    ///
+    /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
+    ///     # const _: &str = stringify! {
+    ///     ...
+    ///     # };
+    ///     # fs::read_to_string(path.as_ref()).report()
+    /// }
+    ///
+    /// let report = read_file("test.txt").unwrap_err();
+    /// let io_error = report.downcast_ref::<io::Error>().unwrap();
+    /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
+    /// ```
     #[must_use]
     pub fn downcast_ref<A: Any>(&self) -> Option<&A> {
         self.frames().find_map(Frame::downcast_ref::<A>)
@@ -372,16 +409,19 @@ impl<T> Report<T> {
 
     /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
-    // TODO: Provide example
+    ///
+    /// `T` could either be an attachment or a [`Context`].
     #[must_use]
     pub fn downcast_mut<A: Any>(&mut self) -> Option<&mut A> {
         self.frames_mut().find_map(Frame::downcast_mut::<A>)
     }
 
+    /// Returns a shared reference to the most recently added [`Frame`].
     pub(crate) const fn frame(&self) -> &Frame {
         &self.inner.frame
     }
 
+    /// Returns a unique reference to the most recently added [`Frame`].
     pub(crate) fn frame_mut(&mut self) -> &mut Frame {
         &mut self.inner.frame
     }
@@ -397,6 +437,25 @@ impl<T: Context> Report<T> {
     ///
     /// This is one disadvantage of the library in comparison to plain Errors, as in these cases,
     /// all context types are known.
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use std::{fs, path::Path};
+    /// # use error_stack::{IntoReport, Report};
+    /// use std::io;
+    ///
+    /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
+    ///     # const _: &str = stringify! {
+    ///     ...
+    ///     # };
+    ///     # fs::read_to_string(path.as_ref()).report()
+    /// }
+    ///
+    /// let report = read_file("test.txt").unwrap_err();
+    /// let io_error = report.current_context();
+    /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
+    /// ```
     #[must_use]
     #[allow(clippy::missing_panics_doc)] // Panicking here is a bug
     pub fn current_context(&self) -> &T
