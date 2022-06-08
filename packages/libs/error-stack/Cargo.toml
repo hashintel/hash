@@ -8,7 +8,7 @@ description = "A context-aware error library with arbitrary attached user data"
 documentation = "https://docs.rs/error-stack"
 readme = "README.md"
 repository = "https://github.com/hashintel/hash/tree/main/packages/libs/error-stack"
-keywords = ["error", "library", "stack", "no_std", "api"]
+keywords = ["error", "library", "report", "no_std", "stack"]
 categories = ["rust-patterns", "no-std"]
 
 [dependencies]
