@@ -6,6 +6,11 @@
     "blockprotocol",
     "blocks"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#vu/countdown-fixes",
+    "directory": "packages/blocks/countdown"
+  },
   "license": "MIT",
   "author": "Tim Diekmann",
   "scripts": {
