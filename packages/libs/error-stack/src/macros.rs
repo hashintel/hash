@@ -78,18 +78,18 @@ pub mod __private {
 /// Create a [`Report`] from [`Error`]:
 ///
 /// ```
-/// # #![cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
+/// # #[cfg(all(not(miri), feature = "std"))] {
 /// use std::fs;
 ///
 /// use error_stack::report;
-/// # #[cfg(all(not(miri), feature = "std"))]
-/// # #[allow(dead_code)]
+///
 /// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => return Err(report!(err)),
 /// }
 /// # Ok(()) }
+/// # assert!(wrapper().unwrap_err().contains::<std::io::Error>()); }
 /// ```
 ///
 /// Create a [`Report`] from [`Context`]:
@@ -145,18 +145,17 @@ macro_rules! report {
 /// [`Error`]: std::error::Error
 ///
 /// ```
-/// # #![cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
+/// # #[cfg(all(not(miri), feature = "std"))] {
 /// use std::fs;
 ///
 /// use error_stack::bail;
-/// # #[cfg(all(not(miri), feature = "std"))]
-/// # #[allow(dead_code)]
 /// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => bail!(err),
 /// }
 /// # Ok(()) }
+/// # assert!(wrapper().unwrap_err().contains::<std::io::Error>()); }
 /// ```
 ///
 /// Create a [`Report`] from [`Context`]:
@@ -259,7 +258,7 @@ mod tests {
     #[test]
     fn report() {
         let err = capture_error(|| Err(report!(ContextA)));
-        let err = err.attach("additional message");
+        let err = err.attach_display("additional message");
         assert!(err.contains::<ContextA>());
         assert_eq!(err.current_context(), &ContextA);
         assert_eq!(err.frames().count(), 2);
@@ -270,7 +269,7 @@ mod tests {
         ]);
 
         let err = capture_error(|| Err(report!(err)));
-        let err = err.attach(ContextB);
+        let err = err.attach_display(ContextB);
         assert!(err.contains::<ContextA>());
         assert_eq!(err.current_context(), &ContextA);
         assert!(err.contains::<ContextB>());
@@ -292,7 +291,7 @@ mod tests {
         #[cfg(feature = "std")]
         {
             let err = capture_error(|| Err(report!(ContextB)));
-            let err = err.attach("additional message");
+            let err = err.attach_display("additional message");
             assert_eq!(err.current_context(), &ContextB);
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
@@ -307,7 +306,7 @@ mod tests {
     #[test]
     fn bail() {
         let err = capture_error(|| bail!(ContextA));
-        let err = err.attach("additional message");
+        let err = err.attach_display("additional message");
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
@@ -328,7 +327,7 @@ mod tests {
         #[cfg(feature = "std")]
         {
             let err = capture_error(|| bail!(ContextB));
-            let err = err.attach("additional message");
+            let err = err.attach_display("additional message");
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
@@ -345,7 +344,7 @@ mod tests {
             ensure!(false, ContextA);
             Ok(())
         });
-        let err = err.attach("additional message");
+        let err = err.attach_display("additional message");
         assert!(err.contains::<ContextA>());
         assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
@@ -372,7 +371,7 @@ mod tests {
                 ensure!(false, ContextB);
                 Ok(())
             });
-            let err = err.attach("additional message");
+            let err = err.attach_display("additional message");
             assert!(err.contains::<ContextB>());
             assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);

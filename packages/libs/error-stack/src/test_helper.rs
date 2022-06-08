@@ -40,7 +40,11 @@ pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), Report<E>>) -> Repo
 }
 
 pub fn messages<E>(report: &Report<E>) -> Vec<String> {
-    report.frames().map(ToString::to_string).collect()
+    report
+        .frames()
+        .filter_map(Frame::as_display)
+        .map(ToString::to_string)
+        .collect()
 }
 
 pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {

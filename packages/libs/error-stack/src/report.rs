@@ -1,5 +1,11 @@
 use alloc::{boxed::Box, vec::Vec};
-use core::{any::Any, fmt, fmt::Formatter, marker::PhantomData, panic::Location};
+use core::{
+    any::Any,
+    fmt,
+    fmt::{Display, Formatter},
+    marker::PhantomData,
+    panic::Location,
+};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 
@@ -215,10 +221,17 @@ impl<T> Report<T> {
 
     /// Adds contextual information to the [`Frame`] stack.
     ///
+    /// This behaves like [`attach()`] but will also be shown when printing the Report.
+    ///
+    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
+    /// stabilized.
+    ///
+    /// [`attach()`]: Self::attach
+    ///
     /// ## Example
     ///
     /// ```rust
-    /// # #![cfg_attr(not(feature = "std"), allow(unused_imports))]
+    /// # #[cfg(all(feature = "std", not(miri)))] {
     /// use std::{fmt, fs};
     ///
     /// use error_stack::{IntoReport, ResultExt};
@@ -232,12 +245,6 @@ impl<T> Report<T> {
     ///     }
     /// }
     ///
-    /// # #[derive(Debug)] struct NoStdError;
-    /// # impl core::fmt::Display for NoStdError { fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # impl error_stack::Context for NoStdError {}
-    /// # #[cfg(any(not(feature = "std"), miri))]
-    /// # let error: Result<(), _> = Err(error_stack::report!(NoStdError).attach(Suggestion("Better use a file which exists next time!")));
-    /// # #[cfg(all(feature = "std", not(miri)))]
     /// let error = fs::read_to_string("config.txt")
     ///     .report()
     ///     .attach(Suggestion("Better use a file which exists next time!"));
@@ -248,10 +255,37 @@ impl<T> Report<T> {
     ///
     /// # #[cfg(nightly)]
     /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
+    /// # }
+    #[track_caller]
+    pub fn attach_display<A>(self, attachment: A) -> Self
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        Self::from_frame(
+            Frame::from_display_attachment(
+                attachment,
+                Location::caller(),
+                Some(Box::new(self.inner.frame)),
+            ),
+            #[cfg(all(nightly, feature = "std"))]
+            self.inner.backtrace,
+            #[cfg(feature = "spantrace")]
+            self.inner.span_trace,
+        )
+    }
+
+    /// Adds contextual information to the [`Frame`] stack.
+    ///
+    /// This behaves like [`attach_display()`] but will not be shown when printing the Report.
+    ///
+    /// **Note:** [`attach()`] will be deprecated when specialization is stabilized. If `T`
+    /// implements [`Display`] or [`Debug`] these implementations will be used.
+    ///
+    /// [`attach()`]: Self::attach
     #[track_caller]
     pub fn attach<A>(self, attachment: A) -> Self
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: Send + Sync + 'static,
     {
         Self::from_frame(
             Frame::from_attachment(
@@ -417,18 +451,28 @@ impl<T: Context> Report<T> {
 impl<Context> fmt::Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
-        if let Some(debug_hook) = Report::display_hook() {
-            return debug_hook(self.generalized(), fmt);
+        if let Some(display_hook) = Report::display_hook() {
+            return display_hook(self.generalized(), fmt);
         }
 
-        let mut chain = self.frames();
-        let error = chain.next().expect("No error occurred");
-        fmt::Display::fmt(&error, fmt)?;
-        if let Some(cause) = chain.next() {
-            if fmt.alternate() {
-                write!(fmt, ": {cause}")?;
+        for (index, frame) in self
+            .frames()
+            .filter(|frame| frame.kind() == FrameKind::Context)
+            .enumerate()
+        {
+            let display = frame.as_display().unwrap_or_else(|| {
+                unreachable!("A context can always display");
+            });
+            if index == 0 {
+                fmt::Display::fmt(display, fmt)?;
+                if !fmt.alternate() {
+                    break;
+                }
+            } else {
+                write!(fmt, ": {display}")?;
             }
         }
+
         Ok(())
     }
 }
@@ -450,17 +494,20 @@ impl<Context> fmt::Debug for Report<Context> {
             debug.finish()
         } else {
             let mut context_idx = -1;
-            let mut attachments: Vec<&Frame> = Vec::new();
+            let mut attachments: Vec<&dyn Display> = Vec::new();
             for frame in self.frames() {
                 match frame.kind() {
                     FrameKind::Context => {
+                        let display = frame.as_display().unwrap_or_else(|| {
+                            unreachable!("A context can always display");
+                        });
                         if context_idx == -1 {
-                            write!(fmt, "{frame}")?;
+                            write!(fmt, "{display}")?;
                         } else {
                             if context_idx == 0 {
                                 fmt.write_str("\n\nCaused by:")?;
                             }
-                            write!(fmt, "\n   {context_idx}: {frame}")?;
+                            write!(fmt, "\n   {context_idx}: {display}")?;
                         }
                         write!(fmt, "\n             at {}", frame.location())?;
 
@@ -472,7 +519,9 @@ impl<Context> fmt::Debug for Report<Context> {
                         context_idx += 1;
                     }
                     FrameKind::Attachment => {
-                        attachments.push(frame);
+                        if let Some(display) = frame.as_display() {
+                            attachments.push(display);
+                        }
                     }
                 }
             }

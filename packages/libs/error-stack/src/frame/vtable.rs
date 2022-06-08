@@ -5,10 +5,12 @@ use core::{
     ptr::{addr_of, NonNull},
 };
 
+#[cfg(nightly)]
 use crate::{
-    frame::{AttachedObject, FrameRepr},
-    Context,
+    frame::attachment::AttachmentProvider,
+    provider::{Demand, Provider},
 };
+use crate::{frame::ErasableFrame, Context};
 
 /// Stores functions to act on the underlying [`Frame`] type without knowing the unerased type.
 ///
@@ -19,9 +21,12 @@ use crate::{
 ///
 /// [`Frame`]: crate::Frame
 pub(in crate::frame) struct VTable {
-    object_drop: unsafe fn(Box<FrameRepr>),
-    object_ref: unsafe fn(&FrameRepr) -> &dyn Context,
-    object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
+    object_drop: unsafe fn(Box<ErasableFrame>),
+    object_downcast: unsafe fn(&ErasableFrame, target: TypeId) -> Option<NonNull<()>>,
+    debug_ref: unsafe fn(&ErasableFrame) -> Option<&dyn fmt::Debug>,
+    display_ref: unsafe fn(&ErasableFrame) -> Option<&dyn fmt::Display>,
+    #[cfg(nightly)]
+    provide: unsafe fn(&ErasableFrame, &mut Demand),
 }
 
 impl VTable {
@@ -29,31 +34,104 @@ impl VTable {
     pub fn new_context<C: Context>() -> &'static Self {
         &Self {
             object_drop: Self::object_drop::<C>,
-            object_ref: Self::object_ref::<C>,
-            object_downcast: Self::context_downcast::<C>,
+            object_downcast: Self::object_downcast::<C>,
+            debug_ref: Self::debug_ref::<C>,
+            display_ref: Self::display_ref::<C>,
+            #[cfg(nightly)]
+            provide: Self::context_provide::<C>,
+        }
+    }
+
+    /// Creates a `VTable` for an attachment.
+    pub fn new_debug_display_attachment<A>() -> &'static Self
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        &Self {
+            object_drop: Self::object_drop::<A>,
+            object_downcast: Self::object_downcast::<A>,
+            debug_ref: Self::debug_ref::<A>,
+            display_ref: Self::display_ref::<A>,
+            #[cfg(nightly)]
+            provide: Self::self_provide::<A>,
+        }
+    }
+
+    /// Creates a `VTable` for an attachment.
+    pub fn new_debug_attachment<A>() -> &'static Self
+    where
+        A: fmt::Debug + Send + Sync + 'static,
+    {
+        &Self {
+            object_drop: Self::object_drop::<A>,
+            object_downcast: Self::object_downcast::<A>,
+            debug_ref: Self::debug_ref::<A>,
+            display_ref: Self::no_display_ref,
+            #[cfg(nightly)]
+            provide: Self::self_provide::<A>,
+        }
+    }
+
+    /// Creates a `VTable` for an attachment.
+    pub fn new_display_attachment<A>() -> &'static Self
+    where
+        A: fmt::Display + Send + Sync + 'static,
+    {
+        &Self {
+            object_drop: Self::object_drop::<A>,
+            object_downcast: Self::object_downcast::<A>,
+            debug_ref: Self::no_debug_ref,
+            display_ref: Self::display_ref::<A>,
+            #[cfg(nightly)]
+            provide: Self::self_provide::<A>,
         }
     }
 
     /// Creates a `VTable` for an attachment.
     pub fn new_attachment<A>() -> &'static Self
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: Send + Sync + 'static,
     {
         &Self {
-            object_drop: Self::object_drop::<AttachedObject<A>>,
-            object_ref: Self::object_ref::<AttachedObject<A>>,
-            object_downcast: Self::attachment_downcast::<A>,
+            object_drop: Self::object_drop::<A>,
+            object_downcast: Self::object_downcast::<A>,
+            debug_ref: Self::no_debug_ref,
+            display_ref: Self::no_display_ref,
+            #[cfg(nightly)]
+            provide: Self::self_provide::<A>,
         }
     }
 
-    /// Unerases the `frame` as a [`Context`].
-    pub(in crate::frame) fn unerase<'f>(&self, frame: &'f FrameRepr) -> &'f dyn Context {
+    /// Unerases the `frame` as a [`Display`].
+    pub(in crate::frame) fn unerase_display<'f>(
+        &self,
+        frame: &'f ErasableFrame,
+    ) -> Option<&'f dyn fmt::Display> {
         // SAFETY: Use vtable to attach the frames' native vtable for the right original type.
-        unsafe { (self.object_ref)(frame) }
+        unsafe { (self.display_ref)(frame) }
+    }
+
+    /// Unerases the `frame` as a [`Debug`].
+    pub(in crate::frame) fn unerase_debug<'f>(
+        &self,
+        frame: &'f ErasableFrame,
+    ) -> Option<&'f dyn fmt::Debug> {
+        // SAFETY: Use vtable to attach the frames' native vtable for the right original type.
+        unsafe { (self.debug_ref)(frame) }
+    }
+
+    /// Calls `provide` on `frame`.
+    #[cfg(nightly)]
+    pub(in crate::frame) fn provide(&self, frame: &ErasableFrame, demand: &mut Demand) {
+        // SAFETY: Use vtable to attach the frames' native vtable for the right original type.
+        unsafe { (self.provide)(frame, demand) }
     }
 
     /// Attempts to downcast `frame` as a shared reference to `T`.
-    pub(in crate::frame) fn downcast_ref<'f, T: Any>(&self, frame: &'f FrameRepr) -> Option<&'f T> {
+    pub(in crate::frame) fn downcast_ref<'f, T: Any>(
+        &self,
+        frame: &'f ErasableFrame,
+    ) -> Option<&'f T> {
         // SAFETY: Use vtable to attach the frames' native vtable for the right original type.
         unsafe { (self.object_downcast)(frame, TypeId::of::<T>()).map(|ptr| ptr.cast().as_ref()) }
     }
@@ -61,14 +139,14 @@ impl VTable {
     /// Attempts to downcast `frame` as a unique reference to `T`.
     pub(in crate::frame) fn downcast_mut<'f, T: Any>(
         &self,
-        frame: &'f mut FrameRepr,
+        frame: &'f mut ErasableFrame,
     ) -> Option<&'f mut T> {
         // SAFETY: Use vtable to attach the frames' native vtable for the right original type.
         unsafe { (self.object_downcast)(frame, TypeId::of::<T>()).map(|ptr| ptr.cast().as_mut()) }
     }
 
     /// Drops the unerased value of `frame`.
-    pub(in crate::frame) fn drop(&self, frame: Box<FrameRepr>) {
+    pub(in crate::frame) fn drop(&self, frame: Box<ErasableFrame>) {
         // SAFETY: Use vtable to attach the frames' native vtable for the right original type.
         unsafe { (self.object_drop)(frame) }
     }
@@ -78,13 +156,13 @@ impl VTable {
     /// # Safety
     ///
     /// - Layout of `*frame` must match `FrameRepr<C>`.
-    unsafe fn object_drop<C: Context>(frame: Box<FrameRepr>) {
+    unsafe fn object_drop<T>(frame: Box<ErasableFrame>) {
         // Attach T's native vtable onto the pointer to `self._unerased`
         // Note: This must not use `mem::transmute` because it tries to reborrow the `Unique`
         //   contained in `Box`, which must not be done. In practice this probably won't make any
         //   difference by now, but technically it's unsound.
         //   see: https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md
-        let unerased = Box::from_raw(Box::into_raw(frame).cast::<FrameRepr<C>>());
+        let unerased = Box::from_raw(Box::into_raw(frame).cast::<ErasableFrame<T>>());
         drop(unerased);
     }
 
@@ -92,56 +170,87 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `frame` must match `FrameRepr<C>`.
-    unsafe fn object_ref<C: Context>(frame: &FrameRepr) -> &dyn Context {
+    /// - Layout of `frame` must match `ErasableFrame<T>`.
+    #[cfg(nightly)]
+    unsafe fn context_provide<C: Context>(frame: &ErasableFrame, demand: &mut Demand) {
         // Attach T's native vtable onto the pointer to `self._unerased`
-        let unerased = (frame as *const FrameRepr).cast::<FrameRepr<C>>();
+        let unerased = (frame as *const ErasableFrame).cast::<ErasableFrame<C>>();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
-        &(*(unerased))._unerased
+        (*(unerased))._unerased.provide(demand)
     }
 
-    /// Downcasts the context to `C`.
+    /// Unerase the object as None.
     ///
     /// # Safety
     ///
-    /// - Layout of `frame` must match `FrameRepr<C>`.
-    const unsafe fn object_downcast_unchecked<C: Context>(frame: &FrameRepr) -> NonNull<()> {
+    /// - Layout of `frame` must match `ErasableFrame<AttachmentProvider<A>>`.
+    #[cfg(nightly)]
+    unsafe fn self_provide<A: 'static>(frame: &ErasableFrame, demand: &mut Demand) {
         // Attach T's native vtable onto the pointer to `self._unerased`
-        let unerased: *const FrameRepr<C> = (frame as *const FrameRepr).cast();
+        let unerased =
+            (frame as *const ErasableFrame).cast::<ErasableFrame<AttachmentProvider<A>>>();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
-        let addr = addr_of!((*(unerased))._unerased) as *mut ();
-        NonNull::new_unchecked(addr)
+        (*(unerased))._unerased.provide(demand)
     }
 
-    /// Downcasts the context to `target`.
+    /// Unerase the object as `&dyn Display`.
     ///
     /// # Safety
     ///
-    /// - Layout of `frame` must match `FrameRepr<C>`.
-    unsafe fn context_downcast<C: Context>(
-        frame: &FrameRepr,
-        target: TypeId,
-    ) -> Option<NonNull<()>> {
-        if TypeId::of::<C>() == target {
-            Some(Self::object_downcast_unchecked::<C>(frame))
-        } else {
-            None
-        }
+    /// - Layout of `frame` must match `ErasableFrame<T>`.
+    unsafe fn display_ref<'t, T: fmt::Display + 't>(
+        frame: &ErasableFrame,
+    ) -> Option<&(dyn fmt::Display + 't)> {
+        // Attach T's native vtable onto the pointer to `self._unerased`
+        let unerased = (frame as *const ErasableFrame).cast::<ErasableFrame<T>>();
+        // inside of vtable it's allowed to access `_unerased`
+        #[allow(clippy::used_underscore_binding)]
+        Some(&(*(unerased))._unerased)
     }
 
-    /// Downcasts the attachment to `target`.
+    /// Unerase the object as None.
+    fn no_display_ref(_: &ErasableFrame) -> Option<&dyn fmt::Display> {
+        None
+    }
+
+    /// Unerase the object as `&dyn Display`.
     ///
     /// # Safety
     ///
-    /// - Layout of `frame` must match `FrameRepr<AttachedObject<A>>`.
-    unsafe fn attachment_downcast<A: fmt::Display + fmt::Debug + Send + Sync + 'static>(
-        frame: &FrameRepr,
+    /// - Layout of `frame` must match `ErasableFrame<T>`.
+    unsafe fn debug_ref<'t, T: fmt::Debug + 't>(
+        frame: &ErasableFrame,
+    ) -> Option<&(dyn fmt::Debug + 't)> {
+        // Attach T's native vtable onto the pointer to `self._unerased`
+        let unerased = (frame as *const ErasableFrame).cast::<ErasableFrame<T>>();
+        // inside of vtable it's allowed to access `_unerased`
+        #[allow(clippy::used_underscore_binding)]
+        Some(&(*(unerased))._unerased)
+    }
+
+    /// Unerase the object as None.
+    fn no_debug_ref(_: &ErasableFrame) -> Option<&dyn fmt::Debug> {
+        None
+    }
+
+    /// Downcasts the object to `T`.
+    ///
+    /// # Safety
+    ///
+    /// - Layout of `frame` must match `ErasableFrame<T>`.
+    unsafe fn object_downcast<T: Any>(
+        frame: &ErasableFrame,
         target: TypeId,
     ) -> Option<NonNull<()>> {
-        if TypeId::of::<A>() == target {
-            Some(Self::object_downcast_unchecked::<AttachedObject<A>>(frame))
+        if TypeId::of::<T>() == target {
+            // Attach T's native vtable onto the pointer to `self._unerased`
+            let unerased: *const ErasableFrame<T> = (frame as *const ErasableFrame).cast();
+            // inside of vtable it's allowed to access `_unerased`
+            #[allow(clippy::used_underscore_binding)]
+            let addr = addr_of!((*(unerased))._unerased) as *mut ();
+            Some(NonNull::new_unchecked(addr))
         } else {
             None
         }

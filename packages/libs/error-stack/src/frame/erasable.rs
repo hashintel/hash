@@ -1,23 +1,20 @@
 use crate::{
-    frame::{TaggedBox, VTable},
-    Context, FrameKind,
+    frame::{tagged_box::TaggedBox, VTable},
+    FrameKind,
 };
 
 // repr(C): It must be ensured, that vtable is always stored at the same memory position when
-// casting between `FrameRepr<T>` and `FrameRepr<()>`.
+// casting between an unerased `ErasableFrame<T>` and an erased `ErasableFrame`.
 #[repr(C)]
-pub(in crate::frame) struct FrameRepr<T = ()> {
+pub(in crate::frame) struct ErasableFrame<T = ()> {
     vtable: &'static VTable,
     // As we cast between `FrameRepr<T>` and `FrameRepr<()>`, `_unerased` must not be used
     // directly, only through `vtable`
     pub(in crate::frame) _unerased: T,
 }
 
-impl<C> FrameRepr<C>
-where
-    C: Context,
-{
-    /// Creates a new [`Frame`] from an unerased [`Context`] object.
+impl<T> ErasableFrame<T> {
+    /// Creates a new [`Frame`] from an unerased object.
     ///
     /// [`Frame`]: crate::Frame
     ///
@@ -25,13 +22,13 @@ where
     ///
     /// Must not be dropped without calling `vtable.object_drop`
     pub(in crate::frame) unsafe fn new(
-        context: C,
+        object: T,
         vtable: &'static VTable,
         kind: FrameKind,
-    ) -> TaggedBox<FrameRepr> {
+    ) -> TaggedBox<ErasableFrame> {
         let unerased_frame = Self {
             vtable,
-            _unerased: context,
+            _unerased: object,
         };
         let unerased_box = TaggedBox::new(unerased_frame, kind);
         // erase the frame by casting the pointer to `FrameBox<()>`
@@ -39,7 +36,7 @@ where
     }
 }
 
-impl FrameRepr {
+impl ErasableFrame {
     /// Returns the [`VTable`] for this [`Frame`].
     ///
     /// [`Frame`]: crate::Frame

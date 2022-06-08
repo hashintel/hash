@@ -6,7 +6,7 @@ use std::{
     fmt,
 };
 
-use error_stack::{bail, Report, Result, ResultExt};
+use error_stack::{bail, Frame, Report, Result, ResultExt};
 use serde_json::json;
 
 #[derive(Debug)]
@@ -49,7 +49,11 @@ fn create_new_entry(
 fn main() -> Result<(), MapError> {
     // This hook will be executed instead of the default implementation when `Debug` is called
     Report::set_debug_hook(|report, fmt| {
-        let errors = report.frames().map(ToString::to_string).collect::<Vec<_>>();
+        let errors = report
+            .frames()
+            .filter_map(Frame::as_display)
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
 
         if fmt.alternate() {
             fmt.write_str(&serde_json::to_string_pretty(&errors).expect("Could not format report"))
