@@ -1,33 +1,34 @@
-//! # Context-Aware Error Library with Arbitrary Attached User Data
+//! A context-aware error library with arbitrary attached user data.
 //!
-//! This crate is centered around taking a base error and building up a full richer picture of it as
-//! it propagates. This is encapsulated in [`Report`], which is made of two main concepts:
+//! # Overview
+//!
+//! `error-stack` is an error-handling library centered around the idea of building a [`Report`] of
+//! the error as it propagates. A [`Report`] is made up of two concepts:
 //!
 //!   1. Contexts
 //!   2. Attachments
 //!
-//! A [`Context`] is a view of the world, it helps describe the current section of code's way of
-//! seeing the error -- a high-level description of the error. A [`Report`] always captures the
+//! A [`Context`] is a view of the world, it helps describe how the current section of code
+//! interprets the error. This is used to capture how various scopes require differing levels of
+//! detail and understanding of the error as it propagates. A [`Report`] always captures the
 //! _current context_ in its generic argument.
 //!
-//! An attachment can be added to the [`Report`]. This could be anything, for example, a contextual
-//! message or a `Suggestion`, which helps identify the error.
+//! As the [`Report`] is built, various pieces of supporting information can be _attached_. These
+//! can be anything with a [`Debug`] implementation, whether it be a supporting message or a
+//! custom-defined `Suggestion` struct.
 //!
-//! Any context or attachment is used to provide a ([custumizable]) [`Debug`] and [`Display`]
-//! output.
-//!
-//! Please refer to the [in-depth explaination] for further information.
+//! Please refer to the [in-depth explanation] for further information.
 //!
 //! [`Debug`]: core::fmt::Debug
-//! [`Display`]: core::fmt::Display
-//! [in-depth explaination]: #in-depth-explaination
-//! [custumizable]: #debug-and-display-hooks
+//! [in-depth explanation]: #in-depth-explanation
 //!
 //! ## Quick-Start Guide
 //!
-//! [`Report`] is supposed to be used as the [`Err`] variant of a `Result`. This crate provides a
-//! [`Result<E, C>`] type alias, which uses [`Report<C>`] as [`Err`] variant and can be used as
-//! return type:
+//! ### Where to use a Report
+//!
+//! [`Report`] has been designed to be used as the [`Err`] variant of a `Result`. This crate
+//! provides a [`Result<E, C>`] type alias for convenience which uses [`Report<C>`] as the [`Err`]
+//! variant and can be used as a return type:
 //!
 //! ```rust
 //! # fn has_permission(_: usize, _: usize) -> bool { true }
@@ -55,10 +56,13 @@
 //! }
 //! ```
 //!
-//! A [`Report`] can be created directly from a [`Context`] using [`Report::new()`] or by any
-//! provided macro ([`report!`], [`bail!`], [`ensure!`]). As any [`Error`] can be used as
-//! [`Context`], it's possible to create [`Report`] from an existing [`Error`]. For convenience,
-//! this crate provides an [`IntoReport`] trait to convert between [`Err`]-variants:
+//! ### Initializing a Report
+//! A [`Report`] can also be created directly from any [`Context`] by using [`Report::new()`] or
+//! through any of the provided macros ([`report!`], [`bail!`], [`ensure!`]). Any [`Error`] can be
+//! used as a [`Context`], so it's possible to create [`Report`] from an existing [`Error`].
+//!
+//! For convenience, this crate provides an [`IntoReport`] trait to convert between
+//! [`Err`]-variants:
 //!
 //! ```rust
 //! use std::{fs, io, path::Path};
@@ -78,10 +82,13 @@
 //! # assert!(report.contains::<io::Error>());
 //! ```
 //!
+//! ### Building up the Report - Current Context
+//!
 //! The generic parameter in [`Report`] is called the _current context_. When creating a new
-//! [`Report`], the used [`Context`] will be the current context. To change the context,
-//! [`Report::change_context()`] is used. Again, for convenience, using [`ResultExt`] will do that
-//! on the [`Err`] variant:
+//! [`Report`], the [`Context`] that's provided will be set as the current context. To change the
+//! context, [`Report::change_context()`] is used.
+//!
+//! Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant:
 //!
 //! ```rust
 //! # use std::{fmt, fs, io, path::Path};
@@ -115,6 +122,8 @@
 //! # assert!(report.contains::<io::Error>());
 //! # assert!(report.contains::<ParseConfigError>());
 //! ```
+//!
+//! ### Building up the Report - Attachments
 //!
 //! In addition to changing the current context, it's also possible to attach additional
 //! information by using [`Report::attach()`]:
@@ -260,7 +269,7 @@
 //! [`error_stack::provider`]: crate::provider
 //! [`Provider` API]: https://rust-lang.github.io/rfcs/3192-dyno.html
 //!
-//! ### Conventient Macros
+//! ### Macros for Convenience
 //!
 //! Three macros are provided to simplify the generation of a [`Report`].
 //!
