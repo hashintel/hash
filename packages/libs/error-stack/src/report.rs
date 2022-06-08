@@ -457,19 +457,19 @@ impl<T: Context> Report<T> {
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
     /// ```
     #[must_use]
-    #[allow(clippy::missing_panics_doc)] // Panicking here is a bug
     pub fn current_context(&self) -> &T
     where
         T: Any,
     {
-        // Panics if there isn't an attached context which matches `T`. As it's not possible to
-        // create a `Report` without a valid context and this method can only be called when `T` is
-        // a valid context, it's guaranteed that the context is available when calling
-        // `current_context`.
-        self.downcast_ref().expect(
-            "Report does not contain a context. This is considered a bug and should be reported \
-             to https://github.com/hashintel/hash/issues/new",
-        )
+        self.downcast_ref().unwrap_or_else(|| {
+            // Panics if there isn't an attached context which matches `T`. As it's not possible to
+            // create a `Report` without a valid context and this method can only be called when `T`
+            // is a valid context, it's guaranteed that the context is available.
+            unreachable!(
+                "Report does not contain a context. This is considered a bug and should be \
+                reported to https://github.com/hashintel/hash/issues/new"
+            );
+        })
     }
 }
 
