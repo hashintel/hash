@@ -123,8 +123,6 @@
 //! ```text
 //! Could not parse configuration file
 //!              at main.rs:17:10
-//!       - Use a file you can read next time!
-//!       - Four non-displayable attachments
 //!       - Could not read file "config.json"
 //!
 //! Caused by:

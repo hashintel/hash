@@ -219,6 +219,8 @@ impl<T> Report<T> {
     /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized. If
     /// `T` implements [`Display`] or [`Debug`] these implementations will be used.
     ///
+    /// [`Display`]: core::fmt::Display
+    /// [`Debug`]: core::fmt::Debug
     /// [`attach_printable()`]: Self::attach_printable
     #[track_caller]
     pub fn attach<A>(self, attachment: A) -> Self

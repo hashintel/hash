@@ -53,6 +53,8 @@ pub trait ResultExt {
     /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized. If
     /// `T` implements [`Display`] or [`Debug`] these implementations will be used.
     ///
+    /// [`Display`]: core::fmt::Display
+    /// [`Debug`]: core::fmt::Debug
     /// [`attach_printable()`]: Self::attach_printable
     /// [`Frame`]: crate::Frame
     #[must_use]
@@ -70,6 +72,8 @@ pub trait ResultExt {
     /// **Note:** [`attach_printable_lazy()`] will be deprecated when specialization is stabilized.
     /// If `T` implements [`Display`] or [`Debug`] these implementations will be used.
     ///
+    /// [`Display`]: core::fmt::Display
+    /// [`Debug`]: core::fmt::Debug
     /// [`attach_printable_lazy()`]: Self::attach_printable_lazy
     /// [`Frame`]: crate::Frame
     #[must_use]
