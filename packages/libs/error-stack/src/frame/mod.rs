@@ -66,63 +66,9 @@ impl Frame {
         )
     }
 
-    /// Crates a frame from an attachment implementing [`Debug`] and [`Display`].
-    pub(crate) fn from_debug_display_attachment<A>(
-        object: A,
-        location: &'static Location<'static>,
-        source: Option<Box<Self>>,
-    ) -> Self
-    where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        Self::from_unerased(
-            AttachmentProvider::new(object),
-            location,
-            source,
-            VTable::new_debug_display_attachment::<A>(),
-            FrameKind::Attachment,
-        )
-    }
-
-    /// Crates a frame from an attachment implementing [`Display`].
-    pub(crate) fn from_display_attachment<A>(
-        object: A,
-        location: &'static Location<'static>,
-        source: Option<Box<Self>>,
-    ) -> Self
-    where
-        A: fmt::Display + Send + Sync + 'static,
-    {
-        Self::from_unerased(
-            AttachmentProvider::new(object),
-            location,
-            source,
-            VTable::new_display_attachment::<A>(),
-            FrameKind::Attachment,
-        )
-    }
-
-    /// Crates a frame from an attachment implementing [`Debug`].
-    pub(crate) fn from_debug_attachment<A>(
-        object: A,
-        location: &'static Location<'static>,
-        source: Option<Box<Self>>,
-    ) -> Self
-    where
-        A: fmt::Debug + Send + Sync + 'static,
-    {
-        Self::from_unerased(
-            AttachmentProvider::new(object),
-            location,
-            source,
-            VTable::new_debug_attachment::<A>(),
-            FrameKind::Attachment,
-        )
-    }
-
     /// Crates a frame from an attachment.
     pub(crate) fn from_attachment<A>(
-        object: A,
+        attachment: A,
         location: &'static Location<'static>,
         source: Option<Box<Self>>,
     ) -> Self
@@ -130,10 +76,28 @@ impl Frame {
         A: Send + Sync + 'static,
     {
         Self::from_unerased(
-            AttachmentProvider::new(object),
+            AttachmentProvider::new(attachment),
             location,
             source,
             VTable::new_attachment::<A>(),
+            FrameKind::Attachment,
+        )
+    }
+
+    /// Crates a frame from an attachment implementing [`Debug`] and [`Display`].
+    pub(crate) fn from_printable_attachment<A>(
+        attachment: A,
+        location: &'static Location<'static>,
+        source: Option<Box<Self>>,
+    ) -> Self
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        Self::from_unerased(
+            AttachmentProvider::new(attachment),
+            location,
+            source,
+            VTable::new_display_attachment::<A>(),
             FrameKind::Attachment,
         )
     }
@@ -279,7 +243,8 @@ mod tests {
 
     #[test]
     fn downcast_mut() {
-        let mut report = Report::new(ContextA).attach_display(String::from("Hello"));
+        let mut report = Report::new(ContextA).attach_printable(String::from("Hello"));
+
         let attachment = report.downcast_mut::<String>().unwrap();
         attachment.push_str(" World!");
         let messages: Vec<_> = report
@@ -303,11 +268,11 @@ mod tests {
         use FrameKind::{Attachment, Context};
 
         let report = Report::new(ContextA);
-        let report = report.attach_display("A1");
-        let report = report.attach_display("A2");
+        let report = report.attach_printable("A1");
+        let report = report.attach_printable("A2");
         let report = report.change_context(ContextB);
-        let report = report.attach_display("B1");
-        let report = report.attach_display("B2");
+        let report = report.attach_printable("B1");
+        let report = report.attach_printable("B2");
 
         assert_eq!(frame_kinds(&report), [
             Attachment, Attachment, Context, Attachment, Attachment, Context

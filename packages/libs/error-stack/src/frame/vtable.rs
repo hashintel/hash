@@ -43,7 +43,7 @@ impl VTable {
     }
 
     /// Creates a `VTable` for an attachment.
-    pub fn new_debug_display_attachment<A>() -> &'static Self
+    pub fn new_display_attachment<A>() -> &'static Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
@@ -51,36 +51,6 @@ impl VTable {
             object_drop: Self::object_drop::<A>,
             object_downcast: Self::object_downcast::<A>,
             debug_ref: Self::debug_ref::<A>,
-            display_ref: Self::display_ref::<A>,
-            #[cfg(nightly)]
-            provide: Self::self_provide::<A>,
-        }
-    }
-
-    /// Creates a `VTable` for an attachment.
-    pub fn new_debug_attachment<A>() -> &'static Self
-    where
-        A: fmt::Debug + Send + Sync + 'static,
-    {
-        &Self {
-            object_drop: Self::object_drop::<A>,
-            object_downcast: Self::object_downcast::<A>,
-            debug_ref: Self::debug_ref::<A>,
-            display_ref: Self::no_display_ref,
-            #[cfg(nightly)]
-            provide: Self::self_provide::<A>,
-        }
-    }
-
-    /// Creates a `VTable` for an attachment.
-    pub fn new_display_attachment<A>() -> &'static Self
-    where
-        A: fmt::Display + Send + Sync + 'static,
-    {
-        &Self {
-            object_drop: Self::object_drop::<A>,
-            object_downcast: Self::object_downcast::<A>,
-            debug_ref: Self::no_debug_ref,
             display_ref: Self::display_ref::<A>,
             #[cfg(nightly)]
             provide: Self::self_provide::<A>,

@@ -66,11 +66,11 @@ fn main() -> Result<(), MapError> {
     let mut config = HashMap::default();
 
     // Create an entry with "foo" as key
-    create_new_entry(&mut config, "foo", 1).attach("Could not create new entry")?;
+    create_new_entry(&mut config, "foo", 1).attach_printable("Could not create new entry")?;
 
     // Purposefully cause an error by attempting to create another entry with "foo" as key
     let creation_result =
-        create_new_entry(&mut config, "foo", 2).attach("Could not create new entry");
+        create_new_entry(&mut config, "foo", 2).attach_printable("Could not create new entry");
 
     assert_eq!(
         format!("{:?}", creation_result.unwrap_err()),

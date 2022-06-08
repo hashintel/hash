@@ -48,6 +48,44 @@ pub trait ResultExt {
 
     /// Adds new contextual information to the [`Frame`] stack of a [`Report`].
     ///
+    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
+    ///
+    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized. If
+    /// `T` implements [`Display`] or [`Debug`] these implementations will be used.
+    ///
+    /// [`attach_printable()`]: Self::attach_printable
+    /// [`Frame`]: crate::Frame
+    #[must_use]
+    fn attach<A>(self, attachment: A) -> Self
+    where
+        A: Send + Sync + 'static;
+
+    /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`].
+    ///
+    /// The function is only executed in the `Err` arm.
+    ///
+    /// This behaves like [`attach_printable_lazy()`] but will not be shown when printing the
+    /// [`Report`].
+    ///
+    /// **Note:** [`attach_printable_lazy()`] will be deprecated when specialization is stabilized.
+    /// If `T` implements [`Display`] or [`Debug`] these implementations will be used.
+    ///
+    /// [`attach_printable_lazy()`]: Self::attach_printable_lazy
+    /// [`Frame`]: crate::Frame
+    #[must_use]
+    fn attach_lazy<A, F>(self, attachment: F) -> Self
+    where
+        A: Send + Sync + 'static,
+        F: FnOnce() -> A;
+
+    /// Adds new contextual information to the [`Frame`] stack of a [`Report`].
+    ///
+    /// This behaves like [`attach()`] but will also be shown when printing the [`Report`].
+    ///
+    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
+    /// stabilized.
+    ///
+    /// [`attach()`]: Self::attach
     /// [`Frame`]: crate::Frame
     ///
     /// # Example
@@ -62,11 +100,11 @@ pub trait ResultExt {
     /// # let user = User;
     /// # let resource = Resource;
     /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource).attach("Could not load resource")?;
+    /// let resource = load_resource(&user, &resource).attach_printable("Could not load resource")?;
     /// # Result::Ok(())
     /// ```
     #[must_use]
-    fn attach<A>(self, attachment: A) -> Self
+    fn attach_printable<A>(self, attachment: A) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
@@ -74,6 +112,12 @@ pub trait ResultExt {
     ///
     /// The function is only executed in the `Err` arm.
     ///
+    /// This behaves like [`attach_lazy()`] but will also be shown when printing the [`Report`].
+    ///
+    /// **Note:** This will be deprecated in favor of [`attach_lazy()`] when specialization is
+    /// stabilized.
+    ///
+    /// [`attach_lazy()`]: Self::attach_lazy
     /// [`Frame`]: crate::Frame
     ///
     /// # Example
@@ -91,11 +135,11 @@ pub trait ResultExt {
     /// # let resource = Resource;
     /// # #[allow(unused_variables)]
     /// let resource = load_resource(&user, &resource)
-    ///     .attach_lazy(|| format!("Could not load resource {resource}"))?;
+    ///     .attach_printable_lazy(|| format!("Could not load resource {resource}"))?;
     /// # Result::Ok(())
     /// ```
     #[must_use]
-    fn attach_lazy<A, F>(self, attachment: F) -> Self
+    fn attach_printable_lazy<A, F>(self, attachment: F) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
@@ -130,7 +174,7 @@ impl<T, C> ResultExt for Result<T, C> {
     #[track_caller]
     fn attach<A>(self, attachment: A) -> Self
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: Send + Sync + 'static,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
@@ -142,13 +186,38 @@ impl<T, C> ResultExt for Result<T, C> {
     #[track_caller]
     fn attach_lazy<A, F>(self, attachment: F) -> Self
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: Send + Sync + 'static,
         F: FnOnce() -> A,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
             Err(report) => Err(report.attach(attachment())),
+        }
+    }
+
+    #[track_caller]
+    fn attach_printable<A>(self, attachment: A) -> Self
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.attach_printable(attachment)),
+        }
+    }
+
+    #[track_caller]
+    fn attach_printable_lazy<A, F>(self, attachment: F) -> Self
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> A,
+    {
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.attach_printable(attachment())),
         }
     }
 

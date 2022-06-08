@@ -96,13 +96,27 @@ macro_rules! implement_lazy_future_adaptor {
 implement_future_adaptor!(
     FutureWithAttachment,
     attach,
-    Display + Debug + Send + Sync + 'static,
+    Send + Sync + 'static,
     Fut::Output
 );
 
 implement_lazy_future_adaptor!(
     FutureWithLazyAttachment,
     attach_lazy,
+    Send + Sync + 'static,
+    Fut::Output
+);
+
+implement_future_adaptor!(
+    FutureWithPrintableAttachment,
+    attach_printable,
+    Display + Debug + Send + Sync + 'static,
+    Fut::Output
+);
+
+implement_lazy_future_adaptor!(
+    FutureWithLazyPrintableAttachment,
+    attach_printable_lazy,
     Display + Debug + Send + Sync + 'static,
     Fut::Output
 );
@@ -128,6 +142,50 @@ pub trait FutureExt: Future + Sized {
     /// Adds new contextual information to the [`Frame`] stack of a [`Report`] when [`poll`]ing the
     /// [`Future`].
     ///
+    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
+    ///
+    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized. If
+    /// `T` implements [`Display`] or [`Debug`] these implementations will be used.
+    ///
+    /// [`attach_printable()`]: Self::attach_printable
+    /// [`Frame`]: crate::Frame
+    /// [`Report`]: crate::Report
+    /// [`poll`]: Future::poll
+    #[track_caller]
+    fn attach<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
+    where
+        A: Send + Sync + 'static;
+
+    /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`] when
+    /// [`poll`]ing the [`Future`].
+    ///
+    /// The function is only executed in the `Err` arm.
+    ///
+    /// This behaves like [`attach_printable_lazy()`] but will not be shown when printing the
+    /// [`Report`].
+    ///
+    /// **Note:** [`attach_printable_lazy()`] will be deprecated when specialization is stabilized.
+    /// If `T` implements [`Display`] or [`Debug`] these implementations will be used.
+    ///
+    /// [`attach_printable_lazy()`]: Self::attach_printable_lazy
+    /// [`Frame`]: crate::Frame
+    /// [`Report`]: crate::Report
+    /// [`poll`]: Future::poll
+    #[track_caller]
+    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
+    where
+        A: Send + Sync + 'static,
+        F: FnOnce() -> A;
+
+    /// Adds new contextual information to the [`Frame`] stack of a [`Report`] when [`poll`]ing the
+    /// [`Future`].
+    ///
+    /// This behaves like [`attach()`] but will also be shown when printing the [`Report`].
+    ///
+    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
+    /// stabilized.
+    ///
+    /// [`attach()`]: Self::attach
     /// [`Frame`]: crate::Frame
     /// [`Report`]: crate::Report
     /// [`poll`]: Future::poll
@@ -154,14 +212,14 @@ pub trait FutureExt: Future + Sized {
     ///     # let user = User;
     ///     # let resource = Resource;
     ///     // An attachment can be added before polling the `Future`
-    ///     load_resource(&user, &resource).attach("Could not load resource").await
+    ///     load_resource(&user, &resource).attach_printable("Could not load resource").await
     /// # };
     /// # #[cfg(not(miri))]
     /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
     /// # Result::<_, ResourceError>::Ok(())
     /// ```
     #[track_caller]
-    fn attach<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
+    fn attach_printable<A>(self, attachment: A) -> FutureWithPrintableAttachment<Self, A>
     where
         A: Display + Debug + Send + Sync + 'static;
 
@@ -170,6 +228,12 @@ pub trait FutureExt: Future + Sized {
     ///
     /// The function is only executed in the `Err` arm.
     ///
+    /// This behaves like [`attach_lazy()`] but will also be shown when printing the [`Report`].
+    ///
+    /// **Note:** This will be deprecated in favor of [`attach_lazy()`] when specialization is
+    /// stabilized.
+    ///
+    /// [`attach_lazy()`]: Self::attach_lazy
     /// [`Frame`]: crate::Frame
     /// [`Report`]: crate::Report
     /// [`poll`]: Future::poll
@@ -197,14 +261,17 @@ pub trait FutureExt: Future + Sized {
     ///     # let user = User;
     ///     # let resource = Resource;
     ///     // An attachment can be added before polling the `Future`
-    ///     load_resource(&user, &resource).attach_lazy(|| format!("Could not load resource {resource}")).await
+    ///     load_resource(&user, &resource).attach_printable_lazy(|| format!("Could not load resource {resource}")).await
     /// # };
     /// # #[cfg(not(miri))]
     /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
     /// # Result::<_, ResourceError>::Ok(())
     /// ```
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
+    fn attach_printable_lazy<A, F>(
+        self,
+        attachment: F,
+    ) -> FutureWithLazyPrintableAttachment<Self, F>
     where
         A: Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
@@ -246,7 +313,7 @@ where
 {
     fn attach<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
     where
-        A: Display + Debug + Send + Sync + 'static,
+        A: Send + Sync + 'static,
     {
         FutureWithAttachment {
             future: self,
@@ -257,10 +324,36 @@ where
     #[track_caller]
     fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
     where
-        A: Display + Debug + Send + Sync + 'static,
+        A: Send + Sync + 'static,
         F: FnOnce() -> A,
     {
         FutureWithLazyAttachment {
+            future: self,
+            inner: Some(attachment),
+        }
+    }
+
+    #[track_caller]
+    fn attach_printable<A>(self, attachment: A) -> FutureWithPrintableAttachment<Self, A>
+    where
+        A: Display + Debug + Send + Sync + 'static,
+    {
+        FutureWithPrintableAttachment {
+            future: self,
+            inner: Some(attachment),
+        }
+    }
+
+    #[track_caller]
+    fn attach_printable_lazy<A, F>(
+        self,
+        attachment: F,
+    ) -> FutureWithLazyPrintableAttachment<Self, F>
+    where
+        A: Display + Debug + Send + Sync + 'static,
+        F: FnOnce() -> A,
+    {
+        FutureWithLazyPrintableAttachment {
             future: self,
             inner: Some(attachment),
         }

@@ -59,21 +59,20 @@ use crate::{
 ///
 ///
 /// ```
-/// # #![cfg_attr(any(miri, not(feature = "std")), allow(warnings))]
+/// # #[cfg(all(not(miri), feature = "std"))] {
 /// use error_stack::{IntoReport, ResultExt, Result};
 ///
-/// # #[allow(dead_code)]
-/// # fn fake_main() -> Result<(), std::io::Error> {
+/// # fn fake_main() -> Result<String, std::io::Error> {
 /// let config_path = "./path/to/config.file";
-/// # #[cfg(all(not(miri), feature = "std"))]
-/// # #[allow(unused_variables)]
 /// let content = std::fs::read_to_string(config_path)
 ///     .report()
-///     .attach_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
 /// ...
-/// # }; Ok(()) }
+/// # }; Ok(content) }
+/// # assert_eq!(fake_main().unwrap_err().frames().count(), 2);
+/// # }
 /// ```
 ///
 /// Enforce a context for an error:
@@ -126,7 +125,7 @@ use crate::{
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # return Err(error_stack::report!(ConfigError::IoError).attach("Not supported"));
+///     # return Err(error_stack::report!(ConfigError::IoError).attach_printable("Not supported"));
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     std::fs::read_to_string(path.as_ref()).report().change_context(ConfigError::IoError)
 /// }
@@ -221,7 +220,33 @@ impl<T> Report<T> {
 
     /// Adds contextual information to the [`Frame`] stack.
     ///
-    /// This behaves like [`attach()`] but will also be shown when printing the Report.
+    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
+    ///
+    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized. If
+    /// `T` implements [`Display`] or [`Debug`] these implementations will be used.
+    ///
+    /// [`attach_printable()`]: Self::attach_printable
+    #[track_caller]
+    pub fn attach<A>(self, attachment: A) -> Self
+    where
+        A: Send + Sync + 'static,
+    {
+        Self::from_frame(
+            Frame::from_attachment(
+                attachment,
+                Location::caller(),
+                Some(Box::new(self.inner.frame)),
+            ),
+            #[cfg(all(nightly, feature = "std"))]
+            self.inner.backtrace,
+            #[cfg(feature = "spantrace")]
+            self.inner.span_trace,
+        )
+    }
+
+    /// Adds contextual information to the [`Frame`] stack.
+    ///
+    /// This behaves like [`attach()`] but will also be shown when printing the [`Report`].
     ///
     /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
     /// stabilized.
@@ -257,38 +282,12 @@ impl<T> Report<T> {
     /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
     /// # }
     #[track_caller]
-    pub fn attach_display<A>(self, attachment: A) -> Self
+    pub fn attach_printable<A>(self, attachment: A) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self::from_frame(
-            Frame::from_display_attachment(
-                attachment,
-                Location::caller(),
-                Some(Box::new(self.inner.frame)),
-            ),
-            #[cfg(all(nightly, feature = "std"))]
-            self.inner.backtrace,
-            #[cfg(feature = "spantrace")]
-            self.inner.span_trace,
-        )
-    }
-
-    /// Adds contextual information to the [`Frame`] stack.
-    ///
-    /// This behaves like [`attach_display()`] but will not be shown when printing the Report.
-    ///
-    /// **Note:** [`attach()`] will be deprecated when specialization is stabilized. If `T`
-    /// implements [`Display`] or [`Debug`] these implementations will be used.
-    ///
-    /// [`attach()`]: Self::attach
-    #[track_caller]
-    pub fn attach<A>(self, attachment: A) -> Self
-    where
-        A: Send + Sync + 'static,
-    {
-        Self::from_frame(
-            Frame::from_attachment(
+            Frame::from_printable_attachment(
                 attachment,
                 Location::caller(),
                 Some(Box::new(self.inner.frame)),
