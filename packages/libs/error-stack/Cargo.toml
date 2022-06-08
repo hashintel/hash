@@ -7,7 +7,6 @@ rust-version = "1.61.0"
 description = "A context-aware error library with abritrary attached user data"
 documentation = "https://docs.rs/error-stack"
 readme = "README.md"
-homepage = "https://hash.ai"
 repository = "https://github.com/hashintel/hash/tree/main/packages/libs/error-stack"
 keywords = ["error", "library", "stack", "no_std", "api"]
 categories = ["rust-patterns", "no-std"]
