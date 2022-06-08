@@ -3,8 +3,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 
 .countdown-block-wrapper {
-  display: flex;
-  justify-content: center;
+  width: 100%;
 }
 
 .countdown-block {
@@ -150,6 +149,7 @@
       min-height: 10rem;
       min-width: 10rem;
       padding-top: 1.35rem;
+      padding-bottom: 1.35rem;
       padding-left: 1.25rem;
       padding-right: 1.25rem;
       display: flex;
