@@ -6,8 +6,8 @@ use std::{
     fmt,
 };
 
-use error_stack::{bail, Report, Result, ResultExt};
-use serde_json::json;
+use error_stack::{bail, FrameKind, Report, Result, ResultExt};
+use serde::Serialize;
 
 #[derive(Debug)]
 enum MapError {
@@ -49,12 +49,34 @@ fn create_new_entry(
 fn main() -> Result<(), MapError> {
     // This hook will be executed instead of the default implementation when `Debug` is called
     Report::set_debug_hook(|report, fmt| {
-        let errors = report.frames().map(ToString::to_string).collect::<Vec<_>>();
+        #[derive(Serialize)]
+        struct Context {
+            context: String,
+            attachments: Vec<String>,
+        }
+
+        let mut output = Vec::new();
+        let mut attachments = Vec::new();
+
+        for frame in report.frames() {
+            match frame.kind() {
+                FrameKind::Context => {
+                    output.push(Context {
+                        context: frame.to_string(),
+                        attachments: attachments.clone(),
+                    });
+                    attachments.clear();
+                }
+                FrameKind::Attachment => {
+                    attachments.push(frame.to_string());
+                }
+            }
+        }
 
         if fmt.alternate() {
-            fmt.write_str(&serde_json::to_string_pretty(&errors).expect("Could not format report"))
+            fmt.write_str(&serde_json::to_string_pretty(&output).expect("Could not format report"))
         } else {
-            fmt.write_str(&serde_json::to_string(&errors).expect("Could not format report"))
+            fmt.write_str(&serde_json::to_string(&output).expect("Could not format report"))
         }
     })
     .expect("Hook was set twice");
@@ -65,17 +87,19 @@ fn main() -> Result<(), MapError> {
     create_new_entry(&mut config, "foo", 1).attach("Could not create new entry")?;
 
     // Purposefully cause an error by attempting to create another entry with "foo" as key
-    let creation_result =
-        create_new_entry(&mut config, "foo", 2).attach("Could not create new entry");
+    create_new_entry(&mut config, "foo", 2).attach("Could not create new entry")?;
 
-    assert_eq!(
-        format!("{:?}", creation_result.unwrap_err()),
-        json!([
-            "Could not create new entry",
-            "Entry \"foo\" is already occupied by 1"
-        ])
-        .to_string()
-    );
+    // Will output something like
+    // ```json
+    // [
+    //   {
+    //     "context": "Entry \"foo\" is already occupied by 1",
+    //     "attachments": [
+    //       "Could not create new entry"
+    //     ]
+    //   }
+    // ]
+    // ```
 
     Ok(())
 }
