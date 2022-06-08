@@ -199,6 +199,7 @@ mod report;
 
 mod context;
 mod ext;
+#[cfg(feature = "hooks")]
 mod hook;
 #[cfg(nightly)]
 pub mod provider;
