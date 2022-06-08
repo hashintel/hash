@@ -21,6 +21,18 @@ index 7479d0b..c33024b 100644
        ]);
      });
    }
+diff --git a/node_modules/block-scripts/shared/generate-dist-block-metadata.js b/node_modules/block-scripts/shared/generate-dist-block-metadata.js
+index f8de384..ae8b5ed 100644
+--- a/node_modules/block-scripts/shared/generate-dist-block-metadata.js
++++ b/node_modules/block-scripts/shared/generate-dist-block-metadata.js
+@@ -33,6 +33,7 @@ export const generateDistBlockMetadata = async (extra) => {
+     license,
+     externals: peerDependencies,
+     schema: "block-schema.json",
++    exampleGraph: "example-graph.json",
+     variants,
+     ...blockprotocol,
+     ...extra,
 diff --git a/node_modules/block-scripts/shared/generate-dist-example-graph.js b/node_modules/block-scripts/shared/generate-dist-example-graph.js
 new file mode 100644
 index 0000000..adf7543
