@@ -65,13 +65,14 @@
 //! [`Err`]-variants:
 //!
 //! ```rust
+//! # #[cfg(all(not(miri), feature = "std"))] {
 //! use std::{fs, io, path::Path};
 //!
 //! use error_stack::{IntoReport, Report};
 //!
 //! // For clarification, this example is not using `error_stack::Result`.
 //! fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
-//!     let content = fs::read_to_string(path.as_ref()).report()?;
+//!     let content = fs::read_to_string(path).report()?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...
@@ -80,6 +81,7 @@
 //! # let report = read_file("test.txt").unwrap_err();
 //! # assert_eq!(report.frames().count(), 1);
 //! # assert!(report.contains::<io::Error>());
+//! # }
 //! ```
 //!
 //! ### Building up the Report - Current Context
@@ -91,6 +93,7 @@
 //! Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant:
 //!
 //! ```rust
+//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fmt, fs, io, path::Path};
 //! use error_stack::{Context, IntoReport, Result, ResultExt};
 //! # pub type Config = String;
@@ -107,6 +110,7 @@
 //! // It's also possible to implemement `Error` instead.
 //! impl Context for ParseConfigError {}
 //!
+//! # #[cfg(all(not(miri), feature = "std"))] {
 //! // For clarification, this example is not using `error_stack::Result`.
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
 //!     let content = fs::read_to_string(path.as_ref())
@@ -121,6 +125,7 @@
 //! # assert_eq!(report.frames().count(), 2);
 //! # assert!(report.contains::<io::Error>());
 //! # assert!(report.contains::<ParseConfigError>());
+//! # }
 //! ```
 //!
 //! ### Building up the Report - Attachments
@@ -150,16 +155,15 @@
 //!     }
 //! }
 //!
+//! # #[cfg(all(not(miri), feature = "std"))] {
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
 //!     let path = path.as_ref();
-//!     # #[cfg(all(not(miri), feature = "std"))]
+//!
 //!     let content = fs::read_to_string(path)
 //!         .report()
 //!         .change_context(ParseConfigError::new())
 //!         .attach(Suggestion("Use a file you can read next time!"))
 //!         .attach_lazy(|| format!("Could not read file {path:?}"))?;
-//!     # #[cfg(any(miri, not(feature = "std")))]
-//!     # let content = String::new();
 //!
 //!     Ok(content)
 //! }
@@ -167,17 +171,18 @@
 //! # assert_eq!(report.frames().count(), 4);
 //! # assert!(report.contains::<std::io::Error>());
 //! # assert!(report.contains::<ParseConfigError>());
+//! # }
 //! ```
 //!
 //! It's possible to request the attachments or the data provided by [`Context`] by calling
 //! [`Report::request_ref()`]:
 //!
 //! ```rust
-//! # use error_stack::{Report, Result};
-//! # use std::{io::{Error, ErrorKind}, fmt::{Display, Formatter, self}};
+//! # use error_stack::Result;
+//! # use std::{io::Error, fmt::{Display, Formatter, self}};
 //! # struct Suggestion;
 //! # impl Display for Suggestion { fn fmt(&self, _: &mut Formatter<'_>) -> fmt::Result { Ok(()) }}
-//! # fn parse_config(_: &str) -> Result<(), Error> { Err(Report::new(Error::from(ErrorKind::NotFound)))}
+//! # fn parse_config(_: &str) -> Result<(), Error> { Ok(()) }
 //! fn main() {
 //!     if let Err(report) = parse_config("config.json") {
 //!         eprintln!("{report:?}");

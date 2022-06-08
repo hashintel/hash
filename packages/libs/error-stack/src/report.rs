@@ -362,6 +362,7 @@ impl<T> Report<T> {
     /// ## Example
     ///
     /// ```rust
+    /// # #[cfg(all(not(miri), feature = "std"))] {
     /// # use std::{fs, io, path::Path};
     /// # use error_stack::{IntoReport, Report};
     /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
@@ -373,6 +374,7 @@ impl<T> Report<T> {
     ///
     /// let report = read_file("test.txt").unwrap_err();
     /// assert!(report.contains::<io::Error>());
+    /// # }
     /// ```
     #[must_use]
     pub fn contains<A: Any>(&self) -> bool {
@@ -387,6 +389,7 @@ impl<T> Report<T> {
     /// ## Example
     ///
     /// ```rust
+    /// # #[cfg(all(not(miri), feature = "std"))] {
     /// # use std::{fs, path::Path};
     /// # use error_stack::{IntoReport, Report};
     /// use std::io;
@@ -401,6 +404,7 @@ impl<T> Report<T> {
     /// let report = read_file("test.txt").unwrap_err();
     /// let io_error = report.downcast_ref::<io::Error>().unwrap();
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
+    /// # }
     /// ```
     #[must_use]
     pub fn downcast_ref<A: Any>(&self) -> Option<&A> {
@@ -441,6 +445,7 @@ impl<T: Context> Report<T> {
     /// ## Example
     ///
     /// ```rust
+    /// # #[cfg(all(not(miri), feature = "std"))] {
     /// # use std::{fs, path::Path};
     /// # use error_stack::{IntoReport, Report};
     /// use std::io;
@@ -455,6 +460,7 @@ impl<T: Context> Report<T> {
     /// let report = read_file("test.txt").unwrap_err();
     /// let io_error = report.current_context();
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
+    /// # }
     /// ```
     #[must_use]
     pub fn current_context(&self) -> &T
