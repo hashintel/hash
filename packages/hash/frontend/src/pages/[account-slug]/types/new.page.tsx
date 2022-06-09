@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-
+import { TextField } from "@hashintel/hash-design-system";
 import { Collapse, Typography } from "@mui/material";
 
 import { useRouter } from "next/router";
@@ -16,7 +16,7 @@ import {
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { Button, TextField } from "../../../shared/ui";
+import { Button } from "../../../shared/ui";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();

@@ -2,12 +2,12 @@ import { useQuery } from "@apollo/client";
 import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { defaultBlocks } from "@hashintel/hash-shared/defaultBlocks";
 import { getPageTitleQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { Box } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { Router, useRouter } from "next/router";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { tw } from "twind";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
@@ -20,8 +20,6 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
-
-import styles from "../index.module.scss";
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -117,14 +115,12 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
   return (
     <>
       <header>
-        <div className={styles.PageHeader}>
-          <div className={tw`flex flex-col-reverse`}>
-            <PageTitle
-              value={title}
-              accountId={accountId}
-              metadataId={pageEntityId}
-            />
-          </div>
+        <Box display="flex">
+          <PageTitle
+            value={title}
+            accountId={accountId}
+            metadataId={pageEntityId}
+          />
           {/* 
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs 
@@ -154,7 +150,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
               />
             </div>
           </div> */}
-        </div>
+        </Box>
       </header>
 
       <main>

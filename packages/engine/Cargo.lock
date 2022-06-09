@@ -414,7 +414,7 @@ name = "cli"
 version = "0.0.0"
 dependencies = [
  "clap",
- "error",
+ "error-stack",
  "execution",
  "hash_engine_lib",
  "orchestrator",
@@ -663,16 +663,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "error"
+name = "error-stack"
 version = "0.0.0"
 dependencies = [
- "futures",
- "futures-core",
  "once_cell",
- "pin-project",
- "provider",
  "rustc_version",
- "serde_json",
  "tracing-error",
 ]
 
@@ -958,7 +953,7 @@ checksum = "eabb4a44450da02c90444cf74558da904edde8fb4e9035a9a6a4e15445af0bd7"
 name = "hash_engine"
 version = "0.0.0"
 dependencies = [
- "error",
+ "error-stack",
  "hash_engine_lib",
  "tokio",
  "tracing",
@@ -975,7 +970,7 @@ dependencies = [
  "clap",
  "csv",
  "derive-new",
- "error",
+ "error-stack",
  "execution",
  "flatbuffers",
  "flatbuffers_gen",
@@ -988,7 +983,6 @@ dependencies = [
  "num_cpus",
  "orchestrator",
  "parking_lot",
- "provider",
  "rand 0.8.4",
  "rayon",
  "regex",
@@ -1428,9 +1422,8 @@ dependencies = [
 name = "nano"
 version = "0.0.0"
 dependencies = [
- "error",
+ "error-stack",
  "nng",
- "provider",
  "serde",
  "serde_json",
  "thiserror",
@@ -1613,7 +1606,7 @@ version = "0.0.0"
 dependencies = [
  "async-trait",
  "clap",
- "error",
+ "error-stack",
  "execution",
  "hash_engine",
  "hash_engine_lib",
@@ -1782,10 +1775,6 @@ checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
 dependencies = [
  "unicode-xid",
 ]
-
-[[package]]
-name = "provider"
-version = "0.0.0"
 
 [[package]]
 name = "quote"

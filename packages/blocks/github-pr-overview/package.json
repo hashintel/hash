@@ -1,5 +1,5 @@
 {
-  "name": "github-pr-overview",
+  "name": "@hashintel/github-pr-overview",
   "version": "0.0.0",
   "description": "Display an overview of a GitHub Pull Request, including a timeline of key events",
   "keywords": [
@@ -19,16 +19,17 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
+    "@hashintel/hash-design-system": "0.0.0",
     "@mui/icons-material": "5.4.2",
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
-    "blockprotocol": "0.0.9",
+    "blockprotocol": "0.0.10",
     "date-fns": "2.28.0",
     "lodash": "4.17.21"
   },
   "devDependencies": {
-    "block-scripts": "0.0.6",
-    "mock-block-dock": "0.0.9",
+    "block-scripts": "0.0.7",
+    "mock-block-dock": "0.0.10",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },

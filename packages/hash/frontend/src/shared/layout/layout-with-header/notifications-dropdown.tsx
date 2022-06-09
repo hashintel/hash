@@ -7,8 +7,8 @@ import {
   bindTrigger,
 } from "material-ui-popup-state/hooks";
 
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../ui";
-import { FontAwesomeIcon } from "../../icons";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 export const NotificationsDropdown: React.FC = () => {

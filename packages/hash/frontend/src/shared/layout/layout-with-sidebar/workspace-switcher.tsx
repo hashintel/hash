@@ -14,10 +14,10 @@ import {
   bindTrigger,
   bindMenu,
 } from "material-ui-popup-state/hooks";
+import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUser } from "../../../components/hooks/useUser";
 import { useLogout } from "../../../components/hooks/useLogout";
-import { Avatar, Button, MenuItem } from "../../ui";
-import { FontAwesomeIcon } from "../../icons";
+import { Button, MenuItem } from "../../ui";
 import { useRouteAccountInfo } from "../../routing";
 
 type WorkspaceSwitcherProps = {};
