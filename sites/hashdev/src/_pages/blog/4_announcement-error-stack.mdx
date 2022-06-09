@@ -37,7 +37,7 @@ enum Error {
 
 This would then often turn into error messages that looked like the following:
 
-```
+```plain
 Error: Engine Error: Simulation Error: Experiment Error: Datastore Error: No such file or directory (os error 2)
 ```
 
@@ -129,8 +129,8 @@ This was clearly not ideal, and we ended up with a weird mixture of well-defined
 We really love the Rust ecosystem, and although there are many great error crates out there, we struggled to find one that aligned with our needs, and which worked well with some of our project's inherent complexity. The closest error crate we could find was `[anyhow](https://crates.io/crates/anyhow)` (or its fork `[eyre](https://crates.io/crates/eyre)`), however, we had some additional wants:
 
 1.  encourage the user to provide a new error type if the scope is changed, usually by crossing module/crate boundaries (for example, a `ConfigParseError` when parsing a configuration file vs. an `IoError` when reading a file from disk)
-2.  be able to use those error types within return types, without needing to handle difficult `From` logic
-3.  be able to attach _any_ data to an error, not just string-like types, which then can be requested when handling the error.
+1.  be able to use those error types within return types, without needing to handle difficult `From` logic
+1.  be able to attach _any_ data to an error, not just string-like types, which then can be requested when handling the error.
 
 Based on our experiences outlined above, we made a few additional design decisions that differentiated our approach to error handling from those existing crates designed to facilitate it. Generally speaking, these decisions were made to force developers to be more explicit when creating or chaining errors, but most importantly, we don't supply in-built support for creating errors from strings. While it is convenient, we want to encourage developers to think more about their errors by building concrete error types like `std::io::Error` or `std::num::ParseIntError`
 
@@ -143,7 +143,7 @@ Based on our experiences outlined above, we made a few additional design decisio
 This `Report` on the error is made-up of a combination of two main concepts:
 
 1.  Contexts
-2.  Attachments
+1.  Attachments
 
 A `Report` is organized as a stack, where you push contexts and attachments. We call this the `Frame` stack as each context and attachment is contained in a `Frame` alongside the code location of where it was created. The `Report` is able to iterate through the `Frame` stack from the most recent one to the root.
 
@@ -218,7 +218,7 @@ if let Err(report) = parse_config("config.json") {
 
 This will eventually output:
 
-```
+```plain
 Could not parse configuration file
              at main.rs:6:10
       - Use a file you can read next time!
