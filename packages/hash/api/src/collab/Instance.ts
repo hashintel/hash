@@ -180,21 +180,19 @@ export class Instance {
     try {
       /**
        * This removes any extra properties from a passed object containing an
-       * accountId and entityId, which may be an Entity or a LatestEntityRef,
-       * or
+       * accountId and entityId, which may be an Entity or a LatestEntityRef, or
        * similar, in order to generate a LatestEntityRef with only the
        * specific properties. This allows us to create objects which identify
        * specific entities for use in GraphQL requests or comparisons. Because
-       * TypeScript's "substitutability", this function can be called with
-       * objects with extra properties than those specified.
+       * TypeScript's "substitutability", this function can be called with objects
+       * with extra properties than those specified.
        *
-       * This function is memoized so that the resulting value can be used
-       * inside Map or Set, or for direct comparison, in absence of support for
-       * the Record proposal. The second argument to memoize allows calling
-       * this function with an object.
+       * This function is memoized so that the resulting value can be used inside
+       * Map or Set, or for direct comparison, in absence of support for the
+       * Record proposal. The second argument to memoize allows calling this
+       * function with an object.
        *
-       * This is defined locally as we only need calls to be referentially
-       * equal
+       * This is defined locally as we only need calls to be referentially equal
        * within the scope of `processEntityVersion`.
        *
        * @todo replace this with a Record once the proposal is usable
@@ -208,13 +206,11 @@ export class Instance {
       );
 
       /**
-       * This fetches entity references relevant to the provided LinkVersion or
-       * AggregationVersion. Multiple entity refs may be returned, as a
-       * LinkVersion has both a source and a destination. The LinkedEntities
-       * for a destination can change if any of its properties are resolved via
-       * incoming links. This uses {@link getEntityRef} to memoize the refs, so
-       * they can be checked against refs acquired through that function
-       * directly.
+       * This fetches entity references relevant to the provided LinkVersion or AggregationVersion.
+       * Multiple entity refs may be returned, as a LinkVersion has both a source and a destination.
+       * The LinkedEntities for a destination can change if any of its properties are resolved via incoming links.
+       * This uses {@link getEntityRef} to memoize the refs, so they can be checked against refs
+       * acquired through that function directly.
        */
       const getEntityRefsFromLinkOrAggregation = (
         recordToGetIdsFrom: LinkVersion | AggregationVersion,
@@ -280,8 +276,7 @@ export class Instance {
           : await getEntityRefsFromLinkOrAggregation(record); // a link or linked aggregation has been updated - get the affected entities
 
       /**
-       * Determine which blocks to refresh by checking if any of the entities
-       * within it are affected
+       * Determine which blocks to refresh by checking if any of the entities within it are affected
        */
       const blocksToRefresh = new Set(
         flatMapBlocks(this.savedContents, (entity, blockEntity) => {
@@ -355,13 +350,13 @@ export class Instance {
         });
 
         /**
-         * We should know not to notify consumers of changes they've already
-         * been notified of, but because of a race condition between saves
-         * triggered by collab and saves triggered by frontend blocks, this
-         * doesn't necessarily work, so unfortunately we need to notify on
-         * every notification from realtime right now. This means clients will
-         * be notified about prosemirror changes twice right now. There are no
-         * known downsides to this other than performance.
+         * We should know not to notify consumers of changes they've already been
+         * notified of, but because of a race condition between saves triggered
+         * by collab and saves triggered by frontend blocks, this doesn't
+         * necessarily work, so unfortunately we need to notify on every
+         * notification from realtime right now. This means clients will be
+         * notified about prosemirror changes twice right now. There are no known
+         * downsides to this other than performance.
          *
          * If nextSavedContents === this.savedContents, then we're likely
          * notifying of changes the client is possibly already aware of
@@ -401,8 +396,8 @@ export class Instance {
     this.state = this.state.apply(tr);
     this.savedContents = blocks;
     /**
-     * @todo remove this – we should be able to send the tracked actions to
-     *   other clients, instead of the whole store
+     * @todo remove this – we should be able to send the tracked actions to other
+     *       clients, instead of the whole store
      */
     this.addUpdates([
       {
@@ -510,9 +505,9 @@ export class Instance {
          * performance. However, it is a quick way to improve stability by
          * reducing moving parts – because it means each client will not try to
          * send another set of updates until the previous updates (even those
-         * from other clients are finished saving). This is a good way to
-         * improve stability until we're more confident in collab not breaking
-         * with frequent updates.
+         * from other clients are finished saving). This is a good way to improve
+         * stability until we're more confident in collab not breaking with
+         * frequent updates.
          *
          * @todo remove this
          */
@@ -542,9 +537,9 @@ export class Instance {
          * performance. However, it is a quick way to improve stability by
          * reducing moving parts – because it means each client will not try to
          * send another set of updates until the previous updates (even those
-         * from other clients are finished saving). This is a good way to
-         * improve stability until we're more confident in collab not breaking
-         * with frequent updates.
+         * from other clients are finished saving). This is a good way to improve
+         * stability until we're more confident in collab not breaking with
+         * frequent updates.
          *
          * @todo remove this
          */
