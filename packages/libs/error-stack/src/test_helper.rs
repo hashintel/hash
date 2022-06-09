@@ -4,7 +4,7 @@ pub use alloc::{
 };
 use core::{fmt, fmt::Formatter};
 
-use crate::{Context, Frame, FrameKind, Report};
+use crate::{Attachment, Context, Frame, FrameKind, Report};
 
 #[derive(Debug, PartialEq)]
 pub struct ContextA;
@@ -42,8 +42,13 @@ pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), Report<E>>) -> Repo
 pub fn messages<E>(report: &Report<E>) -> Vec<String> {
     report
         .frames()
-        .filter_map(Frame::as_display)
-        .map(ToString::to_string)
+        .filter_map(|frame| match frame.kind() {
+            FrameKind::Context(context) => Some(context.to_string()),
+            FrameKind::Attachment(Attachment::Printable(attachment)) => {
+                Some(attachment.to_string())
+            }
+            _ => None,
+        })
         .collect()
 }
 

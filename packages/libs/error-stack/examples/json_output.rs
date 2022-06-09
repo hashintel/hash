@@ -6,7 +6,7 @@ use std::{
     fmt,
 };
 
-use error_stack::{bail, Frame, Report, Result, ResultExt};
+use error_stack::{bail, Attachment, FrameKind, Report, Result, ResultExt};
 use serde_json::json;
 
 #[derive(Debug)]
@@ -51,8 +51,13 @@ fn main() -> Result<(), MapError> {
     Report::set_debug_hook(|report, fmt| {
         let errors = report
             .frames()
-            .filter_map(Frame::as_display)
-            .map(ToString::to_string)
+            .filter_map(|frame| match frame.kind() {
+                FrameKind::Context(context) => Some(context.to_string()),
+                FrameKind::Attachment(Attachment::Printable(attachment)) => {
+                    Some(attachment.to_string())
+                }
+                _ => None,
+            })
             .collect::<Vec<_>>();
 
         if fmt.alternate() {

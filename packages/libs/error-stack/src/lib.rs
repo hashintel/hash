@@ -205,7 +205,7 @@ pub use self::ext::*;
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,
-    frame::{Frame, FrameKind},
+    frame::{Attachment, Frame, FrameKind},
     macros::*,
     report::Report,
 };

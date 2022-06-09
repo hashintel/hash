@@ -1,11 +1,5 @@
-use alloc::{boxed::Box, vec::Vec};
-use core::{
-    any::Any,
-    fmt,
-    fmt::{Display, Formatter},
-    marker::PhantomData,
-    panic::Location,
-};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
+use core::{any::Any, fmt, fmt::Formatter, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 
@@ -18,7 +12,7 @@ use crate::iter::{RequestRef, RequestValue};
 use crate::{context::temporary_provider, provider::request_ref};
 use crate::{
     iter::{Frames, FramesMut},
-    Context, Frame, FrameKind,
+    Attachment, Context, Frame, FrameKind,
 };
 
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
@@ -456,19 +450,22 @@ impl<Context> fmt::Display for Report<Context> {
 
         for (index, frame) in self
             .frames()
-            .filter(|frame| frame.kind() == FrameKind::Context)
+            .filter_map(|frame| match frame.kind() {
+                FrameKind::Context(context) => Some(context.to_string()),
+                FrameKind::Attachment(Attachment::Printable(attachment)) => {
+                    Some(attachment.to_string())
+                }
+                _ => None,
+            })
             .enumerate()
         {
-            let display = frame.as_display().unwrap_or_else(|| {
-                unreachable!("A context can always display");
-            });
             if index == 0 {
-                fmt::Display::fmt(display, fmt)?;
+                fmt::Display::fmt(&frame, fmt)?;
                 if !fmt.alternate() {
                     break;
                 }
             } else {
-                write!(fmt, ": {display}")?;
+                write!(fmt, ": {frame}")?;
             }
         }
 
@@ -493,20 +490,17 @@ impl<Context> fmt::Debug for Report<Context> {
             debug.finish()
         } else {
             let mut context_idx = -1;
-            let mut attachments: Vec<&dyn Display> = Vec::new();
+            let mut attachments: Vec<_> = Vec::new();
             for frame in self.frames() {
                 match frame.kind() {
-                    FrameKind::Context => {
-                        let display = frame.as_display().unwrap_or_else(|| {
-                            unreachable!("A context can always display");
-                        });
+                    FrameKind::Context(context) => {
                         if context_idx == -1 {
-                            write!(fmt, "{display}")?;
+                            write!(fmt, "{context}")?;
                         } else {
                             if context_idx == 0 {
                                 fmt.write_str("\n\nCaused by:")?;
                             }
-                            write!(fmt, "\n   {context_idx}: {display}")?;
+                            write!(fmt, "\n   {context_idx}: {context}")?;
                         }
                         write!(fmt, "\n             at {}", frame.location())?;
 
@@ -517,11 +511,10 @@ impl<Context> fmt::Debug for Report<Context> {
 
                         context_idx += 1;
                     }
-                    FrameKind::Attachment => {
-                        if let Some(display) = frame.as_display() {
-                            attachments.push(display);
-                        }
+                    FrameKind::Attachment(Attachment::Printable(attachment)) => {
+                        attachments.push(attachment)
                     }
+                    FrameKind::Attachment(_) => (),
                 }
             }
 
