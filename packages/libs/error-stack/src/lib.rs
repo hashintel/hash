@@ -124,7 +124,7 @@
 //! Could not parse configuration file
 //!              at main.rs:17:10
 //!       - Could not read file "config.json"
-//!       - 1 additional attachment
+//!       - 1 additional opaque attachment
 //!
 //! Caused by:
 //!    0: No such file or directory (os error 2)

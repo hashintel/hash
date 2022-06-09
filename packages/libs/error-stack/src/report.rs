@@ -492,7 +492,7 @@ impl<Context> fmt::Debug for Report<Context> {
         } else {
             let mut context_idx = -1;
             let mut attachments: Vec<_> = Vec::new();
-            let mut generic_attachments = 0;
+            let mut opaque_attachments = 0;
             for frame in self.frames() {
                 match frame.kind() {
                     FrameKind::Context(context) => {
@@ -510,12 +510,15 @@ impl<Context> fmt::Debug for Report<Context> {
                         for attachment in attachments.drain(..) {
                             write!(fmt, "\n      - {attachment}")?;
                         }
-                        if generic_attachments > 0 {
-                            write!(fmt, "\n      - {generic_attachments} additional attachment")?;
-                            if generic_attachments > 1 {
+                        if opaque_attachments > 0 {
+                            write!(
+                                fmt,
+                                "\n      - {opaque_attachments} additional opaque attachment"
+                            )?;
+                            if opaque_attachments > 1 {
                                 fmt.write_char('s')?;
                             }
-                            generic_attachments = 0;
+                            opaque_attachments = 0;
                         }
 
                         context_idx += 1;
@@ -524,7 +527,7 @@ impl<Context> fmt::Debug for Report<Context> {
                         attachments.push(attachment);
                     }
                     FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                        generic_attachments += 1;
+                        opaque_attachments += 1;
                     }
                 }
             }
