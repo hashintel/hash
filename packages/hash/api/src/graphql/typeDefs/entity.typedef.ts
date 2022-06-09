@@ -254,7 +254,7 @@ export const entityTypedef = gql`
   """
   input ExistingEntity {
     """
-    This may be a reference to a placeholder set using placeholderID on a previous EntityDefinition or UpdatePageContentsAction
+    This may be a reference to a placeholder set using placeholderId on a previous EntityDefinition or UpdatePageContentsAction
     """
     entityId: ID!
     accountId: ID!
@@ -284,7 +284,7 @@ export const entityTypedef = gql`
     """
     Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
     """
-    placeholderID: ID
+    placeholderId: ID
   }
 
   extend type Query {

@@ -78,12 +78,12 @@ export const updatePageContents: Resolver<
     return placeholderId;
   };
 
-  const recordEntity = (
-    placeholder: string | null | undefined,
+  const recordEntityForPossiblePlaceholderId = (
+    possiblePlaceholderId: string | null | undefined,
     entity: { entityId: string },
   ) => {
-    if (isPlaceholderId(placeholder)) {
-      placeholderResults.set(placeholder, entity.entityId);
+    if (isPlaceholderId(possiblePlaceholderId)) {
+      placeholderResults.set(possiblePlaceholderId, entity.entityId);
     }
   };
 
@@ -110,7 +110,7 @@ export const updatePageContents: Resolver<
             );
         }
 
-        delete draft.placeholderID;
+        delete draft.placeholderId;
       });
 
       const entity = await Entity.createEntityWithLinks(client, {
@@ -119,7 +119,10 @@ export const updatePageContents: Resolver<
         entityDefinition,
       });
 
-      recordEntity(entityDefinition.placeholderID, entity);
+      recordEntityForPossiblePlaceholderId(
+        entityDefinition.placeholderId,
+        entity,
+      );
 
       return entity;
     };
@@ -132,15 +135,15 @@ export const updatePageContents: Resolver<
         .map(async ({ action, i }) => {
           try {
             const {
-              placeholderID,
+              placeholderId,
               description,
               name,
               schema,
               accountId: entityTypeAccountId,
             } = action.createEntityType!;
 
-            recordEntity(
-              placeholderID,
+            recordEntityForPossiblePlaceholderId(
+              placeholderId,
               await EntityType.create(client, {
                 accountId: entityTypeAccountId,
                 createdByAccountId: user.accountId,
@@ -171,8 +174,8 @@ export const updatePageContents: Resolver<
         const { entity: entityDefinition, accountId: entityAccountId } =
           action.createEntity!;
 
-        recordEntity(
-          entityDefinition.placeholderID,
+        recordEntityForPossiblePlaceholderId(
+          entityDefinition.placeholderId,
           await createEntityWithPlaceholders(entityDefinition, entityAccountId),
         );
       } catch (error) {
@@ -194,7 +197,7 @@ export const updatePageContents: Resolver<
               accountId: blockAccountId,
               componentId: blockComponentId,
               existingBlockEntity,
-              placeholderID,
+              placeholderId,
             } = action.insertBlock!;
 
             const blockData = await createEntityWithPlaceholders(
@@ -233,7 +236,7 @@ export const updatePageContents: Resolver<
               );
             }
 
-            recordEntity(placeholderID, block);
+            recordEntityForPossiblePlaceholderId(placeholderId, block);
 
             return block;
           } catch (error) {
@@ -334,7 +337,7 @@ export const updatePageContents: Resolver<
     return {
       page: page.toGQLUnknownEntity(),
       placeholders: Array.from(placeholderResults.entries()).map(
-        ([placeholderID, entityID]) => ({ placeholderID, entityID }),
+        ([placeholderId, entityId]) => ({ placeholderId, entityId }),
       ),
     };
   });

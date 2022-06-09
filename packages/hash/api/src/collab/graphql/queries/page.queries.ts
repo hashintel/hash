@@ -40,8 +40,8 @@ export const updatePageContents = gql`
         ...PageFields
       }
       placeholders {
-        placeholderID
-        entityID
+        placeholderId
+        entityId
       }
     }
   }

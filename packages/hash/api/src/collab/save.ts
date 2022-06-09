@@ -92,7 +92,7 @@ const ensureEntityTypeForComponent = async (
         // @todo need to handle links better
         schema: jsonSchema,
         name: capitalizeComponentName(componentId),
-        placeholderID: desiredEntityTypeId,
+        placeholderId: desiredEntityTypeId,
       },
     });
   }
@@ -177,8 +177,8 @@ const calculateSaveActions = async (
         });
       }
     } else {
-      const placeholder = generatePlaceholderId();
-      draftIdToPlaceholderId.set(draftEntity.draftId, placeholder);
+      const placeholderId = generatePlaceholderId();
+      draftIdToPlaceholderId.set(draftEntity.draftId, placeholderId);
 
       let entityType: EntityTypeChoice | null = null;
       let properties = draftEntity.properties;
@@ -233,7 +233,7 @@ const calculateSaveActions = async (
         createEntity: {
           accountId,
           entity: {
-            placeholderID: placeholder,
+            placeholderId,
             versioned: true,
             entityType,
             entityProperties: properties,
@@ -320,10 +320,10 @@ const calculateSaveActions = async (
         throw new Error("Block data entity id missing");
       }
 
-      const blockPlaceholder = generatePlaceholderId();
+      const blockPlaceholderId = generatePlaceholderId();
 
       if (!draftEntity.entityId) {
-        draftIdToPlaceholderId.set(draftEntity.draftId, blockPlaceholder);
+        draftIdToPlaceholderId.set(draftEntity.draftId, blockPlaceholderId);
       }
 
       actions.push({
@@ -344,7 +344,7 @@ const calculateSaveActions = async (
                 },
               }
             : {
-                placeholderID: blockPlaceholder,
+                placeholderId: blockPlaceholderId,
                 componentId: draftEntity.properties.componentId,
               }),
         },
@@ -364,9 +364,9 @@ const getDraftEntityIds = (
   const result: Record<string, string> = {};
 
   for (const placeholder of placeholders) {
-    const draftId = placeholderToDraft.get(placeholder.placeholderID);
+    const draftId = placeholderToDraft.get(placeholder.placeholderId);
     if (draftId) {
-      result[draftId] = placeholder.entityID;
+      result[draftId] = placeholder.entityId;
     }
   }
 
