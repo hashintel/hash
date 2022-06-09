@@ -1,17 +1,16 @@
 mod attachment;
+mod erasable;
 mod kind;
-mod repr;
-mod tagged_box;
 mod vtable;
 
 use alloc::boxed::Box;
-use core::{any::Any, fmt, mem::ManuallyDrop, panic::Location};
+use core::{fmt, mem, mem::ManuallyDrop, panic::Location, ptr::NonNull};
 
-pub use self::kind::FrameKind;
-use self::{attachment::AttachedObject, repr::FrameRepr, tagged_box::TaggedBox, vtable::VTable};
+pub use self::kind::{AttachmentKind, FrameKind};
+use self::{erasable::ErasableFrame, vtable::VTable};
 #[cfg(nightly)]
 use crate::provider::{self, Demand, Provider};
-use crate::Context;
+use crate::{frame::attachment::AttachmentProvider, Context};
 
 /// A single context or attachment inside of a [`Report`].
 ///
@@ -25,27 +24,23 @@ use crate::Context;
 /// [`Report::new()`]: crate::Report::new
 /// [`Report::request_ref()`]: crate::Report::request_ref
 pub struct Frame {
-    inner: ManuallyDrop<TaggedBox<FrameRepr>>,
+    erased_frame: ManuallyDrop<Box<ErasableFrame>>,
     location: &'static Location<'static>,
     source: Option<Box<Frame>>,
 }
 
 impl Frame {
     /// Crates a frame from an unerased object.
-    fn from_unerased<C>(
-        object: C,
+    fn from_unerased<T>(
+        object: T,
         location: &'static Location<'static>,
         source: Option<Box<Self>>,
         vtable: &'static VTable,
-        kind: FrameKind,
-    ) -> Self
-    where
-        C: Context,
-    {
+    ) -> Self {
         Self {
-            // SAFETY: `FrameRepr` must not be dropped without using the vtable, so it's wrapped in
-            //   `ManuallyDrop`. A custom drop implementation is provided that takes care of this.
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(object, vtable, kind)) },
+            // SAFETY: `ErasableFrame` must not be dropped without using the vtable, so it's wrapped
+            //   in `ManuallyDrop`. A custom drop implementation is provided to takes care of this.
+            erased_frame: unsafe { ManuallyDrop::new(ErasableFrame::new(object, vtable)) },
             location,
             source,
         }
@@ -60,18 +55,32 @@ impl Frame {
     where
         C: Context,
     {
-        Self::from_unerased(
-            context,
-            location,
-            source,
-            VTable::new_context::<C>(),
-            FrameKind::Context,
-        )
+        Self::from_unerased(context, location, source, VTable::new_context::<C>())
     }
 
     /// Crates a frame from an attachment.
     pub(crate) fn from_attachment<A>(
-        object: A,
+        attachment: A,
+        location: &'static Location<'static>,
+        source: Option<Box<Self>>,
+    ) -> Self
+    where
+        A: Send + Sync + 'static,
+    {
+        Self::from_unerased(
+            AttachmentProvider::new(attachment),
+            location,
+            source,
+            VTable::new_attachment::<A>(),
+        )
+    }
+
+    /// Crates a frame from an attachment which implements [`Debug`] and [`Display`].
+    ///
+    /// [`Debug`]: core::fmt::Debug
+    /// [`Display`]: core::fmt::Display
+    pub(crate) fn from_printable_attachment<A>(
+        attachment: A,
         location: &'static Location<'static>,
         source: Option<Box<Self>>,
     ) -> Self
@@ -79,11 +88,10 @@ impl Frame {
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self::from_unerased(
-            AttachedObject::new(object),
+            AttachmentProvider::new(attachment),
             location,
             source,
-            VTable::new_attachment::<A>(),
-            FrameKind::Attachment,
+            VTable::new_printable_attachment::<A>(),
         )
     }
 
@@ -121,8 +129,8 @@ impl Frame {
 
     /// Returns how the `Frame` was created.
     #[must_use]
-    pub fn kind(&self) -> FrameKind {
-        self.inner.kind()
+    pub fn kind(&self) -> FrameKind<'_> {
+        self.erased_frame.vtable().unerase(&self.erased_frame)
     }
 
     /// Requests the reference to `T` from the `Frame` if provided.
@@ -147,27 +155,31 @@ impl Frame {
 
     /// Returns if `T` is the held context or attachment by this frame.
     #[must_use]
-    pub fn is<T: Any>(&self) -> bool {
+    pub fn is<T: Send + Sync + 'static>(&self) -> bool {
         self.downcast_ref::<T>().is_some()
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
-    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
-        self.inner.vtable().downcast_ref(&self.inner)
+    pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
+        self.erased_frame.vtable().downcast_ref(&self.erased_frame)
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
-    pub fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
-        self.inner.vtable().downcast_mut(&mut self.inner)
+    pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
+        self.erased_frame
+            .vtable()
+            .downcast_mut(&mut self.erased_frame)
     }
 }
 
 #[cfg(nightly)]
 impl Provider for Frame {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        self.inner.vtable().unerase(&self.inner).provide(demand);
+        self.erased_frame
+            .vtable()
+            .provide(&self.erased_frame, demand);
         demand.provide_value(|| self.location);
         if let Some(source) = &self.source {
             demand.provide_ref::<Self>(source);
@@ -177,77 +189,106 @@ impl Provider for Frame {
 
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let field_name = match self.kind() {
-            FrameKind::Context => "context",
-            FrameKind::Attachment => "attachment",
-        };
-
-        fmt.debug_struct("Frame")
-            .field(field_name, &self.inner.vtable().unerase(&self.inner))
-            .field("location", &self.location)
-            .finish()
-    }
-}
-
-impl fmt::Display for Frame {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(self.inner.vtable().unerase(&self.inner), fmt)
+        let mut debug = fmt.debug_struct("Frame");
+        debug.field("location", &self.location);
+        match self.kind() {
+            FrameKind::Context(context) => {
+                debug.field("context", &context);
+            }
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                debug.field("attachment", &attachment);
+            }
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
+                debug.field("attachment", &"Opaque");
+            }
+        }
+        debug.finish()
     }
 }
 
 impl Drop for Frame {
     fn drop(&mut self) {
         // SAFETY: `inner` is not used after moving out.
-        let erased = unsafe { ManuallyDrop::take(&mut self.inner) };
+        let erased = unsafe { ManuallyDrop::take(&mut self.erased_frame) };
 
-        // Invoke the vtable's drop behavior.
-        self.inner.vtable().drop(erased.into_box());
+        // Avoid aliasing by forgetting the `Box`
+        let ptr = NonNull::from(&*erased);
+        mem::forget(erased);
+        self.erased_frame.vtable().drop(ptr);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use core::mem;
-
     use super::*;
     #[allow(clippy::wildcard_imports)]
     use crate::test_helper::*;
     use crate::Report;
 
     #[test]
+    fn downcast_ref() {
+        struct Attached;
+        let report = Report::new(ContextA)
+            .attach_printable(String::from("Hello"))
+            .attach(Attached);
+
+        let attachment = report.downcast_ref::<String>().unwrap();
+        assert!(report.contains::<ContextA>());
+        assert_eq!(attachment, "Hello");
+        assert!(report.contains::<Attached>());
+    }
+
+    #[test]
     fn downcast_mut() {
-        let mut report = Report::new(ContextA).attach(String::from("Hello"));
+        let mut report = Report::new(ContextA).attach_printable(String::from("Hello"));
+
         let attachment = report.downcast_mut::<String>().unwrap();
         attachment.push_str(" World!");
-        let messages: Vec<_> = report.frames_mut().map(|frame| frame.to_string()).collect();
+        let messages: Vec<_> = report
+            .frames_mut()
+            .filter_map(|frame| match frame.kind() {
+                FrameKind::Context(context) => Some(context.to_string()),
+                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                    Some(attachment.to_string())
+                }
+                FrameKind::Attachment(AttachmentKind::Opaque(_)) => None,
+            })
+            .collect();
         assert_eq!(messages, ["Hello World!", "Context A"]);
     }
 
     #[test]
-    fn tagged_box_size() {
-        assert_eq!(
-            mem::size_of::<TaggedBox<FrameRepr>>(),
-            mem::size_of::<Box<FrameRepr>>()
-        );
-    }
-
-    #[test]
     fn kinds() {
-        use FrameKind::{Attachment, Context};
-
         let report = Report::new(ContextA);
-        let report = report.attach("A1");
-        let report = report.attach("A2");
+        let report = report.attach_printable("A1");
+        let report = report.attach_printable("A2");
         let report = report.change_context(ContextB);
         let report = report.attach("B1");
-        let report = report.attach("B2");
+        let report = report.attach_printable("B2");
 
-        assert_eq!(frame_kinds(&report), [
-            Attachment, Attachment, Context, Attachment, Attachment, Context
-        ]);
+        let kinds_a = frame_kinds(&report);
+        assert!(matches!(
+            kinds_a[0],
+            FrameKind::Attachment(AttachmentKind::Printable(_))
+        ));
+        assert!(matches!(
+            kinds_a[1],
+            FrameKind::Attachment(AttachmentKind::Opaque(_))
+        ));
+        assert!(matches!(kinds_a[2], FrameKind::Context(_)));
+        assert!(matches!(
+            kinds_a[3],
+            FrameKind::Attachment(AttachmentKind::Printable(_))
+        ));
+        assert!(matches!(
+            kinds_a[4],
+            FrameKind::Attachment(AttachmentKind::Printable(_))
+        ));
+        assert!(matches!(kinds_a[5], FrameKind::Context(_)));
+
         assert_eq!(messages(&report), [
             "B2",
-            "B1",
+            "Opaque",
             "Context B",
             "A2",
             "A1",
@@ -257,7 +298,9 @@ mod tests {
         let report = Report::new(ContextA);
         let report = report.change_context(ContextB);
 
-        assert_eq!(frame_kinds(&report), [Context, Context]);
+        let kinds_b = frame_kinds(&report);
+        assert!(matches!(kinds_b[0], FrameKind::Context(_)));
+        assert!(matches!(kinds_b[1], FrameKind::Context(_)));
         assert_eq!(messages(&report), ["Context B", "Context A"]);
     }
 }

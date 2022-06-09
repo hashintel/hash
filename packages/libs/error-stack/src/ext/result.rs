@@ -46,78 +46,52 @@ pub trait ResultExt {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
 
-    /// Adds new contextual information to the [`Frame`] stack of a [`Report`].
+    /// Adds a new attachment to the [`Report`] inside the [`Result`].
     ///
-    /// [`Frame`]: crate::Frame
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use error_stack::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<(), ()> { Ok(()) }
-    /// # struct User;
-    /// # struct Resource;
-    /// use error_stack::ResultExt;
-    ///
-    /// # let user = User;
-    /// # let resource = Resource;
-    /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource).attach("Could not load resource")?;
-    /// # Result::Ok(())
-    /// ```
+    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
     #[must_use]
     fn attach<A>(self, attachment: A) -> Self
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static;
+        A: Send + Sync + 'static;
 
-    /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`].
+    /// Lazily adds a new attachment to the [`Report`] inside the [`Result`].
     ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// [`Frame`]: crate::Frame
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use core::fmt;
-    /// # use error_stack::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<(), ()> { Ok(()) }
-    /// # struct User;
-    /// # struct Resource;
-    /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// use error_stack::ResultExt;
-    ///
-    /// # let user = User;
-    /// # let resource = Resource;
-    /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource)
-    ///     .attach_lazy(|| format!("Could not load resource {resource}"))?;
-    /// # Result::Ok(())
-    /// ```
+    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
     #[must_use]
     fn attach_lazy<A, F>(self, attachment: F) -> Self
+    where
+        A: Send + Sync + 'static,
+        F: FnOnce() -> A;
+
+    /// Adds a new printable attachment to the [`Report`] inside the [`Result`].
+    ///
+    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
+    /// information.
+    #[must_use]
+    fn attach_printable<A>(self, attachment: A) -> Self
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static;
+
+    /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`].
+    ///
+    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
+    /// information.
+    #[must_use]
+    fn attach_printable_lazy<A, F>(self, attachment: F) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Changes the [`Context`] of a [`Report`] returning [`Result<T, C>`].
+    /// Changes the context of the [`Report`] inside the [`Result`].
     ///
-    /// Please see the [`Context`] documentation for more information.
-    ///
-    /// [`Frame`]: crate::Frame
-    // TODO: come up with a decent example
+    /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
     fn change_context<C>(self, context: C) -> Result<Self::Ok, C>
     where
         C: Context;
 
-    /// Lazily changes the [`Context`] of a [`Report`] returning [`Result<T, C>`].
+    /// Lazily changes the context of the [`Report`] inside the [`Result`].
     ///
-    /// Please see the [`Context`] documentation for more information.
-    ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// [`Frame`]: crate::Frame
-    // TODO: come up with a decent example
+    /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
     fn change_context_lazy<C, F>(self, context: F) -> Result<Self::Ok, C>
     where
         C: Context,
@@ -130,7 +104,7 @@ impl<T, C> ResultExt for Result<T, C> {
     #[track_caller]
     fn attach<A>(self, attachment: A) -> Self
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: Send + Sync + 'static,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
@@ -142,13 +116,38 @@ impl<T, C> ResultExt for Result<T, C> {
     #[track_caller]
     fn attach_lazy<A, F>(self, attachment: F) -> Self
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: Send + Sync + 'static,
         F: FnOnce() -> A,
     {
         // Can't use `map_err` as `#[track_caller]` is unstable on closures
         match self {
             Ok(ok) => Ok(ok),
             Err(report) => Err(report.attach(attachment())),
+        }
+    }
+
+    #[track_caller]
+    fn attach_printable<A>(self, attachment: A) -> Self
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.attach_printable(attachment)),
+        }
+    }
+
+    #[track_caller]
+    fn attach_printable_lazy<A, F>(self, attachment: F) -> Self
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> A,
+    {
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.attach_printable(attachment())),
         }
     }
 
