@@ -18,9 +18,7 @@ pub enum FrameKind<'f> {
     Attachment(AttachmentKind<'f>),
 }
 
-/// Classification of an attachment, determined by how it was created.
-///
-/// [`Frame`]: crate::Frame
+/// Classification of an attachment which is determined by the method it was created in.
 #[non_exhaustive]
 pub enum AttachmentKind<'f> {
     /// A generic attachment created through [`attach()`].

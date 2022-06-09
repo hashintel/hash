@@ -2,8 +2,8 @@ use alloc::boxed::Box;
 
 use crate::frame::VTable;
 
-// repr(C): It must be ensured, that vtable is always stored at the same memory position when
-// casting between an unerased `ErasableFrame<T>` and an erased `ErasableFrame`.
+// repr(C): It must be ensured that vtable is always stored at the same memory position when casting
+// between an unerased `ErasableFrame<T>` and an erased `ErasableFrame`.
 #[repr(C)]
 pub(in crate::frame) struct ErasableFrame<T = ()> {
     vtable: &'static VTable,

@@ -75,7 +75,10 @@ impl Frame {
         )
     }
 
-    /// Crates a frame from an attachment implementing [`Debug`] and [`Display`].
+    /// Crates a frame from an attachment which implements [`Debug`] and [`Display`].
+    ///
+    /// [`Debug`]: core::fmt::Debug
+    /// [`Display`]: core::fmt::Display
     pub(crate) fn from_printable_attachment<A>(
         attachment: A,
         location: &'static Location<'static>,
