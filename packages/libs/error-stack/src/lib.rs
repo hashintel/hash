@@ -14,16 +14,12 @@
 //! _current context_ in its generic argument.
 //!
 //! As the [`Report`] is built, various pieces of supporting information can be _attached_. These
-//! can be anything, which can be shared between threads, whether it be a supporting message or a
+//! can be anything that can be shared between threads whether it be a supporting message or a
 //! custom-defined `Suggestion` struct.
 //!
-//! Please refer to the [in-depth explanation] for further information.
+//! # Quick-Start Guide
 //!
-//! [in-depth explanation]: #in-depth-explanation
-//!
-//! ## Quick-Start Guide
-//!
-//! ### Where to use a Report
+//! ## Where to use a Report
 //!
 //! [`Report`] has been designed to be used as the [`Err`] variant of a `Result`. This crate
 //! provides a [`Result<E, C>`] type alias for convenience which uses [`Report<C>`] as the [`Err`]
@@ -57,12 +53,13 @@
 //!
 //! ### Initializing a Report
 //!
-//! A [`Report`] can also be created directly from any [`Context`] by using [`Report::new()`] or
-//! through any of the provided macros ([`report!`], [`bail!`], [`ensure!`]). Any [`Error`] can be
-//! used as a [`Context`], so it's possible to create [`Report`] from an existing [`Error`].
+//! A [`Report`] can be created directly from anything that implements [`Context`] by using
+//! [`Report::new()`] or through any of the provided macros ([`report!`], [`bail!`], [`ensure!`]).
+//! Any [`Error`] can be used as a [`Context`], so it's possible to create [`Report`] from an
+//! existing [`Error`]:
 //!
-//! For convenience, this crate provides an [`IntoReport`] trait to convert between
-//! [`Err`]-variants:
+//! (For convenience, this crate provides an [`IntoReport`] trait to convert between
+//! [`Err`]-variants)
 //!
 //! ```rust
 //! # #[cfg(all(not(miri), feature = "std"))] {
@@ -70,7 +67,9 @@
 //!
 //! use error_stack::{IntoReport, Report};
 //!
-//! // For clarification, this example is not using `error_stack::Result`.
+//! // Note: For demonstration purposes this example does not use `error_stack::Result`.
+//! // As can be seen, `IntoReport`  causes `Report` to be created from the `io::Error` when using
+//! // the ? operator
 //! fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
 //!     let content = fs::read_to_string(path).report()?;
 //!
@@ -84,13 +83,21 @@
 //! # }
 //! ```
 //!
-//! ### Building up the Report - Current Context
+//! ## Using and Expanding the Report
+//!
+//! As mentioned, the library centers around the idea of building a [`Report`] as it propagates.
+//!
+//! ### Changing Context
 //!
 //! The generic parameter in [`Report`] is called the _current context_. When creating a new
-//! [`Report`], the [`Context`] that's provided will be set as the current context. To change the
-//! context, [`Report::change_context()`] is used.
+//! [`Report`], the [`Context`] that's provided will be set as the current context. The current
+//! context should encapsulate how the current code interprets the error. As the error propagates,
+//! it will cross boundaries where new information is available, and the previous level of detail
+//! is no longer applicable. These boundaries will often occur when crossing between major modules,
+//! or when execution crosses between crates. At this point the [`Report`] should start to operate
+//! in a new context. To change the context, [`Report::change_context()`] is used:
 //!
-//! Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant:
+//! (Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant)
 //!
 //! ```rust
 //! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
@@ -107,7 +114,7 @@
 //!     }
 //! }
 //!
-//! // It's also possible to implemement `Error` instead.
+//! // It's also possible to implement `Error` instead.
 //! impl Context for ParseConfigError {}
 //!
 //! # #[cfg(all(not(miri), feature = "std"))] {
@@ -130,8 +137,10 @@
 //!
 //! ### Building up the Report - Attachments
 //!
-//! In addition to changing the current context, it's also possible to attach additional
-//! information by using [`Report::attach()`] and [`Report::attach_printable()`]:
+//! Module/crate boundaries are not the only places where information can be embedded within the
+//! [`Report`] however. Additional information can be attached within the current context, whether
+//! this be a string, or any thread-safe object. These attachments are added by using
+//! [`Report::attach()`] and [`Report::attach_printable()`]:
 //!
 //! ```rust
 //! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
@@ -172,44 +181,54 @@
 //! # }
 //! ```
 //!
-//! # In-Depth Explaination
+//!
+//! # In-Depth Explanation
 //!
 //! ## Crate Philosophy
 //!
-//! This crate adds some development overheads in comparison to other error handling strategies,
-//! where you could use string-like types as root errors. The idea is that errors should happen in
-//! well-scoped environments like reading a file or parsing a string into an integer. For these
-//! errors, a well-defined error type should be used (i.e. `io::Error` or `ParseIntError`) instead
-//! of creating an error from a string.
+//! This crate adds some development overhead in comparison to other error handling strategies,
+//! especially around creating custom root-errors (specifically `error-stack` does not allow using
+//! string-like types). The intention is that this reduces overhead at other parts of the process,
+//! whether that be implementing error-handling, debugging, or observability. The idea that
+//! underpins this is that errors should happen in well-scoped environments like reading a file
+//! or parsing a string into an integer. For these errors, a well-defined error type should be used
+//! (i.e. `io::Error` or `ParseIntError`) instead of creating an error from a string. Requiring a
+//! well-defined type forces users to be conscious about how they classify and group their
+//! **custom** error types, which improves their usability in error-_handling_.
 //!
-//! By capturing the [`Context`] in the type parameter, the user directly has all type information
-//! without optimistically trying to downcast back to an error type (which remains possible). This
-//! also implies that **more time than not** the user is _forced_ to add a new context because the
-//! type system requires it. This encourages the user to provide a new error type if the scope is
-//! changed, usually by crossing module/crate boundaries (for example, a `ConfigParseError` when
-//! parsing a configuration file vs. an `IoError` when reading a file from disk). By this, the user
-//! is required to be more specific on their error and the [`Report`] can generate more useful error
-//! messages.
+//! ### Improving Result::Err Types
 //!
-//! ## Contexts
+//! By capturing the current [`Context`] in the type parameter, return types in function signatures
+//! continue to explicitly capture the perspective of the current code. This means that **more often
+//! than not** the user is _forced_ to re-describe the error when entering a substantially different
+//! part of the code because the constraints of typed return types will require it. This will happen
+//! most often when crossing module/crate boundaries.
 //!
-//! A [`Context`] provides information for the scope of an error. It's describing the current
-//! section of code's way of seeing the error. This could either be an [`Error`] itself, as this is
-//! expected to be scoped, or a broader scope like a crate boundary.
+//! An example of this is a `ConfigParseError` when produced when parsing a configuration file at
+//! a high-level in the code vs. the lower-level `IoError` that occurs when reading the file from
+//! disk. The `IoError` may no longer be valuable at the level of the code that's handling parsing a
+//! config, and re-framing the error in a new type allows the user to incorporate contextual
+//! information that's only available higher-up in the stack.
 //!
-//! The [`Report`] keeps track of its current [`Context`]. The current [`Context`] is expected to
-//! change when the [`Report`] is leaving a scope, where the specificity of the error might nove
-//! have much meaning anymore. A common example is reading the content of a file. The error returned
-//! from `File::open` is only useful in the scope where the file is opened. When this scope is left,
-//! it's useful and expected to provide a new context: Which file was attempted to be opened and
-//! when did this happen?
-// TODO: Example: open a file - leave scope - parse config - leave scope
-//   two `change_context` calls to be explicit
+//! ### Compatibility with other Libraries
 //!
-// TODO: Move to features-section:
-//! It's possible to request the attachments or the data provided by [`Context`] by calling
-//! [`Report::request_ref()`]:
+//! In `std` environments a blanket implementation for `Context` for any `Error` is provided. This
+//! blanket implementation for [`Error`] means `error-stack` is compatible with almost all other
+//! libraries that use the [`Error`] trait.
 //!
+//! This has the added benefit that migrating from other error libraries can often be incremental,
+//! as a lot of popular error library types will work within the [`Report`] struct.
+//!
+//! ### Doing more
+//!
+//! Beyond making new [`Context`] types, the library supports the attachment of arbitrary
+//! thread-safe data. These attachments (and data that is [`Provide`]d by the [`Context`] can be
+//! requested through [`Report::request_ref()`]. This gives a novel way to expand standard
+//! error-handling approaches, without decreasing the ergonomics of creating the actual error
+//! variants:
+// TODO: explain why a user would use attach_printable or attach here and how in most cases it's
+//  useful when printing a report for error reporting (probably give two examples, calling out the
+//  opaque thing
 //! ```rust
 //! # use error_stack::Result;
 //! # struct Suggestion(&'static str);
@@ -255,17 +274,21 @@
 //!
 //! ## Additional Features
 //!
-//! The above examples will probably cover 90% of the common use case. This crates however have some
-//! additional features.
+//! The above examples will probably cover 90% of the common use case. This crate does have
+//! additional features for more specific scenarios:
+//!
+//! ### Automatic Backtraces
+//!
+//! When on a nightly compiler, [`Report`] will use the [`Backtrace`] from the base [`Context`] if
+//! it exists, or it will try to capture one. Unlike some other approaches, this does not require
+//! the user modifying their custom error types to be aware of backtraces, and doesn't require
+//! manual implementations to forward calls down any wrapped errors that are often needed with other
+//! approaches.
 //!
 //! ### No-Std compatible
 //!
 //! The complete crate is written for `no-std` environments, which can be used by passing
-//! `--no-default-features` to the `cargo` command. However, when using `std`, a blanket
-//! implementation for `Context` for any `Error` is provided. The blanket implementation for
-//! [`Error`] also makes the library compatible with almost all other libraries using the [`Error`]
-//! trait. Additionally, when on a nightly compiler, [`Report`] will use the [`Backtrace`] from
-//! [`Error`] or try to capture one.
+//! `--no-default-features` to the `cargo` command.
 //!
 //! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
 //! backtraces on non-nightly channels and can be prioritized depending on demand.
@@ -281,8 +304,9 @@
 //! return an iterator of all provided values with the specified type. The value, which was provided
 //! most recently will be returned first.
 //!
-//! **Currently, the API has not yet landed in `core::any`, thus it's available at
-//! [`error_stack::provider`]. Using it requires a nightly compiler.**
+//! **Currently, the API has not yet landed in `core::any`, thus in the meantime it has been
+//! included in the library implementation and is available at [`error_stack::provider`]. Using it
+//! requires a nightly compiler.**
 //!
 //! [`attach`]: Report::attach
 //! [`error_stack::provider`]: crate::provider
@@ -313,16 +337,17 @@
 //!
 //! When the `hooks` feature is enabled, it's possible to provide a custom implementation to print a
 //! [`Report`]. This is done by passing a hook to [`Report::set_debug_hook()`] and/or
-//! [`Report::set_display_hook()`]. If no hook was set, a sensible default implementation will be
+//! [`Report::set_display_hook()`]. If no hook was set a sensible default implementation will be
 //! used. Possible custom hooks would for example be a machine-readable output, e.g. JSON, or a
-//! colored output. If an application is attaching other data than strings, these data could also be
-//! printed when outputting the [`Report`].
+//! colored output. If attachments include things that don't implement [`Display`] or [`Debug`] then
+//! a custom hook could be used to offer some other output about these things when printing a
+//! [`Report`].
 //!
 //! ### Additional Adaptors
 //!
-//! [`ResultExt`] is a convenient wrapper around `Result<_, Report<_>>`. It's offering
+//! [`ResultExt`] is a convenient wrapper around `Result<_, Report<_>>`. It offers
 //! [`attach`](ResultExt::attach) and [`change_context`](ResultExt::change_context) on the
-//! [`Result`] directly, but also a lazy variant that receives a function, which is only called, if
+//! [`Result`] directly, but also a lazy variant that receives a function which is only called if
 //! an error happens.
 //!
 //! In addition to [`ResultExt`], this crate also comes with [`FutureExt`] (enabled by the
@@ -346,20 +371,25 @@
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`SpanTrace`]: tracing_error::SpanTrace
 
+
+// TODO: Example: open a file - leave scope - parse config - leave scope
+//   two `change_context` calls to be explicit
+// TODO: Move to features-section:
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
 #![warn(
-    missing_docs,
-    clippy::pedantic,
-    clippy::nursery,
-    clippy::undocumented_unsafe_blocks
+missing_docs,
+clippy::pedantic,
+clippy::nursery,
+clippy::undocumented_unsafe_blocks
 )]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
 #![allow(clippy::module_name_repetitions)]
 #![cfg_attr(
-    not(miri),
-    doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
+not(miri),
+doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
 )]
 
 extern crate alloc;
