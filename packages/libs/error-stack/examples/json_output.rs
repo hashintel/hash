@@ -6,7 +6,7 @@ use std::{
     fmt,
 };
 
-use error_stack::{bail, FrameKind, Report, Result, ResultExt};
+use error_stack::{bail, AttachmentKind, FrameKind, Report, Result, ResultExt};
 use serde::Serialize;
 
 #[derive(Debug)]
@@ -60,16 +60,17 @@ fn main() -> Result<(), MapError> {
 
         for frame in report.frames() {
             match frame.kind() {
-                FrameKind::Context => {
+                FrameKind::Context(context) => {
                     output.push(Context {
-                        context: frame.to_string(),
+                        context: context.to_string(),
                         attachments: attachments.clone(),
                     });
                     attachments.clear();
                 }
-                FrameKind::Attachment => {
-                    attachments.push(frame.to_string());
+                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                    attachments.push(attachment.to_string());
                 }
+                FrameKind::Attachment(_) => {}
             }
         }
 
@@ -84,10 +85,10 @@ fn main() -> Result<(), MapError> {
     let mut config = HashMap::default();
 
     // Create an entry with "foo" as key
-    create_new_entry(&mut config, "foo", 1).attach("Could not create new entry")?;
+    create_new_entry(&mut config, "foo", 1).attach_printable("Could not create new entry")?;
 
     // Purposefully cause an error by attempting to create another entry with "foo" as key
-    create_new_entry(&mut config, "foo", 2).attach("Could not create new entry")?;
+    create_new_entry(&mut config, "foo", 2).attach_printable("Could not create new entry")?;
 
     // Will output something like
     // ```json

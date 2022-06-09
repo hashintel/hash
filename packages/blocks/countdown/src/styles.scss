@@ -2,11 +2,6 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 
-.countdown-block-wrapper {
-  display: flex;
-  justify-content: center;
-}
-
 .countdown-block {
   --font-family: system-ui, "Inter", "Open Sans", "Helvetica Neue", "Arial",
     sans-serif;
@@ -41,6 +36,7 @@
   align-items: center;
   padding: 2rem 0;
   font-family: var(--font-family);
+  width: 100%;
 
   * {
     box-sizing: border-box;
@@ -82,7 +78,8 @@
       resize: none;
       display: flex;
       justify-content: center;
-      transition: 0.3s all ease-in-out;
+      word-break: break-word;
+      transition: 0.3s text-align ease-in-out, 0.3s border-color ease-in-out;
 
       &:focus {
         width: 100%;
@@ -150,6 +147,7 @@
       min-height: 10rem;
       min-width: 10rem;
       padding-top: 1.35rem;
+      padding-bottom: 1.35rem;
       padding-left: 1.25rem;
       padding-right: 1.25rem;
       display: flex;

@@ -14,12 +14,11 @@
 //! _current context_ in its generic argument.
 //!
 //! As the [`Report`] is built, various pieces of supporting information can be _attached_. These
-//! can be anything with a [`Debug`] implementation, whether it be a supporting message or a
+//! can be anything, which can be shared between threads, whether it be a supporting message or a
 //! custom-defined `Suggestion` struct.
 //!
 //! Please refer to the [in-depth explanation] for further information.
 //!
-//! [`Debug`]: core::fmt::Debug
 //! [in-depth explanation]: #in-depth-explanation
 //!
 //! ## Quick-Start Guide
@@ -57,6 +56,7 @@
 //! ```
 //!
 //! ### Initializing a Report
+//!
 //! A [`Report`] can also be created directly from any [`Context`] by using [`Report::new()`] or
 //! through any of the provided macros ([`report!`], [`bail!`], [`ensure!`]). Any [`Error`] can be
 //! used as a [`Context`], so it's possible to create [`Report`] from an existing [`Error`].
@@ -131,7 +131,7 @@
 //! ### Building up the Report - Attachments
 //!
 //! In addition to changing the current context, it's also possible to attach additional
-//! information by using [`Report::attach()`]:
+//! information by using [`Report::attach()`] and [`Report::attach_printable()`]:
 //!
 //! ```rust
 //! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
@@ -146,14 +146,7 @@
 //! #     }
 //! # }
 //! # impl Context for ParseConfigError {}
-//! #[derive(Debug)]
 //! struct Suggestion(&'static str);
-//!
-//! impl std::fmt::Display for Suggestion {
-//!     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//!         write!(fmt, "{}", self.0)
-//!     }
-//! }
 //!
 //! # #[cfg(all(not(miri), feature = "std"))] {
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
@@ -163,7 +156,7 @@
 //!         .report()
 //!         .change_context(ParseConfigError::new())
 //!         .attach(Suggestion("Use a file you can read next time!"))
-//!         .attach_lazy(|| format!("Could not read file {path:?}"))?;
+//!         .attach_printable_lazy(|| format!("Could not read file {path:?}"))?;
 //!
 //!     Ok(content)
 //! }
@@ -179,16 +172,14 @@
 //!
 //! ```rust
 //! # use error_stack::Result;
-//! # use std::{io::Error, fmt::{Display, Formatter, self}};
-//! # struct Suggestion;
-//! # impl Display for Suggestion { fn fmt(&self, _: &mut Formatter<'_>) -> fmt::Result { Ok(()) }}
-//! # fn parse_config(_: &str) -> Result<(), Error> { Ok(()) }
+//! # struct Suggestion(&'static str);
+//! # fn parse_config(_: &str) -> Result<(), std::io::Error> { Ok(()) }
 //! fn main() {
 //!     if let Err(report) = parse_config("config.json") {
 //!         eprintln!("{report:?}");
 //!         # #[cfg(nightly)]
 //!         for suggestion in report.request_ref::<Suggestion>() {
-//!             eprintln!("Suggestion: {suggestion}");
+//!             eprintln!("Suggestion: {}", suggestion.0);
 //!         }
 //!     }
 //! }
@@ -199,8 +190,8 @@
 //! ```text
 //! Could not parse configuration file
 //!              at main.rs:17:10
-//!       - Use a file you can read next time!
 //!       - Could not read file "config.json"
+//!       - 1 additional opaque attachment
 //!
 //! Caused by:
 //!    0: No such file or directory (os error 2)
@@ -370,7 +361,7 @@ pub use self::ext::*;
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,
-    frame::{Frame, FrameKind},
+    frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
 };
