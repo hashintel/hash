@@ -46,50 +46,52 @@ pub trait ResultExt {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
 
-    /// Adds a new attachment to the [`Result`].
+    /// Adds a new attachment to the [`Report`] inside the [`Result`].
     ///
-    /// Please refer to [`Report::attach`] for more information.
+    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
     #[must_use]
     fn attach<A>(self, attachment: A) -> Self
     where
         A: Send + Sync + 'static;
 
-    /// Lazily adds a new attachment to the [`Result`].
+    /// Lazily adds a new attachment to the [`Report`] inside the [`Result`].
     ///
-    /// Please refer to [`Report::attach`] for more information.
+    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
     #[must_use]
     fn attach_lazy<A, F>(self, attachment: F) -> Self
     where
         A: Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Adds a new printable attachment to the [`Result`].
+    /// Adds a new printable attachment to the [`Report`] inside the [`Result`].
     ///
-    /// Please refer to [`Report::attach_printable`] for more information.
+    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
+    /// information.
     #[must_use]
     fn attach_printable<A>(self, attachment: A) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
-    /// Laziy adds a new printable attachment to the [`Result`].
+    /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`].
     ///
-    /// Please refer to [`Report::attach_printable`] for more information.
+    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
+    /// information.
     #[must_use]
     fn attach_printable_lazy<A, F>(self, attachment: F) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Changes the context of the [`Result`].
+    /// Changes the context of the [`Report`] inside the [`Result`].
     ///
-    /// Please refer to [`Report::change_context`] for more information.
+    /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
     fn change_context<C>(self, context: C) -> Result<Self::Ok, C>
     where
         C: Context;
 
-    /// Lazily changes the context of the [`Result`].
+    /// Lazily changes the context of the [`Report`] inside the [`Result`].
     ///
-    /// Please refer to [`Report::change_context`] for more information.
+    /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
     fn change_context_lazy<C, F>(self, context: F) -> Result<Self::Ok, C>
     where
         C: Context,

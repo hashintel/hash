@@ -139,10 +139,12 @@ implement_lazy_future_adaptor!(
 ///
 /// [`Report`]: crate::Report
 pub trait FutureExt: Future + Sized {
-    /// Adds a new attachment to the [`Result`] when [`poll`]ing the [`Future`].
+    /// Adds a new attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
+    /// [`Future`].
     ///
-    /// Please refer to [`Report::attach`] for more information.
+    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
     ///
+    /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
     /// [`poll`]: Future::poll
     #[track_caller]
@@ -150,10 +152,12 @@ pub trait FutureExt: Future + Sized {
     where
         A: Send + Sync + 'static;
 
-    /// Lazily adds a new attachment to the [`Result`] when [`poll`]ing the [`Future`].
+    /// Lazily adds a new attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
+    /// [`Future`].
     ///
-    /// Please refer to [`Report::attach`] for more information.
+    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
     ///
+    /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
     /// [`poll`]: Future::poll
     #[track_caller]
@@ -162,10 +166,13 @@ pub trait FutureExt: Future + Sized {
         A: Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Adds a new printable attachment to the [`Result`] when [`poll`]ing the [`Future`].
+    /// Adds a new printable attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
+    /// [`Future`].
     ///
-    /// Please refer to [`Report::attach_printable`] for more information.
+    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
+    /// information.
     ///
+    /// [`Report`]: crate::Report
     /// [`Report::attach_printable`]: crate::Report::attach_printable
     /// [`poll`]: Future::poll
     #[track_caller]
@@ -173,10 +180,13 @@ pub trait FutureExt: Future + Sized {
     where
         A: Display + Debug + Send + Sync + 'static;
 
-    /// Lazily adds a new printable attachment to the [`Result`] when [`poll`]ing the [`Future`].
+    /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`] when
+    /// [`poll`]ing the [`Future`].
     ///
-    /// Please refer to [`Report::attach_printable`] for more information.
+    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
+    /// information.
     ///
+    /// [`Report`]: crate::Report
     /// [`Report::attach_printable`]: crate::Report::attach_printable
     /// [`poll`]: Future::poll
     #[track_caller]
@@ -188,10 +198,12 @@ pub trait FutureExt: Future + Sized {
         A: Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Changes the [`Context`] of the [`Result`] when [`poll`]ing the [`Future`].
+    /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
+    /// [`Future`].
     ///
-    /// Please refer to [`Report::change_context`] for more information.
+    /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
     ///
+    /// [`Report`]: crate::Report
     /// [`Report::change_context`]: crate::Report::change_context
     /// [`poll`]: Future::poll
     #[track_caller]
@@ -199,10 +211,12 @@ pub trait FutureExt: Future + Sized {
     where
         C: Context;
 
-    /// Lazily changes the [`Context`] of the [`Result`] when [`poll`]ing the [`Future`].
+    /// Lazily changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
+    /// [`Future`].
     ///
-    /// Please refer to [`Report::change_context`] for more information.
+    /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
     ///
+    /// [`Report`]: crate::Report
     /// [`Report::change_context`]: crate::Report::change_context
     /// [`poll`]: Future::poll
     #[track_caller]
