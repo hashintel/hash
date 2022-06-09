@@ -90,24 +90,19 @@ export const App: BlockComponent<AppProps> = ({
   );
 
   return (
-    <div className="countdown-block-wrapper">
-      <div className="countdown-block">
-        <CountdownTitle
-          value={localTitle}
-          onChangeText={setLocalTitle}
-          onBlur={updateRemoteData}
-        />
-        <Display
-          targetDate={localTargetDate}
-          displayTime={!!localDisplayTime}
-        />
-        <DatePickerInput
-          selected={localTargetDate}
-          onChange={handleDateChange}
-          displayTime={localDisplayTime}
-          setDisplayTime={handleDisplayTimeChange}
-        />
-      </div>
+    <div className="countdown-block">
+      <CountdownTitle
+        value={localTitle}
+        onChangeText={setLocalTitle}
+        onBlur={updateRemoteData}
+      />
+      <Display targetDate={localTargetDate} displayTime={!!localDisplayTime} />
+      <DatePickerInput
+        selected={localTargetDate}
+        onChange={handleDateChange}
+        displayTime={localDisplayTime}
+        setDisplayTime={handleDisplayTimeChange}
+      />
     </div>
   );
 };
