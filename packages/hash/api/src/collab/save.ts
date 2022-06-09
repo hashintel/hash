@@ -41,12 +41,10 @@ import {
 
 type EntityType = GetAccountEntityTypesQuery["getAccountEntityTypes"][number];
 
-const randomPlaceholder = () => `placeholder-${uuid()}`;
+const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
-const flipMap = <K, V>(draftToPlaceholder: Map<K, V>): Map<V, K> =>
-  new Map(
-    Array.from(draftToPlaceholder, ([key, value]) => [value, key] as const),
-  );
+const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
+  new Map(Array.from(map, ([key, value]) => [value, key] as const));
 
 type EntityTypeForComponentResult = [string, UpdatePageAction[]];
 
@@ -86,7 +84,7 @@ const ensureEntityTypeForComponent = async (
 
     jsonSchema.componentId = componentId;
 
-    desiredEntityTypeId = randomPlaceholder();
+    desiredEntityTypeId = generatePlaceholderId();
 
     actions.push({
       createEntityType: {
@@ -120,12 +118,12 @@ const calculateSaveActions = async (
 ) => {
   const actions: UpdatePageAction[] = [];
 
-  const draftToPlaceholder = new Map<string, string>();
-  const draftBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
+  const draftIdToPlaceholderId = new Map<string, string>();
+  const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
   for (const draftEntity of Object.values(store.draft)) {
     if (isDraftBlockEntity(draftEntity)) {
-      draftBlockEntities.set(draftEntity.draftId, draftEntity);
+      draftIdToBlockEntities.set(draftEntity.draftId, draftEntity);
       continue;
     }
 
@@ -179,8 +177,8 @@ const calculateSaveActions = async (
         });
       }
     } else {
-      const placeholder = randomPlaceholder();
-      draftToPlaceholder.set(draftEntity.draftId, placeholder);
+      const placeholder = generatePlaceholderId();
+      draftIdToPlaceholderId.set(draftEntity.draftId, placeholder);
 
       let entityType: EntityTypeChoice | null = null;
       let properties = draftEntity.properties;
@@ -212,7 +210,8 @@ const calculateSaveActions = async (
         if (isDraftTextContainingEntityProperties(properties)) {
           const textEntity = properties.text.data;
           const textEntityId =
-            draftToPlaceholder.get(textEntity.draftId) ?? textEntity.entityId;
+            draftIdToPlaceholderId.get(textEntity.draftId) ??
+            textEntity.entityId;
 
           if (!textEntityId) {
             throw new Error("Entity for text not yet created");
@@ -307,7 +306,7 @@ const calculateSaveActions = async (
     }
 
     if (afterDraftId) {
-      const draftEntity = draftBlockEntities.get(afterDraftId);
+      const draftEntity = draftIdToBlockEntities.get(afterDraftId);
 
       if (!draftEntity) {
         throw new Error("missing draft entity");
@@ -315,16 +314,16 @@ const calculateSaveActions = async (
 
       const blockData = draftEntity.properties.entity;
       const dataEntityId =
-        blockData.entityId ?? draftToPlaceholder.get(blockData.draftId);
+        blockData.entityId ?? draftIdToPlaceholderId.get(blockData.draftId);
 
       if (!dataEntityId) {
         throw new Error("Block data entity id missing");
       }
 
-      const blockPlaceholder = randomPlaceholder();
+      const blockPlaceholder = generatePlaceholderId();
 
       if (!draftEntity.entityId) {
-        draftToPlaceholder.set(draftEntity.draftId, blockPlaceholder);
+        draftIdToPlaceholderId.set(draftEntity.draftId, blockPlaceholder);
       }
 
       actions.push({
@@ -353,7 +352,7 @@ const calculateSaveActions = async (
       beforeBlockDraftIds.splice(position, 0, afterDraftId);
     }
   }
-  const placeholderToDraft = flipMap(draftToPlaceholder);
+  const placeholderToDraft = flipMap(draftIdToPlaceholderId);
 
   return [actions, placeholderToDraft] as const;
 };

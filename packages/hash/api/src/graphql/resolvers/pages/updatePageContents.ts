@@ -39,8 +39,8 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
   }
 };
 
-const isPlaceholder = (id: unknown): id is string =>
-  typeof id === "string" && id.startsWith("placeholder-");
+const isPlaceholderId = (value: unknown): value is `placeholder-${string}` =>
+  typeof value === "string" && value.startsWith("placeholder-");
 
 // @todo these actions need to be processed in order to ensure placeholders
 // work as expected
@@ -67,22 +67,22 @@ export const updatePageContents: Resolver<
    */
   const placeholderResults = new Map<string, string>();
 
-  const replacePlaceholder = (placeholder: string) => {
-    if (isPlaceholder(placeholder)) {
-      const entityId = placeholderResults.get(placeholder);
+  const getEntityIdFromPossiblePlaceholderId = (placeholderId: string) => {
+    if (isPlaceholderId(placeholderId)) {
+      const entityId = placeholderResults.get(placeholderId);
       if (!entityId) {
-        throw new Error(`Entity id for placeholder ${placeholder} missing`);
+        throw new Error(`Entity id for placeholder ${placeholderId} missing`);
       }
       return entityId;
     }
-    return placeholder;
+    return placeholderId;
   };
 
   const recordEntity = (
     placeholder: string | null | undefined,
     entity: { entityId: string },
   ) => {
-    if (isPlaceholder(placeholder)) {
+    if (isPlaceholderId(placeholder)) {
       placeholderResults.set(placeholder, entity.entityId);
     }
   };
@@ -94,18 +94,18 @@ export const updatePageContents: Resolver<
     ) => {
       const entityDefinition = produce(originalDefinition, (draft) => {
         if (draft.existingEntity) {
-          draft.existingEntity.entityId = replacePlaceholder(
+          draft.existingEntity.entityId = getEntityIdFromPossiblePlaceholderId(
             draft.existingEntity.entityId,
           );
         }
         if (draft.entityType?.entityTypeId) {
-          draft.entityType.entityTypeId = replacePlaceholder(
+          draft.entityType.entityTypeId = getEntityIdFromPossiblePlaceholderId(
             draft.entityType.entityTypeId,
           );
         }
         if (draft.entityProperties?.text?.__linkedData?.entityId) {
           draft.entityProperties.text.__linkedData.entityId =
-            replacePlaceholder(
+            getEntityIdFromPossiblePlaceholderId(
               draft.entityProperties.text.__linkedData.entityId,
             );
         }
