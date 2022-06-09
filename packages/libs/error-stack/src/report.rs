@@ -12,7 +12,7 @@ use crate::iter::{RequestRef, RequestValue};
 use crate::{context::temporary_provider, provider::request_ref};
 use crate::{
     iter::{Frames, FramesMut},
-    Attachment, Context, Frame, FrameKind,
+    AttachmentKind, Context, Frame, FrameKind,
 };
 
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
@@ -453,10 +453,10 @@ impl<Context> fmt::Display for Report<Context> {
             .frames()
             .filter_map(|frame| match frame.kind() {
                 FrameKind::Context(context) => Some(context.to_string()),
-                FrameKind::Attachment(Attachment::Printable(attachment)) => {
+                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                     Some(attachment.to_string())
                 }
-                FrameKind::Attachment(Attachment::Generic(_)) => None,
+                FrameKind::Attachment(AttachmentKind::Generic(_)) => None,
             })
             .enumerate()
         {
@@ -512,7 +512,7 @@ impl<Context> fmt::Debug for Report<Context> {
 
                         context_idx += 1;
                     }
-                    FrameKind::Attachment(Attachment::Printable(attachment)) => {
+                    FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                         attachments.push(attachment);
                     }
                     FrameKind::Attachment(_) => (),

@@ -15,14 +15,14 @@ pub enum FrameKind<'f> {
     ///
     /// [`attach()`]: crate::Report::attach
     /// [`attach_printable()`]: crate::Report::attach_printable
-    Attachment(Attachment<'f>),
+    Attachment(AttachmentKind<'f>),
 }
 
 /// Classification of an attachment, determined by how it was created.
 ///
 /// [`Frame`]: crate::Frame
 #[non_exhaustive]
-pub enum Attachment<'f> {
+pub enum AttachmentKind<'f> {
     /// A generic attachment created through [`attach()`].
     ///
     /// [`attach()`]: crate::Report::attach

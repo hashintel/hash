@@ -6,7 +6,7 @@ use std::{
     fmt,
 };
 
-use error_stack::{bail, Attachment, FrameKind, Report, Result, ResultExt};
+use error_stack::{bail, AttachmentKind, FrameKind, Report, Result, ResultExt};
 use serde_json::json;
 
 #[derive(Debug)]
@@ -53,7 +53,7 @@ fn main() -> Result<(), MapError> {
             .frames()
             .filter_map(|frame| match frame.kind() {
                 FrameKind::Context(context) => Some(context.to_string()),
-                FrameKind::Attachment(Attachment::Printable(attachment)) => {
+                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                     Some(attachment.to_string())
                 }
                 _ => None,

@@ -203,7 +203,7 @@ pub use self::ext::*;
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,
-    frame::{Attachment, Frame, FrameKind},
+    frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
 };

@@ -6,7 +6,7 @@ mod vtable;
 use alloc::boxed::Box;
 use core::{fmt, mem, mem::ManuallyDrop, panic::Location, ptr::NonNull};
 
-pub use self::kind::{Attachment, FrameKind};
+pub use self::kind::{AttachmentKind, FrameKind};
 use self::{erasable::ErasableFrame, vtable::VTable};
 #[cfg(nightly)]
 use crate::provider::{self, Demand, Provider};
@@ -191,10 +191,10 @@ impl fmt::Debug for Frame {
             FrameKind::Context(context) => {
                 debug.field("context", &context);
             }
-            FrameKind::Attachment(Attachment::Printable(attachment)) => {
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 debug.field("attachment", &attachment);
             }
-            FrameKind::Attachment(Attachment::Generic(_)) => (),
+            FrameKind::Attachment(AttachmentKind::Generic(_)) => (),
         }
         debug.field("location", &self.location).finish()
     }
@@ -242,10 +242,10 @@ mod tests {
             .frames_mut()
             .filter_map(|frame| match frame.kind() {
                 FrameKind::Context(context) => Some(context.to_string()),
-                FrameKind::Attachment(Attachment::Printable(attachment)) => {
+                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                     Some(attachment.to_string())
                 }
-                FrameKind::Attachment(Attachment::Generic(_)) => None,
+                FrameKind::Attachment(AttachmentKind::Generic(_)) => None,
             })
             .collect();
         assert_eq!(messages, ["Hello World!", "Context A"]);
@@ -263,20 +263,20 @@ mod tests {
         let kinds_a = frame_kinds(&report);
         assert!(matches!(
             kinds_a[0],
-            FrameKind::Attachment(Attachment::Printable(_))
+            FrameKind::Attachment(AttachmentKind::Printable(_))
         ));
         assert!(matches!(
             kinds_a[1],
-            FrameKind::Attachment(Attachment::Generic(_))
+            FrameKind::Attachment(AttachmentKind::Generic(_))
         ));
         assert!(matches!(kinds_a[2], FrameKind::Context(_)));
         assert!(matches!(
             kinds_a[3],
-            FrameKind::Attachment(Attachment::Printable(_))
+            FrameKind::Attachment(AttachmentKind::Printable(_))
         ));
         assert!(matches!(
             kinds_a[4],
-            FrameKind::Attachment(Attachment::Printable(_))
+            FrameKind::Attachment(AttachmentKind::Printable(_))
         ));
         assert!(matches!(kinds_a[5], FrameKind::Context(_)));
 

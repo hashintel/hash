@@ -4,7 +4,7 @@ pub use alloc::{
 };
 use core::{fmt, fmt::Formatter};
 
-use crate::{Attachment, Context, Frame, FrameKind, Report};
+use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 #[derive(Debug, PartialEq)]
 pub struct ContextA;
@@ -44,10 +44,10 @@ pub fn messages<E>(report: &Report<E>) -> Vec<String> {
         .frames()
         .filter_map(|frame| match frame.kind() {
             FrameKind::Context(context) => Some(context.to_string()),
-            FrameKind::Attachment(Attachment::Printable(attachment)) => {
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 Some(attachment.to_string())
             }
-            FrameKind::Attachment(Attachment::Generic(_)) => None,
+            FrameKind::Attachment(AttachmentKind::Generic(_)) => None,
         })
         .collect()
 }

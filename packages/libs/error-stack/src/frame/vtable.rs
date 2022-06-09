@@ -11,7 +11,7 @@ use crate::{
     provider::{Demand, Provider},
 };
 use crate::{
-    frame::{kind::Attachment, ErasableFrame},
+    frame::{kind::AttachmentKind, ErasableFrame},
     Context, FrameKind,
 };
 
@@ -179,7 +179,7 @@ impl VTable {
         let unerased: *const ErasableFrame<A> = (frame as *const ErasableFrame).cast();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
-        FrameKind::Attachment(Attachment::Generic(&(*(unerased))._unerased))
+        FrameKind::Attachment(AttachmentKind::Generic(&(*(unerased))._unerased))
     }
 
     /// Unerase the object as `&dyn Debug + Display`.
@@ -196,7 +196,7 @@ impl VTable {
         let unerased: *const ErasableFrame<A> = (frame as *const ErasableFrame).cast();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
-        FrameKind::Attachment(Attachment::Printable(&(*(unerased))._unerased))
+        FrameKind::Attachment(AttachmentKind::Printable(&(*(unerased))._unerased))
     }
 
     /// Downcasts the object to `T`.
