@@ -1,4 +1,4 @@
-import { ApolloClient } from "@apollo/client";
+import { ApolloClient, ApolloError } from "@apollo/client";
 import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import {
   BlockEntity,
@@ -17,8 +17,8 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 import {
   EntityTypeChoice,
-  GetAccountEntityTypesQuery,
-  GetAccountEntityTypesQueryVariables,
+  GetComponentEntityTypeQuery,
+  GetComponentEntityTypeQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
   GetTextEntityTypeQuery,
@@ -31,15 +31,13 @@ import {
 } from "../graphql/apiTypes.gen";
 import { capitalizeComponentName } from "../util";
 import {
-  getAccountEntityTypes,
+  getComponentEntityType,
   getTextEntityType,
 } from "./graphql/queries/entityType.queries";
 import {
   getPageQuery,
   updatePageContents,
 } from "./graphql/queries/page.queries";
-
-type EntityType = GetAccountEntityTypesQuery["getAccountEntityTypes"][number];
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
@@ -48,18 +46,10 @@ const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
 
 type EntityTypeForComponentResult = [string, UpdatePageAction[]];
 
-const hasComponentId = (
-  properties: unknown,
-): properties is { componentId: string } =>
-  typeof properties === "object" &&
-  properties !== null &&
-  "componentId" in properties &&
-  typeof (properties as any).componentId === "string";
-
 const ensureEntityTypeForComponent = async (
+  apolloClient: ApolloClient<unknown>,
   componentId: string,
   newTypeAccountId: string,
-  entityTypes: EntityType[],
   cache: Map<string, string>,
 ): Promise<EntityTypeForComponentResult> => {
   const actions: UpdatePageAction[] = [];
@@ -67,11 +57,26 @@ const ensureEntityTypeForComponent = async (
   let desiredEntityTypeId: string | undefined = cache.get(componentId);
 
   if (!desiredEntityTypeId) {
-    desiredEntityTypeId = entityTypes.find(
-      (type) =>
-        hasComponentId(type.properties) &&
-        type.properties.componentId === componentId,
-    )?.entityId;
+    desiredEntityTypeId = await apolloClient
+      .query<GetComponentEntityTypeQuery, GetComponentEntityTypeQueryVariables>(
+        {
+          query: getComponentEntityType,
+          variables: { componentId },
+        },
+      )
+      .then((res) => res.data.getEntityType.entityId)
+      .catch((err) => {
+        if (
+          err instanceof ApolloError &&
+          err.graphQLErrors.length === 1 &&
+          err.graphQLErrors[0] &&
+          err.graphQLErrors[0].extensions?.code === "NOT_FOUND"
+        ) {
+          return undefined;
+        }
+
+        throw err;
+      });
   }
 
   if (!desiredEntityTypeId) {
@@ -381,14 +386,7 @@ export const save = async (
   doc: ProsemirrorNode<Schema>,
   store: EntityStore,
 ) => {
-  const [entityTypes, blocks, textEntityTypeId] = await Promise.all([
-    apolloClient
-      .query<GetAccountEntityTypesQuery, GetAccountEntityTypesQueryVariables>({
-        query: getAccountEntityTypes,
-        variables: { accountId },
-        fetchPolicy: "network-only",
-      })
-      .then((res) => res.data.getAccountEntityTypes),
+  const [blocks, textEntityTypeId] = await Promise.all([
     apolloClient
       .query<GetPageQuery, GetPageQueryVariables>({
         query: getPageQuery,
@@ -416,9 +414,9 @@ export const save = async (
     doc,
     async (componentId: string) =>
       await ensureEntityTypeForComponent(
+        apolloClient,
         componentId,
         accountId,
-        entityTypes,
         entityTypeForComponentId,
       ),
   );

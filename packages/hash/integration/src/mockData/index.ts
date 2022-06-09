@@ -80,12 +80,13 @@ void (async () => {
     "https://blockprotocol.org/blocks/@hash/code",
     "https://blockprotocol.org/blocks/@hash/video",
     "https://blockprotocol.org/blocks/@hash/header",
+    "https://blockprotocol.org/blocks/@hash/person",
   ].map((componentId) => ({
     name: capitalizeComponentName(componentId),
     componentId,
   }));
 
-  const requiredOtherTypes = ["Company", "Location", "Person"] as const;
+  const requiredOtherTypes = ["Company", "Location"] as const;
   // create the types we'll need below so we can assign their ids to entities
   const newTypeIds: Record<
     | typeof requiredBlockTypes[number]["name"]
