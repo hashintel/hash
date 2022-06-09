@@ -71,7 +71,7 @@ export const updatePageContents: Resolver<
     if (isPlaceholderId(placeholderId)) {
       const entityId = placeholderResults.get(placeholderId);
       if (!entityId) {
-        throw new Error(`Entity id for placeholder ${placeholderId} missing`);
+        throw new Error(`Placeholder ${placeholderId} missing`);
       }
       return entityId;
     }
