@@ -26,7 +26,7 @@ futures = { version = "0.3.21", default-features = false, features = ["executor"
 rustc_version = "0.2.3"
 
 [features]
-default = ["std", "hooks"]
+default = ["std"]
 std = []
 hooks = ["dep:once_cell", "std"]
 spantrace = ["dep:tracing-error"]
