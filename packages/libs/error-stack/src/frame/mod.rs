@@ -192,13 +192,10 @@ impl fmt::Debug for Frame {
             FrameKind::Context(context) => {
                 debug.field("context", &context);
             }
-            FrameKind::Attachment(Attachment::Generic(_)) => (),
-            FrameKind::Attachment(Attachment::Debug(attachment)) => {
-                debug.field("attachment", &attachment);
-            }
             FrameKind::Attachment(Attachment::Printable(attachment)) => {
                 debug.field("attachment", &attachment);
             }
+            FrameKind::Attachment(Attachment::Generic(_)) => (),
         }
         debug.field("location", &self.location).finish()
     }

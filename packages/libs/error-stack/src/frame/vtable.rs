@@ -180,22 +180,6 @@ impl VTable {
         FrameKind::Attachment(Attachment::Generic(&(*(unerased))._unerased))
     }
 
-    /// Unerase the object as `&dyn Debug`.
-    ///
-    /// # Safety
-    ///
-    /// - Layout of `frame` must match `ErasableFrame<T>`.
-    #[allow(dead_code)] // will be used when `attach` is specialized for `T: Debug + !Display`
-    unsafe fn unerase_debug_attachment<A: fmt::Debug + Send + Sync + 'static>(
-        frame: &ErasableFrame,
-    ) -> FrameKind<'_> {
-        // Attach T's native vtable onto the pointer to `self._unerased`
-        let unerased = (frame as *const ErasableFrame).cast::<ErasableFrame<A>>();
-        // inside of vtable it's allowed to access `_unerased`
-        #[allow(clippy::used_underscore_binding)]
-        FrameKind::Attachment(Attachment::Debug(&(*(unerased))._unerased))
-    }
-
     /// Unerase the object as `&dyn Debug + Display`.
     ///
     /// # Safety
