@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+
 use crate::frame::VTable;
 
 // repr(C): It must be ensured, that vtable is always stored at the same memory position when

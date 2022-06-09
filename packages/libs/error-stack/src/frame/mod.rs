@@ -4,8 +4,7 @@ mod kind;
 mod vtable;
 
 use alloc::boxed::Box;
-use core::{any::Any, fmt, mem::ManuallyDrop, panic::Location};
-use std::{mem, ptr::NonNull};
+use core::{any::Any, fmt, mem, mem::ManuallyDrop, panic::Location, ptr::NonNull};
 
 pub use self::kind::{Attachment, FrameKind};
 use self::{erasable::ErasableFrame, vtable::VTable};
