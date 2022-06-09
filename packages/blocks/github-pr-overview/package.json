@@ -10,7 +10,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git#vu/example-graph",
+    "url": "https://github.com/hashintel/hash.git",
     "directory": "packages/blocks/github-pr-overview"
   },
   "license": "MIT",

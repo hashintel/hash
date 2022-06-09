@@ -5,7 +5,7 @@
   "description": "Create a table for storing information in rows and columns",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git##vu/example-graph",
+    "url": "https://github.com/hashintel/hash.git",
     "directory": "packages/blocks/table"
   },
   "license": "MIT",
