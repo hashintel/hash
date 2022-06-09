@@ -14,28 +14,28 @@ use crate::{
     iter::{Frames, FramesMut},
     AttachmentKind, Context, Frame, FrameKind,
 };
-
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
 ///
 /// Attachments can be added by using [`attach()`]. The [`Frame`] stack can be iterated by using
 /// [`frames()`].
 ///
-/// To enforce context information generation, a [`Context`] needs to be used. When creating a
-/// `Report` by using [`new()`], the passed [`Context`] is used to set the _current
-/// context_ on the `Report`. To provide a new one, use [`change_context()`], which may also be used
-/// to provide more context information than only a display message. This information can then be
-/// retrieved by calling [`request_ref()`] or [`request_value()`].
+/// When creating a `Report` by using [`new()`], the passed [`Context`] is used to set the _current
+/// context_ on the `Report`. To provide a new one, use [`change_context()`].
+///
+/// Attachments, and objects [`provide`]d by a [`Context`], are directly retrievable by calling
+/// [`request_ref()`] or [`request_value()`].
 ///
 /// ## `Backtrace` and `SpanTrace`
 ///
-/// `Report` is able to provide a [`Backtrace`] and a [`SpanTrace`], which can be retrieved by
-/// calling [`backtrace()`] or [`span_trace()`] respectively. If the root context provides a
-/// [`Backtrace`] or a [`SpanTrace`], those are returned, otherwise, if configured, they are tried
-/// to be captured when creating a `Report`. To enable capturing of the backtrace, make sure
+/// `Report` is able to [`provide`] a [`Backtrace`] and a [`SpanTrace`], which can be retrieved by
+/// calling [`backtrace()`] or [`span_trace()`] respectively. If the root context [`provide`]s a
+/// [`Backtrace`] or a [`SpanTrace`], those are returned, otherwise, if configured, an attempt is
+/// made to capture them when creating a `Report`. To enable capturing of the backtrace, make sure
 /// `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to the
 /// [`Backtrace` documentation][`Backtrace`]. To enable capturing of the span trace, an
 /// [`ErrorLayer`] has to be enabled. Please also see the [Feature Flags] section.
 ///
+/// [`provide`]: crate::provider::Provider::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
 /// [`new()`]: Self::new
@@ -169,8 +169,8 @@ impl<C> Report<C> {
 
     /// Creates a new `Report<Context>` from a provided scope.
     ///
-    /// If `context` does not provide [`Backtrace`]/[`SpanTrace`] thy are attempted to be
-    /// captured. Please see the [`Backtrace` and `SpanTrace` section] of the `Report`
+    /// If `context` does not provide [`Backtrace`]/[`SpanTrace`] then this attempts to capture
+    /// them directly. Please see the [`Backtrace` and `SpanTrace` section] of the `Report`
     /// documentation for more information.
     ///
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
@@ -212,11 +212,13 @@ impl<C> Report<C> {
         )
     }
 
-    /// Adds contextual information to the [`Frame`] stack.
+    /// Adds additional information to the [`Frame`] stack.
     ///
     /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
+    /// To benefit from seeing attachments in normal error outputs, use [`attach_printable()`]
     ///
-    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized.
+    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized and
+    /// it becomes possible to merge these two methods.
     ///
     /// [`Display`]: core::fmt::Display
     /// [`Debug`]: core::fmt::Debug
@@ -239,12 +241,13 @@ impl<C> Report<C> {
         )
     }
 
-    /// Adds contextual information to the [`Frame`] stack.
+    /// Adds additional (printable) information to the [`Frame`] stack.
     ///
-    /// This behaves like [`attach()`] but will also be shown when printing the [`Report`].
+    /// This behaves like [`attach()`] but the display implementation will be called when
+    /// printing the [`Report`].
     ///
     /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
-    /// stabilized.
+    /// stabilized it becomes possible to merge these two methods.
     ///
     /// [`attach()`]: Self::attach
     ///
@@ -294,7 +297,8 @@ impl<C> Report<C> {
         )
     }
 
-    /// Adds context information to the [`Frame`] stack enforcing a typed `Report`.
+    /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
+    /// `Report`.
     ///
     /// Please see the [`Context`] documentation for more information.
     #[track_caller]
@@ -366,18 +370,20 @@ impl<C> Report<C> {
         Frames::new(self)
     }
 
-    /// Returns an iterator over the [`FramesMut`] stack of the report.
+    /// Returns an iterator over the [`Frame`] stack of the report with mutable elements.
     pub fn frames_mut(&mut self) -> FramesMut<'_> {
         FramesMut::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting references of type `R`.
+    /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
+    /// that are [`provided`](crate::provider::Provider::provide) by [`Context`] objects.
     #[cfg(nightly)]
     pub const fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
         RequestRef::new(self)
     }
 
-    /// Creates an iterator over the [`Frame`] stack requesting values of type `R`.
+    /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
+    /// that are [`provided`](crate::provider::Provider::provide) by [`Context`] objects.
     #[cfg(nightly)]
     pub const fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
         RequestValue::new(self)
@@ -412,7 +418,7 @@ impl<C> Report<C> {
     /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
     ///
-    /// `T` could either be an attachment or a [`Context`].
+    /// `T` can either be an attachment or a [`Context`].
     ///
     /// ## Example
     ///
@@ -439,10 +445,9 @@ impl<C> Report<C> {
         self.frames().find_map(Frame::downcast_ref::<T>)
     }
 
-    /// Searches the frame stack for a context provider `T` and returns the most recent context
-    /// found.
+    /// Searches the frame stack for an instance of type `T`, returning the most recent one found.
     ///
-    /// `T` could either be an attachment or a [`Context`].
+    /// `T` can either be an attachment or a [`Context`].
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.frames_mut().find_map(Frame::downcast_mut::<T>)
