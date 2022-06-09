@@ -213,6 +213,11 @@ export const updatePageContents: Resolver<
             let block: Block;
 
             if (existingBlockEntity) {
+              if (blockComponentId) {
+                throw new Error(
+                  "InsertNewBlock: cannot set component id when using existing block entity",
+                );
+              }
               const existingBlock = await Block.getBlockById(
                 client,
                 existingBlockEntity,
