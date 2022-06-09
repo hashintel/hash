@@ -30,6 +30,7 @@ export type BlockEntity = DistributiveOmit<ContentsEntity, "properties"> & {
   };
 };
 
+// @todo make this more robust, checking system type name of entity type
 export const isTextEntity = (
   entity: EntityStoreType | DraftEntity,
 ): entity is Text => "properties" in entity && "tokens" in entity.properties;
