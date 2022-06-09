@@ -42,6 +42,34 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
 const isPlaceholderId = (value: unknown): value is `placeholder-${string}` =>
   typeof value === "string" && value.startsWith("placeholder-");
 
+class PlaceholderResultsMap {
+  private map = new Map<string, string>();
+
+  get(placeholderId: string) {
+    if (isPlaceholderId(placeholderId)) {
+      const entityId = this.map.get(placeholderId);
+      if (!entityId) {
+        throw new Error(`Placeholder ${placeholderId} missing`);
+      }
+      return entityId;
+    }
+    return placeholderId;
+  }
+
+  set(placeholderId: string | null | undefined, entity: { entityId: string }) {
+    if (isPlaceholderId(placeholderId)) {
+      this.map.set(placeholderId, entity.entityId);
+    }
+  }
+
+  getResults() {
+    return Array.from(this.map.entries()).map(([placeholderId, entityId]) => ({
+      placeholderId,
+      entityId,
+    }));
+  }
+}
+
 // @todo these actions need to be processed in order to ensure placeholders
 // work as expected
 export const updatePageContents: Resolver<
@@ -60,32 +88,7 @@ export const updatePageContents: Resolver<
 ) => {
   validateActionsInput(actions);
 
-  /**
-   * Some actions allow you to put in placeholder entityIds which refer to
-   * previous entities created during this mutation. These must always start
-   * with "placeholder-".
-   */
-  const placeholderResults = new Map<string, string>();
-
-  const getEntityIdFromPossiblePlaceholderId = (placeholderId: string) => {
-    if (isPlaceholderId(placeholderId)) {
-      const entityId = placeholderResults.get(placeholderId);
-      if (!entityId) {
-        throw new Error(`Placeholder ${placeholderId} missing`);
-      }
-      return entityId;
-    }
-    return placeholderId;
-  };
-
-  const recordEntityForPossiblePlaceholderId = (
-    possiblePlaceholderId: string | null | undefined,
-    entity: { entityId: string },
-  ) => {
-    if (isPlaceholderId(possiblePlaceholderId)) {
-      placeholderResults.set(possiblePlaceholderId, entity.entityId);
-    }
-  };
+  const placeholderResults = new PlaceholderResultsMap();
 
   return await dataSources.db.transaction(async (client) => {
     const createEntityWithPlaceholders = async (
@@ -94,12 +97,12 @@ export const updatePageContents: Resolver<
     ) => {
       const entityDefinition = produce(originalDefinition, (draft) => {
         if (draft.existingEntity) {
-          draft.existingEntity.entityId = getEntityIdFromPossiblePlaceholderId(
+          draft.existingEntity.entityId = placeholderResults.get(
             draft.existingEntity.entityId,
           );
         }
         if (draft.entityType?.entityTypeId) {
-          draft.entityType.entityTypeId = getEntityIdFromPossiblePlaceholderId(
+          draft.entityType.entityTypeId = placeholderResults.get(
             draft.entityType.entityTypeId,
           );
         }
@@ -109,7 +112,7 @@ export const updatePageContents: Resolver<
          */
         if (draft.entityProperties?.text?.__linkedData?.entityId) {
           draft.entityProperties.text.__linkedData.entityId =
-            getEntityIdFromPossiblePlaceholderId(
+            placeholderResults.get(
               draft.entityProperties.text.__linkedData.entityId,
             );
         }
@@ -137,7 +140,7 @@ export const updatePageContents: Resolver<
               accountId: entityTypeAccountId,
             } = action.createEntityType!;
 
-            recordEntityForPossiblePlaceholderId(
+            placeholderResults.set(
               placeholderId,
               await EntityType.create(client, {
                 accountId: entityTypeAccountId,
@@ -172,7 +175,7 @@ export const updatePageContents: Resolver<
           entityPlaceholderId,
         } = action.createEntity!;
 
-        recordEntityForPossiblePlaceholderId(
+        placeholderResults.set(
           entityPlaceholderId,
           await createEntityWithPlaceholders(entityDefinition, entityAccountId),
         );
@@ -205,10 +208,7 @@ export const updatePageContents: Resolver<
               blockAccountId,
             );
 
-            recordEntityForPossiblePlaceholderId(
-              entityPlaceholderId,
-              blockData,
-            );
+            placeholderResults.set(entityPlaceholderId, blockData);
 
             let block: Block;
 
@@ -245,7 +245,7 @@ export const updatePageContents: Resolver<
               );
             }
 
-            recordEntityForPossiblePlaceholderId(blockPlaceholderId, block);
+            placeholderResults.set(blockPlaceholderId, block);
 
             return block;
           } catch (error) {
@@ -345,9 +345,7 @@ export const updatePageContents: Resolver<
 
     return {
       page: page.toGQLUnknownEntity(),
-      placeholders: Array.from(placeholderResults.entries()).map(
-        ([placeholderId, entityId]) => ({ placeholderId, entityId }),
-      ),
+      placeholders: placeholderResults.getResults(),
     };
   });
 };
