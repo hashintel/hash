@@ -232,8 +232,8 @@ const calculateSaveActions = async (
       actions.push({
         createEntity: {
           accountId,
+          entityPlaceholderId: placeholderId,
           entity: {
-            placeholderId,
             versioned: true,
             entityType,
             entityProperties: properties,
@@ -344,7 +344,7 @@ const calculateSaveActions = async (
                 },
               }
             : {
-                placeholderId: blockPlaceholderId,
+                blockPlaceholderId,
                 componentId: draftEntity.properties.componentId,
               }),
         },

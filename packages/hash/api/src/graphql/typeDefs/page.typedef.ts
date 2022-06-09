@@ -199,7 +199,11 @@ export const pageTypedef = gql`
     """
     Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
     """
-    placeholderId: ID
+    blockPlaceholderId: ID
+    """
+    Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
+    """
+    entityPlaceholderId: ID
   }
 
   """
@@ -274,6 +278,7 @@ export const pageTypedef = gql`
   """
   input CreateEntityAction {
     entity: EntityDefinition!
+    entityPlaceholderId: ID
     accountId: ID!
   }
 

@@ -109,22 +109,13 @@ export const updatePageContents: Resolver<
               draft.entityProperties.text.__linkedData.entityId,
             );
         }
-
-        delete draft.placeholderId;
       });
 
-      const entity = await Entity.createEntityWithLinks(client, {
+      return await Entity.createEntityWithLinks(client, {
         accountId: entityAccountId,
         user,
         entityDefinition,
       });
-
-      recordEntityForPossiblePlaceholderId(
-        entityDefinition.placeholderId,
-        entity,
-      );
-
-      return entity;
     };
 
     // Create any _new_ entity types
@@ -171,11 +162,14 @@ export const updatePageContents: Resolver<
       // eslint-disable-next-line @typescript-eslint/no-shadow
       .filter(({ action }) => action.createEntity)) {
       try {
-        const { entity: entityDefinition, accountId: entityAccountId } =
-          action.createEntity!;
+        const {
+          entity: entityDefinition,
+          accountId: entityAccountId,
+          entityPlaceholderId,
+        } = action.createEntity!;
 
         recordEntityForPossiblePlaceholderId(
-          entityDefinition.placeholderId,
+          entityPlaceholderId,
           await createEntityWithPlaceholders(entityDefinition, entityAccountId),
         );
       } catch (error) {
@@ -197,13 +191,19 @@ export const updatePageContents: Resolver<
               accountId: blockAccountId,
               componentId: blockComponentId,
               existingBlockEntity,
-              placeholderId,
+              blockPlaceholderId,
+              entityPlaceholderId,
             } = action.insertBlock!;
 
             const blockData = await createEntityWithPlaceholders(
               action.insertBlock!.entity,
               // assume that the "block entity" is in the same account as the block itself
               blockAccountId,
+            );
+
+            recordEntityForPossiblePlaceholderId(
+              entityPlaceholderId,
+              blockData,
             );
 
             let block: Block;
@@ -236,7 +236,7 @@ export const updatePageContents: Resolver<
               );
             }
 
-            recordEntityForPossiblePlaceholderId(placeholderId, block);
+            recordEntityForPossiblePlaceholderId(blockPlaceholderId, block);
 
             return block;
           } catch (error) {
