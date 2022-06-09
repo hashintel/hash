@@ -117,10 +117,10 @@ export const entityStorePluginStateFromTransaction = (
 
 /**
  * Creates a draftId for an entity.
- * If the entityId is not yet available, a fake draft id is used for the
- * session. Pass 'null' if the entity is new and the entityId is not available.
- * Do NOT change the entity's draftId mid-session - leave it as fake. If you
- * need to recall the entity's draftId, use mustGetDraftEntityForEntityId
+ * If the entityId is not yet available, a fake draft id is used for the session.
+ * Pass 'null' if the entity is new and the entityId is not available.
+ * Do NOT change the entity's draftId mid-session - leave it as fake.
+ * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId
  */
 export const createDraftIdForEntity = (entityId: string | null) =>
   entityId ? `draft-${entityId}` : `fake-${uuid()}`;
@@ -165,12 +165,10 @@ const updateEntitiesByDraftId = (
 
 /**
  * The method does the following
- * 1. Fetches the targetEntity from draft store if it exists and adds it to
- * draft store if it's not present
+ * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
  * 2. Sets targetEntity as the new block data
  * @param draftEntityStore draft entity store
- * @param blockEntityDraftId draft id of the Block Entity whose child entity
- *   should be changed
+ * @param blockEntityDraftId draft id of the Block Entity whose child entity should be changed
  * @param targetEntity entity to be changed to
  */
 const swapBlockData = (
@@ -400,10 +398,8 @@ export const subscribeToEntityStore = (
 };
 
 /**
- * Retrieves the draft entity for an entity, given its entityId and the draft
- * store.
- * @throws {Error} if entity not found - use getDraftEntityForEntityId if you
- *   don't want an error on missing entities.
+ * Retrieves the draft entity for an entity, given its entityId and the draft store.
+ * @throws {Error} if entity not found - use getDraftEntityForEntityId if you don't want an error on missing entities.
  */
 export const mustGetDraftEntityFromEntityId = (
   draftStore: EntityStore["draft"],
