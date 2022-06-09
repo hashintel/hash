@@ -4,6 +4,7 @@ version = "0.0.0"
 authors = ["HASH"]
 edition = "2021"
 rust-version = "1.61.0"
+license = "MIT"
 description = "A context-aware error library with arbitrary attached user data"
 documentation = "https://docs.rs/error-stack"
 readme = "README.md"
