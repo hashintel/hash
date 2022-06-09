@@ -103,6 +103,10 @@ export const updatePageContents: Resolver<
             draft.entityType.entityTypeId,
           );
         }
+
+        /**
+         * @todo remove this when legacy links are removed
+         */
         if (draft.entityProperties?.text?.__linkedData?.entityId) {
           draft.entityProperties.text.__linkedData.entityId =
             getEntityIdFromPossiblePlaceholderId(
