@@ -141,6 +141,7 @@ const calculateSaveActions = async (
         continue;
       }
 
+      // @todo update this branch not to using legacy links
       if (isDraftTextContainingEntityProperties(draftEntity.properties)) {
         const savedWithoutText = omit(savedEntity.properties, "text");
         const draftWithoutText = omit(draftEntity.properties, "text");
