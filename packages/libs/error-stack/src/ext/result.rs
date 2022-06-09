@@ -46,124 +46,50 @@ pub trait ResultExt {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
 
-    /// Adds new contextual information to the [`Frame`] stack of a [`Report`].
+    /// Adds a new attachment to the [`Result`].
     ///
-    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
-    ///
-    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized.
-    ///
-    /// [`Display`]: core::fmt::Display
-    /// [`Debug`]: core::fmt::Debug
-    /// [`attach_printable()`]: Self::attach_printable
-    /// [`Frame`]: crate::Frame
+    /// Please refer to [`Report::attach`] for more information.
     #[must_use]
     fn attach<A>(self, attachment: A) -> Self
     where
         A: Send + Sync + 'static;
 
-    /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`].
+    /// Lazily adds a new attachment to the [`Result`].
     ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// This behaves like [`attach_printable_lazy()`] but will not be shown when printing the
-    /// [`Report`].
-    ///
-    /// **Note:** [`attach_printable_lazy()`] will be deprecated when specialization is stabilized.
-    ///
-    /// [`Display`]: core::fmt::Display
-    /// [`Debug`]: core::fmt::Debug
-    /// [`attach_printable_lazy()`]: Self::attach_printable_lazy
-    /// [`Frame`]: crate::Frame
+    /// Please refer to [`Report::attach`] for more information.
     #[must_use]
     fn attach_lazy<A, F>(self, attachment: F) -> Self
     where
         A: Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Adds new contextual information to the [`Frame`] stack of a [`Report`].
+    /// Adds a new printable attachment to the [`Result`].
     ///
-    /// This behaves like [`attach()`] but will also be shown when printing the [`Report`].
-    ///
-    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
-    /// stabilized.
-    ///
-    /// [`attach()`]: Self::attach
-    /// [`Frame`]: crate::Frame
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use error_stack::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<(), ()> { Ok(()) }
-    /// # struct User;
-    /// # struct Resource;
-    /// use error_stack::ResultExt;
-    ///
-    /// # let user = User;
-    /// # let resource = Resource;
-    /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource).attach_printable("Could not load resource")?;
-    /// # Result::Ok(())
-    /// ```
+    /// Please refer to [`Report::attach_printable`] for more information.
     #[must_use]
     fn attach_printable<A>(self, attachment: A) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
-    /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`].
+    /// Laziy adds a new printable attachment to the [`Result`].
     ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// This behaves like [`attach_lazy()`] but will also be shown when printing the [`Report`].
-    ///
-    /// **Note:** This will be deprecated in favor of [`attach_lazy()`] when specialization is
-    /// stabilized.
-    ///
-    /// [`attach_lazy()`]: Self::attach_lazy
-    /// [`Frame`]: crate::Frame
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use core::fmt;
-    /// # use error_stack::Result;
-    /// # fn load_resource(_: &User, _: &Resource) -> Result<(), ()> { Ok(()) }
-    /// # struct User;
-    /// # struct Resource;
-    /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// use error_stack::ResultExt;
-    ///
-    /// # let user = User;
-    /// # let resource = Resource;
-    /// # #[allow(unused_variables)]
-    /// let resource = load_resource(&user, &resource)
-    ///     .attach_printable_lazy(|| format!("Could not load resource {resource}"))?;
-    /// # Result::Ok(())
-    /// ```
+    /// Please refer to [`Report::attach_printable`] for more information.
     #[must_use]
     fn attach_printable_lazy<A, F>(self, attachment: F) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Changes the [`Context`] of a [`Report`] returning [`Result<T, C>`].
+    /// Changes the context of the [`Result`].
     ///
-    /// Please see the [`Context`] documentation for more information.
-    ///
-    /// [`Frame`]: crate::Frame
-    // TODO: come up with a decent example
+    /// Please refer to [`Report::change_context`] for more information.
     fn change_context<C>(self, context: C) -> Result<Self::Ok, C>
     where
         C: Context;
 
-    /// Lazily changes the [`Context`] of a [`Report`] returning [`Result<T, C>`].
+    /// Lazily changes the context of the [`Result`].
     ///
-    /// Please see the [`Context`] documentation for more information.
-    ///
-    /// The function is only executed in the `Err` arm.
-    ///
-    /// [`Frame`]: crate::Frame
-    // TODO: come up with a decent example
+    /// Please refer to [`Report::change_context`] for more information.
     fn change_context_lazy<C, F>(self, context: F) -> Result<Self::Ok, C>
     where
         C: Context,

@@ -139,35 +139,22 @@ implement_lazy_future_adaptor!(
 ///
 /// [`Report`]: crate::Report
 pub trait FutureExt: Future + Sized {
-    /// Adds new contextual information to the [`Frame`] stack of a [`Report`] when [`poll`]ing the
-    /// [`Future`].
+    /// Adds a new attachment to the [`Result`] when [`poll`]ing the [`Future`].
     ///
-    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
+    /// Please refer to [`Report::attach`] for more information.
     ///
-    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized.
-    ///
-    /// [`attach_printable()`]: Self::attach_printable
-    /// [`Frame`]: crate::Frame
-    /// [`Report`]: crate::Report
+    /// [`Report::attach`]: crate::Report::attach
     /// [`poll`]: Future::poll
     #[track_caller]
     fn attach<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
     where
         A: Send + Sync + 'static;
 
-    /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`] when
-    /// [`poll`]ing the [`Future`].
+    /// Lazily adds a new attachment to the [`Result`] when [`poll`]ing the [`Future`].
     ///
-    /// The function is only executed in the `Err` arm.
+    /// Please refer to [`Report::attach`] for more information.
     ///
-    /// This behaves like [`attach_printable_lazy()`] but will not be shown when printing the
-    /// [`Report`].
-    ///
-    /// **Note:** [`attach_printable_lazy()`] will be deprecated when specialization is stabilized.
-    ///
-    /// [`attach_printable_lazy()`]: Self::attach_printable_lazy
-    /// [`Frame`]: crate::Frame
-    /// [`Report`]: crate::Report
+    /// [`Report::attach`]: crate::Report::attach
     /// [`poll`]: Future::poll
     #[track_caller]
     fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
@@ -175,96 +162,23 @@ pub trait FutureExt: Future + Sized {
         A: Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Adds new contextual information to the [`Frame`] stack of a [`Report`] when [`poll`]ing the
-    /// [`Future`].
+    /// Adds a new printable attachment to the [`Result`] when [`poll`]ing the [`Future`].
     ///
-    /// This behaves like [`attach()`] but will also be shown when printing the [`Report`].
+    /// Please refer to [`Report::attach_printable`] for more information.
     ///
-    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
-    /// stabilized.
-    ///
-    /// [`attach()`]: Self::attach
-    /// [`Frame`]: crate::Frame
-    /// [`Report`]: crate::Report
+    /// [`Report::attach_printable`]: crate::Report::attach_printable
     /// [`poll`]: Future::poll
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use core::fmt;
-    /// # struct User;
-    /// # struct Resource;
-    /// # #[derive(Debug)] struct ResourceError;
-    /// # impl fmt::Display for ResourceError { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # impl error_stack::Context for ResourceError {}
-    /// use error_stack::{FutureExt, Result};
-    ///
-    /// # #[allow(unused_variables)]
-    /// async fn load_resource(user: &User, resource: &Resource) -> Result<(), ResourceError> {
-    ///     # const _: &str = stringify! {
-    ///     ...
-    ///     # }; error_stack::bail!(ResourceError)
-    /// }
-    ///
-    /// # let fut = async {
-    ///     # let user = User;
-    ///     # let resource = Resource;
-    ///     // An attachment can be added before polling the `Future`
-    ///     load_resource(&user, &resource).attach_printable("Could not load resource").await
-    /// # };
-    /// # #[cfg(not(miri))]
-    /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
-    /// # Result::<_, ResourceError>::Ok(())
-    /// ```
     #[track_caller]
     fn attach_printable<A>(self, attachment: A) -> FutureWithPrintableAttachment<Self, A>
     where
         A: Display + Debug + Send + Sync + 'static;
 
-    /// Lazily adds new contextual information to the [`Frame`] stack of a [`Report`] when
-    /// [`poll`]ing the [`Future`].
+    /// Lazily adds a new printable attachment to the [`Result`] when [`poll`]ing the [`Future`].
     ///
-    /// The function is only executed in the `Err` arm.
+    /// Please refer to [`Report::attach_printable`] for more information.
     ///
-    /// This behaves like [`attach_lazy()`] but will also be shown when printing the [`Report`].
-    ///
-    /// **Note:** This will be deprecated in favor of [`attach_lazy()`] when specialization is
-    /// stabilized.
-    ///
-    /// [`attach_lazy()`]: Self::attach_lazy
-    /// [`Frame`]: crate::Frame
-    /// [`Report`]: crate::Report
+    /// [`Report::attach_printable`]: crate::Report::attach_printable
     /// [`poll`]: Future::poll
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use core::fmt;
-    /// # struct User;
-    /// # struct Resource;
-    /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # #[derive(Debug)] struct ResourceError;
-    /// # impl fmt::Display for ResourceError { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # impl error_stack::Context for ResourceError {}
-    /// use error_stack::{FutureExt, Result};
-    ///
-    /// # #[allow(unused_variables)]
-    /// async fn load_resource(user: &User, resource: &Resource) -> Result<(), ResourceError> {
-    ///     # const _: &str = stringify! {
-    ///     ...
-    ///     # }; error_stack::bail!(ResourceError)
-    /// }
-    ///
-    /// # let fut = async {
-    ///     # let user = User;
-    ///     # let resource = Resource;
-    ///     // An attachment can be added before polling the `Future`
-    ///     load_resource(&user, &resource).attach_printable_lazy(|| format!("Could not load resource {resource}")).await
-    /// # };
-    /// # #[cfg(not(miri))]
-    /// # assert_eq!(futures::executor::block_on(fut).unwrap_err().frames().count(), 2);
-    /// # Result::<_, ResourceError>::Ok(())
-    /// ```
     #[track_caller]
     fn attach_printable_lazy<A, F>(
         self,
@@ -274,30 +188,23 @@ pub trait FutureExt: Future + Sized {
         A: Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Changes the [`Context`] of a [`Report`] when [`poll`]ing the [`Future`] returning
-    /// [`Result<T, C>`].
+    /// Changes the [`Context`] of the [`Result`] when [`poll`]ing the [`Future`].
     ///
-    /// Please see the [`Context`] documentation for more information.
+    /// Please refer to [`Report::change_context`] for more information.
     ///
-    /// [`Frame`]: crate::Frame
-    /// [`Report`]: crate::Report
+    /// [`Report::change_context`]: crate::Report::change_context
     /// [`poll`]: Future::poll
-    // TODO: come up with a decent example
     #[track_caller]
     fn change_context<C>(self, context: C) -> FutureWithContext<Self, C>
     where
         C: Context;
 
-    /// Lazily changes the [`Context`] of a [`Report`] when [`poll`]ing the [`Future`] returning
-    /// [`Result<T, C>`].
+    /// Lazily changes the [`Context`] of the [`Result`] when [`poll`]ing the [`Future`].
     ///
-    /// The function is only executed in the `Err` arm.
+    /// Please refer to [`Report::change_context`] for more information.
     ///
-    /// Please see the [`Context`] documentation for more information.
-    ///
-    /// [`Report`]: crate::Report
+    /// [`Report::change_context`]: crate::Report::change_context
     /// [`poll`]: Future::poll
-    // TODO: come up with a decent example
     #[track_caller]
     fn change_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
     where
