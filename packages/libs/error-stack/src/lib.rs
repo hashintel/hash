@@ -68,7 +68,8 @@
 //! use error_stack::{IntoReport, Report};
 //!
 //! // Note: For demonstration purposes this example does not use `error_stack::Result`.
-//! // As can be seen, it's possible to call `IntoReport::report` to easily create a `Report` from an `io::error`
+//! // As can be seen, it's possible to call `IntoReport::report` to easily create a `Report` from
+//! // an `io::Error`
 //! fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
 //!     let content = fs::read_to_string(path).report()?;
 //!
@@ -346,7 +347,11 @@
 //! In addition to [`ResultExt`], this crate also comes with [`FutureExt`] (enabled by the
 //! `futures` feature flag), which provides the same functionality for [`Future`]s.
 //!
+//! Adding adaptors for [`Iterator`] and [`Stream`]  is a considered feature and can be prioritized
+//! depending on demand.
+//!
 //! [`Future`]: core::future::Future
+//! [`Stream`]: futures_core::stream::Stream
 //!
 //! ### Feature Flags
 //!
