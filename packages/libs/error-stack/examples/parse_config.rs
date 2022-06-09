@@ -24,16 +24,7 @@ impl std::fmt::Display for ParseConfigError {
 
 impl Context for ParseConfigError {}
 
-#[derive(Debug)]
 struct Suggestion(&'static str);
-
-impl std::fmt::Display for Suggestion {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(fmt, "{}", self.0)
-    }
-}
-
-impl Context for Suggestion {}
 
 fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
     let path = path.as_ref();
@@ -42,17 +33,18 @@ fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigErro
         .report()
         .change_context(ParseConfigError::new())
         .attach(Suggestion("Use a file you can read next time!"))
-        .attach_lazy(|| format!("Could not read file {path:?}"))?;
+        .attach_printable_lazy(|| format!("Could not read file {path:?}"))?;
 
     Ok(content)
 }
 
 fn main() {
     if let Err(report) = parse_config("config.json") {
+        println!("{:#?}", report.frames());
         eprintln!("{report:?}");
         #[cfg(nightly)]
         for suggestion in report.request_ref::<Suggestion>() {
-            eprintln!("Suggestion: {suggestion}");
+            eprintln!("Suggestion: {}", suggestion.0);
         }
     }
 }

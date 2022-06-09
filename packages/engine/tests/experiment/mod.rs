@@ -46,7 +46,7 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) ->
 
     // We read the behaviors and datasets like loading a dependency
     let mut manifest = Manifest::from_dependency(project_path)
-        .attach_lazy(|| format!("Could not load manifest from {project_path:?}"))
+        .attach_printable_lazy(|| format!("Could not load manifest from {project_path:?}"))
         .change_context(TestContext::ExperimentSetup)?;
 
     // Now load globals and experiments as specified in the documentation of `Manifest`
@@ -328,10 +328,10 @@ pub async fn run_test<P: AsRef<Path>>(
     tokio::spawn(async move { experiment_server.run().await });
 
     let manifest = load_manifest(project_path, language)
-        .attach_lazy(|| format!("Could not read project {project_path:?}"))?;
+        .attach_printable_lazy(|| format!("Could not read project {project_path:?}"))?;
     let experiment_run = manifest
         .read(experiment_type)
-        .attach("Could not read manifest")
+        .attach_printable("Could not read manifest")
         .change_context(TestContext::ExperimentSetup)?;
 
     let experiment = orchestrator::Experiment::new(experiment_config);
@@ -355,11 +355,11 @@ pub async fn run_test<P: AsRef<Path>>(
         .take_while(|output_dir| output_dir.exists())
         .map(|output_dir| {
             let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
-                .attach("Could not read JSON state")?;
+                .attach_printable("Could not read JSON state")?;
             let globals = parse_file(Path::new(&output_dir).join("globals.json"))
-                .attach("Could not read globals")?;
+                .attach_printable("Could not read globals")?;
             let analysis_outputs = parse_file(Path::new(&output_dir).join("analysis_outputs.json"))
-                .attach("Could not read analysis outputs`")?;
+                .attach_printable("Could not read analysis outputs`")?;
 
             Ok((json_state, globals, analysis_outputs))
         })
@@ -397,7 +397,7 @@ pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(ExperimentType, Vec<E
     }
 
     Ok(parse_file::<Vec<ConfigValue>, P>(path)
-        .attach("Could not read integration test configuration")
+        .attach_printable("Could not read integration test configuration")
         .change_context(TestContext::TestSetup)?
         .into_iter()
         .map(|config_value| match config_value {

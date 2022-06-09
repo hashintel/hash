@@ -163,7 +163,7 @@ where
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.frames.by_ref().find_map(Frame::request_value)
+        self.frames.find_map(Frame::request_value)
     }
 }
 
