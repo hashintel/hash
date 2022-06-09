@@ -175,11 +175,34 @@
 //! # assert_eq!(report.downcast_ref::<Suggestion>().unwrap(), &Suggestion("Use a file you can read next time!"));
 //! # #[cfg(nightly)]
 //! # assert_eq!(report.request_ref::<Suggestion>().next().unwrap(), &Suggestion("Use a file you can read next time!"));
+//! # #[cfg(nightly)]
 //! # assert_eq!(report.request_ref::<String>().next().unwrap(), "Could not read file \"test.txt\"");
 //! # assert!(report.contains::<ParseConfigError>());
 //! # }
 //! ```
 //!
+//! As seen above, there are ways on attaching more information to the [`Report`]: [`attach`] and
+//! [`attach_printable`]. These two functions behave similar, but the latter has a more restrictive
+//! bound on the attachment: [`Display`] and [`Debug`]. Depending on the function used, printing the
+//! [`Report`] will also use the [`Display`] and [`Debug`] traits to describe the attachment:
+//!
+//! ```text
+//! Could not parse configuration file
+//!              at main.rs:9:10
+//!       - Could not read file "config.json"
+//!       - 1 additional opaque attachment
+//!
+//! Caused by:
+//!    0: No such file or directory (os error 2)
+//!              at main.rs:7:10
+//! ```
+//!
+//! The `Suggestion` passed to [`attach`] shown as an opaque attachment. The message passed to
+//! [`attach_printable`] however is printed next to the [`Context`] where it was attached to.
+//!
+//! [`attach_printable`]: Report::attach_printable
+//! [`Display`]: core::fmt::Display
+//! [`Debug`]: core::fmt::Debug
 //!
 //! # In-Depth Explanation
 //!
@@ -204,9 +227,9 @@
 //! most often when crossing module/crate boundaries.
 //!
 //! An example of this is a `ConfigParseError` when produced when parsing a configuration file at
-//! a high-level in the code vs. the lower-level `IoError` that occurs when reading the file from
-//! disk. The `IoError` may no longer be valuable at the level of the code that's handling parsing a
-//! config, and re-framing the error in a new type allows the user to incorporate contextual
+//! a high-level in the code vs. the lower-level `io::Error` that occurs when reading the file from
+//! disk. The `io::Error` may no longer be valuable at the level of the code that's handling parsing
+//! a config, and re-framing the error in a new type allows the user to incorporate contextual
 //! information that's only available higher-up in the stack.
 //!
 //! ### Compatibility with other Libraries
@@ -221,20 +244,17 @@
 //! ### Doing more
 //!
 //! Beyond making new [`Context`] types, the library supports the attachment of arbitrary
-//! thread-safe data. These attachments (and data that is [`Provide`]d by the [`Context`] can be
+//! thread-safe data. These attachments (and data that is [`provide`]d by the [`Context`] can be
 //! requested through [`Report::request_ref()`]. This gives a novel way to expand standard
 //! error-handling approaches, without decreasing the ergonomics of creating the actual error
 //! variants:
-// TODO: explain why a user would use attach_printable or attach here and how in most cases it's
-//  useful when printing a report for error reporting (probably give two examples, calling out the
-//  opaque thing
+//!
 //! ```rust
 //! # use error_stack::Result;
 //! # struct Suggestion(&'static str);
 //! # fn parse_config(_: &str) -> Result<(), std::io::Error> { Ok(()) }
 //! fn main() {
 //!     if let Err(report) = parse_config("config.json") {
-//!         eprintln!("{report:?}");
 //!         # #[cfg(nightly)]
 //!         for suggestion in report.request_ref::<Suggestion>() {
 //!             eprintln!("Suggestion: {}", suggestion.0);
@@ -243,33 +263,7 @@
 //! }
 //! ```
 //!
-//! which will produce an error and will output something like
-//!
-//! ```text
-//! Could not parse configuration file
-//!              at main.rs:17:10
-//!       - Could not read file "config.json"
-//!       - 1 additional opaque attachment
-//!
-//! Caused by:
-//!    0: No such file or directory (os error 2)
-//!              at main.rs:16:10
-//!
-//! Stack backtrace:
-//!    0: error_stack::report::Report<T>::new
-//!              at error-stack/src/report.rs:187:18
-//!    1: error_stack::context::<impl core::convert::From<C> for error::report::Report<C>>::from
-//!              at error-stack/src/context.rs:87:9
-//!    2: <core::result::Result<T,E> as error::result::IntoReport>::report
-//!              at error-stack/src/result.rs:204:31
-//!    3: parse_config
-//!              at main.rs:15:19
-//!    4: main
-//!              at main.rs:25:26
-//!    5: ...
-//!
-//! Suggestion: Use a file you can read next time!
-//! ```
+//! [`provide`]: Context::provide
 //!
 //! ## Additional Features
 //!
@@ -284,13 +278,13 @@
 //! manual implementations to forward calls down any wrapped errors that are often needed with other
 //! approaches.
 //!
+//! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
+//! backtraces on non-nightly channels and can be prioritized depending on demand.
+//!
 //! ### No-Std compatible
 //!
 //! The complete crate is written for `no-std` environments, which can be used by passing
 //! `--no-default-features` to the `cargo` command.
-//!
-//! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
-//! backtraces on non-nightly channels and can be prioritized depending on demand.
 //!
 //! ### Provider API
 //!
@@ -370,25 +364,20 @@
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`SpanTrace`]: tracing_error::SpanTrace
 
-
-// TODO: Example: open a file - leave scope - parse config - leave scope
-//   two `change_context` calls to be explicit
-// TODO: Move to features-section:
-
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
 #![warn(
-missing_docs,
-clippy::pedantic,
-clippy::nursery,
-clippy::undocumented_unsafe_blocks
+    missing_docs,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::undocumented_unsafe_blocks
 )]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
 #![allow(clippy::module_name_repetitions)]
 #![cfg_attr(
-not(miri),
-doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
+    not(miri),
+    doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
 )]
 
 extern crate alloc;
