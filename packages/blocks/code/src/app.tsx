@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { tw } from "twind";
 
-import { BlockComponent } from "blockprotocol/react";
-import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
+import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
+
 import { CopyIcon } from "./icons";
 import { languages, LanguageType } from "./utils";
 import { Editor } from "./components/editor";
@@ -13,16 +13,15 @@ type AppProps = {
   content: string;
 };
 
-export const App: BlockComponent<AppProps> = ({
-  entityId,
-  entityTypeId,
-  entityTypeVersionId,
-  accountId,
-  caption,
-  content,
-  language,
-  updateEntities,
-}) => {
+export const App: BlockComponent<AppProps> = ({ graph: { blockEntity } }) => {
+  const {
+    entityId,
+    properties: { caption, content, language },
+  } = blockEntity;
+
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRef);
+
   const [localData, setLocalData] = useState(() => ({
     caption,
     content,
@@ -53,15 +52,12 @@ export const App: BlockComponent<AppProps> = ({
   };
 
   const updateRemoteData = (properties: AppProps) => {
-    void updateEntities?.([
-      {
-        accountId,
-        data: properties,
+    void graphService?.updateEntity({
+      data: {
         entityId,
-        entityTypeId,
-        entityTypeVersionId,
+        properties,
       },
-    ] as BlockProtocolUpdateEntitiesAction[]);
+    });
   };
 
   const handleLanguageChange = (newLanguage: LanguageType) => {
@@ -121,7 +117,7 @@ export const App: BlockComponent<AppProps> = ({
   };
 
   return (
-    <div className={tw`w-full`}>
+    <div className={tw`w-full`} ref={blockRef}>
       <div
         className={tw`group px-10 pt-12 pb-3 relative bg-yellow-100 bg-opacity-50 mb-1`}
       >
