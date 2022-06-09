@@ -68,7 +68,7 @@
 //! use error_stack::{IntoReport, Report};
 //!
 //! // Note: For demonstration purposes this example does not use `error_stack::Result`.
-//! // As can be seen, it's possible to call `IntoReport::report` to easily turn an `io::error` into a `Report`.
+//! // As can be seen, it's possible to call `IntoReport::report` to easily create a `Report` from an `io::error`
 //! fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
 //!     let content = fs::read_to_string(path).report()?;
 //!
