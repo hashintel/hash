@@ -220,6 +220,19 @@ mod tests {
     use crate::Report;
 
     #[test]
+    fn downcast_ref() {
+        struct Attached;
+        let report = Report::new(ContextA)
+            .attach_printable(String::from("Hello"))
+            .attach(Attached);
+
+        let attachment = report.downcast_ref::<String>().unwrap();
+        assert!(report.contains::<ContextA>());
+        assert_eq!(attachment, "Hello");
+        assert!(report.contains::<Attached>());
+    }
+
+    #[test]
     fn downcast_mut() {
         let mut report = Report::new(ContextA).attach_printable(String::from("Hello"));
 
