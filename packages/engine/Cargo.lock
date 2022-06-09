@@ -666,7 +666,6 @@ dependencies = [
 name = "error-stack"
 version = "0.0.0"
 dependencies = [
- "once_cell",
  "rustc_version",
  "tracing-error",
 ]
