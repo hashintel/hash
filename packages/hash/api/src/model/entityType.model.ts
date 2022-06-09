@@ -348,7 +348,6 @@ class __EntityType {
     ].flat();
   }
 
-  // @todo need to make this available to the frontend
   public static async fetchComponentIdBlockSchema(componentId: string) {
     const componentIdUrl = new URL(
       "./block-schema.json",
