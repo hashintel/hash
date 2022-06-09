@@ -9,6 +9,10 @@ type PropertiesType<Properties extends {}> = Properties extends {
   entity: EntityStoreType;
 }
   ? DistributiveOmit<Properties, "entity"> & {
+      /**
+       * @deprecated
+       * @todo Don't use this, use links
+       */
       entity: DraftEntity<Properties["entity"]>;
     }
   : Properties;
