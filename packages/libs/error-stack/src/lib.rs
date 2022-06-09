@@ -68,8 +68,7 @@
 //! use error_stack::{IntoReport, Report};
 //!
 //! // Note: For demonstration purposes this example does not use `error_stack::Result`.
-//! // As can be seen, `IntoReport`  causes `Report` to be created from the `io::Error` when using
-//! // the ? operator
+//! // As can be seen, it's possible to call `IntoReport::report` to easily turn an `io::error` into a `Report`.
 //! fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
 //!     let content = fs::read_to_string(path).report()?;
 //!
