@@ -56,8 +56,9 @@ pub struct OrchClient {
 
 impl OrchClient {
     pub fn new(url: &str, experiment_id: ExperimentId) -> Result<Self> {
-        let client = nano::Client::new(url, 1)
-            .attach_lazy(|| format!("Could not create orchestrator client for {url:?}"))?;
+        let client = nano::Client::new(url, 1).attach_printable_lazy(|| {
+            format!("Could not create orchestrator client for {url:?}")
+        })?;
         Ok(OrchClient {
             url: url.into(),
             experiment_id,
