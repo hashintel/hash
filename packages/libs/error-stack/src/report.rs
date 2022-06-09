@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, string::ToString, vec::Vec};
-use core::{any::Any, fmt, fmt::Formatter, marker::PhantomData, panic::Location};
+use core::{fmt, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 
@@ -144,12 +144,12 @@ use crate::{
 /// ```
 #[must_use]
 #[repr(transparent)]
-pub struct Report<T> {
+pub struct Report<C> {
     inner: Box<ReportImpl>,
-    _context: PhantomData<T>,
+    _context: PhantomData<C>,
 }
 
-impl<T> Report<T> {
+impl<C> Report<C> {
     pub(crate) fn from_frame(
         frame: Frame,
         #[cfg(all(nightly, feature = "std"))] backtrace: Option<Backtrace>,
@@ -175,9 +175,9 @@ impl<T> Report<T> {
     ///
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
     #[track_caller]
-    pub fn new(context: T) -> Self
+    pub fn new(context: C) -> Self
     where
-        T: Context,
+        C: Context,
     {
         #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
         let provider = temporary_provider(&context);
@@ -298,9 +298,9 @@ impl<T> Report<T> {
     ///
     /// Please see the [`Context`] documentation for more information.
     #[track_caller]
-    pub fn change_context<C>(self, context: C) -> Report<C>
+    pub fn change_context<T>(self, context: T) -> Report<T>
     where
-        C: Context,
+        T: Context,
     {
         Report::from_frame(
             Frame::from_context(
@@ -373,37 +373,37 @@ impl<T> Report<T> {
 
     /// Creates an iterator over the [`Frame`] stack requesting references of type `R`.
     #[cfg(nightly)]
-    pub const fn request_ref<R: ?Sized + 'static>(&self) -> RequestRef<'_, R> {
+    pub const fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
         RequestRef::new(self)
     }
 
     /// Creates an iterator over the [`Frame`] stack requesting values of type `R`.
     #[cfg(nightly)]
-    pub const fn request_value<R: 'static>(&self) -> RequestValue<'_, R> {
+    pub const fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
         RequestValue::new(self)
     }
 
     /// Returns if `T` is the type held by any frame inside of the report.
     // TODO: Provide example
     #[must_use]
-    pub fn contains<A: Any>(&self) -> bool {
-        self.frames().any(Frame::is::<A>)
+    pub fn contains<T: Send + Sync + 'static>(&self) -> bool {
+        self.frames().any(Frame::is::<T>)
     }
 
     /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
     // TODO: Provide example
     #[must_use]
-    pub fn downcast_ref<A: Any>(&self) -> Option<&A> {
-        self.frames().find_map(Frame::downcast_ref::<A>)
+    pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
+        self.frames().find_map(Frame::downcast_ref::<T>)
     }
 
     /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
     // TODO: Provide example
     #[must_use]
-    pub fn downcast_mut<A: Any>(&mut self) -> Option<&mut A> {
-        self.frames_mut().find_map(Frame::downcast_mut::<A>)
+    pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
+        self.frames_mut().find_map(Frame::downcast_mut::<T>)
     }
 
     pub(crate) const fn frame(&self) -> &Frame {
@@ -429,7 +429,7 @@ impl<T: Context> Report<T> {
     #[allow(clippy::missing_panics_doc)] // Panicking here is a bug
     pub fn current_context(&self) -> &T
     where
-        T: Any,
+        T: Send + Sync + 'static,
     {
         // Panics if there isn't an attached context which matches `T`. As it's not possible to
         // create a `Report` without a valid context and this method can only be called when `T` is
@@ -443,7 +443,7 @@ impl<T: Context> Report<T> {
 }
 
 impl<Context> fmt::Display for Report<Context> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
         if let Some(display_hook) = Report::display_hook() {
             return display_hook(self.generalized(), fmt);
@@ -475,7 +475,7 @@ impl<Context> fmt::Display for Report<Context> {
 }
 
 impl<Context> fmt::Debug for Report<Context> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
         if let Some(debug_hook) = Report::debug_hook() {
             return debug_hook(self.generalized(), fmt);

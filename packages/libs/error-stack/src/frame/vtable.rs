@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 use core::{
-    any::{Any, TypeId},
+    any::TypeId,
     fmt,
     ptr::{addr_of, NonNull},
 };
@@ -85,7 +85,7 @@ impl VTable {
     }
 
     /// Attempts to downcast `frame` as a shared reference to `T`.
-    pub(in crate::frame) fn downcast_ref<'f, T: Any>(
+    pub(in crate::frame) fn downcast_ref<'f, T: Send + Sync + 'static>(
         &self,
         frame: &'f ErasableFrame,
     ) -> Option<&'f T> {
@@ -94,7 +94,7 @@ impl VTable {
     }
 
     /// Attempts to downcast `frame` as a unique reference to `T`.
-    pub(in crate::frame) fn downcast_mut<'f, T: Any>(
+    pub(in crate::frame) fn downcast_mut<'f, T: Send + Sync + 'static>(
         &self,
         frame: &'f mut ErasableFrame,
     ) -> Option<&'f mut T> {
@@ -174,6 +174,8 @@ impl VTable {
         frame: &ErasableFrame,
     ) -> FrameKind<'_> {
         // Attach A's native vtable onto the pointer to `self._unerased`
+        // Casting from `AttachmentProvider<A>` to `A` is allowed as `AttachmentProvider` is
+        // `repr(transparent)`
         let unerased: *const ErasableFrame<A> = (frame as *const ErasableFrame).cast();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
@@ -189,6 +191,8 @@ impl VTable {
         frame: &ErasableFrame,
     ) -> FrameKind<'_> {
         // Attach A's native vtable onto the pointer to `self._unerased`
+        // Casting from `AttachmentProvider<A>` to `A` is allowed as `AttachmentProvider` is
+        // `repr(transparent)`
         let unerased: *const ErasableFrame<A> = (frame as *const ErasableFrame).cast();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
@@ -200,7 +204,7 @@ impl VTable {
     /// # Safety
     ///
     /// - Layout of `frame` must match `ErasableFrame<T>`.
-    unsafe fn object_downcast<T: Any>(
+    unsafe fn object_downcast<T: Send + Sync + 'static>(
         frame: &ErasableFrame,
         target: TypeId,
     ) -> Option<NonNull<()>> {

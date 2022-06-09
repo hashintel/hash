@@ -4,7 +4,7 @@ mod kind;
 mod vtable;
 
 use alloc::boxed::Box;
-use core::{any::Any, fmt, mem, mem::ManuallyDrop, panic::Location, ptr::NonNull};
+use core::{fmt, mem, mem::ManuallyDrop, panic::Location, ptr::NonNull};
 
 pub use self::kind::{Attachment, FrameKind};
 use self::{erasable::ErasableFrame, vtable::VTable};
@@ -152,19 +152,19 @@ impl Frame {
 
     /// Returns if `T` is the held context or attachment by this frame.
     #[must_use]
-    pub fn is<T: Any>(&self) -> bool {
+    pub fn is<T: Send + Sync + 'static>(&self) -> bool {
         self.downcast_ref::<T>().is_some()
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
-    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
+    pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
         self.erased_frame.vtable().downcast_ref(&self.erased_frame)
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
-    pub fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
+    pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.erased_frame
             .vtable()
             .downcast_mut(&mut self.erased_frame)
