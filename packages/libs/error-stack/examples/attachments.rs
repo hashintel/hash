@@ -1,6 +1,9 @@
+// This is the same example also used in the README.md. When updating this, don't forget updating
+// the README.md as well. This is mainly used to test the code and generate the output shown.
+
 use std::{collections::HashMap, error::Error, fmt};
 
-use error_stack::{ensure, Report, Result, ResultExt};
+use error_stack::{ensure, Context, Report, Result, ResultExt};
 
 #[derive(Debug)]
 enum LookupError {
@@ -29,6 +32,8 @@ fn lookup_key(map: &HashMap<&str, u64>, key: &str) -> Result<u64, LookupError> {
         .ok_or_else(|| Report::from(LookupError::NotFound))
 }
 
+pub struct Suggestion(&'static str);
+
 fn parse_config(config: &HashMap<&str, u64>) -> Result<u64, LookupError> {
     let key = "abcd-efgh";
 
@@ -39,9 +44,20 @@ fn parse_config(config: &HashMap<&str, u64>) -> Result<u64, LookupError> {
     Ok(value)
 }
 
-fn main() -> Result<(), LookupError> {
+#[derive(Debug)]
+struct ParseConfigError;
+
+impl fmt::Display for ParseConfigError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Unable to parse the configuration")
+    }
+}
+
+impl Context for ParseConfigError {}
+
+fn main() -> Result<(), ParseConfigError> {
     let config = HashMap::default();
-    let _config_value = parse_config(&config).attach_printable("Unable to parse config")?;
+    let _config_value = parse_config(&config).change_context(ParseConfigError)?;
 
     Ok(())
 }
