@@ -24,7 +24,7 @@ pub enum AttachmentKind<'f> {
     /// A generic attachment created through [`attach()`].
     ///
     /// [`attach()`]: crate::Report::attach
-    Generic(&'f (dyn Send + Sync + 'static)),
+    Opaque(&'f (dyn Send + Sync + 'static)),
     /// A printable attachment created through [`attach_printable()`].
     ///
     /// [`attach_printable()`]: crate::Report::attach_printable

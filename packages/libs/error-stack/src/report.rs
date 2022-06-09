@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, string::ToString, vec::Vec};
-use core::{fmt, marker::PhantomData, panic::Location};
+use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 
@@ -456,7 +456,7 @@ impl<Context> fmt::Display for Report<Context> {
                 FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                     Some(attachment.to_string())
                 }
-                FrameKind::Attachment(AttachmentKind::Generic(_)) => None,
+                FrameKind::Attachment(AttachmentKind::Opaque(_)) => None,
             })
             .enumerate()
         {
@@ -492,6 +492,7 @@ impl<Context> fmt::Debug for Report<Context> {
         } else {
             let mut context_idx = -1;
             let mut attachments: Vec<_> = Vec::new();
+            let mut generic_attachments = 0;
             for frame in self.frames() {
                 match frame.kind() {
                     FrameKind::Context(context) => {
@@ -509,13 +510,22 @@ impl<Context> fmt::Debug for Report<Context> {
                         for attachment in attachments.drain(..) {
                             write!(fmt, "\n      - {attachment}")?;
                         }
+                        if generic_attachments > 0 {
+                            write!(fmt, "\n      - {generic_attachments} additional attachment")?;
+                            if generic_attachments > 1 {
+                                fmt.write_char('s')?;
+                            }
+                            generic_attachments = 0;
+                        }
 
                         context_idx += 1;
                     }
                     FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                         attachments.push(attachment);
                     }
-                    FrameKind::Attachment(_) => (),
+                    FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
+                        generic_attachments += 1;
+                    }
                 }
             }
 

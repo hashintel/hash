@@ -190,6 +190,7 @@ impl Provider for Frame {
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = fmt.debug_struct("Frame");
+        debug.field("location", &self.location);
         match self.kind() {
             FrameKind::Context(context) => {
                 debug.field("context", &context);
@@ -197,9 +198,11 @@ impl fmt::Debug for Frame {
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 debug.field("attachment", &attachment);
             }
-            FrameKind::Attachment(AttachmentKind::Generic(_)) => (),
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
+                debug.field("attachment", &"Opaque");
+            }
         }
-        debug.field("location", &self.location).finish()
+        debug.finish()
     }
 }
 
@@ -248,7 +251,7 @@ mod tests {
                 FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                     Some(attachment.to_string())
                 }
-                FrameKind::Attachment(AttachmentKind::Generic(_)) => None,
+                FrameKind::Attachment(AttachmentKind::Opaque(_)) => None,
             })
             .collect();
         assert_eq!(messages, ["Hello World!", "Context A"]);
@@ -270,7 +273,7 @@ mod tests {
         ));
         assert!(matches!(
             kinds_a[1],
-            FrameKind::Attachment(AttachmentKind::Generic(_))
+            FrameKind::Attachment(AttachmentKind::Opaque(_))
         ));
         assert!(matches!(kinds_a[2], FrameKind::Context(_)));
         assert!(matches!(
@@ -285,6 +288,7 @@ mod tests {
 
         assert_eq!(messages(&report), [
             "B2",
+            "Opaque",
             "Context B",
             "A2",
             "A1",

@@ -179,7 +179,7 @@ impl VTable {
         let unerased: *const ErasableFrame<A> = (frame as *const ErasableFrame).cast();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
-        FrameKind::Attachment(AttachmentKind::Generic(&(*(unerased))._unerased))
+        FrameKind::Attachment(AttachmentKind::Opaque(&(*(unerased))._unerased))
     }
 
     /// Unerase the object as `&dyn Debug + Display`.

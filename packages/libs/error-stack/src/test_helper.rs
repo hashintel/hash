@@ -42,12 +42,10 @@ pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), Report<E>>) -> Repo
 pub fn messages<E>(report: &Report<E>) -> Vec<String> {
     report
         .frames()
-        .filter_map(|frame| match frame.kind() {
-            FrameKind::Context(context) => Some(context.to_string()),
-            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                Some(attachment.to_string())
-            }
-            FrameKind::Attachment(AttachmentKind::Generic(_)) => None,
+        .map(|frame| match frame.kind() {
+            FrameKind::Context(context) => context.to_string(),
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => attachment.to_string(),
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => String::from("Opaque"),
         })
         .collect()
 }
