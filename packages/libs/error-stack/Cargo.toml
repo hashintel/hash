@@ -42,7 +42,7 @@ name = "json_output"
 required-features = ["hooks"]
 
 [[example]]
-name = "attachments"
+name = "demo"
 required-features = ["std"]
 
 [[example]]
