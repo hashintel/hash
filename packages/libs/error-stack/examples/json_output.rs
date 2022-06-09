@@ -6,7 +6,7 @@ use std::{
     fmt,
 };
 
-use error_stack::{bail, Report, Result, ResultExt};
+use error_stack::{bail, AttachmentKind, FrameKind, Report, Result, ResultExt};
 use serde_json::json;
 
 #[derive(Debug)]
@@ -49,7 +49,16 @@ fn create_new_entry(
 fn main() -> Result<(), MapError> {
     // This hook will be executed instead of the default implementation when `Debug` is called
     Report::set_debug_hook(|report, fmt| {
-        let errors = report.frames().map(ToString::to_string).collect::<Vec<_>>();
+        let errors = report
+            .frames()
+            .filter_map(|frame| match frame.kind() {
+                FrameKind::Context(context) => Some(context.to_string()),
+                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                    Some(attachment.to_string())
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
 
         if fmt.alternate() {
             fmt.write_str(&serde_json::to_string_pretty(&errors).expect("Could not format report"))
@@ -62,11 +71,11 @@ fn main() -> Result<(), MapError> {
     let mut config = HashMap::default();
 
     // Create an entry with "foo" as key
-    create_new_entry(&mut config, "foo", 1).attach("Could not create new entry")?;
+    create_new_entry(&mut config, "foo", 1).attach_printable("Could not create new entry")?;
 
     // Purposefully cause an error by attempting to create another entry with "foo" as key
     let creation_result =
-        create_new_entry(&mut config, "foo", 2).attach("Could not create new entry");
+        create_new_entry(&mut config, "foo", 2).attach_printable("Could not create new entry");
 
     assert_eq!(
         format!("{:?}", creation_result.unwrap_err()),
