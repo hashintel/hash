@@ -39,8 +39,8 @@ impl Frame {
         vtable: &'static VTable,
     ) -> Self {
         Self {
-            // SAFETY: `FrameRepr` must not be dropped without using the vtable, so it's wrapped in
-            //   `ManuallyDrop`. A custom drop implementation is provided that takes care of this.
+            // SAFETY: `ErasableFrame` must not be dropped without using the vtable, so it's wrapped
+            //   in `ManuallyDrop`. A custom drop implementation is provided to takes care of this.
             erased_frame: unsafe { ManuallyDrop::new(ErasableFrame::new(object, vtable)) },
             location,
             source,

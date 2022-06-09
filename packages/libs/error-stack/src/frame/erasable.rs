@@ -5,7 +5,7 @@ use crate::frame::VTable;
 #[repr(C)]
 pub(in crate::frame) struct ErasableFrame<T = ()> {
     vtable: &'static VTable,
-    // As we cast between `FrameRepr<T>` and `FrameRepr<()>`, `_unerased` must not be used
+    // As we cast between `ErasableFrame<T>` and `ErasableFrame<()>`, `_unerased` must not be used
     // directly, only through `vtable`
     pub(in crate::frame) _unerased: T,
 }

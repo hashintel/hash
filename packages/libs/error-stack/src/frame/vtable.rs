@@ -43,7 +43,7 @@ impl VTable {
         }
     }
 
-    /// Creates a `VTable` for an attachment.
+    /// Creates a `VTable` for a printable attachment.
     pub fn new_printable_attachment<A>() -> &'static Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
@@ -57,7 +57,7 @@ impl VTable {
         }
     }
 
-    /// Creates a `VTable` for an attachment.
+    /// Creates a `VTable` for a generic attachment.
     pub fn new_attachment<A>() -> &'static Self
     where
         A: Send + Sync + 'static,
@@ -71,7 +71,7 @@ impl VTable {
         }
     }
 
-    /// Unerases the `frame` as a [`Display`].
+    /// Unerases the `frame` as a [`FrameKind`].
     pub(in crate::frame) fn unerase<'f>(&self, frame: &'f ErasableFrame) -> FrameKind<'f> {
         // SAFETY: Use vtable to attach the frames' native vtable for the right original type.
         unsafe { (self.unerase)(frame) }
@@ -112,7 +112,7 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `*frame` must match `FrameRepr<C>`.
+    /// - Layout of `*frame` must match `ErasableFrame<T>`.
     unsafe fn object_drop<T>(frame: NonNull<ErasableFrame>) {
         // Attach T's native vtable onto the pointer to `self._unerased`
         // Note: This must not use `mem::transmute` because it tries to reborrow the `Unique`
@@ -127,11 +127,11 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `frame` must match `ErasableFrame<T>`.
+    /// - Layout of `frame` must match `ErasableFrame<C>`.
     #[cfg(nightly)]
     unsafe fn context_provide<C: Context>(frame: &ErasableFrame, demand: &mut Demand) {
-        // Attach T's native vtable onto the pointer to `self._unerased`
-        let unerased = (frame as *const ErasableFrame).cast::<ErasableFrame<C>>();
+        // Attach C's native vtable onto the pointer to `self._unerased`
+        let unerased: *const ErasableFrame<C> = (frame as *const ErasableFrame).cast();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
         (*(unerased))._unerased.provide(demand)
@@ -144,9 +144,9 @@ impl VTable {
     /// - Layout of `frame` must match `ErasableFrame<AttachmentProvider<A>>`.
     #[cfg(nightly)]
     unsafe fn self_provide<A: 'static>(frame: &ErasableFrame, demand: &mut Demand) {
-        // Attach T's native vtable onto the pointer to `self._unerased`
-        let unerased =
-            (frame as *const ErasableFrame).cast::<ErasableFrame<AttachmentProvider<A>>>();
+        // Attach A's native vtable onto the pointer to `self._unerased`
+        let unerased: *const ErasableFrame<AttachmentProvider<A>> =
+            (frame as *const ErasableFrame).cast();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
         (*(unerased))._unerased.provide(demand)
@@ -156,10 +156,10 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `frame` must match `ErasableFrame<T>`.
+    /// - Layout of `frame` must match `ErasableFrame<C>`.
     unsafe fn unerase_context<C: Context>(frame: &ErasableFrame) -> FrameKind<'_> {
-        // Attach T's native vtable onto the pointer to `self._unerased`
-        let unerased = (frame as *const ErasableFrame).cast::<ErasableFrame<C>>();
+        // Attach C's native vtable onto the pointer to `self._unerased`
+        let unerased: *const ErasableFrame<C> = (frame as *const ErasableFrame).cast();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
         FrameKind::Context(&(*(unerased))._unerased)
@@ -169,12 +169,13 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `frame` must match `ErasableFrame<T>`.
+    /// - Layout of `frame` must match `ErasableFrame<AttachmentProvider<A>>`.
     unsafe fn unerase_generic_attachment<A: Send + Sync + 'static>(
         frame: &ErasableFrame,
     ) -> FrameKind<'_> {
-        // Attach T's native vtable onto the pointer to `self._unerased`
-        let unerased = (frame as *const ErasableFrame).cast::<ErasableFrame<A>>();
+        // Attach A's native vtable onto the pointer to `self._unerased`
+        let unerased: *const ErasableFrame<AttachmentProvider<A>> =
+            (frame as *const ErasableFrame).cast();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
         FrameKind::Attachment(Attachment::Generic(&(*(unerased))._unerased))
@@ -184,12 +185,13 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `frame` must match `ErasableFrame<T>`.
+    /// - Layout of `frame` must match `ErasableFrame<AttachmentProvider<A>>`.
     unsafe fn unerase_printable_attachment<A: fmt::Debug + fmt::Display + Send + Sync + 'static>(
         frame: &ErasableFrame,
     ) -> FrameKind<'_> {
-        // Attach T's native vtable onto the pointer to `self._unerased`
-        let unerased = (frame as *const ErasableFrame).cast::<ErasableFrame<A>>();
+        // Attach A's native vtable onto the pointer to `self._unerased`
+        let unerased: *const ErasableFrame<AttachmentProvider<A>> =
+            (frame as *const ErasableFrame).cast();
         // inside of vtable it's allowed to access `_unerased`
         #[allow(clippy::used_underscore_binding)]
         FrameKind::Attachment(Attachment::Printable(&(*(unerased))._unerased))
