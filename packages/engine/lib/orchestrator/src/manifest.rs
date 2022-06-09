@@ -188,7 +188,7 @@ impl Manifest {
         // TODO: How to handle versions
         for dependency_name in self.dependencies.keys() {
             match get_dependency_type_from_name(dependency_name)
-                .attach_lazy(|| format!("Could not read dependency: {dependency_name}"))?
+                .attach_printable_lazy(|| format!("Could not read dependency: {dependency_name}"))?
             {
                 DependencyType::Behavior(extension) => {
                     let behavior = if &extension == ".rs" {
@@ -201,7 +201,7 @@ impl Manifest {
                         }
                     } else {
                         get_behavior_from_dependency_projects(dependency_name, &dependency_projects)
-                            .attach_lazy(|| {
+                            .attach_printable_lazy(|| {
                                 format!("Could not get behavior from dependency: {dependency_name}")
                             })?
                     };
@@ -270,10 +270,10 @@ impl Manifest {
             id: file_name.clone(),
             name: file_name,
             shortnames: vec![], // if this is a dependency, then these will be updated later
-            behavior_src: file_contents_opt(&path).attach("Could not read behavior")?,
+            behavior_src: file_contents_opt(&path).attach_printable("Could not read behavior")?,
             // this may not return anything if file doesn't exist
             behavior_keys_src: file_contents_opt(&key_path)
-                .attach("Could not read behavior keys")?,
+                .attach_printable("Could not read behavior keys")?,
         });
         Ok(())
     }
@@ -304,7 +304,7 @@ impl Manifest {
                     // Filter for `.json` files for behavior keys
                     if file_extension(&path)? != "json" {
                         self.add_behavior_from_file(path)
-                            .attach("Could not add behavior")?;
+                            .attach_printable("Could not add behavior")?;
                     }
                 }
                 Err(err) => {
@@ -339,7 +339,7 @@ impl Manifest {
             OrchestratorError::from(format!("Not a valid dataset extension: {path:?}"))
         );
 
-        let mut data = file_contents(path).attach("Could not read dataset")?;
+        let mut data = file_contents(path).attach_printable("Could not read dataset")?;
 
         if file_extension == "csv" {
             data = parse_raw_csv_into_json(data)
@@ -383,7 +383,7 @@ impl Manifest {
             match entry {
                 Ok(entry) => {
                     self.add_dataset_from_file(entry.path())
-                        .attach("Could not add dataset")?;
+                        .attach_printable("Could not add dataset")?;
                 }
                 Err(err) => {
                     warn!("Could not ready directory entry: {err}");
@@ -459,39 +459,39 @@ impl Manifest {
 
             project
                 .set_initial_state_from_directory(src_folder)
-                .attach("Could not read initial state")?;
+                .attach_printable("Could not read initial state")?;
 
             if globals_json.exists() {
                 project
                     .set_globals_from_file(globals_json)
-                    .attach("Could not read globals")?;
+                    .attach_printable("Could not read globals")?;
             }
             if analysis_json.exists() {
                 project
                     .set_analysis_from_file(analysis_json)
-                    .attach("Could not read analysis view")?;
+                    .attach_printable("Could not read analysis view")?;
             }
 
             if experiments_json.exists() {
                 project
                     .set_experiments_from_file(experiments_json)
-                    .attach("Could not read experiments")?;
+                    .attach_printable("Could not read experiments")?;
             }
         }
         if dependencies_json.exists() {
             project
                 .set_dependencies_from_file(dependencies_json)
-                .attach("Could not read experiments")?;
+                .attach_printable("Could not read experiments")?;
         }
         if behaviors_folder.exists() {
             project
                 .add_behaviors_from_directory(behaviors_folder)
-                .attach("Could not read local behaviors")?;
+                .attach_printable("Could not read local behaviors")?;
         }
         if data_folder.exists() {
             project
                 .add_datasets_from_directory(data_folder)
-                .attach("Could not read local datasets")?;
+                .attach_printable("Could not read local datasets")?;
         }
 
         let behaviors_deps_folders = local_dependencies_folders(dependencies_folder);
@@ -502,7 +502,7 @@ impl Manifest {
                 Err(err) => Err(err),
             })
             .collect::<Result<HashMap<PathBuf, Self>>>()
-            .attach("Could not read dependencies")?;
+            .attach_printable("Could not read dependencies")?;
         project.add_dependency_projects(dep_projects)?;
 
         Ok(project)
