@@ -70,10 +70,6 @@
             {
               "Header": "age",
               "accessor": "age"
-            },
-            {
-              "Header": "country",
-              "accessor": "country"
             }
           ]
         }
