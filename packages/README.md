@@ -14,4 +14,4 @@ Our [HASH](https://hash.ai/platform/hash) codebase can be found in `hash`. HASH 
 
 ## `libs`
 
-`libs` contains the source code for the software development libraries which HASH has published publicly. These are intended for use within other software projects and are unlikely to provide utility outside of this context. Write-ups of most can be found on the [HASH website for developers](https://hash.dev/).
+`libs` contains the source code for the software development libraries which HASH has published for general use in building other projects. Write-ups of most can be found on the [HASH website for developers](https://hash.dev/).
