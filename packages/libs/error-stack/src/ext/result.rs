@@ -50,8 +50,7 @@ pub trait ResultExt {
     ///
     /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
     ///
-    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized. If
-    /// `T` implements [`Display`] or [`Debug`] these implementations will be used.
+    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized.
     ///
     /// [`Display`]: core::fmt::Display
     /// [`Debug`]: core::fmt::Debug
@@ -70,7 +69,6 @@ pub trait ResultExt {
     /// [`Report`].
     ///
     /// **Note:** [`attach_printable_lazy()`] will be deprecated when specialization is stabilized.
-    /// If `T` implements [`Display`] or [`Debug`] these implementations will be used.
     ///
     /// [`Display`]: core::fmt::Display
     /// [`Debug`]: core::fmt::Debug

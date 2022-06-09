@@ -144,8 +144,7 @@ pub trait FutureExt: Future + Sized {
     ///
     /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
     ///
-    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized. If
-    /// `T` implements [`Display`] or [`Debug`] these implementations will be used.
+    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized.
     ///
     /// [`attach_printable()`]: Self::attach_printable
     /// [`Frame`]: crate::Frame
@@ -165,7 +164,6 @@ pub trait FutureExt: Future + Sized {
     /// [`Report`].
     ///
     /// **Note:** [`attach_printable_lazy()`] will be deprecated when specialization is stabilized.
-    /// If `T` implements [`Display`] or [`Debug`] these implementations will be used.
     ///
     /// [`attach_printable_lazy()`]: Self::attach_printable_lazy
     /// [`Frame`]: crate::Frame
