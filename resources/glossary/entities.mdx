@@ -1,0 +1,32 @@
+---
+objectId: 5f7f8d88-0205-4043-f46f-0ba3791t4616
+title: Entities
+description: "Entities are individual ‘things’ with a distinct, independent existence."
+slug: entities
+tags: ["Graphs", "Simulation Modeling"]
+---
+
+## What are entities?
+
+Entities are individual ‘things’ with a distinct, independent existence.
+
+Every entity in HASH has:
+- a HASH ID, which makes it uniquely identifiable and content-addressable;
+- one or more [entity types](https://hash.ai/glossary/entity-type) which describe the entity’s expected properties;
+- [properties](https://hash.ai/glossary/properties), infered from its entity type(s), which may in turn contain [values](https://hash.ai/glossary/values).
+
+The ‘entity type’ tells you what kind of thing an entity is expected to be (e.g. a `Book`, which is expected to have properties such as `author`, `title` and `publisher`).
+
+The values of an entity’s properties tell you about that instance of the entity itself, for example what its `title` actually is (e.g. “Brave New World”).
+
+Sometimes the values of a property may contain [links](https://hash.ai/glossary/links). In such cases, we would describe an entity as a ‘linked entity’.
+
+## What are linked entities?
+
+In the real world, entities are often connected to other entities.
+
+Sometimes these connections take the form of social relationships (e.g. “Mother <> Child” or “Friend <> Friend”) occurring between entities of the same [entity type] (in this case `Person`).
+
+However, entities of completely different entity types can also be linked. For example, connections between entities may sometimes be legal or procedural, such as “Employee <> Employer” or “Politician <> Political Party”, which may both link a `Person` with an `Organization`.
+
+A network of entities which are connected to other entities is sometimes called a [graph](https://hash.ai/glossary/graphs). We call these entities with links ‘linked entities’.
