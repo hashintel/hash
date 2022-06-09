@@ -270,7 +270,7 @@ export const pageTypedef = gql`
   }
 
   """
-  reate an entity, which you can then reference in other actions, such as a InsertBlockAction
+  Create an entity, which you can then reference in other actions, such as a InsertBlockAction
   """
   input CreateEntityAction {
     entity: EntityDefinition!
@@ -295,7 +295,7 @@ export const pageTypedef = gql`
     """
     schema: JSONObject
     """
-    Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
+    Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to UpdatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
     """
     placeholderId: ID!
   }
@@ -318,7 +318,7 @@ export const pageTypedef = gql`
   }
 
   """
-  Map of placeholder IDs used in the UpdateContentContentsActions to the entity IDs created for those placeholders
+  Map of placeholder IDs used in the UpdatePageContentsActions to the entity IDs created for those placeholders
   """
   type UpdatePageContentsResultPlaceholder {
     placeholderId: ID!
