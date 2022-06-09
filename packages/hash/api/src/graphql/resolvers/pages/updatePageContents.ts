@@ -232,7 +232,7 @@ export const updatePageContents: Resolver<
               });
             } else {
               throw new Error(
-                `InsertBlock: at least one of existingBlockEntity or componentId must be provided`,
+                `InsertBlock: exactly one of existingBlockEntity or componentId must be provided`,
               );
             }
 
