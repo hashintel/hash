@@ -146,6 +146,7 @@
 //! #     }
 //! # }
 //! # impl Context for ParseConfigError {}
+//! # #[derive(Debug, PartialEq)]
 //! struct Suggestion(&'static str);
 //!
 //! # #[cfg(all(not(miri), feature = "std"))] {
@@ -163,10 +164,49 @@
 //! # let report = parse_config("test.txt").unwrap_err();
 //! # assert_eq!(report.frames().count(), 4);
 //! # assert!(report.contains::<std::io::Error>());
+//! # assert_eq!(report.downcast_ref::<Suggestion>().unwrap(), &Suggestion("Use a file you can read next time!"));
+//! # #[cfg(nightly)]
+//! # assert_eq!(report.request_ref::<Suggestion>().next().unwrap(), &Suggestion("Use a file you can read next time!"));
+//! # assert_eq!(report.request_ref::<String>().next().unwrap(), "Could not read file \"test.txt\"");
 //! # assert!(report.contains::<ParseConfigError>());
 //! # }
 //! ```
 //!
+//! # In-Depth Explaination
+//!
+//! ## Crate Philosophy
+//!
+//! This crate adds some development overheads in comparison to other error handling strategies,
+//! where you could use string-like types as root errors. The idea is that errors should happen in
+//! well-scoped environments like reading a file or parsing a string into an integer. For these
+//! errors, a well-defined error type should be used (i.e. `io::Error` or `ParseIntError`) instead
+//! of creating an error from a string.
+//!
+//! By capturing the [`Context`] in the type parameter, the user directly has all type information
+//! without optimistically trying to downcast back to an error type (which remains possible). This
+//! also implies that **more time than not** the user is _forced_ to add a new context because the
+//! type system requires it. This encourages the user to provide a new error type if the scope is
+//! changed, usually by crossing module/crate boundaries (for example, a `ConfigParseError` when
+//! parsing a configuration file vs. an `IoError` when reading a file from disk). By this, the user
+//! is required to be more specific on their error and the [`Report`] can generate more useful error
+//! messages.
+//!
+//! ## Contexts
+//!
+//! A [`Context`] provides information for the scope of an error. It's describing the current
+//! section of code's way of seeing the error. This could either be an [`Error`] itself, as this is
+//! expected to be scoped, or a broader scope like a crate boundary.
+//!
+//! The [`Report`] keeps track of its current [`Context`]. The current [`Context`] is expected to
+//! change when the [`Report`] is leaving a scope, where the specificity of the error might nove
+//! have much meaning anymore. A common example is reading the content of a file. The error returned
+//! from `File::open` is only useful in the scope where the file is opened. When this scope is left,
+//! it's useful and expected to provide a new context: Which file was attempted to be opened and
+//! when did this happen?
+// TODO: Example: open a file - leave scope - parse config - leave scope
+//   two `change_context` calls to be explicit
+//!
+// TODO: Move to features-section:
 //! It's possible to request the attachments or the data provided by [`Context`] by calling
 //! [`Report::request_ref()`]:
 //!
@@ -212,23 +252,6 @@
 //!
 //! Suggestion: Use a file you can read next time!
 //! ```
-//!
-//! ## Crate Philosophy
-//!
-//! This crate adds some development overheads in comparison to other error handling strategies,
-//! where you could use string-like types as root errors. The idea is that errors should happen in
-//! well-scoped environments like reading a file or parsing a string into an integer. For these
-//! errors, a well-defined error type should be used (i.e. `io::Error` or `ParseIntError`) instead
-//! of creating an error from a string.
-//!
-//! By capturing the [`Context`] in the type parameter, the user directly has all type information
-//! without optimistically trying to downcast back to an error type (which remains possible). This
-//! also implies that **more time than not** the user is _forced_ to add a new context because the
-//! type system requires it. This encourages the user to provide a new error type if the scope is
-//! changed, usually by crossing module/crate boundaries (for example, a `ConfigParseError` when
-//! parsing a configuration file vs. an `IoError` when reading a file from disk). By this, the user
-//! is required to be more specific on their error and the [`Report`] can generate more
-//! useful error messages.
 //!
 //! ## Additional Features
 //!
