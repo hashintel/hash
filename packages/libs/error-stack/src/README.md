@@ -1,7 +1,10 @@
-[![Crates.io](https://img.shields.io/crates/v/error-stack)][crates.io] [![docs.rs](https://img.shields.io/docsrs/error-stack)][documentation]
+[![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
+[![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
+[![license](https://img.shields.io/crates/l/error-stack)][license]
 
 [crates.io]: https://crates.io/crates/error-stack
 [documentation]: https://docs.rs/error-stack
+[license]: ./LICENSE.md
 
 # `error-stack` -- A context-aware error library with abritrary attached user data
 
