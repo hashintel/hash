@@ -756,10 +756,7 @@ const newInstance =
      * @todo check plugins
      */
     const newState = state.apply(
-      await manager.createEntityUpdateTransaction(
-        data.page.properties.contents,
-        state,
-      ),
+      await manager.createEntityUpdateTransaction(data.page.contents, state),
     );
 
     // The instance may have been created whilst another user we were doing the above work
@@ -772,7 +769,7 @@ const newInstance =
       pageEntityId,
       newState,
       manager,
-      data.page.properties.contents,
+      data.page.contents,
       entityWatcher,
       apolloClient,
     );

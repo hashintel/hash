@@ -16,7 +16,7 @@ import {
 } from "./util";
 
 type ContentsEntity = DistributiveOmit<
-  PageFieldsFragment["properties"]["contents"][number],
+  PageFieldsFragment["contents"][number],
   "__typename"
 >;
 

@@ -395,7 +395,7 @@ export const save = async (
         variables: { accountId, entityId: pageEntityId },
         fetchPolicy: "network-only",
       })
-      .then((res) => res.data.page.properties.contents),
+      .then((res) => res.data.page.contents),
     apolloClient
       .query<GetTextEntityTypeQuery, GetTextEntityTypeQueryVariables>({
         query: getTextEntityType,
@@ -442,8 +442,5 @@ export const save = async (
     placeholderToDraft,
   );
 
-  return [
-    res.data.updatePageContents.page.properties.contents,
-    draftToEntityId,
-  ] as const;
+  return [res.data.updatePageContents.page.contents, draftToEntityId] as const;
 };

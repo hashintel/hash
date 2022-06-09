@@ -17,9 +17,9 @@ export const pageFieldsFragment = gql`
       archived
       summary
       title
-      contents {
-        ...BlockFields
-      }
+    }
+    contents {
+      ...BlockFields
     }
   }
   ${blockFieldsFragment}
