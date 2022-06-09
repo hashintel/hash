@@ -53,47 +53,6 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "data": {
-          "__linkedData": {
-            "aggregate": {
-              "itemsPerPage": 5,
-              "entityTypeId": "d399c523-e152-49ed-81a4-56d9e17196bb",
-              "pageNumber": 1,
-              "pageCount": 1
-            },
-            "entityTypeId": "d399c523-e152-49ed-81a4-56d9e17196bb"
-          },
-          "data": [
-            {
-              "entityId": "1",
-              "name": "Alice",
-              "email": "alice@example.com",
-              "age": 42,
-              "country": "England"
-            },
-            {
-              "entityId": "2",
-              "name": "Bob",
-              "email": "bob@example.com",
-              "age": 34,
-              "country": "France"
-            },
-            {
-              "entityId": "3",
-              "name": "David",
-              "email": "david@example.com",
-              "age": 24,
-              "country": "Denmark"
-            },
-            {
-              "entityId": "4",
-              "name": "Eric",
-              "email": "eric@example.com",
-              "age": 59,
-              "country": "Iceland"
-            }
-          ]
-        },
         "initialState": {
           "columns": [
             {
