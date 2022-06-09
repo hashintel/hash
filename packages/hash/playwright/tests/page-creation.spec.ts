@@ -17,11 +17,7 @@ test("user can create page", async ({ page }) => {
   });
 
   // TODO: Check if we are on the user page
-  await expect(
-    page.locator(
-      "text=Please select a page from the list, or create a new page.",
-    ),
-  ).toBeVisible();
+  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
 
   // TODO: Check URL contains own login once we have replaced uuids implemented
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+$/));
