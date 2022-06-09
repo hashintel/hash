@@ -233,7 +233,7 @@ mod tests {
                 FrameKind::Attachment(Attachment::Printable(attachment)) => {
                     Some(attachment.to_string())
                 }
-                _ => None,
+                FrameKind::Attachment(Attachment::Generic(_)) => None,
             })
             .collect();
         assert_eq!(messages, ["Hello World!", "Context A"]);

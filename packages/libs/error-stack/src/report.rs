@@ -456,7 +456,7 @@ impl<Context> fmt::Display for Report<Context> {
                 FrameKind::Attachment(Attachment::Printable(attachment)) => {
                     Some(attachment.to_string())
                 }
-                _ => None,
+                FrameKind::Attachment(Attachment::Generic(_)) => None,
             })
             .enumerate()
         {
@@ -513,7 +513,7 @@ impl<Context> fmt::Debug for Report<Context> {
                         context_idx += 1;
                     }
                     FrameKind::Attachment(Attachment::Printable(attachment)) => {
-                        attachments.push(attachment)
+                        attachments.push(attachment);
                     }
                     FrameKind::Attachment(_) => (),
                 }

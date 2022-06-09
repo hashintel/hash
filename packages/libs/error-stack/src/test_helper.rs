@@ -47,7 +47,7 @@ pub fn messages<E>(report: &Report<E>) -> Vec<String> {
             FrameKind::Attachment(Attachment::Printable(attachment)) => {
                 Some(attachment.to_string())
             }
-            _ => None,
+            FrameKind::Attachment(Attachment::Generic(_)) => None,
         })
         .collect()
 }
