@@ -297,10 +297,6 @@ export const updatePageContents: Resolver<
         }),
     );
 
-    // Lock the page so that no other concurrent call to this resolver will conflict
-    // with the page update.
-    await Entity.acquireLock(client, { entityId: pageEntityId });
-
     const page = await Page.getPageById(client, {
       accountId,
       entityId: pageEntityId,
@@ -309,6 +305,8 @@ export const updatePageContents: Resolver<
       const msg = `Page with fixed ID ${pageEntityId} not found in account ${accountId}`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
+
+    await page.acquireLock(client);
 
     // Update the page by inserting new blocks, moving blocks and removing blocks
     let insertCount = 0;
