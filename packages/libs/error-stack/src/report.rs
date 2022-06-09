@@ -1,5 +1,5 @@
-use alloc::{boxed::Box, vec::Vec};
-use core::{any::Any, fmt, fmt::Formatter, marker::PhantomData, panic::Location};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
+use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 
@@ -12,7 +12,7 @@ use crate::iter::{RequestRef, RequestValue};
 use crate::{context::temporary_provider, provider::request_ref};
 use crate::{
     iter::{Frames, FramesMut},
-    Context, Frame, FrameKind,
+    AttachmentKind, Context, Frame, FrameKind,
 };
 
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
@@ -53,21 +53,20 @@ use crate::{
 ///
 ///
 /// ```
-/// # #![cfg_attr(any(miri, not(feature = "std")), allow(warnings))]
+/// # #[cfg(all(not(miri), feature = "std"))] {
 /// use error_stack::{IntoReport, ResultExt, Result};
 ///
-/// # #[allow(dead_code)]
-/// # fn fake_main() -> Result<(), std::io::Error> {
+/// # fn fake_main() -> Result<String, std::io::Error> {
 /// let config_path = "./path/to/config.file";
-/// # #[cfg(all(not(miri), feature = "std"))]
-/// # #[allow(unused_variables)]
 /// let content = std::fs::read_to_string(config_path)
 ///     .report()
-///     .attach_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
 /// ...
-/// # }; Ok(()) }
+/// # }; Ok(content) }
+/// # assert_eq!(fake_main().unwrap_err().frames().count(), 2);
+/// # }
 /// ```
 ///
 /// Enforce a context for an error:
@@ -120,7 +119,7 @@ use crate::{
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # return Err(error_stack::report!(ConfigError::IoError).attach("Not supported"));
+///     # return Err(error_stack::report!(ConfigError::IoError).attach_printable("Not supported"));
 ///     # #[cfg(all(not(miri), feature = "std"))]
 ///     std::fs::read_to_string(path.as_ref()).report().change_context(ConfigError::IoError)
 /// }
@@ -145,12 +144,12 @@ use crate::{
 /// ```
 #[must_use]
 #[repr(transparent)]
-pub struct Report<T> {
+pub struct Report<C> {
     inner: Box<ReportImpl>,
-    _context: PhantomData<T>,
+    _context: PhantomData<C>,
 }
 
-impl<T> Report<T> {
+impl<C> Report<C> {
     pub(crate) fn from_frame(
         frame: Frame,
         #[cfg(all(nightly, feature = "std"))] backtrace: Option<Backtrace>,
@@ -176,9 +175,9 @@ impl<T> Report<T> {
     ///
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
     #[track_caller]
-    pub fn new(context: T) -> Self
+    pub fn new(context: C) -> Self
     where
-        T: Context,
+        C: Context,
     {
         #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
         let provider = temporary_provider(&context);
@@ -215,10 +214,44 @@ impl<T> Report<T> {
 
     /// Adds contextual information to the [`Frame`] stack.
     ///
+    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
+    ///
+    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized.
+    ///
+    /// [`Display`]: core::fmt::Display
+    /// [`Debug`]: core::fmt::Debug
+    /// [`attach_printable()`]: Self::attach_printable
+    #[track_caller]
+    pub fn attach<A>(self, attachment: A) -> Self
+    where
+        A: Send + Sync + 'static,
+    {
+        Self::from_frame(
+            Frame::from_attachment(
+                attachment,
+                Location::caller(),
+                Some(Box::new(self.inner.frame)),
+            ),
+            #[cfg(all(nightly, feature = "std"))]
+            self.inner.backtrace,
+            #[cfg(feature = "spantrace")]
+            self.inner.span_trace,
+        )
+    }
+
+    /// Adds contextual information to the [`Frame`] stack.
+    ///
+    /// This behaves like [`attach()`] but will also be shown when printing the [`Report`].
+    ///
+    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
+    /// stabilized.
+    ///
+    /// [`attach()`]: Self::attach
+    ///
     /// ## Example
     ///
     /// ```rust
-    /// # #![cfg_attr(not(feature = "std"), allow(unused_imports))]
+    /// # #[cfg(all(feature = "std", not(miri)))] {
     /// use std::{fmt, fs};
     ///
     /// use error_stack::{IntoReport, ResultExt};
@@ -232,12 +265,6 @@ impl<T> Report<T> {
     ///     }
     /// }
     ///
-    /// # #[derive(Debug)] struct NoStdError;
-    /// # impl core::fmt::Display for NoStdError { fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-    /// # impl error_stack::Context for NoStdError {}
-    /// # #[cfg(any(not(feature = "std"), miri))]
-    /// # let error: Result<(), _> = Err(error_stack::report!(NoStdError).attach(Suggestion("Better use a file which exists next time!")));
-    /// # #[cfg(all(feature = "std", not(miri)))]
     /// let error = fs::read_to_string("config.txt")
     ///     .report()
     ///     .attach(Suggestion("Better use a file which exists next time!"));
@@ -248,13 +275,14 @@ impl<T> Report<T> {
     ///
     /// # #[cfg(nightly)]
     /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
+    /// # }
     #[track_caller]
-    pub fn attach<A>(self, attachment: A) -> Self
+    pub fn attach_printable<A>(self, attachment: A) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self::from_frame(
-            Frame::from_attachment(
+            Frame::from_printable_attachment(
                 attachment,
                 Location::caller(),
                 Some(Box::new(self.inner.frame)),
@@ -270,9 +298,9 @@ impl<T> Report<T> {
     ///
     /// Please see the [`Context`] documentation for more information.
     #[track_caller]
-    pub fn change_context<C>(self, context: C) -> Report<C>
+    pub fn change_context<T>(self, context: T) -> Report<T>
     where
-        C: Context,
+        T: Context,
     {
         Report::from_frame(
             Frame::from_context(
@@ -345,37 +373,37 @@ impl<T> Report<T> {
 
     /// Creates an iterator over the [`Frame`] stack requesting references of type `R`.
     #[cfg(nightly)]
-    pub const fn request_ref<R: ?Sized + 'static>(&self) -> RequestRef<'_, R> {
+    pub const fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
         RequestRef::new(self)
     }
 
     /// Creates an iterator over the [`Frame`] stack requesting values of type `R`.
     #[cfg(nightly)]
-    pub const fn request_value<R: 'static>(&self) -> RequestValue<'_, R> {
+    pub const fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
         RequestValue::new(self)
     }
 
     /// Returns if `T` is the type held by any frame inside of the report.
     // TODO: Provide example
     #[must_use]
-    pub fn contains<A: Any>(&self) -> bool {
-        self.frames().any(Frame::is::<A>)
+    pub fn contains<T: Send + Sync + 'static>(&self) -> bool {
+        self.frames().any(Frame::is::<T>)
     }
 
     /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
     // TODO: Provide example
     #[must_use]
-    pub fn downcast_ref<A: Any>(&self) -> Option<&A> {
-        self.frames().find_map(Frame::downcast_ref::<A>)
+    pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
+        self.frames().find_map(Frame::downcast_ref::<T>)
     }
 
     /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
     // TODO: Provide example
     #[must_use]
-    pub fn downcast_mut<A: Any>(&mut self) -> Option<&mut A> {
-        self.frames_mut().find_map(Frame::downcast_mut::<A>)
+    pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
+        self.frames_mut().find_map(Frame::downcast_mut::<T>)
     }
 
     pub(crate) const fn frame(&self) -> &Frame {
@@ -401,7 +429,7 @@ impl<T: Context> Report<T> {
     #[allow(clippy::missing_panics_doc)] // Panicking here is a bug
     pub fn current_context(&self) -> &T
     where
-        T: Any,
+        T: Send + Sync + 'static,
     {
         // Panics if there isn't an attached context which matches `T`. As it's not possible to
         // create a `Report` without a valid context and this method can only be called when `T` is
@@ -415,26 +443,39 @@ impl<T: Context> Report<T> {
 }
 
 impl<Context> fmt::Display for Report<Context> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
-        if let Some(debug_hook) = Report::display_hook() {
-            return debug_hook(self.generalized(), fmt);
+        if let Some(display_hook) = Report::display_hook() {
+            return display_hook(self.generalized(), fmt);
         }
 
-        let mut chain = self.frames();
-        let error = chain.next().expect("No error occurred");
-        fmt::Display::fmt(&error, fmt)?;
-        if let Some(cause) = chain.next() {
-            if fmt.alternate() {
-                write!(fmt, ": {cause}")?;
+        for (index, frame) in self
+            .frames()
+            .filter_map(|frame| match frame.kind() {
+                FrameKind::Context(context) => Some(context.to_string()),
+                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                    Some(attachment.to_string())
+                }
+                FrameKind::Attachment(AttachmentKind::Opaque(_)) => None,
+            })
+            .enumerate()
+        {
+            if index == 0 {
+                fmt::Display::fmt(&frame, fmt)?;
+                if !fmt.alternate() {
+                    break;
+                }
+            } else {
+                write!(fmt, ": {frame}")?;
             }
         }
+
         Ok(())
     }
 }
 
 impl<Context> fmt::Debug for Report<Context> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
         if let Some(debug_hook) = Report::debug_hook() {
             return debug_hook(self.generalized(), fmt);
@@ -450,17 +491,18 @@ impl<Context> fmt::Debug for Report<Context> {
             debug.finish()
         } else {
             let mut context_idx = -1;
-            let mut attachments: Vec<&Frame> = Vec::new();
+            let mut attachments: Vec<_> = Vec::new();
+            let mut opaque_attachments = 0;
             for frame in self.frames() {
                 match frame.kind() {
-                    FrameKind::Context => {
+                    FrameKind::Context(context) => {
                         if context_idx == -1 {
-                            write!(fmt, "{frame}")?;
+                            write!(fmt, "{context}")?;
                         } else {
                             if context_idx == 0 {
                                 fmt.write_str("\n\nCaused by:")?;
                             }
-                            write!(fmt, "\n   {context_idx}: {frame}")?;
+                            write!(fmt, "\n   {context_idx}: {context}")?;
                         }
                         write!(fmt, "\n             at {}", frame.location())?;
 
@@ -468,11 +510,24 @@ impl<Context> fmt::Debug for Report<Context> {
                         for attachment in attachments.drain(..) {
                             write!(fmt, "\n      - {attachment}")?;
                         }
+                        if opaque_attachments > 0 {
+                            write!(
+                                fmt,
+                                "\n      - {opaque_attachments} additional opaque attachment"
+                            )?;
+                            if opaque_attachments > 1 {
+                                fmt.write_char('s')?;
+                            }
+                            opaque_attachments = 0;
+                        }
 
                         context_idx += 1;
                     }
-                    FrameKind::Attachment => {
-                        attachments.push(frame);
+                    FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                        attachments.push(attachment);
+                    }
+                    FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
+                        opaque_attachments += 1;
                     }
                 }
             }

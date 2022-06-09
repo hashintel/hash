@@ -91,16 +91,7 @@
 //! #     }
 //! # }
 //! # impl Context for ParseConfigError {}
-//! #[derive(Debug)]
 //! struct Suggestion(&'static str);
-//!
-//! impl std::fmt::Display for Suggestion {
-//!     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//!         write!(fmt, "{}", self.0)
-//!     }
-//! }
-//!
-//! impl Context for Suggestion {}
 //!
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
 //!     let path = path.as_ref();
@@ -109,7 +100,7 @@
 //!         .report()
 //!         .change_context(ParseConfigError::new())
 //!         .attach(Suggestion("Use a file you can read next time!"))
-//!         .attach_lazy(|| format!("Could not read file {path:?}"))?;
+//!         .attach_printable_lazy(|| format!("Could not read file {path:?}"))?;
 //!     # #[cfg(any(miri, not(feature = "std")))]
 //!     # let content = String::new();
 //!
@@ -121,7 +112,7 @@
 //!         eprintln!("{report:?}");
 //!         # #[cfg(nightly)]
 //!         for suggestion in report.request_ref::<Suggestion>() {
-//!             eprintln!("Suggestion: {suggestion}");
+//!             eprintln!("Suggestion: {}", suggestion.0);
 //!         }
 //!     }
 //! }
@@ -132,8 +123,8 @@
 //! ```text
 //! Could not parse configuration file
 //!              at main.rs:17:10
-//!       - Use a file you can read next time!
 //!       - Could not read file "config.json"
+//!       - 1 additional opaque attachment
 //!
 //! Caused by:
 //!    0: No such file or directory (os error 2)
@@ -196,77 +187,23 @@ mod frame;
 pub mod iter;
 mod macros;
 mod report;
-mod result;
 
 mod context;
-#[cfg(feature = "futures")]
-pub mod future;
+mod ext;
 #[cfg(feature = "hooks")]
 mod hook;
 #[cfg(nightly)]
 pub mod provider;
+#[cfg(test)]
+pub(crate) mod test_helper;
 
-#[cfg(feature = "futures")]
 #[doc(inline)]
-pub use self::future::FutureExt;
+pub use self::ext::*;
 #[cfg(feature = "hooks")]
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,
-    frame::{Frame, FrameKind},
+    frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
-    result::{IntoReport, Result, ResultExt},
 };
-
-#[cfg(test)]
-pub(crate) mod test_helper {
-    pub use alloc::{
-        string::{String, ToString},
-        vec::Vec,
-    };
-    use core::{fmt, fmt::Formatter};
-
-    use crate::{Context, Frame, FrameKind, Report};
-
-    #[derive(Debug, PartialEq)]
-    pub struct ContextA;
-
-    impl fmt::Display for ContextA {
-        fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-            fmt.write_str("Context A")
-        }
-    }
-
-    impl Context for ContextA {}
-
-    #[derive(Debug, PartialEq)]
-    pub struct ContextB;
-
-    impl fmt::Display for ContextB {
-        fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-            fmt.write_str("Context B")
-        }
-    }
-
-    #[cfg(feature = "std")]
-    impl std::error::Error for ContextB {}
-
-    #[cfg(not(feature = "std"))]
-    impl Context for ContextB {}
-
-    pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), Report<E>>) -> Report<E> {
-        match closure() {
-            Ok(_) => panic!("Expected an error"),
-            Err(report) => report,
-        }
-    }
-
-    pub fn messages<E>(report: &Report<E>) -> Vec<String> {
-        report.frames().map(ToString::to_string).collect()
-    }
-
-    pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
-        report.frames().map(Frame::kind).collect()
-    }
-}
