@@ -251,6 +251,7 @@
 //! variants:
 //!
 //! ```rust
+//! # #![cfg_attr(not(nightly), allow(unused_variables, dead_code))]
 //! # use error_stack::Result;
 //! # struct Suggestion(&'static str);
 //! # fn parse_config(_: &str) -> Result<(), std::io::Error> { Ok(()) }
