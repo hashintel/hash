@@ -45,7 +45,7 @@ These error messages would tell us very little about the context that led to the
 - there are actually enough log statements in the correct places to give enough information;
 - the log statements have been written in a way that's helpful, and provide the correct information (which is a challenge by itself, as you'll often find you needed information you hadn't thought about before).
 
-Perhaps most importantly though, hEngine is a multi-threaded, multi-language project; this means that there will often be a mix of logs from various threads appearing before an error, with it being unclear as to which piece of logic caused the problem.
+Perhaps most importantly though, hEngine is a multi-threaded, multi-language project. The consequence of this is that there will often be a mix of logs from various threads appearing before an error, resulting in it not always being straightforward to tell which piece of logic may be causing a problem.
 
 It's worth mentioning that `thiserror` is able to capture backtraces, which helps a fair bit. We started utilizing this by adding a `backtrace` field for some of our error variants, however, in doing so we ran into two issues.
 
