@@ -1,0 +1,61 @@
+diff --git a/node_modules/block-scripts/shared/block-assets-plugin.js b/node_modules/block-scripts/shared/block-assets-plugin.js
+index 7479d0b..c33024b 100644
+--- a/node_modules/block-scripts/shared/block-assets-plugin.js
++++ b/node_modules/block-scripts/shared/block-assets-plugin.js
+@@ -4,6 +4,7 @@ import path from "node:path";
+ import { getPort } from "./config.js";
+ import { generateDistBlockMetadata } from "./generate-dist-block-metadata.js";
+ import { generateDistBlockSchema } from "./generate-dist-block-schema.js";
++import { generateDistExampleGraph } from "./generate-dist-example-graph.js";
+ import { generateDistReadme } from "./generate-dist-readme.js";
+ import { blockDistDirPath } from "./paths.js";
+ 
+@@ -32,8 +33,9 @@ export class BlockAssetsPlugin {
+ 
+       await Promise.all([
+         generateDistBlockMetadata(metadataExtra),
+-        generateDistBlockSchema(),
++        generateDistExampleGraph(),
+         generateDistReadme(),
++        generateDistBlockSchema(),
+       ]);
+     });
+   }
+diff --git a/node_modules/block-scripts/shared/generate-dist-block-metadata.js b/node_modules/block-scripts/shared/generate-dist-block-metadata.js
+index f8de384..ae8b5ed 100644
+--- a/node_modules/block-scripts/shared/generate-dist-block-metadata.js
++++ b/node_modules/block-scripts/shared/generate-dist-block-metadata.js
+@@ -33,6 +33,7 @@ export const generateDistBlockMetadata = async (extra) => {
+     license,
+     externals: peerDependencies,
+     schema: "block-schema.json",
++    exampleGraph: "example-graph.json",
+     variants,
+     ...blockprotocol,
+     ...extra,
+diff --git a/node_modules/block-scripts/shared/generate-dist-example-graph.js b/node_modules/block-scripts/shared/generate-dist-example-graph.js
+new file mode 100644
+index 0000000..adf7543
+--- /dev/null
++++ b/node_modules/block-scripts/shared/generate-dist-example-graph.js
+@@ -0,0 +1,19 @@
++import fs from "fs-extra";
++import path from "node:path";
++
++import { blockDistDirPath, blockRootDirPath } from "./paths.js";
++
++export const generateDistExampleGraph = async () => {
++  const exampleGraphInDistFilePath = path.resolve(
++    blockDistDirPath,
++    "example-graph.json",
++  );
++  const exampleGraphFilePath = path.resolve(
++    blockRootDirPath,
++    "example-graph.json",
++  );
++
++  if (await fs.pathExists(exampleGraphFilePath)) {
++    await fs.copy(exampleGraphFilePath, exampleGraphInDistFilePath);
++  }
++};
+\ No newline at end of file

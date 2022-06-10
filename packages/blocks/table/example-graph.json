@@ -1,0 +1,263 @@
+{
+  "entityTypes": [
+    {
+      "$id": "https://example.com/types/Company",
+      "title": "Company",
+      "entityTypeId": "Company",
+      "type": "object",
+      "$schema": "https://json-schema.org/draft/2019-09/schema",
+      "description": "A company or organisation.",
+      "properties": {
+        "employees": {
+          "type": "number",
+          "description": "The number of employees in the company."
+        },
+        "name": {
+          "type": "string",
+          "description": "A display name for the company."
+        }
+      },
+      "required": ["name", "employees"],
+      "accountId": "accountId"
+    },
+    {
+      "$id": "https://example.com/types/Person",
+      "title": "Person",
+      "entityTypeId": "Person",
+      "type": "object",
+      "$schema": "https://json-schema.org/draft/2019-09/schema",
+      "description": "A human person.",
+      "properties": {
+        "age": {
+          "type": "number",
+          "description": "The age of the person, in years."
+        },
+        "email": {
+          "type": "string",
+          "description": "An email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The person's name."
+        },
+        "username": {
+          "description": "The person's username in this application",
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 24
+        }
+      },
+      "required": ["age", "email", "name", "username"],
+      "accountId": "accountId"
+    }
+  ],
+  "entities": [
+    {
+      "entityId": "company-0",
+      "entityTypeId": "Company",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "employees": 7838,
+      "name": "Acme Corp.",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "person-0",
+      "entityTypeId": "Person",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "age": 100,
+      "email": "Michael@example.com",
+      "name": "Michael",
+      "username": "michael",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "company-1",
+      "entityTypeId": "Company",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "employees": 4369,
+      "name": "CHOAM",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "person-1",
+      "entityTypeId": "Person",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "age": 82,
+      "email": "Christopher@example.com",
+      "name": "Christopher",
+      "username": "christopher",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "company-2",
+      "entityTypeId": "Company",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "employees": 350,
+      "name": "Cyberdyne Systems Corp.",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "person-2",
+      "entityTypeId": "Person",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "age": 4,
+      "email": "Jessica@example.com",
+      "name": "Jessica",
+      "username": "jessica",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "company-3",
+      "entityTypeId": "Company",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "employees": 6664,
+      "name": "MomCorp",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "person-3",
+      "entityTypeId": "Person",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "age": 70,
+      "email": "Matthew@example.com",
+      "name": "Matthew",
+      "username": "matthew",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "company-4",
+      "entityTypeId": "Company",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "employees": 1456,
+      "name": "Nakatomi Trading Corp.",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "person-4",
+      "entityTypeId": "Person",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "age": 34,
+      "email": "Ashley@example.com",
+      "name": "Ashley",
+      "username": "ashley",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "company-5",
+      "entityTypeId": "Company",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "employees": 4191,
+      "name": "Oceanic Airlines",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "person-5",
+      "entityTypeId": "Person",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "age": 56,
+      "email": "Jennifer@example.com",
+      "name": "Jennifer",
+      "username": "jennifer",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "company-6",
+      "entityTypeId": "Company",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "employees": 8876,
+      "name": "Sirius Cybernetics Corp.",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "person-6",
+      "entityTypeId": "Person",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "age": 28,
+      "email": "Joshua@example.com",
+      "name": "Joshua",
+      "username": "joshua",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "company-7",
+      "entityTypeId": "Company",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "employees": 9973,
+      "name": "Solyent Corp.",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "person-7",
+      "entityTypeId": "Person",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "age": 79,
+      "email": "Amanda@example.com",
+      "name": "Amanda",
+      "username": "amanda",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "company-8",
+      "entityTypeId": "Company",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "employees": 2394,
+      "name": "Tyrell Corp.",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "person-8",
+      "entityTypeId": "Person",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "age": 15,
+      "email": "Daniel@example.com",
+      "name": "Daniel",
+      "username": "daniel",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "company-9",
+      "entityTypeId": "Company",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "employees": 6346,
+      "name": "Wayne Enterprises",
+      "accountId": "accountId"
+    },
+    {
+      "entityId": "person-9",
+      "entityTypeId": "Person",
+      "createdAt": "2022-06-09T12:54:09.454Z",
+      "updatedAt": "2022-06-09T12:54:09.454Z",
+      "age": 96,
+      "email": "Steven@example.com",
+      "name": "Steven",
+      "username": "steven",
+      "accountId": "accountId"
+    },
+    {
+      "accountId": "accountId",
+      "entityId": "test-entity-1",
+      "name": "World",
+      "entityTypeId": "blockType1"
+    }
+  ]
+}

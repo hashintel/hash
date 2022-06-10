@@ -24,10 +24,9 @@ const App = () => {
     <div className={tw`mx-auto mt-14 max-w-3xl`}>
       <MockBlockDock>
         <Component
-          entityTypeId="code"
-          entityId="entity-code"
-          accountId="account-code"
-          {...initialData}
+          graph={{
+            blockEntity: { entityId: "entity-code", properties: initialData },
+          }}
         />
       </MockBlockDock>
     </div>
