@@ -3,6 +3,9 @@ import { ReactElement } from "react";
 
 import { Snippet } from "./Snippet";
 
+/**
+ * @todo copy button
+ */
 export const MdxPre = ({ children: codeEl }: { children: ReactElement }) => {
   const { className, children } = codeEl.props;
   return (
