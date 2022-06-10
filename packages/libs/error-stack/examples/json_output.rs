@@ -7,7 +7,7 @@ use std::{
 };
 
 use error_stack::{bail, AttachmentKind, FrameKind, Report, Result, ResultExt};
-use serde_json::json;
+use serde::Serialize;
 
 #[derive(Debug)]
 enum MapError {
@@ -49,21 +49,35 @@ fn create_new_entry(
 fn main() -> Result<(), MapError> {
     // This hook will be executed instead of the default implementation when `Debug` is called
     Report::set_debug_hook(|report, fmt| {
-        let errors = report
-            .frames()
-            .filter_map(|frame| match frame.kind() {
-                FrameKind::Context(context) => Some(context.to_string()),
-                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                    Some(attachment.to_string())
+        #[derive(Serialize)]
+        struct Context {
+            context: String,
+            attachments: Vec<String>,
+        }
+
+        let mut output = Vec::new();
+        let mut attachments = Vec::new();
+
+        for frame in report.frames() {
+            match frame.kind() {
+                FrameKind::Context(context) => {
+                    output.push(Context {
+                        context: context.to_string(),
+                        attachments: attachments.clone(),
+                    });
+                    attachments.clear();
                 }
-                _ => None,
-            })
-            .collect::<Vec<_>>();
+                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                    attachments.push(attachment.to_string());
+                }
+                FrameKind::Attachment(_) => {}
+            }
+        }
 
         if fmt.alternate() {
-            fmt.write_str(&serde_json::to_string_pretty(&errors).expect("Could not format report"))
+            fmt.write_str(&serde_json::to_string_pretty(&output).expect("Could not format report"))
         } else {
-            fmt.write_str(&serde_json::to_string(&errors).expect("Could not format report"))
+            fmt.write_str(&serde_json::to_string(&output).expect("Could not format report"))
         }
     })
     .expect("Hook was set twice");
@@ -74,17 +88,19 @@ fn main() -> Result<(), MapError> {
     create_new_entry(&mut config, "foo", 1).attach_printable("Could not create new entry")?;
 
     // Purposefully cause an error by attempting to create another entry with "foo" as key
-    let creation_result =
-        create_new_entry(&mut config, "foo", 2).attach_printable("Could not create new entry");
+    create_new_entry(&mut config, "foo", 2).attach_printable("Could not create new entry")?;
 
-    assert_eq!(
-        format!("{:?}", creation_result.unwrap_err()),
-        json!([
-            "Could not create new entry",
-            "Entry \"foo\" is already occupied by 1"
-        ])
-        .to_string()
-    );
+    // Will output something like
+    // ```json
+    // [
+    //   {
+    //     "context": "Entry \"foo\" is already occupied by 1",
+    //     "attachments": [
+    //       "Could not create new entry"
+    //     ]
+    //   }
+    // ]
+    // ```
 
     Ok(())
 }
