@@ -181,7 +181,7 @@ pub trait Context: Display + Debug + Send + Sync + 'static {
 
 `provide()` is an optional feature making use of the [`Provider` RFC](https://rust-lang.github.io/rfcs/3192-dyno.html?). When providing data here, they later can be requested by calling `Report::request_ref()` or `Report::request_value()`.
 
-**Note:** The implementation for the `Provider` RFC was [merged just today](https://github.com/rust-lang/rust/pull/91970). We chose to not use the upstream implementation, for now, not to force users to update their compiler to the very last nightly, so we have vendored in the functionality for now. We will switch to the upstream implementation in `core::any` with version 0.2.0. **Using the `Provider` API currently requires the Rust nightly compiler.**
+**Note:** The implementation for the `Provider` RFC is not available on nightly at the time of writing, so we have vendored in the functionality for now. We will switch to the upstream implementation in `core::any`. **Using the `Provider` API currently requires the Rust nightly compiler.**
 
 ## Attachments
 
@@ -266,7 +266,7 @@ We don't have space here to talk about all of the features of `error-stack`, but
 
 As previously noted, we are still in the process of migrating our own codebase to `error-stack` and we intend to make further improvements as we apply the crate to more of hEngine and our internal code at [HASH](https://hash.ai/).
 
-We will switch to the provider implementation in `core::any` in version 0.2.0 (the main reason why this API currently requires the nightly release channel).
+During development of the library we included a `Provider` implementation while waiting for the implementation of the [`Provider` RFC](https://rust-lang.github.io/rfcs/3192-dyno.html) to be merged. We will be updating the library to swap to the `core::any` implementation in version 0.2.0 (This is the reason why this API currently **requires the nightly release channel**).
 
 We cannot guarantee full backward compatibility until this crate hits `v1.0.0`. However, we will aim to avoid breaking changes, and in the event of any will announce them beforehand and provide a migration guide.
 
