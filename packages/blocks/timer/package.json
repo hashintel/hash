@@ -1,7 +1,7 @@
 {
   "name": "@hashintel/block-timer",
-  "version": "0.0.0",
-  "description": "timer block",
+  "version": "0.1.0",
+  "description": "Set a countdown timer to remind you when a certain amount of time has elapsed",
   "keywords": [
     "blockprotocol",
     "blocks"
@@ -36,7 +36,7 @@
     "servePort": 63213
   },
   "blockprotocol": {
-    "displayName": "timer",
+    "displayName": "Timer",
     "examples": [
       {
         "initialDuration": "PT5M"
