@@ -42,6 +42,9 @@
     "servePort": 62681
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "displayName": "Code",
     "icon": "public/code.svg",
     "image": "public/preview.svg",
@@ -52,9 +55,6 @@
         "content": "function debounce(func, timeout = 300){\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => { func.apply(this, args); }, timeout);\n  };\n}"
       }
     ],
-    "protocol": "0.2",
-    "type": {
-      "entryPoint": "react"
-    }
+    "protocol": "0.2"
   }
 }
