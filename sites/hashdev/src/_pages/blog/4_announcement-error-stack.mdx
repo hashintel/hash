@@ -126,7 +126,7 @@ This was clearly not ideal, and we ended up with a weird mixture of well-defined
 
 # So, why **another Error Handling Library?**
 
-We really love the Rust ecosystem, and although there are many great error crates out there, we struggled to find one that aligned with our needs, and which worked well with some of our project's inherent complexity. The closest error crate we could find was `[anyhow](https://crates.io/crates/anyhow)` (or its fork `[eyre](https://crates.io/crates/eyre)`), however, we had some additional wants:
+We really love the Rust ecosystem, and although there are many great error crates out there, we struggled to find one that aligned with our needs, and which worked well with some of our project's inherent complexity. The closest error crate we could find was [`anyhow`](https://crates.io/crates/anyhow) (or its fork [`eyre`](https://crates.io/crates/eyre)), however, we had some additional wants:
 
 1.  encourage the user to provide a new error type if the scope is changed, usually by crossing module/crate boundaries (for example, a `ConfigParseError` when parsing a configuration file vs. an `IoError` when reading a file from disk)
 1.  be able to use those error types within return types, without needing to handle difficult `From` logic
@@ -134,11 +134,11 @@ We really love the Rust ecosystem, and although there are many great error crate
 
 Based on our experiences outlined above, we made a few additional design decisions that differentiated our approach to error handling from those existing crates designed to facilitate it. Generally speaking, these decisions were made to force developers to be more explicit when creating or chaining errors, but most importantly, we don't supply in-built support for creating errors from strings. While it is convenient, we want to encourage developers to think more about their errors by building concrete error types like `std::io::Error` or `std::num::ParseIntError`
 
-- _Note_: _It's still possible to create something like `Error::Unique` but we do not provide shortcut functionality for that within the library, hoping that a lot of its uses can instead be solved through “attachments”_
+- _Note: It's still possible to create something like `Error::Unique` but we do not provide shortcut functionality for that within the library, hoping that a lot of its uses can instead be solved through “attachments”._
 
 # What is **`error-stack`?**
 
-`error-stack` is centered around taking a base error and building up a full richer picture of it as it propagates. We call this a `Report` (you might recognize the naming choice of `Report` from the eyre crate, which we thought was fitting).
+`error-stack` is centered around taking a base error and building up a full richer picture of it as it propagates. We call this a `Report` (you might recognize the naming choice of `Report` from the `eyre` crate, which we thought was fitting).
 
 This `Report` on the error is made-up of a combination of two main concepts:
 
@@ -181,7 +181,7 @@ pub trait Context: Display + Debug + Send + Sync + 'static {
 }
 ```
 
-`provide()` is an optional feature making use of the `[Provider` RFC](https://rust-lang.github.io/rfcs/3192-dyno.html?). When providing data here, they later can be requested by calling `Report::request_ref()` or `Report::request_value()`.
+`provide()` is an optional feature making use of the [`Provider` RFC](https://rust-lang.github.io/rfcs/3192-dyno.html?). When providing data here, they later can be requested by calling `Report::request_ref()` or `Report::request_value()`.
 
 **Note:** The implementation for the `Provider` RFC is not implemented at the time of writing, so we have vendored in the functionality for now. We will switch to the upstream implementation in `core::any`. **Using the `Provider` API currently requires the Rust nightly compiler.**
 
