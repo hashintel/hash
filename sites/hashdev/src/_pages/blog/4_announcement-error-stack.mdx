@@ -196,7 +196,7 @@ fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigErro
     let content = fs::read_to_string(path)
         .report()
         .change_context(ParseConfigError::new())
-        .attach_lazy(|| format!("Could not read file {path:?}"))
+        .attach_printable_lazy(|| format!("Could not read file {path:?}"))
         .attach(Suggestion("Use a file you can read next time!"))?;
 
     // ...
@@ -221,8 +221,8 @@ This will eventually output:
 ```plain
 Could not parse configuration file
              at main.rs:6:10
-      - Use a file you can read next time!
       - Could not read file "config.json"
+      - 1 additional opaque attachment
 
 Caused by:
    0: No such file or directory (os error 2)
