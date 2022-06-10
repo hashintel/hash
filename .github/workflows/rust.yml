@@ -37,7 +37,8 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - uses: ./.github/actions/setup-rust-ci
+      - name: Setup CI
+        uses: ./.github/actions/setup-rust-ci
       - name: Find changed crates
         id: crates
         run: |
