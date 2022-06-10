@@ -49,7 +49,7 @@ jobs:
           # Exclude the stable channel for these crates
           disable_stable_on=("packages/engine")
 
-          # Exclude the stable channel for these crates
+          # Allow these crates to be published when their version is changing in its Cargo.toml
           publishable_crates=("packages/libs/error-stack")
 
           changed_crates=""
