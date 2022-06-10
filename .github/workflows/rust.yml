@@ -37,6 +37,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
+      - uses: .github/actions/setup-rust-ci
       - name: Find changed crates
         id: crates
         run: |
@@ -44,7 +45,7 @@ jobs:
           changed_files="$(git diff --name-only HEAD^ HEAD)"
 
           # All jobs for all crates will run if any of these paths changes
-          always_run_on=(".github" "rust-toolchain.toml")
+          always_run_on=("rust-toolchain.toml")
 
           # Exclude the stable channel for these crates
           disable_stable_on=("packages/engine")
