@@ -134,7 +134,7 @@ Based on our experiences outlined above, we made a few additional design decisio
 
 - _Note: It's still possible to create something like `Error::Unique` but we do not provide shortcut functionality for that within the library, hoping that a lot of its uses can instead be solved through “attachments”._
 
-## What is **`error-stack`?**
+## What is **error-stack?**
 
 `error-stack` is centered around taking a base error and building up a full richer picture of it as it propagates. We call this a `Report` (you might recognize the naming choice of `Report` from the `eyre` crate, which we thought was fitting).
 
@@ -252,7 +252,7 @@ We haven't made it easy to create a new `Report` from a `String` because it requ
 
 **By consciously imposing more restrictions in some areas we hope to reduce the _overall_ cost of development, in keeping with the philosophy underpinning Rust itself.**
 
-### Some other cool things about `error-stack`
+### Some other cool things about error-stack
 
 We don't have space here to talk about all of the features of `error-stack`, but here are a few more teasers. [Check out the repository](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack) for even more information:
 
@@ -262,7 +262,7 @@ We don't have space here to talk about all of the features of `error-stack`, but
 - Just like [`eyre`](https://crates.io/crates/eyre), the crate is able to set its own `Display` and `Debug` hooks that are called when printing the `Report`, which means you can write your own custom formatting and do other cool things
 - We have in-built support for backtraces on the nightly channel and feature-flagged support for `tracing` to capture a `SpanTrace`
 
-### The future of `error-stack`
+### The future of error-stack
 
 As previously noted, we are still in the process of migrating our own codebase to `error-stack` and we intend to make further improvements as we apply the crate to more of hEngine and our internal code at [HASH](https://hash.ai/).
 
