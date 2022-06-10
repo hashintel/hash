@@ -573,9 +573,7 @@ jobs:
           override: true
 
       - name: Login
-        uses: actions-rs/cargo@v1
-        with:
-          command: login $CARGO_REGISTRY_TOKEN
+        run: cargo login $CARGO_REGISTRY_TOKEN
 
       - name: Publish (Dry run)
         uses: actions-rs/cargo@v1
