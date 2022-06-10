@@ -12,13 +12,13 @@ We are proud to announce a new error library for Rust: `error-stack` - a context
 
 This post outlines our trials and tribulations in error-handling, why we ultimately built the crate, what architectural choices we made in doing so, and what you can expect from it.
 
-# Our error-handling journey
+## Our error-handling journey
 
 At HASH, we've been building a simulation engine — written in Rust — called [hEngine](https://hash.ai/platform/engine). It's a large code base, with a number of contributors, and its size and complexity has grown over time (check out the code on [GitHub](https://github.com/hashintel/hash)). Across some big refactors, as well as everyday feature development, we found error handling became unwieldy and ourselves struggling to keep up. In a bid to improve our debugging process and reduce maintenance overheads we decided to revisit our strategy for managing errors.
 
 Up until recently our approach to error handling centered around using [`thiserror`](https://crates.io/crates/thiserror), a fantastic crate which abstracts away a lot of Rust's verbosity when creating errors. We used to create enumerations (generally a large, top-level one, per crate and/or major modules) to describe our different error types, and used `thiserror`'s macros to handle a lot of the trait implementations. We didn't want to be using `Box<dyn Error>` everywhere, meaning we wanted typed errors, so we utilized `thiserror`'s ability to generate `From` implementations from a macro to handle the transformation of our error types across the module and crate boundaries. (`thiserror` lets you succinctly define a `From` implementation like so: `IoError(#[from] std::io::Error)`).
 
-## Handling Errors across Module and Crate Boundaries
+### Handling Errors across Module and Crate Boundaries
 
 This led us into a pattern where we'd have a function called across a boundary (say from the `engine` module to the `simulation` crate), necessitating that we transform it between error types, and so for ergonomic reasons, we'd create a `From` implementation for the whole `Error` enumeration:
 
@@ -66,7 +66,7 @@ Secondly, this required rerunning the program with `RUST_BACKTRACE=1`, or always
 
 Additionally, while backtraces help us locate the line of code which generated the error (which helps with disambiguating the example error message shown above), it's still missing a lot of other information that could prove helpful, like which iteration of a loop caused the error, or what path was missing.
 
-## Defining Base Errors
+### Defining Base Errors
 
 As mentioned, we've tried to keep our errors well-typed by defining them as variants within various enumerations. This introduced a lot of overhead that we struggled with during some periods of rapid development. A significant subset of errors seemed to happen once, and as such, we'd generally define a variant like so on our enums:
 
@@ -108,7 +108,7 @@ OrchestratorError::from(format!("Not a valid initial state file: {path:?}"))
 
 This was through no fault of `thiserror`, but our usage of it in practice, and the patterns we found ourselves settling into.
 
-## Error Conversions
+### Error Conversions
 
 `thiserror` supplies a macro to generate `From` implementations for your error types, which is great when it works, helping avoid boilerplate becoming huge and unmaintainable. Unfortunately, it can't handle cyclic dependencies where you might have two-way conversions between your error types. While we have since majorly refactored our code-base to have a much better separation of concerns, we used to have great interdependency which caused this problem to occur more often than ideal. Due to this, we found ourselves employing an embarrassingly reproachable pattern in our code:
 
@@ -122,7 +122,7 @@ We already had an `experiment::Error` `From` `experiment_controller::Error` impl
 
 This was clearly not ideal, and we ended up with a weird mixture of well-defined error variants and ones that were just captured in strings. The conversions also resulted in information loss depending on the `Display` implementation, including the loss of important pieces of information like the backtrace.
 
-# So, why **another Error Handling Library?**
+## So, why **another Error Handling Library?**
 
 We really love the Rust ecosystem, and although there are many great error crates out there, we struggled to find one that aligned with our needs, and which worked well with some of our project's inherent complexity. The closest error crate we could find was [`anyhow`](https://crates.io/crates/anyhow) (or its fork [`eyre`](https://crates.io/crates/eyre)), however, we had some additional wants:
 
@@ -134,7 +134,7 @@ Based on our experiences outlined above, we made a few additional design decisio
 
 - _Note: It's still possible to create something like `Error::Unique` but we do not provide shortcut functionality for that within the library, hoping that a lot of its uses can instead be solved through “attachments”._
 
-# What is **`error-stack`?**
+## What is **`error-stack`?**
 
 `error-stack` is centered around taking a base error and building up a full richer picture of it as it propagates. We call this a `Report` (you might recognize the naming choice of `Report` from the `eyre` crate, which we thought was fitting).
 
@@ -145,7 +145,7 @@ This `Report` on the error is made-up of a combination of two main concepts:
 
 A `Report` is organized as a stack, where you push contexts and attachments. We call this the `Frame` stack as each context and attachment is contained in a `Frame` alongside the code location of where it was created. The `Report` is able to iterate through the `Frame` stack from the most recent one to the root.
 
-## Contexts
+### Contexts
 
 These are views of the world, they help describe the current section of code's way of seeing the error — a high-level description of the error. The current context of a `Report<T>` is captured in its generic argument.
 
@@ -183,7 +183,7 @@ pub trait Context: Display + Debug + Send + Sync + 'static {
 
 **Note:** The implementation for the `Provider` RFC is not available on nightly at the time of writing, so we have vendored in the functionality for now. We will switch to the upstream implementation in `core::any`. **Using the `Provider` API currently requires the Rust nightly compiler.**
 
-## Attachments
+### Attachments
 
 Frequently you'll want to attach specific information to an error, requiring it to be encapsulated _within_ the error type, similar to crates like `anyhow` or `failure` where you are able to attach string-like types. However, `error-stack` is not only able to attach messages but also _any_ other data to the `Report`, for example, it's possible to attach a `Suggestion`. Using the example from above, we add a contextual message and a `Suggestion` (not offered by `error-stack`) to the `Report`:
 
@@ -242,7 +242,7 @@ Stack backtrace:
 Suggestion: Use a file you can read next time!
 ```
 
-## What's the catch?
+### What's the catch?
 
 You might think that this comes with a lot of performance overhead, but with speed being a key concern of hEngine, we've taken this into account. The impact on the ‘happy' success code path is minimal; a `Report` is only one pointer in size and requesting from a `Report` only happens at the time of error reporting. We use a similar data layout as `anyhow` and thus expect similar performance.
 
@@ -252,7 +252,7 @@ We haven't made it easy to create a new `Report` from a `String` because it requ
 
 **By consciously imposing more restrictions in some areas we hope to reduce the _overall_ cost of development, in keeping with the philosophy underpinning Rust itself.**
 
-## Some other cool things about `error-stack` that we don't have time for!
+### Some other cool things about `error-stack`
 
 We don't have space here to talk about all of the features of `error-stack`, but here are a few more teasers. [Check out the repository](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack) for even more information:
 
@@ -262,7 +262,7 @@ We don't have space here to talk about all of the features of `error-stack`, but
 - Just like [`eyre`](https://crates.io/crates/eyre), the crate is able to set its own `Display` and `Debug` hooks that are called when printing the `Report`, which means you can write your own custom formatting and do other cool things
 - We have in-built support for backtraces on the nightly channel and feature-flagged support for `tracing` to capture a `SpanTrace`
 
-## The Future of `error-stack`
+### The future of `error-stack`
 
 As previously noted, we are still in the process of migrating our own codebase to `error-stack` and we intend to make further improvements as we apply the crate to more of hEngine and our internal code at [HASH](https://hash.ai/).
 
@@ -272,11 +272,11 @@ We cannot guarantee full backward compatibility until this crate hits `v1.0.0`. 
 
 Contributions are greatly welcome. View the [project code on GitHub](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack) and, if you like it, please star the repository!
 
-## Acknowledgments
+### Acknowledgments
 
 We would like to thank the [Error Project Group](https://github.com/rust-lang/project-error-handling) for their work on the `Error` trait and the [Provider RFC](https://rust-lang.github.io/rfcs/3192-dyno.html). It's unlikely we would have written this library without the latter — or at least not in a way we would have been truly satisfied with.
 
-## License
+### License
 
 This crate is published under the MIT License.
 
