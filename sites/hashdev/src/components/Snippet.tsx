@@ -15,6 +15,7 @@ import "prismjs/components/prism-json";
 import "prismjs/components/prism-json5";
 import "prismjs/components/prism-rust";
 import "prismjs/components/prism-typescript";
+import "prismjs/components/prism-fsharp";
 
 import { Box, BoxProps } from "@mui/material";
 import Prism from "prismjs";

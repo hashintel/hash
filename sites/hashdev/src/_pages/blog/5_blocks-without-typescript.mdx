@@ -133,8 +133,7 @@ type UpdateEntityResponse<'props> =
 
 type AggregateOperation = {
   (* Omitted for brevity.
-       Contains information for filtering and sorting *)
-}
+       Contains information for filtering and sorting *) }
 
 type AggregateEntityTypes = { operation: AggregateResult }
 type AggregateEntityTypesResponse<'props> =
@@ -155,13 +154,14 @@ These types are all valid message structures for communicating with the Graph Se
   respondedToBy = Some "aggregateEntityTypesResponse"
   service = "graph"
   source = Block
-  data = Some { operation = { entityTypeId = None
-                              pageNumber = 1
-                              itemsPerPage = 100
-                              pageCount = None
-                              totalCount = None
-                              multiSort = None
-                              multiFilter = None } }
+  data = Some { operation =
+                    { entityTypeId = None
+                      pageNumber = 1
+                      itemsPerPage = 100
+                      pageCount = None
+                      totalCount = None
+                      multiSort = None
+                      multiFilter = None } }
   errors = None }
 ```
 
@@ -198,7 +198,8 @@ For receiving events from the Embedding Application it's necessary to use some o
 let listenForEAResponse (blockMessageRoot: HTMLElement) =
     let handler (event: Event) =
         if (event :?> CustomEvent).detail <> JS.undefined then
-          // Handle and route here!
+          // Handle and route message here!
+          // ...
 
     blockMessageRoot.addEventListener (BlockProtocolEventName, handler)
 ```
@@ -212,7 +213,7 @@ Using a JS map from `requestId`s to unresolved promises, we're able to asynchron
 ```fsharp
 type ResponseSettlersMap() =
     let mutable map =
-    // String here is the Request ID
+        // the key here is the Request ID
         new Dictionary<string, ResponseSettler>()
 
 let dispatchBPMessageWithResponse responseSettlerMap blockMessageRoot detail : JS.Promise<'a> =
@@ -261,11 +262,11 @@ Some details have been left out in the listing to focus on the important bits. T
 type BlockProtocolState =
     { blockEntityId: string
       updateEntity:
-     BlockProtocolMessage<UpdateEntity<obj>> -> JS.Promise<UpdateEntityResponse<obj>>
+            BlockProtocolMessage<UpdateEntity<obj>> -> JS.Promise<UpdateEntityResponse<obj>>
       aggregateEntityTypes:
-     BlockProtocolMessage<AggregateEntityTypes> -> JS.Promise<AggregateEntityTypesResponse<unit>>
+            BlockProtocolMessage<AggregateEntityTypes> -> JS.Promise<AggregateEntityTypesResponse<unit>>
       aggregateEntities:
-     BlockProtocolMessage<AggregateEntities> -> JS.Promise<AggregateEntitiesResponse<AnyBlockProperty>> }
+            BlockProtocolMessage<AggregateEntities> -> JS.Promise<AggregateEntitiesResponse<AnyBlockProperty>> }
 ```
 
 For example calling the `BlockProtocolState.aggregateEntityTypes` would create a new promise, add it to the settler map, then the listener would eventually receive a response if all goes well and resolve the unresolved promise, making working with the Block Protocol feel a lot like any other API.
@@ -308,17 +309,17 @@ type Event =
     | StartEdit of Position
     // -- Added variants below here --
     | StopEdit
-  // Persisting editor state
+    // Persisting editor state
     | SaveState
     | DeserializeSaveState of SaveState
-  // New editor functionality and interfacing with Embedding Application
+    // New editor functionality and interfacing with Embedding Application
     | AddRow
     | RemoveRow of row: int
     | ClearBoard
     | DispatchLoadEntityTypes
-  | LoadEntityTypes of EntityType<unit> []
+    | LoadEntityTypes of EntityType<unit> []
     | SetRowEntityType of row: int * entityTypeId: string
-  | SetRowEntities of row: int * entities: Entity<AnyBlockProperty> []
+    | SetRowEntities of row: int * entities: Entity<AnyBlockProperty> []
     | LoadRowEntities of row: int * entityTypeId: string
 ```
 
@@ -353,8 +354,8 @@ The effectful events are contained in a way where we could simply replace the Bl
 ```fsharp
 let update (sideEffect: BlockProtocolState) msg state =
     match msg with
-  // ..
-  | DispatchLoadEntityTypes ->
+    // ..
+    | DispatchLoadEntityTypes ->
         let cmd =
             Cmd.OfPromise.perform
                 (fun _ ->
@@ -364,7 +365,7 @@ let update (sideEffect: BlockProtocolState) msg state =
                 (fun et -> LoadEntityTypes et.results)
 
         state, cmd
-   // ..
+    // ..
 ```
 
 The `BlockProtocolState` construction is abstracted away when we get to implementing the Elmish component, so the business logic doesn't really care how data is provided.
@@ -396,8 +397,7 @@ The top-level `Expr` type encapsulates all possible expressions within cells. Th
 An example parser could be the one used to parse references in the cells. The parser is defined as follows
 
 ```fsharp
-let reference =
-    upper .>>. pint32 |>> Reference
+let reference = upper .>>. pint32 |>> Reference
 ```
 
 and makes use of parsers `upper`, `pint32` and combinators `.>>.` and `|>>` for composing the parsers. The `.>>.` operator applies both parsers on either side of the operator and returns them as a tuple, `upper .>>. pint32` could thus match on `"A2"`, and return `('A', 2)`. The `|>>` combinator applies the parser on the left side, and applies the result to the function on the right hand side. Here the function is the constructor for the `Expr.Reference` variant — which has type `Position` as its first and only argument.
@@ -464,7 +464,7 @@ let rec evaluate visited cells entities expr calculateAtPos =
         >>= (fun value ->
             let parsed = parse value
 
-      resultToOption parsed
+            resultToOption parsed
             >>= (fun (parsed, _, _) -> evaluate (Set.add pos visited) cells ents parsed pos))
 ```
 
