@@ -1,12 +1,12 @@
 import { useMutation } from "@apollo/client";
 
 import { BlockProtocolCreateEntityTypesFunction } from "blockprotocol";
-import { createEntityType } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
 import {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
+import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 
 export const useBlockProtocolCreateEntityTypes = (): {
   createEntityTypes: BlockProtocolCreateEntityTypesFunction;
@@ -17,7 +17,7 @@ export const useBlockProtocolCreateEntityTypes = (): {
     createFn,
     { loading: createEntityTypesLoading, error: createEntityTypesError },
   ] = useMutation<CreateEntityTypeMutation, CreateEntityTypeMutationVariables>(
-    createEntityType,
+    createEntityTypeMutation,
   );
 
   const createEntityTypes: BlockProtocolCreateEntityTypesFunction = useCallback(
