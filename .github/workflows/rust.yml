@@ -576,16 +576,12 @@ jobs:
         run: cargo login $CARGO_REGISTRY_TOKEN
 
       - name: Publish (Dry run)
-        uses: actions-rs/cargo@v1
         if: github.event_name == 'pull_request'
-        with:
-          command: publish ${{ matrix.flags }} --dry-run
+        run: cargo publish ${{ matrix.flags }} --dry-run
 
       - name: Publish
-        uses: actions-rs/cargo@v1
-        if: github.event_name == 'pull_request'
-        with:
-          command: publish ${{ matrix.flags }} --dry-run
+        if: github.event_name == 'push'
+        run: cargo publish ${{ matrix.flags }} --dry-run
 
   merging-enabled:
     name: merging enabled
