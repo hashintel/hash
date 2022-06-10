@@ -181,7 +181,7 @@ pub trait Context: Display + Debug + Send + Sync + 'static {
 
 `provide()` is an optional feature making use of the [`Provider` RFC](https://rust-lang.github.io/rfcs/3192-dyno.html?). When providing data here, they later can be requested by calling `Report::request_ref()` or `Report::request_value()`.
 
-**Note:** The implementation for the `Provider` RFC is not available on nightly at the time of writing, so we have vendored in the functionality for now. We will switch to the upstream implementation in `core::any`. **Using the `Provider` API currently requires the Rust nightly compiler.**
+**Note:** The implementation for the `Provider` RFC is not available on nightly at the time of writing, so we have vendored in the functionality for now. We will switch to the upstream implementation in `core::any` with a future release of `error-stack`. **Using the `Provider` API currently requires the Rust nightly compiler.**
 
 ### Attachments
 
