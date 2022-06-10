@@ -1,21 +1,18 @@
-[announcement post]: https://hash.dev/blog/announcing-error-stack
-[crates.io]: https://crates.io/crates/error-stack
-[documentation]: https://docs.rs/error-stack
-[license]: ./LICENSE.md
-[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
-
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
-[![discord](https://img.shields.io/discord/840573247803097118)][discord]
 
-# error-stack
+[crates.io]: https://crates.io/crates/error-stack
+[documentation]: https://docs.rs/error-stack
+[license]: ./LICENSE.md
 
-**`error-stack` is a context-aware error-handling library that supports abritrary attached user data.**
+# `error-stack` -- A context-aware error library with abritrary attached user data
 
-Read our [announcement post] for the story behind its origins.
+Also check out our [announcement post] for `error-stack`!
 
-The library enables building a `Report` around an error as it propagates:
+[announcement post]: https://hash.dev/blog/announcing-error-stack
+
+`error-stack` is an error-handling library centered around the idea of building a `Report` of the error as it propagates:
 
 ```rust
 use std::fmt;
