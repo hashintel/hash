@@ -8,7 +8,15 @@ export const entityTypeTypedef = gql`
     - entityTypeId on an Entity of its type)
     Or, by EntityTypeChoice
     """
-    getEntityType(entityTypeId: ID, choice: EntityTypeChoice): EntityType!
+    getEntityType(
+      entityTypeId: ID
+        @deprecated(
+          reason: """
+          Use "choice.entityTypeId" instead
+          """
+        )
+      choice: EntityTypeChoice
+    ): EntityType!
     """
     Get all EntityTypes belonging to an account.
     Optionally include types in use by the account, but belonging to other accounts.
