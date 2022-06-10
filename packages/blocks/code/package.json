@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.2",
-    "prismjs": "1.27.0",
+    "prismjs": "1.28.0",
     "styled-components": "5.3.5"
   },
   "devDependencies": {
