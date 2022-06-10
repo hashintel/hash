@@ -15,7 +15,7 @@
 
 Read our [announcement post] for the story behind its origins.
 
-The library enables building a `Report` around an errors as it propagates:
+The library enables building a `Report` around an error as it propagates:
 
 ```rust
 use std::fmt;
