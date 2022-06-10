@@ -80,7 +80,7 @@ jobs:
             for publishable_crate in "${publishable_crates[@]}"; do
               if [[ "$file" = "$publishable_crate/Cargo.toml" ]]; then
                 echo checking "$publishable_crate/Cargo.toml"
-                if git diff --unified=0 HEAD -- "$publishable_crate/Cargo.toml" | grep -q '+version'; then
+                if git diff --unified=0 HEAD^ HEAD -- "$publishable_crate/Cargo.toml" | grep -q '+version'; then
                   publish_crates=$(echo -e "${publishable_crate}\n$publish_crates")
                 fi
               fi
