@@ -555,7 +555,7 @@ describe("logged in user ", () => {
         entityId: page.entityId,
         actions: [
           {
-            insertNewBlock: {
+            insertBlock: {
               accountId: existingUser.accountId,
               componentId: "https://blockprotocol.org/blocks/@hash/header",
               position: 0,
@@ -654,13 +654,13 @@ describe("logged in user ", () => {
     const componentId = "https://blockprotocol.org/blocks/@hash/unknown";
     let entityTypeComponentId: string;
     it("can add a block with unknown componentId", async () => {
-      // No type argument given to insertNewBlock, only componentId
+      // No type argument given to insertBlock, only componentId
       const updatedPage = await client.updatePageContents({
         accountId: page.accountId,
         entityId: page.entityId,
         actions: [
           {
-            insertNewBlock: {
+            insertBlock: {
               accountId: existingUser.accountId,
               componentId,
               position: 0,
@@ -716,13 +716,13 @@ describe("logged in user ", () => {
     });
 
     it("can use entityType that has been created through componentId", async () => {
-      // Again, no type argument given to insertNewBlock, only componentId
+      // Again, no type argument given to insertBlock, only componentId
       const updatedPage = await client.updatePageContents({
         accountId: page.accountId,
         entityId: page.entityId,
         actions: [
           {
-            insertNewBlock: {
+            insertBlock: {
               accountId: existingUser.accountId,
               componentId,
               position: 0,
@@ -856,7 +856,7 @@ describe("logged in user ", () => {
       entityId: page.entityId,
       actions: [
         {
-          insertNewBlock: {
+          insertBlock: {
             accountId: page.accountId,
             componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             position: 1,
@@ -869,7 +869,7 @@ describe("logged in user ", () => {
           },
         },
         {
-          insertNewBlock: {
+          insertBlock: {
             accountId: page.accountId,
             componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             position: 2,
@@ -923,7 +923,7 @@ describe("logged in user ", () => {
         entityId: createPage.entityId,
         actions: [
           {
-            insertNewBlock: {
+            insertBlock: {
               accountId: existingUser.accountId,
               componentId: "https://blockprotocol.org/blocks/@hash/header",
               position: 0,
@@ -945,7 +945,7 @@ describe("logged in user ", () => {
         entityId: createPage.entityId,
         actions: [
           {
-            insertNewBlock: {
+            insertBlock: {
               accountId: existingUser.accountId,
               componentId: "https://blockprotocol.org/blocks/@hash/divider",
               position: 1,
@@ -1070,7 +1070,7 @@ describe("logged in user ", () => {
       entityId: page.entityId,
       actions: [
         {
-          insertNewBlock: {
+          insertBlock: {
             accountId: page.accountId,
             componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             position: 1,
