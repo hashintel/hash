@@ -22,7 +22,7 @@ Up until recently our approach to error handling centered around using [`thiserr
 
 ### Handling errors across module and crate boundaries
 
-This led us into a pattern where we'd have a function called across a boundary (say from the `engine` module to the `simulation` crate), necessitating that we transform it between error types, and so for ergonomic reasons, we'd create a `From` implementation for the whole `Error` enumeration:
+Our approach led us to adopt a pattern where we'd call functions across boundaries (for example, from the `engine` module to our `simulation` crate), necessitating transformation between error types. For ergonomic reasons, we'd then create a `From` implementation for the whole `Error` enumeration:
 
 ```rust
 // mod engine
