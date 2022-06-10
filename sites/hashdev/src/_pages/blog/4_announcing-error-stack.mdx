@@ -122,7 +122,7 @@ We already had an `experiment::Error` `From` `experiment_controller::Error` impl
 
 This was clearly not ideal, and we ended up with a weird mixture of well-defined error variants and ones that were just captured in strings. The conversions also resulted in information loss depending on the `Display` implementation, including the loss of important pieces of information like the backtrace.
 
-## So, why **another error handling library?**
+## So, why **another** error handling library?
 
 We really love the Rust ecosystem, and although there are many great error crates out there, we struggled to find one that aligned with our needs, and which worked well with some of our project's inherent complexity. The closest error crate we could find was [`anyhow`](https://crates.io/crates/anyhow) (or its fork [`eyre`](https://crates.io/crates/eyre)), however, we had some additional wants:
 
