@@ -113,10 +113,10 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
   ) => {
     const updatedFields = filters.map((item) =>
       item.id === id
-        ? ({
+        ? {
             ...item,
             ...data,
-          } as FilterFieldWithId)
+          }
         : item,
     );
 

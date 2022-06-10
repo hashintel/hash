@@ -1,32 +1,32 @@
 import { Box } from "@mui/material";
-import { BoxProps } from "@mui/system";
+import { ReactElement } from "react";
 
-/**
- * @todo copy button
- */
-export const MdxPre = ({ children, ...props }: BoxProps<"pre">) => {
+import { Snippet } from "./Snippet";
+
+export const MdxPre = ({ children: codeEl }: { children: ReactElement }) => {
+  const { className, children } = codeEl.props;
   return (
     <Box
       component="pre"
-      {...props}
-      sx={{
-        bgcolor: "gray.10",
-        p: 2.75,
-        border: 1,
-        borderColor: "gray.20",
-        borderRadius: "4px",
-        maxWidth: "100%",
+      sx={(theme) => ({
         overflow: "auto",
-        color: "gray.80",
-        // @todo check this
-        fontFamily:
-          "'SF Mono', SFMono-Regular, ui-monospace, 'DejaVu Sans" +
-          " Mono', Menlo, Consolas, monospace",
-        fontSize: "var(--step--1)",
-        lineHeight: 1.4,
-      }}
+        display: "block",
+        fontSize: "90%",
+        color: theme.palette.purple[600],
+        background: "#161a1f",
+        padding: theme.spacing(3),
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderRadius: "8px",
+        textShadow: "none",
+        marginBottom: 2,
+        maxWidth: "72ch",
+      })}
     >
-      {children}
+      <Snippet
+        source={`${children}`}
+        language={className?.replace("language-", "") ?? ""}
+      />
     </Box>
   );
 };
