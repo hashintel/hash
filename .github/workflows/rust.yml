@@ -579,13 +579,13 @@ jobs:
 
       - name: Publish (Dry run)
         uses: actions-rs/cargo@v1
-        if: github.event_name == pull_request
+        if: github.event_name == "pull_request"
         with:
           command: publish ${{ matrix.flags }} --dry-run
 
       - name: Publish
         uses: actions-rs/cargo@v1
-        if: github.event_name == pull_request
+        if: github.event_name == "pull_request"
         with:
           command: publish ${{ matrix.flags }} --dry-run
 
