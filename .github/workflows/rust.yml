@@ -574,8 +574,8 @@ jobs:
 
       - name: Login
         run: |
-          [[ -n $CARGO_REGISTRY_TOKEN ]]
-          cargo login $CARGO_REGISTRY_TOKEN
+          [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
+          cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
 
       - name: Publish (Dry run)
         if: github.event_name == 'pull_request'
