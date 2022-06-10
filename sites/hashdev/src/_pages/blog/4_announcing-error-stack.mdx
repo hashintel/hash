@@ -250,7 +250,7 @@ However, we've purposefully added in some requirements that result in a little b
 
 We haven't made it easy to create a new `Report` from a `String` because it requires the type to implement `Context`. It's still possible to use a newtype `UniqueError(String)` if a user wants to, but we discourage this usage because we've found that a lot of those places benefit from attaching a string message on a well-defined context instead. In any case, other libraries most probably still have to change the context from `UniqueError` to their context because of the explicit type requirement.
 
-**By consciously imposing more restrictions in some areas we hope to reduce the _overall_ cost of development, in keeping with the philosophy underpinning Rust itself.**
+By consciously imposing more restrictions in some areas we hope to reduce the _overall_ cost of development, in keeping with the philosophy underpinning Rust itself.
 
 ### Some other cool things about error-stack
 
