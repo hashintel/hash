@@ -262,6 +262,8 @@ We don't have space here to talk about all of the features of `error-stack`, but
 - Just like [`eyre`](https://crates.io/crates/eyre), the crate is able to set its own `Display` and `Debug` hooks that are called when printing the `Report`, which means you can write your own custom formatting and do other cool things
 - We have in-built support for backtraces on the nightly channel and feature-flagged support for `tracing` to capture a `SpanTrace`
 
+[Check out the `error-stack` repository](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack) for even more information about the library.
+
 ### The future of error-stack
 
 As previously noted, we are still in the process of migrating our own codebase to `error-stack` and we intend to make further improvements as we apply the crate to more of hEngine and our internal code at [HASH](https://hash.ai/).
