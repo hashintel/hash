@@ -10,7 +10,7 @@
 
 Also check out our [Announcement Post] for `error-stack`!
 
-[announcement post]: https://hash.dev/###
+[announcement post]: https://hash.dev/blog/announcing-error-stack
 
 `error-stack` is an error-handling library centered around the idea of building a `Report` of the error as it propagates:
 
