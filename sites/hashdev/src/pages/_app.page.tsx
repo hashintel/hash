@@ -1,3 +1,6 @@
+/** @sync ../components/Snippet.tsx */
+import "../../styles/prism.css";
+
 import { EmotionCache } from "@emotion/react";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
