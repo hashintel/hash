@@ -575,7 +575,7 @@ jobs:
       - name: Login
         uses: actions-rs/cargo@v1
         with:
-          command: login
+          command: login $CARGO_REGISTRY_TOKEN
 
       - name: Publish (Dry run)
         uses: actions-rs/cargo@v1
