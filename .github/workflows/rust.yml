@@ -577,7 +577,7 @@ jobs:
           [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
           cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
 
-      - name: Publish (Dry run)
+      - name: Publish (dry run)
         if: github.event_name == 'pull_request'
         working-directory: ${{ matrix.directory }}
         run: cargo publish ${{ matrix.flags }} --dry-run
@@ -585,7 +585,7 @@ jobs:
       - name: Publish
         if: github.event_name == 'push'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish ${{ matrix.flags }} --dry-run
+        run: cargo publish ${{ matrix.flags }}
 
   merging-enabled:
     name: merging enabled
