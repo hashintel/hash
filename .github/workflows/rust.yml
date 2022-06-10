@@ -573,7 +573,9 @@ jobs:
           override: true
 
       - name: Login
-        run: cargo login $CARGO_REGISTRY_TOKEN
+        run: |
+          [[ -n $CARGO_REGISTRY_TOKEN ]]
+          cargo login $CARGO_REGISTRY_TOKEN
 
       - name: Publish (Dry run)
         if: github.event_name == 'pull_request'
