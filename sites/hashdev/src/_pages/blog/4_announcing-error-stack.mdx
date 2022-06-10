@@ -143,7 +143,7 @@ This `Report` on the error is made-up of a combination of two main concepts:
 1.  Contexts
 1.  Attachments
 
-A `Report` is organized as a stack, where you push contexts and attachments. We call this the `Frame` stack as each context and attachment is contained in a `Frame` alongside the code location of where it was created. The `Report` is able to iterate through the `Frame` stack from the most recent one to the root.
+A `Report` is organized as a stack, where you push contexts and attachments. We call this the `Frame` stack as each context and attachment is contained in a `Frame` alongside the code location of where it was created. The `Report` is able to iterate through the `Frame` stack from the most recent one to the root (on a 'Last In, First Out' basis).
 
 ### Contexts
 
