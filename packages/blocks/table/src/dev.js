@@ -7,13 +7,17 @@ import ReactDOM from "react-dom";
 import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
+import mockData from "../example-graph.json";
 
 const node = document.getElementById("app");
 
 const App = () => {
   return (
-    <MockBlockDock>
-      <Component entityId="table-1" />
+    <MockBlockDock
+      initialEntities={mockData.entities}
+      initialEntityTypes={mockData.entityTypes}
+    >
+      <Component entityId="table-1" accountId="accountId" />
     </MockBlockDock>
   );
 };
