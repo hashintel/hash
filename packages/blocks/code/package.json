@@ -52,6 +52,9 @@
         "content": "function debounce(func, timeout = 300){\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => { func.apply(this, args); }, timeout);\n  };\n}"
       }
     ],
-    "protocol": "0.2"
+    "protocol": "0.2",
+    "type": {
+      "entryPoint": "react"
+    }
   }
 }
