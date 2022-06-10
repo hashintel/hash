@@ -8,7 +8,7 @@
 
 # `error-stack` -- A context-aware error library with abritrary attached user data
 
-Also check out our [Announcement Post] for `error-stack`!
+Also check out our [announcement post] for `error-stack`!
 
 [announcement post]: https://hash.dev/blog/announcing-error-stack
 
