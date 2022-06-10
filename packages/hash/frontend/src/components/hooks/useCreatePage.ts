@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 
-import { createPage } from "@hashintel/hash-shared/queries/page.queries";
 import { useCallback } from "react";
 import {
   CreatePageMutation,
@@ -10,7 +9,7 @@ import {
   SetParentPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPages } from "../../graphql/queries/account.queries";
-import { setParentPage } from "../../graphql/queries/page.queries";
+import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 
 /**
  * Consider splitting this hook into two

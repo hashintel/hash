@@ -29,3 +29,12 @@ export const setParentPage = gql`
     }
   }
 `;
+
+export const createPage = gql`
+  mutation createPage($accountId: ID!, $properties: PageCreationData!) {
+    createPage(accountId: $accountId, properties: $properties) {
+      accountId
+      entityId
+    }
+  }
+`;

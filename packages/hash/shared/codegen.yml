@@ -14,4 +14,6 @@ generates:
         TextToken: ./types#TextToken
         Date: string
         UnknownEntityProperties: ./types#UnknownEntityProperties
-    documents: ./src/queries/*.ts
+    documents:
+      - ./src/queries/*.ts
+      - ../api/src/collab/graphql/queries/*.ts

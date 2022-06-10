@@ -1,8 +1,8 @@
 {
   "name": "@hashintel/block-paragraph",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
-  "description": "Just start writing",
+  "description": "Write a block of text to express an idea, make a point, or record a thought",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
