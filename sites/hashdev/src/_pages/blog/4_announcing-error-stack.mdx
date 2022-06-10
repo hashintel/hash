@@ -18,7 +18,7 @@ At HASH, we've been building a simulation engine — written in Rust — called 
 
 Up until recently our approach to error handling centered around using [`thiserror`](https://crates.io/crates/thiserror), a fantastic crate which abstracts away a lot of Rust's verbosity when creating errors. We used to create enumerations (generally a large, top-level one, per crate and/or major modules) to describe our different error types, and used `thiserror`'s macros to handle a lot of the trait implementations. We didn't want to be using `Box<dyn Error>` everywhere, meaning we wanted typed errors, so we utilized `thiserror`'s ability to generate `From` implementations from a macro to handle the transformation of our error types across the module and crate boundaries. (`thiserror` lets you succinctly define a `From` implementation like so: `IoError(#[from] std::io::Error)`).
 
-### Handling Errors across Module and Crate Boundaries
+### Handling errors across module and crate boundaries
 
 This led us into a pattern where we'd have a function called across a boundary (say from the `engine` module to the `simulation` crate), necessitating that we transform it between error types, and so for ergonomic reasons, we'd create a `From` implementation for the whole `Error` enumeration:
 
@@ -66,7 +66,7 @@ Secondly, this required rerunning the program with `RUST_BACKTRACE=1`, or always
 
 Additionally, while backtraces help us locate the line of code which generated the error (which helps with disambiguating the example error message shown above), it's still missing a lot of other information that could prove helpful, like which iteration of a loop caused the error, or what path was missing.
 
-### Defining Base Errors
+### Defining base errors
 
 As mentioned, we've tried to keep our errors well-typed by defining them as variants within various enumerations. This introduced a lot of overhead that we struggled with during some periods of rapid development. A significant subset of errors seemed to happen once, and as such, we'd generally define a variant like so on our enums:
 
@@ -108,7 +108,7 @@ OrchestratorError::from(format!("Not a valid initial state file: {path:?}"))
 
 This was through no fault of `thiserror`, but our usage of it in practice, and the patterns we found ourselves settling into.
 
-### Error Conversions
+### Error conversions
 
 `thiserror` supplies a macro to generate `From` implementations for your error types, which is great when it works, helping avoid boilerplate becoming huge and unmaintainable. Unfortunately, it can't handle cyclic dependencies where you might have two-way conversions between your error types. While we have since majorly refactored our code-base to have a much better separation of concerns, we used to have great interdependency which caused this problem to occur more often than ideal. Due to this, we found ourselves employing an embarrassingly reproachable pattern in our code:
 
@@ -122,7 +122,7 @@ We already had an `experiment::Error` `From` `experiment_controller::Error` impl
 
 This was clearly not ideal, and we ended up with a weird mixture of well-defined error variants and ones that were just captured in strings. The conversions also resulted in information loss depending on the `Display` implementation, including the loss of important pieces of information like the backtrace.
 
-## So, why **another Error Handling Library?**
+## So, why **another error handling library?**
 
 We really love the Rust ecosystem, and although there are many great error crates out there, we struggled to find one that aligned with our needs, and which worked well with some of our project's inherent complexity. The closest error crate we could find was [`anyhow`](https://crates.io/crates/anyhow) (or its fork [`eyre`](https://crates.io/crates/eyre)), however, we had some additional wants:
 
