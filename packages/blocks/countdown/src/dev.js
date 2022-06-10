@@ -13,7 +13,11 @@ const node = document.getElementById("app");
 
 const App = () => (
   <MockBlockDock>
-    <Component entityId="countdown" />
+    <Component
+      graph={{
+        blockEntity: { entityId: "entity-countdown" },
+      }}
+    />
   </MockBlockDock>
 );
 

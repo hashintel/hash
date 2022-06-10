@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 
-import { BlockComponent } from "blockprotocol/react";
+import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
 
 import { Display } from "./display";
 import { DatePickerInput } from "./date-picker-input";
@@ -16,14 +16,13 @@ type AppProps = {
   displayTime?: boolean;
 };
 
-export const App: BlockComponent<AppProps> = ({
-  targetDate = null,
-  title,
-  displayTime,
-  entityId,
-  accountId,
-  updateEntities,
-}) => {
+export const App: BlockComponent<AppProps> = ({ graph: { blockEntity } }) => {
+  const {
+    entityId,
+    properties: { targetDate, title, displayTime },
+  } = blockEntity;
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRef);
   const [localTargetDate, setLocalTargetDate] = useState<Date | null>(
     !targetDate ? null : new Date(targetDate),
   );
@@ -48,28 +47,18 @@ export const App: BlockComponent<AppProps> = ({
       targetDate?: Date | null;
       displayTime?: boolean;
     }) => {
-      if (updateEntities) {
-        void updateEntities([
-          {
-            entityId,
-            accountId,
-            data: {
-              displayTime: data?.displayTime ?? localDisplayTime,
-              targetDate: data?.targetDate ?? localTargetDate,
-              title: data?.title ?? localTitle,
-            },
+      void graphService?.updateEntity({
+        data: {
+          entityId,
+          properties: {
+            displayTime: data?.displayTime ?? localDisplayTime,
+            targetDate: data?.targetDate ?? localTargetDate,
+            title: data?.title ?? localTitle,
           },
-        ]);
-      }
+        },
+      });
     },
-    [
-      entityId,
-      accountId,
-      updateEntities,
-      localTitle,
-      localTargetDate,
-      localDisplayTime,
-    ],
+    [graphService, entityId, localDisplayTime, localTargetDate, localTitle],
   );
 
   const handleDateChange = useCallback(
@@ -90,7 +79,7 @@ export const App: BlockComponent<AppProps> = ({
   );
 
   return (
-    <div className="countdown-block">
+    <div ref={blockRef} className="countdown-block">
       <CountdownTitle
         value={localTitle}
         onChangeText={setLocalTitle}
