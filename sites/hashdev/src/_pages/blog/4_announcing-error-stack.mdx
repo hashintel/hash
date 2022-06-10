@@ -268,7 +268,7 @@ We don't have space here to talk about all of the features of `error-stack`, but
 
 As previously noted, we are still in the process of migrating our own codebase to `error-stack` and we intend to make further improvements as we apply the crate to more of hEngine and our internal code at [HASH](https://hash.ai/).
 
-During development of the library we included a `Provider` implementation while waiting for the implementation of the [`Provider` RFC](https://rust-lang.github.io/rfcs/3192-dyno.html) to be merged. We will be updating the library to swap to the `core::any` implementation in version 0.2.0 (This is the reason why **this API currently requires the nightly release channel**).
+During development of the library we included a `Provider` implementation while waiting for the implementation of the [`Provider` RFC](https://rust-lang.github.io/rfcs/3192-dyno.html) to be merged. This is the reason why the API currently requires the nightly release channel, and we will be updating the library to swap to the `core::any` implementation in version 0.2.0.
 
 We cannot guarantee full backward compatibility until this crate hits `v1.0.0`. However, we will aim to avoid breaking changes, and in the event of any will announce them beforehand and provide a migration guide.
 
