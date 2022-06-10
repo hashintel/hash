@@ -41,7 +41,7 @@ This would then often turn into error messages that looked like the following:
 Error: Engine Error: Simulation Error: Experiment Error: Datastore Error: No such file or directory (os error 2)
 ```
 
-These error messages would tell us very little about the context that led to the error and weren't very helpful in actually tracking down the causes of problems. And while we have logging infrastructure in place, which helps with tracking down events that lead to errors, it relies on a few things:
+These error messages would tell us very little about the context that led to the error and weren't very helpful in actually tracking down the causes of problems. And while we have logging infrastructure in place, which is helpful with identifying events that lead to errors, it relies on a few things:
 
 - the logging level is set to something detailed enough to point the person debugging to the correct location (not knowing how to reproduce the error can make it difficult to just rerun with `RUST_LOG=trace`);
 - there are actually enough log statements in the correct places to give enough information;
