@@ -15,7 +15,7 @@ export const MdxPre = ({ children: codeEl }: { children: ReactElement }) => {
         overflow: "auto",
         display: "block",
         fontSize: "90%",
-        color: theme.palette.grey[40],
+        color: theme.palette.gray[40],
         background: "#161a1f",
         padding: theme.spacing(3),
         borderWidth: 1,
