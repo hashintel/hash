@@ -6,7 +6,7 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { Column, Row } from "react-table";
-import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
+import { GraphBlockHandler } from "@blockprotocol/graph";
 import { tw } from "twind";
 import { identityEntityAndProperty } from "../lib/identify-entity";
 
@@ -15,7 +15,7 @@ type EditableCellProps = {
   row: Row;
   column: Column;
   readOnly?: boolean;
-  updateEntities: BlockProtocolUpdateEntitiesFunction;
+  updateEntity?: GraphBlockHandler["updateEntity"];
 };
 
 export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
@@ -23,7 +23,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
   row,
   column,
   readOnly,
-  updateEntities,
+  updateEntity,
 }) => {
   const [value, setValue] = useState(initialValue);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -71,16 +71,29 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
       }
     }
 
-    updateEntities([
-      {
-        data: newEntity,
+    void updateEntity?.({
+      data: {
         entityId: objectToUpdate.entityId,
-        entityTypeId: objectToUpdate.entityTypeId,
-        // @todo shouldn't need this – HASH should know it
-        accountId: objectToUpdate.accountId,
+        // entityTypeId: objectToUpdate.entityTypeId,
+        properties: newEntity,
       },
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-    ])?.catch((err) => console.error("Could not update table data: ", err));
+    }).then(({ errors }) => {
+      if (errors) {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
+        console.error("Could not update table data: ", errors); // @todo fix this
+      }
+    });
+
+    // updateEntities([
+    //   {
+    //     data: newEntity,
+    //     entityId: objectToUpdate.entityId,
+    //     entityTypeId: objectToUpdate.entityTypeId,
+    //     // @todo shouldn't need this – HASH should know it
+    //     accountId: objectToUpdate.accountId,
+    //   },
+    //   // eslint-disable-next-line no-console -- TODO: consider using logger
+    // ])?.catch((err) => console.error("Could not update table data: ", err));
   };
 
   return (

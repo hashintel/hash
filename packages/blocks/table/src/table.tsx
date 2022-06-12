@@ -6,20 +6,16 @@ import React, {
   useState,
 } from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
+
 import {
-  BlockProtocolLinkedAggregation,
-  BlockProtocolEntityType,
-  BlockProtocolAggregateEntitiesPayload,
-  BlockProtocolAggregateEntitiesResult,
-  BlockProtocolEntity,
-  BlockProtocolAggregateOperationInput,
-  BlockProtocolSort,
-  BlockProtocolUpdateLinkedAggregationActionFragment,
-} from "blockprotocol";
-import { BlockComponent } from "blockprotocol/react";
+  BlockComponent,
+  useGraphBlockService,
+  LinkedAggregation,
+  EntityType,
+} from "@blockprotocol/graph";
+// import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
 import { orderBy } from "lodash";
-import { produce } from "immer";
 
 import { EditableCell } from "./components/editable-cell";
 import { makeColumns } from "./lib/columns";
@@ -32,8 +28,8 @@ import { EntityTypeDropdown } from "./components/entity-type-dropdown";
 import { omitTypenameDeep } from "./lib/omit-typename-deep";
 
 type TableData = {
-  data?: BlockProtocolLinkedAggregation["results"];
-  linkedAggregation?: BlockProtocolLinkedAggregation;
+  data?: LinkedAggregation["results"];
+  linkedAggregation?: LinkedAggregation;
 };
 
 type AppProps = {
@@ -42,9 +38,7 @@ type AppProps = {
   };
 };
 
-const useTableData = (
-  linkedAggregation: BlockProtocolLinkedAggregation | undefined,
-) => {
+const useTableData = (linkedAggregation: LinkedAggregation | undefined) => {
   const defaultTableData: TableData = {
     linkedAggregation,
     data: linkedAggregation?.results,
@@ -75,10 +69,10 @@ const useTableData = (
 };
 
 const getLinkedAggregation = (params: {
-  linkedAggregations: BlockProtocolLinkedAggregation[];
+  linkedAggregations: LinkedAggregation[];
   path: string;
   sourceEntityId: string;
-}): BlockProtocolLinkedAggregation | undefined => {
+}): LinkedAggregation | undefined => {
   const { linkedAggregations, path, sourceEntityId } = params;
 
   return linkedAggregations.find(
@@ -88,41 +82,30 @@ const getLinkedAggregation = (params: {
   );
 };
 
-const cleanUpdateLinkedAggregationAction = (
-  action: BlockProtocolUpdateLinkedAggregationActionFragment & {
-    operation: Omit<BlockProtocolAggregateOperationInput, "multiSort"> & {
-      __typename?: string;
-      pageCount?: number | null;
-      multiSort?: (BlockProtocolSort & { __typename?: string })[] | null;
-    };
-  },
-) => {
-  return produce(action, (draftAction) => {
-    delete draftAction.operation.pageCount;
-    delete draftAction.operation.__typename;
-    for (const sort of draftAction.operation.multiSort ?? []) {
-      delete sort?.__typename;
-    }
-  });
-};
-
 const path = "$.data";
 
 export const Table: BlockComponent<AppProps> = ({
-  accountId,
-  aggregateEntities,
-  aggregateEntityTypes,
-  createLinkedAggregations,
-  deleteLinkedAggregations,
-  entityId,
-  entityTypeId,
-  entityTypes: schemas,
-  entityTypeVersionId,
-  initialState,
-  linkedAggregations,
-  updateEntities,
-  updateLinkedAggregations,
+  // accountId,
+  // aggregateEntities,
+  // aggregateEntityTypes,
+  // createLinkedAggregations,
+  // deleteLinkedAggregations,
+  graph: { blockEntity, linkedAggregations, entityTypes: remoteEntityTypes },
+  // entityId,
+  // entityTypeId,
+  // entityTypes: schemas,
+  // entityTypeVersionId,
+  // linkedAggregations,
+  // updateEntities,
+  // updateLinkedAggregations,
 }) => {
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRef);
+  const {
+    entityId,
+    // entityTypeId,
+    properties: { initialState },
+  } = blockEntity;
   const matchingLinkedAggregation = useMemo(() => {
     if (!entityId) {
       return undefined;
@@ -173,7 +156,7 @@ export const Table: BlockComponent<AppProps> = ({
       initialState: {
         ...initialState,
       },
-      updateEntities,
+      updateEntity: graphService?.updateEntity, // this is passed into EditableCell
       data: tableData.data || [],
       defaultColumn: {
         Cell: EditableCell,
@@ -197,7 +180,7 @@ export const Table: BlockComponent<AppProps> = ({
       const linkedData = omitTypenameDeep(tableData.linkedAggregation);
 
       if (
-        !aggregateEntities ||
+        !graphService?.aggregateEntities ||
         !linkedData?.operation ||
         !linkedData.operation.entityTypeId
       ) {
@@ -214,17 +197,25 @@ export const Table: BlockComponent<AppProps> = ({
         delete linkedData.operation.pageCount;
       }
 
-      aggregateEntities({
-        accountId,
-        operation: linkedData.operation,
-      })
-        .then(({ operation, results }) => {
+      graphService
+        .aggregateEntities({
+          data: {
+            operation: linkedData.operation,
+          },
+        })
+        .then(({ data, errors }) => {
+          if (errors || !data) {
+            // @todo properly handle error
+            return;
+          }
+          const { operation, results } = data;
+          // @todo is this still needed
           if (!tableData.linkedAggregation?.sourceAccountId) {
             throw new Error("sourceAccountId is required");
           }
 
           setTableData({
-            data: results as TableData["data"],
+            data: results,
             linkedAggregation: {
               ...tableData.linkedAggregation,
               operation: {
@@ -238,23 +229,21 @@ export const Table: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [accountId, aggregateEntities, setTableData, tableData.linkedAggregation],
+    [graphService, setTableData, tableData.linkedAggregation],
   );
 
   const handleUpdate = useCallback(
     ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
       if (
         !entityId ||
-        !updateEntities ||
-        !updateLinkedAggregations ||
+        !graphService ||
         !matchingLinkedAggregation ||
         !tableData.linkedAggregation
       ) {
         return;
       }
 
-      const newLinkedData: BlockProtocolAggregateEntitiesPayload =
-        omitTypenameDeep(tableData.linkedAggregation);
+      const newLinkedData = omitTypenameDeep(tableData.linkedAggregation);
       const newState = {
         hiddenColumns: initialState?.hiddenColumns,
         columns: initialState?.columns,
@@ -277,46 +266,46 @@ export const Table: BlockComponent<AppProps> = ({
         newLinkedData.operation.itemsPerPage = itemsPerPage || prevItemsPerPage;
       }
 
+      // @todo confirm if this is still needed
       if (
         "pageCount" in newLinkedData.operation ||
         "pageNumber" in newLinkedData.operation
       ) {
-        delete (
-          newLinkedData.operation as BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>["operation"]
-        ).pageCount;
+        delete newLinkedData.operation.pageCount;
         delete newLinkedData.operation.pageNumber;
       }
 
-      void updateEntities([
-        {
-          accountId,
-          data: {
-            initialState: newState,
-          },
+      void graphService?.updateEntity({
+        data: {
           entityId,
-          entityTypeId,
-          entityTypeVersionId,
+          // don't we need these?
+          // entityTypeId,
+          // entityTypeVersionId,
+          properties: { initialState: newState },
         },
-      ]);
+      });
 
-      void updateLinkedAggregations([
-        cleanUpdateLinkedAggregationAction({
-          sourceAccountId: matchingLinkedAggregation.sourceAccountId,
+      void graphService?.updateLinkedAggregation({
+        data: {
           aggregationId: matchingLinkedAggregation.aggregationId,
-          operation: newLinkedData.operation,
-        }),
-      ]);
+          operation: omitTypenameDeep(newLinkedData.operation),
+        },
+      });
+
+      // void updateLinkedAggregations([
+      //   cleanUpdateLinkedAggregationAction({
+      //     sourceAccountId: matchingLinkedAggregation.sourceAccountId,
+      //     aggregationId: matchingLinkedAggregation.aggregationId,
+      //     operation: newLinkedData.operation,
+      //   }),
+      // ]);
     },
     [
-      accountId,
       entityId,
-      entityTypeId,
-      entityTypeVersionId,
-      initialState,
       matchingLinkedAggregation,
-      updateEntities,
-      updateLinkedAggregations,
       tableData.linkedAggregation,
+      initialState,
+      graphService,
     ],
   );
 
@@ -324,7 +313,7 @@ export const Table: BlockComponent<AppProps> = ({
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (!entityId || !updateEntities) {
+    if (!entityId || !graphService?.updateEntity) {
       return;
     }
 
@@ -336,19 +325,12 @@ export const Table: BlockComponent<AppProps> = ({
       ...(properties.columns && { columns: properties.columns }),
     };
 
-    if (tableData.linkedAggregation?.sourceAccountId) {
-      void updateEntities([
-        {
-          accountId,
-          data: {
-            initialState: newState,
-          },
-          entityId,
-          entityTypeId,
-          entityTypeVersionId,
-        },
-      ]);
-    }
+    void graphService?.updateEntity({
+      data: {
+        entityId,
+        properties: { initialState: newState },
+      },
+    });
   };
 
   const updateRemoteColumnsRef = useRef(updateRemoteColumns);
@@ -429,35 +411,36 @@ export const Table: BlockComponent<AppProps> = ({
     updateRemoteColumnsRef.current({ hiddenColumns: newHiddenColumns });
   };
 
-  const [entityTypes, setEntityTypes] = useState<BlockProtocolEntityType[]>();
+  const [entityTypes, setEntityTypes] = useState<EntityType[]>();
 
   useEffect(() => {
-    void aggregateEntityTypes?.({
-      accountId,
-      includeOtherTypesInUse: true,
-    }).then(({ results }) => {
-      setEntityTypes(orderBy(results, (entityType) => entityType.title));
-    });
-  }, [aggregateEntityTypes, accountId]);
+    void graphService
+      ?.aggregateEntityTypes({
+        data: {
+          includeOtherTypeInUse: true,
+        },
+      })
+      .then(({ data, errors }) => {
+        if (errors || !data) {
+          // @todo handle errors
+          return;
+        }
+        setEntityTypes(
+          orderBy(data.results, (entityType) => entityType.schema.title),
+        );
+      });
+  }, [graphService]);
 
   const handleEntityTypeChange = useCallback(
     (updatedEntityTypeId: string | undefined) => {
-      if (
-        !accountId ||
-        !entityId ||
-        !updateLinkedAggregations ||
-        !createLinkedAggregations
-      ) {
-        throw new Error(
-          "All of accountId, entityId, createLinkedAggregations and updateLinkedAggregations must be passed to the block to update data linked from it",
-        );
+      if (!entityId || !graphService) {
+        throw new Error("Graph service is not initialized");
       }
 
       if (updatedEntityTypeId) {
         if (tableData.linkedAggregation) {
-          void updateLinkedAggregations([
-            cleanUpdateLinkedAggregationAction({
-              sourceAccountId: accountId,
+          void graphService?.updateLinkedAggregation({
+            data: {
               aggregationId: tableData.linkedAggregation.aggregationId,
               operation: {
                 entityTypeId: updatedEntityTypeId,
@@ -465,37 +448,28 @@ export const Table: BlockComponent<AppProps> = ({
                 itemsPerPage:
                   tableData.linkedAggregation?.operation?.itemsPerPage,
               },
-            }),
-          ]);
+            },
+          });
         } else {
-          void createLinkedAggregations([
-            {
+          void graphService?.createLinkedAggregation({
+            data: {
+              sourceEntityId: entityId,
+              path,
               operation: {
                 entityTypeId: updatedEntityTypeId,
               },
-              path,
-              sourceAccountId: accountId,
-              sourceEntityId: entityId,
             },
-          ]);
+          });
         }
       } else if (tableData.linkedAggregation) {
-        void deleteLinkedAggregations?.([
-          {
-            sourceAccountId: accountId,
+        void graphService?.deleteLinkedAggregation({
+          data: {
             aggregationId: tableData.linkedAggregation.aggregationId,
           },
-        ]);
+        });
       }
     },
-    [
-      accountId,
-      createLinkedAggregations,
-      deleteLinkedAggregations,
-      entityId,
-      tableData.linkedAggregation,
-      updateLinkedAggregations,
-    ],
+    [entityId, graphService, tableData.linkedAggregation],
   );
 
   const entityTypeDropdown = entityTypes ? (
@@ -506,8 +480,9 @@ export const Table: BlockComponent<AppProps> = ({
     />
   ) : null;
 
+  // @todo confirm if this is still needed
   if (!tableData.linkedAggregation?.operation?.entityTypeId) {
-    if (!aggregateEntityTypes) {
+    if (!graphService?.aggregateEntityTypes) {
       return (
         <div>
           Table cannot be shown because entity type is not selected and the list
@@ -521,7 +496,7 @@ export const Table: BlockComponent<AppProps> = ({
 
   /** @todo Fix keys in iterators below to not use the index */
   return (
-    <div className={tw`overflow-x-auto`}>
+    <div ref={blockRef} className={tw`overflow-x-auto`}>
       <Header
         columns={allColumns}
         toggleHideColumn={handleToggleColumn}
@@ -574,9 +549,9 @@ export const Table: BlockComponent<AppProps> = ({
                       cell.column.id,
                     );
                     const propertyDef = getSchemaPropertyDefinition(
-                      (schemas ?? []).find(
-                        (schema) => schema.title === entity.type,
-                      ),
+                      (remoteEntityTypes ?? []).find(
+                        (entityType) => entityType.schema.title === entity.type,
+                      )?.schema,
                       property,
                     );
                     const readOnly = propertyDef?.readOnly;

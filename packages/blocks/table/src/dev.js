@@ -17,7 +17,13 @@ const App = () => {
       initialEntities={mockData.entities}
       initialEntityTypes={mockData.entityTypes}
     >
-      <Component entityId="table-1" accountId="accountId" />
+      <Component
+        entityId="table-1"
+        accountId="accountId"
+        graph={{
+          blockEntity: { entityId: "table-1" },
+        }}
+      />
     </MockBlockDock>
   );
 };

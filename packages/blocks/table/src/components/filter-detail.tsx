@@ -3,21 +3,27 @@ import { tw } from "twind";
 import { v4 as uuid } from "uuid";
 import { ColumnInstance } from "react-table";
 import {
-  BlockProtocolAggregateOperationInput,
   BlockProtocolMultiFilterOperatorType,
   BlockProtocolFilterOperatorType,
   BlockProtocolFilterOperatorWithoutValue,
   BlockProtocolFilter,
-  BlockProtocolFilterWithValue,
   BlockProtocolFilterWithoutValue,
 } from "blockprotocol";
+import {
+  MultiFilter,
+  FilterOperatorWithoutValue,
+  FilterOperatorType,
+  MultiFilterOperatorType,
+  FilterOperatorRequiringValue,
+  AggregateOperationInput,
+} from "@blockprotocol/graph";
 import { unstable_batchedUpdates } from "react-dom";
 import { debounce } from "lodash";
 import { AddIcon } from "./icons";
 
 const MENU_WIDTH = 540;
 
-const FILTER_OPERATORS: BlockProtocolFilterOperatorType[] = [
+const FILTER_OPERATORS: FilterOperatorType[] = [
   "CONTAINS",
   "DOES_NOT_CONTAIN",
   "IS",
@@ -28,30 +34,26 @@ const FILTER_OPERATORS: BlockProtocolFilterOperatorType[] = [
   "IS_NOT_EMPTY",
 ];
 
-const MULTI_FILTER_OPERATORS: BlockProtocolMultiFilterOperatorType[] = [
-  "AND",
-  "OR",
+const MULTI_FILTER_OPERATORS: MultiFilterOperatorType[] = ["AND", "OR"];
+
+const FILTER_OPERATORS_WITHOUT_VALUE: FilterOperatorWithoutValue[] = [
+  "IS_EMPTY",
+  "IS_NOT_EMPTY",
 ];
 
-const FILTER_OPERATORS_WITHOUT_VALUE: BlockProtocolFilterOperatorWithoutValue[] =
-  ["IS_EMPTY", "IS_NOT_EMPTY"];
-
 const filterHasValue = (
-  filter: BlockProtocolFilter,
-): filter is BlockProtocolFilterWithValue =>
-  !FILTER_OPERATORS_WITHOUT_VALUE.includes(
-    filter.operator as BlockProtocolFilterOperatorWithoutValue,
-  ) && (filter as BlockProtocolFilterWithValue).value != null;
+  filter: Filter,
+): filter is FilterOperatorRequiringValue =>
+  !FILTER_OPERATORS_WITHOUT_VALUE.includes(filter.operator as Filter) &&
+  (filter as BlockProtocolFilterWithValue).value != null;
 
 type FilterDetailProps = {
   columns: ColumnInstance<{}>[];
-  onFilter: (
-    multiFilter: BlockProtocolAggregateOperationInput["multiFilter"],
-  ) => void;
-  multiFilter: BlockProtocolAggregateOperationInput["multiFilter"];
+  onFilter: (multiFilter: AggregateOperationInput["multiFilter"]) => void;
+  multiFilter: AggregateOperationInput["multiFilter"];
 };
 
-type FilterFieldWithId = BlockProtocolFilter & { id: string };
+type FilterFieldWithId = MultiFilter["filters"][0] & { id: string };
 
 type FilterFieldsWithId = FilterFieldWithId[];
 
@@ -61,14 +63,14 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
   multiFilter,
 }) => {
   const [combinatorFilterOperator, setCombinatorFilterOperator] =
-    useState<BlockProtocolMultiFilterOperatorType>("AND");
+    useState<MultiFilterOperatorType>("AND");
   const [filters, setFilters] = useState<FilterFieldsWithId>([]);
   const isMounted = useRef(false);
 
   const handleFilter = useCallback(
     (
       filterFields?: FilterFieldsWithId,
-      newCombinatorFilterOperator?: BlockProtocolMultiFilterOperatorType,
+      newCombinatorFilterOperator?: MultiFilterOperatorType,
     ) => {
       const filtersWithoutId = (filterFields ?? filters)
         .filter(({ field }) => Boolean(field))
@@ -109,7 +111,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
     id: string,
     data:
       | Partial<BlockProtocolFilterWithValue>
-      | Partial<BlockProtocolFilterWithoutValue>,
+      | Partial<FilterOperatorWithoutValue>,
   ) => {
     const updatedFields = filters.map((item) =>
       item.id === id
