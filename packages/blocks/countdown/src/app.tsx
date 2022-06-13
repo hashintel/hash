@@ -10,13 +10,15 @@ import "./styles.scss";
 import "react-datepicker/dist/react-datepicker.css";
 import "./datepicker-override.scss";
 
-type AppProps = {
+type BlockEntityProperties = {
   title?: string;
   targetDate: string | null;
   displayTime?: boolean;
 };
 
-export const App: BlockComponent<AppProps> = ({ graph: { blockEntity } }) => {
+export const App: BlockComponent<BlockEntityProperties> = ({
+  graph: { blockEntity },
+}) => {
   const {
     entityId,
     properties: { targetDate, title, displayTime },
