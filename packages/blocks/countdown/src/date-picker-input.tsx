@@ -30,13 +30,13 @@ const CalenderIcon: FC<{ onClick: () => void }> = ({ onClick }) => {
 const CustomInput = forwardRef<
   HTMLInputElement,
   HTMLAttributes<HTMLInputElement> & { displayTime: boolean }
->(({ ...props }, ref) => {
+>(({ displayTime, ...props }, ref) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
       <input
-        data-expanded={props.displayTime ? "true" : "false"}
+        data-expanded={displayTime ? "true" : "false"}
         type="text"
         ref={(element) => {
           if (!ref || !inputRef) return;
