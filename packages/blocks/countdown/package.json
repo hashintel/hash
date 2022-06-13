@@ -28,8 +28,8 @@
   },
   "devDependencies": {
     "@types/react-datepicker": "^4.4.1",
-    "block-scripts": "0.0.7",
-    "mock-block-dock": "0.0.13-beta",
+    "block-scripts": "0.0.8-next.1",
+    "mock-block-dock": "0.0.14-next.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
@@ -55,6 +55,6 @@
     ],
     "icon": "public/icon.svg",
     "image": "public/preview.svg",
-    "protocol": 0.2
+    "protocol": "0.2"
   }
 }

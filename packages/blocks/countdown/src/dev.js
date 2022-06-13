@@ -12,13 +12,13 @@ import Component from "./index";
 const node = document.getElementById("app");
 
 const App = () => (
-  <MockBlockDock>
-    <Component
-      graph={{
-        blockEntity: { entityId: "entity-countdown" },
-      }}
-    />
-  </MockBlockDock>
+  <MockBlockDock
+    blockDefinition={{ ReactComponent: Component }}
+    blockEntity={{
+      entityId: "entity-countdown",
+      properties: {},
+    }}
+  />
 );
 
 ReactDOM.render(<App />, node);
