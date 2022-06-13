@@ -20,6 +20,7 @@
   align-items: flex-start;
   word-break: break-all;
   margin: 30px 0;
+  outline: none !important;
 }
 
 /**
