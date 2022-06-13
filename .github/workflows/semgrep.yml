@@ -1,15 +1,18 @@
+name: Semgrep
+
 on:
   pull_request: {}
   push:
     branches:
       - main
-name: Semgrep
+
 jobs:
   semgrep:
     name: Scan
     runs-on: ubuntu-20.04
     container:
       image: returntocorp/semgrep
+    if: (github.actor != 'dependabot[bot]')
     steps:
       - uses: actions/checkout@v3
       - run: semgrep ci
