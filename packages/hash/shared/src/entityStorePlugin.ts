@@ -50,7 +50,10 @@ export type EntityStorePluginAction = { received?: boolean } & (
    */
   {
       type: "mergeNewPageContents";
-      payload: BlockEntity[];
+      payload: {
+        blocks: BlockEntity[];
+        presetDraftIds: Record<string, string>;
+      };
     }
   | { type: "store"; payload: EntityStore }
   | { type: "subscribe"; payload: EntityStorePluginStateListener }
@@ -65,13 +68,6 @@ export type EntityStorePluginAction = { received?: boolean } & (
         accountId: string;
         draftId: string;
         entityId: string | null;
-      };
-    }
-  | {
-      type: "updateEntityId";
-      payload: {
-        draftId: string;
-        entityId: string;
       };
     }
   | {
@@ -231,7 +227,11 @@ const entityStoreReducer = (
     case "mergeNewPageContents":
       return {
         ...state,
-        store: createEntityStore(action.payload, state.store.draft),
+        store: createEntityStore(
+          action.payload.blocks,
+          state.store.draft,
+          action.payload.presetDraftIds,
+        ),
       };
 
     case "store": {
@@ -303,26 +303,6 @@ const entityStoreReducer = (
           draftState.store.draft,
           action.payload.blockEntityDraftId,
           action.payload.targetEntity,
-        );
-      });
-    }
-
-    case "updateEntityId": {
-      if (!state.store.draft[action.payload.draftId]) {
-        throw new Error("Entity missing to update entity id");
-      }
-
-      return produce(state, (draftState) => {
-        if (!action.received) {
-          draftState.trackedActions.push({ action, id: uuid() });
-        }
-
-        updateEntitiesByDraftId(
-          draftState.store.draft,
-          action.payload.draftId,
-          (draftEntity: Draft<DraftEntity>) => {
-            draftEntity.entityId = action.payload.entityId;
-          },
         );
       });
     }
@@ -693,8 +673,12 @@ const scheduleNotifyEntityStoreSubscribers = collect<
   }
 });
 
-export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
-  new Plugin<EntityStorePluginState, Schema>({
+export const createEntityStorePlugin = ({
+  accountId,
+}: {
+  accountId: string;
+}) => {
+  const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
     key: entityStorePluginKey,
     state: {
       init(_): EntityStorePluginState {
@@ -715,7 +699,7 @@ export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
           scheduleNotifyEntityStoreSubscribers(
             view,
             prevState,
-            createEntityStorePlugin({ accountId }),
+            entityStorePlugin,
           );
         },
       };
@@ -742,3 +726,5 @@ export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
       return new ProsemirrorStateChangeHandler(state, accountId).handleDoc();
     },
   });
+  return entityStorePlugin;
+};

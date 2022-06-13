@@ -1,25 +1,24 @@
 import { useQuery } from "@apollo/client";
 import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { defaultBlocks } from "@hashintel/hash-shared/defaultBlocks";
+import { getPageTitleQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { Box } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { Router, useRouter } from "next/router";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { defaultBlocks } from "@hashintel/hash-shared/defaultBlocks";
-import {
-  GetPageQuery,
-  GetPageQueryVariables,
-} from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { Box } from "@mui/material";
+import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
-import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
-
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
-import { NextPageWithLayout, getLayoutWithSidebar } from "../../shared/layout";
+import {
+  GetPageTitleQuery,
+  GetPageTitleQueryVariables,
+} from "../../graphql/apiTypes.gen";
+import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 
 // Apparently defining this is necessary in order to get server rendered props?
@@ -71,9 +70,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
   );
 
   const { data, error, loading } = useQuery<
-    GetPageQuery,
-    GetPageQueryVariables
-  >(getPageQuery, {
+    GetPageTitleQuery,
+    GetPageTitleQueryVariables
+  >(getPageTitleQuery, {
     variables: { entityId: pageEntityId, accountId, versionId },
   });
 
@@ -119,8 +118,8 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
         <Box display="flex">
           <PageTitle
             value={title}
-            accountId={data.page.accountId}
-            metadataId={data.page.entityId}
+            accountId={accountId}
+            metadataId={pageEntityId}
           />
           {/* 
             Commented out Version Dropdown and Transfer Page buttons.
@@ -157,9 +156,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
       <main>
         <CollabPositionProvider value={collabPositions}>
           <PageBlock
-            accountId={data.page.accountId}
+            accountId={accountId}
             blocksMeta={blocksMetaMap}
-            entityId={data.page.entityId}
+            entityId={pageEntityId}
           />
         </CollabPositionProvider>
       </main>

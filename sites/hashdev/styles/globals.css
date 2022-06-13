@@ -6,6 +6,15 @@ code {
   border: 1px solid #dde7f0;
 }
 
+pre {
+  border: none;
+}
+
 pre code {
   border: none;
+  background-color: inherit;
+}
+
+li:not(:last-child) {
+  margin-bottom: 1rem;
 }
