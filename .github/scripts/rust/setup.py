@@ -12,7 +12,7 @@ ALWAYS_RUN_PATTERNS = ["**/rust-toolchain.toml", ".github/**"]
 BENCH_CRATES = ["packages/engine"]
 
 # Exclude the stable channel for these crates
-DISABLE_STABLE_PATTERNS = ["packages/engine/**"]
+DISABLE_STABLE_PATTERNS = ["packages/engine**"]
 
 # Try and publish these crates when their version is changed in Cargo.toml
 PUBLISH_PATTERNS = ["packages/libs/error-stack"]
