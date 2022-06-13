@@ -1,6 +1,7 @@
 from fnmatch import fnmatch
 from pathlib import Path
 import re
+import json
 
 CWD = Path.cwd()
 
@@ -112,13 +113,15 @@ def crates_to_publish(crates):
     return [crate for crate in crates for pattern in PUBLISH_PATTERNS if fnmatch(crate, pattern)]
 
 
-def exclude_statements(crates):
+def output_exclude(crates):
     """
-    Returns the crates which are allowed to be published
+    Prints exclude statements used by GitHub
     :param crates: a list of paths to crates
-    :return: a list of crate paths which are allowed to be published
     """
-    return [dict(toolchain="stable", directory=str(crate)) for crate in crates_on_nightly(crates)]
+
+    output = json.dumps([dict(toolchain="stable", directory=str(crate)) for crate in crates_on_nightly(crates)])
+    print(f"::set-output name=exclude::{output}")
+    print(f"exclude = {output}")
 
 
 def output(name, crates):
@@ -127,7 +130,6 @@ def output(name, crates):
     :param name: The name how GitHub will find the output
     :param crates: a list of crate paths to be outputted
     """
-    import json
 
     output = json.dumps([str(crate) for crate in crates])
     print(f"::set-output name={name}::{output}")
@@ -146,4 +148,4 @@ if __name__ == "__main__":
     output("miri", changed_crates)
     output("doc", changed_crates)
     output("publish", version_changed(diffs, crates_to_publish(changed_crates)))
-    output("exclude", exclude_statements(changed_crates))
+    output_exclude(changed_crates)
