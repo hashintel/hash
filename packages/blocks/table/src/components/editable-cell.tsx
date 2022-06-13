@@ -71,11 +71,18 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
       }
     }
 
+    console.log({ objectToUpdate });
+
+    console.log(newEntity.entityId, newEntity.properties);
+    alert("got here");
+    console.log({ updateEntity });
     void updateEntity?.({
       data: {
-        entityId: objectToUpdate.entityId,
-        // entityTypeId: objectToUpdate.entityTypeId,
-        properties: newEntity,
+        entityId: newEntity.entityId,
+        properties: newEntity.properties,
+        // entityId: objectToUpdate.entityId,
+        // // entityTypeId: objectToUpdate.entityTypeId,
+        // properties: newEntity,
       },
     }).then(({ errors }) => {
       if (errors) {
@@ -83,17 +90,6 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
         console.error("Could not update table data: ", errors); // @todo fix this
       }
     });
-
-    // updateEntities([
-    //   {
-    //     data: newEntity,
-    //     entityId: objectToUpdate.entityId,
-    //     entityTypeId: objectToUpdate.entityTypeId,
-    //     // @todo shouldn't need this – HASH should know it
-    //     accountId: objectToUpdate.accountId,
-    //   },
-    //   // eslint-disable-next-line no-console -- TODO: consider using logger
-    // ])?.catch((err) => console.error("Could not update table data: ", err));
   };
 
   return (

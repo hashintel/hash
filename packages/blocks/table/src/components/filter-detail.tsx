@@ -2,13 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { tw } from "twind";
 import { v4 as uuid } from "uuid";
 import { ColumnInstance } from "react-table";
-import {
-  BlockProtocolMultiFilterOperatorType,
-  BlockProtocolFilterOperatorType,
-  BlockProtocolFilterOperatorWithoutValue,
-  BlockProtocolFilter,
-  BlockProtocolFilterWithoutValue,
-} from "blockprotocol";
+
 import {
   MultiFilter,
   FilterOperatorWithoutValue,
@@ -41,21 +35,29 @@ const FILTER_OPERATORS_WITHOUT_VALUE: FilterOperatorWithoutValue[] = [
   "IS_NOT_EMPTY",
 ];
 
-const filterHasValue = (
-  filter: Filter,
-): filter is FilterOperatorRequiringValue =>
-  !FILTER_OPERATORS_WITHOUT_VALUE.includes(filter.operator as Filter) &&
-  (filter as BlockProtocolFilterWithValue).value != null;
+type Filter = MultiFilter["filters"][0];
+
+type FilterWithId = MultiFilter["filters"][0] & { id: string };
+
+type FilterRequiringValue = {
+  field: string;
+  operator: FilterOperatorRequiringValue;
+  value: string;
+};
+
+const filterHasValue = (filter: Filter): filter is FilterRequiringValue => {
+  return (
+    !FILTER_OPERATORS_WITHOUT_VALUE.includes(
+      filter.operator as FilterOperatorWithoutValue,
+    ) && (filter as FilterRequiringValue).value !== null
+  );
+};
 
 type FilterDetailProps = {
   columns: ColumnInstance<{}>[];
   onFilter: (multiFilter: AggregateOperationInput["multiFilter"]) => void;
   multiFilter: AggregateOperationInput["multiFilter"];
 };
-
-type FilterFieldWithId = MultiFilter["filters"][0] & { id: string };
-
-type FilterFieldsWithId = FilterFieldWithId[];
 
 export const FilterDetail: React.VFC<FilterDetailProps> = ({
   columns,
@@ -64,12 +66,12 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
 }) => {
   const [combinatorFilterOperator, setCombinatorFilterOperator] =
     useState<MultiFilterOperatorType>("AND");
-  const [filters, setFilters] = useState<FilterFieldsWithId>([]);
+  const [filters, setFilters] = useState<FilterWithId[]>([]);
   const isMounted = useRef(false);
 
   const handleFilter = useCallback(
     (
-      filterFields?: FilterFieldsWithId,
+      filterFields?: FilterWithId[],
       newCombinatorFilterOperator?: MultiFilterOperatorType,
     ) => {
       const filtersWithoutId = (filterFields ?? filters)
@@ -107,18 +109,13 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
     handleFilter(newFields);
   };
 
-  const updateField = (
-    id: string,
-    data:
-      | Partial<BlockProtocolFilterWithValue>
-      | Partial<FilterOperatorWithoutValue>,
-  ) => {
+  const updateField = (id: string, data: Partial<Filter>) => {
     const updatedFields = filters.map((item) =>
       item.id === id
         ? ({
             ...item,
             ...data,
-          } as FilterFieldWithId)
+          } as FilterWithId)
         : item,
     );
 
@@ -126,9 +123,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
     debouncedHandleFilter(updatedFields);
   };
 
-  const handleCombinatorFilterChange = (
-    value: BlockProtocolMultiFilterOperatorType,
-  ) => {
+  const handleCombinatorFilterChange = (value: MultiFilterOperatorType) => {
     setCombinatorFilterOperator(value);
     debouncedHandleFilter(filters, value);
   };
@@ -162,7 +157,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
                   defaultValue={combinatorFilterOperator}
                   onChange={(evt) => {
                     handleCombinatorFilterChange(
-                      evt.target.value as BlockProtocolMultiFilterOperatorType,
+                      evt.target.value as MultiFilterOperatorType,
                     );
                   }}
                 >
@@ -195,7 +190,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
               className={tw`text-sm capitalize border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 w-28 px-2 mr-2`}
               onChange={(evt) =>
                 updateField(filter.id, {
-                  operator: evt.target.value as BlockProtocolFilterOperatorType,
+                  operator: evt.target.value as FilterOperatorType,
                 })
               }
               defaultValue={filter.operator}
