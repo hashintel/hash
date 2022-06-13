@@ -1,3 +1,4 @@
+import { capitalizeComponentName } from "@hashintel/hash-api/src/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import {
@@ -72,37 +73,20 @@ void (async () => {
   const results = new Map<string, Entity>();
 
   const requiredBlockTypes = [
-    {
-      name: "Divider",
-      componentId: "https://blockprotocol.org/blocks/@hash/divider",
-    },
-    {
-      name: "Embed",
-      componentId: "https://blockprotocol.org/blocks/@hash/embed",
-    },
-    {
-      name: "Image",
-      componentId: "https://blockprotocol.org/blocks/@hash/image",
-    },
-    {
-      name: "Table",
-      componentId: "https://blockprotocol.org/blocks/@hash/table",
-    },
-    {
-      name: "Code",
-      componentId: "https://blockprotocol.org/blocks/@hash/code",
-    },
-    {
-      name: "Video",
-      componentId: "https://blockprotocol.org/blocks/@hash/video",
-    },
-    {
-      name: "Header",
-      componentId: "https://blockprotocol.org/blocks/@hash/header",
-    },
-  ] as const;
+    "https://blockprotocol.org/blocks/@hash/divider",
+    "https://blockprotocol.org/blocks/@hash/embed",
+    "https://blockprotocol.org/blocks/@hash/image",
+    "https://blockprotocol.org/blocks/@hash/table",
+    "https://blockprotocol.org/blocks/@hash/code",
+    "https://blockprotocol.org/blocks/@hash/video",
+    "https://blockprotocol.org/blocks/@hash/header",
+    "https://blockprotocol.org/blocks/@hash/person",
+  ].map((componentId) => ({
+    name: capitalizeComponentName(componentId),
+    componentId,
+  }));
 
-  const requiredOtherTypes = ["Company", "Location", "Person"] as const;
+  const requiredOtherTypes = ["Company", "Location"] as const;
   // create the types we'll need below so we can assign their ids to entities
   const newTypeIds: Record<
     | typeof requiredBlockTypes[number]["name"]
@@ -220,7 +204,7 @@ void (async () => {
       [
         "divider1",
         {
-          entityTypeId: newTypeIds.Divider,
+          entityTypeId: newTypeIds.Divider!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -308,7 +292,7 @@ void (async () => {
         "embed1",
         {
           accountId: systemOrg.accountId,
-          entityTypeId: newTypeIds.Embed,
+          entityTypeId: newTypeIds.Embed!,
           createdByAccountId: user.entityId,
           properties: {},
         },
@@ -316,7 +300,7 @@ void (async () => {
       [
         "embed2",
         {
-          entityTypeId: newTypeIds.Embed,
+          entityTypeId: newTypeIds.Embed!,
           accountId: systemOrg.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -325,7 +309,7 @@ void (async () => {
       [
         "img1",
         {
-          entityTypeId: newTypeIds.Image,
+          entityTypeId: newTypeIds.Image!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -334,7 +318,7 @@ void (async () => {
       [
         "img2",
         {
-          entityTypeId: newTypeIds.Image,
+          entityTypeId: newTypeIds.Image!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -343,7 +327,7 @@ void (async () => {
       [
         "code1",
         {
-          entityTypeId: newTypeIds.Code,
+          entityTypeId: newTypeIds.Code!,
           accountId: systemOrg.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -352,7 +336,7 @@ void (async () => {
       [
         "video1",
         {
-          entityTypeId: newTypeIds.Video,
+          entityTypeId: newTypeIds.Video!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {},
@@ -370,7 +354,7 @@ void (async () => {
             country: "UK",
             name: "London",
           },
-          entityTypeId: newTypeIds.Location,
+          entityTypeId: newTypeIds.Location!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
         },
@@ -382,7 +366,7 @@ void (async () => {
             country: "FR",
             name: "Nantes",
           },
-          entityTypeId: newTypeIds.Location,
+          entityTypeId: newTypeIds.Location!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
         },
@@ -394,7 +378,7 @@ void (async () => {
             name: "Example Org",
             url: "https://example.com",
           },
-          entityTypeId: newTypeIds.Company,
+          entityTypeId: newTypeIds.Company!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
         },
@@ -413,14 +397,14 @@ void (async () => {
             name: "Alice Alison",
             employer: {
               __linkedData: {
-                entityTypeId: newTypeIds.Company,
+                entityTypeId: newTypeIds.Company!,
                 entityId: results.get("c1")!.entityId,
               },
             },
           },
           accountId: user.accountId,
           createdByAccountId: user.entityId,
-          entityTypeId: newTypeIds.Person,
+          entityTypeId: newTypeIds.Person!,
         },
       ],
       [
@@ -431,12 +415,12 @@ void (async () => {
             name: "Bob Bobson",
             employer: {
               __linkedData: {
-                entityTypeId: newTypeIds.Company,
+                entityTypeId: newTypeIds.Company!,
                 entityId: results.get("c1")!.entityId,
               },
             },
           },
-          entityTypeId: newTypeIds.Person,
+          entityTypeId: newTypeIds.Person!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
         },
@@ -449,7 +433,7 @@ void (async () => {
       [
         "t1",
         {
-          entityTypeId: newTypeIds.Table,
+          entityTypeId: newTypeIds.Table!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {
@@ -471,7 +455,7 @@ void (async () => {
       [
         "t2",
         {
-          entityTypeId: newTypeIds.Table,
+          entityTypeId: newTypeIds.Table!,
           accountId: user.accountId,
           createdByAccountId: user.entityId,
           properties: {
@@ -487,7 +471,7 @@ void (async () => {
   await table1.createAggregation(db, {
     stringifiedPath: "$.data",
     operation: {
-      entityTypeId: newTypeIds.Person,
+      entityTypeId: newTypeIds.Person!,
       itemsPerPage: 5,
       multiSort: [
         {
