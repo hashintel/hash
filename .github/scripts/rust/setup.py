@@ -1,0 +1,149 @@
+from fnmatch import fnmatch
+from pathlib import Path
+import re
+
+CWD = Path.cwd()
+
+# All jobs for all crates will run if any of these paths changes
+ALWAYS_RUN_PATTERNS = ["**/rust-toolchain.toml", ".github/**"]
+
+# Crates which will be tested in release mode
+BENCH_CRATES = ["packages/engine"]
+
+# Exclude the stable channel for these crates
+DISABLE_STABLE_PATTERNS = ["packages/engine/**"]
+
+# Try and publish these crates when their version is changed in Cargo.toml
+PUBLISH_PATTERNS = ["packages/libs/error-stack"]
+
+
+def generate_diffs():
+    """
+    Generates a diff for the last commit
+
+    If the last commit was a merge commit, the trees are compared, otherwise the workdir is compared
+    """
+    from pygit2 import Repository, Commit
+
+    repository = Repository(CWD)
+
+    head = repository.head.peel(Commit)
+    if len(head.parents) == 1:
+        # last commit was a regular commit
+        # compare head tree with workdir
+        diff = repository.diff(head.tree, context_lines=0)
+    else:
+        # last commit was a merge commit
+        # compare between trees
+        diff = repository.diff(head.parents[0], head.tree, context_lines=0)
+
+    return diff
+
+
+def available_crates():
+    """
+    Returns all available crates in the workspace
+    :return: a list of crate paths
+    """
+    return [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
+
+
+def changed_crates(diffs, crates):
+    """
+    Returns the crates, which have changed files
+
+    If a file was changed, which matches `ALWAYS_RUN_PATTERNS`, all crates will be returned
+    :param diffs: a list `Diff`s returned from git
+    :param crates: a list of paths to crates
+    :return: a list of crate paths
+    """
+    # Check, if a file matches `ALWAYS_RUN_PATTERNS`
+    if [diff for diff in diffs for pattern in ALWAYS_RUN_PATTERNS if fnmatch(diff.delta.new_file.path, pattern)]:
+        return crates
+
+    # Check, if crates matches files
+    return list(set([crate
+                     for crate in crates
+                     for diff in diffs
+                     if fnmatch(diff.delta.new_file.path, f"{crate}/**")]))
+
+
+def version_changed(diffs, crates):
+    """
+    Returns the crates which version has changed
+    :param diffs: a list `Diff`s returned from git
+    :param crates: a list of paths to crates
+    :return: a list of crate paths
+    """
+    return list(set([crate
+                     for diff in diffs
+                     for crate in crates
+                     if crate / "Cargo.toml" == Path(diff.delta.new_file.path)
+                     for hunk in diff.hunks
+                     for line in hunk.lines
+                     for content in line.content.splitlines()
+                     if re.fullmatch("version\\s*=\\s*\".*\"", content)]))
+
+
+def crates_on_nightly(crates):
+    """
+    Returns the crates which are not allowed to run on the stable toolchain
+    :param crates: a list of paths to crates
+    :return: a list of crate paths
+    """
+    return [crate for crate in crates for pattern in DISABLE_STABLE_PATTERNS if fnmatch(crate, pattern)]
+
+
+def crates_for_bench(crates):
+    """
+    Returns the crates which should run their test in release mode as well
+    :param crates: a list of paths to crates
+    :return: a list of crate paths
+    """
+    return [crate for crate in crates for pattern in BENCH_CRATES if fnmatch(crate, pattern)]
+
+
+def crates_to_publish(crates):
+    """
+    Returns the crates which are allowed to be published
+    :param crates: a list of paths to crates
+    :return: a list of crate paths which are allowed to be published
+    """
+    return [crate for crate in crates for pattern in PUBLISH_PATTERNS if fnmatch(crate, pattern)]
+
+
+def exclude_statements(crates):
+    """
+    Returns the crates which are allowed to be published
+    :param crates: a list of paths to crates
+    :return: a list of crate paths which are allowed to be published
+    """
+    return [dict(toolchain="stable", directory=str(crate)) for crate in crates_on_nightly(crates)]
+
+
+def output(name, crates):
+    """
+    Prints crates in a GitHub understandable way defined by name
+    :param name: The name how GitHub will find the output
+    :param crates: a list of crate paths to be outputted
+    """
+    import json
+
+    output = json.dumps([str(crate) for crate in crates])
+    print(f"::set-output name={name}::{output}")
+    print(f"{name} = {output}")
+
+
+if __name__ == "__main__":
+    diffs = generate_diffs()
+    available_crates = available_crates()
+    changed_crates = changed_crates(diffs, available_crates)
+
+    output("rustfmt", changed_crates)
+    output("clippy", changed_crates)
+    output("test", changed_crates)
+    output("bench", crates_for_bench(changed_crates))
+    output("miri", changed_crates)
+    output("doc", changed_crates)
+    output("publish", version_changed(diffs, crates_to_publish(changed_crates)))
+    output("exclude", exclude_statements(changed_crates))
