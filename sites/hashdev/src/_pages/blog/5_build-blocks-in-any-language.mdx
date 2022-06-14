@@ -1,11 +1,11 @@
 ---
-authorPhoto: blog/5_blocks-without-typescript/ahmad.png
-postPhoto: blog/5_blocks-without-typescript/FSharp_Cover.jpg
-title: "Building Block Protocol blocks without TypeScript"
-subtitle: "Implementing a Block Protocol block with F# and Fable"
+authorPhoto: blog/5_build-blocks-in-any-language/ahmad.png
+postPhoto: blog/5_build-blocks-in-any-language/FSharp_Cover.jpg
+title: "How to build Block Protocol blocks in any language"
+subtitle: "Transpiling from F# to JavaScript to build a complex, spreadsheet block"
 author: "Ahmad Sattar Atta"
 jobTitle: "Platform Engineer at HASH"
-date: "2022-06-13"
+date: "2022-06-14"
 ---
 
 One of the main motivations behind recent Block Protocol updates has been to enable blocks to be written in a wider variety of languages. To make that possible, the ways in which blocks and embedding applications interact have changed significantly. As of version 0.2 of the specification, Block Protocol requests and responses are handled through DOM `CustomEvents` defined in accordance with JSON Schemas.
@@ -273,7 +273,7 @@ The F# Feliz library supports making use of the Model-View-Update architecture o
 For those unfamiliar with MVU, it prescribes how state (the model) can can be updated through messages dispatched to the view, which itself is a pure function of the state.
 
 <img
-  src="blog/5_blocks-without-typescript/mvu.png"
+  src="blog/5_build-blocks-in-any-language/mvu.png"
   width={1004}
   height={178}
   alt="A diagram showing how the MVU architecture propagates changes."
@@ -284,7 +284,7 @@ For those unfamiliar with MVU, it prescribes how state (the model) can can be up
 The calculation block will operate on distinct Block Protocol Entity Types which are selected for each spreadsheet row. Selecting an Entity Type will fetch entities of that type and make them available to the row. The only aggregation functions currently supported by the block are: `count`, `sum`, and `avg`.
 
 <img
-  src="blog/5_blocks-without-typescript/person_count.png"
+  src="blog/5_build-blocks-in-any-language/person_count.png"
   width={418}
   height={118}
   alt="The calculation block with `Person` selected in row one, containing `=count()` in cell A1."
@@ -476,7 +476,7 @@ With the parser in place, the application's view can try to parse the values of 
 Inputting an expression in a cell, such as:
 
 <img
-  src="blog/5_blocks-without-typescript/expression_math.png"
+  src="blog/5_build-blocks-in-any-language/expression_math.png"
   width={290}
   height={123}
   alt="The calculation block with `Person` selected in row one, `Company`in row two, containing `=count()/A2` in cell A1 and `=count()` in cell A2."
