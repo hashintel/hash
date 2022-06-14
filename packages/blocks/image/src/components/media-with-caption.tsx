@@ -1,4 +1,4 @@
-import React, { forwardRef, ForwardRefRenderFunction } from "react";
+import React, { VFC } from "react";
 import { tw } from "twind";
 import Pencil from "../svgs/pencil";
 import { ResizeImageBlock } from "./resize-image-block";
@@ -21,13 +21,14 @@ type MediaWithCaptionProps = {
     }
 );
 
-const renderMediaWithCaption: ForwardRefRenderFunction<
-  HTMLDivElement,
-  MediaWithCaptionProps
-> = (
-  { caption, src, onCaptionChange, onCaptionConfirm, onReset, ...props },
-  ref,
-) => {
+export const MediaWithCaption: VFC<MediaWithCaptionProps> = ({
+  caption,
+  src,
+  onCaptionChange,
+  onCaptionConfirm,
+  onReset,
+  ...props
+}) => {
   const captionNode = (
     <input
       placeholder="Add a caption"
@@ -39,7 +40,7 @@ const renderMediaWithCaption: ForwardRefRenderFunction<
     />
   );
   return (
-    <div ref={ref} className={tw`flex justify-center text-center w-full`}>
+    <div className={tw`flex justify-center text-center w-full`}>
       {props.type === "image" ? (
         <div className={tw`flex flex-col`}>
           <ResizeImageBlock
@@ -73,5 +74,3 @@ const renderMediaWithCaption: ForwardRefRenderFunction<
     </div>
   );
 };
-
-export const MediaWithCaption = forwardRef(renderMediaWithCaption);
