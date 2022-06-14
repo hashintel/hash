@@ -50,7 +50,8 @@
       {
         "height": 400,
         "darkMode": false,
-        "serializedDocument": ""
+        "serializedDocument": "",
+        "readOnly": false
       }
     ],
     "icon": "public/icon.svg",
