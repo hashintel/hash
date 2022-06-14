@@ -2,7 +2,7 @@
 authorPhoto: blog/5_blocks-without-typescript/ahmad.png
 postPhoto: blog/5_blocks-without-typescript/FSharp_Cover.jpg
 title: "Building Block Protocol blocks without TypeScript"
-subtitle: ""
+subtitle: "Implementing a Block Protocol block with F# and Fable"
 author: "Ahmad Sattar Atta"
 jobTitle: "Platform Engineer at HASH"
 date: "2022-06-13"
@@ -12,7 +12,7 @@ One of the main motivations behind recent Block Protocol updates has been to ena
 
 It's now a lot easier to create blocks that are not tied to JavaScript, TypeScript, or React. As long as a block can use browser `Event`s, it can implement the Block Protocol. To show what the changes imply for adventurous block authors, this post will be a technical walk-through of how the Block Protocol can be implemented and used in a language that is not TypeScript. Specifically, we're going to build a block in F#—but the methodology and implementation details are applicable for other languages that support JavaScript as a transpilation target and JavaScript interoperability.
 
-## Building blocks with F
+## Building blocks with F\#
 
 If you're interested in functional programming, [F#](https://fsharp.org/), along with [Fable compiler](https://fable.io/) and [Feliz](https://zaid-ajaj.github.io/Feliz/), is a great way to develop for the web. Here it will be used to create a logically complicated _calculation block_ resembling a spreadsheet that allows calculation, aggregation and data sourcing from embedding applications.
 
