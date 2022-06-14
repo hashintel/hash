@@ -57,6 +57,10 @@
     "examples": [
       {
         "initialState": {
+          "hiddenColumns": [
+            "entityId",
+            "name"
+          ],
           "columns": [
             {
               "Header": "entityId",
