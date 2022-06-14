@@ -7,7 +7,7 @@ import React, {
   useRef,
   MouseEventHandler,
 } from "react";
-import { BlockComponent } from "blockprotocol/react";
+import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
 import { parseISO, isValid } from "date-fns";
 import * as duration from "duration-fns";
 import { useAutoRefresh } from "./app/use-auto-refresh";
@@ -22,7 +22,7 @@ type TimerState = {
   targetTimestamp?: number;
 };
 
-export type AppProps = {
+export type BlockEntityProperties = {
   /** https://en.wikipedia.org/wiki/ISO_8601#Durations */
   initialDuration: string;
   /** https://en.wikipedia.org/wiki/ISO_8601#Durations */
@@ -74,27 +74,33 @@ const parseDurationIfPossible = (
   return undefined;
 };
 
-export const App: BlockComponent<AppProps> = ({
-  updateEntities,
-  entityId,
-  accountId,
-  ...rest
+export const App: BlockComponent<BlockEntityProperties> = ({
+  graph: {
+    blockEntity: { entityId, properties: blockEntityProperties },
+  },
 }) => {
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRef);
+
   const externalTimerState = useMemo<TimerState>(() => {
-    const unclampedPauseDuration = parseDurationIfPossible(rest.pauseDuration);
+    const unclampedPauseDuration = parseDurationIfPossible(
+      blockEntityProperties.pauseDuration,
+    );
 
     return {
       initialDurationInMs: clamp(
-        parseDurationIfPossible(rest.initialDuration) ??
+        parseDurationIfPossible(blockEntityProperties.initialDuration) ??
           defaultInitialDurationInMs,
         [minInitialDurationInMs, maxInitialDurationInMs],
       ),
       pauseDurationInMs: unclampedPauseDuration
         ? clamp(unclampedPauseDuration, [0, maxInitialDurationInMs])
         : undefined,
-      targetTimestamp: parseDateIfPossible(rest.targetDateTime),
+      targetTimestamp: parseDateIfPossible(
+        blockEntityProperties.targetDateTime,
+      ),
     };
-  }, [rest.initialDuration, rest.pauseDuration, rest.targetDateTime]);
+  }, [blockEntityProperties]);
 
   const [timerState, setTimerState] = useState<TimerState>(externalTimerState);
 
@@ -117,7 +123,7 @@ export const App: BlockComponent<AppProps> = ({
         pauseButtonRef.current?.focus();
       }
 
-      const data: AppProps = {
+      const properties: BlockEntityProperties = {
         initialDuration: duration.toString(
           normalizeDurationMinutesAndSeconds(
             duration.toString(newTimerState.initialDurationInMs),
@@ -137,9 +143,14 @@ export const App: BlockComponent<AppProps> = ({
           : undefined,
       };
 
-      void updateEntities?.([{ entityId, accountId, data }]);
+      void graphService?.updateEntity({
+        data: {
+          entityId,
+          properties,
+        },
+      });
     },
-    [accountId, entityId, updateEntities],
+    [entityId, graphService],
   );
 
   const remainingDurationInMs =
@@ -236,7 +247,7 @@ export const App: BlockComponent<AppProps> = ({
   };
 
   return (
-    <div className="timer-block">
+    <div ref={blockRef} className="timer-block">
       <div className="dial">
         <div className="dial-ring">
           <div
