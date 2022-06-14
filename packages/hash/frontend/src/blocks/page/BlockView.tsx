@@ -66,6 +66,7 @@ export class BlockView implements NodeView<Schema> {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
     this.dom.setAttribute("data-testid", "block");
+    this.dom.setAttribute("tabIndex", "0");
 
     this.selectContainer = document.createElement("div");
     this.selectContainer.classList.add(styles.Block__UI!);
