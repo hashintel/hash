@@ -10,7 +10,7 @@ import Component from "./index";
 
 const node = document.getElementById("app");
 
-const props = {
+const personProperties = {
   avatar: "https://i.pravatar.cc/300",
   employer: {
     name: "Bain & Co.",
@@ -24,9 +24,14 @@ const props = {
 const App = () => (
   <div style={{ padding: "1em" }}>
     <div style={{ margin: "0 auto", width: "100%" }}>
-      <MockBlockDock>
-        <Component entityId="person1" {...props} />
-      </MockBlockDock>
+      <MockBlockDock
+        blockDefinition={{ ReactComponent: Component }}
+        blockEntity={{
+          entityId: "person1",
+          properties: personProperties,
+        }}
+        debug
+      />
     </div>
   </div>
 );
