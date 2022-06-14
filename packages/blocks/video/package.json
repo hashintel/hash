@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/block-video",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Embed MP4 and WEBM videos by URL or file upload and add an optional caption",
   "repository": {

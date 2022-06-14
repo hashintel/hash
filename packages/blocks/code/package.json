@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/block-code",
-  "version": "0.2.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Write monospaced code with syntax highlighting in a range of programming and markup languages",
   "repository": {

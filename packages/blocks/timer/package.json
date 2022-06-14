@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/block-timer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Set a countdown timer to remind you when a certain amount of time has elapsed",
   "keywords": [
     "blockprotocol",
