@@ -22,15 +22,15 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@tldraw/tldraw": "1.11.1",
+    "@blockprotocol/graph": "0.0.2",
+    "@tldraw/tldraw": "1.16.0",
     "@types/react-resizable": "1.7.4",
-    "blockprotocol": "0.0.10",
     "react-resizable": "^3.0.4"
   },
   "devDependencies": {
-    "block-scripts": "0.0.7",
+    "block-scripts": "0.0.8-next.1",
     "mobx": "6.5.0",
-    "mock-block-dock": "0.0.10",
+    "mock-block-dock": "0.0.14-next.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
@@ -42,6 +42,9 @@
     "port": 6272
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "displayName": "Drawing",
     "examples": [
       {
@@ -51,6 +54,7 @@
       }
     ],
     "icon": "public/icon.svg",
-    "image": "public/preview.png"
+    "image": "public/preview.png",
+    "protocol": "0.2"
   }
 }
