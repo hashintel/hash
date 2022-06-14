@@ -2,7 +2,6 @@
   "entityTypes": [
     {
       "entityTypeId": "Company",
-      "accountId": "accountId",
       "schema": {
         "$id": "https://example.com/types/Company",
         "title": "Company",
