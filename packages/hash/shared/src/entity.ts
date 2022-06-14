@@ -16,7 +16,7 @@ import {
 } from "./util";
 
 type ContentsEntity = DistributiveOmit<
-  PageFieldsFragment["properties"]["contents"][number],
+  PageFieldsFragment["contents"][number],
   "__typename"
 >;
 
@@ -30,9 +30,14 @@ export type BlockEntity = DistributiveOmit<ContentsEntity, "properties"> & {
   };
 };
 
+// @todo make this more robust, checking system type name of entity type
 export const isTextEntity = (
   entity: EntityStoreType | DraftEntity,
 ): entity is Text => "properties" in entity && "tokens" in entity.properties;
+
+export const isDraftTextEntity = (
+  entity: DraftEntity,
+): entity is DraftEntity<Text> => isTextEntity(entity) && isDraftEntity(entity);
 
 /**
  * @deprecated

@@ -1,0 +1,37 @@
+---
+objectId: 97a3fd23-0c83-411e-885f-709c57dd16ef
+title: Values
+description: Values are the information contained within a single property on a specific instance of an entity.
+slug: values
+tags: ["Data Science", "Graphs"]
+---
+
+## What are values?
+
+Values are the information contained within a single [property](https://hash.ai/glossary/properties) on a specific instance of an [entity](https://hash.ai/glossary/entities).
+
+**For example:** consider the `@schema/Person` entity type, and an instance of it. We’ll call this entity `Alex`.
+- One of the properties that our entity type `@schema/Person` expects is `jobTitle`.
+- Alex is a pastry chef.
+- Where the property `jobTitle` appears on our entity, `Alex`, its value may be set to "Pastry Chef".
+
+## Manual enrichment
+
+If you have two [datasets](https://hash.ai/glossary/datasets) containing overlapping entities, but mismatching property values, you can merge these upon importing them in [HASH](https://hash.ai/platform/hash).
+
+You can also manually enter values into entity’s properties by hand. For some entity types, specific [blocks](https://hash.ai/glossary/blocks) exist which assist in the process of efficiently capturing this information.
+
+## Automated enrichment
+
+Through HASH’s forthcoming [integrations](https://hash.ai/glossary/integrations) feature you’ll be automatically able to keep entity’s properties in sync with other applications and databases you already use.
+
+## Third-party lookup enrichment
+
+If an entity’s properties are properly [typed](https://hash.ai/glossary/types), it may be possible to automatically infer their values by checking them against external providers of data.
+
+For example, there are services which when provided with:
+- an **email address** -- will attempt to return the name of the account holder, and their social media account usernames;
+- an **IP address** -- will return the Internet Service Provider (ISP) and approximate geographic location;
+- a **credit card number** -- will return the issuing bank, type of card, etc.
+
+In the future you will be able to perform third-party lookup enrichment directly within HASH, making it easy to construct and maintain a high-quality, up-to-date graph.

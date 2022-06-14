@@ -1,8 +1,8 @@
 {
   "name": "@hashintel/block-header",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
-  "description": "Section headings of varying size",
+  "description": "Write titles, sub-titles, and section headings in four different sizes",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
