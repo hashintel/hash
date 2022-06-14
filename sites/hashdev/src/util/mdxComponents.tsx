@@ -16,6 +16,14 @@ export const mdxComponents: Record<string, ReactNode> = {
     return <Typography {...props} variant="hashBodyCopy" />;
   },
 
+  li: (props: TypographyProps<"li">) => {
+    return (
+      <li>
+        <Typography {...props} variant="hashBodyCopy" />
+      </li>
+    );
+  },
+
   a: (props: LinkProps) => <Link {...props} />,
 
   h1: (props: TypographyProps<"h1">) => (

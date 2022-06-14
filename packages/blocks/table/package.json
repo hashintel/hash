@@ -1,11 +1,11 @@
 {
   "name": "@hashintel/block-table",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
-  "description": "Create a table for storing information in rows and columns",
+  "description": "Display and manipulate tabular data with filter, sort, and search features",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git#main",
+    "url": "https://github.com/hashintel/hash.git",
     "directory": "packages/blocks/table"
   },
   "license": "MIT",
@@ -19,8 +19,8 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
+    "@blockprotocol/graph": "0.0.2",
     "@headlessui/react": "1.4.1",
-    "blockprotocol": "0.0.10",
     "immer": "9.0.6",
     "lodash": "4.17.21",
     "react-table": "7.7.0",
@@ -28,9 +28,9 @@
   },
   "devDependencies": {
     "@types/react-table": "7.7.1",
-    "block-scripts": "0.0.7",
+    "block-scripts": "0.0.8-next.1",
     "eslint": "8.13.0",
-    "mock-block-dock": "0.0.10",
+    "mock-block-dock": "0.0.14-next.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "twind": "0.16.17",
@@ -48,53 +48,19 @@
     "servePort": 62678
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "displayName": "Table",
     "icon": "public/table.svg",
     "image": "public/preview.svg",
     "examples": [
       {
-        "data": {
-          "__linkedData": {
-            "aggregate": {
-              "itemsPerPage": 5,
-              "entityTypeId": "d399c523-e152-49ed-81a4-56d9e17196bb",
-              "pageNumber": 1,
-              "pageCount": 1
-            },
-            "entityTypeId": "d399c523-e152-49ed-81a4-56d9e17196bb"
-          },
-          "data": [
-            {
-              "entityId": "1",
-              "name": "Alice",
-              "email": "alice@example.com",
-              "age": 42,
-              "country": "England"
-            },
-            {
-              "entityId": "2",
-              "name": "Bob",
-              "email": "bob@example.com",
-              "age": 34,
-              "country": "France"
-            },
-            {
-              "entityId": "3",
-              "name": "David",
-              "email": "david@example.com",
-              "age": 24,
-              "country": "Denmark"
-            },
-            {
-              "entityId": "4",
-              "name": "Eric",
-              "email": "eric@example.com",
-              "age": 59,
-              "country": "Iceland"
-            }
-          ]
-        },
         "initialState": {
+          "hiddenColumns": [
+            "entityId",
+            "name"
+          ],
           "columns": [
             {
               "Header": "entityId",
@@ -111,15 +77,11 @@
             {
               "Header": "age",
               "accessor": "age"
-            },
-            {
-              "Header": "country",
-              "accessor": "country"
             }
           ]
         }
       }
     ],
-    "protocol": "0.1"
+    "protocol": "0.2"
   }
 }

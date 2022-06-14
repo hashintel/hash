@@ -1,24 +1,22 @@
-import { FormEvent, useState } from "react";
+import { useMutation } from "@apollo/client";
+import { TextField } from "@hashintel/hash-design-system";
+import { Collapse, Typography } from "@mui/material";
 
 import { useRouter } from "next/router";
-
-import { useMutation } from "@apollo/client";
+import { FormEvent, useState } from "react";
 import { tw } from "twind";
-
-import { Collapse, Typography } from "@mui/material";
-import { TextField } from "@hashintel/hash-design-system";
-import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import { Button } from "../../../shared/ui";
-import {
-  NextPageWithLayout,
-  getLayoutWithSidebar,
-} from "../../../shared/layout";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
+import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
+import {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../shared/layout";
 import { useRouteAccountInfo } from "../../../shared/routing";
+import { Button } from "../../../shared/ui";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -32,7 +30,7 @@ const Page: NextPageWithLayout = () => {
     CreateEntityTypeMutationVariables
   >(createEntityTypeMutation, {
     onCompleted: ({ createEntityType: entityType }) =>
-      router.push(`/${entityType.accountId}/types/${entityType.entityId}`),
+      router.push(`/${accountId}/types/${entityType.entityId}`),
     refetchQueries: [
       { query: getAccountEntityTypes, variables: { accountId } },
     ],

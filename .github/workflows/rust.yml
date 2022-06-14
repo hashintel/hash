@@ -28,6 +28,7 @@ jobs:
       bench: ${{ steps.crates.outputs.bench }}
       miri: ${{ steps.crates.outputs.miri }}
       doc: ${{ steps.crates.outputs.doc }}
+      publish: ${{ steps.crates.outputs.publish }}
       samples: ${{ steps.samples.outputs.samples }}
       nightly: ${{ steps.toolchains.outputs.nightly }}
       exclude: ${{ steps.crates.outputs.exclude }}
@@ -43,10 +44,13 @@ jobs:
           changed_files="$(git diff --name-only HEAD^ HEAD)"
 
           # All jobs for all crates will run if any of these paths changes
-          always_run_on=(".github" "rust-toolchain.toml" "Cargo.toml" "Cargo.lock")
+          always_run_on=(".github" "rust-toolchain.toml")
 
           # Exclude the stable channel for these crates
           disable_stable_on=("packages/engine")
+
+          # Try and publish these crates when their version is changed in Cargo.toml
+          publishable_crates=("packages/libs/error-stack")
 
           changed_crates=""
           while read -r file; do
@@ -71,6 +75,18 @@ jobs:
             done
           done <<< "$changed_crates"
 
+          publish_crates=""
+          while read -r file; do
+            for publishable_crate in "${publishable_crates[@]}"; do
+              if [[ "$file" = "$publishable_crate/Cargo.toml" ]]; then
+                echo checking "$publishable_crate/Cargo.toml"
+                if git diff --unified=0 HEAD^ HEAD -- "$publishable_crate/Cargo.toml" | grep -q '+version'; then
+                  publish_crates=$(echo -e "${publishable_crate}\n$publish_crates")
+                fi
+              fi
+            done
+          done <<< "$changed_files"
+
           # We always run "packages/engine" tests when a nested crate was changed
           test_crates="$changed_crates"
           if echo "$test_crates" | grep -qe "^packages/engine"; then
@@ -81,6 +97,7 @@ jobs:
           bench_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(. == "packages/engine") ]')
           test_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
           exclude_stable=$(echo "$exclude_stable" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
+          publish_crates=$(echo "$publish_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
           exclude=$(echo "$exclude_stable" | jq -sc '[ { directory: .[][], toolchain: "stable"} | select(length > 0) ]')
 
           echo "::set-output name=rustfmt::$changed_crates"
@@ -89,6 +106,7 @@ jobs:
           echo "::set-output name=bench::$bench_crates"
           echo "::set-output name=miri::$test_crates"
           echo "::set-output name=doc::$changed_crates"
+          echo "::set-output name=publish::$publish_crates"
           echo "::set-output name=exclude::$exclude"
 
           echo "run \`cargo fmt\` for: $(echo "$changed_crates" | jq -r)"
@@ -98,6 +116,7 @@ jobs:
           echo "run \`cargo miri\` for: $(echo "$test_crates" | jq -r)"
           echo "run \`cargo doc\` for: $(echo "$changed_crates" | jq -r)"
           echo "Won't run stable channel for: $(echo "$exclude_stable" | jq -r)"
+          echo "Publish crates: $(echo "$publish_crates" | jq -r)"
 
       - name: Find toolchain
         id: toolchains
@@ -528,9 +547,49 @@ jobs:
           command: rustdoc
           args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --show-coverage --document-private-items
 
+  publish:
+    name: publish
+    needs: setup
+    if: needs.setup.outputs.publish != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.setup.outputs.publish) }}
+        toolchain:
+          - ${{ needs.setup.outputs.nightly }}
+        flags:
+          - --all-features
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust
+        id: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Login
+        run: |
+          [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
+          cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+
+      - name: Publish (dry run)
+        if: github.event_name == 'pull_request'
+        working-directory: ${{ matrix.directory }}
+        run: cargo publish ${{ matrix.flags }} --dry-run
+
+      - name: Publish
+        if: github.event_name == 'push'
+        working-directory: ${{ matrix.directory }}
+        run: cargo publish ${{ matrix.flags }}
+
   merging-enabled:
     name: merging enabled
-    needs: [rustfmt, clippy, test, bench, miri, doc]
+    needs: [rustfmt, clippy, test, bench, miri, doc, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -552,3 +611,6 @@ jobs:
       - name: check doc
         run: |
           [[ ${{ needs.doc.result }} =~ success|skipped ]]
+      - name: check publish
+        run: |
+          [[ ${{ needs.publish.result }} =~ success|skipped ]]
