@@ -3,12 +3,6 @@
   position: relative;
 }
 
-#TD-MenuItem-File-Export-PNG,
-#TD-MenuItem-File-Export-JPG,
-#TD-MenuItem-File-Export-WEBP {
-  display: none;
-}
-
 #TD-MenuItem-Edit + div[role="separator"] {
   display: none;
 }

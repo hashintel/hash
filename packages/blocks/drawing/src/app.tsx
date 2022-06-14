@@ -6,7 +6,7 @@ import React, {
   useLayoutEffect,
 } from "react";
 
-import { BlockComponent } from "blockprotocol/react";
+import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
 import { Resizable, ResizeCallbackData } from "react-resizable";
 import {
@@ -17,11 +17,12 @@ import {
 } from "./utils";
 import "./base.css";
 
-type AppProps = {
+type BlockEntityProperties = {
   serializedDocument: string;
   darkMode?: boolean;
   width?: number;
   height?: number;
+  readOnly?: boolean;
 };
 
 type LocalState = {
@@ -30,6 +31,7 @@ type LocalState = {
   serializedDocument: string;
   maxWidth?: number;
   darkMode?: boolean;
+  readOnly?: boolean;
 };
 
 const BASE_HEIGHT = 500;
@@ -41,20 +43,22 @@ const BASE_HEIGHT = 500;
 // @todo consider storing the document in a .tldr file (which is uploaded
 // via file upload method) as opposed to the current approach of storing in JSON.
 
-// @todo re-add readOnly feature when https://github.com/tldraw/tldraw/issues/705 is fixed
-
-export const App: BlockComponent<AppProps> = ({
-  entityId,
-  entityTypeId,
-  entityTypeVersionId,
-  darkMode: remoteDarkMode = false,
-  serializedDocument: remoteSerializedDocument,
-  accountId,
-  updateEntities,
-  height: remoteHeight,
-  width: remoteWidth,
+export const App: BlockComponent<BlockEntityProperties> = ({
+  graph: { blockEntity },
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRef);
+  const {
+    entityId,
+    properties: {
+      height: remoteHeight,
+      width: remoteWidth,
+      serializedDocument: remoteSerializedDocument,
+      darkMode: remoteDarkMode = false,
+      readOnly: remoteReadOnly = false,
+    },
+  } = blockEntity;
+
   const rTldrawApp = useRef<TldrawApp>();
   const rInitialDocument = useRef<TDDocument>(
     getInitialDocument(remoteSerializedDocument, entityId),
@@ -69,11 +73,11 @@ export const App: BlockComponent<AppProps> = ({
   });
 
   useLayoutEffect(() => {
-    if (!containerRef.current) return;
+    if (!blockRef.current) return;
 
     const handleResize = () => {
       const containerWidth = Number(
-        containerRef.current?.getBoundingClientRect().width.toFixed(2),
+        blockRef.current?.getBoundingClientRect().width.toFixed(2),
       );
 
       setLocalState((prev) => ({
@@ -97,7 +101,7 @@ export const App: BlockComponent<AppProps> = ({
   useEffect(() => {
     setLocalState((prev) => ({
       ...prev,
-      darkMode: remoteDarkMode ?? prev.darkMode,
+      darkMode: remoteDarkMode,
       height:
         // eslint-disable-next-line eqeqeq
         remoteHeight == undefined || Number.isNaN(remoteHeight)
@@ -111,39 +115,38 @@ export const App: BlockComponent<AppProps> = ({
       serializedDocument: isValidSerializedDocument(remoteSerializedDocument)
         ? remoteSerializedDocument
         : prev.serializedDocument,
+      readOnly: remoteReadOnly,
     }));
-  }, [remoteDarkMode, remoteHeight, remoteWidth, remoteSerializedDocument]);
+  }, [
+    remoteDarkMode,
+    remoteHeight,
+    remoteWidth,
+    remoteSerializedDocument,
+    remoteReadOnly,
+  ]);
 
   const updateRemoteData = useCallback(
-    (newData: Partial<AppProps>) => {
+    (newData: Partial<BlockEntityProperties>) => {
       if (!rTldrawApp.current) return;
-      const data = {
+      const properties = {
         serializedDocument:
           newData.serializedDocument ??
           JSON.stringify(rTldrawApp.current.document),
+        readOnly:
+          newData.readOnly ?? rTldrawApp.current.settings.isReadonlyMode,
         darkMode: newData.darkMode ?? rTldrawApp.current.settings.isDarkMode,
         height: newData.height ?? localState.height,
         width: newData.width ?? localState.width,
       };
 
-      void updateEntities?.([
-        {
+      void graphService?.updateEntity({
+        data: {
           entityId,
-          entityTypeId,
-          entityTypeVersionId,
-          accountId,
-          data,
+          properties,
         },
-      ]);
+      });
     },
-    [
-      localState,
-      updateEntities,
-      entityId,
-      entityTypeId,
-      entityTypeVersionId,
-      accountId,
-    ],
+    [localState.height, localState.width, graphService, entityId],
   );
 
   const handleMount = useCallback(
@@ -220,7 +223,7 @@ export const App: BlockComponent<AppProps> = ({
   );
 
   return (
-    <div ref={containerRef} className="drawing-container">
+    <div ref={blockRef} className="drawing-container">
       <Resizable
         height={localState.height}
         width={localState.width!}
@@ -241,6 +244,7 @@ export const App: BlockComponent<AppProps> = ({
             document={rInitialDocument.current}
             onMount={handleMount}
             onPersist={handlePersist}
+            readOnly={localState.readOnly}
             showMultiplayerMenu={false}
             showSponsorLink={false}
             onExport={handleExport}
