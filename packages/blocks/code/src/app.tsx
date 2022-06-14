@@ -7,13 +7,15 @@ import { CopyIcon } from "./icons";
 import { languages, LanguageType } from "./utils";
 import { Editor } from "./components/editor";
 
-type AppProps = {
+type BlockEntityProperties = {
   caption?: string;
   language: LanguageType;
   content: string;
 };
 
-export const App: BlockComponent<AppProps> = ({ graph: { blockEntity } }) => {
+export const App: BlockComponent<BlockEntityProperties> = ({
+  graph: { blockEntity },
+}) => {
   const {
     entityId,
     properties: { caption, content, language },
@@ -43,7 +45,9 @@ export const App: BlockComponent<AppProps> = ({ graph: { blockEntity } }) => {
   }, [caption, content, language]);
 
   const updateLocalData = (
-    newData: Partial<Pick<AppProps, "caption" | "language" | "content">>,
+    newData: Partial<
+      Pick<BlockEntityProperties, "caption" | "language" | "content">
+    >,
   ) => {
     setLocalData({
       ...localData,
@@ -51,7 +55,7 @@ export const App: BlockComponent<AppProps> = ({ graph: { blockEntity } }) => {
     });
   };
 
-  const updateRemoteData = (properties: AppProps) => {
+  const updateRemoteData = (properties: BlockEntityProperties) => {
     void graphService?.updateEntity({
       data: {
         entityId,

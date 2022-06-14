@@ -29,11 +29,11 @@ export enum BlockState {
   Overview,
 }
 
-type AppProps = {
+type BlockEntityProperties = {
   selectedPullRequest?: PullRequestIdentifier;
 };
 
-export const App: BlockComponent<AppProps> = ({
+export const App: BlockComponent<BlockEntityProperties> = ({
   accountId,
   entityId,
   aggregateEntities,

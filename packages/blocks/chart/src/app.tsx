@@ -44,9 +44,9 @@ type ChartEntityProperties = {
   }[];
 } & ChartEntityConfigProperties;
 
-type AppProps = ChartEntityProperties;
+type BlockEntityProperties = ChartEntityProperties;
 
-export const App: BlockComponent<AppProps> = ({
+export const App: BlockComponent<BlockEntityProperties> = ({
   entityId,
   accountId,
   aggregateEntityTypes,

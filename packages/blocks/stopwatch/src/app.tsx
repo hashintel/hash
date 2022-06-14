@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { BlockComponent } from "blockprotocol/react";
 
-type AppProps = {
+type BlockEntityProperties = {
   start: Date;
   laps: number[];
 };
@@ -39,7 +39,7 @@ const getLastLap = (laps: number[]): number => {
   return last === undefined ? 0 : last;
 };
 
-export const App: BlockComponent<AppProps> = ({
+export const App: BlockComponent<BlockEntityProperties> = ({
   entityId,
   accountId,
   updateEntities,
