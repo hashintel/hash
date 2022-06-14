@@ -18,6 +18,7 @@ const App = () => (
       entityId: "entity-drawing",
       properties: {},
     }}
+    debug
   />
 );
 
