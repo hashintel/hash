@@ -24,7 +24,6 @@
     },
     {
       "entityTypeId": "Person",
-      "accountId": "accountId",
       "schema": {
         "$id": "https://example.com/types/Person",
         "title": "Person",
