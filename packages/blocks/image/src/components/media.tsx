@@ -322,37 +322,36 @@ export const Media: VoidFunctionComponent<
     });
   };
 
-  if (draftSrc) {
-    return (
-      <MediaWithCaption
-        ref={blockRef}
-        src={draftSrc}
-        onWidthChange={updateWidth}
-        caption={draftCaption}
-        onCaptionChange={(caption) => setDraftCaption(caption)}
-        onCaptionConfirm={() => updateData({ src: draftSrc })}
-        onReset={resetComponent}
-        width={draftWidth}
-        type={mediaType}
-      />
-    );
-  }
-
   return (
-    <>
-      {errorString && (
-        <ErrorAlert
-          error={errorString}
-          onClearError={() => setErrorString(null)}
+    <div ref={blockRef}>
+      {draftSrc ? (
+        <MediaWithCaption
+          src={draftSrc}
+          onWidthChange={updateWidth}
+          caption={draftCaption}
+          onCaptionChange={(caption) => setDraftCaption(caption)}
+          onCaptionConfirm={() => updateData({ src: draftSrc })}
+          onReset={resetComponent}
+          width={draftWidth}
+          type={mediaType}
         />
+      ) : (
+        <>
+          {errorString && (
+            <ErrorAlert
+              error={errorString}
+              onClearError={() => setErrorString(null)}
+            />
+          )}
+          <UploadMediaForm
+            onUrlConfirm={onUrlConfirm}
+            onFileChoose={(file) => handleImageUpload({ file })}
+            onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
+            loading={loading}
+            type={mediaType}
+          />
+        </>
       )}
-      <UploadMediaForm
-        onUrlConfirm={onUrlConfirm}
-        onFileChoose={(file) => handleImageUpload({ file })}
-        onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
-        loading={loading}
-        type={mediaType}
-      />
-    </>
+    </div>
   );
 };
