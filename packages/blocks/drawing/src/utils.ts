@@ -7,15 +7,15 @@ import { TDDocument, TDExport, TldrawApp } from "@tldraw/tldraw";
  * @see https://github.com/tldraw/tldraw/blob/main/apps/www/pages/api/export.ts
  */
 
-export const handleExport = async (info: TDExport): Promise<void> => {
-  if (info.serialized) {
-    const link = document.createElement("a");
-    link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(
-      info.serialized,
-    )}`;
-    link.download = `${info.name}.${info.type}`;
-    link.click();
-  }
+export const handleExport = async (
+  _: TldrawApp,
+  info: TDExport,
+): Promise<void> => {
+  const blobUrl = URL.createObjectURL(info.blob);
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = `${info.name}.${info.type}`;
+  link.click();
 };
 
 // @todo improve this
