@@ -16,7 +16,7 @@ It's now a lot easier to create blocks that are not tied to JavaScript, TypeScri
 
 If you're interested in functional programming, [F#](https://fsharp.org/), along with [Fable compiler](https://fable.io/) and [Feliz](https://zaid-ajaj.github.io/Feliz/), is a great way to develop for the web. Here it will be used to create a logically complicated _calculation block_ resembling a spreadsheet that allows calculation, aggregation and data sourcing from embedding applications.
 
-The purpose of the Block Protocol ('BP') is to provide a standardized interface for any embedding application (‘EA'). This interface can be thought of as a data provider-consumer layer, like a backend for the block and a frontend for the embedding application. Writing our calculation block _once_ with the Block Protocol allows any BP-compliant EA to make use of it.
+The purpose of the Block Protocol is to provide a standardized interface for any embedding application. This interface can be thought of as a data provider-consumer layer, like a backend for the block and a frontend for the embedding application. Writing our calculation block _once_ with the Block Protocol allows any protocol-compliant application to make use of it.
 
 <CalculationBlock></CalculationBlock>
 
@@ -35,8 +35,10 @@ To implement the Block Protocol in a language other than JavaScript or TypeScrip
 1.  translate the types in the Block Protocol Core specification to types your chosen language (F# in this case)
 2.  translate any types from services that the block requires e.g. types for requests and responses in the Graph Service
 3.  Implement the Block Protocol's message handling
-4.  the implementation can be hidden between easy-to-use abstractions.
-5.  send the messages your block needs to update or retrieve data, as specified in the Graph Service specification
+
+- the implementation details can be hidden behind easy-to-use abstractions
+
+4.  send the messages your block needs to update or retrieve data, as specified in the Graph Service specification
 
 ### Block Protocol Core types
 
@@ -87,7 +89,7 @@ In order to properly explain the response to this initial message, it's helpful 
 
 ### Block Protocol Graph Service types
 
-The Graph Service is a special service as the core specification uses it in `initResponse`s as part of initializing blocks. The service supplies an interface for managing Entities, Entity Types, and Links. Entity Types are _domain types_ defined in embedding applications, and Entities are instances of these.
+The Graph Service supplies an interface for managing Entities, Entity Types, and Links. Entity Types are _domain types_ defined in embedding applications, and Entities are instances of these.
 
 ```fsharp
 // Graph
@@ -181,7 +183,7 @@ The name of the event is important. The spec assumes this is always `"blockproto
 
 Other than that, the only requirement for the language in which you are implementing the protocol is that it can send and act on these events. In reality, dispatching events is a little more convoluted, as we will sometimes want to receive a response from the embedding application (discussed below).
 
-To receive events from the embedding application, it's necessary to use some of the same primitives as when you are sending events. We must listen on `"blockprotocolmessage"` events through a DOM element and handle them individually and asynchronously from dispatching.
+To receive events from the embedding application, it's necessary to use some of the same primitives as when you are sending events. We must listen on `"blockprotocolmessage"` events through a DOM element and handle them individually and asynchronously.
 
 ```fsharp
 let listenForEAResponse (blockMessageRoot: HTMLElement) =
@@ -245,7 +247,7 @@ let listenForEAResponse responseSettlerMap blockMessageRoot =
     blockMessageRoot.addEventListener (BlockProtocolEventName, handler)
 ```
 
-Some details have been left out in the code listing to focus on the important bits. The `responseSettlerMap` is a mutable, shared state which is used on both ends of the communication to match up request and response pairs. Since promises are returned from dispatching events, the caller isn't blocked by issuing a Block Protocol request and the interface to interact with the Block Protocol is a lot like making network calls. Typing the requests and responses is just a matter of type coercion. An interface with the following shape will allow such type coercion:
+Some details have been left out in the code listing to focus on the important bits. The `responseSettlerMap` is a mutable, shared state which is used on both ends of the communication to match up request and response pairs. Since promises are returned from dispatched events, the caller isn't blocked by issuing a Block Protocol request and the interface to interact with the Block Protocol is a lot like making network calls. Typing the requests and responses is just a matter of type coercion. An interface with the following shape will allow such type coercion:
 
 ```fsharp
 type BlockProtocolState =
@@ -488,4 +490,4 @@ if all goes well. Otherwise, the raw value of the cell is shown.
 
 We've seen how the Block Protocol isn't tied to JavaScript, TypeScript, or React, and how you can build a block with your favorite JavaScript transpilation source—F#, in my case! There's no need to change the way you write frontend code. The Elmish component doesn't have any special knowledge about the Block Protocol, for example, and relies instead on a couple of asynchronous functions which disguise a simple way of communicating through DOM events.
 
-You can browse the full source code for the calculation block [on GitHub](https://github.com/hashdeps/calculation-table-block). If you feel inspired to build a block without TypeScript, we'd love to [hear from you on Discord](https://hash.ai/discord). And to learn more about the technical details of the Block Protocol, take a look at the [specification](https://blockprotocol.org/spec).
+You can browse the full source code for the calculation block [on GitHub](https://github.com/hashdeps/calculation-table-block). If you feel inspired to build a block without TypeScript, we'd love to [hear from you on Discord](https://hash.ai/discord). And to learn more about the technical details of the Block Protocol, take a look at the [specification](https://blockprotocol.org/spec) (check url).
