@@ -1,0 +1,54 @@
+---
+authorPhoto: blog/6_wad/david.jpg
+postPhoto: blog/6_wad/BlockProtocolV2_Cover.jpg
+title: "De-commodifying the internet, block by block"
+subtitle: "Announcing Block Protocol version 0.2"
+author: "David Wilkinson"
+jobTitle: "CEO at HASH"
+date: "2022-06-15"
+---
+
+Speaking at the WeAreDevelopers conference today in Berlin, HASH’s co-founder Joel Spolsky talked about the increasing commodification of the web and our vision for how the Block Protocol can help.
+
+Too many of the web’s useful abstractions (or features) have been built within commodified space. Bloggers used to write on accessible and indexable personal websites; now it’s all on Substack and Medium. The best place to organize an event is on Facebook, where your friends will be monetized with divisive clickbait. Photographer’s galleries used to be open and searchable, now Instagram will force you to sign up and then pummel you with notifications. The once free and fertile, creative and community-built web has become… the Shitty Web™.
+
+## Making a less shitty web with the Block Protocol
+
+The Block Protocol will help reduce commodification on the web by making useful abstractions reusable in any application. By making it much, much easier for applications to these add novel abstractions, the best features of the web will be democratized, solving more problems for end-users across a wider range of applications and websites.
+
+Abstractions on the web vary greatly, from API services to full frontend features. The Block Protocol is concerned with “blocks”—front-end components which can be used to display and manipulate content and data. Blocks can be simple and static, like an image or a text block, or they can be more complex, like a chart or event creation block.
+
+These blocks can be fixed parts of a website or application’s UI, designed to solve a particular problem, or they can be presented in a menu of options, enabling end-users to insert a block of their choice in a page or canvas and manipulate it to fit their purpose. These latter, more composable interfaces are increasingly popular, with applications such as Notion, Coda, WordPress, Retool, and Glide being notable examples of products which use them.
+
+It’s with these block-based interfaces in mind that we are building the Block Protocol. The problem with these interfaces today is that each application has to build all of their own blocks. Everyone’s reinventing the wheel—or rather the kanban block, or table block, or image block. The cost of adding new blocks is much higher than it needs to be and end-users have an unnecessarily limited range of blocks to play with.
+
+The Block Protocol solves this problem by defining a communication standard between blocks and embedding applications, enabling blocks to be portable. By participating in the ecosystem, applications can more easily extend their functionality, block developers can create solutions to specific problems which can be used across a range of apps, and users benefit from more block options and more composable interfaces. Read more about the Block Protocol [here](https://blockprotocol.org).
+
+## Announcing Block Protocol v0.2
+
+We launched the v0.1 spec in January 2022 with a [blog post from Joel](https://www.joelonsoftware.com/2022/01/27/making-the-web-better-with-blocks/). Since then, we’ve received a huge amount of insightful and helpful feedback from the open source community. Thank you. The overall sentiment is one of positivity and excitement. Developers working on a range of different projects believe in the vision and want it to become a reality. We have a lot of work to do though, and the constructive critiques and questions we’ve received have been extremely valuable.
+
+As we dove into the details of the problems we still need to solve to make blocks and applications truly interoperable, we quickly realised the protocol would need a more extensible architecture. Version 0.1 defined a set of methods which together represented all the messages that could be exchanged between embedding applications and blocks. As we worked through solutions, we found ourselves adding more and more methods and soon realised this would become unworkable for a couple of reasons. Firstly, not all blocks and embedding applications would need all of these methods, making the specification unnecessarily bloated. And second, each new method we introduced would require embedding applications and blocks to upgrade to the new version of the protocol.
+
+Today, we are releasing our first major update to the Block Protocol to solve this problem. Version 0.2 rearchitects the protocol into a “core” specification supported by additional “service” specifications.
+
+The Core Specification defines clear API boundaries between embedding applications and blocks. Specifically, it sets out:
+
+- how blocks should be defined
+- how embedding applications should initialize blocks
+- how services are defined
+- how applications and blocks communicate via services
+
+Within this framework, the service specifications define _what_ is communicated between applications and blocks in order to fulfil a specific purpose, like defining a block’s style or exchanging data. Importantly, services can be added and updated independently of the Core Specification, allowing us to extend and iterate the Block Protocol much more easily.
+
+We don’t expect all embedding applications to support all services. Instead, we’ll allow app developers to filter the available blocks based on the services they require, allowing for easier, more incremental adoption of the Block Protocol.
+
+In addition to the v0.2 Core Specification, we are introducing the first Block Protocol service: the Graph Service. This replaces v0.1’s data transfer methods. We expect most blocks to use the Graph Service as it enables blocks to create, read, update, and delete data in embedding applications, a common requirement for interoperability.
+
+The best way to learn about version 0.2 of the Block Protocol is to build a block. You can get started in a matter of minutes with [our tutorial](https://blockprotocol.org/docs/developing-blocks). For all the technical details, read the new specifications [here](https://blockprotocol.org/spec).
+
+## Help us build the Block Protocol
+
+We are building the Block Protocol in the open and we’d love your help.
+
+With the introduction of version 0.2, we’re sharing a list of new services we’re considering, from Commenting to Versioning. We also have a number of important, open questions around updates we’re considering for the Core Specification and the Graph Services Specification. You can find all the details in the [RFCs & Roadmap section](https://blockprotocol.org/spec/rfcs_and_roadmap) of the spec and [join the discussion on GitHub](https://github.com/blockprotocol/blockprotocol/discussions).
