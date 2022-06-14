@@ -13,16 +13,17 @@ const node = document.getElementById("app");
 
 const App = () => {
   return (
-    <div style={{ marginTop: 20 }}>
-      <MockBlockDock>
-        <Component
-          accountId="account-asdasd"
-          initialCaption="A blooming flower"
-          entityId="entity-asdasd"
-          url="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
-        />
-      </MockBlockDock>
-    </div>
+    <MockBlockDock
+      blockDefinition={{ ReactComponent: Component }}
+      blockEntity={{
+        entityId: "entity-video",
+        properties: {
+          initialCaption: "A blooming flower",
+          url: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
+        },
+      }}
+      debug
+    />
   );
 };
 
