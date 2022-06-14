@@ -36,7 +36,7 @@ To implement the Block Protocol in a language other than JavaScript or TypeScrip
 2.  translate any types from services that the block requires e.g. types for requests and responses in the Graph Service
 3.  Implement the Block Protocol's message handling
 
-- the implementation details can be hidden behind easy-to-use abstractions
+    - the implementation details can be hidden behind easy-to-use abstractions
 
 4.  send the messages your block needs to update or retrieve data, as specified in the Graph Service specification
 
@@ -85,7 +85,7 @@ let BlockProtocolInitMessage () =
 
 There's not much to this message, for now it's mostly a declaration of existence the block makes to the embedding application. The message does, however, expect a response: the `initResponse` message.
 
-In order to properly explain the response to this initial message, it's helpful to look at how the Graph Service Specification can be typed.
+In order to properly explain the response to this initial message, it's helpful to look at how the Graph Service [specification](https://blockprotocol.org/spec/graph-service-specification) can be typed.
 
 ### Block Protocol Graph Service types
 
