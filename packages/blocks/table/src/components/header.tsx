@@ -1,6 +1,6 @@
 import React, { VFC } from "react";
 import { tw } from "twind";
-import { BlockProtocolAggregateOperationInput } from "blockprotocol";
+import { AggregateOperationInput } from "@blockprotocol/graph";
 import { ColumnInstance } from "react-table";
 import { SearchIcon } from "./icons";
 import { SortDetail } from "./sort-detail";
@@ -10,16 +10,13 @@ import { Menu } from "./menu";
 
 export type AggregateArgs = {
   operation: "filter" | "sort" | "changePageSize";
-} & BlockProtocolAggregateOperationInput;
+} & AggregateOperationInput;
 
 type HeaderProps = {
   columns: ColumnInstance<{}>[];
   onAggregate: (args: AggregateArgs) => void;
   toggleHideColumn: (columnId: string) => void;
-  aggregateOptions: Pick<
-    BlockProtocolAggregateOperationInput,
-    "multiFilter" | "multiSort"
-  >;
+  aggregateOptions: Pick<AggregateOperationInput, "multiFilter" | "multiSort">;
   entityTypeDropdown: React.ReactNode;
   entityTypeId: string;
 };
