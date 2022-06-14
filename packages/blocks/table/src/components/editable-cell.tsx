@@ -71,24 +71,11 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
       }
     }
 
-    console.log({ objectToUpdate });
-
-    console.log(newEntity.entityId, newEntity.properties);
-    alert("got here");
-    console.log({ updateEntity });
     void updateEntity?.({
       data: {
         entityId: newEntity.entityId,
         properties: newEntity.properties,
-        // entityId: objectToUpdate.entityId,
-        // // entityTypeId: objectToUpdate.entityTypeId,
-        // properties: newEntity,
       },
-    }).then(({ errors }) => {
-      if (errors) {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error("Could not update table data: ", errors); // @todo fix this
-      }
     });
   };
 

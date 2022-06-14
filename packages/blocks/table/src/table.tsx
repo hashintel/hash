@@ -12,8 +12,8 @@ import {
   useGraphBlockService,
   LinkedAggregation,
   EntityType,
+  UpdateEntityData,
 } from "@blockprotocol/graph";
-// import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
 import { orderBy } from "lodash";
 
@@ -143,7 +143,9 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
       initialState: {
         ...initialState,
       },
-      updateEntity: graphService?.updateEntity, // this is passed into EditableCell
+      updateEntity: ({ data }: { data: UpdateEntityData }) => {
+        void graphService?.updateEntity({ data });
+      }, // this is passed into EditableCell
       data: tableData.data || [],
       defaultColumn: {
         Cell: EditableCell,
@@ -197,10 +199,6 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
             return;
           }
           const { operation, results } = data;
-          // @todo is this still needed
-          // if (!tableData.linkedAggregation?.sourceAccountId) {
-          //   throw new Error("sourceAccountId is required");
-          // }
 
           setTableData({
             data: results,
@@ -251,22 +249,22 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
         newLinkedData.operation.itemsPerPage = itemsPerPage || prevItemsPerPage;
       }
 
-      console.log({ newLinkedData });
-
-      // if (
-      //   "pageCount" in newLinkedData.operation ||
-      //   "pageNumber" in newLinkedData.operation
-      // ) {
-      //   delete newLinkedData.operation.pageCount;
-      //   delete newLinkedData.operation.pageNumber;
-      // }
+      if (
+        "pageCount" in newLinkedData.operation ||
+        "pageNumber" in newLinkedData.operation
+      ) {
+        delete newLinkedData.operation.pageCount;
+        // This gives an error because we are trying to delete a property (pageNumber) which has a required
+        // type.
+        // @todo update AggregateEntitiesResult type, so that pageNumber is not marked as required
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        delete newLinkedData.operation.pageNumber;
+      }
 
       void graphService?.updateEntity({
         data: {
           entityId,
-          // don't we need these?
-          // entityTypeId,
-          // entityTypeVersionId,
           properties: { initialState: newState },
         },
       });
@@ -351,9 +349,6 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
     },
     [handleAggregate],
   );
-
-  // const tableDataEntityTypeId =
-  //   tableData?.linkedAggregation?.operation.entityTypeId;
 
   const setPageSize = useCallback(
     (size: number) => {
@@ -459,8 +454,6 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
       onChange={handleEntityTypeChange}
     />
   ) : null;
-
-  // @todo create container component for this
 
   /** @todo Fix keys in iterators below to not use the index */
   return (
