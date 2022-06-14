@@ -195,6 +195,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
         .then(({ data, errors }) => {
           if (errors || !data) {
             // @todo properly handle error
+            // eslint-disable-next-line
             console.log({ errors });
             return;
           }
