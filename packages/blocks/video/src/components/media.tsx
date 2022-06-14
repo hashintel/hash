@@ -7,12 +7,13 @@
  * @todo Deduplicate this file
  */
 import {
-  BlockProtocolEntity,
-  BlockProtocolLink,
-  BlockProtocolLinkGroup,
-  BlockProtocolUpdateEntitiesAction,
-} from "blockprotocol";
-import { BlockComponent } from "blockprotocol/react";
+  Entity,
+  Link,
+  LinkGroup,
+  BlockGraphProperties,
+  useGraphBlockService,
+  UpdateEntityData,
+} from "@blockprotocol/graph";
 import React, {
   Dispatch,
   SetStateAction,
@@ -21,11 +22,18 @@ import React, {
   useMemo,
   useRef,
   useState,
+  VoidFunctionComponent,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
 import { UploadMediaForm } from "./upload-media-form";
+
+export type MediaEntityProperties = {
+  initialCaption?: string;
+  initialWidth?: number;
+  url?: string;
+};
 
 const useDefaultState = <
   T extends number | string | boolean | null | undefined,
@@ -59,10 +67,10 @@ const useDefaultState = <
 };
 
 function getLinkGroup(params: {
-  linkGroups: BlockProtocolLinkGroup[];
+  linkGroups: LinkGroup[];
   path: string;
   sourceEntityId: string;
-}): BlockProtocolLinkGroup | undefined {
+}): LinkGroup | undefined {
   const { linkGroups, path, sourceEntityId } = params;
 
   const matchingLinkGroup = linkGroups.find(
@@ -76,9 +84,9 @@ function getLinkGroup(params: {
 function getLinkedEntities(params: {
   sourceEntityId: string;
   path: string;
-  linkGroups: BlockProtocolLinkGroup[];
-  linkedEntities: BlockProtocolEntity[];
-}): (BlockProtocolEntity & { url: string })[] | null {
+  linkGroups: LinkGroup[];
+  linkedEntities: Entity[];
+}): (Entity & { url: string })[] | null {
   const { sourceEntityId, path, linkGroups, linkedEntities } = params;
 
   const matchingLinkGroup = getLinkGroup({
@@ -100,7 +108,7 @@ function getLinkedEntities(params: {
   const destinationEntityId = matchingLinkGroup.links[0]?.destinationEntityId;
 
   const matchingLinkedEntities = linkedEntities.filter(
-    (linkedEntity): linkedEntity is BlockProtocolEntity & { url: string } =>
+    (linkedEntity): linkedEntity is Entity & { url: string } =>
       linkedEntity.entityId === destinationEntityId && "url" in linkedEntity,
   );
 
@@ -111,47 +119,42 @@ function getLinkedEntities(params: {
   return matchingLinkedEntities;
 }
 
-const isSingleTargetLink = (
-  link: BlockProtocolLink,
-): link is BlockProtocolLink => "linkId" in link;
+const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
 
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
  */
-export const Media: BlockComponent<
-  {
-    initialCaption?: string;
-    url?: string;
-  } & ({ mediaType: "image"; initialWidth?: number } | { mediaType: "video" })
+export const Media: VoidFunctionComponent<
+  BlockGraphProperties<MediaEntityProperties> & {
+    mediaType: "image" | "video";
+  }
 > = (props) => {
   const {
-    accountId,
-    createLinks,
-    deleteLinks,
-    entityId,
-    entityTypeId,
-    entityTypeVersionId,
-    initialCaption,
-    linkGroups,
-    linkedEntities,
-    uploadFile,
-    updateEntities,
-    url,
+    graph: {
+      blockEntity: {
+        entityId,
+        properties: { url, initialCaption, initialWidth },
+      },
+      blockGraph,
+    },
     mediaType,
   } = props;
 
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRef);
+
   const matchingLinkedEntities = useMemo(() => {
-    if (linkGroups && linkedEntities && entityId) {
+    if (blockGraph?.linkGroups && blockGraph?.linkedEntities && entityId) {
       return getLinkedEntities({
         sourceEntityId: entityId,
         path: "$.file",
-        linkGroups,
-        linkedEntities,
+        linkGroups: blockGraph.linkGroups,
+        linkedEntities: blockGraph.linkedEntities,
       });
     }
 
     return null;
-  }, [entityId, linkGroups, linkedEntities]);
+  }, [blockGraph?.linkGroups, blockGraph?.linkedEntities, entityId]);
 
   const [draftSrc, setDraftSrc] = useDefaultState(
     url ?? matchingLinkedEntities?.[0]?.url ?? "",
@@ -163,7 +166,7 @@ export const Media: BlockComponent<
   const [draftCaption, setDraftCaption] = useDefaultState(initialCaption ?? "");
   const [draftWidth, setDraftWidth] = useDefaultState(
     // eslint-disable-next-line react/destructuring-assignment
-    props.mediaType === "image" ? props.initialWidth : 0,
+    props.mediaType === "image" ? initialWidth : 0,
   );
 
   /**
@@ -184,26 +187,19 @@ export const Media: BlockComponent<
   const updateData = useCallback(
     ({ width, src }: { src: string | undefined; width?: number }) => {
       if (src?.trim()) {
-        if (updateEntities && entityId) {
-          const updateAction: BlockProtocolUpdateEntitiesAction = {
-            accountId,
-            data: {
+        if (graphService?.updateEntity && entityId) {
+          const updateEntityData: UpdateEntityData = {
+            properties: {
               initialCaption: draftCaption,
             },
             entityId,
-            entityTypeId,
-            entityTypeVersionId,
           };
 
           if (width && mediaType === "image") {
-            updateAction.data.initialWidth = width;
+            updateEntityData.properties.initialWidth = width;
           }
 
-          if (entityTypeId) {
-            updateAction.entityTypeId = entityTypeId;
-          }
-
-          void updateEntities([updateAction]);
+          void graphService?.updateEntity({ data: updateEntityData });
         }
 
         unstable_batchedUpdates(() => {
@@ -216,15 +212,12 @@ export const Media: BlockComponent<
       }
     },
     [
-      accountId,
       draftCaption,
       entityId,
-      entityTypeId,
-      entityTypeVersionId,
+      graphService,
       mediaType,
       setDraftSrc,
       setDraftWidth,
-      updateEntities,
     ],
   );
 
@@ -237,41 +230,49 @@ export const Media: BlockComponent<
 
   const handleImageUpload = useCallback(
     (imageProp: { url: string } | { file: FileList[number] }) => {
-      if (!loading && entityId && createLinks && deleteLinks && uploadFile) {
+      if (
+        !loading &&
+        entityId &&
+        graphService?.createLink &&
+        graphService.deleteLink &&
+        graphService.uploadFile
+      ) {
         unstable_batchedUpdates(() => {
           setErrorString(null);
           setLoading(true);
         });
 
-        uploadFile({ accountId, ...imageProp, mediaType })
-          .then(async (file) => {
+        graphService
+          .uploadFile({
+            data: { ...imageProp, mediaType },
+          })
+          .then(async ({ data: file }) => {
+            if (!file) {
+              return;
+            }
+
             const existingLinkGroup = getLinkGroup({
               sourceEntityId: entityId,
-              linkGroups: linkGroups ?? [],
+              linkGroups: blockGraph?.linkGroups ?? [],
               path: "$.file",
             });
 
-            if (existingLinkGroup) {
-              await deleteLinks(
-                existingLinkGroup.links
-                  .filter(isSingleTargetLink)
-                  .map((link) => ({
-                    sourceAccountId: accountId,
-                    linkId: link.linkId,
-                  })),
-              );
+            const linkId =
+              existingLinkGroup?.links.filter(isSingleTargetLink)?.[0]?.linkId;
+
+            if (linkId) {
+              await graphService.deleteLink({
+                data: { linkId },
+              });
             }
 
-            await createLinks([
-              {
-                sourceAccountId: accountId,
+            await graphService?.createLink({
+              data: {
                 sourceEntityId: entityId,
-                sourceEntityTypeId: entityTypeId,
                 destinationEntityId: file.entityId,
-                destinationAccountId: file.accountId,
                 path: "$.file",
               },
-            ]);
+            });
 
             if (isMounted.current) {
               unstable_batchedUpdates(() => {
@@ -289,16 +290,12 @@ export const Media: BlockComponent<
       }
     },
     [
-      accountId,
-      createLinks,
-      deleteLinks,
+      blockGraph?.linkGroups,
       entityId,
-      entityTypeId,
-      linkGroups,
+      graphService,
       loading,
       mediaType,
       updateData,
-      uploadFile,
     ],
   );
 
@@ -328,6 +325,7 @@ export const Media: BlockComponent<
   if (draftSrc) {
     return (
       <MediaWithCaption
+        ref={blockRef}
         src={draftSrc}
         onWidthChange={updateWidth}
         caption={draftCaption}
