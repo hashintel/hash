@@ -130,11 +130,13 @@ We really love the Rust ecosystem, and although there are many great error crate
 
 1.  encourage the user to provide a new error type if the scope is changed, usually by crossing module/crate boundaries (for example, a `ConfigParseError` when parsing a configuration file vs. an `IoError` when reading a file from disk)
 1.  be able to use those error types within return types, without needing to handle difficult `From` logic
-1.  be able to attach _any_ data to an error, not just string-like types, which then can be requested when handling the error.
+1.  be able to attach _any_ data to an error _without a lot of configuration [1]_, not just string-like types, which then can be requested when handling the error.
 
 Based on our experiences outlined above, we made a few additional design decisions that differentiated our approach to error handling from those existing crates designed to facilitate it. Generally speaking, these decisions were made to force developers to be more explicit when creating or chaining errors, but most importantly, we don't supply in-built support for creating errors from strings. While it is convenient, we want to encourage developers to think more about their errors by building concrete error types like `std::io::Error` or `std::num::ParseIntError`
 
-- _Note: It's still possible to create something like `Error::Unique` but we do not provide shortcut functionality for that within the library, hoping that a lot of its uses can instead be solved through “attachments”._
+> _Note: It's still possible to create something like `Error::Unique` but we do not provide shortcut functionality for that within the library, hoping that a lot of its uses can instead be solved through “attachments”._
+
+- [1] Clarification: `eyre` and other libraries are able to support the inclusion of arbitrary data, whether that be through a custom Handler implementation, or by creating Error types that wrap the data. We'd like to be able to easily attach anything to the `Err` arm of a `Result` without needing bespoke configurations.
 
 ## What is **error-stack?**
 
