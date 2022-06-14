@@ -17,14 +17,16 @@ A high-level summary of the Block Protocol is provided below.
 ## Target Audience
 
 The Block Protocol is written for two audiences:
-1. Potential block developers who wish to build interoperable, cross-application blocks
-2. Potential embedding application developers who wish to build block-based ‘embedding applications’ that leverage the Block Protocol.
+
+1.  Potential block developers who wish to build interoperable, cross-application blocks
+2.  Potential embedding application developers who wish to build block-based ‘embedding applications’ that leverage the Block Protocol.
 
 ## Architectural Overview
 
 ### Block Protocol Core
 
 The Block Protocol Core outlines what constitutes a bare minimum block publishable to the Block Protocol Hub. Namely, a publishable block combines:
+
 - some source code; and
 - a block metadata file (which can be used to identify a block by potential embedding applications).
 
@@ -42,11 +44,12 @@ Most blocks will want to use one or more services defined as part of the Block P
 
 For example, the **graph** service defines the protocol by which blocks can create, read, update or delete **entities** -- as well as any **links** between those entities -- within an embedding application’s datastore.
 
-There are many different types of services under discussion for inclusion in the Block Protocol, which are described alongside the specification. 
+There are many different types of services under discussion for inclusion in the Block Protocol, which are described alongside the specification.
 
 In their metadata, blocks can declare which services (and which version of those services) they support.
 
 Not all embedding applications will support all services. For example:
+
 - New services are likely to be added on a regular basis, and embedding application developers will require time to build in support for them within their applications.
 - Application developers may have limited bandwidth, and elect to support services in an incremental manner - prioritizing support for some services before others.
 - Application developers may never intend to support certain services, disagreeing with their approach to solving a problem, or because the service is related to functionality which is irrelevant to or unwanted by the application.
@@ -54,4 +57,3 @@ Not all embedding applications will support all services. For example:
 In any case, embedding applications can filter the blocks on the Block Protocol Hub to ensure only those blocks requiring services that their application supports are shown. This allows application creators (and sometimes their users, depending on how the Block Protocol has been integrated) to search, embed and use blocks that are guaranteed to work out-the-box, extending the functionality of embedding applications beyond their original purposes.
 
 HASH supports all of the published Block Protocol services, and lets you access and use any block published on the Block Protocol Hub.
-
