@@ -19,7 +19,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.2",
+    "@blockprotocol/graph": "0.0.6",
     "@headlessui/react": "1.4.1",
     "immer": "9.0.6",
     "lodash": "4.17.21",

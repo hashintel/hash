@@ -22,7 +22,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.2",
+    "@blockprotocol/graph": "0.0.6",
     "@tldraw/tldraw": "1.16.0",
     "@types/react-resizable": "1.7.4",
     "react-resizable": "^3.0.4"

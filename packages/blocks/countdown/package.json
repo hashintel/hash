@@ -22,7 +22,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.2",
+    "@blockprotocol/graph": "0.0.6",
     "date-fns": "2.28.0",
     "react-datepicker": "4.7.0"
   },
