@@ -30,7 +30,7 @@
     "calculation-block": "0.2.2",
     "clsx": "1.1.1",
     "date-fns": "2.28.0",
-    "fs-extra": "10.0.1",
+    "fs-extra": "10.1.0",
     "gray-matter": "4.0.3",
     "image-size": "1.0.1",
     "md5": "2.3.0",
