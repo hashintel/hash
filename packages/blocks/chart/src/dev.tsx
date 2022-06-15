@@ -13,7 +13,7 @@ const node = document.getElementById("app");
 
 const App = () => (
   <MockBlockDock>
-    <Component entityId="test-block-1" name="World" />
+    <Component entityId="test-block-1" />
   </MockBlockDock>
 );
 

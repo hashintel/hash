@@ -393,7 +393,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
     void graphService
       ?.aggregateEntityTypes({
         data: {
-          includeOtherTypeInUse: true,
+          includeOtherTypesInUse: true,
         },
       })
       .then(({ data, errors }) => {

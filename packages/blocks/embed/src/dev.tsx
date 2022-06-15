@@ -9,19 +9,23 @@ import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
 import variants from "../variants.json";
+import { ProviderName } from "./types";
 
 const node = document.getElementById("app");
 
 /** Temporarily leaving this here, till we fix importing it from hash-shared */
 const apiGraphQLEndpoint = "http://localhost:5001/graphql";
 
-/**
- *
- * @param {string} url
- * @param {import("./types").ProviderName} type
- * @returns {Promise<{ html: string; error?: string; height?: number; width?: number;}}
- */
-async function getEmbedBlock(url, type) {
+const getEmbedBlock = async (
+  url?: string,
+  type?: ProviderName,
+): Promise<{
+  html: string;
+  error?: string;
+  height?: number;
+  width?: number;
+  providerName?: string;
+}> => {
   return fetch(apiGraphQLEndpoint, {
     method: "POST",
     headers: {
@@ -39,23 +43,20 @@ async function getEmbedBlock(url, type) {
       ...responseData.data?.embedCode,
       error: responseData?.errors?.[0]?.message,
     }));
-}
+};
 
 // @todo replace typeof variants[number] with type BlockVariant when available
-/**
- * @param {typeof variants[number]} variant
- */
-const getVariantProperties = (variant) => {
+const getVariantProperties = (variant: typeof variants[number]) => {
   return {
     ...variant.properties,
-    embedType: variant.properties?.embedType,
+    embedType: variant.properties?.embedType as ProviderName | undefined,
     ...variant.examples?.[0],
   };
 };
 
 const initialVariantIndex = 0;
 
-const initialState = getVariantProperties(variants[initialVariantIndex]);
+const initialState = getVariantProperties(variants[initialVariantIndex]!);
 
 /**
  * @type {import("react").VoidFunctionComponent}
@@ -87,7 +88,7 @@ const AppComponent = () => {
           entityTypeId="Embed"
           getEmbedBlock={getEmbedBlock}
           {...initialState}
-          {...getVariantProperties(variants[selectedVariantIndex])}
+          {...getVariantProperties(variants[selectedVariantIndex]!)}
         />
       </MockBlockDock>
     </div>
