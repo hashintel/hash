@@ -87,13 +87,13 @@
     "title": "Data Types",
     "description": "Data types describe a space of possible values through the specification of constraints",
     "slug": "data-types",
-    "tags": ["Graphs", "Standards"],
+    "tags": ["Graphs", "Standards"]
   },
   {
-   "title": "Datasets",
-   "description": "Datasets are collections of numbers of words, generally centered around a single topic or subject.",
-   "slug": "datasets",
-   "tags": ["Business Intelligence", "Data Science"],
+    "title": "Datasets",
+    "description": "Datasets are collections of numbers of words, generally centered around a single topic or subject.",
+    "slug": "datasets",
+    "tags": ["Business Intelligence", "Data Science"]
   },
   {
     "title": "Deep Reinforcement Learning",
@@ -177,7 +177,12 @@
     "title": "Integrations",
     "description": "Integrations allow information from different systems to be brought together, and actions coordinated across them.",
     "slug": "integrations",
-    "tags": ["Business Intelligence", "Business Software", "Graphs", "Standards"]
+    "tags": [
+      "Business Intelligence",
+      "Business Software",
+      "Graphs",
+      "Standards"
+    ]
   },
   {
     "title": "Knowledge Graph Machine Learning",
