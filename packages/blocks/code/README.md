@@ -2,7 +2,7 @@ The Code block uses a custom code editing component to support syntax highlighti
 
 An optional caption can be added below the code snippet and a Copy button copies the whole code snippet to the clipboard.
 
-The block stores its state locally in `content` (the code snippet), `language`, and `caption` properties.
+The block stores its state locally in `content` (the code snippet), `language`, and `caption` properties, and saves these in the embedding application whenever they are updated.
 
 Whenever the code editing textarea is blurred, or the caption input is blurred, or the language selection is changed, the Graph Service's updateEntity method is called to save the local data to the embedding application.
 
