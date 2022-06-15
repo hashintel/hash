@@ -22,15 +22,15 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.6",
+    "@blockprotocol/graph": "0.0.8",
     "@tldraw/tldraw": "1.16.0",
     "@types/react-resizable": "1.7.4",
     "react-resizable": "^3.0.4"
   },
   "devDependencies": {
-    "block-scripts": "0.0.8-next.1",
+    "block-scripts": "0.0.10",
     "mobx": "6.5.0",
-    "mock-block-dock": "0.0.14-next.1",
+    "mock-block-dock": "0.0.15",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },

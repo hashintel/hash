@@ -19,7 +19,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.6",
+    "@blockprotocol/graph": "0.0.8",
     "@headlessui/react": "1.4.1",
     "immer": "9.0.6",
     "lodash": "4.17.21",
@@ -28,9 +28,9 @@
   },
   "devDependencies": {
     "@types/react-table": "7.7.1",
-    "block-scripts": "0.0.8-next.1",
+    "block-scripts": "0.0.10",
     "eslint": "8.13.0",
-    "mock-block-dock": "0.0.14-next.1",
+    "mock-block-dock": "0.0.15",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "twind": "0.16.17",
