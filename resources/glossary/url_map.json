@@ -91,7 +91,7 @@
   },
   {
     "title": "Datasets",
-    "description": "Datasets are collections of numbers of words, generally centered around a single topic or subject.",
+    "description": "Datasets are collections of numbers or words, generally centered around a single topic or subject.",
     "slug": "datasets",
     "tags": ["Business Intelligence", "Data Science"]
   },
