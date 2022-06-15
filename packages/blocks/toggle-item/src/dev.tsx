@@ -8,17 +8,17 @@ import ReactDOM from "react-dom";
 import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
-import exampleGraph from "../example-graph.json";
 
 const node = document.getElementById("app");
 
 const App = () => (
-  <MockBlockDock
-    initialEntities={exampleGraph.entities}
-    initialEntityTypes={exampleGraph.entityTypes}
-    initialLinks={exampleGraph.links}
-  >
-    <Component entityId="test-block-1" name="World" />
+  <MockBlockDock>
+    <Component
+      entityId="test-block-1"
+      title="Test title"
+      content="Test content"
+      open="true"
+    />
   </MockBlockDock>
 );
 
