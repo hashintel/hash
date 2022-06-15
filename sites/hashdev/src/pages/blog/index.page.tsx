@@ -1,4 +1,10 @@
-import { Container, Stack, StackProps, Typography } from "@mui/material";
+import {
+  Container,
+  Divider,
+  Stack,
+  StackProps,
+  Typography,
+} from "@mui/material";
 import { Box } from "@mui/system";
 import { GetStaticProps } from "next";
 import Head from "next/head";
@@ -268,12 +274,11 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
                 Stories and guides from developers in the community
               </Typography>
             </Box>
-            <Box
-              component="hr"
-              flex={1}
-              border={1}
-              borderColor="gray.30"
-              display={{ xs: "none", md: "initial" }}
+            <Divider
+              sx={{
+                flex: 1,
+                display: { xs: "none", md: "initial" },
+              }}
             />
           </Stack>
           {/** @todo subscribe box, spacing */}
