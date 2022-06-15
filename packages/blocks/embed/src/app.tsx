@@ -25,7 +25,7 @@ import {
   PROVIDER_NAMES_THAT_CANT_BE_RESIZED,
 } from "./constants";
 
-type AppProps = {
+type BlockEntityProperties = {
   // @todo temporarily using application-provided getEmbedCode - implement fallbacks for CORS-blocked oembed endpoints and remove
   getEmbedBlock: (
     url: string,
@@ -79,7 +79,7 @@ const reducer = (state: AppState, action: Actions): AppState => {
   }
 };
 
-export const App: BlockComponent<AppProps> = ({
+export const App: BlockComponent<BlockEntityProperties> = ({
   accountId,
   embedType: initialEmbedType,
   getEmbedBlock,

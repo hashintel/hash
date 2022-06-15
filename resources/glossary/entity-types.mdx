@@ -1,0 +1,25 @@
+---
+objectId: 5f7f8d88-0205-3833-g46a-0ba3791t4616
+title: Entity Types
+description: "Entity types represent commonly recurring classes of entities, and describe their properties."
+slug: entity-types
+tags: ["Graphs", "Standards"]
+---
+
+## What are entity types?
+
+Entities have [types](https://hash.ai/glossary/types). These **entity types** represent commonly recurring classes of entities, and describe the sort of information you'd expect to find associated with them.
+
+For example, a business might have lots of customers. It may choose to create a “Customer” entity type with information attached to it such as “Full Name”, “Last Order Date”, “Lifetime Order Value”, and “Shipping Address” to normalize the way information about its customers is tracked and made accessible. We call these expected pieces of information **[properties](https://hash.ai/glossary/properties)**.
+
+Creators of entity types, such as our “Customer” example, define their properties through the creation of a [schema](https://hash.ai/glossary/schemas).
+
+## Parent types
+
+In addition to specifying individual properties expected of an entity, an entity type’s schema may declare one or more other types as parent types. Parent types’ expected properties are combined with an entity type’s own declared set, resulting in a greater number of expected properties overall. This is called ‘inheritance’.
+
+## Multi-type entities
+
+In many software environments (e.g. object-oriented programs) and information management frameworks, entities can only be of a single entity type. This means that data administrators inevitably end up simplifying their data structures to their lowest-common denominators, or reasoning about their entities in weird ways, and actual information about entities gets lost in the process.
+
+In HASH, it is possible to create ‘multi-type entities’, or entities which have multiple expected types. For example, `Arnold Schwarzenegger` may be stored in your HASH workspace as an `Actor`, a `Bodybuilder`, and a `Politician`. This is important, because to capture all of the relevant information about Arnold in a platform that did not support multi-type entities you would need to create a dedicated `actor-bodybuilder-politician` entity type. Such hyper-specialized types may need to be created quite often to account for real-world heterogeneity amongst entities, with many going unused more than once (or worse, cluttering up your system when no longer needed at all). These concatenated types can also become hard to discover and manage. For example, while our previous concatenation of types was alphabetical, somebody may search for a `bodybuilder-actor-politician`, reflecting Arnold's chronological career progression, and be unable to locate the original type because they had ordered the list incorrectly. They may also not be aware of Arnold's exact type, only knowing him in one or two contexts. Separate types makes working with rich, real-world data easier.

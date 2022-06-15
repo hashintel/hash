@@ -1,5 +1,5 @@
-import React, { CSSProperties, useMemo } from "react";
-import { BlockComponent } from "blockprotocol/react";
+import React, { CSSProperties, useMemo, useRef } from "react";
+import { BlockComponent } from "@blockprotocol/graph";
 import DOMPurify from "dompurify";
 
 import { MailIcon } from "./icons/mail-icon";
@@ -7,7 +7,7 @@ import { LinkIcon } from "./icons/link-icon";
 
 import "./index.css";
 
-type AppProps = {
+type BlockEntityProperties = {
   avatar?: string;
   email?: string;
   employer?: {
@@ -19,14 +19,15 @@ type AppProps = {
   maxWidth?: string | number;
 };
 
-export const App: BlockComponent<AppProps> = ({
-  avatar,
-  employer,
-  email,
-  link,
-  name,
-  maxWidth = "400px",
+export const App: BlockComponent<BlockEntityProperties> = ({
+  graph: {
+    blockEntity: {
+      properties: { avatar, employer, email, link, name, maxWidth = "400px" },
+    },
+  },
 }) => {
+  const blockRef = useRef<HTMLDivElement>(null);
+
   const { name: employerName, position } = employer ?? {};
 
   const safeAnchor = useMemo(() => {
@@ -49,6 +50,7 @@ export const App: BlockComponent<AppProps> = ({
 
   return (
     <div
+      ref={blockRef}
       className="person-container"
       style={{ "--person-container-max-width": maxWidth } as CSSProperties}
     >
