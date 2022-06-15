@@ -1,0 +1,37 @@
+---
+objectId: 5f7f8d88-0205-2222-f46f-0ba3791t4616
+title: Entities
+description: "Entities are individual ‘things’ with a distinct, independent existence."
+slug: entities
+tags: ["Graphs", "Simulation Modeling"]
+---
+
+## What are entities?
+
+Entities are individual ‘things’ with a distinct, independent existence.
+
+Every entity in HASH has:
+
+- a HASH ID, which makes it uniquely identifiable and content-addressable;
+- one or more [entity types](https://hash.ai/glossary/entity-type) which describe the entity’s expected properties;
+- [properties](https://hash.ai/glossary/properties), infered from its entity type(s), which may in turn contain [values](https://hash.ai/glossary/values).
+
+The ‘entity type’ tells you what kind of thing an entity is expected to be (e.g. a `Book`, which is expected to have properties such as `author`, `title` and `publisher`).
+
+The values of an entity’s properties tell you about that instance of the entity itself, for example what its `title` actually is (e.g. “Brave New World”).
+
+Sometimes the values of a property may contain [links](https://hash.ai/glossary/links). In such cases, we would describe an entity as a ‘linked entity’.
+
+## What are linked entities?
+
+In the real world, entities are often connected to other entities -- often by some directional relationship.
+
+Sometimes these connections take the form of social relationships (e.g. “Mother", "Child”, or “Friend") occurring between entities of the same [entity type] (in this case `Person`).
+
+However, entities of completely different entity types can also be linked. For example, connections between entities may sometimes be legal or procedural, such as “Employee <> Employer” or “Politician <> Political Party”, which may both link a `Person` with an `Organization`.
+
+A network of entities which are connected to other entities is sometimes called a [graph](https://hash.ai/glossary/graphs). We call these entities with links ‘linked entities’.
+
+## Are entities the same thing as 'agents'?
+
+If you’re using our advanced [HASH for simulation](https://hash.ai/index) platform, you might be wondering about the relationship between entities and [agents](https://hash.ai/glossary/agent-based-modeling). For all practical purposes, you can think of both as the same thing. In future releases of [hCore](https://hash.ai/platform/core) and [hEngine](https://hash.ai/platform/engine) we’ll support instantiating entities from a HASH workspace directly within simulations (as agents), as well as assigning expected [behaviors](https://hash.ai/docs/simulation/creating-simulations/behaviors) to entity types in [HASH](https://hash.ai/platform/hash).
