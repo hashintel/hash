@@ -3131,28 +3131,12 @@
   dependencies:
     uuid "^8.3.2"
 
-"@blockprotocol/core@0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.4.tgz#a4f72b2c6bf915c072b178768702e490cf089c57"
-  integrity sha512-RHu8KA5xJkYLhIODU2K7ux5VmH4K/F/o/9hk9E4podQTf6+AoUSg8n0ArHOmvDUGmG1COSY5dhK8x0F1Vf+MTw==
-  dependencies:
-    uuid "^8.3.2"
-
 "@blockprotocol/core@0.0.6":
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.6.tgz#702a4a763a0afc4dd0b1eb57f82a6db40b98f0cc"
   integrity sha512-DwtNRZhC49SFGIOrsfDal6Ba/RQ1ZVoN4W+GU/ZgmFPzxQGBW33d6wN8zPJRnwGOrnf68tHAh20q9r3+jUHIkw==
   dependencies:
     uuid "^8.3.2"
-
-"@blockprotocol/graph@0.0.6":
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.6.tgz#c9972a80c86627f05654819674322d3d68a5736b"
-  integrity sha512-+RiCLLSIRzdtIVrkHWI20CCShOZHT8rqhv5opdCb7LH8dIzmI7AGWFKzOp132150MI4hKooS6eATu7zIwuWffg==
-  dependencies:
-    "@blockprotocol/core" "0.0.4"
-    lit "^2.2.5"
-    react "^17.0.2"
 
 "@blockprotocol/graph@0.0.8":
   version "0.0.8"
