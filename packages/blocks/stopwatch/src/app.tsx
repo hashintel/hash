@@ -2,8 +2,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import { BlockComponent } from "blockprotocol/react";
 
 type BlockEntityProperties = {
-  start: Date;
-  laps: number[];
+  start?: Date;
+  laps?: number[];
 };
 
 const formatDuration = (duration: number) => {

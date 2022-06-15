@@ -22,13 +22,11 @@ const initialData = {
 const App = () => {
   return (
     <div className={tw`mx-auto mt-14 max-w-3xl`}>
-      <MockBlockDock>
-        <Component
-          graph={{
-            blockEntity: { entityId: "entity-code", properties: initialData },
-          }}
-        />
-      </MockBlockDock>
+      <MockBlockDock
+        blockDefinition={{ ReactComponent: Component }}
+        blockEntity={{ entityId: "entity-code", properties: initialData }}
+        debug
+      />
     </div>
   );
 };
