@@ -1,6 +1,4 @@
-# Timer block
-
-The block accepts:
+The Timer block block accepts:
 
 - `initialDuration` \[string] – ISO 8601 **duration**
 - `pauseDuration` \[string]\[optional] – ISO 8601 **duration**
