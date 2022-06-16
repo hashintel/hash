@@ -5,11 +5,11 @@ import json
 
 CWD = Path.cwd()
 
-# All jobs for all crates will run if any of these paths changes
+# All jobs for all crates will run if any of these paths change
 ALWAYS_RUN_PATTERNS = ["**/rust-toolchain.toml", ".github/**"]
 
 # Crates which will be tested in release mode
-BENCH_CRATES = ["packages/engine"]
+TEST_IN_RELEASE_CRATES = ["packages/engine"]
 
 # Exclude the stable channel for these crates
 DISABLE_STABLE_PATTERNS = ["packages/engine**"]
@@ -51,18 +51,18 @@ def available_crates():
 
 def changed_crates(diffs, crates):
     """
-    Returns the crates, which have changed files
+    Returns a list of paths to crates which have changed files
 
     If a file was changed, which matches `ALWAYS_RUN_PATTERNS`, all crates will be returned
     :param diffs: a list `Diff`s returned from git
     :param crates: a list of paths to crates
     :return: a list of crate paths
     """
-    # Check, if a file matches `ALWAYS_RUN_PATTERNS`
+    # Check if any changed file matches `ALWAYS_RUN_PATTERNS`
     if [diff for diff in diffs for pattern in ALWAYS_RUN_PATTERNS if fnmatch(diff.delta.new_file.path, pattern)]:
         return crates
 
-    # Check, if crates matches files
+    # Get the unique crate paths which have changed files
     return list(set([crate
                      for crate in crates
                      for diff in diffs
@@ -71,8 +71,8 @@ def changed_crates(diffs, crates):
 
 def version_changed(diffs, crates):
     """
-    Returns the crates which version has changed
-    :param diffs: a list `Diff`s returned from git
+    Returns the crates whose version has changed
+    :param diffs: a list of `Diff`s returned from git
     :param crates: a list of paths to crates
     :return: a list of crate paths
     """
@@ -86,25 +86,25 @@ def version_changed(diffs, crates):
                      if re.fullmatch("version\\s*=\\s*\".*\"", content)]))
 
 
-def crates_on_nightly(crates):
+def nightly_only_crates(crates):
     """
-    Returns the crates which are not allowed to run on the stable toolchain
+    Returns the crates which only supports the nightly compiler
     :param crates: a list of paths to crates
     :return: a list of crate paths
     """
     return [crate for crate in crates for pattern in DISABLE_STABLE_PATTERNS if fnmatch(crate, pattern)]
 
 
-def crates_for_bench(crates):
+def crates_for_release_tests(crates):
     """
     Returns the crates which should run their test in release mode as well
     :param crates: a list of paths to crates
     :return: a list of crate paths
     """
-    return [crate for crate in crates for pattern in BENCH_CRATES if fnmatch(crate, pattern)]
+    return [crate for crate in crates for pattern in TEST_IN_RELEASE_CRATES if fnmatch(crate, pattern)]
 
 
-def crates_to_publish(crates):
+def publishable_crates(crates):
     """
     Returns the crates which are allowed to be published
     :param crates: a list of paths to crates
@@ -115,11 +115,13 @@ def crates_to_publish(crates):
 
 def output_exclude(crates):
     """
-    Prints exclude statements used by GitHub
+    Prints an exclude statements for a GitHub Action matrix.
+
+    Currently, this only excludes nightly-only crates to run on stable by default
     :param crates: a list of paths to crates
     """
 
-    output = json.dumps([dict(toolchain="stable", directory=str(crate)) for crate in crates_on_nightly(crates)])
+    output = json.dumps([dict(toolchain="stable", directory=str(crate)) for crate in nightly_only_crates(crates)])
     print(f"::set-output name=exclude::{output}")
     print(f"exclude = {output}")
 
@@ -127,7 +129,7 @@ def output_exclude(crates):
 def output(name, crates):
     """
     Prints crates in a GitHub understandable way defined by name
-    :param name: The name how GitHub will find the output
+    :param name: The name where the list of crates will be stored to be read by GitHub Actions
     :param crates: a list of crate paths to be outputted
     """
 
@@ -135,8 +137,7 @@ def output(name, crates):
     print(f"::set-output name={name}::{output}")
     print(f"{name} = {output}")
 
-
-if __name__ == "__main__":
+def main():
     diffs = generate_diffs()
     available_crates = available_crates()
     changed_crates = changed_crates(diffs, available_crates)
@@ -144,8 +145,11 @@ if __name__ == "__main__":
     output("rustfmt", changed_crates)
     output("clippy", changed_crates)
     output("test", changed_crates)
-    output("bench", crates_for_bench(changed_crates))
+    output("bench", crates_for_release_tests(changed_crates))
     output("miri", changed_crates)
     output("doc", changed_crates)
     output("publish", version_changed(diffs, crates_to_publish(changed_crates)))
     output_exclude(changed_crates)
+
+if __name__ == "__main__":
+    main()
