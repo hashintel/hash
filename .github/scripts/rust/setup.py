@@ -117,7 +117,7 @@ def output_exclude(crates):
     """
     Prints an exclude statements for a GitHub Action matrix.
 
-    Currently, this only excludes nightly-only crates to run on stable by default
+    Currently, this only excludes nightly-only crates from running on stable by default
     :param crates: a list of paths to crates
     """
 
