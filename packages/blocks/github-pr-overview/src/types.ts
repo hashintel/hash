@@ -1,8 +1,5 @@
-import {
-  BlockProtocolAggregateEntityTypesFunction,
-  BlockProtocolEntity,
-  BlockProtocolEntityType,
-} from "blockprotocol";
+import { GraphBlockHandler, Entity } from "@blockprotocol/graph";
+
 import { BlockState } from "./app";
 
 export function isDefined<T>(val: T | undefined | null): val is T {
@@ -21,8 +18,7 @@ export type PullRequestIdentifier = {
 };
 
 export const getGithubEntityTypes = (
-  aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction,
-  accountId: string | null | undefined,
+  aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
   numPages: number,
   setGithubEntityTypeIds: (x: any) => void,
   setBlockState: (x: any) => void,
@@ -32,27 +28,28 @@ export const getGithubEntityTypes = (
     .map((_, pageNumber) =>
       /** @todo - These should be links to a PR entity really */
       aggregateEntityTypes({
-        accountId,
-        operation: {
-          pageNumber,
+        data: {
+          operation: {
+            pageNumber,
+          },
         },
       }),
     );
 
   Promise.all(promises)
     .then((entityTypesResults) => {
-      const entityTypes: BlockProtocolEntityType[] = entityTypesResults.flatMap(
-        (entityTypeResult) => entityTypeResult.results,
+      const entityTypes = entityTypesResults.flatMap(
+        (entityTypeResult) => entityTypeResult.data?.results ?? [],
       );
 
       const pullRequestTypeId = entityTypes.find(
-        (entityType) => entityType.title === "GithubPullRequest",
+        (entityType) => entityType.schema.title === "GithubPullRequest",
       )?.entityTypeId;
       const reviewTypeId = entityTypes.find(
-        (entityType) => entityType.title === "GithubReview",
+        (entityType) => entityType.schema.title === "GithubReview",
       )?.entityTypeId;
       const issueEventTypeId = entityTypes.find(
-        (entityType) => entityType.title === "GithubIssueEvent",
+        (entityType) => entityType.schema.title === "GithubIssueEvent",
       )?.entityTypeId;
 
       if (pullRequestTypeId && reviewTypeId && issueEventTypeId) {
@@ -73,7 +70,9 @@ export const getGithubEntityTypes = (
     });
 };
 
-export interface GithubPullRequest extends BlockProtocolEntity {
+// @todo this should be Entity<Properties>
+
+export interface GithubPullRequest extends Entity {
   repository?: string;
   url?: null | string;
   id?: null | number;
@@ -339,7 +338,7 @@ export interface GithubPullRequest extends BlockProtocolEntity {
   [k: string]: unknown;
 }
 
-export interface GithubReview extends BlockProtocolEntity {
+export interface GithubReview extends Entity {
   repository?: string;
   id?: null | number;
   node_id?: null | string;
@@ -386,7 +385,7 @@ export interface GithubReview extends BlockProtocolEntity {
   [k: string]: unknown;
 }
 
-export interface GithubIssueEvent extends BlockProtocolEntity {
+export interface GithubIssueEvent extends Entity {
   repository?: string;
   id?: null | number;
   node_id?: null | string;
