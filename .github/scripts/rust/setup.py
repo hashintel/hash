@@ -148,7 +148,7 @@ def main():
     output("bench", crates_for_release_tests(changed_crates))
     output("miri", changed_crates)
     output("doc", changed_crates)
-    output("publish", version_changed(diffs, crates_to_publish(changed_crates)))
+    output("publish", version_changed(diffs, publishable_crates(changed_crates)))
     output_exclude(changed_crates)
 
 if __name__ == "__main__":
