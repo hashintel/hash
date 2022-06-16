@@ -1,7 +1,8 @@
 import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolAggregateEntitiesResult,
-} from "blockprotocol";
+  GraphBlockHandler,
+  AggregateEntitiesResult,
+  Entity,
+} from "@blockprotocol/graph";
 import { uniqBy } from "lodash";
 import { BlockState } from "./app";
 
@@ -13,62 +14,76 @@ import {
   isDefined,
 } from "./types";
 
+// TODO
+// update the types to v0.2
+// update example-graph.json format
+// should be in format => { entityId: "123", properties: { xyz: "github stuff" }  }
+//
+
 const ITEMS_PER_PAGE = 100;
 
-export const getPrs = (
+export const getPrs = async (
   githubPullRequestTypeId: string,
-  aggregateEntities?: BlockProtocolAggregateEntitiesFunction,
-  accountId?: string | null,
+  aggregateEntities?: GraphBlockHandler["aggregateEntities"],
   pageNumber?: number,
   selectedPullRequest?: PullRequestIdentifier,
-): Promise<BlockProtocolAggregateEntitiesResult<GithubPullRequest> | void> => {
+): Promise<AggregateEntitiesResult<Entity<GithubPullRequest>> | void> => {
   if (!aggregateEntities) {
     return new Promise<void>(() => {});
   }
 
-  const res = aggregateEntities({
-    accountId,
-    operation: {
-      entityTypeId: githubPullRequestTypeId,
-      pageNumber,
-      itemsPerPage: ITEMS_PER_PAGE,
-      multiFilter: {
-        operator: "AND",
-        filters:
-          selectedPullRequest !== undefined
-            ? [
-                {
-                  field: "html_url",
-                  operator: "CONTAINS",
-                  value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
-                },
-              ]
-            : [],
-      },
-      multiSort: [
-        {
-          field: "url",
-          desc: true,
+  const res = await aggregateEntities({
+    data: {
+      operation: {
+        entityTypeId: githubPullRequestTypeId,
+        pageNumber,
+        itemsPerPage: ITEMS_PER_PAGE,
+        multiFilter: {
+          operator: "AND",
+          filters:
+            selectedPullRequest !== undefined
+              ? [
+                  {
+                    field: "html_url",
+                    operator: "CONTAINS",
+                    value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+                  },
+                ]
+              : [],
         },
-      ],
+        multiSort: [
+          {
+            field: "url",
+            desc: true,
+          },
+        ],
+      },
     },
   });
 
-  return res;
+  if (res.data) {
+    return res.data;
+  }
+
+  // @todo fix
 };
 
 export const collectPrsAndSetState = (
   githubPullRequestTypeId: string,
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
-  accountId: string | null | undefined,
+  aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   numPages: number,
   setState: (x: any) => void,
   setBlockState: (x: any) => void,
 ) => {
+  if (!aggregateEntities) {
+    // do something
+    // or better still handle the check for this in the method's caller
+  }
+
   const promises = Array(numPages)
     .fill(undefined)
     .map((_, pageNumber) =>
-      getPrs(githubPullRequestTypeId, aggregateEntities, accountId, pageNumber),
+      getPrs(githubPullRequestTypeId, aggregateEntities, pageNumber),
     );
 
   Promise.all(promises)
@@ -96,52 +111,55 @@ export const collectPrsAndSetState = (
     });
 };
 
-const getReviews = (
+const getReviews = async (
   githubReviewTypeId: string,
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
-  accountId: string | null | undefined,
+  aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   pageNumber: number | undefined,
   selectedPullRequest: PullRequestIdentifier,
-): Promise<BlockProtocolAggregateEntitiesResult<GithubReview> | void> => {
+): Promise<AggregateEntitiesResult<Entity<GithubReview>> | void> => {
   if (!aggregateEntities) {
     return new Promise<void>(() => {});
   }
 
-  const res = aggregateEntities({
-    accountId,
-    operation: {
-      entityTypeId: githubReviewTypeId,
-      pageNumber,
-      itemsPerPage: ITEMS_PER_PAGE,
-      multiFilter: {
-        operator: "AND",
-        filters: [
+  const res = await aggregateEntities({
+    data: {
+      operation: {
+        entityTypeId: githubReviewTypeId,
+        pageNumber,
+        itemsPerPage: ITEMS_PER_PAGE,
+        multiFilter: {
+          operator: "AND",
+          filters: [
+            {
+              field: "html_url",
+              operator: "CONTAINS",
+              value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+            },
+          ],
+        },
+        multiSort: [
           {
-            field: "html_url",
-            operator: "CONTAINS",
-            value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+            field: "pull_request_url",
+            desc: true,
+          },
+          {
+            field: "submitted_at",
+            desc: false,
           },
         ],
       },
-      multiSort: [
-        {
-          field: "pull_request_url",
-          desc: true,
-        },
-        {
-          field: "submitted_at",
-          desc: false,
-        },
-      ],
     },
   });
 
-  return res;
+  if (res.data) {
+    return res.data;
+  }
+  // @todo fix
 };
 
 export const collectReviewsAndSetState = (
   githubReviewTypeId: string,
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
+  aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   accountId: string | null | undefined,
   numPages: number,
   setState: (x: any) => void,
@@ -176,45 +194,45 @@ export const collectReviewsAndSetState = (
 
 const getPrEvents = (
   githubIssueEventTypeId: string,
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
-  accountId: string | null | undefined,
+  aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   pageNumber: number | undefined,
   selectedPullRequest: PullRequestIdentifier,
-): Promise<BlockProtocolAggregateEntitiesResult<GithubIssueEvent> | void> => {
+): Promise<AggregateEntitiesResult<Entity<GithubIssueEvent>> | void> => {
   if (!aggregateEntities) {
     return new Promise<void>(() => {});
   }
 
   const res = aggregateEntities({
-    accountId,
-    operation: {
-      entityTypeId: githubIssueEventTypeId,
-      pageNumber,
-      itemsPerPage: ITEMS_PER_PAGE,
-      multiFilter: {
-        operator: "AND",
-        filters: [
-          {
-            field: "issue.pull_request",
-            operator: "IS_NOT_EMPTY",
-          },
+    data: {
+      operation: {
+        entityTypeId: githubIssueEventTypeId,
+        pageNumber,
+        itemsPerPage: ITEMS_PER_PAGE,
+        multiFilter: {
+          operator: "AND",
+          filters: [
+            {
+              field: "issue.pull_request",
+              operator: "IS_NOT_EMPTY",
+            },
+            {
+              field: "issue.html_url",
+              operator: "CONTAINS",
+              value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+            },
+          ],
+        },
+        multiSort: [
           {
             field: "issue.html_url",
-            operator: "CONTAINS",
-            value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+            desc: true,
+          },
+          {
+            field: "created_at",
+            desc: false,
           },
         ],
       },
-      multiSort: [
-        {
-          field: "issue.html_url",
-          desc: true,
-        },
-        {
-          field: "created_at",
-          desc: false,
-        },
-      ],
     },
   });
 
@@ -223,7 +241,7 @@ const getPrEvents = (
 
 export const collectPrEventsAndSetState = (
   githubIssueEventTypeId: string,
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
+  aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   accountId: string | null | undefined,
   numPages: number,
   setState: (x: any) => void,
