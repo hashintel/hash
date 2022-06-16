@@ -115,7 +115,7 @@ def publishable_crates(crates):
 
 def output_exclude(crates):
     """
-    Prints an exclude statements for a GitHub Action matrix.
+    Prints a exclude statements for a GitHub Action matrix.
 
     Currently, this only excludes nightly-only crates from running on stable by default
     :param crates: a list of paths to crates
