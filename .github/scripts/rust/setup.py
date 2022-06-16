@@ -20,25 +20,14 @@ PUBLISH_PATTERNS = ["packages/libs/error-stack"]
 
 def generate_diffs():
     """
-    Generates a diff for the last commit
-
-    If the last commit was a merge commit, the trees are compared, otherwise the workdir is compared
+    Generates a diff between `HEAD^` and `HEAD`
     """
-    from pygit2 import Repository, Commit
+    from pygit2 import Repository
 
     repository = Repository(CWD)
-
-    head = repository.head.peel(Commit)
-    if len(head.parents) == 1:
-        # last commit was a regular commit
-        # compare head tree with workdir
-        diff = repository.diff(head.tree, context_lines=0)
-    else:
-        # last commit was a merge commit
-        # compare between trees
-        diff = repository.diff(head.parents[0], head.tree, context_lines=0)
-
-    return diff
+    head = repository.revparse_single("HEAD")
+    head_hat = repository.revparse_single("HEAD^")
+    return repository.diff(head_hat, head, context_lines=0)
 
 
 def available_crates():
