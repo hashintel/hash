@@ -6,7 +6,7 @@ import json
 CWD = Path.cwd()
 
 # All jobs for all crates will run if any of these paths change
-ALWAYS_RUN_PATTERNS = ["**/rust-toolchain.toml", ".githusb/**"]
+ALWAYS_RUN_PATTERNS = ["**/rust-toolchain.toml", ".github/**"]
 
 # Crates which will be tested in release mode
 TEST_IN_RELEASE_CRATES = ["packages/engine"]
@@ -20,9 +20,7 @@ PUBLISH_PATTERNS = ["packages/libs/error-stack"]
 
 def generate_diffs():
     """
-    Generates a diff for the last commit
-
-    If the last commit was a merge commit, the trees are compared, otherwise the workdir is compared
+    Generates a diff between `HEAD^` and `HEAD`
     """
     from pygit2 import Repository, Commit
 
