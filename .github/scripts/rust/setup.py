@@ -76,14 +76,18 @@ def version_changed(diffs, crates):
     :param crates: a list of paths to crates
     :return: a list of crate paths
     """
-    return list(set([crate
-                     for diff in diffs
-                     for crate in crates
-                     if crate / "Cargo.toml" == Path(diff.delta.new_file.path)
-                     for hunk in diff.hunks
-                     for line in hunk.lines
-                     for content in line.content.splitlines()
-                     if re.fullmatch("version\\s*=\\s*\".*\"", content)]))
+    crate_list = []
+
+    for diff in diffs:
+        for crate in crates:
+            if crate / "Cargo.toml" == Path(diff.delta.new_file.path):
+                for hunk in diff.hunks:
+                    for line in hunk.lines:
+                        for content in line.content.splitlines():
+                            if re.fullmatch("version\\s*=\\s*\".*\"", content):
+                                crate_list.append(crate)
+
+    return list(set(crate_list))
 
 
 def nightly_only_crates(crates):
@@ -137,19 +141,21 @@ def output(name, crates):
     print(f"::set-output name={name}::{output}")
     print(f"{name} = {output}")
 
+
 def main():
     diffs = generate_diffs()
-    available_crates = available_crates()
-    changed_crates = changed_crates(diffs, available_crates)
+    crates = available_crates()
+    changed = changed_crates(diffs, crates)
 
-    output("rustfmt", changed_crates)
-    output("clippy", changed_crates)
-    output("test", changed_crates)
-    output("bench", crates_for_release_tests(changed_crates))
-    output("miri", changed_crates)
-    output("doc", changed_crates)
-    output("publish", version_changed(diffs, publishable_crates(changed_crates)))
-    output_exclude(changed_crates)
+    output("rustfmt", changed)
+    output("clippy", changed)
+    output("test", changed)
+    output("bench", crates_for_release_tests(changed))
+    output("miri", changed)
+    output("doc", changed)
+    output("publish", version_changed(diffs, publishable_crates(changed)))
+    output_exclude(changed)
+
 
 if __name__ == "__main__":
     main()
