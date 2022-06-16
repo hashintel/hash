@@ -1,0 +1,495 @@
+---
+authorPhoto: blog/5_build-blocks-in-any-language/ahmad.png
+postPhoto: blog/5_build-blocks-in-any-language/FSharp_Cover.jpg
+title: "How to build Block Protocol blocks in any language"
+subtitle: "Transpiling from F# to JavaScript to build a complex, spreadsheet block"
+author: "Ahmad Sattar Atta"
+jobTitle: "Platform Engineer at HASH"
+date: "2022-06-14"
+---
+
+One of the main motivations behind recent Block Protocol updates has been to enable blocks to be written in a wider variety of languages. To make that possible, the ways in which blocks and embedding applications interact have changed significantly. As of version 0.2 of the specification, Block Protocol requests and responses are handled through DOM `CustomEvents` defined in accordance with JSON Schemas.
+
+It's now a lot easier to create blocks that are not tied to JavaScript, TypeScript, or React. As long as a block can use browser `Event`s, it can implement the Block Protocol. To show what the changes imply for adventurous block authors, this post will be a technical walk-through of how the Block Protocol can be implemented and used in a language that is not TypeScript. Specifically, we're going to build a block in F#—but the methodology and implementation details are applicable for other languages that support JavaScript as a transpilation target and JavaScript interoperability.
+
+## Building blocks with F\#
+
+If you're interested in functional programming, [F#](https://fsharp.org/), along with [Fable compiler](https://fable.io/) and [Feliz](https://zaid-ajaj.github.io/Feliz/), is a great way to develop for the web. Here it will be used to create a logically complicated _calculation block_ resembling a spreadsheet that allows calculation, aggregation and data sourcing from embedding applications.
+
+The purpose of the Block Protocol is to provide a standardized interface for any embedding application. This interface can be thought of as a data provider-consumer layer, like a backend for the block and a frontend for the embedding application. Writing our calculation block _once_ with the Block Protocol allows any protocol-compliant application to make use of it.
+
+<CalculationBlock></CalculationBlock>
+
+Although the UI is basic, the dropdowns are particularly important for this block: they select the type of entities to fetch and make available for each row. For example, selecting the `Person` Entity Type in row one will load a collection of `Person` entities from the embedding application, allowing cells within row one to aggregate on them. In terms familiar to F# developers, Entity Types can be thought of as user-defined _domain types_ which are declared from the Embedding Application.
+
+Read more about Entities, Entity Types and embedding applications in the Block Protocol [specification](https://blockprotocol.org/spec).
+
+## Implementing the Block Protocol in F\#
+
+The Block Protocol defines a communication standard which allows blocks to create, read, update, and delete data. With this use case, we will end up with a block which can be used to explore the structured data in an embedding application.
+
+The is possible because of the Block Protocol [Graph Service](https://blockprotocol.org/spec/graph-service-specification). This service allows querying against Entities, Entity Types, and Links. For example, we can request to fetch all Entity Types from the Embedding Application and use those for the row dropdowns shown above. Once an Entity Type has been selected, all relevant Entities of that type can be requested, loaded, and made available for cell expressions.
+
+To implement the Block Protocol in a language other than JavaScript or TypeScript:
+
+1.  translate the types in the Block Protocol Core specification to types your chosen language (F# in this case)
+1.  translate any types from services that the block requires e.g. types for requests and responses in the Graph Service
+1.  Implement the Block Protocol's message handling
+
+    - the implementation details can be hidden behind easy-to-use abstractions
+
+1.  send the messages your block needs to update or retrieve data, as specified in the Graph Service specification
+
+### Block Protocol Core types
+
+The most fundamental types that we have to implement are those that specify how messages should be structured. These can be considered the primitive types we will be dealing with and composing for the next steps.
+
+The Block Protocol communicates in `BlockProtocolMessage`s which consist of a payload and metadata about the payload. The metadata contains information about who sent the message, any errors, and some book-keeping data. The Core Specification defines the message type like this:
+
+```fsharp
+[<StringEnum>]
+type BlockProtocolSource =
+    | Block
+    | Embedder
+
+type MessageError =
+    { code: string
+      message: string
+      extensions: obj option }
+
+type BlockProtocolMessage<'payload> =
+    { requestId: string
+      messageName: string
+      respondedToBy: string option
+      service: string
+      source: BlockProtocolSource
+      data: 'payload option
+      errors: (MessageError []) option }
+```
+
+The message payload is generic, and no assumptions are made about the shape of errors either. Any and all of the Block Protocol messages we'll be sending will always conform to this shape at the top level. These types capture the core types used to model the rest of the Block Protocol and can be implemented for any language that supports JavaScript interoperability.
+
+The Core specification also describes a special message that must be sent when a block is initialized: the `init` message. The message isn't really a type, but rather an instance of a `BlockProtocolMessage`. We can construct it as an instance of the record:
+
+```fsharp
+let BlockProtocolEventName = "blockprotocolmessage"
+let BlockProtocolInitMessage () =
+    { requestId = Guid.NewGuid().ToString()
+      messageName = "init"
+      respondedToBy = Some "initResponse"
+      service = "core"
+      source = BlockProtocolSource.Block
+      data = Some(createObj []) // just an empty JS object: {}
+      errors = None }
+```
+
+There's not much to this message, for now it's mostly a declaration of existence the block makes to the embedding application. The message does, however, expect a response: the `initResponse` message.
+
+In order to properly explain the response to this initial message, it's helpful to look at how the Graph Service [specification](https://blockprotocol.org/spec/graph-service-specification) can be typed.
+
+### Block Protocol Graph Service types
+
+The Graph Service supplies an interface for managing Entities, Entity Types, and Links. Entity Types are _domain types_ defined in embedding applications, and Entities are instances of these.
+
+```fsharp
+// Graph
+type Entity<'props> =
+    { entityId: string
+      entityTypeId: string option
+      properties: 'props option }
+
+type EntityType<'schema> =
+    { entityTypeId: string
+      schema: 'schema }
+
+// Addendum to Core
+type BlockEntity<'a> = { blockEntity: 'a; (* among other fields *) }
+type BlockProtocolCorePayload<'a> = { graph: BlockEntity<'a> }
+```
+
+When a block announces itself through an `init` request to the embedding application, an `initResponse` will be returned to the block with the shape `BlockProtocolMessage<Entity<'s>>`.
+
+These basic types define the shape of data going to and from the embedding application. However, the Graph Service also defines a large set of messages that a block can make use of. We don't necessarily have to implement all messages to make use of the Block Protocol—only the requests and the accompanying responses we are interested in.
+
+For the calculation block in particular, the `updateEntity`, `aggregateEntityTypes`, and `aggregateEntities` Graph Service messages are most important. These provide a way for the block to persists its internal state and fetch Entities and Entity Types from the embedding application. From the specification, these messages' types can be constructed as follows:
+
+```fsharp
+type UpdateEntity<'props> =
+    { entityId: string
+      properties: 'props }
+type UpdateEntityResponse<'props> =
+    { entityId: string
+      properties: 'props }
+
+type AggregateOperation = {
+  (* Omitted for brevity.
+     Contains information for filtering and sorting *) }
+
+type AggregateEntityTypes = { operation: AggregateResult }
+type AggregateEntityTypesResponse<'props> =
+    { results: EntityType<'props> []
+      operation: AggregateResult }
+
+type AggregateEntities = { operation: AggregateResult }
+type AggregateEntitiesResponse<'props> =
+    { results: Entity<'props> []
+      operation: AggregateResult }
+```
+
+These types are all valid message structures for communicating with the Graph Service in the embedding application.
+We can for example construct an `AggregateEntityTypes` request through a `BlockProtocolMessage<'a>` and get the following record:
+
+```fsharp
+{ requestId = "86179f1e-c538-4d8b-b0c0-2c7d9cfc63a0"
+  messageName = "aggregateEntityTypes"
+  respondedToBy = Some "aggregateEntityTypesResponse"
+  service = "graph"
+  source = Block
+  data = Some { operation =
+                    { entityTypeId = None
+                      pageNumber = 1
+                      itemsPerPage = 100
+                      pageCount = None
+                      totalCount = None
+                      multiSort = None
+                      multiFilter = None } }
+  errors = None }
+```
+
+The complete record would be repetitive to construct at every call site, so writing a couple of helper functions to construct these requests will be very useful.
+
+### Block Protocol message handling
+
+With the types in place, we're ready for implementing the message handling. This mostly consists of JavaScript interoperability. We want to allow our block to send DOM `CustomEvent`s and get proper responses where applicable.
+
+For sending events to the embedding application, we want to target some element that we (the block) has full control over. This will be considered our message root, and all communication back and forth to the embedding application will happen through events on this message root element. The mechanism of actually sending off a message is quite simple: we create a `CustomEvent` and dispatch it through the DOM operation `dispatchEvent`.
+
+```fsharp
+let BlockProtocolEventType = "blockprotocolmessage"
+
+let createBPEvent (detail: BlockProtocolMessage<'a>) =
+    CustomEvent.Create(
+        BlockProtocolEventName,
+        jsOptions<CustomEventInit> (fun o ->
+            o.bubbles <- true
+            o.composed <- true
+            o.detail <- detail)
+    )
+
+let dispatchBPMessage (blockMessageRoot: HTMLElement) =
+    blockMessageRoot.dispatchEvent bpEvent |> ignore
+```
+
+The name of the event is important. The spec assumes this is always `"blockprotocolmessage"`.
+
+Other than that, the only requirement for the language in which you are implementing the protocol is that it can send and act on these events. In reality, dispatching events is a little more convoluted, as we will sometimes want to receive a response from the embedding application (discussed below).
+
+To receive events from the embedding application, it's necessary to use some of the same primitives as when you are sending events. We must listen on `"blockprotocolmessage"` events through a DOM element and handle them individually and asynchronously.
+
+```fsharp
+let listenForEAResponse (blockMessageRoot: HTMLElement) =
+    let handler (event: Event) =
+        if (event :?> CustomEvent).detail <> JS.undefined then
+          // Handle and route message here!
+          // ...
+
+    blockMessageRoot.addEventListener (BlockProtocolEventName, handler)
+```
+
+Within the handler, each event must be properly paired with a request to make sense of the messages, although some messages coming from the embedding application might not be a response to a request.
+
+The specifics of routing requests and responses have not been talked about yet as it's important to note that this exact implementation detail is not the only way to handle the messages. If the language you're using has great primitives or tools for handling such routing challenges, it can certainly be used instead. But for the actual way the responses are routes to requests in F#, we're simply delegating the task further down to JavaScript, mimicking the way it's done for TypeScript in the [reference implementation](https://github.com/blockprotocol/blockprotocol/blob/37c503de7ed5804710a5132695fe49d9f36e450e/packages/%40blockprotocol/core/src/core-handler.ts#L295).
+
+Using a JavaScript map from `requestId`s to unresolved promises, we're able to asynchronously resolve in-flight requests.
+
+```fsharp
+type ResponseSettlersMap() =
+    let mutable map =
+        // the key here is the Request ID
+        new Dictionary<string, ResponseSettler>()
+
+let dispatchBPMessageWithResponse responseSettlerMap blockMessageRoot detail : JS.Promise<'a> =
+    let bpEvent = createBPEvent detail
+    let mutable resolve = None
+    let mutable reject = None
+    let promise: JS.Promise<'a> =
+        JS.Constructors.Promise.Create (fun res rej ->
+            resolve <- Some res
+            reject <- Some rej)
+
+    responseSettlerMap.Set
+        (detail.requestId)
+        { expectedResponseName = detail.respondedToBy.Value
+          resolve = resolve.Value
+          reject = reject.Value }
+
+    blockMessageRoot.dispatchEvent bpEvent |> ignore
+
+    promise
+
+let listenForEAResponse responseSettlerMap blockMessageRoot =
+    let handler (event: Event) =
+        if (event :?> CustomEvent).detail <> JS.undefined then
+            let bpMessage = event.detail
+
+            if bpMessage.source = Embedder then
+                let settlerForMessage = responseSettlerMap.Get bpMessage.requestId
+
+                if settlerForMessage.IsSome then
+                    let settler = settlerForMessage.Value
+
+                    if bpMessage.errors <> JS.undefined then
+                        settler.reject bpMessage.errors
+                    else
+                        settler.resolve bpMessage.data
+
+                    responseSettlerMap.Remove bpMessage.requestId
+
+    blockMessageRoot.addEventListener (BlockProtocolEventName, handler)
+```
+
+Some details have been left out in the code listing to focus on the important bits. The `responseSettlerMap` is a mutable, shared state which is used on both ends of the communication to match up request and response pairs. Since promises are returned from dispatched events, the caller isn't blocked by issuing a Block Protocol request and the interface to interact with the Block Protocol is a lot like making network calls. Typing the requests and responses is just a matter of type coercion. An interface with the following shape will allow such type coercion:
+
+```fsharp
+type BlockProtocolState =
+    { blockEntityId: string
+      updateEntity:
+            BlockProtocolMessage<UpdateEntity<obj>> -> JS.Promise<UpdateEntityResponse<obj>>
+      aggregateEntityTypes:
+            BlockProtocolMessage<AggregateEntityTypes> -> JS.Promise<AggregateEntityTypesResponse<unit>>
+      aggregateEntities:
+            BlockProtocolMessage<AggregateEntities> -> JS.Promise<AggregateEntitiesResponse<AnyBlockProperty>> }
+```
+
+For example, calling `aggregateEntityTypes` would create a new promise and add it to the settler map, then the listener would eventually receive a response if all goes well and resolve the unresolved promise.
+This promise will be coerced into the type of the return value `AggregateEntityTypesResponse<unit>` once the promise is resolved.
+
+Now it's just a matter of creating our block and using the Block Protocol Graph Service as a data provider.
+
+## Calculation block
+
+The Fable compiler has an impressive number of interesting demos in [their playground](https://fable.io/repl/), one of them being a spreadsheet (Samples → UI → Spreadsheet). This spreadsheet, which is an adaptation of '_[Write your own Excel in 100 lines of F#](http://tomasp.net/blog/2018/write-your-own-excel/)_' by Tomas Petricek, will be the basis for our calculation block.
+
+The playground demo comes with a lightweight parser combinator module for parsing text into syntax trees, but for implementing more complex parsers, a more complete library is preferable. For this purpose, the Fable friendly parser combinator library [Parsec.fs](https://github.com/cannorin/Parsec.fs) will be used. Parsec.fs lacks easy-to-use precedence parser utilities, so these are implemented with inspiration from [Parsimmon's precedence parser example](https://github.com/jneen/parsimmon/blob/16a6496e19030b51cd148b40da822ee5b23757ad/examples/math.js).
+
+The F# Feliz library supports making use of the Model-View-Update architecture of [Elm](https://elm-lang.org/) through the [Elmish library](https://elmish.github.io/elmish/) and an accompanying Feliz React Hook, [UseElmish](https://github.com/Zaid-Ajaj/Feliz/tree/master/Feliz.UseElmish). The Fable spreadsheet demo makes use of such architecture already, so it's trivial to replace the custom MVU implementation with Elmish.
+
+For those unfamiliar with MVU, it prescribes how state (the model) can can be updated through messages dispatched to the view, which itself is a pure function of the state.
+
+<img
+  src="blog/5_build-blocks-in-any-language/mvu.png"
+  width={1004}
+  height={178}
+  alt="A diagram showing how the MVU architecture propagates changes."
+/>
+
+## The editor
+
+The calculation block will operate on distinct Block Protocol Entity Types which are selected for each spreadsheet row. Selecting an Entity Type will fetch entities of that type and make them available to the row. The only aggregation functions currently supported by the block are: `count`, `sum`, and `avg`.
+
+<img
+  src="blog/5_build-blocks-in-any-language/person_count.png"
+  width={418}
+  height={118}
+  alt="The calculation block with `Person` selected in row one, containing `=count()` in cell A1."
+/>
+
+We'll extend the Fable spreadsheet demo with a number of `Event` variants to allow for the state of the editor to be persisted and loaded, and for external data from the embedding application to be fetched.
+
+```fsharp
+type Event =
+    | UpdateValue of Position * content: string
+    | StartEdit of Position
+    // -- Added variants below here --
+    | StopEdit
+    // Persisting editor state
+    | SaveState
+    | DeserializeSaveState of SaveState
+    // New editor functionality and interfacing with Embedding Application
+    | AddRow
+    | RemoveRow of row: int
+    | ClearBoard
+    | DispatchLoadEntityTypes
+    | LoadEntityTypes of EntityType<unit> []
+    | SetRowEntityType of row: int * entityTypeId: string
+    | SetRowEntities of row: int * entities: Entity<AnyBlockProperty> []
+    | LoadRowEntities of row: int * entityTypeId: string
+```
+
+The above type describes everything that can happen within our block and can be thought of as the only set of operations that can trigger the application state to change. Side effects can only happen when processing one of these events. In reality, side effects are delegated to the MVU runtime which will process them appropriately and dispatch more Events based on the outcome. _(Note, this is not entirely true as the UI itself is effectful, but for the purpose of this blog post it doesn't matter_).
+
+The `SaveState`, `DispatchLoadEntityTypes`, and `LoadRowEntities` variants are the only effectful messages that the application can dispatch and these make use of the `updateEntities`, `aggregateEntityTypes`, and `aggregateEntities` Block Protocol Graph Service requests. There's also the `init` message, defined in the Core Specification, which is used for the initial load and to load any saved state from previous sessions.
+
+The editor state holds all the data needed to draw the view, and is defined as follows:
+
+```fsharp
+type RowSelection = int * string option
+
+type Position = char * int
+
+type State =
+    { Cols: char list
+      Rows: RowSelection list
+      Cells: Map<Position, string>
+      Active: Position option
+      EntityTypes: EntityType<unit> []
+      LoadedEntities: Map<int, Entity<AnyBlockProperty> []> }
+```
+
+The state is very similar to that of the original Fable demo with a few additions to allow for the Entity Type dropdowns and external data. `Cells` are updated when a user inputs data, `Rows` are updated when a dropdown value changes or a row is deleted or added, `Active` captures the current editing position (if any), and the `EntityTypes` and `LoadedEntities` arrays store data fetched from the embedding application.
+
+When the calculation block renders cells, it will try to parse and evaluate the contents of the cell or simply display the raw cell value. This evaluation happens with the state of the page as the context, such that we can reference other cells and calculate aggregation data provided by the embedding application.
+
+The rest of the editor consists of the view and update function implementations. The view is more or less the same style as the Fable demo, with a couple visual and interaction changes. The update function still uses parts of the initial demo, with additions to the effectful events.
+
+The effectful events are contained in a way which would allow us to simply replace the Block Protocol calls with some mock functions. They have no knowledge of the implementation details. If we take a look at `DispatchLoadEntityTypes`, for example, we're dealing with Elmish Command constructs, which delegate effects to the internal MVU runtime and treat the results as an event to be dispatched on success. With the help of the `BlockProtocolState` created with the Block Protocol implementation, requesting all Entity Types is a matter of constructing and dispatching a Block Protocol message (using one of the helper functions to make construction succinct). On success, the `BlockProtocolState` knows what return type to coerce to, and everything fits together neatly.
+
+```fsharp
+let update (sideEffect: BlockProtocolState) msg state =
+    match msg with
+    // ..
+    | DispatchLoadEntityTypes ->
+        let cmd =
+            Cmd.OfPromise.perform
+                (fun _ ->
+                    aggregateAllEntityTypes ()
+                    |> sideEffect.aggregateEntityTypes)
+                null
+                (fun et -> LoadEntityTypes et.results)
+
+        state, cmd
+    // ..
+```
+
+The `BlockProtocolState` construction is abstracted away when we get to implementing the Elmish component, so the business logic doesn't really care how the data is provided.
+
+Next up is the implementation details of the expressions and evaluator. The Block Protocol related work is done from the perspective of the block, but there are some neat implementation details to talk about within the expression parser.
+
+### The cell syntax and evaluator
+
+Each cell of the calculation block will be parsed and evaluated if they can be parsed to the following structure:
+
+```fsharp
+type Operator =
+    | Plus
+    | Minus
+    | Multiply
+    | Divide
+    | Exponent
+
+type Expr =
+    | Reference of Position
+    | Number of float
+    | Unary of Expr * Operator
+    | Binary of Expr * Operator * Expr
+    | FunctionCall of func: string * propertyName: string
+```
+
+The top-level `Expr` type encapsulates all possible expressions within cells. This models an Abstract Syntax Tree (AST) which will be the target of the block's text parsers. The concrete syntax is defined through a parser combinator library, [Parsec.fs](https://github.com/cannorin/Parsec.fs). Parser combinators are higher-order functions that can compose parsers to form complex, new parsers.
+
+An example parser could be the one used to parse references in a cell. The parser is defined as follows:
+
+```fsharp
+let reference = upper .>>. pint32 |>> Reference
+```
+
+This makes use of parsers `upper`, `pint32` and combinators `.>>.` and `|>>` for composing the parsers. The `.>>.` operator applies both parsers on either side of the operator and returns them as a tuple, `upper .>>. pint32` could thus match on `"A2"` and return `('A', 2)`. The `|>>` combinator applies the parser on the left side and applies the result to the function on the right. Here the function is the constructor for the `Expr.Reference` variant which has type `Position` as its first and only argument.
+
+This mechanism of leveraging primitive parsers and combinators allows us to create complex parsers that can match on complex expressions and return proper AST. An example could be parsing the string `"=count()/A2"` into the expression `Binary (FunctionCall ("count", ""), Divide, Reference ('A', 2)`.
+
+One aspect of parsing is ensuring operator precedence—interpreting the expression `1+2/3` as `1+(2/3)` to ensure correct order of operations, for example. Dealing with precedence order is sometimes easier to do with some helper utilities that can translate an operator table to a parser which has the correct precedence encoded. To accomplish this for our block, we've used a really great [example](https://github.com/jneen/parsimmon/blob/16a6496e19030b51cd148b40da822ee5b23757ad/examples/math.js#L39-L137) from the [Parsimmon](https://github.com/jneen/parsimmon) parsing library. This is implemented with the Parsec.fs library, and allows for a succinct definition for operator precedence:
+
+```fsharp
+let opsTable =
+    [ (Prefix, [ Minus ])
+      (BinaryRight, [ Exponent ])
+      (BinaryLeft, [ Multiply; Divide ])
+      (BinaryLeft, [ Plus; Minus ]) ]
+
+// ..
+
+let termAux =
+    reference <|> functionCall <|> number <|> paren
+
+let operators = tableParser termAux opsTable
+```
+
+The order of which the operators appear in `opsTable` dictates the precedence. The higher up the list, the higher the precedence. Any operators with the same level of precedence will be put in the same inner list, as with `Multiply; Divide` and `Plus; Minus`. The `termAux` parser defines the terms that can be parsed as operands of the expressions.
+
+Once an AST has been constructed for some cell text, it can be interpreted by traversing the expression tree. Evaluation happens by defining what to do for each variant of the `Expr` type, and recursively evaluating any parts of the tree that contain more trees.
+
+```fsharp
+let (>>=) m f = Option.bind f m
+let (<!>) m f = Option.map f m
+
+let unaryFuncs op (e: float) =
+    match op with
+    | Minus -> -e
+    | _ -> failwith "Unimplemented"
+
+let binaryFuncs op (l: float) (r: float) =
+    match op with
+    | Plus -> l + r
+    | Minus -> l — r
+    | Multiply -> l * r
+    | Divide -> l / r
+    | Exponent -> l ** r
+
+let rec evaluate visited cells entities expr calculateAtPos =
+    match expr with
+    | Number num -> Some num
+    | FunctionCall (func, propertyName) -> (* Omitted for brevity *)
+    | Unary (e, op) ->
+        evaluate visited cells ents e calculateAtPos
+        <!> (fun e -> unaryFuncs op e)
+
+    | Binary (l, op, r) ->
+        evaluate visited cells ents l calculateAtPos
+        >>= (fun l ->
+            evaluate visited cells ents r calculateAtPos
+            <!> (fun r -> binaryFuncs op l r))
+
+    | Reference pos when Set.contains pos visited -> None
+
+    | Reference pos ->
+        cells.TryFind pos
+        >>= (fun value ->
+            let parsed = parse value
+
+            resultToOption parsed
+            >>= (fun (parsed, _, _) -> evaluate (Set.add pos visited) cells ents parsed pos))
+```
+
+The evaluator can recurse on the `Unary`, `Binary` and `Reference` variants of Expr. The return value of any evaluation is always an optional float which, while restrictive, covers the needs of the calculation block. The optionality of the return value means that the evaluator has to take care of the case where the application of evaluate returns `None`. This is done by using monad combinators `Bind` (`>>=`) and `Map` (`<!>`). An alternative to this is to use F# Computation Expressions for Options.
+
+The omitted `FunctionCall` implementation simply gathers all entities that are selected for the row of `calculateAtPos` and applies some aggregation function to the gathered list. The only aggregation function implemented is:
+
+```fsharp
+let env: Map<string, (float [] -> float)> =
+    Map.ofList [
+        ("count", Array.length >> float)
+        ("sum", Array.sum)
+        ("avg",(fun x ->
+               let length = Array.length x
+               (Array.sum x) / (float length)))
+    ]
+```
+
+With the parser in place, the application's view can try to parse the values of each cell as they're rendered using the underlying application state as an evaluation environment.
+
+Inputting an expression in a cell, such as:
+
+<img
+  src="blog/5_build-blocks-in-any-language/expression_math.png"
+  width={290}
+  height={123}
+  alt="The calculation block with `Person` selected in row one, `Company`in row two, containing `=count()/A2` in cell A1 and `=count()` in cell A2."
+/>
+will parse and evaluate the cell, returning an optional float which can be displayed
+if all goes well. Otherwise, the raw value of the cell is shown.
+
+## Conclusion
+
+We've seen how the Block Protocol isn't tied to JavaScript, TypeScript, or React, and how you can build a block with your favorite JavaScript transpilation source—F#, in my case! There's no need to change the way you write frontend code. The Elmish component doesn't have any special knowledge about the Block Protocol, for example, and relies instead on a couple of asynchronous functions which disguise a simple way of communicating through DOM events.
+
+You can browse the full source code for the calculation block [on GitHub](https://github.com/hashdeps/calculation-table-block). If you feel inspired to build a block without TypeScript, we'd love to [hear from you on Discord](https://hash.ai/discord). And to learn more about the technical details of the Block Protocol, take a look at the [specification](https://blockprotocol.org/spec).

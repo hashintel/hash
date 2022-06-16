@@ -24,6 +24,12 @@
     "tags": ["Data Science"]
   },
   {
+    "title": "Block Protocol",
+    "description": "The open Block Protocol standardizes the means by which blocks and the applications that embed them communicate.",
+    "slug": "block-protocol",
+    "tags": ["Software Engineering", "Standards"]
+  },
+  {
     "title": "Business Intelligence",
     "description": "Business Intelligence allows companies to make data-driven decisions.",
     "slug": "business-intelligence",
@@ -78,6 +84,18 @@
     "tags": ["Data Science"]
   },
   {
+    "title": "Data Types",
+    "description": "Data types describe a space of possible values through the specification of constraints",
+    "slug": "data-types",
+    "tags": ["Graphs", "Standards"]
+  },
+  {
+    "title": "Datasets",
+    "description": "Datasets are collections of numbers or words, generally centered around a single topic or subject.",
+    "slug": "datasets",
+    "tags": ["Business Intelligence", "Data Science"]
+  },
+  {
     "title": "Deep Reinforcement Learning",
     "description": "DRL is a subset of Machine Learning in which agents are allowed to solve tasks on their own, and thus discover new solutions independent of human intuition.",
     "slug": "deep-reinforcement-learning",
@@ -114,6 +132,18 @@
     "tags": ["Business Software"]
   },
   {
+    "title": "Entities",
+    "description": "Entities are individual ‘things’ with a distinct, independent existence.",
+    "slug": "entities",
+    "tags": ["Graphs", "Simulation Modeling"]
+  },
+  {
+    "title": "Entity Types",
+    "description": "Entity types represent commonly recurring classes of entities, and describe their properties.",
+    "slug": "entity-types",
+    "tags": ["Graphs", "Standards"]
+  },
+  {
     "title": "Fast Healthcare Interoperability Resources",
     "description": "An electronic healthcare standard for data interoperability.",
     "slug": "fast-healthcare-interoperability-resources",
@@ -138,6 +168,23 @@
     "tags": ["Graphs", "Machine Learning"]
   },
   {
+    "title": "Graphs",
+    "description": "A graph is a collection of entities which may be connected to other entities by links.",
+    "slug": "graphs",
+    "tags": ["Graphs", "Machine Learning", "Software Engineering"]
+  },
+  {
+    "title": "Integrations",
+    "description": "Integrations allow information from different systems to be brought together, and actions coordinated across them.",
+    "slug": "integrations",
+    "tags": [
+      "Business Intelligence",
+      "Business Software",
+      "Graphs",
+      "Standards"
+    ]
+  },
+  {
     "title": "Knowledge Graph Machine Learning",
     "description": "Knowledge graphs are information-dense inputs to machine learning algorithms, and can capture more human-readable outputs of algorithms.",
     "slug": "knowledge-graph-machine-learning",
@@ -147,6 +194,18 @@
     "title": "Knowledge Graphs",
     "description": "Knowledge Graphs contextualize data and power insight generation.",
     "slug": "knowledge-graphs",
+    "tags": ["Data Science", "Graphs"]
+  },
+  {
+    "title": "Links",
+    "description": "Links between different entities represent the relationships and connections between them.",
+    "slug": "links",
+    "tags": ["Graphs"]
+  },
+  {
+    "title": "Properties",
+    "description": "Properties store individual pieces of information about entities. All property fields on an entity are inferred from its entity type(s).",
+    "slug": "properties",
     "tags": ["Data Science", "Graphs"]
   },
   {
@@ -276,9 +335,21 @@
     "tags": ["Data Science"]
   },
   {
+    "title": "Types",
+    "description": "Types describe the shape that information is expected to take, through rules and constraints associated with it.",
+    "slug": "Types",
+    "tags": ["Graphs", "Software Engineering", "Standards"]
+  },
+  {
     "title": "Discrete vs Continuous Time",
     "description": "In continuous time, variables may have specific values for only infinitesimally short amounts of time. In discrete time, values are measured once per time interval.",
     "slug": "time",
     "tags": ["Data Science", "Simulation Modeling"]
+  },
+  {
+    "title": "Values",
+    "description": "Values are the information contained within a single property on a specific instance of an entity.",
+    "slug": "values",
+    "tags": ["Data Science", "Graphs"]
   }
 ]

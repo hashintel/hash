@@ -3,13 +3,13 @@ import React, { RefCallback } from "react";
 
 import { EmojiIcon } from "./emoji-icon";
 
-type AppProps = {
+type BlockEntityProperties = {
   editableRef?: RefCallback<HTMLElement>;
   icon?: string;
   text?: string;
 };
 
-export const App: BlockComponent<AppProps> = ({
+export const App: BlockComponent<BlockEntityProperties> = ({
   editableRef,
   icon = "📢",
   text,

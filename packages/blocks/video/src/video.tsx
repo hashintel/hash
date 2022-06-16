@@ -1,12 +1,9 @@
-import { BlockComponent } from "blockprotocol/react";
 import React from "react";
-import { Media } from "./components/media";
+import { BlockComponent } from "@blockprotocol/graph";
+import { Media, MediaEntityProperties } from "./components/media";
 
-type AppProps = {
-  initialCaption?: string;
-  url?: string;
-};
+export type BlockEntityProperties = MediaEntityProperties;
 
-export const Video: BlockComponent<AppProps> = (props) => (
+export const Video: BlockComponent<BlockEntityProperties> = (props) => (
   <Media {...props} mediaType="video" />
 );

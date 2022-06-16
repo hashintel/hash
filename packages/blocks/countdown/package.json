@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/block-countdown",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "description": "Countdown to a time and date",
   "keywords": [
     "blockprotocol",
@@ -22,14 +22,14 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.10",
+    "@blockprotocol/graph": "0.0.8",
     "date-fns": "2.28.0",
     "react-datepicker": "4.7.0"
   },
   "devDependencies": {
     "@types/react-datepicker": "^4.4.1",
-    "block-scripts": "0.0.7",
-    "mock-block-dock": "0.0.10",
+    "block-scripts": "0.0.10",
+    "mock-block-dock": "0.0.15",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
@@ -42,6 +42,9 @@
     "servePort": 63215
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "displayName": "Countdown",
     "examples": [
       {
@@ -51,6 +54,7 @@
       }
     ],
     "icon": "public/icon.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "protocol": "0.2"
   }
 }

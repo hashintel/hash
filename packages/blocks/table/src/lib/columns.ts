@@ -22,7 +22,9 @@ export const makeColumns = (
     }
 
     const column: TableColumn = {
-      Header: accessor.split(".").join(" "),
+      // hack to remove properties from showing up in title
+      // @todo remove the need for this
+      Header: accessor.split(".").join(" ").replace("properties", ""),
       accessor,
     };
     if (isRecord(value)) {

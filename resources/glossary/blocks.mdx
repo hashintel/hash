@@ -1,0 +1,27 @@
+---
+objectId: 5g7f8g77-0205-4043-f46f-0ba3791t4616
+title: Blocks
+description: "Blocks are single units of content that are assigned ‘types’ which determine how they display data."
+slug: blocks
+tags: ["Software Engineering", "Standards"]
+---
+
+## What are blocks?
+
+Blocks are single units of content within a page, document or canvas which have ‘types’ that determine how they display data.
+
+For example, a block may be a ‘table’, ‘kanban board’, ‘gantt chart’, or anything else that the application which contains it supports.
+
+While the type of a block can be changed, the underlying data remains the same. This separation of 'view' and 'data' allows the representation of information referenced by a block to be changed (e.g. a table converted into a kanban board, and back again) without risking loss, corruption or inadvertent modification of the underlying data in the process.
+
+Blocks typically allow end-users to input, edit, and delete the data within them -- but can also be rendered in ‘view-only’ modes. Typically when in an editing context, blocks can be flexibly composed and arranged.
+
+Blocks enable the creation of modular, composable documents and interfaces.
+
+## Block instances
+
+A single individual block can be referred to as an ‘instance of a block’, or a ‘block instance’.
+
+## The Block Protocol
+
+The [Block Protocol](https://hash.ai/glossary/block-protocol) is an open standard for developing blocks, and block-based applications. It defines the methods by which blocks may communicate and interact with the applications that embed them (“embedding applications”).
