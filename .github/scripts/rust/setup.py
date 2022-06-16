@@ -76,16 +76,23 @@ def version_changed(diffs, crates):
     :param crates: a list of paths to crates
     :return: a list of crate paths
     """
+    def crate_version_changed(crate, diff):
+        if crate / "Cargo.toml" == Path(diff.delta.new_file.path):
+            return False
+
+        for hunk in diff.hunks:
+            for line in hunk.lines:
+                for content in line.content.splitlines():
+                    if re.fullmatch("version\\s*=\\s*\".*\"", content):
+                        return True
+        return False
+
     crate_list = []
 
     for diff in diffs:
         for crate in crates:
-            if crate / "Cargo.toml" == Path(diff.delta.new_file.path):
-                for hunk in diff.hunks:
-                    for line in hunk.lines:
-                        for content in line.content.splitlines():
-                            if re.fullmatch("version\\s*=\\s*\".*\"", content):
-                                crate_list.append(crate)
+            if crate_version_changed(crate, diff):
+                crate_list.append(crate)
 
     return list(set(crate_list))
 
