@@ -47,7 +47,7 @@ def filter_for_changed_crates(diffs, crates):
     :return: a list of crate paths
     """
     # Check if any changed file matches `ALWAYS_RUN_PATTERNS`
-    if [diff for diff in diffs for pattern in ALWAYS_RUN_PATTERNS if fnmatch(diff.delta.new_file.path, pattern)]:
+    if any([fnmatch(diff.delta.new_file.path, pattern) for diff in diffs for pattern in ALWAYS_RUN_PATTERNS]):
         return crates
 
     # Get the unique crate paths which have changed files
@@ -75,14 +75,7 @@ def filter_crates_by_changed_version(diffs, crates):
                         return True
         return False
 
-    crate_list = []
-
-    for diff in diffs:
-        for crate in crates:
-            if crate_version_changed(crate, diff):
-                crate_list.append(crate)
-
-    return list(set(crate_list))
+    return [crate for diff in diffs for crate in crates if crate_version_changed(crate, diff)]
 
 
 def filter_for_nightly_only_crates(crates):
