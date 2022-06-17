@@ -6,6 +6,7 @@ import { ImageWithText } from "../components/ImageWithText";
 import { Link, LinkProps } from "../components/Link";
 import { MdxImage } from "../components/MdxImage";
 import { MdxPre } from "../components/MdxPre";
+import { MdxTalkSlide } from "../components/MdxTalkSlide";
 
 const CalculationBlock = dynamic(
   () => import("../components/CalculationBlock"),
@@ -60,4 +61,6 @@ export const mdxComponents: Record<string, ReactNode> = {
   img: MdxImage,
 
   ImageWithText,
+
+  TalkSlide: MdxTalkSlide,
 };
