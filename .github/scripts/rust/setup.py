@@ -29,7 +29,7 @@ def generate_diffs():
     return repository.diff(head.parents[0], head, context_lines=0)
 
 
-def search_available_crates():
+def find_local_crates():
     """
     Returns all available crates in the workspace
     :return: a list of crate paths
@@ -139,7 +139,7 @@ def output(name, crates):
 
 def main():
     diffs = generate_diffs()
-    available_crates = search_available_crates()
+    available_crates = find_local_crates()
     changed_crates = filter_for_changed_crates(diffs, available_crates)
 
     output("rustfmt", changed_crates)
