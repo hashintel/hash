@@ -42,7 +42,7 @@ export const MdxImage: VFC<
       <Image
         {...props}
         {...details}
-        src={`/${src}` ?? details?.src}
+        src={`/${src.replace(/^\//, "")}` ?? details?.src}
         width={width ?? details?.width}
         height={height ?? details?.height}
         layout={inline ? "intrinsic" : "responsive"}
