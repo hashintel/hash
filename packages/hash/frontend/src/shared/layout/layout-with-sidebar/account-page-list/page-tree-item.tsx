@@ -50,7 +50,7 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
         alignItems: "center",
         borderRadius: "4px",
 
-        pl: `${depth * 16 + 10}px`,
+        pl: `${depth * 16 + 8}px`,
         pr: 0.5,
 
         ...(!selected && {}),

@@ -89,7 +89,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
           })}
           {...bindTrigger(popupState)}
         >
-          <Avatar size={20} title={activeWorkspace.name} />
+          <Avatar size={22} title={activeWorkspace.name} />
           <Typography
             sx={{
               pr: 1,

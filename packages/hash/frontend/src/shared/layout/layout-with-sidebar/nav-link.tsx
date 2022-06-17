@@ -60,6 +60,7 @@ export const NavLink: FC<NavLinkProps> = ({
           pl: 1.5,
           pr: 0.75,
           mx: 0.75,
+          mt: 2,
           "&:hover": {
             backgroundColor: palette.gray[20],
             "& .expand-button": {
