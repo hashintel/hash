@@ -144,7 +144,7 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
             color: "transparent",
             "&:hover": {
               backgroundColor: palette.gray[selected ? 40 : 30],
-              color: palette.gray[70],
+              color: palette.gray[selected ? 80 : 70],
             },
           })}
         >
