@@ -29,7 +29,7 @@ def generate_diffs():
     return repository.diff(head.parents[0], head, context_lines=0)
 
 
-def available_crates():
+def search_available_crates():
     """
     Returns all available crates in the workspace
     :return: a list of crate paths
@@ -37,7 +37,7 @@ def available_crates():
     return [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
 
 
-def changed_crates(diffs, crates):
+def filter_for_changed_crates(diffs, crates):
     """
     Returns a list of paths to crates which have changed files
 
@@ -57,7 +57,7 @@ def changed_crates(diffs, crates):
                      if fnmatch(diff.delta.new_file.path, f"{crate}/**")]))
 
 
-def version_changed(diffs, crates):
+def filter_crates_by_changed_version(diffs, crates):
     """
     Returns the crates whose version has changed
     :param diffs: a list of `Diff`s returned from git
@@ -85,7 +85,7 @@ def version_changed(diffs, crates):
     return list(set(crate_list))
 
 
-def nightly_only_crates(crates):
+def filter_for_nightly_only_crates(crates):
     """
     Returns the crates which only supports the nightly compiler
     :param crates: a list of paths to crates
@@ -94,7 +94,7 @@ def nightly_only_crates(crates):
     return [crate for crate in crates for pattern in DISABLE_STABLE_PATTERNS if fnmatch(crate, pattern)]
 
 
-def crates_for_release_tests(crates):
+def filter_for_crates_with_release_tests(crates):
     """
     Returns the crates which should run their test in release mode as well
     :param crates: a list of paths to crates
@@ -103,7 +103,7 @@ def crates_for_release_tests(crates):
     return [crate for crate in crates for pattern in TEST_IN_RELEASE_CRATES if fnmatch(crate, pattern)]
 
 
-def publishable_crates(crates):
+def filter_for_publishable_crates(crates):
     """
     Returns the crates which are allowed to be published
     :param crates: a list of paths to crates
@@ -120,7 +120,7 @@ def output_exclude(crates):
     :param crates: a list of paths to crates
     """
 
-    output = json.dumps([dict(toolchain="stable", directory=str(crate)) for crate in nightly_only_crates(crates)])
+    output = json.dumps([dict(toolchain="stable", directory=str(crate)) for crate in filter_for_nightly_only_crates(crates)])
     print(f"::set-output name=exclude::{output}")
     print(f"exclude = {output}")
 
@@ -139,17 +139,17 @@ def output(name, crates):
 
 def main():
     diffs = generate_diffs()
-    crates = available_crates()
-    changed = changed_crates(diffs, crates)
+    available_crates = search_available_crates()
+    changed_crates = filter_for_changed_crates(diffs, available_crates)
 
-    output("rustfmt", changed)
-    output("clippy", changed)
-    output("test", changed)
-    output("bench", crates_for_release_tests(changed))
-    output("miri", changed)
-    output("doc", changed)
-    output("publish", version_changed(diffs, publishable_crates(changed)))
-    output_exclude(changed)
+    output("rustfmt", changed_crates)
+    output("clippy", changed_crates)
+    output("test", changed_crates)
+    output("bench", filter_for_crates_with_release_tests(changed_crates))
+    output("miri", changed_crates)
+    output("doc", changed_crates)
+    output("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)))
+    output_exclude(changed_crates)
 
 
 if __name__ == "__main__":
