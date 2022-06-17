@@ -49,7 +49,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
           <WorkspaceSwitcher />
         </Box>
         <Tooltip title="Collapse Sidebar">
-          <IconButton size="large" onClick={closeSidebar}>
+          <IconButton size="medium" onClick={closeSidebar}>
             <SidebarToggleIcon />
           </IconButton>
         </Tooltip>

@@ -56,13 +56,12 @@ export const NavLink: FC<NavLinkProps> = ({
           display: "flex",
           alignItems: "center",
           borderRadius: "4px",
-          py: 1,
+          py: 0.5,
           pl: 1.5,
           pr: 0.75,
-          mx: 0.5,
+          mx: 0.75,
           "&:hover": {
             backgroundColor: palette.gray[20],
-
             "& .expand-button": {
               color: palette.gray[80],
 
@@ -75,11 +74,6 @@ export const NavLink: FC<NavLinkProps> = ({
             "& .end-adornment-button": {
               backgroundColor: palette.gray[30],
               color: palette.gray[80],
-
-              "&:hover": {
-                backgroundColor: palette.gray[40],
-                color: palette.gray[80],
-              },
             },
           },
         })}
@@ -87,7 +81,7 @@ export const NavLink: FC<NavLinkProps> = ({
         <Typography
           variant="smallCaps"
           sx={({ palette }) => ({
-            mr: 1.4,
+            mr: 0.5,
             color: palette.gray[50],
           })}
         >

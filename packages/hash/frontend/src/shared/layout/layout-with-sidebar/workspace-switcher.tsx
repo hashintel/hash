@@ -82,17 +82,18 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
           fullWidth
           sx={({ spacing }) => ({
             backgroundColor: "transparent",
-            padding: spacing(1.5, 2, 1.5, 2.25),
+            padding: spacing(1, 1.25),
+            minHeight: 0,
             justifyContent: "flex-start",
             textAlign: "left",
           })}
           {...bindTrigger(popupState)}
         >
-          <Avatar size={24} title={activeWorkspace.name} />
+          <Avatar size={20} title={activeWorkspace.name} />
           <Typography
             sx={{
               pr: 1,
-              pl: 1,
+              pl: 1.25,
               overflowX: "hidden",
               whiteSpace: "nowrap",
               textOverflow: "ellipsis",
@@ -115,7 +116,6 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         {...bindMenu(popupState)}
         MenuListProps={{
           sx: {
-            paddingTop: "10px",
             paddingBottom: "6px",
           },
         }}

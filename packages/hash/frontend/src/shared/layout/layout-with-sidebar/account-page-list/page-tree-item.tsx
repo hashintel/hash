@@ -50,8 +50,8 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
         alignItems: "center",
         borderRadius: "4px",
 
-        pl: `${depth * 15 + 8}px`,
-        pr: 1,
+        pl: `${depth * 16 + 10}px`,
+        pr: 0.5,
 
         ...(!selected && {}),
 
@@ -63,7 +63,7 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
           },
 
           "& .page-menu-trigger": {
-            color: palette.gray[50],
+            color: palette.gray[40],
           },
         },
 
@@ -96,8 +96,8 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
         icon={faFile}
         sx={{
           fontSize: 16,
-          mr: 1,
-          color: ({ palette }) => palette.gray[50],
+          mr: 1.25,
+          color: ({ palette }) => palette.gray[40],
         }}
       />
       <Link
@@ -141,10 +141,10 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
           unpadded
           className="page-menu-trigger"
           sx={({ palette }) => ({
-            color: palette.gray[40],
+            color: "transparent",
             "&:hover": {
               backgroundColor: palette.gray[selected ? 40 : 30],
-              color: palette.gray[50],
+              color: palette.gray[70],
             },
           })}
         >
