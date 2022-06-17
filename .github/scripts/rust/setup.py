@@ -65,7 +65,7 @@ def version_changed(diffs, crates):
     :return: a list of crate paths
     """
     def crate_version_changed(crate, diff):
-        if crate / "Cargo.toml" == Path(diff.delta.new_file.path):
+        if crate / "Cargo.toml" != Path(diff.delta.new_file.path):
             return False
 
         for hunk in diff.hunks:
