@@ -36,7 +36,9 @@ type Event = {
     | string;
   created_at: string | null | undefined;
   html_url?: string | null | undefined;
-  actor: GithubPullRequest["user"] | GithubReview["user"];
+  actor:
+    | GithubPullRequest["properties"]["user"]
+    | GithubReview["properties"]["user"];
 };
 
 export type TimelineItemProps = {

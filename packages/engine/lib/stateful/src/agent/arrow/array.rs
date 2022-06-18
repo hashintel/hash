@@ -16,7 +16,7 @@ use memory::arrow::{
 };
 
 use crate::{
-    agent::{arrow::PREVIOUS_INDEX_FIELD_KEY, Agent, AgentSchema, AgentStateField},
+    agent::{arrow::PREVIOUS_INDEX_FIELD_KEY, field::AgentId, Agent, AgentSchema, AgentStateField},
     field::{FieldTypeVariant, RootFieldKey, UUID_V4_LEN},
     message::{self, arrow::array::MessageArray},
     Error, Result,
@@ -57,22 +57,22 @@ impl IntoRecordBatch for &[&Agent] {
     fn to_message_batch(&self, schema: Arc<Schema>) -> Result<RecordBatch> {
         let ids = self
             .iter()
-            .map(|agent| agent.agent_id.as_ref())
-            .collect::<Vec<&str>>();
+            .map(|agent| agent.agent_id)
+            .collect::<Vec<AgentId>>();
         let messages: Vec<serde_json::Value> = self
             .iter()
             .map(|agent| agent.get_as_json("messages"))
             .collect::<Result<_>>()?;
 
-        message::arrow::record_batch::from_json(schema, ids, Some(messages))
+        message::arrow::record_batch::from_json(schema, &ids, Some(messages))
     }
 
     fn to_empty_message_batch(&self, schema: Arc<Schema>) -> Result<RecordBatch> {
         let ids = self
             .iter()
-            .map(|agent| agent.agent_id.as_ref())
-            .collect::<Vec<&str>>();
-        message::arrow::record_batch::from_json(schema, ids, None)
+            .map(|agent| agent.agent_id)
+            .collect::<Vec<AgentId>>();
+        message::arrow::record_batch::from_json(schema, &ids, None)
     }
 
     fn to_agent_batch(&self, schema: &AgentSchema) -> Result<RecordBatch> {
@@ -141,7 +141,7 @@ impl IntoRecordBatch for &[&Agent] {
 fn agents_to_id_col(agents: &[&Agent]) -> Result<ArrayRef> {
     let mut builder = FixedSizeBinaryBuilder::new(agents.len() * UUID_V4_LEN, UUID_V4_LEN as i32);
     for agent in agents {
-        builder_add_id(&mut builder, &agent.agent_id)?;
+        builder_add_id(&mut builder, agent.agent_id)?;
     }
     Ok(Arc::new(builder.finish()))
 }
@@ -214,25 +214,15 @@ fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<ArrayR
     }
 }
 
-fn builder_add_id(builder: &mut FixedSizeBinaryBuilder, id: &str) -> Result<()> {
-    if id.is_empty() {
-        // Generates UUID if it does not exist
-        let uuid = uuid::Uuid::new_v4();
-        let bytes = uuid.as_bytes();
-        builder.append_value(bytes)?;
-    } else if let Ok(uuid) = uuid::Uuid::parse_str(id) {
-        builder.append_value(uuid.as_bytes())?;
-    } else {
-        return Err(Error::InvalidAgentId(id.into()));
-    }
-
-    Ok(())
+fn builder_add_id(builder: &mut FixedSizeBinaryBuilder, id: AgentId) -> Result<()> {
+    Ok(builder.append_value(id.as_bytes())?)
 }
 
-pub(in crate) fn get_agent_id_array(values: Vec<&str>) -> Result<FixedSizeBinaryArray> {
-    let mut builder = FixedSizeBinaryBuilder::new(values.len() * UUID_V4_LEN, UUID_V4_LEN as i32);
-    for value in values {
-        builder_add_id(&mut builder, value)?;
+pub(in crate) fn get_agent_id_array(agent_ids: &[AgentId]) -> Result<FixedSizeBinaryArray> {
+    let mut builder =
+        FixedSizeBinaryBuilder::new(agent_ids.len() * UUID_V4_LEN, UUID_V4_LEN as i32);
+    for agent_id in agent_ids {
+        builder_add_id(&mut builder, *agent_id)?;
     }
     Ok(builder.finish())
 }

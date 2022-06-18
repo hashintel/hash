@@ -148,7 +148,7 @@ const Post: VFC<{
   <Stack
     direction={{ xs: "column-reverse", ...(!collapsed && { md: "row" }) }}
     spacing={{ xs: 3, ...(!collapsed && { md: 6 }) }}
-    alignItems="center"
+    alignItems={{ xs: "center", md: "flex-start" }}
     flex={1}
   >
     <PostCopyContainer

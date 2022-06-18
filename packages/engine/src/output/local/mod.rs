@@ -8,12 +8,11 @@ use simulation_structure::{ExperimentId, SimulationShortId};
 use self::{config::LocalPersistenceConfig, sim::LocalSimulationOutputPersistence};
 use crate::output::{buffer::Buffers, error::Result, OutputPersistenceCreatorRepr};
 
-#[derive(derive_new::new)]
 pub struct LocalOutputPersistence {
-    project_name: String,
-    experiment_name: ExperimentName,
-    experiment_id: ExperimentId,
-    config: LocalPersistenceConfig,
+    pub project_name: String,
+    pub experiment_name: ExperimentName,
+    pub experiment_id: ExperimentId,
+    pub config: LocalPersistenceConfig,
 }
 
 impl OutputPersistenceCreatorRepr for LocalOutputPersistence {
@@ -29,13 +28,13 @@ impl OutputPersistenceCreatorRepr for LocalOutputPersistence {
             sim_id,
             &persistence_config.output_config,
         )?;
-        Ok(LocalSimulationOutputPersistence::new(
-            self.project_name.clone(),
-            self.experiment_name.clone(),
-            self.experiment_id,
+        Ok(LocalSimulationOutputPersistence {
+            project_name: self.project_name.clone(),
+            experiment_name: self.experiment_name.clone(),
+            experiment_id: self.experiment_id,
             sim_id,
             buffers,
-            self.config.clone(),
-        ))
+            config: self.config.clone(),
+        })
     }
 }

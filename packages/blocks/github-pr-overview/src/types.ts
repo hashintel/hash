@@ -18,7 +18,8 @@ export type PullRequestIdentifier = {
 };
 
 export const getGithubEntityTypes = (
-  aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
+  graphService: GraphBlockHandler,
+  // aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
   numPages: number,
   setGithubEntityTypeIds: (x: any) => void,
   setBlockState: (x: any) => void,
@@ -27,7 +28,7 @@ export const getGithubEntityTypes = (
     .fill(undefined)
     .map((_, pageNumber) =>
       /** @todo - These should be links to a PR entity really */
-      aggregateEntityTypes({
+      graphService?.aggregateEntityTypes({
         data: {
           operation: {
             pageNumber,
@@ -35,7 +36,6 @@ export const getGithubEntityTypes = (
         },
       }),
     );
-
   Promise.all(promises)
     .then((entityTypesResults) => {
       const entityTypes = entityTypesResults.flatMap(
@@ -72,7 +72,7 @@ export const getGithubEntityTypes = (
 
 // @todo this should be Entity<Properties>
 
-export interface GithubPullRequest extends Entity {
+export type GithubPullRequest = Entity<{
   repository?: string;
   url?: null | string;
   id?: null | number;
@@ -336,9 +336,9 @@ export interface GithubPullRequest extends Entity {
   };
   draft?: null | boolean;
   [k: string]: unknown;
-}
+}>;
 
-export interface GithubReview extends Entity {
+export type GithubReview = Entity<{
   repository?: string;
   id?: null | number;
   node_id?: null | string;
@@ -383,9 +383,9 @@ export interface GithubReview extends Entity {
   commit_id?: null | string;
   author_association?: null | string;
   [k: string]: unknown;
-}
+}>;
 
-export interface GithubIssueEvent extends Entity {
+export type GithubIssueEvent = Entity<{
   repository?: string;
   id?: null | number;
   node_id?: null | string;
@@ -452,4 +452,4 @@ export interface GithubIssueEvent extends Entity {
     [k: string]: unknown;
   };
   [k: string]: unknown;
-}
+}>;

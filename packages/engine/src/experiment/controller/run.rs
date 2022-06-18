@@ -49,7 +49,7 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
                     EngineStatus::Exit
                 }
                 Err(err) => {
-                    let err = CrateError::from(ExperimentError::from(err)).user_facing_string();
+                    let err = CrateError::from(ExperimentError::from(err)).to_string();
                     tracing::debug!(
                         "Terminating experiment \"{experiment_name}\" with error: {err}"
                     );
@@ -80,12 +80,12 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
     match config::output_persistence(&env)? {
         OutputPersistenceConfig::Local(local) => {
             tracing::debug!("Running experiment with local persistence");
-            let persistence = LocalOutputPersistence::new(
-                exp_config.run.base().project_base.name.clone(),
-                exp_config.name().clone(),
-                exp_config.run.base().id,
-                local.clone(),
-            );
+            let persistence = LocalOutputPersistence {
+                project_name: exp_config.run.base().project_base.name.clone(),
+                experiment_name: exp_config.name().clone(),
+                experiment_id: exp_config.run.base().id,
+                config: local.clone(),
+            };
             run_experiment_with_persistence(exp_config, env, persistence).await?;
         }
         OutputPersistenceConfig::None => {
@@ -114,7 +114,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     // shared across the whole experiment run)
     let shared_store = Arc::new(SharedStore::new(
         &exp_base_config.run.base().project_base.datasets,
-        exp_base_config.run.base().id,
+        exp_base_config.run.base().id.into(),
     )?);
 
     // Set up the worker pool and all communications with it

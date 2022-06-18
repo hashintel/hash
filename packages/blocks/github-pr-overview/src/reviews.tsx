@@ -6,6 +6,7 @@ import {
   typographyClasses,
   AvatarGroup,
   Avatar,
+  avatarGroupClasses,
 } from "@mui/material";
 
 // @todo fix types properly
@@ -48,14 +49,18 @@ const Section: React.FC<SectionProps> = ({ title, reviews }) => {
       </Stack>
 
       <Stack direction="row" alignItems="center" spacing={1}>
-        <AvatarGroup max={3}>
+        <AvatarGroup
+          sx={{
+            [`.${avatarGroupClasses.avatar}`]: {
+              height: 28,
+              width: 28,
+              fontSize: "1rem",
+            },
+          }}
+          max={3}
+        >
           {reviews.map(({ avatar_url, login }) => (
-            <Avatar
-              key={avatar_url}
-              src={avatar_url!}
-              alt={login!}
-              sx={{ height: 28, width: 28 }}
-            />
+            <Avatar key={avatar_url} src={avatar_url!} alt={login!} />
           ))}
         </AvatarGroup>
         <Typography

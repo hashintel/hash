@@ -17,9 +17,9 @@ const addDefaultFromPossible = (availableEventTypes: string[]) => {
 };
 
 export type GithubPrTimelineProps = {
-  pullRequest: GithubPullRequest;
-  reviews: GithubReview[];
-  events: GithubIssueEvent[];
+  pullRequest: GithubPullRequest["properties"];
+  reviews: GithubReview["properties"][];
+  events: GithubIssueEvent["properties"][];
 };
 
 export const GithubPrTimeline: React.FunctionComponent<

@@ -18,9 +18,9 @@ import { Reviews } from "./reviews";
 import { getEventTypeColor } from "./utils";
 
 export type GithubPrOverviewProps = {
-  pullRequest: GithubPullRequest;
-  reviews: GithubReview[];
-  events: GithubIssueEvent[];
+  pullRequest: GithubPullRequest["properties"];
+  reviews: GithubReview["properties"][];
+  events: GithubIssueEvent["properties"][];
   setSelectedPullRequestId: (x?: PullRequestIdentifier) => void;
   setBlockState: (x: any) => void;
 };
@@ -60,9 +60,13 @@ export const GithubPrOverview: React.FunctionComponent<
   setSelectedPullRequestId,
   setBlockState,
 }) => {
+  console.log({ reviews });
   const uniqueReviewers = uniqBy(
-    reviews.map((review) => {
-      return { login: review.user!.login, avatar_url: review.user!.avatar_url };
+    reviews.map(({ user }) => {
+      return {
+        login: user?.login,
+        avatar_url: user?.avatar_url,
+      };
     }),
     "login",
   );
@@ -202,6 +206,7 @@ export const GithubPrOverview: React.FunctionComponent<
       >
         <GithubPrTimeline
           pullRequest={pullRequest}
+          // @todo move this upward in a use memo
           reviews={reviews}
           events={events}
         />

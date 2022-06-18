@@ -917,7 +917,9 @@
         "state": "open",
         "title": "Add GitHub PR Overview block",
         "_links": {
-          "html": { "href": "https://github.com/hashintel/hash/pull/519" },
+          "html": {
+            "href": "https://github.com/hashintel/hash/pull/519"
+          },
           "self": {
             "href": "https://api.github.com/repos/hashintel/hash/pulls/519"
           },
@@ -1225,7 +1227,9 @@
         "state": "closed",
         "title": "Block Configuration Menu Updates",
         "_links": {
-          "html": { "href": "https://github.com/hashintel/hash/pull/524" },
+          "html": {
+            "href": "https://github.com/hashintel/hash/pull/524"
+          },
           "self": {
             "href": "https://api.github.com/repos/hashintel/hash/pulls/524"
           },

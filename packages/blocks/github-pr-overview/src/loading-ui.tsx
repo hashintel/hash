@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
+import { GithubIcon } from "./icons";
 // import { LoadingSpinner } from "@hashintel/hash-design-system";
 
 export type PullRequestSelectorProps = {
@@ -32,8 +33,15 @@ export const LoadingUI: React.FunctionComponent<PullRequestSelectorProps> = ({
           alignItems: "center",
         }}
       >
-        <Box sx={{ height: 56, width: 56, border: "1px solid red", mb: 2 }}>
-          {/* icon here */}
+        <Box mb={2}>
+          <GithubIcon
+            sx={({ palette }) => ({
+              height: 56,
+              width: 56,
+              mb: 2,
+              color: palette.gray[80],
+            })}
+          />
         </Box>
         <Typography variant="h2" sx={{ textAlign: "center", mb: 3 }}>
           {title}

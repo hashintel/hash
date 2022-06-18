@@ -9453,10 +9453,10 @@ bl@^4.0.3:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-block-scripts@0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.0.10.tgz#fed9b65faf24ee1c6da9f9d26f0523f0d0682923"
-  integrity sha512-a2lyYj3t2lyvrqnHZnTr8iRUlwyJKhomxZqOYVwLLJ8dgo+A2Ac6olGVdhB74teQK/WYVCau0VPWxaXfrdA57A==
+block-scripts@0.0.11:
+  version "0.0.11"
+  resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.0.11.tgz#5cf21c033aa912a67606d388c9f139fb447ef85c"
+  integrity sha512-34Iqie0UwYVrzGGu2ErjMjdzJV70YtOVsOhYKA/jkwIbYl8gO1uVLknUkFdY705im76c156ZOSnr8IEAOvK1/w==
   dependencies:
     "@babel/cli" "^7.17.6"
     "@babel/core" "^7.17.9"

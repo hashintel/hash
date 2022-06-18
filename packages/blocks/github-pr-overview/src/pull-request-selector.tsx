@@ -27,7 +27,7 @@ export const PullRequestSelector: React.FunctionComponent<
   const reposToPrIds: Map<string, number[]> = React.useMemo(() => {
     const repoMap = new Map();
 
-    Array.from(allPrs.keys()).forEach((prId) => {
+    Array.from(allPrs?.keys()).forEach((prId) => {
       // e.g. [hashintel, hash, 490
       const parsed = prId.split("/");
       if (parsed.length !== 3) {

@@ -26,26 +26,11 @@ pub enum Error {
     #[error("Output error: {0}")]
     Output(#[from] crate::output::Error),
 
-    #[error("Datastore error: {0}")]
-    Datastore(#[from] crate::datastore::Error),
-
     #[error("Config error: {0}")]
     Config(#[from] crate::config::Error),
 
     #[error("Serialize/Deserialize error")]
     Serde(#[from] serde_json::Error),
-
-    #[error("Difference detected in SystemTime! {0}")]
-    SystemTime(#[from] std::time::SystemTimeError),
-
-    #[error("I/O Error: {0}")]
-    IO(#[from] std::io::Error),
-
-    #[error("Tokio Time Elapsed Error: {0}")]
-    TokioTime(#[from] tokio::time::error::Elapsed),
-
-    #[error("Tokio oneshot recv: {0}")]
-    TokioOneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
 
     #[error("Missing configuration in dynamic payloads. Key: {0}")]
     MissingConfiguration(String),
