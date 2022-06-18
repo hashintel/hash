@@ -66,7 +66,12 @@ export class BlockView implements NodeView<Schema> {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
     this.dom.setAttribute("data-testid", "block");
+
+    // Allow keyboard navigation to go through the block
     this.dom.setAttribute("tabIndex", "0");
+    // When clicking on a block, the focus should go to the ProseMirror editor, to ensure the selection gets updated correctly
+    // This prevents the block to steal the focus when clicking on it (this only happens in Firefox)
+    this.dom.style.pointerEvents = "none";
 
     this.selectContainer = document.createElement("div");
     this.selectContainer.classList.add(styles.Block__UI!);
