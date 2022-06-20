@@ -241,6 +241,8 @@ impl Segment {
             }
         }
 
+        // If in-place resizing is not possible, allocate a new segment, copy the data and unmap the
+        // old segment
         let memory_id = MemoryId::from_os_id(self.data.get_os_id())?;
         let new_data = ShmemConf::new(true)
             .os_id(MemoryId::new(memory_id.base_id()).to_string())
