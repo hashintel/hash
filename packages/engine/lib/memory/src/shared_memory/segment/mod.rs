@@ -220,10 +220,35 @@ impl Segment {
     /// reloading
     pub fn resize(&mut self, mut new_size: usize) -> Result<()> {
         new_size = Self::calculate_total_size(new_size, self.include_terminal_padding)?;
-        tracing::trace!("Trying to resize memory to: {}", new_size);
-        self.data.resize(new_size)?;
-        self.size = new_size;
-        Ok(())
+        tracing::trace!(
+            old_size = self.size,
+            new_size,
+            id = self.data.get_os_id(),
+            "Trying to resize memory"
+        );
+
+        if !cfg!(target_os = "macos") {
+            if self.data.resize(new_size).is_ok() {
+                self.size = new_size;
+                return Ok(());
+            } else {
+                tracing::warn!(
+                    old_size = self.size,
+                    new_size,
+                    id = self.data.get_os_id(),
+                    "Could not resize memory, using fallback"
+                );
+            }
+        }
+
+        let memory_id = MemoryId::from_os_id(self.data.get_os_id())?;
+        let new_data = ShmemConf::new(true)
+            .os_id(MemoryId::new(memory_id.base_id()).to_string())
+            .size(new_size)
+            .create()?;
+        unsafe { std::ptr::copy_nonoverlapping(self.data.as_ptr(), new_data.as_ptr(), self.size) };
+        self.data = new_data;
+        self.reload()
     }
 
     fn calculate_total_size(size: usize, include_terminal_padding: bool) -> Result<usize> {

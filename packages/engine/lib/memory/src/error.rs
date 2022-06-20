@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, num::ParseIntError};
 
 use arrow2::datatypes::DataType;
 use thiserror::Error as ThisError;
@@ -82,6 +82,12 @@ pub enum Error {
 
     #[error("No column found in batch with name: {0}")]
     ColumnNotFound(String),
+
+    #[error("Uuid error: {0}")]
+    Uuid(#[from] uuid::Error),
+
+    #[error("Parsing error: {0}")]
+    ParseIntError(#[from] ParseIntError),
 
     #[error("Planus arrow error: {0}")]
     PlanusArrowError(#[from] arrow_format::ipc::planus::Error),
