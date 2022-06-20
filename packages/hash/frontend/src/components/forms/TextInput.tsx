@@ -45,7 +45,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
         {...props}
         className={tw`${
           transparent ? "" : "bg-gray-100"
-        } border(1 gray-300 hover:gray-400 focus:gray-500) focus:outline-none rounded-lg h-11 py-4 px-5 w-full ${
+        } border(1 solid gray-300 hover:gray-400 focus:gray-500) focus:outline-none rounded-lg h-11 py-4 px-5 w-full ${
           inputClassName ?? ""
         }`}
         onChange={_onChange}

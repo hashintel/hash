@@ -1,19 +1,19 @@
-//! Functionality to start and communicate with a [`hash_engine`] subprocess.
+//! Functionality to start and communicate with a `hash_engine` subprocess.
 
 mod local;
 
 use std::process::ExitStatus;
 
 use async_trait::async_trait;
-use error::Result;
 use hash_engine_lib::proto::EngineMsg;
 use simulation_structure::ExperimentId;
 
 pub use self::local::{LocalCommand, LocalProcess};
+use crate::error::Result;
 
 /// The engine-subprocess running in the background.
 ///
-/// It's created by a [`Command`] and is used to communicate with the [`hash_engine`] library.
+/// It's created by a [`Command`] and is used to communicate with the `hash_engine` library.
 #[async_trait]
 pub trait Process {
     /// Exits the subprocess and cleans up resources used for it.

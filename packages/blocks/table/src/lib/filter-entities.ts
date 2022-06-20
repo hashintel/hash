@@ -1,10 +1,7 @@
-import { BlockProtocolMultiFilter } from "blockprotocol";
+import { MultiFilter } from "@blockprotocol/graph";
 import { get } from "lodash";
 
-export const filterEntities = (
-  data: any[],
-  multiFilter?: BlockProtocolMultiFilter,
-) => {
+export const filterEntities = (data: any[], multiFilter?: MultiFilter) => {
   if (!multiFilter) return data;
 
   return data.filter((entity) => {

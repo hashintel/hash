@@ -211,8 +211,13 @@ export class ProsemirrorSchemaManager {
    *
    * @todo support taking a signal
    */
-  async fetchAndDefineBlock(componentId: string): Promise<BlockMeta> {
-    const meta = await fetchBlockMeta(componentId);
+  async fetchAndDefineBlock(
+    componentId: string,
+    options?: { bustCache: boolean },
+  ): Promise<BlockMeta> {
+    const meta = await fetchBlockMeta(componentId, {
+      bustCache: !!options?.bustCache,
+    });
 
     await this.defineRemoteBlock(componentId);
 
@@ -245,7 +250,7 @@ export class ProsemirrorSchemaManager {
       Object.values(data.store.saved)
         .map((entity: any) => entity.properties?.componentId)
         .filter(isString)
-        .map(this.fetchAndDefineBlock, this),
+        .map((componentId) => this.fetchAndDefineBlock(componentId), this),
     );
   }
 
@@ -271,8 +276,7 @@ export class ProsemirrorSchemaManager {
    *  This assumes the block info has been fetched and the
    *  entities (block entity and child entity)
    *  @todo this only works for non-text blocks,
-   *  It should be updated to handle text blocks when
-   *  https://github.com/hashintel/hash/pull/490 is in
+   *  It should be updated to handle text blocks
    */
   createLocalBlock({
     targetComponentId,
@@ -481,23 +485,11 @@ export class ProsemirrorSchemaManager {
       }
 
       if (targetComponentId === blockEntity.properties.componentId) {
-        /**
-         * I've temporarily made it so all changes involved text result in
-         * creating a new variant entity, instead of updating the one that's
-         * there. That's because the save mechanism doesn't yet know to process
-         * updates to entities that aren't in the prosemirror document. This
-         * forces the update to be saved anyway, at cost of throw away variant
-         * entities.
-         *
-         * @todo update the existing entity where possible, instead of
-         * creating new ones
-         */
         if (
-          !blockComponentRequiresText(meta.componentSchema)
-          // ||
-          // // isTextContainingEntityProperties(
-          // //   blockEntity.properties.entity.properties,
-          // // )
+          !blockComponentRequiresText(meta.componentSchema) ||
+          isTextContainingEntityProperties(
+            blockEntity.properties.entity.properties,
+          )
         ) {
           /**
            * In the event we're switching to another variant of the same
@@ -619,11 +611,7 @@ export class ProsemirrorSchemaManager {
    * to point to the targetEntity and updating the prosemirror tree to render
    * the block with updated content
    */
-  updateBlockData(
-    entityId: string,
-    targetEntity: EntityStoreType,
-    pos: number,
-  ) {
+  swapBlockData(entityId: string, targetEntity: EntityStoreType, pos: number) {
     if (!this.view) {
       throw new Error("Cannot trigger updateBlock without view");
     }
@@ -653,7 +641,7 @@ export class ProsemirrorSchemaManager {
       type: "updateBlockEntityProperties",
       payload: {
         targetEntity,
-        draftId: mustGetDraftEntityFromEntityId(
+        blockEntityDraftId: mustGetDraftEntityFromEntityId(
           entityStore.draft,
           blockEntity.entityId,
         ).draftId,

@@ -9,7 +9,6 @@ const linkFieldsFragment = gql`
     sourceEntityId
     destinationAccountId
     destinationEntityId
-    destinationEntityVersionId
   }
 `;
 
@@ -164,7 +163,9 @@ export const updatePageContents = gql`
       entityId: $entityId
       actions: $actions
     ) {
-      ...PageFields
+      page {
+        ...PageFields
+      }
     }
   }
   ${pageFieldsFragment}

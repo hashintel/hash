@@ -1,28 +1,29 @@
 import React, { useEffect, useRef, useState } from "react";
 import { tw } from "twind";
 
-import { BlockComponent } from "blockprotocol/react";
-import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
+import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
+
 import { CopyIcon } from "./icons";
 import { languages, LanguageType } from "./utils";
 import { Editor } from "./components/editor";
 
-type AppProps = {
+type BlockEntityProperties = {
   caption?: string;
   language: LanguageType;
   content: string;
 };
 
-export const App: BlockComponent<AppProps> = ({
-  entityId,
-  entityTypeId,
-  entityTypeVersionId,
-  accountId,
-  caption,
-  content,
-  language,
-  updateEntities,
+export const App: BlockComponent<BlockEntityProperties> = ({
+  graph: { blockEntity },
 }) => {
+  const {
+    entityId,
+    properties: { caption, content, language },
+  } = blockEntity;
+
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRef);
+
   const [localData, setLocalData] = useState(() => ({
     caption,
     content,
@@ -44,7 +45,9 @@ export const App: BlockComponent<AppProps> = ({
   }, [caption, content, language]);
 
   const updateLocalData = (
-    newData: Partial<Pick<AppProps, "caption" | "language" | "content">>,
+    newData: Partial<
+      Pick<BlockEntityProperties, "caption" | "language" | "content">
+    >,
   ) => {
     setLocalData({
       ...localData,
@@ -52,16 +55,13 @@ export const App: BlockComponent<AppProps> = ({
     });
   };
 
-  const updateRemoteData = (properties: AppProps) => {
-    void updateEntities?.([
-      {
-        accountId,
-        data: properties,
+  const updateRemoteData = (properties: BlockEntityProperties) => {
+    void graphService?.updateEntity({
+      data: {
         entityId,
-        entityTypeId,
-        entityTypeVersionId,
+        properties,
       },
-    ] as BlockProtocolUpdateEntitiesAction[]);
+    });
   };
 
   const handleLanguageChange = (newLanguage: LanguageType) => {
@@ -121,7 +121,7 @@ export const App: BlockComponent<AppProps> = ({
   };
 
   return (
-    <div className={tw`w-full`}>
+    <div className={tw`w-full`} ref={blockRef}>
       <div
         className={tw`group px-10 pt-12 pb-3 relative bg-yellow-100 bg-opacity-50 mb-1`}
       >

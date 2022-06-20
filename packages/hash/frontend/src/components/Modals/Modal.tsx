@@ -3,7 +3,7 @@ import Box from "@mui/material/Box";
 import MuiModal, { ModalProps as MuiModalProps } from "@mui/material/Modal";
 import React from "react";
 
-import { useScrollLock } from "../../shared/ui";
+import { useScrollLock } from "@hashintel/hash-design-system";
 
 const style: SxProps<Theme> = {
   position: "absolute",

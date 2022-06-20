@@ -133,7 +133,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
           </p>
           <form className={tw`relative`} onSubmit={onSubmit}>
             <input
-              className={tw`block border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-20 text-2xl text-center focus:outline-none focus:border-blue-500`}
+              className={tw`block border-0 border-solid border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-20 text-2xl text-center focus:outline-none focus:border-blue-500`}
               onChange={({ target }) =>
                 updateState({ text: parseVerificationCodeInput(target.value) })
               }
@@ -144,7 +144,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
             />
             <button
               type="submit"
-              className={tw`absolute right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none focus:outline-none text(blue-500 hover:blue-700 focus:blue-600) font-bold py-2 px-2`}
+              className={tw`absolute bg-transparent border-none cursor-pointer right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none focus:outline-none text(blue-500 hover:blue-700 focus:blue-600) font-bold py-2 px-2`}
               disabled={!isInputValid() || loading}
             >
               {loading ? (
@@ -168,7 +168,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
       <div className={tw`flex justify-between`}>
         <button
           type="button"
-          className={tw`focus:outline-none border(b-1 transparent hover:current focus:current)`}
+          className={tw`bg-transparent border-none cursor-pointer focus:outline-none border(b-1 transparent hover:current focus:current)`}
           onClick={goBack}
         >
           &larr; <span className={tw`ml-1`}>Try logging in another way</span>
@@ -183,7 +183,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
             <span className={tw`mr-1`}>No email yet?</span>
             <button
               type="button"
-              className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
+              className={tw`bg-transparent border-none cursor-pointer text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
               onClick={handleResendCode}
               disabled={requestCodeLoading || syntheticLoading}
             >

@@ -1,13 +1,15 @@
 #![allow(clippy::module_inception)]
 
 use std::{
+    error::Error,
+    fmt,
     fmt::Debug,
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use clap::{AppSettings, Parser};
-use error::{Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use execution::package::experiment::ExperimentName;
 use hash_engine_lib::utils::init_logger;
 use orchestrator::{Experiment, ExperimentConfig, Manifest, Server};
@@ -73,8 +75,19 @@ pub struct SimpleExperimentArgs {
     experiment_name: ExperimentName,
 }
 
+#[derive(Debug)]
+pub struct CliError;
+
+impl fmt::Display for CliError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("CLI encountered an error during execution")
+    }
+}
+
+impl Error for CliError {}
+
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), CliError> {
     let args = Args::parse();
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -89,7 +102,9 @@ async fn main() -> Result<()> {
         &format!("cli-{now}"),
         &format!("cli-{now}-texray"),
     )
-    .wrap_err("Failed to initialise the logger")?;
+    .report()
+    .attach_printable("Failed to initialize the logger")
+    .change_context(CliError)?;
 
     let nng_listen_url = format!("ipc://hash-orchestrator-{now}");
 
@@ -99,14 +114,23 @@ async fn main() -> Result<()> {
     let absolute_project_path = args
         .project
         .canonicalize()
-        .wrap_err_lazy(|| format!("Could not canonicalize project path: {:?}", args.project))?;
+        .report()
+        .attach_printable_lazy(|| {
+            format!("Could not canonicalize project path: {:?}", args.project)
+        })
+        .change_context(CliError)?;
     let manifest = Manifest::from_local(&absolute_project_path)
-        .wrap_err_lazy(|| format!("Could not read local project {absolute_project_path:?}"))?;
+        .attach_printable_lazy(|| format!("Could not read local project {absolute_project_path:?}"))
+        .change_context(CliError)?;
     let experiment_run = manifest
         .read(args.r#type.into())
-        .wrap_err("Could not read manifest")?;
+        .attach_printable("Could not read manifest")
+        .change_context(CliError)?;
 
     let experiment = Experiment::new(args.experiment_config);
 
-    experiment.run(experiment_run, handler, None).await
+    experiment
+        .run(experiment_run, handler, None)
+        .await
+        .change_context(CliError)
 }

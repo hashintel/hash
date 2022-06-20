@@ -1,0 +1,62 @@
+{
+  "name": "@hashintel/drawing",
+  "version": "0.2.0",
+  "description": "Create a diagram, sketch an idea, or map a process",
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "packages/blocks/drawing"
+  },
+  "license": "MIT",
+  "author": "tldraw",
+  "scripts": {
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "0.0.8",
+    "@tldraw/tldraw": "1.16.0",
+    "@types/react-resizable": "1.7.4",
+    "react-resizable": "^3.0.4"
+  },
+  "devDependencies": {
+    "block-scripts": "0.0.10",
+    "mobx": "6.5.0",
+    "mock-block-dock": "0.0.15",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 62722
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "displayName": "Drawing",
+    "examples": [
+      {
+        "height": 400,
+        "darkMode": false,
+        "serializedDocument": "",
+        "readOnly": false
+      }
+    ],
+    "icon": "public/icon.svg",
+    "image": "public/preview.png",
+    "protocol": "0.2"
+  }
+}

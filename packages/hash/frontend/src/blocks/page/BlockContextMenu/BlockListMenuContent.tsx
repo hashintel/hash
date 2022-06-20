@@ -4,17 +4,16 @@ import {
   InputAdornment,
   ListItemIcon,
   ListItemText,
-  MenuItem,
   MenuList,
   Typography,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
 import { useRef, useState, VFC } from "react";
+import { TextField, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
 import { useUserBlocks } from "../../userBlocks";
-import { FontAwesomeIcon } from "../../../shared/icons";
-import { TextField } from "../../../shared/ui";
+import { MenuItem } from "../../../shared/ui";
 
 type BlockListMenuContentProps = {
   popupState?: PopupState;

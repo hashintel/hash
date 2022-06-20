@@ -2,9 +2,10 @@ import { Box, Collapse } from "@mui/material";
 import React, { useState, useRef, FormEvent } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
+import { TextField } from "@hashintel/hash-design-system";
 import { useBlockView } from "../BlockViewContext";
 import { useUserBlocks } from "../../userBlocks";
-import { Button, TextField } from "../../../shared/ui";
+import { Button } from "../../../shared/ui";
 
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
@@ -35,7 +36,7 @@ export const BlockLoaderInput: React.VFC = () => {
     const normalizedUrl = createNormalizedBlockUrl(blockUrl);
 
     blockView.manager
-      .fetchAndDefineBlock(normalizedUrl)
+      .fetchAndDefineBlock(normalizedUrl, { bustCache: true })
       .then((blockMeta) => {
         unstable_batchedUpdates(() => {
           setError(null);

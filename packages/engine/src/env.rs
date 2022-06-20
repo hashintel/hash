@@ -1,4 +1,4 @@
-use error::{Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use serde::Deserialize;
 use simulation_structure::ExperimentId;
 use thiserror::Error as ThisError;
@@ -56,8 +56,9 @@ pub struct OrchClient {
 
 impl OrchClient {
     pub fn new(url: &str, experiment_id: ExperimentId) -> Result<Self> {
-        let client = nano::Client::new(url, 1)
-            .wrap_err_lazy(|| format!("Could not create orchestrator client for {url:?}"))?;
+        let client = nano::Client::new(url, 1).attach_printable_lazy(|| {
+            format!("Could not create orchestrator client for {url:?}")
+        })?;
         Ok(OrchClient {
             url: url.into(),
             experiment_id,

@@ -6,20 +6,16 @@ import React, {
   useState,
 } from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
+
 import {
-  BlockProtocolLinkedAggregation,
-  BlockProtocolEntityType,
-  BlockProtocolAggregateEntitiesPayload,
-  BlockProtocolAggregateEntitiesResult,
-  BlockProtocolEntity,
-  BlockProtocolAggregateOperationInput,
-  BlockProtocolSort,
-  BlockProtocolUpdateLinkedAggregationActionFragment,
-} from "blockprotocol";
-import { BlockComponent } from "blockprotocol/react";
+  BlockComponent,
+  useGraphBlockService,
+  LinkedAggregation,
+  EntityType,
+  UpdateEntityData,
+} from "@blockprotocol/graph";
 import { tw } from "twind";
 import { orderBy } from "lodash";
-import { produce } from "immer";
 
 import { EditableCell } from "./components/editable-cell";
 import { makeColumns } from "./lib/columns";
@@ -32,19 +28,17 @@ import { EntityTypeDropdown } from "./components/entity-type-dropdown";
 import { omitTypenameDeep } from "./lib/omit-typename-deep";
 
 type TableData = {
-  data?: BlockProtocolLinkedAggregation["results"];
-  linkedAggregation?: BlockProtocolLinkedAggregation;
+  data?: LinkedAggregation["results"];
+  linkedAggregation?: LinkedAggregation;
 };
 
-type AppProps = {
+type BlockEntityProperties = {
   initialState?: TableOptions<{}>["initialState"] & {
     columns?: { Header: string; accessor: string }[];
   };
 };
 
-const useTableData = (
-  linkedAggregation: BlockProtocolLinkedAggregation | undefined,
-) => {
+const useTableData = (linkedAggregation: LinkedAggregation | undefined) => {
   const defaultTableData: TableData = {
     linkedAggregation,
     data: linkedAggregation?.results,
@@ -75,10 +69,10 @@ const useTableData = (
 };
 
 const getLinkedAggregation = (params: {
-  linkedAggregations: BlockProtocolLinkedAggregation[];
+  linkedAggregations: LinkedAggregation[];
   path: string;
   sourceEntityId: string;
-}): BlockProtocolLinkedAggregation | undefined => {
+}): LinkedAggregation | undefined => {
   const { linkedAggregations, path, sourceEntityId } = params;
 
   return linkedAggregations.find(
@@ -88,41 +82,17 @@ const getLinkedAggregation = (params: {
   );
 };
 
-const cleanUpdateLinkedAggregationAction = (
-  action: BlockProtocolUpdateLinkedAggregationActionFragment & {
-    operation: Omit<BlockProtocolAggregateOperationInput, "multiSort"> & {
-      __typename?: string;
-      pageCount?: number | null;
-      multiSort?: (BlockProtocolSort & { __typename?: string })[] | null;
-    };
-  },
-) => {
-  return produce(action, (draftAction) => {
-    delete draftAction.operation.pageCount;
-    delete draftAction.operation.__typename;
-    for (const sort of draftAction.operation.multiSort ?? []) {
-      delete sort?.__typename;
-    }
-  });
-};
-
 const path = "$.data";
 
-export const Table: BlockComponent<AppProps> = ({
-  accountId,
-  aggregateEntities,
-  aggregateEntityTypes,
-  createLinkedAggregations,
-  deleteLinkedAggregations,
-  entityId,
-  entityTypeId,
-  entityTypes: schemas,
-  entityTypeVersionId,
-  initialState,
-  linkedAggregations,
-  updateEntities,
-  updateLinkedAggregations,
+export const Table: BlockComponent<BlockEntityProperties> = ({
+  graph: { blockEntity, linkedAggregations, entityTypes: remoteEntityTypes },
 }) => {
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRef);
+  const {
+    entityId,
+    properties: { initialState },
+  } = blockEntity;
   const matchingLinkedAggregation = useMemo(() => {
     if (!entityId) {
       return undefined;
@@ -173,7 +143,9 @@ export const Table: BlockComponent<AppProps> = ({
       initialState: {
         ...initialState,
       },
-      updateEntities,
+      updateEntity: ({ data }: { data: UpdateEntityData }) => {
+        void graphService?.updateEntity({ data });
+      }, // this is passed into EditableCell
       data: tableData.data || [],
       defaultColumn: {
         Cell: EditableCell,
@@ -197,7 +169,7 @@ export const Table: BlockComponent<AppProps> = ({
       const linkedData = omitTypenameDeep(tableData.linkedAggregation);
 
       if (
-        !aggregateEntities ||
+        !graphService?.aggregateEntities ||
         !linkedData?.operation ||
         !linkedData.operation.entityTypeId
       ) {
@@ -214,47 +186,48 @@ export const Table: BlockComponent<AppProps> = ({
         delete linkedData.operation.pageCount;
       }
 
-      aggregateEntities({
-        accountId,
-        operation: linkedData.operation,
-      })
-        .then(({ operation, results }) => {
-          if (!tableData.linkedAggregation?.sourceAccountId) {
-            throw new Error("sourceAccountId is required");
+      void graphService
+        ?.aggregateEntities({
+          data: {
+            operation: linkedData.operation,
+          },
+        })
+        .then(({ data, errors }) => {
+          if (errors || !data) {
+            // @todo properly handle error
+            // eslint-disable-next-line
+            console.log({ errors });
+            return;
           }
+          const { operation, results } = data;
 
           setTableData({
-            data: results as TableData["data"],
+            data: results,
             linkedAggregation: {
-              ...tableData.linkedAggregation,
+              ...linkedData,
               operation: {
                 ...linkedData.operation,
                 ...operation,
               },
             },
           });
-        })
-        .catch((_) => {
-          // @todo properly handle error
         });
     },
-    [accountId, aggregateEntities, setTableData, tableData.linkedAggregation],
+    [graphService, setTableData, tableData.linkedAggregation],
   );
 
   const handleUpdate = useCallback(
     ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
       if (
         !entityId ||
-        !updateEntities ||
-        !updateLinkedAggregations ||
+        !graphService ||
         !matchingLinkedAggregation ||
         !tableData.linkedAggregation
       ) {
         return;
       }
 
-      const newLinkedData: BlockProtocolAggregateEntitiesPayload =
-        omitTypenameDeep(tableData.linkedAggregation);
+      const newLinkedData = omitTypenameDeep(tableData.linkedAggregation);
       const newState = {
         hiddenColumns: initialState?.hiddenColumns,
         columns: initialState?.columns,
@@ -281,42 +254,35 @@ export const Table: BlockComponent<AppProps> = ({
         "pageCount" in newLinkedData.operation ||
         "pageNumber" in newLinkedData.operation
       ) {
-        delete (
-          newLinkedData.operation as BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>["operation"]
-        ).pageCount;
+        delete newLinkedData.operation.pageCount;
+        // This gives an error because we are trying to delete a property (pageNumber) which has a required
+        // type.
+        // @todo update AggregateEntitiesResult type, so that pageNumber is not marked as required
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         delete newLinkedData.operation.pageNumber;
       }
 
-      void updateEntities([
-        {
-          accountId,
-          data: {
-            initialState: newState,
-          },
+      void graphService?.updateEntity({
+        data: {
           entityId,
-          entityTypeId,
-          entityTypeVersionId,
+          properties: { initialState: newState },
         },
-      ]);
+      });
 
-      void updateLinkedAggregations([
-        cleanUpdateLinkedAggregationAction({
-          sourceAccountId: matchingLinkedAggregation.sourceAccountId,
+      void graphService?.updateLinkedAggregation({
+        data: {
           aggregationId: matchingLinkedAggregation.aggregationId,
-          operation: newLinkedData.operation,
-        }),
-      ]);
+          operation: omitTypenameDeep(newLinkedData.operation),
+        },
+      });
     },
     [
-      accountId,
       entityId,
-      entityTypeId,
-      entityTypeVersionId,
-      initialState,
       matchingLinkedAggregation,
-      updateEntities,
-      updateLinkedAggregations,
       tableData.linkedAggregation,
+      initialState,
+      graphService,
     ],
   );
 
@@ -324,7 +290,7 @@ export const Table: BlockComponent<AppProps> = ({
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (!entityId || !updateEntities) {
+    if (!entityId || !graphService?.updateEntity) {
       return;
     }
 
@@ -336,19 +302,12 @@ export const Table: BlockComponent<AppProps> = ({
       ...(properties.columns && { columns: properties.columns }),
     };
 
-    if (tableData.linkedAggregation?.sourceAccountId) {
-      void updateEntities([
-        {
-          accountId,
-          data: {
-            initialState: newState,
-          },
-          entityId,
-          entityTypeId,
-          entityTypeVersionId,
-        },
-      ]);
-    }
+    void graphService?.updateEntity({
+      data: {
+        entityId,
+        properties: { initialState: newState },
+      },
+    });
   };
 
   const updateRemoteColumnsRef = useRef(updateRemoteColumns);
@@ -360,7 +319,7 @@ export const Table: BlockComponent<AppProps> = ({
   const doesNotNeedInitialColumns =
     initialState?.columns || !tableData.data?.length;
 
-  const defaultColumnData = tableData?.data?.[0];
+  const defaultColumnData = tableData?.data?.[0]?.properties;
 
   const defaultColumnDataRef = useRef(defaultColumnData);
 
@@ -392,11 +351,10 @@ export const Table: BlockComponent<AppProps> = ({
     [handleAggregate],
   );
 
-  const tableDataEntityTypeId =
-    tableData?.linkedAggregation?.operation.entityTypeId;
-
   const setPageSize = useCallback(
     (size: number) => {
+      const tableDataEntityTypeId =
+        tableData?.linkedAggregation?.operation.entityTypeId;
       if (!tableDataEntityTypeId) {
         return;
       }
@@ -407,7 +365,7 @@ export const Table: BlockComponent<AppProps> = ({
         entityTypeId: tableDataEntityTypeId,
       });
     },
-    [handleUpdate, tableDataEntityTypeId],
+    [handleUpdate, tableData?.linkedAggregation],
   );
 
   /**
@@ -429,35 +387,36 @@ export const Table: BlockComponent<AppProps> = ({
     updateRemoteColumnsRef.current({ hiddenColumns: newHiddenColumns });
   };
 
-  const [entityTypes, setEntityTypes] = useState<BlockProtocolEntityType[]>();
+  const [entityTypes, setEntityTypes] = useState<EntityType[]>();
 
   useEffect(() => {
-    void aggregateEntityTypes?.({
-      accountId,
-      includeOtherTypesInUse: true,
-    }).then(({ results }) => {
-      setEntityTypes(orderBy(results, (entityType) => entityType.title));
-    });
-  }, [aggregateEntityTypes, accountId]);
+    void graphService
+      ?.aggregateEntityTypes({
+        data: {
+          includeOtherTypesInUse: true,
+        },
+      })
+      .then(({ data, errors }) => {
+        if (errors || !data) {
+          // @todo handle errors
+          return;
+        }
+        setEntityTypes(
+          orderBy(data.results, (entityType) => entityType.schema?.title),
+        );
+      });
+  }, [graphService]);
 
   const handleEntityTypeChange = useCallback(
     (updatedEntityTypeId: string | undefined) => {
-      if (
-        !accountId ||
-        !entityId ||
-        !updateLinkedAggregations ||
-        !createLinkedAggregations
-      ) {
-        throw new Error(
-          "All of accountId, entityId, createLinkedAggregations and updateLinkedAggregations must be passed to the block to update data linked from it",
-        );
+      if (!entityId || !graphService) {
+        throw new Error("Graph service is not initialized");
       }
 
       if (updatedEntityTypeId) {
         if (tableData.linkedAggregation) {
-          void updateLinkedAggregations([
-            cleanUpdateLinkedAggregationAction({
-              sourceAccountId: accountId,
+          void graphService?.updateLinkedAggregation({
+            data: {
               aggregationId: tableData.linkedAggregation.aggregationId,
               operation: {
                 entityTypeId: updatedEntityTypeId,
@@ -465,37 +424,28 @@ export const Table: BlockComponent<AppProps> = ({
                 itemsPerPage:
                   tableData.linkedAggregation?.operation?.itemsPerPage,
               },
-            }),
-          ]);
+            },
+          });
         } else {
-          void createLinkedAggregations([
-            {
+          void graphService?.createLinkedAggregation({
+            data: {
+              sourceEntityId: entityId,
+              path,
               operation: {
                 entityTypeId: updatedEntityTypeId,
               },
-              path,
-              sourceAccountId: accountId,
-              sourceEntityId: entityId,
             },
-          ]);
+          });
         }
       } else if (tableData.linkedAggregation) {
-        void deleteLinkedAggregations?.([
-          {
-            sourceAccountId: accountId,
+        void graphService?.deleteLinkedAggregation({
+          data: {
             aggregationId: tableData.linkedAggregation.aggregationId,
           },
-        ]);
+        });
       }
     },
-    [
-      accountId,
-      createLinkedAggregations,
-      deleteLinkedAggregations,
-      entityId,
-      tableData.linkedAggregation,
-      updateLinkedAggregations,
-    ],
+    [entityId, graphService, tableData.linkedAggregation],
   );
 
   const entityTypeDropdown = entityTypes ? (
@@ -506,103 +456,99 @@ export const Table: BlockComponent<AppProps> = ({
     />
   ) : null;
 
-  if (!tableData.linkedAggregation?.operation?.entityTypeId) {
-    if (!aggregateEntityTypes) {
-      return (
-        <div>
-          Table cannot be shown because entity type is not selected and the list
-          of entity types is unavailable
-        </div>
-      );
-    }
-
-    return <div>{entityTypeDropdown}</div>;
-  }
-
   /** @todo Fix keys in iterators below to not use the index */
   return (
-    <div className={tw`overflow-x-auto`}>
-      <Header
-        columns={allColumns}
-        toggleHideColumn={handleToggleColumn}
-        onAggregate={handleUpdate}
-        aggregateOptions={aggregateOptions}
-        entityTypeDropdown={entityTypeDropdown}
-        entityTypeId={tableData?.linkedAggregation.operation.entityTypeId}
-      />
-      <div className={tw`max-w-full`}>
-        <table
-          className={tw`w-full text(sm left) border-1 border-separate border-gray-100 rounded-2xl mb-3 overflow-hidden`}
-          style={{ borderSpacing: 0 }}
-          {...getTableProps()}
-        >
-          <thead>
-            {headerGroups.map((headerGroup) => {
-              const { key: headerGroupKey, ...restHeaderGroupProps } =
-                headerGroup.getHeaderGroupProps();
-              return (
-                <tr key={headerGroupKey} {...restHeaderGroupProps}>
-                  {headerGroup.headers.map((column) => {
-                    const { key, ...restHeaderProps } = column.getHeaderProps();
-                    return (
-                      <th
-                        className={tw`first:rounded-tl-2xl last:rounded-tr-2xl px-4 py-4 whitespace-nowrap capitalize w-36`}
-                        key={key}
-                        {...restHeaderProps}
-                      >
-                        {column.render("Header")}
-                      </th>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </thead>
-          <tbody {...getTableBodyProps()}>
-            {rows.map((row) => {
-              prepareRow(row);
-              const { key: rowKey, ...restRowProps } = row.getRowProps();
-              return (
-                <tr
-                  key={rowKey}
-                  className={tw`border border(gray-100) odd:bg-gray-100 even:bg-gray-200`}
-                  {...restRowProps}
-                >
-                  {row.cells.map((cell) => {
-                    const { entity, property } = identityEntityAndProperty(
-                      cell.row.original,
-                      cell.column.id,
-                    );
-                    const propertyDef = getSchemaPropertyDefinition(
-                      (schemas ?? []).find(
-                        (schema) => schema.title === entity.type,
-                      ),
-                      property,
-                    );
-                    const readOnly = propertyDef?.readOnly;
-                    const { key, ...restCellProps } = cell.getCellProps();
-                    return (
-                      <td
-                        key={key}
-                        className={tw`px-4 py-4`}
-                        {...restCellProps}
-                      >
-                        {cell.render("Cell", { readOnly })}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        <Pagination
-          {...pageOptions}
-          setPageIndex={setPageIndex}
-          setPageSize={setPageSize}
-          isFetching={false}
-        />
-      </div>
+    <div ref={blockRef} className={tw`overflow-x-auto`}>
+      {/* If there's no linked data operation, only render the entity type selector */}
+      {!tableData.linkedAggregation?.operation?.entityTypeId ? (
+        <div>{entityTypeDropdown}</div>
+      ) : (
+        <>
+          <Header
+            columns={allColumns}
+            toggleHideColumn={handleToggleColumn}
+            onAggregate={handleUpdate}
+            aggregateOptions={aggregateOptions}
+            entityTypeDropdown={entityTypeDropdown}
+            entityTypeId={tableData?.linkedAggregation.operation.entityTypeId}
+          />
+          <div className={tw`max-w-full`}>
+            <table
+              className={tw`w-full text(sm left) border-1 border-separate border-gray-100 rounded-2xl mb-3 overflow-hidden`}
+              style={{ borderSpacing: 0 }}
+              {...getTableProps()}
+            >
+              <thead>
+                {headerGroups.map((headerGroup) => {
+                  const { key: headerGroupKey, ...restHeaderGroupProps } =
+                    headerGroup.getHeaderGroupProps();
+                  return (
+                    <tr key={headerGroupKey} {...restHeaderGroupProps}>
+                      {headerGroup.headers.map((column) => {
+                        const { key, ...restHeaderProps } =
+                          column.getHeaderProps();
+                        return (
+                          <th
+                            className={tw`first:rounded-tl-2xl last:rounded-tr-2xl px-4 py-4 whitespace-nowrap capitalize w-36`}
+                            key={key}
+                            {...restHeaderProps}
+                          >
+                            {column.render("Header")}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </thead>
+              <tbody {...getTableBodyProps()}>
+                {rows.map((row) => {
+                  prepareRow(row);
+                  const { key: rowKey, ...restRowProps } = row.getRowProps();
+                  return (
+                    <tr
+                      key={rowKey}
+                      className={tw`border border(gray-100) odd:bg-gray-100 even:bg-gray-200`}
+                      {...restRowProps}
+                    >
+                      {row.cells.map((cell) => {
+                        const { entity, property } = identityEntityAndProperty(
+                          cell.row.original,
+                          cell.column.id,
+                        );
+                        const propertyDef = getSchemaPropertyDefinition(
+                          (remoteEntityTypes ?? []).find(
+                            (entityType) =>
+                              entityType.schema?.title === entity.type,
+                          )?.schema,
+                          property,
+                        );
+                        const readOnly = propertyDef?.readOnly;
+                        const { key, ...restCellProps } = cell.getCellProps();
+                        return (
+                          <td
+                            key={key}
+                            className={tw`px-4 py-4`}
+                            {...restCellProps}
+                          >
+                            {cell.render("Cell", { readOnly })}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <Pagination
+              {...pageOptions}
+              setPageIndex={setPageIndex}
+              setPageSize={setPageSize}
+              isFetching={false}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 };

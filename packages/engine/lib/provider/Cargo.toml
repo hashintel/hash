@@ -1,6 +1,0 @@
-[package]
-name = "provider"
-version = "0.0.0"
-edition = "2021"
-description = "`Provider` trait and accompanying API"
-publish = false

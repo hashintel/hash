@@ -1,8 +1,12 @@
 import { useState, FC } from "react";
 import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography, Collapse, Tooltip } from "@mui/material";
-import { FontAwesomeIcon } from "../../icons";
-import { IconButton, IconButtonProps, Link } from "../../ui";
+import {
+  IconButton,
+  IconButtonProps,
+  FontAwesomeIcon,
+} from "@hashintel/hash-design-system";
+import { Link } from "../../ui";
 
 type NavLinkProps = {
   title: string;

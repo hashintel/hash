@@ -10,6 +10,7 @@ mod tests {
     use crate::datastore::test_utils::gen_schema_and_test_agents;
 
     #[bench]
+    #[cfg_attr(miri, ignore)]
     fn agent_batch_from_states(b: &mut Bencher) {
         let num_agents = 100;
         let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();

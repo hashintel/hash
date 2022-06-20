@@ -1,6 +1,5 @@
 import { useState, useMemo, useRef, VFC, useEffect, Ref } from "react";
 import {
-  Typography,
   Box,
   Tooltip,
   outlinedInputClasses,
@@ -8,18 +7,18 @@ import {
   Collapse,
 } from "@mui/material";
 import { TransitionGroup } from "react-transition-group";
-import {
-  faArrowUpAZ,
-  faSearch,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
+import { faArrowUpAZ, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { orderBy } from "lodash";
 import { useRouter } from "next/router";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
+import {
+  IconButton,
+  TextField,
+  FontAwesomeIcon,
+} from "@hashintel/hash-design-system";
 import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 import { NavLink } from "./nav-link";
-import { IconButton, Link, TextField } from "../../ui";
-import { FontAwesomeIcon } from "../../icons";
+
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,
@@ -38,7 +37,7 @@ const SearchInput: VFC<SearchInputProps> = ({
   searchVisible,
   searchInputRef,
   showSearchInput,
-  hideSearchInput,
+  // hideSearchInput,
   onChangeText,
 }) => (
   <>
@@ -91,13 +90,22 @@ const SearchInput: VFC<SearchInputProps> = ({
               },
             },
           }),
-          endAdornment: (
-            <Tooltip title="Clear Search">
-              <IconButton onClick={hideSearchInput} size="small" unpadded>
-                <FontAwesomeIcon icon={faXmark} />
-              </IconButton>
-            </Tooltip>
-          ),
+
+          // Commented this out because "View All Types" is commented out
+          // Ideally the textfield is meant to appear on top of "View All Types"
+          // when the search icon is clicked, and should close when
+          // close search icon is clicked.
+          // Since "View All Types" isn't displayed at the moment, this
+          // text field will always be visible and as a result there is no need
+          // to show the close search icon.
+          // @todo uncomment when "View All Types" has been implemented
+          // endAdornment: (
+          //   <Tooltip title="Clear Search">
+          //     <IconButton onClick={hideSearchInput} size="small" unpadded>
+          //       <FontAwesomeIcon icon={faXmark} />
+          //     </IconButton>
+          //   </Tooltip>
+          // ),
         }}
       />
     </Fade>
@@ -115,7 +123,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
   const router = useRouter();
 
   const [sortType, setSortType] = useState<SortType>("asc");
-  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sortActionsPopupState = usePopupState({
@@ -187,10 +195,14 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               pl={3.75}
               position="relative"
             >
-              {/* @todo: We do not currently have a page for viewing all types.
-                Once we do, we can update this with the right url.
+              {/*
+                Commented this out because the functionality is not present yet 
+                ("View All Pages" screen hasn't been designed/built)
+
+                @todo uncomment when this has been done
               */}
-              <Link
+
+              {/* <Link
                 href="/"
                 noLinkStyle
                 tabIndex={-1}
@@ -208,7 +220,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                 >
                   View All Types
                 </Typography>
-              </Link>
+              </Link> */}
 
               <SearchInput
                 searchVisible={searchVisible}

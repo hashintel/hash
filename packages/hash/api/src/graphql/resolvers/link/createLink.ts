@@ -23,28 +23,15 @@ export const createLink: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const {
-      destinationAccountId,
-      destinationEntityId,
-      destinationEntityVersionId,
-    } = linkInput;
+    const { destinationAccountId, destinationEntityId } = linkInput;
 
-    const destination = destinationEntityVersionId
-      ? await Entity.getEntity(client, {
-          accountId: destinationAccountId,
-          entityVersionId: destinationEntityVersionId,
-        })
-      : await Entity.getEntityLatestVersion(client, {
-          accountId: destinationAccountId,
-          entityId: destinationEntityId,
-        });
+    const destination = await Entity.getEntityLatestVersion(client, {
+      accountId: destinationAccountId,
+      entityId: destinationEntityId,
+    });
 
     if (!destination) {
-      const msg = `entity with fixed ID ${destinationEntityId}${
-        destinationEntityVersionId
-          ? ` and version ID ${destinationEntityVersionId}`
-          : ""
-      } not found in account ${destinationAccountId}`;
+      const msg = `entity with fixed ID ${destinationEntityId} not found in account ${destinationAccountId}`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
@@ -53,7 +40,6 @@ export const createLink: Resolver<
       stringifiedPath: linkInput.path,
       index: typeof linkInput.index === "number" ? linkInput.index : undefined,
       destination,
-      destinationEntityVersionId: destinationEntityVersionId || undefined,
     });
 
     return link.toUnresolvedGQLLink();

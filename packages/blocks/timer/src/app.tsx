@@ -1,106 +1,319 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { BlockComponent } from "blockprotocol/react";
+import "./app.scss";
 
-// eslint-disable-next-line no-restricted-imports -- false-positive frontend-specific rule
-import { TextField, Button } from "@mui/material";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { TimePicker } from "@mui/x-date-pickers/TimePicker";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  MouseEventHandler,
+} from "react";
+import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
+import { parseISO, isValid } from "date-fns";
+import * as duration from "duration-fns";
+import { useAutoRefresh } from "./app/use-auto-refresh";
+import { calculateDurationStepLength } from "./app/calculate-duration-step-length";
+import { DurationInput } from "./app/duration-input";
+import { TimerStatus } from "./app/timer-status";
+import { clamp } from "./app/clamp";
 
-type AppProps = {
-  millis: number;
-  target: Date;
+type TimerState = {
+  initialDurationInMs: number;
+  pauseDurationInMs?: number;
+  targetTimestamp?: number;
 };
 
-export const App: BlockComponent<AppProps> = ({
-  updateEntities,
-  entityId,
-  accountId,
-  target = null,
-  millis = 0,
-}) => {
-  const [localMillis, setLocalMillis] = useState(millis);
-  const [localTarget, setLocalTarget] = useState(
-    target === null ? null : new Date(target),
-  );
+export type BlockEntityProperties = {
+  /** https://en.wikipedia.org/wiki/ISO_8601#Durations */
+  initialDuration: string;
+  /** https://en.wikipedia.org/wiki/ISO_8601#Durations */
+  pauseDuration?: string;
+  /** https://en.wikipedia.org/wiki/ISO_8601 */
+  targetDateTime?: string;
+};
 
-  useEffect(() => {
-    setLocalTarget(target);
-    setLocalMillis(millis);
-  }, [target, millis]);
+const defaultInitialDurationInMs = duration.toMilliseconds(
+  duration.parse("PT5M"),
+);
+const minInitialDurationInMs = 1000;
+const maxInitialDurationInMs = (100 * 60 - 1) * 1000;
 
-  const isActive = useCallback(() => {
-    return localTarget !== null;
-  }, [localTarget]);
+const normalizeDurationMinutesAndSeconds = (
+  value: duration.DurationInput,
+): duration.Duration => {
+  const rawResult = duration.normalize(value);
+  return {
+    ...rawResult,
+    minutes: rawResult.minutes + rawResult.hours * 60,
+    hours: 0,
+  };
+};
 
-  const update = useCallback(
-    (target_data, millis_data) => {
-      setLocalMillis(millis_data);
-      setLocalTarget(target_data);
-      if (updateEntities) {
-        void updateEntities([
-          {
-            entityId,
-            accountId,
-            data: {
-              millis: millis_data,
-              target: target_data,
-            },
-          },
-        ]);
-      }
-    },
-    [entityId, accountId, updateEntities],
-  );
-
-  useEffect(() => {
-    let interval: any = null;
-    if (localTarget !== null) {
-      interval = setInterval(() => {
-        if (+localTarget <= +new Date()) {
-          setLocalMillis(0);
-          setLocalTarget(null);
-        } else {
-          setLocalMillis(+localTarget - +new Date());
-        }
-      }, 1000 / 10);
-    } else {
-      clearInterval(interval);
+const parseDateIfPossible = (value: string | undefined): number | undefined => {
+  if (value) {
+    const result = parseISO(value);
+    if (isValid(result)) {
+      return result.valueOf();
     }
-    return () => clearInterval(interval);
-  }, [localTarget]);
+  }
+  return undefined;
+};
 
-  const start_stop = () => {
-    if (localTarget !== null) {
-      update(null, +localTarget - +new Date());
-    } else {
-      update(+new Date() + localMillis, localMillis);
+const parseDurationIfPossible = (
+  value: string | undefined,
+): number | undefined => {
+  if (value) {
+    try {
+      return duration.toMilliseconds(
+        duration.parse(duration.toMilliseconds(value)),
+      );
+    } catch {
+      // noop
+    }
+  }
+
+  return undefined;
+};
+
+export const App: BlockComponent<BlockEntityProperties> = ({
+  graph: {
+    blockEntity: { entityId, properties: blockEntityProperties },
+  },
+}) => {
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRef);
+
+  const externalTimerState = useMemo<TimerState>(() => {
+    const unclampedPauseDuration = parseDurationIfPossible(
+      blockEntityProperties.pauseDuration,
+    );
+
+    return {
+      initialDurationInMs: clamp(
+        parseDurationIfPossible(blockEntityProperties.initialDuration) ??
+          defaultInitialDurationInMs,
+        [minInitialDurationInMs, maxInitialDurationInMs],
+      ),
+      pauseDurationInMs: unclampedPauseDuration
+        ? clamp(unclampedPauseDuration, [0, maxInitialDurationInMs])
+        : undefined,
+      targetTimestamp: parseDateIfPossible(
+        blockEntityProperties.targetDateTime,
+      ),
+    };
+  }, [blockEntityProperties]);
+
+  const [timerState, setTimerState] = useState<TimerState>(externalTimerState);
+
+  const prevExternalTimerState = useRef(externalTimerState);
+  if (prevExternalTimerState.current !== externalTimerState) {
+    prevExternalTimerState.current = externalTimerState;
+    setTimerState(externalTimerState);
+  }
+
+  const startButtonRef = useRef<HTMLButtonElement>(null);
+  const pauseButtonRef = useRef<HTMLButtonElement>(null);
+
+  const applyTimerState = useCallback(
+    (newTimerState: TimerState) => {
+      setTimerState(newTimerState);
+
+      if (newTimerState.pauseDurationInMs) {
+        startButtonRef.current?.focus();
+      } else {
+        pauseButtonRef.current?.focus();
+      }
+
+      const properties: BlockEntityProperties = {
+        initialDuration: duration.toString(
+          normalizeDurationMinutesAndSeconds(
+            duration.toString(newTimerState.initialDurationInMs),
+          ),
+        ),
+        pauseDuration: newTimerState.pauseDurationInMs
+          ? duration
+              .toString(
+                normalizeDurationMinutesAndSeconds(
+                  newTimerState.pauseDurationInMs,
+                ),
+              )
+              .replace(/,/g, ".") // https://github.com/dlevs/duration-fns/issues/26
+          : undefined,
+        targetDateTime: newTimerState.targetTimestamp
+          ? new Date(newTimerState.targetTimestamp).toISOString()
+          : undefined,
+      };
+
+      void graphService?.updateEntity({
+        data: {
+          entityId,
+          properties,
+        },
+      });
+    },
+    [entityId, graphService],
+  );
+
+  const remainingDurationInMs =
+    timerState.pauseDurationInMs ??
+    (timerState.targetTimestamp
+      ? timerState.targetTimestamp - new Date().valueOf()
+      : timerState.initialDurationInMs);
+
+  const remainingProportion = Math.max(
+    0,
+    Math.min(1, remainingDurationInMs / timerState.initialDurationInMs),
+  );
+
+  const timerStatus: TimerStatus = timerState.pauseDurationInMs
+    ? "paused"
+    : !timerState.targetTimestamp
+    ? "idle"
+    : remainingDurationInMs > 0
+    ? "running"
+    : "finished";
+
+  useAutoRefresh(timerStatus === "running");
+
+  const handleReset = () => {
+    applyTimerState({
+      initialDurationInMs: timerState.initialDurationInMs,
+    });
+  };
+
+  const handlePlayClick = () => {
+    applyTimerState({
+      initialDurationInMs: timerState.initialDurationInMs,
+      targetTimestamp: duration
+        .apply(
+          new Date(),
+          timerState.pauseDurationInMs ?? timerState.initialDurationInMs,
+        )
+        .valueOf(),
+    });
+  };
+
+  const handlePauseClick = () => {
+    if (
+      !timerState.targetTimestamp ||
+      timerState.targetTimestamp < new Date().valueOf()
+    ) {
+      return;
+    }
+
+    applyTimerState({
+      initialDurationInMs: timerState.initialDurationInMs,
+      pauseDurationInMs: duration.toMilliseconds(
+        duration.between(new Date(), timerState.targetTimestamp),
+      ),
+    });
+  };
+
+  const displayedDurationInMs =
+    timerStatus === "finished"
+      ? timerState.initialDurationInMs
+      : Math.floor(remainingDurationInMs / 1000) * 1000;
+
+  const handleLessOrMoreTimeButtonClick: MouseEventHandler = (event) => {
+    const step = event.currentTarget.classList.contains("less-time-button")
+      ? -1
+      : 1;
+
+    const stepLength = calculateDurationStepLength(
+      displayedDurationInMs +
+        step /* pick sides around edge values like 10 seconds */,
+    );
+
+    const roundUpOrDown = step > 0 ? Math.floor : Math.ceil;
+    const newDurationInMs = clamp(
+      roundUpOrDown((displayedDurationInMs + stepLength * step) / stepLength) *
+        stepLength,
+      [minInitialDurationInMs, maxInitialDurationInMs],
+    );
+
+    if (newDurationInMs !== displayedDurationInMs) {
+      applyTimerState({
+        initialDurationInMs: newDurationInMs,
+      });
     }
   };
 
+  const handleDurationInputChange = (valueInMs: number): void => {
+    applyTimerState({
+      initialDurationInMs: clamp(valueInMs, [
+        minInitialDurationInMs,
+        maxInitialDurationInMs,
+      ]),
+    });
+  };
+
   return (
-    <>
-      <LocalizationProvider dateAdapter={AdapterDateFns}>
-        <TimePicker
-          ampm={false}
-          openTo="hours"
-          views={["hours", "minutes", "seconds"]}
-          inputFormat="HH:mm:ss"
-          mask="__:__:__"
-          label="timer"
-          value={localMillis + new Date(0).getTimezoneOffset() * 60000}
-          onChange={(date: Date | null) => {
-            if (date !== null) {
-              update(null, +date - new Date(0).getTimezoneOffset() * 60000);
-            } else {
-              update(null, new Date(0).getTimezoneOffset() * 60000);
-            }
-          }}
-          renderInput={(params) => <TextField {...params} />}
-          disabled={isActive()}
+    <div ref={blockRef} className="timer-block">
+      <div className="dial">
+        <div className="dial-ring">
+          <div
+            className="dial-ring-completion"
+            style={{ animationDelay: `-${(1 - remainingProportion) * 100}s` }}
+          />
+        </div>
+        <div className="duration-container">
+          <DurationInput
+            value={displayedDurationInMs}
+            disabled={timerStatus === "running"}
+            onChange={handleDurationInputChange}
+            onSubmit={handlePlayClick}
+          />
+        </div>
+        {timerStatus === "running" ? (
+          <button
+            type="button"
+            aria-label="pause"
+            ref={pauseButtonRef}
+            className="big-button big-button_type_pause"
+            onClick={handlePauseClick}
+          >
+            <span className="big-button__icon" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            aria-label="start"
+            ref={startButtonRef}
+            className="big-button big-button_type_play"
+            onClick={handlePlayClick}
+          >
+            <span className="big-button__icon" />
+          </button>
+        )}
+      </div>
+      <div className="button-row">
+        <button
+          aria-label="Less time"
+          className="less-time-button"
+          disabled={
+            timerStatus === "running" ||
+            displayedDurationInMs <= minInitialDurationInMs
+          }
+          onClick={handleLessOrMoreTimeButtonClick}
+          type="button"
         />
-      </LocalizationProvider>
-      <Button onClick={start_stop}>{isActive() ? "Stop" : "Start"}</Button>
-    </>
+        <button
+          aria-label="Reset"
+          className="reset-button"
+          onClick={handleReset}
+          disabled={timerStatus === "idle" || timerStatus === "finished"}
+          type="button"
+        />
+        <button
+          aria-label="More time"
+          className="more-time-button"
+          disabled={
+            timerStatus === "running" ||
+            displayedDurationInMs >= maxInitialDurationInMs
+          }
+          onClick={handleLessOrMoreTimeButtonClick}
+          type="button"
+        />
+      </div>
+    </div>
   );
 };

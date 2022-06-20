@@ -36,7 +36,7 @@ export const LinkModal: React.VFC<LinkModalProps> = ({
     >
       <form className={tw`flex px-4 pt-4 pb-3`} onSubmit={handleUpdateLink}>
         <input
-          className={tw`block w-full px-2 py-1 text-sm border-1 outline-none rounded-sm focus:outline-none focus:border-gray-500`}
+          className={tw`block w-full px-2 py-1 text-sm border-gray-300 border-solid border-1 outline-none rounded-sm focus:outline-none focus:border-gray-500`}
           type="text"
           onChange={(evt) => setNewLinkHref(evt.target.value)}
           value={newLinkHref}
@@ -48,7 +48,7 @@ export const LinkModal: React.VFC<LinkModalProps> = ({
       <div className={tw`text-gray-700`}>
         {!savedLinkMarkHref && isValidLink(newLinkHref) && (
           <button
-            className={tw`text-sm text-gray-700 hover:bg-gray-200 bg-gray-200 flex items-center w-full px-4 py-1 my-1`}
+            className={tw`bg-transparent cursor-pointer text-sm text-gray-700 hover:bg-gray-200 bg-gray-200 flex items-center w-full px-4 py-1 my-1`}
             onClick={() => updateLink(newLinkHref)}
             type="button"
           >
@@ -63,7 +63,7 @@ export const LinkModal: React.VFC<LinkModalProps> = ({
               {/* @todo discuss if this is better off as a link tag since that allows user to do extra
               stuff like "open in new window", "copy link" */}
               <button
-                className={tw`flex hover:bg-gray-200 text-left w-full px-4 py-1.5 focus:outline-none`}
+                className={tw`flex bg-transparent cursor-pointer border-none hover:bg-gray-200 text-left w-full px-4 py-1.5 focus:outline-none`}
                 onClick={openUrl}
                 type="button"
               >
@@ -76,12 +76,12 @@ export const LinkModal: React.VFC<LinkModalProps> = ({
                 </div>
               </button>
             </div>
-            <hr className={tw`h-px bg-gray-100`} />
+            <div className={tw`h-px bg-gray-100`} />
             <ul className={tw`text-sm py-1`}>
               {isValidLink(newLinkHref) && (
                 <li>
                   <button
-                    className={tw`text-sm text-gray-700 hover:bg-gray-200 flex items-center w-full px-4 py-1 my-1`}
+                    className={tw`bg-transparent cursor-pointer border-none text-sm text-gray-700 hover:bg-gray-200 flex items-center w-full px-4 py-1 my-1`}
                     onClick={() => updateLink(newLinkHref)}
                     type="button"
                   >
@@ -92,11 +92,11 @@ export const LinkModal: React.VFC<LinkModalProps> = ({
               )}
               <li>
                 <button
-                  className={tw`hover:bg-gray-200 flex items-center w-full px-4 py-1`}
+                  className={tw`bg-transparent cursor-pointer border-none hover:bg-gray-200 text-gray-700 flex items-center w-full px-4 py-1`}
                   onClick={removeLink}
                   type="button"
                 >
-                  <DeleteIcon className={tw`!text-base mr-1`} />
+                  <DeleteIcon className={tw`!text-base mr-1 text-gray-700`} />
                   <span className={tw``}>Remove link</span>
                 </button>
               </li>

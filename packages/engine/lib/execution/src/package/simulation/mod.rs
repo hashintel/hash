@@ -44,6 +44,28 @@
 //! [`StatePackage`]: state::StatePackage
 //! [`OutputPackage`]: output::OutputPackage
 //!
+//! ## Tasks
+//!
+//! The design aims to allow a package to be in complete control of the implementation of the
+//! [`Task`] logic, only abstracting the actual execution specifics away. Because of this, the
+//! structure and contents of the specific [`Task`] object is controlled by the package
+//! implementation.
+//!
+//! To allow this, and to enable the generalised interfaces around [`Task`] sending logic, they are
+//! packed inside of the [`PackageTask`] enumeration. Each [`Task`] struct of a Package, is a
+//! variant of the package group (e.g. [`InitTask`]), which is then in turn a variant of of the
+//! [`PackageTask`] enum. Each of these variants are then required to implement the following traits
+//! (look at the docs for the traits to see more details) which provide information on the
+//! specification of a [`Task`], and methods on how to handle its execution:
+//!  - [`Task`],
+//!  - [`WorkerHandler`], and
+//!  - [`WorkerPoolHandler`].
+//!
+//! [`InitTask`]: init::InitTask
+//! [`Task`]: crate::task::Task
+//! [`WorkerHandler`]: crate::worker::WorkerHandler
+//! [`WorkerPoolHandler`]: crate::worker_pool::WorkerPoolHandler
+//!
 //! ## Creating a new package
 //!
 //! The following example will guide through creating and enabling a new, simple state package.

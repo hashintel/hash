@@ -127,7 +127,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
                         shortnameError
                           ? "border-red-300 focus:border-red-500"
                           : "border-gray-300 focus:border-blue-500"
-                      } focus:outline-none rounded-lg h-11 py-6 pl-9 pr-5 mr-7`}
+                      } border-solid focus:outline-none rounded-lg h-11 py-6 pl-9 pr-5 mr-7`}
                       placeholder="example"
                       autoComplete="off"
                     />
@@ -185,7 +185,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
             </p>
             <input
               id="name"
-              className={tw`w-64 border-1 border-gray-300 focus:outline-none focus:border-blue-500 rounded-lg h-11 py-6 px-5`}
+              className={tw`w-64 border-1 border-gray-300 border-solid focus:outline-none focus:border-blue-500 rounded-lg h-11 py-6 px-5`}
               placeholder="Bobby"
               {...register("preferredName", { required: true })}
             />
@@ -218,7 +218,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
 
           <button
             type="submit"
-            className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mt-14`}
+            className={tw`group cursor-pointer border-none w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mt-14`}
             disabled={
               !isValid ||
               loading ||

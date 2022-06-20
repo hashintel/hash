@@ -1,11 +1,13 @@
-//! Provides infrastructure to communicate with the [`hash_engine`] subprocess.
+//! Provides infrastructure to communicate with the `hash_engine` subprocess.
 
 use std::{collections::HashMap, fmt::Display};
 
-use error::{bail, report, Report, Result, ResultExt};
-use hash_engine_lib::proto;
+use error_stack::{bail, report, IntoReport, ResultExt};
+use hash_engine_lib::{proto, proto::EngineStatus};
 use simulation_structure::ExperimentId;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};
+
+use crate::{OrchestratorError, Result};
 
 type ResultSender = oneshot::Sender<Result<()>>;
 type CloseReceiver = mpsc::UnboundedReceiver<ExperimentId>;
@@ -15,7 +17,7 @@ type MsgReceiver = mpsc::UnboundedReceiver<proto::EngineStatus>;
 type CtrlSender = mpsc::Sender<(Ctrl, ResultSender)>;
 type CtrlReceiver = mpsc::Receiver<(Ctrl, ResultSender)>;
 
-/// Control signal to be sent to the [`hash_engine`]-sub[process](crate::process).
+/// Control signal to be sent to the `hash_engine`-sub[process](crate::process).
 enum Ctrl {
     /// Signal to register a new experiment
     Register {
@@ -30,7 +32,7 @@ enum Ctrl {
 }
 
 /// A connection to receive [`EngineStatus`](proto::EngineStatus)es from an
-/// [`hash_engine`]-sub[process].
+/// `hash_engine`-sub[process](crate::process).
 pub struct Handle {
     id: ExperimentId,
     msg_rx: MsgReceiver,
@@ -81,13 +83,15 @@ impl Handler {
     /// - if the response could not be received from the server
     async fn send_ctrl(&mut self, ctrl: Ctrl) -> Result<()> {
         let (result_tx, result_rx) = oneshot::channel();
-        self.ctrl_tx
-            .send((ctrl, result_tx))
-            .await
-            .map_err(|_| report!("Could not send control message to server"))?;
+        self.ctrl_tx.send((ctrl, result_tx)).await.map_err(|_| {
+            report!(OrchestratorError::from(
+                "Could not send control message to server"
+            ))
+        })?;
         result_rx
             .await
-            .wrap_err("Failed to receive response from")?
+            .report()
+            .change_context(OrchestratorError::from("Failed to receive response from"))?
     }
 
     /// Register a new experiment execution with the server, returning a Handle from which messages
@@ -123,7 +127,7 @@ impl Handler {
     }
 }
 
-/// A server for handling messages from the [`hash_engine`]-sub[process](crate::process).
+/// A server for handling messages from the `hash_engine`-sub[process](crate::process).
 pub struct Server {
     url: String,
     ctrl_rx: CtrlReceiver,
@@ -166,7 +170,9 @@ impl Server {
             debug!("Registered experiment {id}");
             Ok(())
         } else {
-            bail!("Experiment already registered: {id}")
+            bail!(OrchestratorError::from(
+                "Experiment already registered: {id}"
+            ))
         }
     }
 
@@ -196,9 +202,11 @@ impl Server {
             }
             Ctrl::Register { id, msg_tx } => self.register_experiment(id, msg_tx),
         };
-        result_tx
-            .send(res)
-            .map_err(|_| report!("Could not sent control signal result"))?;
+        result_tx.send(res).map_err(|_| {
+            report!(OrchestratorError::from(
+                "Could not sent control signal result"
+            ))
+        })?;
         Ok(stop)
     }
 
@@ -207,16 +215,16 @@ impl Server {
     /// # Errors
     ///
     /// - if the message could not be sent
-    fn dispatch_message(&self, msg: proto::OrchestratorMsg) -> Result<()> {
+    fn dispatch_message(&self, msg: proto::OrchestratorMsg) -> Result<(), SendError<EngineStatus>> {
         match self.routes.get(&msg.experiment_id) {
             None => {
                 // Experiment not found. This can happen if the experiment runner
                 // completes before sending de-registering the experiment.
                 Ok(())
             }
-            Some(sender) => sender
-                .send(msg.body)
-                .wrap_err_lazy(|| format!("Routing message for experiment {}", msg.experiment_id)),
+            Some(sender) => sender.send(msg.body).report().attach_printable_lazy(|| {
+                format!("Routing message for experiment {}", msg.experiment_id)
+            }),
         }
     }
 
@@ -232,9 +240,12 @@ impl Server {
     ///
     /// [`create()`]: Self::create
     pub async fn run(&mut self) -> Result<()> {
-        let mut socket = nano::Server::new(&self.url)
-            .map_err(Report::generalize)
-            .wrap_err_lazy(|| format!("Could not create a server socket for {:?}", self.url))?;
+        let mut socket = nano::Server::new(&self.url).change_context_lazy(|| {
+            OrchestratorError::from(format!(
+                "Could not create a server socket for {:?}",
+                self.url
+            ))
+        })?;
         loop {
             tokio::select! {
                 Some((ctrl, result_tx)) = self.ctrl_rx.recv() => {

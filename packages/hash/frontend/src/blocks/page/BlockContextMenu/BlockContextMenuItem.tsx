@@ -1,5 +1,5 @@
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { ListItemIcon, ListItemText, MenuItem } from "@mui/material";
+import { ListItemIcon, ListItemText } from "@mui/material";
 import {
   bindPopover,
   bindHover,
@@ -15,7 +15,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { FontAwesomeIcon } from "../../../shared/icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { MenuItem } from "../../../shared/ui";
 
 type BlockContextMenuItemProps = {
   itemKey: string;

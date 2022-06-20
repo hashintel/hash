@@ -16,7 +16,7 @@ export const aggregationTypedef = gql`
   }
 
   type AggregateOperation {
-    entityTypeId: ID!
+    entityTypeId: ID
     entityTypeVersionId: ID
     multiFilter: MultiFilterOperation
     multiSort: [SortOperation!]
@@ -37,12 +37,12 @@ export const aggregationTypedef = gql`
 
   type FilterOperation {
     field: String!
-    value: String!
+    value: String
     operator: String!
   }
 
   input AggregateOperationInput {
-    entityTypeId: ID!
+    entityTypeId: ID
     entityTypeVersionId: ID
     multiFilter: MultiFilterOperationInput
     multiSort: [SortOperationInput!]
@@ -62,7 +62,7 @@ export const aggregationTypedef = gql`
 
   input FilterOperationInput {
     field: String!
-    value: String!
+    value: String
     operator: String!
   }
 

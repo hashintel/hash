@@ -27,10 +27,11 @@ import { collect } from "./util";
 
 type EntityStorePluginStateListener = (store: EntityStore) => void;
 
+export type TrackedAction = { action: EntityStorePluginAction; id: string };
 type EntityStorePluginState = {
   store: EntityStore;
   listeners: EntityStorePluginStateListener[];
-  trackedActions: { action: EntityStorePluginAction; id: string }[];
+  trackedActions: TrackedAction[];
 };
 
 export type EntityStorePluginAction = { received?: boolean } & (
@@ -49,7 +50,10 @@ export type EntityStorePluginAction = { received?: boolean } & (
    */
   {
       type: "mergeNewPageContents";
-      payload: BlockEntity[];
+      payload: {
+        blocks: BlockEntity[];
+        presetDraftIds: Record<string, string>;
+      };
     }
   | { type: "store"; payload: EntityStore }
   | { type: "subscribe"; payload: EntityStorePluginStateListener }
@@ -67,15 +71,8 @@ export type EntityStorePluginAction = { received?: boolean } & (
       };
     }
   | {
-      type: "updateEntityId";
-      payload: {
-        draftId: string;
-        entityId: string;
-      };
-    }
-  | {
       type: "updateBlockEntityProperties";
-      payload: { draftId: string; targetEntity: EntityStoreType };
+      payload: { blockEntityDraftId: string; targetEntity: EntityStoreType };
     }
 );
 
@@ -171,21 +168,22 @@ const updateEntitiesByDraftId = (
  * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
  * 2. Sets targetEntity as the new block data
  * @param draftEntityStore draft entity store
- * @param draftBlockId draft id of the Block Entity whose child entity should be changed
+ * @param blockEntityDraftId draft id of the Block Entity whose child entity should be changed
  * @param targetEntity entity to be changed to
  */
-const updateBlockEntity = (
+const swapBlockData = (
   draftEntityStore: Draft<EntityStore["draft"]>,
-  draftBlockId: string,
+  blockEntityDraftId: string,
   targetEntity: EntityStoreType,
 ) => {
   let targetDraftEntity = getDraftEntityFromEntityId(
     draftEntityStore,
-    draftBlockId,
+    targetEntity.entityId,
   );
 
   // Add target entity to draft store if it is not
   // present there
+  // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
   if (!targetDraftEntity) {
     const targetEntityDraftId = createDraftIdForEntity(targetEntity.entityId);
     targetDraftEntity = {
@@ -193,26 +191,19 @@ const updateBlockEntity = (
       draftId: targetEntityDraftId,
       entityId: targetEntity.entityId,
       properties: targetEntity.properties,
-      entityVersionCreatedAt: new Date().toISOString(),
+      updatedAt: targetEntity.updatedAt,
     };
 
     draftEntityStore[targetEntityDraftId] = targetDraftEntity;
   }
 
-  const draftBlockEntity = draftEntityStore[draftBlockId];
-
-  if (!draftBlockEntity) {
-    throw new Error("Block to update not present in store");
-  }
+  const draftBlockEntity = draftEntityStore[blockEntityDraftId];
 
   if (!isDraftBlockEntity(draftBlockEntity)) {
-    throw new Error("draftId provided does not point to a BlockEntity");
+    throw new Error(
+      `BlockEntity not present in draft store. Draft Id => ${blockEntityDraftId}`,
+    );
   }
-
-  // we shouldn't need to update this since the api is meant to
-  // handle it.
-  // @todo remove the need for this
-  draftBlockEntity.entityVersionCreatedAt = new Date().toISOString();
 
   draftBlockEntity.properties.entity = targetDraftEntity;
 };
@@ -236,7 +227,11 @@ const entityStoreReducer = (
     case "mergeNewPageContents":
       return {
         ...state,
-        store: createEntityStore(action.payload, state.store.draft),
+        store: createEntityStore(
+          action.payload.blocks,
+          state.store.draft,
+          action.payload.presetDraftIds,
+        ),
       };
 
     case "store": {
@@ -289,12 +284,14 @@ const entityStoreReducer = (
     }
 
     case "updateBlockEntityProperties": {
-      if (!state.store.draft[action.payload.draftId]) {
-        throw new Error("Block missing to merge entity properties");
+      if (!state.store.draft[action.payload.blockEntityDraftId]) {
+        throw new Error(
+          `Block missing to merge entity properties -> ${action.payload.blockEntityDraftId}`,
+        );
       }
 
       if (!action.payload.targetEntity) {
-        throw new Error("Entity missing to merge Block entity properties");
+        throw new Error("Entity missing to update Block data");
       }
 
       return produce(state, (draftState) => {
@@ -302,30 +299,10 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        updateBlockEntity(
+        swapBlockData(
           draftState.store.draft,
-          action.payload.draftId,
+          action.payload.blockEntityDraftId,
           action.payload.targetEntity,
-        );
-      });
-    }
-
-    case "updateEntityId": {
-      if (!state.store.draft[action.payload.draftId]) {
-        throw new Error("Entity missing to update entity id");
-      }
-
-      return produce(state, (draftState) => {
-        if (!action.received) {
-          draftState.trackedActions.push({ action, id: uuid() });
-        }
-
-        updateEntitiesByDraftId(
-          draftState.store.draft,
-          action.payload.draftId,
-          (draftEntity: Draft<DraftEntity>) => {
-            draftEntity.entityId = action.payload.entityId;
-          },
         );
       });
     }
@@ -344,7 +321,7 @@ const entityStoreReducer = (
           accountId: action.payload.accountId,
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
-          entityVersionCreatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           properties: {},
         };
       });
@@ -696,8 +673,12 @@ const scheduleNotifyEntityStoreSubscribers = collect<
   }
 });
 
-export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
-  new Plugin<EntityStorePluginState, Schema>({
+export const createEntityStorePlugin = ({
+  accountId,
+}: {
+  accountId: string;
+}) => {
+  const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
     key: entityStorePluginKey,
     state: {
       init(_): EntityStorePluginState {
@@ -718,7 +699,7 @@ export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
           scheduleNotifyEntityStoreSubscribers(
             view,
             prevState,
-            createEntityStorePlugin({ accountId }),
+            entityStorePlugin,
           );
         },
       };
@@ -745,3 +726,5 @@ export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
       return new ProsemirrorStateChangeHandler(state, accountId).handleDoc();
     },
   });
+  return entityStorePlugin;
+};

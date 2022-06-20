@@ -1,8 +1,8 @@
 {
   "name": "@hashintel/block-video",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "video block component",
+  "description": "Embed MP4 and WEBM videos by URL or file upload and add an optional caption",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
@@ -19,12 +19,12 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.8"
+    "@blockprotocol/graph": "0.0.8"
   },
   "devDependencies": {
-    "block-scripts": "0.0.6",
+    "block-scripts": "0.0.10",
     "eslint": "8.13.0",
-    "mock-block-dock": "0.0.8",
+    "mock-block-dock": "0.0.15",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "twind": "0.16.17",
@@ -40,6 +40,9 @@
     "servePort": 62683
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "displayName": "Video",
     "icon": "public/play-box-outline.svg",
     "image": "public/preview.svg",
@@ -49,6 +52,6 @@
         "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
       }
     ],
-    "protocol": "0.1"
+    "protocol": "0.2"
   }
 }

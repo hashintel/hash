@@ -1,7 +1,7 @@
 {
-  "name": "timer",
-  "version": "0.0.0",
-  "description": "timer block",
+  "name": "@hashintel/block-timer",
+  "version": "0.2.0",
+  "description": "Set a countdown timer to remind you when a certain amount of time has elapsed",
   "keywords": [
     "blockprotocol",
     "blocks"
@@ -17,13 +17,13 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@mui/material": "5.4.3",
-    "@mui/x-date-pickers": "^5.0.0-alpha.2",
-    "blockprotocol": "0.0.8"
+    "@blockprotocol/graph": "0.0.8",
+    "date-fns": "2.28.0",
+    "duration-fns": "3.0.1"
   },
   "devDependencies": {
-    "block-scripts": "0.0.6",
-    "mock-block-dock": "0.0.8",
+    "block-scripts": "0.0.10",
+    "mock-block-dock": "0.0.15",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
@@ -36,11 +36,17 @@
     "servePort": 63213
   },
   "blockprotocol": {
-    "displayName": "timer",
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "displayName": "Timer",
     "examples": [
-      {}
+      {
+        "initialDuration": "PT5M"
+      }
     ],
-    "icon": "public/omega.svg",
-    "image": "public/block-preview.svg"
+    "icon": "public/timer.svg",
+    "image": "public/block-preview.svg",
+    "protocol": "0.2"
   }
 }

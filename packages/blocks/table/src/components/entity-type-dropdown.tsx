@@ -1,11 +1,11 @@
 import * as React from "react";
 import { tw } from "twind";
-import { BlockProtocolEntityType } from "blockprotocol";
+import { EntityType } from "@blockprotocol/graph";
 
 type EntityTypeDropdownProps = {
   onChange?: (entityTypeId?: string) => void;
   value?: string;
-  options: BlockProtocolEntityType[];
+  options: EntityType[];
 };
 
 export const EntityTypeDropdown: React.VoidFunctionComponent<
@@ -20,9 +20,9 @@ export const EntityTypeDropdown: React.VoidFunctionComponent<
       <option key="" value="">
         None
       </option>
-      {options.map(({ entityTypeId, title }) => (
+      {options.map(({ entityTypeId, schema }) => (
         <option key={entityTypeId} value={entityTypeId}>
-          {title}
+          {schema.title}
         </option>
       ))}
     </select>

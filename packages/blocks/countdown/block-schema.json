@@ -1,7 +1,13 @@
 {
   "type": "object",
   "properties": {
-    "start": {
+    "displayTime": {
+      "type": "boolean"
+    },
+    "title": {
+      "type": "string"
+    },
+    "targetDate": {
       "anyOf": [
         {
           "type": "string",
@@ -11,25 +17,9 @@
           "type": "null"
         }
       ]
-    },
-    "end": {
-      "anyOf": [
-        {
-          "type": "string",
-          "format": "date-time"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
-    "selectsRange": {
-      "type": "boolean"
-    },
-    "strict": {
-      "type": "boolean"
     }
   },
-  "required": ["end", "selectsRange", "start", "strict"],
+  "configProperties": ["displayTime", "targetDate", "title"],
+  "required": [],
   "$schema": "http://json-schema.org/draft-07/schema#"
 }

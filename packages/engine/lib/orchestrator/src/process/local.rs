@@ -5,7 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use error::{Report, Result, ResultExt};
+use error_stack::{IntoReport, Report, ResultExt};
 use hash_engine_lib::{
     experiment::controller::run::cleanup_experiment,
     proto::EngineMsg,
@@ -13,7 +13,7 @@ use hash_engine_lib::{
 };
 use simulation_structure::ExperimentId;
 
-use crate::process;
+use crate::{process, OrchestratorError, Result};
 
 const ENGINE_BIN_PATH_DEFAULT: &str = env!("CARGO_BIN_FILE_HASH_ENGINE");
 
@@ -23,7 +23,7 @@ const ENGINE_BIN_PATH_FALLBACK: &str = "./target/debug/hash_engine";
 #[cfg(not(debug_assertions))]
 const ENGINE_BIN_PATH_FALLBACK: &str = "./target/release/hash_engine";
 
-/// A local [`hash_engine`] subprocess using the [`std::process`] library.  
+/// A local `hash_engine` subprocess using the [`std::process`] library.  
 pub struct LocalProcess {
     child: tokio::process::Child,
     client: Option<nano::Client>,
@@ -44,7 +44,7 @@ impl process::Process for LocalProcess {
                 std::io::ErrorKind::InvalidInput => Ok(()),
                 _ => Err(Report::new(e)),
             })
-            .wrap_err("Could not kill the process");
+            .change_context(OrchestratorError::from("Could not kill the process"));
 
         let engine_socket_path = format!("run-{experiment_id}");
         match remove_file(&engine_socket_path) {
@@ -66,10 +66,10 @@ impl process::Process for LocalProcess {
         cleanup_experiment(experiment_id);
 
         debug!("Cleaned up local engine process for experiment");
-        kill_result
+        Ok(kill_result?)
     }
 
-    /// Creates or reuses a [`nano::Client`] to send a message to the [`hash_engine`] subprocess.
+    /// Creates or reuses a [`nano::Client`] to send a message to the `hash_engine` subprocess.
     ///
     /// # Errors
     ///
@@ -79,31 +79,33 @@ impl process::Process for LocalProcess {
         // We create the client on the first call here, rather than when the LocalCommand is run,
         // because the engine process needs some time before it's ready to accept NNG connections.
         if self.client.is_none() {
-            self.client = Some(
-                nano::Client::new(&self.engine_url, 1)
-                    .wrap_err_lazy(|| {
-                        format!(
-                            "Could not create nano client for engine at {:?}",
-                            self.engine_url
-                        )
-                    })
-                    .map_err(Report::generalize)?,
-            );
+            self.client = Some(nano::Client::new(&self.engine_url, 1).change_context_lazy(
+                || {
+                    OrchestratorError::from(format!(
+                        "Could not create nano client for engine at {:?}",
+                        self.engine_url
+                    ))
+                },
+            )?);
         }
-        self.client
+        Ok(self
+            .client
             .as_mut()
             .unwrap()
             .send(msg)
             .await
-            .wrap_err("Could not send engine message")
-            .map_err(Report::generalize)
+            .change_context(OrchestratorError::from("Could not send engine message"))?)
     }
 
     async fn wait(&mut self) -> Result<ExitStatus> {
-        self.child
+        Ok(self
+            .child
             .wait()
             .await
-            .wrap_err("Could not wait for the process to exit")
+            .report()
+            .change_context(OrchestratorError::from(
+                "Could not wait for the process to exit",
+            ))?)
     }
 }
 
@@ -207,9 +209,9 @@ impl process::Command for LocalCommand {
         }
         debug!("Running `{cmd:?}`");
 
-        let child = cmd
-            .spawn()
-            .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))?;
+        let child = cmd.spawn().report().change_context_lazy(|| {
+            OrchestratorError::from(format!("Could not run command: {process_path:?}"))
+        })?;
         debug!("Spawned local engine process for experiment");
 
         Ok(Box::new(LocalProcess {

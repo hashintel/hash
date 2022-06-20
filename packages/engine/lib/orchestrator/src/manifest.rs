@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use error::{bail, ensure, report, Result, ResultExt};
+use error_stack::{bail, ensure, report, IntoReport, ResultExt};
 use execution::package::simulation::{
     init::{InitialState, InitialStateName},
     state::behavior_execution::Behavior,
@@ -23,7 +23,7 @@ use serde_json::Value as SerdeValue;
 use stateful::global::Dataset;
 use uuid::Uuid;
 
-use crate::ExperimentType;
+use crate::{ExperimentType, OrchestratorError, Result};
 
 const BEHAVIOR_FILE_EXTENSIONS: [&str; 3] = ["js", "py", "rs"];
 const DATASET_FILE_EXTENSIONS: [&str; 2] = ["csv", "json"];
@@ -42,11 +42,10 @@ pub struct Manifest {
     pub behaviors: Vec<Behavior>,
     /// A list of all datasets in the project.
     pub datasets: Vec<Dataset>,
-    /// JSON string describing the [`Globals`](hash_engine_lib::config::Globals) object.
+    /// JSON string describing the [`Globals`](stateful::global::Globals) object.
     pub globals_json: Option<String>,
     /// JSON string describing the analysis that's calculated by the
-    /// [analysis output
-    /// package](hash_engine_lib::simulation::package::output::packages::analysis).
+    /// [analysis output package](execution::package::simulation::output::analysis).
     pub analysis_json: Option<String>,
     /// JSON string describing the structure of available experiments for this project.
     pub experiments_json: Option<String>,
@@ -71,14 +70,19 @@ impl Manifest {
         path: P,
     ) -> Result<Option<InitialState>> {
         let path = path.as_ref();
-        ensure!(path.is_file(), "Couldn't find the init file at: {path:?}");
+        ensure!(
+            path.is_file(),
+            OrchestratorError::from(format!("Couldn't find the init file at: {path:?}"))
+        );
 
         Ok(self.initial_state.replace(InitialState {
             name: match file_extension(&path)?.as_str() {
                 "js" => InitialStateName::InitJs,
                 "py" => InitialStateName::InitPy,
                 "json" => InitialStateName::InitJson,
-                _ => bail!("Not a valid initial state file: {path:?}"),
+                _ => bail!(OrchestratorError::from(format!(
+                    "Not a valid initial state file: {path:?}"
+                ))),
             },
             src: file_contents(path)?,
         }))
@@ -99,7 +103,10 @@ impl Manifest {
         src_folder: P,
     ) -> Result<Option<InitialState>> {
         let src_folder = src_folder.as_ref();
-        ensure!(src_folder.is_dir(), "Not a directory: {src_folder:?}");
+        ensure!(
+            src_folder.is_dir(),
+            OrchestratorError::from(format!("Not a directory: {src_folder:?}"))
+        );
 
         let js_path = src_folder.join("init.js");
         let py_path = src_folder.join("init.py");
@@ -122,12 +129,14 @@ impl Manifest {
         } else if json_path.is_file() {
             self.set_initial_state_from_file(json_path)
         } else {
-            bail!("No initial state found in {src_folder:?}");
+            bail!(OrchestratorError::from(format!(
+                "No initial state found in {src_folder:?}"
+            )));
         }
     }
 
     /// Reads the content from the file at the provided `path` describing the
-    /// [`Globals`](hash_engine_lib::config::Globals).
+    /// [`Globals`](stateful::global::Globals).
     ///
     /// # Errors
     ///
@@ -139,7 +148,7 @@ impl Manifest {
 
     /// Reads the content from the file at the provided `path` describing the analysis of the
     /// experiment, calculated by the
-    /// [analysis output package](hash_engine_lib::simulation::package::output::packages::analysis).
+    /// [analysis output package](execution::package::simulation::output::analysis).
     ///
     /// # Errors
     ///
@@ -179,7 +188,7 @@ impl Manifest {
         // TODO: How to handle versions
         for dependency_name in self.dependencies.keys() {
             match get_dependency_type_from_name(dependency_name)
-                .wrap_err_lazy(|| format!("Could not read dependency: {dependency_name}"))?
+                .attach_printable_lazy(|| format!("Could not read dependency: {dependency_name}"))?
             {
                 DependencyType::Behavior(extension) => {
                     let behavior = if &extension == ".rs" {
@@ -192,7 +201,7 @@ impl Manifest {
                         }
                     } else {
                         get_behavior_from_dependency_projects(dependency_name, &dependency_projects)
-                            .wrap_err_lazy(|| {
+                            .attach_printable_lazy(|| {
                                 format!("Could not get behavior from dependency: {dependency_name}")
                             })?
                     };
@@ -226,12 +235,15 @@ impl Manifest {
     /// - if the behavior keys at _`path`.json_ could not be read
     pub fn add_behavior_from_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         let path = path.as_ref();
-        ensure!(path.is_file(), "Not a behavior file: {path:?}");
+        ensure!(
+            path.is_file(),
+            OrchestratorError::from(format!("Not a behavior file: {path:?}"))
+        );
 
         let file_extension = file_extension(&path)?;
         ensure!(
             BEHAVIOR_FILE_EXTENSIONS.contains(&file_extension.as_str()),
-            "Not a valid behavior extension: {path:?}"
+            OrchestratorError::from(format!("Not a valid behavior extension: {path:?}"))
         );
         if file_extension == "rs" {
             warn!("Custom Rust behaviors are currently unsupported")
@@ -239,12 +251,18 @@ impl Manifest {
 
         let file_name = path
             .file_name()
-            .ok_or_else(|| report!("behavior file expected to have proper file name"))?
+            .ok_or_else(|| {
+                report!(OrchestratorError::from(
+                    "behavior file expected to have proper file name"
+                ))
+            })?
             .to_string_lossy()
             .to_string();
-        let folder_path = path
-            .parent()
-            .ok_or_else(|| report!("Could not find parent folder for behavior file: {path:?}"))?;
+        let folder_path = path.parent().ok_or_else(|| {
+            report!(OrchestratorError::from(format!(
+                "Could not find parent folder for behavior file: {path:?}"
+            )))
+        })?;
         let key_path = folder_path.join(&format!("{file_name}.json"));
 
         self.add_behavior(Behavior {
@@ -252,10 +270,10 @@ impl Manifest {
             id: file_name.clone(),
             name: file_name,
             shortnames: vec![], // if this is a dependency, then these will be updated later
-            behavior_src: file_contents_opt(&path).wrap_err("Could not read behavior")?,
+            behavior_src: file_contents_opt(&path).attach_printable("Could not read behavior")?,
             // this may not return anything if file doesn't exist
             behavior_keys_src: file_contents_opt(&key_path)
-                .wrap_err("Could not read behavior keys")?,
+                .attach_printable("Could not read behavior keys")?,
         });
         Ok(())
     }
@@ -271,20 +289,22 @@ impl Manifest {
     ///   behavior keys
     pub fn add_behaviors_from_directory<P: AsRef<Path>>(&mut self, src_folder: P) -> Result<()> {
         let src_folder = src_folder.as_ref();
-        ensure!(src_folder.is_dir(), "Not a directory: {src_folder:?}");
+        ensure!(
+            src_folder.is_dir(),
+            OrchestratorError::from(format!("Not a directory: {src_folder:?}"))
+        );
 
         debug!("Reading behaviors in {src_folder:?}");
-        for entry in src_folder
-            .read_dir()
-            .wrap_err_lazy(|| format!("Could not read behavior directory: {src_folder:?}"))?
-        {
+        for entry in src_folder.read_dir().report().change_context_lazy(|| {
+            OrchestratorError::from(format!("Could not read behavior directory: {src_folder:?}"))
+        })? {
             match entry {
                 Ok(entry) => {
                     let path = entry.path();
                     // Filter for `.json` files for behavior keys
                     if file_extension(&path)? != "json" {
                         self.add_behavior_from_file(path)
-                            .wrap_err("Could not add behavior")?;
+                            .attach_printable("Could not add behavior")?;
                     }
                 }
                 Err(err) => {
@@ -308,19 +328,25 @@ impl Manifest {
     /// - if the file could not be read
     pub fn add_dataset_from_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         let path = path.as_ref();
-        ensure!(path.is_file(), "Not a dataset file: {path:?}");
+        ensure!(
+            path.is_file(),
+            OrchestratorError::from(format!("Not a dataset file: {path:?}"))
+        );
 
         let file_extension = file_extension(path)?;
         ensure!(
             DATASET_FILE_EXTENSIONS.contains(&file_extension.as_str()),
-            "Not a valid dataset extension: {path:?}"
+            OrchestratorError::from(format!("Not a valid dataset extension: {path:?}"))
         );
 
-        let mut data = file_contents(path).wrap_err("Could not read dataset")?;
+        let mut data = file_contents(path).attach_printable("Could not read dataset")?;
 
         if file_extension == "csv" {
             data = parse_raw_csv_into_json(data)
-                .wrap_err_lazy(|| format!("Could not convert csv into json: {path:?}"))?;
+                .report()
+                .change_context_lazy(|| {
+                    OrchestratorError::from(format!("Could not convert csv into json: {path:?}"))
+                })?;
         }
 
         let filename = path.file_name().unwrap().to_string_lossy().to_string();
@@ -345,17 +371,19 @@ impl Manifest {
     /// - if the provided directory contains files, which could not be parsed as dataset
     pub fn add_datasets_from_directory<P: AsRef<Path>>(&mut self, src_folder: P) -> Result<()> {
         let src_folder = src_folder.as_ref();
-        ensure!(src_folder.is_dir(), "Not a directory: {src_folder:?}");
+        ensure!(
+            src_folder.is_dir(),
+            OrchestratorError::from(format!("Not a directory: {src_folder:?}"))
+        );
 
         debug!("Reading datasets in {src_folder:?}");
-        for entry in src_folder
-            .read_dir()
-            .wrap_err_lazy(|| format!("Could not read dataset directory: {src_folder:?}"))?
-        {
+        for entry in src_folder.read_dir().report().change_context_lazy(|| {
+            OrchestratorError::from(format!("Could not read dataset directory: {src_folder:?}"))
+        })? {
             match entry {
                 Ok(entry) => {
                     self.add_dataset_from_file(entry.path())
-                        .wrap_err("Could not add dataset")?;
+                        .attach_printable("Could not add dataset")?;
                 }
                 Err(err) => {
                     warn!("Could not ready directory entry: {err}");
@@ -411,7 +439,7 @@ impl Manifest {
 
         let project_name = project_path.file_name()
             // Shouldn't be able to fail as it should have been validated by now
-            .ok_or_else(|| report!("Project path didn't point to a directory: {project_path:?}"))? 
+            .ok_or_else(|| report!(OrchestratorError::from(format!("Project path didn't point to a directory: {project_path:?}"))))?
             .to_string_lossy()
             .to_string();
         let experiments_json = project_path.join("experiments.json");
@@ -431,39 +459,39 @@ impl Manifest {
 
             project
                 .set_initial_state_from_directory(src_folder)
-                .wrap_err("Could not read initial state")?;
+                .attach_printable("Could not read initial state")?;
 
             if globals_json.exists() {
                 project
                     .set_globals_from_file(globals_json)
-                    .wrap_err("Could not read globals")?;
+                    .attach_printable("Could not read globals")?;
             }
             if analysis_json.exists() {
                 project
                     .set_analysis_from_file(analysis_json)
-                    .wrap_err("Could not read analysis view")?;
+                    .attach_printable("Could not read analysis view")?;
             }
 
             if experiments_json.exists() {
                 project
                     .set_experiments_from_file(experiments_json)
-                    .wrap_err("Could not read experiments")?;
+                    .attach_printable("Could not read experiments")?;
             }
         }
         if dependencies_json.exists() {
             project
                 .set_dependencies_from_file(dependencies_json)
-                .wrap_err("Could not read experiments")?;
+                .attach_printable("Could not read experiments")?;
         }
         if behaviors_folder.exists() {
             project
                 .add_behaviors_from_directory(behaviors_folder)
-                .wrap_err("Could not read local behaviors")?;
+                .attach_printable("Could not read local behaviors")?;
         }
         if data_folder.exists() {
             project
                 .add_datasets_from_directory(data_folder)
-                .wrap_err("Could not read local datasets")?;
+                .attach_printable("Could not read local datasets")?;
         }
 
         let behaviors_deps_folders = local_dependencies_folders(dependencies_folder);
@@ -474,7 +502,7 @@ impl Manifest {
                 Err(err) => Err(err),
             })
             .collect::<Result<HashMap<PathBuf, Self>>>()
-            .wrap_err("Could not read dependencies")?;
+            .attach_printable("Could not read dependencies")?;
         project.add_dependency_projects(dep_projects)?;
 
         Ok(project)
@@ -500,9 +528,11 @@ impl Manifest {
                     data: SerdeValue::String(self.analysis_json.unwrap_or_default()),
                 }],
                 behaviors: self.behaviors,
-                initial_state: self
-                    .initial_state
-                    .ok_or_else(|| report!("Project must specify an initial state file."))?,
+                initial_state: self.initial_state.ok_or_else(|| {
+                    report!(OrchestratorError::from(
+                        "Project must specify an initial state file."
+                    ))
+                })?,
             },
         };
 
@@ -537,7 +567,7 @@ fn get_dependency_type_from_name(dependency_name: &str) -> Result<DependencyType
     // TODO: dependency names aren't real paths, is this safe?
     let extension = std::path::Path::new(dependency_name)
         .extension()
-        .ok_or_else(|| report!("Dependency has no file extension"))?
+        .ok_or_else(|| report!(OrchestratorError::from("Dependency has no file extension")))?
         .to_string_lossy();
 
     if BEHAVIOR_FILE_EXTENSIONS.contains(&extension.borrow()) {
@@ -545,7 +575,9 @@ fn get_dependency_type_from_name(dependency_name: &str) -> Result<DependencyType
     } else if DATASET_FILE_EXTENSIONS.contains(&extension.borrow()) {
         Ok(DependencyType::Dataset(extension.to_string()))
     } else {
-        bail!("Dependency has unknown file extension: {extension:?}");
+        bail!(OrchestratorError::from(format!(
+            "Dependency has unknown file extension: {extension:?}"
+        )));
     }
 }
 
@@ -604,7 +636,9 @@ fn get_behavior_from_dependency_projects(
                         .any(|possible_name| behavior.shortnames.contains(possible_name))
             })
         }) {
-        None => bail!("Couldn't find dependency in project dependencies: {name}"),
+        None => bail!(OrchestratorError::from(format!(
+            "Couldn't find dependency in project dependencies: {name}"
+        ))),
         Some(behavior) => {
             let mut behavior = behavior.clone();
             behavior.name = name;
@@ -623,10 +657,10 @@ fn get_dataset_from_dependency_projects(
     let file_name = dependency_path
         .file_name()
         .ok_or_else(|| {
-            report!(
+            report!(OrchestratorError::from(format!(
                 "Expected there to be a filename component of the dataset dependency path: \
                  {dependency_path:?}"
-            )
+            )))
         })?
         .to_os_string()
         .into_string()
@@ -648,7 +682,9 @@ fn get_dataset_from_dependency_projects(
                     || dataset.shortname == file_name.clone()
             })
         }) {
-        None => bail!("Couldn't find dependency in project dependencies: {name}"),
+        None => bail!(OrchestratorError::from(format!(
+            "Couldn't find dependency in project dependencies: {name}"
+        ))),
         Some(dataset) => {
             let mut dataset = dataset.clone();
             // Using these, because locally they are not in the right format
@@ -666,7 +702,11 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
     debug!("Parsing the dependencies folder: {dependency_path:?}");
 
     let mut entries = dependency_path
-        .read_dir()?
+        .read_dir()
+        .report()
+        .change_context_lazy(|| {
+            OrchestratorError::from(format!("Could not read dependency directory: {dependency_path:?}"))
+        })?
         .filter_map(|dir_res| {
             if let Ok(entry) = dir_res {
                 // check it's a folder and matches the pattern of a user namespace (i.e. `@user`)
@@ -676,7 +716,15 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
             }
             None
         })
-        .map(|user_dir| user_dir.path().read_dir().wrap_err_lazy(|| format!("Could not read directory {:?}", user_dir.path())))
+        .map(|user_dir| {
+            user_dir
+                .path()
+                .read_dir()
+                .report()
+                .change_context_lazy(|| {
+                    OrchestratorError::from(format!("Could not read directory {:?}", user_dir.path()))
+                })
+        })
         .collect::<Result<Vec<_>>>()? // Intermediary collect and iter to handle errors from read_dir
         .into_iter()
         .flatten()
@@ -702,7 +750,11 @@ fn file_extension<P: AsRef<Path>>(path: P) -> Result<String> {
     let path = path.as_ref();
     Ok(path
         .extension()
-        .ok_or_else(|| report!("Not a valid file: {path:?}"))?
+        .ok_or_else(|| {
+            report!(OrchestratorError::from(format!(
+                "Not a valid file: {path:?}"
+            )))
+        })?
         .to_string_lossy()
         .to_lowercase())
 }
@@ -710,7 +762,9 @@ fn file_extension<P: AsRef<Path>>(path: P) -> Result<String> {
 fn file_contents<P: AsRef<Path>>(path: P) -> Result<String> {
     let path = path.as_ref();
     debug!("Reading contents at path: {path:?}");
-    std::fs::read_to_string(path).wrap_err_lazy(|| format!("Could not read file: {path:?}"))
+    std::fs::read_to_string(path)
+        .report()
+        .change_context_lazy(|| OrchestratorError::from(format!("Could not read file: {path:?}")))
 }
 
 fn file_contents_opt<P: AsRef<Path>>(path: P) -> Result<Option<String>> {
@@ -725,7 +779,10 @@ fn file_contents_opt<P: AsRef<Path>>(path: P) -> Result<Option<String>> {
 fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
-        File::open(path).wrap_err_lazy(|| format!("Could not read file {path:?}"))?,
+        File::open(path).report().change_context_lazy(|| {
+            OrchestratorError::from(format!("Could not read file {path:?}"))
+        })?,
     ))
-    .wrap_err_lazy(|| format!("Could not parse {path:?}"))
+    .report()
+    .change_context_lazy(|| OrchestratorError::from(format!("Could not parse {path:?}")))
 }

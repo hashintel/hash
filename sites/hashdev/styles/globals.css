@@ -1,11 +1,20 @@
 code {
-    padding: 0.25rem 0.5rem;
-    margin: 0 0.15rem;
-    background-color: #F7FAFC;
-    border-radius: 0.25rem;
-    border: 1px solid #DDE7F0;
+  padding: 0.25rem 0.5rem;
+  margin: 0 0.15rem;
+  background-color: #f7fafc;
+  border-radius: 0.25rem;
+  border: 1px solid #dde7f0;
+}
+
+pre {
+  border: none;
 }
 
 pre code {
-    border: none;
+  border: none;
+  background-color: inherit;
+}
+
+li:not(:last-child) {
+  margin-bottom: 1rem;
 }

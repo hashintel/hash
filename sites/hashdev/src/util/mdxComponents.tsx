@@ -1,9 +1,18 @@
 import { Box, Typography, TypographyProps } from "@mui/material";
 import { ReactNode } from "react";
+import dynamic from "next/dynamic";
+
 import { ImageWithText } from "../components/ImageWithText";
 import { Link, LinkProps } from "../components/Link";
 import { MdxImage } from "../components/MdxImage";
 import { MdxPre } from "../components/MdxPre";
+import { MdxTalkSlide } from "../components/MdxTalkSlide";
+import { MdxVideo } from "../components/MdxVideo";
+
+const CalculationBlock = dynamic(
+  () => import("../components/CalculationBlock"),
+  { ssr: false },
+);
 
 export const mdxComponents: Record<string, ReactNode> = {
   Box,
@@ -14,6 +23,14 @@ export const mdxComponents: Record<string, ReactNode> = {
       return props.children;
     }
     return <Typography {...props} variant="hashBodyCopy" />;
+  },
+
+  li: (props: TypographyProps<"li">) => {
+    return (
+      <li>
+        <Typography {...props} variant="hashBodyCopy" />
+      </li>
+    );
   },
 
   a: (props: LinkProps) => <Link {...props} />,
@@ -38,9 +55,15 @@ export const mdxComponents: Record<string, ReactNode> = {
     <Typography {...props} variant="hashHeading5" />
   ),
 
+  CalculationBlock,
+
   pre: MdxPre,
 
   img: MdxImage,
 
+  video: MdxVideo,
+
   ImageWithText,
+
+  TalkSlide: MdxTalkSlide,
 };

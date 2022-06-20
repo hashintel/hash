@@ -2,18 +2,22 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { tw } from "twind";
 import { v4 as uuid } from "uuid";
 import { ColumnInstance } from "react-table";
+
 import {
-  BlockProtocolAggregateOperationInput,
-  BlockProtocolMultiFilterOperatorType,
-  BlockProtocolFilterOperatorType,
-} from "blockprotocol";
+  MultiFilter,
+  FilterOperatorWithoutValue,
+  FilterOperatorType,
+  MultiFilterOperatorType,
+  FilterOperatorRequiringValue,
+  AggregateOperationInput,
+} from "@blockprotocol/graph";
 import { unstable_batchedUpdates } from "react-dom";
 import { debounce } from "lodash";
 import { AddIcon } from "./icons";
 
 const MENU_WIDTH = 540;
 
-const FILTER_OPERATORS: BlockProtocolFilterOperatorType[] = [
+const FILTER_OPERATORS: FilterOperatorType[] = [
   "CONTAINS",
   "DOES_NOT_CONTAIN",
   "IS",
@@ -24,27 +28,36 @@ const FILTER_OPERATORS: BlockProtocolFilterOperatorType[] = [
   "IS_NOT_EMPTY",
 ];
 
-const MULTI_FILTER_OPERATORS: BlockProtocolMultiFilterOperatorType[] = [
-  "AND",
-  "OR",
-];
+const MULTI_FILTER_OPERATORS: MultiFilterOperatorType[] = ["AND", "OR"];
 
-const FILTER_OPERATORS_WITHOUT_VALUE: BlockProtocolFilterOperatorType[] = [
+const FILTER_OPERATORS_WITHOUT_VALUE: FilterOperatorWithoutValue[] = [
   "IS_EMPTY",
   "IS_NOT_EMPTY",
 ];
 
-type FilterDetailProps = {
-  columns: ColumnInstance<{}>[];
-  onFilter: (
-    multiFilter: BlockProtocolAggregateOperationInput["multiFilter"],
-  ) => void;
-  multiFilter: BlockProtocolAggregateOperationInput["multiFilter"];
+type Filter = MultiFilter["filters"][0];
+
+type FilterWithId = MultiFilter["filters"][0] & { id: string };
+
+type FilterRequiringValue = {
+  field: string;
+  operator: FilterOperatorRequiringValue;
+  value: string;
 };
 
-type FilterFieldsWithId = (NonNullable<
-  BlockProtocolAggregateOperationInput["multiFilter"]
->["filters"][number] & { id: string })[];
+const filterHasValue = (filter: Filter): filter is FilterRequiringValue => {
+  return (
+    !FILTER_OPERATORS_WITHOUT_VALUE.includes(
+      filter.operator as FilterOperatorWithoutValue,
+    ) && (filter as FilterRequiringValue).value !== null
+  );
+};
+
+type FilterDetailProps = {
+  columns: ColumnInstance<{}>[];
+  onFilter: (multiFilter: AggregateOperationInput["multiFilter"]) => void;
+  multiFilter: AggregateOperationInput["multiFilter"];
+};
 
 export const FilterDetail: React.VFC<FilterDetailProps> = ({
   columns,
@@ -52,18 +65,18 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
   multiFilter,
 }) => {
   const [combinatorFilterOperator, setCombinatorFilterOperator] =
-    useState<BlockProtocolMultiFilterOperatorType>("AND");
-  const [filters, setFilters] = useState<FilterFieldsWithId>([]);
+    useState<MultiFilterOperatorType>("AND");
+  const [filters, setFilters] = useState<FilterWithId[]>([]);
   const isMounted = useRef(false);
 
   const handleFilter = useCallback(
     (
-      filterFields?: FilterFieldsWithId,
-      newCombinatorFilterOperator?: BlockProtocolMultiFilterOperatorType,
+      filterFields?: FilterWithId[],
+      newCombinatorFilterOperator?: MultiFilterOperatorType,
     ) => {
       const filtersWithoutId = (filterFields ?? filters)
         .filter(({ field }) => Boolean(field))
-        .map(({ field, operator, value }) => ({ field, operator, value }));
+        .map(({ id: _id, ...rest }) => rest);
 
       onFilter({
         operator: newCombinatorFilterOperator ?? combinatorFilterOperator,
@@ -96,20 +109,13 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
     handleFilter(newFields);
   };
 
-  const updateField = (
-    id: string,
-    data: {
-      field?: string;
-      value?: string;
-      operator?: BlockProtocolFilterOperatorType;
-    },
-  ) => {
+  const updateField = (id: string, data: Partial<Filter>) => {
     const updatedFields = filters.map((item) =>
       item.id === id
-        ? {
+        ? ({
             ...item,
             ...data,
-          }
+          } as FilterWithId)
         : item,
     );
 
@@ -117,23 +123,17 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
     debouncedHandleFilter(updatedFields);
   };
 
-  const handleCombinatorFilterChange = (
-    value: BlockProtocolMultiFilterOperatorType,
-  ) => {
+  const handleCombinatorFilterChange = (value: MultiFilterOperatorType) => {
     setCombinatorFilterOperator(value);
     debouncedHandleFilter(filters, value);
   };
 
   if (multiFilter && !filters.length && !isMounted.current) {
     isMounted.current = true;
-    const fieldsWithId = (multiFilter.filters ?? []).map(
-      ({ field, value, operator }) => ({
-        field,
-        value,
-        operator,
-        id: uuid(),
-      }),
-    );
+    const fieldsWithId = (multiFilter.filters ?? []).map((filter) => ({
+      ...filter,
+      id: uuid(),
+    }));
 
     unstable_batchedUpdates(() => {
       setFilters(fieldsWithId);
@@ -157,7 +157,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
                   defaultValue={combinatorFilterOperator}
                   onChange={(evt) => {
                     handleCombinatorFilterChange(
-                      evt.target.value as BlockProtocolMultiFilterOperatorType,
+                      evt.target.value as MultiFilterOperatorType,
                     );
                   }}
                 >
@@ -190,7 +190,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
               className={tw`text-sm capitalize border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 w-28 px-2 mr-2`}
               onChange={(evt) =>
                 updateField(filter.id, {
-                  operator: evt.target.value as BlockProtocolFilterOperatorType,
+                  operator: evt.target.value as FilterOperatorType,
                 })
               }
               defaultValue={filter.operator}
@@ -204,7 +204,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
                 );
               })}
             </select>
-            {!FILTER_OPERATORS_WITHOUT_VALUE.includes(filter.operator) && (
+            {filterHasValue(filter) && (
               <input
                 placeholder="Value"
                 className={tw`text-sm w-40 border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 px-2`}

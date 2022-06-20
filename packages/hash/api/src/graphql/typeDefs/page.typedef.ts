@@ -172,10 +172,9 @@ export const pageTypedef = gql`
   }
 
   """
-  Insert a new block into a page with a corresonding new entity. Exactly one of
-  entityTypeId, entityTypeVersionId or systemTypeName must be specified.
+  Insert a block into a page with a corresponding entity.
   """
-  input InsertNewBlock {
+  input InsertBlock {
     """
     The account ID to create the block and associated entity in.
     """
@@ -187,11 +186,24 @@ export const pageTypedef = gql`
     """
     The block componentId.
     """
-    componentId: ID!
+    componentId: ID
+    """
+    The block entity to insert into the page. You should not set a componentId
+    if you provide this
+    """
+    existingBlockEntity: ExistingEntity
     """
     The entity to associate with the new block
     """
     entity: EntityDefinition!
+    """
+    Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
+    """
+    blockPlaceholderId: ID
+    """
+    Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
+    """
+    entityPlaceholderId: ID
   }
 
   """
@@ -237,6 +249,63 @@ export const pageTypedef = gql`
   }
 
   """
+  Swap a blocks data
+  """
+  input SwapBlockData {
+    """
+    The account the block resides in
+    """
+    accountId: ID!
+
+    """
+    The Block entity's fixed ID
+    """
+    entityId: ID!
+
+    """
+    The account the new entity resides in
+    """
+    newEntityAccountId: ID!
+
+    """
+    The new entity's fixed ID
+    """
+    newEntityEntityId: ID!
+  }
+
+  """
+  Create an entity, which you can then reference in other actions, such as a InsertBlockAction
+  """
+  input CreateEntityAction {
+    entity: EntityDefinition!
+    entityPlaceholderId: ID
+    accountId: ID!
+  }
+
+  """
+  Create an entity type, which you can then reference in future CreateEntityActions
+  """
+  input CreateEntityTypeAction {
+    accountId: ID!
+    """
+    The name for the type. Must be unique in the given account.
+    """
+    name: String!
+    """
+    A description for the type.
+    """
+    description: String
+    """
+    The schema definition for the entity type, in JSON Schema.
+    """
+    schema: JSONObject
+    """
+    Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to UpdatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
+    """
+    placeholderId: ID!
+  }
+
+  """
   An action to perform when updating the contents of a page. Exactly one field must be
   specified.
 
@@ -244,10 +313,26 @@ export const pageTypedef = gql`
   permit unions as input to a mutation
   """
   input UpdatePageAction {
-    insertNewBlock: InsertNewBlock
+    insertBlock: InsertBlock
     removeBlock: RemoveBlock
     moveBlock: MoveBlock
     updateEntity: UpdateEntity
+    swapBlockData: SwapBlockData
+    createEntity: CreateEntityAction
+    createEntityType: CreateEntityTypeAction
+  }
+
+  """
+  Map of placeholder IDs used in the UpdatePageContentsActions to the entity IDs created for those placeholders
+  """
+  type UpdatePageContentsResultPlaceholder {
+    placeholderId: ID!
+    entityId: ID!
+  }
+
+  type UpdatePageContentsResult {
+    page: Page!
+    placeholders: [UpdatePageContentsResultPlaceholder!]!
   }
 
   extend type Mutation {
@@ -286,6 +371,6 @@ export const pageTypedef = gql`
       The list of actions to perform on the page.
       """
       actions: [UpdatePageAction!]!
-    ): Page!
+    ): UpdatePageContentsResult!
   }
 `;

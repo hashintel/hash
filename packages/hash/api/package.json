@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "API and data store for HASH",
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
@@ -33,7 +33,7 @@
     "apollo-server-errors": "3.1.0",
     "apollo-server-express": "2.25.3",
     "app-root-path": "3.0.0",
-    "blockprotocol": "0.0.8",
+    "blockprotocol": "0.0.10",
     "body-parser": "1.19.0",
     "clipboardy": "2.3.0",
     "connect-pg-simple": "6.2.1",
@@ -44,12 +44,14 @@
     "express": "4.17.1",
     "express-session": "1.17.2",
     "graphql": "15.5.1",
+    "graphql-tag": "2.12.5",
     "graphql-type-json": "0.3.2",
     "helmet": "4.6.0",
     "hot-shots": "8.5.0",
     "html-to-text": "8.0.0",
     "http-terminator": "3.0.3",
     "id128": "1.6.6",
+    "immer": "9.0.6",
     "js-yaml": "4.1.0",
     "json-schema": "0.4.0",
     "jsonpath": "1.1.1",
@@ -72,7 +74,8 @@
     "slonik": "24.1.2",
     "ts-node": "10.4.0",
     "typescript": "4.6.3",
-    "ua-parser-js": "1.0.2"
+    "ua-parser-js": "1.0.2",
+    "uuid": "8.3.2"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.21.5",

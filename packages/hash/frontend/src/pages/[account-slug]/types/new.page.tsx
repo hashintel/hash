@@ -1,23 +1,22 @@
-import { FormEvent, useState } from "react";
+import { useMutation } from "@apollo/client";
+import { TextField } from "@hashintel/hash-design-system";
+import { Collapse, Typography } from "@mui/material";
 
 import { useRouter } from "next/router";
-
-import { useMutation } from "@apollo/client";
+import { FormEvent, useState } from "react";
 import { tw } from "twind";
-
-import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import { TextInput } from "../../../components/forms/TextInput";
-import { Button } from "../../../shared/ui";
-import {
-  NextPageWithLayout,
-  getLayoutWithSidebar,
-} from "../../../shared/layout";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
+import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
+import {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../shared/layout";
 import { useRouteAccountInfo } from "../../../shared/routing";
+import { Button } from "../../../shared/ui";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -25,14 +24,13 @@ const Page: NextPageWithLayout = () => {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const [createEntityType] = useMutation<
+  const [createEntityType, { loading, error }] = useMutation<
     CreateEntityTypeMutation,
     CreateEntityTypeMutationVariables
   >(createEntityTypeMutation, {
     onCompleted: ({ createEntityType: entityType }) =>
-      router.push(`/${entityType.accountId}/types/${entityType.entityId}`),
+      router.push(`/${accountId}/types/${entityType.entityId}`),
     refetchQueries: [
       { query: getAccountEntityTypes, variables: { accountId } },
     ],
@@ -40,11 +38,8 @@ const Page: NextPageWithLayout = () => {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    setLoading(true);
     createEntityType({ variables: { description, name, accountId } }).catch(
       (err) => {
-        setLoading(false);
-
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error("Could not create EntityType: ", err);
       },
@@ -63,23 +58,52 @@ const Page: NextPageWithLayout = () => {
         </p>
       </header>
       <section>
-        <form onSubmit={submit}>
-          <div className={tw`max-w-2xl lg:(flex justify-between) mb-8`}>
-            <TextInput
-              className={tw`w-full mb-6 lg:(mb-0 w-72)`}
-              disallowRegExp={/\W/g}
+        <form data-testid="entity-type-creation-form" onSubmit={submit}>
+          <div className={tw`max-w-2xl lg:flex`}>
+            <TextField
+              name="name"
               label="Name"
-              onChangeText={setName}
+              onChange={(evt) => {
+                const cursor = evt.target.selectionStart ?? 0;
+                const newVal = evt.target.value.replace(/\W/g, "");
+                const oldVal = name;
+                setName(newVal);
+                setTimeout(() => {
+                  const finalCursor =
+                    oldVal === newVal ? Math.max(0, cursor - 1) : cursor;
+
+                  evt.target.setSelectionRange(finalCursor, finalCursor);
+                }, 10);
+              }}
               value={name}
+              sx={{ marginRight: 2, flex: 1 }}
+              size="large"
+              helperText="Name should be in PasalCase"
+              required
             />
-            <TextInput
-              className={tw`w-full lg:w-72 mb-2`}
+            <TextField
+              name="description"
               label="Description"
-              onChangeText={setDescription}
+              onChange={(evt) => setDescription(evt.target.value)}
               value={description}
+              size="large"
+              sx={{ flex: 1.2 }}
             />
           </div>
-          <div>
+
+          <div className={tw`mt-8`}>
+            <Collapse in={!!error?.message}>
+              <Typography
+                sx={({ palette }) => ({
+                  color: palette.orange[60],
+                  mb: 1,
+                  display: "block",
+                })}
+                variant="smallTextParagraphs"
+              >
+                {error?.message}
+              </Typography>
+            </Collapse>
             <Button loading={loading} disabled={loading} type="submit">
               Create Entity Type
             </Button>

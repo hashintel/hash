@@ -1,0 +1,47 @@
+---
+authorPhoto: blog/2_open-source/david.jpg
+postPhoto: blog/2_open-source/OpenSource_Cover.jpg
+title: "Open source at HASH"
+subtitle: "How our approach to open source informs what we do"
+author: "David Wilkinson"
+jobTitle: "CEO at HASH"
+date: "2022-05-15"
+---
+
+## Working in public
+
+At HASH, we publish as much of our code as possible in public.
+
+Depending on the code in question, it'll typically be released under one of three types of license, each of which has slightly different terms attached to it governing what you can and can't do with the underlying source:
+
+1.  **Open-source and permissive licenses:** in essence these licenses give people the freedom to do pretty much whatever they like, including extending the code and keeping it private (making this the most flexible category of license). The entirety of the [Block Protocol](https://github.com/blockprotocol/blockprotocol) is available under these terms (by way of the _MIT License_), alongside most of our blocks and connectors.
+1.  **Open-source and copyleft licenses:** these again give people the freedom to use the code however they like, provided that if they extend or modify the code they contribute those changes back into the open source as well under the same terms. Our [HASH](https://hash.ai/platform/hash) application is available under the _AGPL_ which guarantees this freedom.
+1.  **Fair-source licenses:** fair-source licenses give people access to and freedom to use code directly, and the ability to self-host products without reliance on their creators (i.e. us). However, fair-source licenses limit the ability of others to create competing commercial offerings based on this code. [HASH Engine](https://hash.ai/platform/engine) is released under the _Elastic License (ELv2)_ which allows anyone to use, copy, distribute, make available, and prepare derivative works. But the Elastic license prevents third-parties from using software licensed under it to provide a managed service to others (e.g. to provide a cloud simulation SaaS offering).
+
+## How we think about open source
+
+First, **we contribute** original open-source software (OSS) into the ecosystem through our [HASH platform](https://hash.ai/platform/hash), its connectors, and our blocks. You can [find these](https://github.com/hashintel/hash) on GitHub.
+
+Second, **we leverage** existing OSS within our platform to accelerate development of our products and to provide users with best-in-class experiences. Under the hood we rely on great technologies such as OpenSearch (Apache), Snowplow (Apache), React (MIT), Apollo Server (MIT), and GitLab (MIT). In addition, we use dozens of other open-source packages within our extended codebase.
+
+Third, **we publish** a lot of the source code for the non-open-source components of our platform (such as [hEngine](https://hash.ai/platform/engine)) publicly under fair-source licenses like the Elastic License. This allows any HASH user to utilize our simulation technology within their organization for internal use, free from restriction, provided they don’t offer this technology to others as a managed service themselves (as that would be competitive with our core business). In addition, the Elastic License forbids users from circumventing any license key functionality, or removing or obscuring any feature protected by those keys, as well as any included licenses, copyright and other legal notices.
+
+Finally, **we regularly evaluate the competitive landscape** to see if we can move private code into public repositories, and/or relicense existing public fair source as open source. When the environment changes, so do we. In keeping with [our mission](https://hash.ai/about/mission) to continuously reduce and eliminate information failures, our ultimate goal is to have a fully sustainable business with as large an open-source footprint as possible. We know we can’t even come close to conceiving of all the ways our technology might eventually be used by others, and it’s important to us to provide future innovators with as much freedom and flexibility as possible — without compromising our own ability to sustainably pursue HASH’s mission over the long-term.
+
+Our open-source strategy stands in contrast to the approach of others within the structured-knowledge and simulation space who argue that open-sourcing their software would reduce its quality (see: <a href="https://blog.wolfram.com/2019/04/02/why-wolfram-tech-isnt-open-source-a-dozen-reasons/" rel="nofollow" target="_blank">Why Wolfram Tech Isn’t Open Source—A Dozen Reasons</a>). We respectfully believe the opposite to be true.
+
+## What Wolfram gets wrong
+
+Wolfram are one of the oldest players in the structured knowledge space. Their mission, "to make it possible to compute whatever can be computed, whenever and wherever it is needed, and to make accessible the full frontiers of the computational universe" is highly aligned with our own.
+
+However, all twelve of Wolfram's stated criticisms of open source are straw-men or falsifiable.
+
+1.  **Strong leadership and design are compatible with open source.** Wolfram's first argument against open source is that "a coherent vision requires centralized design". This claim disregards the very many OSS projects with benevelolent dictators who impose design standards, constraints and their own ideas upon the evolution of their projects, much akin to how any company management might - as well as the many corporate stewards of OSS projects. It follows that their second claim, that "high-level languages need more design than low-level languages", is also not an argument against OSS. "Crowd-sourced decisions can be bad for you"; "Unified computation" and "Unified representation" requiring "unified design"; and "Bad design is expensive" — arguments 5, 7, 8 and 12 respectively — can be dismissed for the same reason. _None of these are arguments against open source so much as they are arguments for strong leadership, which remains eminently possible within an open-source environment._
+1.  **Open-source communities are more diverse, not less.** Wolfram argue that "you need multidisciplinary teams to unify disparate fields" (3), a statement that is undoubtedly true. Yet claiming this as an argument _against_ open source turns a blind eye to the diversity and breadth of expertise found within many OSS projects, including HASH, whose contributors come from multiple continents, have varied backgrounds, and in fact represent a much wider set of life-experiences and disciplines than a single company alone might hope to capture within its organizational structure.
+1.  **Commercial entities can help open-source projects be more effective.** Wolfram argue that "hard cases and boring stuff need to get done too" (4), essentially implying that open-source maintainers and coders can't be trusted to knuckle down and focus on important maintainability, or boring background work required to make new technologies impactful and successful. Not only is this patronizing to the thousands of open-source developers who care passionately about the products they build, but it ignores the possibility of commercial entities advancing OSS projects and acting with similar motivations to any other private company. "Our developers work for you, not just themselves" (6) relies upon the same misrepresentation, while "Paid software offers an open quid pro quo" (10) mischaracterizes and ignores the various business models that allow OSS to be both free at the point of access, and profitable (e.g. through the provision of paid complements, such as the famous support services provided by _Red Hat_ which justified their $34 billion sale to _IBM_ in 2019).
+1.  **Huge technological advances occur in the open.** Wolfram's ninth claim, that "Open source doesn’t bring major tech innovation to market", can be disproven by a thousand major open projects, and the entirety of the modern web is built atop OSS. To pick one such project, Linux powers 100% of the world’s top 500 supercomputers, 96.3% of the top 1 million web servers, and 23 of the top 25 websites in the world – built on open Git repositories now containing some ~28 million lines of code.
+1.  **There are many long-term financing options and sustainable business models available to open-source projects.** According to Wolfram, "it takes steady income to sustain long-term R&D", which is generally true (unless you happen to be sat on a large nest-egg already). However, a great number of OSS projects are able to command a stable income, and many of them are far more profitable than Wolfram. Since the advent of debt in approximately 3500 BC it's been possible to operate without monetizing upfront -- in promise or expectation of future cash-flows -- and modern financing in the form of venture capital is just one form of this that has led to an explosion in OSS companies.
+
+Companies often find themselves constrained by path-dependency, struggling to justify historical choices. It can be hard to switch to an open business model when you already have paying customers in a closed business model, so we've set out from day one at HASH to be completely open.
+
+[Join us... we're hiring!](https://hash.ai/careers)

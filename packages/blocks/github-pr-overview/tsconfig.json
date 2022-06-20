@@ -1,0 +1,5 @@
+{
+  "extends": "@hashintel/tsconfig/block.json",
+  "include": ["src", "assets.d.ts", "globals.d.ts"],
+  "exclude": ["node_modules"]
+}

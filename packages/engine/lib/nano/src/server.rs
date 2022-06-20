@@ -3,7 +3,7 @@
 
 use core::fmt;
 
-use error::ResultExt;
+use error_stack::{IntoReport, ResultExt};
 use tokio::sync::mpsc;
 
 use crate::{ErrorKind, Result, RECV_EXPECT_MESSAGE, SEND_EXPECT_MESSAGE};
@@ -54,8 +54,10 @@ impl Worker {
     /// - a [`Sleep`] message occurred.
     ///
     /// [`Sleep`]: nng::AioResult::Sleep
-    fn new(socket: &nng::Socket, sender: MsgSender, url: &str) -> Result<Self, ()> {
-        let ctx_orig = nng::Context::new(socket).wrap_err("Could not create context")?;
+    fn new(socket: &nng::Socket, sender: MsgSender, url: &str) -> Result<Self, nng::Error> {
+        let ctx_orig = nng::Context::new(socket)
+            .report()
+            .attach_printable("Could not create context")?;
         let ctx = ctx_orig.clone();
 
         let socket_url = url.to_owned();
@@ -87,7 +89,8 @@ impl Worker {
         // Initialize the Aio in the Recv state
         ctx_orig
             .recv(&aio)
-            .wrap_err("Could not receive message from context")?;
+            .report()
+            .attach_printable("Could not receive message from context")?;
 
         Ok(Self { _aio: aio })
     }
@@ -104,20 +107,22 @@ impl Server {
     /// - the worker could not be created from the provided `url`.
     pub fn new(url: &str) -> Result<Self> {
         let socket = nng::Socket::new(nng::Protocol::Rep0)
-            .wrap_err("Could not create socket")
-            .provide_context(ErrorKind::ServerCreation)?;
+            .report()
+            .attach_printable("Could not create socket")
+            .change_context(ErrorKind::ServerCreation)?;
         socket
             .listen(url)
-            .wrap_err("Could not listen on socket")
-            .provide_context(ErrorKind::ServerCreation)?;
+            .report()
+            .attach_printable("Could not listen on socket")
+            .change_context(ErrorKind::ServerCreation)?;
 
         let (sender, receiver) = mpsc::unbounded_channel();
 
         let workers = (0..NUM_WORKERS)
             .map(|_| {
                 Worker::new(&socket, sender.clone(), url)
-                    .wrap_err("Could not create worker")
-                    .provide_context(ErrorKind::ServerCreation)
+                    .attach_printable("Could not create worker")
+                    .change_context(ErrorKind::ServerCreation)
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -147,7 +152,8 @@ impl Server {
     {
         let msg = self.receiver.recv().await.expect(RECV_EXPECT_MESSAGE);
         serde_json::from_slice::<T>(msg.as_slice())
-            .wrap_err("Could not convert message from JSON")
-            .provide_context(ErrorKind::Receive)
+            .report()
+            .attach_printable("Could not convert message from JSON")
+            .change_context(ErrorKind::Receive)
     }
 }

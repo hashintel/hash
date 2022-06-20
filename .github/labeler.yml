@@ -31,6 +31,12 @@ A-learn:
   - "resources/**/*"
   - "resources/**/.*"
 
+A-libs:
+  - "packages/libs/*"
+  - "packages/libs/.*"
+  - "packages/libs/**/*"
+  - "packages/libs/**/.*"
+
 C-dependencies:
   - "**/Cargo.lock"
   - "**/yarn.lock"

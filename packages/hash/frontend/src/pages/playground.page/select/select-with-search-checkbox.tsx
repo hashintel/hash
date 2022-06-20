@@ -1,18 +1,14 @@
 import { faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
-import {
-  Box,
-  Checkbox,
-  Divider,
-  FormControl,
-  InputLabel,
-  ListItemIcon,
-  ListItemText,
-  MenuItem,
-  Select,
-} from "@mui/material";
+import { Box, Divider, FormControl, ListItemText } from "@mui/material";
 import { useMemo, useState } from "react";
-import { FontAwesomeIcon } from "../../../shared/icons";
-import { Button, Chip, TextField } from "../../../shared/ui";
+import {
+  Chip,
+  TextField,
+  Select,
+  MenuCheckboxItem,
+  FontAwesomeIcon,
+} from "@hashintel/hash-design-system";
+import { Button } from "../../../shared/ui";
 
 const MENU_ITEMS = [
   "Edit",
@@ -44,13 +40,9 @@ export const SelectWithSearchAndCheckbox = () => {
 
   return (
     <FormControl>
-      <InputLabel
-        sx={{ visibility: "visible", color: "red" }}
-        shrink={false}
-        disableAnimation
-        variant="standard"
-      />
       <Select
+        label="Select with checkbox"
+        labelId="select-with-checkbox"
         multiple
         fullWidth
         renderValue={(selected) => (
@@ -76,12 +68,14 @@ export const SelectWithSearchAndCheckbox = () => {
           />
         </Box>
         {filteredMenuItems.map((item) => (
-          <MenuItem key={item} value={item} onClick={() => toggleItem(item)}>
-            <ListItemIcon>
-              <Checkbox checked={selectedOptions.includes(item)} />
-            </ListItemIcon>
+          <MenuCheckboxItem
+            key={item}
+            value={item}
+            onClick={() => toggleItem(item)}
+            selected={selectedOptions.includes(item)}
+          >
             <ListItemText primary={item} />
-          </MenuItem>
+          </MenuCheckboxItem>
         ))}
         <Divider />
         <Box p={0.5}>

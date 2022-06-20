@@ -5,7 +5,6 @@ import {
   Divider,
   Tooltip,
   Menu,
-  MenuItem,
   ListItemText,
 } from "@mui/material";
 
@@ -14,8 +13,9 @@ import {
   bindMenu,
   bindTrigger,
 } from "material-ui-popup-state/hooks";
+import { Avatar } from "@hashintel/hash-design-system";
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
-import { Avatar } from "../../ui";
+import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 type AccountDropdownProps = {
@@ -132,24 +132,19 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           )}
         </Box>
         <Divider />
-        <MenuItem onClick={popupState.close}>
+        {/*  
+          Commented out menu items whose functionality have not been implemented yet
+          @todo uncomment when functionality has been implemented 
+        */}
+        {/* <MenuItem onClick={popupState.close}>
           <ListItemText primary="Account Settings" />
         </MenuItem>
         <MenuItem onClick={popupState.close}>
           <ListItemText primary="Appearance" />
         </MenuItem>
-        <Divider />
-        <MenuItem onClick={logout}>
-          <ListItemText
-            primary="Sign Out"
-            primaryTypographyProps={{
-              // @todo MenuItem should have a prop faded that handles this
-              // remove the need for important
-              sx: ({ palette }) => ({
-                color: `${palette.gray[60]} !important`,
-              }),
-            }}
-          />
+        <Divider /> */}
+        <MenuItem onClick={logout} faded>
+          <ListItemText primary="Sign Out" />
         </MenuItem>
       </Menu>
     </Box>

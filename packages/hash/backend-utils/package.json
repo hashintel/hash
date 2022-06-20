@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "HASH backend utilities",
-  "license": "SSPL-1.0",
+  "license": "AGPL-3.0",
   "exports": {
     "./*": "./src/*.ts"
   },
@@ -23,7 +23,7 @@
   "dependencies": {
     "@opensearch-project/opensearch": "1.1.0",
     "apollo-datasource": "3.3.0",
-    "blockprotocol": "0.0.8",
+    "blockprotocol": "0.0.10",
     "dotenv-flow": "3.2.0",
     "redis": "3.1.2",
     "slonik": "24.1.2",
