@@ -467,17 +467,6 @@ impl Segment {
             include_terminal_padding,
         )?;
 
-        if cfg!(target_os = "macos") {
-            if let Ok(val) = env::var("OS_MEMORY_ALLOC_OVERRIDE") {
-                size = val.parse().unwrap_or_else(|_| {
-                    panic!("OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}")
-                });
-                tracing::debug!(
-                    "Memory size was overridden by value set in envvar, set to: {size}"
-                );
-            }
-        }
-
         let mut memory = Segment::new(memory_id, size, true, include_terminal_padding)?;
 
         let mut visitor = memory.visitor_mut();
@@ -506,17 +495,6 @@ impl Segment {
             markers.get_total_contents_size(),
             include_terminal_padding,
         )?;
-
-        if cfg!(target_os = "macos") {
-            if let Ok(val) = env::var("OS_MEMORY_ALLOC_OVERRIDE") {
-                size = val.parse().unwrap_or_else(|_| {
-                    panic!("OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}")
-                });
-                tracing::debug!(
-                    "Memory size was overridden by value set in envvar, set to: {size}"
-                );
-            }
-        }
 
         let mut memory = Segment::new(memory_id, size, true, include_terminal_padding)?;
 
