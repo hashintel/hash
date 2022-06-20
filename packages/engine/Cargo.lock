@@ -465,12 +465,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core-foundation-sys"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1466,15 +1460,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ntapi"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f6bb902e437b6d86e03cce10a7e2af662292c5dfef23b65899ea3ac9354ad44"
-dependencies = [
- "winapi",
-]
-
-[[package]]
 name = "num"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2081,13 +2066,12 @@ dependencies = [
 [[package]]
 name = "shared_memory"
 version = "0.12.0"
-source = "git+https://github.com/hashdeps/shared_memory-rs#2475147ac7a5cb6fa00e02c14a9f5cfb222a8833"
+source = "git+https://github.com/hashdeps/shared_memory-rs#f6969f67807575a82e18cb1349dad6b3eeaa56c1"
 dependencies = [
  "cfg-if",
  "libc",
  "nix",
  "rand 0.8.4",
- "sysinfo",
  "winapi",
 ]
 
@@ -2288,21 +2272,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
-]
-
-[[package]]
-name = "sysinfo"
-version = "0.20.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e223c65cd36b485a34c2ce6e38efa40777d31c4166d9076030c74cdcf971679f"
-dependencies = [
- "cfg-if",
- "core-foundation-sys",
- "libc",
- "ntapi",
- "once_cell",
- "rayon",
- "winapi",
 ]
 
 [[package]]
