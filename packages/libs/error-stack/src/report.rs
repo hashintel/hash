@@ -2,6 +2,8 @@ use alloc::{boxed::Box, string::ToString, vec::Vec};
 use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
+#[cfg(feature = "std")]
+use std::process::ExitCode;
 
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
@@ -154,7 +156,6 @@ impl<C> Report<C> {
         frame: Frame,
         #[cfg(all(nightly, feature = "std"))] backtrace: Option<Backtrace>,
         #[cfg(feature = "spantrace")] span_trace: Option<SpanTrace>,
-        #[cfg(feature = "std")] exit_code: Option<u8>,
     ) -> Self {
         Self {
             inner: Box::new(ReportImpl {
@@ -163,8 +164,6 @@ impl<C> Report<C> {
                 backtrace,
                 #[cfg(feature = "spantrace")]
                 span_trace,
-                #[cfg(feature = "std")]
-                exit_code,
             }),
             _context: PhantomData,
         }
@@ -212,8 +211,6 @@ impl<C> Report<C> {
             backtrace,
             #[cfg(feature = "spantrace")]
             span_trace,
-            #[cfg(feature = "std")]
-            None,
         )
     }
 
@@ -243,8 +240,6 @@ impl<C> Report<C> {
             self.inner.backtrace,
             #[cfg(feature = "spantrace")]
             self.inner.span_trace,
-            #[cfg(feature = "std")]
-            self.inner.exit_code,
         )
     }
 
@@ -301,46 +296,7 @@ impl<C> Report<C> {
             self.inner.backtrace,
             #[cfg(feature = "spantrace")]
             self.inner.span_trace,
-            #[cfg(feature = "std")]
-            self.inner.exit_code,
         )
-    }
-
-    /// Sets the error code for the Report.
-    ///
-    /// **Note:** Allowing `clippy::missing_const_for_fn` because of bug [#4979](https://github.com/rust-lang/rust-clippy/issues/4979).
-    ///
-    /// ## Example
-    ///
-    /// ```rust,should_panic
-    /// use std::process::{ExitCode, Termination};
-    ///
-    /// use error_stack::{Context, Report};
-    ///
-    /// #[derive(Debug)]
-    /// struct CustomError;
-    ///
-    /// impl Context for CustomError {}
-    ///
-    /// impl std::fmt::Display for CustomError {
-    ///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    ///         f.write_str("Custom Error")
-    ///     }
-    /// }
-    ///
-    /// fn main() -> ExitCode {
-    ///     let report = Report::new(CustomError)
-    ///         .attach_exit_code(100)
-    ///         .attach_printable("This error has an exit code of 100!");
-    ///
-    ///     report.report()
-    /// }
-    /// ```
-    #[cfg(feature = "std")]
-    #[allow(clippy::missing_const_for_fn)]
-    pub fn attach_exit_code(mut self, exit_code: u8) -> Self {
-        self.inner.exit_code = Some(exit_code);
-        self
     }
 
     /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
@@ -362,8 +318,6 @@ impl<C> Report<C> {
             self.inner.backtrace,
             #[cfg(feature = "spantrace")]
             self.inner.span_trace,
-            #[cfg(feature = "std")]
-            self.inner.exit_code,
         )
     }
 
@@ -592,6 +546,34 @@ impl<Context> fmt::Display for Report<Context> {
     }
 }
 
+/// Sets the termination for the the `Report<C>` type.
+///
+/// ## Example
+///
+/// ```rust,should_panic
+/// use std::process::{ExitCode, Termination};
+///
+/// use error_stack::{Context, Report};
+///
+/// #[derive(Debug)]
+/// struct CustomError;
+///
+/// impl Context for CustomError {}
+///
+/// impl std::fmt::Display for CustomError {
+///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+///         f.write_str("Custom Error")
+///     }
+/// }
+///
+/// fn main() -> ExitCode {
+///     let report = Report::new(CustomError)
+///         .attach(ExitCode::from(100))
+///         .attach_printable("This error has an exit code of 100!");
+///
+///     report.report()
+/// }
+/// ```
 impl<Context> fmt::Debug for Report<Context> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
@@ -670,8 +652,15 @@ impl<Context> std::process::Termination for Report<Context>
 where
     Context: fmt::Debug,
 {
-    fn report(self) -> std::process::ExitCode {
-        std::process::ExitCode::from(self.inner.exit_code.unwrap_or(1))
+    fn report(self) -> ExitCode {
+        #[cfg(not(nightly))]
+        return ExitCode::FAILURE;
+
+        #[cfg(nightly)]
+        self.request_ref::<ExitCode>()
+            .next()
+            .copied()
+            .unwrap_or(ExitCode::FAILURE)
     }
 }
 
@@ -681,6 +670,4 @@ pub struct ReportImpl {
     backtrace: Option<Backtrace>,
     #[cfg(feature = "spantrace")]
     span_trace: Option<SpanTrace>,
-    #[cfg(feature = "std")]
-    exit_code: Option<u8>,
 }
