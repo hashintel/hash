@@ -250,6 +250,13 @@ impl Segment {
             .create()?;
         unsafe { std::ptr::copy_nonoverlapping(self.data.as_ptr(), new_data.as_ptr(), self.size) };
         mem::replace(&mut self.data, new_data).unmap();
+
+        // The memory id of the new segment is different from the old segment, thus we need to
+        // enforce reloading later.
+        let mut metaversion_to_persist = self.read_persisted_metaversion();
+        metaversion_to_persist.increment();
+        self.persist_metaversion(metaversion_to_persist);
+
         self.reload()
     }
 
