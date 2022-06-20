@@ -98,8 +98,8 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
           size="medium"
           unpadded
           sx={({ palette }) => ({
-            color: "transparent",
-            "&:hover": {
+            color: [selected ? palette.gray[40] : "transparent"],
+            "&:focus-visible, &:hover": {
               backgroundColor: palette.gray[selected ? 40 : 30],
               color: palette.gray[50],
             },

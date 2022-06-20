@@ -141,10 +141,10 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
           unpadded
           className="page-menu-trigger"
           sx={({ palette }) => ({
-            color: "transparent",
-            "&:hover": {
+            color: [selected ? palette.gray[40] : "transparent"],
+            "&:focus-visible, &:hover": {
               backgroundColor: palette.gray[selected ? 40 : 30],
-              color: palette.gray[selected ? 80 : 70],
+              color: palette.gray[50],
             },
           })}
         >
