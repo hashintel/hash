@@ -7,7 +7,7 @@ import { AccountDropdown } from "./account-dropdown";
 import { SearchBar } from "./search-bar";
 import { ActionsDropdown } from "./actions-dropdown";
 import { Button, Link } from "../../ui";
-import { HashNavIcon } from "../../icons";
+import { HashAlphaNavIcon } from "../../icons";
 
 const Nav: React.FC = ({ children }) => (
   <Box
@@ -63,10 +63,10 @@ export const PageHeader: React.VFC = () => {
             }}
           >
             <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
-              <HashNavIcon
+              <HashAlphaNavIcon
                 sx={({ palette }) => ({
-                  height: "1rem",
-                  marginBottom: "-3px",
+                  height: "1.1rem",
+                  marginBottom: "-4px",
                   width: "auto",
                   fill: palette.gray["50"],
                 })}
