@@ -220,16 +220,7 @@ Your tests will be less wired to the implementation details and thus be closer t
 
 ## Code quality
 
-We perform automated linting and formatting checks on pull requests using GitHub Actions. You may
-also run these checks using the git hooks provided in [./hooks](./hooks). To install these hooks,
-run:
-
-```sh
-yarn install-hooks
-```
-
-This installs the hooks into your `.git/hooks` directory as symlinks to the corresponding script in
-`./hooks`.
+We perform automated linting and formatting checks on pull requests using GitHub Actions.
 
 ## Monorepo
 
