@@ -35,6 +35,6 @@ Please see [SECURITY.md](SECURITY.md) for instructions around reporting issues, 
 
 ## Contact
 
-Find us on Twitter at [@hashintel](https://twitter.com/hashintel), join our [Discord server](https://hash.ai/discord) for quick help and support, or post in our [community forum](https://hash.community/). To learn more about the overall vision we're pursuing, check out the [hash.dev](https://hash.dev/) site for more.
+Find us on Twitter at [@hashintel](https://twitter.com/hashintel), join our [Discord server](https://hash.ai/discord) for quick help and support, or post in our [community forum](https://hash.community/). To learn more about the overall vision we're pursuing, check out the [hash.dev](https://hash.dev/) site.
 
 Project permalink: `https://github.com/hashintel/hash`
