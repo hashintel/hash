@@ -81,7 +81,6 @@ export const PageSidebar: VoidFunctionComponent = () => {
         href="/"
         tooltipTitle="Pages you’ve recently visited"
       /> */}
-      {/* <Box sx={{ mb: 1 }} /> */}
 
       <Box
         sx={{
