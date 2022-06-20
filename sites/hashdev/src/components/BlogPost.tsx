@@ -113,7 +113,7 @@ export const BlogPostHead: VFC<{
             [theme.breakpoints.up("md")]: {
               mx: 0,
               maxWidth: "calc(100vw - ((100vw - var(--size)) / 2)) !important",
-              ml: "calc((100vw - var(--size)) / 2)",
+              ml: "calc(var(--size) - var(--size)) / 2)",
               pr: "0px !important",
             },
           })}
