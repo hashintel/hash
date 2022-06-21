@@ -16,7 +16,22 @@ const DevApp = () => {
       blockDefinition={{ ReactComponent: Component }}
       blockEntity={{
         entityId: "test-block-1",
-        properties: { name: "World" },
+        properties: {
+          cells: [
+            [["A", 1], "Employees"],
+            [["B", 1], "Count"],
+            [["C", 1], "Average"],
+            [["A", 2], "=count()"],
+            [["B", 2], "=sum(employees)"],
+            [["C", 2], "=B2/A2"],
+            [["A", 3], "=count()"],
+          ],
+          rows: [
+            [1, null],
+            [2, "Company"],
+            [3, "Person"],
+          ],
+        },
       }}
       debug
     />
