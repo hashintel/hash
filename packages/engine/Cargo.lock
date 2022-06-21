@@ -616,17 +616,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive-new"
-version = "0.5.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3418329ca0ad70234b9735dc4ceed10af4df60eff9c8e7b06cb5e520d92c3535"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -964,30 +953,20 @@ dependencies = [
  "cc",
  "clap",
  "csv",
- "derive-new",
  "error-stack",
  "execution",
- "flatbuffers",
  "flatbuffers_gen",
  "futures",
- "glob",
- "http-types",
- "lazy_static",
  "memory",
  "nano",
  "num_cpus",
  "orchestrator",
- "parking_lot",
  "rand 0.8.4",
  "rayon",
- "regex",
  "serde",
- "serde-aux",
  "serde_json",
- "shared_memory",
  "simulation_structure",
  "stateful",
- "strum_macros",
  "surf",
  "thiserror",
  "tokio",
@@ -996,7 +975,6 @@ dependencies = [
  "tracing-error",
  "tracing-subscriber",
  "tracing-texray",
- "uuid",
 ]
 
 [[package]]
@@ -1606,7 +1584,6 @@ dependencies = [
  "stateful",
  "tokio",
  "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -2088,6 +2065,7 @@ dependencies = [
 name = "simulation_structure"
 version = "0.0.0"
 dependencies = [
+ "serde",
  "uuid",
 ]
 
@@ -2221,18 +2199,6 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
-
-[[package]]
-name = "strum_macros"
-version = "0.19.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e61bb0be289045cb80bfce000512e32d09f8337e54c186725da381377ad1f8d5"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn",
-]
 
 [[package]]
 name = "subtle"

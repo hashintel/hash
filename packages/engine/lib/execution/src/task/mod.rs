@@ -41,7 +41,12 @@ mod distribution;
 mod message;
 mod shared_store;
 
+use std::fmt;
+
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+use stateful::field::UUID_V4_LEN;
+use uuid::Uuid;
 
 pub use self::{
     cancel::CancelTask,
@@ -107,4 +112,36 @@ pub trait ActiveTask: Send {
 }
 
 /// Unique identified for a [`Task`].
-pub type TaskId = u128;
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct TaskId {
+    id: Uuid,
+}
+
+impl TaskId {
+    pub fn generate() -> Self {
+        Self { id: Uuid::new_v4() }
+    }
+
+    pub fn from_slice(b: &[u8]) -> Result<Self> {
+        Ok(Self {
+            id: Uuid::from_slice(b)?,
+        })
+    }
+
+    pub fn from_bytes(b: [u8; UUID_V4_LEN]) -> Self {
+        Self {
+            id: Uuid::from_bytes(b),
+        }
+    }
+
+    pub fn as_bytes(&self) -> &[u8; UUID_V4_LEN] {
+        self.id.as_bytes()
+    }
+}
+
+impl fmt::Display for TaskId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.serialize(fmt)
+    }
+}

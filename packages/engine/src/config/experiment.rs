@@ -90,15 +90,3 @@ impl Config {
         &self.run.base().name
     }
 }
-
-impl From<&Config> for Config {
-    fn from(value: &Config) -> Self {
-        Self {
-            packages: value.packages.clone(),
-            run: Arc::clone(&value.run),
-            worker_pool: value.worker_pool.clone(),
-            target_max_group_size: value.target_max_group_size,
-            base_globals: value.base_globals.clone(),
-        }
-    }
-}

@@ -22,6 +22,7 @@ pub mod tests {
 
     use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
     use rand::Rng;
+    use simulation_structure::ExperimentId;
     use stateful::{
         agent::{AgentBatch, IntoAgents},
         field::UUID_V4_LEN,
@@ -125,7 +126,7 @@ pub mod tests {
 
     #[test]
     pub fn uuid_v4_len() {
-        let uuid = uuid::Uuid::new_v4();
+        let uuid = ExperimentId::generate();
         let bytes = uuid.as_bytes();
         assert_eq!(bytes.len(), UUID_V4_LEN);
     }

@@ -24,7 +24,7 @@ mod spec_map;
 /// We store Agent IDs in the UUID-byte format (not string bytes).
 ///
 /// This means their length is 128 bits i.e. 16 bytes
-pub const UUID_V4_LEN: usize = 16;
+pub const UUID_V4_LEN: usize = std::mem::size_of::<u128>();
 pub(in crate) const POSITION_DIM: usize = 3;
 
 pub(in crate) use self::fixed_size::IsFixedSize;

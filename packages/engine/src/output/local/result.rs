@@ -2,9 +2,9 @@ use serde::Serialize;
 
 use crate::output::{OutputPersistenceResultRepr, Result};
 
-#[derive(derive_new::new, Serialize)]
+#[derive(Serialize)]
 pub struct LocalPersistenceResult {
-    persistence_path: String,
+    pub persistence_path: String,
 }
 
 impl OutputPersistenceResultRepr for LocalPersistenceResult {

@@ -12,17 +12,8 @@ pub enum Error {
     #[error("Simulation error: {0}")]
     Simulation(#[from] crate::simulation::Error),
 
-    #[error("Datastore error: {0}")]
-    Datastore(#[from] crate::datastore::Error),
-
     #[error("Deserialization error: {0}")]
     FromSerde(#[from] serde_json::Error),
-}
-
-impl From<&str> for Error {
-    fn from(s: &str) -> Self {
-        Error::Unique(s.to_string())
-    }
 }
 
 impl From<String> for Error {

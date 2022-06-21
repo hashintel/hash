@@ -15,6 +15,7 @@ use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
+use simulation_structure::ExperimentId;
 use tracing_subscriber::fmt::time::Uptime;
 
 use self::error::{Result, TestContext};
@@ -316,7 +317,7 @@ pub async fn run_test<P: AsRef<Path>>(
     let project_path = project_path.as_ref();
 
     let nng_listen_url = {
-        let uuid = uuid::Uuid::new_v4();
+        let uuid = ExperimentId::generate();
         if let Some(language) = language {
             format!("ipc://integration-test-suite-{project_name}-{language}-{uuid}")
         } else {

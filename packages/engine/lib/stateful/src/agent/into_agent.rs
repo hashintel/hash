@@ -9,7 +9,7 @@ use memory::arrow::{col_to_json_vals, json_utf8_json_vals};
 
 use crate::{
     agent::{
-        arrow::PREVIOUS_INDEX_FIELD_KEY, Agent, AgentBatch, AgentName, AgentSchema,
+        arrow::PREVIOUS_INDEX_FIELD_KEY, field::AgentId, Agent, AgentBatch, AgentName, AgentSchema,
         AgentStateField, IsRequired, BUILTIN_FIELDS,
     },
     field::{FieldScope, FieldTypeVariant, UUID_V4_LEN},
@@ -202,9 +202,7 @@ fn set_states_agent_id(states: &mut [Agent], record_batch: &RecordBatch) -> Resu
         debug_assert_eq!(array.value_length(), UUID_V4_LEN as i32);
 
         for (i_state, state) in states.iter_mut().enumerate() {
-            let value = array.value(i_state);
-            let uuid = uuid::Uuid::from_slice(value)?;
-            state.agent_id = uuid.to_hyphenated().to_string();
+            state.agent_id = AgentId::from_slice(array.value(i_state))?;
         }
     }
     Ok(())

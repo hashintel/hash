@@ -14,15 +14,14 @@ use crate::{
     simulation::step_output::SimulationStepOutput,
 };
 
-#[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
-    project_name: String,
-    experiment_name: ExperimentName,
-    experiment_id: ExperimentId,
-    sim_id: SimulationShortId,
+    pub project_name: String,
+    pub experiment_name: ExperimentName,
+    pub experiment_id: ExperimentId,
+    pub sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
-    buffers: Buffers,
-    config: LocalPersistenceConfig,
+    pub buffers: Buffers,
+    pub config: LocalPersistenceConfig,
 }
 
 #[async_trait::async_trait]
@@ -91,8 +90,8 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
             serde_json::to_string(&config.sim.package_creator.globals)?,
         )?;
 
-        Ok(LocalPersistenceResult::new(
-            path.canonicalize()?.to_string_lossy().to_string(),
-        ))
+        Ok(LocalPersistenceResult {
+            persistence_path: path.canonicalize()?.to_string_lossy().to_string(),
+        })
     }
 }

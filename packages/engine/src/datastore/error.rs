@@ -1,4 +1,3 @@
-use arrow::error::ArrowError;
 use thiserror::Error as ThisError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -14,17 +13,9 @@ pub enum Error {
     #[error("Stateful error: {0}")]
     Stateful(#[from] stateful::Error),
 
+    #[cfg(test)]
     #[error("Arrow Error: {0}")]
-    Arrow(#[from] ArrowError),
-
-    #[error("Serde Error: {0}")]
-    Serde(#[from] serde_json::Error),
-
-    #[error("Shared memory error: {0}")]
-    SharedMemory(#[from] shared_memory::ShmemError),
-
-    #[error("No column found in batch with name: {0}")]
-    ColumnNotFound(String),
+    Arrow(#[from] arrow::error::ArrowError),
 
     #[error("Expected Node Metadata")]
     NodeMetadataExpected,
@@ -35,9 +26,7 @@ pub enum Error {
     #[error("Expected Shift Action Vector to be non-empty")]
     EmptyShiftActionVector,
 
-    #[error("{0}")]
-    RwLock(String),
-
+    #[cfg(test)]
     #[error("Invalid utf-8: {0}")]
     FromUtf8Error(#[from] std::string::FromUtf8Error),
 

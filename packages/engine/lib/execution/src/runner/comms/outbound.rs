@@ -167,7 +167,7 @@ impl OutboundFromRunnerMsgPayload {
                     Error::from("Message from runner should have had a task_id but it was missing")
                 })?;
 
-                Self::TaskCancelled(uuid::Uuid::from_slice(&task_id.0)?.as_u128())
+                Self::TaskCancelled(TaskId::from_slice(&task_id.0)?)
             }
             flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::RunnerError => {
                 let payload = parsed_msg.payload_as_runner_error().ok_or_else(|| {
