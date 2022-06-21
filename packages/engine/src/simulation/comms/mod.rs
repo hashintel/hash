@@ -167,7 +167,7 @@ impl execution::package::simulation::Comms for Comms {
         task: PackageTask,
         shared_store: TaskSharedStore,
     ) -> execution::Result<ActiveTask> {
-        let task_id = uuid::Uuid::new_v4().as_u128();
+        let task_id = TaskId::generate();
         let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store)?;
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))
