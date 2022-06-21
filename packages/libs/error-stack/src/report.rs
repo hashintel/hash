@@ -640,31 +640,3 @@ pub struct ReportImpl {
     #[cfg(feature = "spantrace")]
     span_trace: Option<SpanTrace>,
 }
-#[cfg(test)]
-mod test {
-    use std::process::{ExitCode, Termination};
-
-    use crate::{Context, Report};
-
-    #[derive(Debug)]
-    struct CustomError;
-
-    impl Context for CustomError {}
-
-    impl std::fmt::Display for CustomError {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.write_str("Custom Error")
-        }
-    }
-
-    #[test]
-    fn test_exit_code() {
-        let report = Report::new(CustomError)
-            .attach(ExitCode::from(100))
-            .attach_printable("This error has an exit code of 100!");
-
-        // _ to get rid of clippy warning.
-        let _exit = report.report();
-        assert!(matches!(ExitCode::from(100), _exit));
-    }
-}
