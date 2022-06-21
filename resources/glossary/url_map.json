@@ -146,7 +146,7 @@
   {
     "title": "Fast Healthcare Interoperability Resources",
     "description": "An electronic healthcare standard for data interoperability.",
-    "slug": "fast-healthcare-interoperability-resources",
+    "slug": "fhir",
     "tags": ["Standards"]
   },
   {
