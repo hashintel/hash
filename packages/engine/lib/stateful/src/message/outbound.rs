@@ -159,7 +159,7 @@ impl Message {
     ) -> Result<(), Error> {
         if value.get("data").is_none() {
             if let Some(obj) = value.as_object_mut() {
-                let agent_id = state.agent_id.clone();
+                let agent_id = state.agent_id;
                 match serde_json::to_value(payload::RemoveAgentData { agent_id }) {
                     Ok(value) => {
                         obj.insert(String::from("data"), value);

@@ -32,9 +32,6 @@ pub enum Error {
     #[error("Serde Error: {0}")]
     Serde(#[from] serde_json::Error),
 
-    #[error("Uuid error: {0}")]
-    Uuid(#[from] uuid::Error),
-
     #[error(
         "Received an incorrect `remove_agent` message: {0}. Valid examples: 1) {{\"agent_id\": \
          \"b2387514-e76a-4695-9831-8d9ac6254468\"}}, 2) None/null 3) {{}}, 4) \"\""

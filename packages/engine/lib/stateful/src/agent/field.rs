@@ -1,18 +1,19 @@
-use core::fmt;
 use std::{
     collections::{HashMap, HashSet},
+    fmt,
     ops::{Index, IndexMut},
 };
 
 use serde::{
-    de::{self, Deserialize, Deserializer, MapAccess, Visitor},
-    Serialize,
+    de::{self, Deserializer, MapAccess, Visitor},
+    Deserialize, Serialize,
 };
+use uuid::Uuid;
 
 use crate::{
     agent::AgentName,
     error::{Error, Result},
-    field::{FieldType, FieldTypeVariant, PresetFieldType},
+    field::{FieldType, FieldTypeVariant, PresetFieldType, UUID_V4_LEN},
     message, Vec3,
 };
 
@@ -175,6 +176,40 @@ pub(crate) const BUILTIN_FIELDS: [&str; 12] = [
     AgentStateField::Hidden.name(),
 ];
 
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct AgentId {
+    id: Uuid,
+}
+
+impl AgentId {
+    pub fn generate() -> Self {
+        Self { id: Uuid::new_v4() }
+    }
+
+    pub fn from_slice(b: &[u8]) -> Result<Self> {
+        Ok(Self {
+            id: Uuid::from_slice(b)?,
+        })
+    }
+
+    pub fn from_bytes(b: [u8; UUID_V4_LEN]) -> Self {
+        Self {
+            id: Uuid::from_bytes(b),
+        }
+    }
+
+    pub fn as_bytes(&self) -> &[u8; UUID_V4_LEN] {
+        self.id.as_bytes()
+    }
+}
+
+impl fmt::Display for AgentId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.serialize(fmt)
+    }
+}
+
 /// `Agents` lie at the heart of _agent-based modeling_.
 ///
 /// Every agent holds information describing itself. This collection of information is called the
@@ -182,8 +217,8 @@ pub(crate) const BUILTIN_FIELDS: [&str; 12] = [
 #[derive(Clone, Serialize, Debug, PartialEq)]
 pub struct Agent {
     /// The unique identifier (UUIDv4) of an agent.
-    #[serde(default = "generate_agent_id")]
-    pub agent_id: String,
+    #[serde(default = "AgentId::generate")]
+    pub agent_id: AgentId,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_name: Option<AgentName>,
@@ -292,17 +327,7 @@ impl<'de> Deserialize<'de> for Agent {
                     }
                     match key {
                         AgentStateField::AgentId => {
-                            let value: serde_json::Value = map.next_value()?;
-                            agent_state_buf.agent_id = match value {
-                                serde_json::Value::Number(n) => n.to_string(),
-                                serde_json::Value::String(s) => s,
-                                _ => {
-                                    return Err(de::Error::invalid_type(
-                                        de::Unexpected::Other("non string or number"),
-                                        &"a string or number",
-                                    ));
-                                }
-                            };
+                            agent_state_buf.agent_id = map.next_value()?;
                         }
                         AgentStateField::AgentName => {
                             agent_state_buf.agent_name = Some(map.next_value()?);
@@ -359,9 +384,6 @@ impl<'de> Deserialize<'de> for Agent {
                         }
                     }
                 }
-                if agent_state_buf.agent_id.is_empty() {
-                    agent_state_buf.agent_id = generate_agent_id();
-                }
                 if let Some(messages) = held_messages {
                     agent_state_buf.messages = messages.consume::<V::Error>(&agent_state_buf)?;
                 }
@@ -394,10 +416,6 @@ fn to_vec3_default(val: serde_json::Value, default: f64) -> Result<Option<Vec3>,
         }
         _ => Err("must be an array or null".into()),
     }
-}
-
-fn generate_agent_id() -> String {
-    uuid::Uuid::new_v4().to_string()
 }
 
 #[test]
@@ -441,7 +459,7 @@ fn deserialize_duplicate_agent_state_field() {
 impl Default for Agent {
     fn default() -> Self {
         Self {
-            agent_id: generate_agent_id(),
+            agent_id: AgentId::generate(),
             ..Agent::empty()
         }
     }
@@ -546,7 +564,7 @@ impl Agent {
     #[must_use]
     pub fn empty() -> Agent {
         Agent {
-            agent_id: String::new(),
+            agent_id: AgentId::generate(),
             agent_name: None,
 
             messages: vec![],
@@ -592,7 +610,7 @@ impl Agent {
                             let mut map = serde_json::Map::new();
                             map.insert(
                                 String::from("agent_id"),
-                                serde_json::Value::String(self.agent_id.clone()),
+                                serde_json::Value::String(self.agent_id.to_string()),
                             );
                             serde_json::Value::Object(map)
                         }),
@@ -670,7 +688,7 @@ impl Agent {
     // TODO: UNUSED: Needs triage
     pub fn working_copy(&self) -> Self {
         Agent {
-            agent_id: self.agent_id.clone(),
+            agent_id: self.agent_id,
             agent_name: self.agent_name.clone(),
 
             // the working copy doesn't have the old messages
@@ -696,7 +714,7 @@ impl Agent {
     pub fn child(&self) -> Self {
         Agent {
             // children get a new uuid
-            agent_id: generate_agent_id(),
+            agent_id: AgentId::generate(),
             // children do not get the same name
             agent_name: None,
             // children do not inherit messages
@@ -859,9 +877,7 @@ mod tests {
     fn test_empty_state() {
         let json = "{}";
 
-        let agent: Agent = serde_json::from_str(json).unwrap();
-
-        assert_eq!(agent.agent_id.len(), 36);
+        assert!(serde_json::from_str::<Agent>(json).is_ok());
     }
 
     #[test]
@@ -953,7 +969,7 @@ mod tests {
             r#type: message::RemoveAgent::Type,
             to: vec!["hash".to_string()],
             data: message::payload::RemoveAgentData {
-                agent_id: "old_agent".to_string(),
+                agent_id: AgentId::generate(),
             },
         });
 

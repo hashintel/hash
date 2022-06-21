@@ -33,8 +33,12 @@ use execution::{
     },
 };
 use simulation_structure::SimulationShortId;
-use stateful::{agent::Agent, context::Context, field::PackageId, state::StateReadProxy};
-use uuid::Uuid;
+use stateful::{
+    agent::{Agent, AgentId},
+    context::Context,
+    field::PackageId,
+    state::StateReadProxy,
+};
 
 use super::{command::Commands, task::active::ActiveTask, Error, Result};
 
@@ -176,7 +180,7 @@ impl execution::package::simulation::Comms for Comms {
         Ok(())
     }
 
-    fn add_remove_agent_command(&mut self, agent_id: Uuid) -> execution::Result<()> {
+    fn add_remove_agent_command(&mut self, agent_id: AgentId) -> execution::Result<()> {
         self.cmds.try_write()?.add_remove(agent_id);
         Ok(())
     }

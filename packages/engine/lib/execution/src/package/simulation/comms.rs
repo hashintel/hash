@@ -1,7 +1,9 @@
 use async_trait::async_trait;
-use stateful::{agent::Agent, field::PackageId};
+use stateful::{
+    agent::{Agent, AgentId},
+    field::PackageId,
+};
 use tracing::Instrument;
-use uuid::Uuid;
 
 use crate::{
     package::simulation::{PackageTask, PackageType},
@@ -37,7 +39,7 @@ pub trait Comms: Send + Sync + 'static {
     /// # Errors
     ///
     /// This function can fail if it's unable to acquire a write lock.
-    fn add_remove_agent_command(&mut self, agent_id: Uuid) -> Result<()>;
+    fn add_remove_agent_command(&mut self, agent_id: AgentId) -> Result<()>;
 }
 
 pub struct PackageComms<C> {
@@ -88,7 +90,7 @@ impl<C: Comms> PackageComms<C> {
     /// This function can fail if it's unable to acquire a write lock.
     // TODO: This is currently unused as messages are used to remove agents, however, other packages
     //   may should be able to remove agents as well
-    pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
-        self.comms.add_remove_agent_command(uuid)
+    pub fn add_remove_agent_command(&mut self, agent_id: AgentId) -> Result<()> {
+        self.comms.add_remove_agent_command(agent_id)
     }
 }
