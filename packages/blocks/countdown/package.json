@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/react-datepicker": "^4.4.1",
-    "block-scripts": "0.0.10",
+    "block-scripts": "0.0.11",
     "mock-block-dock": "0.0.15",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
