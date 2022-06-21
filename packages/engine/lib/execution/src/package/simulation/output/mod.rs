@@ -13,6 +13,7 @@
 pub mod analysis;
 pub mod json_state;
 
+mod buffers;
 mod message;
 mod name;
 mod parts;
@@ -30,7 +31,8 @@ use stateful::{
 use tracing::Span;
 
 pub use self::{
-    message::OutputTaskMessage, name::OutputPackageName, parts::OutputPartBuffer, task::OutputTask,
+    buffers::Buffers, message::OutputTaskMessage, name::OutputPackageName, parts::OutputPartBuffer,
+    task::OutputTask,
 };
 use crate::{
     package::simulation::{

@@ -1,12 +1,12 @@
-mod part;
-
-use execution::package::simulation::{
-    output::{analysis::AnalysisBuffer, OutputPartBuffer},
-    OutputPackagesSimConfig,
-};
 use simulation_structure::{ExperimentId, SimulationShortId};
 
-use crate::output::error::Result;
+use crate::{
+    package::simulation::{
+        output::{analysis::AnalysisBuffer, OutputPartBuffer},
+        OutputPackagesSimConfig,
+    },
+    Result,
+};
 
 pub struct Buffers {
     pub json_state: OutputPartBuffer,
@@ -14,7 +14,7 @@ pub struct Buffers {
 }
 
 impl Buffers {
-    pub(crate) fn new(
+    pub fn new(
         exp_id: &ExperimentId,
         sim_id: SimulationShortId,
         output_packages_sim_config: &OutputPackagesSimConfig,

@@ -1,12 +1,14 @@
 use std::io::{BufReader, BufWriter};
 
-use execution::package::{experiment::ExperimentName, simulation::output::Output};
+use execution::package::{
+    experiment::ExperimentName,
+    simulation::output::{Buffers, Output},
+};
 use simulation_structure::{ExperimentId, SimulationShortId};
 
 use crate::{
     config::SimRunConfig,
     output::{
-        buffer::Buffers,
         error::Result,
         local::{config::LocalPersistenceConfig, result::LocalPersistenceResult},
         SimulationOutputPersistenceRepr,

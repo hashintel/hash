@@ -4,8 +4,6 @@ use simulation_structure::SimulationShortId;
 
 use crate::{config::SimRunConfig, simulation::step_output::SimulationStepOutput};
 
-pub mod buffer;
-
 mod error;
 pub mod local;
 pub mod none;

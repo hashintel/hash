@@ -2,11 +2,14 @@ pub mod config;
 pub mod result;
 mod sim;
 
-use execution::package::{experiment::ExperimentName, simulation::PersistenceConfig};
+use execution::package::{
+    experiment::ExperimentName,
+    simulation::{output::Buffers, PersistenceConfig},
+};
 use simulation_structure::{ExperimentId, SimulationShortId};
 
 use self::{config::LocalPersistenceConfig, sim::LocalSimulationOutputPersistence};
-use crate::output::{buffer::Buffers, error::Result, OutputPersistenceCreatorRepr};
+use crate::output::{error::Result, OutputPersistenceCreatorRepr};
 
 pub struct LocalOutputPersistence {
     pub project_name: String,
