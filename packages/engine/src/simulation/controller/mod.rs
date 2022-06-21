@@ -5,6 +5,7 @@ pub mod sim_control;
 
 use std::sync::Arc;
 
+use execution::package::simulation::output::persistence::SimulationOutputPersistence;
 use simulation_structure::SimulationShortId;
 use tokio::task::JoinHandle;
 use tracing::Instrument;
@@ -19,7 +20,6 @@ use crate::{
         sim_status::SimStatusSend,
         simulation::{new_pair, SimCtlRecv, SimCtlSend},
     },
-    output::SimulationOutputPersistenceRepr,
     simulation::{comms::Comms, package::run::Packages},
 };
 
@@ -29,7 +29,7 @@ pub struct SimulationController {
 }
 
 impl SimulationController {
-    pub fn new<P: SimulationOutputPersistenceRepr>(
+    pub fn new<P: SimulationOutputPersistence>(
         config: Arc<SimRunConfig>,
         comms: Comms,
         packages: Packages,
@@ -53,7 +53,7 @@ impl SimulationController {
     }
 }
 
-fn new_task_handle<P: SimulationOutputPersistenceRepr>(
+fn new_task_handle<P: SimulationOutputPersistence>(
     config: Arc<SimRunConfig>,
     receiver: SimCtlRecv,
     sender: SimStatusSend,

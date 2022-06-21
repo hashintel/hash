@@ -1,37 +1,54 @@
-use std::io::{BufReader, BufWriter};
-
-use execution::package::{
-    experiment::ExperimentName,
-    simulation::output::{Output, OutputBuffers},
+use std::{
+    io::{BufReader, BufWriter},
+    path::PathBuf,
 };
+
+use serde::{Deserialize, Serialize};
 use simulation_structure::{ExperimentId, SimulationShortId};
+use stateful::global::Globals;
 
 use crate::{
-    config::SimRunConfig,
-    output::{
-        error::Result,
-        local::{config::LocalPersistenceConfig, result::LocalPersistenceResult},
-        SimulationOutputPersistenceRepr,
+    package::{
+        experiment::ExperimentName,
+        simulation::{
+            output::{
+                persistence::{
+                    OutputPersistenceCreator, OutputPersistenceResult, SimulationOutputPersistence,
+                },
+                Output, OutputBuffers,
+            },
+            PersistenceConfig,
+        },
     },
-    simulation::step_output::SimulationStepOutput,
+    Result,
 };
+
+#[derive(Serialize)]
+pub struct LocalPersistenceResult {
+    pub persistence_path: String,
+}
+
+impl OutputPersistenceResult for LocalPersistenceResult {
+    fn into_value(self) -> Result<(&'static str, serde_json::Value)> {
+        Ok(("local", serde_json::Value::String(self.persistence_path)))
+    }
+}
 
 pub struct LocalSimulationOutputPersistence {
     pub project_name: String,
     pub experiment_name: ExperimentName,
     pub experiment_id: ExperimentId,
     pub sim_id: SimulationShortId,
-    // TODO: Should this be unused? If so remove
     pub buffers: OutputBuffers,
     pub config: LocalPersistenceConfig,
 }
 
 #[async_trait::async_trait]
-impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
+impl SimulationOutputPersistence for LocalSimulationOutputPersistence {
     type OutputPersistenceResult = LocalPersistenceResult;
 
-    async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()> {
-        output.0.into_iter().try_for_each(|output| {
+    async fn add_step_output(&mut self, output: Vec<Output>) -> Result<()> {
+        output.into_iter().try_for_each(|output| {
             match output {
                 Output::AnalysisOutput(output) => {
                     self.buffers.analysis.add(output)?;
@@ -45,7 +62,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         Ok(())
     }
 
-    async fn finalize(mut self, config: &SimRunConfig) -> Result<Self::OutputPersistenceResult> {
+    async fn finalize(mut self, globals: &Globals) -> Result<Self::OutputPersistenceResult> {
         tracing::trace!("Finalizing output");
         // JSON state
         let parts = self.buffers.json_state.finalize()?;
@@ -87,13 +104,46 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         // Globals
         let globals_path = path.join("globals.json");
         std::fs::File::create(&globals_path)?;
-        std::fs::write(
-            &globals_path,
-            serde_json::to_string(&config.sim.package_creator.globals)?,
-        )?;
+        std::fs::write(&globals_path, serde_json::to_string(globals)?)?;
 
         Ok(LocalPersistenceResult {
             persistence_path: path.canonicalize()?.to_string_lossy().to_string(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LocalPersistenceConfig {
+    pub output_folder: PathBuf,
+}
+
+pub struct LocalOutputPersistence {
+    pub project_name: String,
+    pub experiment_name: ExperimentName,
+    pub experiment_id: ExperimentId,
+    pub config: LocalPersistenceConfig,
+}
+
+impl OutputPersistenceCreator for LocalOutputPersistence {
+    type SimulationOutputPersistence = LocalSimulationOutputPersistence;
+
+    fn new_simulation(
+        &self,
+        sim_id: SimulationShortId,
+        persistence_config: &PersistenceConfig,
+    ) -> Result<Self::SimulationOutputPersistence> {
+        let buffers = OutputBuffers::new(
+            &self.experiment_id,
+            sim_id,
+            &persistence_config.output_config,
+        )?;
+        Ok(LocalSimulationOutputPersistence {
+            project_name: self.project_name.clone(),
+            experiment_name: self.experiment_name.clone(),
+            experiment_id: self.experiment_id,
+            sim_id,
+            buffers,
+            config: self.config.clone(),
         })
     }
 }

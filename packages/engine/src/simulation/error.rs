@@ -14,9 +14,6 @@ pub enum Error {
     #[error("Execution error: {0}")]
     Execution(#[from] execution::Error),
 
-    #[error("Output error: {0}")]
-    Output(#[from] crate::output::Error),
-
     #[error("Datastore Error: {0}")]
     DataStore(#[from] crate::datastore::Error),
 

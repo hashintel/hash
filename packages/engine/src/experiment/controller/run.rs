@@ -1,7 +1,12 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
 use execution::{
-    package::experiment::ExperimentPackage,
+    package::{
+        experiment::ExperimentPackage,
+        simulation::output::persistence::{
+            local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreator,
+        },
+    },
     worker::Worker,
     worker_pool,
     worker_pool::{comms::terminate::TerminateSend, WorkerPool},
@@ -22,9 +27,6 @@ use crate::{
             sim_configurer::SimConfigurer,
         },
         error::{Error as ExperimentError, Result as ExperimentResult},
-    },
-    output::{
-        local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreatorRepr,
     },
     proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
@@ -100,7 +102,7 @@ type ExperimentPackageResult = Option<ExperimentResult<()>>;
 type ExperimentControllerResult = Option<Result<()>>;
 type ExecutionResult = Option<execution::Result<()>>;
 
-async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
+async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
     exp_config: ExperimentConfig,
     env: Environment,
     output_persistence_service_creator: P,

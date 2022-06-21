@@ -13,6 +13,8 @@
 pub mod analysis;
 pub mod json_state;
 
+pub mod persistence;
+
 mod buffers;
 mod message;
 mod name;

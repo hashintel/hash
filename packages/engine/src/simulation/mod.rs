@@ -6,7 +6,6 @@ pub mod engine;
 mod error;
 pub mod package;
 pub mod status;
-pub mod step_output;
 pub mod step_result;
 pub mod task;
 
