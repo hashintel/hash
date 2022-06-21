@@ -47,5 +47,9 @@ name = "demo"
 required-features = ["std"]
 
 [[example]]
+name = "exit_code"
+required-features = ["std"]
+
+[[example]]
 name = "parse_config"
 required-features = ["std"]
