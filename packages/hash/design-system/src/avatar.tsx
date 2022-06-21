@@ -49,6 +49,7 @@ export const Avatar: React.VFC<AvatarProps> = ({
           sx={{
             color: ({ palette }) => palette.common.white,
             fontSize: size / 2,
+            fontWeight: 700,
             lineHeight: 1,
           }}
         >
