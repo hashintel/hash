@@ -14,9 +14,7 @@ use crate::{
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-lazy_static::lazy_static! {
-    static ref INIT_MSG_RECV_TIMEOUT: Duration = Duration::from_secs(60);
-}
+const INIT_MSG_RECV_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(ThisError, Debug)]
 pub enum Error {
@@ -125,7 +123,7 @@ where
 }
 
 async fn recv_init_msg(orch_listener: &mut nano::Server) -> Result<InitMessage> {
-    let msg = tokio::time::timeout(*INIT_MSG_RECV_TIMEOUT, orch_listener.recv::<EngineMsg>())
+    let msg = tokio::time::timeout(INIT_MSG_RECV_TIMEOUT, orch_listener.recv::<EngineMsg>())
         .await
         .map_err(|_| Error::from("receive init message timeout"))??;
 

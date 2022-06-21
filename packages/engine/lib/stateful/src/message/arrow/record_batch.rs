@@ -4,7 +4,7 @@ use arrow::{array::Array, datatypes::Schema, record_batch::RecordBatch};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 use crate::{
-    agent::arrow::array::get_agent_id_array,
+    agent::{arrow::array::get_agent_id_array, AgentId},
     message::arrow::array::{FieldIndex, MessageArray, MESSAGE_COLUMN_INDEX},
     state::MessageReference,
     Error, Result,
@@ -137,7 +137,7 @@ pub(crate) fn get_message_field(
 
 pub fn from_json(
     schema: Arc<Schema>,
-    ids: Vec<&str>,
+    ids: &[AgentId],
     messages: Option<Vec<serde_json::Value>>,
 ) -> Result<RecordBatch> {
     let agent_count = ids.len();

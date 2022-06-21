@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/block-image",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Embed JPG, GIF, and PNG images by URL or file upload and add an optional caption",
   "repository": {
@@ -19,12 +19,12 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.2"
+    "@blockprotocol/graph": "0.0.8"
   },
   "devDependencies": {
-    "block-scripts": "0.0.8-next.1",
+    "block-scripts": "0.0.11",
     "eslint": "8.13.0",
-    "mock-block-dock": "0.0.14-next.1",
+    "mock-block-dock": "0.0.15",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "twind": "0.16.17",

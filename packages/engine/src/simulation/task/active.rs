@@ -13,7 +13,6 @@ use crate::simulation::{Error, Result};
 /// communication with, and tracking of, a [`Task`]'s status.
 ///
 /// [`Task`]: execution::task::Task
-#[derive(derive_new::new)]
 pub struct ActiveTask {
     /// Used by the owning Package to wait for results from the associated [`Task`].
     ///
@@ -22,13 +21,21 @@ pub struct ActiveTask {
     /// Marks whether or not the [`Task`] is still running.
     ///
     /// [`Task`]: execution::task::Task
-    #[new(value = "true")]
     running: bool,
     /// Marks whether or not the [`Task`] has been signaled to cancel.
     ///
     /// [`Task`]: execution::task::Task
-    #[new(default)]
     cancel_sent: bool,
+}
+
+impl ActiveTask {
+    pub fn new(comms: ActiveTaskOwnerComms) -> Self {
+        Self {
+            comms,
+            running: true,
+            cancel_sent: false,
+        }
+    }
 }
 
 #[async_trait]

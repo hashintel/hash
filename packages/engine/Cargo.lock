@@ -465,12 +465,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core-foundation-sys"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -619,17 +613,6 @@ checksum = "e77a43b28d0668df09411cb0bc9a8c2adc40f9a048afe863e05fd43251e8e39c"
 dependencies = [
  "cfg-if",
  "num_cpus",
-]
-
-[[package]]
-name = "derive-new"
-version = "0.5.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3418329ca0ad70234b9735dc4ceed10af4df60eff9c8e7b06cb5e520d92c3535"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -970,30 +953,20 @@ dependencies = [
  "cc",
  "clap",
  "csv",
- "derive-new",
  "error-stack",
  "execution",
- "flatbuffers",
  "flatbuffers_gen",
  "futures",
- "glob",
- "http-types",
- "lazy_static",
  "memory",
  "nano",
  "num_cpus",
  "orchestrator",
- "parking_lot",
  "rand 0.8.4",
  "rayon",
- "regex",
  "serde",
- "serde-aux",
  "serde_json",
- "shared_memory",
  "simulation_structure",
  "stateful",
- "strum_macros",
  "surf",
  "thiserror",
  "tokio",
@@ -1002,7 +975,6 @@ dependencies = [
  "tracing-error",
  "tracing-subscriber",
  "tracing-texray",
- "uuid",
 ]
 
 [[package]]
@@ -1466,15 +1438,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ntapi"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f6bb902e437b6d86e03cce10a7e2af662292c5dfef23b65899ea3ac9354ad44"
-dependencies = [
- "winapi",
-]
-
-[[package]]
 name = "num"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1621,7 +1584,6 @@ dependencies = [
  "stateful",
  "tokio",
  "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -2081,13 +2043,12 @@ dependencies = [
 [[package]]
 name = "shared_memory"
 version = "0.12.0"
-source = "git+https://github.com/hashdeps/shared_memory-rs#2475147ac7a5cb6fa00e02c14a9f5cfb222a8833"
+source = "git+https://github.com/hashdeps/shared_memory-rs#f6969f67807575a82e18cb1349dad6b3eeaa56c1"
 dependencies = [
  "cfg-if",
  "libc",
  "nix",
  "rand 0.8.4",
- "sysinfo",
  "winapi",
 ]
 
@@ -2104,6 +2065,7 @@ dependencies = [
 name = "simulation_structure"
 version = "0.0.0"
 dependencies = [
+ "serde",
  "uuid",
 ]
 
@@ -2239,18 +2201,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
-name = "strum_macros"
-version = "0.19.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e61bb0be289045cb80bfce000512e32d09f8337e54c186725da381377ad1f8d5"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "subtle"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2288,21 +2238,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
-]
-
-[[package]]
-name = "sysinfo"
-version = "0.20.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e223c65cd36b485a34c2ce6e38efa40777d31c4166d9076030c74cdcf971679f"
-dependencies = [
- "cfg-if",
- "core-foundation-sys",
- "libc",
- "ntapi",
- "once_cell",
- "rayon",
- "winapi",
 ]
 
 [[package]]

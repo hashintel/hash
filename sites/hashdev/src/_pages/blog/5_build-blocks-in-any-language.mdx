@@ -2,7 +2,7 @@
 authorPhoto: blog/5_build-blocks-in-any-language/ahmad.png
 postPhoto: blog/5_build-blocks-in-any-language/FSharp_Cover.jpg
 title: "How to build Block Protocol blocks in any language"
-subtitle: "Transpiling from F# to JavaScript to build a complex, spreadsheet block"
+subtitle: "Transpiling from F# to JavaScript to build a complex spreadsheet block"
 author: "Ahmad Sattar Atta"
 jobTitle: "Platform Engineer at HASH"
 date: "2022-06-14"
@@ -107,7 +107,7 @@ type BlockEntity<'a> = { blockEntity: 'a; (* among other fields *) }
 type BlockProtocolCorePayload<'a> = { graph: BlockEntity<'a> }
 ```
 
-When a block announces itself through an `init` request to the embedding application, an `initResponse` will be returned to the block with the shape `BlockProtocolMessage<Entity<'state>>`.
+When a block announces itself through an `init` request to the embedding application, an `initResponse` will be returned to the block with the shape `BlockProtocolMessage<Entity<'s>>`.
 
 These basic types define the shape of data going to and from the embedding application. However, the Graph Service also defines a large set of messages that a block can make use of. We don't necessarily have to implement all messages to make use of the Block Protocol—only the requests and the accompanying responses we are interested in.
 
@@ -136,7 +136,8 @@ type AggregateEntitiesResponse<'props> =
       operation: AggregateResult }
 ```
 
-These types are all valid message structures for communicating with the Graph Service in the embedding application. We can for construct an example `AggregateEntityTypes` request through a `BlockProtocolMessage<AggregateEntityTypes>` and get the following record:
+These types are all valid message structures for communicating with the Graph Service in the embedding application.
+We can for example construct an `AggregateEntityTypes` request through a `BlockProtocolMessage<'a>` and get the following record:
 
 ```fsharp
 { requestId = "86179f1e-c538-4d8b-b0c0-2c7d9cfc63a0"
@@ -260,7 +261,8 @@ type BlockProtocolState =
             BlockProtocolMessage<AggregateEntities> -> JS.Promise<AggregateEntitiesResponse<AnyBlockProperty>> }
 ```
 
-For example, calling the `BlockProtocolState.aggregateEntityTypes` would create a new promise and add it to the settler map, then the listener would eventually receive a response if all goes well and resolve the unresolved promise. This promise will be coerced into the type of the return value `JS.Promise<AggregateEntityTypesResponse<unit>>`.
+For example, calling `aggregateEntityTypes` would create a new promise and add it to the settler map, then the listener would eventually receive a response if all goes well and resolve the unresolved promise.
+This promise will be coerced into the type of the return value `AggregateEntityTypesResponse<unit>` once the promise is resolved.
 
 Now it's just a matter of creating our block and using the Block Protocol Graph Service as a data provider.
 

@@ -22,7 +22,7 @@
     "blockprotocol": "0.0.10"
   },
   "devDependencies": {
-    "block-scripts": "0.0.8-next.1",
+    "block-scripts": "0.0.11",
     "eslint": "8.13.0",
     "mock-block-dock": "0.0.10",
     "react": "^17.0.2",

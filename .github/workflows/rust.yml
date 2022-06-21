@@ -37,86 +37,13 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
+
+      - name: Setup CI
+        uses: ./.github/actions/setup-rust-ci
+
       - name: Find changed crates
         id: crates
-        run: |
-          available_crates="$(find . -name Cargo.toml -printf '%h\n' | sed 's:./::' | sort | tac)"
-          changed_files="$(git diff --name-only HEAD^ HEAD)"
-
-          # All jobs for all crates will run if any of these paths changes
-          always_run_on=(".github" "rust-toolchain.toml")
-
-          # Exclude the stable channel for these crates
-          disable_stable_on=("packages/engine")
-
-          # Try and publish these crates when their version is changed in Cargo.toml
-          publishable_crates=("packages/libs/error-stack")
-
-          changed_crates=""
-          while read -r file; do
-            while read -r crate; do
-              if [[ $file =~ $crate ]]; then
-                changed_crates=$(echo -e "${crate}\n$changed_crates")
-              fi
-              for always_run_crate in "${always_run_on[@]}"; do
-                if [[ $file =~ $always_run_crate ]]; then
-                  changed_crates=$(echo -e "${crate}\n$changed_crates")
-                fi
-              done
-            done <<< "$available_crates"
-          done <<< "$changed_files"
-
-          exclude_stable=""
-          while read -r crate; do
-            for nightly_toolchain_crate in "${disable_stable_on[@]}"; do
-              if [[ $crate =~ $nightly_toolchain_crate ]]; then
-                exclude_stable=$(echo -e "${crate}\n$exclude_stable")
-              fi
-            done
-          done <<< "$changed_crates"
-
-          publish_crates=""
-          while read -r file; do
-            for publishable_crate in "${publishable_crates[@]}"; do
-              if [[ "$file" = "$publishable_crate/Cargo.toml" ]]; then
-                echo checking "$publishable_crate/Cargo.toml"
-                if git diff --unified=0 HEAD^ HEAD -- "$publishable_crate/Cargo.toml" | grep -q '+version'; then
-                  publish_crates=$(echo -e "${publishable_crate}\n$publish_crates")
-                fi
-              fi
-            done
-          done <<< "$changed_files"
-
-          # We always run "packages/engine" tests when a nested crate was changed
-          test_crates="$changed_crates"
-          if echo "$test_crates" | grep -qe "^packages/engine"; then
-            test_crates=$(echo -e "${changed_crates}\npackages/engine")
-          fi
-
-          changed_crates=$(echo "$changed_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
-          bench_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(. == "packages/engine") ]')
-          test_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
-          exclude_stable=$(echo "$exclude_stable" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
-          publish_crates=$(echo "$publish_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
-          exclude=$(echo "$exclude_stable" | jq -sc '[ { directory: .[][], toolchain: "stable"} | select(length > 0) ]')
-
-          echo "::set-output name=rustfmt::$changed_crates"
-          echo "::set-output name=clippy::$changed_crates"
-          echo "::set-output name=test::$test_crates"
-          echo "::set-output name=bench::$bench_crates"
-          echo "::set-output name=miri::$test_crates"
-          echo "::set-output name=doc::$changed_crates"
-          echo "::set-output name=publish::$publish_crates"
-          echo "::set-output name=exclude::$exclude"
-
-          echo "run \`cargo fmt\` for: $(echo "$changed_crates" | jq -r)"
-          echo "run \`cargo clippy\` for: $(echo "$changed_crates" | jq -r)"
-          echo "run \`cargo test\` for: $(echo "$test_crates" | jq -r)"
-          echo "run \`cargo test --release\` for: $(echo "$bench_crates" | jq -r)"
-          echo "run \`cargo miri\` for: $(echo "$test_crates" | jq -r)"
-          echo "run \`cargo doc\` for: $(echo "$changed_crates" | jq -r)"
-          echo "Won't run stable channel for: $(echo "$exclude_stable" | jq -r)"
-          echo "Publish crates: $(echo "$publish_crates" | jq -r)"
+        run: python .github/scripts/rust/setup.py
 
       - name: Find toolchain
         id: toolchains
