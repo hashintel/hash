@@ -1,13 +1,12 @@
 mod part;
 
-use execution::package::simulation::{output::analysis::AnalysisBuffer, OutputPackagesSimConfig};
+use execution::package::simulation::{
+    output::{analysis::AnalysisBuffer, OutputPartBuffer},
+    OutputPackagesSimConfig,
+};
 use simulation_structure::{ExperimentId, SimulationShortId};
 
-pub use self::part::{remove_experiment_parts, OutputPartBuffer};
 use crate::output::error::Result;
-
-// TODO: We might want to use a temporary folder (like "/tmp" or "/var/tmp") instead.
-const RELATIVE_PARTS_FOLDER: &str = "./parts";
 
 pub struct Buffers {
     pub json_state: OutputPartBuffer,

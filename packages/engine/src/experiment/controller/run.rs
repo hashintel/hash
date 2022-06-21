@@ -1,7 +1,7 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
 use execution::{
-    package::experiment::ExperimentPackage,
+    package::{experiment::ExperimentPackage, simulation::output::OutputPartBuffer},
     worker::Worker,
     worker_pool,
     worker_pool::{comms::terminate::TerminateSend, WorkerPool},
@@ -24,8 +24,7 @@ use crate::{
         error::{Error as ExperimentError, Result as ExperimentResult},
     },
     output::{
-        buffer::remove_experiment_parts, local::LocalOutputPersistence, none::NoOutputPersistence,
-        OutputPersistenceCreatorRepr,
+        local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreatorRepr,
     },
     proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
     simulation::package::creator::PackageCreators,
@@ -371,5 +370,5 @@ pub fn cleanup_experiment(experiment_id: ExperimentId) {
         tracing::warn!("{}", err);
     }
 
-    remove_experiment_parts(experiment_id);
+    OutputPartBuffer::remove_experiment_parts(experiment_id);
 }

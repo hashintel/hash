@@ -15,6 +15,7 @@ pub mod json_state;
 
 mod message;
 mod name;
+mod parts;
 mod task;
 
 use std::sync::Arc;
@@ -28,7 +29,9 @@ use stateful::{
 };
 use tracing::Span;
 
-pub use self::{message::OutputTaskMessage, name::OutputPackageName, task::OutputTask};
+pub use self::{
+    message::OutputTaskMessage, name::OutputPackageName, parts::OutputPartBuffer, task::OutputTask,
+};
 use crate::{
     package::simulation::{
         output::{analysis::AnalysisOutput, json_state::JsonStateOutput},
