@@ -86,7 +86,7 @@ impl SimulationOutputPersistence for LocalSimulationOutputPersistence {
 
         let mut buf_writer = BufWriter::new(file_out);
 
-        parts.into_iter().try_for_each(|v| -> Result<()> {
+        parts.iter().try_for_each(|v| -> Result<()> {
             let file_in = std::fs::File::open(v)?;
             let mut buf_reader = BufReader::new(file_in);
             std::io::copy(&mut buf_reader, &mut buf_writer)?;
