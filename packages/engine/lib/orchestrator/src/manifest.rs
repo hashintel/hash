@@ -20,8 +20,8 @@ use hash_engine_lib::{
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
+use simulation_structure::ExperimentId;
 use stateful::global::Dataset;
-use uuid::Uuid;
 
 use crate::{ExperimentType, OrchestratorError, Result};
 
@@ -543,7 +543,7 @@ impl Manifest {
 
         let base = ExperimentRunBase {
             name,
-            id: Uuid::new_v4(),
+            id: ExperimentId::generate(),
             project_base,
         };
 

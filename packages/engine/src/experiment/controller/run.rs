@@ -114,7 +114,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     // shared across the whole experiment run)
     let shared_store = Arc::new(SharedStore::new(
         &exp_base_config.run.base().project_base.datasets,
-        exp_base_config.run.base().id,
+        exp_base_config.run.base().id.into(),
     )?);
 
     // Set up the worker pool and all communications with it

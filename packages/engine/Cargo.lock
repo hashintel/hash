@@ -975,7 +975,6 @@ dependencies = [
  "tracing-error",
  "tracing-subscriber",
  "tracing-texray",
- "uuid",
 ]
 
 [[package]]
@@ -1585,7 +1584,6 @@ dependencies = [
  "stateful",
  "tokio",
  "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -2067,6 +2065,7 @@ dependencies = [
 name = "simulation_structure"
 version = "0.0.0"
 dependencies = [
+ "serde",
  "uuid",
 ]
 

@@ -35,7 +35,6 @@ tracing-appender = "0.2.0"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.7", features = ["env-filter", "json"] }
 tracing-texray = { version = "0.1.2", optional = true }
-uuid = { version = "0.8.1" }
 
 [dev-dependencies]
 orchestrator = { path = "lib/orchestrator", default-features = false }

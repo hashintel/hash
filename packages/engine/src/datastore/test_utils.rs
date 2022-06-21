@@ -9,6 +9,7 @@ use execution::{
 };
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
+use simulation_structure::ExperimentId;
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
     field::{
@@ -17,7 +18,6 @@ use stateful::{
     },
     global::Globals,
 };
-use uuid::Uuid;
 
 use crate::{
     config::{ExperimentConfig, PackageConfig, SimRunConfig, SimulationConfig, StoreConfig},
@@ -275,7 +275,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
     };
     let base = ExperimentRunBase {
         name: "experiment_name".to_string().into(),
-        id: Uuid::new_v4(),
+        id: ExperimentId::generate(),
         project_base,
     };
 
