@@ -27,9 +27,9 @@ export const TopNavLink: FC<NavLinkProps> = ({
         sx={({ palette, transitions, spacing }) => ({
           display: "flex",
           alignItems: "center",
-          padding: spacing(1, 2),
+          padding: spacing(1, 1.75),
           borderRadius: "4px",
-          mx: 0.5,
+          mx: 0.75,
           transition: transitions.create("background-color"),
 
           [`& > .${typographyClasses.root}, & > svg`]: {
@@ -37,7 +37,7 @@ export const TopNavLink: FC<NavLinkProps> = ({
           },
 
           "& > svg": {
-            color: palette.gray[50],
+            color: palette.gray[40],
           },
 
           [`& > .${typographyClasses.root}`]: {

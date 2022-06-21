@@ -18,7 +18,7 @@ const Main = styled("main", {
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,
   overflowY: "auto",
   flexGrow: 1,
-  padding: "60px 120px 0 120px",
+  padding: "56px 80px",
   transition: theme.transitions.create("margin", {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -47,19 +47,19 @@ export const LayoutWithSidebar: VFC<{ children?: ReactNode }> = ({
         }}
       >
         <PageSidebar />
-        <Fade in={!sidebarOpen}>
+        <Fade timeout={800} in={!sidebarOpen}>
           <Tooltip title="Expand Sidebar">
             <IconButton
-              size="large"
+              size="medium"
               sx={{
                 position: "absolute",
-                top: 1,
-                left: 32,
+                top: 8,
+                left: 8,
                 transform: "rotate(180deg)",
 
                 "&:hover": {
-                  backgroundColor: ({ palette }) => palette.gray[10],
-                  color: ({ palette }) => palette.gray[50],
+                  backgroundColor: ({ palette }) => palette.gray[20],
+                  color: ({ palette }) => palette.gray[60],
                 },
               }}
               onClick={openSidebar}
