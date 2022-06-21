@@ -546,34 +546,6 @@ impl<Context> fmt::Display for Report<Context> {
     }
 }
 
-/// Sets the termination for the the `Report<C>` type.
-///
-/// ## Example
-///
-/// ```rust,should_panic
-/// use std::process::{ExitCode, Termination};
-///
-/// use error_stack::{Context, Report};
-///
-/// #[derive(Debug)]
-/// struct CustomError;
-///
-/// impl Context for CustomError {}
-///
-/// impl std::fmt::Display for CustomError {
-///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-///         f.write_str("Custom Error")
-///     }
-/// }
-///
-/// fn main() -> ExitCode {
-///     let report = Report::new(CustomError)
-///         .attach(ExitCode::from(100))
-///         .attach_printable("This error has an exit code of 100!");
-///
-///     report.report()
-/// }
-/// ```
 impl<Context> fmt::Debug for Report<Context> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
@@ -648,10 +620,7 @@ impl<Context> fmt::Debug for Report<Context> {
 }
 
 #[cfg(feature = "std")]
-impl<Context> std::process::Termination for Report<Context>
-where
-    Context: fmt::Debug,
-{
+impl<Context> std::process::Termination for Report<Context> {
     fn report(self) -> ExitCode {
         #[cfg(not(nightly))]
         return ExitCode::FAILURE;
@@ -670,4 +639,32 @@ pub struct ReportImpl {
     backtrace: Option<Backtrace>,
     #[cfg(feature = "spantrace")]
     span_trace: Option<SpanTrace>,
+}
+#[cfg(test)]
+mod test {
+    use std::process::{ExitCode, Termination};
+
+    use crate::{Context, Report};
+
+    #[derive(Debug)]
+    struct CustomError;
+
+    impl Context for CustomError {}
+
+    impl std::fmt::Display for CustomError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str("Custom Error")
+        }
+    }
+
+    #[test]
+    fn test_exit_code() {
+        let report = Report::new(CustomError)
+            .attach(ExitCode::from(100))
+            .attach_printable("This error has an exit code of 100!");
+
+        // _ to get rid of clippy warning.
+        let _exit = report.report();
+        assert!(matches!(ExitCode::from(100), _exit));
+    }
 }
