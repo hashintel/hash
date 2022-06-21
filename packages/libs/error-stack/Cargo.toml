@@ -21,9 +21,7 @@ futures-core = { version = "0.3.21", optional = true, default-features = false }
 [dev-dependencies]
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
-futures = { version = "0.3.21", default-features = false, features = [
-  "executor",
-] }
+futures = { version = "0.3.21", default-features = false, features = ["executor"] }
 
 [build-dependencies]
 rustc_version = "0.2.3"
