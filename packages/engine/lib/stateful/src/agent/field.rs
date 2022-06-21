@@ -428,7 +428,7 @@ fn deserialize_messages_before_agent_id() {
             "messages": [{
                 "type": "remove_agent"
             }],
-            "agent_id": "agent-id"
+            "agent_id": "12345678-90AB-CDEF-1234-567890ABCDEF"
         }
         "#,
     )
