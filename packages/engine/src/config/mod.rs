@@ -69,7 +69,7 @@ impl SimRunConfig {
         StateCreateParameters {
             target_min_groups: self.exp.worker_pool.num_workers,
             target_group_size: MIN_AGENTS_PER_GROUP..self.exp.target_max_group_size,
-            memory_base_id: self.exp.run.base().id,
+            memory_base_id: self.exp.run.base().id.into(),
             agent_schema: Arc::clone(&self.sim.store.agent_schema),
             message_schema: Arc::clone(&self.sim.store.message_schema),
         }

@@ -4,7 +4,10 @@
 
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::{agent::Agent, message};
+use crate::{
+    agent::{Agent, AgentId},
+    message,
+};
 
 fn value_or_string_array<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
 where
@@ -40,7 +43,7 @@ impl CreateAgent {
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct RemoveAgentData {
-    pub agent_id: String,
+    pub agent_id: AgentId,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
