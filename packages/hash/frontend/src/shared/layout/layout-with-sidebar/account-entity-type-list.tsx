@@ -61,7 +61,7 @@ const SearchInput: VFC<SearchInputProps> = ({
         sx={({ palette }) => ({
           position: "absolute",
           right: 0,
-          width: 200,
+          width: "204px",
           height: "100%",
           borderRadius: "4px",
           backgroundColor: palette.white,
@@ -175,10 +175,11 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               alignItems: "center",
               mx: 0.5,
               minHeight: 36,
+              my: 0.25,
               borderRadius: "4px",
-              "&:hover": {
-                backgroundColor: palette.gray[20],
-              },
+              // "&:hover": {
+              //   backgroundColor: palette.gray[20],
+              // },
               "&:focus-visible": {
                 backgroundColor: "red",
               },
@@ -191,8 +192,8 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               display="flex"
               alignItems="center"
               flex={1}
-              mr={1.25}
-              pl={3.75}
+              mr={0.25}
+              pl={3.5}
               position="relative"
             >
               {/*
@@ -234,6 +235,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               <IconButton
                 {...bindTrigger(sortActionsPopupState)}
                 sx={({ palette }) => ({
+                  color: palette.gray[50],
                   ...(sortActionsPopupState.isOpen && {
                     backgroundColor: palette.gray[30],
                     color: palette.gray[80],
