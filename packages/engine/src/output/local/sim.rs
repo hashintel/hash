@@ -2,7 +2,7 @@ use std::io::{BufReader, BufWriter};
 
 use execution::package::{
     experiment::ExperimentName,
-    simulation::output::{Buffers, Output},
+    simulation::output::{Output, OutputBuffers},
 };
 use simulation_structure::{ExperimentId, SimulationShortId};
 
@@ -22,7 +22,7 @@ pub struct LocalSimulationOutputPersistence {
     pub experiment_id: ExperimentId,
     pub sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
-    pub buffers: Buffers,
+    pub buffers: OutputBuffers,
     pub config: LocalPersistenceConfig,
 }
 
@@ -48,7 +48,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
     async fn finalize(mut self, config: &SimRunConfig) -> Result<Self::OutputPersistenceResult> {
         tracing::trace!("Finalizing output");
         // JSON state
-        let (_, parts) = self.buffers.json_state.finalize()?;
+        let parts = self.buffers.json_state.finalize()?;
         let path = self
             .config
             .output_folder

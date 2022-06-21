@@ -30,9 +30,9 @@ use stateful::{
 };
 use tracing::Span;
 
+pub(crate) use self::parts::OutputPartBuffer;
 pub use self::{
-    buffers::Buffers, message::OutputTaskMessage, name::OutputPackageName, parts::OutputPartBuffer,
-    task::OutputTask,
+    buffers::OutputBuffers, message::OutputTaskMessage, name::OutputPackageName, task::OutputTask,
 };
 use crate::{
     package::simulation::{

@@ -1,7 +1,7 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
 use execution::{
-    package::{experiment::ExperimentPackage, simulation::output::OutputPartBuffer},
+    package::experiment::ExperimentPackage,
     worker::Worker,
     worker_pool,
     worker_pool::{comms::terminate::TerminateSend, WorkerPool},
@@ -369,6 +369,4 @@ pub fn cleanup_experiment(experiment_id: ExperimentId) {
     if let Err(err) = Worker::cleanup(experiment_id) {
         tracing::warn!("{}", err);
     }
-
-    OutputPartBuffer::remove_experiment_parts(experiment_id);
 }

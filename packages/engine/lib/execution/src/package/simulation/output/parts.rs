@@ -5,9 +5,6 @@ use simulation_structure::{ExperimentId, SimulationShortId};
 
 use crate::Result;
 
-// TODO: We might want to use a temporary folder (like "/tmp" or "/var/tmp") instead.
-const RELATIVE_PARTS_FOLDER: &str = "./parts";
-
 /// Maximum size of a string kept in memory.
 /// Corresponds to the maximum size of a non-terminal part (see multipart uploading)
 const MAX_BYTE_SIZE: usize = 5242880;
@@ -34,7 +31,7 @@ impl OutputPartBuffer {
         experiment_id: &ExperimentId,
         simulation_run_id: SimulationShortId,
     ) -> Result<OutputPartBuffer> {
-        let base_path = PathBuf::from(RELATIVE_PARTS_FOLDER)
+        let base_path = std::env::temp_dir()
             .join(experiment_id.to_string())
             .join(simulation_run_id.to_string());
 
@@ -107,27 +104,21 @@ impl OutputPartBuffer {
         Ok(())
     }
 
-    pub fn finalize(mut self) -> Result<(Vec<u8>, Vec<PathBuf>)> {
+    pub fn finalize(&mut self) -> Result<&[PathBuf]> {
         self.current.push(CHAR_OPEN_RIGHT_SQUARE_BRACKET);
         self.persist_current_on_disk()?;
-        Ok((self.current, self.parts))
+        Ok(&self.parts)
     }
+}
 
-    pub fn remove_experiment_parts(experiment_id: ExperimentId) {
-        let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
-        match std::fs::remove_dir_all(&path) {
-            Ok(_) => {
-                tracing::trace!(
-                    experiment = %experiment_id,
-                    "Removed parts folder for experiment {experiment_id}: {path:?}"
-                );
-            }
-            Err(err) => {
-                tracing::warn!(
-                    experiment = %experiment_id,
-                    "Could not clean up {path:?}: {err}"
-                );
-            }
+impl Drop for OutputPartBuffer {
+    fn drop(&mut self) {
+        for part in &self.parts {
+            std::fs::remove_file(part)
+                .unwrap_or_else(|error| tracing::error!("Failed to remove part {part:?}: {error}"))
         }
+        std::fs::remove_dir_all(&self.base_path).unwrap_or_else(|error| {
+            tracing::error!("Failed to remove base path {:?}: {error}", self.base_path)
+        });
     }
 }

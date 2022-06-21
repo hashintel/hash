@@ -4,7 +4,7 @@ mod sim;
 
 use execution::package::{
     experiment::ExperimentName,
-    simulation::{output::Buffers, PersistenceConfig},
+    simulation::{output::OutputBuffers, PersistenceConfig},
 };
 use simulation_structure::{ExperimentId, SimulationShortId};
 
@@ -26,7 +26,7 @@ impl OutputPersistenceCreatorRepr for LocalOutputPersistence {
         sim_id: SimulationShortId,
         persistence_config: &PersistenceConfig,
     ) -> Result<Self::SimulationOutputPersistence> {
-        let buffers = Buffers::new(
+        let buffers = OutputBuffers::new(
             &self.experiment_id,
             sim_id,
             &persistence_config.output_config,
