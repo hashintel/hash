@@ -29,7 +29,7 @@ pub enum Error {
     ExperimentPackage(#[from] crate::experiment::Error),
 
     #[error("HTTP error: {0}")]
-    Surf(http_types::StatusCode),
+    Surf(surf::StatusCode),
 }
 
 impl From<&str> for Error {

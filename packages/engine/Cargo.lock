@@ -955,27 +955,18 @@ dependencies = [
  "csv",
  "error-stack",
  "execution",
- "flatbuffers",
  "flatbuffers_gen",
  "futures",
- "glob",
- "http-types",
- "lazy_static",
  "memory",
  "nano",
  "num_cpus",
  "orchestrator",
- "parking_lot",
  "rand 0.8.4",
  "rayon",
- "regex",
  "serde",
- "serde-aux",
  "serde_json",
- "shared_memory",
  "simulation_structure",
  "stateful",
- "strum_macros",
  "surf",
  "thiserror",
  "tokio",
@@ -2209,18 +2200,6 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
-
-[[package]]
-name = "strum_macros"
-version = "0.19.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e61bb0be289045cb80bfce000512e32d09f8337e54c186725da381377ad1f8d5"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn",
-]
 
 [[package]]
 name = "subtle"
