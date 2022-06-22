@@ -21,8 +21,8 @@ pub mod tests {
     use std::borrow::Cow;
 
     use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
+    use execution::package::experiment::ExperimentId;
     use rand::Rng;
-    use simulation_structure::ExperimentId;
     use stateful::{
         agent::{AgentBatch, IntoAgents},
         field::UUID_V4_LEN,

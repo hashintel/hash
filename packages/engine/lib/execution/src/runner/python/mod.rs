@@ -12,7 +12,7 @@ use std::{
 };
 
 use futures::FutureExt;
-use simulation_structure::{ExperimentId, SimulationShortId};
+use simulation_structure::SimulationShortId;
 use tokio::{
     process::Command,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -22,6 +22,7 @@ use tokio::{
 pub use self::error::{PythonError, PythonResult};
 use self::{receiver::NngReceiver, sender::NngSender};
 use crate::{
+    package::experiment::ExperimentId,
     runner::{
         comms::{
             ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg,

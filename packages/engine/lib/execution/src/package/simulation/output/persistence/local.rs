@@ -4,12 +4,12 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use simulation_structure::{ExperimentId, SimulationShortId};
+use simulation_structure::SimulationShortId;
 use stateful::global::Globals;
 
 use crate::{
     package::{
-        experiment::ExperimentName,
+        experiment::{ExperimentId, ExperimentName},
         simulation::{
             output::{
                 persistence::{

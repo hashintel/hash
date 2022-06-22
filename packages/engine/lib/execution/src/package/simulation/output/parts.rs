@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use serde::Serialize;
-use simulation_structure::{ExperimentId, SimulationShortId};
+use simulation_structure::SimulationShortId;
 
-use crate::Result;
+use crate::{package::experiment::ExperimentId, Result};
 
 /// Maximum size of a string kept in memory.
 /// Corresponds to the maximum size of a non-terminal part (see multipart uploading)

@@ -18,7 +18,7 @@ use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
-use simulation_structure::{ExperimentId, SimulationShortId};
+use simulation_structure::SimulationShortId;
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
@@ -31,6 +31,7 @@ pub use self::{
     sync::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
 };
 use crate::{
+    package::experiment::ExperimentId,
     runner::{
         comms::{
             ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,

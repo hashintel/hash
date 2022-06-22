@@ -9,10 +9,13 @@ use std::{
 };
 
 use error_stack::{bail, ensure, report, IntoReport, ResultExt};
-use execution::package::simulation::{
-    init::{InitialState, InitialStateName},
-    state::behavior_execution::Behavior,
-    PackageInitConfig, SimPackageArgs,
+use execution::package::{
+    experiment::ExperimentId,
+    simulation::{
+        init::{InitialState, InitialStateName},
+        state::behavior_execution::Behavior,
+        PackageInitConfig, SimPackageArgs,
+    },
 };
 use hash_engine_lib::{
     fetch::parse_raw_csv_into_json,
@@ -20,7 +23,6 @@ use hash_engine_lib::{
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
-use simulation_structure::ExperimentId;
 use stateful::global::Dataset;
 
 use crate::{ExperimentType, OrchestratorError, Result};

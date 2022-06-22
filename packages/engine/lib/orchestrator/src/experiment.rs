@@ -7,7 +7,8 @@ use std::{collections::HashMap, path::PathBuf, time::Duration};
 use error_stack::{bail, ensure, report, IntoReport, ResultExt};
 use execution::package::{
     experiment::{
-        ExperimentName, ExperimentPackageConfig, SimpleExperimentConfig, SingleRunExperimentConfig,
+        ExperimentId, ExperimentName, ExperimentPackageConfig, SimpleExperimentConfig,
+        SingleRunExperimentConfig,
     },
     simulation::output::persistence::local::LocalPersistenceConfig,
 };
@@ -21,7 +22,6 @@ use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as SerdeValue};
-use simulation_structure::ExperimentId;
 use tokio::time::{sleep, timeout};
 
 use crate::{experiment_server::Handler, process, OrchestratorError, Result};

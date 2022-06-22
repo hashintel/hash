@@ -1,9 +1,12 @@
-use simulation_structure::{ExperimentId, SimulationShortId};
+use simulation_structure::SimulationShortId;
 
 use crate::{
-    package::simulation::{
-        output::{analysis::AnalysisBuffer, OutputPartBuffer},
-        OutputPackagesSimConfig,
+    package::{
+        experiment::ExperimentId,
+        simulation::{
+            output::{analysis::AnalysisBuffer, OutputPartBuffer},
+            OutputPackagesSimConfig,
+        },
     },
     Result,
 };

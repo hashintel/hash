@@ -1,15 +1,17 @@
 use std::sync::Arc;
 
 use execution::{
-    package::simulation::{
-        init::{InitialState, InitialStateName},
-        PackageCreatorConfig, PackageInitConfig,
+    package::{
+        experiment::ExperimentId,
+        simulation::{
+            init::{InitialState, InitialStateName},
+            PackageCreatorConfig, PackageInitConfig,
+        },
     },
     worker_pool::WorkerPoolConfig,
 };
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use simulation_structure::ExperimentId;
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
     field::{

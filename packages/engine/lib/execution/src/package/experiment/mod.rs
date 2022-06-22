@@ -13,6 +13,7 @@
 pub mod comms;
 
 mod config;
+mod id;
 mod name;
 mod simple;
 mod single;
@@ -22,6 +23,7 @@ use tracing::Instrument;
 
 pub use self::{
     config::{ExperimentPackageConfig, SimpleExperimentConfig, SingleRunExperimentConfig},
+    id::ExperimentId,
     name::ExperimentName,
 };
 use crate::{

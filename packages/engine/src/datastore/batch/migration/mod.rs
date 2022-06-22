@@ -1341,9 +1341,9 @@ fn offsets_start_at_zero(
 
 #[cfg(all(test, not(miri)))]
 pub(super) mod test {
+    use execution::package::experiment::ExperimentId;
     use rand::Rng;
     use serde::{Deserialize, Serialize};
-    use simulation_structure::ExperimentId;
     use stateful::{
         agent::{arrow::PREVIOUS_INDEX_FIELD_KEY, IntoAgents},
         message::MessageSchema,

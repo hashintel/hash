@@ -2,7 +2,7 @@ use core::fmt;
 
 use execution::{
     package::{
-        experiment::{ExperimentName, ExperimentPackageConfig},
+        experiment::{ExperimentId, ExperimentName, ExperimentPackageConfig},
         simulation::{init::InitialStateName, PackageInitConfig},
     },
     runner::{
@@ -13,7 +13,7 @@ use execution::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use simulation_structure::{ExperimentId, SimulationShortId};
+use simulation_structure::SimulationShortId;
 use stateful::global::{Dataset, Globals};
 
 use crate::simulation::status::SimStatus;

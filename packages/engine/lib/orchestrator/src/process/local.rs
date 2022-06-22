@@ -6,12 +6,12 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, ResultExt};
+use execution::package::experiment::ExperimentId;
 use hash_engine_lib::{
     experiment::controller::run::cleanup_experiment,
     proto::EngineMsg,
     utils::{LogFormat, LogLevel, OutputLocation},
 };
-use simulation_structure::ExperimentId;
 
 use crate::{process, OrchestratorError, Result};
 

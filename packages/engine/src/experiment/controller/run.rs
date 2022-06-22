@@ -2,7 +2,7 @@ use std::{pin::Pin, sync::Arc, time::Duration};
 
 use execution::{
     package::{
-        experiment::ExperimentPackage,
+        experiment::{ExperimentId, ExperimentPackage},
         simulation::output::persistence::{
             local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreator,
         },
@@ -12,7 +12,6 @@ use execution::{
     worker_pool::{comms::terminate::TerminateSend, WorkerPool},
 };
 use memory::shared_memory;
-use simulation_structure::ExperimentId;
 use stateful::global::SharedStore;
 use tracing::Instrument;
 

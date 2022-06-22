@@ -6,12 +6,13 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use memory::shared_memory::arrow_continuation;
 use nng::{options::Options, Aio, Socket};
-use simulation_structure::{ExperimentId, SimulationShortId};
+use simulation_structure::SimulationShortId;
 use stateful::state::StateReadProxy;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 pub use crate::runner::python::{PythonError, PythonResult};
 use crate::{
+    package::experiment::ExperimentId,
     runner::{
         comms::InboundToRunnerMsgPayload,
         python::fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},

@@ -6,7 +6,7 @@ mod outbound;
 use std::{collections::HashMap, fmt, sync::Arc};
 
 use arrow::datatypes::Schema;
-use simulation_structure::{ExperimentId, SimulationShortId};
+use simulation_structure::SimulationShortId;
 use stateful::{
     agent::AgentSchema,
     field::PackageId,
@@ -22,6 +22,7 @@ pub use self::{
     },
 };
 use crate::{
+    package::experiment::ExperimentId,
     runner::{MessageTarget, RunnerConfig},
     task::{TaskId, TaskMessage, TaskSharedStore},
     worker::PackageInitMsgForWorker,

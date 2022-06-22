@@ -10,12 +10,14 @@ use std::{
 };
 
 use error_stack::{bail, ensure, IntoReport, Report, ResultExt};
-use execution::{package::experiment::ExperimentName, runner::Language};
+use execution::{
+    package::experiment::{ExperimentId, ExperimentName},
+    runner::Language,
+};
 use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
-use simulation_structure::ExperimentId;
 use tracing_subscriber::fmt::time::Uptime;
 
 use self::error::{Result, TestContext};
