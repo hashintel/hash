@@ -7,8 +7,8 @@ use std::{collections::HashMap, path::PathBuf, time::Duration};
 use error_stack::{bail, ensure, report, IntoReport, ResultExt};
 use execution::package::{
     experiment::{
-        ExperimentId, ExperimentName, ExperimentPackageConfig, SimpleExperimentConfig,
-        SingleRunExperimentConfig,
+        basic::{BasicExperimentPackageConfig, SimpleExperimentConfig, SingleRunExperimentConfig},
+        ExperimentId, ExperimentName,
     },
     simulation::output::persistence::local::LocalPersistenceConfig,
 };
@@ -156,12 +156,15 @@ impl ExperimentType {
     ///
     /// If the type is a simple Experiment [`Simple`](Self::Simple), it uses a `base` to load the
     /// experiment config for the given `name`.
-    pub fn get_package_config(self, base: &ExperimentRunBase) -> Result<ExperimentPackageConfig> {
+    pub fn get_package_config(
+        self,
+        base: &ExperimentRunBase,
+    ) -> Result<BasicExperimentPackageConfig> {
         match self {
-            ExperimentType::SingleRun { num_steps } => Ok(ExperimentPackageConfig::SingleRun(
+            ExperimentType::SingleRun { num_steps } => Ok(BasicExperimentPackageConfig::SingleRun(
                 SingleRunExperimentConfig { num_steps },
             )),
-            ExperimentType::Simple { name } => Ok(ExperimentPackageConfig::Simple(
+            ExperimentType::Simple { name } => Ok(BasicExperimentPackageConfig::Simple(
                 get_simple_experiment_config(base, name)
                     .attach_printable("Could not read simple experiment config")?,
             )),

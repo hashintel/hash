@@ -8,18 +8,7 @@ use stateful::global::Globals;
 pub use self::error::{Error, Result};
 use crate::proto;
 
-pub type PackageDataField = proto::PackageDataField;
-pub type MetricObjective = proto::MetricObjective;
 pub type ExperimentRun = proto::ExperimentRun;
-
-// TODO: UNUSED: Needs triage
-pub fn objective_to_string(m: &Option<MetricObjective>) -> Result<String> {
-    match m {
-        Some(MetricObjective::Max) => Ok("max".into()),
-        Some(MetricObjective::Min) => Ok("min".into()),
-        _ => Err(Error::InvalidMetricObjective(m.clone())),
-    }
-}
 
 fn set_nested_global_property(
     map: &mut serde_json::Map<String, SerdeValue>,

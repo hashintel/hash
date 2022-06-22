@@ -2,7 +2,10 @@ use core::fmt;
 
 use execution::{
     package::{
-        experiment::{ExperimentId, ExperimentName, ExperimentPackageConfig},
+        experiment::{
+            basic::BasicExperimentPackageConfig, ExperimentId, ExperimentName,
+            ExperimentPackageConfig,
+        },
         simulation::{init::InitialStateName, SimulationId},
     },
     runner::{
@@ -109,87 +112,11 @@ impl EngineStatus {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-pub struct PackageDataField {
-    pub name: String,
-    /// Discrete values to explore
-    pub values: Option<Vec<serde_json::Value>>,
-    /// A range of values to explore
-    pub range: Option<String>,
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub enum MetricObjective {
-    Max,
-    Min,
-    Other(String),
-}
-
-impl Serialize for MetricObjective {
-    fn serialize<S: serde::Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
-        ser.serialize_str(match self {
-            MetricObjective::Max => "max",
-            MetricObjective::Min => "min",
-            MetricObjective::Other(s) => s,
-        })
-    }
-}
-
-impl<'de> Deserialize<'de> for MetricObjective {
-    fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let s = <String>::deserialize(deserializer)?;
-        match s.as_str() {
-            "max" => Ok(MetricObjective::Max),
-            "min" => Ok(MetricObjective::Min),
-            _ => Ok(MetricObjective::Other(s)),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
-pub struct OptimizationExperimentConfigPayload {
-    /// The metric to optimize for
-    #[serde(rename = "metricName")]
-    pub metric_name: Option<String>,
-    /// The objective for the metric
-    #[serde(rename = "metricObjective")]
-    pub metric_objective: Option<MetricObjective>,
-    /// The maximum number of runs to try in an experiment
-    #[serde(rename = "maxRuns")]
-    pub max_runs: Option<i64>,
-    /// The maximum number of steps a run should go for
-    #[serde(rename = "maxSteps")]
-    pub max_steps: Option<i64>,
-    /// The minimum number of steps a run should go for
-    #[serde(rename = "minSteps")]
-    pub min_steps: Option<i64>,
-    /// The fields to explore as hyperparameters
-    pub fields: Option<Vec<PackageDataField>>,
-    /// Combinations of parameter values to use for the first runs
-    #[serde(rename = "initialPoints")]
-    pub initial_points: Option<Vec<SerdeValue>>,
-}
-
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
-pub struct OptimizationExperimentConfig {
-    /// The experiment name
-    pub experiment_name: String,
-    pub payload: OptimizationExperimentConfigPayload,
-    /// Number of simulation runs that are to be run in parallel
-    pub num_parallel_runs: usize,
-}
-
 #[derive(Serialize, Eq, PartialEq, Debug, Clone)]
 pub enum PackageConfig<'a> {
     EmptyPackageConfig,
-    ExperimentPackageConfig(&'a ExperimentPackageConfig),
-    ExtendedExperimentPackageConfig(&'a ExtendedExperimentPackageConfig),
-}
-
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
-pub enum ExtendedExperimentPackageConfig {
-    Basic(ExperimentPackageConfig),
-    Optimization(OptimizationExperimentConfig),
+    BasicExperimentPackageConfig(&'a BasicExperimentPackageConfig),
+    ExtendedExperimentPackageConfig(&'a ExperimentPackageConfig),
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -245,13 +172,13 @@ impl ExperimentRunBase {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRun {
     pub base: ExperimentRunBase,
-    pub package_config: ExperimentPackageConfig,
+    pub package_config: BasicExperimentPackageConfig,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExtendedExperimentRun {
     pub base: ExperimentRunBase,
-    pub package_config: ExtendedExperimentPackageConfig,
+    pub package_config: ExperimentPackageConfig,
 }
 
 pub trait ExperimentRunTrait: Clone + for<'a> Deserialize<'a> + Serialize {
@@ -284,7 +211,7 @@ impl ExperimentRunTrait for ExperimentRun {
     }
 
     fn package_config(&self) -> PackageConfig<'_> {
-        PackageConfig::ExperimentPackageConfig(&self.package_config)
+        PackageConfig::BasicExperimentPackageConfig(&self.package_config)
     }
 }
 

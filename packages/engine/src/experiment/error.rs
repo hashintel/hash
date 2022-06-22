@@ -13,9 +13,6 @@ pub enum Error {
     #[error("Controller error: {0}")]
     Controller(#[from] crate::experiment::controller::Error),
 
-    #[error("Invalid optimization experiment metric objective: {0:?}")]
-    InvalidMetricObjective(Option<super::MetricObjective>),
-
     #[error("Simulation run's changed Global values are not in a JSON object")]
     ChangedGlobalsNotObject,
 

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use execution::{
     package::{
-        experiment::ExperimentPackageConfig,
+        experiment::basic::BasicExperimentPackageConfig,
         simulation::{PersistenceConfig, SimulationId},
     },
     worker_pool::{WorkerAllocation, WorkerIndex},
@@ -19,13 +19,13 @@ pub struct SimConfigurer {
 }
 
 impl SimConfigurer {
-    pub fn new(package_config: &ExperimentPackageConfig, num_workers: usize) -> SimConfigurer {
+    pub fn new(package_config: &BasicExperimentPackageConfig, num_workers: usize) -> SimConfigurer {
         let num_workers_per_sim = match package_config {
-            ExperimentPackageConfig::Simple(config) => {
+            BasicExperimentPackageConfig::Simple(config) => {
                 let num_runs = config.changed_globals.len();
                 std::cmp::max(1, (num_workers as f64 / num_runs as f64).ceil() as usize)
             }
-            ExperimentPackageConfig::SingleRun(_) => std::cmp::max(1, num_workers),
+            BasicExperimentPackageConfig::SingleRun(_) => std::cmp::max(1, num_workers),
         };
 
         SimConfigurer {

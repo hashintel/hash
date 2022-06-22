@@ -1,13 +1,19 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
     package::{
-        experiment::{
-            comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
-            SingleRunExperimentConfig,
-        },
+        experiment::comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
         simulation::SimulationId,
     },
     Error, Result,
 };
+
+#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
+pub struct SingleRunExperimentConfig {
+    /// Number of steps the run should go for
+    #[serde(rename = "numSteps")]
+    pub num_steps: usize,
+}
 
 pub struct SingleRunExperiment {
     config: SingleRunExperimentConfig,

@@ -130,7 +130,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
         worker_pool_send,
     )?;
 
-    let experiment_package = if let PackageConfig::ExperimentPackageConfig(package_config) =
+    let experiment_package = if let PackageConfig::BasicExperimentPackageConfig(package_config) =
         exp_config.run.package_config()
     {
         // Start up the experiment package (simple/single)
@@ -143,7 +143,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
     let mut experiment_package_handle = experiment_package.join_handle;
 
     let package_config = match exp_config.run.package_config() {
-        PackageConfig::ExperimentPackageConfig(package_config) => package_config,
+        PackageConfig::BasicExperimentPackageConfig(package_config) => package_config,
         _ => unreachable!(),
     };
 
