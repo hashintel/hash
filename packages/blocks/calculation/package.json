@@ -16,6 +16,8 @@
   "scripts": {
     "build": "node_modules/.bin/block-scripts build",
     "dev": "node_modules/.bin/block-scripts dev",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
     "serve": "node_modules/.bin/block-scripts serve"
   },
