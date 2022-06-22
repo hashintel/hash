@@ -118,7 +118,10 @@ impl Drop for OutputPartBuffer {
                 .unwrap_or_else(|error| tracing::error!("Failed to remove part {part:?}: {error}"))
         }
         std::fs::remove_dir_all(&self.base_path).unwrap_or_else(|error| {
-            tracing::error!("Failed to remove base path {:?}: {error}", self.base_path)
+            tracing::error!(
+                "Failed to temporary part directory {:?}: {error}",
+                &self.base_path
+            )
         });
     }
 }
