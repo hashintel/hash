@@ -1,9 +1,8 @@
 use async_trait::async_trait;
 use futures::StreamExt;
-use simulation_structure::ExperimentRun;
 use stateful::global::Dataset;
 
-use crate::{Error, Result};
+use crate::{Error, ExperimentRun, Result};
 
 #[async_trait]
 pub trait FetchDependencies {
@@ -66,7 +65,7 @@ impl FetchDependencies for ExperimentRun {
     }
 }
 
-pub fn parse_raw_csv_into_json(contents: String) -> Result<String> {
+pub fn parse_raw_csv_into_json(contents: String) -> Result<String, csv::Error> {
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
         .from_reader(contents.as_bytes());
@@ -82,8 +81,7 @@ pub fn parse_raw_csv_into_json(contents: String) -> Result<String> {
         }
 
         let mut is_first_element = true;
-        let record = record.map_err(|e| Error::from(e.to_string()))?;
-        for elem in record.iter() {
+        for elem in record?.iter() {
             if !is_first_element {
                 result.push(',');
             } else {

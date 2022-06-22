@@ -25,8 +25,11 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
-    #[error("Experiment package error: {0}")]
-    ExperimentPackage(#[from] crate::experiment::Error),
+    #[error("HTTP error: {0}")]
+    Surf(surf::StatusCode),
+
+    #[error("CSV error: {0}")]
+    Csv(#[from] csv::Error),
 }
 
 impl From<&str> for Error {

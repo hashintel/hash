@@ -14,10 +14,9 @@ use execution::package::simulation::{
     state::behavior_execution::Behavior,
     PackageInitConfig, SimPackageArgs,
 };
-use hash_engine_lib::fetch::parse_raw_csv_into_json;
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
-use simulation_structure::{Experiment, ExperimentRun, Simulation};
+use simulation_structure::{parse_raw_csv_into_json, Experiment, ExperimentRun, Simulation};
 use stateful::global::Dataset;
 
 use crate::{ExperimentType, OrchestratorError, Result};

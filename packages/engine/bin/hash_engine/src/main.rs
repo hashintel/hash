@@ -5,9 +5,9 @@ use hash_engine_lib::{
     config::experiment_config,
     env::env,
     experiment::controller::run::{cleanup_experiment, run_experiment},
-    fetch::FetchDependencies,
     utils::init_logger,
 };
+use simulation_structure::FetchDependencies;
 
 #[derive(Debug)]
 pub struct EngineError;

@@ -938,6 +938,7 @@ version = "0.0.0"
 dependencies = [
  "error-stack",
  "hash_engine_lib",
+ "simulation_structure",
  "tokio",
  "tracing",
 ]
@@ -951,7 +952,6 @@ dependencies = [
  "async-trait",
  "cc",
  "clap",
- "csv",
  "error-stack",
  "execution",
  "flatbuffers_gen",
@@ -966,7 +966,6 @@ dependencies = [
  "serde_json",
  "simulation_structure",
  "stateful",
- "surf",
  "thiserror",
  "tokio",
  "tracing",
@@ -2064,9 +2063,16 @@ dependencies = [
 name = "simulation_structure"
 version = "0.0.0"
 dependencies = [
+ "async-trait",
+ "csv",
  "execution",
+ "futures",
  "serde",
  "stateful",
+ "surf",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
