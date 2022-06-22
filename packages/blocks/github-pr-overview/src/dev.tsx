@@ -22,7 +22,7 @@ const App = () => (
       entityId: "entity-github-pr-overview",
       properties: {},
     }}
-    debug={false}
+    debug
   />
 );
 

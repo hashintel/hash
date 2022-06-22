@@ -18,17 +18,14 @@ export type PullRequestIdentifier = {
 };
 
 export const getGithubEntityTypes = (
-  graphService: GraphBlockHandler,
-  // aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
-  numPages: number,
-  setGithubEntityTypeIds: (x: any) => void,
-  setBlockState: (x: any) => void,
+  aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
+  numPages: number = 5,
 ) => {
   const promises = Array(numPages)
     .fill(undefined)
     .map((_, pageNumber) =>
       /** @todo - These should be links to a PR entity really */
-      graphService?.aggregateEntityTypes({
+      aggregateEntityTypes({
         data: {
           operation: {
             pageNumber,
@@ -36,7 +33,7 @@ export const getGithubEntityTypes = (
         },
       }),
     );
-  Promise.all(promises)
+  return Promise.all(promises)
     .then((entityTypesResults) => {
       const entityTypes = entityTypesResults.flatMap(
         (entityTypeResult) => entityTypeResult.data?.results ?? [],
@@ -60,17 +57,15 @@ export const getGithubEntityTypes = (
           [GITHUB_ENTITY_TYPES.Review]: reviewTypeId,
           [GITHUB_ENTITY_TYPES.IssueEvent]: issueEventTypeId,
         };
-        setGithubEntityTypeIds(githubTypeIds);
+        return githubTypeIds;
       } else {
-        setBlockState(BlockState.Error);
+        throw new Error("Couldn't find all Github Entity Types");
       }
     })
     .catch((err) => {
       throw err;
     });
 };
-
-// @todo this should be Entity<Properties>
 
 export type GithubPullRequest = Entity<{
   repository?: string;

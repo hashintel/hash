@@ -8,21 +8,19 @@ import {
   GithubPullRequest,
   PullRequestIdentifier,
   GithubReview,
-  isDefined,
   GITHUB_ENTITY_TYPES,
   getGithubEntityTypes,
 } from "./types";
 import { GithubPrOverview } from "./overview";
 
 import {
-  collectPrEventsAndSetState,
-  collectPrsAndSetState,
-  collectReviewsAndSetState,
+  getPrEvents,
+  getAllPRs,
   getPrs,
+  getPrReviews,
 } from "./entity-aggregations";
 import { PullRequestSelector } from "./pull-request-selector";
 import { LoadingUI } from "./loading-ui";
-import mockData from "../example-graph.json";
 
 export enum BlockState {
   Loading,
@@ -77,11 +75,6 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         },
       },
     });
-    // .then(({ errors }) => {
-    //   if (errors) {
-    //     console.error(errors);
-    //   }
-    // });
 
     setSelectedPullRequestId(pullRequestId);
   };
@@ -95,54 +88,72 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const [reviews, setReviews] = React.useState<GithubReview[]>();
   const [events, setEvents] = React.useState<GithubIssueEvent[]>();
 
-  /** @todo - Figure out when to query for more than one page, probably querying until no more results */
+  const fetchGithubEntityTypeIds = React.useCallback(async () => {
+    if (!graphService) return;
 
-  React.useEffect(() => {
-    if (!blockRef.current) return;
-    if (
-      graphService?.aggregateEntityTypes &&
-      githubEntityTypeIds === undefined
-    ) {
-      setBlockState(BlockState.Loading);
-      getGithubEntityTypes(
-        graphService,
-        5,
-        setGithubEntityTypeIds,
-        setBlockState,
+    setBlockState(BlockState.Loading);
+    try {
+      const entityTypeIds = await getGithubEntityTypes(({ data }) =>
+        graphService.aggregateEntityTypes({ data }),
       );
-    }
-  }, [
-    githubEntityTypeIds,
-    setGithubEntityTypeIds,
-    setBlockState,
-    graphService,
-  ]);
 
-  // Block hasn't been initialized with a selected Pull Request, get all PRs to allow user to pick
+      const prs = await getAllPRs(
+        entityTypeIds[GITHUB_ENTITY_TYPES.PullRequest],
+        ({ data }) => graphService.aggregateEntities({ data }),
+      );
+
+      setAllPrs(prs);
+      setGithubEntityTypeIds(entityTypeIds);
+      setBlockState(BlockState.Selector);
+      // console.log("fetched ids => ", entityTypeIds);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.log({ err });
+      // confirm if we need this
+      setBlockState(BlockState.Error);
+    }
+  }, [graphService]);
+
+  React.useEffect(() => {
+    if (!blockRef.current) return;
+    // fetch entity types
+    if (!githubEntityTypeIds) {
+      void fetchGithubEntityTypeIds();
+    }
+  }, [githubEntityTypeIds, fetchGithubEntityTypeIds]);
+
   React.useEffect(() => {
     if (!blockRef.current) return;
     if (
-      selectedPullRequestId === undefined &&
+      selectedPullRequestId !== undefined &&
       githubEntityTypeIds !== undefined &&
       graphService?.aggregateEntities
     ) {
       setBlockState(BlockState.Loading);
-      collectPrsAndSetState(
-        githubEntityTypeIds[GITHUB_ENTITY_TYPES.PullRequest],
-        graphService,
-        5,
-        setAllPrs,
-        setBlockState,
-      );
-    }
-  }, [
-    githubEntityTypeIds,
-    selectedPullRequestId,
-    graphService,
-    setAllPrs,
-    setBlockState,
-  ]);
 
+      const init = async () => {
+        const [prReviews, prEvents] = await Promise.all([
+          getPrReviews(
+            selectedPullRequestId,
+            githubEntityTypeIds[GITHUB_ENTITY_TYPES.Review],
+            async ({ data }) => await graphService?.aggregateEntities({ data }),
+          ),
+          getPrEvents(
+            selectedPullRequestId,
+            githubEntityTypeIds[GITHUB_ENTITY_TYPES.IssueEvent],
+            ({ data }) => graphService?.aggregateEntities({ data }),
+          ),
+        ]);
+
+        setReviews(prReviews);
+        setEvents(prEvents);
+      };
+
+      void init();
+    }
+  }, [githubEntityTypeIds, selectedPullRequestId, graphService]);
+
+  // @todo continue from here
   // Block has been initialized with a selected Pull Request, get associated info
   React.useEffect(() => {
     if (!blockRef.current) return;
@@ -155,73 +166,22 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       setBlockState(BlockState.Loading);
       void getPrs(
         githubEntityTypeIds[GITHUB_ENTITY_TYPES.PullRequest],
-        graphService,
+        ({ data }) => graphService.aggregateEntities({ data }),
         1,
         selectedPullRequestId,
       ).then((pullRequests) => {
+        // console.log("fetched request ==> ", { pullRequests });
         if (pullRequests) {
-          const pr = pullRequests.results[0];
+          const pr = pullRequests.results?.[0];
           if (pr) {
             setPullRequest(pr);
           }
         }
       });
     }
-  }, [
-    githubEntityTypeIds,
-    selectedPullRequestId,
-    graphService,
-    setPullRequest,
-    setBlockState,
-  ]);
+  }, [githubEntityTypeIds, selectedPullRequestId, graphService]);
 
-  React.useEffect(() => {
-    if (!blockRef.current) return;
-    if (
-      selectedPullRequestId !== undefined &&
-      githubEntityTypeIds !== undefined &&
-      graphService?.aggregateEntities
-    ) {
-      setBlockState(BlockState.Loading);
-      collectReviewsAndSetState(
-        githubEntityTypeIds[GITHUB_ENTITY_TYPES.Review],
-        ({ data }) => graphService?.aggregateEntities({ data }),
-        1,
-        setReviews,
-        selectedPullRequestId,
-      );
-    }
-  }, [
-    githubEntityTypeIds,
-    selectedPullRequestId,
-    graphService,
-    setReviews,
-    setBlockState,
-  ]);
-
-  React.useEffect(() => {
-    if (!blockRef.current) return;
-    if (
-      selectedPullRequestId !== undefined &&
-      githubEntityTypeIds !== undefined &&
-      graphService?.aggregateEntities
-    ) {
-      setBlockState(BlockState.Loading);
-      collectPrEventsAndSetState(
-        githubEntityTypeIds[GITHUB_ENTITY_TYPES.IssueEvent],
-        ({ data }) => graphService?.aggregateEntities({ data }),
-        1,
-        setEvents,
-        selectedPullRequestId,
-      );
-    }
-  }, [
-    githubEntityTypeIds,
-    selectedPullRequestId,
-    graphService,
-    setEvents,
-    setBlockState,
-  ]);
+  /** @todo - Figure out when to query for more than one page, probably querying until no more results */
 
   if (
     allPrs !== undefined &&
@@ -258,7 +218,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           />
         ) : blockState === BlockState.Overview ? (
           <GithubPrOverview
-            pullRequest={pullRequest?.properties}
+            pullRequest={pullRequest?.properties ?? {}}
             reviews={reviews?.map((review) => ({ ...review.properties })) ?? []}
             events={events?.map((event) => ({ ...event.properties })) ?? []}
             setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
