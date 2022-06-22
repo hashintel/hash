@@ -221,6 +221,11 @@ Your tests will be less wired to the implementation details and thus be closer t
 ## Code quality
 
 We perform automated linting and formatting checks on pull requests using GitHub Actions.
+When you create or update a PR, GitHub triggers CI workflows and thus launches the checks.
+This includes ESLint, TSC, Prettier, Markdownlint, rustfmt and a few others tools.
+Some tools may be skipped depending on the files that have been changed in the PR.
+
+First-time contributors need to wait for a maintainer to manually launch the checks.
 
 ## Monorepo
 
