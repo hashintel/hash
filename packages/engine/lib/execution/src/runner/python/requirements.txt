@@ -2,4 +2,4 @@ pyarrow == 0.17
 flatbuffers == 1.12
 pynng == 0.6.2
 Cython == 0.29.21
-numpy == 1.21.1 # Pyodide is 1.15.1, but we need this
+numpy == 1.22.0 # Pyodide is 1.15.1, but we need this
