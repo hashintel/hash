@@ -1,5 +1,3 @@
-# Calculation
-
 Spreadsheet-like table for doing computation on entities by Entity Types.
 Supported aggregations:
 
