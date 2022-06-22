@@ -1,3 +1,4 @@
+mod experiment;
 mod simulation;
 
-pub use self::simulation::Simulation;
+pub use self::{experiment::Experiment, simulation::Simulation};

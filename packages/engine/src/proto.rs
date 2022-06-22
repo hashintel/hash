@@ -1,27 +1,18 @@
-use core::fmt;
-
 use execution::{
     package::{
-        experiment::{ExperimentId, ExperimentName, ExperimentPackageConfig},
-        simulation::{init::InitialStateName, SimulationId},
+        experiment::{ExperimentId, ExperimentPackageConfig},
+        simulation::SimulationId,
     },
     runner::{
         comms::{PackageError, UserError, UserWarning},
-        Language, RunnerError,
+        RunnerError,
     },
-    worker::RunnerSpawnConfig,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value as SerdeValue;
-use simulation_structure::Simulation;
+use simulation_structure::{Experiment, Simulation};
 use stateful::global::Globals;
 
 use crate::simulation::status::SimStatus;
-
-// TODO: UNUSED: Needs triage
-pub type SerdeMap = serde_json::Map<String, SerdeValue>;
-
-pub type SimulationRegisteredId = String;
 
 /// The message type sent from the engine to the orchestrator.
 #[derive(Serialize, Deserialize, Debug)]
@@ -110,69 +101,6 @@ impl EngineStatus {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Experiment {
-    name: ExperimentName,
-    simulation: Simulation,
-    id: ExperimentId,
-}
-
-impl Experiment {
-    pub fn new(name: ExperimentName, simulation: Simulation) -> Self {
-        Self {
-            name,
-            simulation,
-            id: ExperimentId::generate(),
-        }
-    }
-
-    pub fn id(&self) -> ExperimentId {
-        self.id
-    }
-
-    pub fn name(&self) -> &ExperimentName {
-        &self.name
-    }
-
-    pub fn simulation(&self) -> &Simulation {
-        &self.simulation
-    }
-
-    /// Returns a [`RunnerSpawnConfig`] matching the config required by the files present in the
-    /// experiment.
-    pub fn create_runner_spawn_config(&self) -> RunnerSpawnConfig {
-        RunnerSpawnConfig {
-            python: self.requires_runner(Language::Python),
-            rust: self.requires_runner(Language::Rust),
-            javascript: self.requires_runner(Language::JavaScript),
-        }
-    }
-
-    /// Returns `true` if the experiment uses the language's init or has any behavior of the
-    /// language.
-    fn requires_runner(&self, language: Language) -> bool {
-        #[allow(clippy::match_like_matches_macro)]
-        let requires_init = match (language, &self.simulation.package_init.initial_state.name) {
-            (Language::JavaScript, InitialStateName::InitJs) => true,
-            (Language::Python, InitialStateName::InitPy) => true,
-            _ => false,
-        };
-
-        requires_init
-            || self
-                .simulation
-                .package_init
-                .behaviors
-                .iter()
-                .any(|behavior| {
-                    behavior
-                        .language()
-                        .map(|behavior_lang| behavior_lang == language)
-                        .unwrap_or(false)
-                })
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRun {
     experiment: Experiment,
     config: ExperimentPackageConfig,
@@ -192,35 +120,14 @@ impl ExperimentRun {
     }
 
     pub fn simulation(&self) -> &Simulation {
-        &self.experiment().simulation
+        self.experiment().simulation()
     }
 
     pub fn simualtion_mut(&mut self) -> &mut Simulation {
-        &mut self.experiment_mut().simulation
+        self.experiment_mut().simulation_mut()
     }
 
     pub fn config(&self) -> &ExperimentPackageConfig {
         &self.config
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ProcessedExperimentRun {
-    pub experiment: Experiment,
-    /// The compute usage when the user initialized the run
-    /// This is only valid at the start of the run
-    pub compute_usage_remaining: i64,
-}
-
-/// A wrapper around an Option to avoid displaying the inner for Debug outputs,
-/// i.e. debug::Debug now outputs: `Some(..)`
-struct CleanOption<'a, T>(&'a Option<T>);
-
-impl<T> fmt::Debug for CleanOption<'_, T> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.0 {
-            Some(_) => fmt.write_str("Some(..)"),
-            None => fmt.write_str("None"),
-        }
     }
 }

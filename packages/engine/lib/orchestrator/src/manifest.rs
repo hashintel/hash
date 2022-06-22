@@ -14,13 +14,10 @@ use execution::package::simulation::{
     state::behavior_execution::Behavior,
     PackageInitConfig, SimPackageArgs,
 };
-use hash_engine_lib::{
-    fetch::parse_raw_csv_into_json,
-    proto::{Experiment, ExperimentRun},
-};
+use hash_engine_lib::{fetch::parse_raw_csv_into_json, proto::ExperimentRun};
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
-use simulation_structure::Simulation;
+use simulation_structure::{Experiment, Simulation};
 use stateful::global::Dataset;
 
 use crate::{ExperimentType, OrchestratorError, Result};
