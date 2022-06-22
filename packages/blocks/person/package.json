@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@types/dompurify": "2.3.3",
-    "block-scripts": "0.0.11",
+    "block-scripts": "0.0.13",
     "eslint": "8.13.0",
     "mock-block-dock": "0.0.15",
     "react": "^17.0.2",
