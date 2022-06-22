@@ -28,7 +28,7 @@
     "react-resizable": "^3.0.4"
   },
   "devDependencies": {
-    "block-scripts": "0.0.11",
+    "block-scripts": "0.0.12",
     "mobx": "6.5.0",
     "mock-block-dock": "0.0.15",
     "react": "^17.0.2",
