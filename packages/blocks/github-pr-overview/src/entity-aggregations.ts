@@ -24,14 +24,10 @@ const ITEMS_PER_PAGE = 100;
 
 export const getPrs = async (
   githubPullRequestTypeId: string,
-  aggregateEntities?: GraphBlockHandler["aggregateEntities"],
-  pageNumber?: number,
+  aggregateEntities: GraphBlockHandler["aggregateEntities"],
+  pageNumber: number = 1,
   selectedPullRequest?: PullRequestIdentifier,
-): Promise<AggregateEntitiesResult<Entity<GithubPullRequest>> | void> => {
-  if (!aggregateEntities) {
-    return new Promise<void>(() => {});
-  }
-
+): Promise<AggregateEntitiesResult<GithubPullRequest> | void> => {
   const res = await aggregateEntities({
     data: {
       operation: {
@@ -44,7 +40,7 @@ export const getPrs = async (
             selectedPullRequest !== undefined
               ? [
                   {
-                    field: "html_url",
+                    field: "properties.html_url",
                     operator: "CONTAINS",
                     value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
                   },
@@ -53,7 +49,7 @@ export const getPrs = async (
         },
         multiSort: [
           {
-            field: "url",
+            field: "properties.url",
             desc: true,
           },
         ],
@@ -68,12 +64,10 @@ export const getPrs = async (
   // @todo fix
 };
 
-export const collectPrsAndSetState = (
+export const getAllPRs = (
   githubPullRequestTypeId: string,
-  aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
-  numPages: number,
-  setState: (x: any) => void,
-  setBlockState: (x: any) => void,
+  aggregateEntities: GraphBlockHandler["aggregateEntities"],
+  numPages: number = 5,
 ) => {
   if (!aggregateEntities) {
     // do something
@@ -85,8 +79,7 @@ export const collectPrsAndSetState = (
     .map((_, pageNumber) =>
       getPrs(githubPullRequestTypeId, aggregateEntities, pageNumber),
     );
-
-  Promise.all(promises)
+  return Promise.all(promises)
     .then((entitiesResults) => {
       const entities: GithubPullRequest[] = entitiesResults
         .flatMap((entityResult) => entityResult?.results)
@@ -101,10 +94,7 @@ export const collectPrsAndSetState = (
         mappedPullRequests.set(pullRequestId, pullRequest);
       }
 
-      setState(mappedPullRequests);
-      if (mappedPullRequests.size === 0) {
-        setBlockState(BlockState.Error);
-      }
+      return mappedPullRequests;
     })
     .catch((err) => {
       throw err;
@@ -112,11 +102,11 @@ export const collectPrsAndSetState = (
 };
 
 const getReviews = async (
+  selectedPullRequest: PullRequestIdentifier,
   githubReviewTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   pageNumber: number | undefined,
-  selectedPullRequest: PullRequestIdentifier,
-): Promise<AggregateEntitiesResult<Entity<GithubReview>> | void> => {
+): Promise<AggregateEntitiesResult<GithubReview> | void> => {
   if (!aggregateEntities) {
     return new Promise<void>(() => {});
   }
@@ -131,7 +121,7 @@ const getReviews = async (
           operator: "AND",
           filters: [
             {
-              field: "html_url",
+              field: "properties.html_url",
               operator: "CONTAINS",
               value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
             },
@@ -139,11 +129,11 @@ const getReviews = async (
         },
         multiSort: [
           {
-            field: "pull_request_url",
+            field: "properties.pull_request_url",
             desc: true,
           },
           {
-            field: "submitted_at",
+            field: "properties.submitted_at",
             desc: false,
           },
         ],
@@ -157,27 +147,25 @@ const getReviews = async (
   // @todo fix
 };
 
-export const collectReviewsAndSetState = (
+export const getPrReviews = async (
+  selectedPullRequest: PullRequestIdentifier,
   githubReviewTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
-  accountId: string | null | undefined,
-  numPages: number,
-  setState: (x: any) => void,
-  selectedPullRequest: PullRequestIdentifier,
+  numPages: number = 1,
 ) => {
   const promises = Array(numPages)
     .fill(undefined)
     .map((_, pageNumber) =>
       getReviews(
+        selectedPullRequest,
         githubReviewTypeId,
         aggregateEntities,
         accountId,
         pageNumber,
-        selectedPullRequest,
       ),
     );
 
-  Promise.all(promises)
+  return Promise.all(promises)
     .then((entitiesResults) => {
       const entities: GithubReview[] = entitiesResults
         .flatMap((entityResult) => entityResult?.results)
@@ -185,14 +173,15 @@ export const collectReviewsAndSetState = (
 
       const reviews = uniqBy(entities, "id");
 
-      setState(reviews);
+      return reviews;
     })
     .catch((err) => {
       throw err;
     });
 };
 
-const getPrEvents = (
+// rename
+const getEvents = async (
   githubIssueEventTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   pageNumber: number | undefined,
@@ -212,11 +201,11 @@ const getPrEvents = (
           operator: "AND",
           filters: [
             {
-              field: "issue.pull_request",
+              field: "properties.issue.pull_request",
               operator: "IS_NOT_EMPTY",
             },
             {
-              field: "issue.html_url",
+              field: "properties.issue.html_url",
               operator: "CONTAINS",
               value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
             },
@@ -224,11 +213,11 @@ const getPrEvents = (
         },
         multiSort: [
           {
-            field: "issue.html_url",
+            field: "properties.issue.html_url",
             desc: true,
           },
           {
-            field: "created_at",
+            field: "properties.created_at",
             desc: false,
           },
         ],
@@ -239,19 +228,17 @@ const getPrEvents = (
   return res;
 };
 
-export const collectPrEventsAndSetState = (
+export const getPrEvents = async (
+  selectedPullRequest: PullRequestIdentifier,
   githubIssueEventTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
-  accountId: string | null | undefined,
-  numPages: number,
-  setState: (x: any) => void,
-  selectedPullRequest: PullRequestIdentifier,
+  numPages: number = 1,
 ) => {
   const promises = Array(numPages)
     .fill(undefined)
     .map((_, pageNumber) =>
       /** @todo - These should be links to a PR entity really */
-      getPrEvents(
+      getEvents(
         githubIssueEventTypeId,
         aggregateEntities,
         accountId,
@@ -260,7 +247,7 @@ export const collectPrEventsAndSetState = (
       ),
     );
 
-  Promise.all(promises)
+  return Promise.all(promises)
     .then((entitiesResults) => {
       const entities: GithubIssueEvent[] = entitiesResults
         .flatMap((entityResult) => entityResult?.results)
@@ -271,7 +258,7 @@ export const collectPrEventsAndSetState = (
 
       const events = uniqBy(entities, "id");
 
-      setState(events);
+      return events;
     })
     .catch((err) => {
       throw err;

@@ -19,9 +19,7 @@ export type PullRequestIdentifier = {
 
 export const getGithubEntityTypes = (
   aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
-  numPages: number,
-  setGithubEntityTypeIds: (x: any) => void,
-  setBlockState: (x: any) => void,
+  numPages: number = 5,
 ) => {
   const promises = Array(numPages)
     .fill(undefined)
@@ -35,8 +33,7 @@ export const getGithubEntityTypes = (
         },
       }),
     );
-
-  Promise.all(promises)
+  return Promise.all(promises)
     .then((entityTypesResults) => {
       const entityTypes = entityTypesResults.flatMap(
         (entityTypeResult) => entityTypeResult.data?.results ?? [],
@@ -60,9 +57,9 @@ export const getGithubEntityTypes = (
           [GITHUB_ENTITY_TYPES.Review]: reviewTypeId,
           [GITHUB_ENTITY_TYPES.IssueEvent]: issueEventTypeId,
         };
-        setGithubEntityTypeIds(githubTypeIds);
+        return githubTypeIds;
       } else {
-        setBlockState(BlockState.Error);
+        throw new Error("Couldn't find all Github Entity Types");
       }
     })
     .catch((err) => {
@@ -70,9 +67,7 @@ export const getGithubEntityTypes = (
     });
 };
 
-// @todo this should be Entity<Properties>
-
-export interface GithubPullRequest extends Entity {
+export type GithubPullRequest = Entity<{
   repository?: string;
   url?: null | string;
   id?: null | number;

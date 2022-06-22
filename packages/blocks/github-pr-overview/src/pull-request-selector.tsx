@@ -18,6 +18,7 @@ export const PullRequestSelector: React.FunctionComponent<
     React.useState<number>();
 
   const onClick = (pullRequest: number) => {
+    // console.log({ selectedRepository, pullRequest });
     setSelectedPullRequestId({
       repository: selectedRepository,
       number: pullRequest,
@@ -47,9 +48,9 @@ export const PullRequestSelector: React.FunctionComponent<
     return repoMap;
   }, [allPrs]);
 
-  React.useEffect(() => {
-    setSelectedPullRequest(undefined);
-  }, [selectedRepository]);
+  // React.useEffect(() => {
+  //   setSelectedPullRequest(undefined);
+  // }, [selectedRepository]);
 
   // incase we want to fetch the details after selecting repo info
   // can add a loading state
