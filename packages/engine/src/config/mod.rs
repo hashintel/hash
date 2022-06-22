@@ -8,12 +8,12 @@ use stateful::{global::Globals, state::StateCreateParameters};
 
 pub use self::{
     error::{Error, Result},
-    experiment::Config as ExperimentConfig,
+    experiment::ExperimentConfig,
     package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
     simulation::Config as SimulationConfig,
     store::Config as StoreConfig,
 };
-use crate::{env::Environment, proto::ExperimentRunTrait, Args};
+use crate::{env::Environment, Args};
 
 mod error;
 mod experiment;
@@ -23,15 +23,14 @@ mod store;
 
 pub const MIN_AGENTS_PER_GROUP: usize = 10;
 
-#[derive(Clone)]
-pub struct SimRunConfig {
-    pub exp: Arc<ExperimentConfig>,
-    pub sim: Arc<SimulationConfig>,
+pub struct SimulationRunConfig {
+    experiment: Arc<ExperimentConfig>,
+    simulation: SimulationConfig,
 }
 
 pub async fn experiment_config(args: &Args, env: &Environment) -> Result<ExperimentConfig> {
     ExperimentConfig::new(
-        env.experiment.clone(),
+        Arc::new(env.experiment.clone()),
         args.num_workers,
         args.target_max_group_size,
         args.js_runner_initial_heap_constraint,
@@ -39,38 +38,45 @@ pub async fn experiment_config(args: &Args, env: &Environment) -> Result<Experim
     )
 }
 
-impl SimRunConfig {
+impl SimulationRunConfig {
     pub fn new(
-        global: &Arc<ExperimentConfig>,
+        experiment_config: Arc<ExperimentConfig>,
         id: SimulationId,
         globals: Globals,
         worker_allocation: WorkerAllocation,
-        store: StoreConfig,
-        persistence: PersistenceConfig,
+        store_config: StoreConfig,
+        persistence_config: PersistenceConfig,
         max_num_steps: usize,
-    ) -> Result<SimRunConfig> {
-        let local = simulation_config(
+    ) -> SimulationRunConfig {
+        let simulation_config = simulation_config(
             id,
             globals,
             worker_allocation,
-            global,
-            store,
-            persistence,
+            store_config,
+            persistence_config,
             max_num_steps,
-        )?;
-        Ok(SimRunConfig {
-            exp: global.clone(),
-            sim: Arc::new(local),
-        })
+        );
+        SimulationRunConfig {
+            experiment: experiment_config,
+            simulation: simulation_config,
+        }
+    }
+
+    pub fn experiment_config(&self) -> &ExperimentConfig {
+        &self.experiment
+    }
+
+    pub fn simulation_config(&self) -> &SimulationConfig {
+        &self.simulation
     }
 
     pub fn to_state_create_parameters(&self) -> StateCreateParameters {
         StateCreateParameters {
-            target_min_groups: self.exp.worker_pool.num_workers,
-            target_group_size: MIN_AGENTS_PER_GROUP..self.exp.target_max_group_size,
-            memory_base_id: self.exp.run.base().id.into(),
-            agent_schema: Arc::clone(&self.sim.store.agent_schema),
-            message_schema: Arc::clone(&self.sim.store.message_schema),
+            target_min_groups: self.experiment.worker_pool.num_workers,
+            target_group_size: MIN_AGENTS_PER_GROUP..self.experiment.target_max_group_size,
+            memory_base_id: self.experiment.experiment().id().into(),
+            agent_schema: Arc::clone(&self.simulation.store.agent_schema),
+            message_schema: Arc::clone(&self.simulation.store.message_schema),
         }
     }
 }
@@ -79,20 +85,19 @@ fn simulation_config(
     id: SimulationId,
     globals: Globals,
     worker_allocation: WorkerAllocation,
-    _global: &ExperimentConfig,
-    store: StoreConfig,
-    persistence: PersistenceConfig,
+    store_config: StoreConfig,
+    persistence_config: PersistenceConfig,
     max_num_steps: usize,
-) -> Result<SimulationConfig> {
-    Ok(SimulationConfig {
+) -> SimulationConfig {
+    SimulationConfig {
         id,
         package_creator: PackageCreatorConfig {
-            agent_schema: Arc::clone(&store.agent_schema),
+            agent_schema: Arc::clone(&store_config.agent_schema),
             globals,
-            persistence,
+            persistence: persistence_config,
         },
         worker_allocation: Arc::new(worker_allocation),
-        store: Arc::new(store),
+        store: Arc::new(store_config),
         max_num_steps,
-    })
+    }
 }

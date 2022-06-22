@@ -342,8 +342,8 @@ pub async fn run_test<P: AsRef<Path>>(
     let output_base_directory = experiment
         .config
         .output_folder
-        .join(experiment_run.base.name.as_str())
-        .join(experiment_run.base.id.to_string());
+        .join(experiment_run.experiment().name().as_str())
+        .join(experiment_run.experiment().id().to_string());
 
     let now = Instant::now();
     experiment

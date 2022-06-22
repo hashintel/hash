@@ -6,7 +6,6 @@ use hash_engine_lib::{
     env::env,
     experiment::controller::run::{cleanup_experiment, run_experiment},
     fetch::FetchDependencies,
-    proto::{ExperimentRun, ExperimentRunTrait},
     utils::init_logger,
 };
 
@@ -36,7 +35,7 @@ async fn main() -> Result<(), EngineError> {
     .attach_printable("Failed to initialize the logger")
     .change_context(EngineError)?;
 
-    let mut env = env::<ExperimentRun>(&args)
+    let mut env = env(&args)
         .await
         .report()
         .attach_printable("Could not create environment for experiment")
@@ -56,7 +55,7 @@ async fn main() -> Result<(), EngineError> {
 
     tracing::info!(
         "HASH Engine process started for experiment {}",
-        config.run.base().name
+        config.experiment().name()
     );
 
     let experiment_result = run_experiment(config, env)

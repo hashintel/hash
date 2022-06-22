@@ -20,9 +20,8 @@ use stateful::{
 };
 
 use crate::{
-    config::{ExperimentConfig, PackageConfig, SimRunConfig},
+    config::{ExperimentConfig, PackageConfig, SimulationRunConfig},
     datastore::schema::last_state_index_key,
-    proto::ExperimentRunTrait,
     simulation::{
         comms::Comms,
         package::{
@@ -125,10 +124,8 @@ impl PackageCreators {
         exp_config: &ExperimentConfig,
         globals: &Globals,
     ) -> Result<PersistenceConfig> {
-        let output_config = self.get_output_persistence_config(
-            &exp_config.run.base().project_base.package_init,
-            globals,
-        )?;
+        let output_config =
+            self.get_output_persistence_config(&exp_config.simulation().package_init, globals)?;
         Ok(PersistenceConfig { output_config })
     }
 
@@ -184,20 +181,24 @@ impl PackageCreators {
 
     pub fn new_packages_for_sim(
         &self,
-        config: &Arc<SimRunConfig>,
+        config: &Arc<SimulationRunConfig>,
         comms: Comms,
     ) -> Result<(Packages, PackageMsgs)> {
         // TODO: generics to avoid code duplication
-        let state_field_spec_map = &config.sim.store.agent_schema.field_spec_map;
-        let context_field_spec_map = &config.sim.store.context_schema.field_spec_map;
+        let state_field_spec_map = &config.simulation_config().store.agent_schema.field_spec_map;
+        let context_field_spec_map = &config
+            .simulation_config()
+            .store
+            .context_schema
+            .field_spec_map;
         let mut messages = HashMap::new();
         let init = self
             .init
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    &config.sim.package_creator,
-                    &config.exp.run.base().project_base.package_init,
+                    &config.simulation_config().package_creator,
+                    &config.experiment_config().simulation().package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Init),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -220,8 +221,8 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    &config.sim.package_creator,
-                    &config.exp.run.base().project_base.package_init,
+                    &config.simulation_config().package_creator,
+                    &config.experiment_config().simulation().package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Context),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -248,8 +249,8 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    &config.sim.package_creator,
-                    &config.exp.run.base().project_base.package_init,
+                    &config.simulation_config().package_creator,
+                    &config.experiment_config().simulation().package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::State),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -272,8 +273,8 @@ impl PackageCreators {
             .iter()
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
-                    &config.sim.package_creator,
-                    &config.exp.run.base().project_base.package_init,
+                    &config.simulation_config().package_creator,
+                    &config.experiment_config().simulation().package_init,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Output),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),

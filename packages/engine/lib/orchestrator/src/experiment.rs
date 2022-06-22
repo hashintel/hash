@@ -7,14 +7,14 @@ use std::{collections::HashMap, path::PathBuf, time::Duration};
 use error_stack::{bail, ensure, report, IntoReport, ResultExt};
 use execution::package::{
     experiment::{
-        basic::{BasicExperimentPackageConfig, SimpleExperimentConfig, SingleRunExperimentConfig},
-        ExperimentId, ExperimentName,
+        basic::{BasicExperimentConfig, SimpleExperimentConfig, SingleRunExperimentConfig},
+        ExperimentId, ExperimentName, ExperimentPackageConfig,
     },
     simulation::output::persistence::local::LocalPersistenceConfig,
 };
 use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
-    proto::{self, ExecutionEnvironment, ExperimentRunBase, ExperimentRunRepr},
+    proto::{self, ExecutionEnvironment, ExperimentRun},
     simulation::command::StopStatus,
     utils::{LogFormat, LogLevel, OutputLocation},
 };
@@ -22,6 +22,7 @@ use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as SerdeValue};
+use simulation_structure::Simulation;
 use tokio::time::{sleep, timeout};
 
 use crate::{experiment_server::Handler, process, OrchestratorError, Result};
@@ -156,19 +157,17 @@ impl ExperimentType {
     ///
     /// If the type is a simple Experiment [`Simple`](Self::Simple), it uses a `base` to load the
     /// experiment config for the given `name`.
-    pub fn get_package_config(
-        self,
-        base: &ExperimentRunBase,
-    ) -> Result<BasicExperimentPackageConfig> {
-        match self {
-            ExperimentType::SingleRun { num_steps } => Ok(BasicExperimentPackageConfig::SingleRun(
-                SingleRunExperimentConfig { num_steps },
-            )),
-            ExperimentType::Simple { name } => Ok(BasicExperimentPackageConfig::Simple(
-                get_simple_experiment_config(base, name)
+    pub fn get_package_config(self, simulation: &Simulation) -> Result<ExperimentPackageConfig> {
+        let basic = match self {
+            ExperimentType::SingleRun { num_steps } => {
+                BasicExperimentConfig::SingleRun(SingleRunExperimentConfig { num_steps })
+            }
+            ExperimentType::Simple { name } => BasicExperimentConfig::Simple(
+                get_simple_experiment_config(simulation, name)
                     .attach_printable("Could not read simple experiment config")?,
-            )),
-        }
+            ),
+        };
+        Ok(ExperimentPackageConfig::Basic(basic))
     }
 }
 
@@ -219,16 +218,17 @@ impl Experiment {
     /// returns once the experiment has finished.
     ///
     /// [`Process`]: crate::process::Process
-    #[instrument(skip_all, fields(experiment_name = %experiment_run.base.name, experiment_id = %experiment_run.base.id))]
+    #[instrument(skip_all, fields(experiment_name = %experiment_run.experiment().name(), experiment_id = %experiment_run.experiment().id()))]
     pub async fn run(
         &self,
-        experiment_run: proto::ExperimentRun,
+        experiment_run: ExperimentRun,
         mut handler: Handler,
         target_max_group_size: Option<usize>,
     ) -> Result<(), OrchestratorError> {
-        let experiment_name = experiment_run.base.name.clone();
+        let experiment = experiment_run.experiment();
+        let experiment_name = experiment.name().clone();
         let mut engine_handle = handler
-            .register_experiment(experiment_run.base.id)
+            .register_experiment(experiment.id())
             .await
             .attach_printable_lazy(|| {
                 format!("Could not register experiment \"{experiment_name}\"")
@@ -236,7 +236,7 @@ impl Experiment {
 
         // Create and start the experiment run
         let cmd = self.create_engine_command(
-            experiment_run.base.id,
+            experiment.id(),
             handler.url(),
             target_max_group_size,
             self.config.js_runner_initial_heap_constraint,
@@ -267,7 +267,7 @@ impl Experiment {
             Err(e) => {
                 error!("Engine start timeout for experiment \"{experiment_name}\"");
                 engine_process
-                    .exit_and_cleanup(experiment_run.base.id)
+                    .exit_and_cleanup(experiment.id())
                     .await
                     .attach_printable("Failed to cleanup after failed start")?;
                 bail!(e.change_context(OrchestratorError::from(format!(
@@ -285,7 +285,7 @@ impl Experiment {
         )];
         // Now we can send the init message
         let init_message = proto::InitMessage {
-            experiment: ExperimentRunRepr::ExperimentRun(experiment_run.clone()),
+            experiment: experiment_run.clone(),
             env: ExecutionEnvironment::None, // We don't connect to the API
             dyn_payloads: serde_json::Map::from_iter(map_iter),
         };
@@ -299,7 +299,7 @@ impl Experiment {
             std::thread::sleep(Duration::from_secs(1));
 
             if let Err(cleanup_err) = engine_process
-                .exit_and_cleanup(experiment_run.base.id)
+                .exit_and_cleanup(experiment.id())
                 .await
                 .attach_printable("Failed to cleanup after failed start")
             {
@@ -442,7 +442,7 @@ impl Experiment {
 
         debug!("Performing cleanup");
         engine_process
-            .exit_and_cleanup(experiment_run.base.id)
+            .exit_and_cleanup(experiment.id())
             .await
             .attach_printable("Could not cleanup after finish")?;
 
@@ -458,15 +458,15 @@ impl Experiment {
 // TODO: cleanup section below
 
 fn get_simple_experiment_config(
-    base: &ExperimentRunBase,
+    simulation: &Simulation,
     experiment_name: ExperimentName,
 ) -> Result<SimpleExperimentConfig> {
-    let experiments_manifest = base.project_base.experiments_src.clone().ok_or_else(|| {
+    let experiments_manifest = simulation.experiments_src.as_ref().ok_or_else(|| {
         report!(OrchestratorError::from(
             "Experiment configuration not found: experiments.json"
         ))
     })?;
-    let parsed = serde_json::from_str(&experiments_manifest)
+    let parsed = serde_json::from_str(experiments_manifest)
         .report()
         .change_context(OrchestratorError::from(
             "Could not parse experiment manifest",

@@ -25,7 +25,7 @@ use tracing::Instrument;
 pub use self::{config::ExperimentPackageConfig, id::ExperimentId, name::ExperimentName};
 use crate::{
     package::experiment::{
-        basic::{BasicExperimentPackageConfig, SimpleExperiment, SingleRunExperiment},
+        basic::{BasicExperimentConfig, SimpleExperiment, SingleRunExperiment},
         comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentPackageComms},
     },
     Result,
@@ -37,7 +37,7 @@ pub struct ExperimentPackage {
 }
 
 impl ExperimentPackage {
-    pub async fn new(config: BasicExperimentPackageConfig) -> Result<ExperimentPackage> {
+    pub async fn new(config: BasicExperimentConfig) -> Result<ExperimentPackage> {
         let (ctl_send, ctl_recv) = comms::control::new_pair();
         let (step_update_sender, exp_pkg_update_recv) = comms::update::new_pair();
         let join_handle = Self::create_join_handle(config, ctl_send, exp_pkg_update_recv)?;
@@ -50,18 +50,18 @@ impl ExperimentPackage {
     }
 
     fn create_join_handle(
-        exp_package_config: BasicExperimentPackageConfig,
+        exp_package_config: BasicExperimentConfig,
         pkg_to_exp: ExpPkgCtlSend,
         exp_pkg_update_recv: ExpPkgUpdateRecv,
     ) -> Result<JoinHandle<Result<()>>> {
         let future = match exp_package_config {
-            BasicExperimentPackageConfig::Simple(config) => {
+            BasicExperimentConfig::Simple(config) => {
                 let pkg = SimpleExperiment::new(config)?;
                 tokio::spawn(
                     async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),
                 )
             }
-            BasicExperimentPackageConfig::SingleRun(config) => {
+            BasicExperimentConfig::SingleRun(config) => {
                 let pkg = SingleRunExperiment::new(config)?;
                 tokio::spawn(
                     async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),

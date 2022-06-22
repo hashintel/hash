@@ -2,10 +2,7 @@ use core::fmt;
 
 use execution::{
     package::{
-        experiment::{
-            basic::BasicExperimentPackageConfig, ExperimentId, ExperimentName,
-            ExperimentPackageConfig,
-        },
+        experiment::{ExperimentId, ExperimentName, ExperimentPackageConfig},
         simulation::{init::InitialStateName, SimulationId},
     },
     runner::{
@@ -65,7 +62,7 @@ pub enum EngineMsg {
 pub struct InitMessage {
     /// Defines the type of Experiment that's being ran (e.g. a wrapper around a single-run of a
     /// simulation, or the configuration for a normal experiment)
-    pub experiment: ExperimentRunRepr,
+    pub experiment: ExperimentRun,
     /// Unused
     pub env: ExecutionEnvironment,
     /// A JSON object of dynamic configurations for things like packages, see
@@ -112,28 +109,34 @@ impl EngineStatus {
     }
 }
 
-#[derive(Serialize, Eq, PartialEq, Debug, Clone)]
-pub enum PackageConfig<'a> {
-    EmptyPackageConfig,
-    BasicExperimentPackageConfig(&'a BasicExperimentPackageConfig),
-    ExtendedExperimentPackageConfig(&'a ExperimentPackageConfig),
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub enum ExperimentRunRepr {
-    ExperimentRunBase(ExperimentRunBase),
-    ExperimentRun(ExperimentRun),
-    ExtendedExperimentRun(ExtendedExperimentRun),
-}
-
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ExperimentRunBase {
-    pub name: ExperimentName,
-    pub id: ExperimentId,
-    pub project_base: Simulation,
+pub struct Experiment {
+    name: ExperimentName,
+    simulation: Simulation,
+    id: ExperimentId,
 }
 
-impl ExperimentRunBase {
+impl Experiment {
+    pub fn new(name: ExperimentName, simulation: Simulation) -> Self {
+        Self {
+            name,
+            simulation,
+            id: ExperimentId::generate(),
+        }
+    }
+
+    pub fn id(&self) -> ExperimentId {
+        self.id
+    }
+
+    pub fn name(&self) -> &ExperimentName {
+        &self.name
+    }
+
+    pub fn simulation(&self) -> &Simulation {
+        &self.simulation
+    }
+
     /// Returns a [`RunnerSpawnConfig`] matching the config required by the files present in the
     /// experiment.
     pub fn create_runner_spawn_config(&self) -> RunnerSpawnConfig {
@@ -148,7 +151,7 @@ impl ExperimentRunBase {
     /// language.
     fn requires_runner(&self, language: Language) -> bool {
         #[allow(clippy::match_like_matches_macro)]
-        let requires_init = match (language, &self.project_base.package_init.initial_state.name) {
+        let requires_init = match (language, &self.simulation.package_init.initial_state.name) {
             (Language::JavaScript, InitialStateName::InitJs) => true,
             (Language::Python, InitialStateName::InitPy) => true,
             _ => false,
@@ -156,7 +159,7 @@ impl ExperimentRunBase {
 
         requires_init
             || self
-                .project_base
+                .simulation
                 .package_init
                 .behaviors
                 .iter()
@@ -171,99 +174,39 @@ impl ExperimentRunBase {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRun {
-    pub base: ExperimentRunBase,
-    pub package_config: BasicExperimentPackageConfig,
+    experiment: Experiment,
+    config: ExperimentPackageConfig,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ExtendedExperimentRun {
-    pub base: ExperimentRunBase,
-    pub package_config: ExperimentPackageConfig,
-}
-
-pub trait ExperimentRunTrait: Clone + for<'a> Deserialize<'a> + Serialize {
-    fn base(&self) -> &ExperimentRunBase;
-    fn base_mut(&mut self) -> &mut ExperimentRunBase;
-    fn package_config(&self) -> PackageConfig<'_>;
-}
-
-impl ExperimentRunTrait for ExperimentRunBase {
-    fn base(&self) -> &ExperimentRunBase {
-        self
+impl ExperimentRun {
+    pub fn new(experiment: Experiment, config: ExperimentPackageConfig) -> Self {
+        Self { experiment, config }
     }
 
-    fn base_mut(&mut self) -> &mut ExperimentRunBase {
-        self
+    pub fn experiment(&self) -> &Experiment {
+        &self.experiment
     }
 
-    fn package_config(&self) -> PackageConfig<'_> {
-        PackageConfig::EmptyPackageConfig
-    }
-}
-
-impl ExperimentRunTrait for ExperimentRun {
-    fn base(&self) -> &ExperimentRunBase {
-        &self.base
+    pub fn experiment_mut(&mut self) -> &mut Experiment {
+        &mut self.experiment
     }
 
-    fn base_mut(&mut self) -> &mut ExperimentRunBase {
-        &mut self.base
+    pub fn simulation(&self) -> &Simulation {
+        &self.experiment().simulation
     }
 
-    fn package_config(&self) -> PackageConfig<'_> {
-        PackageConfig::BasicExperimentPackageConfig(&self.package_config)
-    }
-}
-
-impl ExperimentRunTrait for ExtendedExperimentRun {
-    fn base(&self) -> &ExperimentRunBase {
-        &self.base
+    pub fn simualtion_mut(&mut self) -> &mut Simulation {
+        &mut self.experiment_mut().simulation
     }
 
-    fn base_mut(&mut self) -> &mut ExperimentRunBase {
-        &mut self.base
-    }
-
-    fn package_config(&self) -> PackageConfig<'_> {
-        PackageConfig::ExtendedExperimentPackageConfig(&self.package_config)
-    }
-}
-
-impl ExperimentRunTrait for ExperimentRunRepr {
-    fn base(&self) -> &ExperimentRunBase {
-        match self {
-            Self::ExperimentRun(inner) => inner.base(),
-            Self::ExperimentRunBase(inner) => inner.base(),
-            Self::ExtendedExperimentRun(inner) => inner.base(),
-        }
-    }
-
-    fn base_mut(&mut self) -> &mut ExperimentRunBase {
-        match self {
-            Self::ExperimentRun(inner) => inner.base_mut(),
-            Self::ExperimentRunBase(inner) => inner.base_mut(),
-            Self::ExtendedExperimentRun(inner) => inner.base_mut(),
-        }
-    }
-
-    fn package_config(&self) -> PackageConfig<'_> {
-        match self {
-            Self::ExperimentRun(inner) => inner.package_config(),
-            Self::ExperimentRunBase(inner) => inner.package_config(),
-            Self::ExtendedExperimentRun(inner) => inner.package_config(),
-        }
-    }
-}
-
-impl<E: ExperimentRunTrait> From<&E> for ExperimentRunBase {
-    fn from(value: &E) -> Self {
-        value.base().clone()
+    pub fn config(&self) -> &ExperimentPackageConfig {
+        &self.config
     }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ProcessedExperimentRun {
-    pub experiment: ExperimentRun,
+    pub experiment: Experiment,
     /// The compute usage when the user initialized the run
     /// This is only valid at the start of the run
     pub compute_usage_remaining: i64,

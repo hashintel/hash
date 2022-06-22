@@ -16,7 +16,7 @@ pub use self::{
     sim_control::SimControl,
 };
 use crate::{
-    config::SimRunConfig,
+    config::SimulationRunConfig,
     experiment::controller::comms::{
         sim_status::SimStatusSend,
         simulation::{new_pair, SimCtlRecv, SimCtlSend},
@@ -31,7 +31,7 @@ pub struct SimulationController {
 
 impl SimulationController {
     pub fn new<P: SimulationOutputPersistence>(
-        config: Arc<SimRunConfig>,
+        config: Arc<SimulationRunConfig>,
         comms: Comms,
         packages: Packages,
         persistence_service: P,
@@ -55,7 +55,7 @@ impl SimulationController {
 }
 
 fn new_task_handle<P: SimulationOutputPersistence>(
-    config: Arc<SimRunConfig>,
+    config: Arc<SimulationRunConfig>,
     receiver: SimCtlRecv,
     sender: SimStatusSend,
     comms: Comms,

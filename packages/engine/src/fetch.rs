@@ -2,10 +2,7 @@ use async_trait::async_trait;
 use futures::StreamExt;
 use stateful::global::Dataset;
 
-use crate::{
-    proto::{ExperimentRunRepr, ExperimentRunTrait},
-    Error, Result,
-};
+use crate::{proto::ExperimentRun, Error, Result};
 
 #[async_trait]
 pub trait FetchDependencies {
@@ -46,11 +43,11 @@ impl FetchDependencies for Dataset {
 }
 
 #[async_trait]
-impl FetchDependencies for ExperimentRunRepr {
+impl FetchDependencies for ExperimentRun {
     async fn fetch_deps(&mut self) -> Result<()> {
-        let datasets = std::mem::take(&mut self.base_mut().project_base.datasets);
+        let datasets = std::mem::take(&mut self.simualtion_mut().datasets);
 
-        self.base_mut().project_base.datasets =
+        self.simualtion_mut().datasets =
             futures::stream::iter(datasets.into_iter().map(|mut dataset| {
                 tokio::spawn(async move {
                     dataset.fetch_deps().await?;

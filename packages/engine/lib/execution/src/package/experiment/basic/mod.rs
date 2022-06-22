@@ -9,7 +9,7 @@ pub use self::{
 };
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
-pub enum BasicExperimentPackageConfig {
+pub enum BasicExperimentConfig {
     Simple(SimpleExperimentConfig),
     SingleRun(SingleRunExperimentConfig),
 }

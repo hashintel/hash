@@ -9,17 +9,14 @@ use std::{
 };
 
 use error_stack::{bail, ensure, report, IntoReport, ResultExt};
-use execution::package::{
-    experiment::ExperimentId,
-    simulation::{
-        init::{InitialState, InitialStateName},
-        state::behavior_execution::Behavior,
-        PackageInitConfig, SimPackageArgs,
-    },
+use execution::package::simulation::{
+    init::{InitialState, InitialStateName},
+    state::behavior_execution::Behavior,
+    PackageInitConfig, SimPackageArgs,
 };
 use hash_engine_lib::{
     fetch::parse_raw_csv_into_json,
-    proto::{ExperimentRun, ExperimentRunBase},
+    proto::{Experiment, ExperimentRun},
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
@@ -518,7 +515,7 @@ impl Manifest {
     ///
     /// - if the manifest does not provide an initial state
     pub fn read(self, experiment_type: ExperimentType) -> Result<ExperimentRun> {
-        let project_base = Simulation {
+        let simulation = Simulation {
             name: self.project_name,
             globals_src: self.globals_json.unwrap_or_else(|| "{}".to_string()),
             experiments_src: self.experiments_json,
@@ -544,17 +541,9 @@ impl Manifest {
             ExperimentType::Simple { name } => name.clone(),
         };
 
-        let base = ExperimentRunBase {
-            name,
-            id: ExperimentId::generate(),
-            project_base,
-        };
-
-        let package_config = experiment_type.get_package_config(&base)?;
-        Ok(ExperimentRun {
-            base,
-            package_config,
-        })
+        let experiment = Experiment::new(name, simulation);
+        let config = experiment_type.get_package_config(experiment.simulation())?;
+        Ok(ExperimentRun::new(experiment, config))
     }
 }
 

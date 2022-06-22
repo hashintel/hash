@@ -6,9 +6,6 @@ use serde_json::Value as SerdeValue;
 use stateful::global::Globals;
 
 pub use self::error::{Error, Result};
-use crate::proto;
-
-pub type ExperimentRun = proto::ExperimentRun;
 
 fn set_nested_global_property(
     map: &mut serde_json::Map<String, SerdeValue>,

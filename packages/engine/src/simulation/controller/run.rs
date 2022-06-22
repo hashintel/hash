@@ -8,7 +8,7 @@ use futures::FutureExt;
 use tokio::time::Duration;
 
 use crate::{
-    config::SimRunConfig,
+    config::SimulationRunConfig,
     datastore::store::Store,
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
     simulation::{
@@ -53,15 +53,15 @@ enum LoopControl {
 ///
 /// [`Engine::next()`]: crate::simulation::engine::Engine::next
 pub async fn sim_run<P: SimulationOutputPersistence>(
-    config: Arc<SimRunConfig>,
+    config: Arc<SimulationRunConfig>,
     comms: Comms,
     packages: Packages,
     mut sim_from_exp: SimCtlRecv,
     mut sims_to_exp: SimStatusSend,
     mut persistence_service: P,
 ) -> Result<SimulationId> {
-    let sim_run_id = config.sim.id;
-    let max_num_steps = config.sim.max_num_steps;
+    let sim_run_id = config.simulation_config().id;
+    let max_num_steps = config.simulation_config().max_num_steps;
     tracing::info!(steps = &max_num_steps, "Beginning simulation run");
 
     let uninitialized_store = Store::new_uninitialized();
@@ -104,7 +104,7 @@ pub async fn sim_run<P: SimulationOutputPersistence>(
                 // Try to persist before exiting
                 let persistence_result = Some(
                     persistence_service
-                        .finalize(&config.sim.package_creator.globals)
+                        .finalize(&config.simulation_config().package_creator.globals)
                         .await?,
                 );
                 let runner_error = RunnerError {
@@ -152,7 +152,10 @@ pub async fn sim_run<P: SimulationOutputPersistence>(
 
         // TODO: should the SimStatus be current_step here or steps_taken (it is after .next())
         sims_to_exp
-            .send(SimStatus::running(config.sim.id, steps_taken as isize))
+            .send(SimStatus::running(
+                config.simulation_config().id,
+                steps_taken as isize,
+            ))
             .await
             .map_err(|exp_controller_err| {
                 Error::from(format!(
@@ -167,7 +170,7 @@ pub async fn sim_run<P: SimulationOutputPersistence>(
 
     let now = std::time::Instant::now();
     let persistence_result = persistence_service
-        .finalize(&config.sim.package_creator.globals)
+        .finalize(&config.simulation_config().package_creator.globals)
         .await?;
     sims_to_exp
         .send(
@@ -197,7 +200,7 @@ pub async fn sim_run<P: SimulationOutputPersistence>(
 
     // Allow experiment main loop to receive statuses.
     tokio::time::sleep(Duration::from_secs(1)).await;
-    Ok(config.sim.id)
+    Ok(config.simulation_config().id)
 }
 
 async fn maybe_handle_sim_ctl_msg(sim_from_exp: &mut SimCtlRecv) -> Result<LoopControl> {

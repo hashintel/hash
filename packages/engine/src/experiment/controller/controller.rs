@@ -30,7 +30,7 @@ use crate::{
             sim_configurer::SimConfigurer,
         },
     },
-    proto::{EngineMsg, EngineStatus, ExperimentRunTrait},
+    proto::{EngineMsg, EngineStatus},
     simulation::{
         comms::Comms,
         controller::{runs::SimulationRuns, sim_control::SimControl, SimulationController},
@@ -42,9 +42,7 @@ use crate::{
 };
 
 pub struct ExperimentController<P: OutputPersistenceCreator> {
-    _exp_config: Arc<ExperimentConfig>,
-    // TODO: unused, remove?
-    exp_base_config: Arc<ExperimentConfig>,
+    exp_config: Arc<ExperimentConfig>,
     env: Environment,
     shared_store: Arc<SharedStore>,
     worker_pool_send: ExpMsgSend,
@@ -194,20 +192,20 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
 
         // Create the `globals.json` for the simulation
         let globals = Arc::new(
-            apply_globals_changes(self.exp_base_config.base_globals.clone(), &changed_globals)
+            apply_globals_changes(self.exp_config.base_globals.clone(), &changed_globals)
                 .map_err(|experiment_err| Error::from(experiment_err.to_string()))?,
         );
 
         // Create the datastore configuration (requires schemas)
         let store_config = StoreConfig::new_sim(
-            &self.exp_base_config.run.base().project_base.package_init,
+            &self.exp_config.simulation().package_init,
             &globals,
             &self.package_creators,
         )?;
         // Create the persistence configuration
         let persistence_config = self
             .package_creators
-            .create_persistent_config(&self.exp_base_config, &globals)?;
+            .create_persistent_config(&self.exp_config, &globals)?;
         // Start the persistence service
         let persistence_service = self
             .output_persistence_service_creator
@@ -215,13 +213,13 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
 
         // Create the Simulation top level config
         let sim_config = Arc::new(self.sim_configurer.configure_next(
-            &self.exp_base_config,
+            Arc::clone(&self.exp_config),
             sim_short_id,
             (*globals).clone(),
             store_config,
             persistence_config,
             max_num_steps,
-        )?);
+        ));
 
         let task_comms = Comms::new(sim_short_id, worker_pool_sender)?;
 
@@ -231,9 +229,19 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
             .new_packages_for_sim(&sim_config, task_comms.clone())?;
 
         let datastore_payload = DatastoreSimulationPayload {
-            agent_batch_schema: sim_config.sim.store.agent_schema.clone(),
-            message_batch_schema: sim_config.sim.store.message_schema.arrow.clone(),
-            context_batch_schema: sim_config.sim.store.context_schema.arrow.clone(),
+            agent_batch_schema: sim_config.simulation_config().store.agent_schema.clone(),
+            message_batch_schema: sim_config
+                .simulation_config()
+                .store
+                .message_schema
+                .arrow
+                .clone(),
+            context_batch_schema: sim_config
+                .simulation_config()
+                .store
+                .context_schema
+                .arrow
+                .clone(),
             shared_store: self.shared_store.clone(),
         };
         // Register the new simulation with the worker pool
@@ -242,7 +250,9 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
                 NewSimulationRun {
                     span: Span::current(),
                     short_id: sim_short_id,
-                    worker_allocation: Arc::clone(&sim_config.sim.worker_allocation),
+                    worker_allocation: Arc::clone(
+                        &sim_config.simulation_config().worker_allocation,
+                    ),
                     packages: sim_start_msgs,
                     datastore: datastore_payload,
                     globals: globals.clone(),
@@ -302,11 +312,11 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
     pub async fn exp_init_msg_base(&self) -> Result<ExperimentInitRunnerMsgBase> {
         let pkg_start_msgs = self.package_creators.init_message()?;
         Ok(ExperimentInitRunnerMsgBase {
-            experiment_id: self.exp_base_config.run.base().id,
+            experiment_id: self.exp_config.experiment().id(),
             shared_context: self.shared_store.clone(),
             package_config: Arc::new(pkg_start_msgs),
             runner_config: self
-                .exp_base_config
+                .exp_config
                 .worker_pool
                 .worker_config
                 .runner_config
@@ -392,7 +402,6 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
 impl<P: OutputPersistenceCreator> ExperimentController<P> {
     pub fn new(
         exp_config: Arc<ExperimentConfig>,
-        exp_base_config: Arc<ExperimentConfig>,
         env: Environment,
         shared_store: Arc<SharedStore>,
         worker_pool_send: ExpMsgSend,
@@ -407,8 +416,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         terminate_recv: TerminateRecv,
     ) -> Self {
         ExperimentController {
-            _exp_config: exp_config,
-            exp_base_config,
+            exp_config,
             env,
             shared_store,
             worker_pool_send,

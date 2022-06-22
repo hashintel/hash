@@ -3,12 +3,11 @@ use rayon::prelude::*;
 use stateful::{proxy::BatchPool, state::StateBatchPools};
 
 use crate::{
-    config::SimRunConfig,
+    config::SimulationRunConfig,
     datastore::{
         error::{Error, Result},
         table::create_remove::action::{CreateActions, ExistingGroupBufferActions},
     },
-    proto::ExperimentRunTrait,
 };
 
 #[derive(Debug)]
@@ -23,7 +22,7 @@ impl<'a> MigrationPlan<'a> {
     pub fn execute(
         self,
         state: &mut StateBatchPools,
-        config: &SimRunConfig,
+        config: &SimulationRunConfig,
     ) -> Result<Vec<String>> {
         // tracing::debug!("Updating");
         self.existing_mutations
@@ -89,10 +88,10 @@ impl<'a> MigrationPlan<'a> {
             .into_par_iter()
             .map(|action| {
                 action.actions.new_batch(
-                    &config.sim.store.agent_schema,
-                    &config.sim.store.message_schema,
-                    MemoryId::new(config.exp.run.base().id),
-                    MemoryId::new(config.exp.run.base().id),
+                    &config.simulation_config().store.agent_schema,
+                    &config.simulation_config().store.message_schema,
+                    MemoryId::new(config.experiment_config().experiment().id()),
+                    MemoryId::new(config.experiment_config().experiment().id()),
                     action.worker_index,
                 )
             })
