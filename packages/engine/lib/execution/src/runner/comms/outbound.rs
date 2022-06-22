@@ -299,7 +299,7 @@ impl OutboundFromRunnerMsg {
         Ok(Self {
             span: Span::current(),
             source,
-            sim_id: msg.sim_sid(),
+            sim_id: SimulationId::new(msg.sim_sid()),
             payload,
         })
     }

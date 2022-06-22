@@ -259,7 +259,7 @@ fn inbound_to_nng(
                 fbb,
                 &flatbuffers_gen::new_simulation_run_generated::NewSimulationRunArgs {
                     sim_id: Some(_sim_id),
-                    sid: msg.short_id,
+                    sid: msg.short_id.as_u32(),
                     globals: Some(globals),
                     package_config: Some(package_config),
                     datastore_init: Some(datastore_init),
@@ -275,7 +275,7 @@ fn inbound_to_nng(
     let msg = flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsg::create(
         fbb,
         &flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgArgs {
-            sim_sid: sim_id.unwrap_or(0),
+            sim_sid: sim_id.map(SimulationId::as_u32).unwrap_or(0),
             payload_type: msg_type,
             payload: Some(msg),
         },

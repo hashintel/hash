@@ -1,7 +1,10 @@
 use crate::{
-    package::experiment::{
-        comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
-        SingleRunExperimentConfig,
+    package::{
+        experiment::{
+            comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
+            SingleRunExperimentConfig,
+        },
+        simulation::SimulationId,
     },
     Error, Result,
 };
@@ -23,7 +26,7 @@ impl SingleRunExperiment {
         tracing::debug!("Calling run on single package");
         let msg = ExperimentControl::StartSim {
             span_id: tracing::Span::current().id(),
-            sim_id: 1,
+            sim_id: SimulationId::new(1),
             changed_globals: serde_json::Map::new().into(), // Don't change globals
             max_num_steps: self.config.num_steps,
         };

@@ -80,7 +80,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
                 let sim_span = utils::texray::examine(tracing::info_span!(
                     parent: span_id,
                     "sim",
-                    id = &sim_id
+                    id = &sim_id.as_u32()
                 ));
                 self.start_new_sim_run(sim_id, changed_globals, max_num_steps)
                     .instrument(sim_span)

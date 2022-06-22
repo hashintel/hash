@@ -70,7 +70,7 @@ impl SimpleExperiment {
                 .map(|(sim_idx, props)| {
                     // We sometimes use 0 as a default/null value, therefore it's not a valid
                     // SimulationShortId
-                    ((sim_idx + 1) as SimulationId, props)
+                    (SimulationId::new(sim_idx as u32 + 1), props)
                 });
 
         let mut sim_queue = SimQueue {

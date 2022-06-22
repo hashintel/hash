@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::simulation::{command::StopCommand, Result};
 
 // Sent from sim runs to experiment main loop.
-#[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct SimStatus {
     pub sim_id: SimulationId,
     pub steps_taken: isize,
@@ -23,6 +23,21 @@ pub struct SimStatus {
 }
 
 impl SimStatus {
+    /// Default value for `SimStatus` but not exposed to the user.
+    fn default() -> Self {
+        SimStatus {
+            sim_id: SimulationId::new(0),
+            steps_taken: 0,
+            early_stop: false,
+            stop_msg: vec![],
+            stop_signal: false,
+            persistence_result: None,
+            error: None,
+            warnings: vec![],
+            running: false,
+        }
+    }
+
     pub fn running(sim_id: SimulationId, steps_taken: isize) -> SimStatus {
         SimStatus {
             sim_id,

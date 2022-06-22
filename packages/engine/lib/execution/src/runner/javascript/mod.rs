@@ -382,7 +382,7 @@ struct ThreadLocalRunner<'s> {
 }
 
 fn sim_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, sim_id: SimulationId) -> Value<'s> {
-    v8::Number::new(scope, sim_id as f64).into()
+    v8::Number::new(scope, sim_id.as_f64()).into()
 }
 
 fn pkg_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, pkg_id: PackageId) -> Value<'s> {

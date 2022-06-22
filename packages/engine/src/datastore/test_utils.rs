@@ -5,7 +5,7 @@ use execution::{
         experiment::ExperimentId,
         simulation::{
             init::{InitialState, InitialStateName},
-            PackageCreatorConfig, PackageInitConfig,
+            PackageCreatorConfig, PackageInitConfig, SimulationId,
         },
     },
     worker_pool::WorkerPoolConfig,
@@ -300,7 +300,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
     SimRunConfig {
         exp: Arc::clone(&exp_config),
         sim: Arc::new(SimulationConfig {
-            id: 0,
+            id: SimulationId::new(0),
             package_creator: PackageCreatorConfig {
                 agent_schema: Arc::clone(&store.agent_schema),
                 persistence: package_creators
