@@ -9,12 +9,10 @@ extern crate tracing;
 pub mod error;
 mod experiment;
 mod experiment_server;
-mod manifest;
 pub mod process;
 
 pub use self::{
     error::{OrchestratorError, Result},
-    experiment::{Experiment, ExperimentConfig, ExperimentType},
+    experiment::{Experiment, ExperimentConfig},
     experiment_server::{Handler, Server},
-    manifest::Manifest,
 };

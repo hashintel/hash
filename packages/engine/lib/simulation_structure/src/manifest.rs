@@ -8,18 +8,25 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use error_stack::{bail, ensure, report, IntoReport, ResultExt};
+use error_stack::{bail, ensure, IntoReport, Report, ResultExt};
 use execution::package::simulation::{
     init::{InitialState, InitialStateName},
     state::behavior_execution::Behavior,
     PackageInitConfig, SimPackageArgs,
 };
 use serde::{self, de::DeserializeOwned};
-use serde_json::Value as SerdeValue;
-use simulation_structure::{parse_raw_csv_into_json, Experiment, ExperimentRun, Simulation};
 use stateful::global::Dataset;
+use thiserror::Error;
 
-use crate::{ExperimentType, OrchestratorError, Result};
+use crate::{
+    experiment::ExperimentType, parse_raw_csv_into_json, Experiment, ExperimentRun, Simulation,
+};
+
+#[derive(Debug, Error)]
+#[error("Could not read manifest file")]
+pub struct ManifestError;
+
+pub type Result<T, E = ManifestError> = error_stack::Result<T, E>;
 
 const BEHAVIOR_FILE_EXTENSIONS: [&str; 3] = ["js", "py", "rs"];
 const DATASET_FILE_EXTENSIONS: [&str; 2] = ["csv", "json"];
@@ -46,7 +53,7 @@ pub struct Manifest {
     /// JSON string describing the structure of available experiments for this project.
     pub experiments_json: Option<String>,
     /// A list of all dependencies identified by its name.
-    pub dependencies: HashMap<String, SerdeValue>,
+    pub dependencies: HashMap<String, serde_json::Value>,
 }
 
 impl Manifest {
@@ -68,7 +75,8 @@ impl Manifest {
         let path = path.as_ref();
         ensure!(
             path.is_file(),
-            OrchestratorError::from(format!("Couldn't find the init file at: {path:?}"))
+            Report::new(ManifestError)
+                .attach_printable(format!("Couldn't find the init file at: {path:?}"))
         );
 
         Ok(self.initial_state.replace(InitialState {
@@ -76,9 +84,10 @@ impl Manifest {
                 "js" => InitialStateName::InitJs,
                 "py" => InitialStateName::InitPy,
                 "json" => InitialStateName::InitJson,
-                _ => bail!(OrchestratorError::from(format!(
-                    "Not a valid initial state file: {path:?}"
-                ))),
+                _ => bail!(
+                    Report::new(ManifestError)
+                        .attach_printable(format!("Not a valid initial state file: {path:?}"))
+                ),
             },
             src: file_contents(path)?,
         }))
@@ -101,33 +110,34 @@ impl Manifest {
         let src_folder = src_folder.as_ref();
         ensure!(
             src_folder.is_dir(),
-            OrchestratorError::from(format!("Not a directory: {src_folder:?}"))
+            Report::new(ManifestError).attach_printable(format!("Not a directory: {src_folder:?}"))
         );
 
         let js_path = src_folder.join("init.js");
         let py_path = src_folder.join("init.py");
         let json_path = src_folder.join("init.json");
 
-        debug!("Reading initial state files");
+        tracing::debug!("Reading initial state files");
         if js_path.is_file() {
             if py_path.is_file() {
-                warn!(r#""init.py" was supplied with "init.js", ignoring "init.py""#);
+                tracing::warn!(r#""init.py" was supplied with "init.js", ignoring "init.py""#);
             }
             if json_path.is_file() {
-                warn!(r#""init.json" was supplied with "init.js", ignoring "init.json""#);
+                tracing::warn!(r#""init.json" was supplied with "init.js", ignoring "init.json""#);
             }
             self.set_initial_state_from_file(js_path)
         } else if py_path.is_file() {
             if json_path.is_file() {
-                warn!(r#""init.json" was supplied with "init.py", ignoring "init.json""#);
+                tracing::warn!(r#""init.json" was supplied with "init.py", ignoring "init.json""#);
             }
             self.set_initial_state_from_file(py_path)
         } else if json_path.is_file() {
             self.set_initial_state_from_file(json_path)
         } else {
-            bail!(OrchestratorError::from(format!(
-                "No initial state found in {src_folder:?}"
-            )));
+            bail!(
+                Report::new(ManifestError)
+                    .attach_printable(format!("No initial state found in {src_folder:?}"))
+            );
         }
     }
 
@@ -233,32 +243,31 @@ impl Manifest {
         let path = path.as_ref();
         ensure!(
             path.is_file(),
-            OrchestratorError::from(format!("Not a behavior file: {path:?}"))
+            Report::new(ManifestError).attach_printable(format!("Not a behavior file: {path:?}"))
         );
 
         let file_extension = file_extension(&path)?;
         ensure!(
             BEHAVIOR_FILE_EXTENSIONS.contains(&file_extension.as_str()),
-            OrchestratorError::from(format!("Not a valid behavior extension: {path:?}"))
+            Report::new(ManifestError)
+                .attach_printable(format!("Not a valid behavior extension: {path:?}"))
         );
         if file_extension == "rs" {
-            warn!("Custom Rust behaviors are currently unsupported")
+            tracing::warn!("Custom Rust behaviors are currently unsupported")
         }
 
         let file_name = path
             .file_name()
-            .ok_or_else(|| {
-                report!(OrchestratorError::from(
-                    "behavior file expected to have proper file name"
-                ))
-            })?
+            .ok_or_else(|| Report::new(ManifestError))
+            .attach_printable("behavior file expected to have proper file name")?
             .to_string_lossy()
             .to_string();
-        let folder_path = path.parent().ok_or_else(|| {
-            report!(OrchestratorError::from(format!(
-                "Could not find parent folder for behavior file: {path:?}"
-            )))
-        })?;
+        let folder_path = path
+            .parent()
+            .ok_or_else(|| Report::new(ManifestError))
+            .attach_printable_lazy(|| {
+                format!("Could not find parent folder for behavior file: {path:?}")
+            })?;
         let key_path = folder_path.join(&format!("{file_name}.json"));
 
         self.add_behavior(Behavior {
@@ -287,13 +296,16 @@ impl Manifest {
         let src_folder = src_folder.as_ref();
         ensure!(
             src_folder.is_dir(),
-            OrchestratorError::from(format!("Not a directory: {src_folder:?}"))
+            Report::new(ManifestError).attach_printable(format!("Not a directory: {src_folder:?}"))
         );
 
-        debug!("Reading behaviors in {src_folder:?}");
-        for entry in src_folder.read_dir().report().change_context_lazy(|| {
-            OrchestratorError::from(format!("Could not read behavior directory: {src_folder:?}"))
-        })? {
+        tracing::debug!("Reading behaviors in {src_folder:?}");
+        for entry in src_folder
+            .read_dir()
+            .report()
+            .attach_printable_lazy(|| format!("Could not read behavior directory: {src_folder:?}"))
+            .change_context(ManifestError)?
+        {
             match entry {
                 Ok(entry) => {
                     let path = entry.path();
@@ -304,7 +316,7 @@ impl Manifest {
                     }
                 }
                 Err(err) => {
-                    warn!("Could not read behavior entry: {err}");
+                    tracing::warn!("Could not read behavior entry: {err}");
                 }
             }
         }
@@ -326,13 +338,14 @@ impl Manifest {
         let path = path.as_ref();
         ensure!(
             path.is_file(),
-            OrchestratorError::from(format!("Not a dataset file: {path:?}"))
+            Report::new(ManifestError).attach_printable(format!("Not a dataset file: {path:?}"))
         );
 
         let file_extension = file_extension(path)?;
         ensure!(
             DATASET_FILE_EXTENSIONS.contains(&file_extension.as_str()),
-            OrchestratorError::from(format!("Not a valid dataset extension: {path:?}"))
+            Report::new(ManifestError)
+                .attach_printable(format!("Not a valid dataset extension: {path:?}"))
         );
 
         let mut data = file_contents(path).attach_printable("Could not read dataset")?;
@@ -340,9 +353,8 @@ impl Manifest {
         if file_extension == "csv" {
             data = parse_raw_csv_into_json(data)
                 .report()
-                .change_context_lazy(|| {
-                    OrchestratorError::from(format!("Could not convert csv into json: {path:?}"))
-                })?;
+                .attach_printable_lazy(|| format!("Could not convert csv into json: {path:?}"))
+                .change_context(ManifestError)?;
         }
 
         let filename = path.file_name().unwrap().to_string_lossy().to_string();
@@ -369,20 +381,23 @@ impl Manifest {
         let src_folder = src_folder.as_ref();
         ensure!(
             src_folder.is_dir(),
-            OrchestratorError::from(format!("Not a directory: {src_folder:?}"))
+            Report::new(ManifestError).attach_printable(format!("Not a directory: {src_folder:?}"))
         );
 
-        debug!("Reading datasets in {src_folder:?}");
-        for entry in src_folder.read_dir().report().change_context_lazy(|| {
-            OrchestratorError::from(format!("Could not read dataset directory: {src_folder:?}"))
-        })? {
+        tracing::debug!("Reading datasets in {src_folder:?}");
+        for entry in src_folder
+            .read_dir()
+            .report()
+            .attach_printable_lazy(|| format!("Could not read dataset directory: {src_folder:?}"))
+            .change_context(ManifestError)?
+        {
             match entry {
                 Ok(entry) => {
                     self.add_dataset_from_file(entry.path())
                         .attach_printable("Could not add dataset")?;
                 }
                 Err(err) => {
-                    warn!("Could not ready directory entry: {err}");
+                    tracing::warn!("Could not ready directory entry: {err}");
                 }
             }
         }
@@ -428,14 +443,15 @@ impl Manifest {
     /// or [`from_dependency()`](Self::from_dependency).
     fn from_local_impl<P: AsRef<Path>>(project_path: P, is_dependency: bool) -> Result<Self> {
         let project_path = project_path.as_ref();
-        debug!(
+        tracing::debug!(
             "Reading local project at: {}",
             project_path.to_string_lossy()
         );
 
         let project_name = project_path.file_name()
             // Shouldn't be able to fail as it should have been validated by now
-            .ok_or_else(|| report!(OrchestratorError::from(format!("Project path didn't point to a directory: {project_path:?}"))))?
+            .ok_or_else(|| Report::new(ManifestError))
+            .attach_printable_lazy(||format!("Project path didn't point to a directory: {project_path:?}"))?
             .to_string_lossy()
             .to_string();
         let experiments_json = project_path.join("experiments.json");
@@ -521,14 +537,13 @@ impl Manifest {
             package_init: PackageInitConfig {
                 packages: vec![SimPackageArgs {
                     name: "analysis".into(),
-                    data: SerdeValue::String(self.analysis_json.unwrap_or_default()),
+                    data: serde_json::Value::String(self.analysis_json.unwrap_or_default()),
                 }],
                 behaviors: self.behaviors,
-                initial_state: self.initial_state.ok_or_else(|| {
-                    report!(OrchestratorError::from(
-                        "Project must specify an initial state file."
-                    ))
-                })?,
+                initial_state: self
+                    .initial_state
+                    .ok_or_else(|| Report::new(ManifestError))
+                    .attach_printable("Manifest did not provide an initial state")?,
             },
         };
 
@@ -538,7 +553,10 @@ impl Manifest {
         };
 
         let experiment = Experiment::new(name, simulation);
-        let config = experiment_type.get_package_config(experiment.simulation())?;
+        let config = experiment_type
+            .get_package_config(experiment.simulation())
+            .attach_printable("Could not read package config")
+            .change_context(ManifestError)?;
         Ok(ExperimentRun::new(experiment, config))
     }
 }
@@ -555,7 +573,8 @@ fn get_dependency_type_from_name(dependency_name: &str) -> Result<DependencyType
     // TODO: dependency names aren't real paths, is this safe?
     let extension = std::path::Path::new(dependency_name)
         .extension()
-        .ok_or_else(|| report!(OrchestratorError::from("Dependency has no file extension")))?
+        .ok_or_else(|| Report::new(ManifestError))
+        .attach_printable("Dependency has no file extension")?
         .to_string_lossy();
 
     if BEHAVIOR_FILE_EXTENSIONS.contains(&extension.borrow()) {
@@ -563,7 +582,7 @@ fn get_dependency_type_from_name(dependency_name: &str) -> Result<DependencyType
     } else if DATASET_FILE_EXTENSIONS.contains(&extension.borrow()) {
         Ok(DependencyType::Dataset(extension.to_string()))
     } else {
-        bail!(OrchestratorError::from(format!(
+        bail!(Report::new(ManifestError).attach_printable(format!(
             "Dependency has unknown file extension: {extension:?}"
         )));
     }
@@ -624,9 +643,12 @@ fn get_behavior_from_dependency_projects(
                         .any(|possible_name| behavior.shortnames.contains(possible_name))
             })
         }) {
-        None => bail!(OrchestratorError::from(format!(
-            "Couldn't find dependency in project dependencies: {name}"
-        ))),
+        None => {
+            bail!(
+                Report::new(ManifestError)
+                    .attach_printable(format!("Could not find dependency behavior: {name}"))
+            )
+        }
         Some(behavior) => {
             let mut behavior = behavior.clone();
             behavior.name = name;
@@ -644,11 +666,12 @@ fn get_dataset_from_dependency_projects(
     let mut dependency_path = PathBuf::from(&dependency_name);
     let file_name = dependency_path
         .file_name()
-        .ok_or_else(|| {
-            report!(OrchestratorError::from(format!(
+        .ok_or_else(|| Report::new(ManifestError))
+        .attach_printable_lazy(|| {
+            format!(
                 "Expected there to be a filename component of the dataset dependency path: \
                  {dependency_path:?}"
-            )))
+            )
         })?
         .to_os_string()
         .into_string()
@@ -670,7 +693,7 @@ fn get_dataset_from_dependency_projects(
                     || dataset.shortname == file_name.clone()
             })
         }) {
-        None => bail!(OrchestratorError::from(format!(
+        None => bail!(Report::new(ManifestError).attach_printable(format!(
             "Couldn't find dependency in project dependencies: {name}"
         ))),
         Some(dataset) => {
@@ -687,14 +710,13 @@ fn get_dataset_from_dependency_projects(
 
 fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Vec<PathBuf>> {
     let dependency_path = dependency_path.as_ref();
-    debug!("Parsing the dependencies folder: {dependency_path:?}");
+    tracing::debug!("Parsing the dependencies folder: {dependency_path:?}");
 
     let mut entries = dependency_path
         .read_dir()
         .report()
-        .change_context_lazy(|| {
-            OrchestratorError::from(format!("Could not read dependency directory: {dependency_path:?}"))
-        })?
+        .attach_printable_lazy(|| format!("Could not read dependency directory: {dependency_path:?}"))
+        .change_context(ManifestError)?
         .filter_map(|dir_res| {
             if let Ok(entry) = dir_res {
                 // check it's a folder and matches the pattern of a user namespace (i.e. `@user`)
@@ -709,9 +731,10 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
                 .path()
                 .read_dir()
                 .report()
-                .change_context_lazy(|| {
-                    OrchestratorError::from(format!("Could not read directory {:?}", user_dir.path()))
+                .attach_printable_lazy(|| {
+                    format!("Could not read directory {:?}", user_dir.path())
                 })
+                .change_context(ManifestError)
         })
         .collect::<Result<Vec<_>>>()? // Intermediary collect and iter to handle errors from read_dir
         .into_iter()
@@ -738,21 +761,19 @@ fn file_extension<P: AsRef<Path>>(path: P) -> Result<String> {
     let path = path.as_ref();
     Ok(path
         .extension()
-        .ok_or_else(|| {
-            report!(OrchestratorError::from(format!(
-                "Not a valid file: {path:?}"
-            )))
-        })?
+        .ok_or_else(|| Report::new(ManifestError))
+        .attach_printable_lazy(|| format!("Not a valid file: {path:?}"))?
         .to_string_lossy()
         .to_lowercase())
 }
 
 fn file_contents<P: AsRef<Path>>(path: P) -> Result<String> {
     let path = path.as_ref();
-    debug!("Reading contents at path: {path:?}");
+    tracing::debug!("Reading contents at path: {path:?}");
     std::fs::read_to_string(path)
         .report()
-        .change_context_lazy(|| OrchestratorError::from(format!("Could not read file: {path:?}")))
+        .attach_printable_lazy(|| format!("Could not read file: {path:?}"))
+        .change_context(ManifestError)
 }
 
 fn file_contents_opt<P: AsRef<Path>>(path: P) -> Result<Option<String>> {
@@ -767,10 +788,12 @@ fn file_contents_opt<P: AsRef<Path>>(path: P) -> Result<Option<String>> {
 fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
-        File::open(path).report().change_context_lazy(|| {
-            OrchestratorError::from(format!("Could not read file {path:?}"))
-        })?,
+        File::open(path)
+            .report()
+            .attach_printable_lazy(|| format!("Could not read file {path:?}"))
+            .change_context(ManifestError)?,
     ))
     .report()
-    .change_context_lazy(|| OrchestratorError::from(format!("Could not parse {path:?}")))
+    .attach_printable_lazy(|| format!("Could not parse {path:?}"))
+    .change_context(ManifestError)
 }

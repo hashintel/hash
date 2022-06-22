@@ -16,8 +16,6 @@ error-stack = { version = "0.1.1", features = ["spantrace"] }
 async-trait = "0.1.48"
 clap = { version = "3.0.13", optional = true }
 num_cpus = "1.13.1"
-rand = "0.8.3"
-rand_distr = "0.4.2"
 serde = "1.0.133"
 serde_json = "1.0.74"
 tracing = "0.1.29"

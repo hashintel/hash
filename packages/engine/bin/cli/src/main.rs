@@ -12,7 +12,8 @@ use clap::{AppSettings, Parser};
 use error_stack::{IntoReport, Result, ResultExt};
 use execution::package::experiment::ExperimentName;
 use hash_engine_lib::utils::init_logger;
-use orchestrator::{Experiment, ExperimentConfig, Manifest, Server};
+use orchestrator::{Experiment, ExperimentConfig, Server};
+use simulation_structure::Manifest;
 
 /// Arguments passed to the CLI
 #[derive(Debug, Parser)]
@@ -44,14 +45,16 @@ pub enum ExperimentType {
     // Generate shell completions
 }
 
-impl From<ExperimentType> for orchestrator::ExperimentType {
+impl From<ExperimentType> for simulation_structure::ExperimentType {
     fn from(t: ExperimentType) -> Self {
         match t {
-            ExperimentType::SimpleExperiment(simple) => orchestrator::ExperimentType::Simple {
-                name: simple.experiment_name,
-            },
+            ExperimentType::SimpleExperiment(simple) => {
+                simulation_structure::ExperimentType::Simple {
+                    name: simple.experiment_name,
+                }
+            }
             ExperimentType::SingleRunExperiment(single) => {
-                orchestrator::ExperimentType::SingleRun {
+                simulation_structure::ExperimentType::SingleRun {
                     num_steps: single.num_steps,
                 }
             }
