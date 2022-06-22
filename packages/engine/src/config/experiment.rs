@@ -6,13 +6,10 @@ use execution::{
     worker::WorkerConfig,
     worker_pool::WorkerPoolConfig,
 };
-use simulation_structure::{Experiment, Simulation};
+use simulation_structure::{Experiment, ExperimentRun, Simulation};
 use stateful::global::Globals;
 
-use crate::{
-    config::{package, Result},
-    proto::ExperimentRun,
-};
+use crate::config::{package, Result};
 
 #[derive(Clone)]
 /// Experiment level configuration

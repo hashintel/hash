@@ -14,7 +14,7 @@ use execution::package::{
 };
 use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
-    proto::{self, ExecutionEnvironment, ExperimentRun},
+    proto::{self, ExecutionEnvironment},
     simulation::command::StopStatus,
     utils::{LogFormat, LogLevel, OutputLocation},
 };
@@ -22,7 +22,7 @@ use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as SerdeValue};
-use simulation_structure::Simulation;
+use simulation_structure::{ExperimentRun, Simulation};
 use tokio::time::{sleep, timeout};
 
 use crate::{experiment_server::Handler, process, OrchestratorError, Result};

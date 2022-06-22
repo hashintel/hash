@@ -1,6 +1,6 @@
 use execution::{
     package::{
-        experiment::{ExperimentId, ExperimentName},
+        experiment::{ExperimentId, ExperimentName, ExperimentPackageConfig},
         simulation::init::InitialStateName,
     },
     runner::Language,
@@ -74,5 +74,37 @@ impl Experiment {
                         .map(|behavior_lang| behavior_lang == language)
                         .unwrap_or(false)
                 })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ExperimentRun {
+    experiment: Experiment,
+    config: ExperimentPackageConfig,
+}
+
+impl ExperimentRun {
+    pub fn new(experiment: Experiment, config: ExperimentPackageConfig) -> Self {
+        Self { experiment, config }
+    }
+
+    pub fn experiment(&self) -> &Experiment {
+        &self.experiment
+    }
+
+    pub fn experiment_mut(&mut self) -> &mut Experiment {
+        &mut self.experiment
+    }
+
+    pub fn simulation(&self) -> &Simulation {
+        self.experiment().simulation()
+    }
+
+    pub fn simualtion_mut(&mut self) -> &mut Simulation {
+        self.experiment_mut().simulation_mut()
+    }
+
+    pub fn config(&self) -> &ExperimentPackageConfig {
+        &self.config
     }
 }

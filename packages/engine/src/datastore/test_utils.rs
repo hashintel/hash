@@ -15,7 +15,7 @@ use execution::{
 };
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use simulation_structure::{Experiment, Simulation};
+use simulation_structure::{Experiment, ExperimentRun, Simulation};
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
     field::{
@@ -28,7 +28,6 @@ use stateful::{
 use crate::{
     config::{ExperimentConfig, PackageConfig, SimulationRunConfig, StoreConfig},
     datastore::{error::Error, schema::last_state_index_key},
-    proto::ExperimentRun,
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 

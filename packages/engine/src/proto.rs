@@ -1,15 +1,12 @@
 use execution::{
-    package::{
-        experiment::{ExperimentId, ExperimentPackageConfig},
-        simulation::SimulationId,
-    },
+    package::{experiment::ExperimentId, simulation::SimulationId},
     runner::{
         comms::{PackageError, UserError, UserWarning},
         RunnerError,
     },
 };
 use serde::{Deserialize, Serialize};
-use simulation_structure::{Experiment, Simulation};
+use simulation_structure::ExperimentRun;
 use stateful::global::Globals;
 
 use crate::simulation::status::SimStatus;
@@ -97,37 +94,5 @@ impl EngineStatus {
             EngineStatus::UserWarnings(..) => "UserWarnings",
             EngineStatus::PackageError(..) => "PackageError",
         }
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ExperimentRun {
-    experiment: Experiment,
-    config: ExperimentPackageConfig,
-}
-
-impl ExperimentRun {
-    pub fn new(experiment: Experiment, config: ExperimentPackageConfig) -> Self {
-        Self { experiment, config }
-    }
-
-    pub fn experiment(&self) -> &Experiment {
-        &self.experiment
-    }
-
-    pub fn experiment_mut(&mut self) -> &mut Experiment {
-        &mut self.experiment
-    }
-
-    pub fn simulation(&self) -> &Simulation {
-        self.experiment().simulation()
-    }
-
-    pub fn simualtion_mut(&mut self) -> &mut Simulation {
-        self.experiment_mut().simulation_mut()
-    }
-
-    pub fn config(&self) -> &ExperimentPackageConfig {
-        &self.config
     }
 }

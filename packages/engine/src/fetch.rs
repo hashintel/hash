@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use futures::StreamExt;
+use simulation_structure::ExperimentRun;
 use stateful::global::Dataset;
 
-use crate::{proto::ExperimentRun, Error, Result};
+use crate::{Error, Result};
 
 #[async_trait]
 pub trait FetchDependencies {
