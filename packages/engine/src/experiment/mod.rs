@@ -8,7 +8,6 @@ use stateful::global::Globals;
 pub use self::error::{Error, Result};
 use crate::proto;
 
-pub type Simulation = proto::ProjectBase;
 pub type PackageDataField = proto::PackageDataField;
 pub type MetricObjective = proto::MetricObjective;
 pub type ExperimentRun = proto::ExperimentRun;

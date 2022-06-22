@@ -3,7 +3,7 @@ use core::fmt;
 use execution::{
     package::{
         experiment::{ExperimentId, ExperimentName, ExperimentPackageConfig},
-        simulation::{init::InitialStateName, PackageInitConfig, SimulationId},
+        simulation::{init::InitialStateName, SimulationId},
     },
     runner::{
         comms::{PackageError, UserError, UserWarning},
@@ -13,7 +13,8 @@ use execution::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use stateful::global::{Dataset, Globals};
+use simulation_structure::Simulation;
+use stateful::global::Globals;
 
 use crate::simulation::status::SimStatus;
 
@@ -106,28 +107,6 @@ impl EngineStatus {
             EngineStatus::PackageError(..) => "PackageError",
         }
     }
-}
-
-// #[derive(Deserialize, Serialize, Debug, Clone)]
-// TODO: UNUSED: Needs triage
-pub struct FetchedDataset {
-    pub name: Option<String>,
-    pub shortname: String,
-    pub filename: String,
-    pub contents: String,
-}
-
-/// Analogous to `SimulationSrc` in the web editor
-/// This contains all of the source code for a specific simulation, including
-/// initial state source, analysis source, experiment source, globals source (globals.json),
-/// dependencies source and the source for all running behaviors
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ProjectBase {
-    pub name: String,
-    pub globals_src: String,
-    pub experiments_src: Option<String>,
-    pub datasets: Vec<Dataset>,
-    pub package_init: PackageInitConfig,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -224,7 +203,7 @@ pub enum ExperimentRunRepr {
 pub struct ExperimentRunBase {
     pub name: ExperimentName,
     pub id: ExperimentId,
-    pub project_base: ProjectBase,
+    pub project_base: Simulation,
 }
 
 impl ExperimentRunBase {

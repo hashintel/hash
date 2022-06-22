@@ -680,7 +680,6 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
- "simulation_structure",
  "stateful",
  "thiserror",
  "tokio",
@@ -2065,8 +2064,9 @@ dependencies = [
 name = "simulation_structure"
 version = "0.0.0"
 dependencies = [
+ "execution",
  "serde",
- "uuid",
+ "stateful",
 ]
 
 [[package]]

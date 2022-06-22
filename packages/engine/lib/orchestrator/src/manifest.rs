@@ -19,10 +19,11 @@ use execution::package::{
 };
 use hash_engine_lib::{
     fetch::parse_raw_csv_into_json,
-    proto::{ExperimentRun, ExperimentRunBase, ProjectBase},
+    proto::{ExperimentRun, ExperimentRunBase},
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
+use simulation_structure::Simulation;
 use stateful::global::Dataset;
 
 use crate::{ExperimentType, OrchestratorError, Result};
@@ -517,7 +518,7 @@ impl Manifest {
     ///
     /// - if the manifest does not provide an initial state
     pub fn read(self, experiment_type: ExperimentType) -> Result<ExperimentRun> {
-        let project_base = ProjectBase {
+        let project_base = Simulation {
             name: self.project_name,
             globals_src: self.globals_json.unwrap_or_else(|| "{}".to_string()),
             experiments_src: self.experiments_json,

@@ -12,6 +12,7 @@ use execution::{
 };
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
+use simulation_structure::Simulation;
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
     field::{
@@ -24,7 +25,7 @@ use stateful::{
 use crate::{
     config::{ExperimentConfig, PackageConfig, SimRunConfig, SimulationConfig, StoreConfig},
     datastore::{error::Error, schema::last_state_index_key},
-    proto::{ExperimentRunBase, ExperimentRunRepr, ProjectBase},
+    proto::{ExperimentRunBase, ExperimentRunRepr},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
@@ -268,7 +269,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
 
     let store = Arc::new(StoreConfig::new_sim(&package_init, &globals, &package_creators).unwrap());
 
-    let project_base = ProjectBase {
+    let project_base = Simulation {
         name: "project_name".to_string(),
         globals_src: "{}".to_string(),
         experiments_src: None,
