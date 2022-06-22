@@ -9,15 +9,15 @@ use execution::{
 };
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
+use simulation_structure::ExperimentId;
 use stateful::{
-    agent::{Agent, AgentSchema, AgentStateField},
+    agent::{Agent, AgentId, AgentSchema, AgentStateField},
     field::{
         FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
         RootFieldSpec, RootFieldSpecCreator,
     },
     global::Globals,
 };
-use uuid::Uuid;
 
 use crate::{
     config::{ExperimentConfig, PackageConfig, SimRunConfig, SimulationConfig, StoreConfig},
@@ -227,7 +227,7 @@ fn make_dummy_agent(seed: u64) -> Result<Agent, Error> {
     let mut rng = StdRng::seed_from_u64(seed);
 
     let mut agent = Agent::empty();
-    let id = uuid::Uuid::new_v4().to_hyphenated().to_string();
+    let id = AgentId::generate();
     agent.set(AgentStateField::AgentId.name(), &id)?;
     // We do an implicit conversion to f64 for number types so for testing need to ensure
     // manually created agents only have f64
@@ -275,7 +275,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
     };
     let base = ExperimentRunBase {
         name: "experiment_name".to_string().into(),
-        id: Uuid::new_v4(),
+        id: ExperimentId::generate(),
         project_base,
     };
 

@@ -7,7 +7,7 @@ import { AccountDropdown } from "./account-dropdown";
 import { SearchBar } from "./search-bar";
 import { ActionsDropdown } from "./actions-dropdown";
 import { Button, Link } from "../../ui";
-import { HashNavIcon } from "../../icons";
+import { HashAlphaNavIcon } from "../../icons";
 
 const Nav: React.FC = ({ children }) => (
   <Box
@@ -16,14 +16,14 @@ const Nav: React.FC = ({ children }) => (
       width: "100%",
       display: "flex",
       justifyContent: "space-between",
-      px: { xs: 2, md: 3 },
+      px: { xs: 2, md: 2.5 },
     }}
   >
     {children}
   </Box>
 );
 
-export const HEADER_HEIGHT = 64;
+export const HEADER_HEIGHT = 54;
 
 export const PageHeader: React.VFC = () => {
   const theme = useTheme();
@@ -40,6 +40,7 @@ export const PageHeader: React.VFC = () => {
         borderBottom: `1px solid ${palette.gray["30"]}`,
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between",
         height: HEADER_HEIGHT,
       })}
     >
@@ -54,11 +55,18 @@ export const PageHeader: React.VFC = () => {
             width: isMobile && user ? "100%" : undefined,
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
-              <HashNavIcon
+              <HashAlphaNavIcon
                 sx={({ palette }) => ({
-                  height: "18px",
+                  height: "1.1rem",
+                  marginBottom: "-4px",
                   width: "auto",
                   fill: palette.gray["50"],
                 })}

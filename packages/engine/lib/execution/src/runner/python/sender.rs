@@ -132,7 +132,7 @@ fn inbound_to_nng(
             let payload = serde_json::to_string(payload)?;
             let payload = str_to_serialized(fbb, &payload);
 
-            let task_id = flatbuffers_gen::task_msg_generated::TaskId(msg.task_id.to_le_bytes());
+            let task_id = flatbuffers_gen::task_msg_generated::TaskId(*msg.task_id.as_bytes());
             let group_index = msg.group_index.map(|inner| {
                 flatbuffers_gen::task_msg_generated::GroupIndex((inner as u64).to_le_bytes())
             });

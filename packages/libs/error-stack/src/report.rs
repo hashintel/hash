@@ -2,6 +2,8 @@ use alloc::{boxed::Box, string::ToString, vec::Vec};
 use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
+#[cfg(feature = "std")]
+use std::process::ExitCode;
 
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
@@ -614,6 +616,20 @@ impl<Context> fmt::Debug for Report<Context> {
 
             Ok(())
         }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<Context> std::process::Termination for Report<Context> {
+    fn report(self) -> ExitCode {
+        #[cfg(not(nightly))]
+        return ExitCode::FAILURE;
+
+        #[cfg(nightly)]
+        self.request_ref::<ExitCode>()
+            .next()
+            .copied()
+            .unwrap_or(ExitCode::FAILURE)
     }
 }
 

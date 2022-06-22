@@ -22,7 +22,7 @@ pub mod arrow;
 
 pub use self::{
     arrow::{AgentBatch, AgentBatchPool},
-    field::{Agent, AgentStateField},
+    field::{Agent, AgentId, AgentStateField},
     into_agent::IntoAgents,
     name::AgentName,
     schema::AgentSchema,

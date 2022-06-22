@@ -17,8 +17,11 @@ type EntityTypeItemProps = {
 const Container = styled((props: BoxProps & { selected: boolean }) => (
   <Box component="li" {...props} />
 ))(({ theme, selected }) => ({
-  paddingLeft: theme.spacing(3.75),
-  paddingRight: theme.spacing(0.5),
+  paddingLeft: theme.spacing(3),
+  paddingRight: theme.spacing(1),
+  paddingTop: theme.spacing(0.5),
+  paddingBottom: theme.spacing(0.5),
+  margin: `0 ${theme.spacing(0.5)}`,
   borderRadius: "4px",
   display: "flex",
   justifyContent: "space-between",
@@ -73,7 +76,6 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
           sx={{
             display: "block",
             color: "inherit",
-            py: "7px",
           }}
         >
           {title}
@@ -96,10 +98,10 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
           size="medium"
           unpadded
           sx={({ palette }) => ({
-            color: palette.gray[40],
-            "&:hover": {
+            color: [selected ? palette.gray[40] : "transparent"],
+            "&:focus-visible, &:hover": {
               backgroundColor: palette.gray[selected ? 40 : 30],
-              color: palette.gray[50],
+              color: palette.gray[selected ? 50 : 40],
             },
           })}
         >

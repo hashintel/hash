@@ -12,13 +12,12 @@ use std::{
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use stateful::{
-    agent::{arrow::IntoRecordBatch, Agent, AgentSchema},
+    agent::{arrow::IntoRecordBatch, Agent, AgentId, AgentSchema},
     field::{RootFieldKey, UUID_V4_LEN},
     message,
     message::{MessageBatch, MessageMap, MessageReader},
     proxy::PoolReadProxy,
 };
-use uuid::Uuid;
 
 use crate::{
     datastore::table::create_remove::ProcessedCommands,
@@ -49,7 +48,7 @@ struct CreateCommand {
 
 #[derive(Debug)]
 struct RemoveCommand {
-    uuid: Uuid,
+    agent_id: AgentId,
 }
 
 /// Status of the stop message that occurred.
@@ -74,10 +73,10 @@ impl Default for StopStatus {
 /// Command to stop the simulation.
 ///
 /// Stores the [`StopMessage`] and the agent's UUID.
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct StopCommand {
     pub message: StopMessage,
-    pub agent: Uuid,
+    pub agent: AgentId,
 }
 
 /// Stop message sent from an agent.
@@ -112,8 +111,8 @@ impl Commands {
     }
 
     /// Push a command for the request of the deletion of the agent associated with the given UUID
-    pub fn add_remove(&mut self, uuid: Uuid) {
-        self.create_remove.remove.push(RemoveCommand { uuid });
+    pub fn add_remove(&mut self, agent_id: AgentId) {
+        self.create_remove.remove.push(RemoveCommand { agent_id });
     }
 
     /// Ensures that all agent-creation commands contain valid agent fields.
@@ -226,7 +225,7 @@ impl CreateRemoveCommands {
         let remove_ids: HashSet<[u8; UUID_V4_LEN]> = self
             .remove
             .drain(..)
-            .map(|remove_cmd| *remove_cmd.uuid.as_bytes())
+            .map(|remove_cmd| *remove_cmd.agent_id.as_bytes())
             .collect::<HashSet<_>>();
 
         Ok(ProcessedCommands {
@@ -258,7 +257,7 @@ fn handle_hash_message(
         HashMessageType::Stop => {
             cmds.stop.push(StopCommand {
                 message: serde_json::from_str(data)?,
-                agent: Uuid::from_bytes(*from),
+                agent: AgentId::from_bytes(*from),
             });
         }
     }
@@ -269,16 +268,16 @@ fn handle_hash_message(
 /// the message if the payload is missing.
 fn handle_remove_data(cmds: &mut Commands, data: &str, from: &[u8; UUID_V4_LEN]) -> Result<()> {
     let uuid = if data == "null" {
-        Ok(Uuid::from_bytes(*from))
+        Ok(AgentId::from_bytes(*from))
     } else {
         match serde_json::from_str::<message::payload::RemoveAgentData>(data) {
-            Ok(payload) => Ok(Uuid::parse_str(&payload.agent_id)?),
+            Ok(payload) => Ok(payload.agent_id),
             Err(_) => {
                 if data == "null"
                     || data.is_empty()
                     || serde_json::from_str::<HashMap<String, String>>(data).is_ok()
                 {
-                    Ok(Uuid::from_bytes(*from))
+                    Ok(AgentId::from_bytes(*from))
                 } else {
                     Err(Error::RemoveAgentMessage(data.to_string()))
                 }

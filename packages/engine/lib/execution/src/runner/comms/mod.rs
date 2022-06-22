@@ -60,7 +60,7 @@ impl TargetedRunnerTaskMsg {
         task_msg: flatbuffers_gen::task_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
-        let task_id = TaskId::from_le_bytes(task_msg.task_id().0);
+        let task_id = TaskId::from_bytes(task_msg.task_id().0);
 
         let sent = sent_tasks.remove(&task_id).ok_or_else(|| {
             Error::from(format!("Outbound message w/o sent task id {:?}", task_id))
