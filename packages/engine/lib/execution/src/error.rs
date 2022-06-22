@@ -32,7 +32,7 @@ pub enum Error {
     Arrow(#[from] arrow::error::ArrowError),
 
     #[error("IO error: {0:?}")]
-    IO(#[from] std::io::Error),
+    StdIo(#[from] std::io::Error),
 
     #[error("Behavior language parse error: {0}")]
     ParseBehavior(String),
