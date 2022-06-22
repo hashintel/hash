@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
-use simulation_structure::SimulationShortId;
-
 use crate::{
-    package::experiment::{
-        comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
-        SimpleExperimentConfig,
+    package::{
+        experiment::{
+            comms::{control::ExpPkgCtlSend, update::ExpPkgUpdateRecv, ExperimentControl},
+            SimpleExperimentConfig,
+        },
+        simulation::SimulationId,
     },
     Error, Result,
 };
@@ -22,9 +23,9 @@ struct SimProgress {
 struct SimQueue<'a> {
     max_num_steps: usize,
     pkg_to_exp: &'a mut ExpPkgCtlSend,
-    pending_iter: &'a mut (dyn Iterator<Item = (SimulationShortId, &'a serde_json::Value)> + Send),
-    active: HashMap<SimulationShortId, SimProgress>,
-    finished: HashMap<SimulationShortId, SimProgress>,
+    pending_iter: &'a mut (dyn Iterator<Item = (SimulationId, &'a serde_json::Value)> + Send),
+    active: HashMap<SimulationId, SimProgress>,
+    finished: HashMap<SimulationId, SimProgress>,
 }
 
 impl<'a> SimQueue<'a> {
@@ -69,7 +70,7 @@ impl SimpleExperiment {
                 .map(|(sim_idx, props)| {
                     // We sometimes use 0 as a default/null value, therefore it's not a valid
                     // SimulationShortId
-                    ((sim_idx + 1) as SimulationShortId, props)
+                    ((sim_idx + 1) as SimulationId, props)
                 });
 
         let mut sim_queue = SimQueue {

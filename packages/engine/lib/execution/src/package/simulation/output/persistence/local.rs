@@ -4,7 +4,6 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use simulation_structure::SimulationShortId;
 use stateful::global::Globals;
 
 use crate::{
@@ -17,7 +16,7 @@ use crate::{
                 },
                 Output, OutputBuffers,
             },
-            PersistenceConfig,
+            PersistenceConfig, SimulationId,
         },
     },
     Result,
@@ -38,7 +37,7 @@ pub struct LocalSimulationOutputPersistence {
     pub project_name: String,
     pub experiment_name: ExperimentName,
     pub experiment_id: ExperimentId,
-    pub sim_id: SimulationShortId,
+    pub sim_id: SimulationId,
     pub buffers: OutputBuffers,
     pub config: LocalPersistenceConfig,
 }
@@ -129,7 +128,7 @@ impl OutputPersistenceCreator for LocalOutputPersistence {
 
     fn new_simulation(
         &self,
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         persistence_config: &PersistenceConfig,
     ) -> Result<Self::SimulationOutputPersistence> {
         let buffers = OutputBuffers::new(

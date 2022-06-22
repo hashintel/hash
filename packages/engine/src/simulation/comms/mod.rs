@@ -23,7 +23,7 @@ use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use execution::{
-    package::simulation::PackageTask,
+    package::simulation::{PackageTask, SimulationId},
     task::{StoreAccessValidator, TaskId, TaskSharedStore},
     worker::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
     worker_pool,
@@ -32,7 +32,6 @@ use execution::{
         message::{EngineToWorkerPoolMsg, WrappedTask},
     },
 };
-use simulation_structure::SimulationShortId;
 use stateful::{
     agent::{Agent, AgentId},
     context::Context,
@@ -47,7 +46,7 @@ use super::{command::Commands, task::active::ActiveTask, Error, Result};
 #[derive(Clone)]
 pub struct Comms {
     /// The ID of the simulation that information pertains to.
-    sim_id: SimulationShortId,
+    sim_id: SimulationId,
     /// A shared mutable [`Commands`] that are merged with those from agent messages, and resolved,
     /// by the Engine each step.
     cmds: Arc<RwLock<Commands>>,
@@ -61,7 +60,7 @@ impl Comms {
     /// Creates a new `Comms` object for a simulation with the given `sim_id`.
     ///
     /// Initializes a default [`Commands`], wrapping it in a `RwLock` for safe shared access.
-    pub fn new(sim_id: SimulationShortId, worker_pool_sender: MainMsgSend) -> Result<Comms> {
+    pub fn new(sim_id: SimulationId, worker_pool_sender: MainMsgSend) -> Result<Comms> {
         Ok(Comms {
             sim_id,
             cmds: Arc::new(RwLock::new(Commands::default())),

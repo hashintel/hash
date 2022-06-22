@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use execution::{
-    package::simulation::output::persistence::SimulationOutputPersistence, runner::RunnerError,
+    package::simulation::{output::persistence::SimulationOutputPersistence, SimulationId},
+    runner::RunnerError,
 };
 use futures::FutureExt;
-use simulation_structure::SimulationShortId;
 use tokio::time::Duration;
 
 use crate::{
@@ -59,7 +59,7 @@ pub async fn sim_run<P: SimulationOutputPersistence>(
     mut sim_from_exp: SimCtlRecv,
     mut sims_to_exp: SimStatusSend,
     mut persistence_service: P,
-) -> Result<SimulationShortId> {
+) -> Result<SimulationId> {
     let sim_run_id = config.sim.id;
     let max_num_steps = config.sim.max_num_steps;
     tracing::info!(steps = &max_num_steps, "Beginning simulation run");

@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use serde::{Deserialize, Serialize};
-use simulation_structure::SimulationShortId;
 use tracing::Span;
 
 use crate::{
+    package::simulation::SimulationId,
     runner::{
         self,
         comms::{SentTask, TargetedRunnerTaskMsg},
@@ -277,7 +277,7 @@ pub struct OutboundFromRunnerMsg {
     // TODO: UNUSED: Needs triage
     pub span: Span,
     pub source: Language,
-    pub sim_id: SimulationShortId,
+    pub sim_id: SimulationId,
     pub payload: OutboundFromRunnerMsgPayload,
     // shared state
 }

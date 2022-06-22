@@ -1,6 +1,7 @@
 use serde::Serialize;
-use simulation_structure::SimulationShortId;
 use stateful::global::Globals;
+
+use crate::package::simulation::SimulationId;
 
 pub mod local;
 pub mod none;
@@ -14,7 +15,7 @@ pub trait OutputPersistenceCreator: Send + Sync + 'static {
     type SimulationOutputPersistence: SimulationOutputPersistence;
     fn new_simulation(
         &self,
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         persistence_config: &PersistenceConfig,
     ) -> Result<Self::SimulationOutputPersistence>;
 }

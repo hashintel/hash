@@ -1,11 +1,13 @@
-use execution::{package::simulation::output::Output, runner::RunnerError};
-use simulation_structure::SimulationShortId;
+use execution::{
+    package::simulation::{output::Output, SimulationId},
+    runner::RunnerError,
+};
 
 use crate::simulation::agent_control::AgentControl;
 
 pub struct SimulationStepResult {
     // TODO: UNUSED: Needs triage
-    pub sim_id: SimulationShortId,
+    pub sim_id: SimulationId,
     pub output: Vec<Output>,
     // TODO: UNUSED: Needs triage
     pub errors: Vec<RunnerError>,

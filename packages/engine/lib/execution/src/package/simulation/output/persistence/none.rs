@@ -1,4 +1,3 @@
-use simulation_structure::SimulationShortId;
 use stateful::global::Globals;
 
 use crate::package::simulation::{
@@ -6,7 +5,7 @@ use crate::package::simulation::{
         persistence::{OutputPersistenceCreator, SimulationOutputPersistence},
         Output,
     },
-    PersistenceConfig, Result,
+    PersistenceConfig, Result, SimulationId,
 };
 
 #[derive(Default)]
@@ -23,7 +22,7 @@ impl OutputPersistenceCreator for NoOutputPersistence {
 
     fn new_simulation(
         &self,
-        _sim_id: SimulationShortId,
+        _sim_id: SimulationId,
         _persistence_config: &PersistenceConfig,
     ) -> Result<Self::SimulationOutputPersistence> {
         Ok(NoSimulationOutputPersistence {})

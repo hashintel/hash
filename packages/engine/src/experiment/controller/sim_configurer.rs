@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use execution::{
-    package::{experiment::ExperimentPackageConfig, simulation::PersistenceConfig},
+    package::{
+        experiment::ExperimentPackageConfig,
+        simulation::{PersistenceConfig, SimulationId},
+    },
     worker_pool::{WorkerAllocation, WorkerIndex},
 };
-use simulation_structure::SimulationShortId;
 use stateful::global::Globals;
 
 use crate::{
@@ -38,7 +40,7 @@ impl SimConfigurer {
     pub fn configure_next(
         &mut self,
         exp_config: &Arc<ExperimentConfig>,
-        id: SimulationShortId,
+        id: SimulationId,
         globals: Globals,
         store_config: StoreConfig,
         persistence_config: PersistenceConfig,

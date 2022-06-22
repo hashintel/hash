@@ -1,15 +1,15 @@
 use execution::{
-    package::simulation::output::persistence::OutputPersistenceResult, runner::RunnerError,
+    package::simulation::{output::persistence::OutputPersistenceResult, SimulationId},
+    runner::RunnerError,
 };
 use serde::{Deserialize, Serialize};
-use simulation_structure::SimulationShortId;
 
 use crate::simulation::{command::StopCommand, Result};
 
 // Sent from sim runs to experiment main loop.
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
 pub struct SimStatus {
-    pub sim_id: SimulationShortId,
+    pub sim_id: SimulationId,
     pub steps_taken: isize,
     pub early_stop: bool,
     pub stop_msg: Vec<StopCommand>,
@@ -23,7 +23,7 @@ pub struct SimStatus {
 }
 
 impl SimStatus {
-    pub fn running(sim_id: SimulationShortId, steps_taken: isize) -> SimStatus {
+    pub fn running(sim_id: SimulationId, steps_taken: isize) -> SimStatus {
         SimStatus {
             sim_id,
             steps_taken,
@@ -34,7 +34,7 @@ impl SimStatus {
 
     // TODO: Check this makes sense, default gives misleading amount of steps etc.
     // TODO: UNUSED: Needs triage
-    pub fn stop_signal(sim_id: SimulationShortId) -> SimStatus {
+    pub fn stop_signal(sim_id: SimulationId) -> SimStatus {
         SimStatus {
             sim_id,
             running: false,
@@ -44,7 +44,7 @@ impl SimStatus {
     }
 
     pub fn ended<P: OutputPersistenceResult>(
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         steps_taken: isize,
         early_stop: bool,
         stop_msg: Vec<StopCommand>,
@@ -65,7 +65,7 @@ impl SimStatus {
     }
 
     pub fn error<P: OutputPersistenceResult>(
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         steps_taken: isize,
         error: RunnerError,
         persistence_result: Option<P>,

@@ -1,9 +1,11 @@
 use std::path::PathBuf;
 
 use serde::Serialize;
-use simulation_structure::SimulationShortId;
 
-use crate::{package::experiment::ExperimentId, Result};
+use crate::{
+    package::{experiment::ExperimentId, simulation::SimulationId},
+    Result,
+};
 
 /// Maximum size of a string kept in memory.
 /// Corresponds to the maximum size of a non-terminal part (see multipart uploading)
@@ -29,7 +31,7 @@ impl OutputPartBuffer {
     pub fn new(
         output_type_name: &'static str,
         experiment_id: &ExperimentId,
-        simulation_run_id: SimulationShortId,
+        simulation_run_id: SimulationId,
     ) -> Result<OutputPartBuffer> {
         let base_path = std::env::temp_dir()
             .join(experiment_id.to_string())

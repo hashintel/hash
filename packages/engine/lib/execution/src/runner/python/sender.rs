@@ -6,13 +6,12 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use memory::shared_memory::arrow_continuation;
 use nng::{options::Options, Aio, Socket};
-use simulation_structure::SimulationShortId;
 use stateful::state::StateReadProxy;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 pub use crate::runner::python::{PythonError, PythonResult};
 use crate::{
-    package::experiment::ExperimentId,
+    package::{experiment::ExperimentId, simulation::SimulationId},
     runner::{
         comms::InboundToRunnerMsgPayload,
         python::fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
@@ -92,7 +91,7 @@ impl NngSender {
 
     pub fn send(
         &self,
-        sim_id: Option<SimulationShortId>,
+        sim_id: Option<SimulationId>,
         msg: &InboundToRunnerMsgPayload,
         task_payload_json: &Option<serde_json::Value>,
     ) -> PythonResult<()> {
@@ -115,7 +114,7 @@ impl NngSender {
 
 // TODO: Make this function shorter.
 fn inbound_to_nng(
-    sim_id: Option<SimulationShortId>,
+    sim_id: Option<SimulationId>,
     msg: &InboundToRunnerMsgPayload,
     task_payload_json: &Option<serde_json::Value>,
 ) -> PythonResult<nng::Message> {

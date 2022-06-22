@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use execution::{
-    package::simulation::{PackageCreatorConfig, PersistenceConfig},
+    package::simulation::{PackageCreatorConfig, PersistenceConfig, SimulationId},
     worker_pool::WorkerAllocation,
 };
-use simulation_structure::SimulationShortId;
 use stateful::{global::Globals, state::StateCreateParameters};
 
 pub use self::{
@@ -43,7 +42,7 @@ pub async fn experiment_config(args: &Args, env: &Environment) -> Result<Experim
 impl SimRunConfig {
     pub fn new(
         global: &Arc<ExperimentConfig>,
-        id: SimulationShortId,
+        id: SimulationId,
         globals: Globals,
         worker_allocation: WorkerAllocation,
         store: StoreConfig,
@@ -77,7 +76,7 @@ impl SimRunConfig {
 }
 
 fn simulation_config(
-    id: SimulationShortId,
+    id: SimulationId,
     globals: Globals,
     worker_allocation: WorkerAllocation,
     _global: &ExperimentConfig,

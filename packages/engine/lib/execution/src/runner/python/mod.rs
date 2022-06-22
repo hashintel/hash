@@ -12,7 +12,6 @@ use std::{
 };
 
 use futures::FutureExt;
-use simulation_structure::SimulationShortId;
 use tokio::{
     process::Command,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -22,7 +21,7 @@ use tokio::{
 pub use self::error::{PythonError, PythonResult};
 use self::{receiver::NngReceiver, sender::NngSender};
 use crate::{
-    package::experiment::ExperimentId,
+    package::{experiment::ExperimentId, simulation::SimulationId},
     runner::{
         comms::{
             ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg,
@@ -38,9 +37,8 @@ pub struct PythonRunner {
     // Args to RunnerImpl::new
     init_msg: Arc<ExperimentInitRunnerMsg>,
 
-    inbound_sender: UnboundedSender<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
-    inbound_receiver:
-        Option<UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,
+    inbound_sender: UnboundedSender<(Option<SimulationId>, InboundToRunnerMsgPayload)>,
+    inbound_receiver: Option<UnboundedReceiver<(Option<SimulationId>, InboundToRunnerMsgPayload)>>,
     outbound_sender: Option<UnboundedSender<OutboundFromRunnerMsg>>,
     outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
     spawn: bool,
@@ -62,7 +60,7 @@ impl PythonRunner {
 
     pub async fn send(
         &self,
-        sim_id: Option<SimulationShortId>,
+        sim_id: Option<SimulationId>,
         msg: InboundToRunnerMsgPayload,
     ) -> Result<()> {
         tracing::trace!("Sending message to Python: {:?}", &msg);
@@ -73,7 +71,7 @@ impl PythonRunner {
 
     pub async fn send_if_spawned(
         &self,
-        sim_id: Option<SimulationShortId>,
+        sim_id: Option<SimulationId>,
         msg: InboundToRunnerMsgPayload,
     ) -> Result<()> {
         if self.spawned() {
@@ -166,7 +164,7 @@ impl PythonRunner {
 
 async fn _run(
     init_msg: Arc<ExperimentInitRunnerMsg>,
-    mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
+    mut inbound_receiver: UnboundedReceiver<(Option<SimulationId>, InboundToRunnerMsgPayload)>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
 ) -> Result<()> {
     // Open sockets for Python process to connect to (i.e. start listening).

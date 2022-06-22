@@ -3,7 +3,7 @@ use core::fmt;
 use execution::{
     package::{
         experiment::{ExperimentId, ExperimentName, ExperimentPackageConfig},
-        simulation::{init::InitialStateName, PackageInitConfig},
+        simulation::{init::InitialStateName, PackageInitConfig, SimulationId},
     },
     runner::{
         comms::{PackageError, UserError, UserWarning},
@@ -13,7 +13,6 @@ use execution::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use simulation_structure::SimulationShortId;
 use stateful::global::{Dataset, Globals};
 
 use crate::simulation::status::SimStatus;
@@ -38,17 +37,17 @@ pub enum EngineStatus {
     ProcessError(String),
     Stopping,
     SimStart {
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         globals: Globals,
     },
-    SimStop(SimulationShortId),
+    SimStop(SimulationId),
     // TODO: OS - Confirm are these only Runner/Simulation errors, if so rename
-    RunnerErrors(SimulationShortId, Vec<RunnerError>),
-    RunnerWarnings(SimulationShortId, Vec<RunnerError>),
-    UserErrors(SimulationShortId, Vec<UserError>),
-    UserWarnings(SimulationShortId, Vec<UserWarning>),
-    PackageError(SimulationShortId, PackageError),
-    Logs(SimulationShortId, Vec<String>),
+    RunnerErrors(SimulationId, Vec<RunnerError>),
+    RunnerWarnings(SimulationId, Vec<RunnerError>),
+    UserErrors(SimulationId, Vec<UserError>),
+    UserWarnings(SimulationId, Vec<UserWarning>),
+    PackageError(SimulationId, PackageError),
+    Logs(SimulationId, Vec<String>),
 }
 
 /// The message type sent from the orchestrator to the engine.

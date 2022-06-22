@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use execution::{
     package::{
         experiment::comms::{ExperimentControl, ExperimentPackageComms, StepUpdate},
-        simulation::output::persistence::OutputPersistenceCreator,
+        simulation::{output::persistence::OutputPersistenceCreator, SimulationId},
     },
     runner::comms::{DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun},
     worker_pool::comms::{
@@ -13,7 +13,6 @@ use execution::{
         top::{WorkerPoolMsgRecv, WorkerPoolToExpCtlMsg},
     },
 };
-use simulation_structure::SimulationShortId;
 use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 
@@ -53,7 +52,7 @@ pub struct ExperimentController<P: OutputPersistenceCreator> {
     experiment_package_comms: ExperimentPackageComms,
     output_persistence_service_creator: P,
     sim_run_tasks: SimulationRuns,
-    sim_senders: HashMap<SimulationShortId, SimCtlSend>,
+    sim_senders: HashMap<SimulationId, SimCtlSend>,
     worker_pool_send_base: MainMsgSendBase,
     package_creators: PackageCreators,
     sim_configurer: SimConfigurer,
@@ -132,13 +131,13 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
             .await?)
     }
 
-    async fn handle_sim_run_stop(&mut self, id: SimulationShortId) -> Result<()> {
+    async fn handle_sim_run_stop(&mut self, id: SimulationId) -> Result<()> {
         Ok(self.orch_client().send(EngineStatus::SimStop(id)).await?)
     }
 
     async fn handle_worker_pool_msg(
         &mut self,
-        id: SimulationShortId,
+        id: SimulationId,
         msg: WorkerPoolToExpCtlMsg,
     ) -> Result<()> {
         let engine_status = match msg {
@@ -186,7 +185,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
 
     async fn start_new_sim_run(
         &mut self,
-        sim_short_id: SimulationShortId,
+        sim_short_id: SimulationId,
         changed_globals: serde_json::Value,
         max_num_steps: usize,
     ) -> Result<()> {
@@ -273,22 +272,22 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         Ok(())
     }
 
-    async fn pause_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
+    async fn pause_sim_run(&mut self, sim_short_id: SimulationId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Pause).await?;
         Ok(())
     }
 
-    async fn resume_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
+    async fn resume_sim_run(&mut self, sim_short_id: SimulationId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Resume).await?;
         Ok(())
     }
 
-    async fn stop_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
+    async fn stop_sim_run(&mut self, sim_short_id: SimulationId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Stop).await?;
         Ok(())
     }
 
-    async fn send_sim(&mut self, sim_short_id: SimulationShortId, msg: SimControl) -> Result<()> {
+    async fn send_sim(&mut self, sim_short_id: SimulationId, msg: SimControl) -> Result<()> {
         if let Some(sender) = self.sim_senders.get_mut(&sim_short_id) {
             sender.send(msg).await?;
             Ok(())
@@ -315,11 +314,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         })
     }
 
-    fn add_sim_sender(
-        &mut self,
-        sim_short_id: SimulationShortId,
-        sender: SimCtlSend,
-    ) -> Result<()> {
+    fn add_sim_sender(&mut self, sim_short_id: SimulationId, sender: SimCtlSend) -> Result<()> {
         if self.sim_senders.contains_key(&sim_short_id) {
             let msg = "Cannot mutate a simulation control msg sender";
             tracing::error!("{}, sim short id: {}", msg, sim_short_id);

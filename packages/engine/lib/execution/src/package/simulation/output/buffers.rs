@@ -1,11 +1,9 @@
-use simulation_structure::SimulationShortId;
-
 use crate::{
     package::{
         experiment::ExperimentId,
         simulation::{
             output::{analysis::AnalysisBuffer, OutputPartBuffer},
-            OutputPackagesSimConfig,
+            OutputPackagesSimConfig, SimulationId,
         },
     },
     Result,
@@ -19,7 +17,7 @@ pub struct OutputBuffers {
 impl OutputBuffers {
     pub fn new(
         exp_id: &ExperimentId,
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         output_packages_sim_config: &OutputPackagesSimConfig,
     ) -> Result<OutputBuffers> {
         Ok(OutputBuffers {

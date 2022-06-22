@@ -220,6 +220,7 @@ pub mod state;
 mod comms;
 mod config;
 mod dependencies;
+mod id;
 mod name;
 mod package_type;
 mod task;
@@ -232,6 +233,7 @@ pub use self::{
         SimPackageArgs,
     },
     dependencies::Dependencies,
+    id::SimulationId,
     name::PackageName,
     package_type::PackageType,
     task::PackageTask,
