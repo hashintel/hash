@@ -14,12 +14,12 @@
   "license": "MIT",
   "author": "Ahmad Sattar Atta",
   "scripts": {
-    "build": "node_modules/.bin/block-scripts build",
-    "dev": "node_modules/.bin/block-scripts dev",
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
     "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
     "lint:eslint": "eslint --ext .ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
-    "serve": "node_modules/.bin/block-scripts serve"
+    "serve": "block-scripts serve"
   },
   "dependencies": {
     "calculation-block": "0.2.2"
