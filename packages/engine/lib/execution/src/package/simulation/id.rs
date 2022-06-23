@@ -24,6 +24,6 @@ impl SimulationId {
 
 impl fmt::Display for SimulationId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
+        fmt::Display::fmt(&self.id, fmt)
     }
 }
