@@ -26,9 +26,6 @@ pub enum Error {
     #[error("Simulation controller error: {0}")]
     SimulationController(#[from] crate::simulation::controller::Error),
 
-    #[error("Config error: {0}")]
-    Config(#[from] crate::config::Error),
-
     #[error("Serialize/Deserialize error")]
     Serde(#[from] serde_json::Error),
 

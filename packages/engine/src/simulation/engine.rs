@@ -2,6 +2,7 @@ use std::{mem, sync::Arc};
 
 use execution::package::simulation::output::Output;
 use memory::shared_memory::MemoryId;
+use simulation_structure::SimulationRunConfig;
 use stateful::{
     agent::AgentBatchPool,
     context::Context,
@@ -12,7 +13,6 @@ use stateful::{
 use tracing::Instrument;
 
 use crate::{
-    config::SimulationRunConfig,
     datastore::{store::Store, table::create_remove::CreateRemovePlanner},
     simulation::{
         agent_control::AgentControl,

@@ -2,6 +2,7 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
+use simulation_structure::SimulationRunConfig;
 use stateful::{
     agent::{AgentBatch, AgentSchema},
     proxy::PoolReadProxy,
@@ -9,7 +10,6 @@ use stateful::{
 };
 
 use crate::{
-    config::SimulationRunConfig,
     datastore::{
         batch::migration::{BufferActions, IndexRange, RangeActions},
         error::Result,

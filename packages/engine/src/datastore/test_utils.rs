@@ -20,7 +20,7 @@ use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use simulation_structure::{
     Experiment, ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder,
-    PackageCreators, Simulation,
+    PackageCreators, Simulation, SimulationRunConfig,
 };
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
@@ -31,7 +31,7 @@ use stateful::{
     global::Globals,
 };
 
-use crate::{config::SimulationRunConfig, datastore::error::Error, simulation::comms::Comms};
+use crate::{datastore::error::Error, simulation::comms::Comms};
 
 fn test_field_specs() -> FieldSpecMap {
     let mut map = FieldSpecMap::default();

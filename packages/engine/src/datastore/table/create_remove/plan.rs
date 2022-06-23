@@ -1,13 +1,11 @@
 use memory::shared_memory::MemoryId;
 use rayon::prelude::*;
+use simulation_structure::SimulationRunConfig;
 use stateful::{proxy::BatchPool, state::StateBatchPools};
 
-use crate::{
-    config::SimulationRunConfig,
-    datastore::{
-        error::{Error, Result},
-        table::create_remove::action::{CreateActions, ExistingGroupBufferActions},
-    },
+use crate::datastore::{
+    error::{Error, Result},
+    table::create_remove::action::{CreateActions, ExistingGroupBufferActions},
 };
 
 #[derive(Debug)]

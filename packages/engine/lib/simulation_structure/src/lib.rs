@@ -21,5 +21,5 @@ pub use self::{
     error::{Error, Result},
     experiment::{Experiment, ExperimentRun, ExperimentType},
     manifest::Manifest,
-    simulation::{PackageCreators, Simulation},
+    simulation::{PackageCreators, Simulation, SimulationConfig, SimulationRunConfig},
 };

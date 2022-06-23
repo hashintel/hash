@@ -8,6 +8,7 @@ use std::sync::Arc;
 use execution::package::simulation::{
     output::persistence::SimulationOutputPersistence, SimulationId,
 };
+use simulation_structure::SimulationRunConfig;
 use tokio::task::JoinHandle;
 use tracing::Instrument;
 
@@ -16,7 +17,6 @@ pub use self::{
     sim_control::SimControl,
 };
 use crate::{
-    config::SimulationRunConfig,
     experiment::controller::comms::{
         sim_status::SimStatusSend,
         simulation::{new_pair, SimCtlRecv, SimCtlSend},

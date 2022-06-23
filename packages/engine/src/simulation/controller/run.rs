@@ -5,10 +5,10 @@ use execution::{
     runner::RunnerError,
 };
 use futures::FutureExt;
+use simulation_structure::SimulationRunConfig;
 use tokio::time::Duration;
 
 use crate::{
-    config::SimulationRunConfig,
     datastore::store::Store,
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
     simulation::{
