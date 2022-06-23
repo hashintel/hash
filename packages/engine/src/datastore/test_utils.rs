@@ -19,7 +19,8 @@ use execution::{
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use simulation_structure::{
-    Experiment, ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder, Simulation,
+    Experiment, ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder,
+    PackageCreators, Simulation,
 };
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
@@ -33,7 +34,6 @@ use stateful::{
 use crate::{
     config::{SchemaConfig, SimulationRunConfig},
     datastore::error::Error,
-    simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
 fn test_field_specs() -> FieldSpecMap {
@@ -348,7 +348,7 @@ pub fn gen_schema_and_test_agents(
         FieldScope::Agent,
     )])?;
     field_spec_map
-        .try_extend(get_base_agent_fields().map_err(|err| {
+        .try_extend(RootFieldSpec::base_agent_fields().map_err(|err| {
             Error::from(format!("Failed to add base agent field specs: {err}"))
         })?)?;
 

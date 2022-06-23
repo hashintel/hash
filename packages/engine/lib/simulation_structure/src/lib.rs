@@ -10,6 +10,7 @@
 
 mod config;
 mod dependencies;
+mod error;
 mod experiment;
 mod manifest;
 mod simulation;
@@ -17,7 +18,8 @@ mod simulation;
 pub use self::{
     config::{ExperimentConfig, PackageConfig, PackageConfigBuilder},
     dependencies::FetchDependencies,
+    error::{Error, Result},
     experiment::{Experiment, ExperimentRun, ExperimentType},
     manifest::Manifest,
-    simulation::Simulation,
+    simulation::{PackageCreators, Simulation},
 };

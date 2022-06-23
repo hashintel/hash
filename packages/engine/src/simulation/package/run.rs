@@ -13,6 +13,7 @@ use execution::{
 };
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use memory::shared_memory::MemoryId;
+use simulation_structure::PackageCreators;
 use stateful::{
     context::{Context, ContextColumn, PreContext},
     field::{FieldSource, FieldSpecMapAccessor},
@@ -22,10 +23,7 @@ use tracing::{Instrument, Span};
 
 use crate::{
     config::SimulationRunConfig,
-    simulation::{
-        error::{Error, Result},
-        package::creator::PackageCreators,
-    },
+    simulation::error::{Error, Result},
 };
 
 /// Represents the packages of a simulation engine.

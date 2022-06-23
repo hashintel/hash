@@ -13,7 +13,7 @@ use execution::{
         top::{WorkerPoolMsgRecv, WorkerPoolToExpCtlMsg},
     },
 };
-use simulation_structure::ExperimentConfig;
+use simulation_structure::{ExperimentConfig, PackageCreators};
 use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 
@@ -35,7 +35,7 @@ use crate::{
     simulation::{
         comms::Comms,
         controller::{runs::SimulationRuns, sim_control::SimControl, SimulationController},
-        package::{creator::PackageCreators, run::Packages},
+        package::run::Packages,
         status::SimStatus,
         Error as SimulationError,
     },

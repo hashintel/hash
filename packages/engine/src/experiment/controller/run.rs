@@ -21,7 +21,7 @@ use execution::{
     worker_pool::{comms::terminate::TerminateSend, WorkerPool},
 };
 use memory::shared_memory;
-use simulation_structure::ExperimentConfig;
+use simulation_structure::{ExperimentConfig, PackageCreators};
 use stateful::global::SharedStore;
 use tracing::Instrument;
 
@@ -37,7 +37,7 @@ use crate::{
         error::{Error as ExperimentError, Result as ExperimentResult},
     },
     proto::EngineStatus,
-    simulation::{comms::Comms, package::creator::PackageCreators},
+    simulation::comms::Comms,
     Error as CrateError,
 };
 

@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
 use execution::package::simulation::PackageInitConfig;
+use simulation_structure::PackageCreators;
 use stateful::{
     agent::AgentSchema, context::ContextSchema, global::Globals, message::MessageSchema,
 };
 
-use crate::{
-    config::Result,
-    simulation::{comms::Comms, package::creator::PackageCreators},
-};
+use crate::{config::Result, simulation::comms::Comms};
 
 pub struct SchemaConfig {
     pub agent_schema: Arc<AgentSchema>,

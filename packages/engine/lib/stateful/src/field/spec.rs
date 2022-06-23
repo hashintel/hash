@@ -3,6 +3,7 @@ use std::fmt;
 use arrow::datatypes::{DataType, Field};
 
 use crate::{
+    agent::AgentStateField,
     error::{Error, Result},
     field::{
         key::RootFieldKey, FieldScope, FieldSource, FieldType, FieldTypeVariant, PresetFieldType,
@@ -111,6 +112,44 @@ impl RootFieldSpec {
                 self.scope,
             )?,
         })
+    }
+
+    pub fn base_agent_fields() -> Result<Vec<Self>> {
+        let mut field_specs = Vec::with_capacity(13);
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+
+        let used = [
+            AgentStateField::AgentId,
+            AgentStateField::AgentName,
+            AgentStateField::Color,
+            AgentStateField::Direction,
+            AgentStateField::Height,
+            AgentStateField::Hidden,
+            AgentStateField::Position,
+            AgentStateField::Rgb,
+            AgentStateField::Scale,
+            AgentStateField::Shape,
+            AgentStateField::Velocity,
+        ];
+
+        for field in used {
+            let field_type: FieldType = field.clone().try_into()?;
+            field_specs.push(field_spec_creator.create(
+                field.name().into(),
+                field_type,
+                FieldScope::Agent,
+            ));
+        }
+
+        let last_state_index = FieldSpec::last_state_index_key();
+
+        field_specs.push(field_spec_creator.create(
+            last_state_index.name,
+            last_state_index.field_type,
+            FieldScope::Hidden,
+        ));
+
+        Ok(field_specs)
     }
 }
 

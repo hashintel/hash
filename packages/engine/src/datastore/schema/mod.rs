@@ -11,10 +11,7 @@ pub mod tests {
         Error, Result,
     };
 
-    use crate::{
-        datastore::test_utils::root_field_spec_from_agent_field,
-        simulation::package::creator::get_base_agent_fields,
-    };
+    use crate::datastore::test_utils::root_field_spec_from_agent_field;
 
     #[test]
     fn name_collision_built_in() {
@@ -22,7 +19,7 @@ pub mod tests {
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
-            .try_extend(get_base_agent_fields().unwrap())
+            .try_extend(RootFieldSpec::base_agent_fields().unwrap())
             .unwrap();
 
         let err = field_spec_map
@@ -41,7 +38,7 @@ pub mod tests {
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
-            .try_extend(get_base_agent_fields().unwrap())
+            .try_extend(RootFieldSpec::base_agent_fields().unwrap())
             .unwrap();
 
         field_spec_map
@@ -68,7 +65,7 @@ pub mod tests {
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
-            .try_extend(get_base_agent_fields().unwrap())
+            .try_extend(RootFieldSpec::base_agent_fields().unwrap())
             .unwrap();
 
         let len_before = field_spec_map.len();

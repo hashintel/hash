@@ -12,18 +12,14 @@ use execution::{
     runner::comms::PackageMsgs,
     worker::PackageInitMsgForWorker,
 };
-use simulation_structure::{ExperimentConfig, PackageConfig};
 use stateful::{
     agent::AgentSchema,
     context::ContextSchema,
-    field::{
-        FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, PackageId, RootFieldSpec,
-        RootFieldSpecCreator,
-    },
+    field::{FieldSource, FieldSpecMap, PackageId, RootFieldSpec, RootFieldSpecCreator},
     global::Globals,
 };
 
-use crate::simulation::{Error, Result};
+use crate::{Error, ExperimentConfig, PackageConfig, Result};
 
 pub struct PackageCreators<'c, C> {
     init: Vec<(PackageId, PackageName, &'c dyn InitPackageCreator<C>)>,
@@ -251,7 +247,7 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
             },
         )?;
 
-        field_spec_map.try_extend(get_base_agent_fields()?)?;
+        field_spec_map.try_extend(RootFieldSpec::base_agent_fields()?)?;
 
         Ok(AgentSchema::new(field_spec_map)?)
     }
@@ -280,36 +276,6 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
 
         Ok(ContextSchema::new(field_spec_map)?)
     }
-}
-
-pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
-    let mut field_specs = Vec::with_capacity(13);
-    let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
-
-    use stateful::agent::AgentStateField::{
-        AgentId, AgentName, Color, Direction, Height, Hidden, Position, Rgb, Scale, Shape, Velocity,
-    };
-    let used = [
-        AgentId, AgentName, Position, Direction, Velocity, Shape, Height, Scale, Color, Rgb, Hidden,
-    ];
-    for field in used {
-        let field_type: FieldType = field.clone().try_into()?;
-        field_specs.push(field_spec_creator.create(
-            field.name().into(),
-            field_type,
-            FieldScope::Agent,
-        ));
-    }
-
-    let last_state_index = FieldSpec::last_state_index_key();
-
-    field_specs.push(field_spec_creator.create(
-        last_state_index.name,
-        last_state_index.field_type,
-        FieldScope::Hidden,
-    ));
-
-    Ok(field_specs)
 }
 
 fn get_base_context_fields() -> Result<Vec<RootFieldSpec>> {
