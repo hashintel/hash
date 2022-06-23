@@ -19,7 +19,7 @@ pub use self::{
     config::{ExperimentConfig, PackageConfig, PackageConfigBuilder},
     dependencies::FetchDependencies,
     error::{Error, Result},
-    experiment::{Experiment, ExperimentRun, ExperimentType},
+    experiment::{ExperimentRun, ExperimentType},
     manifest::Manifest,
     simulation::{PackageCreators, Simulation, SimulationConfig, SimulationRunConfig},
 };

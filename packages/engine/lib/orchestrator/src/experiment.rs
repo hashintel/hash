@@ -177,17 +177,16 @@ impl Experiment {
     /// returns once the experiment has finished.
     ///
     /// [`Process`]: crate::process::Process
-    #[instrument(skip_all, fields(experiment_name = %experiment_run.experiment().name(), experiment_id = %experiment_run.experiment().id()))]
+    #[instrument(skip_all, fields(experiment_name = %experiment_run.name(), experiment_id = %experiment_run.id()))]
     pub async fn run(
         &self,
         experiment_run: ExperimentRun,
         mut handler: Handler,
         target_max_group_size: Option<usize>,
     ) -> Result<(), OrchestratorError> {
-        let experiment = experiment_run.experiment();
-        let experiment_name = experiment.name().clone();
+        let experiment_name = experiment_run.name();
         let mut engine_handle = handler
-            .register_experiment(experiment.id())
+            .register_experiment(experiment_run.id())
             .await
             .attach_printable_lazy(|| {
                 format!("Could not register experiment \"{experiment_name}\"")
@@ -195,7 +194,7 @@ impl Experiment {
 
         // Create and start the experiment run
         let cmd = self.create_engine_command(
-            experiment.id(),
+            experiment_run.id(),
             handler.url(),
             target_max_group_size,
             self.config.js_runner_initial_heap_constraint,
@@ -226,7 +225,7 @@ impl Experiment {
             Err(e) => {
                 error!("Engine start timeout for experiment \"{experiment_name}\"");
                 engine_process
-                    .exit_and_cleanup(experiment.id())
+                    .exit_and_cleanup(experiment_run.id())
                     .await
                     .attach_printable("Failed to cleanup after failed start")?;
                 bail!(e.change_context(OrchestratorError::from(format!(
@@ -258,7 +257,7 @@ impl Experiment {
             std::thread::sleep(Duration::from_secs(1));
 
             if let Err(cleanup_err) = engine_process
-                .exit_and_cleanup(experiment.id())
+                .exit_and_cleanup(experiment_run.id())
                 .await
                 .attach_printable("Failed to cleanup after failed start")
             {
@@ -401,7 +400,7 @@ impl Experiment {
 
         debug!("Performing cleanup");
         engine_process
-            .exit_and_cleanup(experiment.id())
+            .exit_and_cleanup(experiment_run.id())
             .await
             .attach_printable("Could not cleanup after finish")?;
 

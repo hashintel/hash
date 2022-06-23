@@ -56,7 +56,11 @@ impl Packages {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
+                    &config
+                        .experiment_config()
+                        .experiment_run
+                        .simulation()
+                        .package_init,
                     comms.package_comms(*package_id),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -80,7 +84,11 @@ impl Packages {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
+                    &config
+                        .experiment_config()
+                        .experiment_run
+                        .simulation()
+                        .package_init,
                     comms.package_comms(*package_id),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -108,7 +116,11 @@ impl Packages {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
+                    &config
+                        .experiment_config()
+                        .experiment_run
+                        .simulation()
+                        .package_init,
                     comms.package_comms(*package_id),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -132,7 +144,11 @@ impl Packages {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
+                    &config
+                        .experiment_config()
+                        .experiment_run
+                        .simulation()
+                        .package_init,
                     comms.package_comms(*package_id),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
@@ -271,7 +287,7 @@ impl StepPackages {
         let context = Context::from_columns(
             columns,
             &sim_run_config.simulation_config().schema.context_schema,
-            MemoryId::new(sim_run_config.experiment_config().experiment().id()),
+            MemoryId::new(sim_run_config.experiment_config().experiment_run.id()),
         )?;
         Ok(context)
     }

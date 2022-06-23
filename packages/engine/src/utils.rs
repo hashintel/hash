@@ -1,11 +1,9 @@
 use std::{
     convert::Infallible,
-    env::VarError,
     fmt::{Display, Formatter},
     io,
     path::{Path, PathBuf},
     str::FromStr,
-    time::Duration,
 };
 
 use tracing::{Event, Subscriber};

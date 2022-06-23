@@ -19,8 +19,7 @@ use stateful::global::Dataset;
 use thiserror::Error;
 
 use crate::{
-    dependencies::parse_raw_csv_into_json, experiment::ExperimentType, Experiment, ExperimentRun,
-    Simulation,
+    dependencies::parse_raw_csv_into_json, experiment::ExperimentType, ExperimentRun, Simulation,
 };
 
 #[derive(Debug, Error)]
@@ -552,12 +551,11 @@ impl Manifest {
             ExperimentType::Simple { name } => name.clone(),
         };
 
-        let experiment = Experiment::new(name, simulation);
         let config = experiment_type
-            .get_package_config(experiment.simulation())
+            .get_package_config(&simulation)
             .attach_printable("Could not read package config")
             .change_context(ManifestError)?;
-        Ok(ExperimentRun::new(experiment, config))
+        Ok(ExperimentRun::new(name, simulation, config))
     }
 }
 

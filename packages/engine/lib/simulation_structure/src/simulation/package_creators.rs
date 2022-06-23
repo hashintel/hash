@@ -135,8 +135,10 @@ impl PackageCreators {
         exp_config: &ExperimentConfig,
         globals: &Globals,
     ) -> Result<PersistenceConfig> {
-        let output_config =
-            self.get_output_persistence_config(&exp_config.simulation().package_init, globals)?;
+        let output_config = self.get_output_persistence_config(
+            &exp_config.experiment_run.simulation().package_init,
+            globals,
+        )?;
         Ok(PersistenceConfig { output_config })
     }
 

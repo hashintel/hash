@@ -197,9 +197,10 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         );
 
         // Create the datastore configuration (requires schemas)
-        let schema = self
-            .package_creators
-            .create_schema(&self.exp_config.simulation().package_init, &globals)?;
+        let schema = self.package_creators.create_schema(
+            &self.exp_config.experiment_run.simulation().package_init,
+            &globals,
+        )?;
         // Create the persistence configuration
         let persistence_config = self
             .package_creators
@@ -309,7 +310,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
     pub async fn exp_init_msg_base(&self) -> Result<ExperimentInitRunnerMsgBase> {
         let pkg_start_msgs = self.package_creators.init_message()?;
         Ok(ExperimentInitRunnerMsgBase {
-            experiment_id: self.exp_config.experiment().id(),
+            experiment_id: self.exp_config.experiment_run.id(),
             shared_context: self.shared_store.clone(),
             package_config: Arc::new(pkg_start_msgs),
             runner_config: self

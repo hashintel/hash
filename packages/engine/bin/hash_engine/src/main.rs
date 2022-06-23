@@ -67,7 +67,7 @@ async fn main() -> Result<(), EngineError> {
 
     tracing::info!(
         "HASH Engine process started for experiment {}",
-        config.experiment().name()
+        config.experiment_run.name()
     );
 
     let experiment_result = run_experiment(config, env)

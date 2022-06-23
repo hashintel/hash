@@ -317,7 +317,7 @@ impl Engine {
         context.update_agent_snapshot(
             state,
             &self.config.simulation_config().schema.agent_schema,
-            &MemoryId::new(self.config.experiment_config().experiment().id()),
+            &MemoryId::new(self.config.experiment_config().experiment_run.id()),
         )?;
         Ok(context.take_agent_pool())
     }

@@ -82,7 +82,7 @@ impl SimulationRunConfig {
         StateCreateParameters {
             target_min_groups: self.experiment.worker_pool.num_workers,
             target_group_size: MIN_AGENTS_PER_GROUP..self.experiment.target_max_group_size,
-            memory_base_id: self.experiment.experiment().id().into(),
+            memory_base_id: self.experiment.experiment_run.id().into(),
             agent_schema: Arc::clone(&self.simulation.schema.agent_schema),
             message_schema: Arc::clone(&self.simulation.schema.message_schema),
         }

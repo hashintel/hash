@@ -16,8 +16,8 @@ use execution::{
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use simulation_structure::{
-    Experiment, ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder,
-    PackageCreators, Simulation, SimulationRunConfig,
+    ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder, PackageCreators,
+    Simulation, SimulationRunConfig,
 };
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
@@ -285,7 +285,6 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
         datasets: Vec::new(),
         package_init,
     };
-    let experiment = Experiment::new("experiment_name".to_string().into(), simulation);
 
     let experiment_config = Arc::new(ExperimentConfig {
         packages: Arc::new(PackageConfig {
@@ -294,8 +293,9 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
             state: Vec::new(),
             output: Vec::new(),
         }),
-        run: Arc::new(ExperimentRun::new(
-            experiment,
+        experiment_run: Arc::new(ExperimentRun::new(
+            "experiment_name".to_string().into(),
+            simulation,
             ExperimentPackageConfig::Basic(BasicExperimentConfig::SingleRun(
                 SingleRunExperimentConfig { num_steps: 1 },
             )),
