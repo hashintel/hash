@@ -13,11 +13,12 @@ use execution::{
         top::{WorkerPoolMsgRecv, WorkerPoolToExpCtlMsg},
     },
 };
+use simulation_structure::ExperimentConfig;
 use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 
 use crate::{
-    config::{ExperimentConfig, SchemaConfig},
+    config::SchemaConfig,
     env::{Environment, OrchClient},
     experiment::{
         apply_globals_changes,

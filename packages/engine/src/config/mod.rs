@@ -2,43 +2,26 @@ use std::sync::Arc;
 
 use execution::{
     package::simulation::{PackageCreatorConfig, PersistenceConfig, SimulationId},
-    runner::RunnerConfig,
     worker_pool::WorkerAllocation,
 };
+use simulation_structure::ExperimentConfig;
 use stateful::{global::Globals, state::StateCreateParameters};
 
 pub use self::{
     error::{Error, Result},
-    experiment::ExperimentConfig,
-    package::{PackageConfig, PackageConfigBuilder},
+    schema::SchemaConfig,
     simulation::SimulationConfig,
-    store::SchemaConfig,
 };
-use crate::{env::Environment, Args};
 
 mod error;
-mod experiment;
-mod package;
+mod schema;
 mod simulation;
-mod store;
 
 pub const MIN_AGENTS_PER_GROUP: usize = 10;
 
 pub struct SimulationRunConfig {
     experiment: Arc<ExperimentConfig>,
     simulation: SimulationConfig,
-}
-
-pub async fn experiment_config(args: &Args, env: &Environment) -> Result<ExperimentConfig> {
-    ExperimentConfig::new(
-        Arc::new(env.experiment.clone()),
-        args.num_workers,
-        args.target_max_group_size,
-        RunnerConfig {
-            js_runner_initial_heap_constraint: args.js_runner_initial_heap_constraint,
-            js_runner_max_heap_size: args.js_runner_max_heap_size,
-        },
-    )
 }
 
 impl SimulationRunConfig {

@@ -1,20 +1,23 @@
 use std::sync::Arc;
 
+use error_stack::{IntoReport, ResultExt};
 use execution::{
     package::simulation::init::{InitPackageName, InitialStateName},
     runner::RunnerConfig,
     worker::WorkerConfig,
     worker_pool::WorkerPoolConfig,
 };
-use simulation_structure::{Experiment, ExperimentRun, Simulation};
 use stateful::global::Globals;
 
-use crate::config::{package, Result};
+use crate::{
+    config::error::{ConfigError, Result},
+    Experiment, ExperimentRun, PackageConfig, PackageConfigBuilder, Simulation,
+};
 
 #[derive(Clone)]
 /// Experiment level configuration
 pub struct ExperimentConfig {
-    pub packages: Arc<package::PackageConfig>,
+    pub packages: Arc<PackageConfig>,
     pub run: Arc<ExperimentRun>,
     pub worker_pool: Arc<WorkerPoolConfig>,
     /// The size at which the engine aims to split a group of agents
@@ -23,22 +26,25 @@ pub struct ExperimentConfig {
 }
 
 impl ExperimentConfig {
-    pub(super) fn new(
+    pub fn new(
         experiment_run: Arc<ExperimentRun>,
         num_workers: usize,
         target_max_group_size: usize,
         runner_config: RunnerConfig,
     ) -> Result<ExperimentConfig> {
         let experiment = experiment_run.experiment();
-        let simulation = experiment_run.simulation();
+        let simulation = experiment.simulation();
         // For differentiation purposes when multiple experiment runs are active in the same system
-        let package_config = package::PackageConfigBuilder::new()
+        let package_config = PackageConfigBuilder::new()
             .add_init_package(match simulation.package_init.initial_state.name {
                 InitialStateName::InitJson => InitPackageName::Json,
                 InitialStateName::InitPy | InitialStateName::InitJs => InitPackageName::JsPy,
             })
             .build()?;
-        let base_globals = Globals::from_json(serde_json::from_str(&simulation.globals_src)?)?;
+        let base_globals: Globals = serde_json::from_str(&simulation.globals_src)
+            .report()
+            .attach_printable("Could not parse globals JSON")
+            .change_context(ConfigError)?;
 
         let worker_config = WorkerConfig {
             spawn: experiment.create_runner_spawn_config(),

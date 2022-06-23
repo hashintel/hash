@@ -15,7 +15,9 @@ use execution::{
 };
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use simulation_structure::{Experiment, ExperimentRun, Simulation};
+use simulation_structure::{
+    Experiment, ExperimentConfig, ExperimentRun, PackageConfig, Simulation,
+};
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
     field::{
@@ -26,7 +28,7 @@ use stateful::{
 };
 
 use crate::{
-    config::{ExperimentConfig, PackageConfig, SchemaConfig, SimulationRunConfig},
+    config::{SchemaConfig, SimulationRunConfig},
     datastore::{error::Error, schema::last_state_index_key},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };

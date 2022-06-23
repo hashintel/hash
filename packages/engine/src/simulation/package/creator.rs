@@ -9,6 +9,7 @@ use execution::{
     runner::comms::PackageMsgs,
     worker::PackageInitMsgForWorker,
 };
+use simulation_structure::{ExperimentConfig, PackageConfig};
 use stateful::{
     agent::AgentSchema,
     context::ContextSchema,
@@ -20,7 +21,7 @@ use stateful::{
 };
 
 use crate::{
-    config::{ExperimentConfig, PackageConfig, SimulationRunConfig},
+    config::SimulationRunConfig,
     datastore::schema::last_state_index_key,
     simulation::{
         comms::Comms,

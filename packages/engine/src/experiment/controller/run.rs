@@ -12,11 +12,11 @@ use execution::{
     worker_pool::{comms::terminate::TerminateSend, WorkerPool},
 };
 use memory::shared_memory;
+use simulation_structure::ExperimentConfig;
 use stateful::global::SharedStore;
 use tracing::Instrument;
 
 use crate::{
-    config::ExperimentConfig,
     env::Environment,
     experiment::{
         controller::{

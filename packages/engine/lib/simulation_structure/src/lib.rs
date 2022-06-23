@@ -6,13 +6,14 @@
 //! will run the [`Simulation`] with different configurations.
 // TODO: Add the Experiment config and Simulation Config and describe the difference here.
 
+mod config;
 mod dependencies;
 mod experiment;
-mod experiment_plan;
 mod manifest;
 mod simulation;
 
 pub use self::{
+    config::{ExperimentConfig, PackageConfig, PackageConfigBuilder},
     dependencies::{parse_raw_csv_into_json, FetchDependencies},
     experiment::{Experiment, ExperimentRun, ExperimentType},
     manifest::Manifest,

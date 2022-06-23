@@ -938,6 +938,7 @@ name = "hash_engine"
 version = "0.0.0"
 dependencies = [
  "error-stack",
+ "execution",
  "hash_engine_lib",
  "simulation_structure",
  "tokio",

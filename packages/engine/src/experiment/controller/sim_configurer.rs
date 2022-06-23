@@ -7,9 +7,10 @@ use execution::{
     },
     worker_pool::{WorkerAllocation, WorkerIndex},
 };
+use simulation_structure::ExperimentConfig;
 use stateful::global::Globals;
 
-use crate::config::{ExperimentConfig, SchemaConfig, SimulationRunConfig};
+use crate::config::{SchemaConfig, SimulationRunConfig};
 
 pub struct SimConfigurer {
     worker_allocator: WorkerAllocator,

@@ -1,9 +1,10 @@
+use error_stack::{ensure, IntoReport, Report, ResultExt};
 use execution::package::simulation::{
     context::ContextPackageName, init::InitPackageName, output::OutputPackageName,
     state::StatePackageName, PackageName,
 };
 
-use crate::config::error::{Error, Result};
+use crate::config::error::{ConfigError, Result};
 
 /// Configuration of packages used in the engine.
 ///
@@ -208,7 +209,11 @@ impl PackageConfigBuilder {
             .chain(state_as_deps.iter())
             .chain(output_as_deps.iter())
         {
-            let deps = dependency.get_all_dependencies()?;
+            let deps = dependency
+                .get_all_dependencies()
+                .report()
+                .attach_printable_lazy(|| format!("Could not get dependencies for {dependency}"))
+                .change_context(ConfigError)?;
             for dep in deps.into_iter_deps() {
                 match dep {
                     PackageName::Context(dep_name) => {
@@ -218,16 +223,15 @@ impl PackageConfigBuilder {
                         init.push(dep_name);
                     }
                     PackageName::State(dep_name) => {
-                        if !state.contains(&dep_name) {
-                            return Err(Error::from(format!(
-                                "State packages do not contain the package {:?}, 
-                                         which is a dependency (child or descendant)
-                                         for the {:?} package. State package dependencies 
-                                         cannot be automatically loaded as they are bound 
-                                         to an order of execution.",
-                                dep_name, dependency
-                            )));
-                        }
+                        ensure!(
+                            state.contains(&dep_name),
+                            Report::new(ConfigError).attach_printable(format!(
+                                "State packages do not contain the package {dep_name:?}, which is \
+                                 a dependency (child or descendant)for the {dependency:?} \
+                                 package. State package dependencies cannot be automatically \
+                                 loaded as they are bound to an order of execution."
+                            ))
+                        )
                     }
                     PackageName::Output(dep_name) => {
                         output.push(dep_name);
