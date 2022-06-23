@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use execution::{
     package::simulation::{
@@ -15,8 +15,9 @@ use execution::{
 use stateful::{
     agent::AgentSchema,
     context::ContextSchema,
-    field::{FieldSource, FieldSpecMap, PackageId, RootFieldSpec, RootFieldSpecCreator},
+    field::{FieldSource, FieldSpecMap, PackageId, RootFieldSpec, RootFieldSpecCreator, Schema},
     global::Globals,
+    message::MessageSchema,
 };
 
 use crate::{Error, ExperimentConfig, PackageConfig, Result};
@@ -111,6 +112,22 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
         &self.output
     }
 
+    pub fn create_schema(
+        &self,
+        package_init_config: &PackageInitConfig,
+        globals: &Globals,
+    ) -> Result<Schema> {
+        let agent_schema = Arc::new(self.get_agent_schema(package_init_config, globals)?);
+        let message_schema = Arc::new(MessageSchema::new());
+        let context_schema = Arc::new(self.get_context_schema(package_init_config, globals)?);
+
+        Ok(Schema {
+            agent_schema,
+            message_schema,
+            context_schema,
+        })
+    }
+
     pub fn create_persistent_config(
         &self,
         exp_config: &ExperimentConfig,
@@ -187,7 +204,7 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
         Ok(OutputPackagesSimConfig { map })
     }
 
-    pub fn get_agent_schema(
+    fn get_agent_schema(
         &self,
         package_init_config: &PackageInitConfig,
         globals: &Globals,
@@ -252,7 +269,7 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
         Ok(AgentSchema::new(field_spec_map)?)
     }
 
-    pub fn get_context_schema(
+    fn get_context_schema(
         &self,
         package_init_config: &PackageInitConfig,
         globals: &Globals,

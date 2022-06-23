@@ -18,7 +18,6 @@ use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 
 use crate::{
-    config::SchemaConfig,
     env::{Environment, OrchClient},
     experiment::{
         apply_globals_changes,
@@ -198,11 +197,9 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         );
 
         // Create the datastore configuration (requires schemas)
-        let store_config = SchemaConfig::new(
-            &self.exp_config.simulation().package_init,
-            &globals,
-            &self.package_creators,
-        )?;
+        let schema = self
+            .package_creators
+            .create_schema(&self.exp_config.simulation().package_init, &globals)?;
         // Create the persistence configuration
         let persistence_config = self
             .package_creators
@@ -217,7 +214,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
             Arc::clone(&self.exp_config),
             sim_short_id,
             (*globals).clone(),
-            store_config,
+            schema,
             persistence_config,
             max_num_steps,
         ));
@@ -232,16 +229,16 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         )?;
 
         let datastore_payload = DatastoreSimulationPayload {
-            agent_batch_schema: sim_config.simulation_config().store.agent_schema.clone(),
+            agent_batch_schema: sim_config.simulation_config().schema.agent_schema.clone(),
             message_batch_schema: sim_config
                 .simulation_config()
-                .store
+                .schema
                 .message_schema
                 .arrow
                 .clone(),
             context_batch_schema: sim_config
                 .simulation_config()
-                .store
+                .schema
                 .context_schema
                 .arrow
                 .clone(),

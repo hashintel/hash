@@ -16,6 +16,7 @@ mod accessor;
 mod field_type;
 mod fixed_size;
 mod key;
+mod schema;
 mod scope;
 mod source;
 mod spec;
@@ -32,6 +33,7 @@ pub use self::{
     accessor::FieldSpecMapAccessor,
     field_type::{FieldType, FieldTypeVariant, PresetFieldType},
     key::RootFieldKey,
+    schema::Schema,
     scope::FieldScope,
     source::{FieldSource, PackageId},
     spec::{FieldSpec, RootFieldSpec, RootFieldSpecCreator},

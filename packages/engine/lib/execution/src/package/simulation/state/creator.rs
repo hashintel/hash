@@ -22,7 +22,7 @@ impl<C: Comms> StatePackageCreators<C> {
         let mut creators = HashMap::<_, Box<dyn StatePackageCreator<C>>>::with_capacity(2);
         creators.insert(
             StatePackageName::BehaviorExecution,
-            Box::new(BehaviorExecutionCreator::new::<C>(config)?),
+            Box::new(BehaviorExecutionCreator::new(config)?),
         );
         creators.insert(StatePackageName::Topology, Box::new(TopologyCreator));
         Ok(Self { creators })

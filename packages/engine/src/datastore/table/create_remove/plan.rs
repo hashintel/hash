@@ -88,8 +88,8 @@ impl<'a> MigrationPlan<'a> {
             .into_par_iter()
             .map(|action| {
                 action.actions.new_batch(
-                    &config.simulation_config().store.agent_schema,
-                    &config.simulation_config().store.message_schema,
+                    &config.simulation_config().schema.agent_schema,
+                    &config.simulation_config().schema.message_schema,
                     MemoryId::new(config.experiment_config().experiment().id()),
                     MemoryId::new(config.experiment_config().experiment().id()),
                     action.worker_index,

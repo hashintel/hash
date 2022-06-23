@@ -53,7 +53,7 @@ pub struct BehaviorExecutionCreator {
 }
 
 impl BehaviorExecutionCreator {
-    pub fn new<C: Comms>(config: &PackageInitConfig) -> Result<Self> {
+    pub fn new(config: &PackageInitConfig) -> Result<Self> {
         // TODO: Packages shouldn't have to set the source
         let package_id = PackageName::State(StatePackageName::BehaviorExecution).get_id()?;
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(package_id));

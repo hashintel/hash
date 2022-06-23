@@ -5,16 +5,14 @@ use execution::{
     worker_pool::WorkerAllocation,
 };
 use simulation_structure::ExperimentConfig;
-use stateful::{global::Globals, state::StateCreateParameters};
+use stateful::{field::Schema, global::Globals, state::StateCreateParameters};
 
 pub use self::{
     error::{Error, Result},
-    schema::SchemaConfig,
     simulation::SimulationConfig,
 };
 
 mod error;
-mod schema;
 mod simulation;
 
 pub const MIN_AGENTS_PER_GROUP: usize = 10;
@@ -30,7 +28,7 @@ impl SimulationRunConfig {
         id: SimulationId,
         globals: Globals,
         worker_allocation: WorkerAllocation,
-        store_config: SchemaConfig,
+        schema: Schema,
         persistence_config: PersistenceConfig,
         max_num_steps: usize,
     ) -> SimulationRunConfig {
@@ -38,7 +36,7 @@ impl SimulationRunConfig {
             id,
             globals,
             worker_allocation,
-            store_config,
+            schema,
             persistence_config,
             max_num_steps,
         );
@@ -61,8 +59,8 @@ impl SimulationRunConfig {
             target_min_groups: self.experiment.worker_pool.num_workers,
             target_group_size: MIN_AGENTS_PER_GROUP..self.experiment.target_max_group_size,
             memory_base_id: self.experiment.experiment().id().into(),
-            agent_schema: Arc::clone(&self.simulation.store.agent_schema),
-            message_schema: Arc::clone(&self.simulation.store.message_schema),
+            agent_schema: Arc::clone(&self.simulation.schema.agent_schema),
+            message_schema: Arc::clone(&self.simulation.schema.message_schema),
         }
     }
 }
@@ -71,19 +69,19 @@ fn simulation_config(
     id: SimulationId,
     globals: Globals,
     worker_allocation: WorkerAllocation,
-    store_config: SchemaConfig,
+    schema: Schema,
     persistence_config: PersistenceConfig,
     max_num_steps: usize,
 ) -> SimulationConfig {
     SimulationConfig {
         id,
         package_creator: PackageCreatorConfig {
-            agent_schema: Arc::clone(&store_config.agent_schema),
+            agent_schema: Arc::clone(&schema.agent_schema),
             globals,
             persistence: persistence_config,
         },
         worker_allocation: Arc::new(worker_allocation),
-        store: Arc::new(store_config),
+        schema: Arc::new(schema),
         max_num_steps,
     }
 }

@@ -31,10 +31,7 @@ use stateful::{
     global::Globals,
 };
 
-use crate::{
-    config::{SchemaConfig, SimulationRunConfig},
-    datastore::error::Error,
-};
+use crate::{config::SimulationRunConfig, datastore::error::Error, simulation::comms::Comms};
 
 fn test_field_specs() -> FieldSpecMap {
     let mut map = FieldSpecMap::default();
@@ -270,7 +267,7 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
 
     let globals = Globals::default();
 
-    let package_config = PackageConfigBuilder::default()
+    let package_config = PackageConfigBuilder::new()
         .set_init_packages([])
         .set_context_packages([])
         .set_state_packages([])
@@ -283,7 +280,7 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
     let state_package_creators = StatePackageCreators::from_config(&package_init).unwrap();
     let output_package_creators = OutputPackageCreators::from_config(&package_init).unwrap();
 
-    let package_creators = PackageCreators::from_config(
+    let package_creators = PackageCreators::<Comms>::from_config(
         &package_config,
         &init_package_creators,
         &context_package_creators,
@@ -292,7 +289,9 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
     )
     .unwrap();
 
-    let store_config = SchemaConfig::new(&package_init, &globals, &package_creators).unwrap();
+    let schema = package_creators
+        .create_schema(&package_init, &globals)
+        .unwrap();
 
     let simulation = Simulation {
         name: "project_name".to_string(),
@@ -332,7 +331,7 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
         SimulationId::new(0),
         globals,
         WorkerAllocation::default(),
-        store_config,
+        schema,
         persistence_config,
         0,
     )

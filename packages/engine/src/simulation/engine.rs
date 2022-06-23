@@ -274,7 +274,7 @@ impl Engine {
         let message_proxies = state.message_pool().read_proxies()?;
         let mut commands = Commands::from_hash_messages(message_map, &message_proxies)?;
         commands.merge(self.comms.take_commands()?);
-        commands.verify(&self.config.simulation_config().store.agent_schema)?;
+        commands.verify(&self.config.simulation_config().schema.agent_schema)?;
         self.stop_messages = commands.stop;
 
         let mut planner =
@@ -310,7 +310,7 @@ impl Engine {
     ) -> Result<AgentBatchPool> {
         context.update_agent_snapshot(
             state,
-            &self.config.simulation_config().store.agent_schema,
+            &self.config.simulation_config().schema.agent_schema,
             &MemoryId::new(self.config.experiment_config().experiment().id()),
         )?;
         Ok(context.take_agent_pool())

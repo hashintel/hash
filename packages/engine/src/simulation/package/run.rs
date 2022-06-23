@@ -39,10 +39,14 @@ impl Packages {
         comms: C,
     ) -> Result<(Self, PackageMsgs)> {
         // TODO: generics to avoid code duplication
-        let state_field_spec_map = &config.simulation_config().store.agent_schema.field_spec_map;
+        let state_field_spec_map = &config
+            .simulation_config()
+            .schema
+            .agent_schema
+            .field_spec_map;
         let context_field_spec_map = &config
             .simulation_config()
-            .store
+            .schema
             .context_schema
             .field_spec_map;
         let mut messages = HashMap::new();
@@ -235,7 +239,7 @@ impl StepPackages {
             //       from the schema
             .map(|package| {
                 package
-                    .get_empty_arrow_columns(num_agents, &sim_run_config.simulation_config().store.context_schema)
+                    .get_empty_arrow_columns(num_agents, &sim_run_config.simulation_config().schema.context_schema)
             })
             .collect::<execution::Result<Vec<_>>>()?
             .into_iter()
@@ -246,7 +250,7 @@ impl StepPackages {
         // because we aren't generating the columns from the schema, we need to reorder the cols
         // from the packages to match this is another reason to move column creation to be
         // done per schema instead of per package, because this is very messy.
-        let schema = &sim_run_config.simulation_config().store.context_schema;
+        let schema = &sim_run_config.simulation_config().schema.context_schema;
         let columns = schema
             .arrow
             .fields()
@@ -266,7 +270,7 @@ impl StepPackages {
 
         let context = Context::from_columns(
             columns,
-            &sim_run_config.simulation_config().store.context_schema,
+            &sim_run_config.simulation_config().schema.context_schema,
             MemoryId::new(sim_run_config.experiment_config().experiment().id()),
         )?;
         Ok(context)
@@ -350,7 +354,7 @@ impl StepPackages {
         // the moment but a proper fix needs a bit of a redesign. Thus:
         // TODO, figure out a better design for how we interface with columns from context packages,
         //   and how we ensure the necessary order (preferably enforced in actual logic)
-        let schema = &sim_config.simulation_config().store.context_schema;
+        let schema = &sim_config.simulation_config().schema.context_schema;
         let column_writers = schema
             .arrow
             .fields()
