@@ -1,3 +1,5 @@
+mod experiment_type;
+
 use execution::{
     package::{
         experiment::{ExperimentId, ExperimentName, ExperimentPackageConfig},
@@ -8,22 +10,8 @@ use execution::{
 };
 use serde::{Deserialize, Serialize};
 
+pub use self::experiment_type::ExperimentType;
 use crate::Simulation;
-
-/// Specific configuration needed for either Experiments or single runs of Simulations
-#[derive(Debug, Clone)]
-pub enum ExperimentType {
-    /// A single run of a Simulation, wrapped as an Experiment
-    SingleRun {
-        /// Number of steps to run
-        num_steps: usize,
-    },
-    /// A configured Experiment
-    Simple {
-        /// Name of the experiment specified in _experiments.json_
-        name: ExperimentName,
-    },
-}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Experiment {

@@ -2063,6 +2063,7 @@ name = "simulation_structure"
 version = "0.0.0"
 dependencies = [
  "async-trait",
+ "clap",
  "csv",
  "error-stack",
  "execution",
