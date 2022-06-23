@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, lazy::SyncOnceCell};
 
 use crate::{
     package::simulation::{
@@ -16,27 +16,29 @@ pub struct ContextPackageCreators {
 }
 
 impl ContextPackageCreators {
-    pub fn from_config(_config: &PackageInitConfig) -> Result<Self> {
-        tracing::debug!("Initializing Context Package Creators");
-
-        let mut creators = HashMap::<_, Box<dyn ContextPackageCreator>>::with_capacity(3);
-        creators.insert(
-            ContextPackageName::AgentMessages,
-            Box::new(AgentMessagesCreator),
-        );
-        creators.insert(
-            ContextPackageName::ApiRequests,
-            Box::new(ApiRequestsCreator),
-        );
-        creators.insert(ContextPackageName::Neighbors, Box::new(NeighborsCreator));
-        Ok(Self { creators })
+    pub fn initialize_for_experiment_run(_config: &PackageInitConfig) -> Result<&'static Self> {
+        static PACKAGE_CREATORS: SyncOnceCell<ContextPackageCreators> = SyncOnceCell::new();
+        PACKAGE_CREATORS.get_or_try_init(|| {
+            tracing::debug!("Contextializing Context Package Creators");
+            let mut creators = HashMap::<_, Box<dyn ContextPackageCreator>>::with_capacity(3);
+            creators.insert(
+                ContextPackageName::AgentMessages,
+                Box::new(AgentMessagesCreator),
+            );
+            creators.insert(
+                ContextPackageName::ApiRequests,
+                Box::new(ApiRequestsCreator),
+            );
+            creators.insert(ContextPackageName::Neighbors, Box::new(NeighborsCreator));
+            Ok(Self { creators })
+        })
     }
 
     pub fn get(&self, name: ContextPackageName) -> Result<&dyn ContextPackageCreator> {
         self.creators
             .get(&name)
-            .map(Box::as_ref)
             .ok_or_else(|| Error::from(format!("Package {name} was not initialized")))
+            .map(Box::as_ref)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (ContextPackageName, &dyn ContextPackageCreator)> {

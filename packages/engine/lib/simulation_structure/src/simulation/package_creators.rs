@@ -21,21 +21,20 @@ use stateful::{
 
 use crate::{Error, ExperimentConfig, PackageConfig, Result};
 
-pub struct PackageCreators<'c> {
-    init: Vec<(PackageId, PackageName, &'c dyn InitPackageCreator)>,
-    context: Vec<(PackageId, PackageName, &'c dyn ContextPackageCreator)>,
-    state: Vec<(PackageId, PackageName, &'c dyn StatePackageCreator)>,
-    output: Vec<(PackageId, PackageName, &'c dyn OutputPackageCreator)>,
+pub struct PackageCreators {
+    init: Vec<(PackageId, PackageName, &'static dyn InitPackageCreator)>,
+    context: Vec<(PackageId, PackageName, &'static dyn ContextPackageCreator)>,
+    state: Vec<(PackageId, PackageName, &'static dyn StatePackageCreator)>,
+    output: Vec<(PackageId, PackageName, &'static dyn OutputPackageCreator)>,
 }
 
-impl<'c> PackageCreators<'c> {
+impl PackageCreators {
     pub fn from_config(
         package_config: &PackageConfig,
-        init_package_creators: &'c InitPackageCreators,
-        context_package_creators: &'c ContextPackageCreators,
-        state_package_creators: &'c StatePackageCreators,
-        output_package_creators: &'c OutputPackageCreators,
+        package_init: &PackageInitConfig,
     ) -> Result<Self> {
+        let init_package_creators =
+            InitPackageCreators::initialize_for_experiment_run(package_init)?;
         let init = package_config
             .init_packages()
             .iter()
@@ -48,6 +47,8 @@ impl<'c> PackageCreators<'c> {
             })
             .collect::<Result<_>>()?;
 
+        let context_package_creators =
+            ContextPackageCreators::initialize_for_experiment_run(package_init)?;
         let context = package_config
             .context_packages()
             .iter()
@@ -59,6 +60,8 @@ impl<'c> PackageCreators<'c> {
             })
             .collect::<Result<_>>()?;
 
+        let state_package_creators =
+            StatePackageCreators::initialize_for_experiment_run(package_init)?;
         let state = package_config
             .state_packages()
             .iter()
@@ -70,6 +73,8 @@ impl<'c> PackageCreators<'c> {
             })
             .collect::<Result<_>>()?;
 
+        let output_package_creators =
+            OutputPackageCreators::initialize_for_experiment_run(package_init)?;
         let output = package_config
             .output_packages()
             .iter()

@@ -7,10 +7,7 @@ use execution::{
             ExperimentPackageConfig,
         },
         simulation::{
-            context::ContextPackageCreators,
-            init::{InitPackageCreators, InitialState, InitialStateName},
-            output::OutputPackageCreators,
-            state::StatePackageCreators,
+            init::{InitialState, InitialStateName},
             PackageInitConfig, SimulationId,
         },
     },
@@ -31,7 +28,7 @@ use stateful::{
     global::Globals,
 };
 
-use crate::{datastore::error::Error, simulation::comms::Comms};
+use crate::datastore::error::Error;
 
 fn test_field_specs() -> FieldSpecMap {
     let mut map = FieldSpecMap::default();
@@ -275,19 +272,7 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
         .build()
         .unwrap();
 
-    let init_package_creators = InitPackageCreators::from_config(&package_init).unwrap();
-    let context_package_creators = ContextPackageCreators::from_config(&package_init).unwrap();
-    let state_package_creators = StatePackageCreators::from_config(&package_init).unwrap();
-    let output_package_creators = OutputPackageCreators::from_config(&package_init).unwrap();
-
-    let package_creators = PackageCreators::from_config(
-        &package_config,
-        &init_package_creators,
-        &context_package_creators,
-        &state_package_creators,
-        &output_package_creators,
-    )
-    .unwrap();
+    let package_creators = PackageCreators::from_config(&package_config, &package_init).unwrap();
 
     let schema = package_creators
         .create_schema(&package_init, &globals)

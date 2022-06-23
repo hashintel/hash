@@ -34,7 +34,7 @@ pub struct Packages {
 
 impl Packages {
     pub fn from_package_creators(
-        package_creators: &PackageCreators<'_>,
+        package_creators: &PackageCreators,
         config: &Arc<SimulationRunConfig>,
         comms: &Comms,
     ) -> Result<(Self, PackageMsgs)> {

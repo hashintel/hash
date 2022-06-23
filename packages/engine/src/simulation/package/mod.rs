@@ -13,8 +13,6 @@ pub mod tests {
         Error, Result,
     };
 
-    use crate::simulation::comms::Comms;
-
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {
         let cycle_found = parents.contains(&src_dep);
         parents.push(src_dep);
@@ -53,19 +51,19 @@ pub mod tests {
         };
 
         validate!(
-            ContextPackageCreators::from_config(&init_config)?,
+            ContextPackageCreators::initialize_for_experiment_run(&init_config)?,
             PackageName::Context
         );
         validate!(
-            InitPackageCreators::from_config(&init_config)?,
+            InitPackageCreators::initialize_for_experiment_run(&init_config)?,
             PackageName::Init
         );
         validate!(
-            StatePackageCreators::from_config(&init_config)?,
+            StatePackageCreators::initialize_for_experiment_run(&init_config)?,
             PackageName::State
         );
         validate!(
-            OutputPackageCreators::from_config(&init_config)?,
+            OutputPackageCreators::initialize_for_experiment_run(&init_config)?,
             PackageName::Output
         );
         Ok(())
