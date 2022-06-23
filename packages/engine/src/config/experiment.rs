@@ -14,7 +14,7 @@ use crate::config::{package, Result};
 #[derive(Clone)]
 /// Experiment level configuration
 pub struct ExperimentConfig {
-    pub packages: Arc<package::Config>,
+    pub packages: Arc<package::PackageConfig>,
     pub run: Arc<ExperimentRun>,
     pub worker_pool: Arc<WorkerPoolConfig>,
     /// The size at which the engine aims to split a group of agents
@@ -27,13 +27,12 @@ impl ExperimentConfig {
         experiment_run: Arc<ExperimentRun>,
         num_workers: usize,
         target_max_group_size: usize,
-        js_runner_initial_heap_constraint: Option<usize>,
-        js_runner_max_heap_size: Option<usize>,
+        runner_config: RunnerConfig,
     ) -> Result<ExperimentConfig> {
         let experiment = experiment_run.experiment();
         let simulation = experiment_run.simulation();
         // For differentiation purposes when multiple experiment runs are active in the same system
-        let package_config = package::ConfigBuilder::new()
+        let package_config = package::PackageConfigBuilder::new()
             .add_init_package(match simulation.package_init.initial_state.name {
                 InitialStateName::InitJson => InitPackageName::Json,
                 InitialStateName::InitPy | InitialStateName::InitJs => InitPackageName::JsPy,
@@ -43,10 +42,7 @@ impl ExperimentConfig {
 
         let worker_config = WorkerConfig {
             spawn: experiment.create_runner_spawn_config(),
-            runner_config: RunnerConfig {
-                js_runner_initial_heap_constraint,
-                js_runner_max_heap_size,
-            },
+            runner_config,
         };
         let worker_pool = Arc::new(WorkerPoolConfig::new(worker_config, num_workers));
 

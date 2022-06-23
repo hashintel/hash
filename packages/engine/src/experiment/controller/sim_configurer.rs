@@ -9,7 +9,7 @@ use execution::{
 };
 use stateful::global::Globals;
 
-use crate::config::{ExperimentConfig, SimulationRunConfig, StoreConfig};
+use crate::config::{ExperimentConfig, SchemaConfig, SimulationRunConfig};
 
 pub struct SimConfigurer {
     worker_allocator: WorkerAllocator,
@@ -39,7 +39,7 @@ impl SimConfigurer {
         experiment_config: Arc<ExperimentConfig>,
         id: SimulationId,
         globals: Globals,
-        store_config: StoreConfig,
+        store_config: SchemaConfig,
         persistence_config: PersistenceConfig,
         max_num_steps: usize,
     ) -> SimulationRunConfig {

@@ -26,7 +26,7 @@ use stateful::{
 };
 
 use crate::{
-    config::{ExperimentConfig, PackageConfig, SimulationRunConfig, StoreConfig},
+    config::{ExperimentConfig, PackageConfig, SchemaConfig, SimulationRunConfig},
     datastore::{error::Error, schema::last_state_index_key},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
@@ -269,7 +269,7 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
     // `SyncOnceCell`s multiple times (thus erroring) if we run multiple tests at once
     let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
 
-    let store_config = StoreConfig::new_sim(&package_init, &globals, &package_creators).unwrap();
+    let store_config = SchemaConfig::new(&package_init, &globals, &package_creators).unwrap();
 
     let simulation = Simulation {
         name: "project_name".to_string(),

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use execution::{
     package::simulation::{PackageCreatorConfig, PersistenceConfig, SimulationId},
+    runner::RunnerConfig,
     worker_pool::WorkerAllocation,
 };
 use stateful::{global::Globals, state::StateCreateParameters};
@@ -9,9 +10,9 @@ use stateful::{global::Globals, state::StateCreateParameters};
 pub use self::{
     error::{Error, Result},
     experiment::ExperimentConfig,
-    package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
-    simulation::Config as SimulationConfig,
-    store::Config as StoreConfig,
+    package::{PackageConfig, PackageConfigBuilder},
+    simulation::SimulationConfig,
+    store::SchemaConfig,
 };
 use crate::{env::Environment, Args};
 
@@ -33,8 +34,10 @@ pub async fn experiment_config(args: &Args, env: &Environment) -> Result<Experim
         Arc::new(env.experiment.clone()),
         args.num_workers,
         args.target_max_group_size,
-        args.js_runner_initial_heap_constraint,
-        args.js_runner_max_heap_size,
+        RunnerConfig {
+            js_runner_initial_heap_constraint: args.js_runner_initial_heap_constraint,
+            js_runner_max_heap_size: args.js_runner_max_heap_size,
+        },
     )
 }
 
@@ -44,7 +47,7 @@ impl SimulationRunConfig {
         id: SimulationId,
         globals: Globals,
         worker_allocation: WorkerAllocation,
-        store_config: StoreConfig,
+        store_config: SchemaConfig,
         persistence_config: PersistenceConfig,
         max_num_steps: usize,
     ) -> SimulationRunConfig {
@@ -85,7 +88,7 @@ fn simulation_config(
     id: SimulationId,
     globals: Globals,
     worker_allocation: WorkerAllocation,
-    store_config: StoreConfig,
+    store_config: SchemaConfig,
     persistence_config: PersistenceConfig,
     max_num_steps: usize,
 ) -> SimulationConfig {

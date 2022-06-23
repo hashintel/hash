@@ -5,11 +5,11 @@ use execution::{
     worker_pool::WorkerAllocation,
 };
 
-use crate::config::StoreConfig;
+use crate::config::SchemaConfig;
 
-pub struct Config {
+pub struct SimulationConfig {
     pub id: SimulationId,
-    pub store: Arc<StoreConfig>,
+    pub store: Arc<SchemaConfig>,
     pub worker_allocation: Arc<WorkerAllocation>,
     pub max_num_steps: usize,
     pub package_creator: PackageCreatorConfig,

@@ -17,7 +17,7 @@ use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 
 use crate::{
-    config::{ExperimentConfig, StoreConfig},
+    config::{ExperimentConfig, SchemaConfig},
     env::{Environment, OrchClient},
     experiment::{
         apply_globals_changes,
@@ -197,7 +197,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         );
 
         // Create the datastore configuration (requires schemas)
-        let store_config = StoreConfig::new_sim(
+        let store_config = SchemaConfig::new(
             &self.exp_config.simulation().package_init,
             &globals,
             &self.package_creators,
