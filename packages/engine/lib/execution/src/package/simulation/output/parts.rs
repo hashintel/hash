@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use serde::Serialize;
 use simulation_structure::{ExperimentId, SimulationShortId};
 
-use crate::output::{buffer::RELATIVE_PARTS_FOLDER, error::Result};
+use crate::Result;
 
 /// Maximum size of a string kept in memory.
 /// Corresponds to the maximum size of a non-terminal part (see multipart uploading)
@@ -31,7 +31,7 @@ impl OutputPartBuffer {
         experiment_id: &ExperimentId,
         simulation_run_id: SimulationShortId,
     ) -> Result<OutputPartBuffer> {
-        let base_path = PathBuf::from(RELATIVE_PARTS_FOLDER)
+        let base_path = std::env::temp_dir()
             .join(experiment_id.to_string())
             .join(simulation_run_id.to_string());
 
@@ -104,27 +104,24 @@ impl OutputPartBuffer {
         Ok(())
     }
 
-    pub fn finalize(mut self) -> Result<(Vec<u8>, Vec<PathBuf>)> {
+    pub fn finalize(&mut self) -> Result<&[PathBuf]> {
         self.current.push(CHAR_OPEN_RIGHT_SQUARE_BRACKET);
         self.persist_current_on_disk()?;
-        Ok((self.current, self.parts))
+        Ok(&self.parts)
     }
 }
 
-pub fn remove_experiment_parts(experiment_id: ExperimentId) {
-    let path = format!("{RELATIVE_PARTS_FOLDER}/{experiment_id}");
-    match std::fs::remove_dir_all(&path) {
-        Ok(_) => {
-            tracing::trace!(
-                experiment = %experiment_id,
-                "Removed parts folder for experiment {experiment_id}: {path:?}"
-            );
+impl Drop for OutputPartBuffer {
+    fn drop(&mut self) {
+        for part in &self.parts {
+            std::fs::remove_file(part)
+                .unwrap_or_else(|error| tracing::error!("Failed to remove part {part:?}: {error}"))
         }
-        Err(err) => {
-            tracing::warn!(
-                experiment = %experiment_id,
-                "Could not clean up {path:?}: {err}"
-            );
-        }
+        std::fs::remove_dir_all(&self.base_path).unwrap_or_else(|error| {
+            tracing::error!(
+                "Failed to temporary part directory {:?}: {error}",
+                &self.base_path
+            )
+        });
     }
 }

@@ -1,5 +1,6 @@
 use std::{mem, sync::Arc};
 
+use execution::package::simulation::output::Output;
 use memory::shared_memory::MemoryId;
 use stateful::{
     agent::AgentBatchPool,
@@ -19,7 +20,6 @@ use crate::{
         command::{Commands, StopCommand},
         comms::Comms,
         package::run::Packages,
-        step_output::SimulationStepOutput,
         step_result::SimulationStepResult,
         Error, Result,
     },
@@ -210,7 +210,7 @@ impl Engine {
         Ok(())
     }
 
-    pub async fn run_output_packages(&mut self) -> Result<SimulationStepOutput> {
+    pub async fn run_output_packages(&mut self) -> Result<Vec<Output>> {
         let (mut state, context) = self.store.take()?;
 
         // Output packages can't reload state batches, since they only have read access to state.

@@ -1,7 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use execution::package::simulation::{
-    context::ContextPackage, init::InitPackage, output::OutputPackage, state::StatePackage,
+    context::ContextPackage,
+    init::InitPackage,
+    output::{Output, OutputPackage},
+    state::StatePackage,
 };
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use memory::shared_memory::MemoryId;
@@ -14,10 +17,7 @@ use tracing::{Instrument, Span};
 use crate::{
     config::SimRunConfig,
     proto::ExperimentRunTrait,
-    simulation::{
-        error::{Error, Result},
-        step_output::SimulationStepOutput,
-    },
+    simulation::error::{Error, Result},
 };
 
 /// Represents the packages of a simulation engine.
@@ -264,7 +264,7 @@ impl StepPackages {
         &mut self,
         state: &Arc<State>,
         context: &Arc<Context>,
-    ) -> Result<SimulationStepOutput> {
+    ) -> Result<Vec<Output>> {
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
 
@@ -305,7 +305,7 @@ impl StepPackages {
         // Output packages can't reload state batches, since they only have read access to state,
         // but reloading would mean mutating the loaded data.
         let mut pkgs = Vec::with_capacity(num_pkgs);
-        let mut outputs = SimulationStepOutput::with_capacity(num_pkgs);
+        let mut outputs = Vec::with_capacity(num_pkgs);
         for result in collected {
             let (pkg, output) = result?;
             pkgs.push(pkg);

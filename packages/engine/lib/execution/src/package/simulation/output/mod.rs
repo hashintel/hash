@@ -13,8 +13,12 @@
 pub mod analysis;
 pub mod json_state;
 
+pub mod persistence;
+
+mod buffers;
 mod message;
 mod name;
+mod parts;
 mod task;
 
 use std::sync::Arc;
@@ -28,7 +32,10 @@ use stateful::{
 };
 use tracing::Span;
 
-pub use self::{message::OutputTaskMessage, name::OutputPackageName, task::OutputTask};
+pub(crate) use self::parts::OutputPartBuffer;
+pub use self::{
+    buffers::OutputBuffers, message::OutputTaskMessage, name::OutputPackageName, task::OutputTask,
+};
 use crate::{
     package::simulation::{
         output::{analysis::AnalysisOutput, json_state::JsonStateOutput},

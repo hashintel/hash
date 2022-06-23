@@ -1,7 +1,10 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use execution::{
-    package::experiment::comms::{ExperimentControl, ExperimentPackageComms, StepUpdate},
+    package::{
+        experiment::comms::{ExperimentControl, ExperimentPackageComms, StepUpdate},
+        simulation::output::persistence::OutputPersistenceCreator,
+    },
     runner::comms::{DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun},
     worker_pool::comms::{
         experiment::{ExpMsgSend, ExperimentToWorkerPoolMsg},
@@ -28,7 +31,6 @@ use crate::{
             sim_configurer::SimConfigurer,
         },
     },
-    output::OutputPersistenceCreatorRepr,
     proto::{EngineMsg, EngineStatus, ExperimentRunTrait},
     simulation::{
         comms::Comms,
@@ -40,7 +42,7 @@ use crate::{
     utils,
 };
 
-pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
+pub struct ExperimentController<P: OutputPersistenceCreator> {
     _exp_config: Arc<ExperimentConfig>,
     // TODO: unused, remove?
     exp_base_config: Arc<ExperimentConfig>,
@@ -60,7 +62,7 @@ pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
     terminate_recv: TerminateRecv,
 }
 
-impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
+impl<P: OutputPersistenceCreator> ExperimentController<P> {
     /// Handle an inbound message from the orchestrator (or CLI)
     async fn handle_orch_msg(&mut self, orch_msg: EngineMsg) -> Result<()> {
         match orch_msg {
@@ -332,7 +334,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     }
 }
 
-impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
+impl<P: OutputPersistenceCreator> ExperimentController<P> {
     pub async fn run(mut self) -> Result<()> {
         let mut terminate_recv = self.terminate_recv.take_recv()?;
 
@@ -392,7 +394,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
 }
 
 #[allow(clippy::too_many_arguments)]
-impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
+impl<P: OutputPersistenceCreator> ExperimentController<P> {
     pub fn new(
         exp_config: Arc<ExperimentConfig>,
         exp_base_config: Arc<ExperimentConfig>,
