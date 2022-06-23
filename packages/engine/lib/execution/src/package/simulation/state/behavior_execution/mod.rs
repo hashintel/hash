@@ -38,7 +38,7 @@ use crate::{
         PackageName, PackageTask,
     },
     runner::Language,
-    task::{ActiveTask as _, TaskSharedStoreBuilder},
+    task::{ActiveTask, TaskSharedStoreBuilder},
     Error, Result,
 };
 
@@ -210,7 +210,7 @@ impl<C: Comms> BehaviorExecution<C> {
         state_proxy: StateWriteProxy,
         context: &Context,
         lang: Language,
-    ) -> Result<C::ActiveTask> {
+    ) -> Result<ActiveTask> {
         let shared_store = TaskSharedStoreBuilder::new()
             .write_state(state_proxy)?
             .read_context(context)?

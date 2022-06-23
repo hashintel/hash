@@ -14,8 +14,6 @@ use crate::{
 /// Temporary trait to proceed with moving the package system into this crate
 #[async_trait]
 pub trait Comms: Send + Sync + 'static {
-    type ActiveTask: ActiveTask;
-
     /// Takes a given [`Task`] object, and starts its execution on the [`worker_pool`], returning an
     /// [`ActiveTask`] to track its progress.
     ///
@@ -25,7 +23,7 @@ pub trait Comms: Send + Sync + 'static {
         package_id: PackageId,
         task: PackageTask,
         shared_store: TaskSharedStore,
-    ) -> Result<Self::ActiveTask>;
+    ) -> Result<ActiveTask>;
 
     /// Adds a command to create the specified [`Agent`].
     ///
@@ -63,7 +61,7 @@ impl<C: Comms> PackageComms<C> {
         &self,
         task: PackageTask,
         shared_store: TaskSharedStore,
-    ) -> Result<C::ActiveTask> {
+    ) -> Result<ActiveTask> {
         let task_name = task.name();
 
         self.comms

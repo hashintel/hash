@@ -24,7 +24,7 @@ use std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use execution::{
     package::simulation::{PackageTask, SimulationId},
-    task::{StoreAccessValidator, TaskId, TaskSharedStore},
+    task::{ActiveTask, StoreAccessValidator, TaskId, TaskSharedStore},
     worker::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
     worker_pool,
     worker_pool::comms::{
@@ -39,7 +39,7 @@ use stateful::{
     state::StateReadProxy,
 };
 
-use super::{command::Commands, task::active::ActiveTask, Error, Result};
+use super::{command::Commands, Error, Result};
 
 /// A simulation-specific object containing a sender to communicate with the worker-pool, and a
 /// shared collection of commands.
@@ -153,8 +153,6 @@ impl Comms {
 
 #[async_trait]
 impl execution::package::simulation::Comms for Comms {
-    type ActiveTask = ActiveTask;
-
     /// Takes a given [`Task`] object, and starts its execution on the [`WorkerPool`], returning an
     /// [`ActiveTask`] to track its progress.
     ///

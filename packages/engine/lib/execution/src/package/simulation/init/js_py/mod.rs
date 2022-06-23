@@ -19,7 +19,7 @@ use crate::{
         Comms, MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
         PackageInitConfig, PackageTask,
     },
-    task::{ActiveTask, TaskMessage, TaskSharedStore},
+    task::{TaskMessage, TaskSharedStore},
     Error, Result,
 };
 

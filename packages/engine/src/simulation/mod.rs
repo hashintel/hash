@@ -7,7 +7,6 @@ mod error;
 pub mod package;
 pub mod status;
 pub mod step_result;
-pub mod task;
 
 pub use self::error::{Error, Result};
 
