@@ -48,9 +48,16 @@ id | source_entity_id | json_path                      | string_value    | numbe
 
 -- JSONB Table ---
 
-id | source_entity_id | value (JSONB)| property_types
+id | source_entity_id | value (JSONB)| 
 -----------------------------------------------------------------------------------------
-3  | potato           |     bytes    | ["anObject", "anArray", "number", "foo"]
+3  | potato           |     bytes    | 
+
+entity_id | property_type
+-------------------------
+potato    | "anObject"
+potato    | "anArray"
+potato    | "number"
+potato    | "foo"
 
 Advantages:
 - easier to implement db schema
