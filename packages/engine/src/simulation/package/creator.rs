@@ -17,15 +17,14 @@ use stateful::{
     agent::AgentSchema,
     context::ContextSchema,
     field::{
-        FieldScope, FieldSource, FieldSpecMap, FieldSpecMapAccessor, FieldType, PackageId,
-        RootFieldSpec, RootFieldSpecCreator,
+        FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldSpecMapAccessor, FieldType,
+        PackageId, RootFieldSpec, RootFieldSpecCreator,
     },
     global::Globals,
 };
 
 use crate::{
     config::SimulationRunConfig,
-    datastore::schema::last_state_index_key,
     simulation::{
         package::run::{InitPackages, Packages, StepPackages},
         Error, Result,
@@ -406,7 +405,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
         ));
     }
 
-    let last_state_index = last_state_index_key();
+    let last_state_index = FieldSpec::last_state_index_key();
 
     field_specs.push(field_spec_creator.create(
         last_state_index.name,

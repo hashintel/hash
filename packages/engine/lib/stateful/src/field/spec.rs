@@ -4,7 +4,9 @@ use arrow::datatypes::{DataType, Field};
 
 use crate::{
     error::{Error, Result},
-    field::{key::RootFieldKey, FieldScope, FieldSource, FieldType},
+    field::{
+        key::RootFieldKey, FieldScope, FieldSource, FieldType, FieldTypeVariant, PresetFieldType,
+    },
 };
 
 /// A single specification of a field
@@ -15,6 +17,8 @@ pub struct FieldSpec {
 }
 
 impl FieldSpec {
+    const PREVIOUS_INDEX_FIELD_NAME: &'static str = "previous_index";
+
     pub(in crate::field) fn into_arrow_field(
         self,
         can_guarantee_non_null: bool,
@@ -41,6 +45,34 @@ impl FieldSpec {
                 DataType::from(self.field_type.variant),
                 base_nullability,
             )
+        }
+    }
+
+    /// This key is required for accessing neighbors' outboxes (new inboxes).
+    ///
+    /// Since the neighbor agent state is always the previous step state of the agent, then we need
+    /// to know where its outbox is. This would be straightforward if we didn't add/remove/move
+    /// agents between batches. This means `AgentBatch` ordering gets changed at the beginning
+    /// of the step meaning agents are not aligned with their `OutboxBatch` anymore.
+    #[must_use]
+    // TODO: migrate this to be logic handled by the Engine
+    pub fn last_state_index_key() -> Self {
+        // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
+        // to the relevant old outbox (i.e. new inbox)
+        Self {
+            name: Self::PREVIOUS_INDEX_FIELD_NAME.to_string(),
+            field_type: FieldType::new(
+                FieldTypeVariant::FixedLengthArray {
+                    field_type: Box::new(FieldType::new(
+                        FieldTypeVariant::Preset(PresetFieldType::Uint32),
+                        false,
+                    )),
+                    len: 2,
+                },
+                // This key is nullable because new agents
+                // do not get an index (their outboxes are empty by default)
+                true,
+            ),
         }
     }
 }

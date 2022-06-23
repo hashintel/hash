@@ -1,46 +1,16 @@
-use stateful::field::{FieldSpec, FieldType, FieldTypeVariant, PresetFieldType};
-
-pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
-
-/// This key is required for accessing neighbors' outboxes (new inboxes).
-/// Since the neighbor agent state is always the previous step state of the
-/// agent, then we need to know where its outbox is. This would be
-/// straightforward if we didn't add/remove/move agents between batches.
-/// This means `AgentBatch` ordering gets changed at the beginning of the step
-/// meaning agents are not aligned with their `OutboxBatch` anymore.
-#[must_use]
-// TODO: migrate this to be logic handled by the Engine
-pub fn last_state_index_key() -> FieldSpec {
-    // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
-    // to the relevant old outbox (i.e. new inbox)
-    FieldSpec {
-        name: PREVIOUS_INDEX_FIELD_NAME.to_string(),
-        field_type: FieldType::new(
-            FieldTypeVariant::FixedLengthArray {
-                field_type: Box::new(FieldType::new(
-                    FieldTypeVariant::Preset(PresetFieldType::Uint32),
-                    false,
-                )),
-                len: 2,
-            },
-            // This key is nullable because new agents
-            // do not get an index (their outboxes are empty by default)
-            true,
-        ),
-    }
-}
-
 // TODO: Expand unit tests to cover more cases, such as the AgentScopedFieldKeyClash branch, and
 // possibly split across modules
 #[cfg(test)]
 pub mod tests {
     use stateful::{
         agent::AgentStateField,
-        field::{FieldScope, FieldSource, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
+        field::{
+            FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
+            RootFieldSpec, RootFieldSpecCreator,
+        },
         Error, Result,
     };
 
-    use super::*;
     use crate::{
         datastore::test_utils::root_field_spec_from_agent_field,
         simulation::package::creator::get_base_agent_fields,

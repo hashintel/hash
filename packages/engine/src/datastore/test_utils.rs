@@ -32,14 +32,14 @@ use stateful::{
 
 use crate::{
     config::{SchemaConfig, SimulationRunConfig},
-    datastore::{error::Error, schema::last_state_index_key},
+    datastore::error::Error,
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
 fn test_field_specs() -> FieldSpecMap {
     let mut map = FieldSpecMap::default();
     map.try_extend([RootFieldSpec {
-        inner: last_state_index_key(),
+        inner: FieldSpec::last_state_index_key(),
         source: FieldSource::Engine,
         scope: FieldScope::Hidden,
     }])
