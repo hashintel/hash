@@ -9,7 +9,6 @@ use simulation_structure::SimulationRunConfig;
 use tokio::time::Duration;
 
 use crate::{
-    datastore::store::Store,
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
     simulation::{
         agent_control::AgentControl,
@@ -64,9 +63,7 @@ pub async fn sim_run<P: SimulationOutputPersistence>(
     let max_num_steps = config.simulation_config().max_num_steps;
     tracing::info!(steps = &max_num_steps, "Beginning simulation run");
 
-    let uninitialized_store = Store::new_uninitialized();
-
-    let mut engine = Engine::new(packages, uninitialized_store, comms, config.clone())
+    let mut engine = Engine::new(packages, comms, config.clone())
         .await
         .map_err(|sim_err| Error::from(sim_err.to_string()))?;
 
