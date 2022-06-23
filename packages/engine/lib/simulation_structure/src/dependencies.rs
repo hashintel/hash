@@ -1,15 +1,16 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
+use error_stack::{Report, ResultExt};
 use futures::StreamExt;
 use stateful::global::Dataset;
+use thiserror::Error;
 
-use crate::{
-    proto::{ExperimentRunRepr, ExperimentRunTrait, FetchedDataset},
-    Error, Result,
-};
+use crate::ExperimentRun;
 
-pub type Datasets = Vec<Arc<FetchedDataset>>;
+#[derive(Debug, Error)]
+#[error("Could not resolve dependencies")]
+pub struct DependencyError;
+
+pub type Result<T, E = DependencyError> = error_stack::Result<T, E>;
 
 #[async_trait]
 pub trait FetchDependencies {
@@ -23,11 +24,17 @@ impl FetchDependencies for Dataset {
             return Ok(());
         }
 
-        let url = self.url.as_ref().ok_or("Expected dataset URL")?;
+        let url = self
+            .url
+            .as_ref()
+            .ok_or_else(|| Report::new(DependencyError))
+            .attach_printable("Either data or a dataset URL is required")?;
         let mut contents = surf::get(url)
             .recv_string()
             .await
-            .map_err(|e| Error::Surf(e.status()))?;
+            .map_err(|error| Report::new(DependencyError).attach_printable(error))
+            .attach_printable_lazy(|| format!("Could not fetch dataset from {url}"))
+            .change_context(DependencyError)?;
 
         // This should happen only when production project clones into staging environment
         // mean losing access to datasets which only exist in production.
@@ -42,7 +49,9 @@ impl FetchDependencies for Dataset {
         }
 
         if self.raw_csv {
-            contents = parse_raw_csv_into_json(contents)?;
+            contents = parse_raw_csv_into_json(contents)
+                .attach_printable("Could not parser CSV as JSON")
+                .change_context(DependencyError)?;
         }
         self.data = Some(contents);
         Ok(())
@@ -50,15 +59,15 @@ impl FetchDependencies for Dataset {
 }
 
 #[async_trait]
-impl FetchDependencies for ExperimentRunRepr {
+impl FetchDependencies for ExperimentRun {
     async fn fetch_deps(&mut self) -> Result<()> {
-        let datasets = std::mem::take(&mut self.base_mut().project_base.datasets);
+        let datasets = std::mem::take(&mut self.experiment_mut().simulation_mut().datasets);
 
-        self.base_mut().project_base.datasets =
+        self.experiment_mut().simulation_mut().datasets =
             futures::stream::iter(datasets.into_iter().map(|mut dataset| {
                 tokio::spawn(async move {
                     dataset.fetch_deps().await?;
-                    Ok::<Dataset, Error>(dataset)
+                    Ok(dataset)
                 })
             }))
             .buffer_unordered(100)
@@ -72,7 +81,7 @@ impl FetchDependencies for ExperimentRunRepr {
     }
 }
 
-pub fn parse_raw_csv_into_json(contents: String) -> Result<String> {
+pub fn parse_raw_csv_into_json(contents: String) -> Result<String, csv::Error> {
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
         .from_reader(contents.as_bytes());
@@ -88,8 +97,7 @@ pub fn parse_raw_csv_into_json(contents: String) -> Result<String> {
         }
 
         let mut is_first_element = true;
-        let record = record.map_err(|e| Error::from(e.to_string()))?;
-        for elem in record.iter() {
+        for elem in record?.iter() {
             if !is_first_element {
                 result.push(',');
             } else {

@@ -24,12 +24,7 @@ mod task;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use stateful::{
-    context::Context,
-    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-    global::Globals,
-    state::State,
-};
+use stateful::{context::Context, field::FieldSpecMapAccessor, global::Globals, state::State};
 use tracing::Span;
 
 pub(crate) use self::parts::OutputPartBuffer;
@@ -75,15 +70,5 @@ pub trait OutputPackageCreator<C>: PackageCreator {
         globals: &Globals,
     ) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
-    }
-
-    #[allow(unused_variables)]
-    fn get_state_field_specs(
-        &self,
-        config: &PackageInitConfig,
-        globals: &Globals,
-        field_spec_map_builder: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
-        Ok(vec![])
     }
 }

@@ -1,15 +1,23 @@
 use std::sync::Arc;
 
 use execution::{
-    package::simulation::{
-        init::{InitialState, InitialStateName},
-        PackageCreatorConfig, PackageInitConfig,
+    package::{
+        experiment::{
+            basic::{BasicExperimentConfig, SingleRunExperimentConfig},
+            ExperimentPackageConfig,
+        },
+        simulation::{
+            init::{InitialState, InitialStateName},
+            PackageInitConfig, SimulationId,
+        },
     },
-    worker_pool::WorkerPoolConfig,
+    worker_pool::{WorkerAllocation, WorkerPoolConfig},
 };
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use simulation_structure::ExperimentId;
+use simulation_structure::{
+    Experiment, ExperimentConfig, ExperimentRun, PackageConfig, Simulation,
+};
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
     field::{
@@ -20,9 +28,8 @@ use stateful::{
 };
 
 use crate::{
-    config::{ExperimentConfig, PackageConfig, SimRunConfig, SimulationConfig, StoreConfig},
+    config::{SchemaConfig, SimulationRunConfig},
     datastore::{error::Error, schema::last_state_index_key},
-    proto::{ExperimentRunBase, ExperimentRunRepr, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
@@ -248,7 +255,7 @@ fn make_dummy_agent(seed: u64) -> Result<Agent, Error> {
     Ok(agent)
 }
 
-pub fn dummy_sim_run_config() -> SimRunConfig {
+pub fn dummy_sim_run_config() -> SimulationRunConfig {
     let package_init = PackageInitConfig {
         initial_state: InitialState {
             name: InitialStateName::InitJson,
@@ -264,29 +271,30 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
     // `SyncOnceCell`s multiple times (thus erroring) if we run multiple tests at once
     let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
 
-    let store = Arc::new(StoreConfig::new_sim(&package_init, &globals, &package_creators).unwrap());
+    let store_config = SchemaConfig::new(&package_init, &globals, &package_creators).unwrap();
 
-    let project_base = ProjectBase {
+    let simulation = Simulation {
         name: "project_name".to_string(),
         globals_src: "{}".to_string(),
         experiments_src: None,
         datasets: Vec::new(),
         package_init,
     };
-    let base = ExperimentRunBase {
-        name: "experiment_name".to_string().into(),
-        id: ExperimentId::generate(),
-        project_base,
-    };
+    let experiment = Experiment::new("experiment_name".to_string().into(), simulation);
 
-    let exp_config = Arc::new(ExperimentConfig {
+    let experiment_config = Arc::new(ExperimentConfig {
         packages: Arc::new(PackageConfig {
             init: Vec::new(),
             context: Vec::new(),
             state: Vec::new(),
             output: Vec::new(),
         }),
-        run: Arc::new(ExperimentRunRepr::ExperimentRunBase(base)),
+        run: Arc::new(ExperimentRun::new(
+            experiment,
+            ExperimentPackageConfig::Basic(BasicExperimentConfig::SingleRun(
+                SingleRunExperimentConfig { num_steps: 1 },
+            )),
+        )),
         target_max_group_size: 100_000,
         worker_pool: Arc::new(WorkerPoolConfig {
             worker_config: Default::default(),
@@ -295,22 +303,18 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         base_globals: globals.clone(),
     });
 
-    SimRunConfig {
-        exp: Arc::clone(&exp_config),
-        sim: Arc::new(SimulationConfig {
-            id: 0,
-            package_creator: PackageCreatorConfig {
-                agent_schema: Arc::clone(&store.agent_schema),
-                persistence: package_creators
-                    .create_persistent_config(&exp_config, &globals)
-                    .unwrap(),
-                globals,
-            },
-            store,
-            worker_allocation: Arc::new(Vec::new()),
-            max_num_steps: 0,
-        }),
-    }
+    let persistence_config = package_creators
+        .create_persistent_config(&experiment_config, &globals)
+        .unwrap();
+    SimulationRunConfig::new(
+        Arc::clone(&experiment_config),
+        SimulationId::new(0),
+        globals,
+        WorkerAllocation::default(),
+        store_config,
+        persistence_config,
+        0,
+    )
 }
 
 /// Creates a FieldSpecMap, vec of dummy Agent states for testing, and accompanying AgentSchema

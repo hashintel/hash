@@ -75,14 +75,4 @@ pub trait ContextPackageCreator<C>: PackageCreator {
     ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![])
     }
-
-    #[allow(unused_variables)]
-    fn get_state_field_specs(
-        &self,
-        config: &PackageInitConfig,
-        globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
-        Ok(vec![])
-    }
 }

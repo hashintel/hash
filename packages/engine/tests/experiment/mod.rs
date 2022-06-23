@@ -10,12 +10,15 @@ use std::{
 };
 
 use error_stack::{bail, ensure, IntoReport, Report, ResultExt};
-use execution::{package::experiment::ExperimentName, runner::Language};
+use execution::{
+    package::experiment::{ExperimentId, ExperimentName},
+    runner::Language,
+};
 use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
-use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
+use orchestrator::{ExperimentConfig, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
-use simulation_structure::ExperimentId;
+use simulation_structure::{ExperimentType, Manifest};
 use tracing_subscriber::fmt::time::Uptime;
 
 use self::error::{Result, TestContext};
@@ -340,8 +343,8 @@ pub async fn run_test<P: AsRef<Path>>(
     let output_base_directory = experiment
         .config
         .output_folder
-        .join(experiment_run.base.name.as_str())
-        .join(experiment_run.base.id.to_string());
+        .join(experiment_run.experiment().name().as_str())
+        .join(experiment_run.experiment().id().to_string());
 
     let now = Instant::now();
     experiment

@@ -9,7 +9,7 @@ use stateful::{
 };
 
 use crate::{
-    config::SimRunConfig,
+    config::SimulationRunConfig,
     datastore::{
         batch::migration::{BufferActions, IndexRange, RangeActions},
         error::Result,
@@ -26,16 +26,19 @@ use crate::{
 
 pub struct CreateRemovePlanner {
     commands: ProcessedCommands,
-    config: Arc<SimRunConfig>,
+    config: Arc<SimulationRunConfig>,
 }
 
 impl CreateRemovePlanner {
     pub fn new(
         commands: CreateRemoveCommands,
-        config: Arc<SimRunConfig>,
+        config: Arc<SimulationRunConfig>,
     ) -> Result<CreateRemovePlanner> {
         Ok(CreateRemovePlanner {
-            commands: ProcessedCommands::new(commands, &config.sim.store.agent_schema)?,
+            commands: ProcessedCommands::new(
+                commands,
+                &config.simulation_config().store.agent_schema,
+            )?,
             config,
         })
     }
@@ -58,9 +61,9 @@ impl CreateRemovePlanner {
             .collect::<Result<_>>()?;
 
         let distribution = BatchDistribution::new(
-            self.config.exp.worker_pool.num_workers,
+            self.config.experiment_config().worker_pool.num_workers,
             pending_batches,
-            self.config.exp.target_max_group_size,
+            self.config.experiment_config().target_max_group_size,
         );
 
         Ok(PendingPlan { distribution })
@@ -86,7 +89,7 @@ impl PendingPlan {
         &mut self,
         state_proxy: &StateReadProxy,
         new_agents: Option<&'b RecordBatch>,
-        config: &Arc<SimRunConfig>,
+        config: &Arc<SimulationRunConfig>,
     ) -> Result<MigrationPlan<'b>> {
         let dynamic_pool = state_proxy.agent_pool();
         let mut existing_mutations = (0..dynamic_pool.len())
@@ -112,7 +115,7 @@ impl PendingPlan {
                         state_proxy,
                         batch,
                         &new_agents,
-                        &config.sim.store.agent_schema,
+                        &config.simulation_config().store.agent_schema,
                         &mut num_inbound_agents_allocated,
                     )?;
                     ExistingGroupBufferActions::Update {
@@ -125,7 +128,7 @@ impl PendingPlan {
                     state_proxy,
                     batch,
                     &new_agents,
-                    &config.sim.store.agent_schema,
+                    &config.simulation_config().store.agent_schema,
                     &mut num_inbound_agents_allocated,
                 )?;
                 let create_command = CreateActions {

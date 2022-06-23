@@ -1,9 +1,8 @@
-use simulation_structure::SimulationShortId;
 use stateful::field::PackageId;
 use tracing::Span;
 
 use crate::{
-    package::simulation::PackageTask,
+    package::simulation::{PackageTask, SimulationId},
     task::{TaskId, TaskSharedStore},
     worker::SyncPayload,
     worker_pool::comms::active::ActiveTaskExecutorComms,
@@ -21,12 +20,12 @@ pub struct WrappedTask {
 #[derive(Debug)]
 pub struct EngineToWorkerPoolMsg {
     pub span: Span,
-    pub sim_id: SimulationShortId,
+    pub sim_id: SimulationId,
     pub payload: EngineToWorkerPoolMsgPayload,
 }
 
 impl EngineToWorkerPoolMsg {
-    pub fn task(sim_id: SimulationShortId, task: WrappedTask) -> Self {
+    pub fn task(sim_id: SimulationId, task: WrappedTask) -> Self {
         Self {
             span: Span::current(),
             sim_id,
@@ -34,7 +33,7 @@ impl EngineToWorkerPoolMsg {
         }
     }
 
-    pub fn sync(sim_id: SimulationShortId, sync_msg: SyncPayload) -> Self {
+    pub fn sync(sim_id: SimulationId, sync_msg: SyncPayload) -> Self {
         Self {
             span: Span::current(),
             sim_id,

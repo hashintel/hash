@@ -90,6 +90,15 @@ impl PackageCreator for BehaviorExecutionCreator {
         let msg = exp_init_message(self.get_behavior_ids()?, self.get_behavior_map()?)?;
         Ok(serde_json::to_value(msg)?)
     }
+
+    fn get_state_field_specs(
+        &self,
+        config: &PackageInitConfig,
+        _globals: &Globals,
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        fields::get_state_field_specs(config, field_spec_creator)
+    }
 }
 
 impl<C: Comms> StatePackageCreator<C> for BehaviorExecutionCreator {
@@ -125,15 +134,6 @@ impl<C: Comms> StatePackageCreator<C> for BehaviorExecutionCreator {
             behavior_index_col_index,
             comms,
         }))
-    }
-
-    fn get_state_field_specs(
-        &self,
-        config: &PackageInitConfig,
-        _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
-        fields::get_state_field_specs(config, field_spec_creator)
     }
 }
 

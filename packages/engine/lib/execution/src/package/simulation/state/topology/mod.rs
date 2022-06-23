@@ -48,7 +48,9 @@ impl<C> StatePackageCreator<C> for TopologyCreator {
         };
         Ok(Box::new(topology))
     }
+}
 
+impl PackageCreator for TopologyCreator {
     fn get_state_field_specs(
         &self,
         _config: &PackageInitConfig,
@@ -60,8 +62,6 @@ impl<C> StatePackageCreator<C> for TopologyCreator {
         )?])
     }
 }
-
-impl PackageCreator for TopologyCreator {}
 
 pub struct Topology {
     config: Arc<TopologyConfig>,

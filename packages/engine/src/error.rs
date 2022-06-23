@@ -27,9 +27,6 @@ pub enum Error {
 
     #[error("Experiment package error: {0}")]
     ExperimentPackage(#[from] crate::experiment::Error),
-
-    #[error("HTTP error: {0}")]
-    Surf(surf::StatusCode),
 }
 
 impl From<&str> for Error {

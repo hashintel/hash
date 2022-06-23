@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use execution::{
     package::{
         experiment::comms::{ExperimentControl, ExperimentPackageComms, StepUpdate},
-        simulation::output::persistence::OutputPersistenceCreator,
+        simulation::{output::persistence::OutputPersistenceCreator, SimulationId},
     },
     runner::comms::{DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun},
     worker_pool::comms::{
@@ -13,12 +13,12 @@ use execution::{
         top::{WorkerPoolMsgRecv, WorkerPoolToExpCtlMsg},
     },
 };
-use simulation_structure::SimulationShortId;
+use simulation_structure::ExperimentConfig;
 use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 
 use crate::{
-    config::{ExperimentConfig, StoreConfig},
+    config::SchemaConfig,
     env::{Environment, OrchClient},
     experiment::{
         apply_globals_changes,
@@ -31,7 +31,7 @@ use crate::{
             sim_configurer::SimConfigurer,
         },
     },
-    proto::{EngineMsg, EngineStatus, ExperimentRunTrait},
+    proto::{EngineMsg, EngineStatus},
     simulation::{
         comms::Comms,
         controller::{runs::SimulationRuns, sim_control::SimControl, SimulationController},
@@ -43,9 +43,7 @@ use crate::{
 };
 
 pub struct ExperimentController<P: OutputPersistenceCreator> {
-    _exp_config: Arc<ExperimentConfig>,
-    // TODO: unused, remove?
-    exp_base_config: Arc<ExperimentConfig>,
+    exp_config: Arc<ExperimentConfig>,
     env: Environment,
     shared_store: Arc<SharedStore>,
     worker_pool_send: ExpMsgSend,
@@ -53,7 +51,7 @@ pub struct ExperimentController<P: OutputPersistenceCreator> {
     experiment_package_comms: ExperimentPackageComms,
     output_persistence_service_creator: P,
     sim_run_tasks: SimulationRuns,
-    sim_senders: HashMap<SimulationShortId, SimCtlSend>,
+    sim_senders: HashMap<SimulationId, SimCtlSend>,
     worker_pool_send_base: MainMsgSendBase,
     package_creators: PackageCreators,
     sim_configurer: SimConfigurer,
@@ -81,7 +79,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
                 let sim_span = utils::texray::examine(tracing::info_span!(
                     parent: span_id,
                     "sim",
-                    id = &sim_id
+                    id = &sim_id.as_u32()
                 ));
                 self.start_new_sim_run(sim_id, changed_globals, max_num_steps)
                     .instrument(sim_span)
@@ -132,13 +130,13 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
             .await?)
     }
 
-    async fn handle_sim_run_stop(&mut self, id: SimulationShortId) -> Result<()> {
+    async fn handle_sim_run_stop(&mut self, id: SimulationId) -> Result<()> {
         Ok(self.orch_client().send(EngineStatus::SimStop(id)).await?)
     }
 
     async fn handle_worker_pool_msg(
         &mut self,
-        id: SimulationShortId,
+        id: SimulationId,
         msg: WorkerPoolToExpCtlMsg,
     ) -> Result<()> {
         let engine_status = match msg {
@@ -186,7 +184,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
 
     async fn start_new_sim_run(
         &mut self,
-        sim_short_id: SimulationShortId,
+        sim_short_id: SimulationId,
         changed_globals: serde_json::Value,
         max_num_steps: usize,
     ) -> Result<()> {
@@ -195,20 +193,20 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
 
         // Create the `globals.json` for the simulation
         let globals = Arc::new(
-            apply_globals_changes(self.exp_base_config.base_globals.clone(), &changed_globals)
+            apply_globals_changes(self.exp_config.base_globals.clone(), &changed_globals)
                 .map_err(|experiment_err| Error::from(experiment_err.to_string()))?,
         );
 
         // Create the datastore configuration (requires schemas)
-        let store_config = StoreConfig::new_sim(
-            &self.exp_base_config.run.base().project_base.package_init,
+        let store_config = SchemaConfig::new(
+            &self.exp_config.simulation().package_init,
             &globals,
             &self.package_creators,
         )?;
         // Create the persistence configuration
         let persistence_config = self
             .package_creators
-            .create_persistent_config(&self.exp_base_config, &globals)?;
+            .create_persistent_config(&self.exp_config, &globals)?;
         // Start the persistence service
         let persistence_service = self
             .output_persistence_service_creator
@@ -216,13 +214,13 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
 
         // Create the Simulation top level config
         let sim_config = Arc::new(self.sim_configurer.configure_next(
-            &self.exp_base_config,
+            Arc::clone(&self.exp_config),
             sim_short_id,
             (*globals).clone(),
             store_config,
             persistence_config,
             max_num_steps,
-        )?);
+        ));
 
         let task_comms = Comms::new(sim_short_id, worker_pool_sender)?;
 
@@ -232,9 +230,19 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
             .new_packages_for_sim(&sim_config, task_comms.clone())?;
 
         let datastore_payload = DatastoreSimulationPayload {
-            agent_batch_schema: sim_config.sim.store.agent_schema.clone(),
-            message_batch_schema: sim_config.sim.store.message_schema.arrow.clone(),
-            context_batch_schema: sim_config.sim.store.context_schema.arrow.clone(),
+            agent_batch_schema: sim_config.simulation_config().store.agent_schema.clone(),
+            message_batch_schema: sim_config
+                .simulation_config()
+                .store
+                .message_schema
+                .arrow
+                .clone(),
+            context_batch_schema: sim_config
+                .simulation_config()
+                .store
+                .context_schema
+                .arrow
+                .clone(),
             shared_store: self.shared_store.clone(),
         };
         // Register the new simulation with the worker pool
@@ -243,7 +251,9 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
                 NewSimulationRun {
                     span: Span::current(),
                     short_id: sim_short_id,
-                    worker_allocation: Arc::clone(&sim_config.sim.worker_allocation),
+                    worker_allocation: Arc::clone(
+                        &sim_config.simulation_config().worker_allocation,
+                    ),
                     packages: sim_start_msgs,
                     datastore: datastore_payload,
                     globals: globals.clone(),
@@ -273,22 +283,22 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         Ok(())
     }
 
-    async fn pause_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
+    async fn pause_sim_run(&mut self, sim_short_id: SimulationId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Pause).await?;
         Ok(())
     }
 
-    async fn resume_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
+    async fn resume_sim_run(&mut self, sim_short_id: SimulationId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Resume).await?;
         Ok(())
     }
 
-    async fn stop_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
+    async fn stop_sim_run(&mut self, sim_short_id: SimulationId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Stop).await?;
         Ok(())
     }
 
-    async fn send_sim(&mut self, sim_short_id: SimulationShortId, msg: SimControl) -> Result<()> {
+    async fn send_sim(&mut self, sim_short_id: SimulationId, msg: SimControl) -> Result<()> {
         if let Some(sender) = self.sim_senders.get_mut(&sim_short_id) {
             sender.send(msg).await?;
             Ok(())
@@ -303,11 +313,11 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
     pub async fn exp_init_msg_base(&self) -> Result<ExperimentInitRunnerMsgBase> {
         let pkg_start_msgs = self.package_creators.init_message()?;
         Ok(ExperimentInitRunnerMsgBase {
-            experiment_id: self.exp_base_config.run.base().id,
+            experiment_id: self.exp_config.experiment().id(),
             shared_context: self.shared_store.clone(),
             package_config: Arc::new(pkg_start_msgs),
             runner_config: self
-                .exp_base_config
+                .exp_config
                 .worker_pool
                 .worker_config
                 .runner_config
@@ -315,11 +325,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         })
     }
 
-    fn add_sim_sender(
-        &mut self,
-        sim_short_id: SimulationShortId,
-        sender: SimCtlSend,
-    ) -> Result<()> {
+    fn add_sim_sender(&mut self, sim_short_id: SimulationId, sender: SimCtlSend) -> Result<()> {
         if self.sim_senders.contains_key(&sim_short_id) {
             let msg = "Cannot mutate a simulation control msg sender";
             tracing::error!("{}, sim short id: {}", msg, sim_short_id);
@@ -397,7 +403,6 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
 impl<P: OutputPersistenceCreator> ExperimentController<P> {
     pub fn new(
         exp_config: Arc<ExperimentConfig>,
-        exp_base_config: Arc<ExperimentConfig>,
         env: Environment,
         shared_store: Arc<SharedStore>,
         worker_pool_send: ExpMsgSend,
@@ -412,8 +417,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         terminate_recv: TerminateRecv,
     ) -> Self {
         ExperimentController {
-            _exp_config: exp_config,
-            exp_base_config,
+            exp_config,
             env,
             shared_store,
             worker_pool_send,

@@ -1,14 +1,11 @@
 use error_stack::{Report, ResultExt};
-use serde::Deserialize;
-use simulation_structure::ExperimentId;
+use execution::package::experiment::ExperimentId;
+use simulation_structure::ExperimentRun;
 use thiserror::Error as ThisError;
 use tokio::time::Duration;
 
 use crate::{
-    proto::{
-        EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentRunRepr, ExperimentRunTrait,
-        InitMessage,
-    },
+    proto::{EngineMsg, EngineStatus, ExecutionEnvironment, InitMessage},
     Args,
 };
 
@@ -84,16 +81,13 @@ pub struct Environment {
     pub orch_client: OrchClient,
     pub orch_listener: nano::Server,
     // TODO: extended experiment run??
-    pub experiment: ExperimentRunRepr,
+    pub experiment: ExperimentRun,
     // TODO: UNUSED: Needs triage
     pub execution_env: ExecutionEnvironment,
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
 
-pub async fn env<E>(args: &Args) -> Result<Environment>
-where
-    E: ExperimentRunTrait + for<'de> Deserialize<'de>,
-{
+pub async fn env(args: &Args) -> Result<Environment> {
     let mut orch_client = OrchClient::new(&args.orchestrator_url, args.experiment_id)?;
     tracing::debug!("Connected to orchestrator at {}", &args.orchestrator_url);
 

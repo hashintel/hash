@@ -3,8 +3,8 @@
 use std::{collections::HashMap, fmt::Display};
 
 use error_stack::{bail, report, IntoReport, ResultExt};
+use execution::package::experiment::ExperimentId;
 use hash_engine_lib::{proto, proto::EngineStatus};
-use simulation_structure::ExperimentId;
 use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};
 
 use crate::{OrchestratorError, Result};

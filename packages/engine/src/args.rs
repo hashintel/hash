@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{AppSettings, Parser};
-use simulation_structure::ExperimentId;
+use execution::package::experiment::ExperimentId;
 
 use crate::utils::{LogFormat, LogLevel, OutputLocation};
 

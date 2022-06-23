@@ -20,12 +20,7 @@ mod name;
 mod task;
 
 use async_trait::async_trait;
-use stateful::{
-    context::Context,
-    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-    global::Globals,
-    state::State,
-};
+use stateful::{context::Context, field::FieldSpecMapAccessor, state::State};
 use tracing::Span;
 
 pub use self::{message::StateTaskMessage, name::StatePackageName, task::StateTask};
@@ -52,14 +47,4 @@ pub trait StatePackageCreator<C>: PackageCreator {
         comms: PackageComms<C>,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>>;
-
-    #[allow(unused_variables)]
-    fn get_state_field_specs(
-        &self,
-        config: &PackageInitConfig,
-        globals: &Globals,
-        field_spec_map_builder: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
-        Ok(vec![])
-    }
 }

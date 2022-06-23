@@ -2,8 +2,8 @@
 mod tests {
     extern crate test;
 
+    use execution::package::experiment::ExperimentId;
     use memory::shared_memory::MemoryId;
-    use simulation_structure::ExperimentId;
     use stateful::agent::AgentBatch;
     use test::Bencher;
 

@@ -40,7 +40,6 @@ pub mod datastore;
 pub mod env;
 mod error;
 pub mod experiment;
-pub mod fetch;
 pub mod proto;
 pub mod simulation;
 pub mod types;

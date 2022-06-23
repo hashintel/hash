@@ -5,8 +5,9 @@ pub mod sim_control;
 
 use std::sync::Arc;
 
-use execution::package::simulation::output::persistence::SimulationOutputPersistence;
-use simulation_structure::SimulationShortId;
+use execution::package::simulation::{
+    output::persistence::SimulationOutputPersistence, SimulationId,
+};
 use tokio::task::JoinHandle;
 use tracing::Instrument;
 
@@ -15,7 +16,7 @@ pub use self::{
     sim_control::SimControl,
 };
 use crate::{
-    config::SimRunConfig,
+    config::SimulationRunConfig,
     experiment::controller::comms::{
         sim_status::SimStatusSend,
         simulation::{new_pair, SimCtlRecv, SimCtlSend},
@@ -25,12 +26,12 @@ use crate::{
 
 pub struct SimulationController {
     pub sender: SimCtlSend,
-    pub task_handle: JoinHandle<Result<SimulationShortId>>,
+    pub task_handle: JoinHandle<Result<SimulationId>>,
 }
 
 impl SimulationController {
     pub fn new<P: SimulationOutputPersistence>(
-        config: Arc<SimRunConfig>,
+        config: Arc<SimulationRunConfig>,
         comms: Comms,
         packages: Packages,
         persistence_service: P,
@@ -54,13 +55,13 @@ impl SimulationController {
 }
 
 fn new_task_handle<P: SimulationOutputPersistence>(
-    config: Arc<SimRunConfig>,
+    config: Arc<SimulationRunConfig>,
     receiver: SimCtlRecv,
     sender: SimStatusSend,
     comms: Comms,
     packages: Packages,
     persistence_service: P,
-) -> Result<JoinHandle<Result<SimulationShortId>>> {
+) -> Result<JoinHandle<Result<SimulationId>>> {
     let task = Box::pin(run::sim_run(
         config,
         comms,

@@ -1,14 +1,14 @@
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, sync::Arc};
 
 use error_stack::{IntoReport, Result, ResultExt};
+use execution::runner::RunnerConfig;
 use hash_engine_lib::{
-    config::experiment_config,
-    env::env,
+    env::{env, Environment},
     experiment::controller::run::{cleanup_experiment, run_experiment},
-    fetch::FetchDependencies,
-    proto::{ExperimentRun, ExperimentRunTrait},
     utils::init_logger,
+    Args,
 };
+use simulation_structure::{ExperimentConfig, FetchDependencies};
 
 #[derive(Debug)]
 pub struct EngineError;
@@ -20,6 +20,20 @@ impl fmt::Display for EngineError {
 }
 
 impl Error for EngineError {}
+
+pub fn experiment_config(args: &Args, env: &Environment) -> Result<ExperimentConfig, EngineError> {
+    ExperimentConfig::new(
+        Arc::new(env.experiment.clone()),
+        args.num_workers,
+        args.target_max_group_size,
+        RunnerConfig {
+            js_runner_initial_heap_constraint: args.js_runner_initial_heap_constraint,
+            js_runner_max_heap_size: args.js_runner_max_heap_size,
+        },
+    )
+    .attach_printable("Could not create experiment config")
+    .change_context(EngineError)
+}
 
 #[tokio::main]
 async fn main() -> Result<(), EngineError> {
@@ -36,7 +50,7 @@ async fn main() -> Result<(), EngineError> {
     .attach_printable("Failed to initialize the logger")
     .change_context(EngineError)?;
 
-    let mut env = env::<ExperimentRun>(&args)
+    let mut env = env(&args)
         .await
         .report()
         .attach_printable("Could not create environment for experiment")
@@ -45,18 +59,15 @@ async fn main() -> Result<(), EngineError> {
     env.experiment
         .fetch_deps()
         .await
-        .report()
         .attach_printable("Could not fetch dependencies for experiment")
         .change_context(EngineError)?;
+
     // Generate the configuration for packages from the environment
-    let config = experiment_config(&args, &env)
-        .await
-        .report()
-        .change_context(EngineError)?;
+    let config = experiment_config(&args, &env)?;
 
     tracing::info!(
         "HASH Engine process started for experiment {}",
-        config.run.base().name
+        config.experiment().name()
     );
 
     let experiment_result = run_experiment(config, env)

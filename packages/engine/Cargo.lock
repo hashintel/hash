@@ -419,6 +419,7 @@ dependencies = [
  "hash_engine_lib",
  "orchestrator",
  "serde",
+ "simulation_structure",
  "tokio",
  "uuid",
 ]
@@ -680,7 +681,6 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
- "simulation_structure",
  "stateful",
  "thiserror",
  "tokio",
@@ -938,7 +938,9 @@ name = "hash_engine"
 version = "0.0.0"
 dependencies = [
  "error-stack",
+ "execution",
  "hash_engine_lib",
+ "simulation_structure",
  "tokio",
  "tracing",
 ]
@@ -952,7 +954,6 @@ dependencies = [
  "async-trait",
  "cc",
  "clap",
- "csv",
  "error-stack",
  "execution",
  "flatbuffers_gen",
@@ -967,7 +968,6 @@ dependencies = [
  "serde_json",
  "simulation_structure",
  "stateful",
- "surf",
  "thiserror",
  "tokio",
  "tracing",
@@ -1576,8 +1576,6 @@ dependencies = [
  "hash_engine_lib",
  "nano",
  "num_cpus",
- "rand 0.8.4",
- "rand_distr",
  "serde",
  "serde_json",
  "simulation_structure",
@@ -2065,8 +2063,21 @@ dependencies = [
 name = "simulation_structure"
 version = "0.0.0"
 dependencies = [
+ "async-trait",
+ "clap",
+ "csv",
+ "error-stack",
+ "execution",
+ "futures",
+ "rand 0.8.4",
+ "rand_distr",
  "serde",
- "uuid",
+ "serde_json",
+ "stateful",
+ "surf",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

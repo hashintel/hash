@@ -12,9 +12,8 @@ use stateful::{
 use tracing::Instrument;
 
 use crate::{
-    config::SimRunConfig,
+    config::SimulationRunConfig,
     datastore::{store::Store, table::create_remove::CreateRemovePlanner},
-    proto::ExperimentRunTrait,
     simulation::{
         agent_control::AgentControl,
         command::{Commands, StopCommand},
@@ -30,7 +29,7 @@ pub struct Engine {
     packages: Packages,
     store: Store,
     comms: Arc<Comms>,
-    config: Arc<SimRunConfig>,
+    config: Arc<SimulationRunConfig>,
     stop_messages: Vec<StopCommand>,
 }
 
@@ -45,7 +44,7 @@ impl Engine {
         mut packages: Packages,
         mut uninitialized_store: Store,
         comms: Comms,
-        config: Arc<SimRunConfig>,
+        config: Arc<SimulationRunConfig>,
     ) -> Result<Engine> {
         let comms = Arc::new(comms);
 
@@ -99,7 +98,7 @@ impl Engine {
             AgentControl::Continue
         };
         let result = SimulationStepResult {
-            sim_id: self.config.sim.id,
+            sim_id: self.config.simulation_config().id,
             output,
             errors: vec![],
             warnings: vec![],
@@ -275,7 +274,7 @@ impl Engine {
         let message_proxies = state.message_pool().read_proxies()?;
         let mut commands = Commands::from_hash_messages(message_map, &message_proxies)?;
         commands.merge(self.comms.take_commands()?);
-        commands.verify(&self.config.sim.store.agent_schema)?;
+        commands.verify(&self.config.simulation_config().store.agent_schema)?;
         self.stop_messages = commands.stop;
 
         let mut planner =
@@ -311,8 +310,8 @@ impl Engine {
     ) -> Result<AgentBatchPool> {
         context.update_agent_snapshot(
             state,
-            &self.config.sim.store.agent_schema,
-            &MemoryId::new(self.config.exp.run.base().id),
+            &self.config.simulation_config().store.agent_schema,
+            &MemoryId::new(self.config.experiment_config().experiment().id()),
         )?;
         Ok(context.take_agent_pool())
     }

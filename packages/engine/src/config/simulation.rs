@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
-use execution::{package::simulation::PackageCreatorConfig, worker_pool::WorkerAllocation};
-use simulation_structure::SimulationShortId;
+use execution::{
+    package::simulation::{PackageCreatorConfig, SimulationId},
+    worker_pool::WorkerAllocation,
+};
 
-use crate::config::StoreConfig;
+use crate::config::SchemaConfig;
 
-pub struct Config {
-    pub id: SimulationShortId,
-    pub store: Arc<StoreConfig>,
+pub struct SimulationConfig {
+    pub id: SimulationId,
+    pub store: Arc<SchemaConfig>,
     pub worker_allocation: Arc<WorkerAllocation>,
     pub max_num_steps: usize,
     pub package_creator: PackageCreatorConfig,

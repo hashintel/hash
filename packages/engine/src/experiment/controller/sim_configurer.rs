@@ -1,29 +1,29 @@
 use std::sync::Arc;
 
 use execution::{
-    package::{experiment::ExperimentPackageConfig, simulation::PersistenceConfig},
+    package::{
+        experiment::basic::BasicExperimentConfig,
+        simulation::{PersistenceConfig, SimulationId},
+    },
     worker_pool::{WorkerAllocation, WorkerIndex},
 };
-use simulation_structure::SimulationShortId;
+use simulation_structure::ExperimentConfig;
 use stateful::global::Globals;
 
-use crate::{
-    config::{ExperimentConfig, SimRunConfig, StoreConfig},
-    experiment::controller::error::Result,
-};
+use crate::config::{SchemaConfig, SimulationRunConfig};
 
 pub struct SimConfigurer {
     worker_allocator: WorkerAllocator,
 }
 
 impl SimConfigurer {
-    pub fn new(package_config: &ExperimentPackageConfig, num_workers: usize) -> SimConfigurer {
+    pub fn new(package_config: &BasicExperimentConfig, num_workers: usize) -> SimConfigurer {
         let num_workers_per_sim = match package_config {
-            ExperimentPackageConfig::Simple(config) => {
+            BasicExperimentConfig::Simple(config) => {
                 let num_runs = config.changed_globals.len();
                 std::cmp::max(1, (num_workers as f64 / num_runs as f64).ceil() as usize)
             }
-            ExperimentPackageConfig::SingleRun(_) => std::cmp::max(1, num_workers),
+            BasicExperimentConfig::SingleRun(_) => std::cmp::max(1, num_workers),
         };
 
         SimConfigurer {
@@ -37,24 +37,22 @@ impl SimConfigurer {
 
     pub fn configure_next(
         &mut self,
-        exp_config: &Arc<ExperimentConfig>,
-        id: SimulationShortId,
+        experiment_config: Arc<ExperimentConfig>,
+        id: SimulationId,
         globals: Globals,
-        store_config: StoreConfig,
+        store_config: SchemaConfig,
         persistence_config: PersistenceConfig,
         max_num_steps: usize,
-    ) -> Result<SimRunConfig> {
-        let worker_allocation = self.worker_allocator.next();
-        let config = SimRunConfig::new(
-            exp_config,
+    ) -> SimulationRunConfig {
+        SimulationRunConfig::new(
+            experiment_config,
             id,
             globals,
-            worker_allocation,
+            self.worker_allocator.next(),
             store_config,
             persistence_config,
             max_num_steps,
-        )?;
-        Ok(config)
+        )
     }
 }
 

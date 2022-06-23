@@ -1,45 +1,23 @@
-use core::fmt;
-use std::str::FromStr;
+//! Contains the components used to define the structure of Experiment and Simulation runs.
+//!
+//! The [`Manifest`] defines the initial configuration used to define an experiment, this is then
+//! turned into an [`ExperimentRun`] depending on the specified [`ExperimentType`]. Within the
+//! [`ExperimentRun`] there are specific information for the [`Experiment`] and its
+//! [`ExperimentConfig`], and the [`Simulation`]s within the experiment.
+// TODO: Add the Experiment config and Simulation Config and describe the difference here.
+// TODO: Make sure, the documentation differentiates between [`Simulation`] and the actual
+//   simulation, which is running.
 
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
+mod config;
+mod dependencies;
+mod experiment;
+mod manifest;
+mod simulation;
 
-pub type SimulationShortId = u32;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct ExperimentId {
-    id: Uuid,
-}
-
-impl ExperimentId {
-    pub fn generate() -> Self {
-        Self { id: Uuid::new_v4() }
-    }
-
-    pub fn as_bytes(&self) -> &[u8; core::mem::size_of::<u128>()] {
-        self.id.as_bytes()
-    }
-}
-
-impl fmt::Display for ExperimentId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
-    }
-}
-
-impl From<ExperimentId> for Uuid {
-    fn from(id: ExperimentId) -> Self {
-        id.id
-    }
-}
-
-impl FromStr for ExperimentId {
-    type Err = uuid::Error;
-
-    fn from_str(uuid_str: &str) -> Result<Self, Self::Err> {
-        Ok(Self {
-            id: Uuid::from_str(uuid_str)?,
-        })
-    }
-}
+pub use self::{
+    config::{ExperimentConfig, PackageConfig, PackageConfigBuilder},
+    dependencies::FetchDependencies,
+    experiment::{Experiment, ExperimentRun, ExperimentType},
+    manifest::Manifest,
+    simulation::Simulation,
+};

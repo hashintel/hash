@@ -15,8 +15,7 @@ use stateful::{
 use tracing::{Instrument, Span};
 
 use crate::{
-    config::SimRunConfig,
-    proto::ExperimentRunTrait,
+    config::SimulationRunConfig,
     simulation::error::{Error, Result},
 };
 
@@ -36,7 +35,7 @@ impl InitPackages {
         InitPackages { inner }
     }
 
-    pub async fn run(&mut self, sim_config: Arc<SimRunConfig>) -> Result<State> {
+    pub async fn run(&mut self, sim_config: Arc<SimulationRunConfig>) -> Result<State> {
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
 
@@ -97,7 +96,7 @@ impl StepPackages {
 impl StepPackages {
     pub fn empty_context(
         &self,
-        sim_run_config: &SimRunConfig,
+        sim_run_config: &SimulationRunConfig,
         num_agents: usize,
     ) -> Result<Context> {
         let keys_and_columns = self
@@ -107,7 +106,7 @@ impl StepPackages {
             //       from the schema
             .map(|package| {
                 package
-                    .get_empty_arrow_columns(num_agents, &sim_run_config.sim.store.context_schema)
+                    .get_empty_arrow_columns(num_agents, &sim_run_config.simulation_config().store.context_schema)
             })
             .collect::<execution::Result<Vec<_>>>()?
             .into_iter()
@@ -118,7 +117,7 @@ impl StepPackages {
         // because we aren't generating the columns from the schema, we need to reorder the cols
         // from the packages to match this is another reason to move column creation to be
         // done per schema instead of per package, because this is very messy.
-        let schema = &sim_run_config.sim.store.context_schema;
+        let schema = &sim_run_config.simulation_config().store.context_schema;
         let columns = schema
             .arrow
             .fields()
@@ -138,8 +137,8 @@ impl StepPackages {
 
         let context = Context::from_columns(
             columns,
-            &sim_run_config.sim.store.context_schema,
-            MemoryId::new(sim_run_config.exp.run.base().id),
+            &sim_run_config.simulation_config().store.context_schema,
+            MemoryId::new(sim_run_config.experiment_config().experiment().id()),
         )?;
         Ok(context)
     }
@@ -153,7 +152,7 @@ impl StepPackages {
         snapshot: StateSnapshot,
         pre_context: PreContext,
         num_agents: usize,
-        sim_config: &SimRunConfig,
+        sim_config: &SimulationRunConfig,
     ) -> Result<Context> {
         tracing::debug!("Running context packages");
         // Execute packages in parallel and collect the data
@@ -222,7 +221,7 @@ impl StepPackages {
         // the moment but a proper fix needs a bit of a redesign. Thus:
         // TODO, figure out a better design for how we interface with columns from context packages,
         //   and how we ensure the necessary order (preferably enforced in actual logic)
-        let schema = &sim_config.sim.store.context_schema;
+        let schema = &sim_config.simulation_config().store.context_schema;
         let column_writers = schema
             .arrow
             .fields()

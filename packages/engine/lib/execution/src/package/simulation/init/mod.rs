@@ -17,11 +17,7 @@ mod state;
 mod task;
 
 use async_trait::async_trait;
-use stateful::{
-    agent::Agent,
-    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-    global::Globals,
-};
+use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
 pub use self::{
     message::InitTaskMessage,
@@ -51,14 +47,4 @@ pub trait InitPackageCreator<C>: PackageCreator {
         system: PackageComms<C>,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>>;
-
-    #[allow(unused_variables)]
-    fn get_state_field_specs(
-        &self,
-        config: &PackageInitConfig,
-        globals: &Globals,
-        field_spec_map_builder: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
-        Ok(vec![])
-    }
 }

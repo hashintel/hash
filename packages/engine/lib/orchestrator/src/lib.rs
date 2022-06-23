@@ -2,6 +2,8 @@
 //!
 //! This crate is used for parsing a project manifest file [`Manifest`] into an experiment
 //! configuration, which then can be run on a `hash_engine` subprocess.
+//!
+//! [`Manifest`]: simulation_structure::Manifest
 
 #[macro_use]
 extern crate tracing;
@@ -9,12 +11,10 @@ extern crate tracing;
 pub mod error;
 mod experiment;
 mod experiment_server;
-mod manifest;
 pub mod process;
 
 pub use self::{
     error::{OrchestratorError, Result},
-    experiment::{Experiment, ExperimentConfig, ExperimentType},
+    experiment::{Experiment, ExperimentConfig},
     experiment_server::{Handler, Server},
-    manifest::Manifest,
 };
