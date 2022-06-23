@@ -111,7 +111,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
         data-testid="pages-tree"
         tabIndex={-1}
         sx={{
-          mx: 0.5,
+          mx: 0.75,
         }}
         {...(currentPageEntityId && { selected: currentPageEntityId })}
         onNodeSelect={(_: SyntheticEvent, pageEntityId: string) => {

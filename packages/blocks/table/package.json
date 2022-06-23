@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/react-table": "7.7.1",
-    "block-scripts": "0.0.10",
+    "block-scripts": "0.0.13",
     "eslint": "8.13.0",
     "mock-block-dock": "0.0.15",
     "react": "^17.0.2",

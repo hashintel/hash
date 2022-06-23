@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use execution::runner::RunnerError;
+use execution::{
+    package::simulation::output::persistence::SimulationOutputPersistence, runner::RunnerError,
+};
 use futures::FutureExt;
 use simulation_structure::SimulationShortId;
 use tokio::time::Duration;
@@ -9,7 +11,6 @@ use crate::{
     config::SimRunConfig,
     datastore::store::Store,
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
-    output::SimulationOutputPersistenceRepr,
     simulation::{
         agent_control::AgentControl,
         comms::Comms,
@@ -51,7 +52,7 @@ enum LoopControl {
 /// - Sends an update on the Step result to the Experiment Controller
 ///
 /// [`Engine::next()`]: crate::simulation::engine::Engine::next
-pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
+pub async fn sim_run<P: SimulationOutputPersistence>(
     config: Arc<SimRunConfig>,
     comms: Comms,
     packages: Packages,
@@ -101,7 +102,11 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
             Err(error) => {
                 tracing::error!("Got error within the engine step process: {:?}", error);
                 // Try to persist before exiting
-                let persistence_result = Some(persistence_service.finalize(&config).await?);
+                let persistence_result = Some(
+                    persistence_service
+                        .finalize(&config.sim.package_creator.globals)
+                        .await?,
+                );
                 let runner_error = RunnerError {
                     message: Some(format!("{:?}", error)),
                     code: None,
@@ -161,7 +166,9 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     let main_loop_dur = now.elapsed().as_millis();
 
     let now = std::time::Instant::now();
-    let persistence_result = persistence_service.finalize(&config).await?;
+    let persistence_result = persistence_service
+        .finalize(&config.sim.package_creator.globals)
+        .await?;
     sims_to_exp
         .send(
             SimStatus::ended(

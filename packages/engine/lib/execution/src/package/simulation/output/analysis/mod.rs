@@ -4,6 +4,7 @@
 mod macros;
 
 mod analyzer;
+mod buffer;
 mod config;
 mod index_iter;
 mod output;
@@ -20,6 +21,7 @@ use tracing::Span;
 
 use self::analyzer::Analyzer;
 pub use self::{
+    buffer::AnalysisBuffer,
     config::AnalysisOutputConfig,
     output::{AnalysisFinalOutput, AnalysisOutput, AnalysisSingleOutput},
 };

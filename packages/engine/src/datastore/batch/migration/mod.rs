@@ -1343,11 +1343,11 @@ fn offsets_start_at_zero(
 pub(super) mod test {
     use rand::Rng;
     use serde::{Deserialize, Serialize};
+    use simulation_structure::ExperimentId;
     use stateful::{
         agent::{arrow::PREVIOUS_INDEX_FIELD_KEY, IntoAgents},
         message::MessageSchema,
     };
-    use uuid::Uuid;
 
     use super::*;
     use crate::datastore::test_utils::gen_schema_and_test_agents;
@@ -1410,7 +1410,7 @@ pub(super) mod test {
 
     #[test]
     fn test_migration_remove() -> Result<()> {
-        let experiment_id = Uuid::new_v4();
+        let experiment_id = ExperimentId::generate();
         let msg_schema = Arc::new(MessageSchema::new());
         let remove_indices = [3, 5, 7, 8, 9, 12, 45, 46, 55];
         let num_agents = 100;
@@ -1489,7 +1489,7 @@ pub(super) mod test {
 
     #[test]
     fn test_migration_create() -> Result<()> {
-        let experiment_id = Uuid::new_v4();
+        let experiment_id = ExperimentId::generate();
         let msg_schema = Arc::new(MessageSchema::new());
 
         let num_agents = 150;
@@ -1578,7 +1578,7 @@ pub(super) mod test {
 
     #[test]
     fn test_migration_move() -> Result<()> {
-        let experiment_id = Uuid::new_v4();
+        let experiment_id = ExperimentId::generate();
         let msg_schema = Arc::new(MessageSchema::new());
 
         let num_agents = 150;
@@ -1674,7 +1674,7 @@ pub(super) mod test {
 
     #[test]
     fn test_migration_all() -> Result<()> {
-        let experiment_id = Uuid::new_v4();
+        let experiment_id = ExperimentId::generate();
         let msg_schema = Arc::new(MessageSchema::new());
 
         let num_agents = 150;

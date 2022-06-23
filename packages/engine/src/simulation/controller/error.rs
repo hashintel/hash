@@ -7,8 +7,8 @@ pub enum Error {
     #[error("Simulation Controller error: {0}")]
     Unique(String),
 
-    #[error("Output error: {0}")]
-    Output(#[from] crate::output::Error),
+    #[error("Execution error: {0}")]
+    Execution(#[from] execution::Error),
 
     #[error("Tokio Join Error: {0}")]
     TokioJoin(#[from] tokio::task::JoinError),

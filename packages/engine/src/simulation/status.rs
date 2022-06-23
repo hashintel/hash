@@ -1,11 +1,10 @@
-use execution::runner::RunnerError;
+use execution::{
+    package::simulation::output::persistence::OutputPersistenceResult, runner::RunnerError,
+};
 use serde::{Deserialize, Serialize};
 use simulation_structure::SimulationShortId;
 
-use crate::{
-    output::OutputPersistenceResultRepr,
-    simulation::{command::StopCommand, Result},
-};
+use crate::simulation::{command::StopCommand, Result};
 
 // Sent from sim runs to experiment main loop.
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
@@ -44,14 +43,14 @@ impl SimStatus {
         }
     }
 
-    pub fn ended<P: OutputPersistenceResultRepr>(
+    pub fn ended<P: OutputPersistenceResult>(
         sim_id: SimulationShortId,
         steps_taken: isize,
         early_stop: bool,
         stop_msg: Vec<StopCommand>,
         persistence_result: P,
     ) -> Result<SimStatus> {
-        let persistence_result = OutputPersistenceResultRepr::into_value(persistence_result)
+        let persistence_result = OutputPersistenceResult::into_value(persistence_result)
             .map(|(a, b)| (a.to_string(), b))?;
         Ok(SimStatus {
             sim_id,
@@ -65,16 +64,14 @@ impl SimStatus {
         })
     }
 
-    pub fn error<P: OutputPersistenceResultRepr>(
+    pub fn error<P: OutputPersistenceResult>(
         sim_id: SimulationShortId,
         steps_taken: isize,
         error: RunnerError,
         persistence_result: Option<P>,
     ) -> Result<SimStatus> {
         let persistence_result = persistence_result
-            .map(|res| {
-                OutputPersistenceResultRepr::into_value(res).map(|(a, b)| (a.to_string(), b))
-            })
+            .map(|res| OutputPersistenceResult::into_value(res).map(|(a, b)| (a.to_string(), b)))
             .transpose()?;
         Ok(SimStatus {
             sim_id,
