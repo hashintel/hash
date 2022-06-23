@@ -44,7 +44,6 @@ async fn main() -> Result<(), EngineError> {
     env.experiment
         .fetch_deps()
         .await
-        .report()
         .attach_printable("Could not fetch dependencies for experiment")
         .change_context(EngineError)?;
     // Generate the configuration for packages from the environment

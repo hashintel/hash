@@ -352,7 +352,6 @@ impl Manifest {
 
         if file_extension == "csv" {
             data = parse_raw_csv_into_json(data)
-                .report()
                 .attach_printable_lazy(|| format!("Could not convert csv into json: {path:?}"))
                 .change_context(ManifestError)?;
         }

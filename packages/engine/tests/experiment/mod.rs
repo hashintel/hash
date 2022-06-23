@@ -15,9 +15,10 @@ use execution::{
     runner::Language,
 };
 use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
-use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
+use orchestrator::{ExperimentConfig, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
+use simulation_structure::{ExperimentType, Manifest};
 use tracing_subscriber::fmt::time::Uptime;
 
 use self::error::{Result, TestContext};
