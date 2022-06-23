@@ -1,4 +1,4 @@
-//! Contains the structure for running the engine.
+//! Contains the components used to define the structure of Experiment and Simulation runs.
 //!
 //! The configuration of an experiment is defined in [`Manifest`]. A [`Manifest`] contains the
 //! definition to run an [`Experiment`], which is described as [`ExperimentRun`]. An [`Experiment`]
