@@ -2,6 +2,8 @@
 //!
 //! This crate is used for parsing a project manifest file [`Manifest`] into an experiment
 //! configuration, which then can be run on a `hash_engine` subprocess.
+//!
+//! [`Manifest`]: simulation_structure::Manifest
 
 #[macro_use]
 extern crate tracing;

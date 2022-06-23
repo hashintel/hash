@@ -1,10 +1,12 @@
 //! Contains the components used to define the structure of Experiment and Simulation runs.
 //!
-//! The configuration of an experiment is defined in [`Manifest`]. A [`Manifest`] contains the
-//! definition to run an [`Experiment`], which is described as [`ExperimentRun`]. An [`Experiment`]
-//! has a [`Simulation`] associated with it. Depending on the [`ExperimentType`] the [`Experiment`]
-//! will run the [`Simulation`] with different configurations.
+//! The [`Manifest`] defines the initial configuration used to define an experiment, this is then
+//! turned into an [`ExperimentRun`] depending on the specified [`ExperimentType`]. Within the
+//! [`ExperimentRun`] there are specific information for the [`Experiment`] and its
+//! [`ExperimentConfig`], and the [`Simulation`]s within the experiment.
 // TODO: Add the Experiment config and Simulation Config and describe the difference here.
+// TODO: Make sure, the documentation differentiates between [`Simulation`] and the actual
+//   simulation, which is running.
 
 mod config;
 mod dependencies;
