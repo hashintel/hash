@@ -7,7 +7,10 @@ use execution::{
             ExperimentPackageConfig,
         },
         simulation::{
-            init::{InitialState, InitialStateName},
+            context::ContextPackageCreators,
+            init::{InitPackageCreators, InitialState, InitialStateName},
+            output::OutputPackageCreators,
+            state::StatePackageCreators,
             PackageInitConfig, SimulationId,
         },
     },
@@ -30,13 +33,7 @@ use stateful::{
 use crate::{
     config::{SchemaConfig, SimulationRunConfig},
     datastore::{error::Error, schema::last_state_index_key},
-    simulation::package::{
-        context::ContextPackageCreators,
-        creator::{get_base_agent_fields, PackageCreators},
-        init::InitPackageCreators,
-        output::OutputPackageCreators,
-        state::StatePackageCreators,
-    },
+    simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
 fn test_field_specs() -> FieldSpecMap {

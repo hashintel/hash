@@ -2,9 +2,12 @@ use std::{collections::HashMap, sync::Arc};
 
 use execution::{
     package::simulation::{
-        context::ContextPackageCreator, init::InitPackageCreator, output::OutputPackageCreator,
-        state::StatePackageCreator, Comms, OutputPackagesSimConfig, PackageComms,
-        PackageInitConfig, PackageName, PackageType, PersistenceConfig,
+        context::{ContextPackageCreator, ContextPackageCreators},
+        init::{InitPackageCreator, InitPackageCreators},
+        output::{OutputPackageCreator, OutputPackageCreators},
+        state::{StatePackageCreator, StatePackageCreators},
+        Comms, OutputPackagesSimConfig, PackageComms, PackageInitConfig, PackageName, PackageType,
+        PersistenceConfig,
     },
     runner::comms::PackageMsgs,
     worker::PackageInitMsgForWorker,
@@ -24,13 +27,7 @@ use crate::{
     config::SimulationRunConfig,
     datastore::schema::last_state_index_key,
     simulation::{
-        package::{
-            context::ContextPackageCreators,
-            init::InitPackageCreators,
-            output::OutputPackageCreators,
-            run::{InitPackages, Packages, StepPackages},
-            state::StatePackageCreators,
-        },
+        package::run::{InitPackages, Packages, StepPackages},
         Error, Result,
     },
 };

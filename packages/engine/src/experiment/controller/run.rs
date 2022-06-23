@@ -3,8 +3,17 @@ use std::{lazy::SyncOnceCell, pin::Pin, sync::Arc, time::Duration};
 use execution::{
     package::{
         experiment::{ExperimentId, ExperimentPackage, ExperimentPackageConfig},
-        simulation::output::persistence::{
-            local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreator,
+        simulation::{
+            context::ContextPackageCreators,
+            init::InitPackageCreators,
+            output::{
+                persistence::{
+                    local::LocalOutputPersistence, none::NoOutputPersistence,
+                    OutputPersistenceCreator,
+                },
+                OutputPackageCreators,
+            },
+            state::StatePackageCreators,
         },
     },
     worker::Worker,
@@ -28,13 +37,7 @@ use crate::{
         error::{Error as ExperimentError, Result as ExperimentResult},
     },
     proto::EngineStatus,
-    simulation::{
-        comms::Comms,
-        package::{
-            context::ContextPackageCreators, creator::PackageCreators, init::InitPackageCreators,
-            output::OutputPackageCreators, state::StatePackageCreators,
-        },
-    },
+    simulation::{comms::Comms, package::creator::PackageCreators},
     Error as CrateError,
 };
 

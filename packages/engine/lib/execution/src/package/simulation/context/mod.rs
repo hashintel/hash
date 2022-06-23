@@ -12,6 +12,7 @@ pub mod agent_messages;
 pub mod api_requests;
 pub mod neighbors;
 
+mod creator;
 mod message;
 mod name;
 mod task;
@@ -28,7 +29,10 @@ use stateful::{
 };
 use tracing::Span;
 
-pub use self::{message::ContextTaskMessage, name::ContextPackageName, task::ContextTask};
+pub use self::{
+    creator::ContextPackageCreators, message::ContextTaskMessage, name::ContextPackageName,
+    task::ContextTask,
+};
 use crate::{
     package::simulation::{
         MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,

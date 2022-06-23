@@ -1,8 +1,3 @@
-pub mod context;
-pub mod init;
-pub mod output;
-pub mod state;
-
 pub mod creator;
 pub mod run;
 
@@ -10,19 +5,16 @@ pub mod run;
 pub mod tests {
     use execution::{
         package::simulation::{
-            init::{InitialState, InitialStateName},
+            context::ContextPackageCreators,
+            init::{InitPackageCreators, InitialState, InitialStateName},
+            output::OutputPackageCreators,
+            state::StatePackageCreators,
             PackageInitConfig, PackageName,
         },
         Error, Result,
     };
 
-    use crate::simulation::{
-        comms::Comms,
-        package::{
-            context::ContextPackageCreators, init::InitPackageCreators,
-            output::OutputPackageCreators, state::StatePackageCreators,
-        },
-    };
+    use crate::simulation::comms::Comms;
 
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {
         let cycle_found = parents.contains(&src_dep);
