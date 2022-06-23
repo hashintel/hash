@@ -24,9 +24,9 @@ pub struct SimStatus {
 
 impl SimStatus {
     /// Default value for `SimStatus` but not exposed to the user.
-    fn default() -> Self {
+    fn new(sim_id: SimulationId) -> Self {
         SimStatus {
-            sim_id: SimulationId::new(0),
+            sim_id,
             steps_taken: 0,
             early_stop: false,
             stop_msg: vec![],
@@ -40,10 +40,9 @@ impl SimStatus {
 
     pub fn running(sim_id: SimulationId, steps_taken: isize) -> SimStatus {
         SimStatus {
-            sim_id,
             steps_taken,
             running: true,
-            ..SimStatus::default()
+            ..SimStatus::new(sim_id)
         }
     }
 
@@ -51,10 +50,9 @@ impl SimStatus {
     // TODO: UNUSED: Needs triage
     pub fn stop_signal(sim_id: SimulationId) -> SimStatus {
         SimStatus {
-            sim_id,
             running: false,
             stop_signal: true,
-            ..SimStatus::default()
+            ..SimStatus::new(sim_id)
         }
     }
 
@@ -68,14 +66,13 @@ impl SimStatus {
         let persistence_result = OutputPersistenceResult::into_value(persistence_result)
             .map(|(a, b)| (a.to_string(), b))?;
         Ok(SimStatus {
-            sim_id,
             steps_taken,
             early_stop,
             stop_msg,
             stop_signal: true,
             running: false,
             persistence_result: Some(persistence_result),
-            ..SimStatus::default()
+            ..SimStatus::new(sim_id)
         })
     }
 
@@ -89,12 +86,11 @@ impl SimStatus {
             .map(|res| OutputPersistenceResult::into_value(res).map(|(a, b)| (a.to_string(), b)))
             .transpose()?;
         Ok(SimStatus {
-            sim_id,
             error: Some(error),
             steps_taken,
             running: false,
             persistence_result,
-            ..SimStatus::default()
+            ..SimStatus::new(sim_id)
         })
     }
 }
