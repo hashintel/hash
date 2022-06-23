@@ -61,7 +61,9 @@ impl<C> ContextPackageCreator<C> for NeighborsCreator {
     ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![fields::get_neighbors_field_spec(field_spec_creator)?])
     }
+}
 
+impl PackageCreator for NeighborsCreator {
     fn get_state_field_specs(
         &self,
         _config: &PackageInitConfig,
@@ -73,8 +75,6 @@ impl<C> ContextPackageCreator<C> for NeighborsCreator {
         )?])
     }
 }
-
-impl PackageCreator for NeighborsCreator {}
 
 pub struct Neighbors {
     topology: Arc<TopologyConfig>,

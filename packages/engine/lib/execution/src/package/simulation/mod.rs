@@ -225,6 +225,11 @@ mod name;
 mod package_type;
 mod task;
 
+use stateful::{
+    field::{RootFieldSpec, RootFieldSpecCreator},
+    global::Globals,
+};
+
 pub(crate) use self::name::{PackageIdGenerator, PackageMetadata};
 pub use self::{
     comms::{Comms, PackageComms},
@@ -258,6 +263,16 @@ pub trait PackageCreator: Send + Sync {
         Self: Sized,
     {
         Dependencies::empty()
+    }
+
+    #[allow(unused_variables)]
+    fn get_state_field_specs(
+        &self,
+        config: &PackageInitConfig,
+        globals: &Globals,
+        field_spec_map_builder: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![])
     }
 }
 
