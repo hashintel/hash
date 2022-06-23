@@ -14,7 +14,7 @@ mod simulation;
 
 pub use self::{
     config::{ExperimentConfig, PackageConfig, PackageConfigBuilder},
-    dependencies::{parse_raw_csv_into_json, FetchDependencies},
+    dependencies::FetchDependencies,
     experiment::{Experiment, ExperimentRun, ExperimentType},
     manifest::Manifest,
     simulation::Simulation,

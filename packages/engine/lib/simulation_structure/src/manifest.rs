@@ -19,7 +19,8 @@ use stateful::global::Dataset;
 use thiserror::Error;
 
 use crate::{
-    experiment::ExperimentType, parse_raw_csv_into_json, Experiment, ExperimentRun, Simulation,
+    dependencies::parse_raw_csv_into_json, experiment::ExperimentType, Experiment, ExperimentRun,
+    Simulation,
 };
 
 #[derive(Debug, Error)]
