@@ -1,58 +1,39 @@
-use std::{
-    collections::{hash_map::Iter, HashMap},
-    lazy::SyncOnceCell,
-};
+use std::collections::HashMap;
 
 use execution::package::simulation::{
     init::{js_py::JsPyInitCreator, json::JsonInitCreator, InitPackageCreator, InitPackageName},
-    PackageInitConfig,
+    Comms, PackageInitConfig,
 };
 
-use crate::simulation::{comms::Comms, Error, Result};
+use crate::simulation::{Error, Result};
 
-pub struct PackageCreators(
-    SyncOnceCell<HashMap<InitPackageName, Box<dyn InitPackageCreator<Comms>>>>,
-);
+pub struct InitPackageCreators<C> {
+    creators: HashMap<InitPackageName, Box<dyn InitPackageCreator<C>>>,
+}
 
-pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
-
-impl PackageCreators {
-    pub(crate) fn initialize_for_experiment_run(&self, _config: &PackageInitConfig) -> Result<()> {
+impl<C: Comms> InitPackageCreators<C> {
+    pub(crate) fn from_config(_config: &PackageInitConfig) -> Result<Self> {
         tracing::debug!("Initializing Init Package Creators");
-        use InitPackageName::{JsPy, Json};
-        let mut m = HashMap::<_, Box<dyn InitPackageCreator<Comms>>>::new();
-        m.insert(Json, Box::new(JsonInitCreator));
-        m.insert(JsPy, Box::new(JsPyInitCreator));
-        self.0
-            .set(m)
-            .map_err(|_| Error::from("Failed to initialize Init Package Creators"))?;
-        Ok(())
+
+        let mut creators = HashMap::<_, Box<dyn InitPackageCreator<C>>>::with_capacity(2);
+        creators.insert(InitPackageName::Json, Box::new(JsonInitCreator));
+        creators.insert(InitPackageName::JsPy, Box::new(JsPyInitCreator));
+        Ok(Self { creators })
     }
 
-    pub(crate) fn get_checked(
-        &self,
-        name: &InitPackageName,
-    ) -> Result<&Box<dyn InitPackageCreator<Comms>>> {
-        self.0
-            .get()
-            .ok_or_else(|| Error::from("Init Package Creators weren't initialized"))?
-            .get(name)
-            .ok_or_else(|| {
-                Error::from(format!(
-                    "Package creator: {} wasn't within the Init Package Creators map",
-                    name
-                ))
-            })
+    pub(crate) fn get(&self, name: InitPackageName) -> Result<&dyn InitPackageCreator<C>> {
+        self.creators
+            .get(&name)
+            .map(Box::as_ref)
+            .ok_or_else(|| Error::from(format!("Package {name} was not initialized")))
     }
 
-    #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(
+    #[cfg(test)]
+    pub(crate) fn iter(
         &self,
-    ) -> Result<Iter<'_, InitPackageName, Box<dyn InitPackageCreator<Comms>>>> {
-        Ok(self
-            .0
-            .get()
-            .ok_or_else(|| Error::from("Init Package Creators weren't initialized"))?
-            .iter())
+    ) -> impl Iterator<Item = (InitPackageName, &dyn InitPackageCreator<C>)> {
+        self.creators
+            .iter()
+            .map(|(name, creator)| (*name, creator.as_ref()))
     }
 }

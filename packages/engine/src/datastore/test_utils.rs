@@ -16,7 +16,7 @@ use execution::{
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use simulation_structure::{
-    Experiment, ExperimentConfig, ExperimentRun, PackageConfig, Simulation,
+    Experiment, ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder, Simulation,
 };
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
@@ -267,9 +267,8 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
 
     let globals = Globals::default();
 
-    // We can't use `PackageCreators::from_config` as it will initialise the global static
-    // `SyncOnceCell`s multiple times (thus erroring) if we run multiple tests at once
-    let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    let package_config = PackageConfigBuilder::default().build().unwrap();
+    let package_creators = PackageCreators::from_config(&package_config, &package_init).unwrap();
 
     let store_config = SchemaConfig::new(&package_init, &globals, &package_creators).unwrap();
 

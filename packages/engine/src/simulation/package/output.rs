@@ -1,61 +1,42 @@
-use std::{
-    collections::{hash_map::Iter, HashMap},
-    lazy::SyncOnceCell,
-};
+use std::collections::HashMap;
 
 use execution::package::simulation::{
     output::{
         analysis::AnalysisCreator, json_state::JsonStateCreator, OutputPackageCreator,
         OutputPackageName,
     },
-    PackageInitConfig,
+    Comms, PackageInitConfig,
 };
 
-use crate::simulation::{comms::Comms, Error, Result};
+use crate::simulation::{Error, Result};
 
-pub struct PackageCreators(
-    SyncOnceCell<HashMap<OutputPackageName, Box<dyn OutputPackageCreator<Comms>>>>,
-);
+pub struct OutputPackageCreators<C> {
+    creators: HashMap<OutputPackageName, Box<dyn OutputPackageCreator<C>>>,
+}
 
-pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
-
-impl PackageCreators {
-    pub(crate) fn initialize_for_experiment_run(&self, _config: &PackageInitConfig) -> Result<()> {
+impl<C: Comms> OutputPackageCreators<C> {
+    pub(crate) fn from_config(_config: &PackageInitConfig) -> Result<Self> {
         tracing::debug!("Initializing Output Package Creators");
-        use OutputPackageName::{Analysis, JsonState};
-        let mut m = HashMap::<_, Box<dyn OutputPackageCreator<Comms>>>::new();
-        m.insert(Analysis, Box::new(AnalysisCreator));
-        m.insert(JsonState, Box::new(JsonStateCreator));
-        self.0
-            .set(m)
-            .map_err(|_| Error::from("Failed to initialize Output Package Creators"))?;
-        Ok(())
+
+        let mut creators = HashMap::<_, Box<dyn OutputPackageCreator<C>>>::with_capacity(2);
+        creators.insert(OutputPackageName::Analysis, Box::new(AnalysisCreator));
+        creators.insert(OutputPackageName::JsonState, Box::new(JsonStateCreator));
+        Ok(Self { creators })
     }
 
-    pub(crate) fn get_checked(
-        &self,
-        name: &OutputPackageName,
-    ) -> Result<&Box<dyn OutputPackageCreator<Comms>>> {
-        self.0
-            .get()
-            .ok_or_else(|| Error::from("Output Package Creators weren't initialized"))?
-            .get(name)
-            .ok_or_else(|| {
-                Error::from(format!(
-                    "Package creator: {} wasn't within the Output Package Creators map",
-                    name
-                ))
-            })
+    pub(crate) fn get(&self, name: OutputPackageName) -> Result<&dyn OutputPackageCreator<C>> {
+        self.creators
+            .get(&name)
+            .map(Box::as_ref)
+            .ok_or_else(|| Error::from(format!("Package {name} was not initialized")))
     }
 
-    #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(
+    #[cfg(test)]
+    pub(crate) fn iter(
         &self,
-    ) -> Result<Iter<'_, OutputPackageName, Box<dyn OutputPackageCreator<Comms>>>> {
-        Ok(self
-            .0
-            .get()
-            .ok_or_else(|| Error::from("Output Package Creators weren't initialized"))?
-            .iter())
+    ) -> impl Iterator<Item = (OutputPackageName, &dyn OutputPackageCreator<C>)> {
+        self.creators
+            .iter()
+            .map(|(name, creator)| (*name, creator.as_ref()))
     }
 }

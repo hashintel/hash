@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, lazy::SyncOnceCell, sync::Arc};
 
 use execution::{
     package::simulation::{
@@ -26,52 +26,51 @@ use crate::{
     simulation::{
         comms::Comms,
         package::{
-            context, init, output,
+            context::ContextPackageCreators,
+            init::InitPackageCreators,
+            output::OutputPackageCreators,
             run::{InitPackages, Packages, StepPackages},
-            state,
+            state::StatePackageCreators,
         },
         Error, Result,
     },
 };
 
-pub struct PackageCreators {
-    init: Vec<(
-        PackageId,
-        PackageName,
-        &'static Box<dyn InitPackageCreator<Comms>>,
-    )>,
-    context: Vec<(
-        PackageId,
-        PackageName,
-        &'static Box<dyn ContextPackageCreator<Comms>>,
-    )>,
-    state: Vec<(
-        PackageId,
-        PackageName,
-        &'static Box<dyn StatePackageCreator<Comms>>,
-    )>,
-    output: Vec<(
-        PackageId,
-        PackageName,
-        &'static Box<dyn OutputPackageCreator<Comms>>,
-    )>,
+pub struct PackageCreators<'c> {
+    pub(crate) init: Vec<(PackageId, PackageName, &'c dyn InitPackageCreator<Comms>)>,
+    pub(crate) context: Vec<(PackageId, PackageName, &'c dyn ContextPackageCreator<Comms>)>,
+    pub(crate) state: Vec<(PackageId, PackageName, &'c dyn StatePackageCreator<Comms>)>,
+    pub(crate) output: Vec<(PackageId, PackageName, &'c dyn OutputPackageCreator<Comms>)>,
 }
 
-impl PackageCreators {
+impl PackageCreators<'_> {
     pub fn from_config(
         package_config: &PackageConfig,
         init_config: &PackageInitConfig,
-    ) -> Result<PackageCreators> {
-        init::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
-        context::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
-        output::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
-        state::PACKAGE_CREATORS.initialize_for_experiment_run(init_config)?;
+    ) -> Result<Self> {
+        pub static INIT_PACKAGE_CREATORS: SyncOnceCell<InitPackageCreators<Comms>> =
+            SyncOnceCell::new();
+        pub static CONTEXT_PACKAGE_CREATORS: SyncOnceCell<ContextPackageCreators<Comms>> =
+            SyncOnceCell::new();
+        pub static STATE_PACKAGE_CREATORS: SyncOnceCell<StatePackageCreators<Comms>> =
+            SyncOnceCell::new();
+        pub static OUTPUT_PACKAGE_CREATORS: SyncOnceCell<OutputPackageCreators<Comms>> =
+            SyncOnceCell::new();
+
+        let init_creators = INIT_PACKAGE_CREATORS
+            .get_or_try_init(|| InitPackageCreators::from_config(init_config))?;
+        let context_package_creators = CONTEXT_PACKAGE_CREATORS
+            .get_or_try_init(|| ContextPackageCreators::from_config(init_config))?;
+        let state_package_creators = STATE_PACKAGE_CREATORS
+            .get_or_try_init(|| StatePackageCreators::from_config(init_config))?;
+        let output_package_creators = OUTPUT_PACKAGE_CREATORS
+            .get_or_try_init(|| OutputPackageCreators::from_config(init_config))?;
 
         let init = package_config
             .init_packages()
             .iter()
             .map(|package_name| {
-                let package_creator = init::PACKAGE_CREATORS.get_checked(package_name)?;
+                let package_creator = init_creators.get(*package_name)?;
                 let package_name = PackageName::Init(*package_name);
                 let id = package_name.get_id()?;
 
@@ -83,7 +82,7 @@ impl PackageCreators {
             .context_packages()
             .iter()
             .map(|package_name| {
-                let package_creator = context::PACKAGE_CREATORS.get_checked(package_name)?;
+                let package_creator = context_package_creators.get(*package_name)?;
                 let package_name = PackageName::Context(*package_name);
                 let id = package_name.get_id()?;
                 Ok((id, package_name, package_creator))
@@ -94,7 +93,7 @@ impl PackageCreators {
             .state_packages()
             .iter()
             .map(|package_name| {
-                let package_creator = state::PACKAGE_CREATORS.get_checked(package_name)?;
+                let package_creator = state_package_creators.get(*package_name)?;
                 let package_name = PackageName::State(*package_name);
                 let id = package_name.get_id()?;
                 Ok((id, package_name, package_creator))
@@ -105,7 +104,7 @@ impl PackageCreators {
             .output_packages()
             .iter()
             .map(|package_name| {
-                let package_creator = output::PACKAGE_CREATORS.get_checked(package_name)?;
+                let package_creator = output_package_creators.get(*package_name)?;
                 let package_name = PackageName::Output(*package_name);
                 let id = package_name.get_id()?;
                 Ok((id, package_name, package_creator))
@@ -404,39 +403,6 @@ impl PackageCreators {
         field_spec_map.try_extend(get_base_context_fields()?)?;
 
         Ok(ContextSchema::new(field_spec_map)?)
-    }
-
-    // Needed in tests when creating dummy SimRunConfigs, and using `self.from_config` results in
-    // initialising the SyncOnceCell's multiple times and erroring
-    #[cfg(test)]
-    pub(crate) fn new(
-        init: Vec<(
-            PackageId,
-            PackageName,
-            &'static Box<dyn InitPackageCreator<Comms>>,
-        )>,
-        context: Vec<(
-            PackageId,
-            PackageName,
-            &'static Box<dyn ContextPackageCreator<Comms>>,
-        )>,
-        state: Vec<(
-            PackageId,
-            PackageName,
-            &'static Box<dyn StatePackageCreator<Comms>>,
-        )>,
-        output: Vec<(
-            PackageId,
-            PackageName,
-            &'static Box<dyn OutputPackageCreator<Comms>>,
-        )>,
-    ) -> Self {
-        Self {
-            init,
-            context,
-            state,
-            output,
-        }
     }
 }
 

@@ -17,7 +17,7 @@ impl SchemaConfig {
     pub fn new(
         package_init_config: &PackageInitConfig,
         globals: &Globals,
-        package_creators: &PackageCreators,
+        package_creators: &PackageCreators<'static>,
     ) -> Result<Self> {
         let agent_schema =
             Arc::new(package_creators.get_agent_schema(package_init_config, globals)?);

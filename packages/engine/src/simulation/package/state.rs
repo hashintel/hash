@@ -1,64 +1,45 @@
-use std::{
-    collections::{hash_map::Iter, HashMap},
-    lazy::SyncOnceCell,
-};
+use std::collections::HashMap;
 
 use execution::package::simulation::{
     state::{
         behavior_execution::BehaviorExecutionCreator, topology::TopologyCreator,
         StatePackageCreator, StatePackageName,
     },
-    PackageInitConfig,
+    Comms, PackageInitConfig,
 };
 
-use crate::simulation::{comms::Comms, Error, Result};
+use crate::simulation::{Error, Result};
 
-pub struct PackageCreators(
-    SyncOnceCell<HashMap<StatePackageName, Box<dyn StatePackageCreator<Comms>>>>,
-);
+pub struct StatePackageCreators<C> {
+    creators: HashMap<StatePackageName, Box<dyn StatePackageCreator<C>>>,
+}
 
-pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
-
-impl PackageCreators {
-    pub(crate) fn initialize_for_experiment_run(&self, config: &PackageInitConfig) -> Result<()> {
+impl<C: Comms> StatePackageCreators<C> {
+    pub(crate) fn from_config(config: &PackageInitConfig) -> Result<Self> {
         tracing::debug!("Initializing State Package Creators");
-        use StatePackageName::{BehaviorExecution, Topology};
-        let mut m = HashMap::<_, Box<dyn StatePackageCreator<Comms>>>::new();
-        m.insert(
-            BehaviorExecution,
-            Box::new(BehaviorExecutionCreator::new::<Comms>(config)?),
+
+        let mut creators = HashMap::<_, Box<dyn StatePackageCreator<C>>>::with_capacity(2);
+        creators.insert(
+            StatePackageName::BehaviorExecution,
+            Box::new(BehaviorExecutionCreator::new::<C>(config)?),
         );
-        m.insert(Topology, Box::new(TopologyCreator));
-        self.0
-            .set(m)
-            .map_err(|_| Error::from("Failed to initialize State Package Creators"))?;
-        Ok(())
+        creators.insert(StatePackageName::Topology, Box::new(TopologyCreator));
+        Ok(Self { creators })
     }
 
-    pub(crate) fn get_checked(
-        &self,
-        name: &StatePackageName,
-    ) -> Result<&Box<dyn StatePackageCreator<Comms>>> {
-        self.0
-            .get()
-            .ok_or_else(|| Error::from("State Package Creators weren't initialized"))?
-            .get(name)
-            .ok_or_else(|| {
-                Error::from(format!(
-                    "Package creator: {} wasn't within the State Package Creators map",
-                    name
-                ))
-            })
+    pub(crate) fn get(&self, name: StatePackageName) -> Result<&dyn StatePackageCreator<C>> {
+        self.creators
+            .get(&name)
+            .map(Box::as_ref)
+            .ok_or_else(|| Error::from(format!("Package {name} was not initialized")))
     }
 
-    #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(
+    #[cfg(test)]
+    pub(crate) fn iter(
         &self,
-    ) -> Result<Iter<'_, StatePackageName, Box<dyn StatePackageCreator<Comms>>>> {
-        Ok(self
-            .0
-            .get()
-            .ok_or_else(|| Error::from("State Package Creators weren't initialized"))?
-            .iter())
+    ) -> impl Iterator<Item = (StatePackageName, &dyn StatePackageCreator<C>)> {
+        self.creators
+            .iter()
+            .map(|(name, creator)| (*name, creator.as_ref()))
     }
 }
