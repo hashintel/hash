@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use execution::{
     package::simulation::{
@@ -6,7 +6,7 @@ use execution::{
         init::{InitPackageCreator, InitPackageCreators},
         output::{OutputPackageCreator, OutputPackageCreators},
         state::{StatePackageCreator, StatePackageCreators},
-        Comms, OutputPackagesSimConfig, PackageComms, PackageInitConfig, PackageName, PackageType,
+        Comms, OutputPackagesSimConfig, PackageInitConfig, PackageName, PackageType,
         PersistenceConfig,
     },
     runner::comms::PackageMsgs,
@@ -17,19 +17,13 @@ use stateful::{
     agent::AgentSchema,
     context::ContextSchema,
     field::{
-        FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldSpecMapAccessor, FieldType,
-        PackageId, RootFieldSpec, RootFieldSpecCreator,
+        FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, PackageId, RootFieldSpec,
+        RootFieldSpecCreator,
     },
     global::Globals,
 };
 
-use crate::{
-    config::SimulationRunConfig,
-    simulation::{
-        package::run::{InitPackages, Packages, StepPackages},
-        Error, Result,
-    },
-};
+use crate::simulation::{Error, Result};
 
 pub struct PackageCreators<'c, C> {
     init: Vec<(PackageId, PackageName, &'c dyn InitPackageCreator<C>)>,
@@ -38,7 +32,7 @@ pub struct PackageCreators<'c, C> {
     output: Vec<(PackageId, PackageName, &'c dyn OutputPackageCreator<C>)>,
 }
 
-impl<'c, C: Comms + Clone> PackageCreators<'c, C> {
+impl<'c, C: Comms> PackageCreators<'c, C> {
     pub fn from_config(
         package_config: &PackageConfig,
         init_package_creators: &'c InitPackageCreators<C>,
@@ -99,6 +93,28 @@ impl<'c, C: Comms + Clone> PackageCreators<'c, C> {
         })
     }
 
+    pub fn init_package_creators(&self) -> &[(PackageId, PackageName, &dyn InitPackageCreator<C>)] {
+        &self.init
+    }
+
+    pub fn context_package_creators(
+        &self,
+    ) -> &[(PackageId, PackageName, &dyn ContextPackageCreator<C>)] {
+        &self.context
+    }
+
+    pub fn state_package_creators(
+        &self,
+    ) -> &[(PackageId, PackageName, &dyn StatePackageCreator<C>)] {
+        &self.state
+    }
+
+    pub fn output_package_creators(
+        &self,
+    ) -> &[(PackageId, PackageName, &dyn OutputPackageCreator<C>)] {
+        &self.output
+    }
+
     pub fn create_persistent_config(
         &self,
         exp_config: &ExperimentConfig,
@@ -157,126 +173,6 @@ impl<'c, C: Comms + Clone> PackageCreators<'c, C> {
         }
 
         Ok(PackageMsgs(msgs))
-    }
-
-    pub fn new_packages_for_sim(
-        &self,
-        config: &Arc<SimulationRunConfig>,
-        comms: C,
-    ) -> Result<(Packages, PackageMsgs)> {
-        // TODO: generics to avoid code duplication
-        let state_field_spec_map = &config.simulation_config().store.agent_schema.field_spec_map;
-        let context_field_spec_map = &config
-            .simulation_config()
-            .store
-            .context_schema
-            .field_spec_map;
-        let mut messages = HashMap::new();
-        let init = self
-            .init
-            .iter()
-            .map(|(package_id, package_name, creator)| {
-                let package = creator.create(
-                    &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
-                    PackageComms::new(comms.clone(), *package_id, PackageType::Init),
-                    FieldSpecMapAccessor::new(
-                        FieldSource::Package(*package_id),
-                        state_field_spec_map.clone(),
-                    ),
-                )?;
-                let start_msg = package.simulation_setup_message()?;
-                let wrapped_msg = PackageInitMsgForWorker {
-                    name: *package_name,
-                    r#type: PackageType::Init,
-                    id: *package_id,
-                    payload: start_msg,
-                };
-                messages.insert(*package_id, wrapped_msg);
-                Ok(package)
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let context = self
-            .context
-            .iter()
-            .map(|(package_id, package_name, creator)| {
-                let package = creator.create(
-                    &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
-                    PackageComms::new(comms.clone(), *package_id, PackageType::Context),
-                    FieldSpecMapAccessor::new(
-                        FieldSource::Package(*package_id),
-                        Arc::clone(state_field_spec_map),
-                    ),
-                    FieldSpecMapAccessor::new(
-                        FieldSource::Package(*package_id),
-                        Arc::clone(context_field_spec_map),
-                    ),
-                )?;
-                let start_msg = package.simulation_setup_message()?;
-                let wrapped_msg = PackageInitMsgForWorker {
-                    name: *package_name,
-                    r#type: PackageType::Context,
-                    id: *package_id,
-                    payload: start_msg,
-                };
-                messages.insert(*package_id, wrapped_msg);
-                Ok(package)
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let state = self
-            .state
-            .iter()
-            .map(|(package_id, package_name, creator)| {
-                let package = creator.create(
-                    &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
-                    PackageComms::new(comms.clone(), *package_id, PackageType::State),
-                    FieldSpecMapAccessor::new(
-                        FieldSource::Package(*package_id),
-                        Arc::clone(state_field_spec_map),
-                    ),
-                )?;
-                let start_msg = package.simulation_setup_message()?;
-                let wrapped_msg = PackageInitMsgForWorker {
-                    name: *package_name,
-                    r#type: PackageType::State,
-                    id: *package_id,
-                    payload: start_msg,
-                };
-                messages.insert(*package_id, wrapped_msg);
-                Ok(package)
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let output = self
-            .output
-            .iter()
-            .map(|(package_id, package_name, creator)| {
-                let package = creator.create(
-                    &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
-                    PackageComms::new(comms.clone(), *package_id, PackageType::Output),
-                    FieldSpecMapAccessor::new(
-                        FieldSource::Package(*package_id),
-                        Arc::clone(state_field_spec_map),
-                    ),
-                )?;
-                let start_msg = package.simulation_setup_message()?;
-                let wrapped_msg = PackageInitMsgForWorker {
-                    name: *package_name,
-                    r#type: PackageType::State,
-                    id: *package_id,
-                    payload: start_msg,
-                };
-                messages.insert(*package_id, wrapped_msg);
-                Ok(package)
-            })
-            .collect::<Result<Vec<_>>>()?;
-
-        let init = InitPackages::new(init);
-        let step = StepPackages::new(context, state, output);
-
-        Ok((Packages { init, step }, PackageMsgs(messages)))
     }
 
     pub fn get_output_persistence_config(

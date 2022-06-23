@@ -35,7 +35,7 @@ use crate::{
     simulation::{
         comms::Comms,
         controller::{runs::SimulationRuns, sim_control::SimControl, SimulationController},
-        package::creator::PackageCreators,
+        package::{creator::PackageCreators, run::Packages},
         status::SimStatus,
         Error as SimulationError,
     },
@@ -225,9 +225,11 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         let task_comms = Comms::new(sim_short_id, worker_pool_sender)?;
 
         // Create the packages which will be running in the engine
-        let (packages, sim_start_msgs) = self
-            .package_creators
-            .new_packages_for_sim(&sim_config, task_comms.clone())?;
+        let (packages, sim_start_msgs) = Packages::from_package_creators(
+            &self.package_creators,
+            &sim_config,
+            task_comms.clone(),
+        )?;
 
         let datastore_payload = DatastoreSimulationPayload {
             agent_batch_schema: sim_config.simulation_config().store.agent_schema.clone(),

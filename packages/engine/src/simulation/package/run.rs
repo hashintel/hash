@@ -1,28 +1,159 @@
 use std::{collections::HashMap, sync::Arc};
 
-use execution::package::simulation::{
-    context::ContextPackage,
-    init::InitPackage,
-    output::{Output, OutputPackage},
-    state::StatePackage,
+use execution::{
+    package::simulation::{
+        context::ContextPackage,
+        init::InitPackage,
+        output::{Output, OutputPackage},
+        state::StatePackage,
+        Comms, PackageComms, PackageType,
+    },
+    runner::comms::PackageMsgs,
+    worker::PackageInitMsgForWorker,
 };
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use memory::shared_memory::MemoryId;
 use stateful::{
     context::{Context, ContextColumn, PreContext},
+    field::{FieldSource, FieldSpecMapAccessor},
     state::{State, StateReadProxy, StateSnapshot},
 };
 use tracing::{Instrument, Span};
 
 use crate::{
     config::SimulationRunConfig,
-    simulation::error::{Error, Result},
+    simulation::{
+        error::{Error, Result},
+        package::creator::PackageCreators,
+    },
 };
 
 /// Represents the packages of a simulation engine.
 pub struct Packages {
     pub init: InitPackages,
     pub step: StepPackages,
+}
+
+impl Packages {
+    pub fn from_package_creators<C: Comms + Clone>(
+        package_creators: &PackageCreators<'_, C>,
+        config: &Arc<SimulationRunConfig>,
+        comms: C,
+    ) -> Result<(Self, PackageMsgs)> {
+        // TODO: generics to avoid code duplication
+        let state_field_spec_map = &config.simulation_config().store.agent_schema.field_spec_map;
+        let context_field_spec_map = &config
+            .simulation_config()
+            .store
+            .context_schema
+            .field_spec_map;
+        let mut messages = HashMap::new();
+        let init = package_creators
+            .init_package_creators()
+            .iter()
+            .map(|(package_id, package_name, creator)| {
+                let package = creator.create(
+                    &config.simulation_config().package_creator,
+                    &config.experiment_config().simulation().package_init,
+                    PackageComms::new(comms.clone(), *package_id, PackageType::Init),
+                    FieldSpecMapAccessor::new(
+                        FieldSource::Package(*package_id),
+                        state_field_spec_map.clone(),
+                    ),
+                )?;
+                let start_msg = package.simulation_setup_message()?;
+                let wrapped_msg = PackageInitMsgForWorker {
+                    name: *package_name,
+                    r#type: PackageType::Init,
+                    id: *package_id,
+                    payload: start_msg,
+                };
+                messages.insert(*package_id, wrapped_msg);
+                Ok(package)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let context = package_creators
+            .context_package_creators()
+            .iter()
+            .map(|(package_id, package_name, creator)| {
+                let package = creator.create(
+                    &config.simulation_config().package_creator,
+                    &config.experiment_config().simulation().package_init,
+                    PackageComms::new(comms.clone(), *package_id, PackageType::Context),
+                    FieldSpecMapAccessor::new(
+                        FieldSource::Package(*package_id),
+                        Arc::clone(state_field_spec_map),
+                    ),
+                    FieldSpecMapAccessor::new(
+                        FieldSource::Package(*package_id),
+                        Arc::clone(context_field_spec_map),
+                    ),
+                )?;
+                let start_msg = package.simulation_setup_message()?;
+                let wrapped_msg = PackageInitMsgForWorker {
+                    name: *package_name,
+                    r#type: PackageType::Context,
+                    id: *package_id,
+                    payload: start_msg,
+                };
+                messages.insert(*package_id, wrapped_msg);
+                Ok(package)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let state = package_creators
+            .state_package_creators()
+            .iter()
+            .map(|(package_id, package_name, creator)| {
+                let package = creator.create(
+                    &config.simulation_config().package_creator,
+                    &config.experiment_config().simulation().package_init,
+                    PackageComms::new(comms.clone(), *package_id, PackageType::State),
+                    FieldSpecMapAccessor::new(
+                        FieldSource::Package(*package_id),
+                        Arc::clone(state_field_spec_map),
+                    ),
+                )?;
+                let start_msg = package.simulation_setup_message()?;
+                let wrapped_msg = PackageInitMsgForWorker {
+                    name: *package_name,
+                    r#type: PackageType::State,
+                    id: *package_id,
+                    payload: start_msg,
+                };
+                messages.insert(*package_id, wrapped_msg);
+                Ok(package)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let output = package_creators
+            .output_package_creators()
+            .iter()
+            .map(|(package_id, package_name, creator)| {
+                let package = creator.create(
+                    &config.simulation_config().package_creator,
+                    &config.experiment_config().simulation().package_init,
+                    PackageComms::new(comms.clone(), *package_id, PackageType::Output),
+                    FieldSpecMapAccessor::new(
+                        FieldSource::Package(*package_id),
+                        Arc::clone(state_field_spec_map),
+                    ),
+                )?;
+                let start_msg = package.simulation_setup_message()?;
+                let wrapped_msg = PackageInitMsgForWorker {
+                    name: *package_name,
+                    r#type: PackageType::State,
+                    id: *package_id,
+                    payload: start_msg,
+                };
+                messages.insert(*package_id, wrapped_msg);
+                Ok(package)
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let init = InitPackages::new(init);
+        let step = StepPackages::new(context, state, output);
+
+        Ok((Self { init, step }, PackageMsgs(messages)))
+    }
 }
 
 /// TODO: DOC: explain link to init/mod.rs
