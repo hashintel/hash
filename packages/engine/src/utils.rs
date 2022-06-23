@@ -283,23 +283,6 @@ pub fn init_logger<P: AsRef<Path>>(
     })
 }
 
-// TODO: UNUSED: Needs triage
-pub fn parse_env_duration(name: &str, default: u64) -> Duration {
-    Duration::from_secs(
-        std::env::var(name)
-            .and_then(|timeout| {
-                timeout.parse().map_err(|e| {
-                    tracing::error!("Could not parse `{}` as integral: {}", name, e);
-                    VarError::NotPresent
-                })
-            })
-            .unwrap_or_else(|_| {
-                tracing::info!("Setting `{}={}`", name, default);
-                default
-            }),
-    )
-}
-
 #[cfg(feature = "texray")]
 pub mod texray {
     use std::path::Path;

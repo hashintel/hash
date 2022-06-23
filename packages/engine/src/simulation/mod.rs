@@ -9,6 +9,3 @@ pub mod status;
 pub mod step_result;
 
 pub use self::error::{Error, Result};
-
-// TODO: UNUSED: Needs triage
-pub struct SimulationRunState {}

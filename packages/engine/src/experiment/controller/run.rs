@@ -28,7 +28,6 @@ use crate::{
         error::{Error as ExperimentError, Result as ExperimentResult},
     },
     proto::EngineStatus,
-    Error as CrateError,
 };
 
 #[tracing::instrument(skip_all, fields(experiment_id = % exp_config.experiment().id()))]
@@ -48,11 +47,10 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
                     EngineStatus::Exit
                 }
                 Err(err) => {
-                    let err = CrateError::from(ExperimentError::from(err)).to_string();
                     tracing::debug!(
                         "Terminating experiment \"{experiment_name}\" with error: {err}"
                     );
-                    EngineStatus::ProcessError(err)
+                    EngineStatus::ProcessError(err.to_string())
                 }
             };
             orch_client.send(final_result).await?;
