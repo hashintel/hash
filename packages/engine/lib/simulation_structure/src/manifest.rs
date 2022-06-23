@@ -19,7 +19,8 @@ use stateful::global::Dataset;
 use thiserror::Error;
 
 use crate::{
-    dependencies::parse_raw_csv_into_json, experiment::ExperimentType, ExperimentRun, Simulation,
+    dependencies::parse_raw_csv_into_json, experiment::ExperimentType, ExperimentRun,
+    SimulationSource,
 };
 
 #[derive(Debug, Error)]
@@ -526,7 +527,7 @@ impl Manifest {
     ///
     /// - if the manifest does not provide an initial state
     pub fn read(self, experiment_type: ExperimentType) -> Result<ExperimentRun> {
-        let simulation = Simulation {
+        let simulation = SimulationSource {
             name: self.project_name,
             globals_src: self.globals_json.unwrap_or_else(|| "{}".to_string()),
             experiments_src: self.experiments_json,

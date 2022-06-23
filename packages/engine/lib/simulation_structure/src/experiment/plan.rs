@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use thiserror::Error;
 
-use crate::{experiment::ExperimentType, Simulation};
+use crate::{experiment::ExperimentType, SimulationSource};
 
 #[derive(Debug, Error)]
 #[error("Could not read experiment plan")]
@@ -24,7 +24,10 @@ impl ExperimentType {
     ///
     /// If the type is a simple Experiment [`Simple`](Self::Simple), it uses a `base` to load the
     /// experiment config for the given `name`.
-    pub fn get_package_config(self, simulation: &Simulation) -> Result<ExperimentPackageConfig> {
+    pub fn get_package_config(
+        self,
+        simulation: &SimulationSource,
+    ) -> Result<ExperimentPackageConfig> {
         let basic = match self {
             ExperimentType::SingleRun { num_steps } => {
                 BasicExperimentConfig::SingleRun(SingleRunExperimentConfig { num_steps })
@@ -39,7 +42,7 @@ impl ExperimentType {
 }
 
 fn get_simple_experiment_config(
-    simulation: &Simulation,
+    simulation: &SimulationSource,
     experiment_name: ExperimentName,
 ) -> Result<SimpleExperimentConfig> {
     let experiments_manifest = simulation

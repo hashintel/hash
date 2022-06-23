@@ -17,7 +17,7 @@ use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use simulation_structure::{
     ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder, PackageCreators,
-    Simulation, SimulationRunConfig,
+    SimulationRunConfig, SimulationSource,
 };
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
@@ -278,7 +278,7 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
         .create_schema(&package_init, &globals)
         .unwrap();
 
-    let simulation = Simulation {
+    let simulation = SimulationSource {
         name: "project_name".to_string(),
         globals_src: "{}".to_string(),
         experiments_src: None,

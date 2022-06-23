@@ -8,20 +8,20 @@ use execution::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::Simulation;
+use crate::SimulationSource;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRun {
     name: ExperimentName,
     id: ExperimentId,
     config: ExperimentPackageConfig,
-    simulation: Simulation,
+    simulation: SimulationSource,
 }
 
 impl ExperimentRun {
     pub fn new(
         name: ExperimentName,
-        simulation: Simulation,
+        simulation: SimulationSource,
         config: ExperimentPackageConfig,
     ) -> Self {
         Self {
@@ -44,11 +44,11 @@ impl ExperimentRun {
         &self.config
     }
 
-    pub fn simulation(&self) -> &Simulation {
+    pub fn simulation(&self) -> &SimulationSource {
         &self.simulation
     }
 
-    pub fn simulation_mut(&mut self) -> &mut Simulation {
+    pub fn simulation_mut(&mut self) -> &mut SimulationSource {
         &mut self.simulation
     }
 
