@@ -14,7 +14,7 @@
   {
     "title": "Applicant Tracking System",
     "description": "Applicant tracking systems help employers manage recruitment and hiring.",
-    "slug": "applicant-tracking-system",
+    "slug": "ats",
     "tags": ["Business Software"]
   },
   {
@@ -44,13 +44,13 @@
   {
     "title": "Content Management System",
     "description": "Content management systems allow you to build and manage websites.",
-    "slug": "content-management-system",
+    "slug": "cms",
     "tags": ["Business Software"]
   },
   {
     "title": "Customer Relationship Management System",
     "description": "Customer relationship management systems track and coordinate interactions between a company and its customers.",
-    "slug": "customer-relationship-management-system",
+    "slug": "crm",
     "tags": ["Business Software"]
   },
   {
@@ -146,7 +146,7 @@
   {
     "title": "Fast Healthcare Interoperability Resources",
     "description": "An electronic healthcare standard for data interoperability.",
-    "slug": "fast-healthcare-interoperability-resources",
+    "slug": "fhir",
     "tags": ["Standards"]
   },
   {
