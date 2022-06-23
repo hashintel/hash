@@ -6,8 +6,7 @@ use execution::{
         init::{InitPackageCreator, InitPackageCreators},
         output::{OutputPackageCreator, OutputPackageCreators},
         state::{StatePackageCreator, StatePackageCreators},
-        Comms, OutputPackagesSimConfig, PackageInitConfig, PackageName, PackageType,
-        PersistenceConfig,
+        OutputPackagesSimConfig, PackageInitConfig, PackageName, PackageType, PersistenceConfig,
     },
     runner::comms::PackageMsgs,
     worker::PackageInitMsgForWorker,
@@ -22,20 +21,20 @@ use stateful::{
 
 use crate::{Error, ExperimentConfig, PackageConfig, Result};
 
-pub struct PackageCreators<'c, C> {
-    init: Vec<(PackageId, PackageName, &'c dyn InitPackageCreator<C>)>,
-    context: Vec<(PackageId, PackageName, &'c dyn ContextPackageCreator<C>)>,
-    state: Vec<(PackageId, PackageName, &'c dyn StatePackageCreator<C>)>,
-    output: Vec<(PackageId, PackageName, &'c dyn OutputPackageCreator<C>)>,
+pub struct PackageCreators<'c> {
+    init: Vec<(PackageId, PackageName, &'c dyn InitPackageCreator)>,
+    context: Vec<(PackageId, PackageName, &'c dyn ContextPackageCreator)>,
+    state: Vec<(PackageId, PackageName, &'c dyn StatePackageCreator)>,
+    output: Vec<(PackageId, PackageName, &'c dyn OutputPackageCreator)>,
 }
 
-impl<'c, C: Comms> PackageCreators<'c, C> {
+impl<'c> PackageCreators<'c> {
     pub fn from_config(
         package_config: &PackageConfig,
-        init_package_creators: &'c InitPackageCreators<C>,
-        context_package_creators: &'c ContextPackageCreators<C>,
-        state_package_creators: &'c StatePackageCreators<C>,
-        output_package_creators: &'c OutputPackageCreators<C>,
+        init_package_creators: &'c InitPackageCreators,
+        context_package_creators: &'c ContextPackageCreators,
+        state_package_creators: &'c StatePackageCreators,
+        output_package_creators: &'c OutputPackageCreators,
     ) -> Result<Self> {
         let init = package_config
             .init_packages()
@@ -90,25 +89,23 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
         })
     }
 
-    pub fn init_package_creators(&self) -> &[(PackageId, PackageName, &dyn InitPackageCreator<C>)] {
+    pub fn init_package_creators(&self) -> &[(PackageId, PackageName, &dyn InitPackageCreator)] {
         &self.init
     }
 
     pub fn context_package_creators(
         &self,
-    ) -> &[(PackageId, PackageName, &dyn ContextPackageCreator<C>)] {
+    ) -> &[(PackageId, PackageName, &dyn ContextPackageCreator)] {
         &self.context
     }
 
-    pub fn state_package_creators(
-        &self,
-    ) -> &[(PackageId, PackageName, &dyn StatePackageCreator<C>)] {
+    pub fn state_package_creators(&self) -> &[(PackageId, PackageName, &dyn StatePackageCreator)] {
         &self.state
     }
 
     pub fn output_package_creators(
         &self,
-    ) -> &[(PackageId, PackageName, &dyn OutputPackageCreator<C>)] {
+    ) -> &[(PackageId, PackageName, &dyn OutputPackageCreator)] {
         &self.output
     }
 

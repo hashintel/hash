@@ -82,12 +82,12 @@ pub(self) fn get_analysis_source(sim_packages: &[SimPackageArgs]) -> Result<Stri
 
 pub struct AnalysisCreator;
 
-impl<C> OutputPackageCreator<C> for AnalysisCreator {
+impl OutputPackageCreator for AnalysisCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        _comms: PackageComms<C>,
+        _comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and

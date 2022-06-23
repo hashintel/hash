@@ -37,7 +37,6 @@ use crate::{
         error::{Error as ExperimentError, Result as ExperimentResult},
     },
     proto::EngineStatus,
-    simulation::comms::Comms,
     Error as CrateError,
 };
 
@@ -110,12 +109,10 @@ type ExperimentPackageResult = Option<ExperimentResult<()>>;
 type ExperimentControllerResult = Option<Result<()>>;
 type ExecutionResult = Option<execution::Result<()>>;
 
-pub static INIT_PACKAGE_CREATORS: SyncOnceCell<InitPackageCreators<Comms>> = SyncOnceCell::new();
-pub static CONTEXT_PACKAGE_CREATORS: SyncOnceCell<ContextPackageCreators<Comms>> =
-    SyncOnceCell::new();
-pub static STATE_PACKAGE_CREATORS: SyncOnceCell<StatePackageCreators<Comms>> = SyncOnceCell::new();
-pub static OUTPUT_PACKAGE_CREATORS: SyncOnceCell<OutputPackageCreators<Comms>> =
-    SyncOnceCell::new();
+pub static INIT_PACKAGE_CREATORS: SyncOnceCell<InitPackageCreators> = SyncOnceCell::new();
+pub static CONTEXT_PACKAGE_CREATORS: SyncOnceCell<ContextPackageCreators> = SyncOnceCell::new();
+pub static STATE_PACKAGE_CREATORS: SyncOnceCell<StatePackageCreators> = SyncOnceCell::new();
+pub static OUTPUT_PACKAGE_CREATORS: SyncOnceCell<OutputPackageCreators> = SyncOnceCell::new();
 
 async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
     exp_config: ExperimentConfig,

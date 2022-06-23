@@ -42,13 +42,13 @@ pub trait StatePackage: Package {
     fn span(&self) -> Span;
 }
 
-pub trait StatePackageCreator<C>: PackageCreator {
+pub trait StatePackageCreator: PackageCreator {
     /// Create the package.
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        comms: PackageComms<C>,
+        comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>>;
 }

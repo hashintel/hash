@@ -52,7 +52,7 @@ pub struct ExperimentController<P: OutputPersistenceCreator> {
     sim_run_tasks: SimulationRuns,
     sim_senders: HashMap<SimulationId, SimCtlSend>,
     worker_pool_send_base: MainMsgSendBase,
-    package_creators: PackageCreators<'static, Comms>,
+    package_creators: PackageCreators<'static>,
     sim_configurer: SimConfigurer,
     sim_status_send: SimStatusSend,
     sim_status_recv: SimStatusRecv,
@@ -222,11 +222,8 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         let task_comms = Comms::new(sim_short_id, worker_pool_sender)?;
 
         // Create the packages which will be running in the engine
-        let (packages, sim_start_msgs) = Packages::from_package_creators(
-            &self.package_creators,
-            &sim_config,
-            task_comms.clone(),
-        )?;
+        let (packages, sim_start_msgs) =
+            Packages::from_package_creators(&self.package_creators, &sim_config, &task_comms)?;
 
         let datastore_payload = DatastoreSimulationPayload {
             agent_batch_schema: sim_config.simulation_config().schema.agent_schema.clone(),
@@ -409,7 +406,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         experiment_package_comms: ExperimentPackageComms,
         output_persistence_service_creator: P,
         worker_pool_send_base: MainMsgSendBase,
-        package_creators: PackageCreators<'static, Comms>,
+        package_creators: PackageCreators<'static>,
         sim_configurer: SimConfigurer,
         sim_status_send: SimStatusSend,
         sim_status_recv: SimStatusRecv,

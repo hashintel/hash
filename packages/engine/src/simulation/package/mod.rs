@@ -53,19 +53,19 @@ pub mod tests {
         };
 
         validate!(
-            ContextPackageCreators::<Comms>::from_config(&init_config)?,
+            ContextPackageCreators::from_config(&init_config)?,
             PackageName::Context
         );
         validate!(
-            InitPackageCreators::<Comms>::from_config(&init_config)?,
+            InitPackageCreators::from_config(&init_config)?,
             PackageName::Init
         );
         validate!(
-            StatePackageCreators::<Comms>::from_config(&init_config)?,
+            StatePackageCreators::from_config(&init_config)?,
             PackageName::State
         );
         validate!(
-            OutputPackageCreators::<Comms>::from_config(&init_config)?,
+            OutputPackageCreators::from_config(&init_config)?,
             PackageName::Output
         );
         Ok(())

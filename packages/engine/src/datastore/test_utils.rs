@@ -280,7 +280,7 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
     let state_package_creators = StatePackageCreators::from_config(&package_init).unwrap();
     let output_package_creators = OutputPackageCreators::from_config(&package_init).unwrap();
 
-    let package_creators = PackageCreators::<Comms>::from_config(
+    let package_creators = PackageCreators::from_config(
         &package_config,
         &init_package_creators,
         &context_package_creators,

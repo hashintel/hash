@@ -34,7 +34,7 @@ use self::{
 use crate::{
     package::simulation::{
         state::{StatePackage, StatePackageCreator, StatePackageName, StateTask},
-        Comms, Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+        Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
         PackageName, PackageTask,
     },
     runner::Language,
@@ -101,12 +101,12 @@ impl PackageCreator for BehaviorExecutionCreator {
     }
 }
 
-impl<C: Comms> StatePackageCreator<C> for BehaviorExecutionCreator {
+impl StatePackageCreator for BehaviorExecutionCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        comms: PackageComms<C>,
+        comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>> {
         let behavior_ids_col_data_types = fields::id_column_data_types();
@@ -137,17 +137,17 @@ impl<C: Comms> StatePackageCreator<C> for BehaviorExecutionCreator {
     }
 }
 
-pub struct BehaviorExecution<C> {
+pub struct BehaviorExecution {
     behavior_ids: Arc<BehaviorIds>,
     behavior_ids_col_index: usize,
     behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
     behavior_index_col_index: usize,
-    comms: PackageComms<C>,
+    comms: PackageComms,
 }
 
-impl<C: Send> Package for BehaviorExecution<C> {}
+impl Package for BehaviorExecution {}
 
-impl<C> BehaviorExecution<C> {
+impl BehaviorExecution {
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior
     /// execution will be executed accordingly
@@ -203,7 +203,7 @@ impl<C> BehaviorExecution<C> {
     }
 }
 
-impl<C: Comms> BehaviorExecution<C> {
+impl BehaviorExecution {
     /// Sends out behavior execution commands to workers
     async fn begin_execution(
         &mut self,
@@ -225,7 +225,7 @@ impl<C: Comms> BehaviorExecution<C> {
 }
 
 #[async_trait]
-impl<C: Comms> StatePackage for BehaviorExecution<C> {
+impl StatePackage for BehaviorExecution {
     async fn run(&mut self, state: &mut State, context: &Context) -> Result<()> {
         tracing::trace!("Running BehaviorExecution");
         let mut state_proxy = state.write()?;
