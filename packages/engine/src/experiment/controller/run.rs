@@ -1,4 +1,4 @@
-use std::{pin::Pin, sync::Arc, time::Duration};
+use std::{lazy::SyncOnceCell, pin::Pin, sync::Arc, time::Duration};
 
 use execution::{
     package::{
@@ -28,7 +28,13 @@ use crate::{
         error::{Error as ExperimentError, Result as ExperimentResult},
     },
     proto::EngineStatus,
-    simulation::package::creator::PackageCreators,
+    simulation::{
+        comms::Comms,
+        package::{
+            context::ContextPackageCreators, creator::PackageCreators, init::InitPackageCreators,
+            output::OutputPackageCreators, state::StatePackageCreators,
+        },
+    },
     Error as CrateError,
 };
 
@@ -101,6 +107,13 @@ type ExperimentPackageResult = Option<ExperimentResult<()>>;
 type ExperimentControllerResult = Option<Result<()>>;
 type ExecutionResult = Option<execution::Result<()>>;
 
+pub static INIT_PACKAGE_CREATORS: SyncOnceCell<InitPackageCreators<Comms>> = SyncOnceCell::new();
+pub static CONTEXT_PACKAGE_CREATORS: SyncOnceCell<ContextPackageCreators<Comms>> =
+    SyncOnceCell::new();
+pub static STATE_PACKAGE_CREATORS: SyncOnceCell<StatePackageCreators<Comms>> = SyncOnceCell::new();
+pub static OUTPUT_PACKAGE_CREATORS: SyncOnceCell<OutputPackageCreators<Comms>> =
+    SyncOnceCell::new();
+
 async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
     exp_config: ExperimentConfig,
     env: Environment,
@@ -143,9 +156,24 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
         _ => unreachable!(),
     };
 
+    let package_init = &exp_config.simulation().package_init;
+    let init_package_creators =
+        INIT_PACKAGE_CREATORS.get_or_try_init(|| InitPackageCreators::from_config(package_init))?;
+    let context_package_creators = CONTEXT_PACKAGE_CREATORS
+        .get_or_try_init(|| ContextPackageCreators::from_config(package_init))?;
+    let state_package_creators = STATE_PACKAGE_CREATORS
+        .get_or_try_init(|| StatePackageCreators::from_config(package_init))?;
+    let output_package_creators = OUTPUT_PACKAGE_CREATORS
+        .get_or_try_init(|| OutputPackageCreators::from_config(package_init))?;
+
     let worker_allocator = SimConfigurer::new(package_config, exp_config.worker_pool.num_workers);
-    let package_creators =
-        PackageCreators::from_config(&exp_config.packages, &exp_config.simulation().package_init)?;
+    let package_creators = PackageCreators::from_config(
+        &exp_config.packages,
+        init_package_creators,
+        context_package_creators,
+        state_package_creators,
+        output_package_creators,
+    )?;
     let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
     let mut orch_client = env.orch_client.try_clone()?;
     let (mut experiment_controller_terminate_send, experiment_controller_terminate_recv) =

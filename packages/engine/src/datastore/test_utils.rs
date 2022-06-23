@@ -30,7 +30,13 @@ use stateful::{
 use crate::{
     config::{SchemaConfig, SimulationRunConfig},
     datastore::{error::Error, schema::last_state_index_key},
-    simulation::package::creator::{get_base_agent_fields, PackageCreators},
+    simulation::package::{
+        context::ContextPackageCreators,
+        creator::{get_base_agent_fields, PackageCreators},
+        init::InitPackageCreators,
+        output::OutputPackageCreators,
+        state::StatePackageCreators,
+    },
 };
 
 fn test_field_specs() -> FieldSpecMap {
@@ -268,7 +274,20 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
     let globals = Globals::default();
 
     let package_config = PackageConfigBuilder::default().build().unwrap();
-    let package_creators = PackageCreators::from_config(&package_config, &package_init).unwrap();
+
+    let init_package_creators = InitPackageCreators::from_config(&package_init).unwrap();
+    let context_package_creators = ContextPackageCreators::from_config(&package_init).unwrap();
+    let state_package_creators = StatePackageCreators::from_config(&package_init).unwrap();
+    let output_package_creators = OutputPackageCreators::from_config(&package_init).unwrap();
+
+    let package_creators = PackageCreators::from_config(
+        &package_config,
+        &init_package_creators,
+        &context_package_creators,
+        &state_package_creators,
+        &output_package_creators,
+    )
+    .unwrap();
 
     let store_config = SchemaConfig::new(&package_init, &globals, &package_creators).unwrap();
 

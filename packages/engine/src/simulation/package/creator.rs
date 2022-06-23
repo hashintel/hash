@@ -1,10 +1,10 @@
-use std::{collections::HashMap, lazy::SyncOnceCell, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use execution::{
     package::simulation::{
         context::ContextPackageCreator, init::InitPackageCreator, output::OutputPackageCreator,
-        state::StatePackageCreator, OutputPackagesSimConfig, PackageComms, PackageInitConfig,
-        PackageName, PackageType, PersistenceConfig,
+        state::StatePackageCreator, Comms, OutputPackagesSimConfig, PackageComms,
+        PackageInitConfig, PackageName, PackageType, PersistenceConfig,
     },
     runner::comms::PackageMsgs,
     worker::PackageInitMsgForWorker,
@@ -24,7 +24,6 @@ use crate::{
     config::SimulationRunConfig,
     datastore::schema::last_state_index_key,
     simulation::{
-        comms::Comms,
         package::{
             context::ContextPackageCreators,
             init::InitPackageCreators,
@@ -36,41 +35,26 @@ use crate::{
     },
 };
 
-pub struct PackageCreators<'c> {
-    pub(crate) init: Vec<(PackageId, PackageName, &'c dyn InitPackageCreator<Comms>)>,
-    pub(crate) context: Vec<(PackageId, PackageName, &'c dyn ContextPackageCreator<Comms>)>,
-    pub(crate) state: Vec<(PackageId, PackageName, &'c dyn StatePackageCreator<Comms>)>,
-    pub(crate) output: Vec<(PackageId, PackageName, &'c dyn OutputPackageCreator<Comms>)>,
+pub struct PackageCreators<'c, C> {
+    init: Vec<(PackageId, PackageName, &'c dyn InitPackageCreator<C>)>,
+    context: Vec<(PackageId, PackageName, &'c dyn ContextPackageCreator<C>)>,
+    state: Vec<(PackageId, PackageName, &'c dyn StatePackageCreator<C>)>,
+    output: Vec<(PackageId, PackageName, &'c dyn OutputPackageCreator<C>)>,
 }
 
-impl PackageCreators<'_> {
+impl<'c, C: Comms + Clone> PackageCreators<'c, C> {
     pub fn from_config(
         package_config: &PackageConfig,
-        init_config: &PackageInitConfig,
+        init_package_creators: &'c InitPackageCreators<C>,
+        context_package_creators: &'c ContextPackageCreators<C>,
+        state_package_creators: &'c StatePackageCreators<C>,
+        output_package_creators: &'c OutputPackageCreators<C>,
     ) -> Result<Self> {
-        pub static INIT_PACKAGE_CREATORS: SyncOnceCell<InitPackageCreators<Comms>> =
-            SyncOnceCell::new();
-        pub static CONTEXT_PACKAGE_CREATORS: SyncOnceCell<ContextPackageCreators<Comms>> =
-            SyncOnceCell::new();
-        pub static STATE_PACKAGE_CREATORS: SyncOnceCell<StatePackageCreators<Comms>> =
-            SyncOnceCell::new();
-        pub static OUTPUT_PACKAGE_CREATORS: SyncOnceCell<OutputPackageCreators<Comms>> =
-            SyncOnceCell::new();
-
-        let init_creators = INIT_PACKAGE_CREATORS
-            .get_or_try_init(|| InitPackageCreators::from_config(init_config))?;
-        let context_package_creators = CONTEXT_PACKAGE_CREATORS
-            .get_or_try_init(|| ContextPackageCreators::from_config(init_config))?;
-        let state_package_creators = STATE_PACKAGE_CREATORS
-            .get_or_try_init(|| StatePackageCreators::from_config(init_config))?;
-        let output_package_creators = OUTPUT_PACKAGE_CREATORS
-            .get_or_try_init(|| OutputPackageCreators::from_config(init_config))?;
-
         let init = package_config
             .init_packages()
             .iter()
             .map(|package_name| {
-                let package_creator = init_creators.get(*package_name)?;
+                let package_creator = init_package_creators.get(*package_name)?;
                 let package_name = PackageName::Init(*package_name);
                 let id = package_name.get_id()?;
 
@@ -182,7 +166,7 @@ impl PackageCreators<'_> {
     pub fn new_packages_for_sim(
         &self,
         config: &Arc<SimulationRunConfig>,
-        comms: Comms,
+        comms: C,
     ) -> Result<(Packages, PackageMsgs)> {
         // TODO: generics to avoid code duplication
         let state_field_spec_map = &config.simulation_config().store.agent_schema.field_spec_map;

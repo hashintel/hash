@@ -5,7 +5,10 @@ use stateful::{
     agent::AgentSchema, context::ContextSchema, global::Globals, message::MessageSchema,
 };
 
-use crate::{config::Result, simulation::package::creator::PackageCreators};
+use crate::{
+    config::Result,
+    simulation::{comms::Comms, package::creator::PackageCreators},
+};
 
 pub struct SchemaConfig {
     pub agent_schema: Arc<AgentSchema>,
@@ -17,7 +20,7 @@ impl SchemaConfig {
     pub fn new(
         package_init_config: &PackageInitConfig,
         globals: &Globals,
-        package_creators: &PackageCreators<'static>,
+        package_creators: &PackageCreators<'_, Comms>,
     ) -> Result<Self> {
         let agent_schema =
             Arc::new(package_creators.get_agent_schema(package_init_config, globals)?);
