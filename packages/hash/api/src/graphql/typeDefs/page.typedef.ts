@@ -146,7 +146,7 @@ export const pageTypedef = gql`
     """
     Return a list of pages belonging to an account
     """
-    accountPages(accountId: ID!): [Page!]!
+    accountPages(accountId: ID!, archived: Boolean = false): [Page!]!
 
     """
     Search for pages matching a query string.
@@ -169,6 +169,7 @@ export const pageTypedef = gql`
     contents: [JSONObject!]
     title: String
     summary: String
+    archived: Boolean
   }
 
   """
