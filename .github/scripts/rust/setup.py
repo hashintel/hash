@@ -15,6 +15,7 @@ TEST_IN_RELEASE_CRATES = ["packages/engine"]
 DISABLE_STABLE_PATTERNS = ["packages/engine**"]
 
 # Exclude these crates to run `rustdoc` at
+# Note: This will run `rustdoc` for all crates except the virtual package in `packages/engine`
 DISABLE_DOC_PATTERNS = ["packages/engine"]
 
 # Try and publish these crates when their version is changed in Cargo.toml
