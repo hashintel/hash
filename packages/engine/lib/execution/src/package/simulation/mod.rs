@@ -114,7 +114,7 @@
 //!     }
 //! }
 //!
-//! impl<C> StatePackageCreator for GreetingCreator {
+//! impl StatePackageCreator for GreetingCreator {
 //!     fn create(
 //!         &self,
 //!         config: &PackageCreatorConfig,
