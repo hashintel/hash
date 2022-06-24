@@ -8,7 +8,7 @@ use std::sync::Arc;
 use execution::package::simulation::{
     output::persistence::SimulationOutputPersistence, SimulationId,
 };
-use simulation_structure::SimulationRunConfig;
+use experiment_structure::SimulationRunConfig;
 use tokio::task::JoinHandle;
 use tracing::Instrument;
 

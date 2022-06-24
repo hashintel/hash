@@ -15,7 +15,7 @@ pub enum Error {
     Execution(#[from] execution::Error),
 
     #[error("Structure error: {0}")]
-    Structure(#[from] simulation_structure::Error),
+    Structure(#[from] experiment_structure::Error),
 
     #[error("Env error: {0}")]
     Env(#[from] crate::env::Error),

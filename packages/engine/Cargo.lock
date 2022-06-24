@@ -416,10 +416,10 @@ dependencies = [
  "clap",
  "error-stack",
  "execution",
+ "experiment-structure",
  "hash_engine_lib",
  "orchestrator",
  "serde",
- "simulation_structure",
  "tokio",
  "uuid",
 ]
@@ -690,6 +690,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "experiment-structure"
+version = "0.0.0"
+dependencies = [
+ "async-trait",
+ "clap",
+ "csv",
+ "error-stack",
+ "execution",
+ "futures",
+ "rand 0.8.4",
+ "rand_distr",
+ "serde",
+ "serde_json",
+ "stateful",
+ "surf",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -939,8 +960,8 @@ version = "0.0.0"
 dependencies = [
  "error-stack",
  "execution",
+ "experiment-structure",
  "hash_engine_lib",
- "simulation_structure",
  "tokio",
  "tracing",
 ]
@@ -956,6 +977,7 @@ dependencies = [
  "clap",
  "error-stack",
  "execution",
+ "experiment-structure",
  "flatbuffers_gen",
  "futures",
  "memory",
@@ -966,7 +988,6 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
- "simulation_structure",
  "stateful",
  "thiserror",
  "tokio",
@@ -1572,13 +1593,13 @@ dependencies = [
  "clap",
  "error-stack",
  "execution",
+ "experiment-structure",
  "hash_engine",
  "hash_engine_lib",
  "nano",
  "num_cpus",
  "serde",
  "serde_json",
- "simulation_structure",
  "stateful",
  "tokio",
  "tracing",
@@ -2057,27 +2078,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "simulation_structure"
-version = "0.0.0"
-dependencies = [
- "async-trait",
- "clap",
- "csv",
- "error-stack",
- "execution",
- "futures",
- "rand 0.8.4",
- "rand_distr",
- "serde",
- "serde_json",
- "stateful",
- "surf",
- "thiserror",
- "tokio",
- "tracing",
 ]
 
 [[package]]

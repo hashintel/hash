@@ -1,8 +1,8 @@
 use std::{mem, sync::Arc};
 
 use execution::package::simulation::output::Output;
+use experiment_structure::SimulationRunConfig;
 use memory::shared_memory::MemoryId;
-use simulation_structure::SimulationRunConfig;
 use stateful::{
     agent::AgentBatchPool,
     context::Context,

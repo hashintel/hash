@@ -2,13 +2,13 @@ use std::{error::Error, fmt, sync::Arc};
 
 use error_stack::{IntoReport, Result, ResultExt};
 use execution::runner::RunnerConfig;
+use experiment_structure::{ExperimentConfig, FetchDependencies};
 use hash_engine_lib::{
     env::{env, Environment},
     experiment::controller::run::{cleanup_experiment, run_experiment},
     utils::init_logger,
     Args,
 };
-use simulation_structure::{ExperimentConfig, FetchDependencies};
 
 #[derive(Debug)]
 pub struct EngineError;

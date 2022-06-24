@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
-use simulation_structure::SimulationRunConfig;
+use experiment_structure::SimulationRunConfig;
 use stateful::{
     agent::{AgentBatch, AgentSchema},
     proxy::PoolReadProxy,

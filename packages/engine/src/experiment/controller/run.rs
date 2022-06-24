@@ -11,8 +11,8 @@ use execution::{
     worker_pool,
     worker_pool::{comms::terminate::TerminateSend, WorkerPool},
 };
+use experiment_structure::{ExperimentConfig, PackageCreators};
 use memory::shared_memory;
-use simulation_structure::{ExperimentConfig, PackageCreators};
 use stateful::global::SharedStore;
 use tracing::Instrument;
 

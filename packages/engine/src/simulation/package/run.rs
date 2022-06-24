@@ -11,9 +11,9 @@ use execution::{
     runner::comms::PackageMsgs,
     worker::PackageInitMsgForWorker,
 };
+use experiment_structure::{PackageCreators, SimulationRunConfig};
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use memory::shared_memory::MemoryId;
-use simulation_structure::{PackageCreators, SimulationRunConfig};
 use stateful::{
     context::{Context, ContextColumn, PreContext},
     field::{FieldSource, FieldSpecMapAccessor},

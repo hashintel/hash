@@ -8,6 +8,7 @@ use error_stack::{bail, ensure, IntoReport, ResultExt};
 use execution::package::{
     experiment::ExperimentId, simulation::output::persistence::local::LocalPersistenceConfig,
 };
+use experiment_structure::ExperimentRun;
 use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
     proto::{self, ExecutionEnvironment},
@@ -15,7 +16,6 @@ use hash_engine_lib::{
     utils::{LogFormat, LogLevel, OutputLocation},
 };
 use serde_json::json;
-use simulation_structure::ExperimentRun;
 use tokio::time::{sleep, timeout};
 
 use crate::{experiment_server::Handler, process, OrchestratorError, Result};

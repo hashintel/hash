@@ -13,7 +13,7 @@ use execution::{
         top::{WorkerPoolMsgRecv, WorkerPoolToExpCtlMsg},
     },
 };
-use simulation_structure::{ExperimentConfig, PackageCreators};
+use experiment_structure::{ExperimentConfig, PackageCreators};
 use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 

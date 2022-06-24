@@ -4,8 +4,8 @@ use execution::{
     package::simulation::{output::persistence::SimulationOutputPersistence, SimulationId},
     runner::RunnerError,
 };
+use experiment_structure::SimulationRunConfig;
 use futures::FutureExt;
-use simulation_structure::SimulationRunConfig;
 use tokio::time::Duration;
 
 use crate::{

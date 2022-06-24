@@ -1,6 +1,6 @@
+use experiment_structure::SimulationRunConfig;
 use memory::shared_memory::MemoryId;
 use rayon::prelude::*;
-use simulation_structure::SimulationRunConfig;
 use stateful::{proxy::BatchPool, state::StateBatchPools};
 
 use crate::datastore::{

@@ -13,12 +13,12 @@ use execution::{
     },
     worker_pool::{WorkerAllocation, WorkerPoolConfig},
 };
-use rand::{prelude::StdRng, Rng, SeedableRng};
-use serde::{Deserialize, Serialize};
-use simulation_structure::{
+use experiment_structure::{
     ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder, PackageCreators,
     SimulationRunConfig, SimulationSource,
 };
+use rand::{prelude::StdRng, Rng, SeedableRng};
+use serde::{Deserialize, Serialize};
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
     field::{

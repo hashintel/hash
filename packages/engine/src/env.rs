@@ -1,6 +1,6 @@
 use error_stack::{Report, ResultExt};
 use execution::package::experiment::ExperimentId;
-use simulation_structure::ExperimentRun;
+use experiment_structure::ExperimentRun;
 use thiserror::Error as ThisError;
 use tokio::time::Duration;
 
