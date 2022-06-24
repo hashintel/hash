@@ -4,8 +4,8 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-stateful = { path = "../stateful" }
-execution = { path = "../execution" }
+stateful = { path = "../stateful", default-features = false }
+execution = { path = "../execution", default-features = false }
 
 error-stack = "0.1.1"
 
@@ -22,3 +22,7 @@ thiserror = "1.0.21"
 tracing = "0.1.29"
 
 clap = { version = "3.0.0", features = ["derive"], optional = true }
+
+[features]
+build-nng = ["execution/build-nng"]
+clap = ["dep:clap"]
