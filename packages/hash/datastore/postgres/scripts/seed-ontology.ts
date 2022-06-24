@@ -1,9 +1,9 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 
-import { createPool, DatabaseTransactionConnectionType, sql } from "slonik";
+import { createPool, DatabaseTransactionConnection, sql } from "slonik";
 import { dataTypes, propertyTypes } from "./data/ontology";
 
-type DBClient = DatabaseTransactionConnectionType;
+type DBClient = DatabaseTransactionConnection;
 
 const createDataType = async (
   client: DBClient,
@@ -23,6 +23,11 @@ const createDataType = async (
 `);
 };
 
+type DataTypeRow = { data_type_uri: string; schema: any };
+const readDataTypes = async (client: DBClient) => {
+  return await client.any<DataTypeRow>(sql`select * from data_types`);
+};
+
 const createPropertyType = async (
   client: DBClient,
   params: {
@@ -39,6 +44,84 @@ const createPropertyType = async (
     ${sql.jsonb(params.schema)}
   )
 `);
+};
+
+type PropertyTypeRow = { property_type_uri: string; schema: any };
+
+const readPropertyTypes = async (client: DBClient) => {
+  return await client.any<PropertyTypeRow>(sql`select * from property_types`);
+};
+
+const propertyTypeAddPropertyType = async (
+  client: DBClient,
+  params: {
+    propertyTypeUri: string;
+    referencePropertyTypeUri: string;
+  },
+) => {
+  await client.query(sql`
+  insert into property_type_property_type_references (
+    property_type_uri, referenced_property_type_uri
+  )
+  values (
+    ${params.propertyTypeUri},
+    ${params.referencePropertyTypeUri}
+  )
+`);
+};
+
+const propertyTypeAddDataType = async (
+  client: DBClient,
+  params: {
+    propertyTypeUri: string;
+    referenceDataTypeUri: string;
+  },
+) => {
+  await client.query(sql`
+  insert into property_type_data_type_references (
+    property_type_uri, referenced_data_type_uri
+  )
+  values (
+    ${params.propertyTypeUri},
+    ${params.referenceDataTypeUri}
+  )
+`);
+};
+
+type PropertyTypePropertyTypeRow = {
+  property_type_uri: string;
+  referenced_property_type_uri: string;
+};
+
+type PropertyTypeDataTypeRow = {
+  property_type_uri: string;
+  referenced_data_type_uri: string;
+};
+
+type PropertyRef = {
+  property_type_uri: string;
+  referenced: string;
+};
+
+const readPropertyTypeReferences = async (client: DBClient) => {
+  return [
+    ...(
+      await client.any<PropertyTypePropertyTypeRow>(
+        sql`select * from property_type_property_type_references`,
+      )
+    ).map(({ property_type_uri, referenced_property_type_uri }) => ({
+      property_type_uri,
+      referenced: referenced_property_type_uri,
+    })),
+    ...(
+      await client.any<PropertyTypeDataTypeRow>(
+        sql`select * from property_type_data_type_references`,
+      )
+    ).map(({ property_type_uri, referenced_data_type_uri }) => ({
+      property_type_uri,
+      referenced: referenced_data_type_uri,
+    })),
+  ];
 };
 
 const createEntityType = async (
@@ -85,42 +168,6 @@ const entityTypeAddPropertyType = async (
 `);
 };
 
-const propertyTypeAddPropertyType = async (
-  client: DBClient,
-  params: {
-    propertyTypeUri: string;
-    referencePropertyTypeUri: string;
-  },
-) => {
-  await client.query(sql`
-  insert into property_type_property_type_references (
-    property_type_uri, referenced_property_type_uri
-  )
-  values (
-    ${params.propertyTypeUri},
-    ${params.referencePropertyTypeUri}
-  )
-`);
-};
-
-const propertyTypeAddDataType = async (
-  client: DBClient,
-  params: {
-    propertyTypeUri: string;
-    referenceDataTypeUri: string;
-  },
-) => {
-  await client.query(sql`
-  insert into property_type_data_type_references (
-    property_type_uri, referenced_data_type_uri
-  )
-  values (
-    ${params.propertyTypeUri},
-    ${params.referenceDataTypeUri}
-  )
-`);
-};
-
 const createEntity = async (
   client: DBClient,
   params: {
@@ -140,6 +187,9 @@ const createEntity = async (
   )
 `);
 };
+
+const lastPart = (str: string) =>
+  str.substring(str.lastIndexOf("/") + 1).replace("-", "");
 
 const main = async () => {
   const host = getRequiredEnv("HASH_PG_HOST");
@@ -189,9 +239,52 @@ const main = async () => {
         );
       }
     }
+
+    await printGraph(client);
   });
+};
+
+const printGraph = async (client: DatabaseTransactionConnection) => {
+  console.info("-- Data Types --");
+
+  const dts = await readDataTypes(client);
+  dts.map((row) => console.info(row.data_type_uri));
+
+  console.info("-- Property Types --");
+  const pts = await readPropertyTypes(client);
+  pts.map((row) => console.info(row.property_type_uri));
+
+  console.info(
+    "-- Digraph, paste into https://dreampuf.github.io/GraphvizOnline/ --",
+  );
+
+  // Close your eyes here. It's ugly, but it works.
+  let graph = "digraph G {";
+  graph += "subgraph dts {node [style=filled,color=lightyellow];";
+  dts.map(({ data_type_uri }) => {
+    graph += lastPart(data_type_uri) + ";";
+  });
+  graph += "}";
+
+  graph += "subgraph pts {node [style=filled,color=lightblue];";
+  pts.map(({ property_type_uri }) => {
+    graph += lastPart(property_type_uri) + ";";
+  });
+  graph += "}";
+
+  const ptRefs = await readPropertyTypeReferences(client);
+  ptRefs.map(({ property_type_uri, referenced }) => {
+    let from = lastPart(property_type_uri);
+    let to = lastPart(referenced);
+
+    graph += from + "->" + to + ";";
+  });
+  graph += "}";
+
+  console.log(graph);
 };
 
 void (async () => {
   await main();
+  process.exit(0);
 })();
