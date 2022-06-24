@@ -24,7 +24,7 @@ enum Ctrl {
     Register {
         /// Identifier for the experiment to be registered
         id: ExperimentId,
-        /// Sender for the engine to use to send [`EngineStatus`](proto::EngineStatus) messages
+        /// Sender for the engine to use to send [`EngineStatus`] messages
         /// back to the orchestrator
         msg_tx: MsgSender,
     },
@@ -32,7 +32,7 @@ enum Ctrl {
     Stop, // TODO: UNUSED: Needs triage
 }
 
-/// A connection to receive [`EngineStatus`](proto::EngineStatus)es from an
+/// A connection to receive [`EngineStatus`]es from an
 /// `hash_engine`-sub[process](crate::process).
 pub struct Handle {
     id: ExperimentId,
