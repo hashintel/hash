@@ -18,7 +18,7 @@ use crate::{
         agent_control::AgentControl,
         command::{Commands, StopCommand},
         comms::Comms,
-        package::run::Packages,
+        controller::Packages,
         step_result::SimulationStepResult,
         Error, Result,
     },
@@ -48,12 +48,11 @@ impl Engine {
         let comms = Arc::new(comms);
 
         let state = packages
-            .init
-            .run(Arc::clone(&config.clone()))
+            .run_init(Arc::clone(&config.clone()))
             .instrument(tracing::info_span!("init_packages"))
             .await?;
         tracing::trace!("Init packages completed, building empty context");
-        let context = packages.step.empty_context(&config, state.num_agents())?;
+        let context = packages.empty_context(&config, state.num_agents())?;
 
         Ok(Engine {
             packages,
@@ -163,7 +162,6 @@ impl Engine {
         let pre_context = context.into_pre_context();
         let context = self
             .packages
-            .step
             .run_context(
                 &snapshot_state_proxy,
                 snapshot,
@@ -207,7 +205,7 @@ impl Engine {
             .store
             .take()
             .expect("state and context should be present");
-        self.packages.step.run_state(&mut state, &context).await?;
+        self.packages.run_state(&mut state, &context).await?;
         self.store.replace((state, context));
         Ok(())
     }
@@ -225,7 +223,7 @@ impl Engine {
         let state = Arc::new(state);
         let context = Arc::new(context);
 
-        let output = self.packages.step.run_output(&state, &context).await?;
+        let output = self.packages.run_output(&state, &context).await?;
         let state = Arc::try_unwrap(state)
             .map_err(|_| Error::from("Unable to unwrap state after output package execution"))?;
         let context = Arc::try_unwrap(context)

@@ -28,8 +28,10 @@ use crate::simulation::{
 
 /// Represents the packages of a simulation engine.
 pub struct Packages {
-    pub init: InitPackages,
-    pub step: StepPackages,
+    init: Vec<Box<dyn InitPackage>>,
+    context: Vec<Box<dyn ContextPackage>>,
+    state: Vec<Box<dyn StatePackage>>,
+    output: Vec<Box<dyn OutputPackage>>,
 }
 
 impl Packages {
@@ -50,6 +52,7 @@ impl Packages {
             .context_schema
             .field_spec_map;
         let mut messages = HashMap::new();
+
         let init = package_creators
             .init_package_creators()
             .iter()
@@ -78,6 +81,7 @@ impl Packages {
                 Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
+
         let context = package_creators
             .context_package_creators()
             .iter()
@@ -110,6 +114,7 @@ impl Packages {
                 Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
+
         let state = package_creators
             .state_package_creators()
             .iter()
@@ -138,6 +143,7 @@ impl Packages {
                 Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
+
         let output = package_creators
             .output_package_creators()
             .iter()
@@ -167,28 +173,22 @@ impl Packages {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let init = InitPackages::new(init);
-        let step = StepPackages::new(context, state, output);
-
-        Ok((Self { init, step }, PackageMsgs(messages)))
-    }
-}
-
-/// TODO: DOC: explain link to init/mod.rs
-pub struct InitPackages {
-    inner: Vec<Box<dyn InitPackage>>,
-}
-
-impl InitPackages {
-    pub fn new(inner: Vec<Box<dyn InitPackage>>) -> InitPackages {
-        InitPackages { inner }
+        Ok((
+            Self {
+                init,
+                context,
+                state,
+                output,
+            },
+            PackageMsgs(messages),
+        ))
     }
 
-    pub async fn run(&mut self, sim_config: Arc<SimulationRunConfig>) -> Result<State> {
+    pub async fn run_init(&mut self, sim_config: Arc<SimulationRunConfig>) -> Result<State> {
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
 
-        let pkgs = std::mem::take(&mut self.inner);
+        let pkgs = std::mem::take(&mut self.init);
         let num_packages = pkgs.len();
 
         pkgs.into_iter().for_each(|mut package| {
@@ -220,29 +220,7 @@ impl InitPackages {
         let state = State::from_agent_states(&agents, sim_config.to_state_create_parameters())?;
         Ok(state)
     }
-}
 
-pub struct StepPackages {
-    context: Vec<Box<dyn ContextPackage>>,
-    state: Vec<Box<dyn StatePackage>>,
-    output: Vec<Box<dyn OutputPackage>>,
-}
-
-impl StepPackages {
-    pub fn new(
-        context: Vec<Box<dyn ContextPackage>>,
-        state: Vec<Box<dyn StatePackage>>,
-        output: Vec<Box<dyn OutputPackage>>,
-    ) -> StepPackages {
-        StepPackages {
-            context,
-            state,
-            output,
-        }
-    }
-}
-
-impl StepPackages {
     pub fn empty_context(
         &self,
         sim_run_config: &SimulationRunConfig,

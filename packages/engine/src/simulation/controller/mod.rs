@@ -1,4 +1,5 @@
 mod error;
+mod packages;
 pub mod run;
 pub mod runs;
 pub mod sim_control;
@@ -14,6 +15,7 @@ use tracing::Instrument;
 
 pub use self::{
     error::{Error, Result},
+    packages::Packages,
     sim_control::SimControl,
 };
 use crate::{
@@ -21,7 +23,7 @@ use crate::{
         sim_status::SimStatusSend,
         simulation::{new_pair, SimCtlRecv, SimCtlSend},
     },
-    simulation::{comms::Comms, package::run::Packages},
+    simulation::comms::Comms,
 };
 
 pub struct SimulationController {

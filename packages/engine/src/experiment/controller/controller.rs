@@ -33,8 +33,9 @@ use crate::{
     proto::{EngineMsg, EngineStatus},
     simulation::{
         comms::Comms,
-        controller::{runs::SimulationRuns, sim_control::SimControl, SimulationController},
-        package::run::Packages,
+        controller::{
+            runs::SimulationRuns, sim_control::SimControl, Packages, SimulationController,
+        },
         status::SimStatus,
         Error as SimulationError,
     },

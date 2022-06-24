@@ -4,7 +4,6 @@ pub mod comms;
 pub mod controller;
 pub mod engine;
 mod error;
-pub mod package;
 pub mod status;
 pub mod step_result;
 
