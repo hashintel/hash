@@ -1,7 +1,8 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { poolConnection } from "packages/hash/api/src/db/postgres/util";
 
 import { createPool, DatabaseTransactionConnection, sql } from "slonik";
-import { dataTypes, propertyTypes } from "./data/ontology";
+import { dataTypes, entityTypes, propertyTypes } from "./data/ontology";
 
 type DBClient = DatabaseTransactionConnection;
 
@@ -103,7 +104,9 @@ type PropertyRef = {
   referenced: string;
 };
 
-const readPropertyTypeReferences = async (client: DBClient) => {
+const readPropertyTypeReferences = async (
+  client: DBClient,
+): Promise<PropertyRef[]> => {
   return [
     ...(
       await client.any<PropertyTypePropertyTypeRow>(
@@ -128,18 +131,23 @@ const createEntityType = async (
   client: DBClient,
   params: {
     entityTypeUri: string;
-    schema: any;
+    description: string;
   },
 ) => {
   await client.query(sql`
   insert into entity_types (
-    entity_type_uri, schema
+    entity_type_uri, description
   )
   values (
     ${params.entityTypeUri},
-    ${sql.jsonb(params.schema)}
+    ${params.description}
   )
 `);
+};
+
+type EntityTypeRow = { entity_type_uri: string; description: string };
+const readEntityTypes = async (client: DBClient) => {
+  return await client.any<EntityTypeRow>(sql`select * from entity_types`);
 };
 
 const entityTypeAddPropertyType = async (
@@ -155,7 +163,7 @@ const entityTypeAddPropertyType = async (
 ) => {
   await client.query(sql`
   insert into entity_type_property_types (
-    source_entity_type_uri, property_type_uri, required, array, min_items, max_items
+    source_entity_type_uri, property_type_uri, required, "array", min_items, max_items
   )
   values (
     ${params.sourceEntityTypeUri},
@@ -166,6 +174,17 @@ const entityTypeAddPropertyType = async (
     ${params.maxItems ?? null}
   )
 `);
+};
+
+type EntityTypePropertyTypeRow = {
+  source_entity_type_uri: string;
+  property_type_uri: string;
+};
+
+const readEntityTypeReferences = async (client: DBClient) => {
+  return client.any<EntityTypePropertyTypeRow>(
+    sql`select * from entity_type_property_types`,
+  );
 };
 
 const createEntity = async (
@@ -188,8 +207,8 @@ const createEntity = async (
 `);
 };
 
-const lastPart = (str: string) =>
-  str.substring(str.lastIndexOf("/") + 1).replace("-", "");
+const lastPartStringified = (str: string) =>
+  '"' + str.substring(str.lastIndexOf("/") + 1) + '"';
 
 const main = async () => {
   const host = getRequiredEnv("HASH_PG_HOST");
@@ -209,7 +228,9 @@ const main = async () => {
         await createDataType(client, { dataTypeUri: schema.$id, schema });
       }
     }
+  });
 
+  await pool.transaction(async (client) => {
     const existsPropertyTypes = await client.exists(
       sql`select * from property_types`,
     );
@@ -239,7 +260,34 @@ const main = async () => {
         );
       }
     }
+  });
 
+  await pool.transaction(async (client) => {
+    const existsEntityType = await client.exists(
+      sql`select * from entity_types`,
+    );
+    if (!existsEntityType) {
+      for (const [entityType, dependentPT] of entityTypes) {
+        await createEntityType(client, {
+          entityTypeUri: entityType.$id,
+          description: "",
+        });
+
+        await Promise.all(
+          dependentPT.map((propertyTypeUri) =>
+            entityTypeAddPropertyType(client, {
+              sourceEntityTypeUri: entityType.$id,
+              propertyTypeUri,
+              array: false,
+              required: false,
+            }),
+          ),
+        );
+      }
+    }
+  });
+
+  await pool.transaction(async (client) => {
     await printGraph(client);
   });
 };
@@ -254,31 +302,50 @@ const printGraph = async (client: DatabaseTransactionConnection) => {
   const pts = await readPropertyTypes(client);
   pts.map((row) => console.info(row.property_type_uri));
 
+  console.info("-- Entity Types --");
+  const ets = await readEntityTypes(client);
+  ets.map((row) => console.info(row.entity_type_uri));
+
   console.info(
     "-- Digraph, paste into https://dreampuf.github.io/GraphvizOnline/ --",
   );
 
   // Close your eyes here. It's ugly, but it works.
   let graph = "digraph G {";
-  graph += "subgraph dts {node [style=filled,color=lightyellow];";
+  graph += "subgraph dts {rank=same;node [style=filled,color=lightyellow];";
   dts.map(({ data_type_uri }) => {
-    graph += lastPart(data_type_uri) + ";";
+    graph += lastPartStringified(data_type_uri) + ";";
   });
   graph += "}";
 
-  graph += "subgraph pts {node [style=filled,color=lightblue];";
+  graph += "subgraph pts {rank=same;node [style=filled,color=lightblue];";
   pts.map(({ property_type_uri }) => {
-    graph += lastPart(property_type_uri) + ";";
+    graph += lastPartStringified(property_type_uri) + ";";
+  });
+  graph += "}";
+
+  graph += "subgraph ets {rank=same;node [style=filled,color=lightpink];";
+  ets.map(({ entity_type_uri }) => {
+    graph += lastPartStringified(entity_type_uri) + ";";
   });
   graph += "}";
 
   const ptRefs = await readPropertyTypeReferences(client);
   ptRefs.map(({ property_type_uri, referenced }) => {
-    let from = lastPart(property_type_uri);
-    let to = lastPart(referenced);
+    let from = lastPartStringified(property_type_uri);
+    let to = lastPartStringified(referenced);
 
     graph += from + "->" + to + ";";
   });
+
+  const etRefs = await readEntityTypeReferences(client);
+  etRefs.map(({ source_entity_type_uri, property_type_uri }) => {
+    let from = lastPartStringified(source_entity_type_uri);
+    let to = lastPartStringified(property_type_uri);
+
+    graph += from + "->" + to + ";";
+  });
+
   graph += "}";
 
   console.log(graph);

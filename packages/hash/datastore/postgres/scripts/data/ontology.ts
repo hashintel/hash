@@ -64,4 +64,74 @@ export const propertyTypes = [
     ["https://blockprotocol.org/types/@blockprotocol/data-type/text"],
     [],
   ],
+  [
+    {
+      kind: "propertyType",
+      $id: "https://blockprotocol.org/types/@alice/property-type/name",
+      name: "Favorite Quote",
+      oneOf: [
+        {
+          $ref: "https://blockprotocol.org/types/@blockprotocol/data-type/text",
+        },
+      ],
+    },
+    ["https://blockprotocol.org/types/@blockprotocol/data-type/text"],
+    [],
+  ],
+  [
+    {
+      kind: "propertyType",
+      $id: "https://blockprotocol.org/types/@alice/property-type/published-on",
+      name: "Favorite Quote",
+      oneOf: [
+        {
+          $ref: "https://blockprotocol.org/types/@blockprotocol/data-type/text",
+        },
+      ],
+    },
+    ["https://blockprotocol.org/types/@blockprotocol/data-type/text"],
+    [],
+  ],
+  [
+    {
+      kind: "propertyType",
+      $id: "https://blockprotocol.org/types/@alice/property-type/blurb",
+      name: "Favorite Quote",
+      oneOf: [
+        {
+          $ref: "https://blockprotocol.org/types/@blockprotocol/data-type/text",
+        },
+      ],
+    },
+    ["https://blockprotocol.org/types/@blockprotocol/data-type/text"],
+    [],
+  ],
+] as const;
+
+export const entityTypes = [
+  [
+    {
+      kind: "entityType",
+      $id: "https://blockprotocol.org/types/@alice/entity-type/book",
+      type: "object",
+      name: "Book",
+      properties: {
+        "https://blockprotocol.org/types/@alice/property-type/name": {
+          $ref: "https://blockprotocol.org/types/@alice/property-type/name",
+        },
+        "https://blockprotocol.org/types/@alice/property-type/published-on": {
+          $ref: "https://blockprotocol.org/types/@alice/property-type/published-on",
+        },
+        "https://blockprotocol.org/types/@alice/property-type/blurb": {
+          $ref: "https://blockprotocol.org/types/@alice/property-type/blurb",
+        },
+      },
+      required: ["https://blockprotocol.org/types/@alice/property-type/name"],
+    },
+    [
+      "https://blockprotocol.org/types/@alice/property-type/name",
+      "https://blockprotocol.org/types/@alice/property-type/published-on",
+      "https://blockprotocol.org/types/@alice/property-type/blurb",
+    ],
+  ],
 ] as const;
