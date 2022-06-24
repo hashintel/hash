@@ -156,7 +156,7 @@ jobs:
         run: sudo apt-get install -y libnng-dev
 
       - name: Run clippy
-        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} $required_features -- -D warnings
+        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} -- -D warnings
 
       - name: Annotate
         if: ${{ failure() }}
@@ -228,7 +228,7 @@ jobs:
 
       - name: Build tests
         if: matrix.directory == 'packages/engine'
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }} $required_features
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
 
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
@@ -236,13 +236,11 @@ jobs:
         run: |
           lib/execution/src/runner/python/setup.sh python3.7
 
-      - name: Run tests
-        run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+      - name: Install nng
+        run: sudo apt-get install -y libnng-dev
 
-          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} $required_features
+      - name: Run tests
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
 
       # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
@@ -396,7 +394,7 @@ jobs:
 
       - name: Run miri
         working-directory: ${{ matrix.directory }}
-        run: cargo miri test ${{ matrix.flags }} $required_features
+        run: cargo miri test ${{ matrix.flags }}
 
   doc:
     name: doc
