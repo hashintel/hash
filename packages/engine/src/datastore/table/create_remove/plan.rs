@@ -88,8 +88,8 @@ impl<'a> MigrationPlan<'a> {
                 action.actions.new_batch(
                     &config.simulation_config().schema.agent_schema,
                     &config.simulation_config().schema.message_schema,
-                    MemoryId::new(config.experiment_config().experiment_run.id()),
-                    MemoryId::new(config.experiment_config().experiment_run.id()),
+                    MemoryId::new(config.experiment_config().experiment_run.id().as_uuid()),
+                    MemoryId::new(config.experiment_config().experiment_run.id().as_uuid()),
                     action.worker_index,
                 )
             })

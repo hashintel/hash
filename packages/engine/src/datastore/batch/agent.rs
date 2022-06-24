@@ -19,7 +19,7 @@ mod tests {
             let _agent_batch = AgentBatch::from_agent_states(
                 agents.as_slice(),
                 &schema,
-                MemoryId::new(experiment_id),
+                MemoryId::new(experiment_id.as_uuid()),
             )
             .unwrap();
         });

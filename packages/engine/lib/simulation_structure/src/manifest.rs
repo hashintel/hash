@@ -520,8 +520,8 @@ impl Manifest {
         Ok(project)
     }
 
-    /// Combines this `Manifest` with the specified `experiment_type` to create an
-    /// [`ExperimentRun`] to be ran as an [`Experiment`](crate::Experiment).
+    /// Combines this `Manifest` with the specified [`ExperimentType`] to create an
+    /// [`ExperimentRun`].
     ///
     /// # Errors
     ///

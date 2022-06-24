@@ -11,19 +11,19 @@ use crate::{
 /// A sibling struct to a [`Task`] that is currently being executed to allow management of
 /// communication with, and tracking of, a [`Task`]'s status.
 ///
-/// [`Task`]: execution::task::Task
+/// [`Task`]: crate::task::Task
 pub struct ActiveTask {
     /// Used by the owning Package to wait for results from the associated [`Task`].
     ///
-    /// [`Task`]: execution::task::Task
+    /// [`Task`]: crate::task::Task
     comms: ActiveTaskOwnerComms,
     /// Marks whether or not the [`Task`] is still running.
     ///
-    /// [`Task`]: execution::task::Task
+    /// [`Task`]: crate::task::Task
     running: bool,
     /// Marks whether or not the [`Task`] has been signaled to cancel.
     ///
-    /// [`Task`]: execution::task::Task
+    /// [`Task`]: crate::task::Task
     cancel_sent: bool,
 }
 
@@ -45,7 +45,7 @@ impl ActiveTask {
     /// [`TaskResultOrCancelled`].
     /// - If the [`Task`] was cancelled during execution.
     ///
-    /// [`Task`]: execution::task::Task
+    /// [`Task`]: crate::task::Task
     pub async fn drive_to_completion(mut self) -> Result<TaskMessage> {
         if self.running {
             let recv = self

@@ -287,7 +287,13 @@ impl StepPackages {
         let context = Context::from_columns(
             columns,
             &sim_run_config.simulation_config().schema.context_schema,
-            MemoryId::new(sim_run_config.experiment_config().experiment_run.id()),
+            MemoryId::new(
+                sim_run_config
+                    .experiment_config()
+                    .experiment_run
+                    .id()
+                    .as_uuid(),
+            ),
         )?;
         Ok(context)
     }

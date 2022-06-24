@@ -18,7 +18,7 @@ pub struct PackageComms {
     simulation_id: SimulationId,
     /// A sender to communicate with the [`WorkerPool`].
     ///
-    /// [`WorkerPool`]: execution::worker_pool::WorkerPool
+    /// [`WorkerPool`]: crate::worker_pool::WorkerPool
     worker_pool_sender: MainMsgSend,
 }
 
@@ -38,8 +38,8 @@ impl PackageComms {
     /// Takes a given [`Task`] object, and starts its execution on the [`WorkerPool`], returning an
     /// [`ActiveTask`] to track its progress.
     ///
-    /// [`Task`]: execution::task::Task
-    /// [`WorkerPool`]: execution::worker_pool::WorkerPool
+    /// [`Task`]: crate::task::Task
+    /// [`WorkerPool`]: crate::worker_pool::WorkerPool
     pub async fn new_task(
         &self,
         task: PackageTask,
@@ -62,8 +62,8 @@ impl PackageComms {
     ///
     /// If the [`Task`] needs more access than the provided [`TaskSharedStore`] has.
     ///
-    /// [`Task`]: execution::task::Task
-    /// [`WorkerPool`]: execution::worker_pool::WorkerPool
+    /// [`Task`]: crate::task::Task
+    /// [`WorkerPool`]: crate::worker_pool::WorkerPool
     fn wrap_task(
         task_id: TaskId,
         package_id: PackageId,

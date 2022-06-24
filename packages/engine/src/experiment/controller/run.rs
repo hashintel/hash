@@ -108,7 +108,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
     // shared across the whole experiment run)
     let shared_store = Arc::new(SharedStore::new(
         &exp_config.experiment_run.simulation().datasets,
-        exp_config.experiment_run.id().into(),
+        exp_config.experiment_run.id().as_uuid(),
     )?);
 
     // Set up the worker pool and all communications with it
@@ -356,7 +356,7 @@ fn worker_pool_exit_logic(
 
 /// Forcefully clean-up resources created by the experiment
 pub fn cleanup_experiment(experiment_id: ExperimentId) {
-    if let Err(err) = shared_memory::cleanup_by_base_id(experiment_id) {
+    if let Err(err) = shared_memory::cleanup_by_base_id(experiment_id.as_uuid()) {
         tracing::warn!("{}", err);
     }
 
