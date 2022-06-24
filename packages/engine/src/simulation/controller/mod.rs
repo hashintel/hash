@@ -1,8 +1,8 @@
 mod error;
 mod packages;
-pub mod run;
-pub mod runs;
-pub mod sim_control;
+mod run;
+mod runs;
+mod sim_control;
 
 use std::sync::Arc;
 
@@ -16,6 +16,7 @@ use tracing::Instrument;
 pub use self::{
     error::{Error, Result},
     packages::Packages,
+    runs::SimulationRuns,
     sim_control::SimControl,
 };
 use crate::{
