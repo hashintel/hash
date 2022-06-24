@@ -1,7 +1,7 @@
 use experiment_structure::ExperimentRun;
 use serde::{Deserialize, Serialize};
 
-use crate::experiment::environment::ExecutionEnvironment;
+use crate::environment::ExecutionEnvironment;
 
 /// The initialization message sent by an Orchestrator implementation to the Engine
 #[derive(Serialize, Deserialize, Debug)]

@@ -1,0 +1,31 @@
+[package]
+name = "experiment-control"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+nano = { path = "../nano", default-features = false }
+memory = { path = "../memory", default-features = false }
+stateful = { path = "../stateful", default-features = false }
+execution = { path = "../execution", default-features = false }
+experiment-structure = { path = "../experiment-structure", default-features = false }
+simulation-control = { path = "../simulation-control", default-features = false }
+
+error-stack = { version = "0.1.1", features = ["spantrace"] }
+
+clap = { version = "3.0.0", features = ["cargo", "derive", "env"], optional = true }
+num_cpus = "1.13.0"
+serde = { version = "1.0.111", features = ["derive"] }
+serde_json = "1.0.59"
+thiserror = "1.0.21"
+tokio = { version = "1.18.2", features = ["macros"] }
+tracing = "0.1.29"
+tracing-appender = "0.2.0"
+tracing-error = "0.2.0"
+tracing-subscriber = { version = "0.3.7", features = ["env-filter", "json"] }
+tracing-texray = { version = "0.1.2", optional = true }
+
+[features]
+default = ["build-nng"]
+build-nng = ["nano/build-nng", "execution/build-nng"]
+texray = ["tracing-texray"]

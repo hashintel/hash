@@ -12,7 +12,7 @@ pub use self::{
     execution::ExecutionEnvironment,
     logging::{init_logger, texray::examine, LogFormat, LogLevel, OutputLocation},
 };
-use crate::experiment::{
+use crate::{
     comms::{EngineMsg, InitMessage, OrchClient},
     Error, Result,
 };

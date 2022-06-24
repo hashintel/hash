@@ -7,7 +7,7 @@ use std::{
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, ResultExt};
 use execution::package::experiment::ExperimentId;
-use hash_engine_lib::experiment::{
+use experiment_control::{
     comms::EngineMsg,
     controller::run::cleanup_experiment,
     environment::{LogFormat, LogLevel, OutputLocation},

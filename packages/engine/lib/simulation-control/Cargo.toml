@@ -1,15 +1,15 @@
 [package]
 name = "simulation-control"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-memory = { path = "../memory" }
-stateful = { path = "../stateful" }
+memory = { path = "../memory", default-features = false }
+stateful = { path = "../stateful", default-features = false }
 execution = { path = "../execution", default-features = false }
-experiment-structure = { path = "../experiment-structure" }
+experiment-structure = { path = "../experiment-structure", default-features = false }
 
 arrow = { version = "10.0.0", default-features = false }
 futures = "0.3.6"

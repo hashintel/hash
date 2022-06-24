@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Display};
 
 use error_stack::{bail, report, IntoReport, ResultExt};
 use execution::package::experiment::ExperimentId;
-use hash_engine_lib::experiment::comms::OrchestratorMsg;
+use experiment_control::comms::OrchestratorMsg;
 use simulation_control::EngineStatus;
 use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};
 

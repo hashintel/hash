@@ -17,11 +17,11 @@ use simulation_control::{comms, EngineStatus};
 use stateful::global::SharedStore;
 use tracing::Instrument;
 
-use crate::experiment::{
+use crate::{
     controller::{
         config::{self, OutputPersistenceConfig},
-        controller::ExperimentController,
         sim_configurer::SimConfigurer,
+        ExperimentController,
     },
     environment::Environment,
     error::{Error as ExperimentError, Result as ExperimentResult},

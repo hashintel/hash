@@ -6,9 +6,9 @@ edition = "2021"
 description = "The hEngine Command line interface"
 
 [dependencies]
-hash_engine_lib = { path = "../..", default-features = false }
 execution = { path = "../../lib/execution", default-features = false }
-experiment-structure = { path = "../../lib/experiment-structure", features = ["clap"] }
+experiment-structure = { path = "../../lib/experiment-structure", default-features = false, features = ["clap"] }
+experiment-control = { path = "../../lib/experiment-control", default-features = false, features = ["clap"] }
 orchestrator = { path = "../../lib/orchestrator", default-features = false, features = ["clap"] }
 
 error-stack = { version = "0.1.1", features = ["spantrace"] }
@@ -20,5 +20,5 @@ uuid = { version = "0.8.1", features = ["v4", "serde"] }
 
 [features]
 default = ["build-nng"]
-texray = ["hash_engine_lib/texray"]
-build-nng = ["hash_engine_lib/build-nng"]
+texray = ["experiment-control/texray"]
+build-nng = ["experiment-control/build-nng"]

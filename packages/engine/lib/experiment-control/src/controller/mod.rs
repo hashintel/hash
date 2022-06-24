@@ -1,3 +1,7 @@
+pub mod config;
+pub mod run;
+pub mod sim_configurer;
+
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use execution::{
@@ -26,7 +30,7 @@ use simulation_control::{
 use stateful::global::{Globals, SharedStore};
 use tracing::{Instrument, Span};
 
-use crate::experiment::{
+use crate::{
     comms::{EngineMsg, OrchClient},
     controller::sim_configurer::SimConfigurer,
     environment::{self, Environment},

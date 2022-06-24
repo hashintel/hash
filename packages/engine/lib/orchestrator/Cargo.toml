@@ -7,9 +7,9 @@ edition = "2021"
 nano = { path = "../nano", default-features = false }
 stateful = { path = "../stateful", default-features = false }
 execution = { path = "../execution", default-features = false }
-experiment-structure = { path = "../experiment-structure" }
-simulation-control = { path = "../simulation-control" }
-hash_engine_lib = { path = "../..", default-features = false }
+experiment-structure = { path = "../experiment-structure", default-features = false }
+simulation-control = { path = "../simulation-control", default-features = false }
+experiment-control = { path = "../experiment-control", default-features = false }
 hash_engine = { path = "../../bin/hash_engine", default-features = false, artifact = "bin" }
 
 error-stack = { version = "0.1.1", features = ["spantrace"] }
@@ -25,4 +25,4 @@ tokio = { version = "1.18.2" }
 [features]
 default = ["build-nng"]
 build-nng = ["nano/build-nng"]
-texray = ["hash_engine_lib/texray"]
+texray = ["experiment-control/texray"]

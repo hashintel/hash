@@ -14,8 +14,8 @@ use execution::{
     package::experiment::{ExperimentId, ExperimentName},
     runner::Language,
 };
+use experiment_control::environment::{LogFormat, LogLevel, OutputLocation};
 use experiment_structure::{ExperimentType, Manifest};
-use hash_engine_lib::experiment::environment::{LogFormat, LogLevel, OutputLocation};
 use orchestrator::{ExperimentConfig, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;

@@ -416,8 +416,8 @@ dependencies = [
  "clap",
  "error-stack",
  "execution",
+ "experiment-control",
  "experiment-structure",
- "hash_engine_lib",
  "orchestrator",
  "serde",
  "tokio",
@@ -687,6 +687,30 @@ dependencies = [
  "tracing",
  "uuid",
  "v8",
+]
+
+[[package]]
+name = "experiment-control"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "error-stack",
+ "execution",
+ "experiment-structure",
+ "memory",
+ "nano",
+ "num_cpus",
+ "serde",
+ "serde_json",
+ "simulation-control",
+ "stateful",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-error",
+ "tracing-subscriber",
+ "tracing-texray",
 ]
 
 [[package]]
@@ -960,8 +984,8 @@ version = "0.0.0"
 dependencies = [
  "error-stack",
  "execution",
+ "experiment-control",
  "experiment-structure",
- "hash_engine_lib",
  "tokio",
  "tracing",
 ]
@@ -970,32 +994,17 @@ dependencies = [
 name = "hash_engine_lib"
 version = "0.0.0"
 dependencies = [
- "arrow",
- "async-trait",
- "cc",
- "clap",
  "error-stack",
  "execution",
+ "experiment-control",
  "experiment-structure",
- "flatbuffers_gen",
- "futures",
- "memory",
- "nano",
  "num_cpus",
  "orchestrator",
- "rand 0.8.4",
- "rayon",
  "serde",
  "serde_json",
- "simulation-control",
- "stateful",
- "thiserror",
  "tokio",
  "tracing",
- "tracing-appender",
- "tracing-error",
  "tracing-subscriber",
- "tracing-texray",
 ]
 
 [[package]]
@@ -1349,7 +1358,7 @@ dependencies = [
 
 [[package]]
 name = "memory"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "arrow",
  "flatbuffers",
@@ -1593,9 +1602,9 @@ dependencies = [
  "clap",
  "error-stack",
  "execution",
+ "experiment-control",
  "experiment-structure",
  "hash_engine",
- "hash_engine_lib",
  "nano",
  "num_cpus",
  "serde",
@@ -2083,7 +2092,7 @@ dependencies = [
 
 [[package]]
 name = "simulation-control"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "arr_macro",
  "arrow",

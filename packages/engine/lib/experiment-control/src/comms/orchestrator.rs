@@ -5,7 +5,7 @@ use execution::package::experiment::ExperimentId;
 use serde::{Deserialize, Serialize};
 use simulation_control::EngineStatus;
 
-use crate::experiment::{Error, Result};
+use crate::{Error, Result};
 
 /// The message type sent from the engine to the orchestrator.
 #[derive(Serialize, Deserialize, Debug)]

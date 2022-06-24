@@ -8,12 +8,12 @@ use error_stack::{bail, ensure, IntoReport, ResultExt};
 use execution::package::{
     experiment::ExperimentId, simulation::output::persistence::local::LocalPersistenceConfig,
 };
-use experiment_structure::ExperimentRun;
-use hash_engine_lib::experiment::{
+use experiment_control::{
     comms::{EngineMsg, InitMessage},
     controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
     environment::{ExecutionEnvironment, LogFormat, LogLevel, OutputLocation},
 };
+use experiment_structure::ExperimentRun;
 use serde_json::json;
 use simulation_control::{command::StopStatus, EngineStatus};
 use tokio::time::{sleep, timeout};
