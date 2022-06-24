@@ -1,12 +1,41 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 
-import { createPool, sql } from "slonik";
+import { createPool, DatabasePoolConnectionType, sql } from "slonik";
 
-const createDataType = (client: params: {
+type DBClient = DatabasePoolConnectionType;
 
-}) => {
+const createDataType = (
+  client: DBClient,
+  params: {
+    dataTypeUri: string;
+    schema: any;
+  },
+) => {};
 
-}
+const createPropertyType = (
+  client: DBClient,
+  params: {
+    propertyTypeUri: string;
+    schema: any;
+  },
+) => {};
+
+const createEntityType = (
+  client: DBClient,
+  params: {
+    entityTypeUri: string;
+    schema: any;
+  },
+) => {};
+
+const createEntity = (
+  client: DBClient,
+  params: {
+    entity_id: string;
+    entity_type_uri: string;
+    properties: any;
+  },
+) => {};
 
 const main = async () => {
   const host = getRequiredEnv("HASH_PG_HOST");
@@ -19,12 +48,7 @@ const main = async () => {
 
   const pool = createPool(connStr);
 
-  await pool.transaction((client) => {
-    
-  })
-
-
-
+  await pool.transaction((client) => {});
 };
 
 void (async () => {
