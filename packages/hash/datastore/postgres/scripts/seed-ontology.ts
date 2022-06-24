@@ -1,8 +1,8 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 
-import { createPool, DatabasePoolConnectionType, sql } from "slonik";
+import { createPool, DatabaseTransactionConnectionType, sql } from "slonik";
 
-type DBClient = DatabasePoolConnectionType;
+type DBClient = DatabaseTransactionConnectionType;
 
 const createDataType = async (
   client: DBClient,
@@ -17,7 +17,7 @@ const createDataType = async (
   )
   values (
     ${params.dataTypeUri},
-    '${params.schema}'
+    ${sql.jsonb(params.schema)}
   )
 `);
 };
@@ -35,7 +35,7 @@ const createPropertyType = async (
   )
   values (
     ${params.propertyTypeUri},
-    '${params.schema}'
+    ${sql.jsonb(params.schema)}
   )
 `);
 };
@@ -53,7 +53,7 @@ const createEntityType = async (
   )
   values (
     ${params.entityTypeUri},
-    '${params.schema}'
+    ${sql.jsonb(params.schema)}
   )
 `);
 };
@@ -73,7 +73,7 @@ const createEntity = async (
   values (
     ${params.entityId},
     ${params.entityTypeUri},
-    '${params.properties}'
+    ${sql.jsonb(params.properties)}
   )
 `);
 };
@@ -89,7 +89,12 @@ const main = async () => {
 
   const pool = createPool(connStr);
 
-  await pool.transaction((client) => {});
+  await pool.transaction(async (client) => {
+    await createDataType(client, {
+      dataTypeUri: "test",
+      schema: { hello: "world" },
+    });
+  });
 };
 
 void (async () => {
