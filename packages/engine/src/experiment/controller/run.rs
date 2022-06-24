@@ -13,6 +13,7 @@ use execution::{
 };
 use experiment_structure::{ExperimentConfig, PackageCreators};
 use memory::shared_memory;
+use simulation_control::comms;
 use stateful::global::SharedStore;
 use tracing::Instrument;
 
@@ -28,7 +29,6 @@ use crate::{
         error::{Error as ExperimentError, Result as ExperimentResult},
     },
     proto::EngineStatus,
-    simulation::comms,
 };
 
 #[tracing::instrument(skip_all, fields(experiment_id = %exp_config.experiment_run.id()))]

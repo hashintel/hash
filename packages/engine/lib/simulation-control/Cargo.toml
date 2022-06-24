@@ -1,0 +1,26 @@
+[package]
+name = "simulation-control"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+memory = { path = "../memory" }
+stateful = { path = "../stateful" }
+execution = { path = "../execution", default-features = false }
+experiment-structure = { path = "../experiment-structure" }
+
+arrow = { version = "10.0.0", default-features = false }
+futures = "0.3.6"
+rand = "0.8.3"
+rayon = "1.4.1"
+serde = { version = "1.0.111", features = ["derive"] }
+serde_json = "1.0.59"
+thiserror = "1.0.21"
+tokio = { version = "1.18.2", features = ["macros", "rt-multi-thread", "sync", "process", "time"] }
+tracing = "0.1.29"
+
+[dev-dependencies]
+arr_macro = "0.1.3"
+

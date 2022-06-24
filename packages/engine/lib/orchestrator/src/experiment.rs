@@ -12,10 +12,10 @@ use experiment_structure::ExperimentRun;
 use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
     proto::{self, ExecutionEnvironment},
-    simulation::command::StopStatus,
     utils::{LogFormat, LogLevel, OutputLocation},
 };
 use serde_json::json;
+use simulation_control::command::StopStatus;
 use tokio::time::{sleep, timeout};
 
 use crate::{experiment_server::Handler, process, OrchestratorError, Result};

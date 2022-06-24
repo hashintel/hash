@@ -6,8 +6,9 @@ edition = "2021"
 [dependencies]
 nano = { path = "../nano", default-features = false }
 stateful = { path = "../stateful", default-features = false }
-experiment-structure = { path = "../experiment-structure" }
 execution = { path = "../execution", default-features = false }
+experiment-structure = { path = "../experiment-structure" }
+simulation-control = { path = "../simulation-control" }
 hash_engine_lib = { path = "../..", default-features = false }
 hash_engine = { path = "../../bin/hash_engine", default-features = false, artifact = "bin" }
 

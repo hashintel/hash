@@ -38,10 +38,6 @@ mod args;
 pub mod env;
 pub mod experiment;
 pub mod proto;
-pub mod simulation;
 pub mod utils;
-
-#[cfg(test)]
-mod tests;
 
 pub use self::args::{args, Args};

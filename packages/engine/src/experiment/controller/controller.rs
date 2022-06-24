@@ -14,6 +14,15 @@ use execution::{
     },
 };
 use experiment_structure::{ExperimentConfig, PackageCreators};
+use simulation_control::{
+    comms::{
+        control::SimCtlSend,
+        status::{SimStatusRecv, SimStatusSend},
+        Comms,
+    },
+    controller::{Packages, SimControl, SimulationController, SimulationRuns},
+    SimStatus,
+};
 use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 
@@ -27,16 +36,6 @@ use crate::{
         },
     },
     proto::{EngineMsg, EngineStatus},
-    simulation::{
-        comms::{
-            control::SimCtlSend,
-            status::{SimStatusRecv, SimStatusSend},
-            Comms,
-        },
-        controller::{Packages, SimControl, SimulationController, SimulationRuns},
-        status::SimStatus,
-        Error as SimulationError,
-    },
     utils,
 };
 
@@ -263,8 +262,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
             packages,
             persistence_service,
             self.sim_status_send.clone(),
-        )
-        .map_err(SimulationError::from)?;
+        )?;
         let sim_sender = sim_controller.sender;
         self.add_sim_sender(sim_short_id, sim_sender)?;
         self.sim_run_tasks.new_run(sim_controller.task_handle);

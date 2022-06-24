@@ -20,10 +20,10 @@ pub enum Error {
     Env(#[from] crate::env::Error),
 
     #[error("Simulation error: {0}")]
-    Simulation(#[from] crate::simulation::Error),
+    SimulationControl(#[from] simulation_control::Error),
 
     #[error("Simulation controller error: {0}")]
-    SimulationController(#[from] crate::simulation::controller::Error),
+    SimulationController(#[from] simulation_control::controller::Error),
 
     #[error("Serialize/Deserialize error")]
     Serde(#[from] serde_json::Error),

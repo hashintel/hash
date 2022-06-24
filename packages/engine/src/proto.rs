@@ -7,9 +7,8 @@ use execution::{
 };
 use experiment_structure::ExperimentRun;
 use serde::{Deserialize, Serialize};
+use simulation_control::SimStatus;
 use stateful::global::Globals;
-
-use crate::simulation::status::SimStatus;
 
 /// The message type sent from the engine to the orchestrator.
 #[derive(Serialize, Deserialize, Debug)]

@@ -970,7 +970,6 @@ dependencies = [
 name = "hash_engine_lib"
 version = "0.0.0"
 dependencies = [
- "arr_macro",
  "arrow",
  "async-trait",
  "cc",
@@ -988,6 +987,7 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
+ "simulation-control",
  "stateful",
  "thiserror",
  "tokio",
@@ -1600,6 +1600,7 @@ dependencies = [
  "num_cpus",
  "serde",
  "serde_json",
+ "simulation-control",
  "stateful",
  "tokio",
  "tracing",
@@ -2078,6 +2079,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "simulation-control"
+version = "0.1.0"
+dependencies = [
+ "arr_macro",
+ "arrow",
+ "execution",
+ "experiment-structure",
+ "futures",
+ "memory",
+ "rand 0.8.4",
+ "rayon",
+ "serde",
+ "serde_json",
+ "stateful",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
