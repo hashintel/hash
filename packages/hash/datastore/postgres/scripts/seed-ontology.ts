@@ -1,6 +1,7 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 
 import { createPool, DatabaseTransactionConnectionType, sql } from "slonik";
+import { dataTypes, propertyTypes } from "./data/ontology";
 
 type DBClient = DatabaseTransactionConnectionType;
 
@@ -152,10 +153,42 @@ const main = async () => {
   const pool = createPool(connStr);
 
   await pool.transaction(async (client) => {
-    await createDataType(client, {
-      dataTypeUri: "test",
-      schema: { hello: "world" },
-    });
+    const existsDataTypes = await client.exists(sql`select * from data_types`);
+    if (!existsDataTypes) {
+      for (const schema of dataTypes) {
+        await createDataType(client, { dataTypeUri: schema.$id, schema });
+      }
+    }
+
+    const existsPropertyTypes = await client.exists(
+      sql`select * from property_types`,
+    );
+    if (!existsPropertyTypes) {
+      for (const [propertType, dependentDT, dependentPT] of propertyTypes) {
+        await createPropertyType(client, {
+          propertyTypeUri: propertType.$id,
+          schema: propertType,
+        });
+
+        await Promise.all(
+          dependentDT.map((referenceDataTypeUri) =>
+            propertyTypeAddDataType(client, {
+              propertyTypeUri: propertType.$id,
+              referenceDataTypeUri,
+            }),
+          ),
+        );
+
+        await Promise.all(
+          dependentPT.map((referencePropertyTypeUri) =>
+            propertyTypeAddPropertyType(client, {
+              propertyTypeUri: propertType.$id,
+              referencePropertyTypeUri,
+            }),
+          ),
+        );
+      }
+    }
   });
 };
 
