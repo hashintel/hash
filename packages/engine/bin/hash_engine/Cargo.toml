@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 execution = { path = "../../lib/execution", default-features = false }
 experiment-structure = { path = "../../lib/experiment-structure", default-features = false }
-experiment-control = { path = "../../lib/experiment-control", default-features = false }
+experiment-control = { path = "../../lib/experiment-control", default-features = false, features = ["clap"] }
 
 error-stack = { version = "0.1.1", features = ["spantrace"] }
 
