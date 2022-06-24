@@ -152,13 +152,11 @@ jobs:
             ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
             ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
 
-      - name: Run clippy
-        run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+      - name: Install nng
+        run: sudo apt-get install -y libnng-dev
 
-          cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} $required_features -- -D warnings
+      - name: Run clippy
+        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} $required_features -- -D warnings
 
       - name: Annotate
         if: ${{ failure() }}
@@ -225,14 +223,12 @@ jobs:
             ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
             ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}
 
+      - name: Install nng
+        run: sudo apt-get install -y libnng-dev
+
       - name: Build tests
         if: matrix.directory == 'packages/engine'
-        run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
-
-          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }} $required_features
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }} $required_features
 
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
@@ -395,14 +391,12 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: cargo miri setup
 
+      - name: Install nng
+        run: sudo apt-get install -y libnng-dev
+
       - name: Run miri
         working-directory: ${{ matrix.directory }}
-        run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
-
-          cargo miri test ${{ matrix.flags }} $required_features
+        run: cargo miri test ${{ matrix.flags }} $required_features
 
   doc:
     name: doc
