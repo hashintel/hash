@@ -1,13 +1,11 @@
+use experiment_structure::SimulationRunConfig;
 use memory::shared_memory::MemoryId;
 use rayon::prelude::*;
 use stateful::{proxy::BatchPool, state::StateBatchPools};
 
-use crate::{
-    config::SimulationRunConfig,
-    datastore::{
-        error::{Error, Result},
-        table::create_remove::action::{CreateActions, ExistingGroupBufferActions},
-    },
+use crate::datastore::{
+    error::{Error, Result},
+    table::create_remove::action::{CreateActions, ExistingGroupBufferActions},
 };
 
 #[derive(Debug)]
@@ -88,10 +86,10 @@ impl<'a> MigrationPlan<'a> {
             .into_par_iter()
             .map(|action| {
                 action.actions.new_batch(
-                    &config.simulation_config().store.agent_schema,
-                    &config.simulation_config().store.message_schema,
-                    MemoryId::new(config.experiment_config().experiment().id()),
-                    MemoryId::new(config.experiment_config().experiment().id()),
+                    &config.simulation_config().schema.agent_schema,
+                    &config.simulation_config().schema.message_schema,
+                    MemoryId::new(config.experiment_config().experiment_run.id().as_uuid()),
+                    MemoryId::new(config.experiment_config().experiment_run.id().as_uuid()),
                     action.worker_index,
                 )
             })

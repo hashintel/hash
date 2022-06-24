@@ -6,14 +6,14 @@ use execution::{
         init::InitPackage,
         output::{Output, OutputPackage},
         state::StatePackage,
-        Comms, PackageComms, PackageType,
+        PackageType,
     },
     runner::comms::PackageMsgs,
     worker::PackageInitMsgForWorker,
 };
+use experiment_structure::{PackageCreators, SimulationRunConfig};
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use memory::shared_memory::MemoryId;
-use simulation_structure::PackageCreators;
 use stateful::{
     context::{Context, ContextColumn, PreContext},
     field::{FieldSource, FieldSpecMapAccessor},
@@ -21,9 +21,9 @@ use stateful::{
 };
 use tracing::{Instrument, Span};
 
-use crate::{
-    config::SimulationRunConfig,
-    simulation::error::{Error, Result},
+use crate::simulation::{
+    comms::Comms,
+    error::{Error, Result},
 };
 
 /// Represents the packages of a simulation engine.
@@ -33,16 +33,20 @@ pub struct Packages {
 }
 
 impl Packages {
-    pub fn from_package_creators<C: Comms + Clone>(
-        package_creators: &PackageCreators<'_, C>,
+    pub fn from_package_creators(
+        package_creators: &PackageCreators,
         config: &Arc<SimulationRunConfig>,
-        comms: C,
+        comms: &Comms,
     ) -> Result<(Self, PackageMsgs)> {
         // TODO: generics to avoid code duplication
-        let state_field_spec_map = &config.simulation_config().store.agent_schema.field_spec_map;
+        let state_field_spec_map = &config
+            .simulation_config()
+            .schema
+            .agent_schema
+            .field_spec_map;
         let context_field_spec_map = &config
             .simulation_config()
-            .store
+            .schema
             .context_schema
             .field_spec_map;
         let mut messages = HashMap::new();
@@ -52,8 +56,12 @@ impl Packages {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
-                    PackageComms::new(comms.clone(), *package_id, PackageType::Init),
+                    &config
+                        .experiment_config()
+                        .experiment_run
+                        .simulation()
+                        .package_init,
+                    comms.package_comms(*package_id),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
                         state_field_spec_map.clone(),
@@ -76,8 +84,12 @@ impl Packages {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
-                    PackageComms::new(comms.clone(), *package_id, PackageType::Context),
+                    &config
+                        .experiment_config()
+                        .experiment_run
+                        .simulation()
+                        .package_init,
+                    comms.package_comms(*package_id),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
                         Arc::clone(state_field_spec_map),
@@ -104,8 +116,12 @@ impl Packages {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
-                    PackageComms::new(comms.clone(), *package_id, PackageType::State),
+                    &config
+                        .experiment_config()
+                        .experiment_run
+                        .simulation()
+                        .package_init,
+                    comms.package_comms(*package_id),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
                         Arc::clone(state_field_spec_map),
@@ -128,8 +144,12 @@ impl Packages {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     &config.simulation_config().package_creator,
-                    &config.experiment_config().simulation().package_init,
-                    PackageComms::new(comms.clone(), *package_id, PackageType::Output),
+                    &config
+                        .experiment_config()
+                        .experiment_run
+                        .simulation()
+                        .package_init,
+                    comms.package_comms(*package_id),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(*package_id),
                         Arc::clone(state_field_spec_map),
@@ -235,7 +255,7 @@ impl StepPackages {
             //       from the schema
             .map(|package| {
                 package
-                    .get_empty_arrow_columns(num_agents, &sim_run_config.simulation_config().store.context_schema)
+                    .get_empty_arrow_columns(num_agents, &sim_run_config.simulation_config().schema.context_schema)
             })
             .collect::<execution::Result<Vec<_>>>()?
             .into_iter()
@@ -246,7 +266,7 @@ impl StepPackages {
         // because we aren't generating the columns from the schema, we need to reorder the cols
         // from the packages to match this is another reason to move column creation to be
         // done per schema instead of per package, because this is very messy.
-        let schema = &sim_run_config.simulation_config().store.context_schema;
+        let schema = &sim_run_config.simulation_config().schema.context_schema;
         let columns = schema
             .arrow
             .fields()
@@ -266,8 +286,14 @@ impl StepPackages {
 
         let context = Context::from_columns(
             columns,
-            &sim_run_config.simulation_config().store.context_schema,
-            MemoryId::new(sim_run_config.experiment_config().experiment().id()),
+            &sim_run_config.simulation_config().schema.context_schema,
+            MemoryId::new(
+                sim_run_config
+                    .experiment_config()
+                    .experiment_run
+                    .id()
+                    .as_uuid(),
+            ),
         )?;
         Ok(context)
     }
@@ -350,7 +376,7 @@ impl StepPackages {
         // the moment but a proper fix needs a bit of a redesign. Thus:
         // TODO, figure out a better design for how we interface with columns from context packages,
         //   and how we ensure the necessary order (preferably enforced in actual logic)
-        let schema = &sim_config.simulation_config().store.context_schema;
+        let schema = &sim_config.simulation_config().schema.context_schema;
         let column_writers = schema
             .arrow
             .fields()

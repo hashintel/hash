@@ -17,17 +17,15 @@ impl ExperimentId {
     pub fn as_bytes(&self) -> &[u8; core::mem::size_of::<u128>()] {
         self.id.as_bytes()
     }
+
+    pub fn as_uuid(self) -> Uuid {
+        self.id
+    }
 }
 
 impl fmt::Display for ExperimentId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
-    }
-}
-
-impl From<ExperimentId> for Uuid {
-    fn from(id: ExperimentId) -> Self {
-        id.id
     }
 }
 

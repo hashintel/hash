@@ -1,96 +1,85 @@
-use async_trait::async_trait;
-use stateful::{
-    agent::{Agent, AgentId},
-    field::PackageId,
-};
-use tracing::Instrument;
+use stateful::field::PackageId;
 
 use crate::{
-    package::simulation::{PackageTask, PackageType},
-    task::{ActiveTask, Task, TaskSharedStore},
-    Result,
+    package::simulation::{PackageTask, SimulationId},
+    task::{ActiveTask, StoreAccessValidator, TaskId, TaskSharedStore},
+    worker_pool,
+    worker_pool::comms::{
+        main::MainMsgSend,
+        message::{EngineToWorkerPoolMsg, WrappedTask},
+    },
+    Error, Result,
 };
 
-/// Temporary trait to proceed with moving the package system into this crate
-#[async_trait]
-pub trait Comms: Send + Sync + 'static {
-    type ActiveTask: ActiveTask;
-
-    /// Takes a given [`Task`] object, and starts its execution on the [`worker_pool`], returning an
-    /// [`ActiveTask`] to track its progress.
-    ///
-    /// [`worker_pool`]: crate::worker_pool
-    async fn new_task(
-        &self,
-        package_id: PackageId,
-        task: PackageTask,
-        shared_store: TaskSharedStore,
-    ) -> Result<Self::ActiveTask>;
-
-    /// Adds a command to create the specified [`Agent`].
-    ///
-    /// # Errors
-    ///
-    /// This function can fail if it's unable to acquire a write lock.
-    fn add_create_agent_command(&mut self, agent: Agent) -> Result<()>;
-
-    /// Adds a command to removed the [`Agent`] specified by it's `agent_id`.
-    ///
-    /// # Errors
-    ///
-    /// This function can fail if it's unable to acquire a write lock.
-    fn add_remove_agent_command(&mut self, agent_id: AgentId) -> Result<()>;
-}
-
-pub struct PackageComms<C> {
-    comms: C,
+pub struct PackageComms {
+    /// The ID of the package that this Comms object is associated with.
     package_id: PackageId,
-    _package_type: PackageType, // TODO: unused, remove?
+    /// The ID of the simulation that information pertains to.
+    simulation_id: SimulationId,
+    /// A sender to communicate with the [`WorkerPool`].
+    ///
+    /// [`WorkerPool`]: crate::worker_pool::WorkerPool
+    worker_pool_sender: MainMsgSend,
 }
 
-impl<C> PackageComms<C> {
-    pub fn new(comms: C, package_id: PackageId, package_type: PackageType) -> Self {
+impl PackageComms {
+    pub fn new(
+        package_id: PackageId,
+        simulation_id: SimulationId,
+        worker_pool_sender: MainMsgSend,
+    ) -> Self {
         Self {
-            comms,
             package_id,
-            _package_type: package_type,
+            simulation_id,
+            worker_pool_sender,
         }
     }
-}
 
-impl<C: Comms> PackageComms<C> {
+    /// Takes a given [`Task`] object, and starts its execution on the [`WorkerPool`], returning an
+    /// [`ActiveTask`] to track its progress.
+    ///
+    /// [`Task`]: crate::task::Task
+    /// [`WorkerPool`]: crate::worker_pool::WorkerPool
     pub async fn new_task(
         &self,
         task: PackageTask,
         shared_store: TaskSharedStore,
-    ) -> Result<C::ActiveTask> {
-        let task_name = task.name();
-
-        self.comms
-            .new_task(self.package_id, task, shared_store)
-            .instrument(tracing::debug_span!("Task", name = task_name))
-            .await
+    ) -> Result<ActiveTask> {
+        let task_id = TaskId::generate();
+        let (wrapped, active) = Self::wrap_task(task_id, self.package_id, task, shared_store)?;
+        self.worker_pool_sender
+            .send(EngineToWorkerPoolMsg::task(self.simulation_id, wrapped))
+            .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
+        Ok(active)
     }
 
-    /// Adds a command to create the specified [`Agent`].
+    /// Turns a given [`Task`] into a [`WrappedTask`] and [`ActiveTask`] pair.
+    ///
+    /// This includes setting up the appropriate communications to be sent to the [`WorkerPool`] and
+    /// to be made accessible to the Package that created the task.
     ///
     /// # Errors
     ///
-    /// This function can fail if it's unable to acquire a write lock.
-    // TODO: This is currently unused as messages are used to add agents, however, other packages
-    //   may should be able to add agents as well
-    pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
-        self.comms.add_create_agent_command(agent)
-    }
-
-    /// Adds a command to removed the [`Agent`] specified by it's `agent_id`.
+    /// If the [`Task`] needs more access than the provided [`TaskSharedStore`] has.
     ///
-    /// # Errors
-    ///
-    /// This function can fail if it's unable to acquire a write lock.
-    // TODO: This is currently unused as messages are used to remove agents, however, other packages
-    //   may should be able to remove agents as well
-    pub fn add_remove_agent_command(&mut self, agent_id: AgentId) -> Result<()> {
-        self.comms.add_remove_agent_command(agent_id)
+    /// [`Task`]: crate::task::Task
+    /// [`WorkerPool`]: crate::worker_pool::WorkerPool
+    fn wrap_task(
+        task_id: TaskId,
+        package_id: PackageId,
+        task: PackageTask,
+        shared_store: TaskSharedStore,
+    ) -> Result<(WrappedTask, ActiveTask)> {
+        task.verify_store_access(&shared_store)?;
+        let (owner_channels, executor_channels) = worker_pool::comms::active::comms();
+        let wrapped = WrappedTask {
+            task_id,
+            package_id,
+            task,
+            comms: executor_channels,
+            shared_store,
+        };
+        let active = ActiveTask::new(owner_channels);
+        Ok((wrapped, active))
     }
 }

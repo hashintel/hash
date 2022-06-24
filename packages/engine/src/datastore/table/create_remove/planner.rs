@@ -2,6 +2,7 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
+use experiment_structure::SimulationRunConfig;
 use stateful::{
     agent::{AgentBatch, AgentSchema},
     proxy::PoolReadProxy,
@@ -9,7 +10,6 @@ use stateful::{
 };
 
 use crate::{
-    config::SimulationRunConfig,
     datastore::{
         batch::migration::{BufferActions, IndexRange, RangeActions},
         error::Result,
@@ -37,7 +37,7 @@ impl CreateRemovePlanner {
         Ok(CreateRemovePlanner {
             commands: ProcessedCommands::new(
                 commands,
-                &config.simulation_config().store.agent_schema,
+                &config.simulation_config().schema.agent_schema,
             )?,
             config,
         })
@@ -115,7 +115,7 @@ impl PendingPlan {
                         state_proxy,
                         batch,
                         &new_agents,
-                        &config.simulation_config().store.agent_schema,
+                        &config.simulation_config().schema.agent_schema,
                         &mut num_inbound_agents_allocated,
                     )?;
                     ExistingGroupBufferActions::Update {
@@ -128,7 +128,7 @@ impl PendingPlan {
                     state_proxy,
                     batch,
                     &new_agents,
-                    &config.simulation_config().store.agent_schema,
+                    &config.simulation_config().schema.agent_schema,
                     &mut num_inbound_agents_allocated,
                 )?;
                 let create_command = CreateActions {

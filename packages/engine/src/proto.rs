@@ -5,8 +5,8 @@ use execution::{
         RunnerError,
     },
 };
+use experiment_structure::ExperimentRun;
 use serde::{Deserialize, Serialize};
-use simulation_structure::ExperimentRun;
 use stateful::global::Globals;
 
 use crate::simulation::status::SimStatus;

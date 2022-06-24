@@ -1,6 +1,7 @@
 use std::{mem, sync::Arc};
 
 use execution::package::simulation::output::Output;
+use experiment_structure::SimulationRunConfig;
 use memory::shared_memory::MemoryId;
 use stateful::{
     agent::AgentBatchPool,
@@ -12,8 +13,7 @@ use stateful::{
 use tracing::Instrument;
 
 use crate::{
-    config::SimulationRunConfig,
-    datastore::{store::Store, table::create_remove::CreateRemovePlanner},
+    datastore::table::create_remove::CreateRemovePlanner,
     simulation::{
         agent_control::AgentControl,
         command::{Commands, StopCommand},
@@ -27,7 +27,7 @@ use crate::{
 /// TODO: DOC
 pub struct Engine {
     packages: Packages,
-    store: Store,
+    store: Option<(State, Context)>,
     comms: Arc<Comms>,
     config: Arc<SimulationRunConfig>,
     stop_messages: Vec<StopCommand>,
@@ -42,7 +42,6 @@ impl Engine {
     /// - Initializes the Store using the Agent State and empty Context
     pub async fn new(
         mut packages: Packages,
-        mut uninitialized_store: Store,
         comms: Comms,
         config: Arc<SimulationRunConfig>,
     ) -> Result<Engine> {
@@ -55,12 +54,10 @@ impl Engine {
             .await?;
         tracing::trace!("Init packages completed, building empty context");
         let context = packages.step.empty_context(&config, state.num_agents())?;
-        uninitialized_store.set(state, context);
-        let store = uninitialized_store;
 
         Ok(Engine {
             packages,
-            store,
+            store: Some((state, context)),
             comms,
             config,
             stop_messages: Vec::new(),
@@ -125,7 +122,10 @@ impl Engine {
         tracing::trace!("Starting run context packages stage");
         // Need write access to state to prepare for context packages,
         // so can't start state sync (with workers) yet.
-        let (mut state, mut context) = self.store.take()?;
+        let (mut state, mut context) = self
+            .store
+            .take()
+            .expect("state and context should be present");
 
         let snapshot = {
             let _span = tracing::debug_span!("prepare_context_packages").entered();
@@ -198,19 +198,25 @@ impl Engine {
 
         // State sync finished, so the workers should have dropped
         // their `Arc`s with state by this point.
-        self.store.set(state, context);
+        self.store.replace((state, context));
         Ok(())
     }
 
     async fn run_state_packages(&mut self) -> Result<()> {
-        let (mut state, context) = self.store.take()?;
+        let (mut state, context) = self
+            .store
+            .take()
+            .expect("state and context should be present");
         self.packages.step.run_state(&mut state, &context).await?;
-        self.store.set(state, context);
+        self.store.replace((state, context));
         Ok(())
     }
 
     pub async fn run_output_packages(&mut self) -> Result<Vec<Output>> {
-        let (mut state, context) = self.store.take()?;
+        let (mut state, context) = self
+            .store
+            .take()
+            .expect("state and context should be present");
 
         // Output packages can't reload state batches, since they only have read access to state.
         // Reload the state here, so the packages have the latest state available.
@@ -225,7 +231,7 @@ impl Engine {
         let context = Arc::try_unwrap(context)
             .map_err(|_| Error::from("Unable to unwrap context after output package execution"))?;
 
-        self.store.set(state, context);
+        self.store.replace((state, context));
         Ok(output)
     }
 
@@ -274,7 +280,7 @@ impl Engine {
         let message_proxies = state.message_pool().read_proxies()?;
         let mut commands = Commands::from_hash_messages(message_map, &message_proxies)?;
         commands.merge(self.comms.take_commands()?);
-        commands.verify(&self.config.simulation_config().store.agent_schema)?;
+        commands.verify(&self.config.simulation_config().schema.agent_schema)?;
         self.stop_messages = commands.stop;
 
         let mut planner =
@@ -310,8 +316,14 @@ impl Engine {
     ) -> Result<AgentBatchPool> {
         context.update_agent_snapshot(
             state,
-            &self.config.simulation_config().store.agent_schema,
-            &MemoryId::new(self.config.experiment_config().experiment().id()),
+            &self.config.simulation_config().schema.agent_schema,
+            &MemoryId::new(
+                self.config
+                    .experiment_config()
+                    .experiment_run
+                    .id()
+                    .as_uuid(),
+            ),
         )?;
         Ok(context.take_agent_pool())
     }

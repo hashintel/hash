@@ -55,13 +55,13 @@ pub trait OutputPackage: Package + MaybeCpuBound {
     fn span(&self) -> Span;
 }
 
-pub trait OutputPackageCreator<C>: PackageCreator {
+pub trait OutputPackageCreator: PackageCreator {
     /// Create the package.
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        system: PackageComms<C>,
+        system: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>>;
 

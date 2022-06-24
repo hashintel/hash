@@ -1,27 +1,18 @@
-use std::{lazy::SyncOnceCell, pin::Pin, sync::Arc, time::Duration};
+use std::{pin::Pin, sync::Arc, time::Duration};
 
 use execution::{
     package::{
         experiment::{ExperimentId, ExperimentPackage, ExperimentPackageConfig},
-        simulation::{
-            context::ContextPackageCreators,
-            init::InitPackageCreators,
-            output::{
-                persistence::{
-                    local::LocalOutputPersistence, none::NoOutputPersistence,
-                    OutputPersistenceCreator,
-                },
-                OutputPackageCreators,
-            },
-            state::StatePackageCreators,
+        simulation::output::persistence::{
+            local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreator,
         },
     },
     worker::Worker,
     worker_pool,
     worker_pool::{comms::terminate::TerminateSend, WorkerPool},
 };
+use experiment_structure::{ExperimentConfig, PackageCreators};
 use memory::shared_memory;
-use simulation_structure::{ExperimentConfig, PackageCreators};
 use stateful::global::SharedStore;
 use tracing::Instrument;
 
@@ -37,13 +28,11 @@ use crate::{
         error::{Error as ExperimentError, Result as ExperimentResult},
     },
     proto::EngineStatus,
-    simulation::comms::Comms,
-    Error as CrateError,
 };
 
-#[tracing::instrument(skip_all, fields(experiment_id = % exp_config.experiment().id()))]
+#[tracing::instrument(skip_all, fields(experiment_id = %exp_config.experiment_run.id()))]
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
-    let experiment_name = exp_config.experiment().name().to_string();
+    let experiment_name = exp_config.experiment_run.name().to_string();
     tracing::info!("Running experiment \"{experiment_name}\"");
     // TODO: Get cloud-specific configuration from `env`
     let _output_persistence_config = config::output_persistence(&env)?;
@@ -58,11 +47,10 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
                     EngineStatus::Exit
                 }
                 Err(err) => {
-                    let err = CrateError::from(ExperimentError::from(err)).to_string();
                     tracing::debug!(
                         "Terminating experiment \"{experiment_name}\" with error: {err}"
                     );
-                    EngineStatus::ProcessError(err)
+                    EngineStatus::ProcessError(err.to_string())
                 }
             };
             orch_client.send(final_result).await?;
@@ -90,9 +78,9 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
         OutputPersistenceConfig::Local(local) => {
             tracing::debug!("Running experiment with local persistence");
             let persistence = LocalOutputPersistence {
-                project_name: exp_config.simulation().name.clone(),
-                experiment_name: exp_config.experiment().name().clone(),
-                experiment_id: exp_config.experiment().id(),
+                project_name: exp_config.experiment_run.simulation().name.clone(),
+                experiment_name: exp_config.experiment_run.name().clone(),
+                experiment_id: exp_config.experiment_run.id(),
                 config: local.clone(),
             };
             run_experiment_with_persistence(exp_config, env, persistence).await?;
@@ -110,13 +98,6 @@ type ExperimentPackageResult = Option<ExperimentResult<()>>;
 type ExperimentControllerResult = Option<Result<()>>;
 type ExecutionResult = Option<execution::Result<()>>;
 
-pub static INIT_PACKAGE_CREATORS: SyncOnceCell<InitPackageCreators<Comms>> = SyncOnceCell::new();
-pub static CONTEXT_PACKAGE_CREATORS: SyncOnceCell<ContextPackageCreators<Comms>> =
-    SyncOnceCell::new();
-pub static STATE_PACKAGE_CREATORS: SyncOnceCell<StatePackageCreators<Comms>> = SyncOnceCell::new();
-pub static OUTPUT_PACKAGE_CREATORS: SyncOnceCell<OutputPackageCreators<Comms>> =
-    SyncOnceCell::new();
-
 async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
     exp_config: ExperimentConfig,
     env: Environment,
@@ -126,8 +107,8 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
     // Spin up the shared store (includes the entities which are
     // shared across the whole experiment run)
     let shared_store = Arc::new(SharedStore::new(
-        &exp_config.simulation().datasets,
-        exp_config.experiment().id().into(),
+        &exp_config.experiment_run.simulation().datasets,
+        exp_config.experiment_run.id().as_uuid(),
     )?);
 
     // Set up the worker pool and all communications with it
@@ -143,39 +124,27 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
         worker_pool_send,
     )?;
 
-    let experiment_package =
-        if let ExperimentPackageConfig::Basic(package_config) = exp_config.run.config() {
-            // Start up the experiment package (simple/single)
-            ExperimentPackage::new(package_config.clone())
-                .await
-                .map_err(|experiment_err| Error::from(experiment_err.to_string()))?
-        } else {
-            unreachable!();
-        };
+    let experiment_package = if let ExperimentPackageConfig::Basic(package_config) =
+        exp_config.experiment_run.config()
+    {
+        // Start up the experiment package (simple/single)
+        ExperimentPackage::new(package_config.clone())
+            .await
+            .map_err(|experiment_err| Error::from(experiment_err.to_string()))?
+    } else {
+        unreachable!();
+    };
     let mut experiment_package_handle = experiment_package.join_handle;
 
-    let package_config = match exp_config.run.config() {
+    let package_config = match exp_config.experiment_run.config() {
         ExperimentPackageConfig::Basic(package_config) => package_config,
         _ => unreachable!(),
     };
 
-    let package_init = &exp_config.simulation().package_init;
-    let init_package_creators =
-        INIT_PACKAGE_CREATORS.get_or_try_init(|| InitPackageCreators::from_config(package_init))?;
-    let context_package_creators = CONTEXT_PACKAGE_CREATORS
-        .get_or_try_init(|| ContextPackageCreators::from_config(package_init))?;
-    let state_package_creators = STATE_PACKAGE_CREATORS
-        .get_or_try_init(|| StatePackageCreators::from_config(package_init))?;
-    let output_package_creators = OUTPUT_PACKAGE_CREATORS
-        .get_or_try_init(|| OutputPackageCreators::from_config(package_init))?;
-
     let worker_allocator = SimConfigurer::new(package_config, exp_config.worker_pool.num_workers);
     let package_creators = PackageCreators::from_config(
         &exp_config.packages,
-        init_package_creators,
-        context_package_creators,
-        state_package_creators,
-        output_package_creators,
+        &exp_config.experiment_run.simulation().package_init,
     )?;
     let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
     let mut orch_client = env.orch_client.try_clone()?;
@@ -387,7 +356,7 @@ fn worker_pool_exit_logic(
 
 /// Forcefully clean-up resources created by the experiment
 pub fn cleanup_experiment(experiment_id: ExperimentId) {
-    if let Err(err) = shared_memory::cleanup_by_base_id(experiment_id) {
+    if let Err(err) = shared_memory::cleanup_by_base_id(experiment_id.as_uuid()) {
         tracing::warn!("{}", err);
     }
 

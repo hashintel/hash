@@ -114,12 +114,12 @@
 //!     }
 //! }
 //!
-//! impl<C> StatePackageCreator<C> for GreetingCreator {
+//! impl StatePackageCreator for GreetingCreator {
 //!     fn create(
 //!         &self,
 //!         config: &PackageCreatorConfig,
 //!         init_config: &PackageInitConfig,
-//!         comms: PackageComms<C>,
+//!         comms: PackageComms,
 //!         accessor: FieldSpecMapAccessor,
 //!     ) -> Result<Box<dyn StatePackage>> {
 //!         Ok(Box::new(GreetingPackage))
@@ -232,7 +232,7 @@ use stateful::{
 
 pub(crate) use self::name::{PackageIdGenerator, PackageMetadata};
 pub use self::{
-    comms::{Comms, PackageComms},
+    comms::PackageComms,
     config::{
         OutputPackagesSimConfig, PackageCreatorConfig, PackageInitConfig, PersistenceConfig,
         SimPackageArgs,

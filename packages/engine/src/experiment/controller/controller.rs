@@ -13,12 +13,11 @@ use execution::{
         top::{WorkerPoolMsgRecv, WorkerPoolToExpCtlMsg},
     },
 };
-use simulation_structure::{ExperimentConfig, PackageCreators};
+use experiment_structure::{ExperimentConfig, PackageCreators};
 use stateful::global::SharedStore;
 use tracing::{Instrument, Span};
 
 use crate::{
-    config::SchemaConfig,
     env::{Environment, OrchClient},
     experiment::{
         apply_globals_changes,
@@ -53,7 +52,7 @@ pub struct ExperimentController<P: OutputPersistenceCreator> {
     sim_run_tasks: SimulationRuns,
     sim_senders: HashMap<SimulationId, SimCtlSend>,
     worker_pool_send_base: MainMsgSendBase,
-    package_creators: PackageCreators<'static, Comms>,
+    package_creators: PackageCreators,
     sim_configurer: SimConfigurer,
     sim_status_send: SimStatusSend,
     sim_status_recv: SimStatusRecv,
@@ -198,10 +197,9 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         );
 
         // Create the datastore configuration (requires schemas)
-        let store_config = SchemaConfig::new(
-            &self.exp_config.simulation().package_init,
+        let schema = self.package_creators.create_schema(
+            &self.exp_config.experiment_run.simulation().package_init,
             &globals,
-            &self.package_creators,
         )?;
         // Create the persistence configuration
         let persistence_config = self
@@ -217,7 +215,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
             Arc::clone(&self.exp_config),
             sim_short_id,
             (*globals).clone(),
-            store_config,
+            schema,
             persistence_config,
             max_num_steps,
         ));
@@ -225,23 +223,20 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         let task_comms = Comms::new(sim_short_id, worker_pool_sender)?;
 
         // Create the packages which will be running in the engine
-        let (packages, sim_start_msgs) = Packages::from_package_creators(
-            &self.package_creators,
-            &sim_config,
-            task_comms.clone(),
-        )?;
+        let (packages, sim_start_msgs) =
+            Packages::from_package_creators(&self.package_creators, &sim_config, &task_comms)?;
 
         let datastore_payload = DatastoreSimulationPayload {
-            agent_batch_schema: sim_config.simulation_config().store.agent_schema.clone(),
+            agent_batch_schema: sim_config.simulation_config().schema.agent_schema.clone(),
             message_batch_schema: sim_config
                 .simulation_config()
-                .store
+                .schema
                 .message_schema
                 .arrow
                 .clone(),
             context_batch_schema: sim_config
                 .simulation_config()
-                .store
+                .schema
                 .context_schema
                 .arrow
                 .clone(),
@@ -315,7 +310,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
     pub async fn exp_init_msg_base(&self) -> Result<ExperimentInitRunnerMsgBase> {
         let pkg_start_msgs = self.package_creators.init_message()?;
         Ok(ExperimentInitRunnerMsgBase {
-            experiment_id: self.exp_config.experiment().id(),
+            experiment_id: self.exp_config.experiment_run.id(),
             shared_context: self.shared_store.clone(),
             package_config: Arc::new(pkg_start_msgs),
             runner_config: self
@@ -412,7 +407,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         experiment_package_comms: ExperimentPackageComms,
         output_persistence_service_creator: P,
         worker_pool_send_base: MainMsgSendBase,
-        package_creators: PackageCreators<'static, Comms>,
+        package_creators: PackageCreators,
         sim_configurer: SimConfigurer,
         sim_status_send: SimStatusSend,
         sim_status_recv: SimStatusRecv,

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use execution::{
     package::simulation::{
@@ -6,8 +6,7 @@ use execution::{
         init::{InitPackageCreator, InitPackageCreators},
         output::{OutputPackageCreator, OutputPackageCreators},
         state::{StatePackageCreator, StatePackageCreators},
-        Comms, OutputPackagesSimConfig, PackageInitConfig, PackageName, PackageType,
-        PersistenceConfig,
+        OutputPackagesSimConfig, PackageInitConfig, PackageName, PackageType, PersistenceConfig,
     },
     runner::comms::PackageMsgs,
     worker::PackageInitMsgForWorker,
@@ -15,27 +14,27 @@ use execution::{
 use stateful::{
     agent::AgentSchema,
     context::ContextSchema,
-    field::{FieldSource, FieldSpecMap, PackageId, RootFieldSpec, RootFieldSpecCreator},
+    field::{FieldSource, FieldSpecMap, PackageId, RootFieldSpec, RootFieldSpecCreator, Schema},
     global::Globals,
+    message::MessageSchema,
 };
 
 use crate::{Error, ExperimentConfig, PackageConfig, Result};
 
-pub struct PackageCreators<'c, C> {
-    init: Vec<(PackageId, PackageName, &'c dyn InitPackageCreator<C>)>,
-    context: Vec<(PackageId, PackageName, &'c dyn ContextPackageCreator<C>)>,
-    state: Vec<(PackageId, PackageName, &'c dyn StatePackageCreator<C>)>,
-    output: Vec<(PackageId, PackageName, &'c dyn OutputPackageCreator<C>)>,
+pub struct PackageCreators {
+    init: Vec<(PackageId, PackageName, &'static dyn InitPackageCreator)>,
+    context: Vec<(PackageId, PackageName, &'static dyn ContextPackageCreator)>,
+    state: Vec<(PackageId, PackageName, &'static dyn StatePackageCreator)>,
+    output: Vec<(PackageId, PackageName, &'static dyn OutputPackageCreator)>,
 }
 
-impl<'c, C: Comms> PackageCreators<'c, C> {
+impl PackageCreators {
     pub fn from_config(
         package_config: &PackageConfig,
-        init_package_creators: &'c InitPackageCreators<C>,
-        context_package_creators: &'c ContextPackageCreators<C>,
-        state_package_creators: &'c StatePackageCreators<C>,
-        output_package_creators: &'c OutputPackageCreators<C>,
+        package_init: &PackageInitConfig,
     ) -> Result<Self> {
+        let init_package_creators =
+            InitPackageCreators::initialize_for_experiment_run(package_init)?;
         let init = package_config
             .init_packages()
             .iter()
@@ -48,6 +47,8 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
             })
             .collect::<Result<_>>()?;
 
+        let context_package_creators =
+            ContextPackageCreators::initialize_for_experiment_run(package_init)?;
         let context = package_config
             .context_packages()
             .iter()
@@ -59,6 +60,8 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
             })
             .collect::<Result<_>>()?;
 
+        let state_package_creators =
+            StatePackageCreators::initialize_for_experiment_run(package_init)?;
         let state = package_config
             .state_packages()
             .iter()
@@ -70,6 +73,8 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
             })
             .collect::<Result<_>>()?;
 
+        let output_package_creators =
+            OutputPackageCreators::initialize_for_experiment_run(package_init)?;
         let output = package_config
             .output_packages()
             .iter()
@@ -89,26 +94,40 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
         })
     }
 
-    pub fn init_package_creators(&self) -> &[(PackageId, PackageName, &dyn InitPackageCreator<C>)] {
+    pub fn init_package_creators(&self) -> &[(PackageId, PackageName, &dyn InitPackageCreator)] {
         &self.init
     }
 
     pub fn context_package_creators(
         &self,
-    ) -> &[(PackageId, PackageName, &dyn ContextPackageCreator<C>)] {
+    ) -> &[(PackageId, PackageName, &dyn ContextPackageCreator)] {
         &self.context
     }
 
-    pub fn state_package_creators(
-        &self,
-    ) -> &[(PackageId, PackageName, &dyn StatePackageCreator<C>)] {
+    pub fn state_package_creators(&self) -> &[(PackageId, PackageName, &dyn StatePackageCreator)] {
         &self.state
     }
 
     pub fn output_package_creators(
         &self,
-    ) -> &[(PackageId, PackageName, &dyn OutputPackageCreator<C>)] {
+    ) -> &[(PackageId, PackageName, &dyn OutputPackageCreator)] {
         &self.output
+    }
+
+    pub fn create_schema(
+        &self,
+        package_init_config: &PackageInitConfig,
+        globals: &Globals,
+    ) -> Result<Schema> {
+        let agent_schema = Arc::new(self.get_agent_schema(package_init_config, globals)?);
+        let message_schema = Arc::new(MessageSchema::new());
+        let context_schema = Arc::new(self.get_context_schema(package_init_config, globals)?);
+
+        Ok(Schema {
+            agent_schema,
+            message_schema,
+            context_schema,
+        })
     }
 
     pub fn create_persistent_config(
@@ -116,8 +135,10 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
         exp_config: &ExperimentConfig,
         globals: &Globals,
     ) -> Result<PersistenceConfig> {
-        let output_config =
-            self.get_output_persistence_config(&exp_config.simulation().package_init, globals)?;
+        let output_config = self.get_output_persistence_config(
+            &exp_config.experiment_run.simulation().package_init,
+            globals,
+        )?;
         Ok(PersistenceConfig { output_config })
     }
 
@@ -187,7 +208,7 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
         Ok(OutputPackagesSimConfig { map })
     }
 
-    pub fn get_agent_schema(
+    fn get_agent_schema(
         &self,
         package_init_config: &PackageInitConfig,
         globals: &Globals,
@@ -252,7 +273,7 @@ impl<'c, C: Comms> PackageCreators<'c, C> {
         Ok(AgentSchema::new(field_spec_map)?)
     }
 
-    pub fn get_context_schema(
+    fn get_context_schema(
         &self,
         package_init_config: &PackageInitConfig,
         globals: &Globals,

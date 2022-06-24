@@ -15,7 +15,7 @@ pub enum Error {
     Execution(#[from] execution::Error),
 
     #[error("Structure error: {0}")]
-    Structure(#[from] simulation_structure::Error),
+    Structure(#[from] experiment_structure::Error),
 
     #[error("Env error: {0}")]
     Env(#[from] crate::env::Error),
@@ -25,9 +25,6 @@ pub enum Error {
 
     #[error("Simulation controller error: {0}")]
     SimulationController(#[from] crate::simulation::controller::Error),
-
-    #[error("Config error: {0}")]
-    Config(#[from] crate::config::Error),
 
     #[error("Serialize/Deserialize error")]
     Serde(#[from] serde_json::Error),

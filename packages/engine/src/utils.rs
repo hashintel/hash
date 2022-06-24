@@ -1,11 +1,9 @@
 use std::{
     convert::Infallible,
-    env::VarError,
     fmt::{Display, Formatter},
     io,
     path::{Path, PathBuf},
     str::FromStr,
-    time::Duration,
 };
 
 use tracing::{Event, Subscriber};
@@ -281,23 +279,6 @@ pub fn init_logger<P: AsRef<Path>>(
         _json_file_guard,
         _texray_guard,
     })
-}
-
-// TODO: UNUSED: Needs triage
-pub fn parse_env_duration(name: &str, default: u64) -> Duration {
-    Duration::from_secs(
-        std::env::var(name)
-            .and_then(|timeout| {
-                timeout.parse().map_err(|e| {
-                    tracing::error!("Could not parse `{}` as integral: {}", name, e);
-                    VarError::NotPresent
-                })
-            })
-            .unwrap_or_else(|_| {
-                tracing::info!("Setting `{}={}`", name, default);
-                default
-            }),
-    )
 }
 
 #[cfg(feature = "texray")]

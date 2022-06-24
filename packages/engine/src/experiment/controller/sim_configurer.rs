@@ -7,10 +7,8 @@ use execution::{
     },
     worker_pool::{WorkerAllocation, WorkerIndex},
 };
-use simulation_structure::ExperimentConfig;
-use stateful::global::Globals;
-
-use crate::config::{SchemaConfig, SimulationRunConfig};
+use experiment_structure::{ExperimentConfig, SimulationRunConfig};
+use stateful::{field::Schema, global::Globals};
 
 pub struct SimConfigurer {
     worker_allocator: WorkerAllocator,
@@ -40,7 +38,7 @@ impl SimConfigurer {
         experiment_config: Arc<ExperimentConfig>,
         id: SimulationId,
         globals: Globals,
-        store_config: SchemaConfig,
+        schema: Schema,
         persistence_config: PersistenceConfig,
         max_num_steps: usize,
     ) -> SimulationRunConfig {
@@ -49,7 +47,7 @@ impl SimConfigurer {
             id,
             globals,
             self.worker_allocator.next(),
-            store_config,
+            schema,
             persistence_config,
             max_num_steps,
         )

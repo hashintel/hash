@@ -21,16 +21,10 @@ main package definition can be agnostic of how work was distributed.
 
 use std::sync::{Arc, RwLock};
 
-use async_trait::async_trait;
 use execution::{
-    package::simulation::{PackageTask, SimulationId},
-    task::{StoreAccessValidator, TaskId, TaskSharedStore},
+    package::simulation::{PackageComms, SimulationId},
     worker::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
-    worker_pool,
-    worker_pool::comms::{
-        main::MainMsgSend,
-        message::{EngineToWorkerPoolMsg, WrappedTask},
-    },
+    worker_pool::comms::{main::MainMsgSend, message::EngineToWorkerPoolMsg},
 };
 use stateful::{
     agent::{Agent, AgentId},
@@ -39,7 +33,7 @@ use stateful::{
     state::StateReadProxy,
 };
 
-use super::{command::Commands, task::active::ActiveTask, Error, Result};
+use super::{command::Commands, Error, Result};
 
 /// A simulation-specific object containing a sender to communicate with the worker-pool, and a
 /// shared collection of commands.
@@ -68,6 +62,14 @@ impl Comms {
         })
     }
 
+    pub fn package_comms(&self, package_id: PackageId) -> PackageComms {
+        PackageComms::new(package_id, self.sim_id, self.worker_pool_sender.clone())
+    }
+
+    pub fn simulation_id(&self) -> SimulationId {
+        self.sim_id
+    }
+
     /// Takes the [`Commands`] stored in self.
     ///
     /// # Errors
@@ -78,10 +80,7 @@ impl Comms {
         let taken = std::mem::take(&mut *cmds);
         Ok(taken)
     }
-}
 
-// Datastore synchronization methods
-impl Comms {
     /// Sends a message to workers (via the worker pool) that tells them
     /// to load state from Arrow in shared memory.
     ///
@@ -149,68 +148,28 @@ impl Comms {
             .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(())
     }
-}
 
-#[async_trait]
-impl execution::package::simulation::Comms for Comms {
-    type ActiveTask = ActiveTask;
-
-    /// Takes a given [`Task`] object, and starts its execution on the [`WorkerPool`], returning an
-    /// [`ActiveTask`] to track its progress.
+    /// Adds a command to create the specified [`Agent`].
     ///
-    /// [`Task`]: execution::task::Task
-    /// [`WorkerPool`]: execution::worker_pool::WorkerPool
-    async fn new_task(
-        &self,
-        package_id: PackageId,
-        task: PackageTask,
-        shared_store: TaskSharedStore,
-    ) -> execution::Result<ActiveTask> {
-        let task_id = TaskId::generate();
-        let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store)?;
-        self.worker_pool_sender
-            .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))
-            .map_err(|e| execution::Error::from(format!("Worker pool error: {:?}", e)))?;
-        Ok(active)
-    }
-
-    fn add_create_agent_command(&mut self, agent: Agent) -> execution::Result<()> {
+    /// # Errors
+    ///
+    /// This function can fail if it's unable to acquire a write lock.
+    // TODO: This is currently unused as messages are used to add agents, however, other packages
+    //   may should be able to add agents as well
+    pub fn add_create_agent_command(&mut self, agent: Agent) -> execution::Result<()> {
         self.cmds.try_write()?.add_create(agent);
         Ok(())
     }
 
-    fn add_remove_agent_command(&mut self, agent_id: AgentId) -> execution::Result<()> {
+    /// Adds a command to removed the [`Agent`] specified by it's `agent_id`.
+    ///
+    /// # Errors
+    ///
+    /// This function can fail if it's unable to acquire a write lock.
+    // TODO: This is currently unused as messages are used to remove agents, however, other packages
+    //   may should be able to remove agents as well
+    pub fn add_remove_agent_command(&mut self, agent_id: AgentId) -> execution::Result<()> {
         self.cmds.try_write()?.add_remove(agent_id);
         Ok(())
     }
-}
-
-/// Turns a given [`Task`] into a [`WrappedTask`] and [`ActiveTask`] pair.
-///
-/// This includes setting up the appropriate communications to be sent to the [`WorkerPool`] and to
-/// be made accessible to the Package that created the task.
-///
-/// # Errors
-///
-/// If the [`Task`] needs more access than the provided [`TaskSharedStore`] has.
-///
-/// [`Task`]: execution::task::Task
-/// [`WorkerPool`]: execution::worker_pool::WorkerPool
-fn wrap_task(
-    task_id: TaskId,
-    package_id: PackageId,
-    task: PackageTask,
-    shared_store: TaskSharedStore,
-) -> Result<(WrappedTask, ActiveTask)> {
-    task.verify_store_access(&shared_store)?;
-    let (owner_channels, executor_channels) = worker_pool::comms::active::comms();
-    let wrapped = WrappedTask {
-        task_id,
-        package_id,
-        task,
-        comms: executor_channels,
-        shared_store,
-    };
-    let active = ActiveTask::new(owner_channels);
-    Ok((wrapped, active))
 }

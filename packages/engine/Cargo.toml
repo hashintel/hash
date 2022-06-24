@@ -12,7 +12,7 @@ flatbuffers_gen = { path = "lib/flatbuffers_gen" }
 nano = { path = "lib/nano", default-features = false }
 memory = { path = "lib/memory" }
 stateful = { path = "lib/stateful" }
-simulation_structure = { path = "lib/simulation_structure" }
+experiment-structure = { path = "lib/experiment-structure" }
 execution = { path = "lib/execution", default-features = false }
 
 error-stack = { version = "0.1.1", features = ["spantrace"] }

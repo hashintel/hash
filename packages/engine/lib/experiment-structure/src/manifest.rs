@@ -19,8 +19,8 @@ use stateful::global::Dataset;
 use thiserror::Error;
 
 use crate::{
-    dependencies::parse_raw_csv_into_json, experiment::ExperimentType, Experiment, ExperimentRun,
-    Simulation,
+    dependencies::parse_raw_csv_into_json, experiment::ExperimentType, ExperimentRun,
+    SimulationSource,
 };
 
 #[derive(Debug, Error)]
@@ -520,14 +520,14 @@ impl Manifest {
         Ok(project)
     }
 
-    /// Combines this `Manifest` with the specified `experiment_type` to create an
-    /// [`ExperimentRun`] to be ran as an [`Experiment`](crate::Experiment).
+    /// Combines this `Manifest` with the specified [`ExperimentType`] to create an
+    /// [`ExperimentRun`].
     ///
     /// # Errors
     ///
     /// - if the manifest does not provide an initial state
     pub fn read(self, experiment_type: ExperimentType) -> Result<ExperimentRun> {
-        let simulation = Simulation {
+        let simulation = SimulationSource {
             name: self.project_name,
             globals_src: self.globals_json.unwrap_or_else(|| "{}".to_string()),
             experiments_src: self.experiments_json,
@@ -552,12 +552,11 @@ impl Manifest {
             ExperimentType::Simple { name } => name.clone(),
         };
 
-        let experiment = Experiment::new(name, simulation);
         let config = experiment_type
-            .get_package_config(experiment.simulation())
+            .get_package_config(&simulation)
             .attach_printable("Could not read package config")
             .change_context(ManifestError)?;
-        Ok(ExperimentRun::new(experiment, config))
+        Ok(ExperimentRun::new(name, simulation, config))
     }
 }
 

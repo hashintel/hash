@@ -57,13 +57,13 @@ pub trait ContextPackage: Package + MaybeCpuBound {
     fn span(&self) -> Span;
 }
 
-pub trait ContextPackageCreator<C>: PackageCreator {
+pub trait ContextPackageCreator: PackageCreator {
     /// Create the package.
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        system: PackageComms<C>,
+        system: PackageComms,
         state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>>;

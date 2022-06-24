@@ -40,13 +40,13 @@ pub trait InitPackage: Package + MaybeCpuBound {
     async fn run(&mut self) -> Result<Vec<Agent>>;
 }
 
-pub trait InitPackageCreator<C>: PackageCreator {
+pub trait InitPackageCreator: PackageCreator {
     /// Create the package.
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        system: PackageComms<C>,
+        system: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>>;
 }

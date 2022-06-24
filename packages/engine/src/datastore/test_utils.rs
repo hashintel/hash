@@ -7,21 +7,18 @@ use execution::{
             ExperimentPackageConfig,
         },
         simulation::{
-            context::ContextPackageCreators,
-            init::{InitPackageCreators, InitialState, InitialStateName},
-            output::OutputPackageCreators,
-            state::StatePackageCreators,
+            init::{InitialState, InitialStateName},
             PackageInitConfig, SimulationId,
         },
     },
     worker_pool::{WorkerAllocation, WorkerPoolConfig},
 };
+use experiment_structure::{
+    ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder, PackageCreators,
+    SimulationRunConfig, SimulationSource,
+};
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use simulation_structure::{
-    Experiment, ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder,
-    PackageCreators, Simulation,
-};
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
     field::{
@@ -31,10 +28,7 @@ use stateful::{
     global::Globals,
 };
 
-use crate::{
-    config::{SchemaConfig, SimulationRunConfig},
-    datastore::error::Error,
-};
+use crate::datastore::error::Error;
 
 fn test_field_specs() -> FieldSpecMap {
     let mut map = FieldSpecMap::default();
@@ -270,7 +264,7 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
 
     let globals = Globals::default();
 
-    let package_config = PackageConfigBuilder::default()
+    let package_config = PackageConfigBuilder::new()
         .set_init_packages([])
         .set_context_packages([])
         .set_state_packages([])
@@ -278,30 +272,19 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
         .build()
         .unwrap();
 
-    let init_package_creators = InitPackageCreators::from_config(&package_init).unwrap();
-    let context_package_creators = ContextPackageCreators::from_config(&package_init).unwrap();
-    let state_package_creators = StatePackageCreators::from_config(&package_init).unwrap();
-    let output_package_creators = OutputPackageCreators::from_config(&package_init).unwrap();
+    let package_creators = PackageCreators::from_config(&package_config, &package_init).unwrap();
 
-    let package_creators = PackageCreators::from_config(
-        &package_config,
-        &init_package_creators,
-        &context_package_creators,
-        &state_package_creators,
-        &output_package_creators,
-    )
-    .unwrap();
+    let schema = package_creators
+        .create_schema(&package_init, &globals)
+        .unwrap();
 
-    let store_config = SchemaConfig::new(&package_init, &globals, &package_creators).unwrap();
-
-    let simulation = Simulation {
+    let simulation = SimulationSource {
         name: "project_name".to_string(),
         globals_src: "{}".to_string(),
         experiments_src: None,
         datasets: Vec::new(),
         package_init,
     };
-    let experiment = Experiment::new("experiment_name".to_string().into(), simulation);
 
     let experiment_config = Arc::new(ExperimentConfig {
         packages: Arc::new(PackageConfig {
@@ -310,8 +293,9 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
             state: Vec::new(),
             output: Vec::new(),
         }),
-        run: Arc::new(ExperimentRun::new(
-            experiment,
+        experiment_run: Arc::new(ExperimentRun::new(
+            "experiment_name".to_string().into(),
+            simulation,
             ExperimentPackageConfig::Basic(BasicExperimentConfig::SingleRun(
                 SingleRunExperimentConfig { num_steps: 1 },
             )),
@@ -332,7 +316,7 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
         SimulationId::new(0),
         globals,
         WorkerAllocation::default(),
-        store_config,
+        schema,
         persistence_config,
         0,
     )

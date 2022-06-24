@@ -1,10 +1,6 @@
-mod experiment_type;
-mod plan;
-mod run;
-
 use execution::{
     package::{
-        experiment::{ExperimentId, ExperimentName},
+        experiment::{ExperimentId, ExperimentName, ExperimentPackageConfig},
         simulation::init::InitialStateName,
     },
     runner::Language,
@@ -12,22 +8,27 @@ use execution::{
 };
 use serde::{Deserialize, Serialize};
 
-pub use self::{experiment_type::ExperimentType, run::ExperimentRun};
-use crate::Simulation;
+use crate::SimulationSource;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Experiment {
+pub struct ExperimentRun {
     name: ExperimentName,
-    simulation: Simulation,
     id: ExperimentId,
+    config: ExperimentPackageConfig,
+    simulation: SimulationSource,
 }
 
-impl Experiment {
-    pub fn new(name: ExperimentName, simulation: Simulation) -> Self {
+impl ExperimentRun {
+    pub fn new(
+        name: ExperimentName,
+        simulation: SimulationSource,
+        config: ExperimentPackageConfig,
+    ) -> Self {
         Self {
             name,
-            simulation,
             id: ExperimentId::generate(),
+            config,
+            simulation,
         }
     }
 
@@ -39,11 +40,15 @@ impl Experiment {
         &self.name
     }
 
-    pub fn simulation(&self) -> &Simulation {
+    pub fn config(&self) -> &ExperimentPackageConfig {
+        &self.config
+    }
+
+    pub fn simulation(&self) -> &SimulationSource {
         &self.simulation
     }
 
-    pub fn simulation_mut(&mut self) -> &mut Simulation {
+    pub fn simulation_mut(&mut self) -> &mut SimulationSource {
         &mut self.simulation
     }
 

@@ -14,11 +14,11 @@ use execution::{
     package::experiment::{ExperimentId, ExperimentName},
     runner::Language,
 };
+use experiment_structure::{ExperimentType, Manifest};
 use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
 use orchestrator::{ExperimentConfig, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
-use simulation_structure::{ExperimentType, Manifest};
 use tracing_subscriber::fmt::time::Uptime;
 
 use self::error::{Result, TestContext};
@@ -343,8 +343,8 @@ pub async fn run_test<P: AsRef<Path>>(
     let output_base_directory = experiment
         .config
         .output_folder
-        .join(experiment_run.experiment().name().as_str())
-        .join(experiment_run.experiment().id().to_string());
+        .join(experiment_run.name().as_str())
+        .join(experiment_run.id().to_string());
 
     let now = Instant::now();
     experiment

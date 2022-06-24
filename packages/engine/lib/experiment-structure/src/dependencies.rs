@@ -61,9 +61,9 @@ impl FetchDependencies for Dataset {
 #[async_trait]
 impl FetchDependencies for ExperimentRun {
     async fn fetch_deps(&mut self) -> Result<()> {
-        let datasets = std::mem::take(&mut self.experiment_mut().simulation_mut().datasets);
+        let datasets = std::mem::take(&mut self.simulation_mut().datasets);
 
-        self.experiment_mut().simulation_mut().datasets =
+        self.simulation_mut().datasets =
             futures::stream::iter(datasets.into_iter().map(|mut dataset| {
                 tokio::spawn(async move {
                     dataset.fetch_deps().await?;

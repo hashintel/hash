@@ -35,17 +35,11 @@
 )]
 
 mod args;
-pub mod config;
 pub mod datastore;
 pub mod env;
-mod error;
 pub mod experiment;
 pub mod proto;
 pub mod simulation;
-pub mod types;
 pub mod utils;
 
-pub use self::{
-    args::{args, Args},
-    error::{Error, Result},
-};
+pub use self::args::{args, Args};

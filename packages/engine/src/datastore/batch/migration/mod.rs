@@ -1420,10 +1420,13 @@ pub(super) mod test {
         let agents = AgentBatch::from_agent_states(
             json_agents.as_slice(),
             &agent_schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
-        let agents_clone =
-            AgentBatch::duplicate_from(&agents, &agent_schema, MemoryId::new(experiment_id))?;
+        let agents_clone = AgentBatch::duplicate_from(
+            &agents,
+            &agent_schema,
+            MemoryId::new(experiment_id.as_uuid()),
+        )?;
 
         let mut pool = vec![agents];
         let batch_index = Some(0);
@@ -1460,7 +1463,7 @@ pub(super) mod test {
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
             &msg_schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
 
         let new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
@@ -1468,7 +1471,7 @@ pub(super) mod test {
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
             &msg_schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
@@ -1479,7 +1482,7 @@ pub(super) mod test {
         let agents = AgentBatch::from_agent_states(
             json_agents.as_slice(),
             &agent_schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         println!("Thru JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
@@ -1502,14 +1505,14 @@ pub(super) mod test {
         let agents = AgentBatch::from_agent_states(
             json_agents.as_slice(),
             &schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         let agents_clone =
-            AgentBatch::duplicate_from(&agents, &schema, MemoryId::new(experiment_id))?;
+            AgentBatch::duplicate_from(&agents, &schema, MemoryId::new(experiment_id.as_uuid()))?;
         let create_agents = AgentBatch::from_agent_states(
             json_create_agents.as_slice(),
             &schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
 
         let mut pool = vec![agents];
@@ -1545,7 +1548,7 @@ pub(super) mod test {
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
             &msg_schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
 
         let mut new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
@@ -1553,7 +1556,7 @@ pub(super) mod test {
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
             &msg_schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
@@ -1562,7 +1565,7 @@ pub(super) mod test {
         let agents = AgentBatch::from_agent_states(
             json_agents.as_slice(),
             &schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         println!("Thru JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
@@ -1591,14 +1594,14 @@ pub(super) mod test {
         let agents = AgentBatch::from_agent_states(
             json_agents.as_slice(),
             &schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         let agents_clone =
-            AgentBatch::duplicate_from(&agents, &schema, MemoryId::new(experiment_id))?;
+            AgentBatch::duplicate_from(&agents, &schema, MemoryId::new(experiment_id.as_uuid()))?;
         let agents_2 = AgentBatch::from_agent_states(
             json_agents_2.as_slice(),
             &schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
 
         let mut pool = vec![agents, agents_2];
@@ -1638,7 +1641,7 @@ pub(super) mod test {
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
             &msg_schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
 
         let mut new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
@@ -1646,7 +1649,7 @@ pub(super) mod test {
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
             &msg_schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
@@ -1657,7 +1660,7 @@ pub(super) mod test {
         let agents = AgentBatch::from_agent_states(
             json_agents.as_slice(),
             &schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         println!("Thru JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
@@ -1692,19 +1695,19 @@ pub(super) mod test {
         let agents = AgentBatch::from_agent_states(
             json_agents.as_slice(),
             &schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         let agents_clone =
-            AgentBatch::duplicate_from(&agents, &schema, MemoryId::new(experiment_id))?;
+            AgentBatch::duplicate_from(&agents, &schema, MemoryId::new(experiment_id.as_uuid()))?;
         let agents_2 = AgentBatch::from_agent_states(
             json_agents_2.as_slice(),
             &schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         let create_agents = AgentBatch::from_agent_states(
             json_create_agents.as_slice(),
             &schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
 
         let mut pool = vec![agents, agents_2];
@@ -1749,7 +1752,7 @@ pub(super) mod test {
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
             &msg_schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
 
         let mut new_json_agents = (&pool[0], &empty_message_batch).to_agent_states(None)?;
@@ -1757,7 +1760,7 @@ pub(super) mod test {
         let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
             &agents_clone,
             &msg_schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         let now = std::time::Instant::now();
         // Do on JSON
@@ -1772,7 +1775,7 @@ pub(super) mod test {
         let agents = AgentBatch::from_agent_states(
             json_agents.as_slice(),
             &schema,
-            MemoryId::new(experiment_id),
+            MemoryId::new(experiment_id.as_uuid()),
         )?;
         println!("Thru JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);

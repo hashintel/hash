@@ -10,9 +10,9 @@ use std::{
 
 use clap::{AppSettings, Parser};
 use error_stack::{IntoReport, Result, ResultExt};
+use experiment_structure::{ExperimentType, Manifest};
 use hash_engine_lib::utils::init_logger;
 use orchestrator::{Experiment, ExperimentConfig, Server};
-use simulation_structure::{ExperimentType, Manifest};
 
 /// Arguments passed to the CLI
 #[derive(Debug, Parser)]

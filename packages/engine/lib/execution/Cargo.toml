@@ -24,7 +24,7 @@ serde_json = "1.0.59"
 thiserror = "1.0.21"
 tokio = { version = "1.18.2", features = ["macros", "rt", "sync", "process", "time"] }
 tracing = "0.1.29"
-uuid = { version = "0.8.1" }
+uuid = "0.8.1"
 v8 = "0.42.0"
 
 [features]
