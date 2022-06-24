@@ -270,7 +270,13 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
 
     let globals = Globals::default();
 
-    let package_config = PackageConfigBuilder::default().build().unwrap();
+    let package_config = PackageConfigBuilder::default()
+        .set_init_packages([])
+        .set_context_packages([])
+        .set_state_packages([])
+        .set_output_packages([])
+        .build()
+        .unwrap();
 
     let init_package_creators = InitPackageCreators::from_config(&package_init).unwrap();
     let context_package_creators = ContextPackageCreators::from_config(&package_init).unwrap();
