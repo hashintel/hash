@@ -13,9 +13,9 @@ use stateful::{
     message::MessageSchema,
 };
 
-use crate::datastore::{
-    error::Result,
-    test_utils::{gen_schema_and_test_agents, root_field_spec_from_agent_field},
+use crate::{
+    datastore::Result,
+    tests::test_utils::{gen_schema_and_test_agents, root_field_spec_from_agent_field},
 };
 
 #[test]

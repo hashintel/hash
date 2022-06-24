@@ -1350,7 +1350,7 @@ pub(super) mod test {
     };
 
     use super::*;
-    use crate::datastore::test_utils::gen_schema_and_test_agents;
+    use crate::tests::test_utils::gen_schema_and_test_agents;
 
     #[derive(Serialize, Deserialize)]
     pub struct Foo {
