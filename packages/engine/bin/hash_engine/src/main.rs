@@ -2,13 +2,11 @@ use std::{error::Error, fmt, sync::Arc};
 
 use error_stack::{IntoReport, Result, ResultExt};
 use execution::runner::RunnerConfig;
-use experiment_structure::{ExperimentConfig, FetchDependencies};
-use hash_engine_lib::{
-    env::{env, Environment},
-    experiment::controller::run::{cleanup_experiment, run_experiment},
-    utils::init_logger,
-    Args,
+use experiment_control::{
+    controller::run::{cleanup_experiment, run_experiment},
+    environment::{init_logger, Args, Environment},
 };
+use experiment_structure::{ExperimentConfig, FetchDependencies};
 
 #[derive(Debug)]
 pub struct EngineError;
@@ -37,7 +35,7 @@ pub fn experiment_config(args: &Args, env: &Environment) -> Result<ExperimentCon
 
 #[tokio::main]
 async fn main() -> Result<(), EngineError> {
-    let args = hash_engine_lib::args();
+    let args = Args::parse();
     let _guard = init_logger(
         args.log_format,
         &args.output,
@@ -50,7 +48,7 @@ async fn main() -> Result<(), EngineError> {
     .attach_printable("Failed to initialize the logger")
     .change_context(EngineError)?;
 
-    let mut env = env(&args)
+    let mut env = Environment::new(&args)
         .await
         .report()
         .attach_printable("Could not create environment for experiment")
