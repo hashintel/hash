@@ -1,3 +1,9 @@
+// Run only with texray in production builds and without texray in debug builds
+#![cfg(any(
+    all(not(debug_assertions), feature = "texray"),
+    all(debug_assertions, not(feature = "texray")),
+))]
+
 //! The hEngine integration test suite runs a variety of specially-designed simulations and
 //! experiments of specific functionalities to verify outputs.
 
