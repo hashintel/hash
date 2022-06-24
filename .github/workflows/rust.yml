@@ -278,6 +278,9 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v2
 
+      - name: Remove default members
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+
       - name: Install Rust
         id: toolchain
         uses: actions-rs/toolchain@v1
