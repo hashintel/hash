@@ -1,125 +1,98 @@
-import { cloneDeep } from "lodash";
 import { JSONObject } from "blockprotocol";
 
-import {
-  isParsedJsonObject,
-  isParsedJsonObjectOrArray,
-} from "@hashintel/hash-shared/json-utils";
-import { UnknownEntity } from "../graphql/apiTypes.gen";
-
-/* eslint-disable no-param-reassign */
+import { isParsedJsonObject } from "@hashintel/hash-shared/json-utils";
+import { Entity, EntityType } from "@blockprotocol/graph";
 
 /**
- * @todo: refactor to adhere to no-param-reassign
+ * Rewrites entities or entity types so that their entityId contains
+ * @param records
  */
-
-/**
- * MUTATES an object in order to:
- * - delete all non-id and non-type metadata fields from the root,
- * UNLESS the second argument is 'false'
- * - adds the contents of its 'properties' field to the root
- * - delete the 'properties' field
- * @returns void
- */
-const destructivelyMoveEntityPropertiesToRoot = (
-  entity: Partial<UnknownEntity>,
-  preserveExtraMetadata: boolean = false,
-) => {
-  if (!preserveExtraMetadata) {
-    for (const key of Object.keys(entity)) {
-      if (
-        key !== "id" &&
-        key !== "accountId" &&
-        key !== "entityId" &&
-        key !== "entityType" &&
-        key !== "linkGroups" &&
-        key !== "linkedEntities" &&
-        key !== "linkedAggregations" &&
-        key !== "properties"
-      ) {
-        delete entity[key as keyof UnknownEntity];
+export const rewriteIdentifiers = <T extends Entity | EntityType>(
+  records: T[],
+): T[] =>
+  records.map((record) => {
+    if ("entityId" in record) {
+      if (record.entityId("{")) {
+        throw new Error("Record has already had i");
       }
     }
-  }
-  Object.assign(entity, entity.properties);
-  delete entity.properties;
+  });
+
+export type EntityIdentifier = {
+  accountId: string;
+  entityId: string;
 };
 
-/**
- * Creates a deep clone of an entity with the contents of the 'properties'
- * field moved to the root of the cloned object.
- *
- * Deletes existing root fields which aren't related to the entity's id or type,
- * UNLESS false is passed as the second argument.
- * @returns the cloned entity, transformed
- */
-const cloneEntityWithPropertiesAtRoot = (
-  entity: Partial<UnknownEntity>,
-  preserveExtraMetadata: boolean = false,
-) => {
-  const clone = cloneDeep(entity);
-  destructivelyMoveEntityPropertiesToRoot(clone, preserveExtraMetadata);
-  return clone;
+export type EntityTypeIdentifier = {
+  accountId: string;
+  entityTypeId: string;
 };
 
-/**
- * @todo rework this to only move properties up for root entity
- *    - entities no longer have other entities in their trees
- *
- * Clones an entity tree, and for each entity within it,
- * moves the contents of its 'properties' to the root of that entity.
- *
- * Deletes existing root fields unless they relate to the entity's id or type.
- * To preserve all existing root fields, pass 'false' as the second argument.
- * @param entity The entity to clone
- * @param preserveExtraMetadata Whether to keep non-id and non-type metadata.
- * Defaults to FALSE: extra metadata (e.g. accountId, visibility) will be deleted.
- * @returns the entity tree clone, transformed.
- */
-export const cloneEntityTreeWithPropertiesMovedUp = (
-  entity: Partial<UnknownEntity>,
-  preserveExtraMetadata: boolean = false,
-) => {
-  const clonedTree = cloneEntityWithPropertiesAtRoot(
-    entity,
-    preserveExtraMetadata,
-  );
+export const parseIdentifiers = <T extends Entity | EntityType[]>(
+  records: T[],
+): T[] => {};
 
-  const propertiesToCheck = Object.values(clonedTree).filter(
-    isParsedJsonObjectOrArray,
-  );
-
-  while (propertiesToCheck.length > 0) {
-    const property = propertiesToCheck.pop()!;
-
-    if (Array.isArray(property)) {
-      propertiesToCheck.push(...property.filter(isParsedJsonObjectOrArray));
-      continue;
-    }
-
-    if (
-      !property.entityId ||
-      !property.properties ||
-      !isParsedJsonObject(property.properties)
-    ) {
-      // This is a non-entity object - it might have entities deeper in its tree
-      propertiesToCheck.push(
-        ...Object.values(property).filter(isParsedJsonObjectOrArray),
-      );
-      continue;
-    }
-
-    propertiesToCheck.push(
-      ...Object.values(property.properties).filter(isParsedJsonObjectOrArray),
+export function parseIdentifier(params: {
+  stringifiedIdentifier: string;
+  type: "EntityType";
+}): EntityIdentifier;
+export function parseIdentifier(params: {
+  stringifiedIdentifier: string;
+  type: "Entity";
+}): EntityTypeIdentifier;
+export function parseIdentifier({
+  stringifiedIdentifier,
+  type = "Entity",
+}: {
+  stringifiedIdentifier: string;
+  type: "Entity" | "EntityType";
+}): EntityIdentifier | EntityTypeIdentifier {
+  let identifierObject: EntityIdentifier | EntityTypeIdentifier;
+  try {
+    identifierObject = JSON.parse(stringifiedIdentifier);
+  } catch (err) {
+    throw new Error(
+      `Provided identifier string '${stringifiedIdentifier}' cannot be parsed to JSON: ${err}`,
     );
-
-    destructivelyMoveEntityPropertiesToRoot(property, preserveExtraMetadata);
   }
-  return clonedTree;
-};
+
+  if (!identifierObject.accountId) {
+    throw new Error(
+      `Parsed identifier does not contain accountId key. Provided identifier: ${JSON.stringify(
+        identifierObject,
+        undefined,
+        2,
+      )}`,
+    );
+  }
+
+  if (type === "Entity" && !("entityId" in identifierObject)) {
+    throw new Error(
+      `Parsed identifier for Entity does not contain entityId key. Provided identifier: ${JSON.stringify(
+        identifierObject,
+        undefined,
+        2,
+      )}`,
+    );
+  }
+
+  if (type === "EntityType" && !("entityTypeId" in identifierObject)) {
+    throw new Error(
+      `Parsed identifier for EntityTypeId does not contain entityTypeId key. Provided identifier: ${JSON.stringify(
+        identifierObject,
+        undefined,
+        2,
+      )}`,
+    );
+  }
+
+  return identifierObject;
+}
 
 /**
- * We are working on a first-class label concept that would replace this function.
+ * This is a temporary solution to guess a display label for an entity.
+ * It will be replaced by a 'labelProperty' in the schema indicating which field to use as the label
+ * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
 export const guessEntityName = (entity: JSONObject) => {
   const { name, preferredName, displayName, title, shortname, legalName } =

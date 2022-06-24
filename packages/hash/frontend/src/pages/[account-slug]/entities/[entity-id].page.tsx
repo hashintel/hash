@@ -10,11 +10,11 @@ import {
   GetEntityQueryVariables,
   UnknownEntity,
 } from "../../../graphql/apiTypes.gen";
-import { useBlockProtocolUpdateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
+import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 import { guessEntityName } from "../../../lib/entities";
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
-import { useBlockProtocolDeleteLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
-import { useBlockProtocolCreateLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
+import { useBlockProtocolDeleteLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
+import { useBlockProtocolCreateLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
@@ -37,9 +37,9 @@ const Page: NextPageWithLayout = () => {
       entityId,
     },
   });
-  const { createLinks } = useBlockProtocolCreateLinks();
-  const { deleteLinks } = useBlockProtocolDeleteLinks();
-  const { updateEntities } = useBlockProtocolUpdateEntities();
+  const { createLinks } = useBlockProtocolCreateLink();
+  const { deleteLinks } = useBlockProtocolDeleteLink();
+  const { updateEntities } = useBlockProtocolUpdateEntity();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
   const updateAndNavigateToFirstEntity: BlockProtocolUpdateEntitiesFunction = (

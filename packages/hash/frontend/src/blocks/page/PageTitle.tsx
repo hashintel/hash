@@ -7,7 +7,7 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { tw } from "twind";
-import { useBlockProtocolUpdateEntities } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
+import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 
 type PageTitleProps = {
   value: string;
@@ -29,7 +29,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
 }) => {
   // TODO: Display update error once expected UX is discussed
   const { updateEntities, updateEntitiesLoading } =
-    useBlockProtocolUpdateEntities();
+    useBlockProtocolUpdateEntity();
   const [inputValue, setInputValue] = useState<string>(value);
 
   useEffect(() => {

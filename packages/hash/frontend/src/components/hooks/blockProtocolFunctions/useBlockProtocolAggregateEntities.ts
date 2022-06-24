@@ -1,59 +1,42 @@
-import { useApolloClient } from "@apollo/client";
+import { useLazyQuery } from "@apollo/client";
 
-import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolAggregateEntitiesResult,
-  BlockProtocolEntity,
-} from "blockprotocol";
+import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
-import { cloneEntityTreeWithPropertiesMovedUp } from "../../../lib/entities";
-import {
-  AggregateEntityQuery,
-  AggregateEntityQueryVariables,
-} from "../../../graphql/apiTypes.gen";
 
 export const useBlockProtocolAggregateEntities = (): {
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction;
+  aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"];
 } => {
-  const client = useApolloClient();
+  const [aggregateEntitiesInDb] = useLazyQuery(aggregateEntity);
 
-  const aggregateEntities: BlockProtocolAggregateEntitiesFunction = useCallback(
-    async (action) => {
-      if (!action.accountId) {
-        throw new Error("aggregateEntities needs to be passed an accountId");
-      }
+  const aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"] =
+    useCallback(
+      async ({ data }) => {
+        if (!data) {
+          throw new Error("'data' must be provided for aggregateEntities");
+        }
 
-      /**
-       * Using client.query since useLazyQuery does not return anything
-       * useLazyQuery should return a promise as of apollo-client 3.5
-       * @see https://github.com/apollographql/apollo-client/issues/7714
-       * We can possibly revert once that happens
-       */
-      const response = await client.query<
-        AggregateEntityQuery,
-        AggregateEntityQueryVariables
-      >({
-        query: aggregateEntity,
-        variables: {
-          accountId: action.accountId,
-          operation: {
-            ...action.operation,
-            entityTypeId: action.operation.entityTypeId!,
+        const response = await aggregateEntitiesInDb({
+          variables: {
+            accountId: data.accountId,
+            operation: {
+              ...data.operation,
+              entityTypeId: data.operation.entityTypeId!,
+            },
           },
-        },
-      });
-      const { operation, results } = response.data.aggregateEntity;
-      const newResults = results.map((result) =>
-        cloneEntityTreeWithPropertiesMovedUp(result),
-      );
-      return {
-        operation,
-        results: newResults,
-      } as BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>;
-    },
-    [client],
-  );
+        });
+
+        const { operation, results } = response.data.aggregateEntity;
+
+        return {
+          data: {
+            operation,
+            results,
+          },
+        };
+      },
+      [aggregateEntitiesInDb],
+    );
 
   return {
     aggregateEntities,

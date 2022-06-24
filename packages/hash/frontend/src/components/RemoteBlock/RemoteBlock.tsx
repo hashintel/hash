@@ -1,12 +1,17 @@
-import { BlockProtocolFunctions, BlockProtocolProps } from "blockprotocol";
+import {
+  EmbedderGraphMessageCallbacks,
+  Entity,
+  useGraphEmbedderService,
+} from "@blockprotocol/graph";
 import React from "react";
 
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useRemoteBlock } from "./useRemoteBlock";
 
 type RemoteBlockProps = {
-  blockFunctions: BlockProtocolFunctions;
-  blockProperties: Omit<BlockProtocolProps, keyof BlockProtocolFunctions>;
+  graphCallbacks: EmbedderGraphMessageCallbacks;
+  blockEntity: Entity;
+  blockMetadata:
   crossFrame?: boolean;
   editableRef?: unknown;
   onBlockLoaded?: () => void;
@@ -19,12 +24,13 @@ export const BlockLoadingIndicator: React.VFC = () => <div>Loading...</div>;
  * @see https://github.com/Paciolan/remote-component/blob/2b2cfbb5b6006117c56f3aa7daa2292d3823bb83/src/createRemoteComponent.tsx
  */
 export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
-  blockFunctions,
-  blockProperties,
+  blockEntity,
+  blockMetadata,
   crossFrame,
   editableRef,
-  sourceUrl,
+  graphCallbacks,
   onBlockLoaded,
+  sourceUrl,
 }) => {
   const [loading, err, Component] = useRemoteBlock(
     sourceUrl,
@@ -44,26 +50,83 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     throw err;
   }
 
-  if (typeof Component === "string") {
-    /**
-     * This HTML block has no props available to it, unless loaded via FramedBlock.
-     * @todo do something about this. throw if not in an iframe?
-     *    or check for iframe status and assign props to window here, not FramedBlock?
-     */
-    return (
-      <HtmlBlock
-        html={Component}
-        blockFunctions={blockFunctions}
-        blockProperties={blockProperties}
-      />
-    );
-  }
+  const propsToInject: BlockGraphProperties<any> = {
+    graph: {
+      blockEntity,
+      blockGraph,
+      entityTypes,
+      linkedAggregations,
+    },
+  };
 
-  return (
-    <Component
-      {...blockFunctions}
-      {...blockProperties}
-      editableRef={editableRef}
-    />
-  );
+  useEffect(() => {
+    if (!wrapperRef.current) {
+      throw new Error(
+        "No reference to wrapping element – cannot listen for messages from block",
+      );
+    } else if (!graphService) {
+      setGraphService(
+        new GraphEmbedderHandler({
+          blockGraph,
+          blockEntity,
+          linkedAggregations,
+          callbacks: graphServiceCallbacks,
+          element: wrapperRef.current,
+        }),
+      );
+    }
+  }, [
+    blockEntity,
+    blockGraph,
+    graphService,
+    graphServiceCallbacks,
+    linkedAggregations,
+  ]);
+
+  useEffect(() => {
+    if (graphService) {
+      graphService.blockEntity({ data: blockEntity });
+    }
+  }, [blockEntity, graphService]);
+
+  useEffect(() => {
+    if (graphService) {
+      graphService.blockGraph({ data: blockGraph });
+    }
+  }, [blockGraph, graphService]);
+
+  useEffect(() => {
+    if (graphService) {
+      graphService.entityTypes({ data: entityTypes });
+    }
+  }, [entityTypes, graphService]);
+
+  useEffect(() => {
+    if (graphService) {
+      graphService.linkedAggregations({ data: linkedAggregations });
+    }
+  }, [linkedAggregations, graphService]);
+
+  <div ref={wrapperRef}>
+    {graphService ? (
+      <BlockRenderer
+        customElement={
+          "customElement" in blockDefinition
+            ? blockDefinition.customElement
+            : undefined
+        }
+        htmlString={
+          "htmlString" in blockDefinition
+            ? blockDefinition.htmlString
+            : undefined
+        }
+        properties={propsToInject}
+        ReactComponent={
+          "ReactComponent" in blockDefinition
+            ? blockDefinition.ReactComponent
+            : undefined
+        }
+      />
+    ) : null}
+  </div>
 };

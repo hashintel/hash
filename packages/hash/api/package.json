@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "9.0.9",
-    "@apollo/client": "3.3.21",
+    "@apollo/client": "3.6.8",
     "@aws-sdk/client-s3": "3.38.0",
     "@aws-sdk/client-ses": "3.25.0",
     "@aws-sdk/credential-provider-node": "3.41.0",

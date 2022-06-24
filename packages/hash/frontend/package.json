@@ -16,7 +16,9 @@
     "test": "jest"
   },
   "dependencies": {
-    "@apollo/client": "3.3.21",
+    "@apollo/client": "3.6.8",
+    "@blockprotocol/core": "0.0.7",
+    "@blockprotocol/graph": "0.0.9",
     "@emotion/cache": "11.7.1",
     "@emotion/react": "11.9.0",
     "@emotion/server": "11.4.0",

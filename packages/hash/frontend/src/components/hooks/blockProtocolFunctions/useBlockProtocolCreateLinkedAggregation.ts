@@ -11,7 +11,7 @@ import {
   CreateLinkedAggregationOperationMutationVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 
-export const useBlockProtocolCreateLinkedAggregations = (): {
+export const useBlockProtocolCreateLinkedAggregation = (): {
   createLinkedAggregations: BlockProtocolCreateLinkedAggregationsFunction;
   createLinkedAggregationsLoading: boolean;
   createLinkedAggregationsError: any;

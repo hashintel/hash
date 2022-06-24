@@ -2,7 +2,7 @@ import { BlockProtocolUpdateLinksFunction } from "blockprotocol";
 
 import { useCallback } from "react";
 
-export const useBlockProtocolUpdateLinks = (): {
+export const useBlockProtocolUpdateLink = (): {
   updateLinks: BlockProtocolUpdateLinksFunction;
 } => {
   const updateLinks: BlockProtocolUpdateLinksFunction = useCallback(

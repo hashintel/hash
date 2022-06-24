@@ -12,7 +12,7 @@ import {
   UpdateLinkedAggregationOperationMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolUpdateLinkedAggregations = (): {
+export const useBlockProtocolUpdateLinkedAggregation = (): {
   updateLinkedAggregations: BlockProtocolUpdateLinkedAggregationsFunction;
 } => {
   const [runUpdateLinkedAggregationMutation] = useMutation<

@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, VoidFunctionComponent } from "react";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { BlockProtocolLinkedAggregation } from "blockprotocol";
 
-import { useBlockProtocolUpdateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
+import { useBlockProtocolUpdateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { BlockFramer } from "../sandbox/BlockFramer/BlockFramer";
@@ -15,15 +15,15 @@ import {
   LinkGroup,
   UnknownEntity,
 } from "../../graphql/apiTypes.gen";
-import { useBlockProtocolCreateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityTypes";
+import { useBlockProtocolCreateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityType";
 import { useBlockProtocolCreateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntitities";
-import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
-import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
-import { useBlockProtocolUpdateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinks";
+import { useBlockProtocolCreateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
+import { useBlockProtocolDeleteLink } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
+import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockLoaded } from "../../blocks/onBlockLoaded";
-import { useBlockProtocolCreateLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregations";
-import { useBlockProtocolUpdateLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregations";
-import { useBlockProtocolDeleteLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregations";
+import { useBlockProtocolCreateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
+import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
+import { useBlockProtocolDeleteLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
 
 type BlockLoaderProps = {
   accountId: string;
@@ -59,18 +59,18 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createLinkedAggregations } =
-    useBlockProtocolCreateLinkedAggregations();
-  const { createLinks } = useBlockProtocolCreateLinks();
+    useBlockProtocolCreateLinkedAggregation();
+  const { createLinks } = useBlockProtocolCreateLink();
   const { createEntities } = useBlockProtocolCreateEntities();
-  const { createEntityTypes } = useBlockProtocolCreateEntityTypes();
+  const { createEntityTypes } = useBlockProtocolCreateEntityType();
   const { deleteLinkedAggregations } =
-    useBlockProtocolDeleteLinkedAggregations();
-  const { deleteLinks } = useBlockProtocolDeleteLinks();
-  const { updateEntities } = useBlockProtocolUpdateEntities();
+    useBlockProtocolDeleteLinkedAggregation();
+  const { deleteLinks } = useBlockProtocolDeleteLink();
+  const { updateEntities } = useBlockProtocolUpdateEntity();
   const { uploadFile } = useFileUpload();
   const { updateLinkedAggregations } =
-    useBlockProtocolUpdateLinkedAggregations();
-  const { updateLinks } = useBlockProtocolUpdateLinks();
+    useBlockProtocolUpdateLinkedAggregation();
+  const { updateLinks } = useBlockProtocolUpdateLink();
 
   const flattenedProperties = useMemo(() => {
     let flattenedLinkedEntities: UnknownEntity[] = [];

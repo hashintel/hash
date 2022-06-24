@@ -8,7 +8,7 @@ import {
   DeleteLinkedAggregationMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolDeleteLinkedAggregations = (): {
+export const useBlockProtocolDeleteLinkedAggregation = (): {
   deleteLinkedAggregations: BlockProtocolDeleteLinkedAggregationsFunction;
   deleteLinkedAggregationsLoading: boolean;
   deleteLinkedAggregationsError: any;

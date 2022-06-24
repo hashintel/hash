@@ -11,7 +11,7 @@ import {
   UpdatePageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolUpdateEntities = (): {
+export const useBlockProtocolUpdateEntity = (): {
   updateEntities: BlockProtocolUpdateEntitiesFunction;
   updateEntitiesLoading: boolean;
   updateEntitiesError: any;

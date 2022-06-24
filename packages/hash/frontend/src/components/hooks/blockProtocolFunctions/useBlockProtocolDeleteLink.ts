@@ -8,7 +8,7 @@ import {
   DeleteLinkMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolDeleteLinks = (): {
+export const useBlockProtocolDeleteLink = (): {
   deleteLinks: BlockProtocolDeleteLinksFunction;
   deleteLinksLoading: boolean;
   deleteLinksError: any;

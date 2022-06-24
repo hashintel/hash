@@ -12,7 +12,7 @@ import {
   CreateLinkMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolCreateLinks = (): {
+export const useBlockProtocolCreateLink = (): {
   createLinks: BlockProtocolCreateLinksFunction;
   createLinksLoading: boolean;
   createLinksError: any;

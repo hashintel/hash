@@ -8,7 +8,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 
-export const useBlockProtocolCreateEntityTypes = (): {
+export const useBlockProtocolCreateEntityType = (): {
   createEntityTypes: BlockProtocolCreateEntityTypesFunction;
   createEntityTypesLoading: boolean;
   createEntityTypesError: any;
