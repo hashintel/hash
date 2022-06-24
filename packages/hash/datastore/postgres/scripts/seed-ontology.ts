@@ -58,6 +58,68 @@ const createEntityType = async (
 `);
 };
 
+const entityTypeAddPropertyType = async (
+  client: DBClient,
+  params: {
+    sourceEntityTypeUri: string;
+    propertyTypeUri: string;
+    required: boolean;
+    array: boolean;
+    minItems?: number | null;
+    maxItems?: number | null;
+  },
+) => {
+  await client.query(sql`
+  insert into entity_type_property_types (
+    source_entity_type_uri, property_type_uri, required, array, min_items, max_items
+  )
+  values (
+    ${params.sourceEntityTypeUri},
+    ${params.propertyTypeUri},
+    ${params.required},
+    ${params.array},
+    ${params.minItems ?? null},
+    ${params.maxItems ?? null}
+  )
+`);
+};
+
+const propertyTypeAddPropertyType = async (
+  client: DBClient,
+  params: {
+    propertyTypeUri: string;
+    referencePropertyTypeUri: string;
+  },
+) => {
+  await client.query(sql`
+  insert into property_type_property_type_references (
+    property_type_uri, referenced_property_type_uri
+  )
+  values (
+    ${params.propertyTypeUri},
+    ${params.referencePropertyTypeUri}
+  )
+`);
+};
+
+const propertyTypeAddDataType = async (
+  client: DBClient,
+  params: {
+    propertyTypeUri: string;
+    referenceDataTypeUri: string;
+  },
+) => {
+  await client.query(sql`
+  insert into property_type_data_type_references (
+    property_type_uri, referenced_data_type_uri
+  )
+  values (
+    ${params.propertyTypeUri},
+    ${params.referenceDataTypeUri}
+  )
+`);
+};
+
 const createEntity = async (
   client: DBClient,
   params: {
@@ -67,7 +129,7 @@ const createEntity = async (
   },
 ) => {
   await client.query(sql`
-  insert into entity_types (
+  insert into entities (
     entity_id, entity_type_uri, properties
   )
   values (
