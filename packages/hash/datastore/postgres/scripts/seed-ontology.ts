@@ -4,38 +4,79 @@ import { createPool, DatabasePoolConnectionType, sql } from "slonik";
 
 type DBClient = DatabasePoolConnectionType;
 
-const createDataType = (
+const createDataType = async (
   client: DBClient,
   params: {
     dataTypeUri: string;
     schema: any;
   },
-) => {};
+) => {
+  await client.query(sql`
+  insert into data_types (
+    data_type_uri, schema
+  )
+  values (
+    ${params.dataTypeUri},
+    '${params.schema}'
+  )
+`);
+};
 
-const createPropertyType = (
+const createPropertyType = async (
   client: DBClient,
   params: {
     propertyTypeUri: string;
     schema: any;
   },
-) => {};
+) => {
+  await client.query(sql`
+  insert into property_types (
+    property_type_uri, schema
+  )
+  values (
+    ${params.propertyTypeUri},
+    '${params.schema}'
+  )
+`);
+};
 
-const createEntityType = (
+const createEntityType = async (
   client: DBClient,
   params: {
     entityTypeUri: string;
     schema: any;
   },
-) => {};
+) => {
+  await client.query(sql`
+  insert into entity_types (
+    entity_type_uri, schema
+  )
+  values (
+    ${params.entityTypeUri},
+    '${params.schema}'
+  )
+`);
+};
 
-const createEntity = (
+const createEntity = async (
   client: DBClient,
   params: {
-    entity_id: string;
-    entity_type_uri: string;
+    entityId: string;
+    entityTypeUri: string;
     properties: any;
   },
-) => {};
+) => {
+  await client.query(sql`
+  insert into entity_types (
+    entity_id, entity_type_uri, properties
+  )
+  values (
+    ${params.entityId},
+    ${params.entityTypeUri},
+    '${params.properties}'
+  )
+`);
+};
 
 const main = async () => {
   const host = getRequiredEnv("HASH_PG_HOST");
