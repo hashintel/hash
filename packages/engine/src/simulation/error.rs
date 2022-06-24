@@ -1,5 +1,6 @@
 use stateful::agent::Agent;
 use thiserror::Error as ThisError;
+use tokio::sync::mpsc::error::SendError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -92,5 +93,14 @@ impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>> for
 impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>> for Error {
     fn from(_: std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>) -> Self {
         Error::RwLock("RwLock write error for simulation".into())
+    }
+}
+
+impl<T> From<SendError<T>> for Error
+where
+    T: std::fmt::Debug,
+{
+    fn from(e: SendError<T>) -> Self {
+        Error::Unique(format!("Tokio Send Error: {:?}", e))
     }
 }

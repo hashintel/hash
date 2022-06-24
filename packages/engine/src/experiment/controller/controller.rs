@@ -22,17 +22,17 @@ use crate::{
     experiment::{
         apply_globals_changes,
         controller::{
-            comms::{
-                sim_status::{SimStatusRecv, SimStatusSend},
-                simulation::SimCtlSend,
-            },
             error::{Error, Result},
             sim_configurer::SimConfigurer,
         },
     },
     proto::{EngineMsg, EngineStatus},
     simulation::{
-        comms::Comms,
+        comms::{
+            control::SimCtlSend,
+            status::{SimStatusRecv, SimStatusSend},
+            Comms,
+        },
         controller::{Packages, SimControl, SimulationController, SimulationRuns},
         status::SimStatus,
         Error as SimulationError,

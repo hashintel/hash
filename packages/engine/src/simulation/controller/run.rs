@@ -8,19 +8,16 @@ use experiment_structure::SimulationRunConfig;
 use futures::FutureExt;
 use tokio::time::Duration;
 
-use crate::{
-    experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
-    simulation::{
-        agent_control::AgentControl,
-        comms::Comms,
-        controller::{
-            error::{Error, Result},
-            sim_control::SimControl,
-            Packages,
-        },
-        engine::Engine,
-        status::SimStatus,
+use crate::simulation::{
+    agent_control::AgentControl,
+    comms::{control::SimCtlRecv, status::SimStatusSend, Comms},
+    controller::{
+        error::{Error, Result},
+        sim_control::SimControl,
+        Packages,
     },
+    engine::Engine,
+    status::SimStatus,
 };
 
 enum LoopControl {

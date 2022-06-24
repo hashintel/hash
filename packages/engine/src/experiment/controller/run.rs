@@ -28,6 +28,7 @@ use crate::{
         error::{Error as ExperimentError, Result as ExperimentResult},
     },
     proto::EngineStatus,
+    simulation::comms,
 };
 
 #[tracing::instrument(skip_all, fields(experiment_id = %exp_config.experiment_run.id()))]
@@ -146,7 +147,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreator>(
         &exp_config.packages,
         &exp_config.experiment_run.simulation().package_init,
     )?;
-    let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
+    let (sim_status_send, sim_status_recv) = comms::status::new_pair();
     let mut orch_client = env.orch_client.try_clone()?;
     let (mut experiment_controller_terminate_send, experiment_controller_terminate_recv) =
         worker_pool::comms::terminate::new_pair();

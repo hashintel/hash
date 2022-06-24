@@ -19,6 +19,9 @@ inbound completion messages from multiple workers and combine them into one such
 main package definition can be agnostic of how work was distributed.
  */
 
+pub mod control;
+pub mod status;
+
 use std::sync::{Arc, RwLock};
 
 use execution::{

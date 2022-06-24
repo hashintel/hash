@@ -1,4 +1,3 @@
-pub mod comms;
 pub mod config;
 pub mod controller;
 mod error;

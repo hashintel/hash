@@ -1,5 +1,4 @@
 use thiserror::Error as ThisError;
-use tokio::sync::mpsc::error::SendError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -42,14 +41,5 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
-    }
-}
-
-impl<T> From<SendError<T>> for Error
-where
-    T: std::fmt::Debug,
-{
-    fn from(e: SendError<T>) -> Self {
-        Error::Unique(format!("Tokio Send Error: {:?}", e))
     }
 }

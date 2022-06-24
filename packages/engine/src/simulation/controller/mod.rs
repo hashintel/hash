@@ -19,12 +19,13 @@ pub use self::{
     runs::SimulationRuns,
     sim_control::SimControl,
 };
-use crate::{
-    experiment::controller::comms::{
-        sim_status::SimStatusSend,
-        simulation::{new_pair, SimCtlRecv, SimCtlSend},
+use crate::simulation::{
+    comms,
+    comms::{
+        control::{SimCtlRecv, SimCtlSend},
+        status::SimStatusSend,
+        Comms,
     },
-    simulation::comms::Comms,
 };
 
 pub struct SimulationController {
@@ -40,7 +41,7 @@ impl SimulationController {
         persistence_service: P,
         status_sender: SimStatusSend,
     ) -> Result<SimulationController> {
-        let (ctl_sender, ctl_receiver) = new_pair();
+        let (ctl_sender, ctl_receiver) = comms::control::new_pair();
 
         let task_handle = new_task_handle(
             config,
