@@ -106,6 +106,76 @@ export const propertyTypes = [
     ["https://blockprotocol.org/types/@blockprotocol/data-type/text"],
     [],
   ],
+  [
+    {
+      kind: "propertyType",
+      $id: "https://blockprotocol.org/types/@alice/property-type/tag",
+      name: "Favorite Quote",
+      oneOf: [
+        {
+          $ref: "https://blockprotocol.org/types/@blockprotocol/data-type/text",
+        },
+      ],
+    },
+    ["https://blockprotocol.org/types/@blockprotocol/data-type/text"],
+    [],
+  ],
+  [
+    {
+      kind: "propertyType",
+      $id: "https://blockprotocol.org/types/@alice/property-type/price",
+      name: "Favorite Quote",
+      oneOf: [
+        {
+          $ref: "https://blockprotocol.org/types/@blockprotocol/data-type/number",
+        },
+      ],
+    },
+    ["https://blockprotocol.org/types/@blockprotocol/data-type/number"],
+    [],
+  ],
+  [
+    {
+      kind: "propertyType",
+      $id: "https://blockprotocol.org/types/@alice/property-type/popular",
+      name: "Favorite Quote",
+      oneOf: [
+        {
+          $ref: "https://blockprotocol.org/types/@blockprotocol/data-type/boolean",
+        },
+      ],
+    },
+    ["https://blockprotocol.org/types/@blockprotocol/data-type/boolean"],
+    [],
+  ],
+  [
+    {
+      kind: "propertyType",
+      $id: "https://blockprotocol.org/types/@alice/property-type/text",
+      name: "Favorite Quote",
+      oneOf: [
+        {
+          $ref: "https://blockprotocol.org/types/@blockprotocol/data-type/text",
+        },
+      ],
+    },
+    ["https://blockprotocol.org/types/@blockprotocol/data-type/text"],
+    [],
+  ],
+  [
+    {
+      kind: "propertyType",
+      $id: "https://blockprotocol.org/types/@alice/property-type/written-by",
+      name: "Favorite Quote",
+      oneOf: [
+        {
+          $ref: "https://blockprotocol.org/types/@blockprotocol/data-type/text",
+        },
+      ],
+    },
+    ["https://blockprotocol.org/types/@blockprotocol/data-type/text"],
+    [],
+  ],
 ] as const;
 
 export const entityTypes = [
@@ -125,6 +195,9 @@ export const entityTypes = [
         "https://blockprotocol.org/types/@alice/property-type/blurb": {
           $ref: "https://blockprotocol.org/types/@alice/property-type/blurb",
         },
+        "https://blockprotocol.org/types/@alice/property-type/written-by": {
+          $ref: "https://blockprotocol.org/types/@alice/property-type/written-by",
+        },
       },
       required: ["https://blockprotocol.org/types/@alice/property-type/name"],
     },
@@ -132,6 +205,82 @@ export const entityTypes = [
       "https://blockprotocol.org/types/@alice/property-type/name",
       "https://blockprotocol.org/types/@alice/property-type/published-on",
       "https://blockprotocol.org/types/@alice/property-type/blurb",
+    ],
+  ],
+  [
+    {
+      kind: "entityType",
+      $id: "https://blockprotocol.org/types/@alice/entity-type/product",
+      type: "object",
+      name: "Product",
+      properties: {
+        "https://blockprotocol.org/types/@alice/property-type/name": {
+          $ref: "https://blockprotocol.org/types/@alice/property-type/name",
+        },
+        "https://blockprotocol.org/types/@alice/property-type/price": {
+          $ref: "https://blockprotocol.org/types/@alice/property-type/price",
+        },
+
+        "https://blockprotocol.org/types/@alice/property-type/tag": {
+          type: "array",
+          items: {
+            $ref: "https://blockprotocol.org/types/@alice/property-type/tag",
+          },
+          minItems: 1,
+          maxItems: 5,
+        },
+      },
+      required: ["https://blockprotocol.org/types/@alice/property-type/tag"],
+    },
+    [
+      "https://blockprotocol.org/types/@alice/property-type/name",
+      "https://blockprotocol.org/types/@alice/property-type/price",
+
+      {
+        dep: "https://blockprotocol.org/types/@alice/property-type/tag",
+        minItems: 1,
+        maxItems: 5,
+      },
+    ],
+  ],
+  [
+    {
+      kind: "entityType",
+      $id: "https://blockprotocol.org/types/@alice/entity-type/Song",
+      type: "object",
+      name: "Song",
+      properties: {
+        "https://blockprotocol.org/types/@alice/property-type/name": {
+          $ref: "https://blockprotocol.org/types/@alice/property-type/name",
+        },
+        "https://blockprotocol.org/types/@alice/property-type/popular": {
+          $ref: "https://blockprotocol.org/types/@alice/property-type/popular",
+        },
+      },
+    },
+    [
+      "https://blockprotocol.org/types/@alice/property-type/name",
+      "https://blockprotocol.org/types/@alice/property-type/popular",
+    ],
+  ],
+  [
+    {
+      kind: "entityType",
+      $id: "https://blockprotocol.org/types/@alice/entity-type/page",
+      type: "object",
+      name: "Page",
+      properties: {
+        "https://blockprotocol.org/types/@alice/property-type/text": {
+          $ref: "https://blockprotocol.org/types/@alice/property-type/text",
+        },
+        "https://blockprotocol.org/types/@alice/property-type/written-by": {
+          $ref: "https://blockprotocol.org/types/@alice/property-type/written-by",
+        },
+      },
+    },
+    [
+      "https://blockprotocol.org/types/@alice/property-type/text",
+      "https://blockprotocol.org/types/@alice/property-type/written-by",
     ],
   ],
 ] as const;

@@ -179,6 +179,9 @@ const entityTypeAddPropertyType = async (
 type EntityTypePropertyTypeRow = {
   source_entity_type_uri: string;
   property_type_uri: string;
+  array: boolean;
+  min_items: number;
+  max_items: number;
 };
 
 const readEntityTypeReferences = async (client: DBClient) => {
@@ -275,12 +278,21 @@ const main = async () => {
 
         await Promise.all(
           dependentPT.map((propertyTypeUri) =>
-            entityTypeAddPropertyType(client, {
-              sourceEntityTypeUri: entityType.$id,
-              propertyTypeUri,
-              array: false,
-              required: false,
-            }),
+            typeof propertyTypeUri === "string"
+              ? entityTypeAddPropertyType(client, {
+                  sourceEntityTypeUri: entityType.$id,
+                  propertyTypeUri,
+                  array: false,
+                  required: false,
+                })
+              : entityTypeAddPropertyType(client, {
+                  sourceEntityTypeUri: entityType.$id,
+                  propertyTypeUri: propertyTypeUri.dep,
+                  array: true,
+                  required: false,
+                  maxItems: propertyTypeUri.maxItems,
+                  minItems: propertyTypeUri.minItems,
+                }),
           ),
         );
       }
@@ -306,12 +318,10 @@ const printGraph = async (client: DatabaseTransactionConnection) => {
   const ets = await readEntityTypes(client);
   ets.map((row) => console.info(row.entity_type_uri));
 
-  console.info(
-    "-- Digraph, paste into https://dreampuf.github.io/GraphvizOnline/ --",
-  );
+  console.info("-- Graphviz DOT graph --");
 
   // Close your eyes here. It's ugly, but it works.
-  let graph = "digraph G {";
+  let graph = 'digraph G {rankdir="LR";';
   graph += "subgraph dts {rank=same;node [style=filled,color=lightyellow];";
   dts.map(({ data_type_uri }) => {
     graph += lastPartStringified(data_type_uri) + ";";
@@ -339,16 +349,16 @@ const printGraph = async (client: DatabaseTransactionConnection) => {
   });
 
   const etRefs = await readEntityTypeReferences(client);
-  etRefs.map(({ source_entity_type_uri, property_type_uri }) => {
+  etRefs.map(({ source_entity_type_uri, property_type_uri, array }) => {
     let from = lastPartStringified(source_entity_type_uri);
     let to = lastPartStringified(property_type_uri);
 
-    graph += from + "->" + to + ";";
+    graph += from + "->" + to + (array ? ` [color="black:invis:black"];` : ";");
   });
 
   graph += "}";
 
-  console.log(graph);
+  console.log("https://dreampuf.github.io/GraphvizOnline/#" + encodeURI(graph));
 };
 
 void (async () => {
