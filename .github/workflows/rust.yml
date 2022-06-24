@@ -262,8 +262,6 @@ jobs:
         toolchain:
           - stable
           - ${{ needs.setup.outputs.nightly }}
-        tests:
-          - integration
         flags:
           - --release
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
@@ -273,6 +271,9 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
+
+      - name: Remove default members
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
         id: toolchain
@@ -314,7 +315,7 @@ jobs:
           lib/execution/src/runner/python/setup.sh python3.7
 
       - name: Run tests
-        run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
 
       - name: Upload to DataDog
         if: always()
