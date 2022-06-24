@@ -19,7 +19,7 @@ impl StatePackageCreators {
     pub fn initialize_for_experiment_run(config: &PackageInitConfig) -> Result<&'static Self> {
         static PACKAGE_CREATORS: SyncOnceCell<StatePackageCreators> = SyncOnceCell::new();
         PACKAGE_CREATORS.get_or_try_init(|| {
-            tracing::debug!("Stateializing State Package Creators");
+            tracing::debug!("Initializing State Package Creators");
             let mut creators = HashMap::<_, Box<dyn StatePackageCreator>>::with_capacity(2);
             creators.insert(
                 StatePackageName::BehaviorExecution,

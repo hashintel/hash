@@ -19,7 +19,7 @@ impl OutputPackageCreators {
     pub fn initialize_for_experiment_run(_config: &PackageInitConfig) -> Result<&'static Self> {
         static PACKAGE_CREATORS: SyncOnceCell<OutputPackageCreators> = SyncOnceCell::new();
         PACKAGE_CREATORS.get_or_try_init(|| {
-            tracing::debug!("Outputializing Output Package Creators");
+            tracing::debug!("Initializing Output Package Creators");
             let mut creators = HashMap::<_, Box<dyn OutputPackageCreator>>::with_capacity(2);
             creators.insert(OutputPackageName::Analysis, Box::new(AnalysisCreator));
             creators.insert(OutputPackageName::JsonState, Box::new(JsonStateCreator));

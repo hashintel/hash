@@ -19,7 +19,7 @@ impl ContextPackageCreators {
     pub fn initialize_for_experiment_run(_config: &PackageInitConfig) -> Result<&'static Self> {
         static PACKAGE_CREATORS: SyncOnceCell<ContextPackageCreators> = SyncOnceCell::new();
         PACKAGE_CREATORS.get_or_try_init(|| {
-            tracing::debug!("Contextializing Context Package Creators");
+            tracing::debug!("Initializing Context Package Creators");
             let mut creators = HashMap::<_, Box<dyn ContextPackageCreator>>::with_capacity(3);
             creators.insert(
                 ContextPackageName::AgentMessages,
