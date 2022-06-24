@@ -20,6 +20,7 @@
     "node-postgres": "0.6.2",
     "pg": "8.7.1",
     "prompts": "2.4.1",
+    "slonik": "28.1.1",
     "ts-node": "10.4.0",
     "yargs": "17.1.1"
   },
