@@ -6,8 +6,9 @@ use execution::{
     },
 };
 use serde::{Deserialize, Serialize};
-use simulation_control::SimStatus;
 use stateful::global::Globals;
+
+use crate::SimStatus;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum EngineStatus {

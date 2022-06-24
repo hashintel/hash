@@ -21,19 +21,16 @@ use simulation_control::{
         Comms,
     },
     controller::{Packages, SimControl, SimulationController, SimulationRuns},
-    SimStatus,
+    EngineStatus, SimStatus,
 };
 use stateful::global::{Globals, SharedStore};
 use tracing::{Instrument, Span};
 
-use crate::{
-    experiment::{
-        comms::{EngineMsg, OrchClient},
-        controller::sim_configurer::SimConfigurer,
-        environment::{self, Environment},
-        Error, Result,
-    },
-    proto::EngineStatus,
+use crate::experiment::{
+    comms::{EngineMsg, OrchClient},
+    controller::sim_configurer::SimConfigurer,
+    environment::{self, Environment},
+    Error, Result,
 };
 
 pub struct ExperimentController<P: OutputPersistenceCreator> {

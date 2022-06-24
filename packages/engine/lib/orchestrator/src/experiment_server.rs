@@ -4,7 +4,8 @@ use std::{collections::HashMap, fmt::Display};
 
 use error_stack::{bail, report, IntoReport, ResultExt};
 use execution::package::experiment::ExperimentId;
-use hash_engine_lib::{experiment::comms::OrchestratorMsg, proto, proto::EngineStatus};
+use hash_engine_lib::experiment::comms::OrchestratorMsg;
+use simulation_control::EngineStatus;
 use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};
 
 use crate::{OrchestratorError, Result};
@@ -12,8 +13,8 @@ use crate::{OrchestratorError, Result};
 type ResultSender = oneshot::Sender<Result<()>>;
 type CloseReceiver = mpsc::UnboundedReceiver<ExperimentId>;
 type CloseSender = mpsc::UnboundedSender<ExperimentId>;
-type MsgSender = mpsc::UnboundedSender<proto::EngineStatus>;
-type MsgReceiver = mpsc::UnboundedReceiver<proto::EngineStatus>;
+type MsgSender = mpsc::UnboundedSender<EngineStatus>;
+type MsgReceiver = mpsc::UnboundedReceiver<EngineStatus>;
 type CtrlSender = mpsc::Sender<(Ctrl, ResultSender)>;
 type CtrlReceiver = mpsc::Receiver<(Ctrl, ResultSender)>;
 
@@ -45,7 +46,7 @@ impl Handle {
     /// # Panics
     ///
     /// - if the sender was dropped
-    pub async fn recv(&mut self) -> proto::EngineStatus {
+    pub async fn recv(&mut self) -> EngineStatus {
         self.msg_rx
             .recv()
             .await

@@ -13,22 +13,19 @@ use execution::{
 };
 use experiment_structure::{ExperimentConfig, PackageCreators};
 use memory::shared_memory;
-use simulation_control::comms;
+use simulation_control::{comms, EngineStatus};
 use stateful::global::SharedStore;
 use tracing::Instrument;
 
-use crate::{
-    experiment::{
-        controller::{
-            config::{self, OutputPersistenceConfig},
-            controller::ExperimentController,
-            sim_configurer::SimConfigurer,
-        },
-        environment::Environment,
-        error::{Error as ExperimentError, Result as ExperimentResult},
-        Error, Result,
+use crate::experiment::{
+    controller::{
+        config::{self, OutputPersistenceConfig},
+        controller::ExperimentController,
+        sim_configurer::SimConfigurer,
     },
-    proto::EngineStatus,
+    environment::Environment,
+    error::{Error as ExperimentError, Result as ExperimentResult},
+    Error, Result,
 };
 
 #[tracing::instrument(skip_all, fields(experiment_id = %exp_config.experiment_run.id()))]

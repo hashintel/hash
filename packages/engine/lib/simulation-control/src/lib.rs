@@ -6,6 +6,7 @@ pub mod controller;
 
 mod agent_control;
 mod engine;
+mod engine_status;
 mod error;
 mod status;
 mod step_result;
@@ -14,6 +15,7 @@ mod step_result;
 mod tests;
 
 pub use self::{
+    engine_status::EngineStatus,
     error::{Error, Result},
     status::SimStatus,
 };

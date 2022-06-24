@@ -9,16 +9,13 @@ use execution::package::{
     experiment::ExperimentId, simulation::output::persistence::local::LocalPersistenceConfig,
 };
 use experiment_structure::ExperimentRun;
-use hash_engine_lib::{
-    experiment::{
-        comms::{EngineMsg, InitMessage},
-        controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
-        environment::{ExecutionEnvironment, LogFormat, LogLevel, OutputLocation},
-    },
-    proto::EngineStatus,
+use hash_engine_lib::experiment::{
+    comms::{EngineMsg, InitMessage},
+    controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
+    environment::{ExecutionEnvironment, LogFormat, LogLevel, OutputLocation},
 };
 use serde_json::json;
-use simulation_control::command::StopStatus;
+use simulation_control::{command::StopStatus, EngineStatus};
 use tokio::time::{sleep, timeout};
 
 use crate::{experiment_server::Handler, process, OrchestratorError, Result};

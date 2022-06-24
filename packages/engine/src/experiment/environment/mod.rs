@@ -5,18 +5,16 @@ mod logging;
 use std::time::Duration;
 
 use experiment_structure::ExperimentRun;
+use simulation_control::EngineStatus;
 
 pub use self::{
     args::Args,
     execution::ExecutionEnvironment,
     logging::{init_logger, texray::examine, LogFormat, LogLevel, OutputLocation},
 };
-use crate::{
-    experiment::{
-        comms::{EngineMsg, InitMessage, OrchClient},
-        Error, Result,
-    },
-    proto::EngineStatus,
+use crate::experiment::{
+    comms::{EngineMsg, InitMessage, OrchClient},
+    Error, Result,
 };
 
 const INIT_MSG_RECV_TIMEOUT: Duration = Duration::from_secs(60);

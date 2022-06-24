@@ -35,4 +35,3 @@
 )]
 
 pub mod experiment;
-pub mod proto;
