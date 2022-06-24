@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::{AppSettings, Parser};
 use execution::package::experiment::ExperimentId;
 
-use crate::utils::{LogFormat, LogLevel, OutputLocation};
+use crate::experiment::environment::{LogFormat, LogLevel, OutputLocation};
 
 /// Arguments passed to hEngine
 #[derive(Debug, Parser)]
@@ -80,6 +80,8 @@ pub struct Args {
     pub js_runner_max_heap_size: Option<usize>,
 }
 
-pub fn args() -> Args {
-    Args::parse()
+impl Args {
+    pub fn parse() -> Self {
+        <Args as Parser>::parse()
+    }
 }

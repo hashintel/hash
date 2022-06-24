@@ -30,10 +30,10 @@ use crate::{
     experiment::{
         comms::{EngineMsg, OrchClient},
         controller::sim_configurer::SimConfigurer,
-        Environment, Error, Result,
+        environment::{self, Environment},
+        Error, Result,
     },
     proto::EngineStatus,
-    utils,
 };
 
 pub struct ExperimentController<P: OutputPersistenceCreator> {
@@ -70,7 +70,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
                 changed_globals,
                 max_num_steps,
             } => {
-                let sim_span = utils::texray::examine(tracing::info_span!(
+                let sim_span = environment::examine(tracing::info_span!(
                     parent: span_id,
                     "sim",
                     id = &sim_id.as_u32()

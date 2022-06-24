@@ -24,8 +24,9 @@ use crate::{
             controller::ExperimentController,
             sim_configurer::SimConfigurer,
         },
+        environment::Environment,
         error::{Error as ExperimentError, Result as ExperimentResult},
-        Environment, Error, Result,
+        Error, Result,
     },
     proto::EngineStatus,
 };

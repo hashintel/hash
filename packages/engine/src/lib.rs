@@ -34,9 +34,5 @@
     clippy::mutex_atomic
 )]
 
-mod args;
 pub mod experiment;
 pub mod proto;
-pub mod utils;
-
-pub use self::args::{args, Args};

@@ -13,10 +13,9 @@ use hash_engine_lib::{
     experiment::{
         comms::{EngineMsg, InitMessage},
         controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
-        ExecutionEnvironment,
+        environment::{ExecutionEnvironment, LogFormat, LogLevel, OutputLocation},
     },
     proto::EngineStatus,
-    utils::{LogFormat, LogLevel, OutputLocation},
 };
 use serde_json::json;
 use simulation_control::command::StopStatus;

@@ -3,13 +3,9 @@ use std::{error::Error, fmt, sync::Arc};
 use error_stack::{IntoReport, Result, ResultExt};
 use execution::runner::RunnerConfig;
 use experiment_structure::{ExperimentConfig, FetchDependencies};
-use hash_engine_lib::{
-    experiment::{
-        controller::run::{cleanup_experiment, run_experiment},
-        Environment,
-    },
-    utils::init_logger,
-    Args,
+use hash_engine_lib::experiment::{
+    controller::run::{cleanup_experiment, run_experiment},
+    environment::{init_logger, Args, Environment},
 };
 
 #[derive(Debug)]
@@ -39,7 +35,7 @@ pub fn experiment_config(args: &Args, env: &Environment) -> Result<ExperimentCon
 
 #[tokio::main]
 async fn main() -> Result<(), EngineError> {
-    let args = hash_engine_lib::args();
+    let args = Args::parse();
     let _guard = init_logger(
         args.log_format,
         &args.output,

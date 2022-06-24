@@ -1,15 +1,22 @@
+mod args;
+mod execution;
+mod logging;
+
 use std::time::Duration;
 
 use experiment_structure::ExperimentRun;
-use serde::{Deserialize, Serialize};
 
+pub use self::{
+    args::Args,
+    execution::ExecutionEnvironment,
+    logging::{init_logger, texray::examine, LogFormat, LogLevel, OutputLocation},
+};
 use crate::{
     experiment::{
         comms::{EngineMsg, InitMessage, OrchClient},
         Error, Result,
     },
     proto::EngineStatus,
-    Args,
 };
 
 const INIT_MSG_RECV_TIMEOUT: Duration = Duration::from_secs(60);
@@ -62,19 +69,5 @@ impl Environment {
         match msg {
             EngineMsg::Init(init) => Ok(init),
         }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ExecutionEnvironment {
-    Local { port: u16 },
-    Staging,
-    Production,
-    None,
-}
-
-impl Default for ExecutionEnvironment {
-    fn default() -> Self {
-        ExecutionEnvironment::None
     }
 }

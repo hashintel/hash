@@ -146,7 +146,7 @@ impl OutputLocation {
     }
 }
 
-pub enum OutputFileGuard {
+enum OutputFileGuard {
     None,
     File(WorkerGuard),
 }
@@ -179,7 +179,7 @@ impl Default for LogFormat {
 }
 
 /// Guard for file logging, which should not be dropped until every log entry has been written.
-pub struct LogGuard {
+struct LogGuard {
     _output_guard: OutputFileGuard,
     _json_file_guard: WorkerGuard,
     #[cfg(feature = "texray")]
