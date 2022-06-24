@@ -11,13 +11,13 @@ use stateful::{
 
 use crate::{
     datastore::{
-        batch::migration::{BufferActions, IndexRange, RangeActions},
         error::Result,
         table::create_remove::{
             action::{CreateActions, ExistingGroupBufferActions},
             batch::PendingBatch,
             command::ProcessedCommands,
             distribution::BatchDistribution,
+            migration::{BufferActions, IndexRange, RangeActions},
             MigrationPlan,
         },
     },
