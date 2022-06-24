@@ -11,6 +11,7 @@
 pub mod js_py;
 pub mod json;
 
+mod creator;
 mod message;
 mod name;
 mod state;
@@ -20,6 +21,7 @@ use async_trait::async_trait;
 use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
 pub use self::{
+    creator::InitPackageCreators,
     message::InitTaskMessage,
     name::InitPackageName,
     state::{InitialState, InitialStateName},

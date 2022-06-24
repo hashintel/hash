@@ -1,22 +1,19 @@
-pub mod context;
-pub mod init;
-pub mod output;
-pub mod state;
-
-pub mod creator;
 pub mod run;
 
 #[cfg(test)]
 pub mod tests {
     use execution::{
         package::simulation::{
-            init::{InitialState, InitialStateName},
+            context::ContextPackageCreators,
+            init::{InitPackageCreators, InitialState, InitialStateName},
+            output::OutputPackageCreators,
+            state::StatePackageCreators,
             PackageInitConfig, PackageName,
         },
         Error, Result,
     };
 
-    use super::{context, init, output, state};
+    use crate::simulation::comms::Comms;
 
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {
         let cycle_found = parents.contains(&src_dep);
@@ -37,9 +34,8 @@ pub mod tests {
     }
 
     macro_rules! validate {
-        ($module:ident, $config:expr, $pkg_name:expr) => {
-            $module::PACKAGE_CREATORS.initialize_for_experiment_run($config)?;
-            for (name, _creator) in $module::PACKAGE_CREATORS.iter_checked()? {
+        ($creators:expr, $pkg_name:expr) => {
+            for (name, _creator) in $creators.iter() {
                 validate(vec![], $pkg_name(name.clone()))?;
             }
         };
@@ -55,10 +51,23 @@ pub mod tests {
             behaviors: vec![],
             packages: vec![],
         };
-        validate!(context, &init_config, PackageName::Context);
-        validate!(init, &init_config, PackageName::Init);
-        validate!(state, &init_config, PackageName::State);
-        validate!(output, &init_config, PackageName::Output);
+
+        validate!(
+            ContextPackageCreators::<Comms>::from_config(&init_config)?,
+            PackageName::Context
+        );
+        validate!(
+            InitPackageCreators::<Comms>::from_config(&init_config)?,
+            PackageName::Init
+        );
+        validate!(
+            StatePackageCreators::<Comms>::from_config(&init_config)?,
+            PackageName::State
+        );
+        validate!(
+            OutputPackageCreators::<Comms>::from_config(&init_config)?,
+            PackageName::Output
+        );
         Ok(())
     }
 }

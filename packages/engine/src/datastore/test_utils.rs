@@ -7,7 +7,10 @@ use execution::{
             ExperimentPackageConfig,
         },
         simulation::{
-            init::{InitialState, InitialStateName},
+            context::ContextPackageCreators,
+            init::{InitPackageCreators, InitialState, InitialStateName},
+            output::OutputPackageCreators,
+            state::StatePackageCreators,
             PackageInitConfig, SimulationId,
         },
     },
@@ -16,7 +19,8 @@ use execution::{
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use simulation_structure::{
-    Experiment, ExperimentConfig, ExperimentRun, PackageConfig, Simulation,
+    Experiment, ExperimentConfig, ExperimentRun, PackageConfig, PackageConfigBuilder,
+    PackageCreators, Simulation,
 };
 use stateful::{
     agent::{Agent, AgentId, AgentSchema, AgentStateField},
@@ -29,14 +33,13 @@ use stateful::{
 
 use crate::{
     config::{SchemaConfig, SimulationRunConfig},
-    datastore::{error::Error, schema::last_state_index_key},
-    simulation::package::creator::{get_base_agent_fields, PackageCreators},
+    datastore::error::Error,
 };
 
 fn test_field_specs() -> FieldSpecMap {
     let mut map = FieldSpecMap::default();
     map.try_extend([RootFieldSpec {
-        inner: last_state_index_key(),
+        inner: FieldSpec::last_state_index_key(),
         source: FieldSource::Engine,
         scope: FieldScope::Hidden,
     }])
@@ -267,9 +270,27 @@ pub fn dummy_sim_run_config() -> SimulationRunConfig {
 
     let globals = Globals::default();
 
-    // We can't use `PackageCreators::from_config` as it will initialise the global static
-    // `SyncOnceCell`s multiple times (thus erroring) if we run multiple tests at once
-    let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    let package_config = PackageConfigBuilder::default()
+        .set_init_packages([])
+        .set_context_packages([])
+        .set_state_packages([])
+        .set_output_packages([])
+        .build()
+        .unwrap();
+
+    let init_package_creators = InitPackageCreators::from_config(&package_init).unwrap();
+    let context_package_creators = ContextPackageCreators::from_config(&package_init).unwrap();
+    let state_package_creators = StatePackageCreators::from_config(&package_init).unwrap();
+    let output_package_creators = OutputPackageCreators::from_config(&package_init).unwrap();
+
+    let package_creators = PackageCreators::from_config(
+        &package_config,
+        &init_package_creators,
+        &context_package_creators,
+        &state_package_creators,
+        &output_package_creators,
+    )
+    .unwrap();
 
     let store_config = SchemaConfig::new(&package_init, &globals, &package_creators).unwrap();
 
@@ -333,7 +354,7 @@ pub fn gen_schema_and_test_agents(
         FieldScope::Agent,
     )])?;
     field_spec_map
-        .try_extend(get_base_agent_fields().map_err(|err| {
+        .try_extend(RootFieldSpec::base_agent_fields().map_err(|err| {
             Error::from(format!("Failed to add base agent field specs: {err}"))
         })?)?;
 

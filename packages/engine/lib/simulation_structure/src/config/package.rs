@@ -89,7 +89,7 @@ impl PackageConfigBuilder {
         mut self,
         init_packages: K,
     ) -> PackageConfigBuilder {
-        self.init = Some(Vec::from_iter(init_packages.into_iter().cloned()));
+        self.init = Some(init_packages.into_iter().copied().collect());
         self
     }
 
@@ -97,15 +97,15 @@ impl PackageConfigBuilder {
         mut self,
         context_packages: K,
     ) -> PackageConfigBuilder {
-        self.context = Some(Vec::from_iter(context_packages.into_iter().cloned()));
+        self.context = Some(context_packages.into_iter().copied().collect());
         self
     }
 
-    pub fn set_state_packages(
+    pub fn set_state_packages<'a, K: IntoIterator<Item = &'a StatePackageName>>(
         mut self,
-        state_packages: Vec<StatePackageName>,
+        state_packages: K,
     ) -> PackageConfigBuilder {
-        self.state = Some(state_packages);
+        self.state = Some(state_packages.into_iter().copied().collect());
         self
     }
 
@@ -113,7 +113,7 @@ impl PackageConfigBuilder {
         mut self,
         output_packages: K,
     ) -> PackageConfigBuilder {
-        self.output = Some(Vec::from_iter(output_packages.into_iter().cloned()));
+        self.output = Some(output_packages.into_iter().copied().collect());
         self
     }
 

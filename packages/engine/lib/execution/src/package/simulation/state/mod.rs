@@ -15,6 +15,7 @@
 pub mod behavior_execution;
 pub mod topology;
 
+mod creator;
 mod message;
 mod name;
 mod task;
@@ -23,7 +24,10 @@ use async_trait::async_trait;
 use stateful::{context::Context, field::FieldSpecMapAccessor, state::State};
 use tracing::Span;
 
-pub use self::{message::StateTaskMessage, name::StatePackageName, task::StateTask};
+pub use self::{
+    creator::StatePackageCreators, message::StateTaskMessage, name::StatePackageName,
+    task::StateTask,
+};
 use crate::{
     package::simulation::{
         Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,

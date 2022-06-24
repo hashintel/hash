@@ -16,6 +16,7 @@ pub mod json_state;
 pub mod persistence;
 
 mod buffers;
+mod creator;
 mod message;
 mod name;
 mod parts;
@@ -29,7 +30,8 @@ use tracing::Span;
 
 pub(crate) use self::parts::OutputPartBuffer;
 pub use self::{
-    buffers::OutputBuffers, message::OutputTaskMessage, name::OutputPackageName, task::OutputTask,
+    buffers::OutputBuffers, creator::OutputPackageCreators, message::OutputTaskMessage,
+    name::OutputPackageName, task::OutputTask,
 };
 use crate::{
     package::simulation::{
