@@ -2,9 +2,9 @@ use std::{collections::HashSet, ops::Deref};
 
 use stateful::{agent::AgentBatch, field::UUID_V4_LEN};
 
-use crate::datastore::{
-    error::Result,
-    table::create_remove::{AgentIndex, BatchIndex, WorkerIndex},
+use crate::simulation::command::{
+    create_remove::{AgentIndex, BatchIndex, WorkerIndex},
+    Result,
 };
 
 #[derive(Debug, Clone)]

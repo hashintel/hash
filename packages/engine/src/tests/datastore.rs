@@ -9,7 +9,7 @@ use stateful::{
     state::State,
 };
 
-use crate::datastore::Result;
+use crate::simulation::command::Result;
 #[allow(clippy::wildcard_imports)] // Desigend as test-prelude
 use crate::tests::test_utils::*;
 

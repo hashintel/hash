@@ -9,19 +9,16 @@ use stateful::{
     state::StateReadProxy,
 };
 
-use crate::{
-    datastore::{
-        error::Result,
-        table::create_remove::{
-            action::{CreateActions, ExistingGroupBufferActions},
-            batch::PendingBatch,
-            command::ProcessedCommands,
-            distribution::BatchDistribution,
-            migration::{BufferActions, IndexRange, RangeActions},
-            MigrationPlan,
-        },
+use crate::simulation::command::{
+    create_remove::{
+        action::{CreateActions, ExistingGroupBufferActions},
+        batch::PendingBatch,
+        command::ProcessedCommands,
+        distribution::BatchDistribution,
+        migration::{BufferActions, IndexRange, RangeActions},
+        MigrationPlan,
     },
-    simulation::command::CreateRemoveCommands,
+    CreateRemoveCommands, Result,
 };
 
 pub struct CreateRemovePlanner {

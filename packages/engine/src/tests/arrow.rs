@@ -14,7 +14,7 @@ use stateful::{
 };
 
 use crate::{
-    datastore::Result,
+    simulation::command::Result,
     tests::test_utils::{gen_schema_and_test_agents, root_field_spec_from_agent_field},
 };
 

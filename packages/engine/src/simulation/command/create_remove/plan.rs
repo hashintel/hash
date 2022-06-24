@@ -3,9 +3,9 @@ use memory::shared_memory::MemoryId;
 use rayon::prelude::*;
 use stateful::{proxy::BatchPool, state::StateBatchPools};
 
-use crate::datastore::{
-    error::{Error, Result},
-    table::create_remove::action::{CreateActions, ExistingGroupBufferActions},
+use crate::simulation::command::{
+    create_remove::action::{CreateActions, ExistingGroupBufferActions},
+    Error, Result,
 };
 
 #[derive(Debug)]

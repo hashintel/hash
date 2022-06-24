@@ -3,10 +3,7 @@ use std::{collections::HashSet, sync::Arc};
 use arrow::record_batch::RecordBatch;
 use stateful::{agent::AgentSchema, field::UUID_V4_LEN};
 
-use crate::{
-    datastore::error::{Error, Result},
-    simulation::command::CreateRemoveCommands,
-};
+use crate::simulation::command::{CreateRemoveCommands, Error, Result};
 
 #[derive(Debug, Default)]
 pub struct ProcessedCommands {

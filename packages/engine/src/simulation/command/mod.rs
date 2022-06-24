@@ -4,6 +4,9 @@
 //! * Dynamically request the deletion of agents
 //! * Dynamically request stopping of the simulation run
 
+mod create_remove;
+mod error;
+
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
@@ -19,9 +22,12 @@ use stateful::{
     proxy::PoolReadProxy,
 };
 
-use crate::{
-    datastore::table::create_remove::ProcessedCommands,
-    simulation::{Error, Result},
+pub use self::{
+    create_remove::{CreateRemovePlanner, MigrationPlan},
+    error::{Error, Result},
+};
+use crate::simulation::command::create_remove::{
+    CreateCommand, CreateRemoveCommands, ProcessedCommands, RemoveCommand,
 };
 
 /// Variations of the protected message-target that is associated with the engine. If an agent
@@ -39,16 +45,6 @@ enum HashMessageType {
     Remove,
     /// Stop the simulation
     Stop,
-}
-
-#[derive(Debug)]
-struct CreateCommand {
-    agent: Agent,
-}
-
-#[derive(Debug)]
-struct RemoveCommand {
-    agent_id: AgentId,
 }
 
 /// Status of the stop message that occurred.
@@ -88,13 +84,6 @@ pub struct StopCommand {
 pub struct StopMessage {
     pub status: StopStatus,
     pub reason: Option<String>,
-}
-
-/// Collection of queued commands for the creation and deletion of agents.
-#[derive(Debug, Default)]
-pub struct CreateRemoveCommands {
-    create: Vec<CreateCommand>,
-    remove: Vec<RemoveCommand>,
 }
 
 /// Commands queued by agents

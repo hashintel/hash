@@ -1,6 +1,6 @@
-use crate::datastore::{
-    error::{Error, Result},
-    table::create_remove::{batch::PendingBatch, WorkerIndex},
+use crate::simulation::command::{
+    create_remove::{batch::PendingBatch, WorkerIndex},
+    Error, Result,
 };
 
 /// Represents the distribution of agents per worker.

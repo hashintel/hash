@@ -35,7 +35,6 @@
 )]
 
 mod args;
-pub mod datastore;
 pub mod env;
 pub mod experiment;
 pub mod proto;

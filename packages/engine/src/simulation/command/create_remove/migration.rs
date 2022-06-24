@@ -12,7 +12,7 @@ use stateful::{
     message::{MessageBatch, MessageSchema},
 };
 
-use crate::datastore::error::{Error, Result};
+use crate::simulation::command::{Error, Result};
 
 type Offset = i32;
 

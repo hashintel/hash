@@ -1,4 +1,4 @@
-use crate::datastore::table::create_remove::migration::BufferActions;
+use crate::simulation::command::create_remove::migration::BufferActions;
 
 pub enum ExistingGroupBufferActions<'a> {
     Persist {

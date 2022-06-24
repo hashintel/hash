@@ -12,16 +12,13 @@ use stateful::{
 };
 use tracing::Instrument;
 
-use crate::{
-    datastore::table::create_remove::CreateRemovePlanner,
-    simulation::{
-        agent_control::AgentControl,
-        command::{Commands, StopCommand},
-        comms::Comms,
-        controller::Packages,
-        step_result::SimulationStepResult,
-        Error, Result,
-    },
+use crate::simulation::{
+    agent_control::AgentControl,
+    command::{Commands, CreateRemovePlanner, StopCommand},
+    comms::Comms,
+    controller::Packages,
+    step_result::SimulationStepResult,
+    Error, Result,
 };
 
 /// TODO: DOC

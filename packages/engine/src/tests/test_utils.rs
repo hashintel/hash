@@ -28,7 +28,7 @@ use stateful::{
     global::Globals,
 };
 
-use crate::datastore::Error;
+use crate::simulation::command::Error;
 
 fn test_field_specs() -> FieldSpecMap {
     let mut map = FieldSpecMap::default();
