@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Display};
 
 use error_stack::{bail, report, IntoReport, ResultExt};
 use execution::package::experiment::ExperimentId;
-use hash_engine_lib::{proto, proto::EngineStatus};
+use hash_engine_lib::{experiment::comms::OrchestratorMsg, proto, proto::EngineStatus};
 use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};
 
 use crate::{OrchestratorError, Result};
@@ -215,7 +215,7 @@ impl Server {
     /// # Errors
     ///
     /// - if the message could not be sent
-    fn dispatch_message(&self, msg: proto::OrchestratorMsg) -> Result<(), SendError<EngineStatus>> {
+    fn dispatch_message(&self, msg: OrchestratorMsg) -> Result<(), SendError<EngineStatus>> {
         match self.routes.get(&msg.experiment_id) {
             None => {
                 // Experiment not found. This can happen if the experiment runner
@@ -255,7 +255,7 @@ impl Server {
                         Err(e) => { let _ = log_error(e); }
                     }
                 },
-                r = socket.recv::<proto::OrchestratorMsg>() => match r {
+                r = socket.recv::<OrchestratorMsg>() => match r {
                     Err(e) => { let _ = log_error(e); },
                     Ok(msg) => {
                         let _ = self.dispatch_message(msg).map_err(log_error);

@@ -6,7 +6,7 @@ use std::process::ExitStatus;
 
 use async_trait::async_trait;
 use execution::package::experiment::ExperimentId;
-use hash_engine_lib::proto::EngineMsg;
+use hash_engine_lib::experiment::comms::EngineMsg;
 
 pub use self::local::{LocalCommand, LocalProcess};
 use crate::error::Result;

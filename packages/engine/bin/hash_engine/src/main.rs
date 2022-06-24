@@ -4,8 +4,10 @@ use error_stack::{IntoReport, Result, ResultExt};
 use execution::runner::RunnerConfig;
 use experiment_structure::{ExperimentConfig, FetchDependencies};
 use hash_engine_lib::{
-    env::{env, Environment},
-    experiment::controller::run::{cleanup_experiment, run_experiment},
+    experiment::{
+        controller::run::{cleanup_experiment, run_experiment},
+        Environment,
+    },
     utils::init_logger,
     Args,
 };
@@ -50,7 +52,7 @@ async fn main() -> Result<(), EngineError> {
     .attach_printable("Failed to initialize the logger")
     .change_context(EngineError)?;
 
-    let mut env = env(&args)
+    let mut env = Environment::new(&args)
         .await
         .report()
         .attach_printable("Could not create environment for experiment")

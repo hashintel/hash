@@ -23,19 +23,16 @@ use simulation_control::{
     controller::{Packages, SimControl, SimulationController, SimulationRuns},
     SimStatus,
 };
-use stateful::global::SharedStore;
+use stateful::global::{Globals, SharedStore};
 use tracing::{Instrument, Span};
 
 use crate::{
-    env::{Environment, OrchClient},
     experiment::{
-        apply_globals_changes,
-        controller::{
-            error::{Error, Result},
-            sim_configurer::SimConfigurer,
-        },
+        comms::{EngineMsg, OrchClient},
+        controller::sim_configurer::SimConfigurer,
+        Environment, Error, Result,
     },
-    proto::{EngineMsg, EngineStatus},
+    proto::EngineStatus,
     utils,
 };
 
@@ -121,14 +118,13 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         }
 
         // Send Sim Status to the orchestration client
-        Ok(self
-            .orch_client()
+        self.orch_client()
             .send(EngineStatus::SimStatus(status))
-            .await?)
+            .await
     }
 
     async fn handle_sim_run_stop(&mut self, id: SimulationId) -> Result<()> {
-        Ok(self.orch_client().send(EngineStatus::SimStop(id)).await?)
+        self.orch_client().send(EngineStatus::SimStop(id)).await
     }
 
     async fn handle_worker_pool_msg(
@@ -428,4 +424,47 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
             terminate_recv,
         }
     }
+}
+
+fn set_nested_global_property(
+    map: &mut serde_json::Map<String, serde_json::Value>,
+    property_path: Vec<&str>,
+    new_value: serde_json::Value,
+    cur_map_depth: usize,
+) -> Result<()> {
+    let name = property_path[cur_map_depth];
+    if cur_map_depth == property_path.len() - 1 {
+        // Last (i.e. deepest) nesting level
+        // We allow varying properties that are not present in `globals.json`.
+        let _ = map.insert(name.to_string(), new_value);
+        Ok(())
+    } else {
+        // TODO: OS - Uninitialized nested globals
+        let global_property = map
+            .get_mut(name)
+            .ok_or_else(|| Error::MissingChangedGlobalProperty(name.to_string()))?;
+        set_nested_global_property(
+            global_property
+                .as_object_mut()
+                .ok_or_else(|| Error::NestedPropertyNotObject(name.to_string()))?,
+            property_path,
+            new_value,
+            cur_map_depth + 1,
+        )
+    }
+}
+
+pub fn apply_globals_changes(base: Globals, changes: &serde_json::Value) -> Result<Globals> {
+    let mut map = base
+        .0
+        .as_object()
+        .ok_or(Error::BaseGlobalsNotProject)?
+        .clone();
+    let changes = changes.as_object().ok_or(Error::ChangedGlobalsNotObject)?;
+    for (property_path, changed_value) in changes.iter() {
+        let property_path = property_path.split('.').collect();
+        set_nested_global_property(&mut map, property_path, changed_value.clone(), 0)?;
+    }
+    let globals = Globals(map.into());
+    Ok(globals)
 }

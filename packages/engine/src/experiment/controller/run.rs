@@ -18,15 +18,14 @@ use stateful::global::SharedStore;
 use tracing::Instrument;
 
 use crate::{
-    env::Environment,
     experiment::{
         controller::{
             config::{self, OutputPersistenceConfig},
             controller::ExperimentController,
-            error::{Error, Result},
             sim_configurer::SimConfigurer,
         },
         error::{Error as ExperimentError, Result as ExperimentResult},
+        Environment, Error, Result,
     },
     proto::EngineStatus,
 };
