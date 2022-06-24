@@ -27,5 +27,6 @@ tracing-texray = { version = "0.1.2", optional = true }
 
 [features]
 default = ["build-nng"]
-build-nng = ["nano/build-nng", "execution/build-nng"]
-texray = ["tracing-texray"]
+build-nng = ["simulation-control/build-nng", "nano/build-nng"]
+texray = ["dep:tracing-texray"]
+clap = ["dep:clap", "simulation-control/clap"]

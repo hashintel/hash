@@ -22,3 +22,7 @@ thiserror = "1.0.21"
 tracing = "0.1.29"
 
 clap = { version = "3.0.0", features = ["derive"], optional = true }
+
+[features]
+build-nng = ["execution/build-nng"]
+clap = ["dep:clap"]

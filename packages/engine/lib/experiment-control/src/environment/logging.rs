@@ -24,7 +24,8 @@ use tracing_subscriber::{
 };
 
 /// Output format emitted to the terminal
-#[derive(Debug, Copy, Clone, PartialEq, Eq, clap::ArgEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::ArgEnum))]
 pub enum LogFormat {
     /// Human-readable, single-line logs for each event that occurs, with the current span context
     /// displayed before the formatted representation of the event.
@@ -55,7 +56,8 @@ enum OutputFormatter<T> {
     Compact(Format<fmt::format::Compact, T>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, clap::ArgEnum)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::ArgEnum))]
 pub enum OutputLocation {
     StdOut,
     StdErr,
@@ -90,7 +92,8 @@ impl Default for OutputLocation {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, clap::ArgEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::ArgEnum))]
 pub enum LogLevel {
     Trace,
     Debug,

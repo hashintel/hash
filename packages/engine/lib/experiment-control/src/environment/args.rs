@@ -1,18 +1,20 @@
 use std::path::PathBuf;
 
-use clap::{AppSettings, Parser};
+#[cfg(feature = "clap")]
+use clap::{
+    AppSettings::{PropagateVersion, UseLongFormatForHelpSubcommand},
+    Parser,
+};
 use execution::package::experiment::ExperimentId;
 
 use crate::environment::{LogFormat, LogLevel, OutputLocation};
 
 /// Arguments passed to hEngine
-#[derive(Debug, Parser)]
+#[derive(Debug)]
+#[cfg_attr(feature = "clap", derive(Parser))]
 #[cfg_attr(feature = "clap", clap(about, version, author))]
-#[cfg_attr(feature = "clap", clap(global_setting(AppSettings::PropagateVersion)))]
-#[cfg_attr(
-    feature = "clap",
-    clap(setting(AppSettings::UseLongFormatForHelpSubcommand))
-)]
+#[cfg_attr(feature = "clap", clap(global_setting(PropagateVersion)))]
+#[cfg_attr(feature = "clap", clap(setting(UseLongFormatForHelpSubcommand)))]
 /// Run the engine.
 pub struct Args {
     /// The unique identifier of the experiment, as a valid v4 UUID
@@ -90,6 +92,7 @@ pub struct Args {
 }
 
 impl Args {
+    #[cfg(feature = "clap")]
     pub fn parse() -> Self {
         <Args as Parser>::parse()
     }

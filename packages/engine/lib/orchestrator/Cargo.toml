@@ -24,5 +24,6 @@ tokio = { version = "1.18.2" }
 
 [features]
 default = ["build-nng"]
-build-nng = ["nano/build-nng"]
+build-nng = ["experiment-control/build-nng"]
 texray = ["experiment-control/texray"]
+clap = ["dep:clap", "experiment-control/clap"]
