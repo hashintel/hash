@@ -16,7 +16,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  CARGO_HACK_FLAGS: --feature-powerset --features build-nng --exclude-features default --ignore-unknown-features
+  CARGO_HACK_FLAGS: --feature-powerset --features build-nng --exclude-features default --ignore-unknown-features --optional-deps clap
 
 jobs:
   setup:
