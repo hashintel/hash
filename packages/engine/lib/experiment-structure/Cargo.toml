@@ -24,5 +24,6 @@ tracing = "0.1.29"
 clap = { version = "3.0.0", features = ["derive"], optional = true }
 
 [features]
+default = ["build-nng"]
 build-nng = ["execution/build-nng"]
 clap = ["dep:clap"]
