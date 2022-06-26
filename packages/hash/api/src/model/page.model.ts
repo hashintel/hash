@@ -159,6 +159,7 @@ class __Page extends Entity {
     client: DbClient,
     params: {
       accountId: string;
+      archived: boolean;
     },
   ): Promise<Page[]> {
     const pageEntities = await Entity.getEntitiesBySystemType(client, {
@@ -168,7 +169,9 @@ class __Page extends Entity {
     });
 
     return await Promise.all(
-      pageEntities.map((entity) => Page.fromEntity(client, entity)),
+      pageEntities
+        .filter((page) => !!page.properties.archived === params.archived)
+        .map((entity) => Page.fromEntity(client, entity)),
     );
   }
 

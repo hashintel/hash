@@ -10,9 +10,8 @@ export const accountPages: Resolver<
 > = async (_, { accountId, archived }, { dataSources }) => {
   const pages = await Page.getAllPagesInAccount(dataSources.db, {
     accountId,
+    archived,
   });
 
-  return pages
-    .filter((page) => !!page.properties.archived === archived)
-    .map((page) => page.toGQLUnknownEntity());
+  return pages.map((page) => page.toGQLUnknownEntity());
 };
