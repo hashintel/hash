@@ -3,8 +3,11 @@ use std::fmt;
 use arrow::datatypes::{DataType, Field};
 
 use crate::{
+    agent::AgentStateField,
     error::{Error, Result},
-    field::{key::RootFieldKey, FieldScope, FieldSource, FieldType},
+    field::{
+        key::RootFieldKey, FieldScope, FieldSource, FieldType, FieldTypeVariant, PresetFieldType,
+    },
 };
 
 /// A single specification of a field
@@ -15,6 +18,8 @@ pub struct FieldSpec {
 }
 
 impl FieldSpec {
+    const PREVIOUS_INDEX_FIELD_NAME: &'static str = "previous_index";
+
     pub(in crate::field) fn into_arrow_field(
         self,
         can_guarantee_non_null: bool,
@@ -41,6 +46,34 @@ impl FieldSpec {
                 DataType::from(self.field_type.variant),
                 base_nullability,
             )
+        }
+    }
+
+    /// This key is required for accessing neighbors' outboxes (new inboxes).
+    ///
+    /// Since the neighbor agent state is always the previous step state of the agent, then we need
+    /// to know where its outbox is. This would be straightforward if we didn't add/remove/move
+    /// agents between batches. This means `AgentBatch` ordering gets changed at the beginning
+    /// of the step meaning agents are not aligned with their `OutboxBatch` anymore.
+    #[must_use]
+    // TODO: migrate this to be logic handled by the Engine
+    pub fn last_state_index_key() -> Self {
+        // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
+        // to the relevant old outbox (i.e. new inbox)
+        Self {
+            name: Self::PREVIOUS_INDEX_FIELD_NAME.to_string(),
+            field_type: FieldType::new(
+                FieldTypeVariant::FixedLengthArray {
+                    field_type: Box::new(FieldType::new(
+                        FieldTypeVariant::Preset(PresetFieldType::Uint32),
+                        false,
+                    )),
+                    len: 2,
+                },
+                // This key is nullable because new agents
+                // do not get an index (their outboxes are empty by default)
+                true,
+            ),
         }
     }
 }
@@ -79,6 +112,44 @@ impl RootFieldSpec {
                 self.scope,
             )?,
         })
+    }
+
+    pub fn base_agent_fields() -> Result<Vec<Self>> {
+        let mut field_specs = Vec::with_capacity(13);
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+
+        let used = [
+            AgentStateField::AgentId,
+            AgentStateField::AgentName,
+            AgentStateField::Color,
+            AgentStateField::Direction,
+            AgentStateField::Height,
+            AgentStateField::Hidden,
+            AgentStateField::Position,
+            AgentStateField::Rgb,
+            AgentStateField::Scale,
+            AgentStateField::Shape,
+            AgentStateField::Velocity,
+        ];
+
+        for field in used {
+            let field_type: FieldType = field.clone().try_into()?;
+            field_specs.push(field_spec_creator.create(
+                field.name().into(),
+                field_type,
+                FieldScope::Agent,
+            ));
+        }
+
+        let last_state_index = FieldSpec::last_state_index_key();
+
+        field_specs.push(field_spec_creator.create(
+            last_state_index.name,
+            last_state_index.field_type,
+            FieldScope::Hidden,
+        ));
+
+        Ok(field_specs)
     }
 }
 

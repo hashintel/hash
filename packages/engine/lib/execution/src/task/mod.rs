@@ -36,6 +36,7 @@
 //! [`MessageTarget::Python`]: crate::runner::MessageTarget::Python
 //! [`MessageTarget::Main`]: crate::runner::MessageTarget::Main
 
+mod active;
 mod cancel;
 mod distribution;
 mod message;
@@ -43,12 +44,12 @@ mod shared_store;
 
 use std::fmt;
 
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use stateful::field::UUID_V4_LEN;
 use uuid::Uuid;
 
 pub use self::{
+    active::ActiveTask,
     cancel::CancelTask,
     message::{TargetedTaskMessage, TaskMessage, TaskResultOrCancelled},
     shared_store::{SharedContext, SharedState, TaskSharedStore},
@@ -94,21 +95,6 @@ pub trait StoreAccessValidator: Task {
     /// [`SharedContext`]: crate::task::SharedContext
     /// [`AccessNotAllowed`]: crate::error::Error::AccessNotAllowed
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()>;
-}
-
-#[async_trait]
-pub trait ActiveTask: Send {
-    /// Waits for a [`TaskResultOrCancelled`] from the associated [`Task`] and returns the
-    /// [`TaskMessage`].
-    ///
-    /// # Errors
-    ///
-    /// - If the execution of [`Task`] failed and it wasn't able to receive a
-    /// [`TaskResultOrCancelled`].
-    /// - If the [`Task`] was cancelled during execution.
-    ///
-    /// [`Task`]: crate::task::Task
-    async fn drive_to_completion(mut self) -> Result<TaskMessage>;
 }
 
 /// Unique identified for a [`Task`].

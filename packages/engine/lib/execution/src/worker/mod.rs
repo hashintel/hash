@@ -18,7 +18,6 @@ use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
-use simulation_structure::{ExperimentId, SimulationShortId};
 use tokio::time::timeout;
 use tracing::{Instrument, Span};
 
@@ -31,6 +30,7 @@ pub use self::{
     sync::{ContextBatchSync, StateSync, SyncCompletionReceiver, SyncPayload, WaitableStateSync},
 };
 use crate::{
+    package::{experiment::ExperimentId, simulation::SimulationId},
     runner::{
         comms::{
             ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,
@@ -417,7 +417,7 @@ impl Worker {
     async fn handle_end_message(
         &mut self,
         task_id: TaskId,
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         group_index: Option<usize>,
         _source: Language,
         message: TaskMessage,
@@ -490,7 +490,7 @@ impl Worker {
     /// [`Dynamic`]: MessageTarget::Dynamic
     async fn run_task_handler_on_outbound(
         &mut self,
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         msg: RunnerTaskMessage,
         source: Language,
     ) -> Result<()> {
@@ -582,7 +582,7 @@ impl Worker {
     async fn handle_cancel_task_confirmation(
         &mut self,
         _task_id: TaskId,
-        _sim_id: SimulationShortId,
+        _sim_id: SimulationId,
         _source: Language,
     ) -> Result<()> {
         // TODO: We don't currently use Task cancelling, and to be able use it we would need
@@ -624,7 +624,7 @@ impl Worker {
     /// [`PartialSharedState::split_into_individual_per_group()`] method.
     ///
     /// [`PartialSharedState::split_into_individual_per_group()`]: crate::task::PartialSharedState::split_into_individual_per_group
-    async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
+    async fn spawn_task(&mut self, sim_id: SimulationId, task: WorkerTask) -> Result<()> {
         let task_id = task.task_id;
         let msg = WorkerHandler::start_message(&task.task)?;
 
@@ -704,7 +704,7 @@ impl Worker {
 
     async fn sync_runners(
         &mut self,
-        sim_id: Option<SimulationShortId>,
+        sim_id: Option<SimulationId>,
         sync_msg: SyncPayload,
         pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>>,
     ) -> Result<()> {

@@ -5,15 +5,15 @@ import { uniqBy } from "lodash";
 import formatDistance from "date-fns/formatDistance";
 import { Box, Typography, Divider, typographyClasses } from "@mui/material";
 // import { Button } from "@hashintel/hash-design-system";
+import { IconButton } from "@hashintel/hash-design-system";
 import {
   GithubIssueEvent,
   GithubPullRequest,
   GithubReview,
   isDefined,
-  PullRequestIdentifier,
 } from "./types";
 import { GithubPrTimeline } from "./timeline";
-import { CommentIcon, GithubIcon, PullRequestIcon } from "./icons";
+import { CloseIcon, CommentIcon, GithubIcon, PullRequestIcon } from "./icons";
 import { Reviews } from "./reviews";
 import { getEventTypeColor } from "./utils";
 
@@ -21,8 +21,7 @@ export type GithubPrOverviewProps = {
   pullRequest: GithubPullRequest["properties"];
   reviews: GithubReview["properties"][];
   events: GithubIssueEvent["properties"][];
-  setSelectedPullRequestId: (x?: PullRequestIdentifier) => void;
-  setBlockState: (x: any) => void;
+  reset: () => void;
 };
 
 const PRStatus: React.FC<{ status: string }> = ({ status }) => {
@@ -53,14 +52,7 @@ const PRStatus: React.FC<{ status: string }> = ({ status }) => {
 
 export const GithubPrOverview: React.FunctionComponent<
   GithubPrOverviewProps
-> = ({
-  pullRequest,
-  reviews,
-  events,
-  setSelectedPullRequestId,
-  setBlockState,
-}) => {
-  console.log({ reviews });
+> = ({ pullRequest, reviews, events, reset }) => {
   const uniqueReviewers = uniqBy(
     reviews.map(({ user }) => {
       return {
@@ -92,14 +84,25 @@ export const GithubPrOverview: React.FunctionComponent<
   return (
     <Box sx={{ maxWidth: 800, mx: "auto" }}>
       <Box
-        sx={({ palette }) => ({ backgroundColor: palette.white, padding: 3 })}
+        sx={({ palette }) => ({
+          backgroundColor: palette.white,
+          padding: 3,
+          position: "relative",
+        })}
       >
+        <IconButton
+          onClick={reset}
+          rounded
+          sx={{ position: "absolute", right: 2, top: 2 }}
+        >
+          <CloseIcon />
+        </IconButton>
         <Stack
           direction="row"
-          alignItems="center"
           spacing={1}
-          mb={1.5}
           sx={({ palette }) => ({
+            alignItems: "center",
+            mb: 1.5,
             svg: {
               height: 20,
               width: 20,
@@ -206,7 +209,6 @@ export const GithubPrOverview: React.FunctionComponent<
       >
         <GithubPrTimeline
           pullRequest={pullRequest}
-          // @todo move this upward in a use memo
           reviews={reviews}
           events={events}
         />

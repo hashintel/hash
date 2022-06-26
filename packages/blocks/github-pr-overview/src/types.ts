@@ -59,6 +59,7 @@ export const getGithubEntityTypes = (
         };
         return githubTypeIds;
       } else {
+        console.log({ entityTypes });
         throw new Error("Couldn't find all Github Entity Types");
       }
     })

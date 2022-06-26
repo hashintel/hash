@@ -10,7 +10,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git",
+    "url": "https://github.com/hashintel/hash.git#vu/github-pr-review-restyle",
     "directory": "packages/blocks/github-pr-overview"
   },
   "license": "MIT",
@@ -48,7 +48,12 @@
     "servePort": 63222
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "displayName": "GitHub Pull-Request Overview",
+    "icon": "public/pull-request.svg",
+    "image": "public/block-preview.svg",
     "examples": [
       {
         "selectedPullRequest": {
@@ -57,7 +62,6 @@
         }
       }
     ],
-    "icon": "public/pull-request.svg",
-    "image": "public/block-preview.svg"
+    "protocol": "0.2"
   }
 }

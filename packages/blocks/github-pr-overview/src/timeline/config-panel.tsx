@@ -1,5 +1,4 @@
 import { MenuCheckboxItem } from "@hashintel/hash-design-system";
-import { palette } from "@hashintel/hash-design-system/theme/palette";
 import {
   Paper,
   Typography,

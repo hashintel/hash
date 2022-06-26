@@ -19,7 +19,6 @@ pub mod message;
 pub mod terminate;
 pub mod top;
 
-use simulation_structure::SimulationShortId;
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::Receiver,
@@ -28,6 +27,7 @@ use tracing::Span;
 
 use self::terminate::TerminateMessage;
 use crate::{
+    package::simulation::SimulationId,
     runner::comms::{NewSimulationRun, PackageError, RunnerError, UserError, UserWarning},
     task::TaskId,
     worker::{SyncPayload, WorkerTask, WorkerTaskResultOrCancelled},
@@ -46,7 +46,7 @@ pub enum WorkerPoolToWorkerMsgPayload {
 #[derive(Debug)]
 pub struct WorkerPoolToWorkerMsg {
     pub span: Span,
-    pub sim_id: Option<SimulationShortId>,
+    pub sim_id: Option<SimulationId>,
     pub payload: WorkerPoolToWorkerMsgPayload,
 }
 
@@ -76,7 +76,7 @@ impl WorkerPoolToWorkerMsg {
 }
 
 impl WorkerPoolToWorkerMsg {
-    pub fn sync(sim_id: SimulationShortId, sync_payload: SyncPayload) -> WorkerPoolToWorkerMsg {
+    pub fn sync(sim_id: SimulationId, sync_payload: SyncPayload) -> WorkerPoolToWorkerMsg {
         WorkerPoolToWorkerMsg {
             span: Span::current(),
             sim_id: Some(sim_id),
@@ -84,7 +84,7 @@ impl WorkerPoolToWorkerMsg {
         }
     }
 
-    pub fn task(sim_id: SimulationShortId, task_payload: WorkerTask) -> WorkerPoolToWorkerMsg {
+    pub fn task(sim_id: SimulationId, task_payload: WorkerTask) -> WorkerPoolToWorkerMsg {
         WorkerPoolToWorkerMsg {
             span: Span::current(),
             sim_id: Some(sim_id),
@@ -126,7 +126,7 @@ pub enum WorkerToWorkerPoolMsg {
 
 pub struct WorkerCommsWithWorkerPool {
     index: WorkerIndex,
-    send_to_wp: UnboundedSender<(WorkerIndex, SimulationShortId, WorkerToWorkerPoolMsg)>,
+    send_to_wp: UnboundedSender<(WorkerIndex, SimulationId, WorkerToWorkerPoolMsg)>,
     recv_from_wp: Option<UnboundedReceiver<WorkerPoolToWorkerMsg>>,
     terminate_recv: TerminateRecv,
 }
@@ -136,7 +136,7 @@ impl WorkerCommsWithWorkerPool {
         &self.index
     }
 
-    pub fn send(&self, sim_id: SimulationShortId, msg: WorkerToWorkerPoolMsg) -> Result<()> {
+    pub fn send(&self, sim_id: SimulationId, msg: WorkerToWorkerPoolMsg) -> Result<()> {
         self.send_to_wp.send((self.index, sim_id, msg))?;
         Ok(())
     }
@@ -169,7 +169,7 @@ pub struct WorkerPoolCommsWithWorkers {
         UnboundedSender<WorkerPoolToWorkerMsg>,
         terminate::TerminateSend,
     )>,
-    recv_from_w: UnboundedReceiver<(WorkerIndex, SimulationShortId, WorkerToWorkerPoolMsg)>,
+    recv_from_w: UnboundedReceiver<(WorkerIndex, SimulationId, WorkerToWorkerPoolMsg)>,
 }
 
 impl WorkerPoolCommsWithWorkers {
@@ -235,9 +235,7 @@ impl WorkerPoolCommsWithWorkers {
         Ok(())
     }
 
-    pub async fn recv(
-        &mut self,
-    ) -> Option<(WorkerIndex, SimulationShortId, WorkerToWorkerPoolMsg)> {
+    pub async fn recv(&mut self) -> Option<(WorkerIndex, SimulationId, WorkerToWorkerPoolMsg)> {
         self.recv_from_w.recv().await
     }
 }

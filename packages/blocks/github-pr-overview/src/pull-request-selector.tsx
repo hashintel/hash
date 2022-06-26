@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { Box, Typography, Autocomplete, TextField } from "@mui/material";
 import { GithubPullRequest } from "./types";
-import { LoadingUI } from "./loading-ui";
+import { InfoUI } from "./info-ui";
 import { GithubIcon } from "./icons";
 
 export type PullRequestSelectorProps = {
@@ -18,7 +18,6 @@ export const PullRequestSelector: React.FunctionComponent<
     React.useState<number>();
 
   const onClick = (pullRequest: number) => {
-    // console.log({ selectedRepository, pullRequest });
     setSelectedPullRequestId({
       repository: selectedRepository,
       number: pullRequest,
@@ -47,20 +46,6 @@ export const PullRequestSelector: React.FunctionComponent<
 
     return repoMap;
   }, [allPrs]);
-
-  // React.useEffect(() => {
-  //   setSelectedPullRequest(undefined);
-  // }, [selectedRepository]);
-
-  // incase we want to fetch the details after selecting repo info
-  // can add a loading state
-  if (false) {
-    return (
-      <LoadingUI
-        title={`Creating your timeline for pull request ${selectedPullRequest}`}
-      />
-    );
-  }
 
   return (
     <Box

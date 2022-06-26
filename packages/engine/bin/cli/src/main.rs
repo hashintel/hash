@@ -10,9 +10,9 @@ use std::{
 
 use clap::{AppSettings, Parser};
 use error_stack::{IntoReport, Result, ResultExt};
-use execution::package::experiment::ExperimentName;
-use hash_engine_lib::utils::init_logger;
-use orchestrator::{Experiment, ExperimentConfig, Manifest, Server};
+use experiment_control::environment::init_logger;
+use experiment_structure::{ExperimentType, Manifest};
+use orchestrator::{Experiment, ExperimentConfig, Server};
 
 /// Arguments passed to the CLI
 #[derive(Debug, Parser)]
@@ -30,49 +30,6 @@ pub struct Args {
     /// Experiment type to be run.
     #[clap(subcommand)]
     r#type: ExperimentType,
-}
-
-/// Type of experiment to be run.
-#[derive(Debug, clap::Subcommand)]
-pub enum ExperimentType {
-    /// Run a single run experiment.
-    #[clap(name = "single-run")]
-    SingleRunExperiment(SingleExperimentArgs),
-    /// Run a simple experiment.
-    #[clap(name = "simple")]
-    SimpleExperiment(SimpleExperimentArgs),
-    // Generate shell completions
-}
-
-impl From<ExperimentType> for orchestrator::ExperimentType {
-    fn from(t: ExperimentType) -> Self {
-        match t {
-            ExperimentType::SimpleExperiment(simple) => orchestrator::ExperimentType::Simple {
-                name: simple.experiment_name,
-            },
-            ExperimentType::SingleRunExperiment(single) => {
-                orchestrator::ExperimentType::SingleRun {
-                    num_steps: single.num_steps,
-                }
-            }
-        }
-    }
-}
-
-/// Single Run Experiment.
-#[derive(PartialEq, Debug, clap::Args)]
-pub struct SingleExperimentArgs {
-    /// Number of steps to run.
-    #[clap(short, long, env = "HASH_NUM_STEPS")]
-    num_steps: usize,
-}
-
-/// Simple Experiment.
-#[derive(PartialEq, Debug, clap::Args)]
-pub struct SimpleExperimentArgs {
-    /// Name of the experiment to be run.
-    #[clap(short = 'n', long, env = "HASH_EXPERIMENT")]
-    experiment_name: ExperimentName,
 }
 
 #[derive(Debug)]
@@ -123,7 +80,7 @@ async fn main() -> Result<(), CliError> {
         .attach_printable_lazy(|| format!("Could not read local project {absolute_project_path:?}"))
         .change_context(CliError)?;
     let experiment_run = manifest
-        .read(args.r#type.into())
+        .read(args.r#type)
         .attach_printable("Could not read manifest")
         .change_context(CliError)?;
 

@@ -38,12 +38,12 @@ impl InitPackage for JsonInit {
 
 pub struct JsonInitCreator;
 
-impl<C> InitPackageCreator<C> for JsonInitCreator {
+impl InitPackageCreator for JsonInitCreator {
     fn create(
         &self,
         _config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        _comms: PackageComms<C>,
+        _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &init_config.initial_state.name {
