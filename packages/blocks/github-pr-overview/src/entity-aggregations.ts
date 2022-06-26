@@ -1,10 +1,8 @@
 import {
   GraphBlockHandler,
   AggregateEntitiesResult,
-  Entity,
 } from "@blockprotocol/graph";
 import { uniqBy } from "lodash";
-import { BlockState } from "./app";
 
 import {
   GithubIssueEvent,
@@ -28,7 +26,7 @@ export const getPrs = async (
   pageNumber: number = 1,
   selectedPullRequest?: PullRequestIdentifier,
 ): Promise<AggregateEntitiesResult<GithubPullRequest> | void> => {
-  const res = await aggregateEntities({
+  return aggregateEntities({
     data: {
       operation: {
         entityTypeId: githubPullRequestTypeId,
@@ -55,13 +53,12 @@ export const getPrs = async (
         ],
       },
     },
+  }).then(({ errors, data }) => {
+    if (!errors && data) {
+      return data;
+    }
+    throw new Error("An error occured");
   });
-
-  if (res.data) {
-    return res.data;
-  }
-
-  // @todo fix
 };
 
 export const getAllPRs = (
@@ -101,7 +98,7 @@ export const getAllPRs = (
     });
 };
 
-const getReviews = async (
+const getReviews = (
   selectedPullRequest: PullRequestIdentifier,
   githubReviewTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
@@ -111,7 +108,7 @@ const getReviews = async (
     return new Promise<void>(() => {});
   }
 
-  const res = await aggregateEntities({
+  return aggregateEntities({
     data: {
       operation: {
         entityTypeId: githubReviewTypeId,
@@ -139,12 +136,12 @@ const getReviews = async (
         ],
       },
     },
+  }).then(({ errors, data }) => {
+    if (!errors && data) {
+      return data;
+    }
+    throw new Error("An error occured");
   });
-
-  if (res.data) {
-    return res.data;
-  }
-  // @todo fix
 };
 
 export const getPrReviews = async (
@@ -181,7 +178,7 @@ export const getPrReviews = async (
 };
 
 // rename
-const getEvents = async (
+const getEvents = (
   githubIssueEventTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   pageNumber: number | undefined,
@@ -191,7 +188,7 @@ const getEvents = async (
     return new Promise<void>(() => {});
   }
 
-  const res = aggregateEntities({
+  return aggregateEntities({
     data: {
       operation: {
         entityTypeId: githubIssueEventTypeId,
@@ -223,9 +220,12 @@ const getEvents = async (
         ],
       },
     },
+  }).then(({ errors, data }) => {
+    if (!errors && data) {
+      return data;
+    }
+    throw new Error("An error occured");
   });
-
-  return res;
 };
 
 export const getPrEvents = async (
