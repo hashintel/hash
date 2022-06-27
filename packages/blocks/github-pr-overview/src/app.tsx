@@ -252,7 +252,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
             },
           });
         })
-        .catch((err) => {
+        .catch((_) => {
           dispatch({
             type: "UPDATE_STATE",
             payload: {
@@ -324,6 +324,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     }
   };
 
+  // @todo confirm if this is still needed
   // if (allPrs && allPrs.size > 0 && blockState === BlockState.Loading) {
   //   dispatch({
   //     type: "UPDATE_STATE",
