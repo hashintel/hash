@@ -1,10 +1,12 @@
 [announcement post]: https://hash.dev/blog/announcing-error-stack
 [crates.io]: https://crates.io/crates/error-stack
+[libs.rs]: https://lib.rs/crates/error-stack
 [documentation]: https://docs.rs/error-stack
 [license]: ./LICENSE.md
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
+[![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
