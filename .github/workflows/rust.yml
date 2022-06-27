@@ -295,7 +295,7 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo hack test $CARGO_HACK_FLAGS --no-fail-fast --release --jobs 1
+        run: cargo hack test $CARGO_HACK_FLAGS --no-fail-fast --release -- --test-threads 1
 
       - name: Upload to DataDog
         if: always()
