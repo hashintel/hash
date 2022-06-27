@@ -40,7 +40,7 @@ use crate::{
 /// [`Backtrace` documentation][`Backtrace`]. To enable capturing of the span trace, an
 /// [`ErrorLayer`] has to be enabled. Please also see the [Feature Flags] section.
 ///
-/// [`provide`]: crate::provider::Provider::provide
+/// [`provide`]: core::any::Provider::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
 /// [`new()`]: Self::new
@@ -381,14 +381,14 @@ impl<C> Report<C> {
     }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provided`](crate::provider::Provider::provide) by [`Context`] objects.
+    /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub const fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
         RequestRef::new(self)
     }
 
     /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provided`](crate::provider::Provider::provide) by [`Context`] objects.
+    /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub const fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
         RequestValue::new(self)
