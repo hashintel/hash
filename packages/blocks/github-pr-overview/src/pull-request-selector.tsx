@@ -1,9 +1,10 @@
 import * as React from "react";
 
-import { Box, Typography, Autocomplete, TextField } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+
 import { GithubPullRequest } from "./types";
-import { InfoUI } from "./info-ui";
 import { GithubIcon } from "./icons";
+import { CustomAutocomplete } from "./custom-autocomplete";
 
 export type PullRequestSelectorProps = {
   allPrs: Map<string, GithubPullRequest>;
@@ -13,9 +14,11 @@ export type PullRequestSelectorProps = {
 export const PullRequestSelector: React.FunctionComponent<
   PullRequestSelectorProps
 > = ({ allPrs, setSelectedPullRequestId }) => {
-  const [selectedRepository, setSelectedRepository] = React.useState<string>();
-  const [selectedPullRequest, setSelectedPullRequest] =
-    React.useState<number>();
+  const [selectedRepository, setSelectedRepository] = React.useState<
+    string | null
+  >(null);
+  const [selectedPullRequestNumber, setSelectedPullRequestNumber] =
+    React.useState<number | null>(null);
 
   const onClick = (pullRequest: number) => {
     setSelectedPullRequestId({
@@ -24,8 +27,8 @@ export const PullRequestSelector: React.FunctionComponent<
     });
   };
 
-  const reposToPrIds: Map<string, number[]> = React.useMemo(() => {
-    const repoMap = new Map();
+  const reposToPrIds: { [k: string]: number[] } = React.useMemo(() => {
+    const repoMap = {} as { [k: string]: number[] };
 
     Array.from(allPrs?.keys()).forEach((prId) => {
       // e.g. [hashintel, hash, 490
@@ -37,10 +40,10 @@ export const PullRequestSelector: React.FunctionComponent<
       const repository = parsed.slice(0, 2).join("/"); // rejoin the org and repo
       const prNumber = parseInt(parsed[2]!, 10);
 
-      if (!repoMap.has(repository)) {
-        repoMap.set(repository, [prNumber]);
+      if (!repoMap[repository]) {
+        repoMap[repository] = [prNumber];
       } else {
-        repoMap.get(repository).push(prNumber);
+        repoMap[repository]?.push(prNumber);
       }
     });
 
@@ -63,12 +66,10 @@ export const PullRequestSelector: React.FunctionComponent<
       })}
     >
       <Box
-        sx={{
-          maxWidth: 400,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
+        maxWidth={400}
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
       >
         <GithubIcon
           sx={({ palette }) => ({
@@ -78,43 +79,42 @@ export const PullRequestSelector: React.FunctionComponent<
             color: palette.gray[80],
           })}
         />
-        <Typography variant="h2" sx={{ textAlign: "center", mb: 3 }}>
+        <Typography variant="h4" textAlign="center" mb={3}>
           Select a Github pull request to create a timeline
         </Typography>
 
         <Box sx={{ width: 320 }}>
-          <Autocomplete
+          <CustomAutocomplete
             value={selectedRepository}
             onChange={(_, newValue) => {
-              if (newValue !== null) {
-                setSelectedRepository(newValue);
-              }
+              setSelectedRepository(newValue);
             }}
-            disablePortal
-            id="repository-combo-selector"
-            options={Array.from(reposToPrIds.keys())}
-            fullWidth
             sx={{ mb: 3 }}
-            renderInput={(params) => (
-              <TextField {...params} label="Choose a Repository" />
-            )}
+            options={Object.keys(reposToPrIds)}
+            label="Repository name"
+            placeholder="Search for repository"
           />
-          <Autocomplete
-            value={selectedPullRequest}
+
+          <CustomAutocomplete
+            value={selectedPullRequestNumber}
             onChange={(_, newValue) => {
+              setSelectedPullRequestNumber(newValue);
+
               if (newValue !== null) {
-                setSelectedPullRequest(newValue);
                 onClick(newValue);
               }
             }}
+            getOptionLabel={(option) =>
+              `#${option} ${
+                allPrs.get(`${selectedRepository}/${option}`)?.properties
+                  .title ?? ""
+              }`
+            }
             disabled={!selectedRepository}
             disablePortal
-            id="repository-combo-selector"
-            options={reposToPrIds.get(selectedRepository!)?.sort() ?? []}
-            fullWidth
-            renderInput={(params) => (
-              <TextField {...params} label="Choose a Pull Request" />
-            )}
+            options={reposToPrIds[selectedRepository!]?.sort() ?? []}
+            label="Pull Request number or name"
+            placeholder="Search for pull request"
           />
         </Box>
       </Box>

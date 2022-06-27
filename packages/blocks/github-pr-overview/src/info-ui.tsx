@@ -45,13 +45,13 @@ export const InfoUI: React.FunctionComponent<PullRequestSelectorProps> = ({
             })}
           />
         </Box>
-        <Typography variant="h2" sx={{ textAlign: "center", mb: 3 }}>
+        <Typography variant="h4" sx={{ textAlign: "center", mb: 3 }}>
           {title}
         </Typography>
 
         {loading && (
-          <Box display="flex" justifyContent="center">
-            <LoadingSpinner size={50} thickness={8} />
+          <Box display="flex" justifyContent="center" color="blue.60">
+            <LoadingSpinner size={50} thickness={6} />
           </Box>
         )}
       </Box>

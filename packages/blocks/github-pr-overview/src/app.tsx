@@ -9,25 +9,19 @@ import {
   PullRequestIdentifier,
   GithubReview,
   GITHUB_ENTITY_TYPES,
-  getGithubEntityTypes,
+  BlockState,
 } from "./types";
 import { GithubPrOverview } from "./overview";
 
 import {
   getPrEvents,
   getAllPRs,
-  getPrs,
+  getPrsPerPage,
   getPrReviews,
+  getGithubEntityTypes,
 } from "./entity-aggregations";
 import { PullRequestSelector } from "./pull-request-selector";
 import { InfoUI } from "./info-ui";
-
-export enum BlockState {
-  Loading,
-  Error,
-  Selector,
-  Overview,
-}
 
 type BlockEntityProperties = {
   selectedPullRequest?: PullRequestIdentifier;
@@ -58,7 +52,16 @@ type LocalState = {
   infoMessage: string;
 };
 
-type Actions = { type: "UPDATE_STATE"; payload: Partial<LocalState> };
+type Action<S, T = undefined> = T extends undefined
+  ? { type: S }
+  : {
+      type: S;
+      payload: T;
+    };
+
+type Actions =
+  | Action<"UPDATE_STATE", Partial<LocalState>>
+  | Action<"RESET_SELECTED_PR">;
 
 const reducer = (state: LocalState, action: Actions): LocalState => {
   switch (action.type) {
@@ -67,11 +70,24 @@ const reducer = (state: LocalState, action: Actions): LocalState => {
         ...state,
         ...action.payload,
       };
+
+    case "RESET_SELECTED_PR":
+      return {
+        ...state,
+        selectedPullRequestId: undefined,
+        blockState: BlockState.Selector,
+        pullRequest: undefined,
+        events: [],
+        reviews: [],
+      };
+
+    default:
+      return state;
   }
 };
 
 const getInitialState = (options: Partial<LocalState>) => ({
-  blockState: BlockState.Selector,
+  blockState: BlockState.Loading,
   githubEntityTypeIds: undefined,
   allPrs: new Map(),
   pullRequest: undefined,
@@ -138,16 +154,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       },
     });
 
-    dispatch({
-      type: "UPDATE_STATE",
-      payload: {
-        selectedPullRequestId: undefined,
-        blockState: BlockState.Selector,
-        pullRequest: undefined,
-        events: [],
-        reviews: [],
-      },
-    });
+    dispatch({ type: "RESET_SELECTED_PR" });
   };
 
   const fetchGithubEntityTypeIds = React.useCallback(async () => {
@@ -173,7 +180,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         payload: {
           allPrs: prs,
           githubEntityTypeIds: entityTypeIds,
-          blockState: BlockState.Selector,
+          // blockState: BlockState.Selector,
         },
       });
     } catch (err) {
@@ -187,17 +194,17 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     }
   }, [graphService]);
 
-  // React.useEffect(() => {
-  //   if (
-  //     JSON.stringify(remoteSelectedPullRequestId) !==
-  //     JSON.stringify(selectedPullRequestId)
-  //   ) {
-  //     dispatch({
-  //       type: "UPDATE_STATE",
-  //       payload: { selectedPullRequestId: remoteSelectedPullRequestId },
-  //     });
-  //   }
-  // }, [remoteSelectedPullRequestId, selectedPullRequestId]);
+  React.useEffect(() => {
+    if (
+      JSON.stringify(remoteSelectedPullRequestId) !==
+      JSON.stringify(selectedPullRequestId)
+    ) {
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: { selectedPullRequestId: remoteSelectedPullRequestId },
+      });
+    }
+  }, [remoteSelectedPullRequestId, selectedPullRequestId]);
 
   React.useEffect(() => {
     if (!blockRef.current) return;
@@ -245,7 +252,14 @@ export const App: BlockComponent<BlockEntityProperties> = ({
             },
           });
         })
-        .catch((err) => {});
+        .catch((err) => {
+          dispatch({
+            type: "UPDATE_STATE",
+            payload: {
+              blockState: BlockState.Error,
+            },
+          });
+        });
     }
   }, [githubEntityTypeIds, selectedPullRequestId, graphService]);
 
@@ -263,7 +277,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         payload: { blockState: BlockState.Loading },
       });
 
-      void getPrs(
+      void getPrsPerPage(
         githubEntityTypeIds[GITHUB_ENTITY_TYPES.PullRequest],
         ({ data }) => graphService.aggregateEntities({ data }),
         1,
@@ -310,40 +324,30 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     }
   };
 
-  if (allPrs && allPrs.size > 0 && blockState === BlockState.Loading) {
-    dispatch({
-      type: "UPDATE_STATE",
-      payload: { blockState: BlockState.Selector },
-    });
-  } else if (
-    selectedPullRequestId !== undefined &&
-    pullRequest !== undefined &&
-    reviews !== undefined &&
-    events !== undefined &&
-    blockState !== BlockState.Overview
-  ) {
-    dispatch({
-      type: "UPDATE_STATE",
-      payload: { blockState: BlockState.Overview },
-    });
-  }
+  // if (allPrs && allPrs.size > 0 && blockState === BlockState.Loading) {
+  //   dispatch({
+  //     type: "UPDATE_STATE",
+  //     payload: { blockState: BlockState.Selector },
+  //   });
+  // } else if (
+  //   selectedPullRequestId !== undefined &&
+  //   pullRequest !== undefined &&
+  //   reviews !== undefined &&
+  //   events !== undefined &&
+  //   blockState !== BlockState.Overview
+  // ) {
+  //   dispatch({
+  //     type: "UPDATE_STATE",
+  //     payload: { blockState: BlockState.Overview },
+  //   });
+  // }
 
   /** @todo - Filterable list to select a pull-request */
   return (
     <ThemeProvider theme={customTheme}>
       <CssBaseline />
-      <Box
-        ref={blockRef}
-        sx={({ palette }) => ({
-          background: palette.gray[20],
-        })}
-      >
+      <Box p={2} ref={blockRef}>
         {renderContent()}
-        <Box
-          sx={{
-            height: 100,
-          }}
-        />
       </Box>
     </ThemeProvider>
   );

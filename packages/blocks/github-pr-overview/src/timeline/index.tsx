@@ -25,7 +25,6 @@ export type GithubPrTimelineProps = {
 export const GithubPrTimeline: React.FunctionComponent<
   GithubPrTimelineProps
 > = ({ pullRequest, events, reviews }) => {
-  // @todo think of a better name
   const [timelineOpacity, setTimelineOpacity] = React.useState(false);
 
   const nodes = React.useMemo(() => {
@@ -58,6 +57,11 @@ export const GithubPrTimeline: React.FunctionComponent<
     addDefaultFromPossible(possibleEventTypes),
   );
 
+  // @todo remove the need for this
+  React.useEffect(() => {
+    setSelectedEventTypes(addDefaultFromPossible(possibleEventTypes));
+  }, [possibleEventTypes]);
+
   const filteredNodes = React.useMemo(
     () =>
       nodes.filter(
@@ -66,8 +70,6 @@ export const GithubPrTimeline: React.FunctionComponent<
       ),
     [nodes, selectedEventTypes],
   );
-
-  console.log({ nodes });
 
   return (
     <Stack
