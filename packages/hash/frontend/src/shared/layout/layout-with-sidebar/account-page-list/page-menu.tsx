@@ -67,7 +67,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
             await archivePage(entityId);
           } catch (err) {
             // eslint-disable-next-line no-console -- TODO: consider using logger
-            console.log("err ==> ", err);
+            console.log("Error archiving page: ", err);
           } finally {
             popupState.close();
           }
