@@ -10,7 +10,7 @@ use stateful::global::Globals;
 
 use crate::SimStatus;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum EngineStatus {
     Started,
     SimStatus(SimStatus),

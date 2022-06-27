@@ -50,13 +50,11 @@ impl InitPackageCreator for JsonInitCreator {
             InitialStateName::InitJson => Ok(Box::new(JsonInit {
                 initial_state_src: init_config.initial_state.src.clone(),
             })),
-            name => {
-                return Err(Error::from(format!(
-                    "Trying to create a JSON init package but the init file didn't end in .json \
-                     but instead was: {:?}",
-                    name
-                )));
-            }
+            name => Err(Error::from(format!(
+                "Trying to create a JSON init package but the init file didn't end in .json but \
+                 instead was: {:?}",
+                name
+            ))),
         }
     }
 }

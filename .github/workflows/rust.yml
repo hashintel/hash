@@ -16,6 +16,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_HACK_FLAGS: --feature-powerset --features build-nng --exclude-features default --ignore-unknown-features --optional-deps clap
 
 jobs:
   setup:
@@ -116,9 +117,6 @@ jobs:
         toolchain:
           - stable
           - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --all-features
-          - --no-default-features
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     steps:
       - name: Checkout source code
@@ -136,6 +134,9 @@ jobs:
           override: true
           components: clippy
 
+      - name: Install tools
+        uses: taiki-e/install-action@cargo-hack
+
       - name: Cache dependencies
         uses: actions/cache@v2
         with:
@@ -147,28 +148,12 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
+          key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Run clippy
-        run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
-
-          cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} $required_features -- -D warnings
-
-      - name: Annotate
-        if: ${{ failure() }}
-        # use `actions-rs/clippy-check@v1` when https://github.com/actions-rs/clippy-check/pull/158 is merged
-        uses: reinismu/clippy-check@master
-        with:
-          name: clippy (${{ matrix.directory }})
-          token: ${{ secrets.GITHUB_TOKEN }}
-          working-directory: ${{ matrix.directory }}
-          args: --no-deps --tests ${{ matrix.flags }}
+        working-directory: ${{ matrix.directory }}
+        run: cargo hack clippy $CARGO_HACK_FLAGS --no-deps --tests -- -D warnings
 
   test:
     name: test
@@ -182,9 +167,6 @@ jobs:
         toolchain:
           - stable
           - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --all-features
-          - --no-default-features
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     env:
       OUTPUT_DIRECTORY: test-results
@@ -204,6 +186,9 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
+      - name: Install tools
+        uses: taiki-e/install-action@cargo-hack
+
       - name: Install Python
         uses: actions/setup-python@v2
         with:
@@ -220,33 +205,22 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}
+          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Build tests
         if: matrix.directory == 'packages/engine'
-        run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
-
-          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }} $required_features
+        working-directory: ${{ matrix.directory }}
+        run: cargo test --no-run --all-features
 
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
         working-directory: ${{ matrix.directory }}
-        run: |
-          lib/execution/src/runner/python/setup.sh python3.7
+        run: lib/execution/src/runner/python/setup.sh python3.7
 
       - name: Run tests
-        run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
-
-          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} $required_features
+        working-directory: ${{ matrix.directory }}
+        run: cargo hack test $CARGO_HACK_FLAGS --no-fail-fast
 
       # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
@@ -268,8 +242,6 @@ jobs:
         toolchain:
           - stable
           - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --release
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     env:
       OUTPUT_DIRECTORY: test-results
@@ -289,6 +261,9 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
+      - name: Install tools
+        uses: taiki-e/install-action@cargo-hack
+
       - name: Install Python
         uses: actions/setup-python@v2
         with:
@@ -305,23 +280,22 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}
+          key: ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Build tests
         if: matrix.directory == 'packages/engine'
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
+        working-directory: ${{ matrix.directory }}
+        run: cargo test --no-run --release --all-features
 
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
         working-directory: ${{ matrix.directory }}
-        run: |
-          lib/execution/src/runner/python/setup.sh python3.7
+        run: lib/execution/src/runner/python/setup.sh python3.7
 
       - name: Run tests
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
+        working-directory: ${{ matrix.directory }}
+        run: cargo hack test $CARGO_HACK_FLAGS --no-fail-fast --release -- --test-threads 1
 
       - name: Upload to DataDog
         if: always()
@@ -353,9 +327,6 @@ jobs:
         directory: ${{ fromJSON(needs.setup.outputs.miri) }}
         toolchain:
           - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --no-default-features
-          - --all-features
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     env:
       OUTPUT_DIRECTORY: test-results
@@ -376,6 +347,9 @@ jobs:
           override: true
           components: miri
 
+      - name: Install tools
+        uses: taiki-e/install-action@cargo-hack
+
       - name: Cache dependencies
         uses: actions/cache@v2
         with:
@@ -387,10 +361,8 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}
+          key: ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Setup miri
         working-directory: ${{ matrix.directory }}
@@ -398,12 +370,7 @@ jobs:
 
       - name: Run miri
         working-directory: ${{ matrix.directory }}
-        run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
-
-          cargo miri test ${{ matrix.flags }} $required_features
+        run: cargo hack miri test $CARGO_HACK_FLAGS --no-fail-fast
 
   doc:
     name: doc
@@ -416,8 +383,6 @@ jobs:
         directory: ${{ fromJSON(needs.setup.outputs.doc) }}
         toolchain:
           - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --all-features
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -444,36 +409,34 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}
+          key: ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Check public documentation
         uses: actions-rs/cargo@v1
         with:
           command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --check -D warnings
+          args: --manifest-path ${{ matrix.directory }}/Cargo.toml --all-features -- -Z unstable-options --check -D warnings
 
       - name: Check private documentation
         uses: actions-rs/cargo@v1
         with:
           command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --check --document-private-items -D warnings
+          args: --manifest-path ${{ matrix.directory }}/Cargo.toml --all-features -- -Z unstable-options --check --document-private-items -D warnings
 
       - name: Show public coverage
         if: always()
         uses: actions-rs/cargo@v1
         with:
           command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --show-coverage
+          args: --manifest-path ${{ matrix.directory }}/Cargo.toml --all-features -- -Z unstable-options --show-coverage
 
       - name: Show private coverage
         if: always()
         uses: actions-rs/cargo@v1
         with:
           command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --show-coverage --document-private-items
+          args: --manifest-path ${{ matrix.directory }}/Cargo.toml --all-features -- -Z unstable-options --show-coverage --document-private-items
 
   publish:
     name: publish
@@ -486,8 +449,6 @@ jobs:
         directory: ${{ fromJSON(needs.setup.outputs.publish) }}
         toolchain:
           - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --all-features
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -508,12 +469,12 @@ jobs:
       - name: Publish (dry run)
         if: github.event_name == 'pull_request'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish ${{ matrix.flags }} --dry-run
+        run: cargo publish --all-features --dry-run
 
       - name: Publish
         if: github.event_name == 'push'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish ${{ matrix.flags }}
+        run: cargo publish --all-features
 
   merging-enabled:
     name: merging enabled
