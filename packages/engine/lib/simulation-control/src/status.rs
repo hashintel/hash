@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::{command::StopCommand, Result};
 
 // Sent from sim runs to experiment main loop.
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SimStatus {
     pub sim_id: SimulationId,
     pub steps_taken: isize,
