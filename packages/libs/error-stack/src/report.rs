@@ -8,10 +8,10 @@ use std::process::ExitCode;
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
+#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
+use crate::context::temporary_provider;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-use crate::{context::temporary_provider, provider::request_ref};
 use crate::{
     iter::{Frames, FramesMut},
     AttachmentKind, Context, Frame, FrameKind,
@@ -37,7 +37,7 @@ use crate::{
 /// [`Backtrace` documentation][`Backtrace`]. To enable capturing of the span trace, an
 /// [`ErrorLayer`] has to be enabled. Please also see the [Feature Flags] section.
 ///
-/// [`provide`]: crate::provider::Provider::provide
+/// [`provide`]: core::any::Provider::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
 /// [`new()`]: Self::new
@@ -61,7 +61,7 @@ use crate::{
 /// # fn fake_main() -> Result<String, std::io::Error> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
-///     .report()
+///     .into_report()
 ///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
@@ -123,7 +123,7 @@ use crate::{
 ///     # #[cfg(any(miri, not(feature = "std")))]
 ///     # return Err(error_stack::report!(ConfigError::IoError).attach_printable("Not supported"));
 ///     # #[cfg(all(not(miri), feature = "std"))]
-///     std::fs::read_to_string(path.as_ref()).report().change_context(ConfigError::IoError)
+///     std::fs::read_to_string(path.as_ref()).into_report().change_context(ConfigError::IoError)
 /// }
 ///
 /// fn main() -> Result<(), Report<RuntimeError>> {
@@ -185,14 +185,14 @@ impl<C> Report<C> {
         let provider = temporary_provider(&context);
 
         #[cfg(all(nightly, feature = "std"))]
-        let backtrace = if request_ref::<Backtrace, _>(&provider).is_some() {
+        let backtrace = if core::any::request_ref::<Backtrace, _>(&provider).is_some() {
             None
         } else {
             Some(Backtrace::capture())
         };
 
         #[cfg(all(nightly, feature = "spantrace"))]
-        let span_trace = if request_ref::<SpanTrace, _>(&provider).is_some() {
+        let span_trace = if core::any::request_ref::<SpanTrace, _>(&provider).is_some() {
             None
         } else {
             Some(SpanTrace::capture())
@@ -271,7 +271,7 @@ impl<C> Report<C> {
     /// }
     ///
     /// let error = fs::read_to_string("config.txt")
-    ///     .report()
+    ///     .into_report()
     ///     .attach(Suggestion("Better use a file which exists next time!"));
     /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = error.unwrap_err();
@@ -378,14 +378,14 @@ impl<C> Report<C> {
     }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provided`](crate::provider::Provider::provide) by [`Context`] objects.
+    /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub const fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
         RequestRef::new(self)
     }
 
     /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provided`](crate::provider::Provider::provide) by [`Context`] objects.
+    /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub const fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
         RequestValue::new(self)
@@ -405,7 +405,7 @@ impl<C> Report<C> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).report()
+    ///     # fs::read_to_string(path.as_ref()).into_report()
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();
@@ -434,7 +434,7 @@ impl<C> Report<C> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).report()
+    ///     # fs::read_to_string(path.as_ref()).into_report()
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();
@@ -489,7 +489,7 @@ impl<T: Context> Report<T> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).report()
+    ///     # fs::read_to_string(path.as_ref()).into_report()
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();
