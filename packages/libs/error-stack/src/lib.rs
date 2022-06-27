@@ -299,12 +299,7 @@
 //! return an iterator of all provided values with the specified type. The value, which was provided
 //! most recently will be returned first.
 //!
-//! **Currently, the API has not yet landed in `core::any`, thus in the meantime it has been
-//! included in the library implementation and is available at [`error_stack::provider`]. Using it
-//! requires a nightly compiler.**
-//!
 //! [`attach`]: Report::attach
-//! [`error_stack::provider`]: crate::provider
 //! [`Provider` API]: https://rust-lang.github.io/rfcs/3192-dyno.html
 //!
 //! ### Macros for Convenience
