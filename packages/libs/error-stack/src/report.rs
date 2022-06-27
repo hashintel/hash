@@ -61,7 +61,7 @@ use crate::{
 /// # fn fake_main() -> Result<String, std::io::Error> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
-///     .report()
+///     .into_report()
 ///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
@@ -123,7 +123,7 @@ use crate::{
 ///     # #[cfg(any(miri, not(feature = "std")))]
 ///     # return Err(error_stack::report!(ConfigError::IoError).attach_printable("Not supported"));
 ///     # #[cfg(all(not(miri), feature = "std"))]
-///     std::fs::read_to_string(path.as_ref()).report().change_context(ConfigError::IoError)
+///     std::fs::read_to_string(path.as_ref()).into_report().change_context(ConfigError::IoError)
 /// }
 ///
 /// fn main() -> Result<(), Report<RuntimeError>> {
@@ -271,7 +271,7 @@ impl<C> Report<C> {
     /// }
     ///
     /// let error = fs::read_to_string("config.txt")
-    ///     .report()
+    ///     .into_report()
     ///     .attach(Suggestion("Better use a file which exists next time!"));
     /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = error.unwrap_err();
@@ -405,7 +405,7 @@ impl<C> Report<C> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).report()
+    ///     # fs::read_to_string(path.as_ref()).into_report()
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();
@@ -434,7 +434,7 @@ impl<C> Report<C> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).report()
+    ///     # fs::read_to_string(path.as_ref()).into_report()
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();
@@ -489,7 +489,7 @@ impl<T: Context> Report<T> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).report()
+    ///     # fs::read_to_string(path.as_ref()).into_report()
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();

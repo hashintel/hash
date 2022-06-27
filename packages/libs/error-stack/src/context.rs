@@ -47,7 +47,7 @@ use crate::Report;
 /// # #[cfg(all(feature = "std", not(miri)))]
 /// pub fn read_file(path: &str) -> Result<String, io::Error> {
 ///     // Creates a `Report` from `io::Error`, the current context is `io::Error`
-///     fs::read_to_string(path).report()
+///     fs::read_to_string(path).into_report()
 /// }
 ///
 /// pub fn parse_config(path: &str) -> Result<Config, ConfigError> {
