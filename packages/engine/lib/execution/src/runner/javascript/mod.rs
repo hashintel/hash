@@ -31,7 +31,6 @@ use memory::{
     arrow::{ArrowBatch, ColumnChange},
     shared_memory::{arrow_continuation, Metaversion, Segment},
 };
-use simulation_structure::SimulationShortId;
 use stateful::{
     agent::AgentBatch,
     field::PackageId,
@@ -47,7 +46,7 @@ use tracing::{Instrument, Span};
 
 pub use self::error::{JavaScriptError, JavaScriptResult};
 use crate::{
-    package::simulation::PackageType,
+    package::simulation::{PackageType, SimulationId},
     runner::{
         comms::{
             ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,
@@ -379,11 +378,11 @@ struct SimState {
 struct ThreadLocalRunner<'s> {
     embedded: Embedded<'s>,
     this: Value<'s>,
-    sims_state: HashMap<SimulationShortId, SimState>,
+    sims_state: HashMap<SimulationId, SimState>,
 }
 
-fn sim_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, sim_id: SimulationShortId) -> Value<'s> {
-    v8::Number::new(scope, sim_id as f64).into()
+fn sim_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, sim_id: SimulationId) -> Value<'s> {
+    v8::Number::new(scope, sim_id.as_f64()).into()
 }
 
 fn pkg_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, pkg_id: PackageId) -> Value<'s> {
@@ -1341,7 +1340,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn flush(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        sim_run_id: SimulationShortId,
+        sim_run_id: SimulationId,
         shared_store: &mut TaskSharedStore,
         return_val: Object<'s>,
     ) -> Result<()> {
@@ -1471,7 +1470,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn handle_task_msg(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         msg: RunnerTaskMessage,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
     ) -> Result<()> {
@@ -1577,7 +1576,7 @@ impl<'s> ThreadLocalRunner<'s> {
         &mut self,
         scope: &mut v8::HandleScope<'s>,
         args: &[Value<'s>],
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         group_index: Option<usize>,
         package_id: PackageId,
         task_id: TaskId,
@@ -1634,7 +1633,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn ctx_batch_sync(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        sim_run_id: SimulationShortId,
+        sim_run_id: SimulationId,
         ctx_batch_sync: ContextBatchSync,
     ) -> Result<()> {
         let ContextBatchSync {
@@ -1665,7 +1664,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn state_sync(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        sim_run_id: SimulationShortId,
+        sim_run_id: SimulationId,
         msg: WaitableStateSync,
     ) -> Result<()> {
         // TODO: Technically this might violate Rust's aliasing rules, because
@@ -1699,7 +1698,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn state_interim_sync(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         shared_store: &TaskSharedStore,
     ) -> Result<()> {
         // Sync JS.
@@ -1724,7 +1723,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn state_snapshot_sync(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        sim_run_id: SimulationShortId,
+        sim_run_id: SimulationId,
         msg: StateSync,
     ) -> Result<()> {
         // TODO: Duplication with `state_sync`
@@ -1745,7 +1744,7 @@ impl<'s> ThreadLocalRunner<'s> {
     pub fn handle_msg(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        sim_id: Option<SimulationShortId>,
+        sim_id: Option<SimulationId>,
         msg: InboundToRunnerMsgPayload,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
     ) -> Result<bool> {
@@ -1813,9 +1812,9 @@ pub struct JavaScriptRunner {
     // `ThreadLocalRunner` can't be sent between threads.
     init_msg: Arc<ExperimentInitRunnerMsg>,
     // Args to `ThreadLocalRunner::new`
-    inbound_sender: UnboundedSender<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
+    inbound_sender: UnboundedSender<(Span, Option<SimulationId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
-        Option<UnboundedReceiver<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,
+        Option<UnboundedReceiver<(Span, Option<SimulationId>, InboundToRunnerMsgPayload)>>,
     outbound_sender: Option<UnboundedSender<OutboundFromRunnerMsg>>,
     outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
     spawn: bool,
@@ -1838,7 +1837,7 @@ impl JavaScriptRunner {
 
     pub async fn send(
         &self,
-        sim_id: Option<SimulationShortId>,
+        sim_id: Option<SimulationId>,
         msg: InboundToRunnerMsgPayload,
     ) -> crate::Result<()> {
         tracing::trace!("Sending message to JavaScript: {msg:?}");
@@ -1849,7 +1848,7 @@ impl JavaScriptRunner {
 
     pub async fn send_if_spawned(
         &self,
-        sim_id: Option<SimulationShortId>,
+        sim_id: Option<SimulationId>,
         msg: InboundToRunnerMsgPayload,
     ) -> crate::Result<()> {
         if self.spawned() {
@@ -1898,7 +1897,7 @@ fn run_experiment(
     init_msg: Arc<ExperimentInitRunnerMsg>,
     mut inbound_receiver: UnboundedReceiver<(
         Span,
-        Option<SimulationShortId>,
+        Option<SimulationId>,
         InboundToRunnerMsgPayload,
     )>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,

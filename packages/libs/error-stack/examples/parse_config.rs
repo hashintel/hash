@@ -30,7 +30,7 @@ fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigErro
     let path = path.as_ref();
 
     let content = fs::read_to_string(path)
-        .report()
+        .into_report()
         .change_context(ParseConfigError::new())
         .attach(Suggestion("Use a file you can read next time!"))
         .attach_printable_lazy(|| format!("Could not read file {path:?}"))?;

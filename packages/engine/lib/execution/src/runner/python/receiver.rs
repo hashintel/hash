@@ -1,9 +1,9 @@
 use nng::{Aio, Socket};
-use simulation_structure::ExperimentId;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 pub use crate::runner::python::{PythonError, PythonResult};
 use crate::{
+    package::experiment::ExperimentId,
     runner::{
         comms::ExperimentInitRunnerMsg,
         python::fbs::{pkgs_to_fbs, shared_ctx_to_fbs},

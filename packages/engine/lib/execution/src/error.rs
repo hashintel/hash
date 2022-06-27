@@ -1,8 +1,8 @@
-use simulation_structure::SimulationShortId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
 use crate::{
+    package::simulation::SimulationId,
     runner::{JavaScriptError, MessageTarget, PythonError},
     task::{SharedContext, SharedState, TaskId},
     worker_pool::WorkerIndex,
@@ -30,6 +30,9 @@ pub enum Error {
 
     #[error("Arrow Error: {0}")]
     Arrow(#[from] arrow::error::ArrowError),
+
+    #[error("IO error: {0:?}")]
+    StdIo(#[from] std::io::Error),
 
     #[error("Behavior language parse error: {0}")]
     ParseBehavior(String),
@@ -106,7 +109,7 @@ pub enum Error {
     RwLock(String),
 
     #[error("Missing simulation with id {0}")]
-    MissingSimulationWithId(SimulationShortId),
+    MissingSimulationWithId(SimulationId),
 
     #[error("Channel for sending cancel task messages has unexpectedly closed")]
     CancelClosed,
@@ -124,7 +127,7 @@ pub enum Error {
     ExperimentRecv(String),
 
     #[error("Missing simulation run with id {0}")]
-    MissingSimulationRun(SimulationShortId),
+    MissingSimulationRun(SimulationId),
 }
 
 impl Error {

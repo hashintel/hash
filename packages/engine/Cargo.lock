@@ -416,7 +416,8 @@ dependencies = [
  "clap",
  "error-stack",
  "execution",
- "hash_engine_lib",
+ "experiment-control",
+ "experiment-structure",
  "orchestrator",
  "serde",
  "tokio",
@@ -463,12 +464,6 @@ dependencies = [
  "time 0.2.27",
  "version_check",
 ]
-
-[[package]]
-name = "core-foundation-sys"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
 
 [[package]]
 name = "cpufeatures"
@@ -622,17 +617,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive-new"
-version = "0.5.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3418329ca0ad70234b9735dc4ceed10af4df60eff9c8e7b06cb5e520d92c3535"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -697,13 +681,57 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
- "simulation_structure",
  "stateful",
  "thiserror",
  "tokio",
  "tracing",
  "uuid",
  "v8",
+]
+
+[[package]]
+name = "experiment-control"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "error-stack",
+ "execution",
+ "experiment-structure",
+ "memory",
+ "nano",
+ "num_cpus",
+ "serde",
+ "serde_json",
+ "simulation-control",
+ "stateful",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-error",
+ "tracing-subscriber",
+ "tracing-texray",
+]
+
+[[package]]
+name = "experiment-structure"
+version = "0.0.0"
+dependencies = [
+ "async-trait",
+ "clap",
+ "csv",
+ "error-stack",
+ "execution",
+ "futures",
+ "rand 0.8.4",
+ "rand_distr",
+ "serde",
+ "serde_json",
+ "stateful",
+ "surf",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -955,7 +983,9 @@ name = "hash_engine"
 version = "0.0.0"
 dependencies = [
  "error-stack",
- "hash_engine_lib",
+ "execution",
+ "experiment-control",
+ "experiment-structure",
  "tokio",
  "tracing",
 ]
@@ -964,45 +994,17 @@ dependencies = [
 name = "hash_engine_lib"
 version = "0.0.0"
 dependencies = [
- "arr_macro",
- "arrow",
- "async-trait",
- "cc",
- "clap",
- "csv",
- "derive-new",
  "error-stack",
  "execution",
- "flatbuffers",
- "flatbuffers_gen",
- "futures",
- "glob",
- "http-types",
- "lazy_static",
- "memory",
- "nano",
+ "experiment-control",
+ "experiment-structure",
  "num_cpus",
  "orchestrator",
- "parking_lot",
- "rand 0.8.4",
- "rayon",
- "regex",
  "serde",
- "serde-aux",
  "serde_json",
- "shared_memory",
- "simulation_structure",
- "stateful",
- "strum_macros",
- "surf",
- "thiserror",
  "tokio",
  "tracing",
- "tracing-appender",
- "tracing-error",
  "tracing-subscriber",
- "tracing-texray",
- "uuid",
 ]
 
 [[package]]
@@ -1356,7 +1358,7 @@ dependencies = [
 
 [[package]]
 name = "memory"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "arrow",
  "flatbuffers",
@@ -1463,15 +1465,6 @@ checksum = "50d0e7f39a8fd1792a710da9351320e864dc799cf439960e332c977b2f876da6"
 dependencies = [
  "cmake",
  "version_check",
-]
-
-[[package]]
-name = "ntapi"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f6bb902e437b6d86e03cce10a7e2af662292c5dfef23b65899ea3ac9354ad44"
-dependencies = [
- "winapi",
 ]
 
 [[package]]
@@ -1609,19 +1602,17 @@ dependencies = [
  "clap",
  "error-stack",
  "execution",
+ "experiment-control",
+ "experiment-structure",
  "hash_engine",
- "hash_engine_lib",
  "nano",
  "num_cpus",
- "rand 0.8.4",
- "rand_distr",
  "serde",
  "serde_json",
- "simulation_structure",
+ "simulation-control",
  "stateful",
  "tokio",
  "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -2081,13 +2072,12 @@ dependencies = [
 [[package]]
 name = "shared_memory"
 version = "0.12.0"
-source = "git+https://github.com/hashdeps/shared_memory-rs#2475147ac7a5cb6fa00e02c14a9f5cfb222a8833"
+source = "git+https://github.com/hashdeps/shared_memory-rs#f6969f67807575a82e18cb1349dad6b3eeaa56c1"
 dependencies = [
  "cfg-if",
  "libc",
  "nix",
  "rand 0.8.4",
- "sysinfo",
  "winapi",
 ]
 
@@ -2101,10 +2091,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "simulation_structure"
+name = "simulation-control"
 version = "0.0.0"
 dependencies = [
- "uuid",
+ "arr_macro",
+ "arrow",
+ "execution",
+ "experiment-structure",
+ "futures",
+ "memory",
+ "rand 0.8.4",
+ "rayon",
+ "serde",
+ "serde_json",
+ "stateful",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -2239,18 +2242,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
-name = "strum_macros"
-version = "0.19.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e61bb0be289045cb80bfce000512e32d09f8337e54c186725da381377ad1f8d5"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "subtle"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2288,21 +2279,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
-]
-
-[[package]]
-name = "sysinfo"
-version = "0.20.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e223c65cd36b485a34c2ce6e38efa40777d31c4166d9076030c74cdcf971679f"
-dependencies = [
- "cfg-if",
- "core-foundation-sys",
- "libc",
- "ntapi",
- "once_cell",
- "rayon",
- "winapi",
 ]
 
 [[package]]

@@ -4,12 +4,12 @@ mod kind;
 mod vtable;
 
 use alloc::boxed::Box;
+#[cfg(nightly)]
+use core::any::{self, Demand, Provider};
 use core::{fmt, mem, mem::ManuallyDrop, panic::Location, ptr::NonNull};
 
 pub use self::kind::{AttachmentKind, FrameKind};
 use self::{erasable::ErasableFrame, vtable::VTable};
-#[cfg(nightly)]
-use crate::provider::{self, Demand, Provider};
 use crate::{frame::attachment::AttachmentProvider, Context};
 
 /// A single context or attachment inside of a [`Report`].
@@ -140,7 +140,7 @@ impl Frame {
     where
         T: ?Sized + 'static,
     {
-        provider::request_ref(self)
+        any::request_ref(self)
     }
 
     /// Requests the value of `T` from the `Frame` if provided.
@@ -150,7 +150,7 @@ impl Frame {
     where
         T: 'static,
     {
-        provider::request_value(self)
+        any::request_value(self)
     }
 
     /// Returns if `T` is the held context or attachment by this frame.

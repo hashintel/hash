@@ -37,12 +37,12 @@ pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct AgentMessagesCreator;
 
-impl<C> ContextPackageCreator<C> for AgentMessagesCreator {
+impl ContextPackageCreator for AgentMessagesCreator {
     fn create(
         &self,
         _config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms<C>,
+        _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {

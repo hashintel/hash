@@ -6,12 +6,12 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use memory::shared_memory::arrow_continuation;
 use nng::{options::Options, Aio, Socket};
-use simulation_structure::{ExperimentId, SimulationShortId};
 use stateful::state::StateReadProxy;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 pub use crate::runner::python::{PythonError, PythonResult};
 use crate::{
+    package::{experiment::ExperimentId, simulation::SimulationId},
     runner::{
         comms::InboundToRunnerMsgPayload,
         python::fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
@@ -91,7 +91,7 @@ impl NngSender {
 
     pub fn send(
         &self,
-        sim_id: Option<SimulationShortId>,
+        sim_id: Option<SimulationId>,
         msg: &InboundToRunnerMsgPayload,
         task_payload_json: &Option<serde_json::Value>,
     ) -> PythonResult<()> {
@@ -114,7 +114,7 @@ impl NngSender {
 
 // TODO: Make this function shorter.
 fn inbound_to_nng(
-    sim_id: Option<SimulationShortId>,
+    sim_id: Option<SimulationId>,
     msg: &InboundToRunnerMsgPayload,
     task_payload_json: &Option<serde_json::Value>,
 ) -> PythonResult<nng::Message> {
@@ -132,7 +132,7 @@ fn inbound_to_nng(
             let payload = serde_json::to_string(payload)?;
             let payload = str_to_serialized(fbb, &payload);
 
-            let task_id = flatbuffers_gen::task_msg_generated::TaskId(msg.task_id.to_le_bytes());
+            let task_id = flatbuffers_gen::task_msg_generated::TaskId(*msg.task_id.as_bytes());
             let group_index = msg.group_index.map(|inner| {
                 flatbuffers_gen::task_msg_generated::GroupIndex((inner as u64).to_le_bytes())
             });
@@ -259,7 +259,7 @@ fn inbound_to_nng(
                 fbb,
                 &flatbuffers_gen::new_simulation_run_generated::NewSimulationRunArgs {
                     sim_id: Some(_sim_id),
-                    sid: msg.short_id,
+                    sid: msg.short_id.as_u32(),
                     globals: Some(globals),
                     package_config: Some(package_config),
                     datastore_init: Some(datastore_init),
@@ -275,7 +275,7 @@ fn inbound_to_nng(
     let msg = flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsg::create(
         fbb,
         &flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgArgs {
-            sim_sid: sim_id.unwrap_or(0),
+            sim_sid: sim_id.map(SimulationId::as_u32).unwrap_or(0),
             payload_type: msg_type,
             payload: Some(msg),
         },
