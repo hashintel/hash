@@ -79,6 +79,7 @@ import {
 } from "./taskExecutor";
 import { getLink } from "./link/getLink";
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
+import { archivePage } from "./pages/archivePage";
 
 export const resolvers = {
   Query: {
@@ -129,6 +130,7 @@ export const resolvers = {
     updateEntity: loggedInAndSignedUp(updateEntity),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
+    archivePage: loggedInAndSignedUp(archivePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),

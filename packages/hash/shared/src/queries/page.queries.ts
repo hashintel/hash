@@ -31,3 +31,15 @@ export const updatePage = gql`
     }
   }
 `;
+
+export const archivePage = gql`
+  mutation archivePage($accountId: ID!, $pageEntityId: ID!) {
+    archivePage(accountId: $accountId, pageEntityId: $pageEntityId) {
+      accountId
+      entityId
+      properties {
+        title
+      }
+    }
+  }
+`;

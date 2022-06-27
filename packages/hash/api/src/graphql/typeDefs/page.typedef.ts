@@ -345,6 +345,8 @@ export const pageTypedef = gql`
       properties: PageUpdateData!
     ): Page!
 
+    archivePage(accountId: ID!, pageEntityId: ID!): Page!
+
     """
     Set the parent of a page
 
