@@ -61,7 +61,7 @@ impl From<flatbuffers_gen::runner_warning_generated::RunnerWarning<'_>> for Runn
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UserError(pub String);
 
 impl From<flatbuffers_gen::user_error_generated::UserError<'_>> for UserError {
@@ -76,7 +76,7 @@ impl std::fmt::Display for UserError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UserWarning {
     pub message: String,
     pub details: Option<String>,
@@ -101,7 +101,7 @@ impl std::fmt::Display for UserWarning {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PackageError(pub String);
 
 impl From<flatbuffers_gen::package_error_generated::PackageError<'_>> for PackageError {

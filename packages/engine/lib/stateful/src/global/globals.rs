@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// For a high-level concept of globals, please see the [HASH documentation].
 ///
 /// [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/configuration
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Globals(pub serde_json::Value);
 
 impl Globals {
