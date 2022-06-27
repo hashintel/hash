@@ -299,12 +299,7 @@
 //! return an iterator of all provided values with the specified type. The value, which was provided
 //! most recently will be returned first.
 //!
-//! **Currently, the API has not yet landed in `core::any`, thus in the meantime it has been
-//! included in the library implementation and is available at [`error_stack::provider`]. Using it
-//! requires a nightly compiler.**
-//!
 //! [`attach`]: Report::attach
-//! [`error_stack::provider`]: crate::provider
 //! [`Provider` API]: https://rust-lang.github.io/rfcs/3192-dyno.html
 //!
 //! ### Macros for Convenience
@@ -371,6 +366,7 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
 #![warn(
@@ -397,8 +393,6 @@ mod context;
 mod ext;
 #[cfg(feature = "hooks")]
 mod hook;
-#[cfg(nightly)]
-pub mod provider;
 #[cfg(test)]
 pub(crate) mod test_helper;
 
