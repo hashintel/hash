@@ -12,6 +12,10 @@ All notable changes to `error-stack` will be documented in this file.
 
 - Hide `futures-core` feature ([#695](https://github.com/hashintel/hash/pull/695))
 
+### Deprecations
+
+- `IntoReport::report`: Use `IntoReport::into_report` instead ([#698](https://github.com/hashintel/hash/pull/698))
+
 ## [0.1.0](https://github.com/hashintel/hash/tree/d14efbc38559fc38d36e03ebdd499b44cb80c668/packages/libs/error-stack) - 2022-06-10
 
 - Initial release
