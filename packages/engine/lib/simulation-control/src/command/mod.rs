@@ -69,7 +69,7 @@ impl Default for StopStatus {
 /// Command to stop the simulation.
 ///
 /// Stores the [`StopMessage`] and the agent's UUID.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StopCommand {
     pub message: StopMessage,
     pub agent: AgentId,
@@ -80,7 +80,7 @@ pub struct StopCommand {
 /// See the [HASH-documentation] for more information.
 ///
 /// [HASH-documentation]: https://hash.ai/docs/simulation/creating-simulations/agent-messages/built-in-message-handlers#Stopping-a-simulation
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StopMessage {
     pub status: StopStatus,
     pub reason: Option<String>,
