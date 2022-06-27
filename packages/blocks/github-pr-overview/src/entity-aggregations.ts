@@ -10,17 +10,62 @@ import {
   PullRequestIdentifier,
   GithubReview,
   isDefined,
+  GITHUB_ENTITY_TYPES,
 } from "./types";
-
-// TODO
-// update the types to v0.2
-// update example-graph.json format
-// should be in format => { entityId: "123", properties: { xyz: "github stuff" }  }
-//
 
 const ITEMS_PER_PAGE = 100;
 
-export const getPrs = async (
+export const getGithubEntityTypes = (
+  aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
+  numPages: number = 5,
+) => {
+  const promises = Array(numPages)
+    .fill(undefined)
+    .map((_, pageNumber) =>
+      /** @todo - These should be links to a PR entity really */
+      aggregateEntityTypes({
+        data: {
+          operation: {
+            pageNumber,
+          },
+        },
+      }),
+    );
+  return Promise.all(promises)
+    .then((entityTypesResults) => {
+      const entityTypes = entityTypesResults.flatMap(
+        (entityTypeResult) => entityTypeResult.data?.results ?? [],
+      );
+
+      const pullRequestTypeId = entityTypes.find(
+        (entityType) => entityType.schema.title === "GithubPullRequest",
+      )?.entityTypeId;
+      const reviewTypeId = entityTypes.find(
+        (entityType) => entityType.schema.title === "GithubReview",
+      )?.entityTypeId;
+      const issueEventTypeId = entityTypes.find(
+        (entityType) => entityType.schema.title === "GithubIssueEvent",
+      )?.entityTypeId;
+
+      if (pullRequestTypeId && reviewTypeId && issueEventTypeId) {
+        const githubTypeIds: {
+          [key in GITHUB_ENTITY_TYPES]: string;
+        } = {
+          [GITHUB_ENTITY_TYPES.PullRequest]: pullRequestTypeId,
+          [GITHUB_ENTITY_TYPES.Review]: reviewTypeId,
+          [GITHUB_ENTITY_TYPES.IssueEvent]: issueEventTypeId,
+        };
+        return githubTypeIds;
+      } else {
+        throw new Error("An error occured while fetching Github Entity Types");
+      }
+    })
+    .catch((err) => {
+      throw err;
+    });
+};
+
+export const getPrsPerPage = async (
   githubPullRequestTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"],
   pageNumber: number = 1,
@@ -74,7 +119,7 @@ export const getAllPRs = (
   const promises = Array(numPages)
     .fill(undefined)
     .map((_, pageNumber) =>
-      getPrs(githubPullRequestTypeId, aggregateEntities, pageNumber),
+      getPrsPerPage(githubPullRequestTypeId, aggregateEntities, pageNumber),
     );
   return Promise.all(promises)
     .then((entitiesResults) => {
@@ -98,7 +143,7 @@ export const getAllPRs = (
     });
 };
 
-const getReviews = (
+const getReviewsPerPage = (
   selectedPullRequest: PullRequestIdentifier,
   githubReviewTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
@@ -153,7 +198,7 @@ export const getPrReviews = async (
   const promises = Array(numPages)
     .fill(undefined)
     .map((_, pageNumber) =>
-      getReviews(
+      getReviewsPerPage(
         selectedPullRequest,
         githubReviewTypeId,
         aggregateEntities,
@@ -177,8 +222,7 @@ export const getPrReviews = async (
     });
 };
 
-// rename
-const getEvents = (
+const getEventsPerPage = (
   githubIssueEventTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   pageNumber: number | undefined,
@@ -238,7 +282,7 @@ export const getPrEvents = async (
     .fill(undefined)
     .map((_, pageNumber) =>
       /** @todo - These should be links to a PR entity really */
-      getEvents(
+      getEventsPerPage(
         githubIssueEventTypeId,
         aggregateEntities,
         accountId,

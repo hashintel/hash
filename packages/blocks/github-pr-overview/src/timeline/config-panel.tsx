@@ -99,12 +99,12 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <Stack
               direction="row"
               spacing={1}
-              mb={idx < selectedEventTypes.length - 1 ? 1 : 2}
               key={eventType}
               component="li"
               sx={({ palette, typography }) => ({
-                alignItems: "center",
                 ...typography.microText,
+                mb: idx < selectedEventTypes.length - 1 ? 1 : 2,
+                alignItems: "center",
                 color: palette.gray[70],
               })}
             >

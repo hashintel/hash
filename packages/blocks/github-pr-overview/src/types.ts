@@ -1,6 +1,4 @@
-import { GraphBlockHandler, Entity } from "@blockprotocol/graph";
-
-import { BlockState } from "./app";
+import { Entity } from "@blockprotocol/graph";
 
 export function isDefined<T>(val: T | undefined | null): val is T {
   return val !== undefined && val !== null;
@@ -12,59 +10,16 @@ export const enum GITHUB_ENTITY_TYPES {
   IssueEvent,
 }
 
+export enum BlockState {
+  Loading = "loading",
+  Error = "error",
+  Selector = "selector",
+  Overview = "overview",
+}
+
 export type PullRequestIdentifier = {
   repository: string;
   number: number;
-};
-
-export const getGithubEntityTypes = (
-  aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
-  numPages: number = 5,
-) => {
-  const promises = Array(numPages)
-    .fill(undefined)
-    .map((_, pageNumber) =>
-      /** @todo - These should be links to a PR entity really */
-      aggregateEntityTypes({
-        data: {
-          operation: {
-            pageNumber,
-          },
-        },
-      }),
-    );
-  return Promise.all(promises)
-    .then((entityTypesResults) => {
-      const entityTypes = entityTypesResults.flatMap(
-        (entityTypeResult) => entityTypeResult.data?.results ?? [],
-      );
-
-      const pullRequestTypeId = entityTypes.find(
-        (entityType) => entityType.schema.title === "GithubPullRequest",
-      )?.entityTypeId;
-      const reviewTypeId = entityTypes.find(
-        (entityType) => entityType.schema.title === "GithubReview",
-      )?.entityTypeId;
-      const issueEventTypeId = entityTypes.find(
-        (entityType) => entityType.schema.title === "GithubIssueEvent",
-      )?.entityTypeId;
-
-      if (pullRequestTypeId && reviewTypeId && issueEventTypeId) {
-        const githubTypeIds: {
-          [key in GITHUB_ENTITY_TYPES]: string;
-        } = {
-          [GITHUB_ENTITY_TYPES.PullRequest]: pullRequestTypeId,
-          [GITHUB_ENTITY_TYPES.Review]: reviewTypeId,
-          [GITHUB_ENTITY_TYPES.IssueEvent]: issueEventTypeId,
-        };
-        return githubTypeIds;
-      } else {
-        throw new Error("Couldn't find all Github Entity Types");
-      }
-    })
-    .catch((err) => {
-      throw err;
-    });
 };
 
 export type GithubPullRequest = Entity<{
