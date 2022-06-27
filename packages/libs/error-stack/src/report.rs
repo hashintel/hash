@@ -1,17 +1,20 @@
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
-#[cfg(all(nightly, feature = "std"))]
-use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
 use std::process::ExitCode;
+#[cfg(all(nightly, feature = "std"))]
+use std::{
+    any,
+    backtrace::{Backtrace, BacktraceStatus},
+};
 
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
+#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
+use crate::context::temporary_provider;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-use crate::{context::temporary_provider, provider::request_ref};
 use crate::{
     iter::{Frames, FramesMut},
     AttachmentKind, Context, Frame, FrameKind,
@@ -37,7 +40,7 @@ use crate::{
 /// [`Backtrace` documentation][`Backtrace`]. To enable capturing of the span trace, an
 /// [`ErrorLayer`] has to be enabled. Please also see the [Feature Flags] section.
 ///
-/// [`provide`]: crate::provider::Provider::provide
+/// [`provide`]: core::any::Provider::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
 /// [`new()`]: Self::new
@@ -185,14 +188,14 @@ impl<C> Report<C> {
         let provider = temporary_provider(&context);
 
         #[cfg(all(nightly, feature = "std"))]
-        let backtrace = if request_ref::<Backtrace, _>(&provider).is_some() {
+        let backtrace = if any::request_ref::<Backtrace, _>(&provider).is_some() {
             None
         } else {
             Some(Backtrace::capture())
         };
 
         #[cfg(all(nightly, feature = "spantrace"))]
-        let span_trace = if request_ref::<SpanTrace, _>(&provider).is_some() {
+        let span_trace = if any::request_ref::<SpanTrace, _>(&provider).is_some() {
             None
         } else {
             Some(SpanTrace::capture())
@@ -378,14 +381,14 @@ impl<C> Report<C> {
     }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provided`](crate::provider::Provider::provide) by [`Context`] objects.
+    /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub const fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
         RequestRef::new(self)
     }
 
     /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provided`](crate::provider::Provider::provide) by [`Context`] objects.
+    /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub const fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
         RequestValue::new(self)

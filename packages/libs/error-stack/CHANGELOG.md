@@ -4,13 +4,14 @@ All notable changes to `error-stack` will be documented in this file.
 
 ## 0.2.0 - Unreleased
 
+### Breaking Changes
+
+- Use `Provider` API from `core::any` ([#697](https://github.com/hashintel/hash/pull/697))
+- Hide `futures-core` feature ([#695](https://github.com/hashintel/hash/pull/695))
+
 ### Features
 
 - Implement [`Termination`](https://doc.rust-lang.org/stable/std/process/trait.Termination.html) for `Report` ([#671](https://github.com/hashintel/hash/pull/671))
-
-### Fixes
-
-- Hide `futures-core` feature ([#695](https://github.com/hashintel/hash/pull/695))
 
 ### Deprecations
 
