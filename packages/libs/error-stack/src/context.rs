@@ -1,9 +1,9 @@
+#[cfg(nightly)]
+use core::any::Demand;
+#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
+use core::any::Provider;
 use core::fmt;
 
-#[cfg(nightly)]
-use crate::provider::Demand;
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-use crate::provider::Provider;
 use crate::Report;
 
 /// Defines the current context of a [`Report`].
