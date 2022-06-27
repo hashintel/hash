@@ -87,7 +87,7 @@ const reducer = (state: LocalState, action: Actions): LocalState => {
 };
 
 const getInitialState = (options: Partial<LocalState>) => ({
-  blockState: BlockState.Loading,
+  blockState: BlockState.Selector,
   githubEntityTypeIds: undefined,
   allPrs: new Map(),
   pullRequest: undefined,
