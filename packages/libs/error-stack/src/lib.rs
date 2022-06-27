@@ -71,7 +71,7 @@
 //! // As can be seen, it's possible to call `IntoReport::report` to easily create a `Report` from
 //! // an `io::Error`
 //! fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
-//!     let content = fs::read_to_string(path).report()?;
+//!     let content = fs::read_to_string(path).into_report()?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...
@@ -121,7 +121,7 @@
 //! // For clarification, this example is not using `error_stack::Result`.
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
 //!     let content = fs::read_to_string(path.as_ref())
-//!         .report()
+//!         .into_report()
 //!         .change_context(ParseConfigError)?;
 //!
 //!     # const _: &str = stringify! {
@@ -163,7 +163,7 @@
 //!     let path = path.as_ref();
 //!
 //!     let content = fs::read_to_string(path)
-//!         .report()
+//!         .into_report()
 //!         .change_context(ParseConfigError::new())
 //!         .attach(Suggestion("Use a file you can read next time!"))
 //!         .attach_printable_lazy(|| format!("Could not read file {path:?}"))?;
@@ -364,7 +364,6 @@
 //! [`Error`]: std::error::Error
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`SpanTrace`]: tracing_error::SpanTrace
-
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
