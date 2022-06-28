@@ -67,7 +67,9 @@ const PRStatus: React.FC<{
         color: palette.white,
         borderRadius: 20,
         textTransform: "capitalize",
-        backgroundColor: getEventTypeColor(status),
+        backgroundColor: getEventTypeColor(
+          status === "open" ? "opened" : status,
+        ),
       })}
     >
       {icon}
