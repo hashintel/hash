@@ -33,6 +33,8 @@
     clippy::verbose_file_reads
 )]
 
+mod db;
+
 #[cfg(test)]
 mod tests {
     #[test]
