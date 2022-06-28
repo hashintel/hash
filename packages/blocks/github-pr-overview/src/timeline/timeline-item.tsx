@@ -163,7 +163,6 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
             {startCase(event.event)}
           </Typography>
           {event.html_url && (
-            // @todo update => https://www.figma.com/file/T10d2P2iNb1LdRC5a9J7vA/BP-Block-Week-Designs?node-id=72%3A7010
             <Tooltip title="Copy link to request">
               <IconButton
                 onClick={() => copyToClipboard(event.html_url)}

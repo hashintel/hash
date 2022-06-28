@@ -36,8 +36,8 @@ const customTheme: Theme = {
   ...theme,
   typography: {
     ...theme.typography,
+    fontSize: 14,
     // @todo make base font-size 14px
-    // fontSize: 14,
   },
 };
 
