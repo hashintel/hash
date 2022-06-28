@@ -41,5 +41,5 @@ export const useArchivePage = (accountId: string) => {
     [updateEntityFn, accountId, router],
   );
 
-  return archivePage;
+  return { archivePage };
 };

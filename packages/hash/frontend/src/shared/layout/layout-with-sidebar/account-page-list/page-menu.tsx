@@ -18,7 +18,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
   const [copied, setCopied] = useState(false);
   const { accountId } = useRouteAccountInfo();
   const { createSubPage } = useCreatePage(accountId);
-  const archivePage = useArchivePage(accountId);
+  const { archivePage } = useArchivePage(accountId);
 
   // Commented out menu items whose functionality have not been
   // implemented yet
