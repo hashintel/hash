@@ -87,11 +87,9 @@ jobs:
           override: true
           components: rustfmt
 
-      - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml -- --check
+      - name: Check rustfmt
+        working-directory: ${{ matrix.directory }}
+        run: cargo fmt -- --check
 
       - name: Setup PHP
         if: ${{ failure() }}
@@ -103,7 +101,8 @@ jobs:
 
       - name: Annotate
         if: ${{ failure() }}
-        run: cargo fmt --manifest-path ${{ matrix.directory }}/Cargo.toml -- --emit checkstyle | cs2pr
+        working-directory: ${{ matrix.directory }}
+        run: cargo fmt -- --emit checkstyle | cs2pr
 
   clippy:
     name: clippy
@@ -413,30 +412,22 @@ jobs:
           restore-keys: ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Check public documentation
-        uses: actions-rs/cargo@v1
-        with:
-          command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml --all-features -- -Z unstable-options --check -D warnings
+        working-directory: ${{ matrix.directory }}
+        run: cargo rustdoc --all-features -- -Z unstable-options --check -D warnings
 
       - name: Check private documentation
-        uses: actions-rs/cargo@v1
-        with:
-          command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml --all-features -- -Z unstable-options --check --document-private-items -D warnings
+        working-directory: ${{ matrix.directory }}
+        run: cargo rustdoc --all-features -- -Z unstable-options --check --document-private-items -D warnings
 
       - name: Show public coverage
         if: always()
-        uses: actions-rs/cargo@v1
-        with:
-          command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml --all-features -- -Z unstable-options --show-coverage
+        working-directory: ${{ matrix.directory }}
+        run: cargo rustdoc --all-features -- -Z unstable-options --show-coverage
 
       - name: Show private coverage
         if: always()
-        uses: actions-rs/cargo@v1
-        with:
-          command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml --all-features -- -Z unstable-options --show-coverage --document-private-items
+        working-directory: ${{ matrix.directory }}
+        run: cargo rustdoc --all-features -- -Z unstable-options --show-coverage --document-private-items
 
   publish:
     name: publish
