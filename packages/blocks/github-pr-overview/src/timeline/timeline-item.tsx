@@ -19,7 +19,12 @@ import {
 import { format } from "date-fns";
 import { startCase } from "lodash";
 import * as React from "react";
-import { LinkIcon, PullRequestIcon } from "../icons";
+import {
+  LinkIcon,
+  PullRequestClosedIcon,
+  PullRequestMergedIcon,
+  PullRequestOpenIcon,
+} from "../icons";
 import { GithubPullRequestEntityType, GithubReviewEntityType } from "../types";
 import { getEventTypeColor } from "../utils";
 
@@ -102,7 +107,13 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
               },
             })}
           >
-            <PullRequestIcon />
+            {event.event === "opened" ? (
+              <PullRequestOpenIcon />
+            ) : event.event === "closed" ? (
+              <PullRequestClosedIcon />
+            ) : (
+              <PullRequestMergedIcon />
+            )}
           </Box>
         ) : (
           <TimelineDot
@@ -120,7 +131,7 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
         {hideConnector ? null : (
           <TimelineConnector
             sx={({ palette }) => ({
-              color: palette.gray[40],
+              backgroundColor: palette.gray[40],
               width: "1px",
               my: 0.25,
               height: 34,
@@ -128,7 +139,11 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
           />
         )}
       </TimelineSeparator>
-      <TimelineContent>
+      <TimelineContent
+        sx={({ palette }) => ({
+          color: palette.gray[70],
+        })}
+      >
         <span>{startCase(event.event)}</span>
       </TimelineContent>
       <Popover
@@ -157,9 +172,7 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
           mb={0.5}
           position="relative"
         >
-          <Typography variant="smallTextLabels" fontWeight={500}>
-            {startCase(event.event)}
-          </Typography>
+          <Typography fontWeight={500}>{startCase(event.event)}</Typography>
           {event.html_url && (
             <Tooltip title="Copy link to request">
               <IconButton

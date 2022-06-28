@@ -45,7 +45,7 @@ export const InfoUI: React.FunctionComponent<PullRequestSelectorProps> = ({
             })}
           />
         </Box>
-        <Typography variant="h4" sx={{ textAlign: "center", mb: 3 }}>
+        <Typography variant="h2" sx={{ textAlign: "center", mb: 3 }}>
           {title}
         </Typography>
 

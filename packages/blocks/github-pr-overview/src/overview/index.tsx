@@ -10,11 +10,18 @@ import {
   GithubPullRequestEntityType,
   GithubReviewEntityType,
   isDefined,
-} from "./types";
-import { GithubPrTimeline } from "./timeline";
-import { CloseIcon, CommentIcon, GithubIcon, PullRequestIcon } from "./icons";
+} from "../types";
+import { GithubPrTimeline } from "../timeline";
+import {
+  CloseIcon,
+  CommentIcon,
+  GithubIcon,
+  PullRequestClosedIcon,
+  PullRequestMergedIcon,
+  PullRequestOpenIcon,
+} from "../icons";
 import { Reviews } from "./reviews";
-import { getEventTypeColor } from "./utils";
+import { getEventTypeColor } from "../utils";
 
 export type GithubPrOverviewProps = {
   pullRequest: GithubPullRequestEntityType["properties"];
@@ -33,6 +40,23 @@ const PRStatus: React.FC<{
       ? "closed"
       : "open";
 
+  let icon;
+
+  switch (status) {
+    case "merged":
+      icon = <PullRequestMergedIcon sx={{ mr: 0.75, fontSize: 12 }} />;
+      break;
+
+    case "closed":
+      icon = <PullRequestClosedIcon sx={{ mr: 0.75, fontSize: 12 }} />;
+      break;
+
+    case "open":
+    default:
+      icon = <PullRequestOpenIcon sx={{ mr: 0.75, fontSize: 12 }} />;
+      break;
+  }
+
   return (
     <Box
       sx={({ palette }) => ({
@@ -46,12 +70,8 @@ const PRStatus: React.FC<{
         backgroundColor: getEventTypeColor(status),
       })}
     >
-      <PullRequestIcon sx={{ mr: 0.75, fontSize: 12 }} />
-      <Typography
-        variant="smallTextLabels"
-        fontWeight={500}
-        color="currentcolor"
-      >
+      {icon}
+      <Typography fontWeight={500} color="currentcolor">
         {status}
       </Typography>
     </Box>
@@ -84,10 +104,11 @@ export const GithubPrOverview: React.FunctionComponent<
   return (
     <Box sx={{ maxWidth: 800, mx: "auto" }}>
       <Box
-        sx={({ palette }) => ({
+        sx={({ palette, spacing }) => ({
           backgroundColor: palette.white,
           padding: 3,
           position: "relative",
+          borderRadius: spacing(0.75, 0.75, 0, 0),
         })}
       >
         <IconButton
@@ -137,7 +158,7 @@ export const GithubPrOverview: React.FunctionComponent<
         <Box display="flex" alignItems="center">
           <Box display="flex" alignItems="center" mr={3}>
             <PRStatus pullRequest={pullRequest} />
-            <Typography variant="smallTextLabels" fontWeight={500} ml={0.75}>
+            <Typography fontWeight={500} ml={0.75}>
               within {timeToClose}
             </Typography>
           </Box>
@@ -150,7 +171,6 @@ export const GithubPrOverview: React.FunctionComponent<
               {pullRequest.user?.login ?? "User"}
             </Avatar>
             <Typography
-              variant="smallTextLabels"
               sx={({ palette }) => ({
                 color: palette.gray[70],
                 mr: 3,
@@ -162,7 +182,6 @@ export const GithubPrOverview: React.FunctionComponent<
             <Stack
               direction="row"
               alignItems="center"
-              typography="smallTextLabels"
               sx={({ palette }) => ({
                 color: palette.gray[70],
                 fontWeight: 500,
@@ -194,19 +213,28 @@ export const GithubPrOverview: React.FunctionComponent<
           completedReviews={uniqueReviewers}
         />
       </Box>
+
       <Box
         sx={{
-          background: `linear-gradient(181.33deg, #F7FAFC 10.89%, rgba(251, 253, 254, 0) 94.8%)`,
-          height: 9,
           position: "relative",
+          "&:before": {
+            content: "''",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            background:
+              "linear-gradient(181.33deg, #F7FAFC 10.89%, rgba(251, 253, 254, 0) 94.8%)",
+            height: 9,
+          },
         }}
-      />
-
-      <GithubPrTimeline
-        pullRequest={pullRequest}
-        reviews={reviews}
-        events={events}
-      />
+      >
+        <GithubPrTimeline
+          pullRequest={pullRequest}
+          reviews={reviews}
+          events={events}
+        />
+      </Box>
     </Box>
   );
 };

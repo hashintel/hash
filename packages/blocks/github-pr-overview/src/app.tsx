@@ -4,22 +4,14 @@ import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
 import { Box, CssBaseline, Theme, ThemeProvider } from "@mui/material";
 import { theme } from "@hashintel/hash-design-system";
 import {
-  GithubIssueEventEntityType,
-  GithubPullRequestEntityType,
   PullRequestIdentifier,
-  GithubReviewEntityType,
-  GITHUB_ENTITY_TYPES,
   BlockState,
+  LocalState,
+  Actions,
 } from "./types";
 import { GithubPrOverview } from "./overview";
 
-import {
-  getPrEvents,
-  getAllPRs,
-  getPrsPerPage,
-  getPrReviews,
-  getGithubEntityTypes,
-} from "./entity-aggregations";
+import { getPRDetails, getEntityTypeIdsAndPRs } from "./entity-aggregations";
 import { PullRequestSelector } from "./pull-request-selector";
 import { InfoUI } from "./info-ui";
 
@@ -27,41 +19,26 @@ type BlockEntityProperties = {
   selectedPullRequest?: PullRequestIdentifier;
 };
 
-// 13/16px
-// body => 14/17px
-// 16/19px
-// 32/110% or 35px
-
 const customTheme: Theme = {
   ...theme,
   typography: {
     ...theme.typography,
     fontSize: 14,
-    // @todo make base font-size 14px
+    h1: {
+      ...theme.typography.h1,
+      fontSize: 32,
+    },
+    h2: {
+      ...theme.typography.h2,
+      fontSize: 24,
+      fontWeight: 400,
+    },
+    body1: {
+      ...theme.typography.body1,
+      fontSize: 14,
+    },
   },
 };
-
-type LocalState = {
-  blockState: BlockState;
-  selectedPullRequestId?: PullRequestIdentifier;
-  githubEntityTypeIds?: { [key in GITHUB_ENTITY_TYPES]: string };
-  allPrs?: Map<string, GithubPullRequestEntityType>;
-  pullRequest?: GithubPullRequestEntityType;
-  reviews: GithubReviewEntityType["properties"][];
-  events: GithubIssueEventEntityType["properties"][];
-  infoMessage: string;
-};
-
-type Action<S, T = undefined> = T extends undefined
-  ? { type: S }
-  : {
-      type: S;
-      payload: T;
-    };
-
-type Actions =
-  | Action<"UPDATE_STATE", Partial<LocalState>>
-  | Action<"RESET_SELECTED_PR">;
 
 const reducer = (state: LocalState, action: Actions): LocalState => {
   switch (action.type) {
@@ -87,7 +64,7 @@ const reducer = (state: LocalState, action: Actions): LocalState => {
 };
 
 const getInitialState = (options: Partial<LocalState>) => ({
-  blockState: BlockState.Selector,
+  blockState: BlockState.Loading,
   githubEntityTypeIds: undefined,
   allPrs: new Map(),
   pullRequest: undefined,
@@ -157,43 +134,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     dispatch({ type: "RESET_SELECTED_PR" });
   };
 
-  const fetchGithubEntityTypeIds = React.useCallback(async () => {
-    if (!graphService) return;
-
-    dispatch({
-      type: "UPDATE_STATE",
-      payload: { blockState: BlockState.Loading },
-    });
-
-    try {
-      const entityTypeIds = await getGithubEntityTypes(({ data }) =>
-        graphService.aggregateEntityTypes({ data }),
-      );
-
-      const prs = await getAllPRs(
-        entityTypeIds[GITHUB_ENTITY_TYPES.PullRequest],
-        ({ data }) => graphService.aggregateEntities({ data }),
-      );
-
-      dispatch({
-        type: "UPDATE_STATE",
-        payload: {
-          allPrs: prs,
-          githubEntityTypeIds: entityTypeIds,
-          blockState: BlockState.Selector,
-        },
-      });
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.log({ err });
-      // confirm if we need this
-      dispatch({
-        type: "UPDATE_STATE",
-        payload: { blockState: BlockState.Error },
-      });
-    }
-  }, [graphService]);
-
+  // Update local data if remote data changes
   React.useEffect(() => {
     if (
       JSON.stringify(remoteSelectedPullRequestId) !==
@@ -207,92 +148,83 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   }, [remoteSelectedPullRequestId, selectedPullRequestId]);
 
   React.useEffect(() => {
-    if (!blockRef.current) return;
-    // fetch entity types
-    if (!githubEntityTypeIds) {
-      void fetchGithubEntityTypeIds();
-    }
-  }, [githubEntityTypeIds, fetchGithubEntityTypeIds]);
-
-  React.useEffect(() => {
-    if (!blockRef.current) return;
-    if (
-      selectedPullRequestId !== undefined &&
-      githubEntityTypeIds !== undefined &&
-      graphService?.aggregateEntities
-    ) {
-      // @todo test loading flows
-      dispatch({
-        type: "UPDATE_STATE",
-        payload: {
-          blockState: BlockState.Loading,
-          infoMessage: `Creating your timeline for pull request ${selectedPullRequestId}`,
-        },
-      });
-
-      void Promise.all([
-        getPrReviews(
-          selectedPullRequestId,
-          githubEntityTypeIds[GITHUB_ENTITY_TYPES.Review],
-          async ({ data }) => await graphService?.aggregateEntities({ data }),
-        ),
-        getPrEvents(
-          selectedPullRequestId,
-          githubEntityTypeIds[GITHUB_ENTITY_TYPES.IssueEvent],
-          ({ data }) => graphService?.aggregateEntities({ data }),
-        ),
-      ])
-        .then(([prReviews, prEvents]) => {
-          dispatch({
-            type: "UPDATE_STATE",
-            payload: {
-              reviews: prReviews.map((review) => ({ ...review.properties })),
-              events: prEvents.map((event) => ({ ...event.properties })),
-              blockState: BlockState.Overview,
-            },
-          });
-        })
-        .catch((_) => {
-          dispatch({
-            type: "UPDATE_STATE",
-            payload: {
-              blockState: BlockState.Error,
-            },
-          });
-        });
-    }
-  }, [githubEntityTypeIds, selectedPullRequestId, graphService]);
-
-  // Block has been initialized with a selected Pull Request, get associated info
-  React.useEffect(() => {
-    if (!blockRef.current) return;
-    if (!graphService?.aggregateEntities) return;
-
-    if (
-      selectedPullRequestId !== undefined &&
-      githubEntityTypeIds !== undefined
-    ) {
+    if (!graphService) return;
+    if (!githubEntityTypeIds || !allPrs) {
       dispatch({
         type: "UPDATE_STATE",
         payload: { blockState: BlockState.Loading },
       });
 
-      void getPrsPerPage(
-        githubEntityTypeIds[GITHUB_ENTITY_TYPES.PullRequest],
+      void getEntityTypeIdsAndPRs(
+        githubEntityTypeIds,
+        ({ data }) => graphService.aggregateEntityTypes({ data }),
         ({ data }) => graphService.aggregateEntities({ data }),
-        1,
-        selectedPullRequestId,
-      ).then((pullRequests) => {
-        if (pullRequests) {
-          const pr = pullRequests.results?.[0];
-          if (pr) {
-            dispatch({
-              type: "UPDATE_STATE",
-              payload: { pullRequest: pr },
-            });
-          }
-        }
+      )
+        .then(({ entityTypeIds, prs }) => {
+          dispatch({
+            type: "UPDATE_STATE",
+            payload: {
+              allPrs: prs,
+              githubEntityTypeIds: entityTypeIds,
+              blockState: BlockState.Selector,
+            },
+          });
+        })
+        .catch((err) => {
+          dispatch({
+            type: "UPDATE_STATE",
+            payload: {
+              blockState: BlockState.Error,
+              infoMessage: err.message,
+            },
+          });
+        });
+    }
+  }, [graphService, githubEntityTypeIds, allPrs]);
+
+  // Fetch PR Details => pullRequest, events and reviews
+  // if there's a selectedPullRequestId
+  React.useEffect(() => {
+    if (!blockRef.current) return;
+    // @todo add check to see if selectedPR is the same as current PR
+    if (
+      selectedPullRequestId &&
+      githubEntityTypeIds &&
+      graphService?.aggregateEntities
+    ) {
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: {
+          blockState: BlockState.Loading,
+          infoMessage: `Creating your timeline for pull request #${selectedPullRequestId.number}`,
+        },
       });
+
+      void getPRDetails(
+        selectedPullRequestId,
+        githubEntityTypeIds,
+        ({ data }) => graphService?.aggregateEntities({ data }),
+      )
+        .then((data) => {
+          dispatch({
+            type: "UPDATE_STATE",
+            payload: {
+              pullRequest: data.pullRequest,
+              reviews: data.reviews,
+              events: data.events,
+              blockState: BlockState.Overview,
+            },
+          });
+        })
+        .catch((err) => {
+          dispatch({
+            type: "UPDATE_STATE",
+            payload: {
+              blockState: BlockState.Error,
+              infoMessage: err.message,
+            },
+          });
+        });
     }
   }, [githubEntityTypeIds, selectedPullRequestId, graphService]);
 
@@ -324,30 +256,39 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     }
   };
 
-  // @todo confirm if this is still needed
-  // if (allPrs && allPrs.size > 0 && blockState === BlockState.Loading) {
-  //   dispatch({
-  //     type: "UPDATE_STATE",
-  //     payload: { blockState: BlockState.Selector },
-  //   });
-  // } else if (
-  //   selectedPullRequestId !== undefined &&
-  //   pullRequest !== undefined &&
-  //   reviews !== undefined &&
-  //   events !== undefined &&
-  //   blockState !== BlockState.Overview
-  // ) {
-  //   dispatch({
-  //     type: "UPDATE_STATE",
-  //     payload: { blockState: BlockState.Overview },
-  //   });
-  // }
+  if (
+    allPrs &&
+    allPrs.size > 0 &&
+    !selectedPullRequestId &&
+    blockState === BlockState.Loading
+  ) {
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: { blockState: BlockState.Selector },
+    });
+  } else if (
+    selectedPullRequestId &&
+    pullRequest &&
+    reviews &&
+    events &&
+    blockState !== BlockState.Overview
+  ) {
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: { blockState: BlockState.Overview },
+    });
+  }
 
-  /** @todo - Filterable list to select a pull-request */
   return (
     <ThemeProvider theme={customTheme}>
       <CssBaseline />
-      <Box p={2} ref={blockRef}>
+      <Box
+        sx={({ palette }) => ({
+          backgroundColor: palette.gray[20],
+        })}
+        p={2}
+        ref={blockRef}
+      >
         {renderContent()}
       </Box>
     </ThemeProvider>
