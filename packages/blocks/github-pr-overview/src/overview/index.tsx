@@ -99,8 +99,6 @@ export const GithubPrOverview: React.FunctionComponent<
         )
       : undefined;
 
-  console.log({ pullRequest });
-
   return (
     <Box sx={{ maxWidth: 800, mx: "auto" }}>
       <Box
@@ -159,7 +157,7 @@ export const GithubPrOverview: React.FunctionComponent<
           <Box display="flex" alignItems="center" mr={3}>
             <PRStatus pullRequest={pullRequest} />
             <Typography fontWeight={500} ml={0.75}>
-              within {timeToClose}
+              {timeToClose ? `within ${timeToClose}` : ""}
             </Typography>
           </Box>
           <Box display="flex" alignItems="center">
