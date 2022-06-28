@@ -159,20 +159,39 @@ class __Page extends Entity {
     client: DbClient,
     params: {
       accountId: string;
-      archived: boolean;
+      includeArchived?: boolean;
     },
   ): Promise<Page[]> {
+    const { includeArchived = false } = params;
+
     const pageEntities = await Entity.getEntitiesBySystemType(client, {
       accountId: params.accountId,
       systemTypeName: "Page",
       latestOnly: true,
     });
 
-    return await Promise.all(
-      pageEntities
-        .filter((page) => !!page.properties.archived === params.archived)
-        .map((entity) => Page.fromEntity(client, entity)),
+    const pages = await Promise.all(
+      pageEntities.map((entity) => Page.fromEntity(client, entity)),
     );
+
+    return await Promise.all(
+      pages.map(async (page) => {
+        if (!includeArchived && (await page.isArchived(client))) {
+          return [];
+        }
+        return page;
+      }),
+    ).then((filteredPages) => filteredPages.flat());
+  }
+
+  async isArchived(client: DbClient): Promise<Boolean> {
+    if (this.properties.archived) {
+      return true;
+    }
+
+    const parentPage = await this.getParentPage(client);
+
+    return parentPage ? await parentPage.isArchived(client) : false;
   }
 
   static async fromEntity(client: DbClient, entity: Entity): Promise<Page> {
