@@ -1,0 +1,20 @@
+cargo-features = ["workspace-inheritance"]
+
+[package]
+name = "graph"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+publish.workspace = true
+repository.workspace = true
+license-file.workspace = true
+readme.workspace = true
+
+
+[dependencies]
+
+[dev-dependencies]
+
+[build-dependencies]
+
+[features]
