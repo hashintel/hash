@@ -7,7 +7,7 @@ name = "graph"
 version = "0.0.0"
 
 [[package]]
-name = "hash_graph"
+name = "hash-graph"
 version = "0.0.0"
 dependencies = [
  "graph",
