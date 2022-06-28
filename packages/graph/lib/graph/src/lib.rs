@@ -21,7 +21,6 @@
     clippy::rc_buffer,
     clippy::rc_mutex,
     clippy::same_name_method,
-    clippy::self_named_module_files,
     clippy::str_to_string,
     clippy::string_add,
     clippy::string_slice,
@@ -38,6 +37,6 @@
 mod tests {
     #[test]
     fn it_works() {
-        assert!(true)
+        assert_eq!(2 + 2, 4);
     }
 }
