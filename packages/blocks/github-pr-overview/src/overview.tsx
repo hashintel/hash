@@ -93,6 +93,7 @@ export const GithubPrOverview: React.FunctionComponent<
         <IconButton
           onClick={reset}
           rounded
+          size="large"
           sx={{ position: "absolute", right: 2, top: 2 }}
         >
           <CloseIcon />
@@ -143,7 +144,6 @@ export const GithubPrOverview: React.FunctionComponent<
           <Box display="flex" alignItems="center">
             <Avatar
               sx={{ height: 20, width: 20, mr: 1 }}
-              // @todo add default image
               src={pullRequest.user?.avatar_url ?? ""}
               alt={pullRequest.user?.login ?? "User"}
             >
