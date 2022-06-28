@@ -97,7 +97,7 @@ def filter_for_crates_to_document(crates):
     :param crates: a list of paths to crates
     :return: a list of crate paths
     """
-    return [crate for crate in crates for pattern in DISABLE_DOC_PATTERNS if not fnmatch(crate, pattern)]
+    return list(set(crates) - set([crate for crate in crates for pattern in DISABLE_DOC_PATTERNS if fnmatch(crate, pattern)]))
 
 
 def filter_for_crates_with_release_tests(crates):
@@ -146,7 +146,7 @@ def output(name, crates):
 def main():
     diffs = generate_diffs()
     available_crates = find_local_crates()
-    changed_crates = filter_for_changed_crates(diffs, available_crates)
+    changed_crates = list(set(filter_for_changed_crates(diffs, available_crates)))
 
     output("rustfmt", changed_crates)
     output("clippy", changed_crates)
