@@ -1,10 +1,10 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import {
-  ArchivePageMutation,
-  ArchivePageMutationVariables,
+  UpdatePageMutation,
+  UpdatePageMutationVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { archivePage as archivePageMutation } from "@hashintel/hash-shared/queries/page.queries";
+import { updatePage } from "@hashintel/hash-shared/queries/page.queries";
 
 import { useCallback } from "react";
 import { getAccountPages } from "../../graphql/queries/account.queries";
@@ -12,10 +12,10 @@ import { getAccountPages } from "../../graphql/queries/account.queries";
 export const useArchivePage = (accountId: string) => {
   const router = useRouter();
 
-  const [archivePageFn] = useMutation<
-    ArchivePageMutation,
-    ArchivePageMutationVariables
-  >(archivePageMutation, {
+  const [updateEntityFn] = useMutation<
+    UpdatePageMutation,
+    UpdatePageMutationVariables
+  >(updatePage, {
     refetchQueries: () => [
       {
         query: getAccountPages,
@@ -26,10 +26,11 @@ export const useArchivePage = (accountId: string) => {
 
   const archivePage = useCallback(
     async (pageEntityId: string) => {
-      await archivePageFn({
+      await updateEntityFn({
         variables: {
           accountId,
-          pageEntityId,
+          entityId: pageEntityId,
+          properties: { archived: true },
         },
       });
 
@@ -37,7 +38,7 @@ export const useArchivePage = (accountId: string) => {
         return router.push(`/${accountId}`);
       }
     },
-    [archivePageFn, accountId, router],
+    [updateEntityFn, accountId, router],
   );
 
   return archivePage;

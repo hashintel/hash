@@ -235,33 +235,6 @@ class __Page extends Entity {
     return parentPage.hasParentPage(client, params);
   }
 
-  async archivePage(client: DbClient): Promise<void> {
-    const childrenPageLinks = await this.getIncomingLinks(client);
-
-    const promises = childrenPageLinks
-      .filter(
-        (childPageLink) => childPageLink.stringifiedPath === "$.parentPage",
-      )
-      .map(async (childPageLink) => {
-        const page = await Page.getPageById(client, {
-          accountId: this.accountId,
-          entityId: childPageLink.sourceEntityId,
-        });
-
-        return page?.archivePage(client);
-      });
-
-    return await Promise.all(promises).then(async () => {
-      await this.updateEntityProperties(client, {
-        properties: {
-          ...(this.properties ?? {}),
-          archived: true,
-        },
-        updatedByAccountId: this.accountId,
-      });
-    });
-  }
-
   async deleteParentPage(
     client: DbClient,
     params: {
