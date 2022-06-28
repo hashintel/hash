@@ -20,7 +20,7 @@ import {
   getPrReviews,
 } from "./entity-aggregations";
 import { PullRequestSelector } from "./pull-request-selector";
-import { LoadingUI } from "./loading-ui";
+import { InfoUI } from "./info-ui";
 
 export enum BlockState {
   Loading,
@@ -47,69 +47,117 @@ const customTheme: Theme = {
   },
 };
 
+type LocalState = {
+  blockState: BlockState;
+  selectedPullRequestId?: PullRequestIdentifier;
+  githubEntityTypeIds?: { [key in GITHUB_ENTITY_TYPES]: string };
+  allPrs?: Map<string, GithubPullRequest>;
+  pullRequest?: GithubPullRequest;
+  reviews: GithubReview[];
+  events: GithubIssueEvent[];
+  infoMessage: string;
+};
+
+type Actions = { type: "UPDATE_STATE"; payload: Partial<LocalState> };
+
+const reducer = (state: LocalState, action: Actions): LocalState => {
+  switch (action.type) {
+    case "UPDATE_STATE":
+      return {
+        ...state,
+        ...action.payload,
+      };
+  }
+};
+
+const getInitialState = (options: Partial<LocalState>) => ({
+  blockState: BlockState.Selector,
+  githubEntityTypeIds: undefined,
+  allPrs: new Map(),
+  pullRequest: undefined,
+  infoMessage: "",
+  reviews: [],
+  events: [],
+  ...options,
+});
+
 export const App: BlockComponent<BlockEntityProperties> = ({
-  accountId,
-  // entityId,
   graph: { blockEntity },
-  // aggregateEntities,
-  // selectedPullRequest,
-  // selectedPullRequest = {
-  //   repository: (mockData.entities[0] as GithubPullRequest).repository,
-  //   number: (mockData.entities[0] as GithubPullRequest).number,
-  // } as PullRequestIdentifier,
-  // updateEntities,
-  // aggregateEntityTypes,
 }) => {
   const blockRef = React.useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRef);
   const {
     entityId,
-    properties: {
-      selectedPullRequest = {
-        repository: (mockData.entities[0] as GithubPullRequest).repository,
-        number: (mockData.entities[0] as GithubPullRequest).number,
-      } as PullRequestIdentifier,
-    },
+    // selectedPullRequest is just an Identifier, but isn't the associated GithubPullRequestEntity
+    properties: { selectedPullRequest: remoteSelectedPullRequestId },
   } = blockEntity;
-  const [blockState, setBlockState] = React.useState(BlockState.Loading);
-
-  // selectedPullRequest is just an Identifier, but isn't the associated GithubPullRequestEntity
-  const [selectedPullRequestId, setSelectedPullRequestId] = React.useState<
-    PullRequestIdentifier | undefined
-  >(selectedPullRequest);
+  const [
+    {
+      blockState,
+      selectedPullRequestId,
+      allPrs,
+      pullRequest,
+      reviews,
+      events,
+      githubEntityTypeIds,
+      infoMessage,
+    },
+    dispatch,
+  ] = React.useReducer<React.Reducer<LocalState, Actions>>(
+    reducer,
+    getInitialState({
+      selectedPullRequestId: remoteSelectedPullRequestId,
+    }),
+  );
 
   const setSelectedPullRequestIdAndPersist = (
     pullRequestId?: PullRequestIdentifier,
   ) => {
-    void graphService
-      ?.updateEntity({
-        data: {
-          entityId,
-          properties: {
-            selectedPullRequest: pullRequestId,
-          },
+    void graphService?.updateEntity({
+      data: {
+        entityId,
+        properties: {
+          selectedPullRequest: pullRequestId,
         },
       },
     });
 
-    setSelectedPullRequestId(pullRequestId);
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: { selectedPullRequestId: pullRequestId },
+    });
   };
 
-  const [githubEntityTypeIds, setGithubEntityTypeIds] =
-    React.useState<{ [key in GITHUB_ENTITY_TYPES]: string }>();
+  const resetPRInfo = () => {
+    void graphService?.updateEntity({
+      data: {
+        entityId,
+        properties: {
+          selectedPullRequest: undefined,
+        },
+      },
+    });
 
-  const [allPrs, setAllPrs] = React.useState<Map<string, GithubPullRequest>>();
-  const [pullRequest, setPullRequest] = React.useState<GithubPullRequest>(
-    mockData.entities[0] as GithubPullRequest,
-  );
-  // const [pullRequest, setPullRequest] = React.useState<GithubPullRequest>();
-  const [reviews, setReviews] = React.useState<GithubReview[]>();
-  const [events, setEvents] = React.useState<GithubIssueEvent[]>();
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: {
+        selectedPullRequestId: undefined,
+        blockState: BlockState.Selector,
+        pullRequest: undefined,
+        events: [],
+        reviews: [],
+      },
+    });
+  };
 
   const fetchGithubEntityTypeIds = React.useCallback(async () => {
     if (!graphService) return;
 
-    setBlockState(BlockState.Loading);
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: { blockState: BlockState.Loading },
+    });
+
     try {
       const entityTypeIds = await getGithubEntityTypes(({ data }) =>
         graphService.aggregateEntityTypes({ data }),
@@ -120,17 +168,36 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         ({ data }) => graphService.aggregateEntities({ data }),
       );
 
-      setAllPrs(prs);
-      setGithubEntityTypeIds(entityTypeIds);
-      setBlockState(BlockState.Selector);
-      // console.log("fetched ids => ", entityTypeIds);
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: {
+          allPrs: prs,
+          githubEntityTypeIds: entityTypeIds,
+          blockState: BlockState.Selector,
+        },
+      });
     } catch (err) {
       // eslint-disable-next-line no-console
       console.log({ err });
       // confirm if we need this
-      setBlockState(BlockState.Error);
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: { blockState: BlockState.Error },
+      });
     }
   }, [graphService]);
+
+  // React.useEffect(() => {
+  //   if (
+  //     JSON.stringify(remoteSelectedPullRequestId) !==
+  //     JSON.stringify(selectedPullRequestId)
+  //   ) {
+  //     dispatch({
+  //       type: "UPDATE_STATE",
+  //       payload: { selectedPullRequestId: remoteSelectedPullRequestId },
+  //     });
+  //   }
+  // }, [remoteSelectedPullRequestId, selectedPullRequestId]);
 
   React.useEffect(() => {
     if (!blockRef.current) return;
@@ -141,54 +208,74 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   }, [githubEntityTypeIds, fetchGithubEntityTypeIds]);
 
   React.useEffect(() => {
+    if (!blockRef.current) return;
     if (
       selectedPullRequestId !== undefined &&
       githubEntityTypeIds !== undefined &&
       graphService?.aggregateEntities
     ) {
-      setBlockState(BlockState.Loading);
+      // @todo test loading flows
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: {
+          blockState: BlockState.Loading,
+          infoMessage: `Creating your timeline for pull request ${selectedPullRequestId}`,
+        },
+      });
 
-      const init = async () => {
-        const [prReviews, prEvents] = await Promise.all([
-          getPrReviews(
-            selectedPullRequestId,
-            githubEntityTypeIds[GITHUB_ENTITY_TYPES.Review],
-            async ({ data }) => await graphService?.aggregateEntities({ data }),
-          ),
-          getPrEvents(
-            selectedPullRequestId,
-            githubEntityTypeIds[GITHUB_ENTITY_TYPES.IssueEvent],
-            ({ data }) => graphService?.aggregateEntities({ data }),
-          ),
-        ]);
-
-        setReviews(prReviews);
-        setEvents(prEvents);
-      };
-
-      void init();
+      void Promise.all([
+        getPrReviews(
+          selectedPullRequestId,
+          githubEntityTypeIds[GITHUB_ENTITY_TYPES.Review],
+          async ({ data }) => await graphService?.aggregateEntities({ data }),
+        ),
+        getPrEvents(
+          selectedPullRequestId,
+          githubEntityTypeIds[GITHUB_ENTITY_TYPES.IssueEvent],
+          ({ data }) => graphService?.aggregateEntities({ data }),
+        ),
+      ])
+        .then(([prReviews, prEvents]) => {
+          dispatch({
+            type: "UPDATE_STATE",
+            payload: {
+              reviews: prReviews,
+              events: prEvents,
+              blockState: BlockState.Overview,
+            },
+          });
+        })
+        .catch((err) => {});
     }
   }, [githubEntityTypeIds, selectedPullRequestId, graphService]);
 
-  // @todo continue from here
   // Block has been initialized with a selected Pull Request, get associated info
   React.useEffect(() => {
+    if (!blockRef.current) return;
+    if (!graphService?.aggregateEntities) return;
+
     if (
       selectedPullRequestId !== undefined &&
       githubEntityTypeIds !== undefined
     ) {
-      setBlockState(BlockState.Loading);
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: { blockState: BlockState.Loading },
+      });
+
       void getPrs(
         githubEntityTypeIds[GITHUB_ENTITY_TYPES.PullRequest],
         ({ data }) => graphService.aggregateEntities({ data }),
         1,
         selectedPullRequestId,
       ).then((pullRequests) => {
-        // console.log("fetched request ==> ", { pullRequests });
         if (pullRequests) {
           const pr = pullRequests.results?.[0];
           if (pr) {
-            setPullRequest(pr);
+            dispatch({
+              type: "UPDATE_STATE",
+              payload: { pullRequest: pr },
+            });
           }
         }
       });
@@ -197,12 +284,37 @@ export const App: BlockComponent<BlockEntityProperties> = ({
 
   /** @todo - Figure out when to query for more than one page, probably querying until no more results */
 
-  if (
-    allPrs !== undefined &&
-    allPrs.size > 0 &&
-    blockState === BlockState.Loading
-  ) {
-    setBlockState(BlockState.Selector);
+  const renderContent = () => {
+    switch (blockState) {
+      case BlockState.Loading:
+        return <InfoUI title={infoMessage || "Setting up Block"} loading />;
+      case BlockState.Overview:
+        return (
+          <GithubPrOverview
+            pullRequest={pullRequest?.properties ?? {}}
+            reviews={reviews?.map((review) => ({ ...review.properties })) ?? []}
+            events={events?.map((event) => ({ ...event.properties })) ?? []}
+            reset={resetPRInfo}
+          />
+        );
+      case BlockState.Error:
+        return <InfoUI title="An error occured" />;
+      case BlockState.Selector:
+      default:
+        return (
+          <PullRequestSelector
+            setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
+            allPrs={allPrs!}
+          />
+        );
+    }
+  };
+
+  if (allPrs && allPrs.size > 0 && blockState === BlockState.Loading) {
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: { blockState: BlockState.Selector },
+    });
   } else if (
     selectedPullRequestId !== undefined &&
     pullRequest !== undefined &&
@@ -210,7 +322,10 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     events !== undefined &&
     blockState !== BlockState.Overview
   ) {
-    setBlockState(BlockState.Overview);
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: { blockState: BlockState.Overview },
+    });
   }
 
   /** @todo - Filterable list to select a pull-request */
@@ -218,28 +333,12 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     <ThemeProvider theme={customTheme}>
       <CssBaseline />
       <Box
+        ref={blockRef}
         sx={({ palette }) => ({
           background: palette.gray[20],
         })}
       >
-        {blockState === BlockState.Loading ? (
-          <LoadingUI title="Setting up Block" />
-        ) : blockState === BlockState.Selector ? (
-          <PullRequestSelector
-            setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
-            allPrs={allPrs!}
-          />
-        ) : blockState === BlockState.Overview ? (
-          <GithubPrOverview
-            pullRequest={pullRequest?.properties ?? {}}
-            reviews={reviews?.map((review) => ({ ...review.properties })) ?? []}
-            events={events?.map((event) => ({ ...event.properties })) ?? []}
-            setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
-            setBlockState={setBlockState}
-          />
-        ) : (
-          <div> Failed To Load Block </div>
-        )}
+        {renderContent()}
         <Box
           sx={{
             height: 100,
