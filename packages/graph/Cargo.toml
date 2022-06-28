@@ -1,0 +1,21 @@
+[package]
+name = "graph"
+version = "0.0.0"
+edition = "2021"
+authors = ["HASH"]
+description = "Datastore infrastructure for HASH"
+readme = "README.md"
+repository = "https://github.com/hashintel/hash/tree/main/packages/graph"
+
+[dependencies]
+
+[dev-dependencies]
+
+[build-dependencies]
+
+[features]
+
+[profile.production]
+inherits = "release"
+lto = "fat"
+strip = "symbols"
