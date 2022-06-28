@@ -63,7 +63,6 @@ const main = async () => {
     // Calling `drop database` would be easier, but would crash a locally running API server.
     // Recreating schemas lets Postgres clients preserve their connection during DB recreation.
     await databaseClient.query(`drop schema if exists public cascade`);
-    await databaseClient.query(`drop schema if exists realtime cascade`);
     await databaseClient.query(`create schema public`);
     console.log(`Database ${database} was recreated`);
     await databaseClient.end();

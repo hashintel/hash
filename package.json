@@ -5,6 +5,7 @@
     "sites/hashdev",
     "packages/blocks/*",
     "packages/engine/apache-arrow-js-bundle",
+    "packages/graph/hash-graph/migrations",
     "packages/hash/api",
     "packages/hash/backend-utils",
     "packages/hash/datastore",
