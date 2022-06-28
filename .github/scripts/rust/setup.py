@@ -12,11 +12,11 @@ ALWAYS_RUN_PATTERNS = ["**/rust-toolchain.toml", ".github/**"]
 TEST_IN_RELEASE_CRATES = ["packages/engine"]
 
 # Exclude the stable channel for these crates
-DISABLE_STABLE_PATTERNS = ["packages/engine**", "packages/graph**"]
+DISABLE_STABLE_PATTERNS = ["packages/engine**", "packages/graph/hash_graph**"]
 
 # Exclude these crates to run `rustdoc` at
-# Note: This will run `rustdoc` for all crates except the virtual package in `packages/engine` and `packages/graph`
-DISABLE_DOC_PATTERNS = ["packages/engine", "packages/graph"]
+# Note: This will run `rustdoc` for all crates except the virtual package in `packages/engine` and `packages/graph/hash_graph`
+DISABLE_DOC_PATTERNS = ["packages/engine", "packages/graph/hash_graph"]
 
 # Try and publish these crates when their version is changed in Cargo.toml
 PUBLISH_PATTERNS = ["packages/libs/error-stack"]
