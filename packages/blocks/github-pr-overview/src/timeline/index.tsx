@@ -122,7 +122,7 @@ export const GithubPrTimeline: React.FunctionComponent<
     addDefaultFromPossible(possibleEventTypes),
   );
 
-  // @todo remove the need for this
+  // @todo make this more performant
   React.useEffect(() => {
     setSelectedEventTypes(addDefaultFromPossible(possibleEventTypes));
   }, [possibleEventTypes]);

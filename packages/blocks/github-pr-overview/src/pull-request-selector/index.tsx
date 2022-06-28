@@ -2,8 +2,8 @@ import * as React from "react";
 
 import { Box, Typography } from "@mui/material";
 
-import { GithubPullRequestEntityType } from "./types";
-import { GithubIcon } from "./icons";
+import { GithubPullRequestEntityType } from "../types";
+import { GithubIcon } from "../icons";
 import { CustomAutocomplete } from "./custom-autocomplete";
 
 export type PullRequestSelectorProps = {

@@ -78,15 +78,6 @@ const CustomAutocomplete = <T,>(
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
-      componentsProps={{
-        paper: {
-          sx: ({ typography }) => ({
-            [`.${autocompleteClasses.option}`]: {
-              ...typography.smallTextLabels,
-            },
-          }),
-        },
-      }}
       renderInput={renderInput}
       {...props}
     />

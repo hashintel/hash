@@ -42,7 +42,6 @@ const FilterBtn = styled(({ ...props }: BoxProps) => (
 
   [`.${typographyClasses.root}`]: {
     color: theme.palette.gray[80],
-    ...theme.typography.smallTextLabels,
     fontWeight: 500,
     marginRight: theme.spacing(1),
   },

@@ -1,14 +1,13 @@
 import { startCase } from "lodash";
 import { theme } from "@hashintel/hash-design-system";
 
-// @todo revise the colors here
 const NODE_COLORS = {
-  opened: theme.palette.green[50],
+  opened: theme.palette.blue[60],
   reviewed: theme.palette.mint[60],
   review_requested: theme.palette.orange[50],
   ready_for_review: theme.palette.teal[60],
-  closed: theme.palette.red[60],
-  merged: theme.palette.blue[50],
+  closed: theme.palette.gray[60],
+  merged: theme.palette.purple[70],
   mentioned: theme.palette.red[50],
 } as { [k: string]: string };
 

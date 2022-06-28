@@ -17,6 +17,28 @@ export enum BlockState {
   Overview = "overview",
 }
 
+export type LocalState = {
+  blockState: BlockState;
+  selectedPullRequestId?: PullRequestIdentifier;
+  githubEntityTypeIds?: { [key in GITHUB_ENTITY_TYPES]: string };
+  allPrs?: Map<string, GithubPullRequestEntityType>;
+  pullRequest?: GithubPullRequestEntityType;
+  reviews: GithubReviewEntityType["properties"][];
+  events: GithubIssueEventEntityType["properties"][];
+  infoMessage: string;
+};
+
+type Action<S, T = undefined> = T extends undefined
+  ? { type: S }
+  : {
+      type: S;
+      payload: T;
+    };
+
+export type Actions =
+  | Action<"UPDATE_STATE", Partial<LocalState>>
+  | Action<"RESET_SELECTED_PR">;
+
 export type PullRequestIdentifier = {
   repository: string;
   number: number;

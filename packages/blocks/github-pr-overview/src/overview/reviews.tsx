@@ -21,7 +21,6 @@ const Section: React.FC<SectionProps> = ({ title, reviews }) => {
     <Box>
       <Stack direction="row" alignItems="center">
         <Typography
-          variant="smallTextLabels"
           sx={({ palette }) => ({ color: palette.gray[90], fontWeight: 500 })}
         >
           {title}
@@ -58,7 +57,6 @@ const Section: React.FC<SectionProps> = ({ title, reviews }) => {
           ))}
         </AvatarGroup>
         <Typography
-          variant="smallTextLabels"
           sx={({ palette }) => ({
             color: palette.gray[70],
             lineHeight: 1,
