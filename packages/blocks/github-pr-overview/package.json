@@ -48,6 +48,9 @@
     "servePort": 63222
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "displayName": "GitHub Pull-Request Overview",
     "examples": [
       {
@@ -58,6 +61,7 @@
       }
     ],
     "icon": "public/pull-request.svg",
-    "image": "public/block-preview.svg"
+    "image": "public/block-preview.svg",
+    "protocol": "0.2"
   }
 }
