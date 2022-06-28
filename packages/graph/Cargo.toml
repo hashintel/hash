@@ -3,7 +3,7 @@ members = ["lib/*", "bin/*"]
 default-members = ["bin/hash_graph"]
 
 [workspace.package]
-description = "Datastore infrastructure for HASH"
+description = "The entity-graph query-layer for the HASH datastore"
 readme = "README.md"
 version = "0.0.0"
 edition = "2021"

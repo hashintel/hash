@@ -1,4 +1,4 @@
-//! The Graph API for the HASH workspace
+//! The entity-graph query-layer for the HASH datastore
 
 #![feature(lint_reasons)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
