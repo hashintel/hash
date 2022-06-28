@@ -5,10 +5,10 @@ import {
 import { uniqBy } from "lodash";
 
 import {
-  GithubIssueEvent,
-  GithubPullRequest,
+  GithubIssueEventEntityType,
+  GithubPullRequestEntityType,
   PullRequestIdentifier,
-  GithubReview,
+  GithubReviewEntityType,
   isDefined,
   GITHUB_ENTITY_TYPES,
 } from "./types";
@@ -70,7 +70,7 @@ export const getPrsPerPage = async (
   aggregateEntities: GraphBlockHandler["aggregateEntities"],
   pageNumber: number = 1,
   selectedPullRequest?: PullRequestIdentifier,
-): Promise<AggregateEntitiesResult<GithubPullRequest> | void> => {
+): Promise<AggregateEntitiesResult<GithubPullRequestEntityType> | void> => {
   return aggregateEntities({
     data: {
       operation: {
@@ -118,7 +118,7 @@ export const getAllPRs = (
     );
   return Promise.all(promises)
     .then((entitiesResults) => {
-      const entities: GithubPullRequest[] = entitiesResults
+      const entities: GithubPullRequestEntityType[] = entitiesResults
         .flatMap((entityResult) => entityResult?.results)
         .filter(isDefined);
 
@@ -143,7 +143,7 @@ const getReviewsPerPage = (
   githubReviewTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   pageNumber: number | undefined,
-): Promise<AggregateEntitiesResult<GithubReview> | void> => {
+): Promise<AggregateEntitiesResult<GithubReviewEntityType> | void> => {
   if (!aggregateEntities) {
     return new Promise<void>(() => {});
   }
@@ -203,7 +203,7 @@ export const getPrReviews = async (
 
   return Promise.all(promises)
     .then((entitiesResults) => {
-      const entities: GithubReview[] = entitiesResults
+      const entities: GithubReviewEntityType[] = entitiesResults
         .flatMap((entityResult) => entityResult?.results)
         .filter(isDefined);
 
@@ -221,7 +221,7 @@ const getEventsPerPage = (
   aggregateEntities: GraphBlockHandler["aggregateEntities"] | undefined,
   pageNumber: number | undefined,
   selectedPullRequest: PullRequestIdentifier,
-): Promise<AggregateEntitiesResult<GithubIssueEvent> | void> => {
+): Promise<AggregateEntitiesResult<GithubIssueEventEntityType> | void> => {
   if (!aggregateEntities) {
     return new Promise<void>(() => {});
   }
@@ -286,11 +286,11 @@ export const getPrEvents = async (
 
   return Promise.all(promises)
     .then((entitiesResults) => {
-      const entities: GithubIssueEvent[] = entitiesResults
+      const entities: GithubIssueEventEntityType[] = entitiesResults
         .flatMap((entityResult) => entityResult?.results)
         .filter(isDefined)
         .filter(
-          (entity: GithubIssueEvent) =>
+          (entity: GithubIssueEventEntityType) =>
             isDefined(entity.properties.issue?.pull_request), // We only want events for pull requests, not general issues
         );
 

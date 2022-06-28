@@ -21,10 +21,10 @@ const App = () => (
     blockEntity={{
       entityId: "entity-github-pr-overview",
       properties: {
-        // selectedPullRequest: {
-        //   repository: "blockprotocol/blockprotocol",
-        //   number: 298,
-        // },
+        selectedPullRequest: {
+          repository: "blockprotocol/blockprotocol",
+          number: 298,
+        },
       },
     }}
     debug

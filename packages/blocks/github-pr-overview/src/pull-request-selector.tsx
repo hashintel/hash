@@ -2,12 +2,12 @@ import * as React from "react";
 
 import { Box, Typography } from "@mui/material";
 
-import { GithubPullRequest } from "./types";
+import { GithubPullRequestEntityType } from "./types";
 import { GithubIcon } from "./icons";
 import { CustomAutocomplete } from "./custom-autocomplete";
 
 export type PullRequestSelectorProps = {
-  allPrs: Map<string, GithubPullRequest>;
+  allPrs: Map<string, GithubPullRequestEntityType>;
   setSelectedPullRequestId: (x: any) => void;
 };
 
