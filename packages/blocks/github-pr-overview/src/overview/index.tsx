@@ -191,9 +191,9 @@ export const GithubPrOverview: React.FunctionComponent<
               })}
             >
               <CommentIcon sx={{ mr: 1 }} />
-              <span>
+              <Typography>
                 {`${reviews.length} review${reviews.length > 1 ? "s" : ""}`}
-              </span>
+              </Typography>
             </Stack>
           </Box>
         </Box>
