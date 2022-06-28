@@ -159,11 +159,8 @@ class __Page extends Entity {
     client: DbClient,
     params: {
       accountId: string;
-      includeArchived?: boolean;
     },
   ): Promise<Page[]> {
-    const { includeArchived = false } = params;
-
     const pageEntities = await Entity.getEntitiesBySystemType(client, {
       accountId: params.accountId,
       systemTypeName: "Page",
@@ -176,7 +173,7 @@ class __Page extends Entity {
 
     return await Promise.all(
       pages.map(async (page) => {
-        if (!includeArchived && (await page.isArchived(client))) {
+        if (await page.isArchived(client)) {
           return [];
         }
         return page;

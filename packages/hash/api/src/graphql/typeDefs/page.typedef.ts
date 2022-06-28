@@ -146,7 +146,7 @@ export const pageTypedef = gql`
     """
     Return a list of pages belonging to an account
     """
-    accountPages(accountId: ID!, includeArchived: Boolean): [Page!]!
+    accountPages(accountId: ID!): [Page!]!
 
     """
     Search for pages matching a query string.

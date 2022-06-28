@@ -7,10 +7,9 @@ export const accountPages: Resolver<
   {},
   GraphQLContext,
   QueryAccountPagesArgs
-> = async (_, { accountId, includeArchived }, { dataSources }) => {
+> = async (_, { accountId }, { dataSources }) => {
   const pages = await Page.getAllPagesInAccount(dataSources.db, {
     accountId,
-    includeArchived: includeArchived ?? undefined,
   });
 
   return pages.map((page) => page.toGQLUnknownEntity());
