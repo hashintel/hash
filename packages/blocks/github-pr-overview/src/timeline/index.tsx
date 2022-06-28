@@ -1,13 +1,61 @@
 import * as React from "react";
 import Box from "@mui/material/Box";
-import Timeline from "@mui/lab/Timeline";
+import Timeline, { timelineClasses } from "@mui/lab/Timeline";
 
 import { uniq, intersection, sortBy } from "lodash";
-import { Collapse, Stack } from "@mui/material";
+import { Collapse, Stack, StackProps, styled } from "@mui/material";
 import { TransitionGroup } from "react-transition-group";
 import { TimelineItem } from "./timeline-item";
-import { GithubIssueEvent, GithubPullRequest, GithubReview } from "../types";
+import {
+  GithubIssueEventEntityType,
+  GithubPullRequestEntityType,
+  GithubReviewEntityType,
+} from "../types";
 import { ConfigPanel } from "./config-panel";
+
+const Container = styled(({ children, ...props }: StackProps) => (
+  <Stack
+    direction="row"
+    position="relative"
+    spacing="auto"
+    justifyContent="space-between"
+    px={4}
+    {...props}
+  >
+    {children}
+  </Stack>
+))(({ theme }) => ({
+  backgroundColor: theme.palette.gray[10],
+  borderRadius: "0 0 6px 6px",
+  position: "relative",
+  "&:after": {
+    content: "''",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 84,
+    background: `linear-gradient(181.33deg, #F7FAFC 1.14%, rgba(251, 253, 254, 0) 94.8%)`,
+    transform: "rotate(-180deg)",
+  },
+
+  ".timeline-wrapper": {
+    height: 580, // this should be max height
+    position: "relative",
+    overflowY: "scroll",
+    flex: 0.7,
+  },
+
+  [`.${timelineClasses.root}`]: {
+    maxWidth: 480,
+    paddingTop: 30,
+    paddingBottom: 100,
+  },
+
+  ".config-panel-wrapper": {
+    paddingTop: 32,
+  },
+}));
 
 const addDefaultFromPossible = (availableEventTypes: string[]) => {
   return intersection(
@@ -16,10 +64,27 @@ const addDefaultFromPossible = (availableEventTypes: string[]) => {
   );
 };
 
+const areDatesWithoutTimeEqual = (
+  date1?: string | null,
+  date2?: string | null,
+) => {
+  if (!date1 || !date2) {
+    return false;
+  }
+
+  const date1WithoutTime = new Date(date1);
+  const date2WithoutTime = new Date(date2);
+
+  date1WithoutTime.setHours(0, 0, 0);
+  date2WithoutTime.setHours(0, 0, 0);
+
+  return date1WithoutTime.getTime() === date2WithoutTime.getTime();
+};
+
 export type GithubPrTimelineProps = {
-  pullRequest: GithubPullRequest;
-  reviews: GithubReview[];
-  events: GithubIssueEvent[];
+  pullRequest: GithubPullRequestEntityType["properties"];
+  reviews: GithubReviewEntityType["properties"][];
+  events: GithubIssueEventEntityType["properties"][];
 };
 
 export const GithubPrTimeline: React.FunctionComponent<
@@ -72,44 +137,25 @@ export const GithubPrTimeline: React.FunctionComponent<
   );
 
   return (
-    <Stack
-      direction="row"
-      position="relative"
-      spacing="auto"
-      justifyContent="space-between"
-      px={2}
-      pt={2}
-    >
-      {/* @todo revisit maxWidth */}
-      <Box
-        maxWidth={480}
-        className="timeline"
-        sx={{
-          height: 580, // this should be max height
-          position: "relative",
-          overflowY: "scroll",
-
-          // @todo fade not showing
-          "&:before": {
-            content: "''",
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 80,
-            backgroundColor:
-              "linear-gradient(181.33deg, #F7FAFC 1.14%, rgba(251, 253, 254, 0) 94.8%",
-          },
-        }}
-      >
+    <Container>
+      <Box className="timeline-wrapper">
         <Timeline
           position="right"
-          style={{
+          sx={{
             opacity: timelineOpacity ? 0.5 : 1,
           }}
         >
           <TransitionGroup>
             {filteredNodes.map((event, idx) => {
+              let hideDate = false;
+
+              if (idx > 0 && idx < filteredNodes.length - 1) {
+                hideDate = areDatesWithoutTimeEqual(
+                  event.created_at,
+                  filteredNodes[idx + 1]?.created_at,
+                );
+              }
+
               return (
                 <Collapse in key={event.id?.toString()}>
                   <TimelineItem
@@ -118,6 +164,7 @@ export const GithubPrTimeline: React.FunctionComponent<
                     event={event}
                     hideConnector={idx >= filteredNodes.length - 1}
                     setTimelineOpacity={setTimelineOpacity}
+                    hideDate={hideDate}
                   />
                 </Collapse>
               );
@@ -125,11 +172,14 @@ export const GithubPrTimeline: React.FunctionComponent<
           </TransitionGroup>
         </Timeline>
       </Box>
-      <ConfigPanel
-        possibleEventTypes={possibleEventTypes}
-        selectedEventTypes={selectedEventTypes}
-        setSelectedEventTypes={setSelectedEventTypes}
-      />
-    </Stack>
+
+      <Box className="config-panel-wrapper">
+        <ConfigPanel
+          possibleEventTypes={possibleEventTypes}
+          selectedEventTypes={selectedEventTypes}
+          setSelectedEventTypes={setSelectedEventTypes}
+        />
+      </Box>
+    </Container>
   );
 };

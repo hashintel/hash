@@ -37,7 +37,7 @@ const Section: React.FC<SectionProps> = ({ title, reviews }) => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            [`& ${typographyClasses.root}`]: {
+            [`& .${typographyClasses.root}`]: {
               color: palette.gray[70],
               fontWeight: 600,
             },

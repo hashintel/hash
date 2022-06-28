@@ -22,7 +22,7 @@ export type PullRequestIdentifier = {
   number: number;
 };
 
-export type GithubPullRequest = Entity<{
+export type GithubPullRequestEntityType = Entity<{
   repository?: string;
   url?: null | string;
   id?: null | number;
@@ -288,7 +288,7 @@ export type GithubPullRequest = Entity<{
   [k: string]: unknown;
 }
 
-export interface GithubReview extends Entity {
+export type GithubReviewEntityType = Entity<{
   repository?: string;
   id?: null | number;
   node_id?: null | string;
@@ -335,7 +335,7 @@ export interface GithubReview extends Entity {
   [k: string]: unknown;
 }
 
-export interface GithubIssueEvent extends Entity {
+export type GithubIssueEventEntityType = Entity<{
   repository?: string;
   id?: null | number;
   node_id?: null | string;

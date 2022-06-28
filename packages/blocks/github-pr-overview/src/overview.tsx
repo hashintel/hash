@@ -4,12 +4,11 @@ import Stack from "@mui/material/Stack";
 import { uniqBy } from "lodash";
 import formatDistance from "date-fns/formatDistance";
 import { Box, Typography, Divider, typographyClasses } from "@mui/material";
-// import { Button } from "@hashintel/hash-design-system";
 import { IconButton } from "@hashintel/hash-design-system";
 import {
-  GithubIssueEvent,
-  GithubPullRequest,
-  GithubReview,
+  GithubIssueEventEntityType,
+  GithubPullRequestEntityType,
+  GithubReviewEntityType,
   isDefined,
 } from "./types";
 import { GithubPrTimeline } from "./timeline";
@@ -18,13 +17,22 @@ import { Reviews } from "./reviews";
 import { getEventTypeColor } from "./utils";
 
 export type GithubPrOverviewProps = {
-  pullRequest: GithubPullRequest["properties"];
-  reviews: GithubReview["properties"][];
-  events: GithubIssueEvent["properties"][];
+  pullRequest: GithubPullRequestEntityType["properties"];
+  reviews: GithubReviewEntityType["properties"][];
+  events: GithubIssueEventEntityType["properties"][];
   reset: () => void;
 };
 
-const PRStatus: React.FC<{ status: string }> = ({ status }) => {
+const PRStatus: React.FC<{
+  pullRequest: GithubPullRequestEntityType["properties"];
+}> = ({ pullRequest }) => {
+  const status =
+    pullRequest.merged_at != null
+      ? "merged"
+      : pullRequest.state === "closed"
+      ? "closed"
+      : "open";
+
   return (
     <Box
       sx={({ palette }) => ({
@@ -70,14 +78,6 @@ export const GithubPrOverview: React.FunctionComponent<
           new Date(pullRequest.created_at),
         )
       : undefined;
-
-  /** @todo - Get colours from theme? */
-  const status =
-    pullRequest.merged_at != null
-      ? "merged"
-      : pullRequest.state === "closed"
-      ? "closed"
-      : "open";
 
   console.log({ pullRequest });
 
@@ -134,9 +134,8 @@ export const GithubPrOverview: React.FunctionComponent<
           {pullRequest.title}
         </Typography>
         <Box display="flex" alignItems="center">
-          {/*  */}
           <Box display="flex" alignItems="center" mr={3}>
-            <PRStatus status={status} />
+            <PRStatus pullRequest={pullRequest} />
             <Typography variant="smallTextLabels" fontWeight={500} ml={0.75}>
               within {timeToClose}
             </Typography>
@@ -147,7 +146,9 @@ export const GithubPrOverview: React.FunctionComponent<
               // @todo add default image
               src={pullRequest.user?.avatar_url ?? ""}
               alt={pullRequest.user?.login ?? "User"}
-            />
+            >
+              {pullRequest.user?.login ?? "User"}
+            </Avatar>
             <Typography
               variant="smallTextLabels"
               sx={({ palette }) => ({
@@ -195,24 +196,17 @@ export const GithubPrOverview: React.FunctionComponent<
       </Box>
       <Box
         sx={{
-          background: `linear-gradient(181.33deg, #F7FAFC 10.89%, rgba(251, 253, 254, 0) 94.8%`,
+          background: `linear-gradient(181.33deg, #F7FAFC 10.89%, rgba(251, 253, 254, 0) 94.8%)`,
           height: 9,
+          position: "relative",
         }}
       />
-      <Box
-        sx={({ palette }) => ({
-          backgroundColor: palette.gray[10],
-          height: 580, // this should be max height
-          borderRadius: "0 0 6px 6px",
-          px: 2,
-        })}
-      >
-        <GithubPrTimeline
-          pullRequest={pullRequest}
-          reviews={reviews}
-          events={events}
-        />
-      </Box>
+
+      <GithubPrTimeline
+        pullRequest={pullRequest}
+        reviews={reviews}
+        events={events}
+      />
     </Box>
   );
 };

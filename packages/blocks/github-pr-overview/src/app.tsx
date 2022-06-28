@@ -4,10 +4,10 @@ import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
 import { Box, CssBaseline, Theme, ThemeProvider } from "@mui/material";
 import { theme } from "@hashintel/hash-design-system";
 import {
-  GithubIssueEvent,
-  GithubPullRequest,
+  GithubIssueEventEntityType,
+  GithubPullRequestEntityType,
   PullRequestIdentifier,
-  GithubReview,
+  GithubReviewEntityType,
   GITHUB_ENTITY_TYPES,
   BlockState,
 } from "./types";
@@ -45,10 +45,10 @@ type LocalState = {
   blockState: BlockState;
   selectedPullRequestId?: PullRequestIdentifier;
   githubEntityTypeIds?: { [key in GITHUB_ENTITY_TYPES]: string };
-  allPrs?: Map<string, GithubPullRequest>;
-  pullRequest?: GithubPullRequest;
-  reviews: GithubReview[];
-  events: GithubIssueEvent[];
+  allPrs?: Map<string, GithubPullRequestEntityType>;
+  pullRequest?: GithubPullRequestEntityType;
+  reviews: GithubReviewEntityType["properties"][];
+  events: GithubIssueEventEntityType["properties"][];
   infoMessage: string;
 };
 
@@ -180,7 +180,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         payload: {
           allPrs: prs,
           githubEntityTypeIds: entityTypeIds,
-          // blockState: BlockState.Selector,
+          blockState: BlockState.Selector,
         },
       });
     } catch (err) {
@@ -246,8 +246,8 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           dispatch({
             type: "UPDATE_STATE",
             payload: {
-              reviews: prReviews,
-              events: prEvents,
+              reviews: prReviews.map((review) => ({ ...review.properties })),
+              events: prEvents.map((event) => ({ ...event.properties })),
               blockState: BlockState.Overview,
             },
           });
@@ -306,8 +306,8 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         return (
           <GithubPrOverview
             pullRequest={pullRequest?.properties ?? {}}
-            reviews={reviews?.map((review) => ({ ...review.properties })) ?? []}
-            events={events?.map((event) => ({ ...event.properties })) ?? []}
+            reviews={reviews}
+            events={events}
             reset={resetPRInfo}
           />
         );

@@ -20,7 +20,7 @@ import { format } from "date-fns";
 import { startCase } from "lodash";
 import * as React from "react";
 import { LinkIcon, PullRequestIcon } from "../icons";
-import { GithubPullRequest, GithubReview } from "../types";
+import { GithubPullRequestEntityType, GithubReviewEntityType } from "../types";
 import { getEventTypeColor } from "../utils";
 
 // @todo properly type this
@@ -36,20 +36,23 @@ type Event = {
     | string;
   created_at: string | null | undefined;
   html_url?: string | null | undefined;
-  actor: GithubPullRequest["user"] | GithubReview["user"];
+  actor:
+    | GithubPullRequestEntityType["properties"]["user"]
+    | GithubReviewEntityType["properties"]["user"];
 };
 
 export type TimelineItemProps = {
   event: Event;
   hideConnector?: boolean;
   setTimelineOpacity: (val: boolean) => void;
+  hideDate?: boolean;
 } & BaseTimelineItemProps;
 
-// @todo make popover come on hover instead of onClick
 export const TimelineItem: React.FC<TimelineItemProps> = ({
   event,
   hideConnector,
   setTimelineOpacity,
+  hideDate,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
 
@@ -66,13 +69,14 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
       <TimelineOppositeContent
         sx={({ typography, palette }) => ({
           flex: "unset",
-          fontWeight: 500,
           ...typography.microText,
+          fontWeight: 500,
           py: 0.75,
           px: 0,
           mr: 1.5,
           color: palette.gray[80],
           alignSelf: "flex-start",
+          opacity: hideDate ? 0 : 1,
         })}
       >
         {event.created_at && format(new Date(event.created_at), "do MMM")}

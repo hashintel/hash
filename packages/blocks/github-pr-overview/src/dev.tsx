@@ -20,7 +20,12 @@ const App = () => (
     blockDefinition={{ ReactComponent: Component }}
     blockEntity={{
       entityId: "entity-github-pr-overview",
-      properties: {},
+      properties: {
+        selectedPullRequest: {
+          repository: "blockprotocol/blockprotocol",
+          number: 298,
+        },
+      },
     }}
     debug
   />

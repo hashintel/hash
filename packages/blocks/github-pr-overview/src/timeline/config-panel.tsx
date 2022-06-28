@@ -89,6 +89,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           backgroundColor: palette.white,
           alignSelf: "flex-start",
           minWidth: 170,
+          zIndex: 1,
+          mt: 2,
         })}
       >
         <Typography fontWeight="bold" px={2} pt={1.5} mb={1.75}>
