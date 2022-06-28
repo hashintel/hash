@@ -1,5 +1,6 @@
 [workspace]
-members = ["lib/*"]
+members = ["lib/*", "bin/*"]
+default-members = ["bin/hash_graph"]
 
 [workspace.package]
 description = "Datastore infrastructure for HASH"
