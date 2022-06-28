@@ -1,9 +1,9 @@
+#[cfg(nightly)]
+use core::any::Demand;
+#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
+use core::any::Provider;
 use core::fmt;
 
-#[cfg(nightly)]
-use crate::provider::Demand;
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-use crate::provider::Provider;
 use crate::Report;
 
 /// Defines the current context of a [`Report`].
@@ -47,7 +47,7 @@ use crate::Report;
 /// # #[cfg(all(feature = "std", not(miri)))]
 /// pub fn read_file(path: &str) -> Result<String, io::Error> {
 ///     // Creates a `Report` from `io::Error`, the current context is `io::Error`
-///     fs::read_to_string(path).report()
+///     fs::read_to_string(path).into_report()
 /// }
 ///
 /// pub fn parse_config(path: &str) -> Result<Config, ConfigError> {

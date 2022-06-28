@@ -2,24 +2,20 @@
 //!
 //! [`Process`]: crate::process::Process
 
-use std::{collections::HashMap, path::PathBuf, time::Duration};
+use std::{path::PathBuf, time::Duration};
 
-use error_stack::{bail, ensure, report, IntoReport, ResultExt};
-use execution::package::experiment::{
-    ExperimentName, ExperimentPackageConfig, SimpleExperimentConfig, SingleRunExperimentConfig,
+use error_stack::{bail, ensure, IntoReport, ResultExt};
+use execution::package::{
+    experiment::ExperimentId, simulation::output::persistence::local::LocalPersistenceConfig,
 };
-use hash_engine_lib::{
-    experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
-    output::local::config::LocalPersistenceConfig,
-    proto::{self, ExecutionEnvironment, ExperimentRunBase, ExperimentRunRepr},
-    simulation::command::StopStatus,
-    utils::{LogFormat, LogLevel, OutputLocation},
+use experiment_control::{
+    comms::{EngineMsg, InitMessage},
+    controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
+    environment::{ExecutionEnvironment, LogFormat, LogLevel, OutputLocation},
 };
-use rand::{distributions::Distribution, Rng, RngCore};
-use rand_distr::{Beta, LogNormal, Normal, Poisson};
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as SerdeValue};
-use simulation_structure::ExperimentId;
+use experiment_structure::ExperimentRun;
+use serde_json::json;
+use simulation_control::{command::StopStatus, EngineStatus};
 use tokio::time::{sleep, timeout};
 
 use crate::{experiment_server::Handler, process, OrchestratorError, Result};
@@ -134,39 +130,6 @@ fn at_least_one(v: &str) -> core::result::Result<(), String> {
     }
 }
 
-/// Specific configuration needed for either Experiments or single runs of Simulations
-#[derive(Debug, Clone)]
-pub enum ExperimentType {
-    /// A single run of a Simulation, wrapped as an Experiment
-    SingleRun {
-        /// Number of steps to run
-        num_steps: usize,
-    },
-    /// A configured Experiment
-    Simple {
-        /// Name of the experiment specified in _experiments.json_
-        name: ExperimentName,
-    },
-}
-
-impl ExperimentType {
-    /// Creates an experiment config from `ExperimentType`.
-    ///
-    /// If the type is a simple Experiment [`Simple`](Self::Simple), it uses a `base` to load the
-    /// experiment config for the given `name`.
-    pub fn get_package_config(self, base: &ExperimentRunBase) -> Result<ExperimentPackageConfig> {
-        match self {
-            ExperimentType::SingleRun { num_steps } => Ok(ExperimentPackageConfig::SingleRun(
-                SingleRunExperimentConfig { num_steps },
-            )),
-            ExperimentType::Simple { name } => Ok(ExperimentPackageConfig::Simple(
-                get_simple_experiment_config(base, name)
-                    .attach_printable("Could not read simple experiment config")?,
-            )),
-        }
-    }
-}
-
 /// A fully specified and configured experiment
 pub struct Experiment {
     /// Configuration for the experiment.
@@ -214,16 +177,16 @@ impl Experiment {
     /// returns once the experiment has finished.
     ///
     /// [`Process`]: crate::process::Process
-    #[instrument(skip_all, fields(experiment_name = %experiment_run.base.name, experiment_id = %experiment_run.base.id))]
+    #[instrument(skip_all, fields(experiment_name = %experiment_run.name(), experiment_id = %experiment_run.id()))]
     pub async fn run(
         &self,
-        experiment_run: proto::ExperimentRun,
+        experiment_run: ExperimentRun,
         mut handler: Handler,
         target_max_group_size: Option<usize>,
     ) -> Result<(), OrchestratorError> {
-        let experiment_name = experiment_run.base.name.clone();
+        let experiment_name = experiment_run.name();
         let mut engine_handle = handler
-            .register_experiment(experiment_run.base.id)
+            .register_experiment(experiment_run.id())
             .await
             .attach_printable_lazy(|| {
                 format!("Could not register experiment \"{experiment_name}\"")
@@ -231,7 +194,7 @@ impl Experiment {
 
         // Create and start the experiment run
         let cmd = self.create_engine_command(
-            experiment_run.base.id,
+            experiment_run.id(),
             handler.url(),
             target_max_group_size,
             self.config.js_runner_initial_heap_constraint,
@@ -252,7 +215,7 @@ impl Experiment {
         .report()
         .change_context(OrchestratorError::from("engine start timeout"));
         match msg {
-            Ok(proto::EngineStatus::Started) => {}
+            Ok(EngineStatus::Started) => {}
             Ok(m) => {
                 bail!(OrchestratorError::from(format!(
                     "expected to receive `Started` message but received: `{}`",
@@ -262,7 +225,7 @@ impl Experiment {
             Err(e) => {
                 error!("Engine start timeout for experiment \"{experiment_name}\"");
                 engine_process
-                    .exit_and_cleanup(experiment_run.base.id)
+                    .exit_and_cleanup(experiment_run.id())
                     .await
                     .attach_printable("Failed to cleanup after failed start")?;
                 bail!(e.change_context(OrchestratorError::from(format!(
@@ -279,13 +242,13 @@ impl Experiment {
             })),
         )];
         // Now we can send the init message
-        let init_message = proto::InitMessage {
-            experiment: ExperimentRunRepr::ExperimentRun(experiment_run.clone()),
+        let init_message = InitMessage {
+            experiment: experiment_run.clone(),
             env: ExecutionEnvironment::None, // We don't connect to the API
             dyn_payloads: serde_json::Map::from_iter(map_iter),
         };
         if let Err(err) = engine_process
-            .send(&proto::EngineMsg::Init(init_message))
+            .send(&EngineMsg::Init(init_message))
             .await
             .attach_printable("Could not send `Init` message")
         {
@@ -294,7 +257,7 @@ impl Experiment {
             std::thread::sleep(Duration::from_secs(1));
 
             if let Err(cleanup_err) = engine_process
-                .exit_and_cleanup(experiment_run.base.id)
+                .exit_and_cleanup(experiment_run.id())
                 .await
                 .attach_printable("Failed to cleanup after failed start")
             {
@@ -306,7 +269,7 @@ impl Experiment {
 
         let mut graceful_finish = true;
         loop {
-            let msg: Option<proto::EngineStatus>;
+            let msg: Option<EngineStatus>;
             tokio::select! {
                 _ = sleep(Duration::from_secs_f64(self.config.wait_timeout)) => {
                     error!(
@@ -332,13 +295,13 @@ impl Experiment {
             debug!("Got message from experiment run with type: {}", msg.kind());
 
             match msg {
-                proto::EngineStatus::Stopping => {
+                EngineStatus::Stopping => {
                     debug!("Stopping experiment \"{experiment_name}\"");
                 }
-                proto::EngineStatus::SimStart { sim_id, globals: _ } => {
+                EngineStatus::SimStart { sim_id, globals: _ } => {
                     debug!("Started simulation: {sim_id}");
                 }
-                proto::EngineStatus::SimStatus(status) => {
+                EngineStatus::SimStatus(status) => {
                     debug!("Got simulation run status: {status:?}");
                     for stop_command in status.stop_msg {
                         let reason = if let Some(reason) = stop_command.message.reason.as_ref() {
@@ -368,57 +331,57 @@ impl Experiment {
                     }
                     // TODO: OS - handle more status fields
                 }
-                proto::EngineStatus::SimStop(sim_id) => {
+                EngineStatus::SimStop(sim_id) => {
                     debug!("Simulation stopped: {sim_id}");
                 }
-                proto::EngineStatus::RunnerErrors(sim_id, errs) => {
+                EngineStatus::RunnerErrors(sim_id, errs) => {
                     error!(
                         "There were errors from the runner when running simulation [{sim_id}]: \
                          {errs:?}"
                     );
                     graceful_finish = false;
                 }
-                proto::EngineStatus::RunnerWarnings(sim_id, warnings) => {
+                EngineStatus::RunnerWarnings(sim_id, warnings) => {
                     warn!(
                         "There were warnings from the runner when running simulation [{sim_id}]: \
                          {warnings:?}"
                     );
                 }
-                proto::EngineStatus::Logs(sim_id, logs) => {
+                EngineStatus::Logs(sim_id, logs) => {
                     for log in logs {
                         if !log.is_empty() {
                             info!(target: "behaviors", "[{experiment_name}][{sim_id}]: {log}");
                         }
                     }
                 }
-                proto::EngineStatus::UserErrors(sim_id, errs) => {
+                EngineStatus::UserErrors(sim_id, errs) => {
                     error!(
                         "There were user-facing errors when running simulation [{sim_id}]: \
                          {errs:?}"
                     );
                 }
-                proto::EngineStatus::UserWarnings(sim_id, warnings) => {
+                EngineStatus::UserWarnings(sim_id, warnings) => {
                     warn!(
                         "There were user-facing warnings when running simulation [{sim_id}]: \
                          {warnings:?}"
                     );
                 }
-                proto::EngineStatus::PackageError(sim_id, error) => {
+                EngineStatus::PackageError(sim_id, error) => {
                     warn!(
                         "There was an error from a package running simulation [{sim_id}]: \
                          {error:?}"
                     );
                 }
-                proto::EngineStatus::Exit => {
+                EngineStatus::Exit => {
                     debug!("Process exited successfully for experiment run \"{experiment_name}\"");
                     break;
                 }
-                proto::EngineStatus::ProcessError(error) => {
+                EngineStatus::ProcessError(error) => {
                     error!("Got error: {error:?}");
                     graceful_finish = false;
                     break;
                 }
-                proto::EngineStatus::Started => {
+                EngineStatus::Started => {
                     error!(
                         "Received unexpected engine `Started` message after engine had already \
                          started: {}",
@@ -437,7 +400,7 @@ impl Experiment {
 
         debug!("Performing cleanup");
         engine_process
-            .exit_and_cleanup(experiment_run.base.id)
+            .exit_and_cleanup(experiment_run.id())
             .await
             .attach_printable("Could not cleanup after finish")?;
 
@@ -451,472 +414,3 @@ impl Experiment {
 }
 
 // TODO: cleanup section below
-
-fn get_simple_experiment_config(
-    base: &ExperimentRunBase,
-    experiment_name: ExperimentName,
-) -> Result<SimpleExperimentConfig> {
-    let experiments_manifest = base.project_base.experiments_src.clone().ok_or_else(|| {
-        report!(OrchestratorError::from(
-            "Experiment configuration not found: experiments.json"
-        ))
-    })?;
-    let parsed = serde_json::from_str(&experiments_manifest)
-        .report()
-        .change_context(OrchestratorError::from(
-            "Could not parse experiment manifest",
-        ))?;
-    let plan = create_experiment_plan(&parsed, &experiment_name)
-        .attach_printable("Could not read experiment plan")?;
-
-    let max_sims_in_parallel = parsed
-        .get("max_sims_in_parallel")
-        .map(|val| {
-            val.as_u64().map(|val| val as usize).ok_or_else(|| {
-                report!(OrchestratorError::from(
-                    "max_sims_in_parallel in globals.json was set, but wasn't a valid integer"
-                ))
-            })
-        })
-        .transpose()?; // Extract and report the error for failed parsing
-
-    let config = SimpleExperimentConfig {
-        experiment_name,
-        changed_globals: plan
-            .inner
-            .into_iter()
-            .flat_map(|v| {
-                v.fields
-                    .into_iter()
-                    .map(|(property_path, changed_value)| json!({ property_path: changed_value }))
-            })
-            .collect(),
-        num_steps: plan.num_steps,
-        max_sims_in_parallel,
-    };
-    Ok(config)
-}
-
-fn create_experiment_plan(
-    experiments: &HashMap<String, SerdeValue>,
-    experiment_name: &ExperimentName,
-) -> Result<SimpleExperimentPlan> {
-    let selected_experiment = experiments.get(experiment_name.as_str()).ok_or_else(|| {
-        report!(OrchestratorError::from(
-            "Expected experiments.json to contain the specified experiment definition for \
-             experiment with name: {experiment_name}"
-        ))
-    })?;
-    let experiment_type = selected_experiment
-        .get("type")
-        .ok_or_else(|| {
-            report!(OrchestratorError::from(
-                "Expected experiment definition to contain an experiment type"
-            ))
-        })?
-        .as_str()
-        .ok_or_else(|| {
-            report!(OrchestratorError::from(
-                "Expected experiment definition type to have a string value"
-            ))
-        })?;
-    match experiment_type {
-        "group" => create_group_variant(selected_experiment, experiments),
-        "multiparameter" => create_multiparameter_variant(selected_experiment, experiments),
-        "optimization" => bail!(OrchestratorError::from(
-            "Not implemented for optimization experiment types"
-        )),
-        _ => create_basic_variant(selected_experiment, experiment_type)
-            .attach_printable("Could not parse basic variant"),
-    }
-}
-
-fn create_multiparameter_variant(
-    selected_experiment: &SerdeValue,
-    experiments: &HashMap<String, SerdeValue>,
-) -> Result<SimpleExperimentPlan> {
-    #[derive(Serialize, Deserialize)]
-    struct MultiparameterVariant {
-        #[serde(rename = "type")]
-        _type: String,
-        steps: usize,
-        runs: Vec<String>,
-    }
-
-    let var: MultiparameterVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
-        .change_context(OrchestratorError::from(
-            "Could not parse multiparameter variant",
-        ))?;
-    let subplans = var
-        .runs
-        .iter()
-        .map(|run_name| {
-            let selected = experiments
-                .get(run_name)
-                .ok_or_else(|| {
-                    report!(OrchestratorError::from(
-                        "Experiment plan does not define the specified experiment: {run_name}"
-                    ))
-                })
-                .attach_printable("Could not parse experiment file")?;
-            create_basic_variant(selected, run_name)
-                .attach_printable("Could not parse basic variant")
-        })
-        .collect::<Result<Vec<SimpleExperimentPlan>>>()
-        .attach_printable("Unable to create sub plans")?;
-
-    let mut variant_list: Vec<ExperimentPlanEntry> = vec![];
-    for (i, subplan) in subplans.into_iter().enumerate() {
-        if i == 0 {
-            variant_list = subplan.inner;
-        } else {
-            let mut new_variant_list: Vec<ExperimentPlanEntry> = vec![];
-            for entry in subplan.inner.into_iter().map(|v| v.fields) {
-                for existing_entry in &variant_list {
-                    let mut merged = existing_entry.clone();
-                    entry.iter().for_each(|(name, value)| {
-                        merged.fields.insert(name.clone(), value.clone());
-                    });
-                    new_variant_list.push(merged);
-                }
-            }
-            variant_list = new_variant_list;
-        }
-    }
-
-    let mut plan = SimpleExperimentPlan::new(var.steps);
-    plan.inner = variant_list;
-    Ok(plan)
-}
-
-fn create_group_variant(
-    selected_experiment: &SerdeValue,
-    experiments: &HashMap<String, SerdeValue>,
-) -> Result<SimpleExperimentPlan> {
-    #[derive(Serialize, Deserialize)]
-    struct GroupVariant {
-        // TODO: move ALL variants to proto, experiment plan creation to simple exp controller def
-        #[serde(rename = "type")]
-        _type: String,
-        steps: f64,
-        runs: Vec<ExperimentName>,
-    }
-    let var: GroupVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
-        .change_context(OrchestratorError::from("Could not create group variant"))?;
-    var.runs.iter().try_fold(
-        SimpleExperimentPlan::new(var.steps as usize),
-        |mut acc, name| {
-            let variants = create_experiment_plan(experiments, name)
-                .attach_printable("Could not read experiment plan")?;
-            variants.inner.into_iter().for_each(|v| {
-                acc.push(v);
-            });
-            Ok(acc)
-        },
-    )
-}
-
-fn create_basic_variant(
-    selected_experiment: &SerdeValue,
-    experiment_type: &str,
-) -> Result<SimpleExperimentPlan> {
-    match experiment_type {
-        "monte-carlo" => create_monte_carlo_variant_plan(selected_experiment),
-        "values" => create_value_variant_plan(selected_experiment),
-        "linspace" => create_linspace_variant_plan(selected_experiment),
-        "arange" => create_arange_variant_plan(selected_experiment),
-        "meshgrid" => create_meshgrid_variant_plan(selected_experiment),
-        _ => bail!(OrchestratorError::from(format!(
-            "Unknown experiment type: {}",
-            experiment_type
-        ))),
-    }
-}
-
-pub type Mapper = Box<dyn Fn(SerdeValue, usize) -> SerdeValue>;
-
-fn create_variant_with_mapped_value(
-    field: &str,
-    items: &[SerdeValue],
-    mapper: &Mapper,
-    num_steps: usize,
-) -> SimpleExperimentPlan {
-    items.iter().enumerate().fold(
-        SimpleExperimentPlan::new(num_steps),
-        |mut acc, (index, val)| {
-            let mapped_value = mapper(val.clone(), index);
-            acc.push(HashMap::from([(field.to_string(), mapped_value)]).into());
-            acc
-        },
-    )
-}
-
-fn create_monte_carlo_variant_plan(
-    selected_experiment: &SerdeValue,
-) -> Result<SimpleExperimentPlan> {
-    #[derive(Serialize, Deserialize)]
-    struct MonteCarloVariant {
-        #[serde(rename = "type")]
-        _type: String,
-        steps: f64,
-        field: String,
-        samples: f64,
-        distribution: String,
-        mean: Option<f64>,
-        std: Option<f64>,
-        mu: Option<f64>,
-        sigma: Option<f64>,
-        rate: Option<f64>,
-        alpha: Option<f64>,
-        beta: Option<f64>,
-        shape: Option<f64>,
-        scale: Option<f64>,
-    }
-
-    // Needed trait objects of distributions, solution from:
-    // https://users.rust-lang.org/t/vec-of-rand-distribution-trait-objects/58727/2
-    pub trait DynDistribution<T> {
-        fn sample_(&self, rng: &mut dyn RngCore) -> T;
-    }
-
-    impl<D, T> DynDistribution<T> for D
-    where
-        D: Distribution<T>,
-    {
-        fn sample_(&self, rng: &mut dyn RngCore) -> T {
-            <Self as Distribution<T>>::sample(self, rng)
-        }
-    }
-
-    impl<T> Distribution<T> for dyn DynDistribution<T> + '_ {
-        fn sample<R: Rng + ?Sized>(&self, mut rng: &mut R) -> T {
-            self.sample_(&mut rng)
-        }
-    }
-
-    impl MonteCarloVariant {
-        fn sample_distribution_fn(&self) -> Result<Mapper> {
-            let distribution = match self.distribution.as_str() {
-                "normal" => Box::new(
-                    Normal::new(self.mean.unwrap_or(1.0), self.std.unwrap_or(1.0))
-                        .report()
-                        .change_context(OrchestratorError::from(
-                            "Unable to create normal distribution",
-                        ))?,
-                ) as Box<dyn DynDistribution<f64>>,
-                "log-normal" => Box::new(
-                    LogNormal::new(self.mu.unwrap_or(1.0), self.sigma.unwrap_or(1.0))
-                        .report()
-                        .change_context(OrchestratorError::from(
-                            "Unable to create log-normal distribution",
-                        ))?,
-                ),
-                "poisson" => Box::new(
-                    Poisson::new(self.rate.unwrap_or(1.0))
-                        .report()
-                        .change_context(OrchestratorError::from(
-                            "Unable to create poisson distribution",
-                        ))?,
-                ),
-                "beta" => Box::new(
-                    Beta::new(self.alpha.unwrap_or(1.0), self.beta.unwrap_or(1.0))
-                        .report()
-                        .change_context(OrchestratorError::from(
-                            "Unable to create beta distribution",
-                        ))?,
-                ),
-                "gamma" => Box::new(
-                    rand_distr::Gamma::new(self.shape.unwrap_or(1.0), self.scale.unwrap_or(1.0))
-                        .report()
-                        .change_context(OrchestratorError::from(
-                            "Unable to create gamma distribution",
-                        ))?,
-                ),
-                _ => Box::new(Normal::new(1.0, 1.0).report().change_context(
-                    OrchestratorError::from("Unable to create normal distribution"),
-                )?),
-            };
-            Ok(Box::new(move |_, _| {
-                let mut rng = rand::thread_rng();
-                distribution.sample(&mut rng).into()
-            }))
-        }
-    }
-
-    let var: MonteCarloVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
-        .change_context(OrchestratorError::from(
-            "Could not create monte carlo distribution",
-        ))?;
-    let values: Vec<_> = (0..var.samples as usize).map(|_| 0.into()).collect();
-    Ok(create_variant_with_mapped_value(
-        &var.field,
-        &values,
-        &var.sample_distribution_fn()?,
-        var.steps as usize,
-    ))
-}
-
-fn create_value_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleExperimentPlan> {
-    #[derive(Serialize, Deserialize)]
-    struct ValueVariant {
-        #[serde(rename = "type")]
-        _type: String,
-        steps: f64,
-        field: String,
-        values: Vec<SerdeValue>,
-    }
-
-    let var: ValueVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
-        .change_context(OrchestratorError::from("Could not parse value variant"))?;
-    let mapper: Mapper = Box::new(|val, _index| val);
-    Ok(create_variant_with_mapped_value(
-        &var.field,
-        &var.values,
-        &mapper,
-        var.steps as usize,
-    ))
-}
-
-fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleExperimentPlan> {
-    #[derive(Clone, Serialize, Deserialize, Debug)]
-    struct LinspaceVariant {
-        #[serde(rename = "type")]
-        _type: String,
-        steps: f64,
-        field: String,
-        samples: f64,
-        start: f64,
-        stop: f64,
-    }
-    let var: LinspaceVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
-        .change_context(OrchestratorError::from("Could not create linspace variant"))?;
-    let values: Vec<_> = (0..var.samples as usize).map(|_| 0.into()).collect();
-
-    let closure_var = var.clone();
-    let mapper: Mapper = Box::new(move |_val, index| {
-        let denominator = if closure_var.samples > 1.0 {
-            (closure_var.samples - 1.0) as f64
-        } else {
-            1.0
-        };
-        let x = closure_var.start
-            + (index as f64 * (closure_var.stop - closure_var.start)) / denominator;
-        x.into()
-    });
-
-    Ok(create_variant_with_mapped_value(
-        &var.field,
-        &values,
-        &mapper,
-        var.steps as usize,
-    ))
-}
-
-fn create_arange_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleExperimentPlan> {
-    #[derive(Serialize, Deserialize)]
-    struct ArangeVariant {
-        #[serde(rename = "type")]
-        _type: String,
-        steps: f64,
-        field: String,
-        increment: f64,
-        start: f64,
-        stop: f64,
-    }
-    let var: ArangeVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
-        .change_context(OrchestratorError::from("Could not create arange variant"))?;
-    let mut values = vec![];
-    let mut cur = var.start;
-    while cur <= var.stop {
-        values.push(cur.into());
-        cur += var.increment;
-    }
-    let mapper: Mapper = Box::new(|val, _index| val);
-    Ok(create_variant_with_mapped_value(
-        &var.field,
-        &values,
-        &mapper,
-        var.steps as usize,
-    ))
-}
-
-fn create_meshgrid_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleExperimentPlan> {
-    #[derive(Serialize, Deserialize)]
-    struct MeshgridVariant {
-        #[serde(rename = "type")]
-        _type: String,
-        steps: f64,
-        x_field: String,
-        y_field: String,
-        x: [f64; 3],
-        // [start, stop, num_samples]
-        y: [f64; 3], // [start, stop, num_samples]
-    }
-    let var: MeshgridVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
-        .change_context(OrchestratorError::from("Could not create meshgrid variant"))?;
-
-    let mut plan = SimpleExperimentPlan::new(var.steps as usize);
-    let x_space = linspace(var.x[0], var.x[1], var.x[2] as usize);
-    let y_space = linspace(var.y[0], var.y[1], var.y[2] as usize);
-
-    for x_val in x_space {
-        for y_val in &y_space {
-            let entry = HashMap::from([
-                (var.x_field.clone(), x_val.into()),
-                (var.y_field.clone(), (*y_val).into()),
-            ])
-            .into();
-            plan.push(entry);
-        }
-    }
-
-    Ok(plan)
-}
-
-fn linspace(start: f64, stop: f64, num_samples: usize) -> Vec<f64> {
-    let mut samples = vec![];
-    let length = (stop - start) / (num_samples - 1) as f64;
-    let mut index = start;
-    while index <= stop {
-        samples.push(start + length * index);
-        index += length;
-    }
-    samples
-}
-
-#[derive(Clone, Debug)]
-struct ExperimentPlanEntry {
-    fields: HashMap<String, SerdeValue>,
-}
-
-impl From<HashMap<String, SerdeValue>> for ExperimentPlanEntry {
-    fn from(fields: HashMap<String, SerdeValue>) -> Self {
-        ExperimentPlanEntry { fields }
-    }
-}
-
-#[derive(Clone)]
-struct SimpleExperimentPlan {
-    inner: Vec<ExperimentPlanEntry>,
-    num_steps: usize,
-}
-
-impl SimpleExperimentPlan {
-    pub fn new(num_steps: usize) -> SimpleExperimentPlan {
-        SimpleExperimentPlan {
-            inner: Vec::new(),
-            num_steps,
-        }
-    }
-
-    pub fn push(&mut self, value: ExperimentPlanEntry) {
-        self.inner.push(value);
-    }
-}

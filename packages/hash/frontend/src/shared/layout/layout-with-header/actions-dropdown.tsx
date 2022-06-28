@@ -63,10 +63,7 @@ export const ActionsDropdownInner: VFC<{
         size="medium"
         rounded
         sx={({ palette }) => ({
-          mr: {
-            xs: 1,
-            md: 1.5,
-          },
+          mr: 1,
           color: popupState.isOpen ? palette.common.white : palette.gray[40],
           backgroundColor: popupState.isOpen
             ? palette.blue["70"]

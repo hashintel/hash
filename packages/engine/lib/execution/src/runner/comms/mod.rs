@@ -6,7 +6,6 @@ mod outbound;
 use std::{collections::HashMap, fmt, sync::Arc};
 
 use arrow::datatypes::Schema;
-use simulation_structure::{ExperimentId, SimulationShortId};
 use stateful::{
     agent::AgentSchema,
     field::PackageId,
@@ -22,6 +21,7 @@ pub use self::{
     },
 };
 use crate::{
+    package::{experiment::ExperimentId, simulation::SimulationId},
     runner::{MessageTarget, RunnerConfig},
     task::{TaskId, TaskMessage, TaskSharedStore},
     worker::PackageInitMsgForWorker,
@@ -60,7 +60,7 @@ impl TargetedRunnerTaskMsg {
         task_msg: flatbuffers_gen::task_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
-        let task_id = TaskId::from_le_bytes(task_msg.task_id().0);
+        let task_id = TaskId::from_bytes(task_msg.task_id().0);
 
         let sent = sent_tasks.remove(&task_id).ok_or_else(|| {
             Error::from(format!("Outbound message w/o sent task id {:?}", task_id))
@@ -107,7 +107,7 @@ pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
 #[derive(Debug, Clone)]
 pub struct NewSimulationRun {
     pub span: Span,
-    pub short_id: SimulationShortId,
+    pub short_id: SimulationId,
     pub worker_allocation: Arc<WorkerAllocation>,
     pub packages: PackageMsgs,
     pub datastore: DatastoreSimulationPayload,

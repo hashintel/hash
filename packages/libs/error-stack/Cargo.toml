@@ -31,7 +31,7 @@ default = ["std"]
 std = []
 hooks = ["dep:once_cell", "std"]
 spantrace = ["dep:tracing-error"]
-futures = ["dep:pin-project"]
+futures = ["dep:pin-project", "dep:futures-core"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -44,6 +44,10 @@ required-features = ["hooks"]
 
 [[example]]
 name = "demo"
+required-features = ["std"]
+
+[[example]]
+name = "exit_code"
 required-features = ["std"]
 
 [[example]]

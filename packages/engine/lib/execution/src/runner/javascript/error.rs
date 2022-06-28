@@ -1,11 +1,11 @@
 use arrow::{datatypes::DataType, error::ArrowError};
-use simulation_structure::SimulationShortId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 use tracing::Span;
 
-use crate::runner::comms::{
-    InboundToRunnerMsgPayload, OutboundFromRunnerMsg, PackageError, UserError,
+use crate::{
+    package::simulation::SimulationId,
+    runner::comms::{InboundToRunnerMsgPayload, OutboundFromRunnerMsg, PackageError, UserError},
 };
 
 pub type JavaScriptResult<T, E = JavaScriptError> = std::result::Result<T, E>;
@@ -48,16 +48,16 @@ pub enum JavaScriptError {
     V8(String),
 
     #[error("Missing simulation run with id {0}")]
-    MissingSimulationRun(SimulationShortId),
+    MissingSimulationRun(SimulationId),
 
     #[error("Couldn't terminate missing simulation run with id {0}")]
-    TerminateMissingSimulationRun(SimulationShortId),
+    TerminateMissingSimulationRun(SimulationId),
 
     #[error("User JavaScript errors: {0:?}")]
     User(Vec<UserError>),
 
     #[error("Duplicate simulation run id: {0}")]
-    DuplicateSimulationRun(SimulationShortId),
+    DuplicateSimulationRun(SimulationId),
 
     #[error("Error in embedded JavaScript: {0}")]
     Embedded(String),
@@ -66,7 +66,7 @@ pub enum JavaScriptError {
     UnknownTarget(String),
 
     #[error("Couldn't send inbound message to runner: {0}")]
-    InboundSend(#[from] SendError<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>),
+    InboundSend(#[from] SendError<(Span, Option<SimulationId>, InboundToRunnerMsgPayload)>),
 
     #[error("Couldn't send outbound message from runner: {0}")]
     OutboundSend(#[from] SendError<OutboundFromRunnerMsg>),
