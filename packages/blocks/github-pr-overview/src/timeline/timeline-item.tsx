@@ -25,29 +25,26 @@ import {
   PullRequestMergedIcon,
   PullRequestOpenIcon,
 } from "../icons";
-import { GithubPullRequestEntityType, GithubReviewEntityType } from "../types";
 import { getEventTypeColor } from "../utils";
 
-// @todo properly type this
-type Event = {
-  id?: number | null | undefined;
-  event:
-    | "opened"
-    | "reviewed"
-    | "review_requested"
-    | "ready_for_review"
-    | "closed"
-    | "merged"
-    | string;
-  created_at: string | null | undefined;
-  html_url?: string | null | undefined;
-  actor:
-    | GithubPullRequestEntityType["properties"]["user"]
-    | GithubReviewEntityType["properties"]["user"];
-};
-
 export type TimelineItemProps = {
-  event: Event;
+  event: {
+    id?: string;
+    event:
+      | "opened"
+      | "reviewed"
+      | "review_requested"
+      | "ready_for_review"
+      | "closed"
+      | "merged"
+      | string;
+    created_at: string | null | undefined;
+    html_url?: string | null | undefined;
+    author?: {
+      avatar_url?: string | null | undefined;
+      login?: string | null | undefined;
+    };
+  };
   hideConnector?: boolean;
   setTimelineOpacity: (val: boolean) => void;
   hideDate?: boolean;
@@ -198,8 +195,8 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
         <Stack direction="row" alignItems="center" spacing={1}>
           <Avatar
             sx={{ height: 22, width: 22 }}
-            src={event.actor?.avatar_url!}
-            alt={event.actor?.login!}
+            src={event.author?.avatar_url!}
+            alt={event.author?.login!}
           />
           <Typography
             sx={({ palette }) => ({
@@ -208,7 +205,7 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
             })}
             variant="microText"
           >
-            For {event.actor?.login}
+            For {event.author?.login}
           </Typography>
         </Stack>
       </Popover>

@@ -147,6 +147,10 @@ export const GithubPrTimeline: React.FunctionComponent<
         >
           <TransitionGroup>
             {filteredNodes.map((event, idx) => {
+              if (!event.event) {
+                return null;
+              }
+
               let hideDate = false;
 
               if (idx > 0 && idx < filteredNodes.length - 1) {
@@ -156,12 +160,22 @@ export const GithubPrTimeline: React.FunctionComponent<
                 );
               }
 
+              const eventProp = {
+                id: event.id?.toString(),
+                event: event.event,
+                created_at: event.created_at,
+                html_url: event.html_url as string,
+                author: {
+                  avatar_url: event.actor?.avatar_url,
+                  login: event.actor?.login,
+                },
+              };
+
               return (
-                <Collapse in key={event.id?.toString()}>
+                <Collapse in key={eventProp.id}>
                   <TimelineItem
-                    key={event.id?.toString()}
-                    // @ts-ignore
-                    event={event}
+                    key={eventProp.id}
+                    event={eventProp}
                     hideConnector={idx >= filteredNodes.length - 1}
                     setTimelineOpacity={setTimelineOpacity}
                     hideDate={hideDate}
