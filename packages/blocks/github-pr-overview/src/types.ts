@@ -308,7 +308,7 @@ export type GithubPullRequestEntityType = Entity<{
   };
   draft?: null | boolean;
   [k: string]: unknown;
-}
+}>;
 
 export type GithubReviewEntityType = Entity<{
   repository?: string;
@@ -355,7 +355,7 @@ export type GithubReviewEntityType = Entity<{
   commit_id?: null | string;
   author_association?: null | string;
   [k: string]: unknown;
-}
+}>;
 
 export type GithubIssueEventEntityType = Entity<{
   repository?: string;
@@ -424,4 +424,4 @@ export type GithubIssueEventEntityType = Entity<{
     [k: string]: unknown;
   };
   [k: string]: unknown;
-}
+}>;

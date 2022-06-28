@@ -61,8 +61,6 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
 
-  //   const color = React.useMemo(() => {}, [[event]]);
-
   const copyToClipboard = (link: string | null | undefined) => {
     if (link) {
       void navigator.clipboard.writeText(link);

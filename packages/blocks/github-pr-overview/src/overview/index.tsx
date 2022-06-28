@@ -158,7 +158,13 @@ export const GithubPrOverview: React.FunctionComponent<
         <Box display="flex" alignItems="center">
           <Box display="flex" alignItems="center" mr={3}>
             <PRStatus pullRequest={pullRequest} />
-            <Typography fontWeight={500} ml={0.75}>
+            <Typography
+              sx={({ palette }) => ({
+                color: palette.gray[70],
+              })}
+              fontWeight={500}
+              ml={0.75}
+            >
               {timeToClose ? `within ${timeToClose}` : ""}
             </Typography>
           </Box>
@@ -183,17 +189,20 @@ export const GithubPrOverview: React.FunctionComponent<
               direction="row"
               alignItems="center"
               sx={({ palette }) => ({
-                color: palette.gray[70],
-                fontWeight: 500,
                 svg: {
                   color: palette.gray[50],
+                },
+
+                [`.${typographyClasses.root}`]: {
+                  color: palette.gray[70],
+                  fontWeight: 500,
                 },
               })}
             >
               <CommentIcon sx={{ mr: 1 }} />
-              <span>
+              <Typography color="currentcolor">
                 {`${reviews.length} review${reviews.length > 1 ? "s" : ""}`}
-              </span>
+              </Typography>
             </Stack>
           </Box>
         </Box>

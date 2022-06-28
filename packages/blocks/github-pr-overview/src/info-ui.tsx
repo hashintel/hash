@@ -1,13 +1,16 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
-// import { LoadingSpinner } from "@hashintel/hash-design-system";
+import { LoadingSpinner } from "@hashintel/hash-design-system";
+import { GithubIcon } from "./icons";
 
 export type PullRequestSelectorProps = {
   title?: string;
+  loading?: boolean;
 };
 
-export const LoadingUI: React.FunctionComponent<PullRequestSelectorProps> = ({
+export const InfoUI: React.FunctionComponent<PullRequestSelectorProps> = ({
   title,
+  loading,
 }) => {
   return (
     <Box
@@ -32,16 +35,25 @@ export const LoadingUI: React.FunctionComponent<PullRequestSelectorProps> = ({
           alignItems: "center",
         }}
       >
-        <Box sx={{ height: 56, width: 56, border: "1px solid red", mb: 2 }}>
-          {/* icon here */}
+        <Box mb={2}>
+          <GithubIcon
+            sx={({ palette }) => ({
+              height: 56,
+              width: 56,
+              mb: 2,
+              color: palette.gray[80],
+            })}
+          />
         </Box>
         <Typography variant="h2" sx={{ textAlign: "center", mb: 3 }}>
           {title}
         </Typography>
 
-        <Box display="flex" justifyContent="center">
-          {/* <LoadingSpinner size={50} thickness={8} /> */}
-        </Box>
+        {loading && (
+          <Box display="flex" justifyContent="center" color="blue.60">
+            <LoadingSpinner size={50} thickness={6} />
+          </Box>
+        )}
       </Box>
     </Box>
   );
