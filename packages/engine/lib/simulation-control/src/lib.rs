@@ -1,3 +1,4 @@
+//! TODO: DOC
 #![cfg_attr(test, feature(test))]
 
 pub mod command;

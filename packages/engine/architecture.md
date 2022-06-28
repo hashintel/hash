@@ -4,7 +4,7 @@ Currently the hEngine consists of two binaries located within the [`./bin`](bin)
 To read the documentation for the various components, run:
 
 ```sh
-cargo doc --open --workspace
+cargo doc --open --workspace --no-deps
 ```
 
 and explore the documentation for the relevant crates (starting with the following two)
