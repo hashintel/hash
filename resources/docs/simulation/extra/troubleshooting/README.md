@@ -25,7 +25,7 @@ A few tips for debugging simulation errors:
 
 ## Troubleshooting crashes
 
-Despite out best efforts, sometimes hCore crashes with a screen that looks like this:
+Despite our best efforts, sometimes hCore crashes with a screen that looks like this:
 
 ![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-06-15-at-10.24.37.png)
 
