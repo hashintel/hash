@@ -1,7 +1,7 @@
 cargo-features = ["workspace-inheritance"]
 
 [package]
-name = "hash_graph"
+name = "hash-graph"
 description.workspace = true
 readme.workspace = true
 version.workspace = true
