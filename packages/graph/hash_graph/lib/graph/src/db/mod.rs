@@ -5,16 +5,15 @@ mod tests {
     use super::row_types::EntityType;
 
     // Sanity check test, not useful at all. Delete as soon as it makes sense.
-    #[ignore]
     #[tokio::test]
     async fn db_works() {
-        let pool = sqlx::PgPool::connect("postgres://postgres:postgres@localhost/postgres_graph")
+        let pool = sqlx::PgPool::connect("postgres://postgres:postgres@localhost/postgres_graph___")
             .await
-            .expect("DB to be up and available");
+            .expect("Couldn't connect to the DB");
 
         let _rows: Vec<EntityType> = sqlx::query_as("SELECT * from entity_types")
             .fetch_all(&pool)
             .await
-            .expect("DB to answer query on entity_types");
+            .expect("Couldnt't select entity types");
     }
 }
