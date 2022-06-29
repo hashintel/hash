@@ -6,7 +6,8 @@
 #![warn(
     clippy::pedantic,
     clippy::nursery,
-    clippy::allow_attributes_without_reason,
+    // False positives on expanded macros, unfortunately.
+    // clippy::allow_attributes_without_reason,
     clippy::as_underscore,
     clippy::clone_on_ref_ptr,
     clippy::create_dir,
