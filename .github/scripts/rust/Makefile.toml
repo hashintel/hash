@@ -47,7 +47,7 @@ args = ["run", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "${@}"]
 [tasks.lint]
 description = "Runs all lints"
 category = "Lint"
-run_task = { name = ["format-task-ci", "clippy-task-ci", "doc-task-ci-public", "doc-task-ci-private"] }
+run_task = { name = ["format-task-check", "clippy-task-check", "doc-task-check-public", "doc-task-check-private"] }
 
 [tasks.format]
 condition = { channels = ["nightly"] }
@@ -55,7 +55,7 @@ description = "Runs the rustfmt formatter"
 category = "Lint"
 workspace = false
 run_task = [
-    { name = ["format-task-ci"] , condition = { env_true = ["CARGO_MAKE_CI" ] } },
+    { name = ["format-task-check"] , condition = { env_true = ["CARGO_MAKE_CI" ] } },
     { name = ["format-task"] },
 ]
 
@@ -65,7 +65,7 @@ command = "cargo"
 args = ["fmt", "${@}"]
 dependencies = ["install-rustfmt"]
 
-[tasks.format-task-ci]
+[tasks.format-task-check]
 extend = "format-task"
 args = ["fmt", "--", "--check"]
 
@@ -73,7 +73,7 @@ args = ["fmt", "--", "--check"]
 description = "Runs clippy with all feature flag permutations"
 category = "Lint"
 run_task = [
-    { name = ["clippy-task-ci"] , condition = { env_true = ["CARGO_MAKE_CI" ] } },
+    { name = ["clippy-task-check"] , condition = { env_true = ["CARGO_MAKE_CI" ] } },
     { name = ["clippy-task"] },
 ]
 
@@ -83,7 +83,7 @@ command = "cargo"
 args = ["hack", "clippy", "--no-deps", "--tests", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "${@}"]
 dependencies = ["install-cargo-hack", "install-clippy"]
 
-[tasks.clippy-task-ci]
+[tasks.clippy-task-check]
 extend = "clippy-task"
 args = ["hack", "clippy", "--no-deps", "--tests", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "--", "-D", "warnings"]
 
@@ -97,7 +97,7 @@ description = "Builds the documentation for the crate"
 category = "Docs"
 workspace = false
 run_task = [
-    { name = ["doc-task-ci-public", "doc-task-ci-private"] , fork = true, condition = { env_true = ["CARGO_MAKE_CI" ] } },
+    { name = ["doc-task-check-public", "doc-task-check-private"] , fork = true, condition = { env_true = ["CARGO_MAKE_CI" ] } },
     { name = ["doc-task"] },
 ]
 
@@ -107,13 +107,13 @@ private = true
 command = "cargo"
 args = ["doc", "--workspace", "--all-features", "--no-deps", "${@}"]
 
-[tasks.doc-task-ci-public]
+[tasks.doc-task-check-public]
 private = true
 command = "cargo"
 args = ["rustdoc", "--all-features", "--", "-Z", "unstable-options", "--check", "-D", "warnings"]
 
-[tasks.doc-task-ci-private]
-extend = "doc-task-ci-public"
+[tasks.doc-task-check-private]
+extend = "doc-task-check-public"
 args = ["rustdoc", "--all-features", "--", "-Z", "unstable-options", "--check", "--document-private-items", "-D", "warnings"]
 
 
