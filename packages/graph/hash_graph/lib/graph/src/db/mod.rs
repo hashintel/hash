@@ -15,6 +15,6 @@ mod tests {
         let _rows: Vec<EntityType> = sqlx::query_as("SELECT * from entity_types")
             .fetch_all(&pool)
             .await
-            .expect("Couldnt't select entity types");
+            .expect("Couldn't select entity types");
     }
 }
