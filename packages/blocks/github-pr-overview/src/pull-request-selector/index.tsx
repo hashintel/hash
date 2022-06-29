@@ -7,7 +7,7 @@ import { GithubIcon } from "../icons";
 import { CustomAutocomplete } from "./custom-autocomplete";
 
 export type PullRequestSelectorProps = {
-  allPrs: Map<string, GithubPullRequestEntityType>;
+  allPrs: Map<string, GithubPullRequestEntityType> | undefined;
   setSelectedPullRequestId: (x: any) => void;
 };
 
@@ -30,7 +30,7 @@ export const PullRequestSelector: React.FunctionComponent<
   const reposToPrIds: { [k: string]: number[] } = React.useMemo(() => {
     const repoMap = {} as { [k: string]: number[] };
 
-    Array.from(allPrs?.keys()).forEach((prId) => {
+    Array.from(allPrs?.keys() ?? []).forEach((prId) => {
       // e.g. [hashintel, hash, 490
       const parsed = prId.split("/");
       if (parsed.length !== 3) {
@@ -80,7 +80,7 @@ export const PullRequestSelector: React.FunctionComponent<
           })}
         />
         <Typography variant="h2" textAlign="center" mb={3}>
-          Select a Github pull request to create a timeline
+          Select a GitHub pull request to create a timeline
         </Typography>
 
         <Box sx={{ width: 320 }}>
@@ -106,7 +106,7 @@ export const PullRequestSelector: React.FunctionComponent<
             }}
             getOptionLabel={(option) =>
               `#${option} ${
-                allPrs.get(`${selectedRepository}/${option}`)?.properties
+                allPrs?.get(`${selectedRepository}/${option}`)?.properties
                   .title ?? ""
               }`
             }

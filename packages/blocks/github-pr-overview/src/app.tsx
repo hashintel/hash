@@ -11,7 +11,7 @@ import {
 } from "./types";
 import { GithubPrOverview } from "./overview";
 
-import { getPRDetails, getEntityTypeIdsAndPRs } from "./entity-aggregations";
+import { getPrDetails, getEntityTypeIdsAndPrs } from "./entity-aggregations";
 import { PullRequestSelector } from "./pull-request-selector";
 import { InfoUI } from "./info-ui";
 
@@ -155,7 +155,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         payload: { blockState: BlockState.Loading },
       });
 
-      void getEntityTypeIdsAndPRs(
+      void getEntityTypeIdsAndPrs(
         githubEntityTypeIds,
         ({ data }) => graphService.aggregateEntityTypes({ data }),
         ({ data }) => graphService.aggregateEntities({ data }),
@@ -185,13 +185,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   // Fetch PR Details => pullRequest, events and reviews
   // if there's a selectedPullRequestId
   React.useEffect(() => {
-    if (!blockRef.current) return;
+    if (!blockRef.current || !graphService) return;
     // @todo add check to see if selectedPR is the same as current PR
-    if (
-      selectedPullRequestId &&
-      githubEntityTypeIds &&
-      graphService?.aggregateEntities
-    ) {
+    if (selectedPullRequestId && githubEntityTypeIds) {
       dispatch({
         type: "UPDATE_STATE",
         payload: {
@@ -200,7 +196,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         },
       });
 
-      void getPRDetails(
+      void getPrDetails(
         selectedPullRequestId,
         githubEntityTypeIds,
         ({ data }) => graphService?.aggregateEntities({ data }),
@@ -228,8 +224,6 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     }
   }, [githubEntityTypeIds, selectedPullRequestId, graphService]);
 
-  /** @todo - Figure out when to query for more than one page, probably querying until no more results */
-
   const renderContent = () => {
     switch (blockState) {
       case BlockState.Loading:
@@ -250,7 +244,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         return (
           <PullRequestSelector
             setSelectedPullRequestId={setSelectedPullRequestIdAndPersist}
-            allPrs={allPrs!}
+            allPrs={allPrs}
           />
         );
     }

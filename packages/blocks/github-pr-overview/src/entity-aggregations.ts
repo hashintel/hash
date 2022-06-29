@@ -12,9 +12,9 @@ import {
 
 const ITEMS_PER_PAGE = 100;
 
-export const getGithubEntityTypes = async (
+export const getGitHubEntityTypes = async (
   aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
-  numPages: number = 5,
+  numItems: number = 1,
 ): Promise<{
   [key in GITHUB_ENTITY_TYPES]: string;
 }> => {
@@ -22,7 +22,7 @@ export const getGithubEntityTypes = async (
     data: {
       operation: {
         pageNumber: 1,
-        itemsPerPage: numPages * ITEMS_PER_PAGE,
+        itemsPerPage: numItems,
       },
     },
   });
@@ -59,7 +59,7 @@ export const getGithubEntityTypes = async (
 export const getPrs = async (
   githubPullRequestTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"],
-  numPages: number = 5,
+  numItems: number = 1,
   selectedPullRequest?: PullRequestIdentifier,
 ): Promise<GithubPullRequestEntityType[]> => {
   const response = await aggregateEntities({
@@ -67,7 +67,7 @@ export const getPrs = async (
       operation: {
         entityTypeId: githubPullRequestTypeId,
         pageNumber: 1,
-        itemsPerPage: ITEMS_PER_PAGE * numPages,
+        itemsPerPage: numItems,
         multiFilter: {
           operator: "AND",
           filters:
@@ -104,14 +104,14 @@ export const getPrReviews = async (
   selectedPullRequest: PullRequestIdentifier,
   githubReviewTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"],
-  numPages: number = 1,
+  numItems: number = 1,
 ) => {
   const response = await aggregateEntities({
     data: {
       operation: {
         entityTypeId: githubReviewTypeId,
         pageNumber: 1,
-        itemsPerPage: ITEMS_PER_PAGE * numPages,
+        itemsPerPage: numItems,
         multiFilter: {
           operator: "AND",
           filters: [
@@ -149,7 +149,7 @@ export const getPrEvents = async (
   selectedPullRequest: PullRequestIdentifier,
   githubIssueEventTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"],
-  numPages: number = 1,
+  numItems: number = 1,
 ): Promise<GithubIssueEventEntityType[]> => {
   /** @todo - These should be links to a PR entity really */
   const response = await aggregateEntities({
@@ -157,7 +157,7 @@ export const getPrEvents = async (
       operation: {
         entityTypeId: githubIssueEventTypeId,
         pageNumber: 1,
-        itemsPerPage: ITEMS_PER_PAGE * numPages,
+        itemsPerPage: numItems,
         multiFilter: {
           operator: "AND",
           filters: [
@@ -204,7 +204,7 @@ export const getPrEvents = async (
  * @param aggregateEntities
  * @returns
  */
-export const getEntityTypeIdsAndPRs = async (
+export const getEntityTypeIdsAndPrs = async (
   initialEntityTypes: { [key in GITHUB_ENTITY_TYPES]: string } | undefined,
   aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
   aggregateEntities: GraphBlockHandler["aggregateEntities"],
@@ -217,7 +217,7 @@ export const getEntityTypeIdsAndPRs = async (
 
     // Fetch github entity types if they aren't present
     if (!initialEntityTypes) {
-      githubEntityTypeIds = await getGithubEntityTypes(({ data }) =>
+      githubEntityTypeIds = await getGitHubEntityTypes(({ data }) =>
         aggregateEntityTypes({ data }),
       );
     }
@@ -250,7 +250,7 @@ export const getEntityTypeIdsAndPRs = async (
  * @param aggregateEntities
  * @returns
  */
-export const getPRDetails = (
+export const getPrDetails = (
   selectedPullRequestId: PullRequestIdentifier,
   githubEntityTypeIds: { [key in GITHUB_ENTITY_TYPES]: string },
   aggregateEntities: GraphBlockHandler["aggregateEntities"],
@@ -270,13 +270,13 @@ export const getPRDetails = (
       selectedPullRequestId,
       githubEntityTypeIds[GITHUB_ENTITY_TYPES.Review],
       async ({ data }) => await aggregateEntities({ data }),
-      5,
+      5 * ITEMS_PER_PAGE,
     ),
     getPrEvents(
       selectedPullRequestId,
       githubEntityTypeIds[GITHUB_ENTITY_TYPES.IssueEvent],
       ({ data }) => aggregateEntities({ data }),
-      5,
+      5 * ITEMS_PER_PAGE,
     ),
   ])
     .then(([pullRequests, reviews, events]) => {
