@@ -6,7 +6,8 @@
 #![warn(
     clippy::pedantic,
     clippy::nursery,
-    // False positives on expanded macros, unfortunately.
+    // Encountering a lot of false positives appearing on things like `derive` macros. We should revisit
+    // periodically in case the bug gets fixed
     // clippy::allow_attributes_without_reason,
     clippy::as_underscore,
     clippy::clone_on_ref_ptr,
