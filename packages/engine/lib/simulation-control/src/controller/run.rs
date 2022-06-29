@@ -41,7 +41,7 @@ enum LoopControl {
 /// The repeating top-level logic of a simulation step.
 /// - Check if the sim has been told to stop by the Experiment Controller
 /// - Tells the simulation engine to take a step [`Engine::next()`]:
-///   - Runs [Context Packages][init] in parallel
+///   - Runs [Context Packages][context] in parallel
 ///   - Runs [State Packages][state] sequentially
 ///   - Runs [Output packages][output]
 /// - Persists Output
