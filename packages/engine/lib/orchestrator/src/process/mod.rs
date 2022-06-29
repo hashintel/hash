@@ -5,8 +5,8 @@ mod local;
 use std::process::ExitStatus;
 
 use async_trait::async_trait;
-use hash_engine_lib::proto::EngineMsg;
-use simulation_structure::ExperimentId;
+use execution::package::experiment::ExperimentId;
+use experiment_control::comms::EngineMsg;
 
 pub use self::local::{LocalCommand, LocalProcess};
 use crate::error::Result;

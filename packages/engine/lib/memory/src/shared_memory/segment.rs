@@ -47,7 +47,7 @@ impl<'a> Buffers<'a> {
 ///
 /// Holds a UUID and a random suffix. The UUID can be reused for different [`Segment`]s and can all
 /// be cleaned up by calling [`cleanup_by_base_id`].
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct MemoryId {
     id: Uuid,
     suffix: u16,
@@ -58,8 +58,7 @@ impl MemoryId {
     ///
     /// This will generate a suffix and ensures, that the shared memory segment does not already
     /// exists at */dev/shm/*.
-    pub fn new(id: impl Into<Uuid>) -> Self {
-        let id = id.into();
+    pub fn new(id: Uuid) -> Self {
         loop {
             let memory_id = Self {
                 id,
@@ -103,11 +102,11 @@ impl fmt::Display for MemoryId {
 }
 
 /// Clean up generated shared memory segments associated with a given `MemoryId`.
-pub fn cleanup_by_base_id(id: impl Into<Uuid>) -> Result<()> {
+pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
     // TODO: macOS does not store the shared memory FDs at `/dev/shm/`. Maybe it's not storing
     //   FDs at all. Find out if they are stored somewhere and remove them instead, otherwise we
     //   have to figure out a way to remove them without relying on the file-system.
-    let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id.into())))
+    let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
         .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
 
     for path in shm_files {

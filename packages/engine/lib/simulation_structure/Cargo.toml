@@ -1,8 +1,0 @@
-[package]
-name = "simulation_structure"
-version = "0.0.0"
-edition = "2021"
-
-[dependencies]
-serde = { version = "1.0.137", features = ["derive"] }
-uuid = { version = "0.8.1", features = ["v4", "serde"] }

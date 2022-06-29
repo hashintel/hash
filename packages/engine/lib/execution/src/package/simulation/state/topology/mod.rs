@@ -35,12 +35,12 @@ type Direction = [DirectionSubType; 3];
 
 pub struct TopologyCreator;
 
-impl<C> StatePackageCreator<C> for TopologyCreator {
+impl StatePackageCreator for TopologyCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms<C>,
+        _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>> {
         let topology = Topology {
@@ -48,7 +48,9 @@ impl<C> StatePackageCreator<C> for TopologyCreator {
         };
         Ok(Box::new(topology))
     }
+}
 
+impl PackageCreator for TopologyCreator {
     fn get_state_field_specs(
         &self,
         _config: &PackageInitConfig,
@@ -60,8 +62,6 @@ impl<C> StatePackageCreator<C> for TopologyCreator {
         )?])
     }
 }
-
-impl PackageCreator for TopologyCreator {}
 
 pub struct Topology {
     config: Arc<TopologyConfig>,

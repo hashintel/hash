@@ -38,12 +38,12 @@ const CPU_BOUND: bool = false;
 
 pub struct ApiRequestsCreator;
 
-impl<C> ContextPackageCreator<C> for ApiRequestsCreator {
+impl ContextPackageCreator for ApiRequestsCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms<C>,
+        _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {

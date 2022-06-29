@@ -19,7 +19,7 @@ impl Context for ParseExperimentError {}
 fn parse_experiment(description: &str) -> Result<(u64, u64), ParseExperimentError> {
     let value = description
         .parse()
-        .report()
+        .into_report()
         .attach_printable_lazy(|| format!("{description:?} could not be parsed as experiment"))
         .change_context(ParseExperimentError)?;
 

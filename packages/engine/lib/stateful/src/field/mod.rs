@@ -16,6 +16,7 @@ mod accessor;
 mod field_type;
 mod fixed_size;
 mod key;
+mod schema;
 mod scope;
 mod source;
 mod spec;
@@ -25,13 +26,14 @@ mod spec_map;
 ///
 /// This means their length is 128 bits i.e. 16 bytes
 pub const UUID_V4_LEN: usize = std::mem::size_of::<u128>();
-pub(in crate) const POSITION_DIM: usize = 3;
+pub(crate) const POSITION_DIM: usize = 3;
 
-pub(in crate) use self::fixed_size::IsFixedSize;
+pub(crate) use self::fixed_size::IsFixedSize;
 pub use self::{
     accessor::FieldSpecMapAccessor,
     field_type::{FieldType, FieldTypeVariant, PresetFieldType},
     key::RootFieldKey,
+    schema::Schema,
     scope::FieldScope,
     source::{FieldSource, PackageId},
     spec::{FieldSpec, RootFieldSpec, RootFieldSpecCreator},

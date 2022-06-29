@@ -253,7 +253,7 @@ impl Message {
     ///
     /// This function will panic if `value` is not a valid JSON array.
     /// TODO: Make sure this function is named as unchecekd to prevent unknown panics
-    pub(in crate) fn from_json_array_with_state(
+    pub(crate) fn from_json_array_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
     ) -> Result<Vec<Message>, Error> {

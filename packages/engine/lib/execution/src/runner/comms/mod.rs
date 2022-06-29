@@ -6,7 +6,6 @@ mod outbound;
 use std::{collections::HashMap, fmt, sync::Arc};
 
 use arrow::datatypes::Schema;
-use simulation_structure::{ExperimentId, SimulationShortId};
 use stateful::{
     agent::AgentSchema,
     field::PackageId,
@@ -22,6 +21,7 @@ pub use self::{
     },
 };
 use crate::{
+    package::{experiment::ExperimentId, simulation::SimulationId},
     runner::{MessageTarget, RunnerConfig},
     task::{TaskId, TaskMessage, TaskSharedStore},
     worker::PackageInitMsgForWorker,
@@ -107,7 +107,7 @@ pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
 #[derive(Debug, Clone)]
 pub struct NewSimulationRun {
     pub span: Span,
-    pub short_id: SimulationShortId,
+    pub short_id: SimulationId,
     pub worker_allocation: Arc<WorkerAllocation>,
     pub packages: PackageMsgs,
     pub datastore: DatastoreSimulationPayload,

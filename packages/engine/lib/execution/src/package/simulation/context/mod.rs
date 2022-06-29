@@ -12,6 +12,7 @@ pub mod agent_messages;
 pub mod api_requests;
 pub mod neighbors;
 
+mod creator;
 mod message;
 mod name;
 mod task;
@@ -28,7 +29,10 @@ use stateful::{
 };
 use tracing::Span;
 
-pub use self::{message::ContextTaskMessage, name::ContextPackageName, task::ContextTask};
+pub use self::{
+    creator::ContextPackageCreators, message::ContextTaskMessage, name::ContextPackageName,
+    task::ContextTask,
+};
 use crate::{
     package::simulation::{
         MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
@@ -53,13 +57,13 @@ pub trait ContextPackage: Package + MaybeCpuBound {
     fn span(&self) -> Span;
 }
 
-pub trait ContextPackageCreator<C>: PackageCreator {
+pub trait ContextPackageCreator: PackageCreator {
     /// Create the package.
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        system: PackageComms<C>,
+        system: PackageComms,
         state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>>;
@@ -68,16 +72,6 @@ pub trait ContextPackageCreator<C>: PackageCreator {
     //   "get_empty_arrow_column"
     #[allow(unused_variables)]
     fn get_context_field_specs(
-        &self,
-        config: &PackageInitConfig,
-        globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
-        Ok(vec![])
-    }
-
-    #[allow(unused_variables)]
-    fn get_state_field_specs(
         &self,
         config: &PackageInitConfig,
         globals: &Globals,

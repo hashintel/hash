@@ -4,47 +4,25 @@ version = "0.0.0"
 edition = "2021"
 
 [workspace]
-members = [".", "bin/*", "lib/*"]
-default-members = [".", "bin/*", "lib/*"]
+members = ["bin/*", "lib/*"]
+default-members = ["bin/cli"]
 
-[dependencies]
-flatbuffers_gen = { path = "lib/flatbuffers_gen" }
-nano = { path = "lib/nano", default-features = false }
-memory = { path = "lib/memory" }
-stateful = { path = "lib/stateful" }
-simulation_structure = { path = "lib/simulation_structure" }
+[dev-dependencies]
 execution = { path = "lib/execution", default-features = false }
+experiment-structure = { path = "lib/experiment-structure", default-features = false }
+experiment-control = { path = "lib/experiment-control", default-features = false }
+orchestrator = { path = "lib/orchestrator", default-features = false }
 
 error-stack = { version = "0.1.1", features = ["spantrace"] }
 
-arr_macro = "0.1.3"
-arrow = { version = "10.0.0", default-features = false }
-async-trait = "0.1.48"
-clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
-csv = "1.1.5"
-futures = "0.3.6"
 num_cpus = "1.13.0"
-rayon = "1.4.1"
-serde_json = "1.0.59"
 serde = { version = "1.0.111", features = ["derive"] }
-surf = "2.0.0"
-thiserror = "1.0.21"
+serde_json = "1.0.59"
 tokio = { version = "1.18.2", features = ["macros", "rt-multi-thread", "sync", "process", "time"] }
 tracing = "0.1.29"
-tracing-appender = "0.2.0"
-tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.7", features = ["env-filter", "json"] }
-tracing-texray = { version = "0.1.2", optional = true }
-
-[dev-dependencies]
-orchestrator = { path = "lib/orchestrator", default-features = false }
-
-rand = "0.8.3"
 
 [features]
 default = ["build-nng"]
-build-nng = ["nano/build-nng", "execution/build-nng"]
-texray = ["tracing-texray"]
-
-[build-dependencies.cc]
-version = "1.0"
+build-nng = ["orchestrator/build-nng", "experiment-control/build-nng", "execution/build-nng"]
+texray = ["orchestrator/texray", "experiment-control/texray"]

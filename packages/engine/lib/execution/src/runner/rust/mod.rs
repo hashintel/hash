@@ -7,13 +7,13 @@
 use std::{pin::Pin, result::Result as StdResult};
 
 use futures::{Future, FutureExt};
-use simulation_structure::SimulationShortId;
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
 
 use crate::{
+    package::simulation::SimulationId,
     runner::comms::{ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, OutboundFromRunnerMsg},
     Result,
 };
@@ -36,7 +36,7 @@ impl RustRunner {
 
     pub async fn send(
         &self,
-        _sim_id: Option<SimulationShortId>,
+        _sim_id: Option<SimulationId>,
         _msg: InboundToRunnerMsgPayload,
     ) -> Result<()> {
         Ok(())
@@ -44,7 +44,7 @@ impl RustRunner {
 
     pub async fn send_if_spawned(
         &self,
-        _sim_id: Option<SimulationShortId>,
+        _sim_id: Option<SimulationId>,
         _msg: InboundToRunnerMsgPayload,
     ) -> Result<()> {
         tracing::trace!("Received message to send to Rust Runner: {:?}", &_msg);

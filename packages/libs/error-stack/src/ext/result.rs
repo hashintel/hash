@@ -185,8 +185,15 @@ pub trait IntoReport: Sized {
     /// Type of the resulting [`Err`] variant wrapped inside a [`Report<E>`].
     type Err;
 
+    #[deprecated = "Use `IntoReport::into_report` instead"]
+    #[inline]
+    #[allow(missing_docs)]
+    fn report(self) -> Result<Self::Ok, Self::Err> {
+        self.into_report()
+    }
+
     /// Converts the [`Err`] variant of the [`Result`] to a [`Report`]
-    fn report(self) -> Result<Self::Ok, Self::Err>;
+    fn into_report(self) -> Result<Self::Ok, Self::Err>;
 }
 
 impl<T, E> IntoReport for core::result::Result<T, E>
@@ -197,7 +204,7 @@ where
     type Ok = T;
 
     #[track_caller]
-    fn report(self) -> Result<T, E> {
+    fn into_report(self) -> Result<T, E> {
         match self {
             Ok(value) => Ok(value),
             Err(error) => Err(Report::from(error)),
