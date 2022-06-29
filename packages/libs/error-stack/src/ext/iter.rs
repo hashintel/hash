@@ -268,10 +268,22 @@ where
 /// Just tests that some simple uses of `IteratorExt` (and related types) works.
 mod test_simple_compiles {
     use super::*;
-    use crate::IntoReport;
+
+    #[derive(Debug)]
+    pub struct UhOhError;
+
+    impl core::fmt::Display for UhOhError {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            f.write_str("UhOhError")
+        }
+    }
+
+    impl crate::Context for UhOhError {}
 
     #[test]
     fn report_with_vec() {
+        use alloc::{string::ToString, vec};
+
         let items = vec![
             Ok(1),
             Ok(1),
@@ -284,14 +296,13 @@ mod test_simple_compiles {
             Ok(1430),
             Ok(4862),
             Ok(16796),
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "uh oh")),
+            Err(UhOhError),
         ]
         .into_iter()
-        .map(|item| item.into_report())
-        .collect::<Vec<_>>();
+        .map(crate::ext::result::IntoReport::into_report);
 
         let report = items.into_iter().attach("context".to_string());
 
-        report.for_each(drop)
+        report.for_each(drop);
     }
 }
