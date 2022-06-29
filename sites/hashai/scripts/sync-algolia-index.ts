@@ -19,7 +19,11 @@ type DocsFrontMatter = {
 
 const getFileInfos = (
   dirPath: string,
-  arrayOfFiles: Array<{ inputPath: string; outputPath: string; type: string }>,
+  arrayOfFiles: Array<{
+    inputPath: string;
+    outputPath: string;
+    type: string;
+  }>,
   type: string,
 ): {
   inputPath: string;
@@ -28,11 +32,11 @@ const getFileInfos = (
 }[] => {
   const files = fs.readdirSync(dirPath);
 
-  arrayOfFiles = arrayOfFiles || [];
+  let newArrayOfFiles = [...arrayOfFiles];
 
-  files.forEach(function (file) {
-    if (fs.statSync(dirPath + "/" + file).isDirectory()) {
-      arrayOfFiles = getFileInfos(dirPath + "/" + file, arrayOfFiles, type);
+  files.forEach((file) => {
+    if (fs.statSync(`${dirPath}/${file}`).isDirectory()) {
+      newArrayOfFiles = getFileInfos(`${dirPath}/${file}`, arrayOfFiles, type);
     } else {
       const inputPath = path.join(dirPath, "/", file);
       const outputPath = `.\\output\\${path.join(
@@ -42,12 +46,12 @@ const getFileInfos = (
         file,
       )}`;
       if (inputPath.endsWith(".md") || inputPath.endsWith(".mdx")) {
-        arrayOfFiles.push({ inputPath, outputPath, type });
+        newArrayOfFiles.push({ inputPath, outputPath, type });
       }
     }
   });
 
-  return arrayOfFiles;
+  return newArrayOfFiles;
 };
 
 type AlgoliaRecord = {
@@ -156,4 +160,4 @@ const main = async () => {
   }
 };
 
-main();
+void main();
