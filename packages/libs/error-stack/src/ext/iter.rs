@@ -1,4 +1,7 @@
-use core::fmt::{Debug, Display};
+use core::{
+    fmt::{Debug, Display},
+    marker::{Send, Sync},
+};
 
 use crate::{Context, Report, ResultExt};
 
@@ -184,7 +187,7 @@ where
 
     #[track_caller]
     fn next(&mut self) -> Option<Self::Item> {
-Some(self.iterator.next()?.attach_lazy(|| self.context.clone()))
+        Some(self.iterator.next()?.attach_lazy(|| self.context.clone()))
     }
 }
 
@@ -197,17 +200,14 @@ impl<I, F, A> Iterator for IteratorWithLazyAttachement<I, F>
 where
     I: Iterator,
     I::Item: ResultExt,
-    F: FnOnce() -> A + Clone,
+    F: FnOnce() -> A + Clone + Send + Sync + 'static,
     A: Send + Sync + 'static,
 {
     type Item = I::Item;
 
     #[track_caller]
     fn next(&mut self) -> Option<Self::Item> {
-        match self.iterator.next() {
-            Some(item) => Some(item.attach_lazy(self.context.clone())),
-            None => None,
-        }
+        Some(self.iterator.next()?.attach(self.context.clone()))
     }
 }
 
@@ -339,7 +339,7 @@ mod test_simple_compiles {
         .into_iter()
         .map(crate::ext::result::IntoReport::into_report);
 
-        let report = items.into_iter().attach("context".to_string());
+        let report = items.into_iter().attach_lazy(|| "context".to_string());
 
         for each in report {
             match each {
