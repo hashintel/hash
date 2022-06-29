@@ -5,8 +5,8 @@ services:
       restart_policy:
         condition: on-failure
     env_file:
-      - ../.env
-      - ../.env.local
+      - ../../../.env
+      - ../../../.env.local
     environment:
       ## Tell OpenSearch that it's operating in single-node mode
       - discovery.type=single-node
@@ -29,7 +29,7 @@ services:
     ## Details: https://github.com/opensearch-project/OpenSearch/issues/1579.
     ## We can revisit the setup after upgrading base image or by fixing permissions in a custom image.
     # volumes:
-    #   - ../var/external-services/opensearch/data:/usr/share/opensearch/data
+    #   - ../../../var/external-services/opensearch/data:/usr/share/opensearch/data
 
   hash-dev-postgres:
     build:
@@ -38,14 +38,14 @@ services:
       restart_policy:
         condition: on-failure
     env_file:
-      - ../.env
-      - ../.env.local
+      - ../../../.env
+      - ../../../.env.local
     environment:
       - PGDATA=/data/pgdata
     ports:
       - 5432:5432
     volumes:
-      - ../var/external-services/postgres/data:/data
+      - ../../../var/external-services/postgres/data:/data
 
   hash-dev-redis:
     deploy:
