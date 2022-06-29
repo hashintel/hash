@@ -3,9 +3,6 @@ extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 [env]
 CARGO_HACK_FLAGS = "--feature-powerset --features build-nng --exclude-features default --ignore-unknown-features --optional-deps clap"
 
-[tasks.default]
-alias = "run"
-
 # The `test` task will execute these task in the folloing order:
 #  1. Run unit tests
 #  2. Build the test dependencies (CI only)

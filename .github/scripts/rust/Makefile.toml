@@ -10,6 +10,15 @@ CARGO_HACK_FLAGS = "--feature-powerset --exclude-features default"
 CARGO_MAKE_CARGO_PROFILE = "release"
 
 
+[tasks.default]
+extend = "build"
+category = ""
+
+[tasks.all]
+description = "Builds the project, checks lints, and runs the tests. Additional parameters are passed to `build` and `test`."
+run_task = { name = ["build", "lint", "test"] }
+
+
 ################################################################################
 ## Build                                                                      ##
 ################################################################################
@@ -35,6 +44,11 @@ args = ["run", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "${@}"]
 ################################################################################
 ## Lints                                                                      ##
 ################################################################################
+[tasks.lint]
+description = "Runs all lints"
+category = "Lint"
+run_task = { name = ["format-task-ci", "clippy-task-ci", "doc-task-ci-public", "doc-task-ci-private"] }
+
 [tasks.format]
 condition = { channels = ["nightly"] }
 description = "Runs the rustfmt formatter"
@@ -54,13 +68,6 @@ dependencies = ["install-rustfmt"]
 [tasks.format-task-ci]
 extend = "format-task"
 args = ["fmt", "--", "--check"]
-
-[tasks.check]
-description = "Checks the crate with all feature flag permutations"
-category = "Lint"
-command = "cargo"
-args = ["hack", "check", "--tests", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "${@}"]
-dependencies = ["install-cargo-hack"]
 
 [tasks.clippy]
 description = "Runs clippy with all feature flag permutations"

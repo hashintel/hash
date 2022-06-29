@@ -1,4 +1,1 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
-
-[tasks.default]
-alias = "lint-flow"
