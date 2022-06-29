@@ -1,0 +1,150 @@
+[config.modify_core_tasks]
+private = true
+namespace = "default"
+
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+CARGO_HACK_FLAGS = "--feature-powerset --exclude-features default"
+
+[env.production]
+CARGO_MAKE_CARGO_PROFILE = "release"
+
+
+################################################################################
+## Build                                                                      ##
+################################################################################
+[tasks.build]
+description = "Builds the crate"
+category = "Build"
+workspace = false
+command = "cargo"
+args = ["build", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "${@}"]
+
+
+################################################################################
+## Run                                                                        ##
+################################################################################
+[tasks.run]
+description = "Builds the binary and runs it"
+category = "Run"
+workspace = false
+command = "cargo"
+args = ["run", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "${@}"]
+
+
+################################################################################
+## Lints                                                                      ##
+################################################################################
+[tasks.format]
+condition = { channels = ["nightly"] }
+description = "Runs the rustfmt formatter"
+category = "Lint"
+workspace = false
+run_task = [
+    { name = ["format-task-ci"] , condition = { env_true = ["CARGO_MAKE_CI" ] } },
+    { name = ["format-task"] },
+]
+
+[tasks.format-task]
+private = true
+command = "cargo"
+args = ["fmt", "${@}"]
+dependencies = ["install-rustfmt"]
+
+[tasks.format-task-ci]
+extend = "format-task"
+args = ["fmt", "--", "--check"]
+
+[tasks.check]
+description = "Checks the crate with all feature flag permutations"
+category = "Lint"
+command = "cargo"
+args = ["hack", "check", "--tests", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "${@}"]
+dependencies = ["install-cargo-hack"]
+
+[tasks.clippy]
+description = "Runs clippy with all feature flag permutations"
+category = "Lint"
+run_task = [
+    { name = ["clippy-task-ci"] , condition = { env_true = ["CARGO_MAKE_CI" ] } },
+    { name = ["clippy-task"] },
+]
+
+[tasks.clippy-task]
+private = true
+command = "cargo"
+args = ["hack", "clippy", "--no-deps", "--tests", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "${@}"]
+dependencies = ["install-cargo-hack", "install-clippy"]
+
+[tasks.clippy-task-ci]
+extend = "clippy-task"
+args = ["hack", "clippy", "--no-deps", "--tests", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "--", "-D", "warnings"]
+
+
+################################################################################
+## Docs                                                                       ##
+################################################################################
+[tasks.doc]
+condition = { channels = ["nightly"] }
+description = "Builds the documentation for the crate"
+category = "Docs"
+workspace = false
+run_task = [
+    { name = ["doc-task-ci-public", "doc-task-ci-private"] , fork = true, condition = { env_true = ["CARGO_MAKE_CI" ] } },
+    { name = ["doc-task"] },
+]
+
+[tasks.doc-task]
+condition = { env_false = ["CARGO_MAKE_CI"] }
+private = true
+command = "cargo"
+args = ["doc", "--workspace", "--all-features", "--no-deps", "${@}"]
+
+[tasks.doc-task-ci-public]
+private = true
+command = "cargo"
+args = ["rustdoc", "--all-features", "--", "-Z", "unstable-options", "--check", "-D", "warnings"]
+
+[tasks.doc-task-ci-private]
+extend = "doc-task-ci-public"
+args = ["rustdoc", "--all-features", "--", "-Z", "unstable-options", "--check", "--document-private-items", "-D", "warnings"]
+
+
+################################################################################
+## Tests                                                                      ##
+################################################################################
+[tasks.test]
+description = "Runs the test suite with all feature flag permutations"
+category = "Test"
+command = "cargo"
+args = ["hack", "test", "--no-fail-fast", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}"]
+dependencies = ["install-cargo-hack"]
+
+[tasks.miri]
+condition = { channels = ["nightly"] }
+description = "Runs miri tests with all feature flag permutations"
+category = "Test"
+command = "cargo"
+args = ["hack", "miri", "test", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}"]
+dependencies = ["install-cargo-hack", "install-miri"]
+
+
+################################################################################
+## Tools                                                                      ##
+################################################################################
+[tasks.install-cargo-hack]
+private = true
+install_crate = { crate_name = "cargo-hack", binary = "cargo", test_arg = ["hack", "--version"] }
+
+[tasks.install-clippy]
+private = true
+install_crate = { rustup_component_name = "clippy" }
+
+[tasks.install-rustfmt]
+private = true
+install_crate = { rustup_component_name = "rustfmt" }
+
+[tasks.install-miri]
+private = true
+condition = { channels = ["nightly"] }
+install_crate = { rustup_component_name = "miri" }
