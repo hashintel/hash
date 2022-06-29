@@ -144,10 +144,7 @@ where
 
     #[track_caller]
     fn next(&mut self) -> Option<Self::Item> {
-        match self.iterator.next() {
-            Some(item) => Some(item.attach(self.context.clone())),
-            None => None,
-        }
+Some(self.iterator.next()?.attach_lazy(|| self.context.clone()))
     }
 }
 
