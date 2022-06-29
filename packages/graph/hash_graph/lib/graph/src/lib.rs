@@ -6,7 +6,9 @@
 #![warn(
     clippy::pedantic,
     clippy::nursery,
-    clippy::allow_attributes_without_reason,
+    // Encountering a lot of false positives appearing on things like `derive` macros. We should revisit
+    // periodically in case the bug gets fixed
+    // clippy::allow_attributes_without_reason,
     clippy::as_underscore,
     clippy::clone_on_ref_ptr,
     clippy::create_dir,
@@ -32,6 +34,8 @@
     clippy::use_debug,
     clippy::verbose_file_reads
 )]
+
+mod db;
 
 #[cfg(test)]
 mod tests {

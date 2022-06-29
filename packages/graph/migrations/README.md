@@ -1,9 +1,19 @@
 # Datastore
 
-This package stores the configuration for the HASH datastore. For now, it
-only contains a config for a local development Postgres running on Docker.
+This package contains migrations for the HASH graph. For now, it
 
 ## Postgres
+
+### Getting started
+
+To create the database and appropriately apply all migrations, you can run the following scripts
+
+```sh
+yarn pg:recreate-db
+yarn db:migrate up
+```
+
+The `pg:recreate-db` command will make sure to create the DB in Postgres if it doesn't exist already.
 
 ### Migrations
 

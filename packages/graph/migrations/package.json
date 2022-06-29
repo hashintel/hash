@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-datastore",
+  "name": "@hashintel/hash-graph-migrations",
   "version": "0.0.0",
   "private": true,
   "description": "The data store for HASH",
@@ -13,8 +13,6 @@
     "pg:recreate-db": "ts-node postgres/scripts/recreate-db.ts"
   },
   "dependencies": {
-    "@hashintel/hash-api": "0.0.0",
-    "@hashintel/hash-backend-utils": "0.0.0",
     "id128": "1.6.6",
     "node-pg-migrate": "6.2.1",
     "node-postgres": "0.6.2",
