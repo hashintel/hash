@@ -30,7 +30,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       id: {
         type: "UUID",
         notNull: true,
-        unique: true,
       },
     },
     {
