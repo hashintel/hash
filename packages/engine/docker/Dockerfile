@@ -1,4 +1,4 @@
-FROM fedora as builder
+FROM fedora:37 as builder
 
 ## Install the dependencies
 RUN yum install gcc openssl-devel cmake -y
@@ -29,7 +29,7 @@ RUN useradd  \
     hash
 
 
-FROM fedora
+FROM fedora:37
 
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
