@@ -1,10 +1,9 @@
+mod postgres;
+
 use std::fmt;
 
 use async_trait::async_trait;
 use error_stack::{Context, Result};
-
-mod postgres;
-
 pub use postgres::PostgresDatabase;
 
 #[derive(Debug)]
