@@ -1,4 +1,4 @@
-//! Descriptions, and implementation logic, of the Types of elements of the graph
+//! Descriptions, and implementation logic, of the Types of elements of the graph.
 
 use sqlx::{types::Uuid, FromRow};
 
