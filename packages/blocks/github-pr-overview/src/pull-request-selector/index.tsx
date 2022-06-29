@@ -80,7 +80,7 @@ export const PullRequestSelector: React.FunctionComponent<
           })}
         />
         <Typography variant="h2" textAlign="center" mb={3}>
-          Select a Github pull request to create a timeline
+          Select a GitHub pull request to create a timeline
         </Typography>
 
         <Box sx={{ width: 320 }}>
