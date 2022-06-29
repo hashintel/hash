@@ -10,11 +10,11 @@ import {
   GITHUB_ENTITY_TYPES,
 } from "./types";
 
-const ITEMS_PER_PAGE = 100;
+const ITEMS_PER_PAGE = 500;
 
 export const getGitHubEntityTypes = async (
   aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
-  numItems: number = 1,
+  numItems: number = ITEMS_PER_PAGE,
 ): Promise<{
   [key in GITHUB_ENTITY_TYPES]: string;
 }> => {
@@ -59,7 +59,7 @@ export const getGitHubEntityTypes = async (
 export const getPrs = async (
   githubPullRequestTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"],
-  numItems: number = 1,
+  numItems: number = ITEMS_PER_PAGE,
   selectedPullRequest?: PullRequestIdentifier,
 ): Promise<GithubPullRequestEntityType[]> => {
   const response = await aggregateEntities({
@@ -104,7 +104,7 @@ export const getPrReviews = async (
   selectedPullRequest: PullRequestIdentifier,
   githubReviewTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"],
-  numItems: number = 1,
+  numItems: number = ITEMS_PER_PAGE,
 ) => {
   const response = await aggregateEntities({
     data: {
@@ -137,7 +137,7 @@ export const getPrReviews = async (
   });
 
   if (response.errors || !response.data) {
-    throw new Error("An error occured while fetching events");
+    throw new Error("An error occured while fetching reviews");
   }
   const entities: GithubReviewEntityType[] =
     response.data.results.filter(isDefined);
@@ -149,7 +149,7 @@ export const getPrEvents = async (
   selectedPullRequest: PullRequestIdentifier,
   githubIssueEventTypeId: string,
   aggregateEntities: GraphBlockHandler["aggregateEntities"],
-  numItems: number = 1,
+  numItems: number = ITEMS_PER_PAGE,
 ): Promise<GithubIssueEventEntityType[]> => {
   /** @todo - These should be links to a PR entity really */
   const response = await aggregateEntities({
@@ -270,13 +270,11 @@ export const getPrDetails = (
       selectedPullRequestId,
       githubEntityTypeIds[GITHUB_ENTITY_TYPES.Review],
       async ({ data }) => await aggregateEntities({ data }),
-      5 * ITEMS_PER_PAGE,
     ),
     getPrEvents(
       selectedPullRequestId,
       githubEntityTypeIds[GITHUB_ENTITY_TYPES.IssueEvent],
       ({ data }) => aggregateEntities({ data }),
-      5 * ITEMS_PER_PAGE,
     ),
   ])
     .then(([pullRequests, reviews, events]) => {

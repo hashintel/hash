@@ -102,6 +102,16 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       selectedPullRequestId: remoteSelectedPullRequestId,
     }),
   );
+  const prevSelectedPullRequestIdRef = React.useRef(
+    remoteSelectedPullRequestId,
+  );
+  if (prevSelectedPullRequestIdRef.current !== remoteSelectedPullRequestId) {
+    prevSelectedPullRequestIdRef.current = remoteSelectedPullRequestId;
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: { selectedPullRequestId: remoteSelectedPullRequestId },
+    });
+  }
 
   const setSelectedPullRequestIdAndPersist = (
     pullRequestId?: PullRequestIdentifier,
@@ -133,19 +143,6 @@ export const App: BlockComponent<BlockEntityProperties> = ({
 
     dispatch({ type: "RESET_SELECTED_PR" });
   };
-
-  // Update local data if remote data changes
-  React.useEffect(() => {
-    if (
-      JSON.stringify(remoteSelectedPullRequestId) !==
-      JSON.stringify(selectedPullRequestId)
-    ) {
-      dispatch({
-        type: "UPDATE_STATE",
-        payload: { selectedPullRequestId: remoteSelectedPullRequestId },
-      });
-    }
-  }, [remoteSelectedPullRequestId, selectedPullRequestId]);
 
   React.useEffect(() => {
     if (!graphService) return;
@@ -186,7 +183,6 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   // if there's a selectedPullRequestId
   React.useEffect(() => {
     if (!blockRef.current || !graphService) return;
-    // @todo add check to see if selectedPR is the same as current PR
     if (selectedPullRequestId && githubEntityTypeIds) {
       dispatch({
         type: "UPDATE_STATE",
@@ -238,7 +234,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           />
         );
       case BlockState.Error:
-        return <InfoUI title="An error occured" />;
+        return <InfoUI title={infoMessage || "An error occured"} />;
       case BlockState.Selector:
       default:
         return (
@@ -250,26 +246,10 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     }
   };
 
-  if (
-    allPrs &&
-    allPrs.size > 0 &&
-    !selectedPullRequestId &&
-    blockState === BlockState.Loading
-  ) {
+  if (!selectedPullRequestId && blockState === BlockState.Overview) {
     dispatch({
       type: "UPDATE_STATE",
       payload: { blockState: BlockState.Selector },
-    });
-  } else if (
-    selectedPullRequestId &&
-    pullRequest &&
-    reviews &&
-    events &&
-    blockState !== BlockState.Overview
-  ) {
-    dispatch({
-      type: "UPDATE_STATE",
-      payload: { blockState: BlockState.Overview },
     });
   }
 

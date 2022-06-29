@@ -122,11 +122,6 @@ export const GithubPrTimeline: React.FunctionComponent<
     addDefaultFromPossible(possibleEventTypes),
   );
 
-  // @todo make this more performant
-  React.useEffect(() => {
-    setSelectedEventTypes(addDefaultFromPossible(possibleEventTypes));
-  }, [possibleEventTypes]);
-
   const filteredNodes = React.useMemo(
     () =>
       nodes.filter(
