@@ -1,3 +1,5 @@
+//! Descriptions, and implementation logic, of the Types of elements of the graph
+
 use sqlx::{types::Uuid, FromRow};
 
 #[derive(Debug, FromRow)]

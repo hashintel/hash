@@ -34,13 +34,10 @@
     clippy::use_debug,
     clippy::verbose_file_reads
 )]
+#![allow(
+    clippy::module_name_repetitions,
+    reason = "This encourages importing `as` which breaks IDEs"
+)]
 
-mod db;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+pub mod datastore;
+pub mod types;

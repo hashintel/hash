@@ -6,11 +6,12 @@ publish = false
 
 
 [dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-
-tokio = { version = "1", features = ["rt", "macros"] }
-sqlx = { version = "0.5", features = [ "macros", "runtime-tokio-native-tls" , "postgres", "json", "uuid" ], default-features = false}
+serde = "1.0.137"
+serde_json = "1.0.81"
+async-trait = "0.1.56"
+sqlx = { version = "0.6.0", features = ["runtime-tokio-native-tls", "postgres", "macros", "uuid", "time", "json"] }
+tokio = { version = "1.18.2", features = ["rt", "macros"] }
+error-stack = "0.1.1"
 
 [dev-dependencies]
 
