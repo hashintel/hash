@@ -47,6 +47,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       version_id: {
         type: "UUID",
         primaryKey: true,
+        references: "ids",
       },
       schema: {
         type: "JSONB",
@@ -69,6 +70,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       version_id: {
         type: "UUID",
         primaryKey: true,
+        references: "ids",
       },
       schema: {
         type: "JSONB",
@@ -129,6 +131,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       version_id: {
         type: "UUID",
         primaryKey: true,
+        references: "ids",
       },
       schema: {
         type: "JSONB",
