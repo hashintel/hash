@@ -123,6 +123,7 @@ jobs:
 
   backend-integration-tests:
     name: Backend integration tests
+    if: ${{ github.ref != 'refs/heads/dev/graph' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -178,6 +179,7 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
+    if: ${{ github.ref != 'refs/heads/dev/graph' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
