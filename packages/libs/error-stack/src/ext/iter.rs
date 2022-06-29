@@ -10,29 +10,55 @@ use crate::{Context, Report, ResultExt};
 /// Because this trait attaches the provided data to _every_ item in the iterator, the
 /// provided data must implement [`Clone`].
 pub trait IteratorExt: Iterator + Sized {
-    /// Adds a new attachment to each [`Report`] in the iterator.
-    #[track_caller]
+    /// Adds a new attachment to each [`Report`] in the [`Iterator`] when calling
+    /// [`Iterator::next`].
+    ///
+    /// Applies [`Report::attach`] to every [`Err`] variant in the iterator. For more
+    /// information, see the documentation for [`Report::attach`].
+    ///
+    /// [`Report`]: crate::Report
+    /// [`Report::attach`]: crate::Report::attach
+    /// [`Iterator`]: std::iter::Iterator
     fn attach<A>(self, attachement: A) -> IteratorWithAttachement<Self, A>
     where
         A: Send + Sync + 'static;
 
-    /// Lazily adds a new attachment to each [`Report`] in the iterator.
-    #[track_caller]
+    /// Lazily adds a new attachment to each [`Report`] inside the [`Iterator`] when calling
+    /// [`Iterator::next`].
+    ///
+    /// Applies [`Report::attach_lazy`] to every [`Err`] variant in the iterator. For more
+    /// information, see the documentation for [`Report::attach`].
+    ///
+    /// [`Report`]: crate::Report
+    /// [`Report::attach`]: crate::Report::attach
+    /// [`poll`]: Future::poll
     fn attach_lazy<A, F>(self, attachement: F) -> IteratorWithLazyAttachement<Self, F>
     where
         A: Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Attaches a printable attachement to the [`Report`] inside the [`Result`] in each item
-    /// in the iterator.
-    #[track_caller]
+    /// Adds a new printable attachment to the [`Report`] inside the [`Result`] when
+    /// calling [`Iterator::next`].
+    ///
+    /// Applies [`Report::attach_printable`] to every [`Err`] variant in the iterator. For more
+    /// information, see the documentation for [`Report::attach_printable`].
+    ///
+    /// [`Report`]: crate::Report
+    /// [`Report::attach_printable`]: crate::Report::attach_printable
+    /// [`poll`]: Future::poll
     fn attach_printable<A>(self, attachement: A) -> IteratorWithPrintableAttachement<Self, A>
     where
         A: Display + Debug + Send + Sync + 'static;
 
-    /// Lazily attaches a printable attachement to the [`Report`] inside the [`Result`] in each item
-    /// in the iterator.
-    #[track_caller]
+    /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`]
+    /// when calling [`Iterator::next`].
+    ///
+    /// Applies [`Report::attach_printable_lazy`] to every [`Err`] variant in the iterator. For more
+    /// information, see the documentation for [`Report::attach_printable_lazy`].
+    ///
+    /// [`Report`]: crate::Report
+    /// [`Report::attach_printable_lazy`]: crate::Report::attach_printable
+    /// [`poll`]: Future::poll
     fn attach_printable_lazy<A, F>(
         self,
         attachement: F,
@@ -41,14 +67,28 @@ pub trait IteratorExt: Iterator + Sized {
         A: Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Changes the [`Context`] inside the [`Report`] for each item in the iterator.
-    #[track_caller]
+    /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when calling
+    /// [`Iterator::next`]
+    ///
+    /// Applies [`Report::change_context`] to every [`Err`] variant in the iterator. For more
+    /// information, see the documentation for [`Report::change_context`].
+    ///
+    /// [`Report`]: crate::Report
+    /// [`Report::change_context`]: crate::Report::change_context
+    /// [`poll`]: Future::poll
     fn change_context<C>(self, context: C) -> IteratorWithContext<Self, C>
     where
         C: Context;
 
-    /// Lazily changes the [`Context`] inside the [`Report`] for each item in the iterator.
-    #[track_caller]
+    /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when calling
+    /// [`Iterator::next`]
+    ///
+    /// Applies [`Report::change_context`] to every [`Err`] variant in the iterator. For more
+    /// information, see the documentation for [`Report::change_context`].
+    ///
+    /// [`Report`]: crate::Report
+    /// [`Report::change_context_lazy`]: crate::Report::change_context_lazy
+    /// [`poll`]: Future::poll
     fn change_context_lazy<C, F>(self, context: F) -> IteratorWithLazyContext<Self, F>
     where
         C: Context,
@@ -158,7 +198,7 @@ where
     I: Iterator,
     I::Item: ResultExt,
     F: FnOnce() -> A + Clone,
-    A: Send + Sync + Clone + 'static,
+    A: Send + Sync + 'static,
 {
     type Item = I::Item;
 
@@ -256,7 +296,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.iterator.next() {
             Some(item) => Some(item.attach_printable_lazy(self.context.clone())),
-            None => todo!(),
+            None => None,
         }
     }
 }
@@ -265,6 +305,7 @@ where
 /// Just tests that some simple uses of `IteratorExt` (and related types) works.
 mod test_simple_compiles {
     use super::*;
+    use crate::test_helper::messages;
 
     #[derive(Debug)]
     pub struct UhOhError;
@@ -300,6 +341,13 @@ mod test_simple_compiles {
 
         let report = items.into_iter().attach("context".to_string());
 
-        report.for_each(drop);
+        for each in report {
+            match each {
+                Ok(_) => (),
+                Err(err) => {
+                    assert_eq!(messages(&err), vec!["Opaque", "UhOhError"]);
+                }
+            }
+        }
     }
 }
