@@ -19,7 +19,7 @@ export enum BlockState {
 
 export type LocalState = {
   blockState: BlockState;
-  selectedPullRequestId?: PullRequestIdentifier;
+  selectedPullRequestIdentifier?: PullRequestIdentifier;
   githubEntityTypeIds?: { [key in GITHUB_ENTITY_TYPES]: string };
   allPrs?: Map<string, GithubPullRequestEntityType>;
   pullRequest?: GithubPullRequestEntityType;

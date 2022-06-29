@@ -51,7 +51,7 @@ const reducer = (state: LocalState, action: Actions): LocalState => {
     case "RESET_SELECTED_PR":
       return {
         ...state,
-        selectedPullRequestId: undefined,
+        selectedPullRequestIdentifier: undefined,
         blockState: BlockState.Selector,
         pullRequest: undefined,
         events: [],
@@ -82,12 +82,12 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const {
     entityId,
     // selectedPullRequest is just an Identifier, but isn't the associated GithubPullRequestEntity
-    properties: { selectedPullRequest: remoteSelectedPullRequestId },
+    properties: { selectedPullRequest: remoteSelectedPullRequestIdentifier },
   } = blockEntity;
   const [
     {
       blockState,
-      selectedPullRequestId,
+      selectedPullRequestIdentifier,
       allPrs,
       pullRequest,
       reviews,
@@ -99,17 +99,21 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   ] = React.useReducer<React.Reducer<LocalState, Actions>>(
     reducer,
     getInitialState({
-      selectedPullRequestId: remoteSelectedPullRequestId,
+      selectedPullRequestIdentifier: remoteSelectedPullRequestIdentifier,
     }),
   );
   const prevSelectedPullRequestIdRef = React.useRef(
-    remoteSelectedPullRequestId,
+    remoteSelectedPullRequestIdentifier,
   );
-  if (prevSelectedPullRequestIdRef.current !== remoteSelectedPullRequestId) {
-    prevSelectedPullRequestIdRef.current = remoteSelectedPullRequestId;
+  if (
+    prevSelectedPullRequestIdRef.current !== remoteSelectedPullRequestIdentifier
+  ) {
+    prevSelectedPullRequestIdRef.current = remoteSelectedPullRequestIdentifier;
     dispatch({
       type: "UPDATE_STATE",
-      payload: { selectedPullRequestId: remoteSelectedPullRequestId },
+      payload: {
+        selectedPullRequestIdentifier: remoteSelectedPullRequestIdentifier,
+      },
     });
   }
 
@@ -127,7 +131,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
 
     dispatch({
       type: "UPDATE_STATE",
-      payload: { selectedPullRequestId: pullRequestId },
+      payload: { selectedPullRequestIdentifier: pullRequestId },
     });
   };
 
@@ -183,17 +187,17 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   // if there's a selectedPullRequestId
   React.useEffect(() => {
     if (!blockRef.current || !graphService) return;
-    if (selectedPullRequestId && githubEntityTypeIds) {
+    if (selectedPullRequestIdentifier && githubEntityTypeIds) {
       dispatch({
         type: "UPDATE_STATE",
         payload: {
           blockState: BlockState.Loading,
-          infoMessage: `Creating your timeline for pull request #${selectedPullRequestId.number}`,
+          infoMessage: `Creating your timeline for pull request #${selectedPullRequestIdentifier.number}`,
         },
       });
 
       void getPrDetails(
-        selectedPullRequestId,
+        selectedPullRequestIdentifier,
         githubEntityTypeIds,
         ({ data }) => graphService?.aggregateEntities({ data }),
       )
@@ -218,7 +222,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           });
         });
     }
-  }, [githubEntityTypeIds, selectedPullRequestId, graphService]);
+  }, [githubEntityTypeIds, selectedPullRequestIdentifier, graphService]);
 
   const renderContent = () => {
     switch (blockState) {
@@ -246,7 +250,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     }
   };
 
-  if (!selectedPullRequestId && blockState === BlockState.Overview) {
+  if (!selectedPullRequestIdentifier && blockState === BlockState.Overview) {
     dispatch({
       type: "UPDATE_STATE",
       payload: { blockState: BlockState.Selector },
