@@ -1,4 +1,9 @@
-//! TODO: DOC
+//! Server-Client communication using NNG.
+//!
+//! Contains the [`Server`] and [`Client`] types. The [`Server`] will create a connection given an
+//! `url` and the client can then connect to the server using the same `url`. It's then possible to
+//! send messages from the [`Client`] to the [`Server`].
+
 #![feature(lint_reasons)]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings)))))]
 #![deny(
