@@ -29,25 +29,30 @@ enum LoopControl {
 /// The main function for the run of a simulation. The general flow is in two sections as follows:
 ///
 /// # Initialization
-// TODO: DOC: expand on docs and add links to the Package system and packages
 /// - Create an uninitialized store (i.e. create the underlying state of the simulation)
 /// - Create the underlying simulation engine which
-///   - Runs the appropriate init package to initialize Agent state
-///   - Creates an empty context by calling the context packages
-///   - Initializes the datastore with Agent state and the empty context
-/// - Calls the output packages on the initial state
+///   - Runs the appropriate [init package][init] to initialize [`Agent`] state
+///   - Creates an empty [`Context`] by calling the [context packages][context]
+///   - Initializes the datastore with [`Agent`] state and the empty [`Context`]
+/// - Calls the [output packages][output] on the initial state
 /// - Starts the main loop
 ///
 /// # The Main Loop
 /// The repeating top-level logic of a simulation step.
 /// - Check if the sim has been told to stop by the Experiment Controller
 /// - Tells the simulation engine to take a step [`Engine::next()`]:
-///   - Runs Context Packages in parallel
-///   - Runs State Packages sequentially
-///   - Runs Output packages
+///   - Runs [Context Packages][init] in parallel
+///   - Runs [State Packages][state] sequentially
+///   - Runs [Output packages][output]
 /// - Persists Output
 /// - Sends an update on the Step result to the Experiment Controller
 ///
+/// [init]: execution::package::simulation::init
+/// [context]: execution::package::simulation::context
+/// [state]: execution::package::simulation::state
+/// [output]: execution::package::simulation::output
+/// [`Agent`]: stateful::agent::Agent
+/// [`Context`]: stateful::context::Context
 /// [`Engine::next()`]: crate::engine::Engine::next
 pub async fn sim_run<P: SimulationOutputPersistence>(
     config: Arc<SimulationRunConfig>,
