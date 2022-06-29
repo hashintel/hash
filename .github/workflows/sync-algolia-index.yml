@@ -7,7 +7,6 @@ env:
 on:
   push:
     branches: [main]
-  pull_request: {}
 
 jobs:
   sync_algolia_index:
