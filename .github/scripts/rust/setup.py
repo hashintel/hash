@@ -30,18 +30,14 @@ def find_local_crates():
     """
     Returns all available crates in the workspace.
 
-    If the crate is in a sub-crate of another crate, only the super-crate will be returned.
+    If a crate is in a sub-crate of another crate, only the super-crate will be returned because `cargo-make` will run
+    the sub-crate automatically.
     :return: a list of crate paths
     """
     all_crates = [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
     checked_crates = []
     for crate in all_crates:
-        seen = False
-        for other_crate in all_crates:
-            if str(crate).startswith(str(other_crate)) and crate != other_crate:
-                seen = True
-                break
-        if not seen:
+        if not any([path in crate.parents for path in all_crates]):
             checked_crates.append(crate)
     return checked_crates
 
