@@ -20,7 +20,7 @@ jobs:
           cache: yarn
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn workspace @hashintel/hashai install --frozen-lockfile
 
       - name: Sync Algolia Index
-        run: yarn exe scripts/sync-algolia-index.ts
+        run: yarn workspace @hashintel/hashai exe scripts/sync-algolia-index.ts

@@ -75,12 +75,12 @@ const generateAlgoliaRecords: () => AlgoliaRecord[] = () => {
   };
 
   const glossaryFiles = getFileInfos(
-    path.resolve(monorepoDirPath, "resources/glossary"),
+    path.resolve(monorepoDirPath, "sites/hashai/resources/glossary"),
     [],
     "glossary",
   );
   const docsFiles = getFileInfos(
-    path.resolve(monorepoDirPath, "resources/docs/simulation"),
+    path.resolve(monorepoDirPath, "sites/hashai/resources/docs/simulation"),
     [],
     "docs",
   );
