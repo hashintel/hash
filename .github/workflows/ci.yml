@@ -123,7 +123,7 @@ jobs:
 
   backend-integration-tests:
     name: Backend integration tests
-    if: ${{ github.base_ref != 'refs/heads/dev/graph' }}
+    if: ${{ github.base_ref != 'dev/graph' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
