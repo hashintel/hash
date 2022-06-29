@@ -4,7 +4,7 @@ import matter from "gray-matter";
 import algoliasearch from "algoliasearch";
 import * as envalid from "envalid";
 
-const monorepoDirPath = path.resolve(__dirname, "..");
+const monorepoDirPath = path.resolve(__dirname, "../../..");
 
 type DocsFrontMatter = {
   content: string;

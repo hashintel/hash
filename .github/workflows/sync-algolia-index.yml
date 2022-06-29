@@ -1,4 +1,4 @@
-name: Algolia Upload Index
+name: Sync Algolia Index
 
 env:
   ALGOLIA_PROJECT: ${{ secrets.ALGOLIA_PROJECT }}
@@ -10,7 +10,8 @@ on:
   pull_request: {}
 
 jobs:
-  build:
+  sync_algolia_index:
+    name: Sync Algolia Index
     runs-on: ubuntu-latest
 
     steps:
