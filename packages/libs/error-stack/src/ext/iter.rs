@@ -14,9 +14,6 @@ use crate::{Context, Report, ResultExt};
 /// items inside them using the usual `error-stack` methods.
 ///
 /// `IteratorExt` is only implemented for iterators of items which implement [`crate::ResultExt`].
-///
-/// Because this trait attaches the provided data to _every_ item in the iterator, the
-/// provided data must implement [`Clone`].
 pub trait IteratorExt: Iterator + Sized {
     /// Adds a new attachment to each [`Report`] in the [`Iterator`] when calling
     /// [`Iterator::next`].
