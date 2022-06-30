@@ -13,35 +13,33 @@ use crate::{Context, Report, ResultExt};
 ///
 /// [`Report`]: crate::Report
 pub trait StreamReportExt: Stream + Sized {
-    /// Adds a new attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
-    /// [`Stream`].
+    /// Adds a new attachment to the [`Report`] inside the [`Result`] when
+    /// calling [`Stream::poll_next`].
     ///
-    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
+    /// Applies [`Report::attach`] to the [`Err`] variant, refer to it for more information.
     ///
     /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
-    /// [`poll`]: Stream::poll
     fn attach<A>(self, attachment: A) -> StreamWithAttachment<Self, A>
     where
         A: Send + Sync + 'static;
 
-    /// Lazily adds a new attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
-    /// [`Stream`].
+    /// Lazily adds a new attachment to the [`Report`] inside the [`Result`] calling
+    /// [`Stream::poll_next`].
     ///
-    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
+    /// Applies [`Report::attach`] to the [`Err`] variant, refer to it for more information.
     ///
     /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
-    /// [`poll`]: Stream::poll
     fn attach_lazy<A, F>(self, attachment: F) -> StreamWithLazyAttachment<Self, F>
     where
         A: Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Adds a new printable attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
-    /// [`Stream`].
+    /// Adds a new printable attachment to the [`Report`] inside the [`Result`] when
+    /// calling [`Stream::poll_next`].
     ///
-    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
+    /// Applies [`Report::attach_printable`] to the [`Err`] variant, refer to it for more
     /// information.
     ///
     /// [`Report`]: crate::Report
@@ -51,15 +49,14 @@ pub trait StreamReportExt: Stream + Sized {
     where
         A: Display + Debug + Send + Sync + 'static;
 
-    /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`] when
-    /// [`poll`]ing the [`Stream`].
+    /// Lazily adds a new printable attachment to any [`Report`] in the [`Stream`]
+    /// when calling [`Stream::poll_next`].
     ///
-    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
+    /// Applies [`Report::attach_printable`] to the [`Err`] variant, refer to it for more
     /// information.
     ///
     /// [`Report`]: crate::Report
     /// [`Report::attach_printable`]: crate::Report::attach_printable
-    /// [`poll`]: Stream::poll
     fn attach_printable_lazy<A, F>(
         self,
         attachment: F,
@@ -68,26 +65,26 @@ pub trait StreamReportExt: Stream + Sized {
         A: Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
 
-    /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
-    /// [`Stream`].
+    /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when calling
+    /// [`Stream::poll_next`].
     ///
-    /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
+    /// Applies [`Report::change_context`] to the [`Err`] variant, see its documentation
+    /// for more information.
     ///
     /// [`Report`]: crate::Report
     /// [`Report::change_context`]: crate::Report::change_context
-    /// [`poll`]: Stream::poll
     fn change_context<C>(self, context: C) -> StreamWithContext<Self, C>
     where
         C: Context;
 
-    /// Lazily changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
-    /// [`Stream`].
+    /// Lazily changes the [`Context`] of the [`Report`] inside the [`Result`] when
+    /// calling [`Stream::poll_next`]
     ///
-    /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
+    /// Applies [`Report::change_context`] to the [`Err`] variant, see its documntation
+    /// for more information.
     ///
     /// [`Report`]: crate::Report
     /// [`Report::change_context`]: crate::Report::change_context
-    /// [`poll`]: Stream::poll
     fn change_context_lazy<C, F>(self, context: F) -> StreamWithLazyContext<Self, F>
     where
         C: Context,
@@ -418,6 +415,6 @@ mod simple_functionality_tests {
                     assert_eq!(messages(&e), vec!["Opaque", "UhOhError"]);
                 }
             }
-        })
+        });
     }
 }
