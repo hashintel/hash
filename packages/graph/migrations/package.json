@@ -9,7 +9,7 @@
     "lint:eslint": "eslint --ext .ts .",
     "lint:tsc": "tsc --noEmit",
     "pg:generate-ids": "ts-node postgres/scripts/generate-ids.ts",
-    "pg:migrate": "ts-node node_modules/.bin/node-pg-migrate -d HASH_MIGRATION_PG_URL --envPath ../../../.env -f ./postgres/migration-config.json",
+    "pg:migrate": "ts-node node_modules/.bin/node-pg-migrate -d HASH_GRAPH_PG_MIGRATION_URL --envPath ../.env -f ./postgres/migration-config.json",
     "pg:recreate-db": "ts-node postgres/scripts/recreate-db.ts"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@types/node-pg-migrate": "2.3.1",
-    "@types/prompts": "2.0.14"
+    "@types/prompts": "2.0.14",
+    "dotenv-flow": "3.2.0"
   }
 }

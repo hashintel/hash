@@ -10,7 +10,7 @@ To create the database and appropriately apply all migrations, you can run the f
 
 ```sh
 yarn pg:recreate-db
-yarn db:migrate up
+yarn pg:migrate up
 ```
 
 The `pg:recreate-db` command will make sure to create the DB in Postgres if it doesn't exist already.

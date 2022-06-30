@@ -1,18 +1,16 @@
 import { sleep } from "@hashintel/hash-shared/sleep";
 
-import {
-  getRequiredEnv,
-  waitOnResource,
-} from "@hashintel/hash-backend-utils/environment";
+import { waitOnResource } from "@hashintel/hash-backend-utils/environment";
 
 import pg from "pg";
+import { getRequiredEnv } from "./environment";
 
 const main = async () => {
-  const host = getRequiredEnv("HASH_PG_HOST");
-  const user = getRequiredEnv("HASH_PG_USER");
-  const database = getRequiredEnv("HASH_PG_DATABASE");
-  const password = getRequiredEnv("HASH_PG_PASSWORD");
-  const port = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
+  const user = getRequiredEnv("HASH_GRAPH_PG_USER");
+  const password = getRequiredEnv("HASH_GRAPH_PG_PASSWORD");
+  const host = getRequiredEnv("HASH_GRAPH_PG_HOST");
+  const port = parseInt(getRequiredEnv("HASH_GRAPH_PG_PORT"), 10);
+  const database = getRequiredEnv("HASH_GRAPH_PG_DATABASE");
 
   if (host !== "localhost") {
     console.error(

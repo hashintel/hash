@@ -1,0 +1,5 @@
+# Rust artifacts
+target/
+
+# Application data
+/deployment/postgres/var/
