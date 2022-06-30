@@ -10,7 +10,7 @@ import {
 import { useRouter } from "next/router";
 
 import { useCallback, useMemo } from "react";
-import { getAccountPages } from "../../graphql/queries/account.queries";
+import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
 export const useArchivePage = () => {
   const router = useRouter();
@@ -24,7 +24,7 @@ export const useArchivePage = () => {
     () => (accountId: string, pageEntityId: string) =>
       [
         {
-          query: getAccountPages,
+          query: getAccountPagesTree,
           variables: { accountId },
         },
         {
