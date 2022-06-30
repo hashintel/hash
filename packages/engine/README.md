@@ -111,7 +111,7 @@ Depending on your needs, different dependencies are required. Building this proj
 
 #### For all macs
 
-Unfortunately, Apple currently doesn't provide a way to resize shared-memory allocations. To work around this allocations need to be sufficiently big such that they will not need to be resized. This can be done by setting the `OS_MEMORY_ALLOC_OVERRIDE` environment variable. Setting it to `250000000` should suffice. This can be done using the command line
+Unfortunately, Apple currently doesn't provide a way to resize shared-memory allocations. To work around this, allocations need to be sufficiently big such that they will not need to be resized. This can be done by setting the `OS_MEMORY_ALLOC_OVERRIDE` environment variable; setting it to `250000000` should suffice. This can be done using the command line
 
 ```sh
 export OS_MEMORY_ALLOC_OVERRIDE=250000000
