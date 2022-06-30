@@ -1,3 +1,8 @@
+//! This module provides adaptors which make it possible to use `error-stack`'s functionality
+//! on [`Iterator`]s.
+//!
+//! Most of the relevant documentation can be found in [`IteratorExt`].
+
 use core::{
     fmt::{Debug, Display},
     marker::{Send, Sync},
@@ -5,10 +10,10 @@ use core::{
 
 use crate::{Context, Report, ResultExt};
 
-/// This trait provides extension methods for iterators which makes it possible to turn them into
-/// `Report`s.
+/// This trait provides extension methods for iterators which makes it possible to manipulate
+/// items inside them using the usual `error-stack` methods.
 ///
-/// This method works only on iterators of items which implement [`crate::ResultExt`].
+/// This trait is only implemented for iterators of items which implement [`crate::ResultExt`].
 ///
 /// Because this trait attaches the provided data to _every_ item in the iterator, the
 /// provided data must implement [`Clone`].
