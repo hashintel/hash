@@ -186,13 +186,13 @@ macro_rules! impl_iterator_adaptor {
         #[doc=concat!("The adaptor returned by [`IteratorExt::", stringify!($method), "']")]
         pub struct $name<I, T> {
             iterator: I,
-            context_or_attachment: A,
+            context_or_attachment: T,
         }
 
-        impl<I, A> core::iter::Iterator for $name<I, A> where
+        impl<I, T> core::iter::Iterator for $name<I, T> where
             I: core::iter::Iterator,
             I::Item : $crate::ResultExt,
-            A: $bound
+            T: $bound
             $(+ $bounds)*
             $(+ $lifetime)*
         {
@@ -217,9 +217,9 @@ macro_rules! impl_lazy_iterator_adaptor {
         $output:ty
     ) => {
         #[doc=concat!("The adaptor returned by [`IteratorExt::", stringify!($method), "']")]
-        pub struct $name<I, F> {
+        pub struct $name<I, T> {
             iterator: I,
-            context_or_attachment: F,
+            context_or_attachment: T,
         }
 
         impl<I, A, F> core::iter::Iterator for $name<I, F> where
@@ -259,7 +259,7 @@ impl_iterator_adaptor! {
     IteratorWithContext,
     change_context_lazy,
     Context + Clone,
-    Result<<I::Item as ResultExt>::Ok, Report<A>>
+    Result<<I::Item as ResultExt>::Ok, Report<T>>
 }
 
 impl_lazy_iterator_adaptor! {

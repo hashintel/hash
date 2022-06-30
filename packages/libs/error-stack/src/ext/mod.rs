@@ -1,6 +1,6 @@
 #[cfg(feature = "futures")]
 pub mod future;
-pub mod iterator;
+pub mod iter;
 mod result;
 
 #[cfg(feature = "futures")]
