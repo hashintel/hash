@@ -8,7 +8,7 @@ export const PageNotificationBanner: VoidFunctionComponent = () => {
   const accountId = useRouteAccountInfo({ allowUndefined: true })?.accountId;
   const pageEntityId = useRoutePageInfo({ allowUndefined: true })?.pageEntityId;
 
-  const { unarchivePage } = useArchivePage(accountId, pageEntityId);
+  const { unarchivePage } = useArchivePage();
 
   return (
     <Box
@@ -39,7 +39,9 @@ export const PageNotificationBanner: VoidFunctionComponent = () => {
             background: alpha(palette.gray[90], 0.08),
           },
         })}
-        onClick={() => unarchivePage?.()}
+        onClick={() =>
+          accountId && pageEntityId && unarchivePage(accountId, pageEntityId)
+        }
       >
         Restore
       </Button>

@@ -18,7 +18,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
   const [copied, setCopied] = useState(false);
   const { accountId } = useRouteAccountInfo();
   const { createSubPage } = useCreatePage(accountId);
-  const { archivePage } = useArchivePage(accountId, entityId);
+  const { archivePage } = useArchivePage();
 
   // Commented out menu items whose functionality have not been
   // implemented yet
@@ -64,7 +64,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
         onClick: async () => {
           try {
             // @todo handle loading/error states properly
-            await archivePage();
+            await archivePage(accountId, entityId);
           } catch (err) {
             // eslint-disable-next-line no-console -- TODO: consider using logger
             console.log("Error archiving page: ", err);

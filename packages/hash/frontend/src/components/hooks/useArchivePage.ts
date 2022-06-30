@@ -9,55 +9,61 @@ import {
 } from "@hashintel/hash-shared/queries/page.queries";
 import { useRouter } from "next/router";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { getAccountPages } from "../../graphql/queries/account.queries";
 
-export const useArchivePage = (accountId?: string, pageEntityId?: string) => {
+export const useArchivePage = () => {
   const router = useRouter();
 
   const [updatePageFn] = useMutation<
     UpdatePageMutation,
     UpdatePageMutationVariables
-  >(updatePage, {
-    refetchQueries: () => [
-      {
-        query: getAccountPages,
-        variables: { accountId },
-      },
-      {
-        query: getPageInfoQuery,
-        variables: {
-          entityId: pageEntityId,
-          accountId,
-          version: router.query.version,
-        },
-      },
-    ],
-  });
+  >(updatePage);
 
-  const archivePage = useCallback(async () => {
-    if (accountId && pageEntityId) {
-      return await updatePageFn({
+  const getRefecthQueries = useMemo(
+    () => (accountId: string, pageEntityId: string) =>
+      [
+        {
+          query: getAccountPages,
+          variables: { accountId },
+        },
+        {
+          query: getPageInfoQuery,
+          variables: {
+            entityId: pageEntityId,
+            accountId,
+            version: router.query.version,
+          },
+        },
+      ],
+    [router.query.version],
+  );
+
+  const archivePage = useCallback(
+    async (accountId: string, pageEntityId: string) =>
+      await updatePageFn({
         variables: {
           accountId,
           entityId: pageEntityId,
           properties: { archived: true },
         },
-      });
-    }
-  }, [updatePageFn, accountId, pageEntityId]);
+        refetchQueries: getRefecthQueries(accountId, pageEntityId),
+      }),
+    [updatePageFn, getRefecthQueries],
+  );
 
-  const unarchivePage = useCallback(async () => {
-    if (accountId && pageEntityId) {
-      return await updatePageFn({
+  const unarchivePage = useCallback(
+    async (accountId: string, pageEntityId: string) =>
+      await updatePageFn({
         variables: {
           accountId,
           entityId: pageEntityId,
           properties: { archived: false },
         },
-      });
-    }
-  }, [updatePageFn, accountId, pageEntityId]);
+        refetchQueries: getRefecthQueries(accountId, pageEntityId),
+      }),
+    [updatePageFn, getRefecthQueries],
+  );
 
   return { archivePage, unarchivePage };
 };
