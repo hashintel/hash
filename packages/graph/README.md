@@ -8,7 +8,7 @@
 docker-compose -f deployment/stack.yml up
 ```
 
-1.  (Optional) If starting the database for the first time, the tables has to be generated. From the `migration` directory, run the following command:
+1.  (Optional) If starting the database for the first time, the tables have to be generated. From the `migration` directory, run the following command:
 
 ```shell
 yarn graph:recreate-db
