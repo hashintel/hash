@@ -5,6 +5,7 @@ import {
   LayoutWithSidebar,
   SidebarContextProvider,
 } from "./layout/layout-with-sidebar";
+import { NotificationBannerContextProvider } from "./layout/layout-with-sidebar/notification-banner-context";
 import { PlainLayout } from "./layout/plain-layout";
 
 export type NextPageWithLayout<T = {}> = NextPage<T> & {
@@ -21,8 +22,10 @@ export const getLayoutWithHeader = (page: ReactElement) => {
 
 export const getLayoutWithSidebar = (page: ReactElement) => {
   return (
-    <SidebarContextProvider>
-      <LayoutWithSidebar>{page}</LayoutWithSidebar>
-    </SidebarContextProvider>
+    <NotificationBannerContextProvider>
+      <SidebarContextProvider>
+        <LayoutWithSidebar>{page}</LayoutWithSidebar>
+      </SidebarContextProvider>
+    </NotificationBannerContextProvider>
   );
 };

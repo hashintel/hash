@@ -1,18 +1,21 @@
 import { useMutation } from "@apollo/client";
-import { useRouter } from "next/router";
 import {
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { updatePage } from "@hashintel/hash-shared/queries/page.queries";
+import {
+  getPageInfoQuery,
+  updatePage,
+} from "@hashintel/hash-shared/queries/page.queries";
+import { useRouter } from "next/router";
 
 import { useCallback } from "react";
 import { getAccountPages } from "../../graphql/queries/account.queries";
 
-export const useArchivePage = (accountId: string) => {
+export const useArchivePage = (accountId: string, pageEntityId: string) => {
   const router = useRouter();
 
-  const [updateEntityFn] = useMutation<
+  const [updatePageFn] = useMutation<
     UpdatePageMutation,
     UpdatePageMutationVariables
   >(updatePage, {
@@ -21,25 +24,36 @@ export const useArchivePage = (accountId: string) => {
         query: getAccountPages,
         variables: { accountId },
       },
+      {
+        query: getPageInfoQuery,
+        variables: {
+          entityId: pageEntityId,
+          accountId,
+          version: router.query.version,
+        },
+      },
     ],
   });
 
-  const archivePage = useCallback(
-    async (pageEntityId: string) => {
-      await updateEntityFn({
-        variables: {
-          accountId,
-          entityId: pageEntityId,
-          properties: { archived: true },
-        },
-      });
+  const archivePage = useCallback(async () => {
+    await updatePageFn({
+      variables: {
+        accountId,
+        entityId: pageEntityId,
+        properties: { archived: true },
+      },
+    });
+  }, [updatePageFn, accountId, pageEntityId]);
 
-      if (router.asPath === `/${accountId}/${pageEntityId}`) {
-        return router.push(`/${accountId}`);
-      }
-    },
-    [updateEntityFn, accountId, router],
-  );
+  const unarchivePage = useCallback(async () => {
+    await updatePageFn({
+      variables: {
+        accountId,
+        entityId: pageEntityId,
+        properties: { archived: false },
+      },
+    });
+  }, [updatePageFn, accountId, pageEntityId]);
 
-  return { archivePage };
+  return { archivePage, unarchivePage };
 };

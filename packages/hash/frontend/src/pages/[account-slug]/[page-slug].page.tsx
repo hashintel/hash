@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { defaultBlocks } from "@hashintel/hash-shared/defaultBlocks";
-import { getPageTitleQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { Box } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
@@ -15,10 +15,11 @@ import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
-  GetPageTitleQuery,
-  GetPageTitleQueryVariables,
+  GetPageInfoQuery,
+  GetPageInfoQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
+import { useNotificationBannerContext } from "../../shared/layout/layout-with-sidebar/notification-banner-context";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 
 // Apparently defining this is necessary in order to get server rendered props?
@@ -70,15 +71,21 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
   );
 
   const { data, error, loading } = useQuery<
-    GetPageTitleQuery,
-    GetPageTitleQueryVariables
-  >(getPageTitleQuery, {
+    GetPageInfoQuery,
+    GetPageInfoQueryVariables
+  >(getPageInfoQuery, {
     variables: { entityId: pageEntityId, accountId, versionId },
   });
 
   const collabPositions = useCollabPositions(accountId, pageEntityId);
   const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
   useCollabPositionTracking(reportPosition);
+
+  const {
+    notificationBannerOpen,
+    openNotificationBanner,
+    closeNotificationBanner,
+  } = useNotificationBannerContext();
 
   useEffect(() => {
     const handleRouteChange = () => {
@@ -110,7 +117,14 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
     return <h1>No data loaded.</h1>;
   }
 
-  const { title } = data.page.properties;
+  const { title, archived } = data.page.properties;
+
+  if (archived && !notificationBannerOpen) {
+    openNotificationBanner();
+  }
+  if (!archived && notificationBannerOpen) {
+    closeNotificationBanner();
+  }
 
   return (
     <>

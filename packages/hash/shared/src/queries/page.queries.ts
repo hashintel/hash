@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 
-export const getPageTitleQuery = gql`
-  query getPageTitle($accountId: ID!, $entityId: ID!, $versionId: ID) {
+export const getPageInfoQuery = gql`
+  query getPageInfo($accountId: ID!, $entityId: ID!, $versionId: ID) {
     page(
       accountId: $accountId
       entityId: $entityId
@@ -10,6 +10,7 @@ export const getPageTitleQuery = gql`
       entityId
       properties {
         title
+        archived
       }
     }
   }
