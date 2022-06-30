@@ -16,3 +16,5 @@ services:
       - ./postgres/var/data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
+    security_opt:
+      - no-new-privileges:true
