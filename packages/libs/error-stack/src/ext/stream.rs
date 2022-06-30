@@ -34,7 +34,7 @@ pub trait StreamReportExt: Stream + Sized {
     fn attach_lazy<A, F>(self, attachment: F) -> StreamWithLazyAttachment<Self, F>
     where
         A: Send + Sync + 'static,
-        F: FnOnce() -> A;
+        F: Fn() -> A;
 
     /// Adds a new printable attachment to the [`Report`] inside the [`Result`] when
     /// calling [`Stream::poll_next`].
@@ -63,7 +63,7 @@ pub trait StreamReportExt: Stream + Sized {
     ) -> StreamWithLazyPrintableAttachment<Self, F>
     where
         A: Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> A;
+        F: Fn() -> A;
 
     /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when calling
     /// [`Stream::poll_next`].
@@ -88,7 +88,7 @@ pub trait StreamReportExt: Stream + Sized {
     fn change_context_lazy<C, F>(self, context: F) -> StreamWithLazyContext<Self, F>
     where
         C: Context,
-        F: FnOnce() -> C;
+        F: Fn() -> C;
 }
 
 impl<S> StreamReportExt for S
@@ -111,7 +111,7 @@ where
     fn attach_lazy<A, F>(self, attachment: F) -> StreamWithLazyAttachment<Self, F>
     where
         A: Send + Sync + 'static,
-        F: FnOnce() -> A,
+        F: Fn() -> A,
     {
         StreamWithLazyAttachment {
             stream: self,
@@ -137,7 +137,7 @@ where
     ) -> StreamWithLazyPrintableAttachment<Self, F>
     where
         A: Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> A,
+        F: Fn() -> A,
     {
         StreamWithLazyPrintableAttachment {
             stream: self,
@@ -160,7 +160,7 @@ where
     fn change_context_lazy<C, F>(self, context: F) -> StreamWithLazyContext<Self, F>
     where
         C: Context,
-        F: FnOnce() -> C,
+        F: Fn() -> C,
     {
         StreamWithLazyContext {
             stream: self,
@@ -214,7 +214,7 @@ where
     S: Stream,
     S::Item: ResultExt,
     F: Fn() -> A,
-    A: Clone + Copy + Send + Sync + 'static,
+    A: Send + Sync + 'static,
 {
     type Item = S::Item;
 
@@ -343,8 +343,8 @@ impl<S, A, F> Stream for StreamWithLazyContext<S, F>
 where
     S: Stream,
     S::Item: ResultExt,
-    F: FnMut() -> A,
-    A: Context + Clone,
+    F: Fn() -> A,
+    A: Context,
 {
     type Item = Result<<S::Item as ResultExt>::Ok, Report<A>>;
 
