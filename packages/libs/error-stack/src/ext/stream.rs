@@ -1,10 +1,12 @@
+//! Implements support for `error-stack` functionality for streams. The main trait in this module
+//! is [`StreamReportExt`] (which is so named to avoid conflict with other stream-related types
+//! common to the Rust `async` ecosystem).
 use core::{
     fmt::{Debug, Display},
     task::Poll,
 };
 
 use futures_core::Stream;
-use pin_project::pin_project;
 
 use crate::{Context, Report, ResultExt};
 
@@ -103,7 +105,7 @@ where
     {
         StreamWithAttachment {
             stream: self,
-            attachment,
+            attachment_or_context: attachment,
         }
     }
 
@@ -115,7 +117,7 @@ where
     {
         StreamWithLazyAttachment {
             stream: self,
-            attachment,
+            attachment_or_context: attachment,
         }
     }
 
@@ -126,7 +128,7 @@ where
     {
         StreamWithPrintableAttachment {
             stream: self,
-            attachment,
+            attachment_or_context: attachment,
         }
     }
 
@@ -141,7 +143,7 @@ where
     {
         StreamWithLazyPrintableAttachment {
             stream: self,
-            attachment,
+            attachment_or_context: attachment,
         }
     }
 
@@ -152,7 +154,7 @@ where
     {
         StreamWithContext {
             stream: self,
-            attachment: context,
+            attachment_or_context: context,
         }
     }
 
@@ -164,205 +166,140 @@ where
     {
         StreamWithLazyContext {
             stream: self,
-            attachment: context,
+            attachment_or_context: context,
         }
     }
 }
 
-#[pin_project]
-pub struct StreamWithAttachment<S, A> {
-    #[pin]
-    stream: S,
-    attachment: A,
-}
-
-impl<S, A> Stream for StreamWithAttachment<S, A>
-where
-    S: Stream,
-    S::Item: ResultExt,
-    A: Clone + Send + Sync + 'static,
-{
-    type Item = S::Item;
-
-    #[track_caller]
-    fn poll_next(
-        self: core::pin::Pin<&mut Self>,
-        cx: &mut core::task::Context<'_>,
-    ) -> core::task::Poll<Option<Self::Item>> {
-        let projected = self.project();
-        let stream = projected.stream;
-
-        match stream.poll_next(cx) {
-            Poll::Ready(data) => Poll::Ready(match data {
-                Some(data) => Some(data.attach(projected.attachment.clone())),
-                None => None,
-            }),
-            Poll::Pending => Poll::Pending,
+macro_rules! impl_stream_adaptor {
+    (
+        $name:ident,
+        $method:ident,
+        $bound:ident
+        $(+ $bounds:ident)*
+        $(+ $lifetime:lifetime)*,
+        $output:ty
+    ) => {
+        #[pin_project::pin_project]
+        pub struct $name<S, A> {
+            #[pin]
+            stream: S,
+            attachment_or_context: A,
         }
-    }
-}
 
-#[pin_project]
-pub struct StreamWithLazyAttachment<S, F> {
-    #[pin]
-    stream: S,
-    attachment: F,
-}
+        impl<S, A> Stream for $name<S, A>
+        where
+            S: Stream,
+            S::Item : ResultExt,
+            A: $bound $(+ $bounds)* $(+ $lifetime)*,
+        {
+            type Item = $output;
 
-impl<S, A, F> Stream for StreamWithLazyAttachment<S, F>
-where
-    S: Stream,
-    S::Item: ResultExt,
-    F: Fn() -> A,
-    A: Send + Sync + 'static,
-{
-    type Item = S::Item;
+            #[track_caller]
+            fn poll_next(
+                self: core::pin::Pin<&mut Self>,
+                cx: &mut core::task::Context<'_>,
+            ) -> core::task::Poll<Option<Self::Item>> {
+                let projected = self.project();
+                let stream = projected.stream;
 
-    #[track_caller]
-    fn poll_next(
-        self: core::pin::Pin<&mut Self>,
-        cx: &mut core::task::Context<'_>,
-    ) -> core::task::Poll<Option<Self::Item>> {
-        let projection = self.project();
-
-        match projection.stream.poll_next(cx) {
-            Poll::Ready(data) => Poll::Ready(match data {
-                Some(data) => Some(data.attach_lazy(projection.attachment)),
-                None => None,
-            }),
-            Poll::Pending => Poll::Pending,
+                match stream.poll_next(cx) {
+                    Poll::Ready(data) => Poll::Ready(match data {
+                        Some(data) => Some(data.$method(|| projected.attachment_or_context.clone())),
+                        None => None,
+                    }),
+                    Poll::Pending => Poll::Pending,
+                }
+            }
         }
-    }
+    };
 }
 
-#[pin_project]
-pub struct StreamWithPrintableAttachment<S, A> {
-    #[pin]
-    stream: S,
-    attachment: A,
-}
-
-impl<S, A> Stream for StreamWithPrintableAttachment<S, A>
-where
-    S: Stream,
-    S::Item: ResultExt,
-    A: Display + Debug + Clone + Sync + Send + 'static,
-{
-    type Item = S::Item;
-
-    #[track_caller]
-    fn poll_next(
-        self: core::pin::Pin<&mut Self>,
-        cx: &mut core::task::Context<'_>,
-    ) -> core::task::Poll<Option<Self::Item>> {
-        let projection = self.project();
-
-        match projection.stream.poll_next(cx) {
-            Poll::Ready(data) => Poll::Ready(match data {
-                Some(data) => Some(data.attach_printable(projection.attachment.clone())),
-                None => None,
-            }),
-            Poll::Pending => Poll::Pending,
+macro_rules! impl_stream_adaptor_lazy {
+    (
+        $name:ident,
+        $method:ident,
+        $bound:ident
+        $(+ $bounds:ident)*
+        $(+ $lifetime:lifetime)*,
+        $output:ty
+    ) => {
+        #[pin_project::pin_project]
+        pub struct $name<S, A> {
+            #[pin]
+            stream: S,
+            attachment_or_context: A,
         }
-    }
-}
 
-#[pin_project]
-pub struct StreamWithLazyPrintableAttachment<S, A> {
-    #[pin]
-    stream: S,
-    attachment: A,
-}
+        impl<S, A, F> Stream for $name<S, F>
+        where
+            S: Stream,
+            S::Item : ResultExt,
+            F: Fn() -> A,
+            A: $bound $(+ $bounds)* $(+ $lifetime)*,
+        {
+            type Item = $output;
 
-impl<S, A, F> Stream for StreamWithLazyPrintableAttachment<S, F>
-where
-    S: Stream,
-    S::Item: ResultExt,
-    F: FnMut() -> A,
-    A: Display + Debug + Clone + Sync + Send + 'static,
-{
-    type Item = S::Item;
+            #[track_caller]
+            fn poll_next(
+                self: core::pin::Pin<&mut Self>,
+                cx: &mut core::task::Context<'_>,
+            ) -> core::task::Poll<Option<Self::Item>> {
+                let projected = self.project();
+                let stream = projected.stream;
 
-    #[track_caller]
-    fn poll_next(
-        self: core::pin::Pin<&mut Self>,
-        cx: &mut core::task::Context<'_>,
-    ) -> core::task::Poll<Option<Self::Item>> {
-        let projection = self.project();
-
-        match projection.stream.poll_next(cx) {
-            Poll::Ready(data) => Poll::Ready(match data {
-                Some(data) => Some(data.attach_printable_lazy(projection.attachment)),
-                None => None,
-            }),
-            Poll::Pending => Poll::Pending,
+                match stream.poll_next(cx) {
+                    Poll::Ready(data) => Poll::Ready(match data {
+                        Some(data) => Some(data.$method(projected.attachment_or_context)),
+                        None => None,
+                    }),
+                    Poll::Pending => Poll::Pending,
+                }
+            }
         }
-    }
+    };
 }
 
-#[pin_project]
-pub struct StreamWithContext<S, A> {
-    #[pin]
-    stream: S,
-    attachment: A,
+impl_stream_adaptor! {
+    StreamWithAttachment,
+    attach_lazy,
+    Clone + Send + Sync + 'static,
+    S::Item
 }
 
-impl<S, A> Stream for StreamWithContext<S, A>
-where
-    S: Stream,
-    S::Item: ResultExt,
-    A: Context + Clone,
-{
-    type Item = Result<<<S as Stream>::Item as ResultExt>::Ok, Report<A>>;
-
-    #[track_caller]
-    fn poll_next(
-        self: core::pin::Pin<&mut Self>,
-        cx: &mut core::task::Context<'_>,
-    ) -> core::task::Poll<Option<Self::Item>> {
-        let projection = self.project();
-
-        match projection.stream.poll_next(cx) {
-            Poll::Ready(data) => Poll::Ready(match data {
-                Some(data) => Some(data.change_context(projection.attachment.clone())),
-                None => None,
-            }),
-            Poll::Pending => Poll::Pending,
-        }
-    }
+impl_stream_adaptor! {
+    StreamWithPrintableAttachment,
+    attach_printable_lazy,
+    Display + Debug + Clone + Sync + Send + 'static,
+    S::Item
 }
 
-#[pin_project]
-pub struct StreamWithLazyContext<S, A> {
-    #[pin]
-    stream: S,
-    attachment: A,
+impl_stream_adaptor! {
+    StreamWithContext,
+    change_context_lazy,
+    Context + Clone,
+    Result<<<S as Stream>::Item as ResultExt>::Ok, Report<A>>
 }
 
-impl<S, A, F> Stream for StreamWithLazyContext<S, F>
-where
-    S: Stream,
-    S::Item: ResultExt,
-    F: Fn() -> A,
-    A: Context,
-{
-    type Item = Result<<S::Item as ResultExt>::Ok, Report<A>>;
+impl_stream_adaptor_lazy! {
+    StreamWithLazyAttachment,
+    attach_lazy,
+    Send + Sync + 'static,
+    S::Item
+}
 
-    #[track_caller]
-    fn poll_next(
-        self: core::pin::Pin<&mut Self>,
-        cx: &mut core::task::Context<'_>,
-    ) -> core::task::Poll<Option<Self::Item>> {
-        let projection = self.project();
+impl_stream_adaptor_lazy! {
+    StreamWithLazyPrintableAttachment,
+    attach_printable_lazy,
+    Display + Debug + Clone + Sync + Send + 'static,
+    S::Item
+}
 
-        match projection.stream.poll_next(cx) {
-            Poll::Ready(data) => Poll::Ready(match data {
-                Some(data) => Some(data.change_context_lazy(projection.attachment)),
-                None => None,
-            }),
-            Poll::Pending => Poll::Pending,
-        }
-    }
+impl_stream_adaptor_lazy! {
+    StreamWithLazyContext,
+    change_context_lazy,
+    Context,
+    Result<<S::Item as ResultExt>::Ok, Report<A>>
 }
 
 #[cfg(test)]
