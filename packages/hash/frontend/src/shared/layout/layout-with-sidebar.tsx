@@ -1,5 +1,5 @@
 import { ReactNode, VFC } from "react";
-import { Box, Collapse, Fade, styled, Tooltip } from "@mui/material";
+import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { IconButton } from "@hashintel/hash-design-system";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
 import {
@@ -9,8 +9,6 @@ import {
 } from "./layout-with-sidebar/page-sidebar";
 import { SidebarToggleIcon } from "../icons";
 import { LayoutWithHeader } from "./layout-with-header";
-import { useNotificationBannerContext } from "./layout-with-sidebar/notification-banner-context";
-import { PageNotificationBanner } from "./layout-with-sidebar/notification-banner";
 
 const Main = styled("main")(({ theme }) => ({
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,
@@ -23,11 +21,16 @@ const Main = styled("main")(({ theme }) => ({
   }),
 }));
 
-export const LayoutWithSidebar: VFC<{ children?: ReactNode }> = ({
+export type LayoutWithSidebarProps = {
+  children?: ReactNode;
+  banner?: ReactNode;
+};
+
+export const LayoutWithSidebar: VFC<LayoutWithSidebarProps> = ({
   children,
+  banner,
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
-  const { notificationBannerOpen } = useNotificationBannerContext();
 
   return (
     <LayoutWithHeader>
@@ -55,9 +58,7 @@ export const LayoutWithSidebar: VFC<{ children?: ReactNode }> = ({
             }),
           })}
         >
-          <Collapse in={notificationBannerOpen}>
-            <PageNotificationBanner />
-          </Collapse>
+          {banner}
 
           <Box>
             <Fade timeout={800} in={!sidebarOpen}>

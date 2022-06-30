@@ -2,25 +2,31 @@ import { useQuery } from "@apollo/client";
 import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { defaultBlocks } from "@hashintel/hash-shared/defaultBlocks";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
-import { Box } from "@mui/material";
+import { Box, Collapse, alpha } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { Router, useRouter } from "next/router";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  VoidFunctionComponent,
+} from "react";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
+import { useArchivePage } from "../../components/hooks/useArchivePage";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
   GetPageInfoQuery,
   GetPageInfoQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
-import { useNotificationBannerContext } from "../../shared/layout/layout-with-sidebar/notification-banner-context";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
+import { Button } from "../../shared/ui/button";
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -48,6 +54,65 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
       blocksMeta: fetchedBlocksMeta,
     },
   };
+};
+
+export const PageNotificationBanner: VoidFunctionComponent = () => {
+  const router = useRouter();
+
+  const { accountId } = useRouteAccountInfo();
+  const { pageEntityId } = useRoutePageInfo();
+  const versionId = router.query.version as string | undefined;
+
+  const { unarchivePage } = useArchivePage();
+
+  const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
+    getPageInfoQuery,
+    {
+      variables: { entityId: pageEntityId, accountId, versionId },
+    },
+  );
+
+  const archived = data?.page?.properties?.archived;
+
+  return (
+    <Collapse in={!!archived}>
+      <Box
+        sx={({ palette }) => ({
+          color: palette.common.white,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: 1,
+          background: palette.red[60],
+          padding: 1,
+        })}
+      >
+        This page is archived.
+        <Button
+          variant="secondary"
+          sx={({ palette }) => ({
+            marginLeft: 1.5,
+            minWidth: 0,
+            minHeight: 0,
+            paddingY: 0,
+            paddingX: 1.5,
+            background: "transparent",
+            color: palette.common.white,
+            borderColor: palette.common.white,
+            fontWeight: 400,
+            "&:hover": {
+              background: alpha(palette.gray[90], 0.08),
+            },
+          })}
+          onClick={() =>
+            accountId && pageEntityId && unarchivePage(accountId, pageEntityId)
+          }
+        >
+          Restore
+        </Button>
+      </Box>
+    </Collapse>
+  );
 };
 
 const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
@@ -81,12 +146,6 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
   const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
   useCollabPositionTracking(reportPosition);
 
-  const {
-    notificationBannerOpen,
-    openNotificationBanner,
-    closeNotificationBanner,
-  } = useNotificationBannerContext();
-
   useEffect(() => {
     const handleRouteChange = () => {
       if (pageState !== "normal") {
@@ -117,14 +176,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
     return <h1>No data loaded.</h1>;
   }
 
-  const { title, archived } = data.page.properties;
-
-  if (archived && !notificationBannerOpen) {
-    openNotificationBanner();
-  }
-  if (!archived && notificationBannerOpen) {
-    closeNotificationBanner();
-  }
+  const { title } = data.page.properties;
 
   return (
     <>
@@ -180,6 +232,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
   );
 };
 
-Page.getLayout = getLayoutWithSidebar;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, { banner: <PageNotificationBanner /> });
 
 export default Page;

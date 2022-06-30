@@ -3,9 +3,9 @@ import { ReactElement, ReactNode } from "react";
 import { LayoutWithHeader } from "./layout/layout-with-header";
 import {
   LayoutWithSidebar,
+  LayoutWithSidebarProps,
   SidebarContextProvider,
 } from "./layout/layout-with-sidebar";
-import { NotificationBannerContextProvider } from "./layout/layout-with-sidebar/notification-banner-context";
 import { PlainLayout } from "./layout/plain-layout";
 
 export type NextPageWithLayout<T = {}> = NextPage<T> & {
@@ -20,12 +20,13 @@ export const getLayoutWithHeader = (page: ReactElement) => {
   return <LayoutWithHeader>{page}</LayoutWithHeader>;
 };
 
-export const getLayoutWithSidebar = (page: ReactElement) => {
+export const getLayoutWithSidebar = (
+  page: ReactElement,
+  layoutWithSidebarProps: LayoutWithSidebarProps = {},
+) => {
   return (
-    <NotificationBannerContextProvider>
-      <SidebarContextProvider>
-        <LayoutWithSidebar>{page}</LayoutWithSidebar>
-      </SidebarContextProvider>
-    </NotificationBannerContextProvider>
+    <SidebarContextProvider>
+      <LayoutWithSidebar {...layoutWithSidebarProps}>{page}</LayoutWithSidebar>
+    </SidebarContextProvider>
   );
 };
