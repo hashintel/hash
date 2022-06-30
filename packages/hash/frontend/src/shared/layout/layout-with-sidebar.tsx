@@ -56,7 +56,7 @@ export const LayoutWithSidebar: VFC<{ children?: ReactNode }> = ({
           })}
         >
           <Collapse in={notificationBannerOpen}>
-            {notificationBannerOpen && <PageNotificationBanner />}
+            <PageNotificationBanner />
           </Collapse>
 
           <Box>

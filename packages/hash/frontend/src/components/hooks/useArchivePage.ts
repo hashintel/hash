@@ -12,7 +12,7 @@ import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { getAccountPages } from "../../graphql/queries/account.queries";
 
-export const useArchivePage = (accountId: string, pageEntityId: string) => {
+export const useArchivePage = (accountId?: string, pageEntityId?: string) => {
   const router = useRouter();
 
   const [updatePageFn] = useMutation<
@@ -36,23 +36,27 @@ export const useArchivePage = (accountId: string, pageEntityId: string) => {
   });
 
   const archivePage = useCallback(async () => {
-    await updatePageFn({
-      variables: {
-        accountId,
-        entityId: pageEntityId,
-        properties: { archived: true },
-      },
-    });
+    if(accountId && pageEntityId) {
+      return await updatePageFn({
+        variables: {
+          accountId,
+          entityId: pageEntityId,
+          properties: { archived: true },
+        },
+      });
+    }
   }, [updatePageFn, accountId, pageEntityId]);
 
   const unarchivePage = useCallback(async () => {
-    await updatePageFn({
-      variables: {
-        accountId,
-        entityId: pageEntityId,
-        properties: { archived: false },
-      },
-    });
+    if(accountId && pageEntityId) {
+      return await updatePageFn({
+        variables: {
+          accountId,
+          entityId: pageEntityId,
+          properties: { archived: false },
+        },
+      });
+    }
   }, [updatePageFn, accountId, pageEntityId]);
 
   return { archivePage, unarchivePage };

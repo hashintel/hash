@@ -5,8 +5,8 @@ import { useArchivePage } from "../../../components/hooks/useArchivePage";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../routing";
 
 export const PageNotificationBanner: VoidFunctionComponent = () => {
-  const { accountId } = useRouteAccountInfo();
-  const { pageEntityId } = useRoutePageInfo();
+  const accountId = useRouteAccountInfo({ allowUndefined: true })?.accountId;
+  const pageEntityId = useRoutePageInfo({ allowUndefined: true })?.pageEntityId;
 
   const { unarchivePage } = useArchivePage(accountId, pageEntityId);
 
@@ -39,7 +39,7 @@ export const PageNotificationBanner: VoidFunctionComponent = () => {
             background: "rgba(55, 53, 47, 0.08)",
           },
         })}
-        onClick={() => unarchivePage()}
+        onClick={() => unarchivePage?.()}
       >
         Restore
       </Button>
