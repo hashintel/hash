@@ -28,7 +28,7 @@
     "dev:backend:search-loader": "yarn workspace @hashintel/hash-search-loader dev",
     "dev:frontend": "yarn workspace @hashintel/hash-frontend dev",
     "exe": "ts-node --require dotenv-flow/config --transpile-only",
-    "external-services": "docker-compose --file external-services/docker-compose.yml",
+    "external-services": "docker-compose --file packages/hash/external-services/docker-compose.yml",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "@todo.1": "Remove the ignore argument below for mock-block-dock once repo is upgraded fully to 0.2 spec",
     "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-package=@hashengine/apache-arrow-js-bundle --ignore-dep=mock-block-dock",
