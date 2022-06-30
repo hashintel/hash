@@ -15,4 +15,4 @@ services:
     volumes:
       - ./postgres/var/data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf
-    command: -D /var/lib/postgresql/data/pgdata -c 'config_file=/etc/postgresql/postgresql.conf'
+    command: -c 'config_file=/etc/postgresql/postgresql.conf'
