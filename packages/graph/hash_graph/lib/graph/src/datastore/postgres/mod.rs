@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result};
+use error_stack::{IntoReport, Result, ResultExt};
 use sqlx::PgPool;
 
 use crate::datastore::{Datastore, DatastoreError};
@@ -10,13 +10,36 @@ pub struct PostgresDatabase {
 }
 
 impl PostgresDatabase {
+    /// Crates a new `PostgresDatabase` connection.
+    ///
+    /// # Errors
+    ///
+    /// If creating a [`PgPool`] connection returns an error
+
+    pub async fn new(
+        user: &str,
+        password: &str,
+        host: &str,
+        port: u16,
+        database: &str,
+    ) -> Result<Self, sqlx::Error> {
+        Self::from_url(&format!(
+            "postgres://{user}:{password}@{host}:{port}/{database}"
+        ))
+        .await
+    }
+
     /// Creates a new `PostgresDatabase` object
     ///
     /// # Errors
+    ///
     /// If creating a [`PgPool`] connection returns an error
-    pub async fn new(connect_url: &str) -> Result<Self, sqlx::Error> {
+    pub async fn from_url(connect_url: &str) -> Result<Self, sqlx::Error> {
         Ok(Self {
-            pool: PgPool::connect(connect_url).await.report()?,
+            pool: PgPool::connect(connect_url)
+                .await
+                .report()
+                .attach_printable_lazy(|| format!("Could not connect to {connect_url}"))?,
         })
     }
 }
@@ -93,29 +116,36 @@ mod tests {
     use super::*;
     use crate::types::EntityType;
 
-    const CONNECTION_STRING: &str = "postgres://postgres:postgres@localhost/postgres_graph";
+    const USER: &str = "postgres";
+    const PASSWORD: &str = "postgres";
+    const HOST: &str = "localhost";
+    const PORT: u16 = 5432;
+    const DATABASE: &str = "graph";
 
     // TODO - long term we likely want to gate these behind config or something, probably do not
     //  want to add a dependency on the external service for *unit* tests
 
     #[ignore]
     #[tokio::test]
-    async fn can_connect() {
-        PostgresDatabase::new(CONNECTION_STRING)
-            .await
-            .expect("Couldn't connect to the Postgres DB");
+    async fn can_connect() -> Result<(), sqlx::Error> {
+        PostgresDatabase::new(USER, PASSWORD, HOST, PORT, DATABASE).await?;
+
+        Ok(())
     }
 
     #[ignore]
     #[tokio::test]
-    async fn get_entity_types() {
-        let pool = sqlx::PgPool::connect(CONNECTION_STRING)
-            .await
-            .expect("Couldn't connect to the DB");
+    async fn get_entity_types() -> Result<(), sqlx::Error> {
+        let pool = PostgresDatabase::new(USER, PASSWORD, HOST, PORT, DATABASE)
+            .await?
+            .pool;
 
         let _rows: Vec<EntityType> = sqlx::query_as("SELECT * from entity_types")
             .fetch_all(&pool)
             .await
-            .expect("Couldn't select entity types");
+            .report()
+            .attach_printable("Could not select entity types")?;
+
+        Ok(())
     }
 }

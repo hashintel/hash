@@ -6,6 +6,7 @@ publish = false
 
 
 [dependencies]
+error-stack = { version = "0.1.1", features = ["futures"] }
+
 graph = { path = "../../lib/graph" }
 tokio = { version = "1.18.2", features = ["rt", "macros"] }
-error-stack = "0.1.1"
