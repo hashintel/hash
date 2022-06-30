@@ -106,7 +106,7 @@ where
     fn attach<A>(self, attachment: A) -> IteratorWithAttachment<Self, A> {
         IteratorWithAttachment {
             iterator: self,
-            context: attachment,
+            context_or_attachment: attachment,
         }
     }
 
@@ -118,7 +118,7 @@ where
     {
         IteratorWithLazyAttachment {
             iterator: self,
-            context: attachment,
+            context_or_attachment: attachment,
         }
     }
 
@@ -129,7 +129,7 @@ where
     {
         IteratorWithPrintableAttachment {
             iterator: self,
-            context: attachment,
+            context_or_attachment: attachment,
         }
     }
 
@@ -144,7 +144,7 @@ where
     {
         IteratorWithLazyPrintableAttachment {
             iterator: self,
-            context: attachment,
+            context_or_attachment: attachment,
         }
     }
 
@@ -155,7 +155,7 @@ where
     {
         IteratorWithContext {
             iterator: self,
-            context,
+            context_or_attachment: context,
         }
     }
 
@@ -167,138 +167,118 @@ where
     {
         IteratorWithLazyContext {
             iterator: self,
-            context,
+            context_or_attachment: context,
         }
     }
 }
 
-pub struct IteratorWithAttachment<I, A> {
-    iterator: I,
-    context: A,
-}
-
-impl<I, A> Iterator for IteratorWithAttachment<I, A>
-where
-    I: Iterator,
-    I::Item: ResultExt,
-    A: Send + Sync + 'static + Clone,
-{
-    type Item = I::Item;
-
-    #[track_caller]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.iterator.next()?.attach_lazy(|| self.context.clone()))
-    }
-}
-
-pub struct IteratorWithLazyAttachment<I, A> {
-    iterator: I,
-    context: A,
-}
-
-impl<I, F, A> Iterator for IteratorWithLazyAttachment<I, F>
-where
-    I: Iterator,
-    I::Item: ResultExt,
-    F: Fn() -> A + Clone + Send + Sync + 'static,
-    A: Send + Sync + 'static,
-{
-    type Item = I::Item;
-
-    #[track_caller]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.iterator.next()?.attach(self.context.clone()))
-    }
-}
-
-pub struct IteratorWithPrintableAttachment<I, A> {
-    iterator: I,
-    context: A,
-}
-
-impl<I, A> Iterator for IteratorWithPrintableAttachment<I, A>
-where
-    I: Iterator,
-    I::Item: ResultExt,
-    A: Display + Debug + Send + Sync + 'static + Clone,
-{
-    type Item = I::Item;
-
-    #[track_caller]
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.iterator.next() {
-            Some(item) => Some(item.attach_printable(self.context.clone())),
-            None => None,
+macro_rules! impl_iterator_adaptor {
+    (
+        $name:ident,
+        $method:ident,
+        $bound:ident
+        $(+ $bounds:ident)*
+        $(+ $lifetime:lifetime)*,
+        $output:ty
+    ) => {
+        #[doc=concat!("The adaptor returned by [`IteratorExt::", stringify!($method), "']")]
+        pub struct $name<I, A> {
+            iterator: I,
+            context_or_attachment: A,
         }
-    }
-}
 
-pub struct IteratorWithContext<I, A> {
-    iterator: I,
-    context: A,
-}
+        impl<I, A> core::iter::Iterator for $name<I, A> where
+            I: core::iter::Iterator,
+            I::Item : $crate::ResultExt,
+            A: $bound
+            $(+ $bounds)*
+            $(+ $lifetime)*
+        {
+            type Item = $output;
 
-impl<I, A> Iterator for IteratorWithContext<I, A>
-where
-    I: Iterator,
-    I::Item: ResultExt,
-    A: Context + Clone,
-{
-    type Item = Result<<I::Item as ResultExt>::Ok, Report<A>>;
-
-    #[track_caller]
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.iterator.next() {
-            Some(item) => Some(item.change_context(self.context.clone())),
-            None => None,
+            fn next(&mut self) -> Option<Self::Item> {
+                Some(self.iterator
+                    .next()?
+                    .$method(|| self.context_or_attachment.clone()))
+            }
         }
-    }
+    };
 }
 
-pub struct IteratorWithLazyContext<I, A> {
-    iterator: I,
-    context: A,
-}
-
-impl<I, F, A> Iterator for IteratorWithLazyContext<I, F>
-where
-    I: Iterator,
-    I::Item: ResultExt,
-    F: Fn() -> A + Clone,
-    A: Context,
-{
-    type Item = Result<<I::Item as ResultExt>::Ok, Report<A>>;
-
-    #[track_caller]
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.iterator.next() {
-            Some(item) => Some(item.change_context_lazy(self.context.clone())),
-            None => None,
+macro_rules! impl_lazy_iterator_adaptor {
+    (
+        $name:ident,
+        $method:ident,
+        $bound:ident
+        $(+ $bounds:ident)*
+        $(+ $lifetime:lifetime)*,
+        $output:ty
+    ) => {
+        #[doc=concat!("The adaptor returned by [`IteratorExt::", stringify!($method), "']")]
+        pub struct $name<I, F> {
+            iterator: I,
+            context_or_attachment: F,
         }
-    }
-}
 
-pub struct IteratorWithLazyPrintableAttachment<I, A> {
-    iterator: I,
-    context: A,
-}
+        impl<I, A, F> core::iter::Iterator for $name<I, F> where
+            I: core::iter::Iterator,
+            I::Item : $crate::ResultExt,
+            F: Fn() -> A,
+            A: $bound
+            $(+ $bounds)*
+            $(+ $lifetime)*
+        {
+            type Item = $output;
 
-impl<I, F, A> Iterator for IteratorWithLazyPrintableAttachment<I, F>
-where
-    I: Iterator,
-    I::Item: ResultExt,
-    F: Fn() -> A + Clone,
-    A: Context,
-{
-    type Item = I::Item;
-
-    #[track_caller]
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.iterator.next() {
-            Some(item) => Some(item.attach_printable_lazy(self.context.clone())),
-            None => None,
+            fn next(&mut self) -> Option<Self::Item> {
+                Some(self.iterator
+                    .next()?
+                    .$method(&self.context_or_attachment))
+            }
         }
-    }
+    };
+}
+
+impl_iterator_adaptor! {
+    IteratorWithAttachment,
+    attach_lazy,
+    Send + Sync + Clone + 'static,
+    I::Item
+}
+
+impl_iterator_adaptor! {
+    IteratorWithPrintableAttachment,
+    attach_printable_lazy,
+    Display + Debug + Send + Sync + Clone + 'static,
+    I::Item
+}
+
+impl_iterator_adaptor! {
+    IteratorWithContext,
+    change_context_lazy,
+    Context + Clone,
+    Result<<I::Item as ResultExt>::Ok, Report<A>>
+}
+
+impl_lazy_iterator_adaptor! {
+    IteratorWithLazyAttachment,
+    attach_lazy,
+    Send + Sync + 'static,
+    I::Item
+}
+
+impl_lazy_iterator_adaptor! {
+    IteratorWithLazyContext,
+    change_context_lazy,
+    Context,
+    Result<<I::Item as ResultExt>::Ok, Report<A>>
+}
+
+impl_lazy_iterator_adaptor! {
+    IteratorWithLazyPrintableAttachment,
+    attach_printable_lazy,
+    Context,
+    I::Item
 }
 
 #[cfg(test)]
