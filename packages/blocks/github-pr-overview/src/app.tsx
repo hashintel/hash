@@ -260,13 +260,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   return (
     <ThemeProvider theme={customTheme}>
       <CssBaseline />
-      <Box
-        sx={({ palette }) => ({
-          backgroundColor: palette.gray[20],
-        })}
-        p={{ xs: 0, sm: 2 }}
-        ref={blockRef}
-      >
+      <Box p={{ xs: 0, sm: 2 }} ref={blockRef}>
         {renderContent()}
       </Box>
     </ThemeProvider>
