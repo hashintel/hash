@@ -5,6 +5,7 @@ import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { Box } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
+import Head from "next/head";
 import { Router, useRouter } from "next/router";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -128,6 +129,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
 
   return (
     <>
+      <Head>
+        <title>{title}</title>
+      </Head>
       <header>
         <Box display="flex">
           <PageTitle
