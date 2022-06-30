@@ -38,7 +38,7 @@ pub trait IteratorExt: Iterator + Sized {
     fn attach_lazy<A, F>(self, attachment: F) -> IteratorWithLazyAttachment<Self, F>
     where
         A: Send + Sync + 'static,
-        F: FnOnce() -> A;
+        F: Fn() -> A;
 
     /// Adds a new printable attachment to the [`Report`] inside the [`Result`] when
     /// calling [`Iterator::next`].
@@ -68,7 +68,7 @@ pub trait IteratorExt: Iterator + Sized {
     ) -> IteratorWithLazyPrintableAttachment<Self, F>
     where
         A: Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> A;
+        F: Fn() -> A;
 
     /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when calling
     /// [`Iterator::next`]
@@ -95,7 +95,7 @@ pub trait IteratorExt: Iterator + Sized {
     fn change_context_lazy<C, F>(self, context: F) -> IteratorWithLazyContext<Self, F>
     where
         C: Context,
-        F: FnOnce() -> C;
+        F: Fn() -> C;
 }
 
 impl<I: Iterator> IteratorExt for I
@@ -114,7 +114,7 @@ where
     fn attach_lazy<A, F>(self, attachment: F) -> IteratorWithLazyAttachment<Self, F>
     where
         A: Send + Sync + 'static,
-        F: FnOnce() -> A,
+        F: Fn() -> A,
     {
         IteratorWithLazyAttachment {
             iterator: self,
@@ -140,7 +140,7 @@ where
     ) -> IteratorWithLazyPrintableAttachment<Self, F>
     where
         A: Display + Debug + Send + Sync + 'static,
-        F: FnOnce() -> A,
+        F: Fn() -> A,
     {
         IteratorWithLazyPrintableAttachment {
             iterator: self,
@@ -163,7 +163,7 @@ where
     fn change_context_lazy<C, F>(self, context: F) -> IteratorWithLazyContext<Self, F>
     where
         C: Context,
-        F: FnOnce() -> C,
+        F: Fn() -> C,
     {
         IteratorWithLazyContext {
             iterator: self,
@@ -200,7 +200,7 @@ impl<I, F, A> Iterator for IteratorWithLazyAttachment<I, F>
 where
     I: Iterator,
     I::Item: ResultExt,
-    F: FnOnce() -> A + Clone + Send + Sync + 'static,
+    F: Fn() -> A + Clone + Send + Sync + 'static,
     A: Send + Sync + 'static,
 {
     type Item = I::Item;
@@ -264,7 +264,7 @@ impl<I, F, A> Iterator for IteratorWithLazyContext<I, F>
 where
     I: Iterator,
     I::Item: ResultExt,
-    F: FnOnce() -> A + Clone,
+    F: Fn() -> A + Clone,
     A: Context,
 {
     type Item = Result<<I::Item as ResultExt>::Ok, Report<A>>;
@@ -287,7 +287,7 @@ impl<I, F, A> Iterator for IteratorWithLazyPrintableAttachment<I, F>
 where
     I: Iterator,
     I::Item: ResultExt,
-    F: FnOnce() -> A + Clone,
+    F: Fn() -> A + Clone,
     A: Context,
 {
     type Item = I::Item;
