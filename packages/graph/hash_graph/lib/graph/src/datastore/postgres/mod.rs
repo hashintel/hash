@@ -35,10 +35,7 @@ impl PostgresDatabase {
     /// If creating a [`PgPool`] connection returns an error
     pub async fn from_url(connect_url: &str) -> Result<Self, sqlx::Error> {
         Ok(Self {
-            pool: PgPool::connect(connect_url)
-                .await
-                .report()
-                .attach_printable_lazy(|| format!("Could not connect to {connect_url}"))?,
+            pool: PgPool::connect(connect_url).await.report()?,
         })
     }
 }
@@ -116,7 +113,7 @@ mod tests {
     use crate::types::EntityType;
 
     const USER: &str = "postgres";
-    const PASSWORD: &str = "postgres";
+    const PASSWORD: &str = "pofdsstgres";
     const HOST: &str = "localhost";
     const PORT: u16 = 5432;
     const DATABASE: &str = "graph";
