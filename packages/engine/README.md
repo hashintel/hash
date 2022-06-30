@@ -109,9 +109,19 @@ Depending on your needs, different dependencies are required. Building this proj
 
 ### macOS Developer Specific Instructions
 
-Due to ARM-Based Macs, the `macos` `target_os` has some added complications for development.
+#### For all macs
+
+Unfortunately, Apple currently doesn't provide a way to resize shared-memory allocations. To work around this allocations need to be sufficiently big such that they will not need to be resized. This can be done by setting the `OS_MEMORY_ALLOC_OVERRIDE` environment variable. Setting it to `250000000` should suffice. This can be done using the command line
+
+```sh
+export OS_MEMORY_ALLOC_OVERRIDE=250000000
+```
+
+If you see an error containing `Stateful(Memory(SharedMemory(UnknownOsError(22))))`, you may find that increasing the value of the `OS_MEMORY_ALLOC_OVERRIDE` environment variable may help.
 
 #### For ARM-Based Macs
+
+On ARM-Based Macs, the `macos` `target_os` has some added complications for development.
 
 Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
 
