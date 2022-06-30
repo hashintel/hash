@@ -21,7 +21,6 @@ pub trait StreamReportExt: Stream + Sized {
     /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
     /// [`poll`]: Stream::poll
-    #[track_caller]
     fn attach<A>(self, attachment: A) -> StreamWithAttachment<Self, A>
     where
         A: Send + Sync + 'static;
@@ -34,7 +33,6 @@ pub trait StreamReportExt: Stream + Sized {
     /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
     /// [`poll`]: Stream::poll
-    #[track_caller]
     fn attach_lazy<A, F>(self, attachment: F) -> StreamWithLazyAttachment<Self, F>
     where
         A: Send + Sync + 'static,
@@ -49,7 +47,6 @@ pub trait StreamReportExt: Stream + Sized {
     /// [`Report`]: crate::Report
     /// [`Report::attach_printable`]: crate::Report::attach_printable
     /// [`poll`]: Stream::poll
-    #[track_caller]
     fn attach_printable<A>(self, attachment: A) -> StreamWithPrintableAttachment<Self, A>
     where
         A: Display + Debug + Send + Sync + 'static;
@@ -63,7 +60,6 @@ pub trait StreamReportExt: Stream + Sized {
     /// [`Report`]: crate::Report
     /// [`Report::attach_printable`]: crate::Report::attach_printable
     /// [`poll`]: Stream::poll
-    #[track_caller]
     fn attach_printable_lazy<A, F>(
         self,
         attachment: F,
@@ -80,7 +76,6 @@ pub trait StreamReportExt: Stream + Sized {
     /// [`Report`]: crate::Report
     /// [`Report::change_context`]: crate::Report::change_context
     /// [`poll`]: Stream::poll
-    #[track_caller]
     fn change_context<C>(self, context: C) -> StreamWithContext<Self, C>
     where
         C: Context;
@@ -93,7 +88,6 @@ pub trait StreamReportExt: Stream + Sized {
     /// [`Report`]: crate::Report
     /// [`Report::change_context`]: crate::Report::change_context
     /// [`poll`]: Stream::poll
-    #[track_caller]
     fn change_context_lazy<C, F>(self, context: F) -> StreamWithLazyContext<Self, F>
     where
         C: Context,
@@ -105,6 +99,7 @@ where
     S: Stream,
     S::Item: ResultExt,
 {
+    #[track_caller]
     fn attach<A>(self, attachment: A) -> StreamWithAttachment<Self, A>
     where
         A: Send + Sync + 'static,
@@ -115,6 +110,7 @@ where
         }
     }
 
+    #[track_caller]
     fn attach_lazy<A, F>(self, attachment: F) -> StreamWithLazyAttachment<Self, F>
     where
         A: Send + Sync + 'static,
@@ -126,6 +122,7 @@ where
         }
     }
 
+    #[track_caller]
     fn attach_printable<A>(self, attachment: A) -> StreamWithPrintableAttachment<Self, A>
     where
         A: Display + Debug + Send + Sync + 'static,
@@ -136,6 +133,7 @@ where
         }
     }
 
+    #[track_caller]
     fn attach_printable_lazy<A, F>(
         self,
         attachment: F,
@@ -150,6 +148,7 @@ where
         }
     }
 
+    #[track_caller]
     fn change_context<C>(self, context: C) -> StreamWithContext<Self, C>
     where
         C: Context,
@@ -160,6 +159,7 @@ where
         }
     }
 
+    #[track_caller]
     fn change_context_lazy<C, F>(self, context: F) -> StreamWithLazyContext<Self, F>
     where
         C: Context,
@@ -221,6 +221,7 @@ where
 {
     type Item = S::Item;
 
+    #[track_caller]
     fn poll_next(
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
@@ -252,6 +253,7 @@ where
 {
     type Item = S::Item;
 
+    #[track_caller]
     fn poll_next(
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
@@ -284,6 +286,7 @@ where
 {
     type Item = S::Item;
 
+    #[track_caller]
     fn poll_next(
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
@@ -315,6 +318,7 @@ where
 {
     type Item = Result<<<S as Stream>::Item as ResultExt>::Ok, Report<A>>;
 
+    #[track_caller]
     fn poll_next(
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
@@ -347,6 +351,7 @@ where
 {
     type Item = Result<<S::Item as ResultExt>::Ok, Report<A>>;
 
+    #[track_caller]
     fn poll_next(
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
