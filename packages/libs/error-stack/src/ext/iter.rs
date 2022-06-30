@@ -22,7 +22,7 @@ pub trait IteratorExt: Iterator + Sized {
     /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
     /// [`Iterator`]: std::iter::Iterator
-    fn attach<A>(self, attachement: A) -> IteratorWithAttachement<Self, A>
+    fn attach<A>(self, attachment: A) -> IteratorWithAttachment<Self, A>
     where
         A: Send + Sync + 'static;
 
@@ -35,7 +35,7 @@ pub trait IteratorExt: Iterator + Sized {
     /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
     /// [`poll`]: Future::poll
-    fn attach_lazy<A, F>(self, attachement: F) -> IteratorWithLazyAttachement<Self, F>
+    fn attach_lazy<A, F>(self, attachment: F) -> IteratorWithLazyAttachment<Self, F>
     where
         A: Send + Sync + 'static,
         F: FnOnce() -> A;
@@ -49,7 +49,7 @@ pub trait IteratorExt: Iterator + Sized {
     /// [`Report`]: crate::Report
     /// [`Report::attach_printable`]: crate::Report::attach_printable
     /// [`poll`]: Future::poll
-    fn attach_printable<A>(self, attachement: A) -> IteratorWithPrintableAttachement<Self, A>
+    fn attach_printable<A>(self, attachment: A) -> IteratorWithPrintableAttachment<Self, A>
     where
         A: Display + Debug + Send + Sync + 'static;
 
@@ -64,8 +64,8 @@ pub trait IteratorExt: Iterator + Sized {
     /// [`poll`]: Future::poll
     fn attach_printable_lazy<A, F>(
         self,
-        attachement: F,
-    ) -> IteratorWithLazyPrintableAttachement<Self, F>
+        attachment: F,
+    ) -> IteratorWithLazyPrintableAttachment<Self, F>
     where
         A: Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
@@ -103,48 +103,48 @@ where
     I::Item: ResultExt,
 {
     #[track_caller]
-    fn attach<A>(self, attachement: A) -> IteratorWithAttachement<Self, A> {
-        IteratorWithAttachement {
+    fn attach<A>(self, attachment: A) -> IteratorWithAttachment<Self, A> {
+        IteratorWithAttachment {
             iterator: self,
-            context: attachement,
+            context: attachment,
         }
     }
 
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachement: F) -> IteratorWithLazyAttachement<Self, F>
+    fn attach_lazy<A, F>(self, attachment: F) -> IteratorWithLazyAttachment<Self, F>
     where
         A: Send + Sync + 'static,
         F: FnOnce() -> A,
     {
-        IteratorWithLazyAttachement {
+        IteratorWithLazyAttachment {
             iterator: self,
-            context: attachement,
+            context: attachment,
         }
     }
 
     #[track_caller]
-    fn attach_printable<A>(self, attachement: A) -> IteratorWithPrintableAttachement<Self, A>
+    fn attach_printable<A>(self, attachment: A) -> IteratorWithPrintableAttachment<Self, A>
     where
         A: Display + Debug + Send + Sync + 'static,
     {
-        IteratorWithPrintableAttachement {
+        IteratorWithPrintableAttachment {
             iterator: self,
-            context: attachement,
+            context: attachment,
         }
     }
 
     #[track_caller]
     fn attach_printable_lazy<A, F>(
         self,
-        attachement: F,
-    ) -> IteratorWithLazyPrintableAttachement<Self, F>
+        attachment: F,
+    ) -> IteratorWithLazyPrintableAttachment<Self, F>
     where
         A: Display + Debug + Send + Sync + 'static,
         F: FnOnce() -> A,
     {
-        IteratorWithLazyPrintableAttachement {
+        IteratorWithLazyPrintableAttachment {
             iterator: self,
-            context: attachement,
+            context: attachment,
         }
     }
 
@@ -172,12 +172,12 @@ where
     }
 }
 
-pub struct IteratorWithAttachement<I, A> {
+pub struct IteratorWithAttachment<I, A> {
     iterator: I,
     context: A,
 }
 
-impl<I, A> Iterator for IteratorWithAttachement<I, A>
+impl<I, A> Iterator for IteratorWithAttachment<I, A>
 where
     I: Iterator,
     I::Item: ResultExt,
@@ -191,12 +191,12 @@ where
     }
 }
 
-pub struct IteratorWithLazyAttachement<I, A> {
+pub struct IteratorWithLazyAttachment<I, A> {
     iterator: I,
     context: A,
 }
 
-impl<I, F, A> Iterator for IteratorWithLazyAttachement<I, F>
+impl<I, F, A> Iterator for IteratorWithLazyAttachment<I, F>
 where
     I: Iterator,
     I::Item: ResultExt,
@@ -211,12 +211,12 @@ where
     }
 }
 
-pub struct IteratorWithPrintableAttachement<I, A> {
+pub struct IteratorWithPrintableAttachment<I, A> {
     iterator: I,
     context: A,
 }
 
-impl<I, A> Iterator for IteratorWithPrintableAttachement<I, A>
+impl<I, A> Iterator for IteratorWithPrintableAttachment<I, A>
 where
     I: Iterator,
     I::Item: ResultExt,
@@ -278,12 +278,12 @@ where
     }
 }
 
-pub struct IteratorWithLazyPrintableAttachement<I, A> {
+pub struct IteratorWithLazyPrintableAttachment<I, A> {
     iterator: I,
     context: A,
 }
 
-impl<I, F, A> Iterator for IteratorWithLazyPrintableAttachement<I, F>
+impl<I, F, A> Iterator for IteratorWithLazyPrintableAttachment<I, F>
 where
     I: Iterator,
     I::Item: ResultExt,
