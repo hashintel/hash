@@ -13,7 +13,7 @@ use crate::{Context, Report, ResultExt};
 /// This trait provides extension methods for iterators which makes it possible to manipulate
 /// items inside them using the usual `error-stack` methods.
 ///
-/// This trait is only implemented for iterators of items which implement [`crate::ResultExt`].
+/// `IteratorExt` is only implemented for iterators of items which implement [`crate::ResultExt`].
 ///
 /// Because this trait attaches the provided data to _every_ item in the iterator, the
 /// provided data must implement [`Clone`].
