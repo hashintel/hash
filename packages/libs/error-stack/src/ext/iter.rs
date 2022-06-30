@@ -187,7 +187,7 @@ macro_rules! impl_iterator_adaptor {
         $output:ty
     ) => {
         #[doc=concat!("The adaptor returned by [`IteratorExt::", stringify!($method), "']")]
-        pub struct $name<I, A> {
+        pub struct $name<I, T> {
             iterator: I,
             context_or_attachment: A,
         }
