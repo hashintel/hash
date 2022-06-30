@@ -10,12 +10,11 @@ pub struct PostgresDatabase {
 }
 
 impl PostgresDatabase {
-    /// Crates a new `PostgresDatabase` connection.
+    /// Creates a new `PostgresDatabase` object.
     ///
     /// # Errors
     ///
     /// If creating a [`PgPool`] connection returns an error
-
     pub async fn new(
         user: &str,
         password: &str,
