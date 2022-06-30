@@ -1,6 +1,6 @@
 import { ThemeOptions } from "@mui/material";
 
-const fallbackFonts = [`"Helvetica"`, `"Arial"`, "sans-serif"];
+const fallbackFonts = [`Inter`, `"Helvetica"`, `"Arial"`, "sans-serif"];
 
 export const typography: ThemeOptions["typography"] = {
   fontFamily: [`"Inter"`, ...fallbackFonts].join(", "),
@@ -62,20 +62,24 @@ export const typography: ThemeOptions["typography"] = {
 
   // BODY TEXT
   largeTextLabels: {
+    fontFamily: "Inter",
     fontSize: "var(--step-1)",
     lineHeight: "24px",
     fontWeight: 400,
   },
   regularTextPages: {
+    fontFamily: "Inter",
     fontSize: "var(--step-0)",
     lineHeight: 1.7,
   },
   regularTextParagraphs: {
+    fontFamily: "Inter",
     fontSize: "var(--step-0)",
     fontWeight: 400,
     lineHeight: 1.5,
   },
   regularTextLabels: {
+    fontFamily: "Inter",
     fontSize: "var(--step-0)",
     fontWeight: 400,
     lineHeight: "24px",
@@ -87,6 +91,7 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: 1.5,
   },
   smallTextLabels: {
+    fontFamily: "Inter",
     fontSize: "var(--step--1)",
     fontWeight: 400,
     lineHeight: "18px",
