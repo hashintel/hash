@@ -5,6 +5,7 @@
 1.  In order to setup the database, first the database has to be started:
 
 ```shell
+touch .env.local
 docker-compose -f deployment/stack.yml up
 ```
 
