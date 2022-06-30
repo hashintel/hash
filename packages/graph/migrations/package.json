@@ -24,6 +24,6 @@
   },
   "devDependencies": {
     "@types/node-pg-migrate": "2.3.1",
-    "@types/prompts": "2.0.14",
+    "@types/prompts": "2.0.14"
   }
 }
