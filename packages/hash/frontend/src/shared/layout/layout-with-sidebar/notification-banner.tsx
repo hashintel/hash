@@ -1,5 +1,5 @@
 import { VoidFunctionComponent } from "react";
-import { Box } from "@mui/material";
+import { Box, alpha } from "@mui/material";
 import { Button } from "../../ui/button";
 import { useArchivePage } from "../../../components/hooks/useArchivePage";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../routing";
@@ -18,7 +18,7 @@ export const PageNotificationBanner: VoidFunctionComponent = () => {
         justifyContent: "center",
         alignItems: "center",
         width: 1,
-        background: "#EB5757",
+        background: palette.red[60],
         padding: 1,
       })}
     >
@@ -36,7 +36,7 @@ export const PageNotificationBanner: VoidFunctionComponent = () => {
           borderColor: palette.common.white,
           fontWeight: 400,
           "&:hover": {
-            background: "rgba(55, 53, 47, 0.08)",
+            background: alpha(palette.gray[90], 0.08)
           },
         })}
         onClick={() => unarchivePage?.()}
