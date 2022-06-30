@@ -15,7 +15,7 @@ docker-compose -f deployment/stack.yml up
 yarn graph:recreate-db
 ```
 
-1.  Then, apply the migration from the `migration` directory:
+1.  Then, apply the migrations from the `migration` directory:
 
 ```shell
 yarn graph:migrate up
