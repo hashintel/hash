@@ -204,6 +204,8 @@ macro_rules! impl_stream_adaptor {
                 let stream = projected.stream;
 
                 match stream.poll_next(cx) {
+                    // Can't use `map` as `#[track_caller]` is unstable on closures
+                    #[allow(clippy::manual_map)]
                     Poll::Ready(data) => Poll::Ready(match data {
                         Some(data) => Some(data.$method(|| projected.attachment_or_context.clone())),
                         None => None,
@@ -249,6 +251,8 @@ macro_rules! impl_stream_adaptor_lazy {
                 let stream = projected.stream;
 
                 match stream.poll_next(cx) {
+                    // Can't use `map` as `#[track_caller]` is unstable on closures
+                    #[allow(clippy::manual_map)]
                     Poll::Ready(data) => Poll::Ready(match data {
                         Some(data) => Some(data.$method(projected.attachment_or_context)),
                         None => None,
