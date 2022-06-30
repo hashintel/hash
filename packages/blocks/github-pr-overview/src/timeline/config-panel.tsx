@@ -12,6 +12,10 @@ import {
   styled,
   BoxProps,
   ListItemText,
+  useMediaQuery,
+  useTheme,
+  MenuList,
+  Collapse,
 } from "@mui/material";
 import { startCase } from "lodash";
 import * as React from "react";
@@ -27,7 +31,7 @@ type ConfigPanelProps = {
 const FilterBtn = styled(({ ...props }: BoxProps) => (
   <Box component="button" {...props} />
 ))(({ theme }) => ({
-  backgroundColor: "transparent",
+  backgroundColor: theme.palette.white,
   border: "none",
   padding: `${theme.spacing(1.5)} ${theme.spacing(2)}`,
   width: "100%",
@@ -37,7 +41,9 @@ const FilterBtn = styled(({ ...props }: BoxProps) => (
   cursor: "pointer",
 
   "&:hover": {
-    background: theme.palette.gray[10],
+    [theme.breakpoints.up("md")]: {
+      background: theme.palette.gray[10],
+    },
   },
 
   [`.${typographyClasses.root}`]: {
@@ -58,11 +64,13 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   setSelectedEventTypes,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const toggleEventType = (data: string) => {
     setSelectedEventTypes((prev) => {
       if (prev.includes(data)) {
-        return prev.filter((eventType) => eventType !== data);
+        return prev.filter((eventType) => eventType !== data).sort();
       }
       return [...prev, data];
     });
@@ -72,7 +80,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     if (possibleEventTypes.length === selectedEventTypes.length) {
       setSelectedEventTypes([]);
     } else {
-      setSelectedEventTypes(possibleEventTypes);
+      setSelectedEventTypes(possibleEventTypes.sort());
     }
   };
 
@@ -80,6 +88,27 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
   const allItemsSelected =
     possibleEventTypes.length === selectedEventTypes.length;
+
+  const ListItems = (
+    <>
+      {possibleEventTypes.map((eventType) => (
+        <MenuCheckboxItem
+          key={eventType}
+          onClick={() => toggleEventType(eventType)}
+          selected={selectedEventTypes.includes(eventType)}
+        >
+          {startCase(eventType)}
+        </MenuCheckboxItem>
+      ))}
+      <Divider />
+      <MenuItem onClick={toggleSelectAllEventTypes}>
+        <ListItemIcon>
+          {allItemsSelected ? <ClearIcon /> : <CheckDoubleIcon />}
+        </ListItemIcon>
+        <ListItemText primary={allItemsSelected ? "Clear All" : "Select All"} />
+      </MenuItem>
+    </>
+  );
 
   return (
     <>
@@ -90,12 +119,20 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           minWidth: 170,
           zIndex: 1,
           mt: 2,
+          mx: { xs: 2, sm: 0 },
         })}
       >
         <Typography fontWeight="bold" px={2} pt={1.5} mb={1.75}>
           Events
         </Typography>
-        <Box component="ul" px={2}>
+        <Box
+          component="ul"
+          sx={{
+            px: 2,
+            columnCount: { xs: 2, sm: "unset" },
+            mb: { xs: 2, sm: 0 },
+          }}
+        >
           {selectedEventTypes.map((eventType, idx) => (
             <Stack
               direction="row"
@@ -120,46 +157,62 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               <Box component="span">{startCase(eventType)}</Box>
             </Stack>
           ))}
+          {selectedEventTypes.length === 0 && (
+            <Typography
+              variant="microText"
+              mb={2}
+              sx={({ palette }) => ({ color: palette.gray[70] })}
+            >
+              No events selected
+            </Typography>
+          )}
         </Box>
         <Divider />
 
         <FilterBtn
           aria-describedby={popoverId}
-          onClick={(evt) => setAnchorEl(evt.currentTarget)}
+          onClick={(evt) =>
+            setAnchorEl((prev) => (prev ? null : evt.currentTarget))
+          }
         >
-          <Typography>Filter events</Typography>
-          <ChevronDownIcon />
+          <Typography>
+            {`${anchorEl && isMobile ? "Hide events" : "Filter events"} `}
+          </Typography>
+          <ChevronDownIcon
+            sx={{
+              ...(!!anchorEl &&
+                isMobile && {
+                  transform: "rotate(180deg)",
+                }),
+            }}
+          />
         </FilterBtn>
       </Paper>
-      <Menu
-        id={popoverId}
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
-        }}
-      >
-        {possibleEventTypes.map((eventType) => (
-          <MenuCheckboxItem
-            key={eventType}
-            onClick={() => toggleEventType(eventType)}
-            selected={selectedEventTypes.includes(eventType)}
+      {isMobile ? (
+        <Collapse in={Boolean(anchorEl)}>
+          <MenuList
+            sx={({ palette }) => ({
+              backgroundColor: palette.white,
+              mx: { xs: 2, sm: 0 },
+            })}
           >
-            {startCase(eventType)}
-          </MenuCheckboxItem>
-        ))}
-        <Divider />
-        <MenuItem onClick={toggleSelectAllEventTypes}>
-          <ListItemIcon>
-            {allItemsSelected ? <ClearIcon /> : <CheckDoubleIcon />}
-          </ListItemIcon>
-          <ListItemText
-            primary={allItemsSelected ? "Clear All" : "Select All"}
-          />
-        </MenuItem>
-      </Menu>
+            {ListItems}
+          </MenuList>
+        </Collapse>
+      ) : (
+        <Menu
+          id={popoverId}
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "left",
+          }}
+        >
+          {ListItems}
+        </Menu>
+      )}
     </>
   );
 };

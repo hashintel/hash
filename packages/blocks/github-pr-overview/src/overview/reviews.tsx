@@ -96,13 +96,13 @@ export const Reviews: React.FC<ReviewsProps> = ({
       sx={({ palette }) => ({
         display: "block",
         color: palette.gray[90],
-        mb: 1.75,
+        mb: { xs: 1.5, md: 1.75 },
         fontWeight: 600,
       })}
     >
       Reviews
     </Typography>
-    <Stack direction="row" spacing={4}>
+    <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 1.5, md: 4 }}>
       <Section title="Pending" reviews={pendingReviews} />
       <Section title="Complete" reviews={completedReviews} />
     </Stack>

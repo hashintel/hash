@@ -39,16 +39,30 @@ export type TimelineItemProps = {
       | "merged"
       | string;
     created_at: string | null | undefined;
-    html_url?: string | null | undefined;
-    author?: {
+    html_url?: string;
+    actor: {
       avatar_url?: string | null | undefined;
-      login?: string | null | undefined;
+      login: string;
     };
   };
   hideConnector?: boolean;
   setTimelineOpacity: (val: boolean) => void;
   hideDate?: boolean;
 } & BaseTimelineItemProps;
+
+const getTimelineContentText = (event: TimelineItemProps["event"]) => {
+  switch (event.event) {
+    case "opened":
+    case "merged":
+    case "closed":
+    case "reviewed":
+      return `${startCase(event.event)} by ${event.actor.login}`;
+    case "review_requested":
+      return `Review request for ${event.actor.login}`;
+    default:
+      return startCase(event.event);
+  }
+};
 
 export const TimelineItem: React.FC<TimelineItemProps> = ({
   event,
@@ -65,7 +79,7 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
   };
 
   return (
-    <BaseTimelineItem className="timelineItem">
+    <BaseTimelineItem>
       <TimelineOppositeContent
         sx={({ typography, palette }) => ({
           flex: "unset",
@@ -141,7 +155,7 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
           color: palette.gray[70],
         })}
       >
-        <span>{startCase(event.event)}</span>
+        <span>{getTimelineContentText(event)}</span>
       </TimelineContent>
       <Popover
         open={!!anchorEl}
@@ -152,13 +166,14 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
         }}
         anchorOrigin={{
           vertical: "bottom",
-          horizontal: "left",
+          horizontal: "right",
         }}
         PaperProps={{
           sx: {
             borderTop: `4px solid ${getEventTypeColor(event.event)}`,
             padding: "12px 16px",
             width: 250,
+            ml: 1.5,
           },
         }}
       >
@@ -171,7 +186,7 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
         >
           <Typography fontWeight={500}>{startCase(event.event)}</Typography>
           {event.html_url && (
-            <Tooltip title="Copy link to request">
+            <Tooltip title="Copy link to event">
               <IconButton
                 onClick={() => copyToClipboard(event.html_url)}
                 sx={{ position: "absolute", top: 0, right: 0 }}
@@ -195,8 +210,8 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
         <Stack direction="row" alignItems="center" spacing={1}>
           <Avatar
             sx={{ height: 22, width: 22 }}
-            src={event.author?.avatar_url!}
-            alt={event.author?.login!}
+            src={event.actor.avatar_url!}
+            alt={event.actor.login}
           />
           <Typography
             sx={({ palette }) => ({
@@ -205,7 +220,7 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
             })}
             variant="microText"
           >
-            For {event.author?.login}
+            For {event.actor?.login}
           </Typography>
         </Stack>
       </Popover>

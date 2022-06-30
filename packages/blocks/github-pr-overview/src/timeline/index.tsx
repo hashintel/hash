@@ -3,7 +3,7 @@ import Box from "@mui/material/Box";
 import Timeline, { timelineClasses } from "@mui/lab/Timeline";
 
 import { uniq, intersection, sortBy } from "lodash";
-import { Collapse, Stack, StackProps, styled } from "@mui/material";
+import { Collapse, BoxProps, styled } from "@mui/material";
 import { TransitionGroup } from "react-transition-group";
 import { TimelineItem } from "./timeline-item";
 import {
@@ -13,21 +13,20 @@ import {
 } from "../types";
 import { ConfigPanel } from "./config-panel";
 
-const Container = styled(({ children, ...props }: StackProps) => (
-  <Stack
-    direction="row"
-    position="relative"
-    spacing="auto"
-    justifyContent="space-between"
-    px={4}
-    {...props}
-  >
-    {children}
-  </Stack>
+const Container = styled(({ children, ...props }: BoxProps) => (
+  <Box {...props}>{children}</Box>
 ))(({ theme }) => ({
   backgroundColor: theme.palette.gray[10],
   borderRadius: "0 0 6px 6px",
   position: "relative",
+  display: "flex",
+  flexDirection: "row",
+  justifyContent: "space-between",
+
+  [theme.breakpoints.down("sm")]: {
+    flexDirection: "column-reverse",
+  },
+
   "&:after": {
     content: "''",
     position: "absolute",
@@ -40,20 +39,38 @@ const Container = styled(({ children, ...props }: StackProps) => (
   },
 
   ".timeline-wrapper": {
-    height: 580, // this should be max height
+    height: 580,
     position: "relative",
     overflowY: "scroll",
-    flex: 0.7,
+    flex: 1,
+
+    [theme.breakpoints.down("sm")]: {
+      height: "auto",
+    },
   },
 
   [`.${timelineClasses.root}`]: {
     maxWidth: 480,
     paddingTop: 30,
     paddingBottom: 100,
+    marginLeft: 96,
+    marginRight: 96,
+
+    [theme.breakpoints.down("md")]: {
+      marginLeft: 48,
+      marginRight: 48,
+    },
   },
 
   ".config-panel-wrapper": {
-    paddingTop: 32,
+    paddingTop: 16,
+    position: "absolute",
+    right: 16,
+    top: 0,
+
+    [theme.breakpoints.down("sm")]: {
+      position: "static",
+    },
   },
 }));
 
@@ -160,9 +177,9 @@ export const GithubPrTimeline: React.FunctionComponent<
                 event: event.event,
                 created_at: event.created_at,
                 html_url: event.html_url as string,
-                author: {
+                actor: {
                   avatar_url: event.actor?.avatar_url,
-                  login: event.actor?.login,
+                  login: event.actor?.login ?? "User",
                 },
               };
 

@@ -264,7 +264,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         sx={({ palette }) => ({
           backgroundColor: palette.gray[20],
         })}
-        p={2}
+        p={{ xs: 0, md: 2 }}
         ref={blockRef}
       >
         {renderContent()}

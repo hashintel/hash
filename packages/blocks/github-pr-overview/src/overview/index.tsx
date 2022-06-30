@@ -73,7 +73,7 @@ const PRStatus: React.FC<{
       })}
     >
       {icon}
-      <Typography fontWeight={500} color="currentcolor">
+      <Typography fontWeight={500} color="currentcolor" lineHeight={1}>
         {status}
       </Typography>
     </Box>
@@ -155,8 +155,17 @@ export const GithubPrOverview: React.FunctionComponent<
           </Box>{" "}
           {pullRequest.title}
         </Typography>
-        <Box display="flex" alignItems="center">
-          <Box display="flex" alignItems="center" mr={3}>
+        <Box
+          display="flex"
+          flexDirection={{ xs: "column", md: "row" }}
+          alignItems={{ md: "center" }}
+        >
+          <Box
+            display="flex"
+            alignItems="center"
+            mr={{ xs: 0, md: 3 }}
+            mb={{ xs: 3, md: 0 }}
+          >
             <PRStatus pullRequest={pullRequest} />
             <Typography
               sx={({ palette }) => ({
