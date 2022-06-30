@@ -157,14 +157,14 @@ export const GithubPrOverview: React.FunctionComponent<
         </Typography>
         <Box
           display="flex"
-          flexDirection={{ xs: "column", sm: "row" }}
-          alignItems={{ sm: "center" }}
+          flexDirection={{ xs: "column", md: "row" }}
+          alignItems={{ md: "center" }}
         >
           <Box
             display="flex"
             alignItems="center"
-            mr={{ xs: 0, sm: 3 }}
-            mb={{ xs: 3, sm: 0 }}
+            mr={{ xs: 0, md: 3 }}
+            mb={{ xs: 2, md: 0 }}
           >
             <PRStatus pullRequest={pullRequest} />
             <Typography
@@ -190,6 +190,7 @@ export const GithubPrOverview: React.FunctionComponent<
                 color: palette.gray[70],
                 mr: 3,
                 fontWeight: 500,
+                whiteSpace: "nowrap",
               })}
             >
               Opened by {pullRequest.user?.login}
@@ -205,11 +206,12 @@ export const GithubPrOverview: React.FunctionComponent<
                 [`.${typographyClasses.root}`]: {
                   color: palette.gray[70],
                   fontWeight: 500,
+                  whiteSpace: "nowrap",
                 },
               })}
             >
               <CommentIcon sx={{ mr: 1 }} />
-              <Typography color="currentcolor">
+              <Typography>
                 {`${reviews.length} review${reviews.length > 1 ? "s" : ""}`}
               </Typography>
             </Stack>

@@ -260,9 +260,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   return (
     <ThemeProvider theme={customTheme}>
       <CssBaseline />
-      <Box p={{ xs: 0, sm: 2 }} ref={blockRef}>
-        {renderContent()}
-      </Box>
+      <Box ref={blockRef}>{renderContent()}</Box>
     </ThemeProvider>
   );
 };
