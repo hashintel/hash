@@ -279,7 +279,7 @@ impl_lazy_iterator_adaptor! {
 impl_lazy_iterator_adaptor! {
     IteratorWithLazyPrintableAttachment,
     attach_printable_lazy,
-    Context,
+    Display + Debug + Send + Sync + 'static,
     I::Item
 }
 
