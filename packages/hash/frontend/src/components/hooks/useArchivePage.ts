@@ -7,36 +7,31 @@ import {
   getPageInfoQuery,
   updatePage,
 } from "@hashintel/hash-shared/queries/page.queries";
-import { useRouter } from "next/router";
 
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
 export const useArchivePage = () => {
-  const router = useRouter();
-
   const [updatePageFn] = useMutation<
     UpdatePageMutation,
     UpdatePageMutationVariables
   >(updatePage);
 
-  const getRefecthQueries = useMemo(
-    () => (accountId: string, pageEntityId: string) =>
-      [
-        {
-          query: getAccountPagesTree,
-          variables: { accountId },
+  const getRefecthQueries = useCallback(
+    (accountId: string, pageEntityId: string) => [
+      {
+        query: getAccountPagesTree,
+        variables: { accountId },
+      },
+      {
+        query: getPageInfoQuery,
+        variables: {
+          entityId: pageEntityId,
+          accountId,
         },
-        {
-          query: getPageInfoQuery,
-          variables: {
-            entityId: pageEntityId,
-            accountId,
-            version: router.query.version,
-          },
-        },
-      ],
-    [router.query.version],
+      },
+    ],
+    [],
   );
 
   const archivePage = useCallback(
