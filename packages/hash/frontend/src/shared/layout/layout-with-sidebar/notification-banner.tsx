@@ -36,7 +36,7 @@ export const PageNotificationBanner: VoidFunctionComponent = () => {
           borderColor: palette.common.white,
           fontWeight: 400,
           "&:hover": {
-            background: alpha(palette.gray[90], 0.08)
+            background: alpha(palette.gray[90], 0.08),
           },
         })}
         onClick={() => unarchivePage?.()}

@@ -36,7 +36,7 @@ export const useArchivePage = (accountId?: string, pageEntityId?: string) => {
   });
 
   const archivePage = useCallback(async () => {
-    if(accountId && pageEntityId) {
+    if (accountId && pageEntityId) {
       return await updatePageFn({
         variables: {
           accountId,
@@ -48,7 +48,7 @@ export const useArchivePage = (accountId?: string, pageEntityId?: string) => {
   }, [updatePageFn, accountId, pageEntityId]);
 
   const unarchivePage = useCallback(async () => {
-    if(accountId && pageEntityId) {
+    if (accountId && pageEntityId) {
       return await updatePageFn({
         variables: {
           accountId,
