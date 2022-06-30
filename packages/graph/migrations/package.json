@@ -6,13 +6,14 @@
   "license": "AGPL-3.0",
   "scripts": {
     "fix:eslint": "eslint --ext .ts --fix .",
+    "graph:generate-ids": "ts-node postgres/scripts/generate-ids.ts",
+    "graph:migrate": "ts-node node_modules/.bin/node-pg-migrate -d HASH_GRAPH_PG_MIGRATION_URL --envPath ../.env -f ./postgres/migration-config.json",
+    "graph:recreate-db": "ts-node postgres/scripts/recreate-db.ts",
     "lint:eslint": "eslint --ext .ts .",
-    "lint:tsc": "tsc --noEmit",
-    "pg:generate-ids": "ts-node postgres/scripts/generate-ids.ts",
-    "pg:migrate": "ts-node node_modules/.bin/node-pg-migrate -d HASH_MIGRATION_PG_URL --envPath ../../../.env -f ./postgres/migration-config.json",
-    "pg:recreate-db": "ts-node postgres/scripts/recreate-db.ts"
+    "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
+    "dotenv-flow": "3.2.0",
     "id128": "1.6.6",
     "node-pg-migrate": "6.2.1",
     "node-postgres": "0.6.2",
