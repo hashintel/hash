@@ -95,6 +95,7 @@ jobs:
             ~/.cargo/git/checkouts
             **/target/
           key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
 
       - name: Install cargo-make
         run: cargo install cargo-make
@@ -160,6 +161,7 @@ jobs:
           path: |
             **/node_modules
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: ${{ runner.os }}-modules-
 
       - name: Cache Rust dependencies
         uses: actions/cache@v2
@@ -173,6 +175,7 @@ jobs:
             ~/.cargo/git/checkouts
             **/target/
           key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
 
       - name: Install cargo-make
         run: cargo install cargo-make
