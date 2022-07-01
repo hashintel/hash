@@ -10,35 +10,38 @@ private = true
 command = "touch"
 args = ["${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/.env.local"]
 
-[tasks.deployment-up]
-command = "docker-compose"
-description = "Spins up the deployment environment"
-category = "Deploy"
-args = ["-f", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment/stack.yml", "up", "-d"]
-dependencies = ["crate-volume", "touch-environment"]
-
 [tasks.yarn]
-command = "yarn"
-description = "Installs the required dependencies"
 category = "Deploy"
+description = "Installs the required dependencies"
+command = "yarn"
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}"
 args = ["${@}"]
 
 [tasks.recreate-db]
-command = "yarn"
-description = "Recreates the database"
 category = "Deploy"
+description = "Recreates the database"
+command = "yarn"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
 args = ["graph:recreate-db"]
 
 [tasks.migrate-up]
-command = "yarn"
-description = "Runs all migrations"
 category = "Deploy"
+description = "Runs all migrations"
+command = "yarn"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
 args = ["graph:migrate", "up"]
 
-[tasks.deployment-down]
-description = "Tears down the deployment environment"
+[tasks.deployment-up]
 category = "Deploy"
+description = "Spins up the deployment environment"
 command = "docker-compose"
-args = ["-f", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment/stack.yml", "down"]
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
+args = ["up", "-d"]
+dependencies = ["crate-volume", "touch-environment"]
+
+[tasks.deployment-down]
+category = "Deploy"
+description = "Tears down the deployment environment"
+command = "docker-compose"
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
+args = ["down"]
