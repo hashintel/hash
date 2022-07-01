@@ -19,6 +19,5 @@ services:
       - hash-graph-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
-    #    read_only: true
     security_opt:
       - no-new-privileges:true
