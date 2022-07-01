@@ -38,9 +38,6 @@
     clippy::module_name_repetitions,
     reason = "This encourages importing `as` which breaks IDEs"
 )]
-#[allow(
-    clippy::must_use_candidate,
-    reason = "#[must_use] adds boilerplate code, which isn't worth it"
-)]
+
 pub mod datastore;
 pub mod types;

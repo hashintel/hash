@@ -68,6 +68,7 @@ pub struct DatabaseConnectionInfo {
 }
 
 impl DatabaseConnectionInfo {
+    #[must_use]
     pub const fn new(
         database_type: DatabaseType,
         user: String,
@@ -86,6 +87,7 @@ impl DatabaseConnectionInfo {
         }
     }
 
+    #[must_use]
     fn url(&self) -> String {
         let db_type = match self.database_type {
             DatabaseType::Postgres => "postgres",
@@ -96,22 +98,27 @@ impl DatabaseConnectionInfo {
         )
     }
 
+    #[must_use]
     pub const fn database_type(&self) -> DatabaseType {
         self.database_type
     }
 
+    #[must_use]
     pub fn user(&self) -> &str {
         &self.user
     }
 
+    #[must_use]
     pub fn host(&self) -> &str {
         &self.host
     }
 
+    #[must_use]
     pub const fn port(&self) -> u16 {
         self.port
     }
 
+    #[must_use]
     pub fn database(&self) -> &str {
         &self.database
     }
