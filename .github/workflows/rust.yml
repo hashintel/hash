@@ -76,16 +76,6 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v2
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.toolchain }}
-          override: true
-
-      - name: Install cargo-make
-        run: cargo install cargo-make
-
       - name: Cache Rust dependencies
         uses: actions/cache@v2
         with:
@@ -98,6 +88,16 @@ jobs:
             ~/.cargo/git/checkouts
             **/target/
           key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Install cargo-make
+        run: cargo install cargo-make
 
       - name: Check formatting
         if: matrix.toolchain != 'stable'
@@ -136,22 +136,6 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v2
 
-      - name: Install Rust
-        id: toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.toolchain }}
-          override: true
-
-      - name: Install cargo-make
-        run: cargo install cargo-make
-
-      - name: Install Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.7"
-
       - name: Cache Node dependencies
         uses: actions/cache@v2
         with:
@@ -171,6 +155,22 @@ jobs:
             ~/.cargo/git/checkouts
             **/target/
           key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust
+        id: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Install cargo-make
+        run: cargo install cargo-make
+
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
