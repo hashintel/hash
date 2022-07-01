@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - dev/graph
 
 defaults:
   run:
@@ -85,7 +86,7 @@ jobs:
       - name: Install cargo-make
         run: cargo install cargo-make
 
-      - name: Cache dependencies
+      - name: Cache Rust dependencies
         uses: actions/cache@v2
         with:
           path: |
@@ -96,8 +97,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-lint-${{ matrix.directory }}-${{ matrix.toolchain }}
+          key: ${{ runner.os }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Check formatting
         if: matrix.toolchain != 'stable'
@@ -152,7 +152,13 @@ jobs:
         with:
           python-version: "3.7"
 
-      - name: Cache dependencies
+      - name: Cache Node dependencies
+        uses: actions/cache@v2
+        with:
+          path: "**/node_modules"
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Cache Rust dependencies
         uses: actions/cache@v2
         with:
           path: |
@@ -163,8 +169,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}
+          key: ${{ runner.os }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
@@ -236,7 +241,7 @@ jobs:
         run: cargo publish --all-features --dry-run
 
       - name: Publish
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'ref/head/main'
         working-directory: ${{ matrix.directory }}
         run: cargo publish --all-features
 
