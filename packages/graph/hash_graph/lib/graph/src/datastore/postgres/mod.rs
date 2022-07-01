@@ -34,7 +34,7 @@ impl PostgresDatabase {
 
 impl PostgresDatabase {
     async fn insert_version_id(&self, id: &Identifier) -> Result<(), DatastoreError> {
-        sqlx::query(r#"INSERT INTO ids (version_id, id) VALUES ($1, $2);"#)
+        sqlx::query(r#"INSERT INTO ids (version_id, base_id) VALUES ($1, $2);"#)
             .bind(&id.version_id)
             .bind(&id.base_id)
             .execute(&self.pool)
@@ -108,7 +108,7 @@ impl Datastore for PostgresDatabase {
             SELECT version_id, "schema", created_by
             FROM data_types
             INNER JOIN ids USING (version_id)
-            WHERE version_id = $1 AND id = $2;
+            WHERE version_id = $1 AND base_id = $2;
             "#,
         )
         .bind(&id.version_id)
