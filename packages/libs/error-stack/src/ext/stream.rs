@@ -175,6 +175,7 @@ where
 macro_rules! impl_stream_adaptor {
     (
         $name:ident,
+        $document_for:ident,
         $method:ident,
         $bound:ident
         $(+ $bounds:ident)*
@@ -182,7 +183,7 @@ macro_rules! impl_stream_adaptor {
         $output:ty
     ) => {
         #[pin_project::pin_project]
-        #[doc=concat!("This is the adaptor type returned by [`StreamReportExt", stringify!($method), "`]")]
+        #[doc=concat!("This is the adaptor type returned by [`StreamReportExt::", stringify!($document_for), "`]")]
         pub struct $name<S, A> {
             #[pin]
             stream: S,
@@ -229,6 +230,7 @@ macro_rules! impl_stream_adaptor_lazy {
         $output:ty
     ) => {
         #[pin_project::pin_project]
+        #[doc=concat!("This is the adaptor type returned by [`StreamReportExt::", stringify!($method), "`]")]
         pub struct $name<S, A> {
             #[pin]
             stream: S,
@@ -268,6 +270,7 @@ macro_rules! impl_stream_adaptor_lazy {
 
 impl_stream_adaptor! {
     StreamWithAttachment,
+    attach,
     attach_lazy,
     Clone + Send + Sync + 'static,
     S::Item
@@ -275,6 +278,7 @@ impl_stream_adaptor! {
 
 impl_stream_adaptor! {
     StreamWithPrintableAttachment,
+    attach_printable,
     attach_printable_lazy,
     Display + Debug + Clone + Sync + Send + 'static,
     S::Item
@@ -282,6 +286,7 @@ impl_stream_adaptor! {
 
 impl_stream_adaptor! {
     StreamWithContext,
+    change_context,
     change_context_lazy,
     Context + Clone,
     Result<<<S as Stream>::Item as ResultExt>::Ok, Report<A>>
