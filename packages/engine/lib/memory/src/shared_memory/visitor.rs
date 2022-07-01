@@ -176,6 +176,8 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
 
     #[cfg(not(target_os = "macos"))]
     pub fn shrink_with_data_length(&mut self, size: usize) -> Result<BufferChange> {
+        use crate::{shared_memory::markers::Val, Error};
+
         let markers = self.markers_mut();
         if size >= markers.data_size() {
             return Err(Error::ExpectedSmallerNewDataSize(self.memory.id().into()));
