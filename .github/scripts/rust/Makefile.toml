@@ -32,10 +32,6 @@ CARGO_MAKE_CARGO_PROFILE = "release"
 extend = "build"
 category = ""
 
-[tasks.everything]
-description = "Builds the project, checks lints, and runs the tests."
-run_task = { name = ["build", "format", "clippy", "doc", "rustdoc", "test", "miri"] }
-
 [tasks.all]
 description = "Builds the project, checks lints, and runs the tests."
 run_task = { name = ["build", "lint", "test"] }

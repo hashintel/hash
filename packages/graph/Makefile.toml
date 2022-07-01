@@ -15,7 +15,6 @@ category = "Deploy"
 description = "Installs the required dependencies"
 command = "yarn"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}"
-args = ["${@}"]
 
 [tasks.recreate-db]
 category = "Deploy"
