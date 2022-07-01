@@ -118,16 +118,16 @@ mod tests {
 
     // TODO - long term we likely want to gate these behind config or something, probably do not
     //  want to add a dependency on the external service for *unit* tests
-    #[ignore]
     #[tokio::test]
+    #[cfg_attr(miri, ignore)]
     async fn can_connect() -> Result<(), sqlx::Error> {
         PostgresDatabase::new(&DB_INFO).await?;
 
         Ok(())
     }
 
-    #[ignore]
     #[tokio::test]
+    #[cfg_attr(miri, ignore)]
     async fn get_entity_types() -> Result<(), sqlx::Error> {
         let pool = PostgresDatabase::new(&DB_INFO).await?.pool;
 
