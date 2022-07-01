@@ -6,10 +6,10 @@
 use std::ops::{Index, IndexMut};
 
 use crate::{
-    error::{Error, Result},
+    error::Result,
     shared_memory::{
         continuation::{arrow_continuation, buffer_without_continuation, CONTINUATION},
-        markers::{Buffer, Markers, Val},
+        markers::{Buffer, Markers},
         ptr::MemoryPtr,
         BufferChange, Segment,
     },
