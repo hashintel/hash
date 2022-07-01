@@ -1,4 +1,7 @@
 version: "3.9"
+volumes:
+  hash-graph-data:
+    external: true
 services:
   postgres:
     image: postgres:14-alpine
@@ -13,8 +16,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./postgres/var/data:/var/lib/postgresql/data
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - hash-graph-data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
     security_opt:
       - no-new-privileges:true

@@ -1,28 +1,44 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
+[tasks.crate-volume]
+private = true
+command = "docker"
+args = ["volume", "create", "--name", "hash-graph-data"]
+
 [tasks.touch-environment]
+private = true
 command = "touch"
 args = ["${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/.env.local"]
 
 [tasks.deployment-up]
 command = "docker-compose"
+description = "Spins up the deployment environment"
+category = "Deploy"
 args = ["-f", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment/stack.yml", "up", "-d"]
-dependencies = ["touch-environment"]
+dependencies = ["crate-volume", "touch-environment"]
 
 [tasks.yarn]
 command = "yarn"
+description = "Installs the required dependencies"
+category = "Deploy"
 args = ["${@}"]
 
 [tasks.recreate-db]
 command = "yarn"
+description = "Recreates the database"
+category = "Deploy"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
 args = ["graph:recreate-db"]
 
 [tasks.migrate-up]
 command = "yarn"
+description = "Runs all migrations"
+category = "Deploy"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
 args = ["graph:migrate", "up"]
 
 [tasks.deployment-down]
+description = "Tears down the deployment environment"
+category = "Deploy"
 command = "docker-compose"
 args = ["-f", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment/stack.yml", "down"]
