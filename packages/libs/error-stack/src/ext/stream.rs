@@ -30,7 +30,7 @@ pub trait StreamReportExt: Stream + Sized {
     /// Lazily adds a new attachment to the [`Report`] inside the [`Result`] calling
     /// [`Stream::poll_next`].
     ///
-    /// Applies [`Report::attach_lazy`] to the [`Err`] variant, refer to it for more information.
+    /// Applies [`ResultExt::attach_lazy`] to the [`Err`] variant, refer to it for more information.
     ///
     /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
@@ -55,11 +55,11 @@ pub trait StreamReportExt: Stream + Sized {
     /// Lazily adds a new printable attachment to any [`Report`] in the [`Stream`]
     /// when calling [`Stream::poll_next`].
     ///
-    /// Applies [`Report::attach_printable_lazy`] to the [`Err`] variant, refer to it for more
+    /// Applies [`ResultExt::attach_printable_lazy`] to the [`Err`] variant, refer to it for more
     /// information.
     ///
     /// [`Report`]: crate::Report
-    /// [`Report::attach_printable_lazy`]: crate::Report::attach_printable_lazy
+    /// [`Result::attach_printable`]: crate::Report::attach_printable
     fn attach_printable_lazy<A, F>(
         self,
         attachment: F,
