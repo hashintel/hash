@@ -17,6 +17,119 @@ impl fmt::Display for DatastoreError {
     }
 }
 
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::ArgEnum))]
+pub enum DatabaseType {
+    #[default]
+    Postgres,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
+pub struct DatabaseConnectionInfo {
+    /// The Database type to connect to
+    #[cfg_attr(feature = "clap", clap(long, default_value = "postgres", arg_enum))]
+    database_type: DatabaseType,
+
+    /// Database username
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "postgres", env = "HASH_GRAPH_USER")
+    )]
+    user: String,
+
+    /// Database password for authentication
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "postgres", env = "HASH_GRAPH_PASSWORD")
+    )]
+    password: String,
+
+    /// The host to connect to
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "localhost", env = "HASH_GRAPH_HOST")
+    )]
+    host: String,
+
+    /// The port to connect to
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "5432", env = "HASH_GRAPH_PORT")
+    )]
+    port: u16,
+
+    /// The database name to use
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "graph", env = "HASH_GRAPH_DATABASE")
+    )]
+    database: String,
+}
+
+impl DatabaseConnectionInfo {
+    pub const fn new(
+        database_type: DatabaseType,
+        user: String,
+        password: String,
+        host: String,
+        port: u16,
+        database: String,
+    ) -> Self {
+        Self {
+            database_type,
+            user,
+            password,
+            host,
+            port,
+            database,
+        }
+    }
+
+    fn url(&self) -> String {
+        let db_type = match self.database_type {
+            DatabaseType::Postgres => "postgres",
+        };
+        format!(
+            "{}://{}:{}@{}:{}/{}",
+            db_type, self.user, self.password, self.host, self.port, self.database
+        )
+    }
+
+    pub const fn database_type(&self) -> DatabaseType {
+        self.database_type
+    }
+
+    pub fn user(&self) -> &str {
+        &self.user
+    }
+
+    pub fn host(&self) -> &str {
+        &self.host
+    }
+
+    pub const fn port(&self) -> u16 {
+        self.port
+    }
+
+    pub fn database(&self) -> &str {
+        &self.database
+    }
+}
+
+impl fmt::Display for DatabaseConnectionInfo {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let db_type = match self.database_type {
+            DatabaseType::Postgres => "postgres",
+        };
+        write!(
+            fmt,
+            "{}://{}:***@{}:{}/{}",
+            db_type, self.user, self.host, self.port, self.database
+        )
+    }
+}
+
 /// Describes the API of a Datastore implementation
 #[async_trait]
 trait Datastore {

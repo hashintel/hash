@@ -1,6 +1,6 @@
 //! The entity-graph query-layer for the HASH datastore
 
-#![feature(lint_reasons)]
+#![feature(lint_reasons, once_cell)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![warn(
@@ -38,6 +38,9 @@
     clippy::module_name_repetitions,
     reason = "This encourages importing `as` which breaks IDEs"
 )]
-
+#[allow(
+    clippy::must_use_candidate,
+    reason = "#[must_use] adds boilerplate code, which isn't worth it"
+)]
 pub mod datastore;
 pub mod types;

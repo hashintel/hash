@@ -1,4 +1,7 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
+[env]
+CARGO_HACK_FLAGS = "--feature-powerset --optional-deps clap"
+
 [env.production]
 CARGO_MAKE_CARGO_PROFILE = "production"
