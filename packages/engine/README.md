@@ -208,7 +208,7 @@ If one of the environment variables shown in the help page is passed, it will ov
 >
 > Currently, the easiest way to create a project is by using [HASH Core](https://core.hash.ai). In the future, an in-depth description of the expected project structure will be given here instead.
 
-In order to download and run a simulation from hCore, use `File -> Export Project` (this is available in the toolbar at the top of the page). For help in finding or creating, and editing, simulations in hCore, take a look at our [online documentation][docs]. Then save and unzip the downloaded project to a location of your choice, for example by
+In order to download and run a simulation from HASH Core, use `File -> Export Project` (this is available in the toolbar at the top of the page). For help in finding or creating, and editing, simulations in HASH Core, take a look at our [online documentation][docs]. Then save and unzip the downloaded project to a location of your choice, for example by
 
 ```shell
 unzip my-project.zip -d my-hash-project
