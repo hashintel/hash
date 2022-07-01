@@ -367,46 +367,24 @@ The engine (and CLI) currently logs to both stderr, and to the `./log` directory
 
 Being familiar with running experiments and simulations on the HASH platform will help a lot with understanding the Engine. The [docs](https://hash.ai/docs/simulation/?utm_medium=organic&utm_source=github_readme_engine) are also a good place to search for clarification on some terms used below when unclear.
 
-### High-level Overview
+## The Project Layout
 
-> **Note** the links provided in the following section point towards the general relevant parts of the codebase, this section can be treated as an initial guide to the folder and source-code structure.
+Currently the hEngine consists of two binaries located within the [`./bin`](bin) folder.
+To read the documentation for the various components, run:
 
-#### Starting an Experiment / the CLI
+```sh
+cargo doc --workspace --no-deps --open
+```
 
-Experiments are started through the [CLI](./bin/cli), the main entry-point to the engine. The CLI is responsible for parsing input, starting Workers and simulation runs.
+and explore the documentation for the relevant crates (starting with the following two)
 
-#### Workers
+### The CLI
 
-Most logic relating to the model (including, most importantly, user provided behaviors) is executed on [Runners](./lib/execution/src/runner). These are execution environments implemented in Python, JavaScript, or Rust. One of each Language Runner is managed by a single [Worker](./lib/execution/src/worker). Workers then in turn belong to a Worker Pool, a collection of Workers that serve a single experiment.
+Located within [`./bin/cli`](bin/cli), the CLI binary is responsible for the orchestration of a HASH simulation project, handling the management of engine processes for its experiments.
 
-#### Simulation Runs and the Package System
+### The Engine Process(es)
 
-After initialization, the core of the flow of a simulation is handled within the 'main loop', a pipeline of logic that's applied to each step of the simulation. At the core of this implementation is the Simulation Package System.
-
-A Simulation Package is a contained set of logic belonging to one of the following types:
-
-- Initialization
-- Context
-- State
-- Output
-
-Initialization packages are run before starting the main loop of the simulation. They're responsible setting up the initial state of the agents within the simulation.
-
-Context packages deal with state that encompasses contextual information surrounding the agents within a simulation.
-
-State packages interact with actual agent-state, including things such as executing agent behaviors and correcting spatial positioning.
-
-Output packages are responsible for creating feedback to be given to the user about the simulation run's state, including things like saving snapshots of agent-state or providing analysis and network visualization.
-
-Upon using the initialization packages to initialize the run, the main loop is started which consists of a pipeline going from context packages -> state packages -> output packages for every step.
-
-The packages utilize a [communication implementation](./lib/execution/src/runner/comms) to interface with the [Workers](./lib/execution/src/worker) mostly through the use of defined types of [Tasks](./lib/execution/src/task). The communication therefore defines the control-flow of the Runner's executions. Any substantial data that isn't encapsulated within a message is shared that between Packages and Runners through the [`stateful` crate](./lib/stateful).
-
-#### Stateful
-
-The [`stateful` crate](./lib/stateful) is the backend responsible for keeping the data between the simulation run main loops and language runners in sync. It encapsulates logic surrounding read/write access, as well as low-level shared memory representation.
-
-[hcore]: https://core.hash.ai?utm_medium=organic&utm_source=github_readme_engine
+Located within [`./bin/hash_engine`](bin/hash_engine), the HASH Engine binary implements all of the logic required for running a single experiment and its one or more simulations.
 
 ## Contributors
 
