@@ -206,7 +206,7 @@ If one of the environment variables shown in the help page is passed, it will ov
 
 > **Warning** - Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` will be ignored and the run will possibly fail in unclear ways.
 >
-> Currently, the easiest way to create a project is by using the [integrated IDE](https://core.hash.ai) called [hcore] (hCore). In the absence of an in-depth description of expected project structure (which will be coming in the future), downloading a project from hCore is currently the easiest way to learn how one should be set out.
+> Currently, the easiest way to create a project is by using [HASH Core](https://core.hash.ai). In the future, an in-depth description of the expected project structure will be given here instead.
 
 In order to download and run a simulation from hCore, use `File -> Export Project` (this is available in the toolbar at the top of the page). For help in finding or creating, and editing, simulations in hCore, take a look at our [online documentation][docs]. Then save and unzip the downloaded project to a location of your choice, for example by
 
