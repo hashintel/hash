@@ -108,7 +108,7 @@ export const createApolloClient = (params?: {
         Query: {
           fields: {
             accountPages: {
-              merge: (existing, incoming) => incoming,
+              merge: (_, incoming) => incoming,
             },
           },
         },
