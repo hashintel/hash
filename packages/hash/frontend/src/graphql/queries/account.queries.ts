@@ -63,6 +63,7 @@ export const getAccountEntityTypes = gql`
       includeOtherTypesInUse: $includeOtherTypesInUse
     ) {
       entityId
+      entityTypeId
       entityVersionId
       properties
     }

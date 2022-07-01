@@ -37,7 +37,6 @@ const linkedAggregationsFragment = gql`
       pageCount
     }
     results {
-      id
       entityVersionId
       entityId
       accountId

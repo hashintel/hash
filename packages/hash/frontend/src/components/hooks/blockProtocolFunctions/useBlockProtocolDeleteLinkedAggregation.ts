@@ -1,6 +1,8 @@
 import { useMutation } from "@apollo/client";
 
-import { BlockProtocolDeleteLinkedAggregationsFunction } from "blockprotocol";
+import {
+  EmbedderGraphMessageCallbacks
+} from "@blockprotocol/graph";
 import { deleteLinkedAggregationMutation } from "@hashintel/hash-shared/queries/link.queries";
 import { useCallback } from "react";
 import {
@@ -9,30 +11,41 @@ import {
 } from "../../../graphql/apiTypes.gen";
 
 export const useBlockProtocolDeleteLinkedAggregation = (): {
-  deleteLinkedAggregations: BlockProtocolDeleteLinkedAggregationsFunction;
-  deleteLinkedAggregationsLoading: boolean;
-  deleteLinkedAggregationsError: any;
+  deleteLinkedAggregation: EmbedderGraphMessageCallbacks["deleteLinkedAggregation"];
+  deleteLinkedAggregationLoading: boolean;
+  deleteLinkedAggregationError: any;
 } => {
   const [
     runDeleteLinkedAggregationsMutation,
     {
-      loading: deleteLinkedAggregationsLoading,
-      error: deleteLinkedAggregationsError,
+      loading: deleteLinkedAggregationLoading,
+      error: deleteLinkedAggregationError,
     },
   ] = useMutation<
     DeleteLinkedAggregationMutation,
     DeleteLinkedAggregationMutationVariables
   >(deleteLinkedAggregationMutation);
 
-  const deleteLinkedAggregations: BlockProtocolDeleteLinkedAggregationsFunction =
+  const deleteLinkedAggregation: EmbedderGraphMessageCallbacks["deleteLinkedAggregation"] =
     useCallback(
-      async (actions) => {
+      async ({ data }) => {
+        if (!data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "'data' must be provided for createLinkedAggregation",
+              },
+            ],
+          };
+        }
+      }
         const results: boolean[] = [];
         // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
         for (const action of actions) {
           if (!action.sourceAccountId) {
             throw new Error(
-              "deleteLinkedAggregations needs to be passed a sourceAccountId",
+              "deleteLinkedAggregation needs to be passed a sourceAccountId",
             );
           }
 
@@ -57,8 +70,8 @@ export const useBlockProtocolDeleteLinkedAggregation = (): {
     );
 
   return {
-    deleteLinkedAggregations,
-    deleteLinkedAggregationsLoading,
-    deleteLinkedAggregationsError,
+    deleteLinkedAggregation,
+    deleteLinkedAggregationLoading,
+    deleteLinkedAggregationError,
   };
 };

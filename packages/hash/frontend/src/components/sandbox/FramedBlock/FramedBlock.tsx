@@ -32,7 +32,7 @@ export const FramedBlock: VoidFunctionComponent = () => {
 
   const beforeCapture = useCallback(
     (scope: Sentry.Scope) => {
-      scope.setTag("block", blockProperties?.id as string);
+      scope.setTag("block", blockProperties?.entityId as string);
     },
     [blockProperties],
   );

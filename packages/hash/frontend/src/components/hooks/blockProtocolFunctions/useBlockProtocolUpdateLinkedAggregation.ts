@@ -1,9 +1,6 @@
 import { useMutation } from "@apollo/client";
 
-import {
-  BlockProtocolUpdateLinkedAggregationsFunction,
-  BlockProtocolLinkedAggregation,
-} from "blockprotocol";
+import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 
 import { updateLinkedAggregationMutation } from "@hashintel/hash-shared/queries/link.queries";
 import { useCallback } from "react";
@@ -13,16 +10,26 @@ import {
 } from "../../../graphql/apiTypes.gen";
 
 export const useBlockProtocolUpdateLinkedAggregation = (): {
-  updateLinkedAggregations: BlockProtocolUpdateLinkedAggregationsFunction;
+  updateLinkedAggregation: EmbedderGraphMessageCallbacks["updateLinkedAggregation"];
 } => {
   const [runUpdateLinkedAggregationMutation] = useMutation<
     UpdateLinkedAggregationOperationMutation,
     UpdateLinkedAggregationOperationMutationVariables
   >(updateLinkedAggregationMutation);
 
-  const updateLinkedAggregations: BlockProtocolUpdateLinkedAggregationsFunction =
+  const updateLinkedAggregation: EmbedderGraphMessageCallbacks["updateLinkedAggregation"] =
     useCallback(
-      async (actions) => {
+      async ({ data }) => {
+        if (!data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "'data' must be provided for updateLinkedAggregation",
+              },
+            ],
+          };
+        }
         const results: BlockProtocolLinkedAggregation[] = [];
         // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
         for (const action of actions) {
@@ -35,7 +42,7 @@ export const useBlockProtocolUpdateLinkedAggregation = (): {
 
           if (!action.sourceAccountId) {
             throw new Error(
-              "updateLinkedAggregations needs to be passed a sourceAccountId",
+              "updateLinkedAggregation needs to be passed a sourceAccountId",
             );
           }
 
@@ -66,6 +73,6 @@ export const useBlockProtocolUpdateLinkedAggregation = (): {
     );
 
   return {
-    updateLinkedAggregations,
+    updateLinkedAggregation,
   };
 };

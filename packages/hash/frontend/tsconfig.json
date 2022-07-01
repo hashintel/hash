@@ -5,7 +5,8 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "target": "es5",
+    "module": "esnext",
+    "target": "esnext",
     "noEmit": true
   },
   "include": [

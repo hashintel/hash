@@ -1,80 +1,71 @@
-import { useApolloClient, useMutation } from "@apollo/client";
-
-import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
-import { updateEntity } from "@hashintel/hash-shared/queries/entity.queries";
-import { useCallback } from "react";
+import { useMutation } from "@apollo/client";
+import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
+import { updateEntity as updateEntityQuery } from "@hashintel/hash-shared/queries/entity.queries";
 import { updatePage } from "@hashintel/hash-shared/queries/page.queries";
+import { useCallback } from "react";
+
 import {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
+import {
+  convertApiEntityToBpEntity,
+  parseEntityIdentifier,
+} from "../../../lib/entities";
+import { addIdentifiersToMessageData } from "./shared";
 
 export const useBlockProtocolUpdateEntity = (): {
-  updateEntities: BlockProtocolUpdateEntitiesFunction;
-  updateEntitiesLoading: boolean;
-  updateEntitiesError: any;
+  updateEntity: EmbedderGraphMessageCallbacks["updateEntity"];
+  updateEntityLoading: boolean;
+  updateEntityError: any;
 } => {
-  const apolloClient = useApolloClient();
-
-  // temporary hack to refetch page data after a mutation.
-  // TODO: make caching of entities outside of GraphQL schema work
-  // so that updates to those entities are reflected w/o doing this
-  const onCompleted = () =>
-    apolloClient.reFetchObservableQueries().catch((err: unknown) =>
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.error("Error when refetching all active queries: ", err),
-    );
-
   const [
     updateEntityFn,
-    { loading: updateEntityLoading, error: updateEntityError },
+    { loading: updateUnknownEntityLoading, error: updateUnknownEntityError },
   ] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
-    updateEntity,
-    { onCompleted },
+    updateEntityQuery,
   );
 
   const [updatePageFn, { loading: updatePageLoading, error: updatePageError }] =
-    useMutation<UpdatePageMutation, UpdatePageMutationVariables>(updatePage, {
-      onCompleted,
-    });
+    useMutation<UpdatePageMutation, UpdatePageMutationVariables>(updatePage);
 
-  const updateEntities: BlockProtocolUpdateEntitiesFunction = useCallback(
-    async (actions) =>
-      Promise.all(
-        actions.map(async (action) => {
-          if (!action.accountId) {
-            throw new Error("updateEntities needs to be passed an accountId");
+  const updateEntity: EmbedderGraphMessageCallbacks["updateEntity"] =
+    useCallback(
+      async (message) => {
+        const { accountId, entityId, entityTypeId, properties } =
+          addIdentifiersToMessageData(message);
+
+        return (entityTypeId === "Page" ? updatePageFn : updateEntityFn)({
+          variables: {
+            accountId,
+            entityId,
+            properties,
+          },
+        }).then(({ data: apiResponseData }) => {
+          if (!apiResponseData) {
+            throw new Error(
+              `Could not update entity with data ${message.data}`,
+            );
           }
+          return {
+            data:
+              "updatePage" in apiResponseData
+                ? { ...apiResponseData.updatePage, properties: {} } // @todo fix this
+                : convertApiEntityToBpEntity(apiResponseData.updateEntity),
+          };
+        });
+      },
+      [updateEntityFn, updatePageFn],
+    );
 
-          return (
-            action.entityTypeId === "Page" ? updatePageFn : updateEntityFn
-          )({
-            variables: {
-              accountId: action.accountId,
-              entityId: action.entityId,
-              properties: action.data,
-            },
-          }).then(({ data }) => {
-            if (!data) {
-              throw new Error(
-                `Could not update entity with action ${JSON.stringify(action)}`,
-              );
-            }
-            return "updatePage" in data ? data.updatePage : data.updateEntity;
-          });
-        }),
-      ),
-    [updateEntityFn, updatePageFn],
-  );
-
-  const updateEntitiesLoading = updateEntityLoading || updatePageLoading;
-  const updateEntitiesError = updateEntityError ?? updatePageError;
+  const updateEntityLoading = updateUnknownEntityLoading || updatePageLoading;
+  const updateEntityError = updateUnknownEntityError ?? updatePageError;
 
   return {
-    updateEntities,
-    updateEntitiesLoading,
-    updateEntitiesError,
+    updateEntity,
+    updateEntityLoading,
+    updateEntityError,
   };
 };

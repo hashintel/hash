@@ -657,7 +657,6 @@ class __Entity {
       /** @todo: stop casting this */
       entityTypeName: this.entityType.properties.title as string,
       entityType: this.entityType.toGQLEntityType(),
-      metadataId: this.entityId,
       createdAt: this.createdAt.toISOString(),
       /** TODO: We should update the gql definition of entities to match the new created_at/updated_at system
        * For now keeping it as it is to avoid changing too many things at once

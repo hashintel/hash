@@ -1,53 +1,69 @@
 import { JSONObject } from "blockprotocol";
 
 import { isParsedJsonObject } from "@hashintel/hash-shared/json-utils";
-import { Entity, EntityType } from "@blockprotocol/graph";
+import {
+  Entity as BpEntity,
+  EntityType as BpEntityType,
+} from "@blockprotocol/graph";
+
+import {
+  UnknownEntity as ApiEntity,
+  EntityType as ApiEntityType,
+} from "../graphql/apiTypes.gen";
 
 /**
- * Rewrites entities or entity types so that their entityId contains
- * @param records
+ * Converts an entity from its GraphQL API representation to its Block Protocol representation:
+ * 1. Only provide 'entityId' and 'entityTypeId' at the top level
+ * 2. Re-write 'entityId' so that it is a stringified object of the identifiers we need (i.e. to include accountId)
  */
-export const rewriteIdentifiers = <T extends Entity | EntityType>(
-  records: T[],
-): T[] =>
-  records.map((record) => {
-    if ("entityId" in record) {
-      if (record.entityId("{")) {
-        throw new Error("Record has already had i");
-      }
-    }
-  });
+export const convertApiEntityToBpEntity = ({
+  accountId,
+  entityId,
+  entityTypeId,
+  properties,
+}: Pick<
+  ApiEntity,
+  "accountId" | "entityId" | "entityTypeId" | "properties"
+>): BpEntity => {
+  if (entityId.includes("{")) {
+    throw new Error(
+      `entityId has already been re-written as a stringified object: ${entityId}`,
+    );
+  }
+  return {
+    entityId: JSON.stringify({ accountId, entityId, entityTypeId }),
+    entityTypeId,
+    properties,
+  };
+};
+
+/**
+ * Converts entities from their GraphQL API representation to their Block Protocol representation.
+ * @see convertApiEntityToBpEntity
+ */
+export const convertApiEntitiesToBpEntities = (
+  records: Pick<
+    ApiEntity,
+    "accountId" | "entityId" | "entityTypeId" | "properties"
+  >[],
+): BpEntity[] => records.map(convertApiEntityToBpEntity);
 
 export type EntityIdentifier = {
   accountId: string;
   entityId: string;
-};
-
-export type EntityTypeIdentifier = {
-  accountId: string;
   entityTypeId: string;
 };
 
-export const parseIdentifiers = <T extends Entity | EntityType[]>(
-  records: T[],
-): T[] => {};
-
-export function parseIdentifier(params: {
-  stringifiedIdentifier: string;
-  type: "EntityType";
-}): EntityIdentifier;
-export function parseIdentifier(params: {
-  stringifiedIdentifier: string;
-  type: "Entity";
-}): EntityTypeIdentifier;
-export function parseIdentifier({
-  stringifiedIdentifier,
-  type = "Entity",
-}: {
-  stringifiedIdentifier: string;
-  type: "Entity" | "EntityType";
-}): EntityIdentifier | EntityTypeIdentifier {
-  let identifierObject: EntityIdentifier | EntityTypeIdentifier;
+/**
+ * We send blocks an 'entityId' that is a stringified object in {@link convertApiEntityToBpEntity}
+ * – this reverses the process so we have the individual fields to use in calling the HASH API.
+ *
+ * @param stringifiedIdentifier any 'entityId' or equivalent (e.g. sourceEntityId) sent from a block
+ */
+export function parseEntityIdentifier(
+  stringifiedIdentifier: string,
+): EntityIdentifier {
+  let identifierObject: EntityIdentifier;
   try {
     identifierObject = JSON.parse(stringifiedIdentifier);
   } catch (err) {
@@ -58,7 +74,7 @@ export function parseIdentifier({
 
   if (!identifierObject.accountId) {
     throw new Error(
-      `Parsed identifier does not contain accountId key. Provided identifier: ${JSON.stringify(
+      `Parsed identifier for Entity does not contain accountId key. Provided identifier: ${JSON.stringify(
         identifierObject,
         undefined,
         2,
@@ -66,7 +82,7 @@ export function parseIdentifier({
     );
   }
 
-  if (type === "Entity" && !("entityId" in identifierObject)) {
+  if (!identifierObject.entityId) {
     throw new Error(
       `Parsed identifier for Entity does not contain entityId key. Provided identifier: ${JSON.stringify(
         identifierObject,
@@ -76,9 +92,9 @@ export function parseIdentifier({
     );
   }
 
-  if (type === "EntityType" && !("entityTypeId" in identifierObject)) {
+  if (!identifierObject.entityTypeId) {
     throw new Error(
-      `Parsed identifier for EntityTypeId does not contain entityTypeId key. Provided identifier: ${JSON.stringify(
+      `Parsed identifier for Entity does not contain entityTypeId key. Provided identifier: ${JSON.stringify(
         identifierObject,
         undefined,
         2,
@@ -88,6 +104,41 @@ export function parseIdentifier({
 
   return identifierObject;
 }
+
+/**
+ * Converts an entity type from its GraphQL API representation to its Block Protocol representation:
+ * 1. Only provide 'entityTypeId' at the top level
+ * 2. Provide the schema under 'schema', not 'properties'
+ *
+ * N.B. this intentionally does not re-write 'entityTypeId' to include accountId, since types are not sharded,
+ * and the 'entityTypeId' is sufficient to identify entity types when calling the HASH API.
+ */
+export const convertApiEntityTypeToBpEntityType = ({
+  entityId,
+  entityTypeId,
+  properties,
+}: Pick<
+  ApiEntityType,
+  "entityId" | "entityTypeId" | "properties"
+>): BpEntityType => {
+  if (entityTypeId.includes("{")) {
+    throw new Error(
+      `entityTypeId has already been re-written as a stringified object: ${entityTypeId}`,
+    );
+  }
+  return {
+    entityTypeId: entityId,
+    schema: properties,
+  };
+};
+
+/**
+ * Converts entity types from their GraphQL API representation to their Block Protocol representation
+ * @see convertApiEntityTypeToBpEntityType
+ */
+export const convertApiEntityTypesToBpEntityTypes = (
+  records: Pick<ApiEntityType, "entityTypeId" | "properties">[],
+): BpEntityType[] => records.map(convertApiEntityTypeToBpEntityType);
 
 /**
  * This is a temporary solution to guess a display label for an entity.

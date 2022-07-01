@@ -119,7 +119,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
           <PageTitle
             value={title}
             accountId={accountId}
-            metadataId={pageEntityId}
+            entityId={pageEntityId}
           />
           {/* 
             Commented out Version Dropdown and Transfer Page buttons.

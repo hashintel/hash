@@ -105,9 +105,7 @@ export const getEntity = gql`
       }
       updatedAt
       accountId
-      ... on UnknownEntity {
-        properties
-      }
+      properties
       entityType {
         entityId
         properties
@@ -150,9 +148,7 @@ export const createEntity = gql`
       entityTypeName
       updatedAt
       accountId
-      ... on UnknownEntity {
-        properties
-      }
+      properties
       visibility
     }
   }
@@ -170,15 +166,13 @@ export const updateEntity = gql`
       properties: $properties
     ) {
       __typename
-      id
+      accountId
       entityId
       entityTypeId
       entityTypeVersionId
       entityTypeName
       updatedAt
-      ... on UnknownEntity {
-        properties
-      }
+      properties
     }
   }
 `;

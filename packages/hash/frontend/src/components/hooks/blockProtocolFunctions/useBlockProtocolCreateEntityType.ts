@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 
-import { BlockProtocolCreateEntityTypesFunction } from "blockprotocol";
+import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { useCallback } from "react";
 import {
   CreateEntityTypeMutation,
@@ -8,57 +8,61 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 
-export const useBlockProtocolCreateEntityType = (): {
-  createEntityTypes: BlockProtocolCreateEntityTypesFunction;
-  createEntityTypesLoading: boolean;
-  createEntityTypesError: any;
+export const useBlockProtocolCreateEntityType = (
+  accountId: string,
+): {
+  createEntityType: EmbedderGraphMessageCallbacks["createEntityType"];
+  createEntityTypeLoading: boolean;
+  createEntityTypeError: any;
 } => {
   const [
     createFn,
-    { loading: createEntityTypesLoading, error: createEntityTypesError },
+    { loading: createEntityTypeLoading, error: createEntityTypeError },
   ] = useMutation<CreateEntityTypeMutation, CreateEntityTypeMutationVariables>(
     createEntityTypeMutation,
   );
 
-  const createEntityTypes: BlockProtocolCreateEntityTypesFunction = useCallback(
-    (actions) =>
-      Promise.all(
-        actions.map((action) => {
-          if (!action.accountId) {
-            throw new Error(
-              "createEntityTypes needs to be passed an accountId",
-            );
-          }
+  const createEntityType: EmbedderGraphMessageCallbacks["createEntityType"] =
+    useCallback(
+      async ({ data }) => {
+        if (!data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "'data' must be provided for createEntityType",
+              },
+            ],
+          };
+        }
 
-          return createFn({
-            variables: {
-              ...action,
-              accountId: action.accountId,
-              description: (action.schema.description as string) ?? "",
-              name: (action.schema.title as string) ?? "",
-            },
-          }).then(({ data }) => {
-            if (!data) {
-              throw new Error(
-                `Could not create entity type with action ${JSON.stringify(
-                  action,
-                )}`,
-              );
-            }
-            return {
-              accountId: data.createEntityType.accountId,
-              entityTypeId: data.createEntityType.entityId,
-              ...data.createEntityType.properties,
-            };
-          });
-        }),
-      ),
-    [createFn],
-  );
+        const { schema } = data;
+        const { data: responseData } = await createFn({
+          variables: {
+            accountId,
+            description: (schema.description as string) ?? "",
+            name: schema.title ?? "",
+            schema,
+          },
+        });
+
+        if (!responseData) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "Error calling createEntityType",
+              },
+            ],
+          };
+        }
+      },
+      [accountId, createFn],
+    );
 
   return {
-    createEntityTypes,
-    createEntityTypesLoading,
-    createEntityTypesError,
+    createEntityType,
+    createEntityTypeLoading,
+    createEntityTypeError,
   };
 };

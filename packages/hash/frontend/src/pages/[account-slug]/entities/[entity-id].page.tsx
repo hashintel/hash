@@ -39,13 +39,13 @@ const Page: NextPageWithLayout = () => {
   });
   const { createLinks } = useBlockProtocolCreateLink();
   const { deleteLinks } = useBlockProtocolDeleteLink();
-  const { updateEntities } = useBlockProtocolUpdateEntity();
+  const { updateEntity } = useBlockProtocolUpdateEntity();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
   const updateAndNavigateToFirstEntity: BlockProtocolUpdateEntitiesFunction = (
     args,
   ) => {
-    return updateEntities(args)
+    return updateEntity(args)
       .then((res) => {
         void router.push(
           `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`,

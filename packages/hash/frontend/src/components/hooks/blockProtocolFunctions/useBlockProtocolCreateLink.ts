@@ -1,9 +1,7 @@
 import { useMutation } from "@apollo/client";
-
 import {
-  BlockProtocolCreateLinksFunction,
-  BlockProtocolLink,
-} from "blockprotocol";
+  EmbedderGraphMessageCallbacks
+} from "@blockprotocol/graph";
 import { createLinkMutation } from "@hashintel/hash-shared/queries/link.queries";
 import { useCallback } from "react";
 
@@ -13,24 +11,59 @@ import {
 } from "../../../graphql/apiTypes.gen";
 
 export const useBlockProtocolCreateLink = (): {
-  createLinks: BlockProtocolCreateLinksFunction;
-  createLinksLoading: boolean;
-  createLinksError: any;
+  createLink: EmbedderGraphMessageCallbacks["createLink"];
+  createLinkLoading: boolean;
+  createLinkError: any;
 } => {
   const [
     runCreateLinksMutation,
-    { loading: createLinksLoading, error: createLinksError },
+    { loading: createLinkLoading, error: createLinkError },
   ] = useMutation<CreateLinkMutation, CreateLinkMutationVariables>(
     createLinkMutation,
   );
 
-  const createLinks: BlockProtocolCreateLinksFunction = useCallback(
-    async (actions) => {
+  const createLink: EmbedderGraphMessageCallbacks["createLink"] = useCallback(
+    async ({ data }) => {
+      if (!data) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "'data' must be provided for createLink",
+            },
+          ],
+        };
+      }
+      const { data: responseData } = await runCreateLinksMutation({
+        variables: {
+          link: {
+            path,
+            sourceEntityId,
+            sourceAccountId,
+            destinationEntityId: action.destinationEntityId,
+            destinationAccountId: action.destinationAccountId
+              ? action.destinationAccountId
+              : action.sourceAccountId,
+          },
+        },
+      });
+
+      if (!responseData) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "Error calling createEntityType",
+            },
+          ],
+        };
+      }
+    }
       const results: BlockProtocolLink[] = [];
       // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
       for (const action of actions) {
         if (!action.sourceAccountId) {
-          throw new Error("createLinks needs to be passed a sourceAccountId");
+          throw new Error("createLink needs to be passed a sourceAccountId");
         }
 
         const { data, errors } = await runCreateLinksMutation({
@@ -59,8 +92,8 @@ export const useBlockProtocolCreateLink = (): {
   );
 
   return {
-    createLinks,
-    createLinksLoading,
-    createLinksError,
+    createLink,
+    createLinkLoading,
+    createLinkError,
   };
 };

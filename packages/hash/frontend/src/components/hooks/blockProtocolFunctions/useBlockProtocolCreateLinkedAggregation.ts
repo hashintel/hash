@@ -1,9 +1,7 @@
 import { useMutation } from "@apollo/client";
-
 import {
-  BlockProtocolCreateLinkedAggregationsFunction,
-  BlockProtocolLinkedAggregation,
-} from "blockprotocol";
+  EmbedderGraphMessageCallbacks
+} from "@blockprotocol/graph";
 import { createLinkedAggregationMutation } from "@hashintel/hash-shared/queries/link.queries";
 import { useCallback } from "react";
 import {
@@ -12,30 +10,41 @@ import {
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 
 export const useBlockProtocolCreateLinkedAggregation = (): {
-  createLinkedAggregations: BlockProtocolCreateLinkedAggregationsFunction;
-  createLinkedAggregationsLoading: boolean;
-  createLinkedAggregationsError: any;
+  createLinkedAggregation: EmbedderGraphMessageCallbacks["createLinkedAggregation"];
+  createLinkedAggregationLoading: boolean;
+  createLinkedAggregationError: any;
 } => {
   const [
     runCreateLinkedAggregationMutation,
     {
-      loading: createLinkedAggregationsLoading,
-      error: createLinkedAggregationsError,
+      loading: createLinkedAggregationLoading,
+      error: createLinkedAggregationError,
     },
   ] = useMutation<
     CreateLinkedAggregationOperationMutation,
     CreateLinkedAggregationOperationMutationVariables
   >(createLinkedAggregationMutation);
 
-  const createLinkedAggregations: BlockProtocolCreateLinkedAggregationsFunction =
+  const createLinkedAggregation: EmbedderGraphMessageCallbacks["createLinkedAggregation"] =
     useCallback(
-      async (actions) => {
+      async ({ data }) => {
+        if (!data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "'data' must be provided for createLinkedAggregation",
+              },
+            ],
+          };
+        }
+      }
         const results: BlockProtocolLinkedAggregation[] = [];
         // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
         for (const action of actions) {
           if (!action.sourceAccountId) {
             throw new Error(
-              "createLinkedAggregations needs to be passed a sourceAccountId",
+              "createLinkedAggregation needs to be passed a sourceAccountId",
             );
           }
 
@@ -71,8 +80,8 @@ export const useBlockProtocolCreateLinkedAggregation = (): {
     );
 
   return {
-    createLinkedAggregations,
-    createLinkedAggregationsLoading,
-    createLinkedAggregationsError,
+    createLinkedAggregation,
+    createLinkedAggregationLoading,
+    createLinkedAggregationError,
   };
 };

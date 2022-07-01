@@ -28,9 +28,7 @@ export const createEntity = gql`
       createdAt
       updatedAt
       accountId
-      ... on UnknownEntity {
-        properties
-      }
+      properties
       visibility
     }
   }

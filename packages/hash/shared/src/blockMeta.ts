@@ -1,4 +1,4 @@
-import { BlockMetadata, BlockVariant } from "blockprotocol";
+import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
@@ -143,7 +143,7 @@ const transformBlockConfig = ({
       ...variant,
       // the Block Protocol API is returning absolute URLs for icons, but this might be from elsewhere
       icon: deriveAbsoluteUrl({ baseUrl, path: variant.icon }),
-      name: variant.name ?? variant.displayName, // fallback to handle deprecated 'variant[].displayName' field
+      name: variant.name,
     }));
 
   return {

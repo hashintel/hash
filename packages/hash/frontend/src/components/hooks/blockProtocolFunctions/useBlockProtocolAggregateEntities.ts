@@ -1,41 +1,74 @@
 import { useLazyQuery } from "@apollo/client";
 
-import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
+import {
+  AggregateEntitiesResult,
+  EmbedderGraphMessageCallbacks,
+  Entity,
+} from "@blockprotocol/graph";
 import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
+import {
+  AggregateEntityQuery,
+  AggregateEntityQueryVariables,
+} from "../../../graphql/apiTypes.gen";
+import { convertApiEntityToBpEntity } from "../../../lib/entities";
 
-export const useBlockProtocolAggregateEntities = (): {
+export const useBlockProtocolAggregateEntities = (
+  accountId: string,
+): {
   aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"];
 } => {
-  const [aggregateEntitiesInDb] = useLazyQuery(aggregateEntity);
+  const [aggregateEntitiesInDb] = useLazyQuery<
+    AggregateEntityQuery,
+    AggregateEntityQueryVariables
+  >(aggregateEntity);
 
   const aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"] =
     useCallback(
       async ({ data }) => {
         if (!data) {
-          throw new Error("'data' must be provided for aggregateEntities");
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "'data' must be provided for aggregateEntities",
+              },
+            ],
+          };
         }
+
+        const { operation: requestedOperation } = data;
 
         const response = await aggregateEntitiesInDb({
           variables: {
-            accountId: data.accountId,
-            operation: {
-              ...data.operation,
-              entityTypeId: data.operation.entityTypeId!,
-            },
+            accountId,
+            operation: requestedOperation,
           },
         });
 
-        const { operation, results } = response.data.aggregateEntity;
+        if (!response.data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "Error calling aggregateEntities",
+              },
+            ],
+          };
+        }
+
+        const { operation: returnedOperation, results } =
+          response.data.aggregateEntity;
 
         return {
           data: {
-            operation,
-            results,
+            operation:
+              returnedOperation as AggregateEntitiesResult<Entity>["operation"],
+            results: results.map(convertApiEntityToBpEntity),
           },
         };
       },
-      [aggregateEntitiesInDb],
+      [accountId, aggregateEntitiesInDb],
     );
 
   return {

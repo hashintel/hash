@@ -68,10 +68,6 @@ export const entityTypedef = gql`
     """
     history: [EntityVersion!]
     """
-    The metadata ID of the entity. This is shared across all versions of the same entity.
-    """
-    metadataId: ID!
-    """
     The outgoing links of the entity.
     """
     linkGroups: [LinkGroup!]!
@@ -173,10 +169,6 @@ export const entityTypedef = gql`
     The version timeline of the entity.
     """
     history: [EntityVersion!]
-    """
-    The metadata ID of the entity. This is shared across all versions of the same entity.
-    """
-    metadataId: ID!
     """
     The outgoing links of the entity.
     """
@@ -292,7 +284,7 @@ export const entityTypedef = gql`
     """
     Create an entity
     """
-    createEntity(accountId: ID!, entity: EntityDefinition!): Entity!
+    createEntity(accountId: ID!, entity: EntityDefinition!): UnknownEntity!
 
     """
     Update an entity
@@ -301,7 +293,7 @@ export const entityTypedef = gql`
       accountId: ID!
       entityId: ID!
       properties: JSONObject!
-    ): Entity!
+    ): UnknownEntity!
 
     """
     Transfers an entity from an account to another
@@ -319,6 +311,6 @@ export const entityTypedef = gql`
       id of the new account to transfer the entity to
       """
       newAccountId: ID!
-    ): Entity!
+    ): UnknownEntity!
   }
 `;

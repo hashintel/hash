@@ -1,6 +1,8 @@
 import { useMutation } from "@apollo/client";
 
-import { BlockProtocolDeleteLinksFunction } from "blockprotocol";
+import {
+  EmbedderGraphMessageCallbacks
+} from "@blockprotocol/graph";
 import { deleteLinkMutation } from "@hashintel/hash-shared/queries/link.queries";
 import { useCallback } from "react";
 import {
@@ -9,24 +11,35 @@ import {
 } from "../../../graphql/apiTypes.gen";
 
 export const useBlockProtocolDeleteLink = (): {
-  deleteLinks: BlockProtocolDeleteLinksFunction;
-  deleteLinksLoading: boolean;
-  deleteLinksError: any;
+  deleteLink: EmbedderGraphMessageCallbacks["deleteLink"];
+  deleteLinkLoading: boolean;
+  deleteLinkError: any;
 } => {
   const [
     runDeleteLinkMutation,
-    { loading: deleteLinksLoading, error: deleteLinksError },
+    { loading: deleteLinkLoading, error: deleteLinkError },
   ] = useMutation<DeleteLinkMutation, DeleteLinkMutationVariables>(
     deleteLinkMutation,
   );
 
-  const deleteLinks: BlockProtocolDeleteLinksFunction = useCallback(
-    async (actions) => {
+  const deleteLink: EmbedderGraphMessageCallbacks["deleteLink"] = useCallback(
+    async ({ data }) => {
+      if (!data) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "'data' must be provided for deleteLink",
+            },
+          ],
+        };
+      }
+    }
       const results: boolean[] = [];
       // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
       for (const action of actions) {
         if (!action.sourceAccountId) {
-          throw new Error("deleteLinks needs to be passed a sourceAccountId");
+          throw new Error("deleteLink needs to be passed a sourceAccountId");
         }
 
         const { data, errors } = await runDeleteLinkMutation({
@@ -48,8 +61,8 @@ export const useBlockProtocolDeleteLink = (): {
   );
 
   return {
-    deleteLinks,
-    deleteLinksLoading,
-    deleteLinksError,
+    deleteLink,
+    deleteLinkLoading,
+    deleteLinkError,
   };
 };

@@ -1,19 +1,27 @@
+import { BlockMetadata } from "@blockprotocol/core";
 import {
+  BlockGraph,
+  BlockGraphProperties,
   EmbedderGraphMessageCallbacks,
   Entity,
+  EntityType,
+  LinkedAggregation,
   useGraphEmbedderService,
 } from "@blockprotocol/graph";
 import React from "react";
+import { BlockRenderer } from "./blockRenderer";
 
-import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useRemoteBlock } from "./useRemoteBlock";
 
 type RemoteBlockProps = {
   graphCallbacks: EmbedderGraphMessageCallbacks;
   blockEntity: Entity;
-  blockMetadata:
+  blockGraph?: BlockGraph;
+  blockMetadata: BlockMetadata;
   crossFrame?: boolean;
   editableRef?: unknown;
+  entityTypes?: EntityType[];
+  linkedAggregations?: LinkedAggregation[];
   onBlockLoaded?: () => void;
   sourceUrl: string;
 };
@@ -25,24 +33,59 @@ export const BlockLoadingIndicator: React.VFC = () => <div>Loading...</div>;
  */
 export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
   blockEntity,
+  blockGraph,
   blockMetadata,
   crossFrame,
   editableRef,
+  entityTypes,
   graphCallbacks,
+  linkedAggregations,
   onBlockLoaded,
   sourceUrl,
 }) => {
-  const [loading, err, Component] = useRemoteBlock(
+  const [loading, err, blockSource] = useRemoteBlock(
     sourceUrl,
     crossFrame,
     onBlockLoaded,
   );
 
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+  const { graphService } = useGraphEmbedderService(wrapperRef, {
+    blockGraph,
+    blockEntity,
+    callbacks: graphCallbacks,
+  });
+
+  React.useEffect(() => {
+    if (graphService) {
+      graphService.blockEntity({ data: blockEntity });
+    }
+  }, [blockEntity, graphService]);
+
+  React.useEffect(() => {
+    if (graphService) {
+      graphService.blockGraph({ data: blockGraph });
+    }
+  }, [blockGraph, graphService]);
+
+  React.useEffect(() => {
+    if (graphService) {
+      graphService.entityTypes({ data: entityTypes });
+    }
+  }, [entityTypes, graphService]);
+
+  React.useEffect(() => {
+    if (graphService) {
+      graphService.linkedAggregations({ data: linkedAggregations });
+    }
+  }, [linkedAggregations, graphService]);
+
   if (loading) {
     return <BlockLoadingIndicator />;
   }
 
-  if (!Component) {
+  if (!blockSource) {
     throw new Error("Could not load and parse block from URL");
   }
 
@@ -50,7 +93,8 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     throw err;
   }
 
-  const propsToInject: BlockGraphProperties<any> = {
+  const propsToInject: BlockGraphProperties<any> & { editableRef: any } = {
+    editableRef,
     graph: {
       blockEntity,
       blockGraph,
@@ -59,74 +103,22 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     },
   };
 
-  useEffect(() => {
-    if (!wrapperRef.current) {
-      throw new Error(
-        "No reference to wrapping element – cannot listen for messages from block",
-      );
-    } else if (!graphService) {
-      setGraphService(
-        new GraphEmbedderHandler({
-          blockGraph,
-          blockEntity,
-          linkedAggregations,
-          callbacks: graphServiceCallbacks,
-          element: wrapperRef.current,
-        }),
-      );
-    }
-  }, [
-    blockEntity,
-    blockGraph,
-    graphService,
-    graphServiceCallbacks,
-    linkedAggregations,
-  ]);
+  const { entryPoint } = blockMetadata.blockType;
 
-  useEffect(() => {
-    if (graphService) {
-      graphService.blockEntity({ data: blockEntity });
-    }
-  }, [blockEntity, graphService]);
-
-  useEffect(() => {
-    if (graphService) {
-      graphService.blockGraph({ data: blockGraph });
-    }
-  }, [blockGraph, graphService]);
-
-  useEffect(() => {
-    if (graphService) {
-      graphService.entityTypes({ data: entityTypes });
-    }
-  }, [entityTypes, graphService]);
-
-  useEffect(() => {
-    if (graphService) {
-      graphService.linkedAggregations({ data: linkedAggregations });
-    }
-  }, [linkedAggregations, graphService]);
-
-  <div ref={wrapperRef}>
-    {graphService ? (
-      <BlockRenderer
-        customElement={
-          "customElement" in blockDefinition
-            ? blockDefinition.customElement
-            : undefined
-        }
-        htmlString={
-          "htmlString" in blockDefinition
-            ? blockDefinition.htmlString
-            : undefined
-        }
-        properties={propsToInject}
-        ReactComponent={
-          "ReactComponent" in blockDefinition
-            ? blockDefinition.ReactComponent
-            : undefined
-        }
-      />
-    ) : null}
-  </div>
+  return (
+    <div ref={wrapperRef}>
+      {graphService ? (
+        <BlockRenderer
+          customElement={
+            (entryPoint === "custom-element" ? blockSource : undefined) as any
+          }
+          htmlString={(entryPoint === "html" ? blockSource : undefined) as any}
+          properties={propsToInject}
+          ReactComponent={
+            (entryPoint === "react" ? blockSource : undefined) as any
+          }
+        />
+      ) : null}
+    </div>
+  );
 };

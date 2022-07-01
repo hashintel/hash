@@ -1,9 +1,6 @@
 import { useApolloClient, useMutation } from "@apollo/client";
 
-import {
-  BlockProtocolEntityType,
-  BlockProtocolUpdateEntityTypesFunction,
-} from "blockprotocol";
+import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { useCallback } from "react";
 import {
   UpdateEntityTypeMutation,
@@ -12,9 +9,9 @@ import {
 import { updateEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 
 export const useBlockProtocolUpdateEntityType = (): {
-  updateEntityTypes: BlockProtocolUpdateEntityTypesFunction;
-  updateEntityTypesLoading: boolean;
-  updateEntityTypesError: any;
+  updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"];
+  updateEntityTypeLoading: boolean;
+  updateEntityTypeError: any;
 } => {
   const apolloClient = useApolloClient();
 
@@ -37,44 +34,56 @@ export const useBlockProtocolUpdateEntityType = (): {
     },
   );
 
-  const updateEntityTypes: BlockProtocolUpdateEntityTypesFunction = useCallback(
-    async (actions) => {
-      const results: BlockProtocolEntityType[] = [];
-      // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
-      for (const { accountId, entityTypeId, schema } of actions) {
-        if (!accountId) {
-          throw new Error("updateEntityTypes needs to be passed an accountId");
-        }
-
-        const variables: UpdateEntityTypeMutationVariables = {
-          entityId: entityTypeId,
-          accountId,
-          schema,
-        };
-        const { data, errors } = await runUpdateEntityTypeMutation({
-          variables,
-        });
-
+  const updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"] =
+    useCallback(
+      async ({ data }) => {
         if (!data) {
-          throw new Error(
-            errors?.[0]!.message || "Could not update entity type",
-          );
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "'data' must be provided for updateEntityType",
+              },
+            ],
+          };
         }
 
-        results.push({
-          accountId: data.updateEntityType.accountId,
-          entityTypeId: data.updateEntityType.entityId,
-          ...data.updateEntityType.properties,
-        });
-      }
-      return results;
-    },
-    [runUpdateEntityTypeMutation],
-  );
+        const results: BlockProtocolEntityType[] = [];
+        // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
+        for (const { accountId, entityTypeId, schema } of actions) {
+          if (!accountId) {
+            throw new Error("updateEntityType needs to be passed an accountId");
+          }
+
+          const variables: UpdateEntityTypeMutationVariables = {
+            entityId: entityTypeId,
+            accountId,
+            schema,
+          };
+          const { data, errors } = await runUpdateEntityTypeMutation({
+            variables,
+          });
+
+          if (!data) {
+            throw new Error(
+              errors?.[0]!.message || "Could not update entity type",
+            );
+          }
+
+          results.push({
+            accountId: data.updateEntityType.accountId,
+            entityTypeId: data.updateEntityType.entityId,
+            ...data.updateEntityType.properties,
+          });
+        }
+        return results;
+      },
+      [runUpdateEntityTypeMutation],
+    );
 
   return {
-    updateEntityTypes,
-    updateEntityTypesLoading,
-    updateEntityTypesError,
+    updateEntityType,
+    updateEntityTypeLoading,
+    updateEntityTypeError,
   };
 };

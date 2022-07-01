@@ -1,7 +1,7 @@
 import React, { ComponentType, VoidFunctionComponent } from "react";
 
-import { CustomElementLoader } from "./blockRenderer/customElement";
-import { HtmlLoader } from "./blockRrenderer/html";
+// import { CustomElementLoader } from "./blockRenderer/customElement";
+import { HtmlLoader } from "./blockRenderer/html";
 
 type BlockRendererProps = {
   customElement?: {
@@ -22,7 +22,8 @@ export const BlockRenderer: VoidFunctionComponent<BlockRendererProps> = ({
   if (ReactComponent) {
     return <ReactComponent {...properties} />;
   } else if (customElement) {
-    return <CustomElementLoader properties={properties} {...customElement} />;
+    return null;
+    // return <CustomElementLoader properties={properties} {...customElement} />;
   } else if (htmlString) {
     return <HtmlLoader htmlString={htmlString} />;
   }

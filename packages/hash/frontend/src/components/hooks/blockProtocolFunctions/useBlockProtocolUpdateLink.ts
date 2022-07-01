@@ -3,9 +3,9 @@ import { BlockProtocolUpdateLinksFunction } from "blockprotocol";
 import { useCallback } from "react";
 
 export const useBlockProtocolUpdateLink = (): {
-  updateLinks: BlockProtocolUpdateLinksFunction;
+  updateLink: BlockProtocolUpdateLinksFunction;
 } => {
-  const updateLinks: BlockProtocolUpdateLinksFunction = useCallback(
+  const updateLink: BlockProtocolUpdateLinksFunction = useCallback(
     async (_actions) => {
       throw new Error("Updating single links via linkId not yet implemented.");
     },
@@ -13,6 +13,6 @@ export const useBlockProtocolUpdateLink = (): {
   );
 
   return {
-    updateLinks,
+    updateLink,
   };
 };

@@ -377,7 +377,6 @@ class __EntityType {
         ...this.properties,
         $id: this.schema$idWithFrontendDomain,
       },
-      metadataId: this.entityId,
       createdAt: this.createdAt.toISOString(),
       entityVersionCreatedAt: this.updatedAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),

@@ -1,5 +1,6 @@
 import {
   blockComponentRequiresText,
+  BlockConfig,
   BlockMeta,
 } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
@@ -72,6 +73,7 @@ export class ComponentView implements NodeView<Schema> {
   private target = createComponentViewTarget();
 
   private readonly componentId: string;
+  private readonly componentMetadata: BlockConfig;
   private readonly sourceName: string;
 
   private store: EntityStore;
@@ -92,6 +94,7 @@ export class ComponentView implements NodeView<Schema> {
     }
 
     this.sourceName = source;
+    this.componentMetadata = componentMetadata;
     this.componentId = componentMetadata.componentId;
 
     this.dom.setAttribute("data-dom", "true");
@@ -151,13 +154,13 @@ export class ComponentView implements NodeView<Schema> {
           <BlockLoader
             sourceUrl={this.sourceName}
             blockEntityId={entityId}
-            shouldSandbox={!this.editable}
+            blockMetadata={this.componentMetadata}
+            // shouldSandbox={!this.editable}
             editableRef={this.editable ? this.editableRef : undefined}
             // @todo these asserted non-null fields do not definitely exist when the block is first loaded
             accountId={childEntity?.accountId!}
             entityId={childEntity?.entityId!}
             entityTypeId={childEntity?.entityTypeId!}
-            entityTypeVersionId={childEntity?.entityVersionId!}
             entityProperties={
               childEntity && "properties" in childEntity
                 ? childEntity.properties
