@@ -26,7 +26,7 @@ pub trait IteratorExt: Iterator + Sized {
     /// [`Iterator`]: std::iter::Iterator
     fn attach<A>(self, attachment: A) -> IteratorWithAttachment<Self, A>
     where
-        A: Send + Sync + 'static;
+        A: Clone + Send + Sync + 'static;
 
     /// Lazily adds a new attachment to each [`Report`] inside the [`Iterator`] when calling
     /// [`Iterator::next`].
@@ -53,7 +53,7 @@ pub trait IteratorExt: Iterator + Sized {
     /// [`poll`]: Future::poll
     fn attach_printable<A>(self, attachment: A) -> IteratorWithPrintableAttachment<Self, A>
     where
-        A: Display + Debug + Send + Sync + 'static;
+        A: Clone + Display + Debug + Send + Sync + 'static;
 
     /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`]
     /// when calling [`Iterator::next`].
@@ -83,7 +83,7 @@ pub trait IteratorExt: Iterator + Sized {
     /// [`poll`]: Future::poll
     fn change_context<C>(self, context: C) -> IteratorWithContext<Self, C>
     where
-        C: Context;
+        C: Context + Clone;
 
     /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when calling
     /// [`Iterator::next`]
@@ -105,7 +105,8 @@ where
     I::Item: ResultExt,
 {
     #[track_caller]
-    fn attach<A>(self, attachment: A) -> IteratorWithAttachment<Self, A> {
+    fn attach<A>(self, attachment: A) -> IteratorWithAttachment<Self, A>
+    where A: Clone + Send + Sync + 'static {
         IteratorWithAttachment {
             iterator: self,
             context_or_attachment: attachment,
@@ -127,7 +128,7 @@ where
     #[track_caller]
     fn attach_printable<A>(self, attachment: A) -> IteratorWithPrintableAttachment<Self, A>
     where
-        A: Display + Debug + Send + Sync + 'static,
+        A: Clone + Display + Debug + Send + Sync + 'static,
     {
         IteratorWithPrintableAttachment {
             iterator: self,
@@ -153,7 +154,7 @@ where
     #[track_caller]
     fn change_context<C>(self, context: C) -> IteratorWithContext<Self, C>
     where
-        C: Context,
+        C: Context + Clone,
     {
         IteratorWithContext {
             iterator: self,
