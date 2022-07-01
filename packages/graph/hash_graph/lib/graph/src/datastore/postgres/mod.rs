@@ -208,7 +208,10 @@ mod tests {
     use std::sync::LazyLock;
 
     use super::{row_types::EntityTypeRow, *};
-    use crate::datastore::DatabaseType;
+    use crate::{
+        datastore::DatabaseType,
+        types::{AccountId, DataType, Qualified},
+    };
 
     const USER: &str = "postgres";
     const PASSWORD: &str = "postgres";
@@ -226,6 +229,19 @@ mod tests {
             DATABASE.to_owned(),
         )
     });
+
+    async fn create_account_id(pool: &PgPool) -> Result<AccountId, sqlx::Error> {
+        let account_id = AccountId::new(Uuid::new_v4());
+
+        sqlx::query(r#"INSERT INTO accounts (account_id) VALUES ($1);"#)
+            .bind(&account_id)
+            .fetch_all(pool)
+            .await
+            .report()
+            .attach_printable("Could not insert account")?;
+
+        Ok(account_id)
+    }
 
     // TODO - long term we likely want to gate these behind config or something, probably do not
     //  want to add a dependency on the external service for *unit* tests
@@ -256,8 +272,7 @@ mod tests {
     async fn create_data_type() -> Result<(), sqlx::Error> {
         let db = PostgresDatabase::new(&DB_INFO).await?;
 
-        // This account_id must be created manually.
-        let account_id = AccountId::new(uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c2"));
+        let account_id = create_account_id(&db.pool).await?;
 
         db.create_data_type(
             DataType::new(serde_json::json!({"hello": "world"})),
@@ -272,12 +287,9 @@ mod tests {
     #[ignore]
     #[tokio::test]
     async fn get_data_type_by_identifier() -> Result<(), sqlx::Error> {
-        use crate::types::{AccountId, DataType, Qualified};
-
         let db = PostgresDatabase::new(&DB_INFO).await?;
 
-        // This account_id must be created manually.
-        let account_id = AccountId::new(uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c2"));
+        let account_id = create_account_id(&db.pool).await?;
 
         let Qualified { id, inner, .. } = db
             .create_data_type(
@@ -299,8 +311,7 @@ mod tests {
     async fn update_existing_data_type() -> Result<(), sqlx::Error> {
         let db = PostgresDatabase::new(&DB_INFO).await?;
 
-        // This account_id must be created manually.
-        let account_id = AccountId::new(uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c2"));
+        let account_id = create_account_id(&db.pool).await?;
 
         let data_type = db
             .create_data_type(
