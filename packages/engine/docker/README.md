@@ -20,7 +20,9 @@ It's possible to set the output as well. Eventually you need to rebuild the imag
 
 ```sh
 docker build -t h-engine -f docker/Dockerfile --build-arg USER_UID=$(id -u) --build-arg GROUP_UID=$(id -g) .
+
 mkdir -p output
+
 docker run -v "$(pwd)/tests/examples/air_defense_system:/air_defense_system:ro" -v "$(pwd)/output:/output" h-engine \
   --project /air_defense_system \
   --log-level info \
