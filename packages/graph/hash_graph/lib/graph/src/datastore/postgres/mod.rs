@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     datastore::{DatabaseConnectionInfo, Datastore, DatastoreError},
-    types::{DataType, Identifier},
+    types::{AccountId, DataType, Identifier, Qualified},
 };
 
 /// A Postgres-backed Datastore
@@ -53,9 +53,9 @@ async fn insert_version_id(
 impl Datastore for PostgresDatabase {
     async fn create_data_type(
         &self,
-        schema: serde_json::Value,
-        created_by: Uuid,
-    ) -> Result<DataType, DatastoreError> {
+        data_type: DataType,
+        created_by: AccountId,
+    ) -> Result<Qualified<DataType>, DatastoreError> {
         let id = Identifier {
             base_id: Uuid::new_v4(),
             version_id: Uuid::new_v4(),
@@ -74,7 +74,7 @@ impl Datastore for PostgresDatabase {
             "#,
         )
         .bind(&id.version_id)
-        .bind(&schema)
+        .bind(&data_type)
         .bind(&created_by)
         .fetch_one(&self.pool)
         .await
@@ -82,14 +82,14 @@ impl Datastore for PostgresDatabase {
         .change_context(DatastoreError)
         .attach_printable("Could not insert data type")?;
 
-        Ok(DataType {
+        Ok(Qualified {
             id,
-            schema,
+            inner: data_type,
             created_by,
         })
     }
 
-    async fn get_data_type(&self, id: Identifier) -> Result<DataType, DatastoreError> {
+    async fn get_data_type(&self, id: Identifier) -> Result<Qualified<DataType>, DatastoreError> {
         let DataTypeRow {
             schema, created_by, ..
         } = sqlx::query_as(
@@ -109,9 +109,9 @@ impl Datastore for PostgresDatabase {
         .attach_printable_lazy(|| id.clone())
         .attach_printable("Could not find data type by id")?;
 
-        Ok(DataType {
+        Ok(Qualified {
             id,
-            schema,
+            inner: schema,
             created_by,
         })
     }
@@ -227,11 +227,14 @@ mod tests {
         let db = PostgresDatabase::new(&DB_INFO).await?;
 
         // This account_id must be created manually.
-        let account_id = uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c2");
+        let account_id = AccountId::new(uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c2"));
 
-        db.create_data_type(serde_json::json!({"hello": "world"}), account_id)
-            .await
-            .expect("Could not create data type");
+        db.create_data_type(
+            DataType::new(serde_json::json!({"hello": "world"})),
+            account_id,
+        )
+        .await
+        .expect("Could not create data type");
 
         Ok(())
     }
@@ -239,21 +242,24 @@ mod tests {
     #[ignore]
     #[tokio::test]
     async fn get_data_type_by_identifier() -> Result<(), sqlx::Error> {
-        use crate::types::DataType;
+        use crate::types::{AccountId, DataType, Qualified};
 
         let db = PostgresDatabase::new(&DB_INFO).await?;
 
         // This account_id must be created manually.
-        let account_id = uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c2");
+        let account_id = AccountId::new(uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c2"));
 
-        let DataType { id, schema, .. } = db
-            .create_data_type(serde_json::json!({"hello": "world"}), account_id)
+        let Qualified { id, inner, .. } = db
+            .create_data_type(
+                DataType::new(serde_json::json!({"hello": "world"})),
+                account_id,
+            )
             .await
             .expect("Could not create data type");
 
         let data_type = db.get_data_type(id).await.expect("Could not get data type");
 
-        assert_eq!(data_type.schema, schema);
+        assert_eq!(data_type.inner, inner);
 
         Ok(())
     }

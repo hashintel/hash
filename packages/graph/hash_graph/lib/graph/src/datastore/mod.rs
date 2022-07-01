@@ -5,9 +5,8 @@ use std::fmt;
 use async_trait::async_trait;
 use error_stack::{Context, Result};
 pub use postgres::PostgresDatabase;
-use uuid::Uuid;
 
-use crate::types::{DataType, Identifier};
+use crate::types::{AccountId, DataType, Identifier, Qualified};
 
 #[derive(Debug)]
 pub struct DatastoreError;
@@ -156,16 +155,16 @@ trait Datastore {
     /// If the account referred to by `created_by` does not exist.
     async fn create_data_type(
         &self,
-        schema: serde_json::Value,
-        created_by: Uuid,
-    ) -> Result<DataType, DatastoreError>;
+        data_type: DataType,
+        created_by: AccountId,
+    ) -> Result<Qualified<DataType>, DatastoreError>;
 
     /// Get an existing [`DataType`] by an [`Identifier`].
     ///
     /// # Errors
     ///
     /// If the Data Type doesn't exist.
-    async fn get_data_type(&self, id: Identifier) -> Result<DataType, DatastoreError>;
+    async fn get_data_type(&self, id: Identifier) -> Result<Qualified<DataType>, DatastoreError>;
 
     async fn get_data_type_many() -> Result<(), DatastoreError>;
 

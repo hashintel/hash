@@ -4,8 +4,18 @@ use std::fmt;
 
 use uuid::Uuid;
 
-#[derive(Clone, Debug)]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq)]
+#[sqlx(transparent)]
+pub struct AccountId(Uuid);
 
+impl AccountId {
+    pub fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Identifier {
     pub base_id: Uuid,
     pub version_id: Uuid,
@@ -13,31 +23,26 @@ pub struct Identifier {
 
 impl fmt::Display for Identifier {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            fmt,
-            "[base_id='{}', version_id='{}']",
-            self.base_id, self.version_id
-        )
+        // TODO: change this to not just he the debug impl.
+        write!(fmt, "{:?}", self)
     }
 }
 
+#[repr(transparent)]
+#[derive(Clone, Debug, sqlx::Type, PartialEq, Eq)]
+#[sqlx(transparent)]
+pub struct DataType(serde_json::Value);
+
+impl DataType {
+    pub fn new(schema: serde_json::Value) -> Self {
+        Self(schema)
+    }
+}
+
+// TODO: constrain this to only work for valid inner Types.
 #[derive(Clone, Debug)]
-pub struct DataType {
+pub struct Qualified<T> {
     pub id: Identifier,
-    pub schema: serde_json::Value,
-    pub created_by: Uuid,
-}
-
-#[derive(Clone, Debug)]
-pub struct PropertyType {
-    pub version_id: Uuid,
-    pub schema: serde_json::Value,
-    pub created_by: Uuid,
-}
-
-#[derive(Clone, Debug)]
-pub struct EntityType {
-    pub version_id: Uuid,
-    pub schema: serde_json::Value,
-    pub created_by: Uuid,
+    pub inner: T,
+    pub created_by: AccountId,
 }
