@@ -10,7 +10,8 @@ use uuid::Uuid;
 pub struct AccountId(Uuid);
 
 impl AccountId {
-    pub fn new(uuid: Uuid) -> Self {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
     }
 }
@@ -34,7 +35,8 @@ impl fmt::Display for Identifier {
 pub struct DataType(serde_json::Value);
 
 impl DataType {
-    pub fn new(schema: serde_json::Value) -> Self {
+    #[must_use]
+    pub const fn new(schema: serde_json::Value) -> Self {
         Self(schema)
     }
 }
