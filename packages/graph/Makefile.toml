@@ -1,5 +1,10 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
+[tasks.touch-environment-up]
+command = "docker-compose"
+command = "bash"
+args = ["touch", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/.env.local"]
+
 [tasks.deployment-up]
 command = "docker-compose"
 args = ["-f", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment/stack.yml", "up", "-d"]
