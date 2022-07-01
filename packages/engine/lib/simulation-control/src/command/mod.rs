@@ -23,12 +23,10 @@ use stateful::{
 };
 
 pub use self::{
-    create_remove::{CreateRemovePlanner, MigrationPlan},
+    create_remove::{CreateRemoveCommands, CreateRemovePlanner, MigrationPlan},
     error::{Error, Result},
 };
-use crate::command::create_remove::{
-    CreateCommand, CreateRemoveCommands, ProcessedCommands, RemoveCommand,
-};
+use crate::command::create_remove::{CreateCommand, ProcessedCommands, RemoveCommand};
 
 /// Variations of the protected message-target that is associated with the engine. If an agent
 /// sends a message to one of these variations, it's interpreted as a command rather than a message
