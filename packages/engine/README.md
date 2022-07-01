@@ -404,7 +404,7 @@ The packages utilize a [communication implementation](./lib/execution/src/runner
 
 #### Stateful
 
-The [`stateful` crate](./lib/stateful) is responsible for keeping the data in the main simulation loops in sync with the language runners. It encapsulates logic surrounding read/write access, as well as low-level shared memory representation.
+The [`stateful` crate](./lib/stateful) handles the sharing of memory between different runners. As we support multiple languages, the crate needs to handle the translation between different in-memory representations of data. It is used as part of the main simulation loop to ensure that all the language runners are kept in sync.
 
 [hcore]: https://core.hash.ai?utm_medium=organic&utm_source=github_readme_engine
 
