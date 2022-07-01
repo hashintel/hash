@@ -23,7 +23,7 @@ pub trait StreamReportExt: Stream + Sized {
     /// [`Report::attach`]: crate::Report::attach
     fn attach<A>(self, attachment: A) -> StreamWithAttachment<Self, A>
     where
-        A: Send + Sync + 'static;
+        A: Clone + Send + Sync + 'static;
 
     /// Lazily adds a new attachment to the [`Report`] inside the [`Result`] calling
     /// [`Stream::poll_next`].
@@ -48,7 +48,7 @@ pub trait StreamReportExt: Stream + Sized {
     /// [`poll`]: Stream::poll
     fn attach_printable<A>(self, attachment: A) -> StreamWithPrintableAttachment<Self, A>
     where
-        A: Display + Debug + Send + Sync + 'static;
+        A: Clone + Display + Debug + Send + Sync + 'static;
 
     /// Lazily adds a new printable attachment to any [`Report`] in the [`Stream`]
     /// when calling [`Stream::poll_next`].
@@ -76,7 +76,7 @@ pub trait StreamReportExt: Stream + Sized {
     /// [`Report::change_context`]: crate::Report::change_context
     fn change_context<C>(self, context: C) -> StreamWithContext<Self, C>
     where
-        C: Context;
+        C: Context + Clone;
 
     /// Lazily changes the [`Context`] of the [`Report`] inside the [`Result`] when
     /// calling [`Stream::poll_next`]
@@ -100,7 +100,7 @@ where
     #[track_caller]
     fn attach<A>(self, attachment: A) -> StreamWithAttachment<Self, A>
     where
-        A: Send + Sync + 'static,
+        A: Clone + Send + Sync + 'static,
     {
         StreamWithAttachment {
             stream: self,
@@ -123,7 +123,7 @@ where
     #[track_caller]
     fn attach_printable<A>(self, attachment: A) -> StreamWithPrintableAttachment<Self, A>
     where
-        A: Display + Debug + Send + Sync + 'static,
+        A: Clone + Display + Debug + Send + Sync + 'static,
     {
         StreamWithPrintableAttachment {
             stream: self,
@@ -149,7 +149,7 @@ where
     #[track_caller]
     fn change_context<C>(self, context: C) -> StreamWithContext<Self, C>
     where
-        C: Context,
+        C: Context + Clone,
     {
         StreamWithContext {
             stream: self,
