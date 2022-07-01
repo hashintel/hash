@@ -365,7 +365,7 @@ The engine (and CLI) currently logs to both stderr, and to the `./log` directory
 
 ## Main Concepts
 
-Being familiar with running experiments and simulations on the HASH platform will help a lot with understanding the Engine. The [docs](https://hash.ai/docs/simulation/?utm_medium=organic&utm_source=github_readme_engine) are also a good place to search for clarification on some terms used below if they are unclear.
+Being familiar with running experiments and simulations on the HASH platform will help a lot with understanding the Engine. The [docs](https://hash.ai/docs/simulation/?utm_medium=organic&utm_source=github_readme_engine) are also a good place to search for clarification on some terms used below when unclear.
 
 ### High-level Overview
 
@@ -404,7 +404,7 @@ The packages utilize a [communication implementation](./lib/execution/src/runner
 
 #### Stateful
 
-The [`stateful` crate](./lib/stateful) handles the sharing of memory between different runners. As we support multiple languages, the crate needs to handle the translation between different in-memory representations of data. It is used as part of the main simulation loop to ensure that all the language runners are kept in sync.
+The [`stateful` crate](./lib/stateful) is the backend responsible for keeping the data between the simulation run main loops and language runners in sync. It encapsulates logic surrounding read/write access, as well as low-level shared memory representation.
 
 [hcore]: https://core.hash.ai?utm_medium=organic&utm_source=github_readme_engine
 
