@@ -7,7 +7,7 @@ use error_stack::{Context, Result};
 pub use postgres::PostgresDatabase;
 use uuid::Uuid;
 
-use crate::types::DataType;
+use crate::types::{DataType, Identifier};
 
 #[derive(Debug)]
 pub struct DatastoreError;
@@ -149,15 +149,25 @@ impl fmt::Display for DatabaseConnectionInfo {
 /// Describes the API of a Datastore implementation
 #[async_trait]
 trait Datastore {
+    /// Creates a new [`DataType`].
+    ///
+    /// # Errors:
+    ///
+    /// If the account referred to by `created_by` does not exist.
     async fn create_data_type(
         &self,
         schema: serde_json::Value,
         created_by: Uuid,
     ) -> Result<DataType, DatastoreError>;
 
-    async fn get_data_type() -> Result<(), DatastoreError>;
+    /// Get an existing [`DataType`] by an [`Identifier`].
+    ///
+    /// # Errors
+    ///
+    /// If the Data Type doesn't exist.
+    async fn get_data_type(&self, id: Identifier) -> Result<DataType, DatastoreError>;
 
-    async fn get_data_many() -> Result<(), DatastoreError>;
+    async fn get_data_type_many() -> Result<(), DatastoreError>;
 
     async fn update_data_type() -> Result<(), DatastoreError>;
 
@@ -165,7 +175,7 @@ trait Datastore {
 
     async fn get_property_type() -> Result<(), DatastoreError>;
 
-    async fn get_property_many() -> Result<(), DatastoreError>;
+    async fn get_property_type_many() -> Result<(), DatastoreError>;
 
     async fn update_property_type() -> Result<(), DatastoreError>;
 
