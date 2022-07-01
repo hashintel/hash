@@ -27,7 +27,7 @@ pub enum DatabaseType {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct DatabaseConnectionInfo {
-    /// The Database type to connect to
+    /// The database type to connect to
     #[cfg_attr(feature = "clap", clap(long, default_value = "postgres", arg_enum))]
     database_type: DatabaseType,
 
