@@ -1,6 +1,8 @@
 //! Implements support for `error-stack` functionality for streams. The main trait in this module
 //! is [`StreamReportExt`] (which is so named to avoid conflict with other stream-related types
 //! common to the Rust `async` ecosystem).
+//!
+//! It may be helpful to first read the [`ResultExt`] documentation.
 use core::{
     fmt::{Debug, Display},
     task::Poll,
@@ -28,7 +30,7 @@ pub trait StreamReportExt: Stream + Sized {
     /// Lazily adds a new attachment to the [`Report`] inside the [`Result`] calling
     /// [`Stream::poll_next`].
     ///
-    /// Applies [`Report::attach`] to the [`Err`] variant, refer to it for more information.
+    /// Applies [`Report::attach_lazy`] to the [`Err`] variant, refer to it for more information.
     ///
     /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
@@ -53,11 +55,11 @@ pub trait StreamReportExt: Stream + Sized {
     /// Lazily adds a new printable attachment to any [`Report`] in the [`Stream`]
     /// when calling [`Stream::poll_next`].
     ///
-    /// Applies [`Report::attach_printable`] to the [`Err`] variant, refer to it for more
+    /// Applies [`Report::attach_printable_lazy`] to the [`Err`] variant, refer to it for more
     /// information.
     ///
     /// [`Report`]: crate::Report
-    /// [`Report::attach_printable`]: crate::Report::attach_printable
+    /// [`Report::attach_printable_lazy`]: crate::Report::attach_printable_lazy
     fn attach_printable_lazy<A, F>(
         self,
         attachment: F,
@@ -81,11 +83,11 @@ pub trait StreamReportExt: Stream + Sized {
     /// Lazily changes the [`Context`] of the [`Report`] inside the [`Result`] when
     /// calling [`Stream::poll_next`]
     ///
-    /// Applies [`Report::change_context`] to the [`Err`] variant, see its documntation
+    /// Applies [`Report::change_context_lazy`] to the [`Err`] variant, see its documntation
     /// for more information.
     ///
     /// [`Report`]: crate::Report
-    /// [`Report::change_context`]: crate::Report::change_context
+    /// [`Report::change_context_lazy`]: crate::Report::change_context_lazy
     fn change_context_lazy<C, F>(self, context: F) -> StreamWithLazyContext<Self, F>
     where
         C: Context,
@@ -180,6 +182,7 @@ macro_rules! impl_stream_adaptor {
         $output:ty
     ) => {
         #[pin_project::pin_project]
+        #[doc=concat!("This is the adaptor type returned by [`StreamReportExt", stringify!($method), "`]")]
         pub struct $name<S, A> {
             #[pin]
             stream: S,
