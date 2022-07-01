@@ -10,7 +10,6 @@ use futures_core::Stream;
 
 use crate::{Context, Report, ResultExt};
 
-// note: called this so as to not conflict with other `StreamExt`s
 /// Extension trait for [`Stream`] to provide contextual information on [`Report`]s.
 ///
 /// [`Report`]: crate::Report
