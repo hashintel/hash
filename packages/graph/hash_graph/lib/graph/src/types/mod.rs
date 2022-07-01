@@ -16,10 +16,34 @@ impl AccountId {
     }
 }
 
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq)]
+#[sqlx(transparent)]
+pub struct BaseId(Uuid);
+
+impl BaseId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq)]
+#[sqlx(transparent)]
+pub struct VersionId(Uuid);
+
+impl VersionId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Identifier {
-    pub base_id: Uuid,
-    pub version_id: Uuid,
+    pub base_id: BaseId,
+    pub version_id: VersionId,
 }
 
 impl fmt::Display for Identifier {
