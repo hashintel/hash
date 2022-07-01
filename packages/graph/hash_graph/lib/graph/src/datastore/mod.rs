@@ -5,6 +5,9 @@ use std::fmt;
 use async_trait::async_trait;
 use error_stack::{Context, Result};
 pub use postgres::PostgresDatabase;
+use uuid::Uuid;
+
+use crate::types::DataType;
 
 #[derive(Debug)]
 pub struct DatastoreError;
@@ -146,7 +149,11 @@ impl fmt::Display for DatabaseConnectionInfo {
 /// Describes the API of a Datastore implementation
 #[async_trait]
 trait Datastore {
-    async fn create_data_type() -> Result<(), DatastoreError>;
+    async fn create_data_type(
+        &self,
+        schema: serde_json::Value,
+        created_by: Uuid,
+    ) -> Result<DataType, DatastoreError>;
 
     async fn get_data_type() -> Result<(), DatastoreError>;
 

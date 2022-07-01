@@ -3,8 +3,12 @@ mod row_types;
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use sqlx::PgPool;
+use uuid::Uuid;
 
-use crate::datastore::{DatabaseConnectionInfo, Datastore, DatastoreError};
+use crate::{
+    datastore::{DatabaseConnectionInfo, Datastore, DatastoreError},
+    types::{DataType, Identifier},
+};
 
 /// A Postgres-backed Datastore
 pub struct PostgresDatabase {
@@ -27,10 +31,66 @@ impl PostgresDatabase {
     }
 }
 
+async fn insert_version_id(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    id: &Identifier,
+) -> Result<(), DatastoreError> {
+    sqlx::query(r#"INSERT INTO ids (version_id, id) VALUES ($1, $2);"#)
+        .bind(&id.version_id)
+        .bind(&id.base_id)
+        .execute(pool)
+        .await
+        .report()
+        .change_context(DatastoreError)
+        .attach_printable_lazy(|| id.clone())
+        .attach_printable("Could not insert id")?;
+
+    Ok(())
+}
+
 #[async_trait]
 impl Datastore for PostgresDatabase {
-    async fn create_data_type() -> Result<(), DatastoreError> {
-        todo!()
+    /// Creates a new [`DataType`]
+    ///
+    /// # Errors
+    ///
+    /// If the account referred to by `created_by` does not exist
+    async fn create_data_type(
+        &self,
+        schema: serde_json::Value,
+        created_by: Uuid,
+    ) -> Result<DataType, DatastoreError> {
+        let id = Identifier {
+            base_id: Uuid::new_v4(),
+            version_id: Uuid::new_v4(),
+        };
+
+        insert_version_id(&self.pool, &id).await?;
+
+        sqlx::query(
+            r#"
+            INSERT INTO data_types (
+                version_id,
+                schema,
+                created_by
+            ) values ($1, $2, $3)
+            returning version_id;
+            "#,
+        )
+        .bind(&id.version_id)
+        .bind(&schema)
+        .bind(&created_by)
+        .fetch_one(&self.pool)
+        .await
+        .report()
+        .change_context(DatastoreError)
+        .attach_printable("Could not insert data type")?;
+
+        Ok(DataType {
+            id,
+            schema,
+            created_by,
+        })
     }
 
     async fn get_data_type() -> Result<(), DatastoreError> {
@@ -138,6 +198,21 @@ mod tests {
             .await
             .report()
             .attach_printable("Could not select entity types")?;
+
+        Ok(())
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn create_data_type() -> Result<(), sqlx::Error> {
+        let db = PostgresDatabase::new(&DB_INFO).await?;
+
+        // This account_id must be created manually.
+        let account_id = uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c2");
+
+        db.create_data_type(serde_json::json!({"hello": "world"}), account_id)
+            .await
+            .expect("Could not create data type");
 
         Ok(())
     }
