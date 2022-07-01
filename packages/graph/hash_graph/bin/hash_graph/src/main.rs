@@ -1,7 +1,11 @@
+mod args;
+
 use std::fmt;
 
 use error_stack::{Context, FutureExt, Result};
 use graph::datastore::PostgresDatabase;
+
+use crate::args::Args;
 
 #[derive(Debug)]
 pub struct GraphError;
@@ -15,8 +19,8 @@ impl fmt::Display for GraphError {
 
 #[tokio::main]
 async fn main() -> Result<(), GraphError> {
-    // TODO: stop hardcoding the connection parameters
-    let _datastore = PostgresDatabase::new("postgres", "postgres", "localhost", 5432, "graph")
+    let args = Args::parse();
+    let _datastore = PostgresDatabase::new(&args.db_info)
         .change_context(GraphError)
         .await?;
 

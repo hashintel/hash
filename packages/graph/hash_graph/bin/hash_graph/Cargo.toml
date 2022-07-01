@@ -2,11 +2,16 @@
 name = "hash-graph"
 version = "0.0.0"
 edition = "2021"
+authors = ["HASH"]
 publish = false
+description = "The entity-graph query-layer for the HASH datastore"
 
 
 [dependencies]
 error-stack = { version = "0.1.1", features = ["futures"] }
 
-graph = { path = "../../lib/graph" }
+graph = { path = "../../lib/graph", features = ["clap"] }
 tokio = { version = "1.18.2", features = ["rt", "macros"] }
+
+clap = { version = "3.2.7", features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete = "3.2.3"
