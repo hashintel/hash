@@ -3,7 +3,7 @@ pub mod future;
 pub mod iter;
 mod result;
 #[cfg(feature = "futures")]
-mod stream;
+pub mod stream;
 
 #[cfg(feature = "futures")]
 pub use self::future::FutureExt;
