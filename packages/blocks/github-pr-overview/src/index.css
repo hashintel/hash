@@ -1,10 +1,1 @@
-.prOverviewContainer > div {
-  display: flex;
-  flex-direction: column;
-}
-
-.timeline {
-  flex-basis: 0px;
-  flex-grow: 1;
-  overflow-y: auto;
-}
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");

@@ -12,3 +12,6 @@ lib/execution/src/runner/python/wrappers.c*
 *hash-orchestrator-*
 /output
 /log
+
+# Dockerfiles
+docker/
