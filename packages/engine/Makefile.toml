@@ -1,7 +1,7 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS= "--workspace --feature-powerset --features build-nng --skip-features default --ignore-unknown-features --optional-deps clap"
+CARGO_CLIPPY_HACK_FLAGS= "--workspace --feature-powerset --features build-nng --exclude-features default --ignore-unknown-features --optional-deps clap"
 CARGO_TEST_HACK_FLAGS= "--workspace --feature-powerset --features build-nng --exclude-features default --ignore-unknown-features --optional-deps clap"
 CARGO_MIRI_HACK_FLAGS= "--workspace --feature-powerset --features build-nng --exclude-features default --ignore-unknown-features --optional-deps clap"
 
