@@ -10,7 +10,6 @@ lib/execution/src/runner/python/wrappers.c*
 *-topy*
 *-frompy*
 *hash-orchestrator-*
-/parts
 /output
 /log
 
