@@ -111,12 +111,12 @@ jobs:
       - name: Check public documentation
         if: matrix.toolchain != 'stable'
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings
+        run: cargo make rustdoc --check -D warnings --show-coverage
 
       - name: Check private documentation
         if: matrix.toolchain != 'stable'
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings --document-private-items
+        run: cargo make rustdoc --check -D warnings --show-coverage --document-private-items
 
   test:
     name: test

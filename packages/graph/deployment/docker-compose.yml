@@ -18,6 +18,10 @@ services:
     volumes:
       - hash-graph-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    tmpfs:
+      - /tmp
+      - /run/postgresql
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
     security_opt:
       - no-new-privileges:true
+    read_only: true
