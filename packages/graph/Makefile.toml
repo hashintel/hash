@@ -1,0 +1,23 @@
+extend = { path = "../../.github/scripts/rust/Makefile.toml" }
+
+[tasks.deployment-up]
+command = "docker-compose"
+args = ["-f", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment/stack.yml", "up", "-d"]
+
+[tasks.yarn]
+command = "yarn"
+args = ["${@}"]
+
+[tasks.recreate-db]
+command = "yarn"
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
+args = ["graph:recreate-db"]
+
+[tasks.migrate-up]
+command = "yarn"
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
+args = ["graph:migrate", "up"]
+
+[tasks.deployment-down]
+command = "docker-compose"
+args = ["-f", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment/stack.yml", "down"]
