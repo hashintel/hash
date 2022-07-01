@@ -83,11 +83,11 @@ pub trait StreamReportExt: Stream + Sized {
     /// Lazily changes the [`Context`] of the [`Report`] inside the [`Result`] when
     /// calling [`Stream::poll_next`]
     ///
-    /// Applies [`Report::change_context_lazy`] to the [`Err`] variant, see its documntation
+    /// Applies [`ResultExt::change_context_lazy`] to the [`Err`] variant, see its documntation
     /// for more information.
     ///
     /// [`Report`]: crate::Report
-    /// [`Report::change_context_lazy`]: crate::Report::change_context_lazy
+    /// [`Report::change_context`]: crate::Report::change_context
     fn change_context_lazy<C, F>(self, context: F) -> StreamWithLazyContext<Self, F>
     where
         C: Context,
