@@ -106,7 +106,9 @@ where
 {
     #[track_caller]
     fn attach<A>(self, attachment: A) -> IteratorWithAttachment<Self, A>
-    where A: Clone + Send + Sync + 'static {
+    where
+        A: Clone + Send + Sync + 'static,
+    {
         IteratorWithAttachment {
             iterator: self,
             context_or_attachment: attachment,
