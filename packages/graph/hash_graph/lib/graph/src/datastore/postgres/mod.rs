@@ -1,3 +1,5 @@
+mod row_types;
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use sqlx::PgPool;
@@ -96,8 +98,8 @@ impl Datastore for PostgresDatabase {
 mod tests {
     use std::sync::LazyLock;
 
-    use super::*;
-    use crate::{datastore::DatabaseType, types::EntityType};
+    use super::{row_types::EntityTypeRow, *};
+    use crate::datastore::DatabaseType;
 
     const USER: &str = "postgres";
     const PASSWORD: &str = "postgres";
@@ -131,7 +133,7 @@ mod tests {
     async fn get_entity_types() -> Result<(), sqlx::Error> {
         let pool = PostgresDatabase::new(&DB_INFO).await?.pool;
 
-        let _rows: Vec<EntityType> = sqlx::query_as("SELECT * from entity_types")
+        let _rows: Vec<EntityTypeRow> = sqlx::query_as("SELECT * from entity_types")
             .fetch_all(&pool)
             .await
             .report()
