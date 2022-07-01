@@ -105,6 +105,13 @@ export const createApolloClient = (params?: {
         Page: {
           merge: true,
         },
+        Query: {
+          fields: {
+            accountPages: {
+              merge: (existing, incoming) => incoming,
+            },
+          },
+        },
       },
     }),
     credentials: "include",
