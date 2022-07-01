@@ -87,6 +87,12 @@ impl DatabaseConnectionInfo {
         }
     }
 
+    /// Creates a database connection url.
+    ///
+    /// Note, that this will reveal the password, so output should not be printed. The [`Display`]
+    /// implementation should be used instead, which will mask the password.
+    ///
+    /// [`Display`]: core::fmt::Display.
     #[must_use]
     fn url(&self) -> String {
         let db_type = match self.database_type {
