@@ -124,7 +124,7 @@ args = ["rustdoc", "--all-features", "--", "-Z", "unstable-options", "--check", 
 description = "Runs the test suite with all feature flag permutations"
 category = "Test"
 command = "cargo"
-args = ["hack", "test", "--no-fail-fast", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}"]
+args = ["hack", "test", "--no-fail-fast", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "${@}"]
 dependencies = ["install-cargo-hack"]
 
 [tasks.miri]
@@ -132,7 +132,7 @@ condition = { channels = ["nightly"] }
 description = "Runs miri tests with all feature flag permutations"
 category = "Test"
 command = "cargo"
-args = ["hack", "miri", "test", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}"]
+args = ["hack", "miri", "test", "@@split(CARGO_HACK_FLAGS, )", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "${@}"]
 dependencies = ["install-cargo-hack", "install-miri"]
 
 
