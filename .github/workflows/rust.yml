@@ -85,14 +85,19 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           profile: ${{ matrix.profile }}
 
-      - name: Build
+      - name: Build Tests
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} build --all-features
+        run: cargo make --profile ${{ matrix.profile }} test-build --all-features
 
       - name: Setup miri
         if: matrix.toolchain != 'stable'
         working-directory: ${{ matrix.directory }}
         run: cargo make --profile ${{ matrix.profile }} miri-setup
+
+      - name: Build miri tests
+        if: matrix.toolchain != 'stable'
+        working-directory: ${{ matrix.directory }}
+        run: cargo make --profile ${{ matrix.profile }} miri-build --all-features
 
   lint:
     name: lint
