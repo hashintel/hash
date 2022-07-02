@@ -89,6 +89,10 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: cargo make --profile ${{ matrix.profile }} build --all-features
 
+      - name: Setup miri
+        working-directory: ${{ matrix.directory }}
+        run: cargo make --profile ${{ matrix.profile }} miri-setup
+
   lint:
     name: lint
     needs:
@@ -165,6 +169,7 @@ jobs:
           profile: ${{ matrix.profile }}
 
       - name: Install Python
+        if: matrix.directory == 'packages/engine'
         uses: actions/setup-python@v2
         with:
           python-version: "3.7"

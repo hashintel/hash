@@ -41,7 +41,7 @@ runs:
           ~/.cargo/registry/cache
           ~/.cargo/git/checkouts
           **/target/
-        key: rust-${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-${{ hashFiles('**/Cargo.lock') }}
+        key: rust-${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-${{ hashFiles('**/Cargo.lock') }}-test-1
         restore-keys: rust-${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-
 
     - name: Install cargo-make

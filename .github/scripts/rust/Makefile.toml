@@ -142,6 +142,13 @@ extend = "task"
 args = ["hack", "@@split(CARGO_MIRI_HACK_FLAGS, )", "miri", "test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_MIRI_FLAGS, )", "${@}"]
 dependencies = ["install-miri"]
 
+[tasks.miri-setup]
+category = "Install"
+description = "Runs the setup for miri"
+command = "cargo"
+args = ["miri", "setup"]
+dependencies = ["install-miri"]
+
 
 ################################################################################
 ## Tools                                                                      ##
