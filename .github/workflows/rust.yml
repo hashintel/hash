@@ -90,6 +90,7 @@ jobs:
         run: cargo make --profile ${{ matrix.profile }} build --all-features
 
       - name: Setup miri
+        if: matrix.toolchain != 'stable'
         working-directory: ${{ matrix.directory }}
         run: cargo make --profile ${{ matrix.profile }} miri-setup
 
