@@ -216,15 +216,15 @@ If one of the environment variables shown in the help page is passed, it will ov
 
 > **Warning** - Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` will be ignored and the run will possibly fail in unclear ways.
 >
-> Currently, the easiest way of creating a project is by using the integrated IDE at [https://core.hash.ai][hcore] (hCore). In the absence of an in-depth description of expected project structure (which will be coming in the future), downloading a project from hCore is currently the easiest way to learn how one should be set out.
+> Currently, the easiest way to create a project is by using [HASH Core](https://core.hash.ai). In the future, an in-depth description of the expected project structure will be given here instead.
 
-In order to download and then run a simulation from hCore, you can download it by clicking `File -> Export Project` from the toolbar on the top. For help in finding or creating, and editing, simulations in hCore, take a look at our [online documentation][docs]. Then save and unzip the downloaded project to a location of your choice, for example by
+In order to download and run a simulation from HASH Core, use `File -> Export Project` (this is available in the toolbar at the top of the page). For help in finding or creating, and editing, simulations in HASH Core, take a look at our [online documentation][docs]. Then save and unzip the downloaded project to a location of your choice, for example by
 
 ```shell
 unzip my-project.zip -d my-hash-project
 ```
 
-To run the simulation, [build the binaries](#project-setup--building) and pass your project to the CLI:
+To run the simulation, [build the binaries](#project-setup--building) and pass the project location as a CLI argument:
 
 ```shell
 cargo run --bin cli -- --project /path/to/my-hash-project single-run --num-steps <NUM-STEPS>
@@ -252,7 +252,7 @@ export GN_ARGS = "v8_enable_pointer_compression=false v8_enable_shared_ro_heap=t
 ```
 
 - `V8_FROM_SOURCE` will force the V8 engine to be compiled from source and not use a pre-compiled version.
-  This will take quite a long time, expect at least 15 minutes. This can be mitigated in subsequent compiles by using [sccache](https://github.com/mozilla/sccache) or [ccache](https://ccache.dev/). Our build scripts will detect and use them. Set the environment variable `$SCCACHE` or `$CCACHE` if the binary is not in your `$PATH`.
+  This will take quite a long time (expect at least 15 minutes). This can be mitigated in subsequent compiles by using [sccache](https://github.com/mozilla/sccache) or [ccache](https://ccache.dev/). Our build scripts will detect and use them. Set the environment variable `$SCCACHE` or `$CCACHE` if the binary is not in your `$PATH`.
 - `v8_enable_pointer_compression` is an optimization reducing RAM usage but limits the heap size to 4 gigabytes.
 - `v8_enable_shared_ro_heap` enables read-only memory sharing by V8 isolates. This means, that read-only memory may be shared across different workers for JavaScript. Enabling this is required to compile V8 without pointer compression.
 
@@ -260,7 +260,7 @@ export GN_ARGS = "v8_enable_pointer_compression=false v8_enable_shared_ro_heap=t
 
 ### Simulation Inputs
 
-> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all input formats and options, and expected project structure. For now, it's recommended that you create your simulations within [hCore] and use the "Export Project" functionality.
+> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all input formats and options, and expected project structure. For now, we recommend that you create your simulations within [hCore] and use the "Export Project" functionality.
 
 #### Behavior keys
 
