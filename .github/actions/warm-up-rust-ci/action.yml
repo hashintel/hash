@@ -27,8 +27,7 @@ runs:
       with:
         path: |
           **/node_modules
-        key: node-${{ hashFiles('**/yarn.lock') }}
-        restore-keys: node-
+        key: ${{ hashFiles('**/yarn.lock') }}
 
     - name: Cache Rust dependencies
       uses: actions/cache@v3
@@ -41,8 +40,8 @@ runs:
           ~/.cargo/registry/cache
           ~/.cargo/git/checkouts
           **/target/
-        key: rust-${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-${{ hashFiles('**/Cargo.lock') }}-test-1-2
-        restore-keys: rust-${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-
+        key: ${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-
 
     - name: Install cargo-make
       shell: bash
