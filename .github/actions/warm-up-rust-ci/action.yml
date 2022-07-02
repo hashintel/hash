@@ -1,0 +1,52 @@
+name: Setup Rust CI
+description: Prepares Rust CI and cache dependencies
+
+inputs:
+  directory:
+    description: "Directory to run the CI in"
+    required: true
+  toolchain:
+    description: "Rust toolchain to install"
+    required: true
+  profile:
+    description: "Profile to run the CI with"
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+
+    - name: Install Rust
+      id: toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: ${{ inputs.toolchain }}
+        override: true
+
+    - name: Cache Node dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          **/node_modules
+        key: node-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: node-
+
+    - name: Cache Rust dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/.crates.toml
+          ~/.cargo/.crates2.json
+          ~/.cargo/bin
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/checkouts
+          **/target/
+        key: rust-${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: rust-${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-
+
+    - name: Install cargo-make
+      shell: bash
+      run: cargo install cargo-make
