@@ -7,10 +7,8 @@ namespace = "default"
 
 [env]
 CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
-CARGO_BUILD_FLAGS = ""
-CARGO_BUILD_HACK_FLAGS = ""
+CARGO_BUILD_FLAGS = "--workspace"
 CARGO_RUN_FLAGS = ""
-CARGO_RUN_HACK_FLAGS = ""
 CARGO_FORMAT_FLAGS = ""
 CARGO_FORMAT_HACK_FLAGS = "--workspace"
 CARGO_CLIPPY_FLAGS = "--no-deps --tests"
@@ -51,7 +49,7 @@ run_task = { name = "build-task" }
 
 [tasks.build-task]
 extend = "task"
-args = ["hack", "@@split(CARGO_BUILD_HACK_FLAGS, )", "build", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_BUILD_FLAGS, )", "${@}"]
+args = ["build", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_BUILD_FLAGS, )", "${@}"]
 
 
 ################################################################################
@@ -64,7 +62,7 @@ run_task = { name = "run-task" }
 
 [tasks.run-task]
 extend = "task"
-args = ["hack", "@@split(CARGO_RUN_HACK_FLAGS, )", "run", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_RUN_FLAGS, )", "${@}"]
+args = ["run", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_RUN_FLAGS, )", "${@}"]
 
 
 ################################################################################
