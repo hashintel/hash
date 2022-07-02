@@ -32,7 +32,7 @@ jobs:
       nightly: ${{ steps.toolchains.outputs.nightly }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
 
@@ -74,6 +74,9 @@ jobs:
           - development
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
       - name: Setup CI
         uses: ./.github/actions/warm-up-rust-ci
         with:
@@ -103,6 +106,9 @@ jobs:
           - development
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
       - name: Setup CI
         uses: ./.github/actions/warm-up-rust-ci
         with:
@@ -148,6 +154,9 @@ jobs:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
     steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
       - name: Setup CI
         uses: ./.github/actions/warm-up-rust-ci
         with:
@@ -204,7 +213,7 @@ jobs:
           - ${{ needs.setup.outputs.nightly }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust
         id: toolchain
