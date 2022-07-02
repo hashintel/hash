@@ -87,7 +87,7 @@ jobs:
 
       - name: Build
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} build --workspace --all-features
+        run: cargo make --profile ${{ matrix.profile }} build --all-features
 
   lint:
     name: lint
