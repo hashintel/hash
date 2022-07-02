@@ -153,12 +153,14 @@ category = "Install"
 description = "Runs the setup for miri"
 command = "cargo"
 args = ["miri", "setup"]
+dependencies = ["install-miri"]
 
 [tasks.miri-build]
 category = "Test"
 description = "Builds tests for the miri test suite"
 command = "cargo"
 args = ["miri", "test", "--workspace", "--no-run", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_MIRI_FLAGS, )", "${@}"]
+dependencies = ["install-miri"]
 
 
 ################################################################################
