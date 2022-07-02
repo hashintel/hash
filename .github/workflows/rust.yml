@@ -101,7 +101,6 @@ jobs:
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.lint) }}
         toolchain:
-          - stable
           - ${{ needs.setup.outputs.nightly }}
         profile:
           - development
