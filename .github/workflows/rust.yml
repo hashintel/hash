@@ -72,6 +72,7 @@ jobs:
           - ${{ needs.setup.outputs.nightly }}
         profile:
           - development
+          - production
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     steps:
       - name: Checkout source code
