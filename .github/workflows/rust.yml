@@ -96,7 +96,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}-Test3
+          key: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}-Test4
           restore-keys: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
 
       - name: Install cargo-make
@@ -174,7 +174,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}-Test3
+          key: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}-Test4
           restore-keys: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
 
       - name: Install cargo-make
