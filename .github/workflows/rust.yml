@@ -80,8 +80,8 @@ jobs:
       - name: Setup CI
         uses: ./.github/actions/warm-up-rust-ci
         with:
-          toolchain: ${{ inputs.toolchain }}
-          key: lint-${{ inputs.directory }}-${{ inputs.profile }}
+          toolchain: ${{ matrix.toolchain }}
+          key: lint-${{ matrix.directory }}-${{ matrix.profile }}
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
@@ -135,8 +135,8 @@ jobs:
       - name: Setup CI
         uses: ./.github/actions/warm-up-rust-ci
         with:
-          toolchain: ${{ inputs.toolchain }}
-          key: test-${{ inputs.directory }}-${{ inputs.profile }}
+          toolchain: ${{ matrix.toolchain }}
+          key: test-${{ matrix.directory }}-${{ matrix.profile }}
 
       - name: Install Python
         if: matrix.directory == 'packages/engine'
