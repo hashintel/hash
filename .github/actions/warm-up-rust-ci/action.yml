@@ -2,6 +2,9 @@ name: Setup Rust CI
 description: Prepares Rust CI and cache dependencies
 
 inputs:
+  toolchain:
+    description: "Rust toolchain to install"
+    required: true
   key:
     description: "Key used to cache dependencies"
     required: true
@@ -34,8 +37,8 @@ runs:
           ~/.cargo/registry/cache
           ~/.cargo/git/checkouts
           **/target/
-        key: ${{ inputs.key }}-${{ hashFiles('**/Cargo.lock') }}-Test
-        restore-keys: ${{ inputs.key }}-
+        key: ${{ inputs.toolchain }}-${{ inputs.key }}-${{ hashFiles('**/Cargo.lock') }}-Test
+        restore-keys: ${{ inputs.toolchain }}-${{ inputs.key }}-
 
     - name: Install cargo-make
       shell: bash
