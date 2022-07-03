@@ -59,51 +59,9 @@ jobs:
             echo "::set-output name=samples::10"
           fi
 
-  build-cache:
-    name: Build
-    needs: setup
-    if: needs.setup.outputs.test != '[]'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.test) }}
-        toolchain:
-          - stable
-          - ${{ needs.setup.outputs.nightly }}
-        profile:
-          - development
-          - production
-        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-
-      - name: Setup CI
-        uses: ./.github/actions/warm-up-rust-ci
-        with:
-          directory: ${{ matrix.directory }}
-          toolchain: ${{ matrix.toolchain }}
-          profile: ${{ matrix.profile }}
-
-      - name: Build Tests
-        working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} test-build --all-features
-
-      - name: Setup miri
-        if: matrix.toolchain != 'stable'
-        working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} miri-setup
-
-      - name: Build miri tests
-        if: matrix.toolchain != 'stable'
-        working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} miri-build --all-features
-
   lint:
     name: lint
-    needs:
-      - setup
-      - build-cache
+    needs: setup
     if: needs.setup.outputs.lint != '[]'
     runs-on: ubuntu-latest
     strategy:
@@ -142,11 +100,14 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: cargo make rustdoc --check -D warnings --show-coverage --document-private-items
 
+      - name: Clear cargo cache
+        run: |
+          cargo install --no-default-features --features ci-autoclean cargo-cache
+          cargo-cache
+
   test:
     name: test
-    needs:
-      - setup
-      - build-cache
+    needs: setup
     if: needs.setup.outputs.test != '[]'
     runs-on: ubuntu-latest
     strategy:
