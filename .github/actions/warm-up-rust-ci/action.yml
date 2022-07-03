@@ -2,14 +2,8 @@ name: Setup Rust CI
 description: Prepares Rust CI and cache dependencies
 
 inputs:
-  directory:
-    description: "Directory to run the CI in"
-    required: true
-  toolchain:
-    description: "Rust toolchain to install"
-    required: true
-  profile:
-    description: "Profile to run the CI with"
+  key:
+    description: "Key used to cache dependencies"
     required: true
 runs:
   using: composite
@@ -40,8 +34,8 @@ runs:
           ~/.cargo/registry/cache
           ~/.cargo/git/checkouts
           **/target/
-        key: ${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-${{ hashFiles('**/Cargo.lock') }}-Test2
-    #        restore-keys: ${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-
+        key: ${{ inputs.key }}-${{ hashFiles('**/Cargo.lock') }}-Test
+        restore-keys: ${{ inputs.key }}-
 
     - name: Install cargo-make
       shell: bash
