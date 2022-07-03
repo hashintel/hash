@@ -8,11 +8,6 @@ CARGO_MIRI_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
 [env.production]
 CARGO_MAKE_CARGO_PROFILE = "production"
 
-[tasks.build]
-run_task = [
-    { name = ["yarn", "build-task"], condition = { env_true = ["CARGO_MAKE_CI" ] } },
-    { name = ["build-task"] }
-]
 
 [tasks.test]
 run_task = [

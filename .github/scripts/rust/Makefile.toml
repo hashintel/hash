@@ -131,12 +131,6 @@ run_task = { name = ["test-task"] }
 extend = "task"
 args = ["hack", "@@split(CARGO_TEST_HACK_FLAGS, )", "test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "${@}"]
 
-[tasks.test-build]
-category = "Test"
-description = "Builds tests for the test suite"
-command = "cargo"
-args = ["test", "--workspace", "--no-run", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "${@}"]
-
 
 [tasks.miri]
 category = "Test"
@@ -146,20 +140,6 @@ run_task = { name = ["miri-task"] }
 [tasks.miri-task]
 extend = "task"
 args = ["hack", "@@split(CARGO_MIRI_HACK_FLAGS, )", "miri", "test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_MIRI_FLAGS, )", "${@}"]
-dependencies = ["install-miri"]
-
-[tasks.miri-setup]
-category = "Install"
-description = "Runs the setup for miri"
-command = "cargo"
-args = ["miri", "setup"]
-dependencies = ["install-miri"]
-
-[tasks.miri-build]
-category = "Test"
-description = "Builds tests for the miri test suite"
-command = "cargo"
-args = ["miri", "test", "--workspace", "--no-run", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_MIRI_FLAGS, )", "${@}"]
 dependencies = ["install-miri"]
 
 

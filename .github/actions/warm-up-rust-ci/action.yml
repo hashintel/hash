@@ -40,8 +40,8 @@ runs:
           ~/.cargo/registry/cache
           ~/.cargo/git/checkouts
           **/target/
-        key: ${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-${{ hashFiles('**/Cargo.lock') }}-Test1
-        restore-keys: ${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-
+        key: ${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-${{ hashFiles('**/Cargo.lock') }}-Test2
+    #        restore-keys: ${{ inputs.directory }}-${{ inputs.toolchain }}-${{ inputs.profile }}-
 
     - name: Install cargo-make
       shell: bash

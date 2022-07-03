@@ -150,6 +150,11 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: cargo make --profile ${{ matrix.profile }} miri --no-fail-fast
 
+      - name: Clear cargo cache
+        run: |
+          cargo install --no-default-features --features ci-autoclean cargo-cache
+          cargo-cache
+
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
 
