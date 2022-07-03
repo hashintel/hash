@@ -78,6 +78,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup CI
+        id: rust-setup
         uses: ./.github/actions/warm-up-rust-ci
         with:
           toolchain: ${{ matrix.toolchain }}
@@ -100,14 +101,10 @@ jobs:
         run: cargo make rustdoc --check -D warnings --show-coverage --document-private-items
 
       - name: Clear cargo cache
+        if: steps.rust-setup.outputs.cache-hit == 'false'
         run: |
-          # cargo install --no-default-features --features ci-autoclean cargo-cache
           cargo install cargo-cache
-          cargo-cache
-          cargo cache --autoclean
-          cargo-cache
           cargo cache --autoclean-expensive
-          cargo-cache
 
   test:
     name: test
@@ -154,14 +151,10 @@ jobs:
         run: cargo make --profile ${{ matrix.profile }} miri --no-fail-fast
 
       - name: Clear cargo cache
+        if: steps.rust-setup.outputs.cache-hit == 'false'
         run: |
-          # cargo install --no-default-features --features ci-autoclean cargo-cache
           cargo install cargo-cache
-          cargo-cache
-          cargo cache --autoclean
-          cargo-cache
           cargo cache --autoclean-expensive
-          cargo-cache
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
