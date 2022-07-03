@@ -77,12 +77,31 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Setup CI
-        id: rust-setup
-        uses: ./.github/actions/warm-up-rust-ci
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
         with:
+          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          key: lint-${{ matrix.directory }}-${{ matrix.profile }}
+          override: true
+
+      - name: Cache Rust dependencies
+        id: rust-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/checkouts
+            **/target/
+          key: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}-Test3
+          restore-keys: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
+
+      - name: Install cargo-make
+        shell: bash
+        run: cargo install cargo-make
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
@@ -101,7 +120,7 @@ jobs:
         run: cargo make rustdoc --check -D warnings --show-coverage --document-private-items
 
       - name: Clear cargo cache
-        if: steps.rust-setup.outputs.cache-hit == 'false'
+        if: steps.rust-cache.outputs.cache-hit != 'true'
         run: |
           cargo install cargo-cache
           cargo cache --autoclean-expensive
@@ -129,11 +148,38 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Setup CI
-        uses: ./.github/actions/warm-up-rust-ci
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
         with:
+          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          key: test-${{ matrix.directory }}-${{ matrix.profile }}
+          override: true
+
+      - name: Cache Node dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+          key: ${{ hashFiles('**/yarn.lock') }}
+
+      - name: Cache Rust dependencies
+        id: rust-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/checkouts
+            **/target/
+          key: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}-Test3
+          restore-keys: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
+
+      - name: Install cargo-make
+        shell: bash
+        run: cargo install cargo-make
 
       - name: Install Python
         if: matrix.directory == 'packages/engine'
@@ -149,12 +195,6 @@ jobs:
         if: matrix.toolchain != 'stable'
         working-directory: ${{ matrix.directory }}
         run: cargo make --profile ${{ matrix.profile }} miri --no-fail-fast
-
-      - name: Clear cargo cache
-        if: steps.rust-setup.outputs.cache-hit == 'false'
-        run: |
-          cargo install cargo-cache
-          cargo cache --autoclean-expensive
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -177,6 +217,12 @@ jobs:
                     --argjson message "$message" \
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
+
+      - name: Clear cargo cache
+        if: steps.rust-cache.outputs.cache-hit != 'true'
+        run: |
+          cargo install cargo-cache
+          cargo cache --autoclean-expensive
 
   publish:
     name: publish
