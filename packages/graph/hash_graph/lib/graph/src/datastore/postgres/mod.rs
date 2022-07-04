@@ -35,7 +35,7 @@ impl PostgresDatabase {
     }
 
     /// Inserts a `version_id` and `base_id` into the `ids` table in the database
-    async fn insert_version_id(&self, id: &Identifier) -> Result<(), DatastoreError> {
+    async fn insert_version_id(&mut self, id: &Identifier) -> Result<(), DatastoreError> {
         sqlx::query(r#"INSERT INTO ids (version_id, base_id) VALUES ($1, $2);"#)
             .bind(&id.version_id)
             .bind(&id.base_id)
@@ -51,7 +51,7 @@ impl PostgresDatabase {
 
     /// Inserts a data type into the `data_types` table in the database
     async fn insert_data_type(
-        &self,
+        &mut self,
         id: &Identifier,
         data_type: &DataType,
         created_by: AccountId,
@@ -81,7 +81,7 @@ impl PostgresDatabase {
 
     /// Inserts a data type into the `property_types` table in the database.
     async fn insert_property_type(
-        &self,
+        &mut self,
         id: &Identifier,
         property_type: &PropertyType,
         created_by: AccountId,
@@ -113,7 +113,7 @@ impl PostgresDatabase {
 #[async_trait]
 impl Datastore for PostgresDatabase {
     async fn create_data_type(
-        &self,
+        &mut self,
         data_type: DataType,
         created_by: AccountId,
     ) -> Result<Qualified<DataType>, DatastoreError> {
@@ -156,7 +156,7 @@ impl Datastore for PostgresDatabase {
     }
 
     async fn update_data_type(
-        &self,
+        &mut self,
         base_id: BaseId,
         data_type: DataType,
         updated_by: AccountId,
@@ -171,7 +171,7 @@ impl Datastore for PostgresDatabase {
     }
 
     async fn create_property_type(
-        &self,
+        &mut self,
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Qualified<PropertyType>, DatastoreError> {
@@ -218,7 +218,7 @@ impl Datastore for PostgresDatabase {
     }
 
     async fn update_property_type(
-        &self,
+        &mut self,
         base_id: BaseId,
         property_type: PropertyType,
         updated_by: AccountId,
@@ -335,7 +335,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_data_type() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
+        let mut db = PostgresDatabase::new(&DB_INFO).await?;
 
         let account_id = create_account_id(&db.pool).await?;
 
@@ -351,7 +351,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn get_data_type_by_identifier() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
+        let mut db = PostgresDatabase::new(&DB_INFO).await?;
 
         let account_id = create_account_id(&db.pool).await?;
 
@@ -372,7 +372,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn update_existing_data_type() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
+        let mut db = PostgresDatabase::new(&DB_INFO).await?;
 
         let account_id = create_account_id(&db.pool).await?;
 
@@ -402,7 +402,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_property_type() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
+        let mut db = PostgresDatabase::new(&DB_INFO).await?;
 
         let account_id = create_account_id(&db.pool).await?;
 
@@ -418,7 +418,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn get_property_type_by_identifier() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
+        let mut db = PostgresDatabase::new(&DB_INFO).await?;
 
         let account_id = create_account_id(&db.pool).await?;
 
@@ -439,7 +439,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn update_existing_property_type() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
+        let mut db = PostgresDatabase::new(&DB_INFO).await?;
 
         let account_id = create_account_id(&db.pool).await?;
 

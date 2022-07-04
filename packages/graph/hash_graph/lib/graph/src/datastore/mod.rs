@@ -154,7 +154,7 @@ trait Datastore {
     ///
     /// - [`DatastoreError`], if the account referred to by `created_by` does not exist.
     async fn create_data_type(
-        &self,
+        &mut self,
         data_type: DataType,
         created_by: AccountId,
     ) -> Result<Qualified<DataType>, DatastoreError>;
@@ -174,14 +174,14 @@ trait Datastore {
     ///
     /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
     async fn update_data_type(
-        &self,
+        &mut self,
         base_id: BaseId,
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Qualified<DataType>, DatastoreError>;
 
     async fn create_property_type(
-        &self,
+        &mut self,
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Qualified<PropertyType>, DatastoreError>;
@@ -194,7 +194,7 @@ trait Datastore {
     async fn get_property_type_many() -> Result<(), DatastoreError>;
 
     async fn update_property_type(
-        &self,
+        &mut self,
         base_id: BaseId,
         property_type: PropertyType,
         updated_by: AccountId,
