@@ -83,10 +83,7 @@ impl Datastore for PostgresDatabase {
         data_type: DataType,
         created_by: AccountId,
     ) -> Result<Qualified<DataType>, DatastoreError> {
-        let id = Identifier {
-            base_id: BaseId::new(Uuid::new_v4()),
-            version_id: VersionId::new(Uuid::new_v4()),
-        };
+        let id = Identifier::new(BaseId::new(Uuid::new_v4()), VersionId::new(Uuid::new_v4()));
 
         self.insert_version_id(&id).await?;
 
@@ -138,10 +135,7 @@ impl Datastore for PostgresDatabase {
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Qualified<DataType>, DatastoreError> {
-        let id = Identifier {
-            base_id,
-            version_id: VersionId::new(Uuid::new_v4()),
-        };
+        let id = Identifier::new(base_id, VersionId::new(Uuid::new_v4()));
 
         self.insert_version_id(&id).await?;
 

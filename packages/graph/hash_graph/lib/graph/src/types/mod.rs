@@ -46,6 +46,16 @@ pub struct Identifier {
     pub version_id: VersionId,
 }
 
+impl Identifier {
+    #[must_use]
+    pub const fn new(base_id: BaseId, version_id: VersionId) -> Self {
+        Self {
+            base_id,
+            version_id,
+        }
+    }
+}
+
 impl fmt::Display for Identifier {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         // TODO: change this to not just using the debug impl.
