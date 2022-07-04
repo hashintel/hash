@@ -75,6 +75,18 @@ impl DataType {
     }
 }
 
+#[repr(transparent)]
+#[derive(Clone, Debug, sqlx::Type, PartialEq, Eq)]
+#[sqlx(transparent)]
+pub struct PropertyType(serde_json::Value);
+
+impl PropertyType {
+    #[must_use]
+    pub const fn new(schema: serde_json::Value) -> Self {
+        Self(schema)
+    }
+}
+
 // TODO: constrain this to only work for valid inner Types.
 #[derive(Clone, Debug)]
 pub struct Qualified<T> {

@@ -7,8 +7,10 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    datastore::{DatabaseConnectionInfo, Datastore, DatastoreError},
-    types::{AccountId, BaseId, DataType, Identifier, Qualified, VersionId},
+    datastore::{
+        postgres::row_types::PropertyTypeRow, DatabaseConnectionInfo, Datastore, DatastoreError,
+    },
+    types::{AccountId, BaseId, DataType, Identifier, PropertyType, Qualified, VersionId},
 };
 
 /// A Postgres-backed Datastore
@@ -76,6 +78,36 @@ impl PostgresDatabase {
 
         Ok(())
     }
+
+    /// Inserts a data type into the `property_types` table in the database.
+    async fn insert_property_type(
+        &self,
+        id: &Identifier,
+        property_type: &PropertyType,
+        created_by: AccountId,
+    ) -> Result<(), DatastoreError> {
+        sqlx::query_as::<_, (Uuid,)>(
+            r#"
+            INSERT INTO property_types (
+                version_id,
+                schema,
+                created_by
+            ) 
+            VALUES ($1, $2, $3)
+            RETURNING version_id;
+            "#,
+        )
+        .bind(&id.version_id)
+        .bind(&property_type)
+        .bind(&created_by)
+        .fetch_one(&self.pool)
+        .await
+        .report()
+        .change_context(DatastoreError)
+        .attach_printable("Could not insert property type")?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -138,20 +170,67 @@ impl Datastore for PostgresDatabase {
         Ok(Qualified::new(id, data_type, updated_by))
     }
 
-    async fn create_property_type() -> Result<(), DatastoreError> {
-        todo!()
+    async fn create_property_type(
+        &self,
+        property_type: PropertyType,
+        created_by: AccountId,
+    ) -> Result<Qualified<PropertyType>, DatastoreError> {
+        let id = Identifier::new(BaseId::new(Uuid::new_v4()), VersionId::new(Uuid::new_v4()));
+
+        self.insert_version_id(&id).await?;
+
+        self.insert_property_type(&id, &property_type, created_by)
+            .await?;
+
+        Ok(Qualified::new(id, property_type, created_by))
     }
 
-    async fn get_property_type() -> Result<(), DatastoreError> {
-        todo!()
+    async fn get_property_type(
+        &self,
+        id: &Identifier,
+    ) -> Result<Qualified<PropertyType>, DatastoreError> {
+        let PropertyTypeRow {
+            schema: property_type,
+            created_by,
+            ..
+        } = sqlx::query_as(
+            r#"
+            SELECT version_id, "schema", created_by
+            FROM property_types
+            INNER JOIN ids USING (version_id)
+            WHERE version_id = $1 AND base_id = $2;
+            "#,
+        )
+        .bind(&id.version_id)
+        .bind(&id.base_id)
+        .fetch_one(&self.pool)
+        .await
+        .report()
+        .change_context(DatastoreError)
+        .attach_printable_lazy(|| id.clone())
+        .attach_printable("Could not find property type by id")?;
+
+        Ok(Qualified::new(id.clone(), property_type, created_by))
     }
 
     async fn get_property_type_many() -> Result<(), DatastoreError> {
         todo!()
     }
 
-    async fn update_property_type() -> Result<(), DatastoreError> {
-        todo!()
+    async fn update_property_type(
+        &self,
+        base_id: BaseId,
+        property_type: PropertyType,
+        updated_by: AccountId,
+    ) -> Result<Qualified<PropertyType>, DatastoreError> {
+        let id = Identifier::new(base_id, VersionId::new(Uuid::new_v4()));
+
+        self.insert_version_id(&id).await?;
+
+        self.insert_property_type(&id, &property_type, updated_by)
+            .await?;
+
+        Ok(Qualified::new(id, property_type, updated_by))
     }
 
     async fn create_entity_type() -> Result<(), DatastoreError> {
@@ -316,6 +395,79 @@ mod tests {
         assert_ne!(data_type.id().version_id, updated_data_type.id().version_id);
 
         assert_eq!(data_type.id().base_id, updated_data_type.id().base_id);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "miri can't run in async context")]
+    async fn create_property_type() -> Result<(), DatastoreError> {
+        let db = PostgresDatabase::new(&DB_INFO).await?;
+
+        let account_id = create_account_id(&db.pool).await?;
+
+        db.create_property_type(
+            PropertyType::new(serde_json::json!({"hello": "world"})),
+            account_id,
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "miri can't run in async context")]
+    async fn get_property_type_by_identifier() -> Result<(), DatastoreError> {
+        let db = PostgresDatabase::new(&DB_INFO).await?;
+
+        let account_id = create_account_id(&db.pool).await?;
+
+        let updated_property_type = db
+            .create_property_type(
+                PropertyType::new(serde_json::json!({"hello": "world"})),
+                account_id,
+            )
+            .await?;
+
+        let property_type = db.get_property_type(updated_property_type.id()).await?;
+
+        assert_eq!(property_type.inner(), updated_property_type.inner());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "miri can't run in async context")]
+    async fn update_existing_property_type() -> Result<(), DatastoreError> {
+        let db = PostgresDatabase::new(&DB_INFO).await?;
+
+        let account_id = create_account_id(&db.pool).await?;
+
+        let property_type = db
+            .create_property_type(
+                PropertyType::new(serde_json::json!({"hello": "world"})),
+                account_id,
+            )
+            .await?;
+
+        let updated_property_type = db
+            .update_property_type(
+                property_type.id().base_id,
+                PropertyType::new(serde_json::json!({"hello": "wolrd"})),
+                account_id,
+            )
+            .await?;
+
+        assert_ne!(property_type.inner(), updated_property_type.inner());
+        assert_ne!(
+            property_type.id().version_id,
+            updated_property_type.id().version_id
+        );
+
+        assert_eq!(
+            property_type.id().base_id,
+            updated_property_type.id().base_id
+        );
 
         Ok(())
     }
