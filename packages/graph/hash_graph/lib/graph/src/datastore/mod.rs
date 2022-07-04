@@ -152,7 +152,7 @@ trait Datastore {
     ///
     /// # Errors:
     ///
-    /// If the account referred to by `created_by` does not exist.
+    /// - [`DatastoreError`], if the account referred to by `created_by` does not exist.
     async fn create_data_type(
         &self,
         data_type: DataType,
