@@ -21,12 +21,13 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [sqcx `Error`], if creating a [`PgPool`] connection returns an error.
-    pub async fn new(db_info: &DatabaseConnectionInfo) -> Result<Self, sqlx::Error> {
+    /// - [`DatastoreError`], if creating a [`PgPool`] connection returns an error.
+    pub async fn new(db_info: &DatabaseConnectionInfo) -> Result<Self, DatastoreError> {
         Ok(Self {
             pool: PgPool::connect(&db_info.url())
                 .await
                 .report()
+                .change_context(DatastoreError)
                 .attach_printable_lazy(|| db_info.clone())?,
         })
     }
@@ -230,7 +231,7 @@ mod tests {
         )
     });
 
-    async fn create_account_id(pool: &PgPool) -> Result<AccountId, sqlx::Error> {
+    async fn create_account_id(pool: &PgPool) -> Result<AccountId, DatastoreError> {
         let account_id = AccountId::new(Uuid::new_v4());
 
         sqlx::query(r#"INSERT INTO accounts (account_id) VALUES ($1);"#)
@@ -238,6 +239,7 @@ mod tests {
             .fetch_all(pool)
             .await
             .report()
+            .change_context(DatastoreError)
             .attach_printable("Could not insert account")?;
 
         Ok(account_id)
@@ -247,7 +249,7 @@ mod tests {
     //  want to add a dependency on the external service for *unit* tests
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    async fn can_connect() -> Result<(), sqlx::Error> {
+    async fn can_connect() -> Result<(), DatastoreError> {
         PostgresDatabase::new(&DB_INFO).await?;
 
         Ok(())
@@ -255,13 +257,14 @@ mod tests {
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    async fn get_entity_types() -> Result<(), sqlx::Error> {
+    async fn get_entity_types() -> Result<(), DatastoreError> {
         let pool = PostgresDatabase::new(&DB_INFO).await?.pool;
 
         let _rows: Vec<EntityTypeRow> = sqlx::query_as("SELECT * from entity_types")
             .fetch_all(&pool)
             .await
             .report()
+            .change_context(DatastoreError)
             .attach_printable("Could not select entity types")?;
 
         Ok(())
@@ -269,7 +272,7 @@ mod tests {
 
     #[ignore]
     #[tokio::test]
-    async fn create_data_type() -> Result<(), sqlx::Error> {
+    async fn create_data_type() -> Result<(), DatastoreError> {
         let db = PostgresDatabase::new(&DB_INFO).await?;
 
         let account_id = create_account_id(&db.pool).await?;
@@ -278,15 +281,14 @@ mod tests {
             DataType::new(serde_json::json!({"hello": "world"})),
             account_id,
         )
-        .await
-        .expect("Could not create data type");
+        .await?;
 
         Ok(())
     }
 
     #[ignore]
     #[tokio::test]
-    async fn get_data_type_by_identifier() -> Result<(), sqlx::Error> {
+    async fn get_data_type_by_identifier() -> Result<(), DatastoreError> {
         let db = PostgresDatabase::new(&DB_INFO).await?;
 
         let account_id = create_account_id(&db.pool).await?;
@@ -307,7 +309,7 @@ mod tests {
 
     #[ignore]
     #[tokio::test]
-    async fn update_existing_data_type() -> Result<(), sqlx::Error> {
+    async fn update_existing_data_type() -> Result<(), DatastoreError> {
         let db = PostgresDatabase::new(&DB_INFO).await?;
 
         let account_id = create_account_id(&db.pool).await?;
@@ -317,8 +319,7 @@ mod tests {
                 DataType::new(serde_json::json!({"hello": "world"})),
                 account_id,
             )
-            .await
-            .expect("Could not create data type");
+            .await?;
 
         let updated_data_type = db
             .update_data_type(
