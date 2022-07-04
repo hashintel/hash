@@ -1,6 +1,8 @@
-//! Implements support for `error-stack` functionality for streams. The main trait in this module
-//! is [`StreamReportExt`] (which is so named to avoid conflict with other stream-related types
-//! common to the Rust `async` ecosystem).
+//! Implements support for `error-stack` functionality for streams.
+//!
+//! The main trait in this module is [`StreamReportExt`] (which is so named to
+//! avoid conflict with other stream-related types common to the Rust `async`
+//! ecosystem).
 //!
 //! It may be helpful to first read the [`ResultExt`] documentation.
 use core::{
@@ -20,9 +22,6 @@ pub trait StreamReportExt: Stream + Sized {
     /// calling [`Stream::poll_next`].
     ///
     /// Applies [`Report::attach`] to the [`Err`] variant, refer to it for more information.
-    ///
-    /// [`Report`]: crate::Report
-    /// [`Report::attach`]: crate::Report::attach
     fn attach<A>(self, attachment: A) -> StreamWithAttachment<Self, A>
     where
         A: Clone + Send + Sync + 'static;
@@ -30,10 +29,7 @@ pub trait StreamReportExt: Stream + Sized {
     /// Lazily adds a new attachment to the [`Report`] inside the [`Result`] calling
     /// [`Stream::poll_next`].
     ///
-    /// Applies [`ResultExt::attach_lazy`] to the [`Err`] variant, refer to it for more information.
-    ///
-    /// [`Report`]: crate::Report
-    /// [`Report::attach`]: crate::Report::attach
+    /// Applies [`ResultExt::attach`] to the [`Err`] variant, refer to it for more information.
     fn attach_lazy<A, F>(self, attachment: F) -> StreamWithLazyAttachment<Self, F>
     where
         A: Send + Sync + 'static,
@@ -44,10 +40,6 @@ pub trait StreamReportExt: Stream + Sized {
     ///
     /// Applies [`Report::attach_printable`] to the [`Err`] variant, refer to it for more
     /// information.
-    ///
-    /// [`Report`]: crate::Report
-    /// [`Report::attach_printable`]: crate::Report::attach_printable
-    /// [`poll`]: Stream::poll
     fn attach_printable<A>(self, attachment: A) -> StreamWithPrintableAttachment<Self, A>
     where
         A: Clone + Display + Debug + Send + Sync + 'static;
@@ -57,9 +49,6 @@ pub trait StreamReportExt: Stream + Sized {
     ///
     /// Applies [`ResultExt::attach_printable_lazy`] to the [`Err`] variant, refer to it for more
     /// information.
-    ///
-    /// [`Report`]: crate::Report
-    /// [`Result::attach_printable`]: crate::Report::attach_printable
     fn attach_printable_lazy<A, F>(
         self,
         attachment: F,
@@ -73,9 +62,6 @@ pub trait StreamReportExt: Stream + Sized {
     ///
     /// Applies [`Report::change_context`] to the [`Err`] variant, see its documentation
     /// for more information.
-    ///
-    /// [`Report`]: crate::Report
-    /// [`Report::change_context`]: crate::Report::change_context
     fn change_context<C>(self, context: C) -> StreamWithContext<Self, C>
     where
         C: Context + Clone;
@@ -85,9 +71,6 @@ pub trait StreamReportExt: Stream + Sized {
     ///
     /// Applies [`ResultExt::change_context_lazy`] to the [`Err`] variant, see its documntation
     /// for more information.
-    ///
-    /// [`Report`]: crate::Report
-    /// [`Report::change_context`]: crate::Report::change_context
     fn change_context_lazy<C, F>(self, context: F) -> StreamWithLazyContext<Self, F>
     where
         C: Context,
