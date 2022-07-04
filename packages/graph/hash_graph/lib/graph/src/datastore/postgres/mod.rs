@@ -296,8 +296,7 @@ mod tests {
                 DataType::new(serde_json::json!({"hello": "world"})),
                 account_id,
             )
-            .await
-            .expect("Could not create data type");
+            .await?;
 
         let data_type = db.get_data_type(id).await.expect("Could not get data type");
 
