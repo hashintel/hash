@@ -78,7 +78,30 @@ impl DataType {
 // TODO: constrain this to only work for valid inner Types.
 #[derive(Clone, Debug)]
 pub struct Qualified<T> {
-    pub id: Identifier,
-    pub inner: T,
-    pub created_by: AccountId,
+    id: Identifier,
+    inner: T,
+    created_by: AccountId,
+}
+
+impl<T> Qualified<T> {
+    #[must_use]
+    pub const fn new(id: Identifier, inner: T, created_by: AccountId) -> Self {
+        Self {
+            id,
+            inner,
+            created_by,
+        }
+    }
+
+    pub const fn id(&self) -> &Identifier {
+        &self.id
+    }
+
+    pub const fn inner(&self) -> &T {
+        &self.inner
+    }
+
+    pub const fn account_id(&self) -> &AccountId {
+        &self.created_by
+    }
 }

@@ -91,14 +91,10 @@ impl Datastore for PostgresDatabase {
 
         self.insert_data_type(&id, &data_type, created_by).await?;
 
-        Ok(Qualified {
-            id,
-            inner: data_type,
-            created_by,
-        })
+        Ok(Qualified::new(id, data_type, created_by))
     }
 
-    async fn get_data_type(&self, id: Identifier) -> Result<Qualified<DataType>, DatastoreError> {
+    async fn get_data_type(&self, id: &Identifier) -> Result<Qualified<DataType>, DatastoreError> {
         let DataTypeRow {
             schema: data_type,
             created_by,
@@ -120,11 +116,7 @@ impl Datastore for PostgresDatabase {
         .attach_printable_lazy(|| id.clone())
         .attach_printable("Could not find data type by id")?;
 
-        Ok(Qualified {
-            id,
-            inner: data_type,
-            created_by,
-        })
+        Ok(Qualified::new(id.clone(), data_type, created_by))
     }
 
     async fn get_data_type_many() -> Result<(), DatastoreError> {
@@ -143,11 +135,7 @@ impl Datastore for PostgresDatabase {
 
         self.insert_data_type(&id, &data_type, updated_by).await?;
 
-        Ok(Qualified {
-            id,
-            inner: data_type,
-            created_by: updated_by,
-        })
+        Ok(Qualified::new(id, data_type, updated_by))
     }
 
     async fn create_property_type() -> Result<(), DatastoreError> {
@@ -206,7 +194,7 @@ mod tests {
     use super::{row_types::EntityTypeRow, *};
     use crate::{
         datastore::DatabaseType,
-        types::{AccountId, DataType, Qualified},
+        types::{AccountId, DataType},
     };
 
     const USER: &str = "postgres";
@@ -288,16 +276,16 @@ mod tests {
 
         let account_id = create_account_id(&db.pool).await?;
 
-        let Qualified { id, inner, .. } = db
+        let updated_data_type = db
             .create_data_type(
                 DataType::new(serde_json::json!({"hello": "world"})),
                 account_id,
             )
             .await?;
 
-        let data_type = db.get_data_type(id).await?;
+        let data_type = db.get_data_type(updated_data_type.id()).await?;
 
-        assert_eq!(data_type.inner, inner);
+        assert_eq!(data_type.inner(), updated_data_type.inner());
 
         Ok(())
     }
@@ -318,16 +306,16 @@ mod tests {
 
         let updated_data_type = db
             .update_data_type(
-                data_type.id.base_id,
+                data_type.id().base_id,
                 DataType::new(serde_json::json!({"hello": "wolrd"})),
                 account_id,
             )
             .await?;
 
-        assert_ne!(data_type.inner, updated_data_type.inner);
-        assert_ne!(data_type.id.version_id, updated_data_type.id.version_id);
+        assert_ne!(data_type.inner(), updated_data_type.inner());
+        assert_ne!(data_type.id().version_id, updated_data_type.id().version_id);
 
-        assert_eq!(data_type.id.base_id, updated_data_type.id.base_id);
+        assert_eq!(data_type.id().base_id, updated_data_type.id().base_id);
 
         Ok(())
     }
