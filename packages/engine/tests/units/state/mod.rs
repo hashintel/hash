@@ -4,6 +4,7 @@ mod empty;
 mod js {
     crate::run_test!(behavior_index, JavaScript);
     crate::run_test!(nullable_fixed_size_list, JavaScript);
+    crate::run_test!(immutability, JavaScript);
 }
 
 mod py {

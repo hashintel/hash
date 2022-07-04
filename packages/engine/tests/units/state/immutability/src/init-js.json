@@ -1,0 +1,6 @@
+[
+    {
+      "behaviors": ["changing.js"],
+      "counter": 0
+    }
+]

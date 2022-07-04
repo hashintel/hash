@@ -1,0 +1,8 @@
+{
+    "keys": {
+        "counter": {
+            "type": "number",
+            "nullable": false
+        }
+    }
+}
