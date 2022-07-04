@@ -163,7 +163,7 @@ trait Datastore {
     ///
     /// # Errors
     ///
-    /// If the [`DataType`] doesn't exist.
+    /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
     async fn get_data_type(&self, id: Identifier) -> Result<Qualified<DataType>, DatastoreError>;
 
     async fn get_data_type_many() -> Result<(), DatastoreError>;
@@ -172,7 +172,7 @@ trait Datastore {
     ///
     /// # Errors
     ///
-    /// If the [`DataType`] doesn't exist.
+    /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
     async fn update_data_type(
         &self,
         base_id: BaseId,
