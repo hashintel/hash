@@ -14,14 +14,15 @@ sys.argv.remove(script_path)
 
 # TODO: Use `Pathlib` instead of `os`
 #   see https://app.asana.com/0/1199548034582004/1202011714603651/f
-def find_directory(pattern, path):
+def find_directory(patterns, path):
     result = []
     for root, _dirs, files in os.walk(path):
         for name in files:
-            if fnmatch.fnmatch(name, pattern):
-                file = os.path.join(root, name)
-                file = os.path.abspath(file)
-                result.append(os.path.dirname(file))
+            for pattern in patterns:
+                if fnmatch.fnmatch(name, pattern):
+                    file = os.path.join(root, name)
+                    file = os.path.abspath(file)
+                    result.append(os.path.dirname(file))
     return result
 
 
@@ -29,7 +30,7 @@ def last_modified(path):
     return os.path.getmtime(path)
 
 library_dirs = sorted(
-    find_directory("libmemory.so", f"{script_path}/../../../../../"),
+    find_directory(["libmemory.so", "libmemory.dylib"], f"{script_path}/../../../../../"),
     key=last_modified,
     reverse=True,
 )

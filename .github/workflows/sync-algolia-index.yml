@@ -1,4 +1,4 @@
-name: Algolia Upload Index
+name: Sync Algolia Index
 
 env:
   ALGOLIA_PROJECT: ${{ secrets.ALGOLIA_PROJECT }}
@@ -9,7 +9,8 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  sync_algolia_index:
+    name: Sync Algolia Index
     runs-on: ubuntu-latest
 
     steps:
@@ -20,7 +21,7 @@ jobs:
           cache: yarn
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn workspace @hashintel/hashai install --frozen-lockfile
 
       - name: Sync Algolia Index
-        run: yarn exe scripts/sync-algolia-index.ts
+        run: yarn workspace @hashintel/hashai exe scripts/sync-algolia-index.ts

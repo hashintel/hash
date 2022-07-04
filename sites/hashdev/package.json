@@ -12,11 +12,6 @@
     "start": "next start",
     "storybook": "cross-env TS_NODE_PROJECT=.storybook/tsconfig.json start-storybook -p 6006  -s ./public"
   },
-  "resolutions": {
-    "node-fetch": "^2.6.7",
-    "prettier": "2.5.1",
-    "webpack": "^5"
-  },
   "dependencies": {
     "@emotion/cache": "11.7.1",
     "@emotion/react": "11.9.0",
