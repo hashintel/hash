@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - dev/graph
 
 defaults:
   run:
@@ -31,7 +32,7 @@ jobs:
       nightly: ${{ steps.toolchains.outputs.nightly }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
 
@@ -68,12 +69,13 @@ jobs:
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.lint) }}
         toolchain:
-          - stable
           - ${{ needs.setup.outputs.nightly }}
+        profile:
+          - development
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -82,11 +84,9 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
-      - name: Install cargo-make
-        run: cargo install cargo-make
-
-      - name: Cache dependencies
-        uses: actions/cache@v2
+      - name: Cache Rust dependencies
+        id: rust-cache
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/.crates.toml
@@ -96,22 +96,34 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-lint-${{ matrix.directory }}-${{ matrix.toolchain }}
+          key: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
+
+      - name: Install cargo-make
+        shell: bash
+        run: cargo install cargo-make
 
       - name: Check formatting
-        if: matrix.toolchain != 'stable'
         working-directory: ${{ matrix.directory }}
-        run: cargo make format
+        run: cargo make format -- --check
 
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
-        run: cargo make clippy
+        run: cargo make clippy -- -D warnings
 
-      - name: Check documentation
-        if: matrix.toolchain != 'stable'
+      - name: Check public documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make doc
+        run: cargo make rustdoc --check -D warnings --show-coverage
+
+      - name: Check private documentation
+        working-directory: ${{ matrix.directory }}
+        run: cargo make rustdoc --check -D warnings --show-coverage --document-private-items
+
+      - name: Clear cargo cache
+        if: steps.rust-cache.outputs.cache-hit != 'true'
+        run: |
+          cargo install cargo-cache
+          cargo cache --autoclean-expensive
 
   test:
     name: test
@@ -134,26 +146,25 @@ jobs:
       RUST_BACKTRACE: 1
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust
-        id: toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           override: true
 
-      - name: Install cargo-make
-        run: cargo install cargo-make
-
-      - name: Install Python
-        uses: actions/setup-python@v2
+      - name: Cache Node dependencies
+        uses: actions/cache@v3
         with:
-          python-version: "3.7"
+          path: |
+            **/node_modules
+          key: ${{ hashFiles('**/yarn.lock') }}
 
-      - name: Cache dependencies
-        uses: actions/cache@v2
+      - name: Cache Rust dependencies
+        id: rust-cache
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/.crates.toml
@@ -163,25 +174,30 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}
+          key: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
+
+      - name: Install cargo-make
+        shell: bash
+        run: cargo install cargo-make
+
+      - name: Install Python
+        if: matrix.directory == 'packages/engine'
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} test
+        run: cargo make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Run miri
         if: matrix.toolchain != 'stable'
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} miri
+        run: cargo make --profile ${{ matrix.profile }} miri --no-fail-fast
 
-      # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
-        run: |
-          # Restore files modified for CI
-          git checkout HEAD -- "${{ matrix.directory }}/Cargo.toml"
-
-          git --no-pager diff --exit-code --color
+        run: git --no-pager diff --exit-code --color
 
       - name: Upload to DataDog
         if: matrix.directory == 'packages/engine' && matrix.profile == 'production'
@@ -202,6 +218,12 @@ jobs:
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
+      - name: Clear cargo cache
+        if: steps.rust-cache.outputs.cache-hit != 'true'
+        run: |
+          cargo install cargo-cache
+          cargo cache --autoclean-expensive
+
   publish:
     name: publish
     needs: setup
@@ -215,7 +237,7 @@ jobs:
           - ${{ needs.setup.outputs.nightly }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust
         id: toolchain
@@ -236,7 +258,7 @@ jobs:
         run: cargo publish --all-features --dry-run
 
       - name: Publish
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'ref/head/main'
         working-directory: ${{ matrix.directory }}
         run: cargo publish --all-features
 

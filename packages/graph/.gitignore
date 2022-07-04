@@ -1,8 +1,5 @@
 # Rust artifacts
 target/
 
-# Application data
-/deployment/postgres/var/
-
 # Local environment file will not be comitted to the repository
 /.env.local

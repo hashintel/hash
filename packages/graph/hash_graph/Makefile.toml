@@ -1,7 +1,16 @@
-extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
+extend = { path = "../Makefile.toml" }
 
 [env]
-CARGO_HACK_FLAGS = "--feature-powerset --optional-deps clap"
+CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
+CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
+CARGO_MIRI_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
 
 [env.production]
 CARGO_MAKE_CARGO_PROFILE = "production"
+
+
+[tasks.test]
+run_task = [
+    { name = ["yarn", "deployment-up", "recreate-db", "migrate-up", "test-task", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI" ] } },
+    { name = ["test-task"] }
+]

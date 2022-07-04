@@ -1,4 +1,4 @@
-The HASH monorepo relies upon multiple different licenses.
+The HASH public monorepo relies upon multiple different licenses.
 
 # License Guide
 
@@ -9,22 +9,24 @@ The license for a particular work is defined with following prioritized rules:
 1. Defaults to the MIT License
 
 Source code in this repository is variously licensed under the _MIT License_,
-the _GNU Affero General Public License 3.0_, or the _Elastic License 2.0_.
+the _GNU Affero General Public License 3.0_, the _Elastic License 2.0_, or
+_all rights are reserved_.
 
 Written content, illustrations and graphics published under the `resources`
-folder within this repository are made available under the [Creative Commons
-Attribution-ShareAlike 4.0 International](resources/LICENSE.md) license.
+folder within this repository may also be made available under the [Creative
+Commons Attribution-ShareAlike 4.0 International](resources/LICENSE.md)
+license.
 
 # Quick Reference
 
-* Within the `/packages/engine` folder, source code is licensed under the
+* Within the `/packages/engine` directory, source code is licensed under the
   Elastic License 2.0, unless otherwise noted.
   
-* Within the `/packages/hash` folder, source code in a given file is
-  licensed under version 3 of the GNU Affero General Public License, unless
-  otherwise noted.
+* Within the `/packages/hash` and `/packages/graph` directories, source code
+  in a given file is licensed under version 3 of the GNU Affero General
+  Public License, unless otherwise noted.
   
-* Within the `/packages/blocks` folder, all source code is made
+* Within the `/packages/blocks` directory, all source code is made
   available under the MIT License.
 
 # Questions
