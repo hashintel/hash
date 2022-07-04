@@ -8,6 +8,10 @@ import {
   UpdateLinkedAggregationOperationMutation,
   UpdateLinkedAggregationOperationMutationVariables,
 } from "../../../graphql/apiTypes.gen";
+import {
+  convertApiLinkedAggregationToBpLinkedAggregation,
+  parseLinkedAggregationIdentifier,
+} from "../../../lib/entities";
 
 export const useBlockProtocolUpdateLinkedAggregation = (): {
   updateLinkedAggregation: EmbedderGraphMessageCallbacks["updateLinkedAggregation"];
@@ -30,44 +34,36 @@ export const useBlockProtocolUpdateLinkedAggregation = (): {
             ],
           };
         }
-        const results: BlockProtocolLinkedAggregation[] = [];
-        // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
-        for (const action of actions) {
-          if (action.operation.entityTypeId == null) {
-            // @todo we should allow aggregating without narrowing the type
-            throw new Error(
-              "An aggregation operation must have an entityTypeId",
-            );
-          }
 
-          if (!action.sourceAccountId) {
-            throw new Error(
-              "updateLinkedAggregation needs to be passed a sourceAccountId",
-            );
-          }
+        const { accountId: sourceAccountId, aggregationId } =
+          parseLinkedAggregationIdentifier(data.aggregationId);
 
-          const { data, errors } = await runUpdateLinkedAggregationMutation({
+        const { data: responseData } = await runUpdateLinkedAggregationMutation(
+          {
             variables: {
-              ...action,
-              updatedOperation: {
-                // @todo this shouldn't be necessary
-                ...action.operation,
-                entityTypeId: action.operation.entityTypeId,
-              },
-              sourceAccountId: action.sourceAccountId,
+              aggregationId,
+              sourceAccountId,
+              updatedOperation: data.operation,
             },
-          });
+          },
+        );
 
-          if (!data) {
-            throw new Error(`Could not update link: ${errors?.[0]!.message}`);
-          }
-
-          // @todo, add a proper typecheck. The GraphQL query for multiFilter { operator } returns String, but BlockProtocolLinkedAggregationUpdateMutationResults defines the exact type for operator. This typecast is used to typecast string to the one the query expects.
-          results.push(
-            data.updateLinkedAggregationOperation as BlockProtocolLinkedAggregation,
-          );
+        if (!responseData) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "Error calling updateLinkedAggregation",
+              },
+            ],
+          };
         }
-        return results;
+
+        return {
+          data: convertApiLinkedAggregationToBpLinkedAggregation(
+            responseData.updateLinkedAggregationOperation,
+          ),
+        };
       },
       [runUpdateLinkedAggregationMutation],
     );

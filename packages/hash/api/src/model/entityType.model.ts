@@ -207,7 +207,6 @@ class __EntityType {
   async update(
     client: DbClient,
     params: {
-      accountId: string;
       createdByAccountId: string;
       schema: Record<string, any>;
       updatedByAccountId: string;

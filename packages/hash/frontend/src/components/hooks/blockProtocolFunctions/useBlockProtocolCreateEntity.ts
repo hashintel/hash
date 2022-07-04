@@ -9,7 +9,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { convertApiEntityToBpEntity } from "../../../lib/entities";
 
-export const useBlockProtocolCreateEntities = (
+export const useBlockProtocolCreateEntity = (
   accountId: string,
 ): {
   createEntity: EmbedderGraphMessageCallbacks["createEntity"];

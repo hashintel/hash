@@ -27,7 +27,7 @@ const Page: NextPageWithLayout = () => {
   );
 
   const { createEntities } = useBlockProtocolCreateEntities();
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
 
   const createAndNavigateToFirstEntity: BlockProtocolCreateEntitiesFunction = (
     args,

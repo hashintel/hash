@@ -1,14 +1,13 @@
 import { useMutation } from "@apollo/client";
 
-import {
-  EmbedderGraphMessageCallbacks
-} from "@blockprotocol/graph";
+import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { deleteLinkMutation } from "@hashintel/hash-shared/queries/link.queries";
 import { useCallback } from "react";
 import {
   DeleteLinkMutation,
   DeleteLinkMutationVariables,
 } from "../../../graphql/apiTypes.gen";
+import { parseLinkIdentifier } from "../../../lib/entities";
 
 export const useBlockProtocolDeleteLink = (): {
   deleteLink: EmbedderGraphMessageCallbacks["deleteLink"];
@@ -34,28 +33,32 @@ export const useBlockProtocolDeleteLink = (): {
           ],
         };
       }
-    }
-      const results: boolean[] = [];
-      // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
-      for (const action of actions) {
-        if (!action.sourceAccountId) {
-          throw new Error("deleteLink needs to be passed a sourceAccountId");
-        }
 
-        const { data, errors } = await runDeleteLinkMutation({
-          variables: {
-            linkId: action.linkId,
-            sourceAccountId: action.sourceAccountId,
-          },
-        });
+      const { accountId: sourceAccountId, linkId } = parseLinkIdentifier(
+        data.linkId,
+      );
 
-        if (!data) {
-          throw new Error(`Could not delete link: ${errors?.[0]!.message}`);
-        }
+      const { data: responseData } = await runDeleteLinkMutation({
+        variables: {
+          linkId,
+          sourceAccountId,
+        },
+      });
 
-        results.push(data.deleteLink);
+      if (!responseData) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "Error calling deleteLink",
+            },
+          ],
+        };
       }
-      return results;
+
+      return {
+        data: true,
+      };
     },
     [runDeleteLinkMutation],
   );

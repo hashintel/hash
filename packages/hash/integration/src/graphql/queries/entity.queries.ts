@@ -90,16 +90,8 @@ export const createEntityType = gql`
 `;
 
 export const updateEntityType = gql`
-  mutation updateEntityType(
-    $accountId: ID!
-    $entityId: ID!
-    $schema: JSONObject!
-  ) {
-    updateEntityType(
-      accountId: $accountId
-      entityId: $entityId
-      schema: $schema
-    ) {
+  mutation updateEntityType($entityId: ID!, $schema: JSONObject!) {
+    updateEntityType(entityId: $entityId, schema: $schema) {
       entityId
       entityTypeName
       properties

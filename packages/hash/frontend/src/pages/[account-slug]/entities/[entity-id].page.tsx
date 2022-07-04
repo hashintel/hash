@@ -37,10 +37,10 @@ const Page: NextPageWithLayout = () => {
       entityId,
     },
   });
-  const { createLinks } = useBlockProtocolCreateLink();
-  const { deleteLinks } = useBlockProtocolDeleteLink();
+  const { createLink } = useBlockProtocolCreateLink();
+  const { deleteLink } = useBlockProtocolDeleteLink();
   const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
 
   const updateAndNavigateToFirstEntity: BlockProtocolUpdateEntitiesFunction = (
     args,
@@ -74,8 +74,8 @@ const Page: NextPageWithLayout = () => {
         {entity && (
           <SimpleEntityEditor
             aggregateEntities={aggregateEntities}
-            createLinks={createLinks}
-            deleteLinks={deleteLinks}
+            createLink={createLink}
+            deleteLink={deleteLink}
             updateEntities={updateAndNavigateToFirstEntity}
             entityProperties={entity.properties}
             schema={entity.entityType.properties}

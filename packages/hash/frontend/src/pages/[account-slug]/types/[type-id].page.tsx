@@ -30,8 +30,9 @@ const Page: NextPageWithLayout = () => {
   const typeId = query["type-id"] as string;
   const { accountId } = useRouteAccountInfo();
 
-  const { updateEntityTypes } = useBlockProtocolUpdateEntityType();
-  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const { updateEntityType } = useBlockProtocolUpdateEntityType();
+  const { aggregateEntityTypes } =
+    useBlockProtocolAggregateEntityTypes(accountId);
 
   /** @see https://json-schema.org/understanding-json-schema/structuring.html#json-pointer */
   const subSchemaReference =
@@ -135,7 +136,7 @@ const Page: NextPageWithLayout = () => {
         schema={schema}
         GoToSchemaElement={schemaSelectElement}
         subSchemaReference={subSchemaReference}
-        updateEntityTypes={updateEntityTypes}
+        updateEntityType={updateEntityType}
       />
     </>
   );

@@ -4,12 +4,35 @@ import { isParsedJsonObject } from "@hashintel/hash-shared/json-utils";
 import {
   Entity as BpEntity,
   EntityType as BpEntityType,
+  Link as BpLink,
+  LinkedAggregation as BpLinkedAggregation,
+  LinkedAggregationDefinition as BpLinkedAggregationDefinition,
 } from "@blockprotocol/graph";
 
 import {
   UnknownEntity as ApiEntity,
   EntityType as ApiEntityType,
+  Link as ApiLink,
+  LinkedAggregation as ApiLinkedAggregation,
 } from "../graphql/apiTypes.gen";
+
+export type ApiEntityIdentifier = {
+  accountId: string;
+  entityId: string;
+  entityTypeId?: string;
+};
+
+/**
+ * Create an entityId that's a stringified object containing the fields we will need later.
+ * The re-written entityId is what should be sent to the block with any Entity,
+ * including for sourceEntityId, destinationEntityId on links
+ */
+export const rewriteEntityIdentifier = ({
+  accountId,
+  entityId,
+  entityTypeId,
+}: ApiEntityIdentifier) =>
+  JSON.stringify({ accountId, entityId, entityTypeId });
 
 /**
  * Converts an entity from its GraphQL API representation to its Block Protocol representation:
@@ -31,7 +54,7 @@ export const convertApiEntityToBpEntity = ({
     );
   }
   return {
-    entityId: JSON.stringify({ accountId, entityId, entityTypeId }),
+    entityId: rewriteEntityIdentifier({ accountId, entityId, entityTypeId }),
     entityTypeId,
     properties,
   };
@@ -48,12 +71,6 @@ export const convertApiEntitiesToBpEntities = (
   >[],
 ): BpEntity[] => records.map(convertApiEntityToBpEntity);
 
-export type EntityIdentifier = {
-  accountId: string;
-  entityId: string;
-  entityTypeId: string;
-};
-
 /**
  * We send blocks an 'entityId' that is a stringified object in {@link convertApiEntityToBpEntity}
  * – this reverses the process so we have the individual fields to use in calling the HASH API.
@@ -62,8 +79,8 @@ export type EntityIdentifier = {
  */
 export function parseEntityIdentifier(
   stringifiedIdentifier: string,
-): EntityIdentifier {
-  let identifierObject: EntityIdentifier;
+): ApiEntityIdentifier {
+  let identifierObject: ApiEntityIdentifier;
   try {
     identifierObject = JSON.parse(stringifiedIdentifier);
   } catch (err) {
@@ -92,9 +109,52 @@ export function parseEntityIdentifier(
     );
   }
 
-  if (!identifierObject.entityTypeId) {
+  return identifierObject;
+}
+
+type ApiLinkIdentifier = {
+  accountId: string;
+  linkId: string;
+};
+
+/**
+ * Create a linkId that's a stringified object containing the fields we will need later.
+ * The re-written linkId is what should be sent to the block with any Link
+ */
+const rewriteLinkIdentifier = ({ accountId, linkId }: ApiLinkIdentifier) =>
+  JSON.stringify({ accountId, linkId });
+
+/**
+ * We send blocks a 'linkId' that is a stringified object in {@link convertApiLinkToBpLink}
+ * – this reverses the process so we have the individual fields to use in calling the HASH API.
+ *
+ * @param stringifiedLinkId a linkId' or equivalent (e.g. sourceEntityId) sent from a block
+ */
+export const parseLinkIdentifier = (
+  stringifiedLinkId: string,
+): ApiLinkIdentifier => {
+  let identifierObject: ApiLinkIdentifier;
+  try {
+    identifierObject = JSON.parse(stringifiedLinkId);
+  } catch (err) {
     throw new Error(
-      `Parsed identifier for Entity does not contain entityTypeId key. Provided identifier: ${JSON.stringify(
+      `Provided identifier string '${stringifiedLinkId}' cannot be parsed to JSON: ${err}`,
+    );
+  }
+
+  if (!identifierObject.accountId) {
+    throw new Error(
+      `Parsed identifier for Link does not contain accountId key. Provided identifier: ${JSON.stringify(
+        identifierObject,
+        undefined,
+        2,
+      )}`,
+    );
+  }
+
+  if (!identifierObject.linkId) {
+    throw new Error(
+      `Parsed identifier for Link does not contain linkId key. Provided identifier: ${JSON.stringify(
         identifierObject,
         undefined,
         2,
@@ -103,7 +163,214 @@ export function parseEntityIdentifier(
   }
 
   return identifierObject;
+};
+
+/**
+ * Converts a Link from its GraphQL API representation to its Block Protocol representation,
+ * by re-writing all of linkId, sourceEntityId and sourceDestinationId so that they are
+ * stringified objects containing the identifiers we need (i.e. to include accountId)
+ */
+export const convertApiLinkToBpLink = ({
+  linkId,
+  destinationAccountId,
+  destinationEntityId,
+  sourceAccountId,
+  sourceEntityId,
+  path,
+  index,
+}: Pick<
+  ApiLink,
+  | "linkId"
+  | "destinationAccountId"
+  | "destinationEntityId"
+  | "sourceAccountId"
+  | "sourceEntityId"
+  | "index"
+  | "path"
+>): BpLink => {
+  if (linkId.includes("{")) {
+    throw new Error(
+      `linkId has already been re-written as a stringified object: ${linkId}`,
+    );
+  }
+
+  if (sourceEntityId.includes("{")) {
+    throw new Error(
+      `sourceEntityId has already been re-written as a stringified object: ${sourceEntityId}`,
+    );
+  }
+
+  if (destinationAccountId.includes("{")) {
+    throw new Error(
+      `destinationAccountId has already been re-written as a stringified object: ${destinationAccountId}`,
+    );
+  }
+
+  return {
+    linkId: rewriteLinkIdentifier({ accountId: sourceAccountId, linkId }),
+    sourceEntityId: rewriteEntityIdentifier({
+      accountId: sourceAccountId,
+      entityId: sourceEntityId,
+    }),
+    destinationEntityId: rewriteEntityIdentifier({
+      accountId: destinationAccountId,
+      entityId: destinationEntityId,
+    }),
+    path,
+    index,
+  };
+};
+
+/**
+ * Converts links from their GraphQL API representation to their Block Protocol representation.
+ * @see convertApiLinkToBpLink
+ */
+export const convertApiLinksToBpLinks = (records: ApiLink[]): BpLink[] =>
+  records.map(convertApiLinkToBpLink);
+
+type ApiLinkedAggregationIdentifier = {
+  accountId: string;
+  aggregationId: string;
+};
+
+/**
+ * Create a aggregationId that's a stringified object containing the fields we will need later.
+ * The re-written aggregationId is what should be sent to the block with any Link
+ */
+const rewriteLinkedAggregationIdentifier = ({
+  accountId,
+  aggregationId,
+}: ApiLinkedAggregationIdentifier) =>
+  JSON.stringify({ accountId, aggregationId });
+
+/**
+ * We send blocks an 'aggregationId' that is a stringified object in {@link convertApiLinkedAggregationToBpLinkedAggregation}
+ * – this reverses the process so we have the individual fields to use in calling the HASH API.
+ *
+ * @param stringifiedLinkId a aggregationId' or equivalent (e.g. sourceEntityId) sent from a block
+ */
+export const parseLinkedAggregationIdentifier = (
+  stringifiedLinkId: string,
+): ApiLinkedAggregationIdentifier => {
+  let identifierObject: ApiLinkedAggregationIdentifier;
+  try {
+    identifierObject = JSON.parse(stringifiedLinkId);
+  } catch (err) {
+    throw new Error(
+      `Provided identifier string '${stringifiedLinkId}' cannot be parsed to JSON: ${err}`,
+    );
+  }
+
+  if (!identifierObject.accountId) {
+    throw new Error(
+      `Parsed identifier for LinkedAggregation does not contain accountId key. Provided identifier: ${JSON.stringify(
+        identifierObject,
+        undefined,
+        2,
+      )}`,
+    );
+  }
+
+  if (!identifierObject.aggregationId) {
+    throw new Error(
+      `Parsed identifier for LinkedAggregation does not contain aggregationId key. Provided identifier: ${JSON.stringify(
+        identifierObject,
+        undefined,
+        2,
+      )}`,
+    );
+  }
+
+  return identifierObject;
+};
+
+export function convertApiLinkedAggregationToBpLinkedAggregation(
+  linkedAggregation: Pick<
+    ApiLinkedAggregation,
+    | "aggregationId"
+    | "sourceAccountId"
+    | "sourceEntityId"
+    | "operation"
+    | "path"
+  >,
+): BpLinkedAggregationDefinition;
+
+export function convertApiLinkedAggregationToBpLinkedAggregation(
+  linkedAggregation: Pick<
+    ApiLinkedAggregation,
+    | "aggregationId"
+    | "sourceAccountId"
+    | "sourceEntityId"
+    | "operation"
+    | "path"
+    | "results"
+  >,
+): BpLinkedAggregation;
+/**
+ * Converts a LinkedAggregation from its GraphQL API representation to its Block Protocol representation,
+ * by re-writing all of aggregationId, sourceEntityId and sourceDestinationId so that they are
+ * stringified objects containing the identifiers we need (i.e. to include accountId)
+ */
+export function convertApiLinkedAggregationToBpLinkedAggregation(
+  linkedAggregation:
+    | Pick<
+        ApiLinkedAggregation,
+        | "aggregationId"
+        | "sourceAccountId"
+        | "sourceEntityId"
+        | "operation"
+        | "path"
+        | "results"
+      >
+    | Pick<
+        ApiLinkedAggregation,
+        | "aggregationId"
+        | "sourceAccountId"
+        | "sourceEntityId"
+        | "operation"
+        | "path"
+      >,
+): BpLinkedAggregation | BpLinkedAggregationDefinition {
+  const { aggregationId, sourceAccountId, sourceEntityId, operation, path } =
+    linkedAggregation;
+  if (aggregationId.includes("{")) {
+    throw new Error(
+      `aggregationId has already been re-written as a stringified object: ${aggregationId}`,
+    );
+  }
+
+  if (sourceEntityId.includes("{")) {
+    throw new Error(
+      `sourceEntityId has already been re-written as a stringified object: ${sourceEntityId}`,
+    );
+  }
+
+  return {
+    aggregationId: rewriteLinkedAggregationIdentifier({
+      accountId: sourceAccountId,
+      aggregationId,
+    }),
+    sourceEntityId: rewriteEntityIdentifier({
+      accountId: sourceAccountId,
+      entityId: sourceEntityId,
+    }),
+    path,
+    operation: operation as BpLinkedAggregation["operation"],
+    results:
+      "results" in linkedAggregation
+        ? convertApiEntitiesToBpEntities(linkedAggregation.results)
+        : undefined,
+  };
 }
+
+/**
+ * Converts links from their GraphQL API representation to their Block Protocol representation.
+ * @see convertApiLinkedAggregationToBpLinkedAggregation
+ */
+export const convertApiLinkedAggregationsToBpLinkedAggregations = (
+  records: ApiLinkedAggregation[],
+): BpLinkedAggregation[] =>
+  records.map(convertApiLinkedAggregationToBpLinkedAggregation);
 
 /**
  * Converts an entity type from its GraphQL API representation to its Block Protocol representation:
@@ -137,7 +404,7 @@ export const convertApiEntityTypeToBpEntityType = ({
  * @see convertApiEntityTypeToBpEntityType
  */
 export const convertApiEntityTypesToBpEntityTypes = (
-  records: Pick<ApiEntityType, "entityTypeId" | "properties">[],
+  records: Pick<ApiEntityType, "entityId" | "entityTypeId" | "properties">[],
 ): BpEntityType[] => records.map(convertApiEntityTypeToBpEntityType);
 
 /**

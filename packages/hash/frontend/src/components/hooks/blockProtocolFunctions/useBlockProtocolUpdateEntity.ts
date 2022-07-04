@@ -45,9 +45,14 @@ export const useBlockProtocolUpdateEntity = (): {
           },
         }).then(({ data: apiResponseData }) => {
           if (!apiResponseData) {
-            throw new Error(
-              `Could not update entity with data ${message.data}`,
-            );
+            return {
+              errors: [
+                {
+                  code: "INVALID_INPUT",
+                  message: "Error calling updateEntity",
+                },
+              ],
+            };
           }
           return {
             data:

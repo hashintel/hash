@@ -51,7 +51,6 @@ export const entityTypeTypedef = gql`
     Update an entity type
     """
     updateEntityType(
-      accountId: ID!
       """
       The fixed id of the entityType to update, i.e. its entityId
       """

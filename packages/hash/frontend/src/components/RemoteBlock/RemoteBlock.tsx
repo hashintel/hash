@@ -14,7 +14,15 @@ import { BlockRenderer } from "./blockRenderer";
 import { useRemoteBlock } from "./useRemoteBlock";
 
 type RemoteBlockProps = {
-  graphCallbacks: EmbedderGraphMessageCallbacks;
+  graphCallbacks: Omit<
+    EmbedderGraphMessageCallbacks,
+    | "getEntity"
+    | "getEntityType"
+    | "getLink"
+    | "getLinkedAggregation"
+    | "deleteEntity"
+    | "deleteEntityType"
+  >;
   blockEntity: Entity;
   blockGraph?: BlockGraph;
   blockMetadata: BlockMetadata;

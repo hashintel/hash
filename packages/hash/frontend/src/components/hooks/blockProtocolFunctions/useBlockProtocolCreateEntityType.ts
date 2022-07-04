@@ -7,6 +7,7 @@ import {
   CreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
+import { convertApiEntityTypeToBpEntityType } from "../../../lib/entities";
 
 export const useBlockProtocolCreateEntityType = (
   accountId: string,
@@ -56,6 +57,12 @@ export const useBlockProtocolCreateEntityType = (
             ],
           };
         }
+
+        return {
+          data: convertApiEntityTypeToBpEntityType(
+            responseData.createEntityType,
+          ),
+        };
       },
       [accountId, createFn],
     );

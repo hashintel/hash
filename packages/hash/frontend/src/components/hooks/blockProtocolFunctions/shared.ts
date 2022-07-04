@@ -1,4 +1,7 @@
-import { EntityIdentifier, parseEntityIdentifier } from "../../../lib/entities";
+import {
+  ApiEntityIdentifier,
+  parseEntityIdentifier,
+} from "../../../lib/entities";
 
 /**
  * A utility for processing messages from blocks that target a specific entity:
@@ -18,7 +21,7 @@ export const addIdentifiersToMessageData = <
   },
 >(
   messagePayload: T,
-): T["data"] & EntityIdentifier => {
+): T["data"] & ApiEntityIdentifier => {
   const { data } = messagePayload;
   if (!data) {
     throw new Error("'data' must be provided in message payload object");
