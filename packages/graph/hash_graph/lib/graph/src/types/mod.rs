@@ -1,50 +1,107 @@
-//! Descriptions, and implementation logic, of the Types of elements of the graph.
+//! Model types used across datastores
 
-use sqlx::{types::Uuid, FromRow};
+use std::fmt;
 
-#[derive(Debug, FromRow)]
-pub struct DataType {
-    pub version_id: Uuid,
-    pub schema: serde_json::Value,
-    pub created_by: Uuid,
+use uuid::Uuid;
+
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq)]
+#[sqlx(transparent)]
+pub struct AccountId(Uuid);
+
+impl AccountId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
 }
 
-#[derive(Debug, FromRow)]
-pub struct PropertyType {
-    pub version_id: Uuid,
-    pub schema: serde_json::Value,
-    pub created_by: Uuid,
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq)]
+#[sqlx(transparent)]
+pub struct BaseId(Uuid);
+
+impl BaseId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
 }
 
-#[derive(Debug, FromRow)]
-pub struct EntityType {
-    pub version_id: Uuid,
-    pub schema: serde_json::Value,
-    pub created_by: Uuid,
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq)]
+#[sqlx(transparent)]
+pub struct VersionId(Uuid);
+
+impl VersionId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
 }
 
-#[derive(Debug, FromRow)]
-pub struct Entity {
-    pub entity_id: Uuid,
-    pub source_entity_type_version_id: Uuid,
-    pub properties: serde_json::Value,
-    pub created_by: Uuid,
+#[derive(Clone, Debug)]
+pub struct Identifier {
+    pub base_id: BaseId,
+    pub version_id: VersionId,
 }
 
-#[derive(Debug, FromRow)]
-pub struct PropertyTypePropertyTypeReference {
-    pub source_property_type_version_id: Uuid,
-    pub target_property_type_version_id: Uuid,
+impl Identifier {
+    #[must_use]
+    pub const fn new(base_id: BaseId, version_id: VersionId) -> Self {
+        Self {
+            base_id,
+            version_id,
+        }
+    }
 }
 
-#[derive(Debug, FromRow)]
-pub struct PropertyTypeDataTypeReference {
-    pub source_property_type_version_id: Uuid,
-    pub target_data_type_version_id: Uuid,
+impl fmt::Display for Identifier {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: change this to not just using the debug impl.
+        write!(fmt, "{:?}", self)
+    }
 }
 
-#[derive(Debug, FromRow)]
-pub struct EntityTypePropertyTypeReference {
-    pub source_entity_type_version_id: Uuid,
-    pub target_property_type_version_id: Uuid,
+#[repr(transparent)]
+#[derive(Clone, Debug, sqlx::Type, PartialEq, Eq)]
+#[sqlx(transparent)]
+pub struct DataType(serde_json::Value);
+
+impl DataType {
+    #[must_use]
+    pub const fn new(schema: serde_json::Value) -> Self {
+        Self(schema)
+    }
+}
+
+// TODO: constrain this to only work for valid inner Types.
+#[derive(Clone, Debug)]
+pub struct Qualified<T> {
+    id: Identifier,
+    inner: T,
+    created_by: AccountId,
+}
+
+impl<T> Qualified<T> {
+    #[must_use]
+    pub const fn new(id: Identifier, inner: T, created_by: AccountId) -> Self {
+        Self {
+            id,
+            inner,
+            created_by,
+        }
+    }
+
+    pub const fn id(&self) -> &Identifier {
+        &self.id
+    }
+
+    pub const fn inner(&self) -> &T {
+        &self.inner
+    }
+
+    pub const fn account_id(&self) -> &AccountId {
+        &self.created_by
+    }
 }

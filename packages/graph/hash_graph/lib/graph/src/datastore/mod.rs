@@ -6,6 +6,8 @@ use async_trait::async_trait;
 use error_stack::{Context, Result};
 pub use postgres::PostgresDatabase;
 
+use crate::types::{AccountId, BaseId, DataType, Identifier, Qualified};
+
 #[derive(Debug)]
 pub struct DatastoreError;
 
@@ -146,19 +148,43 @@ impl fmt::Display for DatabaseConnectionInfo {
 /// Describes the API of a Datastore implementation
 #[async_trait]
 trait Datastore {
-    async fn create_data_type() -> Result<(), DatastoreError>;
+    /// Creates a new [`DataType`].
+    ///
+    /// # Errors:
+    ///
+    /// - [`DatastoreError`], if the account referred to by `created_by` does not exist.
+    async fn create_data_type(
+        &self,
+        data_type: DataType,
+        created_by: AccountId,
+    ) -> Result<Qualified<DataType>, DatastoreError>;
 
-    async fn get_data_type() -> Result<(), DatastoreError>;
+    /// Get an existing [`DataType`] by an [`Identifier`].
+    ///
+    /// # Errors
+    ///
+    /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
+    async fn get_data_type(&self, id: &Identifier) -> Result<Qualified<DataType>, DatastoreError>;
 
-    async fn get_data_many() -> Result<(), DatastoreError>;
+    async fn get_data_type_many() -> Result<(), DatastoreError>;
 
-    async fn update_data_type() -> Result<(), DatastoreError>;
+    /// Update the definition of an existing [`DataType`].
+    ///
+    /// # Errors
+    ///
+    /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
+    async fn update_data_type(
+        &self,
+        base_id: BaseId,
+        data_type: DataType,
+        updated_by: AccountId,
+    ) -> Result<Qualified<DataType>, DatastoreError>;
 
     async fn create_property_type() -> Result<(), DatastoreError>;
 
     async fn get_property_type() -> Result<(), DatastoreError>;
 
-    async fn get_property_many() -> Result<(), DatastoreError>;
+    async fn get_property_type_many() -> Result<(), DatastoreError>;
 
     async fn update_property_type() -> Result<(), DatastoreError>;
 

@@ -27,7 +27,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "UUID",
         primaryKey: true,
       },
-      id: {
+      base_id: {
         type: "UUID",
         notNull: true,
       },
