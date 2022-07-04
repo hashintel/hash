@@ -298,7 +298,7 @@ mod tests {
             )
             .await?;
 
-        let data_type = db.get_data_type(id).await.expect("Could not get data type");
+        let data_type = db.get_data_type(id).await?;
 
         assert_eq!(data_type.inner, inner);
 
