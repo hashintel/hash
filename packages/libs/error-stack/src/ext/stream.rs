@@ -47,7 +47,7 @@ pub trait StreamReportExt: Stream + Sized {
     /// Lazily adds a new printable attachment to any [`Report`] in the [`Stream`]
     /// when calling [`Stream::poll_next`].
     ///
-    /// Applies [`ResultExt::attach_printable_lazy`] to the [`Err`] variant, refer to it for more
+    /// Applies [`ResultExt::attach_printable`] to the [`Err`] variant, refer to it for more
     /// information.
     fn attach_printable_lazy<A, F>(
         self,
@@ -69,7 +69,7 @@ pub trait StreamReportExt: Stream + Sized {
     /// Lazily changes the [`Context`] of the [`Report`] inside the [`Result`] when
     /// calling [`Stream::poll_next`]
     ///
-    /// Applies [`ResultExt::change_context_lazy`] to the [`Err`] variant, see its documntation
+    /// Applies [`ResultExt::change_context`] to the [`Err`] variant, see its documntation
     /// for more information.
     fn change_context_lazy<C, F>(self, context: F) -> StreamWithLazyContext<Self, F>
     where
