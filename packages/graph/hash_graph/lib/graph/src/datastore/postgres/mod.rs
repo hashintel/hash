@@ -53,8 +53,8 @@ impl PostgresDatabase {
         id: &Identifier,
         data_type: &DataType,
         created_by: AccountId,
-    ) -> Result<DataTypeRow, DatastoreError> {
-        sqlx::query_as(
+    ) -> Result<(), DatastoreError> {
+        sqlx::query_as::<_, (Uuid,)>(
             r#"
             INSERT INTO data_types (
                 version_id,
@@ -62,7 +62,7 @@ impl PostgresDatabase {
                 created_by
             ) 
             VALUES ($1, $2, $3)
-            RETURNING version_id, schema, created_by;
+            RETURNING version_id;
             "#,
         )
         .bind(&id.version_id)
@@ -72,7 +72,9 @@ impl PostgresDatabase {
         .await
         .report()
         .change_context(DatastoreError)
-        .attach_printable("Could not insert data type")
+        .attach_printable("Could not insert data type")?;
+
+        Ok(())
     }
 }
 
@@ -139,13 +141,12 @@ impl Datastore for PostgresDatabase {
 
         self.insert_version_id(&id).await?;
 
-        let DataTypeRow { created_by, .. } =
-            self.insert_data_type(&id, &data_type, updated_by).await?;
+        self.insert_data_type(&id, &data_type, updated_by).await?;
 
         Ok(Qualified {
             id,
             inner: data_type,
-            created_by,
+            created_by: updated_by,
         })
     }
 
