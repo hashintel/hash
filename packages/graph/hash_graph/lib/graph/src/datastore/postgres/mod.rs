@@ -307,8 +307,8 @@ mod tests {
         Ok(())
     }
 
-    #[ignore]
     #[tokio::test]
+    #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn update_existing_data_type() -> Result<(), DatastoreError> {
         let db = PostgresDatabase::new(&DB_INFO).await?;
 
