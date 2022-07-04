@@ -21,7 +21,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// If creating a [`PgPool`] connection returns an error.
+    /// - [sqcx `Error`], if creating a [`PgPool`] connection returns an error.
     pub async fn new(db_info: &DatabaseConnectionInfo) -> Result<Self, sqlx::Error> {
         Ok(Self {
             pool: PgPool::connect(&db_info.url())
