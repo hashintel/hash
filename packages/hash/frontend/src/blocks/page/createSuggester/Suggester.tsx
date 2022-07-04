@@ -1,4 +1,4 @@
-import { Box, SxProps, Theme } from "@mui/material";
+import { Box, SxProps, Theme, Typography } from "@mui/material";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
@@ -69,7 +69,6 @@ export const Suggester = <T,>({
           boxShadow:
             "0px 20px 41px rgba(61, 78, 133, 0.07), 0px 16px 25px rgba(61, 78, 133, 0.0531481), 0px 12px 12px rgba(61, 78, 133, 0.0325), 0px 2px 3.13px rgba(61, 78, 133, 0.02)",
           border: `1px solid ${palette.gray[20]}`,
-          ...(options.length === 0 && { borderWidth: 0 }),
           display: "grid",
           gridTemplateRows: "1fr auto",
           overflow: "hidden",
@@ -83,6 +82,17 @@ export const Suggester = <T,>({
           <li className={tw`flex justify-center py-1`}>
             <SpinnerIcon className={tw`h-3 w-3 text-gray-500 animate-spin`} />
           </li>
+        )}
+        {options.length === 0 && (
+          <Box
+            component="li"
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            py={1.5}
+          >
+            <Typography>No results</Typography>
+          </Box>
         )}
         {options.map((option, index) => (
           /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
