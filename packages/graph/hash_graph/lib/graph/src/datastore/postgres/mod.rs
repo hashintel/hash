@@ -31,9 +31,8 @@ impl PostgresDatabase {
                 .attach_printable_lazy(|| db_info.clone())?,
         })
     }
-}
 
-impl PostgresDatabase {
+    /// Inserts a `version_id` and `base_id` into the `ids` table in the database
     async fn insert_version_id(&self, id: &Identifier) -> Result<(), DatastoreError> {
         sqlx::query(r#"INSERT INTO ids (version_id, base_id) VALUES ($1, $2);"#)
             .bind(&id.version_id)
@@ -48,6 +47,7 @@ impl PostgresDatabase {
         Ok(())
     }
 
+    /// Inserts a data type into the `data_types` table in the database
     async fn insert_data_type(
         &self,
         id: &Identifier,
