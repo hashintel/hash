@@ -326,8 +326,7 @@ mod tests {
                 DataType::new(serde_json::json!({"hello": "wolrd"})),
                 account_id,
             )
-            .await
-            .expect("Could not create data type");
+            .await?;
 
         assert_ne!(data_type.inner, updated_data_type.inner);
         assert_ne!(data_type.id.version_id, updated_data_type.id.version_id);
