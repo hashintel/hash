@@ -59,5 +59,6 @@ export const pageProperties: Resolver<
           block.toGQLUnknownEntity(),
         )
       : null,
+    pageEntityId: entityId,
   };
 };
