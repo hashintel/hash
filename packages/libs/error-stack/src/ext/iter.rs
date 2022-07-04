@@ -31,7 +31,7 @@ pub trait IteratorExt: Iterator + Sized {
     /// Lazily adds a new attachment to each [`Report`] inside the [`Iterator`] when calling
     /// [`Iterator::next`].
     ///
-    /// Applies [`ResultExt::attach_lazy`] to every [`Err`] variant in the iterator. For more
+    /// Applies [`Report::attach`] to every [`Err`] variant in the iterator. For more
     /// information, see the documentation for [`Report::attach`].
     ///
     /// [`Report`]: crate::Report
