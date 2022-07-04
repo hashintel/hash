@@ -48,7 +48,7 @@ pub struct Identifier {
 
 impl fmt::Display for Identifier {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: change this to not just he the debug impl.
+        // TODO: change this to not just using the debug impl.
         write!(fmt, "{:?}", self)
     }
 }
