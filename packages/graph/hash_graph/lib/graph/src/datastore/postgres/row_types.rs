@@ -1,4 +1,5 @@
-//! Descriptions, and implementation logic, of the Types of elements of the graph.
+//! Well-defined Rust structs that are representative of the table schemas used in the datastore for
+//! Types.
 
 use sqlx::{types::Uuid, FromRow};
 
