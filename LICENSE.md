@@ -11,9 +11,9 @@ The license for a particular work is defined with following prioritized rules:
 Source code in this repository is variously licensed under the _MIT License_,
 the _GNU Affero General Public License 3.0_, or the _Elastic License 2.0_.
 
-Written content, illustrations and graphics published under the `resources`
+Written content, illustrations and graphics published under the `sites/hashai/resources`
 folder within this repository are made available under the [Creative Commons
-Attribution-ShareAlike 4.0 International](resources/LICENSE.md) license.
+Attribution-ShareAlike 4.0 International](sites/hashai/resources/LICENSE.md) license.
 
 # Quick Reference
 
