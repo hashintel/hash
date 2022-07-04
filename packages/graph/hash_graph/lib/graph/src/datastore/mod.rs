@@ -168,7 +168,7 @@ trait Datastore {
 
     async fn get_data_type_many() -> Result<(), DatastoreError>;
 
-    /// Update the definition of an exisitng [`DataType`].
+    /// Update the definition of an existing [`DataType`].
     ///
     /// # Errors
     ///
