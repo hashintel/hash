@@ -34,6 +34,7 @@ export const getAccountPages = gql`
     accountPages(accountId: $accountId) {
       entityId
       properties {
+        pageEntityId
         title
         summary
       }
