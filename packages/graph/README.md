@@ -7,7 +7,7 @@
 ```shell
 touch .env.local
 docker volume create --name hash-graph-data
-docker-compose -f deployment/stack.yml up
+docker-compose -f deployment/docker-compose.yml up
 ```
 
 Alternatively, simply run
