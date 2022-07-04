@@ -5,7 +5,9 @@
             "json-state": {
                 "1": [
                     {
-                        "counter": 0.0
+                        "myObject": {
+                            "value": 10.0
+                        }
                     }
                 ]
             }

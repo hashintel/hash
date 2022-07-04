@@ -1,6 +1,5 @@
 [
     {
-      "behaviors": ["changing.js"],
-      "counter": 0
+      "behaviors": ["changing.js"]
     }
 ]

@@ -10,4 +10,5 @@ mod js {
 mod py {
     crate::run_test!(behavior_index, Python);
     crate::run_test!(nullable_fixed_size_list, Python);
+    crate::run_test!(immutability, Python);
 }
