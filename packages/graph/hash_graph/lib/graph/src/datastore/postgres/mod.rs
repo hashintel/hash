@@ -41,8 +41,8 @@ impl PostgresDatabase {
             .await
             .report()
             .change_context(DatastoreError)
-            .attach_printable_lazy(|| id.clone())
-            .attach_printable("Could not insert id")?;
+            .attach_printable("Could not insert id")
+            .attach_printable_lazy(|| id.clone())?;
 
         Ok(())
     }
