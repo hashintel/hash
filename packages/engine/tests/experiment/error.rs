@@ -66,7 +66,11 @@ impl TestError {
         Self::ParseError { path: path.into() }
     }
 
-    pub fn unexpected_output_value(path: String, actual: Value, expected: Value) -> Self {
+    /// Note that as for the test to pass `expected` ⊆ `actual`, the first
+    /// argument to this function should be the expected value (what should be
+    /// the subset) and the second argument the actual value (what should be the
+    /// superset).
+    pub fn unexpected_output_value(path: String, expected: Value, actual: Value) -> Self {
         Self::UnexpectedOutputValue {
             path,
             actual,
@@ -141,3 +145,19 @@ impl fmt::Display for TestError {
 }
 
 impl Error for TestError {}
+
+#[test]
+#[cfg(test)]
+fn check_test_error_output() {
+    let e = TestError::unexpected_output_value(
+        "for_test".to_string(),
+        Value::Bool(true),
+        Value::Bool(false),
+    );
+
+    let res = format!("{}", e);
+    assert_eq!(
+        res,
+        "Unexpected output value at \"for_test\": expected `true`, got `false`"
+    );
+}
