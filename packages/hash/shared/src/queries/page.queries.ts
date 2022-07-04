@@ -11,6 +11,7 @@ export const getPageInfoQuery = gql`
       properties {
         title
         archived
+        pageEntityId
       }
     }
   }

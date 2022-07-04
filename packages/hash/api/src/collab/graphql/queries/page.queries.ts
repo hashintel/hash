@@ -14,6 +14,7 @@ export const pageFieldsFragment = gql`
     }
     properties {
       __typename
+      pageEntityId
       archived
       summary
       title
