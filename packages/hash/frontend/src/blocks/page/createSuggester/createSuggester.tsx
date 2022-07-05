@@ -43,10 +43,10 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   parentContent.forEach((node) => {
     // replace hard breaks with a space so that regex stops
     // matching at that point
-    if (node.type.name === "hardBreak") {
-      text += " ";
-    } else if (node.text) {
+    if (node.text) {
       text += node.text;
+    } else {
+      text += " ";
     }
   });
 
@@ -59,15 +59,17 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   const match = /\B(@|\/)\S*$/.exec(text.substring(0, cursorPos));
   if (!match) return null;
 
-  const from = match.index;
+  const from = parentPos + match.index;
 
   // match upto the first whitespace character or the end of the node
-  const to = cursorPos + text.substring(cursorPos).search(/\s|$/g);
+  const to = cursor.pos + text.substring(cursorPos).search(/\s|$/g);
+
+  const search = state.doc.textBetween(from + 1, to);
 
   return {
-    search: text.substring(from, to),
-    from: parentPos + from,
-    to: parentPos + to,
+    search,
+    from,
+    to,
     char: match[1] as Trigger["char"],
   };
 };
