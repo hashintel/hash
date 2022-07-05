@@ -26,7 +26,7 @@ use crate::{frame::attachment::AttachmentProvider, Context};
 pub struct Frame {
     erased_frame: ManuallyDrop<Box<ErasableFrame>>,
     location: &'static Location<'static>,
-    source: Box<[Frame]>,
+    sources: Box<[Frame]>,
 }
 
 impl Frame {
@@ -42,7 +42,7 @@ impl Frame {
             //   in `ManuallyDrop`. A custom drop implementation is provided to takes care of this.
             erased_frame: unsafe { ManuallyDrop::new(ErasableFrame::new(object, vtable)) },
             location,
-            source,
+            sources: source,
         }
     }
 
@@ -107,14 +107,8 @@ impl Frame {
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub const fn source(&self) -> Option<&Self> {
-        // TODO: Change to `self.source.as_ref().map(Box::as_ref)` when this is possible in a const
-        //   function. On stable toolchain, clippy is not smart enough yet.
-        #[cfg_attr(not(nightly), allow(clippy::needless_match))]
-        match &self.source {
-            Some(source) => Some(source),
-            None => None,
-        }
+    pub const fn sources(&self) -> &[Self] {
+        &self.sources
     }
 
     /// Returns a mutable reference to the sources of this `Frame`.
@@ -124,7 +118,7 @@ impl Frame {
     /// [`Report`]: crate::Report
     #[must_use]
     pub fn sources_mut(&mut self) -> &mut [Frame] {
-        self.source.as_mut()
+        self.sources.as_mut()
     }
 
     /// Returns how the `Frame` was created.
@@ -181,7 +175,8 @@ impl Provider for Frame {
             .vtable()
             .provide(&self.erased_frame, demand);
         demand.provide_value(|| self.location);
-        if let Some(source) = &self.source {
+
+        for source in self.sources.iter() {
             demand.provide_ref::<Self>(source);
         }
     }
@@ -245,7 +240,7 @@ mod tests {
         let attachment = report.downcast_mut::<String>().unwrap();
         attachment.push_str(" World!");
         let messages: Vec<_> = report
-            .frames_mut()
+            .traverse_mut()
             .filter_map(|frame| match frame.kind() {
                 FrameKind::Context(context) => Some(context.to_string()),
                 FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {

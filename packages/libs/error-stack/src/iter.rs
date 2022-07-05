@@ -6,37 +6,76 @@ use crate::{Frame, Report};
 
 /// Iterator over the [`Frame`] stack of a [`Report`].
 ///
-/// Use [`Report::frames()`] to create this iterator.
+/// This uses an implementation of the Pre-Order,
+/// NLR Depth-First Search algorithm to resolve the tree.
+/// The example below shows in numbers the index of the different depths,
+/// using this we're able to linearize all frames and sort topologically, meaning that
+/// this ensures no child ever is before it's parent.
+///
+/// ```text
+///      1
+///     / \
+///    2   6
+///  / | \  \
+/// 3  4  5  7
+/// ```
+///
+///
+/// Use [`Report::traverse()`] to create this iterator.
 #[must_use]
 #[derive(Clone)]
-pub struct Frames<'r> {
-    current: Option<&'r Frame>,
+pub struct TraverseFrames<'r> {
+    stack: Vec<&'r Frame>,
 }
 
-impl<'r> Frames<'r> {
+impl<'r> TraverseFrames<'r> {
     pub(crate) const fn new<C>(report: &'r Report<C>) -> Self {
         Self {
-            current: Some(report.frame()),
+            stack: report.frames().iter().rev().collect(),
         }
     }
 }
 
-impl<'r> Iterator for Frames<'r> {
+impl<'r> Iterator for TraverseFrames<'r> {
     type Item = &'r Frame;
 
+    /// We use a reversed stack of the implementation, considering the following tree:
+    ///
+    /// ```text
+    ///     A     G
+    ///    / \    |
+    ///   B   C   H
+    ///  / \  |
+    /// D   E F
+    /// ```
+    ///
+    /// The algorithm will create the following through iteration:
+    ///
+    /// ```text
+    /// 1) Out: - Stack: GA
+    /// 2) Out: A Stack: GCB
+    /// 3) Out: B Stack: GCED
+    /// 4) Out: D Stack: GCE
+    /// 4) Out: E Stack: GC
+    /// 5) Out: C Stack: GF
+    /// 6) Out: F Stack: G
+    /// 7) Out: G Stack: H
+    /// 8) Out: H Stack: -
+    /// ```
     fn next(&mut self) -> Option<Self::Item> {
-        self.current.take().map(|current| {
-            if let Some(source) = current.source() {
-                self.current = Some(source);
-            }
-            current
-        })
+        if let Some(frame) = self.stack.pop() {
+            self.stack.extend(frame.sources().iter().rev());
+
+            Some(frame)
+        } else {
+            None
+        }
     }
 }
 
-impl<'r> FusedIterator for Frames<'r> {}
+impl<'r> FusedIterator for TraverseFrames<'r> {}
 
-impl fmt::Debug for Frames<'_> {
+impl fmt::Debug for TraverseFrames<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()
     }
@@ -46,39 +85,52 @@ impl fmt::Debug for Frames<'_> {
 ///
 /// Use [`Report::frames_mut()`] to create this iterator.
 #[must_use]
-pub struct FramesMut<'r> {
-    current: Option<*mut Frame>,
+pub struct TraverseFramesMut<'r> {
+    current: Vec<*mut Frame>,
     _marker: PhantomData<&'r mut Frame>,
 }
 
-impl<'r> FramesMut<'r> {
+impl<'r> TraverseFramesMut<'r> {
     pub(crate) fn new<C>(report: &'r mut Report<C>) -> Self {
         Self {
-            current: Some(report.frame_mut()),
+            current: report
+                .frames_mut()
+                .iter_mut()
+                .map(|frame| frame as *mut Frame)
+                .rev()
+                .collect(),
             _marker: PhantomData,
         }
     }
 }
 
-impl<'r> Iterator for FramesMut<'r> {
+impl<'r> Iterator for TraverseFramesMut<'r> {
     type Item = &'r mut Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let current = self.current.take()?;
-        // SAFETY: We require a mutable reference to `Report` to create `FramesMut` to get a mutable
-        //   reference to `Frame`. The borrow checker is unable to prove that subsequent calls to
-        //   `next()` won't access the same data.
-        //   NB: It's almost never possible to implement a mutable iterator without `unsafe`.
-        unsafe {
-            if let Some(source) = (*current).source_mut() {
-                self.current = Some(source);
+        if let Some(frame) = self.current.pop() {
+            // SAFETY: We require a mutable reference to `Report` to create `FramesMut` to get a
+            // mutable reference to `Frame`.
+            // The borrow checker is unable to prove that subsequent calls to `next()`
+            // won't access the same data.
+            // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
+            unsafe {
+                self.current.extend(
+                    (*frame)
+                        .sources_mut()
+                        .iter_mut()
+                        .map(|frame| frame as *mut Frame)
+                        .rev(),
+                );
+                Some(&mut *frame)
             }
-            Some(&mut *current)
+        } else {
+            None
         }
     }
 }
 
-impl<'r> FusedIterator for FramesMut<'r> {}
+impl<'r> FusedIterator for TraverseFramesMut<'r> {}
 
 /// Iterator over requested references in the [`Frame`] stack of a [`Report`].
 ///
@@ -86,7 +138,7 @@ impl<'r> FusedIterator for FramesMut<'r> {}
 #[must_use]
 #[cfg(nightly)]
 pub struct RequestRef<'r, T: ?Sized> {
-    frames: Frames<'r>,
+    frames: TraverseFrames<'r>,
     _marker: PhantomData<&'r T>,
 }
 
@@ -94,7 +146,7 @@ pub struct RequestRef<'r, T: ?Sized> {
 impl<'r, T: ?Sized> RequestRef<'r, T> {
     pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
         Self {
-            frames: report.frames(),
+            frames: report.traverse(),
             _marker: PhantomData,
         }
     }
@@ -141,7 +193,7 @@ where
 #[must_use]
 #[cfg(nightly)]
 pub struct RequestValue<'r, T> {
-    frames: Frames<'r>,
+    frames: TraverseFrames<'r>,
     _marker: PhantomData<T>,
 }
 
@@ -149,7 +201,7 @@ pub struct RequestValue<'r, T> {
 impl<'r, T> RequestValue<'r, T> {
     pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
         Self {
-            frames: report.frames(),
+            frames: report.traverse(),
             _marker: PhantomData,
         }
     }

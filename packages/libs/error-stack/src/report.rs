@@ -13,7 +13,7 @@ use crate::context::temporary_provider;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
-    iter::{Frames, FramesMut},
+    iter::{TraverseFrames, TraverseFramesMut},
     AttachmentKind, Context, Frame, FrameKind,
 };
 
@@ -139,7 +139,7 @@ use crate::{
 ///     # };
 ///     # Ok(()) }
 ///     # let err = fake_main().unwrap_err();
-///     # assert_eq!(err.frames().count(), 3);
+///     # assert_eq!(err.traverse().count(), 3);
 ///     # assert!(err.contains::<ConfigError>());
 ///     # assert_eq!(err.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
 ///     # Ok(())
@@ -264,7 +264,7 @@ impl<C> Report<C> {
         Self::from_frame(Frame::from_attachment(
             attachment,
             Location::caller(),
-            self.frames.into(),
+            self.frames.into_boxed_slice(),
         ))
     }
 
@@ -314,7 +314,7 @@ impl<C> Report<C> {
         Self::from_frame(Frame::from_printable_attachment(
             attachment,
             Location::caller(),
-            self.frames.into(),
+            self.frames.into_boxed_slice(),
         ))
     }
 
@@ -330,7 +330,7 @@ impl<C> Report<C> {
         Report::from_frame(Frame::from_context(
             context,
             Location::caller(),
-            self.frames.into(),
+            self.frames.into_boxed_slice(),
         ))
     }
 
@@ -376,15 +376,15 @@ impl<C> Report<C> {
         }
     }
 
-    // /// Returns an iterator over the [`Frame`] stack of the report.
-    // pub const fn frames(&self) -> Frames<'_> {
-    //     Frames::new(self)
-    // }
-    //
-    // /// Returns an iterator over the [`Frame`] stack of the report with mutable elements.
-    // pub fn frames_mut(&mut self) -> FramesMut<'_> {
-    //     FramesMut::new(self)
-    // }
+    /// Returns an iterator over the [`Frame`] stack of the report.
+    pub const fn traverse(&self) -> TraverseFrames<'_> {
+        TraverseFrames::new(self)
+    }
+
+    /// Returns an iterator over the [`Frame`] stack of the report with mutable elements.
+    pub fn traverse_mut(&mut self) -> TraverseFramesMut<'_> {
+        TraverseFramesMut::new(self)
+    }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
@@ -423,7 +423,7 @@ impl<C> Report<C> {
     /// ```
     #[must_use]
     pub fn contains<T: Send + Sync + 'static>(&self) -> bool {
-        self.frames().any(Frame::is::<T>)
+        self.traverse().any(Frame::is::<T>)
     }
 
     /// Searches the frame stack for a context provider `T` and returns the most recent context
@@ -453,7 +453,7 @@ impl<C> Report<C> {
     /// ```
     #[must_use]
     pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        self.frames().find_map(Frame::downcast_ref::<T>)
+        self.traverse().find_map(Frame::downcast_ref::<T>)
     }
 
     /// Searches the frame stack for an instance of type `T`, returning the most recent one found.
@@ -461,12 +461,12 @@ impl<C> Report<C> {
     /// `T` can either be an attachment or a [`Context`].
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
-        self.frames_mut().find_map(Frame::downcast_mut::<T>)
+        self.traverse_mut().find_map(Frame::downcast_mut::<T>)
     }
 
     /// Returns a shared reference to the most recently added [`Frames`].
     pub(crate) const fn frames(&self) -> &[Frame] {
-        &self.frames
+        &self.frames[..]
     }
 
     /// Returns a unique reference to the most recently added [`Frames`].
@@ -531,7 +531,7 @@ impl<Context> fmt::Display for Report<Context> {
         }
 
         for (index, frame) in self
-            .frames()
+            .traverse()
             .filter_map(|frame| match frame.kind() {
                 FrameKind::Context(context) => Some(context.to_string()),
                 FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {

@@ -41,7 +41,7 @@ pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), Report<E>>) -> Repo
 
 pub fn messages<E>(report: &Report<E>) -> Vec<String> {
     report
-        .frames()
+        .traverse()
         .map(|frame| match frame.kind() {
             FrameKind::Context(context) => context.to_string(),
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => attachment.to_string(),
@@ -51,5 +51,5 @@ pub fn messages<E>(report: &Report<E>) -> Vec<String> {
 }
 
 pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
-    report.frames().map(Frame::kind).collect()
+    report.traverse().map(Frame::kind).collect()
 }
