@@ -42,6 +42,24 @@ const COLOR_RED_END: &str = "\x1b[0m";
 #[cfg(not(feature = "fancy"))]
 const COLOR_RED_END: &str = "";
 
+const VERTICAL: &str = concat!(COLOR_RED_START, VERTICAL_LINE, COLOR_RED_END, "   ");
+const ENTRY: &str = concat!(
+    COLOR_RED_START,
+    RIGHT_CURVE_JUNCTION,
+    HORIZONTAL_LINE,
+    RIGHT_ARROW,
+    COLOR_RED_END,
+    " "
+);
+const ENTRY_END: &str = concat!(
+    COLOR_RED_START,
+    RIGHT_CURVE_END,
+    HORIZONTAL_LINE,
+    RIGHT_ARROW,
+    COLOR_RED_END,
+    " "
+);
+
 fn display_frame(kind: Option<FrameKind>, sources: &[Frame]) -> Vec<String> {
     let content = match kind {
         Some(FrameKind::Context(context)) => Some(context.to_string()),
@@ -51,72 +69,9 @@ fn display_frame(kind: Option<FrameKind>, sources: &[Frame]) -> Vec<String> {
         }
         None => None,
     };
-
-    let lines: Vec<_> = match sources {
-        [next] => content
-            .into_iter()
-            .chain(display_frame(Some(next.kind()), next.sources()) //
-                .into_iter()
-                .enumerate()
-                .map(|(idx, line)| if idx == 0 {
-                    format!("{COLOR_RED_START}{RIGHT_CURVE_END}{HORIZONTAL_LINE}{RIGHT_ARROW}{COLOR_RED_END} {line}")
-                } else {
-                    format!("    {line}")
-                })
-            )
-            .collect(),
-
-        junction => {
-            let len = junction.len();
-
-            let title = if let Some(content) = content {
-                content
-            } else {
-                "Opaque Error".to_owned()
-            };
-            let mut lines = vec![title];
-
-            for (idx, frame) in junction.iter().enumerate() {
-                let child = display_frame(Some(frame.kind()), frame.sources());
-
-                if child.is_empty() {
-                    continue;
-                }
-
-                // the first line is the title, therefore we need to add the "junction"
-                let mut child = child.into_iter();
-                let first = child.next().unwrap();
-
-                let curve = if idx == len - 1 {
-                    RIGHT_CURVE_END
-                } else {
-                    RIGHT_CURVE_JUNCTION
-                };
-                let first = format!(
-                    "{COLOR_RED_START}{curve}{HORIZONTAL_LINE}{RIGHT_ARROW}{COLOR_RED_END} {first}"
-                );
-
-                let child = child.map(|line| {
-                    if idx == len - 1 {
-                        format!("    {line}")
-                    } else {
-                        format!("{COLOR_RED_START}{VERTICAL_LINE}{COLOR_RED_END}   {line}")
-                    }
-                });
-
-                lines.push(first);
-                lines.extend(child);
-            }
-
-            lines
-        }
-    };
-
-    lines
 }
 
 pub(crate) fn display_report<C>(report: &Report<C>) -> String {
-    println!("{:#?}", report.frames);
     display_frame(None, &report.frames)
         .into_iter()
         .fold(String::new(), |mut acc, line| {
@@ -128,7 +83,7 @@ pub(crate) fn display_report<C>(report: &Report<C>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::{IntoReport, Report};
+    use crate::{IntoReport, Report, ResultExt};
 
     #[test]
     fn nested() {
@@ -153,6 +108,18 @@ mod tests {
 
         report.add_source(err2);
         report.add_source(err3);
+
+        println!("{}", report);
+    }
+
+    #[test]
+    fn single() {
+        let report = std::fs::read_to_string("config.txt")
+            .into_report()
+            .attach_printable("Level 1")
+            .attach_printable("Level 2")
+            .attach_printable("Level 3")
+            .unwrap_err();
 
         println!("{}", report);
     }
