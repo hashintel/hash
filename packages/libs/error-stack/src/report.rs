@@ -16,6 +16,7 @@ use crate::{
     iter::{Frames, FramesMut},
     AttachmentKind, Context, Frame, FrameKind,
 };
+
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
 ///
 /// Attachments can be added by using [`attach()`]. The [`Frame`] stack can be iterated by using
@@ -147,14 +148,20 @@ use crate::{
 #[must_use]
 #[repr(transparent)]
 pub struct Report<C> {
-    frame: Frame,
+    #[cfg(feature = "small")]
+    frames: smallvec::SmallVec<[Frame; 1]>,
+    #[cfg(not(feature = "small"))]
+    frames: Vec<Frame>,
     _context: PhantomData<C>,
 }
 
 impl<C> Report<C> {
     pub(crate) fn from_frame(frame: Frame) -> Self {
         Self {
-            frame,
+            #[cfg(feature = "small")]
+            frames: smallvec::smallvec![frame],
+            #[cfg(not(feature = "small"))]
+            frames: vec![frame],
             _context: PhantomData,
         }
     }
@@ -195,20 +202,22 @@ impl<C> Report<C> {
         #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
         drop(provider);
 
-        let mut frame = Frame::from_context(context, Location::caller(), None);
+        let mut frame = Frame::from_context(context, Location::caller(), Box::new([]));
 
         #[cfg(all(nightly, feature = "std"))]
         if let Some(backtrace) = backtrace {
-            frame = Frame::from_attachment(backtrace, Location::caller(), Some(Box::new(frame)));
+            frame = Frame::from_attachment(backtrace, Location::caller(), Box::new([frame]));
         }
 
-        #[cfg(feature = "spantrace")]
+        #[cfg(all(nightly, feature = "spantrace"))]
         if let Some(span_trace) = span_trace {
-            frame = Frame::from_attachment(span_trace, Location::caller(), Some(Box::new(frame)));
+            frame = Frame::from_attachment(span_trace, Location::caller(), Box::new([frame]));
         }
 
         Self::from_frame(frame)
     }
+
+    pub fn add_source<T>(&mut self, report: Report<T>) {}
 
     /// Adds additional information to the [`Frame`] stack.
     ///
@@ -229,7 +238,7 @@ impl<C> Report<C> {
         Self::from_frame(Frame::from_attachment(
             attachment,
             Location::caller(),
-            Some(Box::new(self.frame)),
+            self.frames.into(),
         ))
     }
 
@@ -279,7 +288,7 @@ impl<C> Report<C> {
         Self::from_frame(Frame::from_printable_attachment(
             attachment,
             Location::caller(),
-            Some(Box::new(self.frame)),
+            self.frames.into(),
         ))
     }
 
@@ -295,7 +304,7 @@ impl<C> Report<C> {
         Report::from_frame(Frame::from_context(
             context,
             Location::caller(),
-            Some(Box::new(self.frame)),
+            self.frames.into(),
         ))
     }
 
@@ -341,15 +350,15 @@ impl<C> Report<C> {
         }
     }
 
-    /// Returns an iterator over the [`Frame`] stack of the report.
-    pub const fn frames(&self) -> Frames<'_> {
-        Frames::new(self)
-    }
-
-    /// Returns an iterator over the [`Frame`] stack of the report with mutable elements.
-    pub fn frames_mut(&mut self) -> FramesMut<'_> {
-        FramesMut::new(self)
-    }
+    // /// Returns an iterator over the [`Frame`] stack of the report.
+    // pub const fn frames(&self) -> Frames<'_> {
+    //     Frames::new(self)
+    // }
+    //
+    // /// Returns an iterator over the [`Frame`] stack of the report with mutable elements.
+    // pub fn frames_mut(&mut self) -> FramesMut<'_> {
+    //     FramesMut::new(self)
+    // }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
@@ -429,14 +438,14 @@ impl<C> Report<C> {
         self.frames_mut().find_map(Frame::downcast_mut::<T>)
     }
 
-    /// Returns a shared reference to the most recently added [`Frame`].
-    pub(crate) const fn frame(&self) -> &Frame {
-        &self.frame
+    /// Returns a shared reference to the most recently added [`Frames`].
+    pub(crate) const fn frames(&self) -> &[Frame] {
+        &self.frames
     }
 
-    /// Returns a unique reference to the most recently added [`Frame`].
-    pub(crate) fn frame_mut(&mut self) -> &mut Frame {
-        &mut self.frame
+    /// Returns a unique reference to the most recently added [`Frames`].
+    pub(crate) fn frames_mut(&mut self) -> &mut [Frame] {
+        &mut self.frames
     }
 }
 

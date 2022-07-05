@@ -26,7 +26,7 @@ use crate::{frame::attachment::AttachmentProvider, Context};
 pub struct Frame {
     erased_frame: ManuallyDrop<Box<ErasableFrame>>,
     location: &'static Location<'static>,
-    source: Option<Box<Frame>>,
+    source: Box<[Frame]>,
 }
 
 impl Frame {
@@ -34,7 +34,7 @@ impl Frame {
     fn from_unerased<T>(
         object: T,
         location: &'static Location<'static>,
-        source: Option<Box<Self>>,
+        source: Box<[Frame]>,
         vtable: &'static VTable,
     ) -> Self {
         Self {
@@ -50,7 +50,7 @@ impl Frame {
     pub(crate) fn from_context<C>(
         context: C,
         location: &'static Location<'static>,
-        source: Option<Box<Self>>,
+        source: Box<[Frame]>,
     ) -> Self
     where
         C: Context,
@@ -62,7 +62,7 @@ impl Frame {
     pub(crate) fn from_attachment<A>(
         attachment: A,
         location: &'static Location<'static>,
-        source: Option<Box<Self>>,
+        source: Box<[Frame]>,
     ) -> Self
     where
         A: Send + Sync + 'static,
@@ -82,7 +82,7 @@ impl Frame {
     pub(crate) fn from_printable_attachment<A>(
         attachment: A,
         location: &'static Location<'static>,
-        source: Option<Box<Self>>,
+        source: Box<[Frame]>,
     ) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
@@ -117,14 +117,14 @@ impl Frame {
         }
     }
 
-    /// Returns a mutable reference to the source of this `Frame`.
+    /// Returns a mutable reference to the sources of this `Frame`.
     ///
     /// This corresponds to the `Frame` below this one in a [`Report`].
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub fn source_mut(&mut self) -> Option<&mut Self> {
-        self.source.as_mut().map(Box::as_mut)
+    pub fn sources_mut(&mut self) -> &mut [Frame] {
+        self.source.as_mut()
     }
 
     /// Returns how the `Frame` was created.
