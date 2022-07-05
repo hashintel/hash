@@ -1,9 +1,9 @@
 mod args;
 
-use std::fmt;
+use std::{fmt, net::SocketAddr};
 
 use error_stack::{Context, FutureExt, Result};
-use graph::datastore::PostgresDatabase;
+use graph::{api::web::web_api_with_datastore, datastore::PostgresDatabase};
 
 use crate::args::Args;
 
@@ -20,9 +20,19 @@ impl fmt::Display for GraphError {
 #[tokio::main]
 async fn main() -> Result<(), GraphError> {
     let args = Args::parse();
-    let _datastore = PostgresDatabase::new(&args.db_info)
+    let datastore = PostgresDatabase::new(&args.db_info)
         .change_context(GraphError)
         .await?;
+
+    let app = web_api_with_datastore(datastore);
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+
+    // TODO: replace with tracing info
+    println!("Listening on {addr}");
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 
     Ok(())
 }

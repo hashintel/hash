@@ -449,6 +449,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "tokio",
+ "utoipa",
  "uuid",
 ]
 
@@ -1579,6 +1580,28 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
+]
+
+[[package]]
+name = "utoipa"
+version = "1.1.0"
+source = "git+https://github.com/juhaku/utoipa?rev=031073f#031073fb9024d6981c9a3d8bb69ae08f2e5a4bbf"
+dependencies = [
+ "serde",
+ "serde_json",
+ "utoipa-gen",
+]
+
+[[package]]
+name = "utoipa-gen"
+version = "1.1.0"
+source = "git+https://github.com/juhaku/utoipa?rev=031073f#031073fb9024d6981c9a3d8bb69ae08f2e5a4bbf"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "uuid",
 ]
 
 [[package]]
