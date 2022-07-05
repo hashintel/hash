@@ -40,5 +40,6 @@
 )]
 #![allow(clippy::use_self, reason = "Too many false positives")]
 
+pub mod api;
 pub mod datastore;
 pub mod types;

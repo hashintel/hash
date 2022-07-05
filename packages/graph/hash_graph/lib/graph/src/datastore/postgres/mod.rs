@@ -15,6 +15,7 @@ use crate::{
 };
 
 /// A Postgres-backed Datastore
+#[derive(Clone)]
 pub struct PostgresDatabase {
     pub pool: PgPool,
 }
