@@ -217,7 +217,33 @@ impl<C> Report<C> {
         Self::from_frame(frame)
     }
 
-    pub fn add_source<T>(&mut self, report: Report<T>) {}
+    /// Add an existing [`Report`] as an additional source of this report.
+    ///
+    /// Should report consist of multiple frames ([`add_source()`] was called on it before),
+    /// then this merges both.
+    ///
+    /// ```rust
+    /// use std::fs;
+    ///
+    /// use error_stack::IntoReport;
+    ///
+    /// let mut error1 = fs::read_to_string("config.txt").into_report();
+    /// let mut error2 = fs::read_to_string("config2.txt").into_report();
+    /// let mut error3 = fs::read_to_string("config3.txt").into_report();
+    ///
+    /// error1.add_source(error2);
+    /// error3.add_source(error1);
+    ///
+    /// // ^ This is equivalent to:
+    /// // error3.add_source(error1);
+    /// // error3.add_source(error2);
+    /// ```
+    ///
+    /// [`add_source()`]: Self::add_source
+    pub fn add_source<T>(&mut self, mut report: Report<T>) {
+        // TODO: consider taking self by value and returning it.
+        self.frames.append(&mut report.frames);
+    }
 
     /// Adds additional information to the [`Frame`] stack.
     ///
