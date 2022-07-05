@@ -1,7 +1,9 @@
 mod row_types;
 
+use std::collections::{hash_map::Entry, HashMap};
+
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use row_types::DataTypeRow;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -10,12 +12,20 @@ use crate::{
     datastore::{
         postgres::row_types::PropertyTypeRow, DatabaseConnectionInfo, Datastore, DatastoreError,
     },
-    types::{AccountId, BaseId, DataType, Identifier, PropertyType, Qualified, VersionId},
+    types::{
+        schema::{PropertyType, Uri},
+        AccountId, BaseId, DataType, Identifier, Qualified, VersionId,
+    },
 };
 
 /// A Postgres-backed Datastore
 pub struct PostgresDatabase {
     pub pool: PgPool,
+    _uuid_by_data_type: HashMap<Uri, Identifier>,
+    base_id_by_property_type: HashMap<Uri, BaseId>,
+    // TODO: We currently have no unique mapping betwee `Uri` and `VersionId` as versions are not
+    //   yet included in the `Uri`.
+    version_id_by_property_type: HashMap<Uri, VersionId>,
 }
 
 impl PostgresDatabase {
@@ -31,11 +41,14 @@ impl PostgresDatabase {
                 .report()
                 .change_context(DatastoreError)
                 .attach_printable_lazy(|| db_info.clone())?,
+            _uuid_by_data_type: HashMap::new(),
+            base_id_by_property_type: HashMap::new(),
+            version_id_by_property_type: HashMap::new(),
         })
     }
 
     /// Inserts a `version_id` and `base_id` into the `ids` table in the database
-    async fn insert_version_id(&mut self, id: &Identifier) -> Result<(), DatastoreError> {
+    async fn insert_id(&mut self, id: &Identifier) -> Result<(), DatastoreError> {
         sqlx::query(r#"INSERT INTO ids (version_id, base_id) VALUES ($1, $2);"#)
             .bind(&id.version_id)
             .bind(&id.base_id)
@@ -98,7 +111,7 @@ impl PostgresDatabase {
             "#,
         )
         .bind(&id.version_id)
-        .bind(&property_type)
+        .bind(&serde_json::to_value(property_type).expect("Invalid property type"))
         .bind(&created_by)
         .fetch_one(&self.pool)
         .await
@@ -119,7 +132,7 @@ impl Datastore for PostgresDatabase {
     ) -> Result<Qualified<DataType>, DatastoreError> {
         let id = Identifier::new(BaseId::new(Uuid::new_v4()), VersionId::new(Uuid::new_v4()));
 
-        self.insert_version_id(&id).await?;
+        self.insert_id(&id).await?;
 
         self.insert_data_type(&id, &data_type, created_by).await?;
 
@@ -163,7 +176,7 @@ impl Datastore for PostgresDatabase {
     ) -> Result<Qualified<DataType>, DatastoreError> {
         let id = Identifier::new(base_id, VersionId::new(Uuid::new_v4()));
 
-        self.insert_version_id(&id).await?;
+        self.insert_id(&id).await?;
 
         self.insert_data_type(&id, &data_type, updated_by).await?;
 
@@ -175,9 +188,35 @@ impl Datastore for PostgresDatabase {
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Qualified<PropertyType>, DatastoreError> {
-        let id = Identifier::new(BaseId::new(Uuid::new_v4()), VersionId::new(Uuid::new_v4()));
+        let base_id = match self
+            .base_id_by_property_type
+            .entry(property_type.id().clone())
+        {
+            Entry::Occupied(_) => {
+                return Err(Report::new(DatastoreError)
+                    .attach_printable("Property type is already registered")
+                    .attach_printable(property_type.id().clone()));
+            }
+            Entry::Vacant(entry) => entry.insert(BaseId::new(Uuid::new_v4())),
+        };
 
-        self.insert_version_id(&id).await?;
+        let version_id = match self
+            .version_id_by_property_type
+            .entry(property_type.id().clone())
+        {
+            Entry::Occupied(_) => {
+                return Err(Report::new(DatastoreError)
+                    .attach_printable("Property type version is already registered")
+                    .attach_printable(property_type.id().clone()));
+            }
+            // TODO: The `VersionId` is currently not stored until it's encoded in the `Uri`.
+            Entry::Vacant(entry) => entry.insert(VersionId::new(Uuid::new_v4())),
+            // Entry::Vacant(_) => VersionId::new(Uuid::new_v4()),
+        };
+
+        let id = Identifier::new(*base_id, *version_id);
+
+        self.insert_id(&id).await?;
 
         self.insert_property_type(&id, &property_type, created_by)
             .await?;
@@ -210,7 +249,11 @@ impl Datastore for PostgresDatabase {
         .attach_printable_lazy(|| id.clone())
         .attach_printable("Could not find property type by id")?;
 
-        Ok(Qualified::new(id.clone(), property_type, created_by))
+        Ok(Qualified::new(
+            id.clone(),
+            serde_json::from_value(property_type).expect("Invalid property type"),
+            created_by,
+        ))
     }
 
     async fn get_property_type_many() -> Result<(), DatastoreError> {
@@ -219,13 +262,33 @@ impl Datastore for PostgresDatabase {
 
     async fn update_property_type(
         &mut self,
-        base_id: BaseId,
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Qualified<PropertyType>, DatastoreError> {
-        let id = Identifier::new(base_id, VersionId::new(Uuid::new_v4()));
+        let base_id = self
+            .base_id_by_property_type
+            .get(property_type.id())
+            .ok_or_else(|| {
+                Report::new(DatastoreError)
+                    .attach_printable("Property type is not registered")
+                    .attach_printable(property_type.id().clone())
+            })?;
 
-        self.insert_version_id(&id).await?;
+        let version_id = match self
+            .version_id_by_property_type
+            .entry(property_type.id().clone())
+        {
+            Entry::Occupied(_) => {
+                return Err(Report::new(DatastoreError)
+                    .attach_printable("Property type version is already registered")
+                    .attach_printable(property_type.id().clone()));
+            }
+            Entry::Vacant(entry) => *entry.insert(VersionId::new(Uuid::new_v4())),
+        };
+
+        let id = Identifier::new(*base_id, version_id);
+
+        self.insert_id(&id).await?;
 
         self.insert_property_type(&id, &property_type, updated_by)
             .await?;
@@ -399,6 +462,30 @@ mod tests {
         Ok(())
     }
 
+    fn quote_property_type_v1() -> PropertyType {
+        serde_json::from_value(serde_json::json!({
+          "kind": "propertyType",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote/v/0.1.0",
+          "title": "Favorite Quote",
+          "oneOf": [
+            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text" }
+          ]
+        }))
+        .expect("Invalid property type")
+    }
+
+    fn quote_property_type_v2() -> PropertyType {
+        serde_json::from_value(serde_json::json!({
+          "kind": "propertyType",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote/v/0.2.0",
+          "title": "Favorite Quote",
+          "oneOf": [
+            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text" }
+          ]
+        }))
+        .expect("Invalid property type")
+    }
+
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_property_type() -> Result<(), DatastoreError> {
@@ -406,11 +493,8 @@ mod tests {
 
         let account_id = create_account_id(&db.pool).await?;
 
-        db.create_property_type(
-            PropertyType::new(serde_json::json!({"hello": "world"})),
-            account_id,
-        )
-        .await?;
+        db.create_property_type(quote_property_type_v1(), account_id)
+            .await?;
 
         Ok(())
     }
@@ -423,10 +507,7 @@ mod tests {
         let account_id = create_account_id(&db.pool).await?;
 
         let updated_property_type = db
-            .create_property_type(
-                PropertyType::new(serde_json::json!({"hello": "world"})),
-                account_id,
-            )
+            .create_property_type(quote_property_type_v1(), account_id)
             .await?;
 
         let property_type = db.get_property_type(updated_property_type.id()).await?;
@@ -438,26 +519,26 @@ mod tests {
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
+    #[cfg_attr(
+        not(miri),
+        ignore = "unimplemented: we are currently not able to get the `VersionId` from the `Uri`, \
+                  so it's not possible to update a property type"
+    )]
     async fn update_existing_property_type() -> Result<(), DatastoreError> {
         let mut db = PostgresDatabase::new(&DB_INFO).await?;
 
         let account_id = create_account_id(&db.pool).await?;
 
         let property_type = db
-            .create_property_type(
-                PropertyType::new(serde_json::json!({"hello": "world"})),
-                account_id,
-            )
+            .create_property_type(quote_property_type_v1(), account_id)
             .await?;
 
+        let new_property_type = quote_property_type_v2();
         let updated_property_type = db
-            .update_property_type(
-                property_type.id().base_id,
-                PropertyType::new(serde_json::json!({"hello": "wolrd"})),
-                account_id,
-            )
+            .update_property_type(new_property_type.clone(), account_id)
             .await?;
 
+        assert_eq!(updated_property_type.inner(), &new_property_type);
         assert_ne!(property_type.inner(), updated_property_type.inner());
         assert_ne!(
             property_type.id().version_id,

@@ -3,7 +3,7 @@
 
 use sqlx::{types::Uuid, FromRow};
 
-use crate::types::{AccountId, DataType, PropertyType};
+use crate::types::{AccountId, DataType};
 
 #[derive(Debug, FromRow)]
 pub struct DataTypeRow {
@@ -15,7 +15,7 @@ pub struct DataTypeRow {
 #[derive(Debug, FromRow)]
 pub struct PropertyTypeRow {
     pub version_id: Uuid,
-    pub schema: PropertyType,
+    pub schema: serde_json::Value,
     pub created_by: AccountId,
 }
 

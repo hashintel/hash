@@ -1,5 +1,7 @@
 //! Model types used across datastores
 
+pub mod schema;
+
 use std::fmt;
 
 use uuid::Uuid;
@@ -69,18 +71,6 @@ impl fmt::Display for Identifier {
 pub struct DataType(serde_json::Value);
 
 impl DataType {
-    #[must_use]
-    pub const fn new(schema: serde_json::Value) -> Self {
-        Self(schema)
-    }
-}
-
-#[repr(transparent)]
-#[derive(Clone, Debug, sqlx::Type, PartialEq, Eq)]
-#[sqlx(transparent)]
-pub struct PropertyType(serde_json::Value);
-
-impl PropertyType {
     #[must_use]
     pub const fn new(schema: serde_json::Value) -> Self {
         Self(schema)

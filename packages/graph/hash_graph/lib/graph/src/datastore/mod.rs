@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use error_stack::{Context, Result};
 pub use postgres::PostgresDatabase;
 
-use crate::types::{AccountId, BaseId, DataType, Identifier, PropertyType, Qualified};
+use crate::types::{schema::PropertyType, AccountId, BaseId, DataType, Identifier, Qualified};
 
 #[derive(Debug)]
 pub struct DatastoreError;
@@ -195,7 +195,6 @@ trait Datastore {
 
     async fn update_property_type(
         &mut self,
-        base_id: BaseId,
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Qualified<PropertyType>, DatastoreError>;
