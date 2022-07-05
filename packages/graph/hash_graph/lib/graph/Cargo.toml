@@ -7,6 +7,7 @@ publish = false
 
 [dependencies]
 async-trait = "0.1.56"
+axum = "0.5.11"
 clap = { version = "3.2.7", features = ["derive", "env"], optional = true }
 error-stack = "0.1.1"
 serde = { version = "1.0.137", features = ["derive"] }
