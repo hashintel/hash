@@ -13,6 +13,7 @@ use crate::context::temporary_provider;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
+    display::display_report,
     iter::{Frames, FramesMut},
     AttachmentKind, Context, Frame, FrameKind,
 };
@@ -520,26 +521,28 @@ impl<Context> fmt::Display for Report<Context> {
             return display_hook(self.generalized(), fmt);
         }
 
-        for (index, frame) in self
-            .frames()
-            .filter_map(|frame| match frame.kind() {
-                FrameKind::Context(context) => Some(context.to_string()),
-                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                    Some(attachment.to_string())
-                }
-                FrameKind::Attachment(AttachmentKind::Opaque(_)) => None,
-            })
-            .enumerate()
-        {
-            if index == 0 {
-                fmt::Display::fmt(&frame, fmt)?;
-                if !fmt.alternate() {
-                    break;
-                }
-            } else {
-                write!(fmt, ": {frame}")?;
-            }
-        }
+        fmt.write_str(&display_report(self))?;
+
+        // for (index, frame) in self
+        //     .frames()
+        //     .filter_map(|frame| match frame.kind() {
+        //         FrameKind::Context(context) => Some(context.to_string()),
+        //         FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+        //             Some(attachment.to_string())
+        //         }
+        //         FrameKind::Attachment(AttachmentKind::Opaque(_)) => None,
+        //     })
+        //     .enumerate()
+        // {
+        //     if index == 0 {
+        //         fmt::Display::fmt(&frame, fmt)?;
+        //         if !fmt.alternate() {
+        //             break;
+        //         }
+        //     } else {
+        //         write!(fmt, ": {frame}")?;
+        //     }
+        // }
 
         Ok(())
     }
