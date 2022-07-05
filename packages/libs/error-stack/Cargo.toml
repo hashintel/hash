@@ -17,6 +17,7 @@ tracing-error = { version = "0.2.0", optional = true }
 once_cell = { version = "1.10.0", optional = true }
 pin-project = { version = "1.0.10", optional = true }
 futures-core = { version = "0.3.21", optional = true, default-features = false }
+smallvec = { version = "1.9.0", optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0.137", features = ["derive"] }
@@ -27,11 +28,12 @@ futures = { version = "0.3.21", default-features = false, features = ["executor"
 rustc_version = "0.2.3"
 
 [features]
-default = ["std"]
+default = ["std", "small"]
 std = []
 hooks = ["dep:once_cell", "std"]
 spantrace = ["dep:tracing-error"]
 futures = ["dep:pin-project", "dep:futures-core"]
+small = ["dep:smallvec"]
 
 [package.metadata.docs.rs]
 all-features = true

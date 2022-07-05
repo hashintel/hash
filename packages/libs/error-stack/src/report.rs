@@ -147,24 +147,14 @@ use crate::{
 #[must_use]
 #[repr(transparent)]
 pub struct Report<C> {
-    inner: Box<ReportImpl>,
+    frame: Frame,
     _context: PhantomData<C>,
 }
 
 impl<C> Report<C> {
-    pub(crate) fn from_frame(
-        frame: Frame,
-        #[cfg(all(nightly, feature = "std"))] backtrace: Option<Backtrace>,
-        #[cfg(feature = "spantrace")] span_trace: Option<SpanTrace>,
-    ) -> Self {
+    pub(crate) fn from_frame(frame: Frame) -> Self {
         Self {
-            inner: Box::new(ReportImpl {
-                frame,
-                #[cfg(all(nightly, feature = "std"))]
-                backtrace,
-                #[cfg(feature = "spantrace")]
-                span_trace,
-            }),
+            frame,
             _context: PhantomData,
         }
     }
@@ -205,13 +195,19 @@ impl<C> Report<C> {
         #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
         drop(provider);
 
-        Self::from_frame(
-            Frame::from_context(context, Location::caller(), None),
-            #[cfg(all(nightly, feature = "std"))]
-            backtrace,
-            #[cfg(feature = "spantrace")]
-            span_trace,
-        )
+        let mut frame = Frame::from_context(context, Location::caller(), None);
+
+        #[cfg(all(nightly, feature = "std"))]
+        if let Some(backtrace) = backtrace {
+            frame = Frame::from_attachment(backtrace, Location::caller(), Some(Box::new(frame)));
+        }
+
+        #[cfg(feature = "spantrace")]
+        if let Some(span_trace) = span_trace {
+            frame = Frame::from_attachment(span_trace, Location::caller(), Some(Box::new(frame)));
+        }
+
+        Self::from_frame(frame)
     }
 
     /// Adds additional information to the [`Frame`] stack.
@@ -230,17 +226,11 @@ impl<C> Report<C> {
     where
         A: Send + Sync + 'static,
     {
-        Self::from_frame(
-            Frame::from_attachment(
-                attachment,
-                Location::caller(),
-                Some(Box::new(self.inner.frame)),
-            ),
-            #[cfg(all(nightly, feature = "std"))]
-            self.inner.backtrace,
-            #[cfg(feature = "spantrace")]
-            self.inner.span_trace,
-        )
+        Self::from_frame(Frame::from_attachment(
+            attachment,
+            Location::caller(),
+            Some(Box::new(self.frame)),
+        ))
     }
 
     /// Adds additional (printable) information to the [`Frame`] stack.
@@ -286,17 +276,11 @@ impl<C> Report<C> {
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self::from_frame(
-            Frame::from_printable_attachment(
-                attachment,
-                Location::caller(),
-                Some(Box::new(self.inner.frame)),
-            ),
-            #[cfg(all(nightly, feature = "std"))]
-            self.inner.backtrace,
-            #[cfg(feature = "spantrace")]
-            self.inner.span_trace,
-        )
+        Self::from_frame(Frame::from_printable_attachment(
+            attachment,
+            Location::caller(),
+            Some(Box::new(self.frame)),
+        ))
     }
 
     /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
@@ -308,17 +292,11 @@ impl<C> Report<C> {
     where
         T: Context,
     {
-        Report::from_frame(
-            Frame::from_context(
-                context,
-                Location::caller(),
-                Some(Box::new(self.inner.frame)),
-            ),
-            #[cfg(all(nightly, feature = "std"))]
-            self.inner.backtrace,
-            #[cfg(feature = "spantrace")]
-            self.inner.span_trace,
-        )
+        Report::from_frame(Frame::from_context(
+            context,
+            Location::caller(),
+            Some(Box::new(self.frame)),
+        ))
     }
 
     /// Returns the backtrace of the error, if captured.
@@ -329,12 +307,8 @@ impl<C> Report<C> {
     #[must_use]
     #[cfg(all(nightly, feature = "std"))]
     pub fn backtrace(&self) -> Option<&Backtrace> {
-        let backtrace = self.inner.backtrace.as_ref().unwrap_or_else(|| {
-            // Should never panic as it's either stored inside of `Report` or is provided by a frame
-            self.request_ref::<Backtrace>()
-                .next()
-                .expect("Backtrace is not available")
-        });
+        let backtrace = self.request_ref::<Backtrace>().next()?;
+
         if backtrace.status() == BacktraceStatus::Captured {
             Some(backtrace)
         } else {
@@ -457,12 +431,12 @@ impl<C> Report<C> {
 
     /// Returns a shared reference to the most recently added [`Frame`].
     pub(crate) const fn frame(&self) -> &Frame {
-        &self.inner.frame
+        &self.frame
     }
 
     /// Returns a unique reference to the most recently added [`Frame`].
     pub(crate) fn frame_mut(&mut self) -> &mut Frame {
-        &mut self.inner.frame
+        &mut self.frame
     }
 }
 
@@ -631,12 +605,4 @@ impl<Context> std::process::Termination for Report<Context> {
             .copied()
             .unwrap_or(ExitCode::FAILURE)
     }
-}
-
-pub struct ReportImpl {
-    pub(super) frame: Frame,
-    #[cfg(all(nightly, feature = "std"))]
-    backtrace: Option<Backtrace>,
-    #[cfg(feature = "spantrace")]
-    span_trace: Option<SpanTrace>,
 }
