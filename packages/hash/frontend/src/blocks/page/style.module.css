@@ -16,25 +16,11 @@
 }
 
 .Block {
-  position: relative;
   display: flex;
   align-items: flex-start;
   word-break: break-all;
   margin: 30px 0;
   outline: none !important;
-}
-
-.Block:focus-visible:after {
-  content: "";
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border-width: 2px;
-  border-style: solid;
-  border-radius: 8px;
-  border-color: #0775e3;
 }
 
 /**
