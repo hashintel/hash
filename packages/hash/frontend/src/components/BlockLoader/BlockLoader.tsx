@@ -1,29 +1,35 @@
 import {
-  Entity,
+  Entity as BpEntity,
+  BlockGraphProperties,
+  EntityType as BpEntityType,
   LinkedAggregation as BpLinkedAggregation,
 } from "@blockprotocol/graph";
 import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import React, { useCallback, useMemo, VoidFunctionComponent } from "react";
 
-import { useBlockProtocolUpdateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
+import {
+  convertApiEntityToBpEntity,
+  convertApiEntityTypesToBpEntityTypes,
+  convertApiEntityTypeToBpEntityType,
+  convertApiLinkedAggregationToBpLinkedAggregation,
+} from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
-import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
-import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
-import { useFileUpload } from "../hooks/useFileUpload";
-import { LinkedAggregation, LinkGroup } from "../../graphql/apiTypes.gen";
-import { useBlockProtocolCreateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityType";
-import { useBlockProtocolCreateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntity";
-import { useBlockProtocolCreateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
-import { useBlockProtocolDeleteLink } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
-import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockLoaded } from "../../blocks/onBlockLoaded";
+import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
+import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
+import { useBlockProtocolCreateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntity";
+import { useBlockProtocolCreateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityType";
+import { useBlockProtocolCreateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
 import { useBlockProtocolCreateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
-import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
+import { useBlockProtocolDeleteLink } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
 import { useBlockProtocolDeleteLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
-import { convertApiEntityToBpEntity } from "../../lib/entities";
+import { useBlockProtocolFileUpload } from "../hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
+import { useBlockProtocolUpdateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 import { useBlockProtocolUpdateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
+import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
+import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 
 type BlockLoaderProps = {
   accountId: string;
@@ -33,7 +39,7 @@ type BlockLoaderProps = {
   entityId: string;
   entityTypeId: string;
   entityProperties: {};
-  linkGroups: LinkGroup[];
+  linkGroups: BlockEntity["properties"]["entity"]["linkGroups"];
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
   // shouldSandbox?: boolean;
@@ -70,19 +76,38 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { deleteLinkedAggregation } = useBlockProtocolDeleteLinkedAggregation();
   const { deleteLink } = useBlockProtocolDeleteLink();
   const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { uploadFile } = useFileUpload();
+  const { uploadFile } = useBlockProtocolFileUpload(accountId);
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
   const { updateLinkedAggregation } = useBlockProtocolUpdateLinkedAggregation();
+
   const { updateLink } = useBlockProtocolUpdateLink();
 
-  const flattenedProperties = useMemo(() => {
-    let convertedLinkedEntities: Entity[] = [];
+  const graphProperties = useMemo<
+    Required<BlockGraphProperties<Record<string, any>>["graph"]>
+  >(() => {
+    const convertedEntityTypesForProvidedEntities: BpEntityType[] = [];
 
-    if (linkedEntities) {
-      convertedLinkedEntities = linkedEntities.map(convertApiEntityToBpEntity);
+    const convertedLinkedEntities: BpEntity[] = [];
+    for (const entity of linkedEntities ?? []) {
+      convertedLinkedEntities.push(convertApiEntityToBpEntity(entity));
+      convertedEntityTypesForProvidedEntities.push(
+        convertApiEntityTypeToBpEntityType(entity.entityType),
+      );
     }
 
-    const convertedRootEntity = convertApiEntityToBpEntity({
+    const convertedLinkedAggregations: BpLinkedAggregation[] = [];
+    for (const linkedAggregation of linkedAggregations ?? []) {
+      convertedLinkedAggregations.push(
+        convertApiLinkedAggregationToBpLinkedAggregation(linkedAggregation),
+      );
+      convertedEntityTypesForProvidedEntities.push(
+        ...convertApiEntityTypesToBpEntityTypes(
+          linkedAggregation.results.map(({ entityType }) => entityType),
+        ),
+      );
+    }
+
+    const blockEntity = convertApiEntityToBpEntity({
       accountId,
       entityId,
       entityTypeId,
@@ -90,11 +115,14 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     });
 
     return {
-      ...convertedRootEntity,
-      linkGroups,
-      linkedEntities: convertedLinkedEntities,
-      linkedAggregations: linkedAggregations as LinkedAggregation[],
-      properties: entityProperties,
+      blockEntity,
+      blockGraph: {
+        depth: 1,
+        linkGroups,
+        linkedEntities: convertedLinkedEntities,
+      },
+      entityTypes: convertedEntityTypesForProvidedEntities,
+      linkedAggregations: convertedLinkedAggregations,
     };
   }, [
     accountId,
@@ -106,12 +134,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     linkedAggregations,
   ]);
 
-  const blockProperties = {
-    ...flattenedProperties,
-    entityId,
-    entityTypeId,
-  };
-
   const functions = {
     aggregateEntityTypes,
     aggregateEntities,
@@ -121,7 +143,10 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     createLink,
     deleteLinkedAggregation,
     deleteLink,
-    /** @todo pick one of getEmbedBlock or fetchEmbedCode */
+    /**
+     * @todo remove this when embed block no longer relies on server-side oEmbed calls
+     * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
+     */
     getEmbedBlock: fetchEmbedCode,
     updateEntity,
     updateEntityType,
@@ -154,16 +179,10 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 
   return (
     <RemoteBlock
-      blockEntity={{
-        entityId: blockProperties.entityId ?? null,
-        entityTypeId: blockProperties.entityTypeId ?? null,
-        properties: blockProperties.properties,
-      }}
-      blockGraph={{ depth: 1, linkGroups, linkedEntities }}
       blockMetadata={blockMetadata}
       editableRef={editableRef}
       graphCallbacks={functions}
-      linkedAggregations={linkedAggregations as BpLinkedAggregation[]}
+      graphProperties={graphProperties}
       onBlockLoaded={onRemoteBlockLoaded}
       sourceUrl={sourceUrl}
     />

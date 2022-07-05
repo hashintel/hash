@@ -1,11 +1,7 @@
 import { BlockMetadata } from "@blockprotocol/core";
 import {
-  BlockGraph,
   BlockGraphProperties,
   EmbedderGraphMessageCallbacks,
-  Entity,
-  EntityType,
-  LinkedAggregation,
   useGraphEmbedderService,
 } from "@blockprotocol/graph";
 import React from "react";
@@ -23,13 +19,10 @@ type RemoteBlockProps = {
     | "deleteEntity"
     | "deleteEntityType"
   >;
-  blockEntity: Entity;
-  blockGraph?: BlockGraph;
+  graphProperties: Required<BlockGraphProperties<Record<string, any>>["graph"]>;
   blockMetadata: BlockMetadata;
   crossFrame?: boolean;
   editableRef?: unknown;
-  entityTypes?: EntityType[];
-  linkedAggregations?: LinkedAggregation[];
   onBlockLoaded?: () => void;
   sourceUrl: string;
 };
@@ -37,17 +30,17 @@ type RemoteBlockProps = {
 export const BlockLoadingIndicator: React.VFC = () => <div>Loading...</div>;
 
 /**
- * @see https://github.com/Paciolan/remote-component/blob/2b2cfbb5b6006117c56f3aa7daa2292d3823bb83/src/createRemoteComponent.tsx
+ * Loads and renders a block from a URL, instantiates the graph service handler,
+ * and passes the block the provided graphProperties
+ *
+ * @see https://github.com/Paciolan/remote-component for the original inspiration
  */
 export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
-  blockEntity,
-  blockGraph,
   blockMetadata,
   crossFrame,
   editableRef,
-  entityTypes,
   graphCallbacks,
-  linkedAggregations,
+  graphProperties,
   onBlockLoaded,
   sourceUrl,
 }) => {
@@ -60,34 +53,35 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
   const wrapperRef = React.useRef<HTMLDivElement>(null);
 
   const { graphService } = useGraphEmbedderService(wrapperRef, {
-    blockGraph,
-    blockEntity,
     callbacks: graphCallbacks,
+    ...graphProperties,
   });
 
   React.useEffect(() => {
     if (graphService) {
-      graphService.blockEntity({ data: blockEntity });
+      graphService.blockEntity({ data: graphProperties.blockEntity });
     }
-  }, [blockEntity, graphService]);
+  }, [graphProperties.blockEntity, graphService]);
 
   React.useEffect(() => {
     if (graphService) {
-      graphService.blockGraph({ data: blockGraph });
+      graphService.blockGraph({ data: graphProperties.blockGraph });
     }
-  }, [blockGraph, graphService]);
+  }, [graphProperties.blockGraph, graphService]);
 
   React.useEffect(() => {
     if (graphService) {
-      graphService.entityTypes({ data: entityTypes });
+      graphService.entityTypes({ data: graphProperties.entityTypes });
     }
-  }, [entityTypes, graphService]);
+  }, [graphProperties.entityTypes, graphService]);
 
   React.useEffect(() => {
     if (graphService) {
-      graphService.linkedAggregations({ data: linkedAggregations });
+      graphService.linkedAggregations({
+        data: graphProperties.linkedAggregations,
+      });
     }
-  }, [linkedAggregations, graphService]);
+  }, [graphProperties.linkedAggregations, graphService]);
 
   if (loading) {
     return <BlockLoadingIndicator />;
@@ -101,14 +95,11 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     throw err;
   }
 
-  const propsToInject: BlockGraphProperties<any> & { editableRef: any } = {
+  const propsToInject: BlockGraphProperties<Record<string, any>> & {
+    editableRef: any;
+  } = {
     editableRef,
-    graph: {
-      blockEntity,
-      blockGraph,
-      entityTypes,
-      linkedAggregations,
-    },
+    graph: graphProperties,
   };
 
   const { entryPoint } = blockMetadata.blockType;

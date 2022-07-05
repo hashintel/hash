@@ -1,4 +1,4 @@
-import { BlockProtocolUploadFileFunction } from "blockprotocol";
+import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { isFileProperties } from "@hashintel/hash-shared/util";
 import {
   GetEntityQuery,
@@ -14,11 +14,11 @@ import {
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
   RequestFileUploadResponse,
-} from "../../graphql/apiTypes.gen";
+} from "../../../graphql/apiTypes.gen";
 import {
   createFileFromLink,
   requestFileUpload,
-} from "../../graphql/queries/file.queries";
+} from "../../../graphql/queries/file.queries";
 
 // https://dev.to/qortex/compute-md5-checksum-for-a-file-in-typescript-59a4
 
@@ -59,7 +59,7 @@ function computeChecksumMd5(file: File): Promise<string> {
   });
 }
 
-export const useFileUpload = () => {
+export const useBlockProtocolFileUpload = (accountId: string) => {
   const client = useApolloClient();
 
   const [requestFileUploadFn] = useMutation<
@@ -91,10 +91,23 @@ export const useFileUpload = () => {
     });
   };
 
-  const uploadFile: BlockProtocolUploadFileFunction = useCallback(
-    async ({ accountId, file, url, mediaType }) => {
+  const uploadFile: EmbedderGraphMessageCallbacks["uploadFile"] = useCallback(
+    async ({ data }) => {
+      if (!data) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "'data' must be provided for uploadFile",
+            },
+          ],
+        };
+      }
+
+      const { file, url, mediaType } = data;
+
       if (url?.trim() && accountId) {
-        const result = await createFileFromLinkFn({
+        const { data: responseData } = await createFileFromLinkFn({
           variables: {
             accountId,
             name: url,
@@ -102,31 +115,40 @@ export const useFileUpload = () => {
           },
         });
 
-        if (!result.data) {
-          throw new Error("An error occured while uploading the file ");
+        if (!responseData) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "Error calling uploadFile",
+              },
+            ],
+          };
         }
 
         const {
           createFileFromLink: { entityId: fileEntityId, properties },
-        } = result.data;
+        } = responseData;
 
         return {
-          entityId: fileEntityId,
-          url: properties.url,
-          mediaType,
-          accountId,
+          data: {
+            entityId: fileEntityId,
+            url: properties.url,
+            mediaType,
+            accountId,
+          },
         };
       }
 
       if (!file) {
         throw new Error(
-          `Please enter a valid ${mediaType} URL or select a file below`,
+          `Please enter a valid ${mediaType} 'url' or provide a 'file'`,
         );
       }
 
       const contentMd5 = await computeChecksumMd5(file);
 
-      const { data } = await requestFileUploadFn({
+      const { data: responseData } = await requestFileUploadFn({
         variables: {
           name: file.name,
           size: file.size,
@@ -134,8 +156,15 @@ export const useFileUpload = () => {
         },
       });
 
-      if (!data) {
-        throw new Error("An error occurred while uploading the file ");
+      if (!responseData) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "Error calling uploadFile",
+            },
+          ],
+        };
       }
 
       /**
@@ -143,7 +172,7 @@ export const useFileUpload = () => {
        */
       const {
         requestFileUpload: { presignedPost, file: uploadedFileEntity },
-      } = data;
+      } = responseData;
 
       await uploadFileToStorageProvider(presignedPost, file);
 
@@ -174,7 +203,7 @@ export const useFileUpload = () => {
         mediaType,
       };
     },
-    [client, createFileFromLinkFn, requestFileUploadFn],
+    [accountId, client, createFileFromLinkFn, requestFileUploadFn],
   );
 
   return {

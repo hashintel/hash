@@ -1,6 +1,14 @@
 import gql from "graphql-tag";
 import { linkFieldsFragment } from "./link.queries";
 
+const minimalEntityTypeFieldsFragment = gql`
+  fragment MinimalEntityTypeFields on EntityType {
+    entityId
+    entityTypeId
+    properties
+  }
+`;
+
 export const linkedAggregationsFragment = gql`
   fragment LinkedAggregationsFields on LinkedAggregation {
     aggregationId
@@ -36,8 +44,14 @@ export const linkedAggregationsFragment = gql`
       entityVersionCreatedAt
       createdByAccountId
       properties
+      entityTypeId
+      entityType {
+        ...MinimalEntityTypeFields
+      }
+      visibility
     }
   }
+  ${minimalEntityTypeFieldsFragment}
 `;
 
 export const entityFieldsFragment = gql`
@@ -52,6 +66,9 @@ export const entityFieldsFragment = gql`
     entityVersionCreatedAt
     createdByAccountId
     entityTypeId
+    entityType {
+      ...MinimalEntityTypeFields
+    }
     properties
     linkGroups {
       links {
@@ -65,12 +82,16 @@ export const entityFieldsFragment = gql`
       accountId
       entityId
       entityTypeId
+      entityType {
+        ...MinimalEntityTypeFields
+      }
       properties
     }
     linkedAggregations {
       ...LinkedAggregationsFields
     }
   }
+  ${minimalEntityTypeFieldsFragment}
   ${linkFieldsFragment}
   ${linkedAggregationsFragment}
 `;

@@ -1,6 +1,6 @@
 import { gql } from "@apollo/client";
 
-const entityTypeFieldsFragment = gql`
+export const entityTypeFieldsFragment = gql`
   fragment EntityTypeFields on EntityType {
     accountId
     createdByAccountId

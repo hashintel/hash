@@ -284,27 +284,22 @@ export const parseLinkedAggregationIdentifier = (
   return identifierObject;
 };
 
+type MinimalApiLinkedAggregation = Pick<
+  ApiLinkedAggregation,
+  "aggregationId" | "sourceAccountId" | "sourceEntityId" | "operation" | "path"
+>;
+
 export function convertApiLinkedAggregationToBpLinkedAggregation(
-  linkedAggregation: Pick<
-    ApiLinkedAggregation,
-    | "aggregationId"
-    | "sourceAccountId"
-    | "sourceEntityId"
-    | "operation"
-    | "path"
-  >,
+  linkedAggregation: MinimalApiLinkedAggregation & { results: never },
 ): BpLinkedAggregationDefinition;
 
 export function convertApiLinkedAggregationToBpLinkedAggregation(
-  linkedAggregation: Pick<
-    ApiLinkedAggregation,
-    | "aggregationId"
-    | "sourceAccountId"
-    | "sourceEntityId"
-    | "operation"
-    | "path"
-    | "results"
-  >,
+  linkedAggregation: MinimalApiLinkedAggregation & {
+    results: Pick<
+      ApiEntity,
+      "accountId" | "entityId" | "entityTypeId" | "properties"
+    >[];
+  },
 ): BpLinkedAggregation;
 /**
  * Converts a LinkedAggregation from its GraphQL API representation to its Block Protocol representation,
@@ -313,23 +308,13 @@ export function convertApiLinkedAggregationToBpLinkedAggregation(
  */
 export function convertApiLinkedAggregationToBpLinkedAggregation(
   linkedAggregation:
-    | Pick<
-        ApiLinkedAggregation,
-        | "aggregationId"
-        | "sourceAccountId"
-        | "sourceEntityId"
-        | "operation"
-        | "path"
-        | "results"
-      >
-    | Pick<
-        ApiLinkedAggregation,
-        | "aggregationId"
-        | "sourceAccountId"
-        | "sourceEntityId"
-        | "operation"
-        | "path"
-      >,
+    | (MinimalApiLinkedAggregation & { results: never })
+    | (MinimalApiLinkedAggregation & {
+        results: Pick<
+          ApiEntity,
+          "accountId" | "entityId" | "entityTypeId" | "properties"
+        >[];
+      }),
 ): BpLinkedAggregation | BpLinkedAggregationDefinition {
   const { aggregationId, sourceAccountId, sourceEntityId, operation, path } =
     linkedAggregation;
