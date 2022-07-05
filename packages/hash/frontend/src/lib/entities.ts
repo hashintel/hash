@@ -1,25 +1,26 @@
-import { JSONObject } from "blockprotocol";
-
-import { isParsedJsonObject } from "@hashintel/hash-shared/json-utils";
+import { JsonObject } from "@blockprotocol/core";
 import {
   Entity as BpEntity,
   EntityType as BpEntityType,
   Link as BpLink,
+  LinkGroup as BpLinkGroup,
   LinkedAggregation as BpLinkedAggregation,
   LinkedAggregationDefinition as BpLinkedAggregationDefinition,
 } from "@blockprotocol/graph";
+
+import { isParsedJsonObject } from "@hashintel/hash-shared/json-utils";
 
 import {
   UnknownEntity as ApiEntity,
   EntityType as ApiEntityType,
   Link as ApiLink,
+  LinkGroup as ApiLinkGroup,
   LinkedAggregation as ApiLinkedAggregation,
 } from "../graphql/apiTypes.gen";
 
 export type ApiEntityIdentifier = {
   accountId: string;
   entityId: string;
-  entityTypeId?: string;
 };
 
 /**
@@ -30,9 +31,7 @@ export type ApiEntityIdentifier = {
 export const rewriteEntityIdentifier = ({
   accountId,
   entityId,
-  entityTypeId,
-}: ApiEntityIdentifier) =>
-  JSON.stringify({ accountId, entityId, entityTypeId });
+}: ApiEntityIdentifier) => JSON.stringify({ accountId, entityId });
 
 /**
  * Converts an entity from its GraphQL API representation to its Block Protocol representation:
@@ -54,7 +53,7 @@ export const convertApiEntityToBpEntity = ({
     );
   }
   return {
-    entityId: rewriteEntityIdentifier({ accountId, entityId, entityTypeId }),
+    entityId: rewriteEntityIdentifier({ accountId, entityId }),
     entityTypeId,
     properties,
   };
@@ -284,6 +283,31 @@ export const parseLinkedAggregationIdentifier = (
   return identifierObject;
 };
 
+export const convertApiLinkGroupToBpLinkGroup = (
+  linkGroup: ApiLinkGroup,
+): BpLinkGroup => {
+  const { sourceAccountId, sourceEntityId, links, ...rest } = linkGroup;
+
+  if (sourceEntityId.includes("{")) {
+    throw new Error(
+      `sourceEntityId has already been re-written as a stringified object: ${sourceEntityId}`,
+    );
+  }
+
+  return {
+    sourceEntityId: rewriteEntityIdentifier({
+      accountId: sourceAccountId,
+      entityId: sourceEntityId,
+    }),
+    links: convertApiLinksToBpLinks(links),
+    ...rest,
+  };
+};
+
+export const convertApiLinkGroupsToBpLinkGroups = (
+  linkGroups: ApiLinkGroup[],
+): BpLinkGroup[] => linkGroups.map(convertApiLinkGroupToBpLinkGroup);
+
 type MinimalApiLinkedAggregation = Pick<
   ApiLinkedAggregation,
   "aggregationId" | "sourceAccountId" | "sourceEntityId" | "operation" | "path"
@@ -397,7 +421,7 @@ export const convertApiEntityTypesToBpEntityTypes = (
  * It will be replaced by a 'labelProperty' in the schema indicating which field to use as the label
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
-export const guessEntityName = (entity: JSONObject) => {
+export const guessEntityName = (entity: JsonObject) => {
   const { name, preferredName, displayName, title, shortname, legalName } =
     isParsedJsonObject(entity.properties) ? entity.properties : entity;
   return (

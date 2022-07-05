@@ -1,47 +1,41 @@
 import { MuiForm5 as JSONSchemaForm } from "@rjsf/material-ui";
+import { JsonObject } from "@blockprotocol/core";
+import {
+  BlockGraph,
+  EmbedderGraphMessageCallbacks,
+} from "@blockprotocol/graph";
 import jsonpath from "jsonpath";
 import { FormEvent, useMemo, VoidFunctionComponent } from "react";
-import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolProps,
-  JSONObject,
-} from "blockprotocol";
 import { unset } from "lodash";
 import { ISubmitEvent } from "@rjsf/core";
 import { tw } from "twind";
 
 import {
   CreateLinkFnWithFixedSource,
-  DeleteLinkFnWithFixedSource,
   EntityLinkDefinition,
 } from "./simple-entity-editor/types";
 import { EntityLinksEditor } from "./simple-entity-editor/entity-links-editor";
 import { guessEntityName } from "../../../../lib/entities";
 
 type SimpleEntityEditorProps = {
-  accountId: string; // @todo figure out if accountId is a part of the protocol or not
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction;
-  disabled?: boolean;
-  readonly?: boolean;
+  aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"];
   refetchEntity?: () => void; // @todo handle this via the collab server or some other way
-  schema: JSONObject;
+  schema: JsonObject;
 } & (
   | /** @todo handle creating links along with a new entity - needs API provision for this */
-  Required<Pick<BlockProtocolProps, "createEntities" | "entityTypeId">> // for new entities
-  | Required<
+  {
+      createEntity: EmbedderGraphMessageCallbacks["createEntity"];
+      entityTypeId: string;
+    } // for new entities
+  | {
       // for existing entities
-      Pick<
-        BlockProtocolProps,
-        | "entityId"
-        | "linkedEntities"
-        | "linkGroups"
-        | "updateEntities"
-        | "createLinks"
-        | "deleteLinks"
-      > & {
-        entityProperties: JSONObject;
-      }
-    >
+      blockGraph: BlockGraph;
+      createLink: EmbedderGraphMessageCallbacks["createLink"];
+      deleteLink: EmbedderGraphMessageCallbacks["deleteLink"];
+      entityId: string;
+      entityProperties: JsonObject;
+      updateEntity: EmbedderGraphMessageCallbacks["updateEntity"];
+    }
 );
 
 /**
@@ -64,10 +58,10 @@ const typeIdFromSchemaRef = ($ref: string) =>
  * @todo support anyOf arrays that allow multiple $refs or $refs alongside other types
  */
 const splitSchema = (
-  schema: JSONObject,
+  schema: JsonObject,
 ): {
   linksInSchema: EntityLinkDefinition[];
-  schemaWithoutLinks: JSONObject;
+  schemaWithoutLinks: JsonObject;
 } => {
   const clone = JSON.parse(JSON.stringify(schema));
 
@@ -146,52 +140,30 @@ const splitSchema = (
 
 export const SimpleEntityEditor: VoidFunctionComponent<
   SimpleEntityEditorProps
-> = ({
-  accountId,
-  aggregateEntities: aggregate,
-  disabled,
-  readonly,
-  refetchEntity,
-  schema,
-  ...entityProps
-}) => {
-  const {
-    createLinks = undefined,
-    deleteLinks = undefined,
-    entityId = undefined,
-    entityProperties: existingProperties = undefined,
-    linkedEntities = [],
-    linkGroups: existingLinkGroups = [],
-  } = "entityProperties" in entityProps ? entityProps : {};
-
+> = ({ aggregateEntities, refetchEntity, schema, ...variableProps }) => {
   const onSubmit = (args: ISubmitEvent<any>, event: FormEvent) => {
     event.preventDefault();
-    if ("entityId" in entityProps) {
-      entityProps
-        .updateEntities([
-          {
-            accountId,
-            data: {
-              ...existingProperties,
-              ...args.formData,
-            },
-            entityId: entityProps.entityId,
+    if ("entityProperties" in variableProps) {
+      const { updateEntity, entityProperties, entityId } = variableProps;
+      updateEntity({
+        data: {
+          properties: {
+            ...entityProperties,
+            ...args.formData,
           },
-        ])
+          entityId,
+        },
+      })
         // eslint-disable-next-line no-console -- TODO: consider using logger
         .catch((err) => console.error(`Error creating entity: ${err.message}`));
     } else {
-      if (!entityProps.entityTypeId) {
-        throw new Error("entityTypeId is required to create a new entity.");
-      }
-      entityProps
-        .createEntities([
-          {
-            accountId,
-            data: args.formData,
-            entityTypeId: entityProps.entityTypeId,
-          },
-        ])
+      const { createEntity, entityTypeId } = variableProps;
+      createEntity({
+        data: {
+          properties: args.formData,
+          entityTypeId,
+        },
+      })
         // eslint-disable-next-line no-console -- TODO: consider using logger
         .catch((err) => console.error(`Error updating entity: ${err.message}`));
     }
@@ -202,37 +174,40 @@ export const SimpleEntityEditor: VoidFunctionComponent<
     [schema],
   );
 
-  const name = existingProperties
-    ? guessEntityName({ properties: existingProperties })
-    : "New Entity";
+  const name =
+    "entityProperties" in variableProps
+      ? guessEntityName({ properties: variableProps.entityProperties })
+      : "New Entity";
 
   const createLinkWithFixedSource: CreateLinkFnWithFixedSource | undefined =
-    createLinks && entityId
+    "entityId" in variableProps
       ? (action) =>
-          createLinks([
-            {
-              ...action,
-              sourceAccountId: accountId,
-              sourceEntityId: entityId,
-            },
-          ]).then((res) => {
-            refetchEntity?.();
-            return res;
-          })
+          variableProps
+            .createLink({
+              data: {
+                ...action,
+                sourceEntityId: variableProps.entityId,
+              },
+            })
+            .then((res) => {
+              refetchEntity?.();
+              return res;
+            })
       : undefined;
 
-  const deleteLinkWithFixedSource: DeleteLinkFnWithFixedSource | undefined =
-    deleteLinks && entityId
-      ? (action) =>
-          deleteLinks([
-            {
-              ...action,
-              sourceAccountId: accountId,
-            },
-          ]).then((res) => {
-            refetchEntity?.();
-            return res;
-          })
+  const deleteLinkWithRefetch:
+    | EmbedderGraphMessageCallbacks["deleteLink"]
+    | undefined =
+    "deleteLink" in variableProps
+      ? ({ data }) =>
+          variableProps
+            .deleteLink({
+              data,
+            })
+            .then((res) => {
+              refetchEntity?.();
+              return res;
+            })
       : undefined;
 
   return (
@@ -242,29 +217,28 @@ export const SimpleEntityEditor: VoidFunctionComponent<
           <em>{name}</em>'s properties
         </h2>
         <JSONSchemaForm
-          disabled={disabled}
-          formData={existingProperties}
+          formData={
+            "entityProperties" in variableProps
+              ? variableProps.entityProperties
+              : {}
+          }
           onSubmit={onSubmit}
-          readonly={readonly}
           schema={schemaWithoutLinks}
         />
       </div>
       {/* @todo allow creation of links when creating an entity for the first time */}
-      {createLinkWithFixedSource &&
-      deleteLinkWithFixedSource &&
-      refetchEntity ? (
+      {"entityProperties" in variableProps ? (
         <div>
           <h2>
             Entities linked from <em>{name}</em>
           </h2>
           <EntityLinksEditor
-            accountId={accountId}
-            aggregateEntities={aggregate}
-            createLinkFromEntity={createLinkWithFixedSource}
-            deleteLinkFromEntity={deleteLinkWithFixedSource}
-            existingLinkGroups={existingLinkGroups}
+            aggregateEntities={aggregateEntities}
+            createLinkFromEntity={createLinkWithFixedSource!}
+            deleteLinkFromEntity={deleteLinkWithRefetch!}
+            existingLinkGroups={variableProps.blockGraph.linkGroups}
             linksInSchema={linksInSchema}
-            linkedEntities={linkedEntities}
+            linkedEntities={variableProps.blockGraph.linkedEntities}
           />
         </div>
       ) : null}

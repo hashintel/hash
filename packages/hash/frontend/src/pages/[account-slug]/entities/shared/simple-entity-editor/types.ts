@@ -1,8 +1,7 @@
-import { DistributiveOmit } from "@hashintel/hash-shared/util";
 import {
-  BlockProtocolCreateLinksFunction,
-  BlockProtocolDeleteLinksFunction,
-} from "blockprotocol";
+  CreateLinkData,
+  EmbedderGraphMessageCallbacks,
+} from "@blockprotocol/graph";
 
 export type EntityLinkDefinition = {
   array?: boolean;
@@ -11,19 +10,7 @@ export type EntityLinkDefinition = {
 };
 
 export type CreateLinkFnWithFixedSource = {
-  (
-    payload: DistributiveOmit<
-      Parameters<BlockProtocolCreateLinksFunction>[0][0],
-      "sourceAccountId" | "sourceEntityId"
-    >,
-  ): ReturnType<BlockProtocolCreateLinksFunction>;
-};
-
-export type DeleteLinkFnWithFixedSource = {
-  (
-    payload: Omit<
-      Parameters<BlockProtocolDeleteLinksFunction>[0][0],
-      "sourceAccountId" | "sourceEntityId"
-    >,
-  ): ReturnType<BlockProtocolDeleteLinksFunction>;
+  (payload: Omit<CreateLinkData, "sourceEntityId">): ReturnType<
+    EmbedderGraphMessageCallbacks["createLink"]
+  >;
 };

@@ -130,7 +130,6 @@ const Page: NextPageWithLayout = () => {
         </Button>
       </div>
       <SchemaEditor
-        accountId={accountId}
         aggregateEntityTypes={aggregateEntityTypes}
         entityTypeId={data.getEntityType.entityId}
         schema={schema}

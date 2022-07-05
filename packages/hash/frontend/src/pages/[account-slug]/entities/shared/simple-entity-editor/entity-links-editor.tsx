@@ -1,26 +1,21 @@
 import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolEntity,
-  BlockProtocolLink,
-  BlockProtocolLinkGroup,
-} from "blockprotocol";
+  EmbedderGraphMessageCallbacks,
+  Entity,
+  Link,
+  LinkGroup,
+} from "@blockprotocol/graph";
 import { useMemo, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 
-import {
-  CreateLinkFnWithFixedSource,
-  DeleteLinkFnWithFixedSource,
-  EntityLinkDefinition,
-} from "./types";
+import { CreateLinkFnWithFixedSource, EntityLinkDefinition } from "./types";
 import { EntityFieldLinkEditor } from "./entity-field-link-editor";
 
 type EntityLinkEditorProps = {
-  accountId: string;
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction;
+  aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"];
   createLinkFromEntity: CreateLinkFnWithFixedSource;
-  deleteLinkFromEntity: DeleteLinkFnWithFixedSource;
-  existingLinkGroups: BlockProtocolLinkGroup[];
-  linkedEntities: BlockProtocolEntity[];
+  deleteLinkFromEntity: EmbedderGraphMessageCallbacks["deleteLink"];
+  existingLinkGroups: LinkGroup[];
+  linkedEntities: Entity[];
   linksInSchema: EntityLinkDefinition[];
 };
 
@@ -29,7 +24,6 @@ const pathToString = (pathAsArray: string[]) => pathAsArray.join(".");
 export const EntityLinksEditor: VoidFunctionComponent<
   EntityLinkEditorProps
 > = ({
-  accountId,
   aggregateEntities,
   createLinkFromEntity,
   deleteLinkFromEntity,
@@ -37,6 +31,7 @@ export const EntityLinksEditor: VoidFunctionComponent<
   linkedEntities,
   linksInSchema,
 }) => {
+  console.log({ linkedEntities, existingLinkGroups });
   const linksByPath = useMemo(
     () =>
       linksInSchema.map((link) => ({
@@ -57,8 +52,8 @@ export const EntityLinksEditor: VoidFunctionComponent<
               (
                 linkData,
               ): linkData is {
-                linkedEntity: BlockProtocolEntity;
-                link: BlockProtocolLink;
+                linkedEntity: Entity;
+                link: Link;
               } => linkData.linkedEntity !== undefined,
             ) ?? [],
       })),
@@ -75,7 +70,6 @@ export const EntityLinksEditor: VoidFunctionComponent<
               {pathString.replace(/^\$\./, "")}
             </div>
             <EntityFieldLinkEditor
-              accountId={accountId}
               aggregateEntities={aggregateEntities}
               entityTypeId={link.permittedTypeIds[0]!} // @todo handle multiple permitted types
               allowsMultipleSelections={!!link.array}

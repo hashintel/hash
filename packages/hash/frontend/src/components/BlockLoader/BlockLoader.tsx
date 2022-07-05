@@ -13,6 +13,7 @@ import {
   convertApiEntityTypesToBpEntityTypes,
   convertApiEntityTypeToBpEntityType,
   convertApiLinkedAggregationToBpLinkedAggregation,
+  convertApiLinkGroupsToBpLinkGroups,
 } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
@@ -118,7 +119,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       blockEntity,
       blockGraph: {
         depth: 1,
-        linkGroups,
+        linkGroups: convertApiLinkGroupsToBpLinkGroups(linkGroups),
         linkedEntities: convertedLinkedEntities,
       },
       entityTypes: convertedEntityTypesForProvidedEntities,

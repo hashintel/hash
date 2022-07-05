@@ -74,6 +74,7 @@ export const entityFieldsFragment = gql`
       links {
         ...LinkFields
       }
+      sourceAccountId
       sourceEntityId
       sourceEntityVersionId
       path
@@ -111,6 +112,7 @@ export const getEntity = gql`
         links {
           ...LinkFields
         }
+        sourceAccountId
         sourceEntityId
         sourceEntityVersionId
         path

@@ -89,6 +89,10 @@ export const entityTypedef = gql`
   """
   type LinkGroup {
     """
+    The accountId of the source entity for the link group.
+    """
+    sourceAccountId: ID!
+    """
     The entityId of the source entity for the link group.
     """
     sourceEntityId: ID!

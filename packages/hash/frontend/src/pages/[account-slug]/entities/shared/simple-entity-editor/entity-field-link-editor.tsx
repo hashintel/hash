@@ -1,3 +1,9 @@
+import {
+  EmbedderGraphMessageCallbacks,
+  Entity,
+  Link,
+} from "@blockprotocol/graph";
+import { JsonObject } from "@blockprotocol/core";
 import React, {
   ChangeEvent,
   HTMLProps,
@@ -6,35 +12,26 @@ import React, {
   useState,
   VoidFunctionComponent,
 } from "react";
-import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolEntity,
-  BlockProtocolLink,
-  JSONObject,
-} from "blockprotocol";
 import { tw } from "twind";
 
-import { isSingleTargetLink } from "../../../../../components/util/typeUtils";
+import { CreateLinkFnWithFixedSource } from "./types";
 import {
-  CreateLinkFnWithFixedSource,
-  DeleteLinkFnWithFixedSource,
-} from "./types";
-import { guessEntityName } from "../../../../../lib/entities";
-import { Link } from "../../../../../shared/ui";
+  guessEntityName,
+  parseEntityIdentifier,
+} from "../../../../../lib/entities";
+import { Link as LinkComponent } from "../../../../../shared/ui";
 
-// @todo make this not need to know about accountId
-type MinimalEntity = { accountId: string; entityId: string; name: string };
+type MinimalEntity = { entityId: string; name: string };
 
 type EntitySelectProps = {
-  accountId: string;
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction;
+  aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"];
   allowsMultipleSelections: boolean;
   createLinkFromEntity: CreateLinkFnWithFixedSource;
-  deleteLinkFromEntity: DeleteLinkFnWithFixedSource;
+  deleteLinkFromEntity: EmbedderGraphMessageCallbacks["deleteLink"];
   entityTypeId: string;
   linksOnField: {
-    linkedEntity: BlockProtocolEntity;
-    link: BlockProtocolLink;
+    linkedEntity: Entity;
+    link: Link;
   }[];
   path: string;
 };
@@ -67,7 +64,6 @@ const SelectInput: VoidFunctionComponent<
 export const EntityFieldLinkEditor: VoidFunctionComponent<
   EntitySelectProps
 > = ({
-  accountId,
   aggregateEntities,
   allowsMultipleSelections,
   createLinkFromEntity,
@@ -80,35 +76,37 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
 
   useEffect(() => {
     aggregateEntities({
-      accountId,
-      operation: {
-        entityTypeId,
-        itemsPerPage: 100, // @todo paginate
+      data: {
+        operation: {
+          entityTypeId,
+          itemsPerPage: 100, // @todo paginate
+        },
       },
     })
-      .then(({ results }) =>
+      .then(({ data }) => {
+        if (!data) {
+          throw new Error("No data returned from aggregateEntitites");
+        }
+
         /**
          * These options purposefully do not filter out entities already selected for a field.
          * Duplicate entities will be valid for some purposes.
          * @todo support users defining the JSON Schema uniqueItems property on an array field
          */
         setEntityOptions(
-          results.map(
-            ({ accountId: resultAccountId, entityId, ...properties }) => ({
-              accountId: resultAccountId ?? "",
-              entityId,
-              name: guessEntityName({ entityId, ...properties }),
-            }),
-          ),
-        ),
-      )
+          data.results.map(({ entityId, ...properties }) => ({
+            entityId,
+            name: guessEntityName({ entityId, ...properties } as JsonObject),
+          })),
+        );
+      })
       .catch((err) =>
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(
           `Error fetching entities to populate select options: ${err.message}`,
         ),
       );
-  }, [accountId, aggregateEntities, entityTypeId]);
+  }, [aggregateEntities, entityTypeId]);
 
   const onSelectNew = useCallback(
     (evt: ChangeEvent<HTMLSelectElement>) => {
@@ -137,7 +135,9 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
         });
       } else {
         if (lastLinkData && "linkId" in linksOnField[0]!.link) {
-          void deleteLinkFromEntity({ linkId: linksOnField[0]!.link.linkId });
+          void deleteLinkFromEntity({
+            data: { linkId: linksOnField[0]!.link.linkId },
+          });
         }
         if (selectedEntityId !== noSelectionValue) {
           void createLinkFromEntity({
@@ -174,39 +174,33 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
         }
       />
       {allowsMultipleSelections
-        ? linksOnField
-            .filter(
-              (
-                linkOnField,
-              ): linkOnField is {
-                link: BlockProtocolLink;
-                linkedEntity: BlockProtocolEntity;
-              } => {
-                return isSingleTargetLink(linkOnField.link);
-              },
-            )
-            .map(({ link, linkedEntity }) => (
+        ? linksOnField.map(({ link, linkedEntity }) => {
+            /*
+             * @todo remove the need for this component to know about links and accountId
+             *    e.g. pass a GoToEntity component into it
+             */
+            const { accountId, entityId } = parseEntityIdentifier(
+              linkedEntity.entityId,
+            );
+            return (
               <div className={tw`flex my-6`} key={link.linkId}>
                 <div className={tw`font-bold w-32`}>
-                  {/*
-                   * @todo remove the need for this component to know about links and accountId
-                   *    e.g. pass a GoToEntity component into it
-                   */}
-                  <Link
-                    href={`/${linkedEntity.accountId}/entities/${linkedEntity.entityId}`}
-                  >
-                    <a>{guessEntityName(linkedEntity as JSONObject)}</a>
-                  </Link>
+                  <LinkComponent href={`/${accountId}/entities/${entityId}`}>
+                    <a>{guessEntityName(linkedEntity as JsonObject)}</a>
+                  </LinkComponent>
                 </div>
                 <button
                   className={tw`text-red-500 text-sm`}
-                  onClick={() => deleteLinkFromEntity({ linkId: link.linkId })}
+                  onClick={() =>
+                    deleteLinkFromEntity({ data: { linkId: link.linkId } })
+                  }
                   type="button"
                 >
                   Remove
                 </button>
               </div>
-            ))
+            );
+          })
         : null}
     </div>
   );
