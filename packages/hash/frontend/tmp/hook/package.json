@@ -1,0 +1,48 @@
+{
+  "name": "@blockprotocol/hook",
+  "version": "0.0.0-next.0",
+  "description": "Implementation of the Block Protocol Hook service specification for blocks and embedding applications",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "hook"
+  ],
+  "homepage": "https://blockprotocol.org",
+  "bugs": {
+    "url": "https://github.com/blockprotocol/blockprotocol/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:blockprotocol/blockprotocol.git",
+    "directory": "packages/@blockprotocol/graph"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "HASH",
+    "url": "https://hash.ai"
+  },
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "build": "yarn clean && yarn build:cjs && yarn build:esm",
+    "build:cjs": "tsc --module commonjs --outDir dist/cjs ",
+    "build:esm": "tsc",
+    "clean": "rimraf ./dist/",
+    "lint:tsc": "tsc --noEmit",
+    "prepare": "yarn build"
+  },
+  "dependencies": {
+    "@blockprotocol/core": "0.0.7",
+    "react": "^17.0.2"
+  },
+  "devDependencies": {
+    "rimraf": "^3.0.2",
+    "typescript": "4.7.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2"
+  }
+}

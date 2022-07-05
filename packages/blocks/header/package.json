@@ -19,7 +19,8 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.10"
+    "blockprotocol": "0.0.10",
+    "react-merge-refs": "2.0.1"
   },
   "devDependencies": {
     "block-scripts": "0.0.13",
@@ -30,6 +31,7 @@
     "typescript": "4.6.3"
   },
   "peerDependencies": {
+    "@blockprotocol/hook": "0.0.0-next.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },

@@ -10,6 +10,7 @@
     "packages/hash/design-system",
     "packages/hash/eslint-config",
     "packages/hash/frontend",
+    "packages/hash/frontend/tmp/hook",
     "packages/hash/integration",
     "packages/hash/playwright",
     "packages/hash/realtime",

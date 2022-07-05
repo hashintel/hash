@@ -1,6 +1,7 @@
 import { BlockProtocolFunctions, BlockProtocolProps } from "blockprotocol";
-import React from "react";
+import React, { useRef } from "react";
 
+import { useHookEmbedderService } from "@blockprotocol/hook";
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useRemoteBlock } from "./useRemoteBlock";
 
@@ -8,7 +9,7 @@ type RemoteBlockProps = {
   blockFunctions: BlockProtocolFunctions;
   blockProperties: Omit<BlockProtocolProps, keyof BlockProtocolFunctions>;
   crossFrame?: boolean;
-  editableRef?: unknown;
+  editableRef?: (node: HTMLElement | null) => void;
   onBlockLoaded?: () => void;
   sourceUrl: string;
 };
@@ -31,6 +32,18 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     crossFrame,
     onBlockLoaded,
   );
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useHookEmbedderService(wrapperRef, {
+    callbacks: {
+      node(msg) {
+        if (msg.data) {
+          editableRef?.(msg.data.node);
+        }
+      },
+    },
+  });
 
   if (loading) {
     return <BlockLoadingIndicator />;
@@ -60,10 +73,12 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
   }
 
   return (
-    <Component
-      {...blockFunctions}
-      {...blockProperties}
-      editableRef={editableRef}
-    />
+    <div ref={wrapperRef}>
+      <Component
+        {...blockFunctions}
+        {...blockProperties}
+        editableRef={editableRef}
+      />
+    </div>
   );
 };

@@ -14,6 +14,7 @@
     "baseUrl": ".",
     "paths": {
       "@hashintel/hash-shared/*": ["./packages/hash/shared/src/*"],
+      "@blockprotocol/hook/*": ["./packages/hash/frontend/tmp/hook/src/*"],
       "@hashintel/hash-backend-utils/*": [
         "./packages/hash/backend-utils/src/*"
       ],

@@ -1,5 +1,7 @@
 import { BlockComponent } from "blockprotocol/react";
-import React, { RefCallback } from "react";
+import React, { RefCallback, useRef } from "react";
+import { useHookRef, useHookBlockService } from "@blockprotocol/hook";
+import { mergeRefs } from "react-merge-refs";
 
 type BlockEntityProperties = {
   color?: string;
@@ -11,22 +13,19 @@ type BlockEntityProperties = {
 export const App: BlockComponent<BlockEntityProperties> = ({
   color,
   level = 1,
-  editableRef,
   text,
 }) => {
   // @todo set type correctly
   const Header = `h${level}` as any;
 
-  return editableRef ? (
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const { hookService } = useHookBlockService(headingRef);
+  const hookRef = useHookRef(hookService, text);
+
+  return (
     <Header
       style={{ fontFamily: "Arial", color: color ?? "black", marginBottom: 0 }}
-      ref={editableRef}
+      ref={mergeRefs([headingRef, hookRef])}
     />
-  ) : (
-    <Header
-      style={{ fontFamily: "Arial", color: color ?? "black", marginBottom: 0 }}
-    >
-      {text}
-    </Header>
   );
 };

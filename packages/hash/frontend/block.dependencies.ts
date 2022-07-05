@@ -5,4 +5,5 @@ export const blockDependencies: Record<string, any> = {
   "react-dom": require("react-dom"),
   twind: require("twind"),
   lodash: require("lodash"),
+  "@blockprotocol/hook": require("@blockprotocol/hook"),
 };
