@@ -240,7 +240,7 @@ mod tests {
         let attachment = report.downcast_mut::<String>().unwrap();
         attachment.push_str(" World!");
         let messages: Vec<_> = report
-            .traverse_mut()
+            .frames_mut()
             .filter_map(|frame| match frame.kind() {
                 FrameKind::Context(context) => Some(context.to_string()),
                 FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {

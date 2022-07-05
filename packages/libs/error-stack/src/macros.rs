@@ -260,7 +260,7 @@ mod tests {
         let err = err.attach_printable("additional message");
         assert!(err.contains::<ContextA>());
         assert_eq!(err.current_context(), &ContextA);
-        assert_eq!(err.traverse().count(), 2);
+        assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
 
         let err = capture_error(|| Err(report!(err)));
@@ -271,7 +271,7 @@ mod tests {
         assert_eq!(err.current_context(), &ContextA);
         #[cfg(nightly)]
         assert!(err.request_ref::<ContextB>().next().is_some());
-        assert_eq!(err.traverse().count(), 3);
+        assert_eq!(err.frames().count(), 3);
         assert_eq!(messages(&err), [
             "Context B",
             "additional message",
@@ -284,7 +284,7 @@ mod tests {
             let err = err.attach_printable("additional message");
             assert_eq!(err.current_context(), &ContextB);
             assert!(err.contains::<ContextB>());
-            assert_eq!(err.traverse().count(), 2);
+            assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
         }
     }
@@ -294,12 +294,12 @@ mod tests {
         let err = capture_error(|| bail!(ContextA));
         let err = err.attach_printable("additional message");
         assert!(err.contains::<ContextA>());
-        assert_eq!(err.traverse().count(), 2);
+        assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
 
         let err = capture_error(|| bail!(err));
         assert!(err.contains::<ContextA>());
-        assert_eq!(err.traverse().count(), 2);
+        assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
 
         #[cfg(feature = "std")]
@@ -307,7 +307,7 @@ mod tests {
             let err = capture_error(|| bail!(ContextB));
             let err = err.attach_printable("additional message");
             assert!(err.contains::<ContextB>());
-            assert_eq!(err.traverse().count(), 2);
+            assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
         }
     }
@@ -320,7 +320,7 @@ mod tests {
         });
         let err = err.attach_printable("additional message");
         assert!(err.contains::<ContextA>());
-        assert_eq!(err.traverse().count(), 2);
+        assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
 
         let err = capture_error(|| {
@@ -328,7 +328,7 @@ mod tests {
             Ok(())
         });
         assert!(err.contains::<ContextA>());
-        assert_eq!(err.traverse().count(), 2);
+        assert_eq!(err.frames().count(), 2);
         assert_eq!(messages(&err), ["additional message", "Context A"]);
 
         #[cfg(feature = "std")]
@@ -339,7 +339,7 @@ mod tests {
             });
             let err = err.attach_printable("additional message");
             assert!(err.contains::<ContextB>());
-            assert_eq!(err.traverse().count(), 2);
+            assert_eq!(err.frames().count(), 2);
             assert_eq!(messages(&err), ["additional message", "Context B"]);
         }
     }

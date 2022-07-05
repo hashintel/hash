@@ -24,19 +24,19 @@ use crate::{Frame, Report};
 /// Use [`Report::traverse()`] to create this iterator.
 #[must_use]
 #[derive(Clone)]
-pub struct TraverseFrames<'r> {
+pub struct Frames<'r> {
     stack: Vec<&'r Frame>,
 }
 
-impl<'r> TraverseFrames<'r> {
+impl<'r> Frames<'r> {
     pub(crate) const fn new<C>(report: &'r Report<C>) -> Self {
         Self {
-            stack: report.frames().iter().rev().collect(),
+            stack: report.frames.iter().rev().collect(),
         }
     }
 }
 
-impl<'r> Iterator for TraverseFrames<'r> {
+impl<'r> Iterator for Frames<'r> {
     type Item = &'r Frame;
 
     /// We use a reversed stack of the implementation, considering the following tree:
@@ -73,9 +73,9 @@ impl<'r> Iterator for TraverseFrames<'r> {
     }
 }
 
-impl<'r> FusedIterator for TraverseFrames<'r> {}
+impl<'r> FusedIterator for Frames<'r> {}
 
-impl fmt::Debug for TraverseFrames<'_> {
+impl fmt::Debug for Frames<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()
     }
@@ -85,16 +85,16 @@ impl fmt::Debug for TraverseFrames<'_> {
 ///
 /// Use [`Report::frames_mut()`] to create this iterator.
 #[must_use]
-pub struct TraverseFramesMut<'r> {
+pub struct FramesMut<'r> {
     current: Vec<*mut Frame>,
     _marker: PhantomData<&'r mut Frame>,
 }
 
-impl<'r> TraverseFramesMut<'r> {
+impl<'r> FramesMut<'r> {
     pub(crate) fn new<C>(report: &'r mut Report<C>) -> Self {
         Self {
             current: report
-                .frames_mut()
+                .frames
                 .iter_mut()
                 .map(|frame| frame as *mut Frame)
                 .rev()
@@ -104,7 +104,7 @@ impl<'r> TraverseFramesMut<'r> {
     }
 }
 
-impl<'r> Iterator for TraverseFramesMut<'r> {
+impl<'r> Iterator for FramesMut<'r> {
     type Item = &'r mut Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -130,7 +130,7 @@ impl<'r> Iterator for TraverseFramesMut<'r> {
     }
 }
 
-impl<'r> FusedIterator for TraverseFramesMut<'r> {}
+impl<'r> FusedIterator for FramesMut<'r> {}
 
 /// Iterator over requested references in the [`Frame`] stack of a [`Report`].
 ///
@@ -138,7 +138,7 @@ impl<'r> FusedIterator for TraverseFramesMut<'r> {}
 #[must_use]
 #[cfg(nightly)]
 pub struct RequestRef<'r, T: ?Sized> {
-    frames: TraverseFrames<'r>,
+    frames: Frames<'r>,
     _marker: PhantomData<&'r T>,
 }
 
@@ -146,7 +146,7 @@ pub struct RequestRef<'r, T: ?Sized> {
 impl<'r, T: ?Sized> RequestRef<'r, T> {
     pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
         Self {
-            frames: report.traverse(),
+            frames: report.frames(),
             _marker: PhantomData,
         }
     }
@@ -193,7 +193,7 @@ where
 #[must_use]
 #[cfg(nightly)]
 pub struct RequestValue<'r, T> {
-    frames: TraverseFrames<'r>,
+    frames: Frames<'r>,
     _marker: PhantomData<T>,
 }
 
@@ -201,7 +201,7 @@ pub struct RequestValue<'r, T> {
 impl<'r, T> RequestValue<'r, T> {
     pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
         Self {
-            frames: report.traverse(),
+            frames: report.frames(),
             _marker: PhantomData,
         }
     }
