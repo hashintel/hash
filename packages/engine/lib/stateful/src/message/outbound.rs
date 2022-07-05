@@ -159,7 +159,7 @@ impl Message {
     ) -> Result<(), Error> {
         if value.get("data").is_none() {
             if let Some(obj) = value.as_object_mut() {
-                let agent_id = state.agent_id.clone();
+                let agent_id = state.agent_id;
                 match serde_json::to_value(payload::RemoveAgentData { agent_id }) {
                     Ok(value) => {
                         obj.insert(String::from("data"), value);
@@ -253,7 +253,7 @@ impl Message {
     ///
     /// This function will panic if `value` is not a valid JSON array.
     /// TODO: Make sure this function is named as unchecekd to prevent unknown panics
-    pub(in crate) fn from_json_array_with_state(
+    pub(crate) fn from_json_array_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
     ) -> Result<Vec<Message>, Error> {

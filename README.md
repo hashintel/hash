@@ -4,20 +4,19 @@
 
 ## What's in this repo?
 
-This repository contains HASH's open-source and public code, documentation, and other key resources.
+This is HASH's _public monorepo_ which contains our open-source, fair-source and commons-licensed code, documentation, and key resources. You can find out more about its contents on the [hash.dev](https://hash.dev/) website, and on the [HASH Developer Blog](https://hash.dev/blog).
 
 ### Packages
 
-- [`packages/hash`](packages/hash): The codebase for [HASH](https://hash.ai/platform/hash) - a data-driven, schema-centric, all-in-one workspace based on the Block Protocol
 - [`packages/blocks`](packages/blocks): The source code for all of HASH's open-source [Block Protocol](https://github.com/blockprotocol/blockprotocol) blocks
-- [`packages/engine`](packages/engine): The codebase for our next-gen version of [hEngine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust
-- [`packages/engine/stdlib`](packages/engine/stdlib): The standard library of helper functions available in all HASH simulations
+- [`packages/hash`](packages/hash): The codebase for [HASH](https://hash.ai/platform/hash) - a data-driven, entity-centric, all-in-one workspace based on the Block Protocol
+- [`packages/engine`](packages/engine): The codebase for our next-gen version of [HASH Engine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust
+- [`packages/libs`](packages/libs): The source code for our open-source developer libraries
 
 ### Site code and content
 
-- [`resources/docs`](resources/docs): A user guide to the whole HASH platform ([hash.ai/docs](https://hash.ai/docs))
-- [`resources/glossary`](resources/glossary): A glossary of terms explaining common concepts relevant to the use of HASH ([hash.ai/glossary](https://hash.ai/glossary))
-- [`sites/hashdev`](sites/hashdev): The [hash.dev](https://hash.dev/) developer-education website
+- [`sites/hashai`](sites/hashai): contains the [HASH user guide](https://hash.ai/docs) and [glossary of terms](https://hash.ai/glossary) content
+- [`sites/hashdev`](sites/hashdev): contains the [hash.dev](https://hash.dev/) developer-education website content and code
 
 ## Contributing
 
@@ -35,6 +34,6 @@ Please see [SECURITY.md](SECURITY.md) for instructions around reporting issues, 
 
 ## Contact
 
-Find us on Twitter at [@hashintel](https://twitter.com/hashintel), join our [Discord server](https://hash.ai/discord) for quick help and support, or post in our [community forum](https://hash.community/).
+Find us on Twitter at [@hashintel](https://twitter.com/hashintel), join our [Discord server](https://hash.ai/discord) for quick help and support, or post in our [community forum](https://hash.community/). To learn more about the overall vision we're pursuing, check out the [hash.dev](https://hash.dev/) site.
 
 Project permalink: `https://github.com/hashintel/hash`

@@ -47,7 +47,7 @@ impl<'a> Buffers<'a> {
 ///
 /// Holds a UUID and a random suffix. The UUID can be reused for different [`Segment`]s and can all
 /// be cleaned up by calling [`cleanup_by_base_id`].
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct MemoryId {
     id: Uuid,
     suffix: u16,
@@ -77,12 +77,13 @@ impl MemoryId {
 
     /// Returns the prefix used for the identifier.
     fn prefix(id: Uuid) -> String {
-        let id = id.to_simple_ref();
         if cfg!(target_os = "macos") {
+            // We need to_string otherwise it's not truncated when formatting
+            let id = id.to_simple_ref().to_string();
             // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-            // And we need to_string otherwise it's not truncated when formatting
             format!("shm_{id:.20}")
         } else {
+            let id = id.to_simple_ref();
             format!("shm_{id}")
         }
     }

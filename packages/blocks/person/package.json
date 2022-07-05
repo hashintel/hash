@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/block-person",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Display information about a person, including their name, job title, email, website address, and an avatar",
   "repository": {
@@ -19,14 +19,14 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.10",
+    "@blockprotocol/graph": "0.0.8",
     "dompurify": "2.3.6"
   },
   "devDependencies": {
     "@types/dompurify": "2.3.3",
-    "block-scripts": "0.0.7",
+    "block-scripts": "0.0.13",
     "eslint": "8.13.0",
-    "mock-block-dock": "0.0.10",
+    "mock-block-dock": "0.0.15",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "typescript": "4.6.3"
@@ -40,6 +40,9 @@
     "servePort": 62692
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "displayName": "Person",
     "icon": "public/account-circle.svg",
     "image": "public/preview.svg",
@@ -55,6 +58,6 @@
         "link": "https://example.com/archie"
       }
     ],
-    "protocol": "0.1"
+    "protocol": "0.2"
   }
 }

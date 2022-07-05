@@ -3,8 +3,9 @@
 use std::{collections::HashMap, fmt::Display};
 
 use error_stack::{bail, report, IntoReport, ResultExt};
-use hash_engine_lib::{proto, proto::EngineStatus};
-use simulation_structure::ExperimentId;
+use execution::package::experiment::ExperimentId;
+use experiment_control::comms::OrchestratorMsg;
+use simulation_control::EngineStatus;
 use tokio::sync::{mpsc, mpsc::error::SendError, oneshot};
 
 use crate::{OrchestratorError, Result};
@@ -12,8 +13,8 @@ use crate::{OrchestratorError, Result};
 type ResultSender = oneshot::Sender<Result<()>>;
 type CloseReceiver = mpsc::UnboundedReceiver<ExperimentId>;
 type CloseSender = mpsc::UnboundedSender<ExperimentId>;
-type MsgSender = mpsc::UnboundedSender<proto::EngineStatus>;
-type MsgReceiver = mpsc::UnboundedReceiver<proto::EngineStatus>;
+type MsgSender = mpsc::UnboundedSender<EngineStatus>;
+type MsgReceiver = mpsc::UnboundedReceiver<EngineStatus>;
 type CtrlSender = mpsc::Sender<(Ctrl, ResultSender)>;
 type CtrlReceiver = mpsc::Receiver<(Ctrl, ResultSender)>;
 
@@ -23,7 +24,7 @@ enum Ctrl {
     Register {
         /// Identifier for the experiment to be registered
         id: ExperimentId,
-        /// Sender for the engine to use to send [`EngineStatus`](proto::EngineStatus) messages
+        /// Sender for the engine to use to send [`EngineStatus`] messages
         /// back to the orchestrator
         msg_tx: MsgSender,
     },
@@ -31,7 +32,7 @@ enum Ctrl {
     Stop, // TODO: UNUSED: Needs triage
 }
 
-/// A connection to receive [`EngineStatus`](proto::EngineStatus)es from an
+/// A connection to receive [`EngineStatus`]es from an
 /// `hash_engine`-sub[process](crate::process).
 pub struct Handle {
     id: ExperimentId,
@@ -45,7 +46,7 @@ impl Handle {
     /// # Panics
     ///
     /// - if the sender was dropped
-    pub async fn recv(&mut self) -> proto::EngineStatus {
+    pub async fn recv(&mut self) -> EngineStatus {
         self.msg_rx
             .recv()
             .await
@@ -215,7 +216,7 @@ impl Server {
     /// # Errors
     ///
     /// - if the message could not be sent
-    fn dispatch_message(&self, msg: proto::OrchestratorMsg) -> Result<(), SendError<EngineStatus>> {
+    fn dispatch_message(&self, msg: OrchestratorMsg) -> Result<(), SendError<EngineStatus>> {
         match self.routes.get(&msg.experiment_id) {
             None => {
                 // Experiment not found. This can happen if the experiment runner
@@ -255,7 +256,7 @@ impl Server {
                         Err(e) => { let _ = log_error(e); }
                     }
                 },
-                r = socket.recv::<proto::OrchestratorMsg>() => match r {
+                r = socket.recv::<OrchestratorMsg>() => match r {
                     Err(e) => { let _ = log_error(e); },
                     Ok(msg) => {
                         let _ = self.dispatch_message(msg).map_err(log_error);

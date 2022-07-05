@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use serde::{Deserialize, Serialize};
-use simulation_structure::SimulationShortId;
 use tracing::Span;
 
 use crate::{
+    package::simulation::SimulationId,
     runner::{
         self,
         comms::{SentTask, TargetedRunnerTaskMsg},
@@ -61,7 +61,7 @@ impl From<flatbuffers_gen::runner_warning_generated::RunnerWarning<'_>> for Runn
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UserError(pub String);
 
 impl From<flatbuffers_gen::user_error_generated::UserError<'_>> for UserError {
@@ -76,7 +76,7 @@ impl std::fmt::Display for UserError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UserWarning {
     pub message: String,
     pub details: Option<String>,
@@ -101,7 +101,7 @@ impl std::fmt::Display for UserWarning {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PackageError(pub String);
 
 impl From<flatbuffers_gen::package_error_generated::PackageError<'_>> for PackageError {
@@ -167,7 +167,7 @@ impl OutboundFromRunnerMsgPayload {
                     Error::from("Message from runner should have had a task_id but it was missing")
                 })?;
 
-                Self::TaskCancelled(uuid::Uuid::from_slice(&task_id.0)?.as_u128())
+                Self::TaskCancelled(TaskId::from_slice(&task_id.0)?)
             }
             flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::RunnerError => {
                 let payload = parsed_msg.payload_as_runner_error().ok_or_else(|| {
@@ -277,7 +277,7 @@ pub struct OutboundFromRunnerMsg {
     // TODO: UNUSED: Needs triage
     pub span: Span,
     pub source: Language,
-    pub sim_id: SimulationShortId,
+    pub sim_id: SimulationId,
     pub payload: OutboundFromRunnerMsgPayload,
     // shared state
 }
@@ -299,7 +299,7 @@ impl OutboundFromRunnerMsg {
         Ok(Self {
             span: Span::current(),
             source,
-            sim_id: msg.sim_sid(),
+            sim_id: SimulationId::new(msg.sim_sid()),
             payload,
         })
     }

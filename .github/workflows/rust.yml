@@ -22,101 +22,25 @@ jobs:
     name: setup
     runs-on: ubuntu-latest
     outputs:
-      rustfmt: ${{ steps.crates.outputs.rustfmt }}
-      clippy: ${{ steps.crates.outputs.clippy }}
+      lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
       bench: ${{ steps.crates.outputs.bench }}
-      miri: ${{ steps.crates.outputs.miri }}
-      doc: ${{ steps.crates.outputs.doc }}
       publish: ${{ steps.crates.outputs.publish }}
+      exclude: ${{ steps.crates.outputs.exclude }}
       samples: ${{ steps.samples.outputs.samples }}
       nightly: ${{ steps.toolchains.outputs.nightly }}
-      exclude: ${{ steps.crates.outputs.exclude }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
+
+      - name: Setup CI
+        uses: ./.github/actions/setup-rust-ci
+
       - name: Find changed crates
         id: crates
-        run: |
-          available_crates="$(find . -name Cargo.toml -printf '%h\n' | sed 's:./::' | sort | tac)"
-          changed_files="$(git diff --name-only HEAD^ HEAD)"
-
-          # All jobs for all crates will run if any of these paths changes
-          always_run_on=(".github" "rust-toolchain.toml")
-
-          # Exclude the stable channel for these crates
-          disable_stable_on=("packages/engine")
-
-          # Try and publish these crates when their version is changed in Cargo.toml
-          publishable_crates=("packages/libs/error-stack")
-
-          changed_crates=""
-          while read -r file; do
-            while read -r crate; do
-              if [[ $file =~ $crate ]]; then
-                changed_crates=$(echo -e "${crate}\n$changed_crates")
-              fi
-              for always_run_crate in "${always_run_on[@]}"; do
-                if [[ $file =~ $always_run_crate ]]; then
-                  changed_crates=$(echo -e "${crate}\n$changed_crates")
-                fi
-              done
-            done <<< "$available_crates"
-          done <<< "$changed_files"
-
-          exclude_stable=""
-          while read -r crate; do
-            for nightly_toolchain_crate in "${disable_stable_on[@]}"; do
-              if [[ $crate =~ $nightly_toolchain_crate ]]; then
-                exclude_stable=$(echo -e "${crate}\n$exclude_stable")
-              fi
-            done
-          done <<< "$changed_crates"
-
-          publish_crates=""
-          while read -r file; do
-            for publishable_crate in "${publishable_crates[@]}"; do
-              if [[ "$file" = "$publishable_crate/Cargo.toml" ]]; then
-                echo checking "$publishable_crate/Cargo.toml"
-                if git diff --unified=0 HEAD^ HEAD -- "$publishable_crate/Cargo.toml" | grep -q '+version'; then
-                  publish_crates=$(echo -e "${publishable_crate}\n$publish_crates")
-                fi
-              fi
-            done
-          done <<< "$changed_files"
-
-          # We always run "packages/engine" tests when a nested crate was changed
-          test_crates="$changed_crates"
-          if echo "$test_crates" | grep -qe "^packages/engine"; then
-            test_crates=$(echo -e "${changed_crates}\npackages/engine")
-          fi
-
-          changed_crates=$(echo "$changed_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
-          bench_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(. == "packages/engine") ]')
-          test_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
-          exclude_stable=$(echo "$exclude_stable" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
-          publish_crates=$(echo "$publish_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
-          exclude=$(echo "$exclude_stable" | jq -sc '[ { directory: .[][], toolchain: "stable"} | select(length > 0) ]')
-
-          echo "::set-output name=rustfmt::$changed_crates"
-          echo "::set-output name=clippy::$changed_crates"
-          echo "::set-output name=test::$test_crates"
-          echo "::set-output name=bench::$bench_crates"
-          echo "::set-output name=miri::$test_crates"
-          echo "::set-output name=doc::$changed_crates"
-          echo "::set-output name=publish::$publish_crates"
-          echo "::set-output name=exclude::$exclude"
-
-          echo "run \`cargo fmt\` for: $(echo "$changed_crates" | jq -r)"
-          echo "run \`cargo clippy\` for: $(echo "$changed_crates" | jq -r)"
-          echo "run \`cargo test\` for: $(echo "$test_crates" | jq -r)"
-          echo "run \`cargo test --release\` for: $(echo "$bench_crates" | jq -r)"
-          echo "run \`cargo miri\` for: $(echo "$test_crates" | jq -r)"
-          echo "run \`cargo doc\` for: $(echo "$changed_crates" | jq -r)"
-          echo "Won't run stable channel for: $(echo "$exclude_stable" | jq -r)"
-          echo "Publish crates: $(echo "$publish_crates" | jq -r)"
+        run: python .github/scripts/rust/setup.py
 
       - name: Find toolchain
         id: toolchains
@@ -133,84 +57,35 @@ jobs:
           else
             echo "::set-output name=samples::10"
           fi
-  rustfmt:
-    name: rustfmt
+
+  lint:
+    name: lint
     needs: setup
-    if: needs.setup.outputs.rustfmt != '[]'
+    if: needs.setup.outputs.lint != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.rustfmt) }}
+        directory: ${{ fromJSON(needs.setup.outputs.lint) }}
         toolchain:
           - ${{ needs.setup.outputs.nightly }}
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Remove default members
-        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.toolchain }}
-          override: true
-          components: rustfmt
-
-      - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml -- --check
-
-      - name: Setup PHP
-        if: ${{ failure() }}
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 7.3
-          coverage: none
-          tools: cs2pr
-
-      - name: Annotate
-        if: ${{ failure() }}
-        run: cargo fmt --manifest-path ${{ matrix.directory }}/Cargo.toml -- --emit checkstyle | cs2pr
-
-  clippy:
-    name: clippy
-    needs: setup
-    if: needs.setup.outputs.clippy != '[]'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.clippy) }}
-        toolchain:
-          - stable
-          - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --all-features
-          - --no-default-features
+        profile:
+          - development
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Remove default members
-        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+        uses: actions/checkout@v3
 
       - name: Install Rust
-        id: toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           override: true
-          components: clippy
 
-      - name: Cache dependencies
-        uses: actions/cache@v2
+      - name: Cache Rust dependencies
+        id: rust-cache
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/.crates.toml
@@ -220,28 +95,34 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
+          key: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
 
-      - name: Run clippy
+      - name: Install cargo-make
+        shell: bash
+        run: cargo install cargo-make
+
+      - name: Check formatting
+        working-directory: ${{ matrix.directory }}
+        run: cargo make format -- --check
+
+      - name: Check clippy
+        working-directory: ${{ matrix.directory }}
+        run: cargo make clippy -- -D warnings
+
+      - name: Check public documentation
+        working-directory: ${{ matrix.directory }}
+        run: cargo make rustdoc --check -D warnings --show-coverage
+
+      - name: Check private documentation
+        working-directory: ${{ matrix.directory }}
+        run: cargo make rustdoc --check -D warnings --show-coverage --document-private-items
+
+      - name: Clear cargo cache
+        if: steps.rust-cache.outputs.cache-hit != 'true'
         run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
-
-          cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} $required_features -- -D warnings
-
-      - name: Annotate
-        if: ${{ failure() }}
-        # use `actions-rs/clippy-check@v1` when https://github.com/actions-rs/clippy-check/pull/158 is merged
-        uses: reinismu/clippy-check@master
-        with:
-          name: clippy (${{ matrix.directory }})
-          token: ${{ secrets.GITHUB_TOKEN }}
-          working-directory: ${{ matrix.directory }}
-          args: --no-deps --tests ${{ matrix.flags }}
+          cargo install cargo-cache
+          cargo cache --autoclean-expensive
 
   test:
     name: test
@@ -255,35 +136,34 @@ jobs:
         toolchain:
           - stable
           - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --all-features
-          - --no-default-features
+        profile:
+          - development
+          - production
         exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Remove default members
-        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+        uses: actions/checkout@v3
 
       - name: Install Rust
-        id: toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           override: true
 
-      - name: Install Python
-        uses: actions/setup-python@v2
+      - name: Cache Node dependencies
+        uses: actions/cache@v3
         with:
-          python-version: "3.7"
+          path: |
+            **/node_modules
+          key: ${{ hashFiles('**/yarn.lock') }}
 
-      - name: Cache dependencies
-        uses: actions/cache@v2
+      - name: Cache Rust dependencies
+        id: rust-cache
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/.crates.toml
@@ -293,110 +173,33 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
             **/target/
-          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}
+          key: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
 
-      - name: Build tests
+      - name: Install cargo-make
+        shell: bash
+        run: cargo install cargo-make
+
+      - name: Install Python
         if: matrix.directory == 'packages/engine'
-        run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
-
-          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }} $required_features
-
-      - name: Setup Python environment
-        if: matrix.directory == 'packages/engine'
-        working-directory: ${{ matrix.directory }}
-        run: |
-          lib/execution/src/runner/python/setup.sh python3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
 
       - name: Run tests
-        run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat ${{ matrix.directory }}/Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
+        working-directory: ${{ matrix.directory }}
+        run: cargo make --profile ${{ matrix.profile }} test --no-fail-fast
 
-          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} $required_features
+      - name: Run miri
+        if: matrix.toolchain != 'stable'
+        working-directory: ${{ matrix.directory }}
+        run: cargo make --profile ${{ matrix.profile }} miri --no-fail-fast
 
-      # Non-empty diff could be a Cargo.lock that wasn't committed.
       - name: Ensure empty git diff
-        run: |
-          # Restore files modified for CI
-          git checkout HEAD -- "${{ matrix.directory }}/Cargo.toml"
-
-          git --no-pager diff --exit-code --color
-
-  bench:
-    name: bench
-    needs: setup
-    if: needs.setup.outputs.bench != '[]'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.bench) }}
-        toolchain:
-          - stable
-          - ${{ needs.setup.outputs.nightly }}
-        tests:
-          - integration
-        flags:
-          - --release
-        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
-    env:
-      OUTPUT_DIRECTORY: test-results
-      SAMPLES: ${{ needs.setup.outputs.samples }}
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Install Rust
-        id: toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.toolchain }}
-          override: true
-
-      - name: Install Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.7"
-
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/checkouts
-            **/target/
-          key: ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}
-
-      - name: Build tests
-        if: matrix.directory == 'packages/engine'
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
-
-      - name: Setup Python environment
-        if: matrix.directory == 'packages/engine'
-        working-directory: ${{ matrix.directory }}
-        run: |
-          lib/execution/src/runner/python/setup.sh python3.7
-
-      - name: Run tests
-        run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
+        run: git --no-pager diff --exit-code --color
 
       - name: Upload to DataDog
-        if: always()
+        if: matrix.directory == 'packages/engine' && matrix.profile == 'production'
         run: |
           message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
                     | sed 's|::|-|g' \
@@ -414,138 +217,11 @@ jobs:
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
-  miri:
-    name: miri
-    needs: setup
-    if: needs.setup.outputs.miri != '[]'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.miri) }}
-        toolchain:
-          - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --no-default-features
-          - --all-features
-        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
-    env:
-      OUTPUT_DIRECTORY: test-results
-      RUST_BACKTRACE: 1
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Remove default members
-        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
-
-      - name: Install Rust
-        id: toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.toolchain }}
-          override: true
-          components: miri
-
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/checkouts
-            **/target/
-          key: ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-miri-${{ matrix.directory }}-${{ matrix.toolchain }}
-
-      - name: Setup miri
-        working-directory: ${{ matrix.directory }}
-        run: cargo miri setup
-
-      - name: Run miri
-        working-directory: ${{ matrix.directory }}
+      - name: Clear cargo cache
+        if: steps.rust-cache.outputs.cache-hit != 'true'
         run: |
-          # Even though we want to test without default features, NNG is a requirement for running so we either have to
-          # enable the feature or acquire an NNG build in CI ourselves, so we re-enable the feature here.
-          required_features=$(cat Cargo.toml | grep -q 'build-nng' && echo "--features build-nng" || echo "")
-
-          cargo miri test ${{ matrix.flags }} $required_features
-
-  doc:
-    name: doc
-    needs: setup
-    if: needs.setup.outputs.doc != '[]'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.doc) }}
-        toolchain:
-          - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --all-features
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Remove default members
-        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
-
-      - name: Install Rust
-        id: toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.toolchain }}
-          override: true
-
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/checkouts
-            **/target/
-          key: ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-doc-${{ matrix.directory }}-${{ matrix.toolchain }}
-
-      - name: Check public documentation
-        uses: actions-rs/cargo@v1
-        with:
-          command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --check -D warnings
-
-      - name: Check private documentation
-        uses: actions-rs/cargo@v1
-        with:
-          command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --check --document-private-items -D warnings
-
-      - name: Show public coverage
-        if: always()
-        uses: actions-rs/cargo@v1
-        with:
-          command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --show-coverage
-
-      - name: Show private coverage
-        if: always()
-        uses: actions-rs/cargo@v1
-        with:
-          command: rustdoc
-          args: --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -Z unstable-options --show-coverage --document-private-items
+          cargo install cargo-cache
+          cargo cache --autoclean-expensive
 
   publish:
     name: publish
@@ -558,11 +234,9 @@ jobs:
         directory: ${{ fromJSON(needs.setup.outputs.publish) }}
         toolchain:
           - ${{ needs.setup.outputs.nightly }}
-        flags:
-          - --all-features
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust
         id: toolchain
@@ -580,37 +254,25 @@ jobs:
       - name: Publish (dry run)
         if: github.event_name == 'pull_request'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish ${{ matrix.flags }} --dry-run
+        run: cargo publish --all-features --dry-run
 
       - name: Publish
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'ref/head/main'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish ${{ matrix.flags }}
+        run: cargo publish --all-features
 
   merging-enabled:
     name: merging enabled
-    needs: [rustfmt, clippy, test, bench, miri, doc, publish]
+    needs: [lint, test, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: check rustfmt
+      - name: check lint
         run: |
-          [[ ${{ needs.rustfmt.result }} =~ success|skipped ]]
-      - name: check clippy
-        run: |
-          [[ ${{ needs.clippy.result }} =~ success|skipped ]]
+          [[ ${{ needs.lint.result }} =~ success|skipped ]]
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
-      - name: check bench
-        run: |
-          [[ ${{ needs.bench.result }} =~ success|skipped ]]
-      - name: check miri
-        run: |
-          [[ ${{ needs.miri.result }} =~ success|skipped ]]
-      - name: check doc
-        run: |
-          [[ ${{ needs.doc.result }} =~ success|skipped ]]
       - name: check publish
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]

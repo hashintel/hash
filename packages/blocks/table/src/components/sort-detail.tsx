@@ -2,19 +2,19 @@ import React, { useEffect, useState } from "react";
 import { tw } from "twind";
 import { ColumnInstance } from "react-table";
 import { v4 as uuid } from "uuid";
-import { BlockProtocolAggregateOperationInput } from "blockprotocol";
+import { AggregateOperationInput } from "@blockprotocol/graph";
 import { AddIcon } from "./icons";
 
 type SortDetailProps = {
   columns: ColumnInstance<{}>[];
   onSort: (
-    sortFields: NonNullable<BlockProtocolAggregateOperationInput["multiSort"]>,
+    sortFields: NonNullable<AggregateOperationInput["multiSort"]>,
   ) => void;
-  multiSort: BlockProtocolAggregateOperationInput["multiSort"];
+  multiSort: AggregateOperationInput["multiSort"];
 };
 
 type SortFieldsWithId = (NonNullable<
-  BlockProtocolAggregateOperationInput["multiSort"]
+  AggregateOperationInput["multiSort"]
 >[number] & {
   id: string;
 })[];

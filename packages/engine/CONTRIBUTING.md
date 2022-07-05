@@ -155,4 +155,4 @@ cargo clippy
 
 ### Hiring
 
-**We're growing the team behind HASH.** If you like what we've built, have contributed to the repo, or are otherwise interested in a full-time role, check out our [open opportunities](hash.ai/careers).
+**We're growing the team behind HASH.** If you like what we've built, have contributed to the repo, or are otherwise interested in a full-time role, check out our [open opportunities](https://hash.ai/careers).

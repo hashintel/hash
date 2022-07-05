@@ -4,23 +4,25 @@
 //!
 //! [`WorkerPool`]: crate::worker_pool::WorkerPool
 
-use simulation_structure::SimulationShortId;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use crate::runner::comms::{PackageError, RunnerError, UserError, UserWarning};
+use crate::{
+    package::simulation::SimulationId,
+    runner::comms::{PackageError, RunnerError, UserError, UserWarning},
+};
 
 pub struct WorkerPoolMsgRecv {
-    pub inner: UnboundedReceiver<(SimulationShortId, WorkerPoolToExpCtlMsg)>,
+    pub inner: UnboundedReceiver<(SimulationId, WorkerPoolToExpCtlMsg)>,
 }
 
 impl WorkerPoolMsgRecv {
-    pub async fn recv(&mut self) -> Option<(SimulationShortId, WorkerPoolToExpCtlMsg)> {
+    pub async fn recv(&mut self) -> Option<(SimulationId, WorkerPoolToExpCtlMsg)> {
         self.inner.recv().await
     }
 }
 
 pub struct WorkerPoolMsgSend {
-    pub inner: UnboundedSender<(SimulationShortId, WorkerPoolToExpCtlMsg)>,
+    pub inner: UnboundedSender<(SimulationId, WorkerPoolToExpCtlMsg)>,
 }
 
 #[derive(Debug)]

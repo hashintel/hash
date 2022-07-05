@@ -1,0 +1,122 @@
+{
+  "name": "@hashintel/calculation",
+  "version": "0.2.0",
+  "description": "Spreadsheet-like table for doing computation on entities",
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "packages/blocks/calculation"
+  },
+  "license": "MIT",
+  "author": "Ahmad Sattar Atta",
+  "scripts": {
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "calculation-block": "0.2.2"
+  },
+  "devDependencies": {
+    "block-scripts": "0.0.13",
+    "mock-block-dock": "0.0.15",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "block-scripts": {
+    "port": 63210
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "displayName": "Calculation",
+    "examples": [
+      {
+        "cells": [
+          [
+            [
+              "A",
+              1
+            ],
+            "Employees"
+          ],
+          [
+            [
+              "B",
+              1
+            ],
+            "Count"
+          ],
+          [
+            [
+              "C",
+              1
+            ],
+            "Average"
+          ],
+          [
+            [
+              "A",
+              2
+            ],
+            "=count()"
+          ],
+          [
+            [
+              "B",
+              2
+            ],
+            "=sum(employees)"
+          ],
+          [
+            [
+              "C",
+              2
+            ],
+            "=B2/A2"
+          ],
+          [
+            [
+              "A",
+              3
+            ],
+            "=count()"
+          ]
+        ],
+        "rows": [
+          [
+            1,
+            null
+          ],
+          [
+            2,
+            "Company"
+          ],
+          [
+            3,
+            "Person"
+          ]
+        ]
+      },
+      {
+        "cells": [],
+        "rows": []
+      }
+    ],
+    "icon": "public/sigma.svg",
+    "image": "public/block-preview.png",
+    "protocol": "0.2"
+  }
+}

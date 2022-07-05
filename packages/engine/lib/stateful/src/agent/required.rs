@@ -9,7 +9,7 @@ const REQUIRED: [AgentStateField; 4] = [
     AgentStateField::Direction,
 ];
 
-pub(in crate) trait IsRequired {
+pub(crate) trait IsRequired {
     fn is_required(&self) -> bool;
 }
 

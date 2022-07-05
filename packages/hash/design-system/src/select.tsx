@@ -10,7 +10,7 @@ import {
   SelectProps as MuiSelectProps,
   Typography,
 } from "@mui/material";
-import { forwardRef, ReactNode, Ref, ReactElement } from "react";
+import React, { forwardRef, ReactNode, Ref, ReactElement } from "react";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 
 export type SelectProps<T = unknown> = {

@@ -37,12 +37,12 @@ pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct NeighborsCreator;
 
-impl<C> ContextPackageCreator<C> for NeighborsCreator {
+impl ContextPackageCreator for NeighborsCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms<C>,
+        _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
@@ -61,7 +61,9 @@ impl<C> ContextPackageCreator<C> for NeighborsCreator {
     ) -> Result<Vec<RootFieldSpec>> {
         Ok(vec![fields::get_neighbors_field_spec(field_spec_creator)?])
     }
+}
 
+impl PackageCreator for NeighborsCreator {
     fn get_state_field_specs(
         &self,
         _config: &PackageInitConfig,
@@ -73,8 +75,6 @@ impl<C> ContextPackageCreator<C> for NeighborsCreator {
         )?])
     }
 }
-
-impl PackageCreator for NeighborsCreator {}
 
 pub struct Neighbors {
     topology: Arc<TopologyConfig>,

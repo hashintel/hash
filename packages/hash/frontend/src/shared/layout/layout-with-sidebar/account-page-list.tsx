@@ -9,6 +9,7 @@ import React, {
 import { treeFromParentReferences } from "@hashintel/hash-shared/util";
 import { TreeView } from "@mui/lab";
 import { useRouter } from "next/router";
+import { useLocalstorageState } from "rooks";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { NavLink } from "./nav-link";
@@ -67,6 +68,10 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   const { data } = useAccountPages(accountId);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useLocalstorageState<string[]>(
+    "hash-expanded-sidebar-pages",
+    [],
+  );
 
   const { createUntitledPage } = useCreatePage(accountId);
 
@@ -98,6 +103,14 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
     [data],
   );
 
+  const handleSelect = (_: SyntheticEvent, pageEntityId: string) => {
+    void router.push(`/${accountId}/${pageEntityId}`);
+  };
+
+  const handleToggle = (_: SyntheticEvent, nodeIds: string[]) => {
+    setExpanded(nodeIds);
+  };
+
   return (
     <NavLink
       title="Pages"
@@ -111,12 +124,12 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
         data-testid="pages-tree"
         tabIndex={-1}
         sx={{
-          mx: 0.5,
+          mx: 0.75,
         }}
         {...(currentPageEntityId && { selected: currentPageEntityId })}
-        onNodeSelect={(_: SyntheticEvent, pageEntityId: string) => {
-          void router.push(`/${accountId}/${pageEntityId}`);
-        }}
+        expanded={expanded}
+        onNodeToggle={handleToggle}
+        onNodeSelect={handleSelect}
       >
         {formattedData.map((node) => renderTree(node, accountId, 0))}
       </TreeView>

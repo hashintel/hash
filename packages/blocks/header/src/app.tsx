@@ -1,14 +1,14 @@
 import { BlockComponent } from "blockprotocol/react";
 import React, { RefCallback } from "react";
 
-type AppProps = {
+type BlockEntityProperties = {
   color?: string;
   level?: number;
   editableRef?: RefCallback<HTMLElement>;
   text?: string;
 };
 
-export const App: BlockComponent<AppProps> = ({
+export const App: BlockComponent<BlockEntityProperties> = ({
   color,
   level = 1,
   editableRef,

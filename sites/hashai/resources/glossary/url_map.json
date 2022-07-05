@@ -1,0 +1,355 @@
+[
+  {
+    "title": "Actor Model",
+    "description": "There are two main approaches to building agent-based simulations: object-oriented programming and the actor-based model.",
+    "slug": "actor-model",
+    "tags": ["Simulation Modeling", "Software Engineering"]
+  },
+  {
+    "title": "Agent-Based Modeling",
+    "description": "ABMs simulate entities in virtual environments, or digital twins, in order to help better understand both entities and their environments.",
+    "slug": "agent-based-modeling",
+    "tags": ["Simulation Modeling"]
+  },
+  {
+    "title": "Applicant Tracking System",
+    "description": "Applicant tracking systems help employers manage recruitment and hiring.",
+    "slug": "ats",
+    "tags": ["Business Software"]
+  },
+  {
+    "title": "Autocorrelation",
+    "description": "Autocorrelation is a measure of the degree of similarity between any time series and a lagged or offset version of itself over successive time intervals.",
+    "slug": "autocorrelation",
+    "tags": ["Data Science"]
+  },
+  {
+    "title": "Block Protocol",
+    "description": "The open Block Protocol standardizes the means by which blocks and the applications that embed them communicate.",
+    "slug": "block-protocol",
+    "tags": ["Software Engineering", "Standards"]
+  },
+  {
+    "title": "Business Intelligence",
+    "description": "Business Intelligence allows companies to make data-driven decisions.",
+    "slug": "business-intelligence",
+    "tags": ["Business Intelligence"]
+  },
+  {
+    "title": "Business Process Modeling",
+    "description": "Business Process Modeling (BPM) helps organizations catalog, understand and improve their processes.",
+    "slug": "business-process-modeling",
+    "tags": ["Business Intelligence", "Simulation Modeling"]
+  },
+  {
+    "title": "Content Management System",
+    "description": "Content management systems allow you to build and manage websites.",
+    "slug": "cms",
+    "tags": ["Business Software"]
+  },
+  {
+    "title": "Customer Relationship Management System",
+    "description": "Customer relationship management systems track and coordinate interactions between a company and its customers.",
+    "slug": "crm",
+    "tags": ["Business Software"]
+  },
+  {
+    "title": "Directed Acyclic Graphs",
+    "description": "If you don’t know your DAGs from your dogs, you can finally get some clarity and sleep easily tonight. Learn what makes a Directed Acyclic Graph a DAG.",
+    "slug": "dag",
+    "tags": ["Data Science", "Graphs", "Software Engineering"]
+  },
+  {
+    "title": "Data Drift",
+    "description": "Data Drift is the phenomenon where changes to data degrade model performance.",
+    "slug": "data-drift",
+    "tags": ["Data Science"]
+  },
+  {
+    "title": "Data Mesh",
+    "description": "Data meshes are decentralized database solutions.",
+    "slug": "data-mesh",
+    "tags": ["Data Science"]
+  },
+  {
+    "title": "Data Mining",
+    "description": "Data Mining is a process applied to find unknown patterns, correlations, and anomalies in data. Through mining, meaningful insights can be extracted from data.",
+    "slug": "data-mining",
+    "tags": ["Data Science", "Machine Learning"]
+  },
+  {
+    "title": "Data Pipelines",
+    "description": "Data pipelines are processes that result in the production of data products, including datasets and models.",
+    "slug": "data-pipelines",
+    "tags": ["Data Science"]
+  },
+  {
+    "title": "Data Types",
+    "description": "Data types describe a space of possible values through the specification of constraints",
+    "slug": "data-types",
+    "tags": ["Graphs", "Standards"]
+  },
+  {
+    "title": "Datasets",
+    "description": "Datasets are collections of numbers or words, generally centered around a single topic or subject.",
+    "slug": "datasets",
+    "tags": ["Business Intelligence", "Data Science"]
+  },
+  {
+    "title": "Deep Reinforcement Learning",
+    "description": "DRL is a subset of Machine Learning in which agents are allowed to solve tasks on their own, and thus discover new solutions independent of human intuition.",
+    "slug": "deep-reinforcement-learning",
+    "tags": ["Machine Learning", "Simulation Modeling"]
+  },
+  {
+    "title": "Diffing",
+    "description": "Diffs are used to track changes between different versions or forks of a project, providing an overview regarding files changed, and the nature of those changes.",
+    "slug": "diff",
+    "tags": ["Software Engineering"]
+  },
+  {
+    "title": "Digital Twin",
+    "description": "Digital twins are a detailed simulated analogue to a real-world system",
+    "slug": "digital-twin",
+    "tags": ["Business Intelligence", "Simulation Modeling"]
+  },
+  {
+    "title": "Discrete Event Simulation",
+    "description": "DES is a modeling approach that focuses on the occurrence of events in a simulation, separately and instantaneously, rather than on any chronological-scale.",
+    "slug": "discrete-event-modeling",
+    "tags": ["Simulation Modeling"]
+  },
+  {
+    "title": "Ego Networks",
+    "description": "Ego networks are a framework for local analysis of larger graphs.",
+    "slug": "ego-networks",
+    "tags": ["Data Science", "Graphs", "Simulation Modeling"]
+  },
+  {
+    "title": "Enterprise Resource Planning",
+    "description": "Enterprise resource planning uses an integrated software system to manage a business' daily tasks.",
+    "slug": "enterprise-resource-planning",
+    "tags": ["Business Software"]
+  },
+  {
+    "title": "Entities",
+    "description": "Entities are individual ‘things’ with a distinct, independent existence.",
+    "slug": "entities",
+    "tags": ["Graphs", "Simulation Modeling"]
+  },
+  {
+    "title": "Entity Types",
+    "description": "Entity types represent commonly recurring classes of entities, and describe their properties.",
+    "slug": "entity-types",
+    "tags": ["Graphs", "Standards"]
+  },
+  {
+    "title": "Fast Healthcare Interoperability Resources",
+    "description": "An electronic healthcare standard for data interoperability.",
+    "slug": "fhir",
+    "tags": ["Standards"]
+  },
+  {
+    "title": "Forking",
+    "description": "Forking something means to create a copy of it, allowing individual developers or teams to work on their own versions of it, in safe isolation.",
+    "slug": "fork",
+    "tags": ["Software Engineering"]
+  },
+  {
+    "title": "Graph Databases",
+    "description": "Graph Databases are a type of database that emphasizes the relationships between data.",
+    "slug": "graph-databases",
+    "tags": ["Graphs", "Software Engineering"]
+  },
+  {
+    "title": "Graph Representation Learning",
+    "description": "Graph representation learning is a more tailored way of applying machine learning algorithms to graphs and networks.",
+    "slug": "graph-representation-learning",
+    "tags": ["Graphs", "Machine Learning"]
+  },
+  {
+    "title": "Graphs",
+    "description": "A graph is a collection of entities which may be connected to other entities by links.",
+    "slug": "graphs",
+    "tags": ["Graphs", "Machine Learning", "Software Engineering"]
+  },
+  {
+    "title": "Integrations",
+    "description": "Integrations allow information from different systems to be brought together, and actions coordinated across them.",
+    "slug": "integrations",
+    "tags": [
+      "Business Intelligence",
+      "Business Software",
+      "Graphs",
+      "Standards"
+    ]
+  },
+  {
+    "title": "Knowledge Graph Machine Learning",
+    "description": "Knowledge graphs are information-dense inputs to machine learning algorithms, and can capture more human-readable outputs of algorithms.",
+    "slug": "knowledge-graph-machine-learning",
+    "tags": ["Graphs", "Machine Learning"]
+  },
+  {
+    "title": "Knowledge Graphs",
+    "description": "Knowledge Graphs contextualize data and power insight generation.",
+    "slug": "knowledge-graphs",
+    "tags": ["Data Science", "Graphs"]
+  },
+  {
+    "title": "Links",
+    "description": "Links between different entities represent the relationships and connections between them.",
+    "slug": "links",
+    "tags": ["Graphs"]
+  },
+  {
+    "title": "Properties",
+    "description": "Properties store individual pieces of information about entities. All property fields on an entity are inferred from its entity type(s).",
+    "slug": "properties",
+    "tags": ["Data Science", "Graphs"]
+  },
+  {
+    "title": "Machine Learning",
+    "description": "Machine Learning is a subfield of Artificial Intelligence where parameters of an algorithm are updated from data inputs or by interacting with an environment.",
+    "slug": "machine-learning",
+    "tags": ["Machine Learning"]
+  },
+  {
+    "title": "Merging",
+    "description": "Merging is the process of reconciling two projects together. In HASH merging projects is handled by submitting, reviewing and approving “merge requests”.",
+    "slug": "merge",
+    "tags": ["Software Engineering"]
+  },
+  {
+    "title": "Metadata",
+    "description": "Metadata is data about data. It’s quite simple, really. Learn more about how it’s used within.",
+    "slug": "metadata",
+    "tags": ["Data Science", "Standards"]
+  },
+  {
+    "title": "Model Drift",
+    "description": "Models tend to become less accurate over time.",
+    "slug": "model-drift",
+    "tags": ["Data Science", "Simulation Modeling"]
+  },
+  {
+    "title": "Model Licensing",
+    "description": "There are lots of ways to license simulation models. Here we outline some key considerations and things to be aware of.",
+    "slug": "model-licensing",
+    "tags": ["Simulation Modeling"]
+  },
+  {
+    "title": "Model Sharing",
+    "description": "There are lots of ways to share simulation models: blackbox, greybox, closed, open, transparent, and output-only. Here we explain what these terms all mean.",
+    "slug": "model-sharing",
+    "tags": ["Simulation Modeling"]
+  },
+  {
+    "title": "Multi-Agent Systems",
+    "description": "Multi-Agent Systems represent real-world systems as collections of intelligent agents.",
+    "slug": "multi-agent-systems",
+    "tags": ["Simulation Modeling", "Software Engineering"]
+  },
+  {
+    "title": "Artificial Neural Networks",
+    "description": "Artificial Neural Networks are computer models inspired by animal brains. They consist of collections of nodes, arranged in layers, which transfer signals.",
+    "slug": "neural-nets",
+    "tags": ["Machine Learning"]
+  },
+  {
+    "title": "Optimization Methods",
+    "description": "The key to finding the best solution to any problem.",
+    "slug": "optimization-methods",
+    "tags": ["Data Science", "Simulation Modeling"]
+  },
+  {
+    "title": "Parameters",
+    "description": "Parameters control specific parts of a system's behavior.",
+    "slug": "parameters",
+    "tags": ["Data Science", "Simulation Modeling"]
+  },
+  {
+    "title": "Process Mining",
+    "description": "Process mining is an application of data mining with the purpose of mapping an organization’s processes. It is used to optimize operations, and identify weaknesses.",
+    "slug": "process-mining",
+    "tags": ["Data Science", "Machine Learning", "Simulation Modeling"]
+  },
+  {
+    "title": "Project Management Software",
+    "description": "Project management software is used to manage teams completing complex projects.",
+    "slug": "project-management-software",
+    "tags": ["Business Software"]
+  },
+  {
+    "title": "Robotic Process Automation",
+    "description": "Robotic process automation uses software to perform repeatable business tasks.",
+    "slug": "robotic-process-automation",
+    "tags": ["Business Software"]
+  },
+  {
+    "title": "Robustness",
+    "description": "Robustness is a measure of a model's accuracy when presented with novel data.",
+    "slug": "robustness",
+    "tags": ["Data Science", "Machine Learning", "Simulation Modeling"]
+  },
+  {
+    "title": "Schemas",
+    "description": "Schemas are descriptions of things: agents in simulations, and the actions they take. They help make simulations interoperable, and data more easily understood.",
+    "slug": "schemas",
+    "tags": ["Data Science", "Simulation Modeling", "Software Engineering"]
+  },
+  {
+    "title": "Simulation Modeling",
+    "description": "Simulation Models seek to demonstrate what happens to environments and agents within them, over time, under varying conditions.",
+    "slug": "simulation",
+    "tags": ["Simulation Modeling"]
+  },
+  {
+    "title": "Single Synthetic Environment",
+    "description": "Single synthetic environments allow you to build, run, and analyze data-driven models and simulations.",
+    "slug": "single-synthetic-environment",
+    "tags": ["Business Intelligence", "Simulation Modeling"]
+  },
+  {
+    "title": "Stochasticity",
+    "description": "Stochasticity is a measure of randomness. The state of a stochastic system can be modeled but not precisely predicted.",
+    "slug": "stochasticity",
+    "tags": ["Data Science", "Simulation Modeling"]
+  },
+  {
+    "title": "Synthetic Data Generation",
+    "description": "Generating data that mimics real data for use in machine learning.",
+    "slug": "synthetic-data-generation",
+    "tags": ["Data Science", "Machine Learning", "Simulation Modeling"]
+  },
+  {
+    "title": "System Dynamics",
+    "description": "System Dynamics models represent a system as a set of stocks and the rates of flows between them.",
+    "slug": "system-dynamics",
+    "tags": ["Simulation Modeling"]
+  },
+  {
+    "title": "Time Series Data",
+    "description": "Time series data is data that has been indexed, listed, or graphed in time order. For example, the daily closing value of the NASDAQ, the price of a cryptocurrency per second, or a single step in a simulation run.",
+    "slug": "time-series",
+    "tags": ["Data Science"]
+  },
+  {
+    "title": "Types",
+    "description": "Types describe the shape that information is expected to take, through rules and constraints associated with it.",
+    "slug": "types",
+    "tags": ["Graphs", "Software Engineering", "Standards"]
+  },
+  {
+    "title": "Discrete vs Continuous Time",
+    "description": "In continuous time, variables may have specific values for only infinitesimally short amounts of time. In discrete time, values are measured once per time interval.",
+    "slug": "time",
+    "tags": ["Data Science", "Simulation Modeling"]
+  },
+  {
+    "title": "Values",
+    "description": "Values are the information contained within a single property on a specific instance of an entity.",
+    "slug": "values",
+    "tags": ["Data Science", "Graphs"]
+  }
+]

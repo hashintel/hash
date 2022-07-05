@@ -34,11 +34,11 @@ use self::{
 use crate::{
     package::simulation::{
         state::{StatePackage, StatePackageCreator, StatePackageName, StateTask},
-        Comms, Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+        Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
         PackageName, PackageTask,
     },
     runner::Language,
-    task::{ActiveTask as _, TaskSharedStoreBuilder},
+    task::{ActiveTask, TaskSharedStoreBuilder},
     Error, Result,
 };
 
@@ -53,7 +53,7 @@ pub struct BehaviorExecutionCreator {
 }
 
 impl BehaviorExecutionCreator {
-    pub fn new<C: Comms>(config: &PackageInitConfig) -> Result<Self> {
+    pub fn new(config: &PackageInitConfig) -> Result<Self> {
         // TODO: Packages shouldn't have to set the source
         let package_id = PackageName::State(StatePackageName::BehaviorExecution).get_id()?;
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(package_id));
@@ -90,14 +90,23 @@ impl PackageCreator for BehaviorExecutionCreator {
         let msg = exp_init_message(self.get_behavior_ids()?, self.get_behavior_map()?)?;
         Ok(serde_json::to_value(msg)?)
     }
+
+    fn get_state_field_specs(
+        &self,
+        config: &PackageInitConfig,
+        _globals: &Globals,
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        fields::get_state_field_specs(config, field_spec_creator)
+    }
 }
 
-impl<C: Comms> StatePackageCreator<C> for BehaviorExecutionCreator {
+impl StatePackageCreator for BehaviorExecutionCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        comms: PackageComms<C>,
+        comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>> {
         let behavior_ids_col_data_types = fields::id_column_data_types();
@@ -126,28 +135,19 @@ impl<C: Comms> StatePackageCreator<C> for BehaviorExecutionCreator {
             comms,
         }))
     }
-
-    fn get_state_field_specs(
-        &self,
-        config: &PackageInitConfig,
-        _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
-        fields::get_state_field_specs(config, field_spec_creator)
-    }
 }
 
-pub struct BehaviorExecution<C> {
+pub struct BehaviorExecution {
     behavior_ids: Arc<BehaviorIds>,
     behavior_ids_col_index: usize,
     behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
     behavior_index_col_index: usize,
-    comms: PackageComms<C>,
+    comms: PackageComms,
 }
 
-impl<C: Send> Package for BehaviorExecution<C> {}
+impl Package for BehaviorExecution {}
 
-impl<C> BehaviorExecution<C> {
+impl BehaviorExecution {
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior
     /// execution will be executed accordingly
@@ -203,14 +203,14 @@ impl<C> BehaviorExecution<C> {
     }
 }
 
-impl<C: Comms> BehaviorExecution<C> {
+impl BehaviorExecution {
     /// Sends out behavior execution commands to workers
     async fn begin_execution(
         &mut self,
         state_proxy: StateWriteProxy,
         context: &Context,
         lang: Language,
-    ) -> Result<C::ActiveTask> {
+    ) -> Result<ActiveTask> {
         let shared_store = TaskSharedStoreBuilder::new()
             .write_state(state_proxy)?
             .read_context(context)?
@@ -225,7 +225,7 @@ impl<C: Comms> BehaviorExecution<C> {
 }
 
 #[async_trait]
-impl<C: Comms> StatePackage for BehaviorExecution<C> {
+impl StatePackage for BehaviorExecution {
     async fn run(&mut self, state: &mut State, context: &Context) -> Result<()> {
         tracing::trace!("Running BehaviorExecution");
         let mut state_proxy = state.write()?;
