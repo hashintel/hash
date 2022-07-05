@@ -1,5 +1,6 @@
 //! Iterators over [`Frame`]s.
 
+use alloc::vec::Vec;
 use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData};
 
 use crate::{Frame, Report};
@@ -26,12 +27,15 @@ use crate::{Frame, Report};
 #[derive(Clone)]
 pub struct Frames<'r> {
     stack: Vec<&'r Frame>,
+    source: Option<&'r [Frame]>,
 }
 
 impl<'r> Frames<'r> {
     pub(crate) const fn new<C>(report: &'r Report<C>) -> Self {
+        // we cannot use .frames.iter().rev().collect() here, due to the const context
         Self {
-            stack: report.frames.iter().rev().collect(),
+            stack: Vec::new(),
+            source: Some(&report.frames),
         }
     }
 }
@@ -63,6 +67,12 @@ impl<'r> Iterator for Frames<'r> {
     /// 8) Out: H Stack: -
     /// ```
     fn next(&mut self) -> Option<Self::Item> {
+        // this delays the conversion from slice to Vec, we cannot do this in new, due to the fact
+        // that Vec::push() is not const, nor are iter methods.
+        if let Some(source) = self.source.take() {
+            self.stack.extend(source);
+        }
+
         if let Some(frame) = self.stack.pop() {
             self.stack.extend(frame.sources().iter().rev());
 
