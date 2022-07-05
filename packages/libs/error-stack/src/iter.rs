@@ -22,7 +22,7 @@ use crate::{Frame, Report};
 /// ```
 ///
 ///
-/// Use [`Report::traverse()`] to create this iterator.
+/// Use [`Report::frames()`] to create this iterator.
 #[must_use]
 #[derive(Clone)]
 pub struct Frames<'r> {

@@ -389,6 +389,7 @@ mod macros;
 mod report;
 
 mod context;
+mod display;
 mod ext;
 #[cfg(feature = "hooks")]
 mod hook;

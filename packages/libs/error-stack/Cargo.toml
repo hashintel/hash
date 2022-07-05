@@ -28,8 +28,9 @@ futures = { version = "0.3.21", default-features = false, features = ["executor"
 rustc_version = "0.2.3"
 
 [features]
-default = ["std", "small"]
+default = ["std", "small", "fancy"]
 std = []
+fancy = []
 hooks = ["dep:once_cell", "std"]
 spantrace = ["dep:tracing-error"]
 futures = ["dep:pin-project", "dep:futures-core"]
