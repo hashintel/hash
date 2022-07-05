@@ -362,13 +362,10 @@ impl<C> Report<C> {
     #[cfg(feature = "spantrace")]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         #[cfg(not(nightly))]
-        let span_trace = self.inner.span_trace.as_ref()?;
+        return None;
+
         #[cfg(nightly)]
-        let span_trace = self
-            .inner
-            .span_trace
-            .as_ref()
-            .or_else(|| self.request_ref::<SpanTrace>().next())?;
+        let span_trace = self.request_ref::<SpanTrace>().next()?;
 
         if span_trace.status() == SpanTraceStatus::CAPTURED {
             Some(span_trace)
