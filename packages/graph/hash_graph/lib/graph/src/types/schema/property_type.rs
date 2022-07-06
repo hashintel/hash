@@ -1,8 +1,3 @@
-#![allow(
-    clippy::use_self,
-    reason = "Weird false positive on `PropertyValues` which somehow can't be disabled locally"
-)]
-
 use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
@@ -90,40 +85,52 @@ impl TryFrom<PropertyTypeObjectRepr> for PropertyTypeObject {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum PropertyValues {
-    PropertyTypeObject(PropertyTypeObject),
-    DataTypeReference(DataTypeReference),
-    PropertyTypeValues(Array<OneOf<Self>>),
+mod values {
+    #![allow(
+        clippy::use_self,
+        clippy::wildcard_imports,
+        reason = "Weird false positive on `ArrayOfPropertyValues` which somehow can't be disabled \
+                  locally"
+    )]
+
+    use super::*;
+
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(untagged)]
+    pub enum PropertyValues {
+        PropertyTypeObject(PropertyTypeObject),
+        DataTypeReference(DataTypeReference),
+        ArrayOfPropertyValues(Array<OneOf<Self>>),
+    }
 }
+pub use self::values::PropertyValues;
 
 impl PropertyValues {
     #[must_use]
     fn datatype_references(&self) -> Vec<&DataTypeReference> {
         match self {
-            PropertyValues::DataTypeReference(reference) => vec![reference],
-            PropertyValues::PropertyTypeValues(values) => values
+            Self::DataTypeReference(reference) => vec![reference],
+            Self::ArrayOfPropertyValues(values) => values
                 .items()
                 .one_of()
                 .iter()
                 .flat_map(|value| value.datatype_references().into_iter())
                 .collect(),
-            PropertyValues::PropertyTypeObject(_) => vec![],
+            Self::PropertyTypeObject(_) => vec![],
         }
     }
 
     #[must_use]
     fn property_type_references(&self) -> Vec<&PropertyTypeReference> {
         match self {
-            PropertyValues::DataTypeReference(_) => vec![],
-            PropertyValues::PropertyTypeValues(values) => values
+            Self::DataTypeReference(_) => vec![],
+            Self::ArrayOfPropertyValues(values) => values
                 .items()
                 .one_of()
                 .iter()
                 .flat_map(|value| value.property_type_references().into_iter())
                 .collect(),
-            PropertyValues::PropertyTypeObject(object) => object
+            Self::PropertyTypeObject(object) => object
                 .properties
                 .values()
                 .map(|value| match value {
@@ -457,7 +464,7 @@ mod tests {
 
     #[test]
     fn property_values() -> Result<(), Box<dyn Error>> {
-        let object = PropertyValues::PropertyTypeValues(Array::new(
+        let object = PropertyValues::ArrayOfPropertyValues(Array::new(
             OneOf::new([PropertyValues::DataTypeReference(DataTypeReference::new(
                 Uri::new("https://example.com/property_type")?,
             )?)])?,
