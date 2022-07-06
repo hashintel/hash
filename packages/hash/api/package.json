@@ -46,6 +46,7 @@
     "express": "4.17.1",
     "express-session": "1.17.2",
     "graphql": "15.5.1",
+    "graphql-scalars": "1.17.0",
     "graphql-tag": "2.12.5",
     "graphql-type-json": "0.3.2",
     "helmet": "4.6.0",

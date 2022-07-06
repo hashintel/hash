@@ -1,4 +1,4 @@
-import GraphQLJSON from "graphql-type-json";
+import { JSONObjectResolver } from "graphql-scalars";
 
 import { Entity } from "../apiTypes.gen";
 
@@ -150,8 +150,8 @@ export const resolvers = {
     executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
   },
 
-  JSONObject: GraphQLJSON,
-  TextToken: GraphQLJSON,
+  JSONObject: JSONObjectResolver,
+  // TextToken: JSONObjectResolver,
 
   Block: {
     properties:
