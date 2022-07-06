@@ -89,15 +89,6 @@ impl PostgresDatabase {
 
     #[cfg(test)]
     async fn remove_base_id(&mut self, base_id: &BaseId) -> Result<(), DatastoreError> {
-        sqlx::query(r#"DELETE FROM ids WHERE base_id = $1;"#)
-            .bind(base_id)
-            .execute(&self.pool)
-            .await
-            .report()
-            .change_context(DatastoreError)
-            .attach_printable("Could not delete base_id")
-            .attach_printable_lazy(|| format!("{base_id:?}"))?;
-
         sqlx::query(r#"DELETE FROM base_ids WHERE base_id = $1;"#)
             .bind(base_id)
             .execute(&self.pool)
