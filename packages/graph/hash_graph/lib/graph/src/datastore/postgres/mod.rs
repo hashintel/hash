@@ -38,8 +38,12 @@ impl PostgresDatabase {
         })
     }
 
-    /// Inserts a `base_id` into the `base_ids` table in the database
-    async fn has_base_id(&mut self, base_id: &BaseId) -> Result<bool, DatastoreError> {
+    /// Checks if the specified [`BaseId`] exist in the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`DatastoreError`], if checking for the [`BaseId`] failed.
+    async fn contains_base_id(&mut self, base_id: &BaseId) -> Result<bool, DatastoreError> {
         let ExistsRow { exists } =
             sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM base_ids WHERE base_id = $1);"#)
                 .bind(base_id)
@@ -47,13 +51,17 @@ impl PostgresDatabase {
                 .await
                 .report()
                 .change_context(DatastoreError)
-                .attach_printable("Could not insert id")
+                .attach_printable("Could not check for base id")
                 .attach_printable_lazy(|| format!("{base_id:?}"))?;
 
         Ok(exists)
     }
 
-    /// Inserts a `version_id` and `base_id` into the `ids` table in the database
+    /// Inserts the specified [`BaseId`] into the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`DatastoreError`], if inserting the [`BaseId`] failed.
     async fn insert_base_id(&mut self, base_id: &BaseId) -> Result<(), DatastoreError> {
         sqlx::query(r#"INSERT INTO base_ids (base_id) VALUES ($1);"#)
             .bind(base_id)
@@ -67,7 +75,11 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    /// Inserts a `version_id` into the `version_ids` table in the database
+    /// Associates a [`BaseId`] with a [`VersionId`].
+    ///
+    /// # Errors
+    ///
+    /// - [`DatastoreError`], if inserting failed.
     async fn insert_id(
         &mut self,
         version_id: VersionId,
@@ -87,7 +99,12 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    /// Inserts a data type into the `data_types` table in the database
+    /// Inserts a [`DataType`] identified by [`VersionId`] and associated with an [`AccountId`]
+    /// to the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`DatastoreError`], if inserting failed.
     async fn insert_data_type(
         &mut self,
         version_id: VersionId,
@@ -117,7 +134,12 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    /// Inserts a data type into the `property_types` table in the database.
+    /// Inserts a [`PropertyType`] identified by [`VersionId`] and associated with an [`AccountId`]
+    /// to the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`DatastoreError`], if inserting failed.
     async fn insert_property_type(
         &mut self,
         version_id: VersionId,
@@ -157,7 +179,7 @@ impl Datastore for PostgresDatabase {
     ) -> Result<Qualified<DataType>, DatastoreError> {
         let base_id = data_type.id();
 
-        if self.has_base_id(base_id).await? {
+        if self.contains_base_id(base_id).await? {
             return Err(Report::new(DatastoreError)
                 .attach_printable(
                     "Data type is already registered, maybe you want to update the data type?",
@@ -214,7 +236,7 @@ impl Datastore for PostgresDatabase {
     ) -> Result<Qualified<DataType>, DatastoreError> {
         let base_id = data_type.id();
 
-        if !self.has_base_id(base_id).await? {
+        if !self.contains_base_id(base_id).await? {
             return Err(Report::new(DatastoreError)
                 .attach_printable(
                     "Data type is not registered, maybe you want to create the data type?",
@@ -237,7 +259,7 @@ impl Datastore for PostgresDatabase {
     ) -> Result<Qualified<PropertyType>, DatastoreError> {
         let base_id = property_type.id();
 
-        if self.has_base_id(base_id).await? {
+        if self.contains_base_id(base_id).await? {
             return Err(Report::new(DatastoreError)
                 .attach_printable(
                     "Property type is already registered, maybe you want to update the property \
@@ -295,7 +317,7 @@ impl Datastore for PostgresDatabase {
     ) -> Result<Qualified<PropertyType>, DatastoreError> {
         let base_id = property_type.id();
 
-        if !self.has_base_id(base_id).await? {
+        if !self.contains_base_id(base_id).await? {
             return Err(Report::new(DatastoreError)
                 .attach_printable(
                     "Property type is not registered, maybe you want to create the property type?",
