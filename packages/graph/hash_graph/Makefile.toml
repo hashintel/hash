@@ -4,13 +4,15 @@ extend = { path = "../Makefile.toml" }
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
 CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
 CARGO_MIRI_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
-CARGO_TEST_FLAGS = "-- --test-threads 1"
 
 [env.production]
 CARGO_MAKE_CARGO_PROFILE = "production"
 
 
 [tasks.test]
+# TODO: Remove this. Currently, it's required as multiple threads will write the same ids to the database, which
+#   violates the unique constraint.
+env = { RUST_TEST_THREADS = "1" }
 run_task = [
     { name = ["yarn", "deployment-up", "recreate-db", "migrate-up", "test-task", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI" ] } },
     { name = ["test-task"] }
