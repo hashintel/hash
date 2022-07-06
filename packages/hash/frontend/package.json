@@ -16,7 +16,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@apollo/client": "3.3.21",
+    "@apollo/client": "3.6.9",
     "@emotion/cache": "11.7.1",
     "@emotion/react": "11.9.0",
     "@emotion/server": "11.4.0",
@@ -124,7 +124,8 @@
     "eslint-plugin-unicorn": "41.0.1",
     "html-webpack-plugin": "5.5.0",
     "identity-obj-proxy": "3.0.0",
-    "jest": "27.1.1",
+    "jest": "28.1.2",
+    "jest-environment-jsdom": "28.1.2",
     "jest-watch-typeahead": "0.6.4",
     "rimraf": "^3.0.2",
     "sass": "1.52.3",

@@ -16,7 +16,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@apollo/client": "3.3.21",
+    "@apollo/client": "3.6.9",
     "@sentry/browser": "7.5.0",
     "blockprotocol": "0.0.10",
     "graphql-tag": "2.12.5",
