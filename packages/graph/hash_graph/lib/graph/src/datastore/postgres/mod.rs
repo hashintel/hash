@@ -87,20 +87,6 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    #[cfg(test)]
-    async fn remove_base_id(&mut self, base_id: &BaseId) -> Result<(), DatastoreError> {
-        sqlx::query(r#"DELETE FROM base_ids WHERE base_id = $1;"#)
-            .bind(base_id)
-            .execute(&self.pool)
-            .await
-            .report()
-            .change_context(DatastoreError)
-            .attach_printable("Could not delete base_id")
-            .attach_printable_lazy(|| format!("{base_id:?}"))?;
-
-        Ok(())
-    }
-
     /// Inserts a data type into the `data_types` table in the database
     async fn insert_data_type(
         &mut self,
@@ -382,6 +368,25 @@ mod tests {
         )
     });
 
+    /// Removes the [`BaseId`] and all related data from the database.
+    // TODO: We don't intend to remove data. This is used for cleaning up the database after running
+    //   a test case. Remove this as soon as we have a proper test framework.
+    async fn remove_base_id(
+        db: &mut PostgresDatabase,
+        base_id: &BaseId,
+    ) -> Result<(), DatastoreError> {
+        sqlx::query(r#"DELETE FROM base_ids WHERE base_id = $1;"#)
+            .bind(base_id)
+            .execute(&db.pool)
+            .await
+            .report()
+            .change_context(DatastoreError)
+            .attach_printable("Could not delete base_id")
+            .attach_printable_lazy(|| format!("{base_id:?}"))?;
+
+        Ok(())
+    }
+
     async fn create_account_id(pool: &PgPool) -> Result<AccountId, DatastoreError> {
         let account_id = AccountId::new(Uuid::new_v4());
 
@@ -429,7 +434,7 @@ mod tests {
 
         let data_type = db.create_data_type(DataType::number(), account_id).await?;
 
-        db.remove_base_id(data_type.inner().id()).await?;
+        remove_base_id(&mut db, data_type.inner().id()).await?;
         Ok(())
     }
 
@@ -445,7 +450,7 @@ mod tests {
 
         assert_eq!(data_type.inner(), created_data_type.inner());
 
-        db.remove_base_id(data_type.inner().id()).await?;
+        remove_base_id(&mut db, data_type.inner().id()).await?;
         Ok(())
     }
 
@@ -462,7 +467,7 @@ mod tests {
         assert_eq!(data_type.inner(), updated_data_type.inner());
         assert_ne!(data_type.version_id(), updated_data_type.version_id());
 
-        db.remove_base_id(data_type.inner().id()).await?;
+        remove_base_id(&mut db, data_type.inner().id()).await?;
         Ok(())
     }
 
@@ -500,7 +505,7 @@ mod tests {
             .create_property_type(quote_property_type_v1(), account_id)
             .await?;
 
-        db.remove_base_id(property_type.inner().id()).await?;
+        remove_base_id(&mut db, property_type.inner().id()).await?;
         Ok(())
     }
 
@@ -520,7 +525,7 @@ mod tests {
 
         assert_eq!(property_type.inner(), created_property_type.inner());
 
-        db.remove_base_id(property_type.inner().id()).await?;
+        remove_base_id(&mut db, property_type.inner().id()).await?;
         Ok(())
     }
 
@@ -546,7 +551,7 @@ mod tests {
             updated_property_type.version_id()
         );
 
-        db.remove_base_id(property_type.inner().id()).await?;
+        remove_base_id(&mut db, property_type.inner().id()).await?;
         Ok(())
     }
 }
