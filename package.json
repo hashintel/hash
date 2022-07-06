@@ -1,30 +1,25 @@
 {
   "private": true,
   "description": "HASH monorepo",
-  "workspaces": {
-    "packages": [
-      "packages/blocks/*",
-      "packages/engine/apache-arrow-js-bundle",
-      "packages/hash/api",
-      "packages/hash/backend-utils",
-      "packages/hash/datastore",
-      "packages/hash/design-system",
-      "packages/hash/eslint-config",
-      "packages/hash/frontend",
-      "packages/hash/integration",
-      "packages/hash/playwright",
-      "packages/hash/realtime",
-      "packages/hash/search-loader",
-      "packages/hash/shared",
-      "packages/hash/task-executor",
-      "packages/hash/tsconfig",
-      "sites/hashai",
-      "sites/hashdev"
-    ],
-    "nohoist": [
-      "**/ts-invariant"
-    ]
-  },
+  "workspaces": [
+    "packages/blocks/*",
+    "packages/engine/apache-arrow-js-bundle",
+    "packages/hash/api",
+    "packages/hash/backend-utils",
+    "packages/hash/datastore",
+    "packages/hash/design-system",
+    "packages/hash/eslint-config",
+    "packages/hash/frontend",
+    "packages/hash/integration",
+    "packages/hash/playwright",
+    "packages/hash/realtime",
+    "packages/hash/search-loader",
+    "packages/hash/shared",
+    "packages/hash/task-executor",
+    "packages/hash/tsconfig",
+    "sites/hashai",
+    "sites/hashdev"
+  ],
   "scripts": {
     "codegen": "yarn workspace @hashintel/hash-api codegen && yarn workspace @hashintel/hash-frontend codegen && yarn workspace @hashintel/hash-integration codegen && yarn workspace @hashintel/hash-shared codegen",
     "dev": "concurrently \"yarn:dev:backend\" \"yarn:dev:frontend\"",
