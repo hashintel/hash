@@ -28,15 +28,11 @@ export const useUsers = (): {
       ];
     }
 
-    /**
-     * Filter out org accounts
-     * user accounts do not have "membership" key in their object
-     */
     // if user is in their org's workspace, return members
     const orgMembers =
       data?.accounts.filter(
         (account) =>
-          "memberOf" in account &&
+          "memberOf" in account && // this also filters out orgs since they can't technically have `memberOf`
           account.memberOf?.some(
             ({ org }) => org.accountId === workspaceAccountId,
           ),
