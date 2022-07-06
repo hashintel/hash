@@ -1,4 +1,4 @@
-import type { FallbackRender } from "@sentry/react/dist/errorboundary";
+import type { FallbackRender } from "@sentry/react";
 import React from "react";
 import { tw } from "twind";
 import { Button } from "../../shared/ui";
