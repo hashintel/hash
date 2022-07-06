@@ -16,6 +16,7 @@ import {
   componentNodeToId,
   isComponentNode,
 } from "@hashintel/hash-shared/prosemirror";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import * as Sentry from "@sentry/nextjs";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -83,6 +84,7 @@ export class ComponentView implements NodeView<Schema> {
     public getPos: () => number,
     private renderPortal: RenderPortal,
     private meta: BlockMeta,
+    private manager: ProsemirrorSchemaManager,
   ) {
     const { componentMetadata, componentSchema } = meta;
     const { source } = componentMetadata;
@@ -96,7 +98,8 @@ export class ComponentView implements NodeView<Schema> {
 
     this.dom.setAttribute("data-dom", "true");
 
-    this.editable = blockComponentRequiresText(componentSchema);
+    // @todo this may break non-editable blocks
+    this.editable = true;
 
     if (this.editable) {
       this.contentDOM = document.createElement("div");
@@ -152,7 +155,7 @@ export class ComponentView implements NodeView<Schema> {
             sourceUrl={this.sourceName}
             blockEntityId={entityId}
             shouldSandbox={!this.editable}
-            editableRef={this.editable ? this.editableRef : undefined}
+            editableRef={this.editableRef}
             // @todo these asserted non-null fields do not definitely exist when the block is first loaded
             accountId={childEntity?.accountId!}
             entityId={childEntity?.entityId!}
@@ -177,12 +180,25 @@ export class ComponentView implements NodeView<Schema> {
     }
   }
 
+  private upgraded = false;
   editableRef = (editableNode: HTMLElement) => {
     if (
       this.contentDOM &&
       editableNode &&
       !editableNode.contains(this.contentDOM)
     ) {
+      if (!this.upgraded) {
+        this.upgraded = true;
+        // @todo need to set child nodes
+        this.manager.defineNewNode(this.componentId, {
+          content: "inline*",
+          marks: "_",
+        });
+
+        console.log(this.editorView);
+      }
+
+      console.log("EDITABLE REF CALLED");
       editableNode.appendChild(this.contentDOM);
       this.contentDOM.style.display = "";
     }

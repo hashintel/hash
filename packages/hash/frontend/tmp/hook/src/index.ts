@@ -1,4 +1,3 @@
-export { BlockElementBase } from "./custom-element";
 export { HookBlockHandler } from "./hook-block-handler";
 export { HookEmbedderHandler } from "./hook-embedder-handler";
 export type { BlockComponent } from "./react";

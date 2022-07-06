@@ -24,9 +24,9 @@ import {
 } from "./entityStore";
 import {
   addEntityStoreAction,
+  createDraftIdForEntity,
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
-  createDraftIdForEntity,
   mustGetDraftEntityFromEntityId,
 } from "./entityStorePlugin";
 import {
@@ -66,7 +66,8 @@ type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
 
 /**
  * Manages the creation and editing of the ProseMirror schema.
- * Editing the ProseMirror schema on the fly involves unsupported hacks flagged below.
+ * Editing the ProseMirror schema on the fly involves unsupported hacks flagged
+ * below.
  */
 export class ProsemirrorSchemaManager {
   constructor(
@@ -83,14 +84,29 @@ export class ProsemirrorSchemaManager {
    * and we need to ensure this continues to work between updates to
    * Prosemirror. We could also consider asking them to make adding a new node
    * type officially supported.
+   *
+   * @todo rename
    */
   defineNewNode(componentId: string, spec: NodeSpec) {
     const existingSchema = this.schema;
     const existingSchemaSpec = existingSchema.spec;
-    const map = existingSchemaSpec.nodes;
-    const privateMap: OrderedMapPrivateInterface<NodeSpec> = map as any;
+    const map: OrderedMapPrivateInterface<NodeSpec> =
+      existingSchemaSpec.nodes as any;
 
-    privateMap.content.push(componentId, spec);
+    const idx = map.content.indexOf(componentId);
+
+    if (idx > -1) {
+      const existingSpec = map.content[idx + 1];
+
+      if (typeof existingSpec === "string") {
+        throw new Error("Spec is expectedly a string");
+      }
+
+      // @todo deleting properties?
+      Object.assign(existingSpec, spec);
+    } else {
+      map.content.push(componentId, spec);
+    }
 
     // eslint-disable-next-line no-new
     new (class extends Schema {
@@ -147,12 +163,12 @@ export class ProsemirrorSchemaManager {
        * it has an editableRef prop in its schema – we need a more sophisticated
        * way for block authors to communicate this to us
        */
-      ...(blockComponentRequiresText(componentSchema)
-        ? {
-            content: "inline*",
-            marks: "_",
-          }
-        : {}),
+      // ...(blockComponentRequiresText(componentSchema)
+      //   ? {
+      //       content: "inline*",
+      //       marks: "_",
+      //     }
+      //   : {}),
     });
 
     this.defineNewNode(componentId, spec);
@@ -442,7 +458,8 @@ export class ProsemirrorSchemaManager {
 
   /**
    * @todo consider removing the old block from the entity store
-   * @todo need to support variants here (copied from {@link replaceNodeWithRemoteBlock} - is this still relevant?
+   * @todo need to support variants here (copied from
+   *   {@link replaceNodeWithRemoteBlock} - is this still relevant?
    */
   async deleteNode(node: ProsemirrorNode<Schema>, pos: number) {
     const { view } = this;
