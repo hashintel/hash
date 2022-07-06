@@ -1,16 +1,10 @@
-mod row_types;
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
-use row_types::DataTypeRow;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    datastore::{
-        postgres::row_types::{ExistsRow, PropertyTypeRow},
-        DatabaseConnectionInfo, Datastore, DatastoreError,
-    },
+    datastore::{DatabaseConnectionInfo, Datastore, DatastoreError},
     types::{
         schema::{DataType, PropertyType},
         AccountId, BaseId, Qualified, VersionId,
@@ -44,7 +38,7 @@ impl PostgresDatabase {
     ///
     /// - [`DatastoreError`], if checking for the [`BaseId`] failed.
     async fn contains_base_id(&mut self, base_id: &BaseId) -> Result<bool, DatastoreError> {
-        let ExistsRow { exists } =
+        let (exists,) =
             sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM base_ids WHERE base_id = $1);"#)
                 .bind(base_id)
                 .fetch_one(&self.pool)
@@ -206,10 +200,7 @@ impl Datastore for PostgresDatabase {
         &self,
         version_id: VersionId,
     ) -> Result<Qualified<DataType>, DatastoreError> {
-        let DataTypeRow {
-            schema: data_type,
-            created_by,
-        } = sqlx::query_as(
+        let (data_type, created_by) = sqlx::query_as(
             r#"
             SELECT "schema", created_by
             FROM data_types
@@ -288,10 +279,7 @@ impl Datastore for PostgresDatabase {
         &self,
         version_id: VersionId,
     ) -> Result<Qualified<PropertyType>, DatastoreError> {
-        let PropertyTypeRow {
-            schema: property_type,
-            created_by,
-        } = sqlx::query_as(
+        let (property_type, created_by) = sqlx::query_as(
             r#"
             SELECT "schema", created_by
             FROM property_types
@@ -378,7 +366,7 @@ impl Datastore for PostgresDatabase {
 mod tests {
     use std::sync::LazyLock;
 
-    use super::{row_types::EntityTypeRow, *};
+    use super::*;
     use crate::{datastore::DatabaseType, types::AccountId};
 
     const USER: &str = "postgres";
@@ -446,12 +434,13 @@ mod tests {
     async fn get_entity_types() -> Result<(), DatastoreError> {
         let pool = PostgresDatabase::new(&DB_INFO).await?.pool;
 
-        let _rows: Vec<EntityTypeRow> = sqlx::query_as("SELECT * from entity_types")
-            .fetch_all(&pool)
-            .await
-            .report()
-            .change_context(DatastoreError)
-            .attach_printable("Could not select entity types")?;
+        let _rows: Vec<(VersionId, serde_json::Value, AccountId)> =
+            sqlx::query_as("SELECT * from entity_types")
+                .fetch_all(&pool)
+                .await
+                .report()
+                .change_context(DatastoreError)
+                .attach_printable("Could not select entity types")?;
 
         Ok(())
     }
