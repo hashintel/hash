@@ -70,6 +70,24 @@ impl VTable {
         }
     }
 
+    /// Creates a `VTable` for a [`compat`].
+    ///
+    /// [`Compat`]: crate::Compat
+    #[cfg(feature = "anyhow")]
+    pub fn new_compat<T>() -> &'static Self
+    where
+        T: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        use crate::frame::compat::CompatContext;
+        &Self {
+            object_drop: Self::object_drop::<CompatContext<T>>,
+            object_downcast: Self::object_downcast::<T>,
+            unerase: Self::unerase_context::<CompatContext<T>>,
+            #[cfg(nightly)]
+            provide: Self::self_provide::<T>,
+        }
+    }
+
     /// Unerases the `frame` as a [`FrameKind`].
     pub(in crate::frame) fn unerase<'f>(&self, frame: &'f ErasableFrame) -> FrameKind<'f> {
         // SAFETY: Use vtable to attach the frames' native vtable for the right original type.

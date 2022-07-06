@@ -1,4 +1,6 @@
 mod attachment;
+#[cfg(feature = "anyhow")]
+mod compat;
 mod erasable;
 mod kind;
 mod vtable;
@@ -93,6 +95,15 @@ impl Frame {
             source,
             VTable::new_printable_attachment::<A>(),
         )
+    }
+
+    /// Crates a frame from [`anyhow::Error`].
+    #[cfg(feature = "anyhow")]
+    pub(crate) fn from_compat<T>(compat: T, location: &'static Location<'static>) -> Self
+    where
+        T: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        Self::from_unerased(compat, location, None, VTable::new_compat::<T>())
     }
 
     /// Returns the location where this `Frame` was created.
