@@ -123,9 +123,17 @@ const load_marked_vectors = (shared_bytes, schema) => {
 // TODO: Read persisted metaversion from memory, removing the need
 //       for the version fields in `latest_batch`.
 Batch.prototype.sync = function (latest_batch, schema) {
-  const should_load = this.batch_version < latest_batch.batch_version;
+  const markers = load_markers(latest_batch.mem);
+  let header_offset = markers.header_offset;
 
-  if (this.mem_version < latest_batch.mem_version) {
+  // extract the metaversion from the header of the latest batch
+  const dataview_latest = new DataView(latest_batch.mem);
+  const latest_mem_version = get_u64(dataview_latest, header_offset);
+  const latest_batch_version = get_u64(dataview_latest, header_offset + 4);
+
+  const should_load = this.batch_version < latest_batch_version;
+
+  if (this.mem_version < latest_mem_version) {
     if (!should_load) {
       throw new Error(
         "Should be impossible to have new memory without new batch",
@@ -134,13 +142,13 @@ Batch.prototype.sync = function (latest_batch, schema) {
 
     // JS is in same process as Rust, so just need to update pointer.
     this.mem = latest_batch.mem;
-    this.mem_version = latest_batch.mem_version;
+    this.mem_version = latest_mem_version;
   }
 
   if (should_load) {
     this.vectors = load_marked_vectors(this.mem, schema);
     this.cols = {}; // Reset columns because they might be invalid due to vectors changing.
-    this.batch_version = latest_batch.batch_version;
+    this.batch_version = latest_batch_version;
   }
 };
 
@@ -197,7 +205,7 @@ const array_data_from_col = (col, field_type) => {
   } catch (e) {
     throw new Error(
       "Flushing error: " +
-        JSON.stringify([i_agent, col[i_agent], field_type, String(e)]),
+      JSON.stringify([i_agent, col[i_agent], field_type, String(e)]),
     );
   }
 
