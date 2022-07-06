@@ -368,6 +368,7 @@
 #![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
+#![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 #![warn(
     missing_docs,
     clippy::pedantic,
