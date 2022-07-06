@@ -52,7 +52,6 @@ impl DataType {
     /// # Errors
     ///
     /// - [`ValidationError`] if the type is invalid.
-``
     pub fn new(
         id: Uri,
         title: impl Into<String>,
