@@ -22,8 +22,8 @@ pub struct DataType {
     ty: String,
     /// Properties, which are not strongly typed.
     ///
-    /// `DataType` currently allows arbitrary, untyped properties. This is a catch-all field to
-    /// store all non-typed data.
+    /// The data type meta-schema currently allows arbitrary, untyped properties. This is a
+    /// catch-all field to store all non-typed data.
     #[serde(flatten)]
     additional_properties: HashMap<String, serde_json::Value>,
 }
