@@ -1,14 +1,14 @@
 {
-    "keys": {
-        "myObject": {
-            "type": "struct",
-            "nullable": true,
-            "fields": {
-                "value": {
-                    "type": "number",
-                    "nullable": true 
-                }
-            }
+  "keys": {
+    "myObject": {
+      "type": "struct",
+      "nullable": true,
+      "fields": {
+        "value": {
+          "type": "number",
+          "nullable": true
         }
+      }
     }
+  }
 }
