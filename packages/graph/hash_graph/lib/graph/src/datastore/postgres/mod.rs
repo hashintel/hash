@@ -99,8 +99,8 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    /// Inserts a [`DataType`] identified by [`VersionId`] and associated with an [`AccountId`]
-    /// to the database.
+    /// Inserts a [`DataType`] identified by [`VersionId`], and associated with an [`AccountId`],
+    /// into the database.
     ///
     /// # Errors
     ///
