@@ -1,5 +1,7 @@
 #[cfg(feature = "anyhow")]
-pub(crate) mod anyhow;
+mod anyhow;
+#[cfg(feature = "eyre")]
+mod eyre;
 
 use crate::Result;
 

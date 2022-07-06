@@ -73,7 +73,7 @@ impl VTable {
     /// Creates a `VTable` for a [`compat`].
     ///
     /// [`Compat`]: crate::Compat
-    #[cfg(feature = "anyhow")]
+    #[cfg(any(feature = "anyhow", feature = "eyre"))]
     pub fn new_compat<T>() -> &'static Self
     where
         T: fmt::Display + fmt::Debug + Send + Sync + 'static,

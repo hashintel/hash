@@ -1,5 +1,5 @@
 mod attachment;
-#[cfg(feature = "anyhow")]
+#[cfg(any(feature = "eyre", feature = "anyhow"))]
 mod compat;
 mod erasable;
 mod kind;
@@ -98,7 +98,7 @@ impl Frame {
     }
 
     /// Crates a frame from [`anyhow::Error`].
-    #[cfg(feature = "anyhow")]
+    #[cfg(any(feature = "anyhow", feature = "eyre"))]
     pub(crate) fn from_compat<T>(compat: T, location: &'static Location<'static>) -> Self
     where
         T: fmt::Display + fmt::Debug + Send + Sync + 'static,

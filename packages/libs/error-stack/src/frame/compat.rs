@@ -3,7 +3,7 @@ use core::fmt;
 use crate::Context;
 
 #[repr(transparent)]
-pub(crate) struct CompatContext<T>(T);
+pub struct CompatContext<T>(T);
 
 impl<T: fmt::Debug> fmt::Debug for CompatContext<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
