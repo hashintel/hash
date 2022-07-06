@@ -6,10 +6,10 @@ mod reference;
 use core::fmt;
 
 trait Validate {
-    /// Validates the schema of the object.
+    /// Semantically validates the schema of the object.
     ///
-    /// This does only check the validity of this object, not it's child data. A validation also
-    /// happens when the type is created.
+    /// This does only check the validity of this object, not it's child data. A validation
+    /// automatically happens, when a type is created by `Self::new` or by deserializing the type.
     ///
     /// # Errors
     ///
