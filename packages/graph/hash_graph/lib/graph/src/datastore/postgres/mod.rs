@@ -38,7 +38,7 @@ impl PostgresDatabase {
         })
     }
 
-    /// Checks if the specified [`BaseId`] exist in the database.
+    /// Checks if the specified [`BaseId`] exists in the database.
     ///
     /// # Errors
     ///
