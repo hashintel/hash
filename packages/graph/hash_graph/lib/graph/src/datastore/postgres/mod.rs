@@ -75,12 +75,12 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    /// Associates a [`BaseId`] with a [`VersionId`].
+    /// Inserts a new [`VersionId`] and associates it with an existing [`BaseId`].
     ///
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting failed.
-    async fn insert_id(
+    async fn insert_version_id(
         &mut self,
         version_id: VersionId,
         base_id: &BaseId,
@@ -195,7 +195,7 @@ impl Datastore for PostgresDatabase {
         self.insert_base_id(base_id).await?;
 
         let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_id(version_id, base_id).await?;
+        self.insert_version_id(version_id, base_id).await?;
         self.insert_data_type(version_id, &data_type, created_by)
             .await?;
 
@@ -252,7 +252,7 @@ impl Datastore for PostgresDatabase {
         }
 
         let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_id(version_id, base_id).await?;
+        self.insert_version_id(version_id, base_id).await?;
         self.insert_data_type(version_id, &data_type, updated_by)
             .await?;
 
@@ -277,7 +277,7 @@ impl Datastore for PostgresDatabase {
         self.insert_base_id(base_id).await?;
 
         let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_id(version_id, base_id).await?;
+        self.insert_version_id(version_id, base_id).await?;
         self.insert_property_type(version_id, &property_type, created_by)
             .await?;
 
@@ -334,7 +334,7 @@ impl Datastore for PostgresDatabase {
         }
 
         let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_id(version_id, base_id).await?;
+        self.insert_version_id(version_id, base_id).await?;
         self.insert_property_type(version_id, &property_type, updated_by)
             .await?;
 
