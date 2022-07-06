@@ -5,7 +5,7 @@ mod reference;
 
 use core::fmt;
 
-pub trait Validate {
+trait Validate {
     /// Validates the schema of the object.
     ///
     /// This does only check the validity of this object, not it's child data. A validation also
