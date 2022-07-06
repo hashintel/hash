@@ -1,3 +1,4 @@
+mod data;
 mod helper;
 pub mod properties;
 mod reference;
@@ -18,6 +19,7 @@ pub trait Validate {
 
 #[doc(inline)]
 pub use self::{
+    data::DataType,
     helper::{Array, OneOf, OneOrMany},
     properties::PropertyType,
     reference::{DataTypeReference, PropertyTypeReference, Uri},

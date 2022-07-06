@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::schema::{Validate, ValidationError};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
 #[serde(transparent)]
+#[sqlx(transparent)]
 pub struct Uri(String);
 
 impl Uri {

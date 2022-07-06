@@ -1,7 +1,5 @@
 mod row_types;
 
-use std::collections::{hash_map::Entry, HashMap};
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use row_types::DataTypeRow;
@@ -10,22 +8,18 @@ use uuid::Uuid;
 
 use crate::{
     datastore::{
-        postgres::row_types::PropertyTypeRow, DatabaseConnectionInfo, Datastore, DatastoreError,
+        postgres::row_types::{ExistsRow, PropertyTypeRow},
+        DatabaseConnectionInfo, Datastore, DatastoreError,
     },
     types::{
-        schema::{PropertyType, Uri},
-        AccountId, BaseId, DataType, Identifier, Qualified, VersionId,
+        schema::{DataType, PropertyType},
+        AccountId, BaseId, Qualified, VersionId,
     },
 };
 
 /// A Postgres-backed Datastore
 pub struct PostgresDatabase {
     pub pool: PgPool,
-    _uuid_by_data_type: HashMap<Uri, Identifier>,
-    base_id_by_property_type: HashMap<Uri, BaseId>,
-    // TODO: We currently have no unique mapping betwee `Uri` and `VersionId` as versions are not
-    //   yet included in the `Uri`.
-    version_id_by_property_type: HashMap<Uri, VersionId>,
 }
 
 impl PostgresDatabase {
@@ -41,23 +35,77 @@ impl PostgresDatabase {
                 .report()
                 .change_context(DatastoreError)
                 .attach_printable_lazy(|| db_info.clone())?,
-            _uuid_by_data_type: HashMap::new(),
-            base_id_by_property_type: HashMap::new(),
-            version_id_by_property_type: HashMap::new(),
         })
     }
 
+    /// Inserts a `base_id` into the `base_ids` table in the database
+    async fn has_base_id(&mut self, base_id: &BaseId) -> Result<bool, DatastoreError> {
+        let ExistsRow { exists } =
+            sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM base_ids WHERE base_id = $1);"#)
+                .bind(base_id)
+                .fetch_one(&self.pool)
+                .await
+                .report()
+                .change_context(DatastoreError)
+                .attach_printable("Could not insert id")
+                .attach_printable_lazy(|| format!("{base_id:?}"))?;
+
+        Ok(exists)
+    }
+
     /// Inserts a `version_id` and `base_id` into the `ids` table in the database
-    async fn insert_id(&mut self, id: &Identifier) -> Result<(), DatastoreError> {
-        sqlx::query(r#"INSERT INTO ids (version_id, base_id) VALUES ($1, $2);"#)
-            .bind(&id.version_id)
-            .bind(&id.base_id)
+    async fn insert_base_id(&mut self, base_id: &BaseId) -> Result<(), DatastoreError> {
+        sqlx::query(r#"INSERT INTO base_ids (base_id) VALUES ($1);"#)
+            .bind(base_id)
             .execute(&self.pool)
             .await
             .report()
             .change_context(DatastoreError)
-            .attach_printable("Could not insert id")
-            .attach_printable_lazy(|| id.clone())?;
+            .attach_printable("Could not insert base id")
+            .attach_printable_lazy(|| format!("{base_id:?}"))?;
+
+        Ok(())
+    }
+
+    /// Inserts a `version_id` into the `version_ids` table in the database
+    async fn insert_id(
+        &mut self,
+        version_id: VersionId,
+        base_id: &BaseId,
+    ) -> Result<(), DatastoreError> {
+        sqlx::query(r#"INSERT INTO ids (version_id, base_id) VALUES ($1, $2);"#)
+            .bind(version_id)
+            .bind(base_id)
+            .execute(&self.pool)
+            .await
+            .report()
+            .change_context(DatastoreError)
+            .attach_printable("Could not insert ids")
+            .attach_printable_lazy(|| format!("{version_id:?}"))
+            .attach_printable_lazy(|| format!("{base_id:?}"))?;
+
+        Ok(())
+    }
+
+    #[cfg(test)]
+    async fn remove_base_id(&mut self, base_id: &BaseId) -> Result<(), DatastoreError> {
+        sqlx::query(r#"DELETE FROM ids WHERE base_id = $1;"#)
+            .bind(base_id)
+            .execute(&self.pool)
+            .await
+            .report()
+            .change_context(DatastoreError)
+            .attach_printable("Could not delete base_id")
+            .attach_printable_lazy(|| format!("{base_id:?}"))?;
+
+        sqlx::query(r#"DELETE FROM base_ids WHERE base_id = $1;"#)
+            .bind(base_id)
+            .execute(&self.pool)
+            .await
+            .report()
+            .change_context(DatastoreError)
+            .attach_printable("Could not delete base_id")
+            .attach_printable_lazy(|| format!("{base_id:?}"))?;
 
         Ok(())
     }
@@ -65,7 +113,7 @@ impl PostgresDatabase {
     /// Inserts a data type into the `data_types` table in the database
     async fn insert_data_type(
         &mut self,
-        id: &Identifier,
+        version_id: VersionId,
         data_type: &DataType,
         created_by: AccountId,
     ) -> Result<(), DatastoreError> {
@@ -80,9 +128,9 @@ impl PostgresDatabase {
             RETURNING version_id;
             "#,
         )
-        .bind(&id.version_id)
-        .bind(&data_type)
-        .bind(&created_by)
+        .bind(version_id)
+        .bind(serde_json::to_value(data_type).expect("Invalid data type"))
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .report()
@@ -95,7 +143,7 @@ impl PostgresDatabase {
     /// Inserts a data type into the `property_types` table in the database.
     async fn insert_property_type(
         &mut self,
-        id: &Identifier,
+        version_id: VersionId,
         property_type: &PropertyType,
         created_by: AccountId,
     ) -> Result<(), DatastoreError> {
@@ -110,9 +158,9 @@ impl PostgresDatabase {
             RETURNING version_id;
             "#,
         )
-        .bind(&id.version_id)
-        .bind(&serde_json::to_value(property_type).expect("Invalid property type"))
-        .bind(&created_by)
+        .bind(version_id)
+        .bind(serde_json::to_value(property_type).expect("Invalid property type"))
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .report()
@@ -130,38 +178,52 @@ impl Datastore for PostgresDatabase {
         data_type: DataType,
         created_by: AccountId,
     ) -> Result<Qualified<DataType>, DatastoreError> {
-        let id = Identifier::new(BaseId::new(Uuid::new_v4()), VersionId::new(Uuid::new_v4()));
+        let base_id = data_type.id();
 
-        self.insert_id(&id).await?;
+        if self.has_base_id(base_id).await? {
+            return Err(Report::new(DatastoreError)
+                .attach_printable(
+                    "Data type is already registered, maybe you want to update the data type?",
+                )
+                .attach_printable(data_type.id().clone()));
+        }
+        self.insert_base_id(base_id).await?;
 
-        self.insert_data_type(&id, &data_type, created_by).await?;
+        let version_id = VersionId::new(Uuid::new_v4());
+        self.insert_id(version_id, base_id).await?;
+        self.insert_data_type(version_id, &data_type, created_by)
+            .await?;
 
-        Ok(Qualified::new(id, data_type, created_by))
+        Ok(Qualified::new(version_id, data_type, created_by))
     }
 
-    async fn get_data_type(&self, id: &Identifier) -> Result<Qualified<DataType>, DatastoreError> {
+    async fn get_data_type(
+        &self,
+        version_id: VersionId,
+    ) -> Result<Qualified<DataType>, DatastoreError> {
         let DataTypeRow {
             schema: data_type,
             created_by,
-            ..
         } = sqlx::query_as(
             r#"
-            SELECT version_id, "schema", created_by
+            SELECT "schema", created_by
             FROM data_types
-            INNER JOIN ids USING (version_id)
-            WHERE version_id = $1 AND base_id = $2;
+            WHERE version_id = $1;
             "#,
         )
-        .bind(&id.version_id)
-        .bind(&id.base_id)
+        .bind(version_id)
         .fetch_one(&self.pool)
         .await
         .report()
         .change_context(DatastoreError)
-        .attach_printable_lazy(|| id.clone())
+        .attach_printable_lazy(|| format!("{version_id:?}"))
         .attach_printable("Could not find data type by id")?;
 
-        Ok(Qualified::new(id.clone(), data_type, created_by))
+        Ok(Qualified::new(
+            version_id,
+            serde_json::from_value(data_type).expect("Invalid data type"),
+            created_by,
+        ))
     }
 
     async fn get_data_type_many() -> Result<(), DatastoreError> {
@@ -170,17 +232,25 @@ impl Datastore for PostgresDatabase {
 
     async fn update_data_type(
         &mut self,
-        base_id: BaseId,
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Qualified<DataType>, DatastoreError> {
-        let id = Identifier::new(base_id, VersionId::new(Uuid::new_v4()));
+        let base_id = data_type.id();
 
-        self.insert_id(&id).await?;
+        if !self.has_base_id(base_id).await? {
+            return Err(Report::new(DatastoreError)
+                .attach_printable(
+                    "Data type is not registered, maybe you want to create the data type?",
+                )
+                .attach_printable(data_type.id().clone()));
+        }
 
-        self.insert_data_type(&id, &data_type, updated_by).await?;
+        let version_id = VersionId::new(Uuid::new_v4());
+        self.insert_id(version_id, base_id).await?;
+        self.insert_data_type(version_id, &data_type, updated_by)
+            .await?;
 
-        Ok(Qualified::new(id, data_type, updated_by))
+        Ok(Qualified::new(version_id, data_type, updated_by))
     }
 
     async fn create_property_type(
@@ -188,69 +258,50 @@ impl Datastore for PostgresDatabase {
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Qualified<PropertyType>, DatastoreError> {
-        let base_id = match self
-            .base_id_by_property_type
-            .entry(property_type.id().clone())
-        {
-            Entry::Occupied(_) => {
-                return Err(Report::new(DatastoreError)
-                    .attach_printable("Property type is already registered")
-                    .attach_printable(property_type.id().clone()));
-            }
-            Entry::Vacant(entry) => entry.insert(BaseId::new(Uuid::new_v4())),
-        };
+        let base_id = property_type.id();
 
-        let version_id = match self
-            .version_id_by_property_type
-            .entry(property_type.id().clone())
-        {
-            Entry::Occupied(_) => {
-                return Err(Report::new(DatastoreError)
-                    .attach_printable("Property type version is already registered")
-                    .attach_printable(property_type.id().clone()));
-            }
-            // TODO: The `VersionId` is currently not stored until it's encoded in the `Uri`.
-            Entry::Vacant(entry) => entry.insert(VersionId::new(Uuid::new_v4())),
-            // Entry::Vacant(_) => VersionId::new(Uuid::new_v4()),
-        };
+        if self.has_base_id(base_id).await? {
+            return Err(Report::new(DatastoreError)
+                .attach_printable(
+                    "Property type is already registered, maybe you want to update the property \
+                     type?",
+                )
+                .attach_printable(property_type.id().clone()));
+        }
+        self.insert_base_id(base_id).await?;
 
-        let id = Identifier::new(*base_id, *version_id);
-
-        self.insert_id(&id).await?;
-
-        self.insert_property_type(&id, &property_type, created_by)
+        let version_id = VersionId::new(Uuid::new_v4());
+        self.insert_id(version_id, base_id).await?;
+        self.insert_property_type(version_id, &property_type, created_by)
             .await?;
 
-        Ok(Qualified::new(id, property_type, created_by))
+        Ok(Qualified::new(version_id, property_type, created_by))
     }
 
     async fn get_property_type(
         &self,
-        id: &Identifier,
+        version_id: VersionId,
     ) -> Result<Qualified<PropertyType>, DatastoreError> {
         let PropertyTypeRow {
             schema: property_type,
             created_by,
-            ..
         } = sqlx::query_as(
             r#"
-            SELECT version_id, "schema", created_by
+            SELECT "schema", created_by
             FROM property_types
-            INNER JOIN ids USING (version_id)
-            WHERE version_id = $1 AND base_id = $2;
+            WHERE version_id = $1;
             "#,
         )
-        .bind(&id.version_id)
-        .bind(&id.base_id)
+        .bind(&version_id)
         .fetch_one(&self.pool)
         .await
         .report()
         .change_context(DatastoreError)
-        .attach_printable_lazy(|| id.clone())
+        .attach_printable_lazy(|| format!("{version_id:?}"))
         .attach_printable("Could not find property type by id")?;
 
         Ok(Qualified::new(
-            id.clone(),
+            version_id,
             serde_json::from_value(property_type).expect("Invalid property type"),
             created_by,
         ))
@@ -265,35 +316,22 @@ impl Datastore for PostgresDatabase {
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Qualified<PropertyType>, DatastoreError> {
-        let base_id = self
-            .base_id_by_property_type
-            .get(property_type.id())
-            .ok_or_else(|| {
-                Report::new(DatastoreError)
-                    .attach_printable("Property type is not registered")
-                    .attach_printable(property_type.id().clone())
-            })?;
+        let base_id = property_type.id();
 
-        let version_id = match self
-            .version_id_by_property_type
-            .entry(property_type.id().clone())
-        {
-            Entry::Occupied(_) => {
-                return Err(Report::new(DatastoreError)
-                    .attach_printable("Property type version is already registered")
-                    .attach_printable(property_type.id().clone()));
-            }
-            Entry::Vacant(entry) => *entry.insert(VersionId::new(Uuid::new_v4())),
-        };
+        if !self.has_base_id(base_id).await? {
+            return Err(Report::new(DatastoreError)
+                .attach_printable(
+                    "Property type is not registered, maybe you want to create the property type?",
+                )
+                .attach_printable(property_type.id().clone()));
+        }
 
-        let id = Identifier::new(*base_id, version_id);
-
-        self.insert_id(&id).await?;
-
-        self.insert_property_type(&id, &property_type, updated_by)
+        let version_id = VersionId::new(Uuid::new_v4());
+        self.insert_id(version_id, base_id).await?;
+        self.insert_property_type(version_id, &property_type, updated_by)
             .await?;
 
-        Ok(Qualified::new(id, property_type, updated_by))
+        Ok(Qualified::new(version_id, property_type, updated_by))
     }
 
     async fn create_entity_type() -> Result<(), DatastoreError> {
@@ -334,10 +372,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use super::{row_types::EntityTypeRow, *};
-    use crate::{
-        datastore::DatabaseType,
-        types::{AccountId, DataType},
-    };
+    use crate::{datastore::DatabaseType, types::AccountId};
 
     const USER: &str = "postgres";
     const PASSWORD: &str = "postgres";
@@ -399,15 +434,11 @@ mod tests {
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_data_type() -> Result<(), DatastoreError> {
         let mut db = PostgresDatabase::new(&DB_INFO).await?;
-
         let account_id = create_account_id(&db.pool).await?;
 
-        db.create_data_type(
-            DataType::new(serde_json::json!({"hello": "world"})),
-            account_id,
-        )
-        .await?;
+        let data_type = db.create_data_type(DataType::number(), account_id).await?;
 
+        db.remove_base_id(data_type.inner().id()).await?;
         Ok(())
     }
 
@@ -415,20 +446,15 @@ mod tests {
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn get_data_type_by_identifier() -> Result<(), DatastoreError> {
         let mut db = PostgresDatabase::new(&DB_INFO).await?;
-
         let account_id = create_account_id(&db.pool).await?;
 
-        let updated_data_type = db
-            .create_data_type(
-                DataType::new(serde_json::json!({"hello": "world"})),
-                account_id,
-            )
-            .await?;
+        let created_data_type = db.create_data_type(DataType::boolean(), account_id).await?;
 
-        let data_type = db.get_data_type(updated_data_type.id()).await?;
+        let data_type = db.get_data_type(created_data_type.version_id()).await?;
 
-        assert_eq!(data_type.inner(), updated_data_type.inner());
+        assert_eq!(data_type.inner(), created_data_type.inner());
 
+        db.remove_base_id(data_type.inner().id()).await?;
         Ok(())
     }
 
@@ -436,29 +462,16 @@ mod tests {
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn update_existing_data_type() -> Result<(), DatastoreError> {
         let mut db = PostgresDatabase::new(&DB_INFO).await?;
-
         let account_id = create_account_id(&db.pool).await?;
 
-        let data_type = db
-            .create_data_type(
-                DataType::new(serde_json::json!({"hello": "world"})),
-                account_id,
-            )
-            .await?;
+        let data_type = db.create_data_type(DataType::object(), account_id).await?;
 
-        let updated_data_type = db
-            .update_data_type(
-                data_type.id().base_id,
-                DataType::new(serde_json::json!({"hello": "wolrd"})),
-                account_id,
-            )
-            .await?;
+        let updated_data_type = db.update_data_type(DataType::object(), account_id).await?;
 
-        assert_ne!(data_type.inner(), updated_data_type.inner());
-        assert_ne!(data_type.id().version_id, updated_data_type.id().version_id);
+        assert_eq!(data_type.inner(), updated_data_type.inner());
+        assert_ne!(data_type.version_id(), updated_data_type.version_id());
 
-        assert_eq!(data_type.id().base_id, updated_data_type.id().base_id);
-
+        db.remove_base_id(data_type.inner().id()).await?;
         Ok(())
     }
 
@@ -477,8 +490,8 @@ mod tests {
     fn quote_property_type_v2() -> PropertyType {
         serde_json::from_value(serde_json::json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote/v/0.2.0",
-          "title": "Favorite Quote",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote/v/0.1.0",
+          "title": "Favourite Quote",
           "oneOf": [
             { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text" }
           ]
@@ -490,12 +503,13 @@ mod tests {
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_property_type() -> Result<(), DatastoreError> {
         let mut db = PostgresDatabase::new(&DB_INFO).await?;
-
         let account_id = create_account_id(&db.pool).await?;
 
-        db.create_property_type(quote_property_type_v1(), account_id)
+        let property_type = db
+            .create_property_type(quote_property_type_v1(), account_id)
             .await?;
 
+        db.remove_base_id(property_type.inner().id()).await?;
         Ok(())
     }
 
@@ -503,30 +517,26 @@ mod tests {
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn get_property_type_by_identifier() -> Result<(), DatastoreError> {
         let mut db = PostgresDatabase::new(&DB_INFO).await?;
-
         let account_id = create_account_id(&db.pool).await?;
 
-        let updated_property_type = db
+        let created_property_type = db
             .create_property_type(quote_property_type_v1(), account_id)
             .await?;
 
-        let property_type = db.get_property_type(updated_property_type.id()).await?;
+        let property_type = db
+            .get_property_type(created_property_type.version_id())
+            .await?;
 
-        assert_eq!(property_type.inner(), updated_property_type.inner());
+        assert_eq!(property_type.inner(), created_property_type.inner());
 
+        db.remove_base_id(property_type.inner().id()).await?;
         Ok(())
     }
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    #[cfg_attr(
-        not(miri),
-        ignore = "unimplemented: we are currently not able to get the `VersionId` from the `Uri`, \
-                  so it's not possible to update a property type"
-    )]
     async fn update_existing_property_type() -> Result<(), DatastoreError> {
         let mut db = PostgresDatabase::new(&DB_INFO).await?;
-
         let account_id = create_account_id(&db.pool).await?;
 
         let property_type = db
@@ -541,15 +551,11 @@ mod tests {
         assert_eq!(updated_property_type.inner(), &new_property_type);
         assert_ne!(property_type.inner(), updated_property_type.inner());
         assert_ne!(
-            property_type.id().version_id,
-            updated_property_type.id().version_id
+            property_type.version_id(),
+            updated_property_type.version_id()
         );
 
-        assert_eq!(
-            property_type.id().base_id,
-            updated_property_type.id().base_id
-        );
-
+        db.remove_base_id(property_type.inner().id()).await?;
         Ok(())
     }
 }

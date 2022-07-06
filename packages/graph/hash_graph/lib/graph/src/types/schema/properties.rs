@@ -179,7 +179,7 @@ enum PropertyTypeTag {
 #[serde(rename_all = "camelCase")]
 pub struct PropertyTypeRepr {
     #[serde(rename = "kind")]
-    _type: PropertyTypeTag,
+    _kind: PropertyTypeTag,
     #[serde(rename = "$id")]
     id: Uri,
     title: String,

@@ -3,18 +3,21 @@
 
 use sqlx::{types::Uuid, FromRow};
 
-use crate::types::{AccountId, DataType};
+use crate::types::AccountId;
+
+#[derive(Debug, FromRow)]
+pub struct ExistsRow {
+    pub exists: bool,
+}
 
 #[derive(Debug, FromRow)]
 pub struct DataTypeRow {
-    pub version_id: Uuid,
-    pub schema: DataType,
+    pub schema: serde_json::Value,
     pub created_by: AccountId,
 }
 
 #[derive(Debug, FromRow)]
 pub struct PropertyTypeRow {
-    pub version_id: Uuid,
     pub schema: serde_json::Value,
     pub created_by: AccountId,
 }

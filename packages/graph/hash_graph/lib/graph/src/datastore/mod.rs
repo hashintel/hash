@@ -6,7 +6,10 @@ use async_trait::async_trait;
 use error_stack::{Context, Result};
 pub use postgres::PostgresDatabase;
 
-use crate::types::{schema::PropertyType, AccountId, BaseId, DataType, Identifier, Qualified};
+use crate::types::{
+    schema::{DataType, PropertyType},
+    AccountId, Qualified, VersionId,
+};
 
 #[derive(Debug)]
 pub struct DatastoreError;
@@ -164,7 +167,10 @@ trait Datastore {
     /// # Errors
     ///
     /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
-    async fn get_data_type(&self, id: &Identifier) -> Result<Qualified<DataType>, DatastoreError>;
+    async fn get_data_type(
+        &self,
+        version_id: VersionId,
+    ) -> Result<Qualified<DataType>, DatastoreError>;
 
     async fn get_data_type_many() -> Result<(), DatastoreError>;
 
@@ -175,7 +181,6 @@ trait Datastore {
     /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
     async fn update_data_type(
         &mut self,
-        base_id: BaseId,
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Qualified<DataType>, DatastoreError>;
@@ -188,7 +193,7 @@ trait Datastore {
 
     async fn get_property_type(
         &self,
-        id: &Identifier,
+        version_id: VersionId,
     ) -> Result<Qualified<PropertyType>, DatastoreError>;
 
     async fn get_property_type_many() -> Result<(), DatastoreError>;
