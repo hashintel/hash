@@ -137,8 +137,8 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    /// Inserts a [`PropertyType`] identified by [`VersionId`] and associated with an [`AccountId`]
-    /// to the database.
+    /// Inserts a [`PropertyType`] identified by [`VersionId`], and associated with an [`AccountId`],
+    /// into the database.
     ///
     /// # Errors
     ///
