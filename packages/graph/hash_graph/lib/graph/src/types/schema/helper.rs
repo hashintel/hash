@@ -36,7 +36,7 @@ impl<T> Array<T> {
     ///
     /// # Errors
     ///
-    /// - [`ValidationError`] if validation is failing.
+    /// - [`ValidationError`] if the type is invalid.
     pub fn new<A: Into<Option<usize>>, B: Into<Option<usize>>>(
         items: T,
         min_items: A,
