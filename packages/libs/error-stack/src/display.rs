@@ -113,7 +113,7 @@ fn display_frame<'a>(
     #[cfg(all(nightly, feature = "std"))] bt: &mut Vec<&'a std::backtrace::Backtrace>,
     #[cfg(feature = "spantrace")] st: &mut Vec<&'a tracing_error::SpanTrace>,
 ) -> Vec<String> {
-    let mut plain = vec![];
+    let mut plain = vec![frame];
 
     let next;
     let mut ptr = frame;
@@ -135,30 +135,21 @@ fn display_frame<'a>(
         break;
     }
 
-    // the first frame, the "title" has no indentation.
-    let mut lines = render_frame(
-        frame,
-        #[cfg(all(nightly, feature = "std"))]
-        bt,
-        #[cfg(feature = "spantrace")]
-        st,
-    );
-
-    if lines.is_empty() {
-        lines.push("Opaque Error".to_owned());
-    }
-
-    let mut children = vec![];
+    let mut groups = vec![];
 
     for child in plain {
         // normal children are just plainly indented and then added
-        children.push(render_frame(
+        let content = render_frame(
             child,
             #[cfg(all(nightly, feature = "std"))]
             bt,
             #[cfg(feature = "spantrace")]
             st,
-        ));
+        );
+
+        if !content.is_empty() {
+            groups.push(content);
+        }
     }
 
     // we have a group, indentation for those are a bit different,
@@ -166,38 +157,48 @@ fn display_frame<'a>(
     // the last group item is only indented with a space, rather than a `|`.
     if let Some(group) = next {
         for child in group {
-            children.push(display_frame(
+            let content = display_frame(
                 child,
                 #[cfg(all(nightly, feature = "std"))]
                 bt,
                 #[cfg(feature = "spantrace")]
                 st,
-            ));
+            );
+
+            if !content.is_empty() {
+                groups.push(content);
+            }
         }
     }
 
-    let total = children.len();
-    let children = children.into_iter().enumerate().flat_map(|(pos, content)| {
-        let last = pos == total - 1;
+    let total = groups.len();
+    groups
+        .into_iter()
+        .enumerate()
+        .flat_map(|(pos, content)| {
+            let last = pos == total - 1;
+            let first = pos == 0;
 
-        content.into_iter().enumerate().map(move |(idx, line)| {
-            if last {
-                if idx == 0 {
-                    format!("{ENTRY_END}{line}")
+            content.into_iter().enumerate().map(move |(idx, line)| {
+                if first {
+                    // the first line is the title, therefore not indented.
+                    line
+                } else if last {
+                    if idx == 0 {
+                        format!("{ENTRY_END}{line}")
+                    } else {
+                        format!("{SPACE}{line}")
+                    }
                 } else {
-                    format!("{SPACE}{line}")
+                    if idx == 0 {
+                        format!("{ENTRY}{line}")
+                    } else {
+                        format!("{VERTICAL}{line}")
+                    }
                 }
-            } else {
-                if idx == 0 {
-                    format!("{ENTRY}{line}")
-                } else {
-                    format!("{VERTICAL}{line}")
-                }
-            }
+            })
         })
-    });
-
-    lines.into_iter().chain(children).collect()
+        .collect()
 }
 
 pub(crate) fn display_report<C>(report: &Report<C>) -> String {
