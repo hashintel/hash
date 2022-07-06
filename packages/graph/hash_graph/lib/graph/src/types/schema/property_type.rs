@@ -8,8 +8,8 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 
 use crate::types::schema::{
-    Array, DataTypeReference, OneOf, OneOrMany, PropertyTypeReference, Uri, Validate,
-    ValidationError,
+    Array, DataTypeReference, OneOf, PropertyTypeReference, Uri, Validate, ValidationError,
+    ValueOrArray,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,7 +21,7 @@ use crate::types::schema::{
 )]
 pub struct PropertyTypeObject {
     /// Property names must be a valid URI to a property-type
-    properties: HashMap<Uri, OneOrMany<PropertyTypeReference>>,
+    properties: HashMap<Uri, ValueOrArray<PropertyTypeReference>>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     required: Vec<Uri>,
 }
@@ -30,7 +30,7 @@ impl PropertyTypeObject {
     /// Creates a new `PropertyTypeObject` without validating.
     #[must_use]
     pub const fn new_unchecked(
-        properties: HashMap<Uri, OneOrMany<PropertyTypeReference>>,
+        properties: HashMap<Uri, ValueOrArray<PropertyTypeReference>>,
         required: Vec<Uri>,
     ) -> Self {
         Self {
@@ -45,7 +45,7 @@ impl PropertyTypeObject {
     ///
     /// - [`ValidationError::PropertyMissing`] if a required property is not a key in `properties`.
     pub fn new(
-        properties: HashMap<Uri, OneOrMany<PropertyTypeReference>>,
+        properties: HashMap<Uri, ValueOrArray<PropertyTypeReference>>,
         required: Vec<Uri>,
     ) -> Result<Self, ValidationError> {
         let object = Self::new_unchecked(properties, required);
@@ -77,7 +77,7 @@ struct PropertyTypeObjectRepr {
     #[serde(rename = "type")]
     _type: ObjectTypeTag,
     /// Property names must be a valid URI to a property-type
-    properties: HashMap<Uri, OneOrMany<PropertyTypeReference>>,
+    properties: HashMap<Uri, ValueOrArray<PropertyTypeReference>>,
     #[serde(default)]
     required: Vec<Uri>,
 }
@@ -127,8 +127,8 @@ impl PropertyValues {
                 .properties
                 .values()
                 .map(|value| match value {
-                    OneOrMany::One(one) => one,
-                    OneOrMany::Array(array) => array.items(),
+                    ValueOrArray::Value(one) => one,
+                    ValueOrArray::Array(array) => array.items(),
                 })
                 .collect(),
         }
@@ -277,7 +277,7 @@ mod tests {
         let object = PropertyTypeObject {
             properties: [(
                 Uri::new("https://example.com/property_type")?,
-                OneOrMany::One(PropertyTypeReference::new(Uri::new(
+                ValueOrArray::Value(PropertyTypeReference::new(Uri::new(
                     "https://example.com/property_type",
                 )?)?),
             )]
@@ -310,7 +310,7 @@ mod tests {
         let object = PropertyTypeObject {
             properties: [(
                 Uri::new("https://example.com/property_type")?,
-                OneOrMany::Array(Array::new(
+                ValueOrArray::Array(Array::new(
                     PropertyTypeReference::new(Uri::new("https://example.com/property_type")?)?,
                     None,
                     None,
@@ -348,7 +348,7 @@ mod tests {
         let object = PropertyTypeObject {
             properties: [(
                 Uri::new("https://example.com/property_type")?,
-                OneOrMany::One(PropertyTypeReference::new(Uri::new(
+                ValueOrArray::Value(PropertyTypeReference::new(Uri::new(
                     "https://example.com/property_type",
                 )?)?),
             )]
@@ -407,7 +407,7 @@ mod tests {
         let object = PropertyValues::PropertyTypeObject(PropertyTypeObject {
             properties: [(
                 Uri::new("https://example.com/property_type")?,
-                OneOrMany::One(PropertyTypeReference::new(Uri::new(
+                ValueOrArray::Value(PropertyTypeReference::new(Uri::new(
                     "https://example.com/property_type",
                 )?)?),
             )]

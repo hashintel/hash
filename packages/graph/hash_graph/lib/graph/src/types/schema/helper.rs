@@ -95,8 +95,8 @@ impl<T> TryFrom<ArrayRepr<T>> for Array<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum OneOrMany<T> {
-    One(T),
+pub enum ValueOrArray<T> {
+    Value(T),
     Array(Array<T>),
 }
 
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn one_or_many_single() -> Result<(), Box<dyn Error>> {
-        let one = OneOrMany::One(Uri::new("https://example.com/data_type")?);
+        let one = ValueOrArray::Value(Uri::new("https://example.com/data_type")?);
 
         let json = serde_json::to_value(&one)?;
         assert_eq!(json, serde_json::json!("https://example.com/data_type"));
@@ -246,7 +246,7 @@ mod tests {
 
     #[test]
     fn one_or_many_array() -> Result<(), Box<dyn Error>> {
-        let array = OneOrMany::Array(Array::new(
+        let array = ValueOrArray::Array(Array::new(
             Uri::new("https://example.com/data_type")?,
             None,
             None,

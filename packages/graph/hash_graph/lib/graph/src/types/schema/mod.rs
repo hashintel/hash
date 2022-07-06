@@ -20,7 +20,7 @@ trait Validate {
 #[doc(inline)]
 pub use self::{
     data_type::DataType,
-    helper::{Array, OneOf, OneOrMany},
+    helper::{Array, OneOf, ValueOrArray},
     property_type::PropertyType,
     reference::{DataTypeReference, PropertyTypeReference, Uri},
 };
