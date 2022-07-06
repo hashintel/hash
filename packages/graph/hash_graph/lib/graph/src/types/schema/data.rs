@@ -95,7 +95,7 @@ impl DataType {
         &mut self.additional_properties
     }
 
-    /// Returns the predefined text data type.
+    /// Returns the primitive `Text` data type.
     #[must_use]
     pub fn text() -> Self {
         Self::new_unchecked(
@@ -107,7 +107,7 @@ impl DataType {
         )
     }
 
-    /// Returns the predefined number data type.
+    /// Returns the primitive `Number` data type.
     #[must_use]
     pub fn number() -> Self {
         Self::new_unchecked(
@@ -119,7 +119,7 @@ impl DataType {
         )
     }
 
-    /// Returns the predefined boolean data type.
+    /// Returns the primitive `Boolean` data type.
     #[must_use]
     pub fn boolean() -> Self {
         Self::new_unchecked(
@@ -131,7 +131,7 @@ impl DataType {
         )
     }
 
-    /// Returns the predefined null data type.
+    /// Returns the primitive `Null` data type.
     #[must_use]
     pub fn null() -> Self {
         Self::new_unchecked(
@@ -143,7 +143,7 @@ impl DataType {
         )
     }
 
-    /// Returns the predefined object data type.
+    /// Returns the primitive `Object` data type.
     #[must_use]
     pub fn object() -> Self {
         Self::new_unchecked(
@@ -155,7 +155,7 @@ impl DataType {
         )
     }
 
-    /// Returns the predefined empty-list data type.
+    /// Returns the primitive `Empty List` data type.
     #[must_use]
     pub fn empty_list() -> Self {
         Self::new_unchecked(
