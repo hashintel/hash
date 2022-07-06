@@ -42,7 +42,7 @@ impl Validate for Uri {
 
 /// Property Object values must be defined through references to the same valid URI to a Property
 /// Type.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PropertyTypeReference {
     #[serde(rename = "$ref")]
@@ -79,7 +79,7 @@ impl Validate for PropertyTypeReference {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DataTypeReference {
     #[serde(rename = "$ref")]
