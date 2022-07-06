@@ -12,6 +12,8 @@ All notable changes to `error-stack` will be documented in this file.
 ### Features
 
 - Implement [`Termination`](https://doc.rust-lang.org/stable/std/process/trait.Termination.html) for `Report` ([#671](https://github.com/hashintel/hash/pull/671))
+- Add support for async `Stream`s ([#718](https://github.com/hashintel/hash/pull/718))
+- Add support for `Iterator`s ([#716](https://github.com/hashintel/hash/pull/716))
 
 ### Deprecations
 
