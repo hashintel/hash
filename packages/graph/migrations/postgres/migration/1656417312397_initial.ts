@@ -44,6 +44,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "TEXT",
         notNull: true,
         references: "base_ids",
+        onDelete: "CASCADE",
       },
     },
     {
