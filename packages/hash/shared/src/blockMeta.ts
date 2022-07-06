@@ -1,5 +1,5 @@
-import { BlockMetadata, BlockVariant } from "blockprotocol";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
+import { BlockMetadata, BlockVariant } from "blockprotocol";
 
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
 // eslint-disable-next-line global-require
@@ -234,15 +234,4 @@ export const fetchBlockMeta = async (
   }
 
   return await promise;
-};
-
-// @todo remove this
-export const blockComponentRequiresText = (
-  componentSchema: BlockMeta["componentSchema"],
-) => {
-  return false;
-
-  return (
-    !!componentSchema.properties && "editableRef" in componentSchema.properties
-  );
 };

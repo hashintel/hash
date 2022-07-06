@@ -1,7 +1,4 @@
-import {
-  blockComponentRequiresText,
-  BlockMeta,
-} from "@hashintel/hash-shared/blockMeta";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
@@ -123,9 +120,7 @@ export class ComponentView implements NodeView<Schema> {
     this.node = node;
 
     if (isComponentNode(node) && componentNodeToId(node) === this.componentId) {
-      const blockDraftId: string = this.editorView.state.doc
-        .resolve(this.getPos())
-        .node(2).attrs.draftId;
+      const blockDraftId = this.getBlockDraftId();
 
       const entity = this.store.draft[blockDraftId]!;
 
@@ -180,25 +175,29 @@ export class ComponentView implements NodeView<Schema> {
     }
   }
 
-  private upgraded = false;
+  private getBlockDraftId() {
+    const blockDraftId: string = this.editorView.state.doc
+      .resolve(this.getPos())
+      .node(2).attrs.draftId;
+
+    return blockDraftId;
+  }
+
   editableRef = (editableNode: HTMLElement) => {
     if (
       this.contentDOM &&
       editableNode &&
       !editableNode.contains(this.contentDOM)
     ) {
-      if (!this.upgraded) {
-        this.upgraded = true;
-        // @todo need to set child nodes
-        this.manager.defineNewNode(this.componentId, {
-          content: "inline*",
-          marks: "_",
-        });
+      this.manager.upgradeToEditableNode(
+        this.componentId,
+        this.getBlockDraftId(),
+        this.getPos(),
+        this.store,
+        this.node,
+        this.meta,
+      );
 
-        console.log(this.editorView);
-      }
-
-      console.log("EDITABLE REF CALLED");
       editableNode.appendChild(this.contentDOM);
       this.contentDOM.style.display = "";
     }
@@ -215,7 +214,7 @@ export class ComponentView implements NodeView<Schema> {
       event.preventDefault();
     }
 
-    return !blockComponentRequiresText(this.meta.componentSchema);
+    return !this.manager.schema.nodes[this.componentId]!.isTextblock;
   }
 
   // This condition is designed to check that the event isn’t coming from React-handled code.

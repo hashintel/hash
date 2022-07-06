@@ -1,9 +1,6 @@
-import type { BlockVariant } from "blockprotocol";
-import {
-  blockComponentRequiresText,
-  BlockMeta,
-} from "@hashintel/hash-shared/blockMeta";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import type { BlockVariant } from "blockprotocol";
 import { Schema } from "prosemirror-model";
 import {
   EditorState,
@@ -12,8 +9,8 @@ import {
   TextSelection,
 } from "prosemirror-state";
 import React, { CSSProperties } from "react";
-import { RenderPortal } from "../usePortals";
 import { ensureMounted } from "../../../lib/dom";
+import { RenderPortal } from "../usePortals";
 import { BlockSuggester } from "./BlockSuggester";
 import { MentionSuggester } from "./MentionSuggester";
 
@@ -93,12 +90,12 @@ const key = new PluginKey<SuggesterState, Schema>("suggester");
  * Suggester plugin factory
  *
  * Behaviour:
- * Typing one of the trigger characters followed by any number of non-whitespace characters will
- * activate the plugin and open a popup right under the "textual trigger".
- * Moving the cursor outside the trigger will close the popup. Pressing the
- * Escape-key while inside the trigger will disable the plugin until a trigger
- * is newly encountered (e.g. by leaving/deleting and reentering/retyping a
- * trigger).
+ * Typing one of the trigger characters followed by any number of
+ * non-whitespace characters will activate the plugin and open a popup right
+ * under the "textual trigger". Moving the cursor outside the trigger will
+ * close the popup. Pressing the Escape-key while inside the trigger will
+ * disable the plugin until a trigger is newly encountered (e.g. by
+ * leaving/deleting and reentering/retyping a trigger).
  */
 export const createSuggester = (
   renderPortal: RenderPortal,
@@ -184,7 +181,9 @@ export const createSuggester = (
                 const endPosition = $end.end(1);
                 tr.insert(endPosition, node);
 
-                if (blockComponentRequiresText(meta.componentSchema)) {
+                // @todo need to consider what happens when inserting for
+                //  first time and block is upgradedd
+                if (node.type.isTextblock) {
                   tr.setSelection(
                     TextSelection.create<Schema>(tr.doc, endPosition),
                   );

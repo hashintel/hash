@@ -16,4 +16,5 @@ export const defaultBlocks = [
   "https://blockprotocol.org/blocks/@hash/embed",
   "https://blockprotocol.org/blocks/@hash/code",
   "https://blockprotocol.org/blocks/@hash/video",
+  "http://localhost:63282",
 ];
