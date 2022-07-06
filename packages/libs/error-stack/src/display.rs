@@ -3,7 +3,11 @@
 //!
 //! This is inspired by [miette](https://docs.rs/miette/latest/miette/index.html)
 
-use std::iter::once;
+use alloc::{
+    borrow::ToOwned,
+    string::{String, ToString},
+    vec::Vec,
+};
 
 use crate::{AttachmentKind, Frame, FrameKind, Report};
 
@@ -208,7 +212,7 @@ pub(crate) fn display_report<C>(report: &Report<C>) -> String {
     let mut st = Vec::new();
 
     let mut lines = vec![];
-    for frame in &report.frames {
+    for frame in report.sources() {
         let display = display_frame(
             frame,
             #[cfg(all(nightly, feature = "std"))]

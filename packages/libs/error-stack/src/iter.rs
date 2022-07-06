@@ -1,6 +1,6 @@
 //! Iterators over [`Frame`]s.
 
-use alloc::{borrow::Cow, vec::Vec};
+use alloc::vec::Vec;
 use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData};
 
 use crate::{Frame, Report};

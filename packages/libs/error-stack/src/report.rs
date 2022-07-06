@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::ToString, vec::Vec};
+use alloc::{boxed::Box, vec::Vec};
 use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
@@ -152,7 +152,7 @@ pub struct Report<C> {
     #[cfg(feature = "small")]
     pub(super) frames: smallvec::SmallVec<[Frame; 1]>,
     #[cfg(not(feature = "small"))]
-    frames: Vec<Frame>,
+    pub(super) frames: Vec<Frame>,
     _context: PhantomData<C>,
 }
 
@@ -372,6 +372,14 @@ impl<C> Report<C> {
         } else {
             None
         }
+    }
+
+    /// Return the direct source frames of this report,
+    /// to get an iterator over the topological sorting of all frames refer to [`frames()`]
+    ///
+    /// [`frames()`]: Self::frames
+    pub fn sources(&self) -> &[Frame] {
+        &self.frames
     }
 
     /// Returns an iterator over the [`Frame`] stack of the report.
