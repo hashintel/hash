@@ -205,7 +205,7 @@ const array_data_from_col = (col, field_type) => {
   } catch (e) {
     throw new Error(
       "Flushing error: " +
-      JSON.stringify([i_agent, col[i_agent], field_type, String(e)]),
+        JSON.stringify([i_agent, col[i_agent], field_type, String(e)]),
     );
   }
 
