@@ -35,9 +35,13 @@ impl fmt::Display for ValidationError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::PropertyMissing(uri) => {
-                write!(fmt, "Required field {uri} is not used in `properties`")
+                write!(
+                    fmt,
+                    "The schema has marked the \"{uri}\" property as required, but it wasn't \
+                     defined in the `\"properties\"` object"
+                )
             }
-            Self::OneOfEmpty => fmt.write_str("`one_of` must have at least one item"),
+            Self::OneOfEmpty => fmt.write_str("`\"one_of\"` must have at least one item"),
         }
     }
 }
