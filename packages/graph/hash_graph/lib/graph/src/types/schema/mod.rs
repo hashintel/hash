@@ -1,6 +1,6 @@
-mod data;
+mod data_type;
 mod helper;
-pub mod properties;
+pub mod property_type;
 mod reference;
 
 use core::fmt;
@@ -19,9 +19,9 @@ trait Validate {
 
 #[doc(inline)]
 pub use self::{
-    data::DataType,
+    data_type::DataType,
     helper::{Array, OneOf, OneOrMany},
-    properties::PropertyType,
+    property_type::PropertyType,
     reference::{DataTypeReference, PropertyTypeReference, Uri},
 };
 
