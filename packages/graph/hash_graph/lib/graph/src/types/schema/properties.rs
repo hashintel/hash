@@ -102,7 +102,7 @@ impl PropertyValues {
     #[must_use]
     fn datatype_references(&self) -> Vec<&DataTypeReference> {
         match self {
-            PropertyValues::DataTypeReference(reference) => vec![&reference],
+            PropertyValues::DataTypeReference(reference) => vec![reference],
             PropertyValues::PropertyTypeValues(values) => values
                 .items()
                 .one_of()
@@ -127,7 +127,7 @@ impl PropertyValues {
                 .properties
                 .values()
                 .map(|value| match value {
-                    OneOrMany::One(one) => &one,
+                    OneOrMany::One(one) => one,
                     OneOrMany::Array(array) => array.items(),
                 })
                 .collect(),
@@ -505,7 +505,7 @@ mod tests {
             let datatype_references = property_type
                 .data_type_references()
                 .into_iter()
-                .map(|data| data.reference())
+                .map(DataTypeReference::reference)
                 .cloned()
                 .collect::<HashSet<_>>();
 
@@ -524,7 +524,7 @@ mod tests {
             let property_references = property_type
                 .property_type_references()
                 .into_iter()
-                .map(|data| data.reference())
+                .map(PropertyTypeReference::reference)
                 .cloned()
                 .collect::<HashSet<_>>();
 
