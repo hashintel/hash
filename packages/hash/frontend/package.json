@@ -33,7 +33,7 @@
     "@mui/material": "5.4.3",
     "@rjsf/core": "4.1.1",
     "@rjsf/material-ui": "4.1.1",
-    "@sentry/nextjs": "6.17.9",
+    "@sentry/nextjs": "7.5.0",
     "@svgr/webpack": "6.2.1",
     "@twind/next": "1.0.9",
     "ajv": "8.11.0",
