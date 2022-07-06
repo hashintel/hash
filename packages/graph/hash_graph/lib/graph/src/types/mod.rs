@@ -2,8 +2,6 @@
 
 pub mod schema;
 
-use std::fmt;
-
 use uuid::Uuid;
 
 use crate::types::schema::Uri;
@@ -31,41 +29,6 @@ impl VersionId {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Identifier {
-    pub base_id: BaseId,
-    pub version_id: VersionId,
-}
-
-impl Identifier {
-    #[must_use]
-    pub const fn new(base_id: BaseId, version_id: VersionId) -> Self {
-        Self {
-            base_id,
-            version_id,
-        }
-    }
-}
-
-impl fmt::Display for Identifier {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: change this to not just using the debug impl.
-        write!(fmt, "{:?}", self)
-    }
-}
-
-#[repr(transparent)]
-#[derive(Clone, Debug, sqlx::Type, PartialEq, Eq)]
-#[sqlx(transparent)]
-pub struct DataType(serde_json::Value);
-
-impl DataType {
-    #[must_use]
-    pub const fn new(schema: serde_json::Value) -> Self {
-        Self(schema)
     }
 }
 
