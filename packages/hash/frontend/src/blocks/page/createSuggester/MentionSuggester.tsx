@@ -58,8 +58,10 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
       return 0;
     });
 
-    const pagesSearch = fuzzySearchBy(iterablePages, search, (option) =>
-      [option.name].map((str) => str ?? "").join(" "),
+    const pagesSearch = fuzzySearchBy(
+      iterablePages,
+      search,
+      (option) => option.name,
     );
 
     return [...peopleSearch, ...pagesSearch];
