@@ -123,7 +123,10 @@ impl PostgresDatabase {
             "#,
         )
         .bind(version_id)
-        .bind(serde_json::to_value(data_type).expect("Invalid data type"))
+        .bind(
+            serde_json::to_value(data_type)
+                .unwrap_or_else(|err| unreachable!("Could not serialize data type: {err}")),
+        )
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -158,7 +161,10 @@ impl PostgresDatabase {
             "#,
         )
         .bind(version_id)
-        .bind(serde_json::to_value(property_type).expect("Invalid property type"))
+        .bind(
+            serde_json::to_value(property_type)
+                .unwrap_or_else(|err| unreachable!("Could not serialize property type: {err}")),
+        )
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -220,7 +226,8 @@ impl Datastore for PostgresDatabase {
 
         Ok(Qualified::new(
             version_id,
-            serde_json::from_value(data_type).expect("Invalid data type"),
+            serde_json::from_value(data_type)
+                .unwrap_or_else(|err| unreachable!("Could not deserialize data type: {err}")),
             created_by,
         ))
     }
@@ -301,7 +308,8 @@ impl Datastore for PostgresDatabase {
 
         Ok(Qualified::new(
             version_id,
-            serde_json::from_value(property_type).expect("Invalid property type"),
+            serde_json::from_value(property_type)
+                .unwrap_or_else(|err| unreachable!("Could not deserialize property type: {err}")),
             created_by,
         ))
     }
