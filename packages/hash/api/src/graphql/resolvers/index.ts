@@ -151,7 +151,6 @@ export const resolvers = {
   },
 
   JSONObject: JSONObjectResolver,
-  // TextToken: JSONObjectResolver,
 
   Block: {
     properties:
