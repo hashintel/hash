@@ -25,7 +25,7 @@ pub struct DataType {
 }
 
 impl DataType {
-    /// Creates a new `PropertyType` without validating.
+    /// Creates a new `DataType` without validating.
     #[must_use]
     pub fn new_unchecked(
         id: Uri,
@@ -43,7 +43,7 @@ impl DataType {
         }
     }
 
-    /// Creates a new `PropertyType`.
+    /// Creates a new `DataType`.
     ///
     /// # Errors
     ///
@@ -55,9 +55,9 @@ impl DataType {
         ty: impl Into<String>,
         additional_properties: HashMap<String, serde_json::Value>,
     ) -> Result<Self, ValidationError> {
-        let property_type = Self::new_unchecked(id, title, description, ty, additional_properties);
-        property_type.validate()?;
-        Ok(property_type)
+        let data_type = Self::new_unchecked(id, title, description, ty, additional_properties);
+        data_type.validate()?;
+        Ok(data_type)
     }
 
     #[must_use]
@@ -190,13 +190,13 @@ pub struct DataTypeRepr {
 impl TryFrom<DataTypeRepr> for DataType {
     type Error = ValidationError;
 
-    fn try_from(property_type: DataTypeRepr) -> Result<Self, ValidationError> {
+    fn try_from(data_type: DataTypeRepr) -> Result<Self, ValidationError> {
         Self::new(
-            property_type.id,
-            property_type.title,
-            property_type.description,
-            property_type.ty,
-            property_type.additional_properties,
+            data_type.id,
+            data_type.title,
+            data_type.description,
+            data_type.ty,
+            data_type.additional_properties,
         )
     }
 }
@@ -211,15 +211,12 @@ impl Validate for DataType {
 mod tests {
     use super::*;
 
-    fn validate(
-        property_type: &DataType,
-        json: serde_json::Value,
-    ) -> Result<(), serde_json::Error> {
-        let property_type_json = serde_json::to_value(&json)?;
-        assert_eq!(property_type_json, json);
+    fn validate(data_type: &DataType, json: serde_json::Value) -> Result<(), serde_json::Error> {
+        let data_type_json = serde_json::to_value(&json)?;
+        assert_eq!(data_type_json, json);
 
-        let property_type_from_json = serde_json::from_value(json)?;
-        assert_eq!(property_type, &property_type_from_json);
+        let data_type_from_json = serde_json::from_value(json)?;
+        assert_eq!(data_type, &data_type_from_json);
         Ok(())
     }
 
