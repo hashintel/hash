@@ -4,4 +4,4 @@ description = "Generated flatbuffers code for specification of communication wit
 version = "0.0.0"
 
 [dependencies]
-flatbuffers = "2.0.0"
+flatbuffers = "2.1.1"
