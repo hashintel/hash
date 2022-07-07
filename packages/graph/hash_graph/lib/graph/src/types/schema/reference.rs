@@ -96,7 +96,7 @@ mod tests {
         assert_eq!(
             json,
             json!({
-                "$ref": "https://example.com/data_type"
+                "$ref": "https://example.com/property_type"
             })
         );
 
