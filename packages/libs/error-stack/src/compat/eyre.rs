@@ -2,9 +2,9 @@ use core::panic::Location;
 
 use eyre::Report as EyreReport;
 
-use crate::{Compat, Frame, Report, Result};
+use crate::{Frame, IntoReportCompat, Report, Result};
 
-impl<T> Compat for core::result::Result<T, EyreReport> {
+impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
     type Err = EyreReport;
     type Ok = T;
 
@@ -43,7 +43,7 @@ mod tests {
 
     use eyre::eyre;
 
-    use crate::{test_helper::messages, Compat};
+    use crate::{test_helper::messages, IntoReportCompat};
 
     #[test]
     #[cfg_attr(

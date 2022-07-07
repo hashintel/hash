@@ -2,9 +2,9 @@ use core::panic::Location;
 
 use anyhow::Error as AnyhowError;
 
-use crate::{Compat, Frame, Report, Result};
+use crate::{Frame, IntoReportCompat, Report, Result};
 
-impl<T> Compat for core::result::Result<T, AnyhowError> {
+impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
     type Err = AnyhowError;
     type Ok = T;
 
@@ -44,7 +44,7 @@ impl<T> Compat for core::result::Result<T, AnyhowError> {
 mod tests {
     use anyhow::anyhow;
 
-    use crate::{test_helper::messages, Compat};
+    use crate::{test_helper::messages, IntoReportCompat};
 
     #[test]
     fn conversion() {

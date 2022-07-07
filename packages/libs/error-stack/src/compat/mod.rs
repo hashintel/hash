@@ -7,7 +7,7 @@ mod eyre;
 ///
 /// [`Report`]: crate::Report
 #[cfg(any(feature = "anyhow", feature = "eyre"))]
-pub trait Compat: Sized {
+pub trait IntoReportCompat: Sized {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
 
