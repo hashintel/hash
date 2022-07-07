@@ -17,7 +17,7 @@
     "set-interval-async": "2.0.3",
     "slonik": "24.1.2",
     "ts-node": "10.4.0",
-    "typescript": "4.6.3"
+    "typescript": "4.7.4"
   },
   "devDependencies": {
     "@types/node": "16.7.6",

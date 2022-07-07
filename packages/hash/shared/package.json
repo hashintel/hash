@@ -18,7 +18,7 @@
   "dependencies": {
     "@apollo/client": "3.6.8",
     "@blockprotocol/core": "0.0.8",
-    "@sentry/browser": "6.14.1",
+    "@sentry/browser": "7.5.1",
     "graphql-tag": "2.12.5",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
