@@ -3,16 +3,18 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::types::schema::{Uri, Validate, ValidationError};
+use crate::types::schema::Uri;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(
-    try_from = "DataTypeRepr",
-    tag = "kind",
-    rename = "dataType",
-    rename_all = "camelCase"
-)]
+#[serde(rename_all = "camelCase")]
+enum DataTypeTag {
+    DataType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DataType {
+    kind: DataTypeTag,
     #[serde(rename = "$id")]
     id: Uri,
     title: String,
@@ -29,9 +31,8 @@ pub struct DataType {
 }
 
 impl DataType {
-    /// Creates a new `DataType` without validating.
-    #[must_use]
-    pub fn new_unchecked(
+    /// Creates a new `DataType`.
+    pub fn new(
         id: Uri,
         title: impl Into<String>,
         description: impl Into<Option<String>>,
@@ -39,29 +40,13 @@ impl DataType {
         additional_properties: HashMap<String, serde_json::Value>,
     ) -> Self {
         Self {
+            kind: DataTypeTag::DataType,
             id,
             title: title.into(),
             description: description.into(),
             ty: ty.into(),
             additional_properties,
         }
-    }
-
-    /// Creates a new `DataType`.
-    ///
-    /// # Errors
-    ///
-    /// - [`ValidationError`] if the type is invalid.
-    pub fn new(
-        id: Uri,
-        title: impl Into<String>,
-        description: impl Into<Option<String>>,
-        ty: impl Into<String>,
-        additional_properties: HashMap<String, serde_json::Value>,
-    ) -> Result<Self, ValidationError> {
-        let data_type = Self::new_unchecked(id, title, description, ty, additional_properties);
-        data_type.validate()?;
-        Ok(data_type)
     }
 
     #[must_use]
@@ -97,8 +82,8 @@ impl DataType {
     /// Returns the primitive `Text` data type.
     #[must_use]
     pub fn text() -> Self {
-        Self::new_unchecked(
-            Uri::new_unchecked("https://blockprotocol.org/types/@blockprotocol/data-type/text"),
+        Self::new(
+            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/text"),
             "Text",
             "An ordered sequence of characters".to_owned(),
             "string",
@@ -109,8 +94,8 @@ impl DataType {
     /// Returns the primitive `Number` data type.
     #[must_use]
     pub fn number() -> Self {
-        Self::new_unchecked(
-            Uri::new_unchecked("https://blockprotocol.org/types/@blockprotocol/data-type/number"),
+        Self::new(
+            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/number"),
             "Number",
             "An arithmetical value (in the Real number system)".to_owned(),
             "number",
@@ -121,8 +106,8 @@ impl DataType {
     /// Returns the primitive `Boolean` data type.
     #[must_use]
     pub fn boolean() -> Self {
-        Self::new_unchecked(
-            Uri::new_unchecked("https://blockprotocol.org/types/@blockprotocol/data-type/boolean"),
+        Self::new(
+            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/boolean"),
             "Boolean",
             "A True or False value".to_owned(),
             "boolean",
@@ -133,8 +118,8 @@ impl DataType {
     /// Returns the primitive `Null` data type.
     #[must_use]
     pub fn null() -> Self {
-        Self::new_unchecked(
-            Uri::new_unchecked("https://blockprotocol.org/types/@blockprotocol/data-type/null"),
+        Self::new(
+            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/null"),
             "Null",
             "A placeholder value representing 'nothing'".to_owned(),
             "null",
@@ -145,8 +130,8 @@ impl DataType {
     /// Returns the primitive `Object` data type.
     #[must_use]
     pub fn object() -> Self {
-        Self::new_unchecked(
-            Uri::new_unchecked("https://blockprotocol.org/types/@blockprotocol/data-type/object"),
+        Self::new(
+            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/object"),
             "Object",
             "A plain JSON object with no pre-defined structure".to_owned(),
             "object",
@@ -157,57 +142,13 @@ impl DataType {
     /// Returns the primitive `Empty List` data type.
     #[must_use]
     pub fn empty_list() -> Self {
-        Self::new_unchecked(
-            Uri::new_unchecked(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/empty-list",
-            ),
+        Self::new(
+            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/empty-list"),
             "Empty List",
             "An Empty List".to_owned(),
             "array",
             [("const".to_owned(), json!([]))].into_iter().collect(),
         )
-    }
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-enum DataTypeTag {
-    DataType,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DataTypeRepr {
-    #[serde(rename = "kind")]
-    _kind: DataTypeTag,
-    #[serde(rename = "$id")]
-    id: Uri,
-    title: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
-    #[serde(rename = "type")]
-    ty: String,
-    #[serde(flatten)]
-    additional_properties: HashMap<String, serde_json::Value>,
-}
-
-impl TryFrom<DataTypeRepr> for DataType {
-    type Error = ValidationError;
-
-    fn try_from(data_type: DataTypeRepr) -> Result<Self, ValidationError> {
-        Self::new(
-            data_type.id,
-            data_type.title,
-            data_type.description,
-            data_type.ty,
-            data_type.additional_properties,
-        )
-    }
-}
-
-impl Validate for DataType {
-    fn validate(&self) -> Result<(), ValidationError> {
-        Ok(())
     }
 }
 

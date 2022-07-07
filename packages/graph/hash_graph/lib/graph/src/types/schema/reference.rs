@@ -2,41 +2,22 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::schema::{Validate, ValidationError};
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
 #[serde(transparent)]
 #[sqlx(transparent)]
 pub struct Uri(String);
 
 impl Uri {
-    /// Creates a new `Uri` without validating.
-    #[must_use]
-    pub fn new_unchecked<T: Into<String>>(uri: T) -> Self {
-        Self(uri.into())
-    }
-
     /// Creates a new `Uri` from the given string.
-    ///
-    /// # Errors
-    ///
-    /// - [`ValidationError`] if validation is failing.
-    pub fn new<T: Into<String>>(uri: T) -> Result<Self, ValidationError> {
-        let uri = Self::new_unchecked(uri);
-        uri.validate()?;
-        Ok(uri)
+    #[must_use]
+    pub fn new<T: Into<String>>(uri: T) -> Self {
+        Self(uri.into())
     }
 }
 
 impl fmt::Display for Uri {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "{}", self.0)
-    }
-}
-
-impl Validate for Uri {
-    fn validate(&self) -> Result<(), ValidationError> {
-        Ok(())
     }
 }
 
@@ -50,32 +31,15 @@ pub struct PropertyTypeReference {
 }
 
 impl PropertyTypeReference {
-    /// Creates a new `PropertyTypeReference` without validating.
-    #[must_use]
-    pub const fn new_unchecked(reference: Uri) -> Self {
-        Self { reference }
-    }
-
     /// Creates a new `PropertyTypeReference` from the given `reference`.
-    ///
-    /// # Errors
-    ///
-    /// - [`ValidationError`] if validation is failing.
-    pub fn new(reference: Uri) -> Result<Self, ValidationError> {
-        let reference = Self::new_unchecked(reference);
-        reference.validate()?;
-        Ok(reference)
+    #[must_use]
+    pub const fn new(reference: Uri) -> Self {
+        Self { reference }
     }
 
     #[must_use]
     pub const fn reference(&self) -> &Uri {
         &self.reference
-    }
-}
-
-impl Validate for PropertyTypeReference {
-    fn validate(&self) -> Result<(), ValidationError> {
-        Ok(())
     }
 }
 
@@ -87,32 +51,15 @@ pub struct DataTypeReference {
 }
 
 impl DataTypeReference {
-    /// Creates a new `DataTypeReference` without validating.
-    #[must_use]
-    pub const fn new_unchecked(reference: Uri) -> Self {
-        Self { reference }
-    }
-
     /// Creates a new `DataTypeReference` from the given `reference`.
-    ///
-    /// # Errors
-    ///
-    /// - [`ValidationError`] if validation is failing.
-    pub fn new(reference: Uri) -> Result<Self, ValidationError> {
-        let reference = Self::new_unchecked(reference);
-        reference.validate()?;
-        Ok(reference)
+    #[must_use]
+    pub const fn new(reference: Uri) -> Self {
+        Self { reference }
     }
 
     #[must_use]
     pub const fn reference(&self) -> &Uri {
         &self.reference
-    }
-}
-
-impl Validate for DataTypeReference {
-    fn validate(&self) -> Result<(), ValidationError> {
-        Ok(())
     }
 }
 
@@ -126,7 +73,7 @@ mod tests {
 
     #[test]
     fn data_type_reference() -> Result<(), Box<dyn Error>> {
-        let reference = DataTypeReference::new(Uri::new("https://example.com/data_type")?)?;
+        let reference = DataTypeReference::new(Uri::new("https://example.com/data_type"));
         let json = serde_json::to_value(&reference)?;
 
         assert_eq!(
@@ -137,6 +84,23 @@ mod tests {
         );
 
         let reference2: DataTypeReference = serde_json::from_value(json)?;
+        assert_eq!(reference, reference2);
+        Ok(())
+    }
+
+    #[test]
+    fn property_type_reference() -> Result<(), Box<dyn Error>> {
+        let reference = PropertyTypeReference::new(Uri::new("https://example.com/data_type"));
+        let json = serde_json::to_value(&reference)?;
+
+        assert_eq!(
+            json,
+            json!({
+                "$ref": "https://example.com/data_type"
+            })
+        );
+
+        let reference2: PropertyTypeReference = serde_json::from_value(json)?;
         assert_eq!(reference, reference2);
         Ok(())
     }

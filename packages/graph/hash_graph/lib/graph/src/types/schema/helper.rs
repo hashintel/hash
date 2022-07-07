@@ -1,15 +1,17 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::schema::{Validate, ValidationError};
+use crate::types::schema::ValidationError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(
-    try_from = "ArrayRepr<T>",
-    tag = "type",
-    rename = "array",
-    rename_all = "camelCase"
-)]
+#[serde(rename_all = "camelCase")]
+enum ArrayTypeTag {
+    Array,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Array<T> {
+    r#type: ArrayTypeTag,
     items: T,
     #[serde(skip_serializing_if = "Option::is_none")]
     min_items: Option<usize>,
@@ -18,33 +20,19 @@ pub struct Array<T> {
 }
 
 impl<T> Array<T> {
-    /// Creates a new `Array` without validating.
+    /// Creates a new `Array` from the given `items`, `min_items` and `max_items`.
     #[must_use]
-    pub fn new_unchecked<A: Into<Option<usize>>, B: Into<Option<usize>>>(
+    pub fn new<A: Into<Option<usize>>, B: Into<Option<usize>>>(
         items: T,
         min_items: A,
         max_items: B,
     ) -> Self {
         Self {
+            r#type: ArrayTypeTag::Array,
             items,
             min_items: min_items.into(),
             max_items: max_items.into(),
         }
-    }
-
-    /// Creates a new `Array` from the given `items`, `min_items` and `max_items`.
-    ///
-    /// # Errors
-    ///
-    /// - [`ValidationError`] if the type is invalid.
-    pub fn new<A: Into<Option<usize>>, B: Into<Option<usize>>>(
-        items: T,
-        min_items: A,
-        max_items: B,
-    ) -> Result<Self, ValidationError> {
-        let array = Self::new_unchecked(items, min_items, max_items);
-        array.validate()?;
-        Ok(array)
     }
 
     #[must_use]
@@ -63,36 +51,6 @@ impl<T> Array<T> {
     }
 }
 
-impl<T> Validate for Array<T> {
-    fn validate(&self) -> Result<(), ValidationError> {
-        Ok(())
-    }
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-enum ArrayTypeTag {
-    Array,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct ArrayRepr<T> {
-    #[serde(rename = "type")]
-    _type: ArrayTypeTag,
-    items: T,
-    min_items: Option<usize>,
-    max_items: Option<usize>,
-}
-
-impl<T> TryFrom<ArrayRepr<T>> for Array<T> {
-    type Error = ValidationError;
-
-    fn try_from(array: ArrayRepr<T>) -> Result<Self, Self::Error> {
-        Self::new(array.items, array.min_items, array.max_items)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ValueOrArray<T> {
@@ -101,7 +59,11 @@ pub enum ValueOrArray<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(try_from = "OneOfRepr<T>", rename_all = "camelCase")]
+#[serde(
+    try_from = "OneOfRepr<T>",
+    rename_all = "camelCase",
+    deny_unknown_fields
+)]
 pub struct OneOf<T> {
     one_of: Vec<T>,
 }
@@ -129,9 +91,7 @@ impl<T> OneOf<T> {
     pub fn one_of(&self) -> &[T] {
         &self.one_of
     }
-}
 
-impl<T> Validate for OneOf<T> {
     fn validate(&self) -> Result<(), ValidationError> {
         if self.one_of.is_empty() {
             return Err(ValidationError::OneOfEmpty);
@@ -165,7 +125,7 @@ mod tests {
 
     #[test]
     fn array() -> Result<(), Box<dyn Error>> {
-        let array = Array::new(Uri::new("https://example.com/data_type")?, None, None)?;
+        let array = Array::new(Uri::new("https://example.com/data_type"), None, None);
 
         let json = serde_json::to_value(&array)?;
         assert_eq!(
@@ -179,7 +139,7 @@ mod tests {
         let array2 = serde_json::from_value(json)?;
         assert_eq!(array, array2);
 
-        let array = Array::new(Uri::new("https://example.com/data_type")?, 1, 2)?;
+        let array = Array::new(Uri::new("https://example.com/data_type"), 1, 2);
 
         let json = serde_json::to_value(&array)?;
         assert_eq!(
@@ -233,7 +193,7 @@ mod tests {
 
     #[test]
     fn one_or_many_single() -> Result<(), Box<dyn Error>> {
-        let one = ValueOrArray::Value(Uri::new("https://example.com/data_type")?);
+        let one = ValueOrArray::Value(Uri::new("https://example.com/data_type"));
 
         let json = serde_json::to_value(&one)?;
         assert_eq!(json, serde_json::json!("https://example.com/data_type"));
@@ -247,10 +207,10 @@ mod tests {
     #[test]
     fn one_or_many_array() -> Result<(), Box<dyn Error>> {
         let array = ValueOrArray::Array(Array::new(
-            Uri::new("https://example.com/data_type")?,
+            Uri::new("https://example.com/data_type"),
             None,
             None,
-        )?);
+        ));
 
         let json = serde_json::to_value(&array)?;
         assert_eq!(
@@ -269,7 +229,7 @@ mod tests {
 
     #[test]
     fn one_of() -> Result<(), Box<dyn Error>> {
-        let one = OneOf::new([Uri::new("https://example.com/data_type")?])?;
+        let one = OneOf::new([Uri::new("https://example.com/data_type")])?;
 
         let json = serde_json::to_value(&one)?;
         assert_eq!(

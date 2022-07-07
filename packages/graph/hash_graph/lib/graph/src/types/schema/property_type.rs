@@ -3,8 +3,7 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 
 use crate::types::schema::{
-    Array, DataTypeReference, OneOf, PropertyTypeReference, Uri, Validate, ValidationError,
-    ValueOrArray,
+    Array, DataTypeReference, OneOf, PropertyTypeReference, Uri, ValidationError, ValueOrArray,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -47,9 +46,7 @@ impl PropertyTypeObject {
         object.validate()?;
         Ok(object)
     }
-}
 
-impl Validate for PropertyTypeObject {
     fn validate(&self) -> Result<(), ValidationError> {
         for uri in &self.required {
             if !self.properties.contains_key(uri) {
@@ -85,25 +82,13 @@ impl TryFrom<PropertyTypeObjectRepr> for PropertyTypeObject {
     }
 }
 
-mod values {
-    #![allow(
-        clippy::use_self,
-        clippy::wildcard_imports,
-        reason = "Weird false positive on `ArrayOfPropertyValues` which somehow can't be disabled \
-                  locally"
-    )]
-
-    use super::*;
-
-    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-    #[serde(untagged)]
-    pub enum PropertyValues {
-        PropertyTypeObject(PropertyTypeObject),
-        DataTypeReference(DataTypeReference),
-        ArrayOfPropertyValues(Array<OneOf<Self>>),
-    }
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PropertyValues {
+    PropertyTypeObject(PropertyTypeObject),
+    DataTypeReference(DataTypeReference),
+    ArrayOfPropertyValues(Array<OneOf<Self>>),
 }
-pub use self::values::PropertyValues;
 
 impl PropertyValues {
     #[must_use]
@@ -143,13 +128,16 @@ impl PropertyValues {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(
-    try_from = "PropertyTypeRepr",
-    tag = "kind",
-    rename = "propertyType",
-    rename_all = "camelCase"
-)]
+#[serde(rename_all = "camelCase")]
+#[allow(clippy::use_self)]
+enum PropertyTypeTag {
+    PropertyType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyType {
+    kind: PropertyTypeTag,
     #[serde(rename = "$id")]
     id: Uri,
     title: String,
@@ -160,36 +148,21 @@ pub struct PropertyType {
 }
 
 impl PropertyType {
-    /// Creates a new `PropertyType` without validating.
+    /// Creates a new `PropertyType`.
     #[must_use]
-    pub const fn new_unchecked(
+    pub const fn new(
         id: Uri,
         title: String,
         description: Option<String>,
         one_of: OneOf<PropertyValues>,
     ) -> Self {
         Self {
+            kind: PropertyTypeTag::PropertyType,
             id,
             title,
             description,
             one_of,
         }
-    }
-
-    /// Creates a new `PropertyType`.
-    ///
-    /// # Errors
-    ///
-    /// - [`ValidationError`] if validation is failing.
-    pub fn new(
-        id: Uri,
-        title: String,
-        description: Option<String>,
-        one_of: OneOf<PropertyValues>,
-    ) -> Result<Self, ValidationError> {
-        let property_type = Self::new_unchecked(id, title, description, one_of);
-        property_type.validate()?;
-        Ok(property_type)
     }
 
     #[must_use]
@@ -231,45 +204,6 @@ impl PropertyType {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-enum PropertyTypeTag {
-    PropertyType,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PropertyTypeRepr {
-    #[serde(rename = "kind")]
-    _kind: PropertyTypeTag,
-    #[serde(rename = "$id")]
-    id: Uri,
-    title: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
-    #[serde(flatten)]
-    one_of: OneOf<PropertyValues>,
-}
-
-impl TryFrom<PropertyTypeRepr> for PropertyType {
-    type Error = ValidationError;
-
-    fn try_from(property_type: PropertyTypeRepr) -> Result<Self, ValidationError> {
-        Self::new(
-            property_type.id,
-            property_type.title,
-            property_type.description,
-            property_type.one_of,
-        )
-    }
-}
-
-impl Validate for PropertyType {
-    fn validate(&self) -> Result<(), ValidationError> {
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::error::Error;
@@ -283,10 +217,10 @@ mod tests {
     fn one_object() -> Result<(), Box<dyn Error>> {
         let object = PropertyTypeObject {
             properties: [(
-                Uri::new("https://example.com/property_type")?,
+                Uri::new("https://example.com/property_type"),
                 ValueOrArray::Value(PropertyTypeReference::new(Uri::new(
                     "https://example.com/property_type",
-                )?)?),
+                ))),
             )]
             .into_iter()
             .collect(),
@@ -316,12 +250,12 @@ mod tests {
     fn many_objects() -> Result<(), Box<dyn Error>> {
         let object = PropertyTypeObject {
             properties: [(
-                Uri::new("https://example.com/property_type")?,
+                Uri::new("https://example.com/property_type"),
                 ValueOrArray::Array(Array::new(
-                    PropertyTypeReference::new(Uri::new("https://example.com/property_type")?)?,
+                    PropertyTypeReference::new(Uri::new("https://example.com/property_type")),
                     None,
                     None,
-                )?),
+                )),
             )]
             .into_iter()
             .collect(),
@@ -354,14 +288,14 @@ mod tests {
     fn required_object() -> Result<(), Box<dyn Error>> {
         let object = PropertyTypeObject {
             properties: [(
-                Uri::new("https://example.com/property_type")?,
+                Uri::new("https://example.com/property_type"),
                 ValueOrArray::Value(PropertyTypeReference::new(Uri::new(
                     "https://example.com/property_type",
-                )?)?),
+                ))),
             )]
             .into_iter()
             .collect(),
-            required: vec![Uri::new("https://example.com/property_type")?],
+            required: vec![Uri::new("https://example.com/property_type")],
         };
 
         let json = serde_json::to_value(&object)?;
@@ -413,10 +347,10 @@ mod tests {
     fn property_value_object() -> Result<(), Box<dyn Error>> {
         let object = PropertyValues::PropertyTypeObject(PropertyTypeObject {
             properties: [(
-                Uri::new("https://example.com/property_type")?,
+                Uri::new("https://example.com/property_type"),
                 ValueOrArray::Value(PropertyTypeReference::new(Uri::new(
                     "https://example.com/property_type",
-                )?)?),
+                ))),
             )]
             .into_iter()
             .collect(),
@@ -446,7 +380,7 @@ mod tests {
     fn property_value_reference() -> Result<(), Box<dyn Error>> {
         let object = PropertyValues::DataTypeReference(DataTypeReference::new(Uri::new(
             "https://example.com/property_type",
-        )?)?);
+        )));
 
         let json = serde_json::to_value(&object)?;
         assert_eq!(
@@ -466,11 +400,11 @@ mod tests {
     fn property_values() -> Result<(), Box<dyn Error>> {
         let object = PropertyValues::ArrayOfPropertyValues(Array::new(
             OneOf::new([PropertyValues::DataTypeReference(DataTypeReference::new(
-                Uri::new("https://example.com/property_type")?,
-            )?)])?,
+                Uri::new("https://example.com/property_type"),
+            ))])?,
             None,
             None,
-        )?);
+        ));
 
         let json = serde_json::to_value(&object)?;
         assert_eq!(
@@ -504,10 +438,8 @@ mod tests {
             property_type: &PropertyType,
             uris: impl IntoIterator<Item = &'static str>,
         ) {
-            let expected_datatype_references = uris
-                .into_iter()
-                .map(|uri| Uri::new(uri).expect("Malformed URI"))
-                .collect::<HashSet<_>>();
+            let expected_datatype_references =
+                uris.into_iter().map(Uri::new).collect::<HashSet<_>>();
 
             let datatype_references = property_type
                 .data_type_references()
@@ -523,10 +455,8 @@ mod tests {
             property_type: &PropertyType,
             uris: impl IntoIterator<Item = &'static str>,
         ) {
-            let expected_property_references = uris
-                .into_iter()
-                .map(|uri| Uri::new(uri).expect("Malformed URI"))
-                .collect::<HashSet<_>>();
+            let expected_property_references =
+                uris.into_iter().map(Uri::new).collect::<HashSet<_>>();
 
             let property_references = property_type
                 .property_type_references()
