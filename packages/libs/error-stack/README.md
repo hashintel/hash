@@ -77,7 +77,7 @@ fn start_experiments(
             Ok(move || experiment.0 * experiment.1)
         })
         .collect::<Result<Vec<_>, ExperimentError>>()
-        .attach_printable("Unable to setup experiments")?;
+        .attach_printable("Unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
@@ -96,7 +96,7 @@ This will most likely result in an error and print
 ```text
 Error: Experiment error: Could not run experiment
              at examples/demo.rs:54:18
-      - Unable to setup experiments
+      - Unable to set up experiments
 
 Caused by:
    0: invalid experiment description
