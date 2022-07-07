@@ -27,7 +27,7 @@ export const useCreatePage = (accountId: string) => {
     refetchQueries: ({ data }) => [
       {
         query: getAccountPages,
-        variables: { accountId: data.createPage.accountId },
+        variables: { accountId: data?.createPage.accountId },
       },
     ],
   });
@@ -39,7 +39,7 @@ export const useCreatePage = (accountId: string) => {
     refetchQueries: ({ data }) => [
       {
         query: getAccountPages,
-        variables: { accountId: data.setParentPage.accountId },
+        variables: { accountId: data?.setParentPage.accountId },
       },
     ],
   });

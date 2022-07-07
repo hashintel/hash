@@ -314,10 +314,6 @@ type MinimalApiLinkedAggregation = Pick<
 >;
 
 export function convertApiLinkedAggregationToBpLinkedAggregation(
-  linkedAggregation: MinimalApiLinkedAggregation,
-): BpLinkedAggregationDefinition;
-
-export function convertApiLinkedAggregationToBpLinkedAggregation(
   linkedAggregation: MinimalApiLinkedAggregation & {
     results: Pick<
       ApiEntity,
@@ -326,6 +322,10 @@ export function convertApiLinkedAggregationToBpLinkedAggregation(
   },
 ): BpLinkedAggregation;
 
+export function convertApiLinkedAggregationToBpLinkedAggregation(
+  linkedAggregation: MinimalApiLinkedAggregation,
+): BpLinkedAggregationDefinition;
+
 /**
  * Converts a LinkedAggregation from its GraphQL API representation to its Block Protocol representation,
  * by re-writing all of aggregationId, sourceEntityId and sourceDestinationId so that they are
@@ -333,13 +333,13 @@ export function convertApiLinkedAggregationToBpLinkedAggregation(
  */
 export function convertApiLinkedAggregationToBpLinkedAggregation(
   linkedAggregation:
-    | MinimalApiLinkedAggregation
     | (MinimalApiLinkedAggregation & {
         results: Pick<
           ApiEntity,
           "accountId" | "entityId" | "entityTypeId" | "properties"
         >[];
-      }),
+      })
+    | MinimalApiLinkedAggregation,
 ): BpLinkedAggregation | BpLinkedAggregationDefinition {
   const { aggregationId, sourceAccountId, sourceEntityId, operation, path } =
     linkedAggregation;
@@ -372,15 +372,6 @@ export function convertApiLinkedAggregationToBpLinkedAggregation(
         : undefined,
   };
 }
-
-/**
- * Converts links from their GraphQL API representation to their Block Protocol representation.
- * @see convertApiLinkedAggregationToBpLinkedAggregation
- */
-export const convertApiLinkedAggregationsToBpLinkedAggregations = (
-  records: ApiLinkedAggregation[],
-): BpLinkedAggregation[] =>
-  records.map(convertApiLinkedAggregationToBpLinkedAggregation);
 
 /**
  * Converts an entity type from its GraphQL API representation to its Block Protocol representation:
