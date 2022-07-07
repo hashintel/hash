@@ -17,9 +17,13 @@ const App = () => (
     initialEntities={exampleGraph.entities}
     initialEntityTypes={exampleGraph.entityTypes}
     initialLinks={exampleGraph.links}
-  >
-    <Component entityId="test-block-1" />
-  </MockBlockDock>
+    blockDefinition={{ ReactComponent: Component }}
+    blockEntity={{
+      entityId: "entity-github-pr-overview",
+      properties: {},
+    }}
+    debug
+  />
 );
 
 ReactDOM.render(<App />, node);

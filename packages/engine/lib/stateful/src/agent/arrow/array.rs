@@ -218,7 +218,7 @@ fn builder_add_id(builder: &mut FixedSizeBinaryBuilder, id: AgentId) -> Result<(
     Ok(builder.append_value(id.as_bytes())?)
 }
 
-pub(in crate) fn get_agent_id_array(agent_ids: &[AgentId]) -> Result<FixedSizeBinaryArray> {
+pub(crate) fn get_agent_id_array(agent_ids: &[AgentId]) -> Result<FixedSizeBinaryArray> {
     let mut builder =
         FixedSizeBinaryBuilder::new(agent_ids.len() * UUID_V4_LEN, UUID_V4_LEN as i32);
     for agent_id in agent_ids {

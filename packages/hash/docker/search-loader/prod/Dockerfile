@@ -18,6 +18,9 @@ COPY tsconfig.base.json .
 
 COPY packages/hash/api/codegen.yml packages/hash/api/codegen.yml
 COPY packages/hash/api/src/graphql/typeDefs packages/hash/api/src/graphql/typeDefs
+COPY packages/hash/api/src/collab/graphql/queries packages/hash/api/src/collab/graphql/queries
+COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+
 RUN yarn workspace @hashintel/hash-api codegen
 
 COPY packages/hash/backend-utils packages/hash/backend-utils

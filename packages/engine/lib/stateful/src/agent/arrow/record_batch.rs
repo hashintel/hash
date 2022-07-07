@@ -11,7 +11,7 @@ use crate::{
 
 // TODO: Use in Rust runner, and look up column without using PREVIOUS_INDEX_COLUMN_INDEX
 #[allow(unused, unreachable_code, clippy::diverging_sub_expression)]
-pub(in crate) fn get_old_message_index(
+pub(crate) fn get_old_message_index(
     record_batch: &RecordBatch,
     row_index: usize,
 ) -> Result<Option<&[u32; 2]>> {
@@ -69,7 +69,7 @@ pub(crate) fn agent_id_iter(
     }))
 }
 
-pub(in crate) fn agent_name_iter(
+pub(crate) fn agent_name_iter(
     record_batch: &RecordBatch,
 ) -> Result<impl Iterator<Item = Option<&str>>> {
     let column_name = AgentStateField::AgentName.name();
@@ -226,7 +226,7 @@ pub(crate) fn topology_mut_iter(
     ))
 }
 
-pub(in crate) fn position_iter(
+pub(crate) fn position_iter(
     record_batch: &RecordBatch,
 ) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
     let column_name = AgentStateField::Position.name();
@@ -305,7 +305,7 @@ pub(crate) fn direction_iter(
     }))
 }
 
-pub(in crate) fn search_radius_iter(
+pub(crate) fn search_radius_iter(
     record_batch: &RecordBatch,
 ) -> Result<impl Iterator<Item = Option<f64>> + '_> {
     // TODO[1] remove dependency on neighbors package
@@ -313,7 +313,7 @@ pub(in crate) fn search_radius_iter(
     f64_iter(record_batch, column_name)
 }
 
-pub(in crate) fn f64_iter<'a>(
+pub(crate) fn f64_iter<'a>(
     record_batch: &'a RecordBatch,
     column_name: &str,
 ) -> Result<impl Iterator<Item = Option<f64>> + 'a> {
@@ -336,7 +336,7 @@ pub(in crate) fn f64_iter<'a>(
     }))
 }
 
-pub(in crate) fn exists_iter<'a>(
+pub(crate) fn exists_iter<'a>(
     record_batch: &'a RecordBatch,
     column_name: &str,
 ) -> Result<impl Iterator<Item = bool> + 'a> {
@@ -346,7 +346,7 @@ pub(in crate) fn exists_iter<'a>(
     Ok((0..row_count).map(move |i| column.is_valid(i)))
 }
 
-pub(in crate) fn str_iter<'a>(
+pub(crate) fn str_iter<'a>(
     record_batch: &'a RecordBatch,
     column_name: &str,
 ) -> Result<impl Iterator<Item = Option<&'a str>>> {
@@ -369,7 +369,7 @@ pub(in crate) fn str_iter<'a>(
     }))
 }
 
-pub(in crate) fn bool_iter<'a>(
+pub(crate) fn bool_iter<'a>(
     record_batch: &'a RecordBatch,
     column_name: &str,
 ) -> Result<impl Iterator<Item = Option<bool>> + 'a> {
@@ -393,7 +393,7 @@ pub(in crate) fn bool_iter<'a>(
 }
 
 // Iterate string fields and deserialize them into serde_json::Value objects
-pub(in crate) fn json_deserialize_str_value_iter<'a>(
+pub(crate) fn json_deserialize_str_value_iter<'a>(
     record_batch: &'a RecordBatch,
     column_name: &str,
 ) -> Result<impl Iterator<Item = serde_json::Value> + 'a> {
@@ -413,7 +413,7 @@ pub(in crate) fn json_deserialize_str_value_iter<'a>(
 
 // Iterate over any non-serialized fields (like f64, array, struct, ...) and serialize them into
 // serde_json::Value objects
-pub(in crate) fn json_values(
+pub(crate) fn json_values(
     record_batch: &RecordBatch,
     column_name: &str,
     data_type: &DataType,

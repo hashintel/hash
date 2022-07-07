@@ -4,9 +4,9 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-flatbuffers_gen = { path = "../flatbuffers_gen" }
-memory = { path = "../memory" }
-stateful = { path = "../stateful" }
+flatbuffers_gen = { path = "../flatbuffers_gen", default-features = false }
+memory = { path = "../memory", default-features = false }
+stateful = { path = "../stateful", default-features = false }
 
 arrow = { version = "10.0.0", default-features = false }
 async-trait = "0.1.48"

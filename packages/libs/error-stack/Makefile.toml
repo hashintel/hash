@@ -1,0 +1,6 @@
+extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
+
+[env]
+CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
+CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
+CARGO_MIRI_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"

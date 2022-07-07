@@ -41,7 +41,7 @@ impl NodeMapping {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NodeStatic {
     /// 1 if is row-level or other buffers point to a non-fixed-size list,
     /// > 1 if direct child of fixed size list

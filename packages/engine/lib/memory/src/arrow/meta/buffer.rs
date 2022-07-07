@@ -36,7 +36,7 @@ impl Buffer {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BufferType {
     /// This buffer contains the null bitmap of the node or is just binary data
     BitMap { is_null_bitmap: bool },

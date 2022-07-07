@@ -6,7 +6,7 @@ use core::{fmt, fmt::Formatter};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ContextA;
 
 impl fmt::Display for ContextA {
@@ -17,7 +17,7 @@ impl fmt::Display for ContextA {
 
 impl Context for ContextA {}
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ContextB;
 
 impl fmt::Display for ContextB {

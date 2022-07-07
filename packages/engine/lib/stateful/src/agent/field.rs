@@ -176,7 +176,7 @@ pub(crate) const BUILTIN_FIELDS: [&str; 12] = [
     AgentStateField::Hidden.name(),
 ];
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct AgentId {
     id: Uuid,

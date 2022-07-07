@@ -36,7 +36,19 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   if (!cursor) return null;
 
   // the cursor's parent is the node that contains it
-  const text = cursor.parent.textContent;
+  const parentContent = cursor.parent.content;
+
+  let text = "";
+
+  parentContent.forEach((node) => {
+    // replace hard breaks with a space so that regex stops
+    // matching at that point
+    if (node.type.name === "hardBreak") {
+      text += " ";
+    } else if (node.text) {
+      text += node.text;
+    }
+  });
 
   // the cursor's position inside its parent
   const cursorPos = cursor.parentOffset;
@@ -44,7 +56,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // the parent's position relative to the document root
   const parentPos = cursor.pos - cursorPos;
 
-  const match = /(@|\/)\S*$/.exec(text.substring(0, cursorPos));
+  const match = /\B(@|\/)\S*$/.exec(text.substring(0, cursorPos));
   if (!match) return null;
 
   const from = match.index;

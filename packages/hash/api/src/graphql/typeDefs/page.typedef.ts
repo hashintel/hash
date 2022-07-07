@@ -165,6 +165,7 @@ export const pageTypedef = gql`
     contents: [JSONObject!]
     title: String
     summary: String
+    archived: Boolean
   }
 
   """

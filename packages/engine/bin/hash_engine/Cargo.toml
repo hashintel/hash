@@ -4,9 +4,9 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-execution = { path = "../../lib/execution" }
-experiment-structure = { path = "../../lib/experiment-structure" }
-hash_engine_lib = { path = "../..", default-features = false }
+execution = { path = "../../lib/execution", default-features = false }
+experiment-structure = { path = "../../lib/experiment-structure", default-features = false }
+experiment-control = { path = "../../lib/experiment-control", default-features = false, features = ["clap"] }
 
 error-stack = { version = "0.1.1", features = ["spantrace"] }
 
@@ -19,5 +19,5 @@ path = "src/main.rs"
 
 [features]
 default = ["build-nng"]
-texray = ["hash_engine_lib/texray"]
-build-nng = ["hash_engine_lib/build-nng"]
+texray = ["experiment-control/texray"]
+build-nng = ["experiment-control/build-nng"]

@@ -113,7 +113,7 @@ declare module "@mui/material/Typography" {
     smallCaps: true;
     largeTextLabels: true;
     regularTextPages: true;
-    regularTextParagaphs: true;
+    regularTextParagraphs: true;
     regularTextLabels: true;
     smallTextParagraphs: true;
     smallTextLabels: true;

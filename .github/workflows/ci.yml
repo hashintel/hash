@@ -137,8 +137,8 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml build
-          docker-compose --file external-services/docker-compose.yml up --detach
+          docker-compose --file packages/hash/external-services/docker-compose.yml build
+          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
 
       - name: Seed data
         if: ${{ success() || failure() }}
@@ -159,7 +159,7 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
 
       - name: Show backend logs
         if: ${{ success() || failure() }}
@@ -192,8 +192,8 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml build
-          docker-compose --file external-services/docker-compose.yml up --detach
+          docker-compose --file packages/hash/external-services/docker-compose.yml build
+          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
 
       - name: Seed data
         if: ${{ success() || failure() }}
@@ -224,7 +224,7 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
           cat var/logs/external-services.log
 
       - name: Show backend logs

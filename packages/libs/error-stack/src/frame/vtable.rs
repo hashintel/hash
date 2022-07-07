@@ -1,4 +1,6 @@
 use alloc::boxed::Box;
+#[cfg(nightly)]
+use core::any::{Demand, Provider};
 use core::{
     any::TypeId,
     fmt,
@@ -6,10 +8,7 @@ use core::{
 };
 
 #[cfg(nightly)]
-use crate::{
-    frame::attachment::AttachmentProvider,
-    provider::{Demand, Provider},
-};
+use crate::frame::attachment::AttachmentProvider;
 use crate::{
     frame::{kind::AttachmentKind, ErasableFrame},
     Context, FrameKind,

@@ -93,13 +93,11 @@ impl InitPackageCreator for JsPyInitCreator {
                 initial_state: init_config.initial_state.clone(),
                 comms,
             })),
-            name => {
-                return Err(Error::from(format!(
-                    "Trying to create a JS/Python init package but the initial state source \
-                     didn't end in '.js' or '.py': {:?}",
-                    name
-                )));
-            }
+            name => Err(Error::from(format!(
+                "Trying to create a JS/Python init package but the initial state source didn't \
+                 end in '.js' or '.py': {:?}",
+                name
+            ))),
         }
     }
 }

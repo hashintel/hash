@@ -8,7 +8,7 @@ pub struct BooleanColumn {
 
 impl BooleanColumn {
     // Assumes underlying array is a non-nullable boolean array
-    pub(in crate) fn new_non_nullable(array: &Arc<dyn Array>) -> Self {
+    pub(crate) fn new_non_nullable(array: &Arc<dyn Array>) -> Self {
         let data = array.data_ref();
         let bool_buffer = &data.buffers()[0];
         Self {

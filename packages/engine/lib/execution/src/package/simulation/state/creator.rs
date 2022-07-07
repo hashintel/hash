@@ -1,4 +1,4 @@
-use std::{collections::HashMap, lazy::SyncOnceCell};
+use std::{collections::HashMap, sync::OnceLock};
 
 use crate::{
     package::simulation::{
@@ -17,7 +17,7 @@ pub struct StatePackageCreators {
 
 impl StatePackageCreators {
     pub fn initialize_for_experiment_run(config: &PackageInitConfig) -> Result<&'static Self> {
-        static PACKAGE_CREATORS: SyncOnceCell<StatePackageCreators> = SyncOnceCell::new();
+        static PACKAGE_CREATORS: OnceLock<StatePackageCreators> = OnceLock::new();
         PACKAGE_CREATORS.get_or_try_init(|| {
             tracing::debug!("Initializing State Package Creators");
             let mut creators = HashMap::<_, Box<dyn StatePackageCreator>>::with_capacity(2);

@@ -125,7 +125,7 @@ impl ArrayBuilder for MessageBuilder {
 
 #[derive(Debug)]
 #[repr(transparent)] // Required for `&ListArray -> &OutboundArray`
-pub(in crate) struct MessageArray(pub ListArray);
+pub(crate) struct MessageArray(pub ListArray);
 
 impl MessageArray {
     pub fn new(len: usize) -> Result<Self> {

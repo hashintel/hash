@@ -34,7 +34,7 @@ pub use self::{
     pool::{MessageBatchPool, MessageReader},
     schema::MessageSchema,
 };
-pub(in crate) use self::{
+pub(crate) use self::{
     kind::{CreateAgent, RemoveAgent, StopSim},
     outbound::Error as OutboundError,
 };

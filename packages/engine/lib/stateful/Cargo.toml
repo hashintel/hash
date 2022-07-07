@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-memory = { path = "../memory" }
+memory = { path = "../memory", default-features = false }
 
 arrow = { version = "10.0.0", default-features = false }
 flatbuffers = "2.1.1"

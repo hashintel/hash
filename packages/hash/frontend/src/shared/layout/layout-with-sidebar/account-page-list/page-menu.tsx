@@ -1,9 +1,10 @@
 import { VFC, useMemo, useState } from "react";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { faLink } from "@fortawesome/free-solid-svg-icons";
+import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { useArchivePage } from "../../../../components/hooks/useArchivePage";
 import { useRouteAccountInfo } from "../../../routing";
 import { useCreatePage } from "../../../../components/hooks/useCreatePage";
 import { MenuItem } from "../../../ui";
@@ -17,6 +18,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
   const [copied, setCopied] = useState(false);
   const { accountId } = useRouteAccountInfo();
   const { createSubPage } = useCreatePage(accountId);
+  const { archivePage } = useArchivePage(accountId);
 
   // Commented out menu items whose functionality have not been
   // implemented yet
@@ -56,6 +58,21 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
           }, 2000);
         },
       },
+      {
+        title: "Archive page",
+        icon: faArchive,
+        onClick: async () => {
+          try {
+            // @todo handle loading/error states properly
+            await archivePage(entityId);
+          } catch (err) {
+            // eslint-disable-next-line no-console -- TODO: consider using logger
+            console.log("Error archiving page: ", err);
+          } finally {
+            popupState.close();
+          }
+        },
+      },
       // {
       //   title: "Duplicate Page",
       //   icon: faCopy,
@@ -81,7 +98,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
       //   faded: true
       // },
     ],
-    [copied, popupState, createSubPage, accountId, entityId],
+    [copied, popupState, createSubPage, accountId, entityId, archivePage],
   );
   return (
     <Menu {...bindMenu(popupState)}>

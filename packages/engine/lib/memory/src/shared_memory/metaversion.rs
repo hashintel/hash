@@ -160,7 +160,7 @@ use crate::{
 /// Simple way for every component (language runners + main loop) using the datastore to track
 /// whether it has to reload memory or reload the record batch.
 #[must_use]
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Metaversion {
     memory: u32,
     batch: u32,

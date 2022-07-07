@@ -41,12 +41,12 @@ impl CreateAgent {
     pub const KIND: &'static str = "create_agent";
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct RemoveAgentData {
     pub agent_id: AgentId,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct RemoveAgent {
     pub r#type: message::RemoveAgent,
     #[serde(deserialize_with = "value_or_string_array")]
@@ -58,7 +58,7 @@ impl RemoveAgent {
     pub const KIND: &'static str = "remove_agent";
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct StopSim {
     pub r#type: message::StopSim,
     #[serde(deserialize_with = "value_or_string_array")]
@@ -71,7 +71,7 @@ impl StopSim {
 }
 
 /// Payload for arbitrary JSON data.
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Generic {
     pub r#type: String,
 

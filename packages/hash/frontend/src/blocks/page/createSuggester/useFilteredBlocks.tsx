@@ -25,10 +25,10 @@ export const useFilteredBlocks = (
         })),
     );
 
-    return fuzzySearchBy(allOptions, searchText, (option) =>
-      [option.variant.name, option.variant.description]
-        .map((str) => str ?? "")
-        .join(" "),
+    return fuzzySearchBy(
+      allOptions,
+      searchText,
+      (option) => option.variant.name ?? "",
     );
   }, [blocksMetaMap, searchText]);
 };

@@ -8,14 +8,14 @@ use error_stack::{bail, ensure, IntoReport, ResultExt};
 use execution::package::{
     experiment::ExperimentId, simulation::output::persistence::local::LocalPersistenceConfig,
 };
-use experiment_structure::ExperimentRun;
-use hash_engine_lib::{
-    experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
-    proto::{self, ExecutionEnvironment},
-    simulation::command::StopStatus,
-    utils::{LogFormat, LogLevel, OutputLocation},
+use experiment_control::{
+    comms::{EngineMsg, InitMessage},
+    controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
+    environment::{ExecutionEnvironment, LogFormat, LogLevel, OutputLocation},
 };
+use experiment_structure::ExperimentRun;
 use serde_json::json;
+use simulation_control::{command::StopStatus, EngineStatus};
 use tokio::time::{sleep, timeout};
 
 use crate::{experiment_server::Handler, process, OrchestratorError, Result};
@@ -215,7 +215,7 @@ impl Experiment {
         .report()
         .change_context(OrchestratorError::from("engine start timeout"));
         match msg {
-            Ok(proto::EngineStatus::Started) => {}
+            Ok(EngineStatus::Started) => {}
             Ok(m) => {
                 bail!(OrchestratorError::from(format!(
                     "expected to receive `Started` message but received: `{}`",
@@ -242,13 +242,13 @@ impl Experiment {
             })),
         )];
         // Now we can send the init message
-        let init_message = proto::InitMessage {
+        let init_message = InitMessage {
             experiment: experiment_run.clone(),
             env: ExecutionEnvironment::None, // We don't connect to the API
             dyn_payloads: serde_json::Map::from_iter(map_iter),
         };
         if let Err(err) = engine_process
-            .send(&proto::EngineMsg::Init(init_message))
+            .send(&EngineMsg::Init(init_message))
             .await
             .attach_printable("Could not send `Init` message")
         {
@@ -269,7 +269,7 @@ impl Experiment {
 
         let mut graceful_finish = true;
         loop {
-            let msg: Option<proto::EngineStatus>;
+            let msg: Option<EngineStatus>;
             tokio::select! {
                 _ = sleep(Duration::from_secs_f64(self.config.wait_timeout)) => {
                     error!(
@@ -295,13 +295,13 @@ impl Experiment {
             debug!("Got message from experiment run with type: {}", msg.kind());
 
             match msg {
-                proto::EngineStatus::Stopping => {
+                EngineStatus::Stopping => {
                     debug!("Stopping experiment \"{experiment_name}\"");
                 }
-                proto::EngineStatus::SimStart { sim_id, globals: _ } => {
+                EngineStatus::SimStart { sim_id, globals: _ } => {
                     debug!("Started simulation: {sim_id}");
                 }
-                proto::EngineStatus::SimStatus(status) => {
+                EngineStatus::SimStatus(status) => {
                     debug!("Got simulation run status: {status:?}");
                     for stop_command in status.stop_msg {
                         let reason = if let Some(reason) = stop_command.message.reason.as_ref() {
@@ -331,57 +331,57 @@ impl Experiment {
                     }
                     // TODO: OS - handle more status fields
                 }
-                proto::EngineStatus::SimStop(sim_id) => {
+                EngineStatus::SimStop(sim_id) => {
                     debug!("Simulation stopped: {sim_id}");
                 }
-                proto::EngineStatus::RunnerErrors(sim_id, errs) => {
+                EngineStatus::RunnerErrors(sim_id, errs) => {
                     error!(
                         "There were errors from the runner when running simulation [{sim_id}]: \
                          {errs:?}"
                     );
                     graceful_finish = false;
                 }
-                proto::EngineStatus::RunnerWarnings(sim_id, warnings) => {
+                EngineStatus::RunnerWarnings(sim_id, warnings) => {
                     warn!(
                         "There were warnings from the runner when running simulation [{sim_id}]: \
                          {warnings:?}"
                     );
                 }
-                proto::EngineStatus::Logs(sim_id, logs) => {
+                EngineStatus::Logs(sim_id, logs) => {
                     for log in logs {
                         if !log.is_empty() {
                             info!(target: "behaviors", "[{experiment_name}][{sim_id}]: {log}");
                         }
                     }
                 }
-                proto::EngineStatus::UserErrors(sim_id, errs) => {
+                EngineStatus::UserErrors(sim_id, errs) => {
                     error!(
                         "There were user-facing errors when running simulation [{sim_id}]: \
                          {errs:?}"
                     );
                 }
-                proto::EngineStatus::UserWarnings(sim_id, warnings) => {
+                EngineStatus::UserWarnings(sim_id, warnings) => {
                     warn!(
                         "There were user-facing warnings when running simulation [{sim_id}]: \
                          {warnings:?}"
                     );
                 }
-                proto::EngineStatus::PackageError(sim_id, error) => {
+                EngineStatus::PackageError(sim_id, error) => {
                     warn!(
                         "There was an error from a package running simulation [{sim_id}]: \
                          {error:?}"
                     );
                 }
-                proto::EngineStatus::Exit => {
+                EngineStatus::Exit => {
                     debug!("Process exited successfully for experiment run \"{experiment_name}\"");
                     break;
                 }
-                proto::EngineStatus::ProcessError(error) => {
+                EngineStatus::ProcessError(error) => {
                     error!("Got error: {error:?}");
                     graceful_finish = false;
                     break;
                 }
-                proto::EngineStatus::Started => {
+                EngineStatus::Started => {
                     error!(
                         "Received unexpected engine `Started` message after engine had already \
                          started: {}",

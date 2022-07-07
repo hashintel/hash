@@ -10,7 +10,7 @@ use crate::{
     Error, Result,
 };
 
-pub(in crate) fn message_usize_index_iter(
+pub(crate) fn message_usize_index_iter(
     record_batch: &RecordBatch,
     batch_index: usize,
 ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = MessageReference>> {
@@ -32,7 +32,7 @@ pub(in crate) fn message_usize_index_iter(
     })
 }
 
-pub(in crate) fn message_recipients_iter(
+pub(crate) fn message_recipients_iter(
     record_batch: &RecordBatch,
 ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = Vec<&str>>> {
     let num_agents = record_batch.num_rows();

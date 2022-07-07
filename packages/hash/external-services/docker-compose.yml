@@ -1,0 +1,56 @@
+version: "3.9"
+services:
+  hash-dev-opensearch:
+    deploy:
+      restart_policy:
+        condition: on-failure
+    env_file:
+      - ../../../.env
+      - ../../../.env.local
+    environment:
+      ## Tell OpenSearch that it's operating in single-node mode
+      - discovery.type=single-node
+      ## Disable the security module for development so we can connect over plain HTTP
+      - plugins.security.disabled=true
+      ## Docker volumes are ~10GB by default which is typically much smaller than the
+      ## host's drive size. This can cause OpenSearch to shutdown if it thinks disk
+      ## space is running low. Set the disk high watermark to 100% to ignore this.
+      - cluster.routing.allocation.disk.watermark.high=100%
+      - cluster.routing.allocation.disk.watermark.flood_stage=100%
+    build:
+      context: ./opensearch
+    ports:
+      - 9200:9200
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    ## Mouting open search data to a local directory may lead to java.nio.file.AccessDeniedException.
+    ## Details: https://github.com/opensearch-project/OpenSearch/issues/1579.
+    ## We can revisit the setup after upgrading base image or by fixing permissions in a custom image.
+    # volumes:
+    #   - ../../../var/external-services/opensearch/data:/usr/share/opensearch/data
+
+  hash-dev-postgres:
+    build:
+      context: ./postgres
+    deploy:
+      restart_policy:
+        condition: on-failure
+    env_file:
+      - ../../../.env
+      - ../../../.env.local
+    environment:
+      - PGDATA=/data/pgdata
+    ports:
+      - 5432:5432
+    volumes:
+      - ../../../var/external-services/postgres/data:/data
+
+  hash-dev-redis:
+    deploy:
+      restart_policy:
+        condition: on-failure
+    image: redis:6.2
+    ports:
+      - 6379:6379

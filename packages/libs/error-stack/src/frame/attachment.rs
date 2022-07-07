@@ -1,5 +1,5 @@
 #[cfg(nightly)]
-use crate::provider::{Demand, Provider};
+use core::any::{Demand, Provider};
 
 /// Wrapper around an attachment to provide the inner type.
 #[repr(transparent)]

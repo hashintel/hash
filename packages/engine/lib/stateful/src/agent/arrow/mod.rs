@@ -1,7 +1,7 @@
 //! Low-level interface to [`AgentBatch`].
 
-pub(in crate) mod array;
-pub(in crate) mod boolean;
+pub(crate) mod array;
+pub(crate) mod boolean;
 
 mod batch;
 mod iterator;

@@ -167,9 +167,28 @@ class __Page extends Entity {
       latestOnly: true,
     });
 
-    return await Promise.all(
+    const pages = await Promise.all(
       pageEntities.map((entity) => Page.fromEntity(client, entity)),
     );
+
+    return await Promise.all(
+      pages.map(async (page) => {
+        if (await page.isArchived(client)) {
+          return [];
+        }
+        return page;
+      }),
+    ).then((filteredPages) => filteredPages.flat());
+  }
+
+  async isArchived(client: DbClient): Promise<Boolean> {
+    if (this.properties.archived) {
+      return true;
+    }
+
+    const parentPage = await this.getParentPage(client);
+
+    return parentPage ? await parentPage.isArchived(client) : false;
   }
 
   static async fromEntity(client: DbClient, entity: Entity): Promise<Page> {

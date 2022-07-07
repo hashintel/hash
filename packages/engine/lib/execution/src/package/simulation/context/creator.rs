@@ -1,4 +1,4 @@
-use std::{collections::HashMap, lazy::SyncOnceCell};
+use std::{collections::HashMap, sync::OnceLock};
 
 use crate::{
     package::simulation::{
@@ -17,7 +17,7 @@ pub struct ContextPackageCreators {
 
 impl ContextPackageCreators {
     pub fn initialize_for_experiment_run(_config: &PackageInitConfig) -> Result<&'static Self> {
-        static PACKAGE_CREATORS: SyncOnceCell<ContextPackageCreators> = SyncOnceCell::new();
+        static PACKAGE_CREATORS: OnceLock<ContextPackageCreators> = OnceLock::new();
         PACKAGE_CREATORS.get_or_try_init(|| {
             tracing::debug!("Initializing Context Package Creators");
             let mut creators = HashMap::<_, Box<dyn ContextPackageCreator>>::with_capacity(3);

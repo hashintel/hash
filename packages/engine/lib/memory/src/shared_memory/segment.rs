@@ -47,7 +47,7 @@ impl<'a> Buffers<'a> {
 ///
 /// Holds a UUID and a random suffix. The UUID can be reused for different [`Segment`]s and can all
 /// be cleaned up by calling [`cleanup_by_base_id`].
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct MemoryId {
     id: Uuid,
     suffix: u16,
