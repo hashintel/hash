@@ -46,6 +46,10 @@ mod tests {
     use crate::{test_helper::messages, Compat};
 
     #[test]
+    #[cfg_attr(
+        miri,
+        ignore = "bug: miri is failing for `eyre`, this is unrelated to our implementation"
+    )]
     fn conversion() {
         eyre::set_hook(Box::new(eyre::DefaultHandler::default_with)).expect("Could not set hook");
 
