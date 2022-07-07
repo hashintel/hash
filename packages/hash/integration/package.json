@@ -24,11 +24,11 @@
     "pg": "8.7.1"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "1.21.5",
-    "@graphql-codegen/introspection": "1.18.2",
-    "@graphql-codegen/typescript": "1.22.1",
-    "@graphql-codegen/typescript-graphql-request": "3.2.4",
-    "@graphql-codegen/typescript-resolvers": "1.19.2",
+    "@graphql-codegen/cli": "2.7.0",
+    "@graphql-codegen/introspection": "2.1.1",
+    "@graphql-codegen/typescript": "2.6.0",
+    "@graphql-codegen/typescript-graphql-request": "4.4.11",
+    "@graphql-codegen/typescript-resolvers": "2.6.7",
     "@types/jest": "28.1.4",
     "@types/prompts": "2.0.14",
     "@typescript-eslint/eslint-plugin": "5.17.0",
