@@ -1,8 +1,12 @@
 //! Model types used across datastores
 
-use std::fmt;
+pub mod schema;
+
+use core::fmt;
 
 use uuid::Uuid;
+
+use crate::types::schema::Uri;
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq)]
@@ -16,17 +20,7 @@ impl AccountId {
     }
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq)]
-#[sqlx(transparent)]
-pub struct BaseId(Uuid);
-
-impl BaseId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-}
+pub type BaseId = Uri;
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq)]
@@ -40,68 +34,39 @@ impl VersionId {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Identifier {
-    pub base_id: BaseId,
-    pub version_id: VersionId,
-}
-
-impl Identifier {
-    #[must_use]
-    pub const fn new(base_id: BaseId, version_id: VersionId) -> Self {
-        Self {
-            base_id,
-            version_id,
-        }
-    }
-}
-
-impl fmt::Display for Identifier {
+impl fmt::Display for VersionId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: change this to not just using the debug impl.
-        write!(fmt, "{:?}", self)
-    }
-}
-
-#[repr(transparent)]
-#[derive(Clone, Debug, sqlx::Type, PartialEq, Eq)]
-#[sqlx(transparent)]
-pub struct DataType(serde_json::Value);
-
-impl DataType {
-    #[must_use]
-    pub const fn new(schema: serde_json::Value) -> Self {
-        Self(schema)
+        write!(fmt, "{}", &self.0)
     }
 }
 
 // TODO: constrain this to only work for valid inner Types.
 #[derive(Clone, Debug)]
 pub struct Qualified<T> {
-    id: Identifier,
+    version_id: VersionId,
     inner: T,
     created_by: AccountId,
 }
 
 impl<T> Qualified<T> {
     #[must_use]
-    pub const fn new(id: Identifier, inner: T, created_by: AccountId) -> Self {
+    pub const fn new(version_id: VersionId, inner: T, created_by: AccountId) -> Self {
         Self {
-            id,
+            version_id,
             inner,
             created_by,
         }
     }
 
-    pub const fn id(&self) -> &Identifier {
-        &self.id
+    pub const fn version_id(&self) -> VersionId {
+        self.version_id
     }
 
     pub const fn inner(&self) -> &T {
         &self.inner
     }
 
-    pub const fn account_id(&self) -> &AccountId {
-        &self.created_by
+    pub const fn account_id(&self) -> AccountId {
+        self.created_by
     }
 }

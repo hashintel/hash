@@ -21,6 +21,19 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 
   pgm.createTable(
+    "base_ids",
+    {
+      base_id: {
+        type: "TEXT",
+        primaryKey: true,
+      },
+    },
+    {
+      ifNotExists: true,
+    },
+  );
+
+  pgm.createTable(
     "ids",
     {
       version_id: {
@@ -28,8 +41,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         primaryKey: true,
       },
       base_id: {
-        type: "UUID",
+        type: "TEXT",
         notNull: true,
+        references: "base_ids",
+        onDelete: "CASCADE",
       },
     },
     {
@@ -48,6 +63,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "UUID",
         primaryKey: true,
         references: "ids",
+        onDelete: "CASCADE",
       },
       schema: {
         type: "JSONB",
@@ -71,6 +87,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "UUID",
         primaryKey: true,
         references: "ids",
+        onDelete: "CASCADE",
       },
       schema: {
         type: "JSONB",

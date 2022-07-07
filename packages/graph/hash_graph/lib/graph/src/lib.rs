@@ -38,6 +38,7 @@
     clippy::module_name_repetitions,
     reason = "This encourages importing `as` which breaks IDEs"
 )]
+#![allow(clippy::use_self, reason = "Too many false positives")]
 
 pub mod datastore;
 pub mod types;
