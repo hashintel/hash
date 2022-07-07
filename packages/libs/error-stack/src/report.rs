@@ -250,6 +250,15 @@ impl<C> Report<C> {
         self.frames.append(&mut report.frames);
     }
 
+    /// This might be removed
+    pub fn add_context<T: Context>(&mut self, context: T) {
+        self.frames.push(Frame::from_context(
+            context,
+            Location::caller(),
+            Box::new([]),
+        ));
+    }
+
     /// Adds additional information to the [`Frame`] stack.
     ///
     /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
@@ -641,5 +650,26 @@ impl<Context> std::process::Termination for Report<Context> {
             .next()
             .copied()
             .unwrap_or(ExitCode::FAILURE)
+    }
+}
+
+impl<Context> FromIterator<Report<Context>> for Option<Report<Context>> {
+    fn from_iter<T: IntoIterator<Item = Report<Context>>>(iter: T) -> Self {
+        let mut iter = iter.into_iter();
+
+        let mut base = iter.next()?;
+        for rest in iter {
+            base.add_source(rest);
+        }
+
+        Some(base)
+    }
+}
+
+impl<Context> Extend<Report<Context>> for Report<Context> {
+    fn extend<T: IntoIterator<Item = Report<Context>>>(&mut self, iter: T) {
+        for item in iter {
+            self.add_source(item);
+        }
     }
 }
