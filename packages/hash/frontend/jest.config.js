@@ -5,7 +5,7 @@ const nextJest = require("next/jest");
 const createJestConfig = nextJest({ dir: __dirname });
 
 const customJestConfig = {
-  moduleDirectories: ["../../../node_modules", "node_modules", "<rootDir>/"],
+  moduleDirectories: ["node_modules", "<rootDir>/"],
   moduleNameMapper: {
     "@hashintel/hash-shared(.*)": "<rootDir>/../shared/src$1",
   },
