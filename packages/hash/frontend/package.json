@@ -128,6 +128,6 @@
     "jest-environment-jsdom": "28.1.2",
     "rimraf": "^3.0.2",
     "sass": "1.52.3",
-    "typescript": "4.6.3"
+    "typescript": "4.7.4"
   }
 }
