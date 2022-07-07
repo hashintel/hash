@@ -397,7 +397,7 @@ mod tests {
     fn property_values() -> Result<(), Box<dyn Error>> {
         let object = PropertyValues::ArrayOfPropertyValues(Array::new(
             OneOf::new([PropertyValues::DataTypeReference(DataTypeReference::new(
-                Uri::new("https://example.com/property_type"),
+                Uri::new("https://example.com/data_type"),
             ))])?,
             None,
             None,
@@ -411,7 +411,7 @@ mod tests {
                 "items": {
                     "oneOf": [
                         {
-                            "$ref": "https://example.com/property_type"
+                            "$ref": "https://example.com/data_type"
                         }
                     ]
                 }
