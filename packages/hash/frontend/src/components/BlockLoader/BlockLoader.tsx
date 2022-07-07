@@ -7,6 +7,7 @@ import {
 import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import React, { useCallback, useMemo, VoidFunctionComponent } from "react";
+import { uniqBy } from "lodash";
 
 import {
   convertApiEntityToBpEntity,
@@ -31,10 +32,12 @@ import { useBlockProtocolUpdateEntity } from "../hooks/blockProtocolFunctions/us
 import { useBlockProtocolUpdateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
 import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
+import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
 
 type BlockLoaderProps = {
   accountId: string;
   blockEntityId: string;
+  blockEntityType?: ApiEntityType;
   blockMetadata: BlockConfig;
   editableRef: unknown;
   entityId: string;
@@ -56,6 +59,7 @@ type BlockLoaderProps = {
 export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   accountId,
   blockEntityId,
+  blockEntityType,
   blockMetadata,
   editableRef,
   entityId,
@@ -87,6 +91,13 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     Required<BlockGraphProperties<Record<string, any>>["graph"]>
   >(() => {
     const convertedEntityTypesForProvidedEntities: BpEntityType[] = [];
+
+    // @todo feed this through from ComponentView
+    if (blockEntityType) {
+      convertedEntityTypesForProvidedEntities.push(
+        convertApiEntityTypeToBpEntityType(blockEntityType),
+      );
+    }
 
     const convertedLinkedEntities: BpEntity[] = [];
     for (const entity of linkedEntities ?? []) {
@@ -122,11 +133,15 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
         linkGroups: convertApiLinkGroupsToBpLinkGroups(linkGroups),
         linkedEntities: convertedLinkedEntities,
       },
-      entityTypes: convertedEntityTypesForProvidedEntities,
+      entityTypes: uniqBy(
+        convertedEntityTypesForProvidedEntities,
+        "entityTypeId",
+      ),
       linkedAggregations: convertedLinkedAggregations,
     };
   }, [
     accountId,
+    blockEntityType,
     entityId,
     entityProperties,
     entityTypeId,
