@@ -36,7 +36,7 @@ impl DataType {
         id: Uri,
         title: impl Into<String>,
         description: impl Into<Option<String>>,
-        ty: impl Into<String>,
+        json_type: impl Into<String>,
         additional_properties: HashMap<String, serde_json::Value>,
     ) -> Self {
         Self {
@@ -44,7 +44,7 @@ impl DataType {
             id,
             title: title.into(),
             description: description.into(),
-            ty: ty.into(),
+            json_type: json_type.into(),
             additional_properties,
         }
     }
