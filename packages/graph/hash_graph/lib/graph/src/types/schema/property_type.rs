@@ -89,14 +89,14 @@ pub enum PropertyValues {
 
 impl PropertyValues {
     #[must_use]
-    fn datatype_references(&self) -> Vec<&DataTypeReference> {
+    fn data_type_references(&self) -> Vec<&DataTypeReference> {
         match self {
             Self::DataTypeReference(reference) => vec![reference],
             Self::ArrayOfPropertyValues(values) => values
                 .items()
                 .one_of()
                 .iter()
-                .flat_map(|value| value.datatype_references().into_iter())
+                .flat_map(|value| value.data_type_references().into_iter())
                 .collect(),
             Self::PropertyTypeObject(_) => vec![],
         }
@@ -187,7 +187,7 @@ impl PropertyType {
         self.one_of
             .one_of()
             .iter()
-            .flat_map(|value| value.datatype_references().into_iter())
+            .flat_map(|value| value.data_type_references().into_iter())
             .collect()
     }
 
@@ -435,17 +435,17 @@ mod tests {
             property_type: &PropertyType,
             uris: impl IntoIterator<Item = &'static str>,
         ) {
-            let expected_datatype_references =
+            let expected_data_type_references =
                 uris.into_iter().map(Uri::new).collect::<HashSet<_>>();
 
-            let datatype_references = property_type
+            let data_type_references = property_type
                 .data_type_references()
                 .into_iter()
                 .map(DataTypeReference::reference)
                 .cloned()
                 .collect::<HashSet<_>>();
 
-            assert_eq!(datatype_references, expected_datatype_references);
+            assert_eq!(data_type_references, expected_data_type_references);
         }
 
         fn test_property_type_property_refs(
