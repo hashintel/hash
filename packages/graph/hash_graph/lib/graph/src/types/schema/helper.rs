@@ -192,7 +192,7 @@ mod tests {
     }
 
     #[test]
-    fn one_or_many_single() -> Result<(), Box<dyn Error>> {
+    fn value_or_array_value() -> Result<(), Box<dyn Error>> {
         let one = ValueOrArray::Value(Uri::new("https://example.com/data_type"));
 
         let json = serde_json::to_value(&one)?;
@@ -205,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    fn one_or_many_array() -> Result<(), Box<dyn Error>> {
+    fn value_or_array_array() -> Result<(), Box<dyn Error>> {
         let array = ValueOrArray::Array(Array::new(
             Uri::new("https://example.com/data_type"),
             None,
