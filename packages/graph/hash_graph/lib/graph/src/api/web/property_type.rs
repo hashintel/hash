@@ -12,7 +12,7 @@ use utoipa::{Component, OpenApi};
 use uuid::Uuid;
 
 use super::{
-    api_endpoint::RoutedResource,
+    api_resource::RoutedResource,
     error::{modify_report_to_status_code, query_report_to_status_code},
 };
 use crate::{
@@ -33,9 +33,9 @@ use crate::{
         (name = "PropertyType", description = "Property type management API")
     )
 )]
-pub struct PropertyTypeEndpoint;
+pub struct PropertyTypeResource;
 
-impl RoutedResource for PropertyTypeEndpoint {
+impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
     fn routes<D: Datastore>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.

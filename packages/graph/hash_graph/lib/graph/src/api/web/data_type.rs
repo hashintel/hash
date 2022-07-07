@@ -12,7 +12,7 @@ use utoipa::{Component, OpenApi};
 use uuid::Uuid;
 
 use super::{
-    api_endpoint::RoutedResource,
+    api_resource::RoutedResource,
     error::{modify_report_to_status_code, query_report_to_status_code},
 };
 use crate::{
@@ -33,9 +33,9 @@ use crate::{
         (name = "DataType", description = "Data Type management API")
     )
 )]
-pub struct DataTypeEndpoint;
+pub struct DataTypeResource;
 
-impl RoutedResource for DataTypeEndpoint {
+impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
     fn routes<D: Datastore>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
