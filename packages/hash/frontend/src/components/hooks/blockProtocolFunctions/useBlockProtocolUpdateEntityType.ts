@@ -1,4 +1,4 @@
-import { useApolloClient, useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { useCallback } from "react";

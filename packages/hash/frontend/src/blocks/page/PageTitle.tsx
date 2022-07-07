@@ -28,7 +28,8 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
   value,
 }) => {
   // TODO: Display update error once expected UX is discussed
-  const { updateEntity, updateEntityLoading } = useBlockProtocolUpdateEntity();
+  const { updateEntity, updateEntityLoading } =
+    useBlockProtocolUpdateEntity(true);
   const [inputValue, setInputValue] = useState<string>(value);
 
   useEffect(() => {

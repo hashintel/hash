@@ -2,8 +2,8 @@ import { BlockMetadata } from "@blockprotocol/core";
 import {
   BlockGraphProperties,
   EmbedderGraphMessageCallbacks,
-  useGraphEmbedderService,
 } from "@blockprotocol/graph";
+import { useGraphEmbedderService } from "@blockprotocol/graph/react";
 import React from "react";
 import { BlockRenderer } from "./blockRenderer";
 
@@ -102,7 +102,8 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     graph: graphProperties,
   };
 
-  const { entryPoint } = blockMetadata.blockType;
+  // @todo remove this React default when we update all blocks to 0.2
+  const entryPoint = blockMetadata.blockType?.entryPoint ?? "react";
 
   return (
     <div ref={wrapperRef}>
@@ -111,7 +112,11 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
           customElement={
             (entryPoint === "custom-element" ? blockSource : undefined) as any
           }
-          htmlString={(entryPoint === "html" ? blockSource : undefined) as any}
+          html={
+            (entryPoint === "html"
+              ? { source: blockSource, url: sourceUrl }
+              : undefined) as any
+          }
           properties={propsToInject}
           ReactComponent={
             (entryPoint === "react" ? blockSource : undefined) as any

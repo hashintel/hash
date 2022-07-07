@@ -1,5 +1,5 @@
+import { JsonObject } from "@blockprotocol/core";
 import { ApolloError } from "apollo-server-express";
-import { JSONObject } from "blockprotocol";
 import { upperFirst, camelCase } from "lodash";
 import { singular } from "pluralize";
 import { Entity } from "../../../model";
@@ -73,7 +73,7 @@ export const executeGithubCheckTask: Resolver<
 /** @todo - Make Airbyte types available in api package */
 type AirbyteCatalog = Array<{
   name?: string;
-  json_schema?: JSONObject;
+  json_schema?: JsonObject;
 }>;
 
 type AirbyteRecords = Array<{

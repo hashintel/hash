@@ -10,13 +10,12 @@ import {
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import {
-  convertApiEntityToBpEntity,
-  parseEntityIdentifier,
-} from "../../../lib/entities";
+import { convertApiEntityToBpEntity } from "../../../lib/entities";
 import { addIdentifiersToMessageData } from "./shared";
 
-export const useBlockProtocolUpdateEntity = (): {
+export const useBlockProtocolUpdateEntity = (
+  updateForPage: boolean = false,
+): {
   updateEntity: EmbedderGraphMessageCallbacks["updateEntity"];
   updateEntityLoading: boolean;
   updateEntityError: any;
@@ -34,10 +33,10 @@ export const useBlockProtocolUpdateEntity = (): {
   const updateEntity: EmbedderGraphMessageCallbacks["updateEntity"] =
     useCallback(
       async (message) => {
-        const { accountId, entityId, entityTypeId, properties } =
+        const { accountId, entityId, properties } =
           addIdentifiersToMessageData(message);
 
-        return (entityTypeId === "Page" ? updatePageFn : updateEntityFn)({
+        return (updateForPage ? updatePageFn : updateEntityFn)({
           variables: {
             accountId,
             entityId,
@@ -62,7 +61,7 @@ export const useBlockProtocolUpdateEntity = (): {
           };
         });
       },
-      [updateEntityFn, updatePageFn],
+      [updateEntityFn, updateForPage, updatePageFn],
     );
 
   const updateEntityLoading = updateUnknownEntityLoading || updatePageLoading;

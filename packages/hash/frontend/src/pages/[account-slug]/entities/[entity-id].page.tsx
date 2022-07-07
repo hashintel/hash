@@ -36,7 +36,7 @@ const Page: NextPageWithLayout = () => {
   const { accountId } = useRouteAccountInfo();
   const entityId = query["entity-id"] as string;
 
-  const { data } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
+  const { data, refetch } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
     getEntity,
     {
       variables: {
@@ -101,6 +101,7 @@ const Page: NextPageWithLayout = () => {
             })}
             updateEntity={updateAndNavigateToFirstEntity}
             entityProperties={entity.properties}
+            refetchEntity={refetch}
             schema={entity.entityType.properties}
           />
         )}

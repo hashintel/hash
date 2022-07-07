@@ -314,7 +314,7 @@ type MinimalApiLinkedAggregation = Pick<
 >;
 
 export function convertApiLinkedAggregationToBpLinkedAggregation(
-  linkedAggregation: MinimalApiLinkedAggregation & { results: never },
+  linkedAggregation: MinimalApiLinkedAggregation,
 ): BpLinkedAggregationDefinition;
 
 export function convertApiLinkedAggregationToBpLinkedAggregation(
@@ -325,6 +325,7 @@ export function convertApiLinkedAggregationToBpLinkedAggregation(
     >[];
   },
 ): BpLinkedAggregation;
+
 /**
  * Converts a LinkedAggregation from its GraphQL API representation to its Block Protocol representation,
  * by re-writing all of aggregationId, sourceEntityId and sourceDestinationId so that they are
@@ -332,7 +333,7 @@ export function convertApiLinkedAggregationToBpLinkedAggregation(
  */
 export function convertApiLinkedAggregationToBpLinkedAggregation(
   linkedAggregation:
-    | (MinimalApiLinkedAggregation & { results: never })
+    | MinimalApiLinkedAggregation
     | (MinimalApiLinkedAggregation & {
         results: Pick<
           ApiEntity,
@@ -366,7 +367,7 @@ export function convertApiLinkedAggregationToBpLinkedAggregation(
     path,
     operation: operation as BpLinkedAggregation["operation"],
     results:
-      "results" in linkedAggregation
+      "results" in linkedAggregation && linkedAggregation.results
         ? convertApiEntitiesToBpEntities(linkedAggregation.results)
         : undefined,
   };

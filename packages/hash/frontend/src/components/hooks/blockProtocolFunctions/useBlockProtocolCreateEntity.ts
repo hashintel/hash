@@ -44,9 +44,14 @@ export const useBlockProtocolCreateEntity = (
           },
         }).then(({ data: responseData }) => {
           if (!responseData) {
-            throw new Error(
-              `Could not create entity with data ${JSON.stringify(data)}`,
-            );
+            return {
+              errors: [
+                {
+                  code: "INVALID_INPUT",
+                  message: "Error calling createEntity",
+                },
+              ],
+            };
           }
           return {
             data: convertApiEntityToBpEntity(responseData.createEntity),

@@ -33,7 +33,7 @@ export const useBlockProtocolDeleteLinkedAggregation = (): {
             errors: [
               {
                 code: "INVALID_INPUT",
-                message: "'data' must be provided for createLinkedAggregation",
+                message: "'data' must be provided for deleteLinkedAggregation",
               },
             ],
           };

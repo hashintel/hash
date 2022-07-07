@@ -1,7 +1,7 @@
+import { JsonObject } from "@blockprotocol/core";
 import { ApolloError } from "apollo-server-express";
 import url from "url";
 import fetch from "node-fetch";
-import { JSONObject } from "blockprotocol";
 import { merge } from "lodash";
 import { JSONSchema7 } from "json-schema";
 
@@ -40,7 +40,7 @@ export type EntityTypeConstructorArgs = {
   entityId: string;
   entityVersionId: string;
   accountId: string;
-  properties: JSONObject;
+  properties: JsonObject;
   metadata: EntityTypeMeta;
   createdByAccountId: string;
   createdAt: Date;
@@ -176,7 +176,7 @@ class __EntityType {
       createdByAccountId: string;
       description?: string;
       name: string;
-      schema?: JSONObject;
+      schema?: JsonObject;
     },
   ): Promise<EntityType> {
     const { accountId, createdByAccountId, description, name } = params;

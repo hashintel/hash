@@ -6,7 +6,10 @@ import React, {
   useLayoutEffect,
 } from "react";
 
-import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
 import { Resizable, ResizeCallbackData } from "react-resizable";
 import {

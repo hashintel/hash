@@ -1,3 +1,4 @@
+import { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import {
   EntityStore,
@@ -5,7 +6,6 @@ import {
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import { Box } from "@mui/material";
-import { JSONObject } from "blockprotocol";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { ForwardRefRenderFunction, useRef, useMemo, forwardRef } from "react";
@@ -73,7 +73,7 @@ const BlockHandle: ForwardRefRenderFunction<
 
   const blockView = useBlockView();
 
-  const updateChildEntity = (properties: JSONObject) => {
+  const updateChildEntity = (properties: JsonObject) => {
     const childEntity = blockEntity?.properties.entity;
     if (!childEntity) {
       throw new Error(`No child entity on block to update`);
@@ -120,7 +120,7 @@ const BlockHandle: ForwardRefRenderFunction<
         blockEntity={blockEntity}
         blockSchema={blockSchema}
         closeMenu={configMenuPopupState.close}
-        updateConfig={(properties: JSONObject) => updateChildEntity(properties)}
+        updateConfig={(properties: JsonObject) => updateChildEntity(properties)}
         popupState={configMenuPopupState}
       />
     </Box>

@@ -1,5 +1,5 @@
+import { JsonObject } from "@blockprotocol/core";
 import { DataSource } from "apollo-datasource";
-import { JSONObject } from "blockprotocol";
 import fetch from "node-fetch";
 import { DbAdapter } from "../db";
 import { EntityType, User } from "../model";
@@ -82,7 +82,7 @@ export const CachedEntityTypes = async (db: DbAdapter, user: User) => {
       return entityTypeId;
     },
 
-    createNew: async (entityTypeName: string, jsonSchema?: JSONObject) => {
+    createNew: async (entityTypeName: string, jsonSchema?: JsonObject) => {
       const { entityId } = await EntityType.create(db, {
         /** @todo should this be a param on the graphql endpoint */
         accountId: user.accountId,

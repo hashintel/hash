@@ -1,3 +1,4 @@
+import { BlockVariant } from "@blockprotocol/core";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   entityStorePluginState,
@@ -6,7 +7,6 @@ import {
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { BlockVariant } from "blockprotocol";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";

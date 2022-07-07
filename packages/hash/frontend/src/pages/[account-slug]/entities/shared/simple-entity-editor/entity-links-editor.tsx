@@ -31,7 +31,6 @@ export const EntityLinksEditor: VoidFunctionComponent<
   linkedEntities,
   linksInSchema,
 }) => {
-  console.log({ linkedEntities, existingLinkGroups });
   const linksByPath = useMemo(
     () =>
       linksInSchema.map((link) => ({

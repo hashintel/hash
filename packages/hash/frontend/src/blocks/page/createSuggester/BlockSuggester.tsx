@@ -1,4 +1,4 @@
-import { BlockVariant } from "blockprotocol";
+import { BlockVariant } from "@blockprotocol/core";
 import { VFC } from "react";
 import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";

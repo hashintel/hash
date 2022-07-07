@@ -110,7 +110,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 
     const blockEntity = convertApiEntityToBpEntity({
       accountId,
-      entityId,
+      entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
       properties: entityProperties,
     });
