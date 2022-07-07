@@ -31,7 +31,7 @@
     "@graphql-codegen/typescript-graphql-request": "3.2.4",
     "@graphql-codegen/typescript-resolvers": "1.19.2",
     "@types/graphql-type-json": "0.3.2",
-    "@types/jest": "27.0.2",
+    "@types/jest": "28.1.4",
     "@types/prompts": "2.0.14",
     "@typescript-eslint/eslint-plugin": "5.17.0",
     "@typescript-eslint/parser": "5.17.0",
@@ -43,9 +43,9 @@
     "eslint-plugin-jsx-a11y": "6.5.1",
     "eslint-plugin-react": "7.29.4",
     "eslint-plugin-react-hooks": "4.4.0",
-    "jest": "27.1.1",
+    "jest": "28.1.2",
     "rimraf": "^3.0.2",
-    "ts-jest": "27.0.5",
-    "typescript": "4.6.3"
+    "ts-jest": "28.0.5",
+    "typescript": "4.7.4"
   }
 }
