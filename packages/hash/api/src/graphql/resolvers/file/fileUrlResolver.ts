@@ -6,7 +6,7 @@ export const fileUrlResolver: ResolverFn<
   string,
   FileProperties,
   GraphQLContext,
-  []
+  {}
 > = async (properties, _, _ctx, _info) => {
   const usedStorage = properties.storageType;
   const downloadURL = await File.getFileDownloadURL(usedStorage, {
