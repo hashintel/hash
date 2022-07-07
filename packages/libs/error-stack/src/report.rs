@@ -250,7 +250,7 @@ impl<C> Report<C> {
         self.frames.append(&mut report.frames);
     }
 
-    /// This might be removed
+    /// TODO: This might be removed
     pub fn add_context<T: Context>(&mut self, context: T) {
         self.frames.push(Frame::from_context(
             context,
@@ -541,27 +541,6 @@ impl<Context> fmt::Display for Report<Context> {
 
         fmt.write_str(&display_report(self))?;
 
-        // for (index, frame) in self
-        //     .frames()
-        //     .filter_map(|frame| match frame.kind() {
-        //         FrameKind::Context(context) => Some(context.to_string()),
-        //         FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-        //             Some(attachment.to_string())
-        //         }
-        //         FrameKind::Attachment(AttachmentKind::Opaque(_)) => None,
-        //     })
-        //     .enumerate()
-        // {
-        //     if index == 0 {
-        //         fmt::Display::fmt(&frame, fmt)?;
-        //         if !fmt.alternate() {
-        //             break;
-        //         }
-        //     } else {
-        //         write!(fmt, ": {frame}")?;
-        //     }
-        // }
-
         Ok(())
     }
 }
@@ -653,6 +632,11 @@ impl<Context> std::process::Termination for Report<Context> {
     }
 }
 
+// TODO:
+// we might want this to be implemented for `Report<Context>`
+// instead, in that case tho `Report<Context>` would be empty,
+// which would break an invariant, but using `Option<Report<Context>>` can be a bit unwieldy, maybe
+// we can have an alias?
 impl<Context> FromIterator<Report<Context>> for Option<Report<Context>> {
     fn from_iter<T: IntoIterator<Item = Report<Context>>>(iter: T) -> Self {
         let mut iter = iter.into_iter();
