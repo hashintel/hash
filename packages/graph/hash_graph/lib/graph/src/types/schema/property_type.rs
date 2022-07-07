@@ -374,16 +374,16 @@ mod tests {
     }
 
     #[test]
-    fn property_value_reference() -> Result<(), Box<dyn Error>> {
+    fn data_type_reference() -> Result<(), Box<dyn Error>> {
         let object = PropertyValues::DataTypeReference(DataTypeReference::new(Uri::new(
-            "https://example.com/property_type",
+            "https://example.com/data_type",
         )));
 
         let json = serde_json::to_value(&object)?;
         assert_eq!(
             json,
             json!({
-                "$ref": "https://example.com/property_type"
+                "$ref": "https://example.com/data_type"
             })
         );
 

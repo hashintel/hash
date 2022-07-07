@@ -523,7 +523,7 @@ mod tests {
     fn quote_property_type_v1() -> PropertyType {
         serde_json::from_value(serde_json::json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote/v/0.1.0",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote",
           "title": "Favorite Quote",
           "oneOf": [
             { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text" }
@@ -535,7 +535,7 @@ mod tests {
     fn quote_property_type_v2() -> PropertyType {
         serde_json::from_value(serde_json::json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote/v/0.1.0",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote",
           "title": "Favourite Quote",
           "oneOf": [
             { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text" }
