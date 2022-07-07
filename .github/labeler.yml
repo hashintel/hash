@@ -31,11 +31,11 @@ A-learn:
   - "sites/hashai/resources/**/*"
   - "sites/hashai/resources/**/.*"
 
-A-libs:
-  - "packages/libs/*"
-  - "packages/libs/.*"
-  - "packages/libs/**/*"
-  - "packages/libs/**/.*"
+A-error-stack:
+  - "packages/libs/error-stack/*"
+  - "packages/libs/error-stack/.*"
+  - "packages/libs/error-stack/**/*"
+  - "packages/libs/error-stack/**/.*"
 
 C-dependencies:
   - "**/Cargo.lock"
