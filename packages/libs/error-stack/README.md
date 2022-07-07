@@ -11,6 +11,8 @@
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 
+[Open issues](https://github.com/hashintel/hash/issues?q=is%3Aissue+is%3Aopen+label%3AA-error-stack) / [Discussions](https://github.com/hashintel/hash/discussions?discussions_q=label%3AA-error-stack)
+
 # error-stack
 
 **`error-stack` is a context-aware error-handling library that supports arbitrary attached user data.**
