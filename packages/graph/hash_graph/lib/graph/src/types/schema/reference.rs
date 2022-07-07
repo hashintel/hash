@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn property_type_reference() -> Result<(), Box<dyn Error>> {
-        let reference = PropertyTypeReference::new(Uri::new("https://example.com/data_type"));
+        let reference = PropertyTypeReference::new(Uri::new("https://example.com/property_type"));
         let json = serde_json::to_value(&reference)?;
 
         assert_eq!(
