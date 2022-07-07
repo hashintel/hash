@@ -53,7 +53,7 @@
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",
     "material-ui-popup-state": "2.0.0",
-    "next": "12.2.0",
+    "next": "12.1.0",
     "next-transpile-modules": "9.0.0",
     "pluralize": "8.0.0",
     "prosemirror-collab": "1.2.2",
