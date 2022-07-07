@@ -1,126 +1,73 @@
-use std::{any::type_name, fmt, marker::PhantomData};
+use std::fmt;
 
-use error_stack::{provider::Demand, Context};
+use error_stack::Context;
 
 use crate::types::BaseId;
 
 #[derive(Debug)]
 #[must_use]
-pub struct InsertionError<T>(T);
+pub struct InsertionError;
 
-impl<T> InsertionError<T> {
-    pub const fn new(t: T) -> Self {
-        Self(t)
-    }
-}
-
-impl<T> fmt::Display for InsertionError<T> {
+impl fmt::Display for InsertionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "Could not insert `{}` into database", type_name::<T>())
+        fmt.write_str("Could not insert into datastore")
     }
 }
 
-impl<T: fmt::Debug + Send + Sync + 'static> Context for InsertionError<T> {
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        demand.provide_ref(&self.0);
-    }
-}
-
-// TODO: Remove `Q` generic by adding a trait to `T`
-#[must_use]
-pub struct QueryError<Q, T>(Q, PhantomData<T>);
-
-impl<Q, T> QueryError<Q, T> {
-    pub const fn new(query: Q) -> Self {
-        Self(query, PhantomData)
-    }
-}
-
-impl<Q: fmt::Debug, T> fmt::Debug for QueryError<Q, T> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(&self.0, fmt)
-    }
-}
-
-// SAFETY: `Q` is `Send` and `T` is inside of `PhantomData
-unsafe impl<Q: Send, T> Send for QueryError<Q, T> {}
-// SAFETY: `Q` is `Sync` and `T` is inside of `PhantomData
-unsafe impl<Q: Sync, T> Sync for QueryError<Q, T> {}
-
-impl<Q: fmt::Display, T> fmt::Display for QueryError<Q, T> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            fmt,
-            "Could not query `{}` with id {}",
-            type_name::<T>(),
-            self.0
-        )
-    }
-}
-
-impl<Q: fmt::Debug + fmt::Display + Send + Sync + 'static, T: 'static> Context
-    for QueryError<Q, T>
-{
-}
+impl Context for InsertionError {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct UpdateError<T>(T);
+pub struct QueryError;
 
-impl<T> UpdateError<T> {
-    pub const fn new(t: T) -> Self {
-        Self(t)
-    }
-}
-
-impl<T> fmt::Display for UpdateError<T> {
+impl fmt::Display for QueryError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "Could not update `{}`", type_name::<T>())
+        fmt.write_str("Could not query from datastore")
     }
 }
 
-impl<T: fmt::Debug + Send + Sync + 'static> Context for UpdateError<T> {
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        demand.provide_ref(&self.0);
-    }
-}
+impl Context for QueryError {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct AlreadyExists {
+pub struct UpdateError;
+
+impl fmt::Display for UpdateError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Could not update datastore")
+    }
+}
+
+impl Context for UpdateError {}
+
+#[derive(Debug)]
+#[must_use]
+pub struct BaseIdAlreadyExists {
     pub base_id: BaseId,
 }
 
-impl AlreadyExists {
+impl BaseIdAlreadyExists {
     pub const fn new(base_id: BaseId) -> Self {
         Self { base_id }
     }
 }
 
-impl fmt::Display for AlreadyExists {
+impl fmt::Display for BaseIdAlreadyExists {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "Base id `{}` already exists", self.base_id)
+        fmt.write_str("Base id does not exist")
     }
 }
 
-impl Context for AlreadyExists {}
+impl Context for BaseIdAlreadyExists {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct DoesNotExist {
-    pub base_id: BaseId,
-}
+pub struct BaseIdDoesNotExist;
 
-impl DoesNotExist {
-    pub const fn new(base_id: BaseId) -> Self {
-        Self { base_id }
-    }
-}
-
-impl fmt::Display for DoesNotExist {
+impl fmt::Display for BaseIdDoesNotExist {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "Base id `{}` already exists", self.base_id)
+        fmt.write_str("Base id already exists")
     }
 }
 
-impl Context for DoesNotExist {}
+impl Context for BaseIdDoesNotExist {}

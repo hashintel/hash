@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use error_stack::{Context, Result};
 
 pub use self::{
-    error::{AlreadyExists, DoesNotExist, InsertionError, QueryError, UpdateError},
+    error::{BaseIdAlreadyExists, BaseIdDoesNotExist, InsertionError, QueryError, UpdateError},
     postgres::PostgresDatabase,
 };
 use crate::types::{
@@ -164,19 +164,17 @@ trait Datastore {
         &mut self,
         data_type: DataType,
         created_by: AccountId,
-    ) -> Result<Qualified<DataType>, InsertionError<DataType>>;
+    ) -> Result<Qualified<DataType>, InsertionError>;
 
     /// Get an existing [`DataType`] by an [`Identifier`].
     ///
     /// # Errors
     ///
     /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
-    async fn get_data_type(
-        &self,
-        version_id: VersionId,
-    ) -> Result<Qualified<DataType>, QueryError<VersionId, DataType>>;
+    async fn get_data_type(&self, version_id: VersionId)
+    -> Result<Qualified<DataType>, QueryError>;
 
-    async fn get_data_type_many() -> Result<(), QueryError<VersionId, DataType>>;
+    async fn get_data_type_many() -> Result<(), QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -187,42 +185,42 @@ trait Datastore {
         &mut self,
         data_type: DataType,
         updated_by: AccountId,
-    ) -> Result<Qualified<DataType>, UpdateError<DataType>>;
+    ) -> Result<Qualified<DataType>, UpdateError>;
 
     async fn create_property_type(
         &mut self,
         property_type: PropertyType,
         created_by: AccountId,
-    ) -> Result<Qualified<PropertyType>, InsertionError<PropertyType>>;
+    ) -> Result<Qualified<PropertyType>, InsertionError>;
 
     async fn get_property_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<PropertyType>, QueryError<VersionId, PropertyType>>;
+    ) -> Result<Qualified<PropertyType>, QueryError>;
 
-    async fn get_property_type_many() -> Result<(), QueryError<VersionId, PropertyType>>;
+    async fn get_property_type_many() -> Result<(), QueryError>;
 
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
         updated_by: AccountId,
-    ) -> Result<Qualified<PropertyType>, UpdateError<PropertyType>>;
+    ) -> Result<Qualified<PropertyType>, UpdateError>;
 
-    async fn create_entity_type() -> Result<(), InsertionError<()>>;
+    async fn create_entity_type() -> Result<(), InsertionError>;
 
-    async fn get_entity_type() -> Result<(), QueryError<VersionId, ()>>;
+    async fn get_entity_type() -> Result<(), QueryError>;
 
-    async fn get_entity_type_many() -> Result<(), QueryError<VersionId, ()>>;
+    async fn get_entity_type_many() -> Result<(), QueryError>;
 
-    async fn update_entity_type() -> Result<(), UpdateError<()>>;
+    async fn update_entity_type() -> Result<(), UpdateError>;
 
     // TODO - perhaps we want to separate the Datastore into the Type Graph and the Data Graph
 
-    async fn create_entity() -> Result<(), InsertionError<()>>;
+    async fn create_entity() -> Result<(), InsertionError>;
 
-    async fn get_entity() -> Result<(), QueryError<VersionId, ()>>;
+    async fn get_entity() -> Result<(), QueryError>;
 
-    async fn get_entity_many() -> Result<(), QueryError<VersionId, ()>>;
+    async fn get_entity_many() -> Result<(), QueryError>;
 
-    async fn update_entity() -> Result<(), UpdateError<()>>;
+    async fn update_entity() -> Result<(), UpdateError>;
 }

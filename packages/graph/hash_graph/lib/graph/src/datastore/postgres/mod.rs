@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     datastore::{
-        AlreadyExists, DatabaseConnectionInfo, Datastore, DatastoreError, DoesNotExist,
+        BaseIdAlreadyExists, BaseIdDoesNotExist, DatabaseConnectionInfo, Datastore, DatastoreError,
         InsertionError, QueryError, UpdateError,
     },
     types::{
@@ -40,17 +40,15 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if checking for the [`BaseId`] failed.
-    async fn contains_base_id(
-        &mut self,
-        base_id: &BaseId,
-    ) -> Result<bool, QueryError<BaseId, BaseId>> {
+    async fn contains_base_id(&mut self, base_id: &BaseId) -> Result<bool, QueryError> {
         let (exists,) =
             sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM base_ids WHERE base_id = $1);"#)
                 .bind(base_id)
                 .fetch_one(&self.pool)
                 .await
                 .report()
-                .change_context_lazy(|| QueryError::new(base_id.clone()))?;
+                .change_context(QueryError)
+                .attach_printable_lazy(|| base_id.clone())?;
 
         Ok(exists)
     }
@@ -60,13 +58,14 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`BaseId`] failed.
-    async fn insert_base_id(&mut self, base_id: &BaseId) -> Result<(), InsertionError<BaseId>> {
+    async fn insert_base_id(&mut self, base_id: &BaseId) -> Result<(), InsertionError> {
         sqlx::query(r#"INSERT INTO base_ids (base_id) VALUES ($1);"#)
             .bind(base_id)
             .execute(&self.pool)
             .await
             .report()
-            .change_context_lazy(|| InsertionError::new(base_id.clone()))?;
+            .change_context(InsertionError)
+            .attach_printable_lazy(|| base_id.clone())?;
 
         Ok(())
     }
@@ -80,14 +79,15 @@ impl PostgresDatabase {
         &mut self,
         version_id: VersionId,
         base_id: &BaseId,
-    ) -> Result<(), InsertionError<VersionId>> {
+    ) -> Result<(), InsertionError> {
         sqlx::query(r#"INSERT INTO ids (version_id, base_id) VALUES ($1, $2);"#)
             .bind(version_id)
             .bind(base_id)
             .execute(&self.pool)
             .await
             .report()
-            .change_context_lazy(|| InsertionError::new(version_id))?;
+            .change_context(InsertionError)
+            .attach_printable(version_id)?;
 
         Ok(())
     }
@@ -103,7 +103,7 @@ impl PostgresDatabase {
         version_id: VersionId,
         data_type: &DataType,
         created_by: AccountId,
-    ) -> Result<(), InsertionError<DataType>> {
+    ) -> Result<(), InsertionError> {
         sqlx::query_as::<_, (Uuid,)>(
             r#"
             INSERT INTO data_types (
@@ -124,7 +124,8 @@ impl PostgresDatabase {
         .fetch_one(&self.pool)
         .await
         .report()
-        .change_context_lazy(|| InsertionError::new(data_type.clone()))?;
+        .change_context(InsertionError)
+        .attach_lazy(|| data_type.clone())?;
 
         Ok(())
     }
@@ -140,7 +141,7 @@ impl PostgresDatabase {
         version_id: VersionId,
         property_type: &PropertyType,
         created_by: AccountId,
-    ) -> Result<(), InsertionError<PropertyType>> {
+    ) -> Result<(), InsertionError> {
         sqlx::query_as::<_, (Uuid,)>(
             r#"
             INSERT INTO property_types (
@@ -161,7 +162,8 @@ impl PostgresDatabase {
         .fetch_one(&self.pool)
         .await
         .report()
-        .change_context_lazy(|| InsertionError::new(property_type.clone()))?;
+        .change_context(InsertionError)
+        .attach_lazy(|| property_type.clone())?;
 
         Ok(())
     }
@@ -173,28 +175,30 @@ impl Datastore for PostgresDatabase {
         &mut self,
         data_type: DataType,
         created_by: AccountId,
-    ) -> Result<Qualified<DataType>, InsertionError<DataType>> {
+    ) -> Result<Qualified<DataType>, InsertionError> {
         let base_id = data_type.id();
 
         if self
             .contains_base_id(base_id)
             .await
-            .change_context_lazy(|| InsertionError::new(data_type.clone()))?
+            .change_context(InsertionError)
+            .attach_lazy(|| data_type.clone())?
         {
-            return Err(Report::new(InsertionError::new(data_type.clone()))
-                .attach_printable(AlreadyExists::new(base_id.clone())));
+            return Err(Report::new(InsertionError)
+                .attach(data_type.clone())
+                .attach_printable(BaseIdAlreadyExists::new(base_id.clone())));
         }
         self.insert_base_id(base_id)
             .await
-            .change_context_lazy(|| InsertionError::new(data_type.clone()))?;
+            .attach_lazy(|| data_type.clone())?;
 
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id, base_id)
             .await
-            .change_context_lazy(|| InsertionError::new(data_type.clone()))?;
+            .attach_lazy(|| data_type.clone())?;
         self.insert_data_type(version_id, &data_type, created_by)
             .await
-            .change_context_lazy(|| InsertionError::new(data_type.clone()))?;
+            .attach_lazy(|| data_type.clone())?;
 
         Ok(Qualified::new(version_id, data_type, created_by))
     }
@@ -202,7 +206,7 @@ impl Datastore for PostgresDatabase {
     async fn get_data_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<DataType>, QueryError<VersionId, DataType>> {
+    ) -> Result<Qualified<DataType>, QueryError> {
         let (data_type, created_by) = sqlx::query_as(
             r#"
             SELECT "schema", created_by
@@ -214,7 +218,8 @@ impl Datastore for PostgresDatabase {
         .fetch_one(&self.pool)
         .await
         .report()
-        .change_context(QueryError::new(version_id))?;
+        .change_context(QueryError)
+        .attach_printable(version_id)?;
 
         Ok(Qualified::new(
             version_id,
@@ -224,7 +229,7 @@ impl Datastore for PostgresDatabase {
         ))
     }
 
-    async fn get_data_type_many() -> Result<(), QueryError<VersionId, DataType>> {
+    async fn get_data_type_many() -> Result<(), QueryError> {
         todo!()
     }
 
@@ -232,25 +237,30 @@ impl Datastore for PostgresDatabase {
         &mut self,
         data_type: DataType,
         updated_by: AccountId,
-    ) -> Result<Qualified<DataType>, UpdateError<DataType>> {
+    ) -> Result<Qualified<DataType>, UpdateError> {
         let base_id = data_type.id();
 
         if !self
             .contains_base_id(base_id)
             .await
-            .change_context_lazy(|| UpdateError::new(data_type.clone()))?
+            .change_context(UpdateError)
+            .attach_lazy(|| data_type.clone())?
         {
-            return Err(Report::new(UpdateError::new(data_type.clone()))
-                .attach_printable(DoesNotExist::new(base_id.clone())));
+            return Err(Report::new(UpdateError)
+                .attach_printable(BaseIdDoesNotExist)
+                .attach_printable(base_id.clone()))
+            .attach_lazy(|| data_type.clone())?;
         }
 
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id, base_id)
             .await
-            .change_context_lazy(|| UpdateError::new(data_type.clone()))?;
+            .change_context(UpdateError)
+            .attach_lazy(|| data_type.clone())?;
         self.insert_data_type(version_id, &data_type, updated_by)
             .await
-            .change_context_lazy(|| UpdateError::new(data_type.clone()))?;
+            .change_context(UpdateError)
+            .attach_lazy(|| data_type.clone())?;
 
         Ok(Qualified::new(version_id, data_type, updated_by))
     }
@@ -259,28 +269,30 @@ impl Datastore for PostgresDatabase {
         &mut self,
         property_type: PropertyType,
         created_by: AccountId,
-    ) -> Result<Qualified<PropertyType>, InsertionError<PropertyType>> {
+    ) -> Result<Qualified<PropertyType>, InsertionError> {
         let base_id = property_type.id();
 
         if self
             .contains_base_id(base_id)
             .await
-            .change_context_lazy(|| InsertionError::new(property_type.clone()))?
+            .change_context(InsertionError)
+            .attach_lazy(|| property_type.clone())?
         {
-            return Err(Report::new(InsertionError::new(property_type.clone()))
-                .attach_printable(AlreadyExists::new(base_id.clone())));
+            return Err(Report::new(InsertionError)
+                .attach(property_type.clone())
+                .attach_printable(BaseIdAlreadyExists::new(base_id.clone())));
         }
         self.insert_base_id(base_id)
             .await
-            .change_context_lazy(|| InsertionError::new(property_type.clone()))?;
+            .attach_lazy(|| property_type.clone())?;
 
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id, base_id)
             .await
-            .change_context_lazy(|| InsertionError::new(property_type.clone()))?;
+            .attach_lazy(|| property_type.clone())?;
         self.insert_property_type(version_id, &property_type, created_by)
             .await
-            .change_context_lazy(|| InsertionError::new(property_type.clone()))?;
+            .attach_lazy(|| property_type.clone())?;
 
         Ok(Qualified::new(version_id, property_type, created_by))
     }
@@ -288,8 +300,8 @@ impl Datastore for PostgresDatabase {
     async fn get_property_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<PropertyType>, QueryError<VersionId, PropertyType>> {
-        let (data_type, created_by) = sqlx::query_as(
+    ) -> Result<Qualified<PropertyType>, QueryError> {
+        let (property_type, created_by) = sqlx::query_as(
             r#"
             SELECT "schema", created_by
             FROM property_types
@@ -300,17 +312,18 @@ impl Datastore for PostgresDatabase {
         .fetch_one(&self.pool)
         .await
         .report()
-        .change_context(QueryError::new(version_id))?;
+        .change_context(QueryError)
+        .attach_printable(version_id)?;
 
         Ok(Qualified::new(
             version_id,
-            serde_json::from_value(data_type)
-                .unwrap_or_else(|err| unreachable!("Could not deserialize data type: {err}")),
+            serde_json::from_value(property_type)
+                .unwrap_or_else(|err| unreachable!("Could not deserialize property type: {err}")),
             created_by,
         ))
     }
 
-    async fn get_property_type_many() -> Result<(), QueryError<VersionId, PropertyType>> {
+    async fn get_property_type_many() -> Result<(), QueryError> {
         todo!()
     }
 
@@ -318,58 +331,63 @@ impl Datastore for PostgresDatabase {
         &mut self,
         property_type: PropertyType,
         updated_by: AccountId,
-    ) -> Result<Qualified<PropertyType>, UpdateError<PropertyType>> {
+    ) -> Result<Qualified<PropertyType>, UpdateError> {
         let base_id = property_type.id();
 
         if !self
             .contains_base_id(base_id)
             .await
-            .change_context_lazy(|| UpdateError::new(property_type.clone()))?
+            .change_context(UpdateError)
+            .attach_lazy(|| property_type.clone())?
         {
-            return Err(Report::new(UpdateError::new(property_type.clone()))
-                .attach_printable(DoesNotExist::new(base_id.clone())));
+            return Err(Report::new(UpdateError)
+                .attach_printable(BaseIdDoesNotExist)
+                .attach_printable(base_id.clone()))
+            .attach_lazy(|| property_type.clone())?;
         }
 
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id, base_id)
             .await
-            .change_context_lazy(|| UpdateError::new(property_type.clone()))?;
+            .change_context(UpdateError)
+            .attach_lazy(|| property_type.clone())?;
         self.insert_property_type(version_id, &property_type, updated_by)
             .await
-            .change_context_lazy(|| UpdateError::new(property_type.clone()))?;
+            .change_context(UpdateError)
+            .attach_lazy(|| property_type.clone())?;
 
         Ok(Qualified::new(version_id, property_type, updated_by))
     }
 
-    async fn create_entity_type() -> Result<(), InsertionError<()>> {
+    async fn create_entity_type() -> Result<(), InsertionError> {
         todo!()
     }
 
-    async fn get_entity_type() -> Result<(), QueryError<VersionId, ()>> {
+    async fn get_entity_type() -> Result<(), QueryError> {
         todo!()
     }
 
-    async fn get_entity_type_many() -> Result<(), QueryError<VersionId, ()>> {
+    async fn get_entity_type_many() -> Result<(), QueryError> {
         todo!()
     }
 
-    async fn update_entity_type() -> Result<(), UpdateError<()>> {
+    async fn update_entity_type() -> Result<(), UpdateError> {
         todo!()
     }
 
-    async fn create_entity() -> Result<(), InsertionError<()>> {
+    async fn create_entity() -> Result<(), InsertionError> {
         todo!()
     }
 
-    async fn get_entity() -> Result<(), QueryError<VersionId, ()>> {
+    async fn get_entity() -> Result<(), QueryError> {
         todo!()
     }
 
-    async fn get_entity_many() -> Result<(), QueryError<VersionId, ()>> {
+    async fn get_entity_many() -> Result<(), QueryError> {
         todo!()
     }
 
-    async fn update_entity() -> Result<(), UpdateError<()>> {
+    async fn update_entity() -> Result<(), UpdateError> {
         todo!()
     }
 }
