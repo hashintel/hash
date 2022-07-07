@@ -56,7 +56,7 @@ fn start_experiments(
             Ok(move || experiment.0 * experiment.1)
         })
         .collect::<Result<Vec<_>, ExperimentError>>()
-        .attach_printable("Unable to setup experiments")?;
+        .attach_printable("Unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
