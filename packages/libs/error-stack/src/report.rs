@@ -203,17 +203,21 @@ impl<C> Report<C> {
         #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
         drop(provider);
 
-        let mut frame = Frame::from_context(context, Location::caller(), Box::new([]));
+        let mut source: Box<[Frame]> = Box::new([]);
 
         #[cfg(all(nightly, feature = "std"))]
         if let Some(backtrace) = backtrace {
-            frame = Frame::from_attachment(backtrace, Location::caller(), Box::new([frame]));
+            let frame = Frame::from_attachment(backtrace, Location::caller(), source);
+            source = Box::new([frame]);
         }
 
         #[cfg(all(nightly, feature = "spantrace"))]
         if let Some(span_trace) = span_trace {
-            frame = Frame::from_attachment(span_trace, Location::caller(), Box::new([frame]));
+            let frame = Frame::from_attachment(span_trace, Location::caller(), source);
+            source = Box::new([frame]);
         }
+
+        let frame = Frame::from_context(context, Location::caller(), source);
 
         Self::from_frame(frame)
     }
