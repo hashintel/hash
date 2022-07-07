@@ -13,8 +13,16 @@ const customJestConfig = {
   testEnvironment: "jest-environment-jsdom",
 };
 
+// https://github.com/vercel/next.js/discussions/34589#discussioncomment-2510438
 module.exports = async () => {
   const nextJestConfig = await createJestConfig(customJestConfig)();
+  nextJestConfig.transformIgnorePatterns = [
+    "/node_modules/(?!uuid)",
+    ...nextJestConfig.transformIgnorePatterns.filter(
+      (pattern) => pattern !== "/node_modules/",
+    ),
+  ];
+
   // https://github.com/vercel/next.js/issues/36230
   nextJestConfig.moduleNameMapper = {
     // Workaround to put our SVG stub first
