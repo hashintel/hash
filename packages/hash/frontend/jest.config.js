@@ -12,7 +12,6 @@ const customJestConfig = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   testEnvironment: "jest-environment-jsdom",
 };
-
 // https://github.com/vercel/next.js/discussions/34589#discussioncomment-2510438
 module.exports = async () => {
   const nextJestConfig = await createJestConfig(customJestConfig)();
@@ -29,6 +28,5 @@ module.exports = async () => {
     "\\.svg": "<rootDir>/src/__mocks__/file.mock.ts",
     ...nextJestConfig.moduleNameMapper,
   };
-
   return nextJestConfig;
 };
