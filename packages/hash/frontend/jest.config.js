@@ -28,6 +28,5 @@ module.exports = async () => {
     "\\.svg": "<rootDir>/src/__mocks__/file.mock.ts",
     ...nextJestConfig.moduleNameMapper,
   };
-
   return nextJestConfig;
 };
