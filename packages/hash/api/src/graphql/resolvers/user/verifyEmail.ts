@@ -1,11 +1,11 @@
 import { ApolloError } from "apollo-server-express";
 
-import { MutationVerifyEmailArgs, Resolver } from "../../apiTypes.gen";
+import { MutationVerifyEmailArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { User, UnresolvedGQLEntity } from "../../../model";
 import { verifyVerificationCode } from "./util";
 
-export const verifyEmail: Resolver<
+export const verifyEmail: ResolverFn<
   UnresolvedGQLEntity,
   {},
   GraphQLContext,

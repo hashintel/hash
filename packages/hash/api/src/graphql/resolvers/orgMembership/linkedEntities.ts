@@ -1,7 +1,7 @@
 import { ApolloError } from "apollo-server-errors";
 import { OrgMembership } from "../../../model";
 import {
-  Resolver,
+  ResolverFn,
   OrgMembership as GQLOrgMembership,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
@@ -10,10 +10,11 @@ import { UnresolvedGQLEntity } from "../../../model/entity.model";
 const notFoundMsg = (entityId: string, accountId: string) =>
   `OrgMembership with entityId ${entityId} in account ${accountId} not found in datastore`;
 
-const user: Resolver<
+const user: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   GQLOrgMembership,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, { dataSources }) => {
   const orgMembership = await OrgMembership.getOrgMembershipById(
     dataSources.db,
@@ -29,10 +30,11 @@ const user: Resolver<
   return orgMembershipUser.toGQLUnknownEntity();
 };
 
-const org: Resolver<
+const org: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   GQLOrgMembership,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, { dataSources }) => {
   const orgMembership = await OrgMembership.getOrgMembershipById(
     dataSources.db,

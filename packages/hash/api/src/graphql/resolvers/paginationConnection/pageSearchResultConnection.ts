@@ -7,7 +7,7 @@ import {
 import { SearchHit } from "@hashintel/hash-backend-utils/search/adapter";
 
 import {
-  Resolver,
+  ResolverFn,
   QueryPageSearchResultConnectionArgs,
   PageSearchResultConnection,
   PageSearchResult,
@@ -22,7 +22,7 @@ type TextSearchHit = Omit<SearchHit, "document"> & {
  * Paginated search over user pages.
  * Currently doesn't support searching for both user and organization pages.
  */
-export const pageSearchResultConnection: Resolver<
+export const pageSearchResultConnection: ResolverFn<
   Promise<PageSearchResultConnection>,
   {},
   GraphQLContext,

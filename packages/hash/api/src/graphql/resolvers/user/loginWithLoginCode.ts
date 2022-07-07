@@ -1,9 +1,9 @@
-import { MutationLoginWithLoginCodeArgs, Resolver } from "../../apiTypes.gen";
+import { MutationLoginWithLoginCodeArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { verifyVerificationCode } from "./util";
 import { UnresolvedGQLEntity } from "../../../model";
 
-export const loginWithLoginCode: Resolver<
+export const loginWithLoginCode: ResolverFn<
   UnresolvedGQLEntity,
   {},
   GraphQLContext,

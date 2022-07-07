@@ -1,12 +1,12 @@
 import { ApolloError, ForbiddenError } from "apollo-server-errors";
 import {
   MutationCreateOrgEmailInvitationArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { UnresolvedGQLEntity, Org, OrgEmailInvitation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const createOrgEmailInvitation: Resolver<
+export const createOrgEmailInvitation: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,

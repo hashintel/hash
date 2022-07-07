@@ -1,10 +1,11 @@
-import { Resolver, LogoutResponse } from "../../apiTypes.gen";
+import { LogoutResponse, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const logout: Resolver<
+export const logout: ResolverFn<
   LogoutResponse,
   {},
-  LoggedInGraphQLContext
+  LoggedInGraphQLContext,
+  {}
 > = async (_, __, { passport }) => {
   passport.logout();
 

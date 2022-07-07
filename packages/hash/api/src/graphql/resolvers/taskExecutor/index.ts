@@ -8,14 +8,15 @@ import {
   MutationExecuteGithubCheckTaskArgs,
   MutationExecuteGithubDiscoverTaskArgs,
   MutationExecuteGithubReadTaskArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 
-export const executeDemoTask: Resolver<
+export const executeDemoTask: ResolverFn<
   Promise<string>,
   {},
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (_, __, { dataSources: { taskExecutor } }) => {
   if (!taskExecutor) {
     throw new ApolloError(
@@ -31,10 +32,11 @@ export const executeDemoTask: Resolver<
   }
 };
 
-export const executeGithubSpecTask: Resolver<
+export const executeGithubSpecTask: ResolverFn<
   Promise<string>,
   {},
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (_, __, { dataSources: { taskExecutor } }) => {
   if (!taskExecutor) {
     throw new ApolloError(
@@ -50,7 +52,7 @@ export const executeGithubSpecTask: Resolver<
   }
 };
 
-export const executeGithubCheckTask: Resolver<
+export const executeGithubCheckTask: ResolverFn<
   Promise<string>,
   {},
   GraphQLContext,
@@ -103,7 +105,7 @@ const streamNameToEntityTypeName = (name: string) => {
   return `Github${sanitizedName}`;
 };
 
-export const executeGithubDiscoverTask: Resolver<
+export const executeGithubDiscoverTask: ResolverFn<
   Promise<string>,
   {},
   LoggedInGraphQLContext,
@@ -149,7 +151,7 @@ export const executeGithubDiscoverTask: Resolver<
   }
 };
 
-export const executeGithubReadTask: Resolver<
+export const executeGithubReadTask: ResolverFn<
   Promise<string>,
   {},
   LoggedInGraphQLContext,
