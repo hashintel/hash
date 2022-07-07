@@ -120,16 +120,21 @@ const load_marked_vectors = (shared_bytes, schema) => {
 
 /// `latest_batch` should have `id` (string), `batch_version` (number), `mem_version` (number) and `mem` (ArrayBuffer)
 /// fields.
-// TODO: Read persisted metaversion from memory, removing the need
-//       for the version fields in `latest_batch`.
 Batch.prototype.sync = function (latest_batch, schema) {
   const markers = load_markers(latest_batch.mem);
   let header_offset = markers.header_offset;
 
   // extract the metaversion from the header of the latest batch
+  // more informations on metaversions can be found on the `Metaversion` struct
   const dataview_latest = new DataView(latest_batch.mem);
-  const latest_mem_version = get_u64(dataview_latest, header_offset);
-  const latest_batch_version = get_u64(dataview_latest, header_offset + 4);
+  // note: the header consists of two 32-bit unsigned integers (aka `u32` in Rust)
+  const latest_mem_version = dataview_latest.getUint32(header_offset, true);
+  // we use header_offset + 4 here because the both integers have a width of 4
+  // bytes
+  const latest_batch_version = dataview_latest.getUint32(
+    header_offset + 4,
+    true,
+  );
 
   const should_load = this.batch_version < latest_batch_version;
 
