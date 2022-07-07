@@ -3,6 +3,7 @@ name = "graph"
 version = "0.0.0"
 edition = "2021"
 publish = false
+description = "HASH Graph API"
 
 
 [dependencies]
