@@ -36,3 +36,25 @@ impl<T> Compat for core::result::Result<T, EyreReport> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use alloc::boxed::Box;
+
+    use eyre::eyre;
+
+    use crate::{test_helper::messages, Compat};
+
+    #[test]
+    fn conversion() {
+        eyre::set_hook(Box::new(eyre::DefaultHandler::default_with)).expect("Could not set hook");
+
+        let eyre: Result<(), _> = Err(eyre!("A").wrap_err("B").wrap_err("C"));
+
+        let report = eyre.into_report().unwrap_err();
+        let expected_output = ["A", "B", "C"];
+        for (eyre, expected) in messages(&report).into_iter().zip(expected_output) {
+            assert_eq!(eyre, expected);
+        }
+    }
+}

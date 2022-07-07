@@ -39,3 +39,24 @@ impl<T> Compat for core::result::Result<T, AnyhowError> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use anyhow::anyhow;
+
+    use crate::{test_helper::messages, Compat};
+
+    #[test]
+    fn conversion() {
+        let anyhow: Result<(), _> = Err(anyhow!("A").context("B").context("C"));
+
+        let report = anyhow.into_report().unwrap_err();
+        #[cfg(feature = "std")]
+        let expected_output = ["A", "B", "C"];
+        #[cfg(not(feature = "std"))]
+        let expected_output = ["C"];
+        for (anyhow, expected) in messages(&report).into_iter().zip(expected_output) {
+            assert_eq!(anyhow, expected);
+        }
+    }
+}
