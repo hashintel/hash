@@ -1,13 +1,15 @@
 use core::panic::Location;
 
+use eyre::Report as EyreReport;
+
 use crate::{Compat, Frame, Report, Result};
 
-impl<T> Compat for core::result::Result<T, eyre::Report> {
-    type Err = eyre::Report;
+impl<T> Compat for core::result::Result<T, EyreReport> {
+    type Err = EyreReport;
     type Ok = T;
 
     #[track_caller]
-    fn into_report(self) -> Result<T, eyre::Report> {
+    fn into_report(self) -> Result<T, EyreReport> {
         match self {
             Ok(t) => Ok(t),
             Err(eyre) => {

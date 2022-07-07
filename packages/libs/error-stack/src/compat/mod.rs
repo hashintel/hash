@@ -8,6 +8,7 @@ use crate::Result;
 /// Compatibility trait to convert from external libraries to [`Report`].
 ///
 /// [`Report`]: crate::Report
+#[cfg(any(feature = "anyhow", feature = "eyre"))]
 pub trait Compat: Sized {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;

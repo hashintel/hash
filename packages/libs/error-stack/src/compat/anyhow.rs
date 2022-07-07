@@ -1,15 +1,15 @@
 use core::panic::Location;
 
-use anyhow::Error;
+use anyhow::Error as AnyhowError;
 
 use crate::{Compat, Frame, Report, Result};
 
-impl<T> Compat for core::result::Result<T, Error> {
-    type Err = Error;
+impl<T> Compat for core::result::Result<T, AnyhowError> {
+    type Err = AnyhowError;
     type Ok = T;
 
     #[track_caller]
-    fn into_report(self) -> Result<T, Error> {
+    fn into_report(self) -> Result<T, AnyhowError> {
         match self {
             Ok(t) => Ok(t),
             Err(anyhow) => {
