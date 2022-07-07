@@ -21,7 +21,7 @@ pub struct DataType {
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     #[serde(rename = "type")]
-    ty: String,
+    json_type: String,
     /// Properties, which are not strongly typed.
     ///
     /// The data type meta-schema currently allows arbitrary, untyped properties. This is a
@@ -65,8 +65,8 @@ impl DataType {
     }
 
     #[must_use]
-    pub fn ty(&self) -> &str {
-        &self.ty
+    pub fn json_type(&self) -> &str {
+        &self.json_type
     }
 
     #[must_use]
