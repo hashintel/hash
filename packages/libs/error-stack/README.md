@@ -11,6 +11,8 @@
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 
+[Open issues](https://github.com/hashintel/hash/issues?q=is%3Aissue+is%3Aopen+label%3AA-error-stack) / [Discussions](https://github.com/hashintel/hash/discussions?discussions_q=label%3AA-error-stack)
+
 # error-stack
 
 **`error-stack` is a context-aware error-handling library that supports arbitrary attached user data.**
@@ -75,7 +77,7 @@ fn start_experiments(
             Ok(move || experiment.0 * experiment.1)
         })
         .collect::<Result<Vec<_>, ExperimentError>>()
-        .attach_printable("Unable to setup experiments")?;
+        .attach_printable("Unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
@@ -94,7 +96,7 @@ This will most likely result in an error and print
 ```text
 Error: Experiment error: Could not run experiment
              at examples/demo.rs:54:18
-      - Unable to setup experiments
+      - Unable to set up experiments
 
 Caused by:
    0: invalid experiment description

@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- OK for CLI scripts */
 /**
  * Apply the schema migration files
  */
@@ -19,7 +18,7 @@ HASH_PG_PASSWORD, if set, will be used as the password, otherwise you
 will be prompted for the password.`;
 
 const main = async () => {
-  const argv = yargs(process.argv.slice(2))
+  const argv = await yargs(process.argv.slice(2))
     .usage("$0", cliDescription)
     .version(false)
     .option("host", {
