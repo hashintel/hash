@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::Component;
 use uuid::Uuid;
 
-use crate::types::schema::Uri;
+use crate::types::schema::{DataType, PropertyType, Uri};
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]
@@ -44,9 +44,10 @@ impl fmt::Display for VersionId {
 
 // TODO: constrain this to only work for valid inner Types.
 #[derive(Clone, Debug, Serialize, Deserialize, Component)]
-#[aliases(QualifiedDataType = Qualified<DataType>)]
+#[aliases(QualifiedDataType = Qualified<DataType>, QualifiedPropertyType = Qualified<PropertyType>)]
 pub struct Qualified<T> {
     version_id: VersionId,
+    #[component(value_type = Any)]
     inner: T,
     created_by: AccountId,
 }

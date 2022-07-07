@@ -3,16 +3,21 @@
 use axum::{
     extract::Path,
     http::StatusCode,
-    routing::{get, post, put},
+    response::IntoResponse,
+    routing::{get, post},
     Extension, Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{Component, OpenApi};
 use uuid::Uuid;
 
+use super::{
+    api_endpoint::RoutedResource,
+    error::{modify_report_to_status_code, query_report_to_status_code},
+};
 use crate::{
     datastore::Datastore,
-    types::{AccountId, BaseId, DataType, Identifier, Qualified, QualifiedDataType},
+    types::{schema::DataType, AccountId, BaseId, Qualified, QualifiedDataType, VersionId},
 };
 
 #[derive(OpenApi)]
@@ -23,36 +28,32 @@ use crate::{
         // get_data_type_many,
         update_data_type
     ),
-    components(CreateDataTypeRequest, UpdateDataTypeRequest, Identifier, AccountId, DataType, BaseId, QualifiedDataType),
+    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, BaseId, QualifiedDataType),
     tags(
         (name = "DataType", description = "Data Type management API")
     )
 )]
-pub struct ApiDoc;
+pub struct DataTypeEndpoint;
+
+impl RoutedResource for DataTypeEndpoint {
+    /// Create routes for interacting with data types.
+    fn routes<D: Datastore>() -> Router {
+        // TODO: The URL format here is preliminary and will have to change.
+        Router::new().nest(
+            "/data-type",
+            Router::new()
+                .route("/", post(create_data_type::<D>).put(update_data_type::<D>))
+                // .route("/query", get(get_data_type_many))
+                .route("/:version_id", get(get_data_type::<D>)),
+        )
+    }
+}
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreateDataTypeRequest {
+    #[component(value_type = Any)]
     schema: DataType,
-    created_by: AccountId,
-}
-
-#[derive(Component, Serialize, Deserialize)]
-struct UpdateDataTypeRequest {
-    schema: DataType,
-    updated_by: AccountId,
-}
-
-/// Create routes for interacting with data types.
-pub fn routes<D: Datastore>() -> Router {
-    // TODO: The URL format here is preliminary and will have to change.
-    Router::new().nest(
-        "/data-type",
-        Router::new()
-            .route("/", post(create_data_type::<D>))
-            .route("/query", get(get_data_type_many))
-            .route("/:base_id/", put(update_data_type::<D>))
-            .route("/:base_id/:version_id", get(get_data_type::<D>)),
-    )
+    account_id: AccountId,
 }
 
 #[utoipa::path(
@@ -61,71 +62,79 @@ pub fn routes<D: Datastore>() -> Router {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-        (status = 201, description = "Data type created successfully", body = QualifiedDataType),
-        (status = 400, description = "Data type could not be created")
-    )
+      (status = 201, content_type = "application/json", description = "Data type created successfully", body = QualifiedDataType),
+      (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+      
+      (status = 409, description = "Unable to create data type in the datastore as the base data type ID already exists"),
+      (status = 500, description = "Datastore error occurred"),
+    ),
+    request_body = CreateDataTypeRequest,
 )]
 async fn create_data_type<D: Datastore>(
     Json(body): Json<CreateDataTypeRequest>,
     Extension(datastore): Extension<D>,
 ) -> Result<Json<Qualified<DataType>>, StatusCode> {
-    datastore.create_data_type(body.schema, body.created_by)
+    datastore.clone().create_data_type(body.schema, body.account_id)
             .await
-            // TODO: proper error propagation
-            .map_err(|_| StatusCode::BAD_REQUEST)
+            .map_err(modify_report_to_status_code)
             .map(Json)
 }
 
 #[utoipa::path(
     get,
-    path = "/data-type/{base_id}/{version_id}",
+    path = "/data-type/{versionId}",
     tag = "DataType",
     responses(
-        (status = 200, description = "Data type found", body = QualifiedDataType),
-        (status = 404, description = "Data type was not found")
+        (status = 200, content_type = "application/json", description = "Data type found", body = QualifiedDataType),
+        (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
+
+        (status = 404, description = "Data type was not found"),
+        (status = 500, description = "Datastore error occurred"),
     ),
     params(
-        ("base_id" = Uuid, Path, description = "The base ID of the data type"),
-        ("version_id" = Uuid, Path, description = "The version ID of data type"),
+        ("versionId" = Uuid, Path, description = "The version ID of data type"),
     )
 )]
 async fn get_data_type<D: Datastore>(
-    Path((base_id, version_id)): Path<(Uuid, Uuid)>,
+    Path(version_id): Path<Uuid>,
     Extension(datastore): Extension<D>,
-) -> Result<Json<Qualified<DataType>>, StatusCode> {
-    let identifier = Identifier::from_uuids(base_id, version_id);
-
-    datastore.get_data_type(&identifier)
+) -> Result<Json<Qualified<DataType>>, impl IntoResponse> {
+    datastore.get_data_type(VersionId::new(version_id))
             .await
-            // TODO: proper error propagation, although this might be okay?
-            .map_err(|_| StatusCode::NOT_FOUND)
+            .map_err(query_report_to_status_code)
             .map(Json)
 }
 
-async fn get_data_type_many() -> Result<String, StatusCode> {
-    todo!()
+// async fn get_data_type_many() -> Result<String, StatusCode> {
+//     unimplemented!()
+// }
+
+#[derive(Component, Serialize, Deserialize)]
+struct UpdateDataTypeRequest {
+    #[component(value_type = Any)]
+    schema: DataType,
+    created_by: AccountId,
 }
 
 #[utoipa::path(
     put,
-    path = "/data-type/{base_id}/",
+    path = "/data-type",
     tag = "DataType",
     responses(
-        (status = 200, description = "Data type updated successfully", body = QualifiedDataType),
-        (status = 404, description = "Base data type ID was not found and could not be updated")
+        (status = 200, content_type = "application/json", description = "Data type updated successfully", body = QualifiedDataType),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Base data type ID was not found"),
+        (status = 500, description = "Datastore error occurred"),
     ),
-    params(
-        ("base_id" = Uuid, Path, description = "The base data type ID"),
-    )
+    request_body = UpdateDataTypeRequest,
 )]
 async fn update_data_type<D: Datastore>(
-    Path(base_id): Path<BaseId>,
     Json(body): Json<UpdateDataTypeRequest>,
     Extension(datastore): Extension<D>,
 ) -> Result<Json<Qualified<DataType>>, StatusCode> {
-    datastore.update_data_type(base_id, body.schema, body.updated_by)
+    datastore.clone().update_data_type(body.schema, body.created_by)
             .await
-            // TODO: proper error propagation
-            .map_err(|_| StatusCode::BAD_REQUEST)
+            .map_err(modify_report_to_status_code)
             .map(Json)
 }
