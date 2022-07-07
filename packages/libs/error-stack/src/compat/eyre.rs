@@ -1,8 +1,38 @@
-use core::panic::Location;
+#[cfg(nightly)]
+use core::any::Demand;
+use core::{fmt, panic::Location};
+#[cfg(all(nightly, feature = "std"))]
+use std::{backtrace::Backtrace, error::Error};
 
 use eyre::Report as EyreReport;
 
-use crate::{Frame, IntoReportCompat, Report, Result};
+use crate::{Context, Frame, IntoReportCompat, Report, Result};
+
+#[repr(transparent)]
+struct EyreContext(EyreReport);
+
+impl fmt::Debug for EyreContext {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, fmt)
+    }
+}
+
+impl fmt::Display for EyreContext {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl Context for EyreContext {
+    #[cfg(nightly)]
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        demand.provide_ref(&self.0);
+        #[cfg(feature = "std")]
+        if let Some(backtrace) = self.0.chain().find_map(Error::backtrace) {
+            demand.provide_ref(backtrace);
+        }
+    }
+}
 
 impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
     type Err = EyreReport;
@@ -19,10 +49,19 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .map(alloc::string::ToString::to_string)
                     .collect::<alloc::vec::Vec<_>>();
 
+                #[cfg(all(nightly, feature = "std"))]
+                let backtrace = eyre
+                    .chain()
+                    .all(|error| error.backtrace().is_none())
+                    .then(Backtrace::capture);
+
                 let mut report = Report::from_frame(
-                    Frame::from_compat(eyre, Location::caller()),
+                    Frame::from_compat::<EyreReport, EyreContext>(
+                        EyreContext(eyre),
+                        Location::caller(),
+                    ),
                     #[cfg(all(nightly, feature = "std"))]
-                    Some(std::backtrace::Backtrace::capture()),
+                    backtrace,
                     #[cfg(feature = "spantrace")]
                     Some(tracing_error::SpanTrace::capture()),
                 );

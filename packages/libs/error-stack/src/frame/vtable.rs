@@ -74,17 +74,16 @@ impl VTable {
     ///
     /// [`Compat`]: crate::Compat
     #[cfg(any(feature = "anyhow", feature = "eyre"))]
-    pub fn new_compat<T>() -> &'static Self
+    pub fn new_compat<T, C: Context>() -> &'static Self
     where
         T: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        use crate::frame::compat::CompatContext;
         &Self {
-            object_drop: Self::object_drop::<CompatContext<T>>,
+            object_drop: Self::object_drop::<C>,
             object_downcast: Self::object_downcast::<T>,
-            unerase: Self::unerase_context::<CompatContext<T>>,
+            unerase: Self::unerase_context::<C>,
             #[cfg(nightly)]
-            provide: Self::self_provide::<T>,
+            provide: Self::context_provide::<C>,
         }
     }
 
