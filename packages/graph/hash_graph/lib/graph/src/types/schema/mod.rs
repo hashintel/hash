@@ -1,32 +1,40 @@
+pub mod array;
+pub mod combinator;
 mod data_type;
-mod helper;
+mod object;
 pub mod property_type;
-mod reference;
 
 use core::fmt;
 
 #[doc(inline)]
 pub use self::{
+    combinator::{OneOf, ValueOrArray},
     data_type::DataType,
-    helper::{Array, OneOf, ValueOrArray},
     property_type::PropertyType,
-    reference::{DataTypeReference, PropertyTypeReference, Uri},
 };
+use crate::types::Uri;
 
 #[derive(Debug)]
 pub enum ValidationError {
-    PropertyMissing(Uri),
+    PropertyRequired(Uri),
+    PropertyMissing(usize, usize),
     OneOfEmpty,
 }
 
 impl fmt::Display for ValidationError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::PropertyMissing(uri) => {
+            Self::PropertyRequired(uri) => {
                 write!(
                     fmt,
                     "The schema has marked the \"{uri}\" property as required, but it wasn't \
                      defined in the `\"properties\"` object"
+                )
+            }
+            Self::PropertyMissing(expected, actual) => {
+                write!(
+                    fmt,
+                    "At least {expected} properties are required, but only {actual} were provided"
                 )
             }
             Self::OneOfEmpty => fmt.write_str("`\"one_of\"` must have at least one item"),

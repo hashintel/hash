@@ -1,78 +1,41 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::schema::ValidationError;
+use crate::types::schema::{array::TypedArray, ValidationError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-enum ArrayTypeTag {
-    Array,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Array<T> {
-    r#type: ArrayTypeTag,
-    items: T,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    min_items: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    max_items: Option<usize>,
-}
-
-impl<T> Array<T> {
-    /// Creates a new `Array` from the given `items`, `min_items` and `max_items`.
-    #[must_use]
-    pub fn new<A: Into<Option<usize>>, B: Into<Option<usize>>>(
-        items: T,
-        min_items: A,
-        max_items: B,
-    ) -> Self {
-        Self {
-            r#type: ArrayTypeTag::Array,
-            items,
-            min_items: min_items.into(),
-            max_items: max_items.into(),
-        }
-    }
-
-    #[must_use]
-    pub const fn items(&self) -> &T {
-        &self.items
-    }
-
-    #[must_use]
-    pub const fn min_items(&self) -> Option<usize> {
-        self.min_items
-    }
-
-    #[must_use]
-    pub const fn max_items(&self) -> Option<usize> {
-        self.max_items
-    }
+#[serde(untagged)]
+pub enum Optional<T> {
+    None {},
+    Some(T),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ValueOrArray<T> {
     Value(T),
-    Array(Array<T>),
+    Array(TypedArray<T>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(
-    try_from = "OneOfRepr<T>",
-    rename_all = "camelCase",
-    deny_unknown_fields
-)]
-pub struct OneOf<T> {
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OneOfRepr<T> {
     one_of: Vec<T>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "OneOfRepr<T>", rename_all = "camelCase")]
+pub struct OneOf<T> {
+    #[serde(flatten)]
+    repr: OneOfRepr<T>,
 }
 
 impl<T> OneOf<T> {
     /// Creates a new `OneOf` without validating.
     pub fn new_unchecked<U: Into<Vec<T>>>(one_of: U) -> Self {
         Self {
-            one_of: one_of.into(),
+            repr: OneOfRepr {
+                one_of: one_of.into(),
+            },
         }
     }
 
@@ -89,21 +52,15 @@ impl<T> OneOf<T> {
 
     #[must_use]
     pub fn one_of(&self) -> &[T] {
-        &self.one_of
+        &self.repr.one_of
     }
 
     fn validate(&self) -> Result<(), ValidationError> {
-        if self.one_of.is_empty() {
+        if self.one_of().is_empty() {
             return Err(ValidationError::OneOfEmpty);
         }
         Ok(())
     }
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OneOfRepr<T> {
-    one_of: Vec<T>,
 }
 
 impl<T> TryFrom<OneOfRepr<T>> for OneOf<T> {
@@ -125,7 +82,7 @@ mod tests {
 
     #[test]
     fn array() -> Result<(), Box<dyn Error>> {
-        let array = Array::new(Uri::new("https://example.com/data_type"), None, None);
+        let array = TypedArray::new(Uri::new("https://example.com/data_type"), None, None);
 
         let json = serde_json::to_value(&array)?;
         assert_eq!(
@@ -139,7 +96,7 @@ mod tests {
         let array2 = serde_json::from_value(json)?;
         assert_eq!(array, array2);
 
-        let array = Array::new(Uri::new("https://example.com/data_type"), 1, 2);
+        let array = TypedArray::new(Uri::new("https://example.com/data_type"), 1, 2);
 
         let json = serde_json::to_value(&array)?;
         assert_eq!(
@@ -158,35 +115,35 @@ mod tests {
         let json = json!({
             "items": "https://example.com/data_type"
         });
-        assert!(serde_json::from_value::<Array<Uri>>(json).is_err());
+        assert!(serde_json::from_value::<TypedArray<Uri>>(json).is_err());
 
         let json = json!({
             "type": "array",
             "items": "https://example.com/data_type",
             "minItems": 1
         });
-        assert!(serde_json::from_value::<Array<Uri>>(json).is_ok());
+        assert!(serde_json::from_value::<TypedArray<Uri>>(json).is_ok());
 
         let json = json!({
             "type": "array",
             "items": "https://example.com/data_type",
             "maxItems": 1
         });
-        assert!(serde_json::from_value::<Array<Uri>>(json).is_ok());
+        assert!(serde_json::from_value::<TypedArray<Uri>>(json).is_ok());
 
         let json = json!({
             "type": "array",
             "minItems": 2,
             "maxItems": 1
         });
-        assert!(serde_json::from_value::<Array<Uri>>(json).is_err());
+        assert!(serde_json::from_value::<TypedArray<Uri>>(json).is_err());
 
         let json = json!({
             "type": "array",
             "items": "https://example.com/data_type",
             "numItems": 1,
         });
-        assert!(serde_json::from_value::<Array<Uri>>(json).is_err());
+        assert!(serde_json::from_value::<TypedArray<Uri>>(json).is_err());
 
         Ok(())
     }
@@ -206,7 +163,7 @@ mod tests {
 
     #[test]
     fn value_or_array_array() -> Result<(), Box<dyn Error>> {
-        let array = ValueOrArray::Array(Array::new(
+        let array = ValueOrArray::Array(TypedArray::new(
             Uri::new("https://example.com/data_type"),
             None,
             None,
@@ -223,6 +180,32 @@ mod tests {
 
         let array2 = serde_json::from_value(json)?;
         assert_eq!(array, array2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn optional_none() -> Result<(), Box<dyn Error>> {
+        let none = Optional::<()>::None {};
+
+        let json = serde_json::to_value(&none)?;
+        assert_eq!(json, serde_json::json!({}));
+
+        let empty2 = serde_json::from_value(json)?;
+        assert_eq!(none, empty2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn optional_value() -> Result<(), Box<dyn Error>> {
+        let value = Optional::Value(Uri::new("https://example.com/data_type"));
+
+        let json = serde_json::to_value(&value)?;
+        assert_eq!(json, serde_json::json!("https://example.com/data_type"));
+
+        let array2 = serde_json::from_value(json)?;
+        assert_eq!(value, array2);
 
         Ok(())
     }

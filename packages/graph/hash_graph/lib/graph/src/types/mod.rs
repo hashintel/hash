@@ -4,9 +4,27 @@ pub mod schema;
 
 use core::fmt;
 
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::types::schema::Uri;
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
+#[serde(transparent)]
+#[sqlx(transparent)]
+pub struct Uri(String);
+
+impl Uri {
+    /// Creates a new `Uri` from the given string.
+    #[must_use]
+    pub fn new<T: Into<String>>(uri: T) -> Self {
+        Self(uri.into())
+    }
+}
+
+impl fmt::Display for Uri {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}", self.0)
+    }
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq)]
