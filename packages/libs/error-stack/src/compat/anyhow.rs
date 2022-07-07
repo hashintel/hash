@@ -20,6 +20,7 @@ impl<T> Compat for core::result::Result<T, AnyhowError> {
                     .map(ToString::to_string)
                     .collect::<Vec<_>>();
 
+                #[cfg_attr(not(feature = "std"), allow(unused_mut))]
                 let mut report = Report::from_frame(
                     Frame::from_compat(anyhow, Location::caller()),
                     #[cfg(all(nightly, feature = "std"))]
