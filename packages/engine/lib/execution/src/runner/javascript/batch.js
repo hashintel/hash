@@ -118,8 +118,7 @@ const load_marked_vectors = (shared_bytes, schema) => {
   return load_vectors(record_batch_bytes, schema);
 };
 
-/// `latest_batch` should have `id` (string), `batch_version` (number), `mem_version` (number) and `mem` (ArrayBuffer)
-/// fields.
+/// `latest_batch` should have `id` (string), and `mem` (ArrayBuffer) fields.
 Batch.prototype.sync = function (latest_batch, schema) {
   const markers = load_markers(latest_batch.mem);
   let header_offset = markers.header_offset;
