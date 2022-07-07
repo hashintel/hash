@@ -8,12 +8,14 @@ import React, {
 import { TableOptions, useSortBy, useTable } from "react-table";
 
 import {
-  BlockComponent,
-  useGraphBlockService,
   LinkedAggregation,
   EntityType,
   UpdateEntityData,
 } from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 import { tw } from "twind";
 import { orderBy } from "lodash";
 
