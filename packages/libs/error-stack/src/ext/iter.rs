@@ -278,7 +278,7 @@ impl_lazy_iterator_adaptor! {
 /// Just tests that some simple uses of `IteratorExt` (and related types) works.
 mod test_simple_compiles {
     use super::*;
-    use crate::test_helper::messages;
+    use crate::test_helper::*;
 
     #[derive(Debug)]
     pub struct UhOhError;
@@ -318,7 +318,7 @@ mod test_simple_compiles {
             match each {
                 Ok(_) => (),
                 Err(err) => {
-                    assert_eq!(messages(&err), vec!["Opaque", "UhOhError"]);
+                    assert_eq!(messages(&err), expect_messages(&["Opaque", "UhOhError"]));
                 }
             }
         }

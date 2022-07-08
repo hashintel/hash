@@ -50,6 +50,40 @@ pub fn messages<E>(report: &Report<E>) -> Vec<String> {
         .collect()
 }
 
+/// Conditionally add two opaque layers to the end,
+/// as these catch the backtrace and spantrace if recorded.
+pub fn expect_messages<'a>(messages: &[&'a str]) -> Vec<&'a str> {
+    #[allow(unused_mut)]
+    let mut messages = alloc::vec::Vec::from(messages);
+
+    #[cfg(all(nightly, feature = "std"))]
+    {
+        messages.push("Opaque");
+    }
+    #[cfg(feature = "spantrace")]
+    {
+        messages.push("Opaque");
+    }
+
+    messages
+}
+
+/// Conditionally add two new frames to the count, as these are backtrace and spantrace.
+#[allow(unused_mut)]
+pub fn expect_count(mut count: usize) -> usize {
+    #[cfg(all(nightly, feature = "std"))]
+    {
+        count += 1;
+    }
+
+    #[cfg(feature = "spantrace")]
+    {
+        count += 1;
+    }
+
+    count
+}
+
 pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
     report.frames().map(Frame::kind).collect()
 }
