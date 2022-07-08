@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
 use core::{fmt, panic::Location};
@@ -43,28 +44,40 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
         match self {
             Ok(t) => Ok(t),
             Err(eyre) => {
+                #[allow(unused_mut)]
+                let mut source: Box<[Frame]> = Box::new([]);
+
+                #[cfg(all(nightly, feature = "std"))]
+                if let Some(backtrace) = eyre
+                    .chain()
+                    .all(|error| error.backtrace().is_none())
+                    .then(Backtrace::capture)
+                {
+                    let frame = Frame::from_attachment(backtrace, Location::caller(), source);
+                    source = Box::new([frame]);
+                }
+
+                #[cfg(feature = "spantrace")]
+                {
+                    let frame = Frame::from_attachment(
+                        tracing_error::SpanTrace::capture(),
+                        Location::caller(),
+                        source,
+                    );
+                    source = Box::new([frame])
+                }
+
                 let sources = eyre
                     .chain()
                     .skip(1)
                     .map(alloc::string::ToString::to_string)
                     .collect::<alloc::vec::Vec<_>>();
 
-                #[cfg(all(nightly, feature = "std"))]
-                let backtrace = eyre
-                    .chain()
-                    .all(|error| error.backtrace().is_none())
-                    .then(Backtrace::capture);
-
-                let mut report = Report::from_frame(
-                    Frame::from_compat::<EyreReport, EyreContext>(
-                        EyreContext(eyre),
-                        Location::caller(),
-                    ),
-                    #[cfg(all(nightly, feature = "std"))]
-                    backtrace,
-                    #[cfg(feature = "spantrace")]
-                    Some(tracing_error::SpanTrace::capture()),
-                );
+                let mut report = Report::from_frame(Frame::from_compat::<EyreReport, EyreContext>(
+                    EyreContext(eyre),
+                    Location::caller(),
+                    source,
+                ));
 
                 for source in sources {
                     report = report.attach_printable(source);

@@ -103,11 +103,12 @@ impl Frame {
     pub(crate) fn from_compat<T, C: Context>(
         compat: C,
         location: &'static Location<'static>,
+        source: Box<[Self]>,
     ) -> Self
     where
         T: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self::from_unerased(compat, location, Box::new([]), VTable::new_compat::<T, C>())
+        Self::from_unerased(compat, location, source, VTable::new_compat::<T, C>())
     }
 
     fn vtable(&self) -> &'static VTable {

@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
 use core::{fmt, panic::Location};
@@ -43,6 +44,29 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
         match self {
             Ok(t) => Ok(t),
             Err(anyhow) => {
+                #[allow(unused_mut)]
+                let mut source: Box<[Frame]> = Box::new([]);
+
+                #[cfg(all(nightly, feature = "std"))]
+                if let Some(backtrace) = anyhow
+                    .chain()
+                    .all(|error| error.backtrace().is_none())
+                    .then(Backtrace::capture)
+                {
+                    let frame = Frame::from_attachment(backtrace, Location::caller(), source);
+                    source = Box::new([frame]);
+                }
+
+                #[cfg(feature = "spantrace")]
+                {
+                    let frame = Frame::from_attachment(
+                        tracing_error::SpanTrace::capture(),
+                        Location::caller(),
+                        source,
+                    );
+                    source = Box::new([frame]);
+                }
+
                 #[cfg(feature = "std")]
                 let sources = anyhow
                     .chain()
@@ -50,23 +74,13 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     .map(ToString::to_string)
                     .collect::<Vec<_>>();
 
-                #[cfg(all(nightly, feature = "std"))]
-                let backtrace = anyhow
-                    .chain()
-                    .all(|error| error.backtrace().is_none())
-                    .then(Backtrace::capture);
-
                 #[cfg_attr(not(feature = "std"), allow(unused_mut))]
-                let mut report = Report::from_frame(
-                    Frame::from_compat::<AnyhowError, AnyhowContext>(
+                let mut report =
+                    Report::from_frame(Frame::from_compat::<AnyhowError, AnyhowContext>(
                         AnyhowContext(anyhow),
                         Location::caller(),
-                    ),
-                    #[cfg(all(nightly, feature = "std"))]
-                    backtrace,
-                    #[cfg(feature = "spantrace")]
-                    Some(tracing_error::SpanTrace::capture()),
-                );
+                        source,
+                    ));
 
                 #[cfg(feature = "std")]
                 for source in sources {
