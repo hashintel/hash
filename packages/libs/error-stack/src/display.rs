@@ -29,14 +29,6 @@ const SPACE: &str = "    ";
 #[cfg(all(nightly, feature = "std"))]
 fn backtrace<'a>(frame: &'a Frame, bt: &mut Vec<&'a std::backtrace::Backtrace>) -> Option<String> {
     if let Some(backtrace) = frame.request_ref::<std::backtrace::Backtrace>() {
-        if matches!(
-            backtrace.status(),
-            std::backtrace::BacktraceStatus::Unsupported
-                | std::backtrace::BacktraceStatus::Disabled
-        ) {
-            return None;
-        }
-
         bt.push(backtrace);
 
         Some(format!(
@@ -52,12 +44,6 @@ fn backtrace<'a>(frame: &'a Frame, bt: &mut Vec<&'a std::backtrace::Backtrace>) 
 #[cfg(feature = "spantrace")]
 fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -> Option<String> {
     if let Some(span_trace) = frame.request_ref::<tracing_error::SpanTrace>() {
-        if span_trace.status() == tracing_error::SpanTraceStatus::EMPTY
-            || span_trace.status() == tracing_error::SpanTraceStatus::UNSUPPORTED
-        {
-            return None;
-        }
-
         let mut span = 0;
         span_trace.with_spans(|_, _| {
             span += 1;

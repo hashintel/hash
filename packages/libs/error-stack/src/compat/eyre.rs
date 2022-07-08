@@ -54,13 +54,17 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .chain()
                     .all(|error| error.backtrace().is_none())
                     .then(Backtrace::capture)
+                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured))
                 {
                     report = report.attach(backtrace);
                 }
 
                 #[cfg(feature = "spantrace")]
                 {
-                    report = report.attach(tracing_error::SpanTrace::capture());
+                    let span = tracing_error::SpanTrace::capture();
+                    if span.status() == tracing_error::SpanTraceStatus::CAPTURED {
+                        report = report.attach(tracing_error::SpanTrace::capture());
+                    }
                 }
 
                 let sources = eyre

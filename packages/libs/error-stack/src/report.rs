@@ -239,12 +239,14 @@ impl<C> Report<C> {
         let mut this = Self::from_frame(frame);
 
         #[cfg(all(nightly, feature = "std"))]
-        if let Some(backtrace) = backtrace {
+        if let Some(backtrace) =
+            backtrace.filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
+        {
             this = this.attach(backtrace);
         }
 
         #[cfg(all(nightly, feature = "spantrace"))]
-        if let Some(span_trace) = span_trace {
+        if let Some(span_trace) = span_trace.filter(|st| st.status() == SpanTraceStatus::CAPTURED) {
             this = this.attach(span_trace);
         }
 
