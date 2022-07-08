@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+use core::ptr::NonNull;
 
 use crate::frame::VTable;
 
@@ -16,18 +17,12 @@ impl<T> ErasableFrame<T> {
     /// Creates a new [`Frame`] from an unerased object.
     ///
     /// [`Frame`]: crate::Frame
-    ///
-    /// # Safety
-    ///
-    /// Must not be dropped without calling `vtable.object_drop`
-    pub(in crate::frame) unsafe fn new(object: T, vtable: &'static VTable) -> Box<ErasableFrame> {
+    pub(in crate::frame) fn new(object: T, vtable: &'static VTable) -> NonNull<ErasableFrame> {
         let unerased_frame = Self {
             vtable,
             _unerased: object,
         };
-        let unerased_box = Box::new(unerased_frame);
-        // erase the frame by casting the pointer to `ErasableFrame<()>`
-        Box::from_raw(Box::into_raw(unerased_box).cast())
+        NonNull::from(Box::leak(Box::new(unerased_frame))).cast()
     }
 }
 

@@ -1,6 +1,6 @@
 //! Iterators over [`Frame`]s.
 
-use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData};
+use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData, ptr::NonNull};
 
 use crate::{Frame, Report};
 
@@ -47,14 +47,14 @@ impl fmt::Debug for Frames<'_> {
 /// Use [`Report::frames_mut()`] to create this iterator.
 #[must_use]
 pub struct FramesMut<'r> {
-    current: Option<*mut Frame>,
+    current: Option<NonNull<Frame>>,
     _marker: PhantomData<&'r mut Frame>,
 }
 
 impl<'r> FramesMut<'r> {
     pub(crate) fn new<C>(report: &'r mut Report<C>) -> Self {
         Self {
-            current: Some(report.frame_mut()),
+            current: Some(NonNull::from(report.frame_mut())),
             _marker: PhantomData,
         }
     }
@@ -64,16 +64,16 @@ impl<'r> Iterator for FramesMut<'r> {
     type Item = &'r mut Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let current = self.current.take()?;
+        let mut current = self.current.take()?;
         // SAFETY: We require a mutable reference to `Report` to create `FramesMut` to get a mutable
         //   reference to `Frame`. The borrow checker is unable to prove that subsequent calls to
         //   `next()` won't access the same data.
         //   NB: It's almost never possible to implement a mutable iterator without `unsafe`.
         unsafe {
-            if let Some(source) = (*current).source_mut() {
-                self.current = Some(source);
+            if let Some(source) = current.as_mut().source_mut() {
+                self.current = Some(NonNull::from(source));
             }
-            Some(&mut *current)
+            Some(current.as_mut())
         }
     }
 }
