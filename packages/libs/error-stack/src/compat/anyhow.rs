@@ -58,9 +58,10 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
 
                 #[cfg_attr(not(feature = "std"), allow(unused_mut))]
                 let mut report = Report::from_frame(
-                    Frame::from_compat::<AnyhowError, AnyhowContext>(
+                    Frame::from_context::<AnyhowContext>(
                         AnyhowContext(anyhow),
                         Location::caller(),
+                        None,
                     ),
                     #[cfg(all(nightly, feature = "std"))]
                     backtrace,
