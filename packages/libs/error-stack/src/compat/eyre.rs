@@ -47,7 +47,6 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                 let mut report = Report::from_frame(Frame::from_compat::<EyreReport, EyreContext>(
                     EyreContext(eyre),
                     Location::caller(),
-                    Box::new([]),
                 ));
 
                 #[cfg(all(nightly, feature = "std"))]

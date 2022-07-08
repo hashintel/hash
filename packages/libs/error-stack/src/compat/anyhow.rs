@@ -49,7 +49,6 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     Report::from_frame(Frame::from_compat::<AnyhowError, AnyhowContext>(
                         AnyhowContext(anyhow),
                         Location::caller(),
-                        Box::new([]),
                     ));
 
                 #[cfg(all(nightly, feature = "std"))]
