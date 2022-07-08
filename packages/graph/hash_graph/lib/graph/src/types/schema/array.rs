@@ -211,7 +211,7 @@ mod tests {
                 &TypedArray::new("string".to_owned(), 10, 20),
                 json!({
                     "type": "array",
-                "items": "string",
+                    "items": "string",
                     "minItems": 10,
                     "maxItems": 20,
                 }),
