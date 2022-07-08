@@ -25,7 +25,7 @@ impl DataTypeReference {
     }
 }
 
-/// Will serialize as a constant field `"dataType"`
+/// Will serialize as a constant value `"dataType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum DataTypeTag {

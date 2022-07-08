@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::schema::{Uri, ValidationError};
 
-/// Will serialize as a constant field `"object"`
+/// Will serialize as a constant value `"object"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum ObjectTypeTag {

@@ -71,7 +71,7 @@ impl PropertyValues {
     }
 }
 
-/// Will serialize as a constant field `"propertyType"`
+/// Will serialize as a constant value `"propertyType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(clippy::use_self)]
