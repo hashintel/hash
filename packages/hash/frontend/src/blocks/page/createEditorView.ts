@@ -133,6 +133,8 @@ export const createEditorView = (
   );
 
   view.dom.classList.add(styles.ProseMirror!);
+  // Prevent keyboard navigation on the editor
+  view.dom.setAttribute("tabIndex", "-1");
 
   // prosemirror will use the first node type (per group) for auto-creation.
   // we want this to be the paragraph node type.

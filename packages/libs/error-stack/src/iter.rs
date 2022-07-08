@@ -1,7 +1,7 @@
 //! Iterators over [`Frame`]s.
 
 use alloc::vec::Vec;
-use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData};
+use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData, ptr::NonNull};
 
 use crate::{Frame, Report};
 
@@ -101,7 +101,7 @@ impl fmt::Debug for Frames<'_> {
 /// Use [`Report::frames_mut()`] to create this iterator.
 #[must_use]
 pub struct FramesMut<'r> {
-    current: Vec<*mut Frame>,
+    current: Vec<NonNull<Frame>>,
     _marker: PhantomData<&'r mut Frame>,
 }
 
@@ -111,7 +111,7 @@ impl<'r> FramesMut<'r> {
             current: report
                 .frames
                 .iter_mut()
-                .map(|frame| frame as *mut Frame)
+                .map(|frame| NonNull::from(frame))
                 .rev()
                 .collect(),
             _marker: PhantomData,
@@ -131,13 +131,13 @@ impl<'r> Iterator for FramesMut<'r> {
             // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
             unsafe {
                 self.current.extend(
-                    (*frame)
+                   frame.as_mut()
                         .sources_mut()
                         .iter_mut()
-                        .map(|frame| frame as *mut Frame)
+                        .map(|frame| NonNull::from(frame))
                         .rev(),
                 );
-                Some(&mut *frame)
+                Some(frame.as_mut())
             }
         } else {
             None
