@@ -77,9 +77,10 @@ fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -
 #[allow(clippy::needless_lifetimes)]
 fn frame<'a>(
     frame: &'a Frame,
+    defer: &mut Vec<Vec<String>>,
     #[cfg(all(nightly, feature = "std"))] bt: &mut Vec<&'a std::backtrace::Backtrace>,
     #[cfg(feature = "spantrace")] st: &mut Vec<&'a tracing_error::SpanTrace>,
-) -> Vec<String> {
+) -> Option<Vec<String>> {
     // We allow `unused_mut` due to the fact that certain feature configurations will require
     // this to be mutable (backtrace and spantrace overwrite extend the lines)
     #[allow(unused_mut)]
@@ -97,17 +98,22 @@ fn frame<'a>(
             .collect(),
     };
 
+    // defer collection of backtrace and spantrace after all messages, so that they are always last.
     #[cfg(all(nightly, feature = "std"))]
     if let Some(backtrace) = backtrace(frame, bt) {
-        lines.push(backtrace);
+        defer.push(vec![backtrace]);
+
+        return None;
     }
 
     #[cfg(feature = "spantrace")]
     if let Some(spantrace) = spantrace(frame, st) {
-        lines.push(spantrace);
+        defer.push(vec![spantrace]);
+
+        return None;
     }
 
-    lines
+    Some(lines)
 }
 
 // we allow needless lifetime, as in some scenarios (where spantrace and backtrace are disabled)
@@ -142,23 +148,29 @@ fn frame_root<'a>(
     }
 
     let mut groups = vec![];
+    let mut defer = vec![];
 
     let mut opaque = 0;
     for child in plain {
         let content = frame(
             child,
+            &mut defer,
             #[cfg(all(nightly, feature = "std"))]
             bt,
             #[cfg(feature = "spantrace")]
             st,
         );
 
-        if content.is_empty() {
-            opaque += 1;
-        } else {
-            groups.push(content);
+        if let Some(lines) = content {
+            if lines.is_empty() {
+                opaque += 1;
+            } else {
+                groups.push(lines);
+            }
         }
     }
+
+    groups.append(&mut defer);
 
     match opaque {
         0 => {}
@@ -311,6 +323,8 @@ mod tests {
         // we cannot easily integration test the output here.
         // Especially with the backtraces and spantraces which can get very large.
         assert!(!report.to_string().is_empty());
+
+        println!("{}", report);
     }
 
     #[test]

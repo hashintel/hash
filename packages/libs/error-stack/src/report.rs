@@ -234,26 +234,21 @@ impl<C> Report<C> {
         #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
         drop(provider);
 
-        // We allow `unused_mut` due to the fact that certain feature configurations will require
-        // this to be mutable (backtrace and spantrace overwrite the source)
+        let frame = Frame::from_context(context, Location::caller(), Box::new([]));
         #[allow(unused_mut)]
-        let mut source: Box<[Frame]> = Box::new([]);
+        let mut this = Self::from_frame(frame);
 
         #[cfg(all(nightly, feature = "std"))]
         if let Some(backtrace) = backtrace {
-            let frame = Frame::from_attachment(backtrace, Location::caller(), source);
-            source = Box::new([frame]);
+            this = this.attach(backtrace);
         }
 
         #[cfg(all(nightly, feature = "spantrace"))]
         if let Some(span_trace) = span_trace {
-            let frame = Frame::from_attachment(span_trace, Location::caller(), source);
-            source = Box::new([frame]);
+            this = this.attach(span_trace);
         }
 
-        let frame = Frame::from_context(context, Location::caller(), source);
-
-        Self::from_frame(frame)
+        this
     }
 
     /// Add an existing [`Report`] as an additional source of this report.
