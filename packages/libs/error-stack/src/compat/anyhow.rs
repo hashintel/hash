@@ -45,7 +45,12 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
             Ok(t) => Ok(t),
             Err(anyhow) => {
                 #[allow(unused_mut)]
-                let mut source: Box<[Frame]> = Box::new([]);
+                let mut report =
+                    Report::from_frame(Frame::from_compat::<AnyhowError, AnyhowContext>(
+                        AnyhowContext(anyhow),
+                        Location::caller(),
+                        Box::new([]),
+                    ));
 
                 #[cfg(all(nightly, feature = "std"))]
                 if let Some(backtrace) = anyhow
@@ -53,18 +58,12 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     .all(|error| error.backtrace().is_none())
                     .then(Backtrace::capture)
                 {
-                    let frame = Frame::from_attachment(backtrace, Location::caller(), source);
-                    source = Box::new([frame]);
+                    report = report.attach(backtrace);
                 }
 
                 #[cfg(feature = "spantrace")]
                 {
-                    let frame = Frame::from_attachment(
-                        tracing_error::SpanTrace::capture(),
-                        Location::caller(),
-                        source,
-                    );
-                    source = Box::new([frame]);
+                    report = report.attach(tracing_error::SpanTrace::capture());
                 }
 
                 #[cfg(feature = "std")]
@@ -73,14 +72,6 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     .skip(1)
                     .map(ToString::to_string)
                     .collect::<Vec<_>>();
-
-                #[cfg_attr(not(feature = "std"), allow(unused_mut))]
-                let mut report =
-                    Report::from_frame(Frame::from_compat::<AnyhowError, AnyhowContext>(
-                        AnyhowContext(anyhow),
-                        Location::caller(),
-                        source,
-                    ));
 
                 #[cfg(feature = "std")]
                 for source in sources {

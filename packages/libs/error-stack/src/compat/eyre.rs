@@ -44,8 +44,11 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
         match self {
             Ok(t) => Ok(t),
             Err(eyre) => {
-                #[allow(unused_mut)]
-                let mut source: Box<[Frame]> = Box::new([]);
+                let mut report = Report::from_frame(Frame::from_compat::<EyreReport, EyreContext>(
+                    EyreContext(eyre),
+                    Location::caller(),
+                    Box::new([]),
+                ));
 
                 #[cfg(all(nightly, feature = "std"))]
                 if let Some(backtrace) = eyre
@@ -53,18 +56,12 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .all(|error| error.backtrace().is_none())
                     .then(Backtrace::capture)
                 {
-                    let frame = Frame::from_attachment(backtrace, Location::caller(), source);
-                    source = Box::new([frame]);
+                    report = report.attach(backtrace);
                 }
 
                 #[cfg(feature = "spantrace")]
                 {
-                    let frame = Frame::from_attachment(
-                        tracing_error::SpanTrace::capture(),
-                        Location::caller(),
-                        source,
-                    );
-                    source = Box::new([frame]);
+                    report = report.attach(tracing_error::SpanTrace::capture());
                 }
 
                 let sources = eyre
@@ -72,12 +69,6 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .skip(1)
                     .map(alloc::string::ToString::to_string)
                     .collect::<alloc::vec::Vec<_>>();
-
-                let mut report = Report::from_frame(Frame::from_compat::<EyreReport, EyreContext>(
-                    EyreContext(eyre),
-                    Location::caller(),
-                    source,
-                ));
 
                 for source in sources {
                     report = report.attach_printable(source);
