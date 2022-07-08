@@ -27,7 +27,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
     ]
 }
 
-pub fn web_api_with_datastore<T: Datastore>(datastore: T) -> Router {
+pub fn rest_api_router<T: Datastore>(datastore: T) -> Router {
     // All api reosuces are merged together into a super-router.
     let merged_routes = api_resources::<T>()
         .into_iter()
@@ -62,7 +62,7 @@ struct MergeAddon;
 
 impl Modify for MergeAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-        let api_documentation: Vec<_> = api_documentation();
+        let api_documentation = api_documentation();
 
         let api_components = api_documentation
             .iter()
