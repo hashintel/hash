@@ -61,6 +61,7 @@ fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -
 // we allow needless lifetime, as in some scenarios (where spantrace and backtrace are disabled)
 // the lifetime is needless, but rewriting for that case would decrease readability.
 #[allow(clippy::needless_lifetimes)]
+#[allow(unused_variables)]
 fn frame<'a>(
     frame: &'a Frame,
     defer: &mut Vec<Vec<String>>,
@@ -309,8 +310,6 @@ mod tests {
         // we cannot easily integration test the output here.
         // Especially with the backtraces and spantraces which can get very large.
         assert!(!report.to_string().is_empty());
-
-        println!("{}", report);
     }
 
     #[test]

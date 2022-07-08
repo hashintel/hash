@@ -2,7 +2,12 @@ pub use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::{fmt, fmt::Formatter};
+#[allow(unused_imports)]
+use core::{
+    fmt,
+    fmt::Formatter,
+    sync::atomic::{AtomicBool, AtomicI8, AtomicU8, Ordering},
+};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
@@ -50,34 +55,85 @@ pub fn messages<E>(report: &Report<E>) -> Vec<String> {
         .collect()
 }
 
+#[cfg(all(nightly, feature = "std"))]
+fn supports_backtrace() -> bool {
+    // we need to track 3 states:
+    //  1) -1 (not checked)
+    //  2) 0 (disabled)
+    //  3) 1 (enabled)
+    static STATE: AtomicI8 = AtomicI8::new(-1);
+
+    match STATE.load(Ordering::SeqCst) {
+        -1 => {
+            let bt = std::backtrace::Backtrace::capture();
+            if bt.status() == std::backtrace::BacktraceStatus::Captured {
+                STATE.store(1, Ordering::SeqCst);
+            } else {
+                STATE.store(0, Ordering::SeqCst);
+            }
+
+            supports_backtrace()
+        }
+        0 => false,
+        1 => true,
+        _ => unreachable!(),
+    }
+}
+
+#[cfg(feature = "spantrace")]
+fn supports_spantrace() -> bool {
+    static STATE: AtomicI8 = AtomicI8::new(-1);
+
+    match STATE.load(Ordering::SeqCst) {
+        -1 => {
+            let st = tracing_error::SpanTrace::capture();
+            if st.status() == tracing_error::SpanTraceStatus::CAPTURED {
+                STATE.store(1, Ordering::SeqCst);
+            } else {
+                STATE.store(0, Ordering::SeqCst);
+            }
+
+            supports_spantrace()
+        }
+        0 => false,
+        1 => true,
+        _ => unreachable!(),
+    }
+}
+
 /// Conditionally add two opaque layers to the end,
 /// as these catch the backtrace and spantrace if recorded.
 pub fn expect_messages<'a>(messages: &[&'a str]) -> Vec<&'a str> {
     #[allow(unused_mut)]
     let mut messages = alloc::vec::Vec::from(messages);
+    // the last entry should always be `Context`, `Backtrace` and `Spantrace`
+    // are both added after the `Context` therefore we need to push those layers, then `Context`
+    let last = messages.pop().unwrap();
 
     #[cfg(all(nightly, feature = "std"))]
-    {
-        messages.push("Opaque");
-    }
-    #[cfg(feature = "spantrace")]
-    {
+    if supports_backtrace() {
         messages.push("Opaque");
     }
 
+    #[cfg(feature = "spantrace")]
+    if supports_spantrace() {
+        messages.push("Opaque");
+    }
+
+    messages.push(last);
     messages
 }
 
 /// Conditionally add two new frames to the count, as these are backtrace and spantrace.
 #[allow(unused_mut)]
-pub const fn expect_count(mut count: usize) -> usize {
+pub fn expect_count(mut count: usize) -> usize {
     #[cfg(all(nightly, feature = "std"))]
-    {
+    if supports_backtrace() {
         count += 1;
     }
 
     #[cfg(feature = "spantrace")]
-    {
+    if supports_spantrace() {
         count += 1;
     }
 

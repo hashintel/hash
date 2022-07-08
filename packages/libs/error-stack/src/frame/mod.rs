@@ -294,7 +294,6 @@ mod tests {
             kinds_a.next(),
             Some(FrameKind::Attachment(AttachmentKind::Printable(_)))
         ));
-        assert!(matches!(kinds_a.next(), Some(FrameKind::Context(_))));
 
         #[cfg(all(nightly, feature = "std"))]
         {
@@ -311,6 +310,8 @@ mod tests {
                 Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
             ));
         }
+
+        assert!(matches!(kinds_a.next(), Some(FrameKind::Context(_))));
 
         assert_eq!(
             messages(&report),
