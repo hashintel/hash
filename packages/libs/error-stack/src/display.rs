@@ -31,10 +31,7 @@ const ENTRY_END: &str = "\\-> ";
 const SPACE: &str = "    ";
 
 #[cfg(all(nightly, feature = "std"))]
-fn render_backtrace<'a>(
-    frame: &'a Frame,
-    bt: &mut Vec<&'a std::backtrace::Backtrace>,
-) -> Option<String> {
+fn backtrace<'a>(frame: &'a Frame, bt: &mut Vec<&'a std::backtrace::Backtrace>) -> Option<String> {
     if let Some(backtrace) = frame.request_ref::<std::backtrace::Backtrace>() {
         if matches!(
             backtrace.status(),
@@ -57,10 +54,7 @@ fn render_backtrace<'a>(
 }
 
 #[cfg(feature = "spantrace")]
-fn render_spantrace<'a>(
-    frame: &'a Frame,
-    st: &mut Vec<&'a tracing_error::SpanTrace>,
-) -> Option<String> {
+fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -> Option<String> {
     if let Some(span_trace) = frame.request_ref::<tracing_error::SpanTrace>() {
         if span_trace.status() == tracing_error::SpanTraceStatus::EMPTY
             || span_trace.status() == tracing_error::SpanTraceStatus::UNSUPPORTED
@@ -82,11 +76,14 @@ fn render_spantrace<'a>(
     }
 }
 
-fn render_frame<'a>(
+fn frame<'a>(
     frame: &'a Frame,
     #[cfg(all(nightly, feature = "std"))] bt: &mut Vec<&'a std::backtrace::Backtrace>,
     #[cfg(feature = "spantrace")] st: &mut Vec<&'a tracing_error::SpanTrace>,
 ) -> Vec<String> {
+    // We allow `unused_mut` due to the fact that certain feature configurations will require
+    // this to be mutable (backtrace and spantrace overwrite extend the lines)
+    #[allow(unused_mut)]
     let mut lines = match frame.kind() {
         FrameKind::Context(context) => context
             .to_string()
@@ -102,32 +99,33 @@ fn render_frame<'a>(
     };
 
     #[cfg(all(nightly, feature = "std"))]
-    if let Some(backtrace) = render_backtrace(frame, bt) {
+    if let Some(backtrace) = backtrace(frame, bt) {
         lines.push(backtrace);
     }
 
     #[cfg(feature = "spantrace")]
-    if let Some(spantrace) = render_spantrace(frame, st) {
+    if let Some(spantrace) = spantrace(frame, st) {
         lines.push(spantrace);
     }
 
     lines
 }
 
-fn display_frame<'a>(
-    frame: &'a Frame,
+fn frame_root<'a>(
+    root: &'a Frame,
     #[cfg(all(nightly, feature = "std"))] bt: &mut Vec<&'a std::backtrace::Backtrace>,
     #[cfg(feature = "spantrace")] st: &mut Vec<&'a tracing_error::SpanTrace>,
 ) -> Vec<String> {
-    let mut plain = vec![frame];
+    let mut plain = vec![root];
 
     let next;
-    let mut ptr = frame;
+    let mut ptr = root;
 
+    // find all the frames that are part of this stack,
+    // meaning collect them until we hit the end or a group of multiple frames.
     loop {
         let sources = ptr.sources();
 
-        // optimize this loop
         next = match sources {
             [] => None,
             [child] => {
@@ -143,9 +141,9 @@ fn display_frame<'a>(
 
     let mut groups = vec![];
 
+    let mut opaque = 0;
     for child in plain {
-        // normal children are just plainly indented and then added
-        let content = render_frame(
+        let content = frame(
             child,
             #[cfg(all(nightly, feature = "std"))]
             bt,
@@ -153,17 +151,22 @@ fn display_frame<'a>(
             st,
         );
 
-        if !content.is_empty() {
+        if content.is_empty() {
+            opaque += 1;
+        } else {
             groups.push(content);
         }
     }
 
-    // we have a group, indentation for those are a bit different,
-    // for every item in the group the line either receives a: `|->` or `\->`
-    // the last group item is only indented with a space, rather than a `|`.
+    if opaque == 1 {
+        groups.push(vec!["1 additional attachment".to_owned()]);
+    } else if opaque > 1 {
+        groups.push(vec![format!("{opaque} additional attachments")]);
+    }
+
     if let Some(group) = next {
         for child in group {
-            let content = display_frame(
+            let content = frame_root(
                 child,
                 #[cfg(all(nightly, feature = "std"))]
                 bt,
@@ -177,6 +180,9 @@ fn display_frame<'a>(
         }
     }
 
+    // The first item is always the title,
+    // after that every group gets one of the following indents: `|->`, or `\->`
+    // if it is the last one.
     let total = groups.len();
     groups
         .into_iter()
@@ -207,7 +213,7 @@ fn display_frame<'a>(
         .collect()
 }
 
-pub(crate) fn display_report<C>(report: &Report<C>) -> String {
+pub(crate) fn report<C>(report: &Report<C>) -> String {
     #[cfg(all(nightly, feature = "std"))]
     let mut bt = Vec::new();
     #[cfg(feature = "spantrace")]
@@ -215,7 +221,7 @@ pub(crate) fn display_report<C>(report: &Report<C>) -> String {
 
     let mut lines = vec![];
     for frame in report.sources() {
-        let display = display_frame(
+        let display = frame_root(
             frame,
             #[cfg(all(nightly, feature = "std"))]
             &mut bt,
@@ -256,17 +262,31 @@ pub(crate) fn display_report<C>(report: &Report<C>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::{IntoReport, Report, ResultExt};
+    use alloc::string::ToString;
+    use core::fmt::{Display, Formatter};
+
+    use crate::{Context, Report};
+
+    #[derive(Debug)]
+    struct ConfigError;
+
+    impl Display for ConfigError {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+            f.write_str("Configuration Error")
+        }
+    }
+
+    impl Context for ConfigError {}
 
     #[test]
     fn nested() {
-        let err1 = std::fs::read_to_string("config.txt").unwrap_err();
-        let err2 = std::fs::read_to_string("config2.txt").unwrap_err();
-        let err3 = std::fs::read_to_string("config3.txt").unwrap_err();
-        let err4 = std::fs::read_to_string("config4.txt").unwrap_err();
+        let err1 = ConfigError;
+        let err2 = ConfigError;
+        let err3 = ConfigError;
+        let err4 = ConfigError;
 
-        let err5 = std::fs::read_to_string("config4.txt").unwrap_err();
-        let err6 = std::fs::read_to_string("config4.txt").unwrap_err();
+        let err5 = ConfigError;
+        let err6 = ConfigError;
 
         let mut report = Report::new(err1);
         let err2 = Report::new(err2).change_context(err3);
@@ -282,46 +302,32 @@ mod tests {
         report.add_source(err2);
         report.add_source(err3);
 
-        println!("{}", report);
+        // due to the fact that we have 48 different configuration options,
+        // and in total ~8 different configurations and outputs
+        // we cannot easily integration test the output here.
+        // Especially with the backtraces and spantraces which can get very large.
+        assert!(report.to_string().len() > 0)
     }
 
     #[test]
     fn single() {
-        let report = std::fs::read_to_string("config.txt")
-            .into_report()
+        let report = Report::new(ConfigError)
             .attach_printable("Level 1")
             .attach_printable("Level 2")
-            .change_context(std::fs::read_to_string("config.txt").unwrap_err())
-            .attach_printable("Level 3")
-            .unwrap_err();
+            .change_context(ConfigError)
+            .attach_printable("Level 3");
 
-        println!("{}", report);
+        assert!(report.to_string().len() > 0)
     }
 
     #[test]
     fn multiple_source() {
-        let mut report = std::fs::read_to_string("config.txt")
-            .into_report()
-            .unwrap_err();
+        let mut report = Report::new(ConfigError);
 
-        report.add_source(
-            std::fs::read_to_string("config2.txt")
-                .into_report()
-                .unwrap_err(),
-        );
+        report.add_source(Report::new(ConfigError));
+        report.add_source(Report::new(ConfigError));
+        report.add_source(Report::new(ConfigError));
 
-        report.add_source(
-            std::fs::read_to_string("config3.txt")
-                .into_report()
-                .unwrap_err(),
-        );
-
-        report.add_source(
-            std::fs::read_to_string("config4.txt")
-                .into_report()
-                .unwrap_err(),
-        );
-
-        println!("{}", report);
+        assert!(report.to_string().len() > 0)
     }
 }

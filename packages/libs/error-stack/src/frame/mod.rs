@@ -281,6 +281,49 @@ mod tests {
         ));
         assert!(matches!(kinds_a[5], FrameKind::Context(_)));
 
+        #[cfg(all(nightly, feature = "std", not(feature = "spantrace")))]
+        {
+            assert!(matches!(
+                kinds_a[6],
+                FrameKind::Attachment(AttachmentKind::Opaque(_))
+            ));
+
+            assert_eq!(messages(&report), [
+                "B2",
+                "Opaque",
+                "Context B",
+                "A2",
+                "A1",
+                "Context A",
+                "Opaque"
+            ]);
+        }
+
+        #[cfg(all(nightly, feature = "std", feature = "spantrace"))]
+        {
+            assert!(matches!(
+                kinds_a[6],
+                FrameKind::Attachment(AttachmentKind::Opaque(_))
+            ));
+
+            assert!(matches!(
+                kinds_a[7],
+                FrameKind::Attachment(AttachmentKind::Opaque(_))
+            ));
+
+            assert_eq!(messages(&report), [
+                "B2",
+                "Opaque",
+                "Context B",
+                "A2",
+                "A1",
+                "Context A",
+                "Opaque",
+                "Opaque"
+            ]);
+        }
+
+        #[cfg(not(nightly))]
         assert_eq!(messages(&report), [
             "B2",
             "Opaque",

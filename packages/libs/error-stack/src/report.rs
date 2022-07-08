@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
@@ -13,7 +13,7 @@ use crate::context::temporary_provider;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
-    display::display_report,
+    display::report,
     iter::{Frames, FramesMut},
     AttachmentKind, Context, Frame, FrameKind,
 };
@@ -211,6 +211,9 @@ impl<C> Report<C> {
         #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
         drop(provider);
 
+        // We allow `unused_mut` due to the fact that certain feature configurations will require
+        // this to be mutable (backtrace and spantrace overwrite the source)
+        #[allow(unused_mut)]
         let mut source: Box<[Frame]> = Box::new([]);
 
         #[cfg(all(nightly, feature = "std"))]
@@ -236,16 +239,46 @@ impl<C> Report<C> {
     /// then this merges both.
     ///
     /// ```rust
-    /// use std::fs;
+    /// use std::{
+    ///     fmt::{Display, Formatter},
+    ///     path::Path,
+    /// };
     ///
-    /// use error_stack::IntoReport;
+    /// use error_stack::{Context, Report};
     ///
-    /// let mut error1 = fs::read_to_string("config.txt").into_report();
-    /// let mut error2 = fs::read_to_string("config2.txt").into_report();
-    /// let mut error3 = fs::read_to_string("config3.txt").into_report();
+    /// #[derive(Debug)]
+    /// struct IoError;
     ///
-    /// let error1 = error1.add_source(error2);
-    /// let error3 = error3.add_source(error1);
+    /// impl Display for IoError {
+    ///     # fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    ///     #     f.write_str("Io Error")
+    ///     # }
+    /// }
+    ///
+    /// # impl Context for IoError {}
+    ///
+    /// # #[allow(unused_variables)]
+    /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<IoError>> {
+    ///     # #[cfg(any(miri, not(feature = "std")))]
+    ///     # return Err(error_stack::report!(IoError).attach_printable("Not supported"));
+    ///     # #[cfg(all(not(miri), feature = "std"))]
+    ///     std::fs::read_to_string(path.as_ref())
+    ///         .into_report()
+    ///         .change_context(IoError)
+    /// }
+    ///
+    /// let mut error1 = read_config("config.txt").unwrap_err();
+    /// let error2 = read_config("config2.txt").unwrap_err();
+    /// let mut error3 = read_config("config3.txt").unwrap_err();
+    ///
+    /// error1.add_source(error2);
+    /// error3.add_source(error1);
+    ///
+    /// # assert_eq!(error3.sources().len(), 3);
+    /// # #[cfg(all(nightly, feature = "std"))]
+    /// # assert_eq!(error3.frames().count(), 9);
+    /// # #[cfg(not(feature = "std"))]
+    /// # assert_eq!(error3.frames().count(), 6);
     ///
     /// // ^ This is equivalent to:
     /// // error3.add_source(error1);
@@ -253,9 +286,8 @@ impl<C> Report<C> {
     /// ```
     ///
     /// [`add_source()`]: Self::add_source
-    pub fn add_source<T>(mut self, mut report: Report<T>) -> Self {
+    pub fn add_source<T>(&mut self, mut report: Report<T>) {
         self.frames.append(&mut report.frames);
-        self
     }
 
     /// Adds additional information to the [`Frame`] stack.
@@ -538,7 +570,7 @@ impl<Context> fmt::Display for Report<Context> {
             return display_hook(self.generalized(), fmt);
         }
 
-        fmt.write_str(&display_report(self))?;
+        fmt.write_str(&report(self))?;
 
         Ok(())
     }
