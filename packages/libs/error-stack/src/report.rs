@@ -1,4 +1,6 @@
-use alloc::{boxed::Box, vec, vec::Vec};
+#[cfg(not(feature = "small"))]
+use alloc::vec;
+use alloc::{boxed::Box, vec::Vec};
 use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};

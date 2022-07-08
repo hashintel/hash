@@ -107,7 +107,7 @@ impl Frame {
     where
         T: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self::from_unerased(compat, location, None, VTable::new_compat::<T, C>())
+        Self::from_unerased(compat, location, Box::new([]), VTable::new_compat::<T, C>())
     }
 
     fn vtable(&self) -> &'static VTable {

@@ -278,6 +278,7 @@ impl_lazy_iterator_adaptor! {
 /// Just tests that some simple uses of `IteratorExt` (and related types) works.
 mod test_simple_compiles {
     use super::*;
+    #[allow(clippy::wildcard_imports)]
     use crate::test_helper::*;
 
     #[derive(Debug)]

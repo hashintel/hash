@@ -3,13 +3,9 @@
 //!
 //! This is inspired by [miette](https://docs.rs/miette/latest/miette/index.html)
 
-use alloc::{
-    borrow::ToOwned,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+#[cfg(not(feature = "std"))]
+use alloc::string::ToString;
+use alloc::{borrow::ToOwned, format, string::String, vec, vec::Vec};
 
 use crate::{AttachmentKind, Frame, FrameKind, Report};
 
@@ -76,6 +72,9 @@ fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -
     }
 }
 
+// we allow needless lifetime, as in some scenarios (where spantrace and backtrace are disabled)
+// the lifetime is needless, but rewriting for that case would decrease readability.
+#[allow(clippy::needless_lifetimes)]
 fn frame<'a>(
     frame: &'a Frame,
     #[cfg(all(nightly, feature = "std"))] bt: &mut Vec<&'a std::backtrace::Backtrace>,
@@ -111,6 +110,9 @@ fn frame<'a>(
     lines
 }
 
+// we allow needless lifetime, as in some scenarios (where spantrace and backtrace are disabled)
+// the lifetime is needless, but rewriting for that case would decrease readability.
+#[allow(clippy::needless_lifetimes)]
 fn frame_root<'a>(
     root: &'a Frame,
     #[cfg(all(nightly, feature = "std"))] bt: &mut Vec<&'a std::backtrace::Backtrace>,
@@ -241,7 +243,7 @@ pub fn report<C>(report: &Report<C>) -> String {
 
         for (pos, backtrace) in bt.into_iter().enumerate() {
             lines.push(format!("Backtrace No. {pos}"));
-            lines.extend(backtrace.to_string().split('\n').map(ToOwned::to_owned))
+            lines.extend(backtrace.to_string().split('\n').map(ToOwned::to_owned));
         }
     }
 
@@ -251,7 +253,7 @@ pub fn report<C>(report: &Report<C>) -> String {
 
         for (pos, span_trace) in st.into_iter().enumerate() {
             lines.push(format!("Spantrace No. {pos}"));
-            lines.extend(span_trace.to_string().split('\n').map(ToOwned::to_owned))
+            lines.extend(span_trace.to_string().split('\n').map(ToOwned::to_owned));
         }
     }
 

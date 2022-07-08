@@ -298,7 +298,7 @@ impl_stream_adaptor_lazy! {
 
 #[cfg(test)]
 mod simple_functionality_tests {
-    use alloc::{string::ToString, vec};
+    use alloc::vec;
 
     use super::*;
 
@@ -317,6 +317,7 @@ mod simple_functionality_tests {
     fn can_attach_to_stream() {
         use futures::{executor::block_on, StreamExt};
 
+        #[allow(clippy::wildcard_imports)]
         use crate::test_helper::*;
 
         block_on(async {
