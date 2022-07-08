@@ -231,7 +231,6 @@
 //!              at main.rs:7:10
 //! ```
 //!
-//!
 //! The `Suggestion` passed to [`attach`] shown as an opaque attachment. The message passed to
 //! [`attach_printable`] however is printed next to the [`Context`] where it was attached to.
 //!
