@@ -47,8 +47,10 @@ impl<V, const MIN: usize> Object<V, MIN> {
     ///
     /// # Errors
     ///
-    /// - [`ValidationError::PropertyRequired`] if a required property is not a key in `properties`.
-    /// - [`ValidationError::PropertyMissing`] if the number properties is less than `MIN`.
+    /// - [`ValidationError::MissingRequiredProperty`] if a required property is not a key in
+    ///   `properties`.
+    /// - [`ValidationError::MismatchedPropertyCount`] if the number of properties is less than
+    ///   `MIN`.
     pub fn new(
         properties: impl Into<HashMap<Uri, V>>,
         required: impl Into<Vec<Uri>>,
