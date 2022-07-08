@@ -57,7 +57,7 @@ impl<T> OneOf<T> {
 
     fn validate(&self) -> Result<(), ValidationError> {
         if self.one_of().is_empty() {
-            return Err(ValidationError::OneOfEmpty);
+            return Err(ValidationError::EmptyOneOf);
         }
         Ok(())
     }

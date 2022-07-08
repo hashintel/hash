@@ -61,11 +61,14 @@ impl<V, const MIN: usize> Object<V, MIN> {
     fn validate(&self) -> Result<(), ValidationError> {
         let num_properties = self.properties().len();
         if num_properties < MIN {
-            return Err(ValidationError::PropertyMissing(MIN, num_properties));
+            return Err(ValidationError::MismatchedPropertyCount {
+                actual: num_properties,
+                expected: MIN,
+            });
         }
         for uri in self.required() {
             if !self.properties().contains_key(uri) {
-                return Err(ValidationError::PropertyRequired(uri.clone()));
+                return Err(ValidationError::MissingRequiredProperty(uri.clone()));
             }
         }
         Ok(())
