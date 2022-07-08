@@ -242,7 +242,7 @@ pub fn report<C>(report: &Report<C>) -> String {
         lines.extend(vec!["".to_owned(); 2]);
 
         for (pos, backtrace) in bt.into_iter().enumerate() {
-            lines.push(format!("Backtrace No. {pos}"));
+            lines.push(format!("Backtrace No. {}", pos + 1));
             lines.extend(backtrace.to_string().split('\n').map(ToOwned::to_owned));
         }
     }
@@ -252,7 +252,7 @@ pub fn report<C>(report: &Report<C>) -> String {
         lines.extend(vec!["".to_owned(); 2]);
 
         for (pos, span_trace) in st.into_iter().enumerate() {
-            lines.push(format!("Spantrace No. {pos}"));
+            lines.push(format!("Spantrace No. {}", pos + 1));
             lines.extend(span_trace.to_string().split('\n').map(ToOwned::to_owned));
         }
     }
