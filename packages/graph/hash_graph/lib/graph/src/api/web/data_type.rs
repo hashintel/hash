@@ -11,12 +11,9 @@ use serde::{Deserialize, Serialize};
 use utoipa::{Component, OpenApi};
 use uuid::Uuid;
 
-use super::{
-    api_resource::RoutedResource,
-    error::{modify_report_to_status_code, query_report_to_status_code},
-};
+use super::api_resource::RoutedResource;
 use crate::{
-    datastore::Datastore,
+    datastore::{BaseIdAlreadyExists, BaseIdDoesNotExist, Datastore, QueryError},
     types::{schema::DataType, AccountId, BaseId, Qualified, QualifiedDataType, VersionId},
 };
 
@@ -78,7 +75,14 @@ async fn create_data_type<D: Datastore>(
         .clone()
         .create_data_type(body.schema, body.account_id)
         .await
-        .map_err(modify_report_to_status_code)
+        .map_err(|report| {
+            if report.contains::<BaseIdAlreadyExists>() {
+                return StatusCode::CONFLICT;
+            }
+
+            // Insertion/upddate errors are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
         .map(Json)
 }
 
@@ -104,7 +108,14 @@ async fn get_data_type<D: Datastore>(
     datastore
         .get_data_type(VersionId::new(version_id))
         .await
-        .map_err(query_report_to_status_code)
+        .map_err(|report| {
+            if report.contains::<QueryError>() {
+                return StatusCode::NOT_FOUND;
+            }
+
+            // Datastore errors such as connection failure are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
         .map(Json)
 }
 
@@ -140,6 +151,13 @@ async fn update_data_type<D: Datastore>(
         .clone()
         .update_data_type(body.schema, body.created_by)
         .await
-        .map_err(modify_report_to_status_code)
+        .map_err(|report| {
+            if report.contains::<BaseIdDoesNotExist>() {
+                return StatusCode::NOT_FOUND;
+            }
+
+            // Insertion/upddate errors are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
         .map(Json)
 }

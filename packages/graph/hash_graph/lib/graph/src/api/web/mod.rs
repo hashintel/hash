@@ -5,7 +5,6 @@
 
 mod api_resource;
 mod data_type;
-mod error;
 mod property_type;
 
 use axum::{routing::get, Extension, Json, Router};
