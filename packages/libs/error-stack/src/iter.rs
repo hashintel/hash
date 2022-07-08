@@ -46,8 +46,6 @@ fn next<T: Iterator<Item = U>, U>(iter: &mut Vec<T>) -> Option<U> {
 /// 3  4  5  7
 /// ```
 ///
-/// TODO: our current implementation is unsound!
-///
 ///
 /// Use [`Report::frames()`] to create this iterator.
 #[must_use]
@@ -88,9 +86,9 @@ impl<'r> Iterator for Frames<'r> {
     /// 4) Out: D Stack: [G] [C] [E]
     /// 4) Out: E Stack: [G] [C]
     /// 5) Out: C Stack: [G] [F]
-    /// 6) Out: F Stack: [G] [H]
-    /// 7) Out: H Stack: [H]
-    /// 8) Out: G Stack: -
+    /// 6) Out: F Stack: [G]
+    /// 7) Out: G Stack: [H]
+    /// 8) Out: H Stack: -
     /// ```
     fn next(&mut self) -> Option<Self::Item> {
         // this delays the conversion from slice to Vec, we cannot do this in new, due to the fact
@@ -298,7 +296,7 @@ mod tests {
 
         for (frame, &letter) in zip(
             report.frames(),
-            ['A', 'B', 'D', 'E', 'C', 'F', 'H', 'G'].iter(),
+            ['A', 'B', 'D', 'E', 'C', 'F', 'G', 'H'].iter(),
         ) {
             let lhs = *frame.downcast_ref::<char>().unwrap();
 
@@ -312,7 +310,7 @@ mod tests {
 
         for (frame, &letter) in zip(
             report.frames_mut(),
-            ['A', 'B', 'D', 'E', 'C', 'F', 'H', 'G'].iter(),
+            ['A', 'B', 'D', 'E', 'C', 'F', 'G', 'H'].iter(),
         ) {
             let lhs = *frame.downcast_ref::<char>().unwrap();
 

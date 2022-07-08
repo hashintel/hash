@@ -243,7 +243,7 @@
 //! [`Report`] supports the combination and propagation of multiple errors natively.
 //! This is useful in cases like parallel processing where multiple errors might happen
 //! independently from each other, in these use-cases you are able to use the implementations of
-//! [`Extend`] and [`add_source()`] and are able to propagate all errors instead of just a single
+//! [`Extend`] and [`extend_one()`] and are able to propagate all errors instead of just a single
 //! one.
 //!
 //! [`Extend`]: std::iter::Extend

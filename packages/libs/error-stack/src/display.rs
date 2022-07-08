@@ -295,15 +295,15 @@ mod tests {
         let err2 = Report::new(err2).change_context(err3);
         let mut err3 = Report::new(err4);
 
-        err3.add_source(Report::new(err5));
-        err3.add_source(Report::new(err6));
+        err3.extend_one(Report::new(err5));
+        err3.extend_one(Report::new(err6));
 
         let err3 = err3
             .attach_printable("Example")
             .attach_printable("Example 2");
 
-        report.add_source(err2);
-        report.add_source(err3);
+        report.extend_one(err2);
+        report.extend_one(err3);
 
         // due to the fact that we have 48 different configuration options,
         // and in total ~8 different configurations and outputs
@@ -327,9 +327,9 @@ mod tests {
     fn multiple_source() {
         let mut report = Report::new(ConfigError);
 
-        report.add_source(Report::new(ConfigError));
-        report.add_source(Report::new(ConfigError));
-        report.add_source(Report::new(ConfigError));
+        report.extend_one(Report::new(ConfigError));
+        report.extend_one(Report::new(ConfigError));
+        report.extend_one(Report::new(ConfigError));
 
         assert!(!report.to_string().is_empty());
     }

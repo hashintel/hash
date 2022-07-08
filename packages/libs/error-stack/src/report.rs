@@ -34,7 +34,7 @@ use crate::{
 /// ## Multiple Errors
 ///
 /// `Report` is able to represent multiple errors that have occurred.
-/// Errors can be combined using the [`add_source()`],
+/// Errors can be combined using the [`extend_one()`],
 /// which will add the [`Frame`] stack of the other error as an additional source to the current
 /// report.
 ///
@@ -51,7 +51,7 @@ use crate::{
 /// [`provide`]: core::any::Provider::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
-/// [`add_source()`]: Self::add_source
+/// [`extend_one()`]: Self::extend_one
 /// [`new()`]: Self::new
 /// [`frames()`]: Self::frames
 /// [`change_context()`]: Self::change_context
@@ -255,7 +255,7 @@ impl<C> Report<C> {
 
     /// Add an existing [`Report`] as an additional source of this report.
     ///
-    /// Should report consist of multiple frames ([`add_source()`] was called on it before),
+    /// Should report consist of multiple frames ([`extend_one()`] was called on it before),
     /// then this merges both.
     ///
     /// ```rust
@@ -296,8 +296,8 @@ impl<C> Report<C> {
     /// let error2 = read_config("config2.txt").unwrap_err();
     /// let mut error3 = read_config("config3.txt").unwrap_err();
     ///
-    /// error1.add_source(error2);
-    /// error3.add_source(error1);
+    /// error1.extend_one(error2);
+    /// error3.extend_one(error1);
     ///
     /// # #[allow(unused_mut)]
     /// # let mut count = 6;
@@ -312,12 +312,12 @@ impl<C> Report<C> {
     /// # assert_eq!(error3.frames().count(), count);
     ///
     /// // ^ This is equivalent to:
-    /// // error3.add_source(error1);
-    /// // error3.add_source(error2);
+    /// // error3.extend_one(error1);
+    /// // error3.extend_one(error2);
     /// ```
     ///
-    /// [`add_source()`]: Self::add_source
-    pub fn add_source<T>(&mut self, mut report: Report<T>) {
+    /// [`extend_one()`]: Self::extend_one
+    pub fn extend_one<T>(&mut self, mut report: Report<T>) {
         self.frames.append(&mut report.frames);
     }
 
@@ -701,7 +701,7 @@ impl<Context> FromIterator<Report<Context>> for Option<Report<Context>> {
 
         let mut base = iter.next()?;
         for rest in iter {
-            base.add_source(rest);
+            base.extend_one(rest);
         }
 
         Some(base)
@@ -711,7 +711,7 @@ impl<Context> FromIterator<Report<Context>> for Option<Report<Context>> {
 impl<Context> Extend<Self> for Report<Context> {
     fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
         for item in iter {
-            self.add_source(item);
+            self.extend_one(item);
         }
     }
 }
