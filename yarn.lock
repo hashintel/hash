@@ -16104,10 +16104,10 @@ remark-mdx-disable-explicit-jsx@0.1.0:
     unified "^10.1.1"
     unist-util-visit "^4.1.0"
 
-remark-mdx@2.1.1, remark-mdx@^2.0.0:
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/remark-mdx/-/remark-mdx-2.1.1.tgz#14021be9ecbc9ad0310f4240980221328aa7ed55"
-  integrity sha512-0wXdEITnFyjLquN3VvACNLzbGzWM5ujzTvfgOkONBZgSFJ7ezLLDaTWqf6H9eUgVITEP8asp6LJ0W/X090dXBg==
+remark-mdx@2.1.2, remark-mdx@^2.0.0:
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/remark-mdx/-/remark-mdx-2.1.2.tgz#eea2784fa5697e14f6e0686700077986b88b8078"
+  integrity sha512-npQagPdczPAv0xN9F8GSi5hJfAe/z6nBjylyfOfjLOmz086ahWrIjlk4BulRfNhA+asutqWxyuT3DFVsxiTVHA==
   dependencies:
     mdast-util-mdx "^2.0.0"
     micromark-extension-mdxjs "^1.0.0"
