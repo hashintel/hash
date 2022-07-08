@@ -98,6 +98,18 @@ impl Frame {
         )
     }
 
+    /// Crates a frame from [`anyhow::Error`].
+    #[cfg(any(feature = "anyhow", feature = "eyre"))]
+    pub(crate) fn from_compat<T, C: Context>(
+        compat: C,
+        location: &'static Location<'static>,
+    ) -> Self
+    where
+        T: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        Self::from_unerased(compat, location, None, VTable::new_compat::<T, C>())
+    }
+
     fn vtable(&self) -> &'static VTable {
         // SAFETY: Use vtable to attach the frames' native vtable for the right original type.
         unsafe { self.erased_frame.as_ref().vtable() }

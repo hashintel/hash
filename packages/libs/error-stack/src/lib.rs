@@ -357,6 +357,8 @@
 //!  `hooks`   |Enables the usage of [`set_display_hook`] and [`set_debug_hook`]| `std`   | disabled
 //! `spantrace`| Enables the capturing of [`SpanTrace`]s                        |         | disabled
 //!  `futures` | Provides a [`FutureExt`] adaptor                               |         | disabled
+//!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
+//!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
 //!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
@@ -383,6 +385,7 @@
 
 extern crate alloc;
 
+pub(crate) mod compat;
 mod frame;
 pub mod iter;
 mod macros;
@@ -395,6 +398,8 @@ mod hook;
 #[cfg(test)]
 pub(crate) mod test_helper;
 
+#[cfg(any(feature = "anyhow", feature = "eyre"))]
+pub use self::compat::IntoReportCompat;
 #[doc(inline)]
 pub use self::ext::*;
 #[cfg(feature = "hooks")]
