@@ -11,6 +11,8 @@ mod batch;
 mod change;
 mod conversion;
 mod ffi;
+mod record_batch;
+pub mod utils;
 
 pub use self::{
     batch::{column_with_name, ArrowBatch},
@@ -20,4 +22,5 @@ pub use self::{
         json_vals_to_col, json_vals_to_primitive, json_vals_to_utf8, new_buffer,
         new_offsets_buffer, new_zero_bits,
     },
+    record_batch::RecordBatch,
 };

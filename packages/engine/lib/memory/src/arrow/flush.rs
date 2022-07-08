@@ -1,4 +1,4 @@
-use arrow::{array::ArrayData, buffer::Buffer, util::bit_util};
+use arrow::{array::Array, buffer::Buffer};
 
 use crate::{
     arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
@@ -22,17 +22,21 @@ pub trait GrowableArrayData: Sized + std::fmt::Debug {
     fn child_data(&self) -> &[Self];
 }
 
-impl GrowableArrayData for ArrayData {
+// todo: is this actually the correct thing to do
+impl<X> GrowableArrayData for X
+where
+    X: Array + std::fmt::Debug,
+{
     fn len(&self) -> usize {
-        ArrayData::len(self)
+        Self::len(self)
     }
 
     fn null_count(&self) -> usize {
-        ArrayData::null_count(self)
+        Self::null_count(self)
     }
 
     fn null_buffer(&self) -> Option<&[u8]> {
-        ArrayData::null_buffer(self).map(Buffer::as_slice)
+        Self::null_buffer(self).map(Buffer::as_slice)
     }
 
     fn buffer(&self, index: usize) -> &[u8] {
@@ -44,7 +48,7 @@ impl GrowableArrayData for ArrayData {
     }
 
     fn child_data(&self) -> &[Self] {
-        ArrayData::child_data(self)
+        Self::child_data(self)
     }
 }
 
@@ -140,7 +144,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
                 // it is found under `array_data.null_buffer()` and
                 // NOT under `array_data.buffers()[0]`
                 {
-                    let num_bytes = bit_util::ceil(array_data.len(), 8);
+                    let num_bytes = array_data.len().div_ceil(8);
                     let next_buffer_offset = self
                         .dynamic_meta()
                         .buffers

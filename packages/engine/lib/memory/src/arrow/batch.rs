@@ -1,9 +1,6 @@
-use std::sync::Arc;
+use std::{slice::Chunks, sync::Arc};
 
-use arrow::{
-    array::{ArrayData, ArrayRef},
-    record_batch::RecordBatch,
-};
+use arrow::array::{Array, ArrayRef};
 
 use crate::{
     arrow::{
@@ -11,17 +8,20 @@ use crate::{
         flush::GrowableBatch,
         load,
         meta::{self, conversion::HashDynamicMeta},
+        RecordBatch,
     },
     error::{Error, Result},
     shared_memory::{Metaversion, Segment},
 };
 
-/// Batch with Arrow data that can be accessed as an Arrow record batch
+/// Batch with Arrow data that can be accessed as an Arrow record batch.
+///
+/// The actual data is stored in
 pub struct ArrowBatch {
     segment: Segment,
 
     /// Arrow `RecordBatch` with references to `self.segment`
-    record_batch: RecordBatch,
+    record_batch: crate::arrow::record_batch::RecordBatch,
 
     /// Metadata referring to positions, sizes, null counts and value counts of different Arrow
     /// buffers.
@@ -42,7 +42,7 @@ pub struct ArrowBatch {
 impl ArrowBatch {
     pub fn new(
         segment: Segment,
-        record_batch: RecordBatch,
+        record_batch: crate::arrow::RecordBatch,
         dynamic_meta: meta::Dynamic,
         static_meta: Arc<meta::Static>,
         changes: Vec<ColumnChange>,
@@ -76,7 +76,7 @@ impl ArrowBatch {
     }
 
     /// Return record batch without checking whether the latest persisted data has been loaded.
-    pub fn record_batch_unchecked(&self) -> &RecordBatch {
+    pub fn record_batch_unchecked(&self) -> &crate::arrow::RecordBatch {
         debug_assert!(
             self.is_persisted(),
             "Should have loaded latest persisted data before getting record batch"
@@ -85,7 +85,7 @@ impl ArrowBatch {
     }
 
     /// Return record batch without checking whether the latest persisted data has been loaded.
-    fn record_batch_unchecked_mut(&mut self) -> &mut RecordBatch {
+    fn record_batch_unchecked_mut(&mut self) -> &mut crate::arrow::RecordBatch {
         debug_assert!(
             self.is_persisted(),
             "Should have loaded latest persisted data before getting mutable record batch"
@@ -103,12 +103,7 @@ impl ArrowBatch {
             self.segment().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
         );
-        let record_batch_message = load::record_batch_message(&self.segment)?;
-
-        // The record batch was loaded at least once before, since this struct has a `RecordBatch`
-        // field, and the Arrow schema doesn't change, so we can reuse it.
-        let schema = self.record_batch.schema();
-        self.record_batch = load::record_batch(&self.segment, record_batch_message, schema)?;
+        self.record_batch = RecordBatch::load(&self.segment);
         Ok(())
     }
 
@@ -118,15 +113,15 @@ impl ArrowBatch {
             self.segment().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
         );
-        let record_batch_message = load::record_batch_message(&self.segment)?;
+        let record_batch_message = RecordBatch::load(&self.segment()).unwrap();
         let dynamic_meta =
             record_batch_message.into_meta(self.segment().get_data_buffer()?.len())?;
 
         // The record batch was loaded at least once before, since this struct has a `RecordBatch`
         // field, and the Arrow schema doesn't change, so we can reuse it.
         let schema = self.record_batch.schema();
-        self.record_batch = load::record_batch(&self.segment, record_batch_message, schema)?;
-        *self.dynamic_meta_mut() = dynamic_meta;
+        self.record_batch =
+            RecordBatch::load(&self.segment) * self.dynamic_meta_mut() = dynamic_meta;
         Ok(())
     }
 
@@ -323,28 +318,6 @@ impl ArrowBatch {
             debug_assert!(self.is_persisted());
         }
         Ok(())
-    }
-}
-
-impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
-    fn static_meta(&self) -> &meta::Static {
-        &self.static_meta
-    }
-
-    fn dynamic_meta(&self) -> &meta::Dynamic {
-        &self.dynamic_meta
-    }
-
-    fn dynamic_meta_mut(&mut self) -> &mut meta::Dynamic {
-        &mut self.dynamic_meta
-    }
-
-    fn segment(&self) -> &Segment {
-        &self.segment
-    }
-
-    fn segment_mut(&mut self) -> &mut Segment {
-        &mut self.segment
     }
 }
 

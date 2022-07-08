@@ -1,22 +1,13 @@
-use arrow::array::ArrayData;
+use arrow::array::Array;
 
-use crate::{arrow::flush::GrowableColumn, Result};
+use crate::Result;
 
 /// When a mutable column is modified not in place, the change is recorded in this format.
 pub struct ColumnChange {
-    pub data: ArrayData,
+    // todo: this is probably not the right data format
+    pub data: Box<dyn Array>,
     /// Index of column
     pub index: usize,
-}
-
-impl GrowableColumn<ArrayData> for ColumnChange {
-    fn index(&self) -> usize {
-        self.index
-    }
-
-    fn data(&self) -> &ArrayData {
-        &self.data
-    }
 }
 
 pub trait IntoArrowChange {

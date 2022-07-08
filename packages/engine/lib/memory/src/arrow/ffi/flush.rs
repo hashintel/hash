@@ -5,8 +5,6 @@
     clippy::missing_safety_doc
 )]
 
-use arrow::util::bit_util;
-
 use crate::{
     arrow::{
         ffi::{ArrowArray, CSegment},
@@ -168,7 +166,7 @@ unsafe fn node_into_prepared_array_data(
             None
         } else {
             let ptr = (*arrow_array_ref.buffers) as *const u8;
-            let byte_length = bit_util::ceil(num_elem, 8);
+            let byte_length = num_elem.div_ceil(8);
             let slice = std::slice::from_raw_parts(ptr, byte_length);
             Some(slice)
         }
@@ -193,7 +191,7 @@ unsafe fn node_into_prepared_array_data(
                             "The null buffer is null but the null count is non-zero",
                         ));
                     }
-                    let byte_length = bit_util::ceil(num_elem, 8);
+                    let byte_length = num_elem.div_ceil(8);
                     std::slice::from_raw_parts(ptr, byte_length)
                 }
                 meta::BufferType::Offset => {

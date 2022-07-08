@@ -1,6 +1,6 @@
 use std::fmt;
 
-use arrow::{datatypes::DataType, error::ArrowError};
+use arrow::{datatypes::DataType, error::Error as ArrowError};
 use thiserror::Error as ThisError;
 
 #[derive(Debug)]

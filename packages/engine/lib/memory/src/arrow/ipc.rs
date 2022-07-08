@@ -1,11 +1,9 @@
-// uncomment this beast when you feel ready to apache devs whos boss
-
-// This file contains copied code from the Arrow implementation in Rust
+// This file contains code copied from the Arrow implementation in Rust
 //
 // Multiple functions in this file have been modified to support in-place
 // modifications. For example, getting an Arrow RecordBatch from a SharedBatch
 // needs to contain refrences to SharedBatch segments. Currently the Arrow
-// implementation does not support this, it actually copies data from IPC files.
+// implementation does not support this as it copies data from IPC files.
 //
 // All modifications of functions have been marked by "MOD" and include a brief
 // description of what changes were made.
@@ -19,14 +17,13 @@
 
 // ADD: use central source of information
 use arrow::{
-    array::ArrayData,
-    buffer::{Buffer, MutableBuffer},
-    ipc,
-    record_batch::RecordBatch,
-    util::bit_util,
+    array::{Array, ArrayRef},
+    buffer::Buffer,
+    io::ipc::write::{StreamWriter, WriteOptions},
 };
 use flatbuffers::FlatBufferBuilder;
 
+use super::RecordBatch;
 use crate::shared_memory::padding;
 
 // ADD
@@ -34,88 +31,26 @@ use crate::shared_memory::padding;
 /// calculate the necessary size.
 #[must_use]
 pub fn simulate_record_batch_to_bytes(batch: &RecordBatch) -> (Vec<u8>, usize) {
-    let mut fbb = FlatBufferBuilder::new();
+    let mut buf = &mut vec![];
 
-    let mut nodes: Vec<ipc::FieldNode> = vec![];
-    let mut buffers: Vec<ipc::Buffer> = vec![];
+    let writer = StreamWriter::new(&mut buf, WriteOptions { compression: None });
 
-    let mut offset = 0;
-    for array in batch.columns() {
-        let array_data = array.data();
-        offset = simulate_write_array_data(
-            array_data,
-            &mut buffers,
-            &mut nodes,
-            offset,
-            array.len(),
-            array.null_count(),
-        );
+    writer
+        .start(batch.schema, None)
+        .expect("writing to a vec should be infallible");
+
+    for batch in batch.batches() {
+        writer
+            .write(batch, None)
+            .expect("writing to a vec should be infallible");
     }
 
-    // write data
-    let buffers = fbb.create_vector(&buffers);
-    let nodes = fbb.create_vector(&nodes);
+    writer
+        .finish()
+        .expect("writing to a vec should be infallible");
 
-    let root = {
-        let mut batch_builder = ipc::RecordBatchBuilder::new(&mut fbb);
-        batch_builder.add_length(batch.num_rows() as i64);
-        batch_builder.add_nodes(nodes);
-        batch_builder.add_buffers(buffers);
-        let b = batch_builder.finish();
-        b.as_union_value()
-    };
-    // create an ipc::Message
-    let mut message = ipc::MessageBuilder::new(&mut fbb);
-    message.add_version(ipc::MetadataVersion::V4);
-    message.add_header_type(ipc::MessageHeader::RecordBatch);
-    message.add_bodyLength(offset);
-    message.add_header(root);
-    let root = message.finish();
-    fbb.finish(root, None);
-    let finished_data = fbb.finished_data();
-
-    (finished_data.to_vec(), offset as usize)
-}
-
-// ADD
-fn simulate_write_array_data(
-    array_data: &ArrayData,
-    buffers: &mut Vec<ipc::Buffer>,
-    nodes: &mut Vec<ipc::FieldNode>,
-    offset: i64,
-    num_rows: usize,
-    null_count: usize,
-) -> i64 {
-    let mut offset = offset;
-    nodes.push(ipc::FieldNode::new(num_rows as i64, null_count as i64));
-
-    let null_buffer_len = match array_data.null_buffer() {
-        None => bit_util::ceil(num_rows, 8),
-        Some(buffer) => buffer.len(),
-    };
-
-    offset = simulate_write_buffer(null_buffer_len, buffers, offset);
-
-    array_data.buffers().iter().for_each(|buffer| {
-        offset = simulate_write_buffer(buffer.len(), buffers, offset);
-    });
-
-    // recursively write out nested structures
-    // COM: Unless the parent array_data is part of a `StructArray`,
-    //      then array_data.child_data() contains either nothing or
-    //      a single child array
-    array_data.child_data().iter().for_each(|data_ref| {
-        // write the nested data (e.g list data)
-        offset = simulate_write_array_data(
-            data_ref,
-            buffers,
-            nodes,
-            offset,
-            data_ref.len(),
-            data_ref.null_count(),
-        );
-    });
-    offset
+    // todo: offset
+    (buf, 0)
 }
 
 // ADD
@@ -132,7 +67,7 @@ pub fn record_batch_data_to_bytes_owned_unchecked(batch: &RecordBatch, buffer: &
 
 // ADD
 fn write_array_data_owned(
-    array_data: &ArrayData,
+    array_data: &ArrayRef,
     arrow_data: &mut [u8],
     mut offset: i64,
     mut buffer_count: usize,
@@ -144,8 +79,8 @@ fn write_array_data_owned(
         //      always written
         None => {
             // create a buffer and fill it with valid bits
-            let num_bytes = bit_util::ceil(num_rows, 8);
-            let buffer = MutableBuffer::new(num_bytes);
+            let num_bytes = num_rows.div_ceil(8);
+            let buffer = Vec::with_capacity(num_bytes);
             let buffer = buffer.with_bitset(num_bytes, true);
             buffer.into()
         }
@@ -171,14 +106,21 @@ fn write_array_data_owned(
 }
 
 // ADD
-fn simulate_write_buffer(buffer_size: usize, buffers: &mut Vec<ipc::Buffer>, offset: i64) -> i64 {
+fn simulate_write_buffer(
+    buffer_size: usize,
+    buffers: &mut Vec<arrow_format::ipc::Buffer>,
+    offset: i64,
+) -> i64 {
     let total_len = padding::get_dynamic_buffer_length(buffer_size) as i64;
-    buffers.push(ipc::Buffer::new(offset, buffer_size as i64));
+    buffers.push(arrow_format::ipc::Buffer::new {
+        offset,
+        buffer_size: buffer_size as i64,
+    });
     offset + total_len
 }
 
 // ADD
-fn write_buffer_owned(buffer: &Buffer, arrow_data: &mut [u8], offset: i64) -> i64 {
+fn write_buffer_owned(buffer: &Buffer<u8>, arrow_data: &mut [u8], offset: i64) -> i64 {
     let len = buffer.len();
     let total_len = padding::get_dynamic_buffer_length(len) as i64;
     let offset_usize = offset as usize;

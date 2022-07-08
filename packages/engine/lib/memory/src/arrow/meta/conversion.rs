@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use arrow::{
-    datatypes::{DataType, Field, IntervalUnit, Schema, TimeUnit},
-    ipc,
-};
+use arrow::datatypes::{DataType, Field, IntervalUnit, Schema, TimeUnit};
+use arrow_format::ipc::{self, MessageHeader};
 use flatbuffers::FlatBufferBuilder;
 
 use crate::{
@@ -110,7 +108,7 @@ pub trait HashDynamicMeta {
     fn into_meta(&self, data_length: usize) -> Result<meta::Dynamic>;
 }
 
-impl HashDynamicMeta for ipc::RecordBatch<'_> {
+impl HashDynamicMeta for ipc::RecordBatch {
     fn into_meta(&self, data_length: usize) -> Result<meta::Dynamic> {
         let nodes = self
             .nodes()
@@ -168,37 +166,34 @@ pub fn get_dynamic_meta_flatbuffers(meta: &meta::Dynamic) -> Result<Vec<u8>> {
     let nodes: Vec<ipc::FieldNode> = meta
         .nodes
         .iter()
-        .map(|n| ipc::FieldNode::new(n.length as i64, n.null_count as i64))
+        .map(|n| arrow_format::ipc::FieldNode::new(n.length as i64, n.null_count as i64))
         .collect();
 
-    let mut fbb = FlatBufferBuilder::new();
-
-    // Copied from `ipc.rs` from function `record_batch_to_bytes`
-    // with some modifications:
+    // Copied from (and then modified when we switch to arrow2) `ipc.rs` from function
+    // `record_batch_to_bytes` with some modifications:
     // - `meta.length` is used instead of `batch.num_rows()` (refers to the same thing)
     // - `meta.data_length ` is used instead of `arrow_data.len()` (same thing)
-    let buffers = fbb.create_vector(&buffers);
-    let nodes = fbb.create_vector(&nodes);
 
-    let root = {
-        let mut batch_builder = ipc::RecordBatchBuilder::new(&mut fbb);
-        batch_builder.add_length(meta.length as i64);
-        batch_builder.add_nodes(nodes);
-        batch_builder.add_buffers(buffers);
-        let b = batch_builder.finish();
-        b.as_union_value()
-    };
+    let mut builder = planus::Builder::new();
+
     // create an ipc::Message
-    let mut message = ipc::MessageBuilder::new(&mut fbb);
-    message.add_version(ipc::MetadataVersion::V4);
-    message.add_header_type(ipc::MessageHeader::RecordBatch);
-    message.add_bodyLength(meta.data_length as i64);
-    message.add_header(root);
-    let root = message.finish();
-    fbb.finish(root, None);
-    let finished_data = fbb.finished_data();
 
-    Ok(finished_data.to_vec())
+    let message = ipc::Message::create(
+        &mut builder,
+        ipc::MetadataVersion::V4,
+        Some(ipc::MessageHeader::RecordBatch(ipc::RecordBatch {
+            length: meta.length as i64,
+            nodes: Some(nodes),
+            buffers: Some(buffers),
+            compression: None,
+        })),
+        meta.data_length as i64,
+        None,
+    );
+
+    let data = builder.finish(message, None);
+
+    Ok(data.to_vec())
 }
 
 /// Column hierarchy is the mapping from column index to buffer and node indices.
@@ -468,14 +463,15 @@ pub mod tests {
     use std::collections::HashMap;
 
     use arrow::{
-        array::{Array, ArrayRef},
+        array::{Array, ArrayRef, ListArray, PrimitiveArray},
         datatypes::{IntervalUnit, TimeUnit},
+        ffi::ArrowArray,
     };
 
     use super::*;
+    use crate::arrow::utils::StringBuilder;
 
     type D = DataType;
-    type ArrowArrayData = arrow::array::ArrayData;
 
     fn get_dummy_metadata() -> HashMap<String, String> {
         [("Key".to_string(), "Value".to_string())]
@@ -484,14 +480,14 @@ pub mod tests {
             .collect()
     }
 
-    fn get_num_nodes_from_array_data(data: &ArrowArrayData) -> usize {
+    fn get_num_nodes_from_array_data(data: &ArrayRef) -> usize {
         data.child_data().iter().fold(0, |total_children, child| {
             total_children + get_num_nodes_from_array_data(child)
         }) + 1
     }
 
     fn get_buffer_counts_from_array_data<'a>(
-        node_data: &ArrowArrayData,
+        node_data: &ArrayRef,
         node_meta: &'a [meta::NodeStatic],
     ) -> (Vec<usize>, &'a [meta::NodeStatic]) {
         // check current node's bitmap, node_meta is created by pre-order traversal so ordering
@@ -526,7 +522,7 @@ pub mod tests {
         (buffers, node_meta)
     }
 
-    fn get_node_mapping_from_array_data(data: &ArrowArrayData) -> NodeMapping {
+    fn get_node_mapping_from_array_data(data: &ArrowArray) -> NodeMapping {
         if data.child_data().is_empty() {
             NodeMapping::empty()
         } else {
@@ -765,13 +761,10 @@ pub mod tests {
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure, Arrow stores time data as i32 or i64's
-        let time64_nanosecond_array =
-            arrow::array::Time64NanosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let time64_microsecond_array =
-            arrow::array::Time64MicrosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let time32_millisecond_array =
-            arrow::array::Time32MillisecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let time32_second_array = arrow::array::Time32SecondArray::from(vec![1, 2, 3, 4, 5, 6]);
+        let time64_nanosecond_array = PrimitiveArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
+        let time64_microsecond_array = PrimitiveArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
+        let time32_millisecond_array = PrimitiveArray::<i32>::from(vec![1, 2, 3, 4, 5, 6]);
+        let time32_second_array = PrimitiveArray::<i32>::from(vec![1, 2, 3, 4, 5, 6]);
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![
             &time64_nanosecond_array,
@@ -853,8 +846,8 @@ pub mod tests {
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure, Arrow stores date data as i32 or i64's
-        let date32_array = arrow::array::Date32Array::from(vec![1, 2, 3, 4, 5, 6]);
-        let date64_array = arrow::array::Date64Array::from(vec![1, 2, 3, 4, 5, 6]);
+        let date32_array = ArrowArray::<i32>::from(vec![1, 2, 3, 4, 5, 6]);
+        let date64_array = ArrowArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![
             &date32_array,
@@ -936,13 +929,10 @@ pub mod tests {
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure, Arrow stores duration data as i64's
-        let duration_nanosecond_array =
-            arrow::array::DurationNanosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let duration_microsecond_array =
-            arrow::array::DurationMicrosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let duration_millisecond_array =
-            arrow::array::DurationMillisecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let duration_second_array = arrow::array::DurationSecondArray::from(vec![1, 2, 3, 4, 5, 6]);
+        let duration_nanosecond_array = ArrowArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
+        let duration_microsecond_array = ArrowArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
+        let duration_millisecond_array = ArrowArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
+        let duration_second_array = ArrowArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![
             &duration_nanosecond_array,
@@ -1033,10 +1023,8 @@ pub mod tests {
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure, Arrow stores interval data as i32 and i64's
-        let interval_day_time_array =
-            arrow::array::IntervalDayTimeArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let interval_year_month_array =
-            arrow::array::IntervalYearMonthArray::from(vec![1, 2, 3, 4, 5, 6]);
+        let interval_day_time_array = ArrowArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
+        let interval_year_month_array = ArrowArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
 
         let dummy_data_arrays: Vec<&dyn Array> =
             vec![&interval_day_time_array, &interval_year_month_array];
@@ -1119,20 +1107,17 @@ pub mod tests {
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure, Arrow stores timestamp data as  i64's
-        let timestamp_microsecond_array =
-            arrow::array::TimestampMicrosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let timestamp_millisecond_array =
-            arrow::array::TimestampMillisecondArray::from(vec![1, 2, 3, 4, 5, 6]);
+        let timestamp_microsecond_array = ArrowArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
+        let timestamp_millisecond_array = ArrowArray::<i64>::from(vec![1, 2, 3, 4, 5, 6]);
 
         // our version of arrow is missing calls to the macro to create the arrays from vec's
-        let mut timestamp_nanosecond_buffer_builder =
-            arrow::array::TimestampNanosecondBuilder::new(6);
+        let mut timestamp_nanosecond_buffer_builder = ArrowArray::<i64>::new(6);
         timestamp_nanosecond_buffer_builder
             .append_values(&[1, 2, 3, 4, 5, 6], &[true; 6])
             .unwrap();
         let timestamp_nanosecond_array = timestamp_nanosecond_buffer_builder.finish();
 
-        let mut timestamp_second_buffer_builder = arrow::array::TimestampSecondBuilder::new(6);
+        let mut timestamp_second_buffer_builder = Vec::with_capacity(6);
         timestamp_second_buffer_builder
             .append_values(&[1, 2, 3, 4, 5, 6], &[true; 6])
             .unwrap();
@@ -1215,11 +1200,11 @@ pub mod tests {
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure,
         let dummy_data_arrays = fixed_sizes.into_iter().map(|size| {
-            let mut fixed_size_binary_builder = arrow::array::FixedSizeBinaryBuilder::new(6, size);
+            let mut fixed_size_binary_builder = Vec::with_capacity(6);
             fixed_size_binary_builder
-                .append_value(&vec![3u8; size as usize])
+                .push(&vec![3u8; size as usize])
                 .unwrap();
-            fixed_size_binary_builder.finish()
+            fixed_size_binary_builder.into()
         });
 
         for (arrow_array, (column_meta, node_info)) in
@@ -1288,15 +1273,15 @@ pub mod tests {
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure,
-        let mut string_builder = arrow::array::StringBuilder::new(6);
+        let mut string_builder = StringBuilder::new(6);
         for string in ["one", "two", "three", "four", "five", "six"] {
             string_builder.append_value(string).unwrap();
         }
         let string_array = string_builder.finish();
 
-        let mut binary_builder = arrow::array::BinaryBuilder::new(6);
-        binary_builder.append_value(&vec![3u8; 6]).unwrap();
-        let binary_array = binary_builder.finish();
+        let mut binary_builder = Vec::with_capacity(6);
+        binary_builder.push(&vec![3u8; 6]);
+        let binary_array = binary_builder.into();
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![&string_array, &binary_array];
 
@@ -1404,18 +1389,16 @@ pub mod tests {
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure,
         let capacity = 6;
-        let bool_builder = arrow::array::BooleanBuilder::new(capacity);
-        let mut bool_list_builder = arrow::array::ListBuilder::new(bool_builder);
+        let mut bool_list_builder = Vec::with_capacity(6);
         for _ in 0..4 {
             for val in vec![true; capacity] {
                 bool_list_builder.values().append_value(val).unwrap();
             }
             bool_list_builder.append(true).unwrap();
         }
-        let bool_list = bool_list_builder.finish();
+        let bool_list = ListArray::<bool>::from(bool_list_builder);
 
-        let uint32_builder = arrow::array::UInt32Builder::new(capacity);
-        let mut uint32_list_builder = arrow::array::ListBuilder::new(uint32_builder);
+        let mut uint32_list_builder = Vec::with_capacity(capacity);
         for _ in 0..4 {
             for val in 0..capacity {
                 uint32_list_builder
@@ -1425,7 +1408,7 @@ pub mod tests {
             }
             uint32_list_builder.append(true).unwrap();
         }
-        let uint32_list = uint32_list_builder.finish();
+        let uint32_list = ListArray::<u32>::from(uint32_list_builder);
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![&bool_list, &uint32_list];
 
@@ -1531,7 +1514,7 @@ pub mod tests {
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure,
-        let mut string_builder = arrow::array::StringBuilder::new(6);
+        let mut string_builder = StringBuilder::new(6);
         for string in ["one", "two", "three", "four", "five", "six"] {
             string_builder.append_value(string).unwrap();
         }
@@ -1551,7 +1534,7 @@ pub mod tests {
         ]);
 
         let struct_c1 = arrow::array::StructArray::from(
-            ArrowArrayData::builder(D::Struct(vec![])).build().unwrap(),
+            ArrowArray::builder(D::Struct(vec![])).build().unwrap(),
         );
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![&struct_c0, &struct_c1];

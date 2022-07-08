@@ -43,8 +43,10 @@
 // The only exception are the buffers of the Context Shared Batch, which are not
 // intented to be mutated.
 //
-
 #![allow(clippy::cast_sign_loss)]
+
+// TODO: is this in `arrow2` somewhwere?
+pub const ALIGNMENT: usize = 1 << 7;
 
 #[must_use]
 pub(crate) fn _get_static_buffer_length(len: usize) -> usize {
@@ -124,9 +126,9 @@ pub(crate) fn _maybe_new_dynamic_length(
 // prefetcher optimizations
 #[must_use]
 const fn pad_to_sys_align(len: usize) -> usize {
-    match len % arrow::alloc::ALIGNMENT {
+    match len % ALIGNMENT {
         0 => 0,
-        v => arrow::alloc::ALIGNMENT - v,
+        v => ALIGNMENT - v,
     }
 }
 

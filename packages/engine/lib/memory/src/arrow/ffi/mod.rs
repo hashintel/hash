@@ -4,7 +4,8 @@ mod test;
 
 use std::{ffi::c_void, os::raw::c_char, sync::Arc};
 
-use arrow::ipc;
+use arrow::io::ipc;
+use arrow_format::ipc::Message;
 
 use crate::{
     arrow::meta::{
@@ -95,13 +96,14 @@ unsafe extern "C" fn free_c_arrow_array(array: usize) {
 
 // Call this when a new batch is loaded
 // Lifetime: lifetime of batch
+// hmmm (todo remove this once I'm less confused)
 #[no_mangle]
 unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CSegment) -> *const meta::Dynamic {
     let c_memory = &*memory_ptr;
     let segment = &mut *(c_memory.segment as *mut Segment);
     match segment.get_metadata() {
         Ok(meta_buffer) => {
-            let batch_message = match ipc::root_as_message(meta_buffer)
+            let batch_message = match arrow_format::ipc::Message::read_as_root(meta_buffer)
                 .map_err(Error::from)
                 .and_then(|message| {
                     message
