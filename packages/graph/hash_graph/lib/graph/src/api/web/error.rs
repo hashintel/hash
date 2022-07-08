@@ -13,11 +13,11 @@ use crate::datastore::{BaseIdAlreadyExists, BaseIdDoesNotExist, QueryError};
 /// Convert an error report to an HTTP status code depending on values provided.
 /// Assumes the report is created by a _write_ operation in the datastore.
 pub fn modify_report_to_status_code<T>(report: Report<T>) -> StatusCode {
-    if report.downcast_ref::<BaseIdDoesNotExist>().is_some() {
+    if report.contains::<BaseIdDoesNotExist>() {
         return StatusCode::NOT_FOUND;
     }
 
-    if report.downcast_ref::<BaseIdAlreadyExists>().is_some() {
+    if report.contains::<BaseIdAlreadyExists>() {
         return StatusCode::CONFLICT;
     }
 
@@ -28,7 +28,7 @@ pub fn modify_report_to_status_code<T>(report: Report<T>) -> StatusCode {
 /// Convert an error report to an HTTP status code depending on values provided.
 /// Assumes the report is created by a _read_ operation in the datastore.
 pub fn query_report_to_status_code<T>(report: Report<T>) -> StatusCode {
-    if report.downcast_ref::<QueryError>().is_some() {
+    if report.contains::<QueryError>() {
         return StatusCode::NOT_FOUND;
     }
 
