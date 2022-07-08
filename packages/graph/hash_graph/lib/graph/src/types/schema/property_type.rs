@@ -6,8 +6,6 @@ use crate::types::schema::{
     array::TypedArray, data_type::DataTypeReference, object::Object, OneOf, Uri, ValueOrArray,
 };
 
-/// Property Object values must be defined through references to the same valid URI to a Property
-/// Type.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PropertyTypeReference {
@@ -73,6 +71,7 @@ impl PropertyValues {
     }
 }
 
+/// Will serialize as a constant field `"propertyType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(clippy::use_self)]

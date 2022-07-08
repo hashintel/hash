@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// Will serialize as a constant field `"array"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum ArrayTypeTag {
