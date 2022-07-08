@@ -23,7 +23,8 @@ use crate::types::Uri;
 
 #[derive(Debug)]
 pub enum ValidationError {
-    /// A schema has marked a [`Uri`] as requied but the [`Uri`] does not exist in the schema.
+    /// A schema has marked a property with a [`Uri`] as required but the [`Uri`] does not exist in
+    /// the `properties`.
     MissingRequiredProperty(Uri),
     /// At least `expected` number of properties are required, but only `actual` were provided.
     MismatchedPropertyCount { actual: usize, expected: usize },
