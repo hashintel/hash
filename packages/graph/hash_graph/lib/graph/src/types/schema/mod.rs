@@ -43,3 +43,58 @@ impl fmt::Display for ValidationError {
 }
 
 impl std::error::Error for ValidationError {}
+
+#[cfg(test)]
+mod tests {
+    use std::fmt::Debug;
+
+    use serde::{Deserialize, Serialize};
+
+    pub(super) fn check_serialization<T>(
+        value: &T,
+        json: &serde_json::Value,
+    ) -> Result<(), serde_json::Error>
+    where
+        T: Debug + PartialEq + Serialize,
+    {
+        let serialized_json = serde_json::to_value(value)?;
+        assert_eq!(
+            &serialized_json, json,
+            "Serialized value does not match expected JSON",
+        );
+
+        Ok(())
+    }
+
+    pub(super) fn check_deserialization<T>(
+        value: &T,
+        json: serde_json::Value,
+    ) -> Result<(), serde_json::Error>
+    where
+        for<'de> T: Debug + PartialEq + Deserialize<'de>,
+    {
+        let deserialized_json = serde_json::from_value::<T>(json)?;
+        assert_eq!(
+            &deserialized_json, value,
+            "Deserialized JSON does not match expected value",
+        );
+
+        Ok(())
+    }
+
+    pub(super) fn check<T>(value: &T, json: serde_json::Value) -> Result<(), serde_json::Error>
+    where
+        for<'de> T: Debug + PartialEq + Serialize + Deserialize<'de>,
+    {
+        check_serialization(value, &json)?;
+        check_deserialization(value, json)?;
+        Ok(())
+    }
+
+    pub(super) fn check_invalid_json<T>(json: serde_json::Value)
+    where
+        for<'de> T: Debug + Deserialize<'de>,
+    {
+        serde_json::from_value::<T>(json).expect_err("JSON is not allowed to be deserialized");
+    }
+}

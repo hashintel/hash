@@ -86,3 +86,193 @@ impl<V, const MIN: usize> TryFrom<ObjectRepr<V>> for Object<V, MIN> {
         Self::new(object.properties, object.required)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use serde_json::json;
+
+    use super::*;
+    use crate::types::schema::tests::{check, check_invalid_json};
+
+    mod unconstrained {
+        use super::*;
+        type Object = super::Object<String, 0>;
+
+        #[test]
+        fn empty() -> Result<(), Box<dyn Error>> {
+            check(
+                &Object::new([], [])?,
+                json!({
+                    "type": "object",
+                    "properties": {}
+                }),
+            )?;
+            Ok(())
+        }
+
+        #[test]
+        fn one() -> Result<(), Box<dyn Error>> {
+            check(
+                &Object::new(
+                    [(
+                        Uri::new("https://example.com/property_type"),
+                        "value".to_owned(),
+                    )],
+                    [],
+                )?,
+                json!({
+                    "type": "object",
+                    "properties": {
+                        "https://example.com/property_type": "value",
+                    }
+                }),
+            )?;
+            Ok(())
+        }
+
+        #[test]
+        fn multiple() -> Result<(), Box<dyn Error>> {
+            check(
+                &Object::new(
+                    [
+                        (
+                            Uri::new("https://example.com/property_type_a"),
+                            "value_a".to_owned(),
+                        ),
+                        (
+                            Uri::new("https://example.com/property_type_b"),
+                            "value_b".to_owned(),
+                        ),
+                    ],
+                    [],
+                )?,
+                json!({
+                    "type": "object",
+                    "properties": {
+                        "https://example.com/property_type_a": "value_a",
+                        "https://example.com/property_type_b": "value_b",
+                    }
+                }),
+            )?;
+            Ok(())
+        }
+    }
+
+    mod constrained {
+        use super::*;
+        type Object = super::Object<String, 1>;
+
+        #[test]
+        fn empty() {
+            check_invalid_json::<Object>(json!({
+                "type": "object",
+                "properties": {}
+            }));
+        }
+
+        #[test]
+        fn one() -> Result<(), Box<dyn Error>> {
+            check(
+                &Object::new(
+                    [(
+                        Uri::new("https://example.com/property_type"),
+                        "value".to_owned(),
+                    )],
+                    [],
+                )?,
+                json!({
+                    "type": "object",
+                    "properties": {
+                        "https://example.com/property_type": "value",
+                    }
+                }),
+            )?;
+            Ok(())
+        }
+
+        #[test]
+        fn multiple() -> Result<(), Box<dyn Error>> {
+            check(
+                &Object::new(
+                    [
+                        (
+                            Uri::new("https://example.com/property_type_a"),
+                            "value_a".to_owned(),
+                        ),
+                        (
+                            Uri::new("https://example.com/property_type_b"),
+                            "value_b".to_owned(),
+                        ),
+                    ],
+                    [],
+                )?,
+                json!({
+                    "type": "object",
+                    "properties": {
+                        "https://example.com/property_type_a": "value_a",
+                        "https://example.com/property_type_b": "value_b",
+                    }
+                }),
+            )?;
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn required() -> Result<(), Box<dyn Error>> {
+        check(
+            &Object::<String>::new(
+                [
+                    (
+                        Uri::new("https://example.com/property_type_a"),
+                        "value_a".to_owned(),
+                    ),
+                    (
+                        Uri::new("https://example.com/property_type_b"),
+                        "value_b".to_owned(),
+                    ),
+                ],
+                [Uri::new("https://example.com/property_type_a")],
+            )?,
+            json!({
+                "type": "object",
+                "properties": {
+                    "https://example.com/property_type_a": "value_a",
+                    "https://example.com/property_type_b": "value_b",
+                },
+                "required": [
+                    "https://example.com/property_type_a"
+                ]
+            }),
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn additional_properties() {
+        check_invalid_json::<Object<String>>(json!({
+            "type": "object",
+            "properties": {
+                "https://example.com/property_type_a": "value_a",
+                "https://example.com/property_type_b": "value_b",
+            },
+            "additional_properties": 10
+        }));
+    }
+
+    #[test]
+    fn invalid_required() {
+        check_invalid_json::<Object<String>>(json!({
+            "type": "object",
+            "properties": {
+                "https://example.com/property_type_a": "value_a",
+                "https://example.com/property_type_b": "value_b",
+            },
+            "required": [
+                "https://example.com/property_type_c"
+            ]
+        }));
+    }
+}

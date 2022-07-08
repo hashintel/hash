@@ -73,162 +73,85 @@ impl<T> TryFrom<OneOfRepr<T>> for OneOf<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
-
     use serde_json::json;
 
     use super::*;
-    use crate::types::schema::Uri;
+    use crate::types::schema::tests::{check, check_invalid_json};
 
-    #[test]
-    fn array() -> Result<(), Box<dyn Error>> {
-        let array = TypedArray::new(Uri::new("https://example.com/data_type"), None, None);
+    mod optional {
+        use super::*;
 
-        let json = serde_json::to_value(&array)?;
-        assert_eq!(
-            json,
-            serde_json::json!({
-                "type": "array",
-                "items": "https://example.com/data_type",
-            })
-        );
+        #[test]
+        fn none() -> Result<(), serde_json::Error> {
+            check(&Optional::<()>::None {}, json!({}))
+        }
 
-        let array2 = serde_json::from_value(json)?;
-        assert_eq!(array, array2);
-
-        let array = TypedArray::new(Uri::new("https://example.com/data_type"), 1, 2);
-
-        let json = serde_json::to_value(&array)?;
-        assert_eq!(
-            json,
-            serde_json::json!({
-                "type": "array",
-                "items": "https://example.com/data_type",
-                "minItems": 1,
-                "maxItems": 2,
-            })
-        );
-
-        let array2 = serde_json::from_value(json)?;
-        assert_eq!(array, array2);
-
-        let json = json!({
-            "items": "https://example.com/data_type"
-        });
-        assert!(serde_json::from_value::<TypedArray<Uri>>(json).is_err());
-
-        let json = json!({
-            "type": "array",
-            "items": "https://example.com/data_type",
-            "minItems": 1
-        });
-        assert!(serde_json::from_value::<TypedArray<Uri>>(json).is_ok());
-
-        let json = json!({
-            "type": "array",
-            "items": "https://example.com/data_type",
-            "maxItems": 1
-        });
-        assert!(serde_json::from_value::<TypedArray<Uri>>(json).is_ok());
-
-        let json = json!({
-            "type": "array",
-            "minItems": 2,
-            "maxItems": 1
-        });
-        assert!(serde_json::from_value::<TypedArray<Uri>>(json).is_err());
-
-        let json = json!({
-            "type": "array",
-            "items": "https://example.com/data_type",
-            "numItems": 1,
-        });
-        assert!(serde_json::from_value::<TypedArray<Uri>>(json).is_err());
-
-        Ok(())
+        #[test]
+        fn some() -> Result<(), serde_json::Error> {
+            check(&Optional::Some("value".to_owned()), json!("value"))
+        }
     }
 
-    #[test]
-    fn value_or_array_value() -> Result<(), Box<dyn Error>> {
-        let one = ValueOrArray::Value(Uri::new("https://example.com/data_type"));
+    mod value_or_array {
+        use super::*;
 
-        let json = serde_json::to_value(&one)?;
-        assert_eq!(json, serde_json::json!("https://example.com/data_type"));
+        #[test]
+        fn value() -> Result<(), serde_json::Error> {
+            check(&ValueOrArray::Value("value".to_owned()), json!("value"))
+        }
 
-        let one2 = serde_json::from_value(json)?;
-        assert_eq!(one, one2);
-
-        Ok(())
+        #[test]
+        fn array() -> Result<(), serde_json::Error> {
+            check(
+                &ValueOrArray::Array(TypedArray::new("string".to_owned(), None, None)),
+                json!({
+                    "type": "array",
+                    "items": "string",
+                }),
+            )
+        }
     }
 
-    #[test]
-    fn value_or_array_array() -> Result<(), Box<dyn Error>> {
-        let array = ValueOrArray::Array(TypedArray::new(
-            Uri::new("https://example.com/data_type"),
-            None,
-            None,
-        ));
+    mod one_of {
+        use std::error::Error;
 
-        let json = serde_json::to_value(&array)?;
-        assert_eq!(
-            json,
-            serde_json::json!({
-                "type": "array",
-                "items": "https://example.com/data_type",
-            })
-        );
+        use super::*;
 
-        let array2 = serde_json::from_value(json)?;
-        assert_eq!(array, array2);
+        #[test]
+        fn empty() {
+            check_invalid_json::<OneOf<()>>(json!({
+                "oneOf": []
+            }));
+        }
 
-        Ok(())
-    }
+        #[test]
+        fn one() -> Result<(), Box<dyn Error>> {
+            check(
+                &OneOf::new(["A".to_owned()])?,
+                json!({
+                    "oneOf": ["A"]
+                }),
+            )?;
+            Ok(())
+        }
 
-    #[test]
-    fn optional_none() -> Result<(), Box<dyn Error>> {
-        let none = Optional::<()>::None {};
+        #[test]
+        fn multiple() -> Result<(), Box<dyn Error>> {
+            check(
+                &OneOf::new(["A".to_owned(), "B".to_owned()])?,
+                json!({
+                    "oneOf": ["A", "B"]
+                }),
+            )?;
+            Ok(())
+        }
 
-        let json = serde_json::to_value(&none)?;
-        assert_eq!(json, serde_json::json!({}));
-
-        let empty2 = serde_json::from_value(json)?;
-        assert_eq!(none, empty2);
-
-        Ok(())
-    }
-
-    #[test]
-    fn optional_value() -> Result<(), Box<dyn Error>> {
-        let value = Optional::Value(Uri::new("https://example.com/data_type"));
-
-        let json = serde_json::to_value(&value)?;
-        assert_eq!(json, serde_json::json!("https://example.com/data_type"));
-
-        let array2 = serde_json::from_value(json)?;
-        assert_eq!(value, array2);
-
-        Ok(())
-    }
-
-    #[test]
-    fn one_of() -> Result<(), Box<dyn Error>> {
-        let one = OneOf::new([Uri::new("https://example.com/data_type")])?;
-
-        let json = serde_json::to_value(&one)?;
-        assert_eq!(
-            json,
-            serde_json::json!({ "oneOf": ["https://example.com/data_type"] })
-        );
-
-        let one2 = serde_json::from_value(json)?;
-        assert_eq!(one, one2);
-
-        Ok(())
-    }
-
-    #[test]
-    fn one_of_validation() {
-        let json = json!({ "oneOf": [] });
-        assert!(serde_json::from_value::<OneOf<Uri>>(json).is_err());
+        #[test]
+        fn additional_properties() {
+            check_invalid_json::<OneOf<()>>(json!({
+                "oneOf": ["A", "B"],
+                "additional": 10,
+            }));
+        }
     }
 }

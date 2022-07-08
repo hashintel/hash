@@ -111,3 +111,203 @@ impl MaybeOrderedArray {
         self.array.max_items()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+    use crate::types::schema::tests::{check, check_deserialization, check_invalid_json};
+
+    mod untyped {
+        use super::*;
+
+        #[test]
+        fn unconstrained() -> Result<(), serde_json::Error> {
+            check(
+                &Array::new(None, None),
+                json!({
+                    "type": "array",
+                }),
+            )
+        }
+
+        #[test]
+        fn constrained() -> Result<(), serde_json::Error> {
+            check(
+                &Array::new(10, None),
+                json!({
+                    "type": "array",
+                    "minItems": 10,
+                }),
+            )?;
+
+            check(
+                &Array::new(None, 20),
+                json!({
+                    "type": "array",
+                    "maxItems": 20,
+                }),
+            )?;
+
+            check(
+                &Array::new(10, 20),
+                json!({
+                    "type": "array",
+                    "minItems": 10,
+                    "maxItems": 20,
+                }),
+            )?;
+
+            Ok(())
+        }
+
+        #[test]
+        fn additional_properties() {
+            check_invalid_json::<Array>(json!({
+                "type": "array",
+                "minItems": 10,
+                "maxItems": 20,
+                "additional": 30,
+            }));
+        }
+    }
+
+    mod typed {
+        use super::*;
+
+        #[test]
+        fn unconstrained() -> Result<(), serde_json::Error> {
+            check(
+                &TypedArray::new("string".to_owned(), None, None),
+                json!({
+                    "type": "array",
+                    "items": "string",
+                }),
+            )
+        }
+
+        #[test]
+        fn constrained() -> Result<(), serde_json::Error> {
+            check(
+                &TypedArray::new("string".to_owned(), 10, None),
+                json!({
+                    "type": "array",
+                    "items": "string",
+                    "minItems": 10,
+                }),
+            )?;
+
+            check(
+                &TypedArray::new("string".to_owned(), None, 20),
+                json!({
+                    "type": "array",
+                    "items": "string",
+                    "maxItems": 20,
+                }),
+            )?;
+
+            check(
+                &TypedArray::new("string".to_owned(), 10, 20),
+                json!({
+                    "type": "array",
+                "items": "string",
+                    "minItems": 10,
+                    "maxItems": 20,
+                }),
+            )?;
+
+            Ok(())
+        }
+
+        #[test]
+        fn additional_properties() {
+            check_invalid_json::<TypedArray<String>>(json!({
+                "type": "array",
+                "items": "string",
+                "minItems": 10,
+                "maxItems": 20,
+                "additional": 30,
+            }));
+        }
+    }
+
+    mod maybe_ordered {
+        use super::*;
+
+        #[test]
+        fn unordered() -> Result<(), serde_json::Error> {
+            check(
+                &MaybeOrderedArray::new(false, None, None),
+                json!({
+                    "type": "array",
+                    "ordered": false,
+                }),
+            )?;
+
+            check_deserialization(
+                &MaybeOrderedArray::new(false, None, None),
+                json!({
+                    "type": "array"
+                }),
+            )?;
+
+            Ok(())
+        }
+
+        #[test]
+        fn ordered() -> Result<(), serde_json::Error> {
+            check(
+                &MaybeOrderedArray::new(true, None, None),
+                json!({
+                    "type": "array",
+                    "ordered": true
+                }),
+            )
+        }
+
+        #[test]
+        fn constrained() -> Result<(), serde_json::Error> {
+            check(
+                &MaybeOrderedArray::new(false, 10, None),
+                json!({
+                    "type": "array",
+                    "ordered": false,
+                    "minItems": 10,
+                }),
+            )?;
+
+            check(
+                &MaybeOrderedArray::new(false, None, 20),
+                json!({
+                    "type": "array",
+                    "ordered": false,
+                    "maxItems": 20,
+                }),
+            )?;
+
+            check(
+                &MaybeOrderedArray::new(true, 10, 20),
+                json!({
+                    "type": "array",
+                    "ordered": true,
+                    "minItems": 10,
+                    "maxItems": 20,
+                }),
+            )?;
+
+            Ok(())
+        }
+
+        #[test]
+        fn additional_properties() {
+            check_invalid_json::<MaybeOrderedArray>(json!({
+                "type": "array",
+                "ordered": false,
+                "minItems": 10,
+                "maxItems": 20,
+                "additional": 30,
+            }));
+        }
+    }
+}
