@@ -166,7 +166,7 @@ trait Datastore {
         created_by: AccountId,
     ) -> Result<Qualified<DataType>, InsertionError>;
 
-    /// Get an existing [`DataType`] by an [`Identifier`].
+    /// Get an existing [`DataType`] by a [`VersionId`].
     ///
     /// # Errors
     ///

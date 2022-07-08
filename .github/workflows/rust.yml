@@ -113,11 +113,11 @@ jobs:
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings --show-coverage
+        run: cargo make rustdoc --check -D warnings
 
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings --show-coverage --document-private-items
+        run: cargo make rustdoc --check -D warnings --document-private-items
 
       - name: Clear cargo cache
         if: steps.rust-cache.outputs.cache-hit != 'true'
