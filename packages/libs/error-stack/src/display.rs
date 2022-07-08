@@ -306,7 +306,7 @@ mod tests {
         // and in total ~8 different configurations and outputs
         // we cannot easily integration test the output here.
         // Especially with the backtraces and spantraces which can get very large.
-        assert!(report.to_string().len() > 0)
+        assert!(report.to_string().len() > 0);
     }
 
     #[test]
