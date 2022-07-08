@@ -5,9 +5,10 @@ mod eyre;
 
 /// Compatibility trait to convert from external libraries to [`Report`].
 ///
-/// *Note*: Is't not possible to implement [`IntoReport`] or [`Context`] on other error libraries
-/// types as both traits have blanked implementation relying on [`Error`]. This means, that they
-/// *could* implement [`Error`] on their own.
+/// *Note*: It's not possible to implement [`IntoReport`] or [`Context`] on other error libraries'
+/// types as both traits have blanket implementation relying on [`Error`]. Thus, implementing either
+/// trait would violate the orphan rule; the upstream crate could implement [`Error`] and this would
+/// imply an implementation for [`IntoReport`]/[`Context`].
 ///
 /// [`Report`]: crate::Report
 /// [`IntoReport`]: crate::IntoReport
