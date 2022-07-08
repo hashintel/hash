@@ -64,7 +64,7 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                         Location::caller(),
                         source,
                     );
-                    source = Box::new([frame])
+                    source = Box::new([frame]);
                 }
 
                 let sources = eyre
