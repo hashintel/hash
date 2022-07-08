@@ -42,6 +42,10 @@ export const createProseMirrorState = ({
       );
       return true;
     },
+    // execCommand is flagged as depecrated but it seems that there isn't a viable alternative
+    // to call the undo and redo default browser actions (https://stackoverflow.com/a/70831583)
+    "Mod-z": () => document.execCommand("undo"),
+    "Mod-y": () => document.execCommand("redo"),
   });
 
   return EditorState.create<Schema>({
