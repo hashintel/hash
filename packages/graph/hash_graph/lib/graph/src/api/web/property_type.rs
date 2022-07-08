@@ -1,4 +1,4 @@
-//! Web routes for Property types CRU operations.
+//! Web routes for CRU operations on Property types.
 
 use axum::{
     extract::Path,

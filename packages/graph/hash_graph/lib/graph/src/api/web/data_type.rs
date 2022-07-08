@@ -1,4 +1,4 @@
-//! Web routes for Data Types CRU operations.
+//! Web routes for CRU operations on Data Types.
 
 use axum::{
     extract::Path,
