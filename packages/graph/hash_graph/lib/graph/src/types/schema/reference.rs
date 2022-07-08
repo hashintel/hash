@@ -1,8 +1,9 @@
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
+use utoipa::Component;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type, Component)]
 #[serde(transparent)]
 #[sqlx(transparent)]
 pub struct Uri(String);

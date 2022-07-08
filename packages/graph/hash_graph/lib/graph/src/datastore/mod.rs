@@ -154,7 +154,7 @@ impl fmt::Display for DatabaseConnectionInfo {
 
 /// Describes the API of a Datastore implementation
 #[async_trait]
-trait Datastore {
+pub trait Datastore: Clone + Send + Sync + 'static {
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
