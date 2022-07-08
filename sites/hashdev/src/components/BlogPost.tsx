@@ -2,7 +2,7 @@ import { Container, Stack, Typography } from "@mui/material";
 import { Box, TypographyProps } from "@mui/system";
 import Head from "next/head";
 import Image from "next/image";
-import React, { createContext, FC, ReactNode, useContext, VFC } from "react";
+import { createContext, FC, ReactNode, useContext, VFC } from "react";
 import { format } from "date-fns";
 import { FRONTEND_URL } from "../config";
 import { Link } from "./Link";
