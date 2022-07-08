@@ -435,7 +435,7 @@ impl<C> Report<C> {
     #[cfg(feature = "spantrace")]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         #[cfg(not(nightly))]
-        return None;
+        let span_trace = self.downcast_ref::<SpanTrace>()?;
 
         #[cfg(nightly)]
         let span_trace = self.request_ref::<SpanTrace>().next()?;
