@@ -78,6 +78,7 @@ impl<T> TypedArray<T> {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct MaybeOrderedArray {
+    // By default, this will not be ordered.
     #[serde(default)]
     ordered: bool,
     #[serde(flatten)]
