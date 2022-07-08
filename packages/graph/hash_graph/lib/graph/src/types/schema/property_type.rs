@@ -3,7 +3,10 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 use crate::types::schema::{
-    array::TypedArray, data_type::DataTypeReference, object::Object, OneOf, Uri, ValueOrArray,
+    array::{Array, Itemized},
+    data_type::DataTypeReference,
+    object::Object,
+    OneOf, Uri, ValueOrArray,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -31,7 +34,7 @@ impl PropertyTypeReference {
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
     PropertyTypeObject(Object<ValueOrArray<PropertyTypeReference>, 1>),
-    ArrayOfPropertyValues(TypedArray<OneOf<Self>>),
+    ArrayOfPropertyValues(Itemized<Array, OneOf<Self>>),
 }
 
 impl PropertyValues {

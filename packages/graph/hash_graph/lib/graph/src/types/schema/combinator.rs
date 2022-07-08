@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::schema::{array::TypedArray, ValidationError};
+use crate::types::schema::{
+    array::{Array, Itemized},
+    ValidationError,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -13,7 +16,7 @@ pub enum Optional<T> {
 #[serde(untagged)]
 pub enum ValueOrArray<T> {
     Value(T),
-    Array(TypedArray<T>),
+    Array(Itemized<Array, T>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -103,7 +106,7 @@ mod tests {
         #[test]
         fn array() -> Result<(), serde_json::Error> {
             check(
-                &ValueOrArray::Array(TypedArray::new("string".to_owned(), None, None)),
+                &ValueOrArray::Array(Itemized::new(Array::default(), "string".to_owned())),
                 json!({
                     "type": "array",
                     "items": "string",
