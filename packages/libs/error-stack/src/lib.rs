@@ -198,12 +198,23 @@
 //!              at main.rs:7:10
 //! ```
 //!
+//!
 //! The `Suggestion` passed to [`attach`] shown as an opaque attachment. The message passed to
 //! [`attach_printable`] however is printed next to the [`Context`] where it was attached to.
 //!
 //! [`attach_printable`]: Report::attach_printable
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
+//!
+//! ### Multiple Errors
+//!
+//! [`Report`] supports the combination and propagation of multiple errors natively.
+//! This is useful in cases like parallel processing where multiple errors might happen
+//! independently from each other, in these use-cases you are able to use the implementations of
+//! [`Extend`] and [`add_source()`] and are able to propagate all errors instead of just a single
+//! one.
+//!
+//! [`Extend`]: std::iter::Extend
 //!
 //! # In-Depth Explanation
 //!
@@ -357,12 +368,15 @@
 //!  `hooks`   |Enables the usage of [`set_display_hook`] and [`set_debug_hook`]| `std`   | disabled
 //! `spantrace`| Enables the capturing of [`SpanTrace`]s                        |         | disabled
 //!  `futures` | Provides a [`FutureExt`] adaptor                               |         | disabled
+//! `fancy`    | Enable use of color and box-drawing characters on [`Display`]  |         | enabled
+//! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
 //!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
 //!
 //! [`Error`]: std::error::Error
 //! [`Backtrace`]: std::backtrace::Backtrace
+//! [`Display`]: std::fmt::Display
 //! [`SpanTrace`]: tracing_error::SpanTrace
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(nightly, feature(provide_any))]

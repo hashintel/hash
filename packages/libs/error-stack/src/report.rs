@@ -29,6 +29,13 @@ use crate::{
 /// Attachments, and objects [`provide`]d by a [`Context`], are directly retrievable by calling
 /// [`request_ref()`] or [`request_value()`].
 ///
+/// ## Multiple Errors
+///
+/// `Report` is able to represent multiple errors that have occurred.
+/// Errors can be combined using the [`add_source()`],
+/// which will add the [`Frame`] stack of the other error as an additional source to the current
+/// report.
+///
 /// ## `Backtrace` and `SpanTrace`
 ///
 /// `Report` is able to [`provide`] a [`Backtrace`] and a [`SpanTrace`], which can be retrieved by
@@ -42,6 +49,7 @@ use crate::{
 /// [`provide`]: core::any::Provider::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
+/// [`add_source()`]: Self::add_source
 /// [`new()`]: Self::new
 /// [`frames()`]: Self::frames
 /// [`change_context()`]: Self::change_context
@@ -236,8 +244,8 @@ impl<C> Report<C> {
     /// let mut error2 = fs::read_to_string("config2.txt").into_report();
     /// let mut error3 = fs::read_to_string("config3.txt").into_report();
     ///
-    /// error1.add_source(error2);
-    /// error3.add_source(error1);
+    /// let error1 = error1.add_source(error2);
+    /// let error3 = error3.add_source(error1);
     ///
     /// // ^ This is equivalent to:
     /// // error3.add_source(error1);
@@ -245,18 +253,9 @@ impl<C> Report<C> {
     /// ```
     ///
     /// [`add_source()`]: Self::add_source
-    pub fn add_source<T>(&mut self, mut report: Report<T>) {
-        // TODO: consider taking self by value and returning it.
+    pub fn add_source<T>(mut self, mut report: Report<T>) -> Self {
         self.frames.append(&mut report.frames);
-    }
-
-    /// TODO: This might be removed
-    pub fn add_context<T: Context>(&mut self, context: T) {
-        self.frames.push(Frame::from_context(
-            context,
-            Location::caller(),
-            Box::new([]),
-        ));
+        self
     }
 
     /// Adds additional information to the [`Frame`] stack.
@@ -632,11 +631,6 @@ impl<Context> std::process::Termination for Report<Context> {
     }
 }
 
-// TODO:
-// we might want this to be implemented for `Report<Context>`
-// instead, in that case tho `Report<Context>` would be empty,
-// which would break an invariant, but using `Option<Report<Context>>` can be a bit unwieldy, maybe
-// we can have an alias?
 impl<Context> FromIterator<Report<Context>> for Option<Report<Context>> {
     fn from_iter<T: IntoIterator<Item = Report<Context>>>(iter: T) -> Self {
         let mut iter = iter.into_iter();
