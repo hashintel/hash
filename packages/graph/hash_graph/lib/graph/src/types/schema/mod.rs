@@ -105,6 +105,7 @@ mod tests {
     where
         for<'de> T: Debug + Deserialize<'de>,
     {
-        serde_json::from_value::<T>(json).expect_err("JSON is not allowed to be deserialized");
+        serde_json::from_value::<T>(json)
+            .expect_err("JSON was expected to be invalid but it was accepted");
     }
 }
