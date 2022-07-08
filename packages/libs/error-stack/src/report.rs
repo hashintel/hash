@@ -454,6 +454,7 @@ impl<C> Report<C> {
     /// to get an iterator over the topological sorting of all frames refer to [`frames()`]
     ///
     /// [`frames()`]: Self::frames
+    #[must_use]
     pub fn sources(&self) -> &[Frame] {
         &self.frames
     }
@@ -708,8 +709,8 @@ impl<Context> FromIterator<Report<Context>> for Option<Report<Context>> {
     }
 }
 
-impl<Context> Extend<Report<Context>> for Report<Context> {
-    fn extend<T: IntoIterator<Item = Report<Context>>>(&mut self, iter: T) {
+impl<Context> Extend<Self> for Report<Context> {
+    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
         for item in iter {
             self.add_source(item);
         }

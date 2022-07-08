@@ -108,12 +108,7 @@ pub struct FramesMut<'r> {
 impl<'r> FramesMut<'r> {
     pub(crate) fn new<C>(report: &'r mut Report<C>) -> Self {
         Self {
-            current: report
-                .frames
-                .iter_mut()
-                .map(|frame| NonNull::from(frame))
-                .rev()
-                .collect(),
+            current: report.frames.iter_mut().map(NonNull::from).rev().collect(),
             _marker: PhantomData,
         }
     }
@@ -135,7 +130,7 @@ impl<'r> Iterator for FramesMut<'r> {
                         .as_mut()
                         .sources_mut()
                         .iter_mut()
-                        .map(|frame| NonNull::from(frame))
+                        .map(NonNull::from)
                         .rev(),
                 );
 

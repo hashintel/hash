@@ -70,7 +70,7 @@ pub fn expect_messages<'a>(messages: &[&'a str]) -> Vec<&'a str> {
 
 /// Conditionally add two new frames to the count, as these are backtrace and spantrace.
 #[allow(unused_mut)]
-pub fn expect_count(mut count: usize) -> usize {
+pub const fn expect_count(mut count: usize) -> usize {
     #[cfg(all(nightly, feature = "std"))]
     {
         count += 1;

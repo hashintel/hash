@@ -158,10 +158,14 @@ fn frame_root<'a>(
         }
     }
 
-    if opaque == 1 {
-        groups.push(vec!["1 additional attachment".to_owned()]);
-    } else if opaque > 1 {
-        groups.push(vec![format!("{opaque} additional attachments")]);
+    match opaque {
+        0 => {}
+        1 => {
+            groups.push(vec!["1 additional attachment".to_owned()]);
+        }
+        n => {
+            groups.push(vec![format!("{n} additional attachments")]);
+        }
     }
 
     if let Some(group) = next {
@@ -201,19 +205,17 @@ fn frame_root<'a>(
                     } else {
                         format!("{SPACE}{line}")
                     }
+                } else if idx == 0 {
+                    format!("{ENTRY}{line}")
                 } else {
-                    if idx == 0 {
-                        format!("{ENTRY}{line}")
-                    } else {
-                        format!("{VERTICAL}{line}")
-                    }
+                    format!("{VERTICAL}{line}")
                 }
             })
         })
         .collect()
 }
 
-pub(crate) fn report<C>(report: &Report<C>) -> String {
+pub fn report<C>(report: &Report<C>) -> String {
     #[cfg(all(nightly, feature = "std"))]
     let mut bt = Vec::new();
     #[cfg(feature = "spantrace")]
@@ -306,7 +308,7 @@ mod tests {
         // and in total ~8 different configurations and outputs
         // we cannot easily integration test the output here.
         // Especially with the backtraces and spantraces which can get very large.
-        assert!(report.to_string().len() > 0);
+        assert!(!report.to_string().is_empty());
     }
 
     #[test]
@@ -317,7 +319,7 @@ mod tests {
             .change_context(ConfigError)
             .attach_printable("Level 3");
 
-        assert!(report.to_string().len() > 0)
+        assert!(!report.to_string().is_empty());
     }
 
     #[test]
@@ -328,6 +330,6 @@ mod tests {
         report.add_source(Report::new(ConfigError));
         report.add_source(Report::new(ConfigError));
 
-        assert!(report.to_string().len() > 0)
+        assert!(!report.to_string().is_empty());
     }
 }

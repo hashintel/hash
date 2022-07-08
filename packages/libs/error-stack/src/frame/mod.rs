@@ -26,7 +26,7 @@ use crate::{frame::attachment::AttachmentProvider, Context};
 pub struct Frame {
     erased_frame: NonNull<ErasableFrame>,
     location: &'static Location<'static>,
-    sources: Box<[Frame]>,
+    sources: Box<[Self]>,
     // NOTE: this marker has no consequences for variance, but is necessary for dropck to
     //   understand that we logically own a `T`. For details, see
     //   https://github.com/rust-lang/rfcs/blob/master/text/0769-sound-generic-drop.md#phantom-data
@@ -38,7 +38,7 @@ impl Frame {
     fn from_unerased<T>(
         object: T,
         location: &'static Location<'static>,
-        sources: Box<[Frame]>,
+        sources: Box<[Self]>,
         vtable: &'static VTable,
     ) -> Self {
         Self {
@@ -53,7 +53,7 @@ impl Frame {
     pub(crate) fn from_context<C>(
         context: C,
         location: &'static Location<'static>,
-        source: Box<[Frame]>,
+        source: Box<[Self]>,
     ) -> Self
     where
         C: Context,
@@ -65,7 +65,7 @@ impl Frame {
     pub(crate) fn from_attachment<A>(
         attachment: A,
         location: &'static Location<'static>,
-        source: Box<[Frame]>,
+        source: Box<[Self]>,
     ) -> Self
     where
         A: Send + Sync + 'static,
@@ -85,7 +85,7 @@ impl Frame {
     pub(crate) fn from_printable_attachment<A>(
         attachment: A,
         location: &'static Location<'static>,
-        source: Box<[Frame]>,
+        source: Box<[Self]>,
     ) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
@@ -137,7 +137,7 @@ impl Frame {
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub fn sources_mut(&mut self) -> &mut [Frame] {
+    pub fn sources_mut(&mut self) -> &mut [Self] {
         self.sources.as_mut()
     }
 
