@@ -5,12 +5,11 @@ pub mod schema;
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
-use utoipa::Component;
 use uuid::Uuid;
 
 use crate::types::schema::{DataType, PropertyType};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
 #[serde(transparent)]
 #[sqlx(transparent)]
 pub struct Uri(String);
