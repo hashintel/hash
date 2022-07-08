@@ -5,7 +5,14 @@ mod eyre;
 
 /// Compatibility trait to convert from external libraries to [`Report`].
 ///
+/// *Note*: Is't not possible to implement [`IntoReport`] or [`Context`] on other error libraries
+/// types as both traits have blanked implementation relying on [`Error`]. This means, that they
+/// *could* implement [`Error`] on their own.
+///
 /// [`Report`]: crate::Report
+/// [`IntoReport`]: crate::IntoReport
+/// [`Context`]: crate::Context
+/// [`Error`]: std::error::Error
 #[cfg(any(feature = "anyhow", feature = "eyre"))]
 pub trait IntoReportCompat: Sized {
     /// Type of the [`Ok`] value in the [`Result`]
