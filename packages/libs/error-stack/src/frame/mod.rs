@@ -38,14 +38,13 @@ impl Frame {
     fn from_unerased<T>(
         object: T,
         location: &'static Location<'static>,
-        source: Box<[Frame]>,
+        sources: Box<[Frame]>,
         vtable: &'static VTable,
     ) -> Self {
         Self {
             erased_frame: ErasableFrame::new(object, vtable),
             location,
-            sources: source,
-            source,
+            sources,
             _marker: PhantomData,
         }
     }

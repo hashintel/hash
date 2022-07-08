@@ -123,7 +123,7 @@ impl<'r> Iterator for FramesMut<'r> {
     type Item = &'r mut Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(frame) = self.current.pop() {
+        if let Some(mut frame) = self.current.pop() {
             // SAFETY: We require a mutable reference to `Report` to create `FramesMut` to get a
             // mutable reference to `Frame`.
             // The borrow checker is unable to prove that subsequent calls to `next()`
@@ -131,12 +131,14 @@ impl<'r> Iterator for FramesMut<'r> {
             // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
             unsafe {
                 self.current.extend(
-                   frame.as_mut()
+                    frame
+                        .as_mut()
                         .sources_mut()
                         .iter_mut()
                         .map(|frame| NonNull::from(frame))
                         .rev(),
                 );
+
                 Some(frame.as_mut())
             }
         } else {
