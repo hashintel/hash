@@ -4,7 +4,7 @@
 //! grouped router example
 
 mod api_resource;
-mod data_type;
+pub mod data_type;
 mod property_type;
 
 use axum::{routing::get, Extension, Json, Router};
