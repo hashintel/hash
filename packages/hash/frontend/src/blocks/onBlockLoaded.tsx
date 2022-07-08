@@ -1,4 +1,10 @@
-import { createContext, useCallback, useContext, useRef } from "react";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useRef,
+} from "react";
 import { getBlockDomId } from "./page/BlockView";
 
 type OnBlockLoadedFunction = (blockEntityId: string) => void;
@@ -6,7 +12,12 @@ type OnBlockLoadedFunction = (blockEntityId: string) => void;
 /** @private enforces use of custom provider */
 const BlockLoadedContext = createContext<OnBlockLoadedFunction | null>(null);
 
-export const BlockLoadedProvider: React.FC<{ routeHash: string }> = ({
+type BlockLoadedProviderProps = {
+  children?: ReactNode;
+  routeHash: string;
+};
+
+export const BlockLoadedProvider: React.FC<BlockLoadedProviderProps> = ({
   routeHash,
   children,
 }) => {
