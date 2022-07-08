@@ -17,14 +17,7 @@ impl<T> ErasableFrame<T> {
     /// Creates a new [`Frame`] from an unerased object.
     ///
     /// [`Frame`]: crate::Frame
-    ///
-    /// # Safety
-    ///
-    /// Must not be dropped without calling `vtable.object_drop`
-    pub(in crate::frame) unsafe fn new(
-        object: T,
-        vtable: &'static VTable,
-    ) -> NonNull<ErasableFrame> {
+    pub(in crate::frame) fn new(object: T, vtable: &'static VTable) -> NonNull<ErasableFrame> {
         let unerased_frame = Self {
             vtable,
             _unerased: object,
