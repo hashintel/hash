@@ -317,7 +317,7 @@ mod tests {
         let report = Report::new(ContextA);
         let report = report.change_context(ContextB);
 
-        let kinds_b = frame_kinds(&report).into_iter();
+        let mut kinds_b = frame_kinds(&report).into_iter();
         assert!(matches!(kinds_b.next(), Some(FrameKind::Context(_))));
 
         #[cfg(all(nightly, feature = "std"))]

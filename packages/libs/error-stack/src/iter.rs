@@ -1,9 +1,34 @@
 //! Iterators over [`Frame`]s.
 
 use alloc::vec::Vec;
-use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData, ptr::NonNull};
+use core::{
+    fmt,
+    fmt::Formatter,
+    iter::FusedIterator,
+    marker::PhantomData,
+    ptr::NonNull,
+    slice::{Iter, IterMut},
+};
+use std::iter::Map;
 
 use crate::{Frame, Report};
+
+fn next<T: Iterator<Item = U>, U>(iter: &mut Vec<T>) -> Option<U> {
+    let out;
+    loop {
+        let last = iter.last_mut()?;
+
+        if let Some(next) = last.next() {
+            out = next;
+            break;
+        } else {
+            // exhausted, therefore cannot be used anymore.
+            iter.pop();
+        }
+    }
+
+    Some(out)
+}
 
 /// Iterator over the [`Frame`] stack of a [`Report`].
 ///
@@ -21,26 +46,22 @@ use crate::{Frame, Report};
 /// 3  4  5  7
 /// ```
 ///
+/// TODO: our current implementation is unsound!
+///
 ///
 /// Use [`Report::frames()`] to create this iterator.
 #[must_use]
 #[derive(Clone)]
 pub struct Frames<'r> {
-    stack: Vec<&'r Frame>,
-
-    #[cfg(not(feature = "small"))]
-    source: Option<&'r Vec<Frame>>,
-    #[cfg(feature = "small")]
-    source: Option<&'r smallvec::SmallVec<[Frame; 1]>>,
+    stack: Vec<Iter<'r, Frame>>,
 }
 
 impl<'r> Frames<'r> {
-    pub(crate) const fn new<C>(report: &'r Report<C>) -> Self {
+    pub(crate) fn new<C>(report: &'r Report<C>) -> Self {
         // we cannot use .frames.iter().rev().collect() here, due to the const context
 
         Self {
-            stack: Vec::new(),
-            source: Some(&report.frames),
+            stack: vec![report.frames.iter()],
         }
     }
 }
@@ -61,30 +82,23 @@ impl<'r> Iterator for Frames<'r> {
     /// The algorithm will create the following through iteration:
     ///
     /// ```text
-    /// 1) Out: - Stack: GA
-    /// 2) Out: A Stack: GCB
-    /// 3) Out: B Stack: GCED
-    /// 4) Out: D Stack: GCE
-    /// 4) Out: E Stack: GC
-    /// 5) Out: C Stack: GF
-    /// 6) Out: F Stack: G
-    /// 7) Out: G Stack: H
-    /// 8) Out: H Stack: -
+    /// 1) Out: - Stack: [A, G]
+    /// 2) Out: A Stack: [G] [B, C]
+    /// 3) Out: B Stack: [G] [C] [D, E]
+    /// 4) Out: D Stack: [G] [C] [E]
+    /// 4) Out: E Stack: [G] [C]
+    /// 5) Out: C Stack: [G] [F]
+    /// 6) Out: F Stack: [G] [H]
+    /// 7) Out: H Stack: [H]
+    /// 8) Out: G Stack: -
     /// ```
     fn next(&mut self) -> Option<Self::Item> {
         // this delays the conversion from slice to Vec, we cannot do this in new, due to the fact
         // that Vec::push() is not const, nor are iter methods.
-        if let Some(source) = self.source.take() {
-            self.stack.extend(source.iter().rev());
-        }
 
-        if let Some(frame) = self.stack.pop() {
-            self.stack.extend(frame.sources().iter().rev());
-
-            Some(frame)
-        } else {
-            None
-        }
+        let frame = next(&mut self.stack)?;
+        self.stack.push(frame.sources().iter());
+        Some(frame)
     }
 }
 
@@ -101,14 +115,14 @@ impl fmt::Debug for Frames<'_> {
 /// Use [`Report::frames_mut()`] to create this iterator.
 #[must_use]
 pub struct FramesMut<'r> {
-    current: Vec<NonNull<Frame>>,
+    stack: Vec<Map<IterMut<'r, Frame>, fn(&mut Frame) -> NonNull<Frame>>>,
     _marker: PhantomData<&'r mut Frame>,
 }
 
 impl<'r> FramesMut<'r> {
     pub(crate) fn new<C>(report: &'r mut Report<C>) -> Self {
         Self {
-            current: report.frames.iter_mut().map(NonNull::from).rev().collect(),
+            stack: vec![report.frames.iter_mut().map(NonNull::from)],
             _marker: PhantomData,
         }
     }
@@ -118,26 +132,18 @@ impl<'r> Iterator for FramesMut<'r> {
     type Item = &'r mut Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(mut frame) = self.current.pop() {
-            // SAFETY: We require a mutable reference to `Report` to create `FramesMut` to get a
-            // mutable reference to `Frame`.
-            // The borrow checker is unable to prove that subsequent calls to `next()`
-            // won't access the same data.
-            // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
-            unsafe {
-                self.current.extend(
-                    frame
-                        .as_mut()
-                        .sources_mut()
-                        .iter_mut()
-                        .map(NonNull::from)
-                        .rev(),
-                );
+        let mut frame = next(&mut self.stack)?;
 
-                Some(frame.as_mut())
-            }
-        } else {
-            None
+        // SAFETY: We require a mutable reference to `Report` to create `FramesMut` to get a
+        // mutable reference to `Frame`.
+        // The borrow checker is unable to prove that subsequent calls to `next()`
+        // won't access the same data.
+        // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
+        unsafe {
+            self.stack
+                .push(frame.as_mut().sources_mut().iter_mut().map(NonNull::from));
+
+            Some(frame.as_mut())
         }
     }
 }
@@ -156,7 +162,7 @@ pub struct RequestRef<'r, T: ?Sized> {
 
 #[cfg(nightly)]
 impl<'r, T: ?Sized> RequestRef<'r, T> {
-    pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
+    pub(super) fn new<Context>(report: &'r Report<Context>) -> Self {
         Self {
             frames: report.frames(),
             _marker: PhantomData,
@@ -211,7 +217,7 @@ pub struct RequestValue<'r, T> {
 
 #[cfg(nightly)]
 impl<'r, T> RequestValue<'r, T> {
-    pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
+    pub(super) fn new<Context>(report: &'r Report<Context>) -> Self {
         Self {
             frames: report.frames(),
             _marker: PhantomData,
@@ -251,5 +257,66 @@ where
 {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{iter::zip, panic::Location};
+
+    use crate::{Frame, Report};
+
+    fn build() -> Report<()> {
+        let d = Frame::from_attachment('D', Location::caller(), Box::new([]));
+        let e = Frame::from_attachment('E', Location::caller(), Box::new([]));
+        let b = Frame::from_attachment('B', Location::caller(), Box::new([d, e]));
+        let f = Frame::from_attachment('F', Location::caller(), Box::new([]));
+        let c = Frame::from_attachment('C', Location::caller(), Box::new([f]));
+        let a = Frame::from_attachment('A', Location::caller(), Box::new([b, c]));
+        let h = Frame::from_attachment('H', Location::caller(), Box::new([]));
+        let g = Frame::from_attachment('G', Location::caller(), Box::new([h]));
+
+        let mut report: Report<()> = Report::from_frame(a);
+        report.frames.push(g);
+
+        report
+    }
+
+    /// Try to verify if the topological sorting is working, by trying to verify that
+    /// ```text
+    ///     A     G
+    ///    / \    |
+    ///   B   C   H
+    ///  / \  |
+    /// D   E F
+    /// ```
+    ///
+    /// results in `ABDECFGH`
+    #[test]
+    fn iter() {
+        let report = build();
+
+        for (frame, &letter) in zip(
+            report.frames(),
+            ['A', 'B', 'D', 'E', 'C', 'F', 'H', 'G'].iter(),
+        ) {
+            let lhs = *frame.downcast_ref::<char>().unwrap();
+
+            assert_eq!(lhs, letter);
+        }
+    }
+
+    #[test]
+    fn iter_mut() {
+        let mut report = build();
+
+        for (frame, &letter) in zip(
+            report.frames_mut(),
+            ['A', 'B', 'D', 'E', 'C', 'F', 'H', 'G'].iter(),
+        ) {
+            let lhs = *frame.downcast_ref::<char>().unwrap();
+
+            assert_eq!(lhs, letter);
+        }
     }
 }

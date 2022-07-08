@@ -459,7 +459,7 @@ impl<C> Report<C> {
     }
 
     /// Returns an iterator over the [`Frame`] stack of the report.
-    pub const fn frames(&self) -> Frames<'_> {
+    pub fn frames(&self) -> Frames<'_> {
         Frames::new(self)
     }
 
@@ -471,14 +471,14 @@ impl<C> Report<C> {
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
-    pub const fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
+    pub fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
         RequestRef::new(self)
     }
 
     /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
-    pub const fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
+    pub fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
         RequestValue::new(self)
     }
 
