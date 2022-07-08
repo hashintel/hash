@@ -6,7 +6,7 @@ mod vtable;
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::{self, Demand, Provider};
-use core::{fmt, mem, mem::ManuallyDrop, panic::Location, ptr::NonNull};
+use core::{fmt, marker::PhantomData, panic::Location, ptr::NonNull};
 
 pub use self::kind::{AttachmentKind, FrameKind};
 use self::{erasable::ErasableFrame, vtable::VTable};
@@ -24,9 +24,13 @@ use crate::{frame::attachment::AttachmentProvider, Context};
 /// [`Report::new()`]: crate::Report::new
 /// [`Report::request_ref()`]: crate::Report::request_ref
 pub struct Frame {
-    erased_frame: ManuallyDrop<Box<ErasableFrame>>,
+    erased_frame: NonNull<ErasableFrame>,
     location: &'static Location<'static>,
-    source: Option<Box<Frame>>,
+    source: Option<Box<Self>>,
+    // NOTE: this marker has no consequences for variance, but is necessary for dropck to
+    //   understand that we logically own a `T`. For details, see
+    //   https://github.com/rust-lang/rfcs/blob/master/text/0769-sound-generic-drop.md#phantom-data
+    _marker: PhantomData<ErasableFrame>,
 }
 
 impl Frame {
@@ -38,11 +42,10 @@ impl Frame {
         vtable: &'static VTable,
     ) -> Self {
         Self {
-            // SAFETY: `ErasableFrame` must not be dropped without using the vtable, so it's wrapped
-            //   in `ManuallyDrop`. A custom drop implementation is provided to takes care of this.
-            erased_frame: unsafe { ManuallyDrop::new(ErasableFrame::new(object, vtable)) },
+            erased_frame: ErasableFrame::new(object, vtable),
             location,
             source,
+            _marker: PhantomData,
         }
     }
 
@@ -95,6 +98,11 @@ impl Frame {
         )
     }
 
+    fn vtable(&self) -> &'static VTable {
+        // SAFETY: Use vtable to attach the frames' native vtable for the right original type.
+        unsafe { self.erased_frame.as_ref().vtable() }
+    }
+
     /// Returns the location where this `Frame` was created.
     #[must_use]
     pub const fn location(&self) -> &'static Location<'static> {
@@ -130,7 +138,7 @@ impl Frame {
     /// Returns how the `Frame` was created.
     #[must_use]
     pub fn kind(&self) -> FrameKind<'_> {
-        self.erased_frame.vtable().unerase(&self.erased_frame)
+        self.vtable().unerase(&self.erased_frame)
     }
 
     /// Requests the reference to `T` from the `Frame` if provided.
@@ -162,24 +170,25 @@ impl Frame {
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        self.erased_frame.vtable().downcast_ref(&self.erased_frame)
+        self.vtable().downcast_ref(self.erased_frame)
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
-        self.erased_frame
-            .vtable()
-            .downcast_mut(&mut self.erased_frame)
+        self.vtable().downcast_mut(self.erased_frame)
     }
 }
+
+// SAFETY: We own the data contained in Frame and the owned data is guaranteed to be `Send`
+unsafe impl Send for Frame {}
+// SAFETY: We own the data contained in Frame and the owned data is guaranteed to be `Sync`
+unsafe impl Sync for Frame {}
 
 #[cfg(nightly)]
 impl Provider for Frame {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        self.erased_frame
-            .vtable()
-            .provide(&self.erased_frame, demand);
+        self.vtable().provide(self.erased_frame, demand);
         demand.provide_value(|| self.location);
         if let Some(source) = &self.source {
             demand.provide_ref::<Self>(source);
@@ -208,13 +217,7 @@ impl fmt::Debug for Frame {
 
 impl Drop for Frame {
     fn drop(&mut self) {
-        // SAFETY: `inner` is not used after moving out.
-        let erased = unsafe { ManuallyDrop::take(&mut self.erased_frame) };
-
-        // Avoid aliasing by forgetting the `Box`
-        let ptr = NonNull::from(&*erased);
-        mem::forget(erased);
-        self.erased_frame.vtable().drop(ptr);
+        self.vtable().drop(self.erased_frame);
     }
 }
 
