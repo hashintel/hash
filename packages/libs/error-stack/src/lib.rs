@@ -406,6 +406,9 @@
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
 //!
+//! You can enable further size optimizations, by including [`smallvec`] in your dependencies and
+//! enabling the `union` feature. This will reduce the size of [`Report`] by one machine word.
+//!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
 //!
@@ -413,6 +416,7 @@
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`Display`]: std::fmt::Display
 //! [`SpanTrace`]: tracing_error::SpanTrace
+//! [`smallvec`]: https://docs.rs/smallvec/latest/smallvec/index.html
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
