@@ -14,7 +14,7 @@ use uuid::Uuid;
 use super::api_resource::RoutedResource;
 use crate::{
     datastore::{BaseIdAlreadyExists, BaseIdDoesNotExist, Datastore, QueryError},
-    types::{schema::DataType, AccountId, BaseId, Qualified, QualifiedDataType, VersionId},
+    types::{schema::DataType, AccountId, Qualified, QualifiedDataType, VersionId},
 };
 
 #[derive(OpenApi)]
@@ -25,7 +25,7 @@ use crate::{
         // get_data_type_many,
         update_data_type
     ),
-    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, BaseId, QualifiedDataType),
+    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, QualifiedDataType),
     tags(
         (name = "DataType", description = "Data Type management API")
     )

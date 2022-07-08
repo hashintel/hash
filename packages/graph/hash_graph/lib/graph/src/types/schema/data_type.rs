@@ -8,6 +8,7 @@ use crate::types::schema::Uri;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DataTypeReference {
+    // TODO: Test if the URI is an actual data type
     #[serde(rename = "$ref")]
     reference: Uri,
 }

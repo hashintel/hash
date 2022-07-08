@@ -12,6 +12,7 @@ use crate::types::schema::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PropertyTypeReference {
+    // TODO: Test if the URI is an actual property type
     #[serde(rename = "$ref")]
     reference: Uri,
 }
@@ -33,6 +34,7 @@ impl PropertyTypeReference {
 #[serde(untagged)]
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
+    // TODO: Check if `Objcet::properties` matches the URI specified in `PropertyTypeReference`
     PropertyTypeObject(Object<ValueOrArray<PropertyTypeReference>, 1>),
     ArrayOfPropertyValues(Itemized<Array, OneOf<Self>>),
 }
