@@ -78,7 +78,18 @@
 //!     # }; Ok(content)
 //! }
 //! # let report = read_file("test.txt").unwrap_err();
-//! # assert_eq!(report.frames().count(), 1);
+//! #
+//! # #[allow(unused_mut)]
+//! # let mut count = 1;
+//! # #[cfg(all(nightly, feature = "std"))]
+//! # {
+//! #   count += 1;
+//! # }
+//! # #[cfg(feature = "spantrace")]
+//! # {
+//! #   count += 1;
+//! # }
+//! # assert_eq!(report.frames().count(), count);
 //! # assert!(report.contains::<io::Error>());
 //! # }
 //! ```
@@ -129,7 +140,18 @@
 //!     # }; Ok(content)
 //! }
 //! # let report = parse_config("test.txt").unwrap_err();
-//! # assert_eq!(report.frames().count(), 2);
+//! #
+//! # #[allow(unused_mut)]
+//! # let mut count = 2;
+//! # #[cfg(all(nightly, feature = "std"))]
+//! # {
+//! #   count += 1;
+//! # }
+//! # #[cfg(feature = "spantrace")]
+//! # {
+//! #   count += 1;
+//! # }
+//! # assert_eq!(report.frames().count(), count);
 //! # assert!(report.contains::<io::Error>());
 //! # assert!(report.contains::<ParseConfigError>());
 //! # }
@@ -171,7 +193,18 @@
 //!     Ok(content)
 //! }
 //! # let report = parse_config("test.txt").unwrap_err();
-//! # assert_eq!(report.frames().count(), 4);
+//! #
+//! # #[allow(unused_mut)]
+//! # let mut count = 4;
+//! # #[cfg(all(nightly, feature = "std"))]
+//! # {
+//! #   count += 1;
+//! # }
+//! # #[cfg(feature = "spantrace")]
+//! # {
+//! #   count += 1;
+//! # }
+//! # assert_eq!(report.frames().count(), count);
 //! # assert!(report.contains::<std::io::Error>());
 //! # assert_eq!(report.downcast_ref::<Suggestion>().unwrap(), &Suggestion("Use a file you can read next time!"));
 //! # #[cfg(nightly)]

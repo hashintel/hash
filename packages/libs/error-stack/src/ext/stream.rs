@@ -317,7 +317,7 @@ mod simple_functionality_tests {
     fn can_attach_to_stream() {
         use futures::{executor::block_on, StreamExt};
 
-        use crate::test_helper::messages;
+        use crate::test_helper::*;
 
         block_on(async {
             let items = vec![
@@ -343,7 +343,7 @@ mod simple_functionality_tests {
 
             while let Some(next) = stream.next().await {
                 if let Err(e) = next {
-                    assert_eq!(messages(&e), vec!["Opaque", "UhOhError"]);
+                    assert_eq!(messages(&e), expect_messages(&["Opaque", "UhOhError"]));
                 }
             }
         });

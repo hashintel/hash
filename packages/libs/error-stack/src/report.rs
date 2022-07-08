@@ -77,7 +77,18 @@ use crate::{
 /// # const _: &str = stringify! {
 /// ...
 /// # }; Ok(content) }
-/// # assert_eq!(fake_main().unwrap_err().frames().count(), 2);
+/// #
+/// # #[allow(unused_mut)]
+/// # let mut count = 2;
+/// # #[cfg(all(nightly, feature = "std"))]
+/// # {
+/// #   count += 1;
+/// # }
+/// # #[cfg(feature = "spantrace")]
+/// # {
+/// #   count += 1;
+/// # }
+/// # assert_eq!(fake_main().unwrap_err().frames().count(), count);
 /// # }
 /// ```
 ///
@@ -148,7 +159,17 @@ use crate::{
 ///     # };
 ///     # Ok(()) }
 ///     # let err = fake_main().unwrap_err();
-///     # assert_eq!(err.frames().count(), 3);
+///     # #[allow(unused_mut)]
+///     # let mut count = 3;
+///     # #[cfg(all(nightly, feature = "std"))]
+///     # {
+///     #   count += 1;
+///     # }
+///     # #[cfg(feature = "spantrace")]
+///     # {
+///     #   count += 1;
+///     # }
+///     # assert_eq!(err.frames().count(), count);
 ///     # assert!(err.contains::<ConfigError>());
 ///     # assert_eq!(err.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
 ///     # Ok(())
@@ -245,12 +266,17 @@ impl<C> Report<C> {
     /// };
     ///
     /// use error_stack::{Context, Report};
+    /// # #[cfg(all(not(miri), feature = "std"))]
+    /// use error_stack::{IntoReport, ResultExt};
     ///
     /// #[derive(Debug)]
     /// struct IoError;
     ///
     /// impl Display for IoError {
     ///     # fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    ///     #     const _: &str = stringify!(
+    ///             ...
+    ///     #     );
     ///     #     f.write_str("Io Error")
     ///     # }
     /// }
@@ -274,11 +300,17 @@ impl<C> Report<C> {
     /// error1.add_source(error2);
     /// error3.add_source(error1);
     ///
-    /// # assert_eq!(error3.sources().len(), 3);
+    /// # #[allow(unused_mut)]
+    /// # let mut count = 6;
     /// # #[cfg(all(nightly, feature = "std"))]
-    /// # assert_eq!(error3.frames().count(), 9);
-    /// # #[cfg(not(feature = "std"))]
-    /// # assert_eq!(error3.frames().count(), 6);
+    /// # {
+    /// #   count += 3;
+    /// # }
+    /// # #[cfg(feature = "spantrace")]
+    /// # {
+    /// #   count += 3;
+    /// # }
+    /// # assert_eq!(error3.frames().count(), count);
     ///
     /// // ^ This is equivalent to:
     /// // error3.add_source(error1);

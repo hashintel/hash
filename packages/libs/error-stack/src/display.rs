@@ -63,7 +63,7 @@ fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -
         }
 
         let mut span = 0;
-        span_trace.with_spans(|metadata, fields| {
+        span_trace.with_spans(|_, _| {
             span += 1;
             true
         });
