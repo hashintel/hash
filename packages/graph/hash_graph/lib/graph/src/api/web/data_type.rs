@@ -64,7 +64,7 @@ struct CreateDataTypeRequest {
     responses(
       (status = 201, content_type = "application/json", description = "Data type created successfully", body = QualifiedDataType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
-      
+
       (status = 409, description = "Unable to create data type in the datastore as the base data type ID already exists"),
       (status = 500, description = "Datastore error occurred"),
     ),
@@ -74,10 +74,12 @@ async fn create_data_type<D: Datastore>(
     Json(body): Json<CreateDataTypeRequest>,
     Extension(datastore): Extension<D>,
 ) -> Result<Json<Qualified<DataType>>, StatusCode> {
-    datastore.clone().create_data_type(body.schema, body.account_id)
-            .await
-            .map_err(modify_report_to_status_code)
-            .map(Json)
+    datastore
+        .clone()
+        .create_data_type(body.schema, body.account_id)
+        .await
+        .map_err(modify_report_to_status_code)
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -99,10 +101,11 @@ async fn get_data_type<D: Datastore>(
     Path(version_id): Path<Uuid>,
     Extension(datastore): Extension<D>,
 ) -> Result<Json<Qualified<DataType>>, impl IntoResponse> {
-    datastore.get_data_type(VersionId::new(version_id))
-            .await
-            .map_err(query_report_to_status_code)
-            .map(Json)
+    datastore
+        .get_data_type(VersionId::new(version_id))
+        .await
+        .map_err(query_report_to_status_code)
+        .map(Json)
 }
 
 // async fn get_data_type_many() -> Result<String, StatusCode> {
@@ -133,8 +136,10 @@ async fn update_data_type<D: Datastore>(
     Json(body): Json<UpdateDataTypeRequest>,
     Extension(datastore): Extension<D>,
 ) -> Result<Json<Qualified<DataType>>, StatusCode> {
-    datastore.clone().update_data_type(body.schema, body.created_by)
-            .await
-            .map_err(modify_report_to_status_code)
-            .map(Json)
+    datastore
+        .clone()
+        .update_data_type(body.schema, body.created_by)
+        .await
+        .map_err(modify_report_to_status_code)
+        .map(Json)
 }
