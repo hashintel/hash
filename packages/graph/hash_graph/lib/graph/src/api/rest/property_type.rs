@@ -68,9 +68,12 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
 )]
 async fn create_property_type<D: Datastore>(
-    Json(body): Json<CreatePropertyTypeRequest>,
-    Extension(datastore): Extension<D>,
+    body: Json<CreatePropertyTypeRequest>,
+    datastore: Extension<D>,
 ) -> Result<Json<Qualified<PropertyType>>, StatusCode> {
+    let Json(body) = body;
+    let Extension(datastore) = datastore;
+
     datastore
         .clone()
         .create_property_type(body.schema, body.account_id)
@@ -102,9 +105,12 @@ async fn create_property_type<D: Datastore>(
     )
 )]
 async fn get_property_type<D: Datastore>(
-    Path(version_id): Path<Uuid>,
-    Extension(datastore): Extension<D>,
+    version_id: Path<Uuid>,
+    datastore: Extension<D>,
 ) -> Result<Json<Qualified<PropertyType>>, impl IntoResponse> {
+    let Path(version_id) = version_id;
+    let Extension(datastore) = datastore;
+
     datastore
         .get_property_type(VersionId::new(version_id))
         .await
@@ -144,9 +150,12 @@ struct UpdatePropertyTypeRequest {
     request_body = UpdatePropertyTypeRequest,
 )]
 async fn update_property_type<D: Datastore>(
-    Json(body): Json<UpdatePropertyTypeRequest>,
-    Extension(datastore): Extension<D>,
+    body: Json<UpdatePropertyTypeRequest>,
+    datastore: Extension<D>,
 ) -> Result<Json<Qualified<PropertyType>>, StatusCode> {
+    let Json(body) = body;
+    let Extension(datastore) = datastore;
+
     datastore
         .clone()
         .update_property_type(body.schema, body.created_by)

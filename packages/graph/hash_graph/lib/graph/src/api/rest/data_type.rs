@@ -68,9 +68,12 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
 )]
 async fn create_data_type<D: Datastore>(
-    Json(body): Json<CreateDataTypeRequest>,
-    Extension(datastore): Extension<D>,
+    body: Json<CreateDataTypeRequest>,
+    datastore: Extension<D>,
 ) -> Result<Json<Qualified<DataType>>, StatusCode> {
+    let Json(body) = body;
+    let Extension(datastore) = datastore;
+
     datastore
         .clone()
         .create_data_type(body.schema, body.account_id)
@@ -102,9 +105,12 @@ async fn create_data_type<D: Datastore>(
     )
 )]
 async fn get_data_type<D: Datastore>(
-    Path(version_id): Path<Uuid>,
-    Extension(datastore): Extension<D>,
+    version_id: Path<Uuid>,
+    datastore: Extension<D>,
 ) -> Result<Json<Qualified<DataType>>, impl IntoResponse> {
+    let Path(version_id) = version_id;
+    let Extension(datastore) = datastore;
+
     datastore
         .get_data_type(VersionId::new(version_id))
         .await
@@ -144,9 +150,12 @@ struct UpdateDataTypeRequest {
     request_body = UpdateDataTypeRequest,
 )]
 async fn update_data_type<D: Datastore>(
-    Json(body): Json<UpdateDataTypeRequest>,
-    Extension(datastore): Extension<D>,
+    body: Json<UpdateDataTypeRequest>,
+    datastore: Extension<D>,
 ) -> Result<Json<Qualified<DataType>>, StatusCode> {
+    let Json(body) = body;
+    let Extension(datastore) = datastore;
+
     datastore
         .clone()
         .update_data_type(body.schema, body.created_by)
