@@ -296,20 +296,16 @@ mod tests {
         ));
 
         #[cfg(all(nightly, feature = "std"))]
-        {
-            assert!(matches!(
-                kinds_a.next(),
-                Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
-            ));
-        }
+        assert!(matches!(
+            kinds_a.next(),
+            Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
+        ));
 
         #[cfg(feature = "spantrace")]
-        {
-            assert!(matches!(
-                kinds_a.next(),
-                Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
-            ));
-        }
+        assert!(matches!(
+            kinds_a.next(),
+            Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
+        ));
 
         assert!(matches!(kinds_a.next(), Some(FrameKind::Context(_))));
 
@@ -321,9 +317,22 @@ mod tests {
         let report = Report::new(ContextA);
         let report = report.change_context(ContextB);
 
-        let kinds_b = frame_kinds(&report);
-        assert!(matches!(kinds_b[0], FrameKind::Context(_)));
-        assert!(matches!(kinds_b[1], FrameKind::Context(_)));
+        let kinds_b = frame_kinds(&report).into_iter();
+        assert!(matches!(kinds_b.next(), Some(FrameKind::Context(_))));
+
+        #[cfg(all(nightly, feature = "std"))]
+        assert!(matches!(
+            kinds_b.next(),
+            Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
+        ));
+
+        #[cfg(feature = "spantrace")]
+        assert!(matches!(
+            kinds_b.next(),
+            Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
+        ));
+
+        assert!(matches!(kinds_b.next(), Some(FrameKind::Context(_))));
         assert_eq!(
             messages(&report),
             expect_messages(&["Context B", "Context A"])
