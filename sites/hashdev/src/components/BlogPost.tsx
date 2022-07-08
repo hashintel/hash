@@ -2,7 +2,7 @@ import { Container, Stack, Typography } from "@mui/material";
 import { Box, TypographyProps } from "@mui/system";
 import Head from "next/head";
 import Image from "next/image";
-import { createContext, FC, useContext, VFC } from "react";
+import React, { createContext, FC, ReactNode, useContext, VFC } from "react";
 import { format } from "date-fns";
 import { FRONTEND_URL } from "../config";
 import { Link } from "./Link";
@@ -33,7 +33,12 @@ export const useBlogPostPhotos = () => {
   return context;
 };
 
-export const BlogPostAuthor: FC<TypographyProps & { small?: boolean }> = ({
+export type BlogPostAuthorProps = TypographyProps & {
+  children?: ReactNode;
+  small?: boolean;
+};
+
+export const BlogPostAuthor: FC<BlogPostAuthorProps> = ({
   children,
   small = false,
   ...props
@@ -238,7 +243,7 @@ export const BlogPostHead: VFC<{
   );
 };
 
-export const BlogPostContent: FC = ({ children }) => (
+export const BlogPostContent: FC<{ children?: ReactNode }> = ({ children }) => (
   <Container>
     <Box
       sx={{
