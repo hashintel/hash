@@ -9,63 +9,152 @@ use std::any::TypeId;
 pub use self::kind::{AttachmentKind, FrameKind};
 use crate::Context;
 
-trait FrameImpl: Any {
+/// Internal representation of a [`Frame`].
+///
+/// # Safety
+///
+/// - It must be allowed to cast from `*dyn FrameImpl` to `*T` if `type_id() == TypeId::of::<T>()`.
+///   This is the case if [`type_id`] returns `TypeId::of::<T>()` and
+///     - `T` is `Self`,
+///     - `T` is the inner struct on `#[repr(transparent]`, or
+///     - `T` is the first struct on `#[repr(C)]`.
+///
+/// [`type_id`]: Self::type_id
+unsafe trait FrameImpl: Any {
     fn kind(&self) -> FrameKind<'_>;
 
+    /// Returns the [`TypeId`] of this `Frame`.
+    ///
+    /// It's guaranteed, that `*dyn FrameImpl` can be cast to a pointer to the type returned by
+    /// `type_id`.  
     fn type_id(&self) -> TypeId;
 
+    /// Returns the location where this `Frame` was created.
+    fn location(&self) -> &'static Location<'static>;
+
+    /// Returns a shared reference to the source of this `Frame`.
+    ///
+    /// This corresponds to the `Frame` below this one in a [`Report`].
+    ///
+    /// [`Report`]: crate::Report
+    fn source(&self) -> Option<&Frame>;
+
+    /// Returns a mutable reference to the source of this `Frame`.
+    ///
+    /// This corresponds to the `Frame` below this one in a [`Report`].
+    ///
+    /// [`Report`]: crate::Report
+    fn source_mut(&mut self) -> Option<&mut Frame>;
+
+    /// Provide values which can then be requested.
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>);
 }
 
-impl<C: Context> FrameImpl for C {
+#[repr(C)]
+struct ContextFrame<C> {
+    context: C,
+    location: &'static Location<'static>,
+    source: Option<Box<Frame>>,
+}
+
+// SAFETY: `type_id` returns `C` and `C` is the first field in `#[repr(C)]`
+unsafe impl<C: Context> FrameImpl for ContextFrame<C> {
     fn kind(&self) -> FrameKind<'_> {
-        FrameKind::Context(self)
+        FrameKind::Context(&self.context)
     }
 
     fn type_id(&self) -> TypeId {
         TypeId::of::<C>()
     }
 
+    fn location(&self) -> &'static Location<'static> {
+        self.location
+    }
+
+    fn source(&self) -> Option<&Frame> {
+        self.source.as_ref().map(Box::as_ref)
+    }
+
+    fn source_mut(&mut self) -> Option<&mut Frame> {
+        self.source.as_mut().map(Box::as_mut)
+    }
+
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        Context::provide(self, demand);
+        Context::provide(&self.context, demand);
     }
 }
 
-#[repr(transparent)]
-pub(in crate::frame) struct AttachmentFrame<A>(pub A);
-impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
+#[repr(C)]
+struct AttachmentFrame<A> {
+    attachment: A,
+    location: &'static Location<'static>,
+    source: Option<Box<Frame>>,
+}
+
+// SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
+unsafe impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
     fn kind(&self) -> FrameKind<'_> {
-        FrameKind::Attachment(AttachmentKind::Opaque(&self.0))
+        FrameKind::Attachment(AttachmentKind::Opaque(&self.attachment))
     }
 
     fn type_id(&self) -> TypeId {
         TypeId::of::<A>()
     }
 
+    fn location(&self) -> &'static Location<'static> {
+        self.location
+    }
+
+    fn source(&self) -> Option<&Frame> {
+        self.source.as_ref().map(Box::as_ref)
+    }
+
+    fn source_mut(&mut self) -> Option<&mut Frame> {
+        self.source.as_mut().map(Box::as_mut)
+    }
+
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        demand.provide_ref(&self.0);
+        demand.provide_ref(&self.attachment);
     }
 }
 
-#[repr(transparent)]
-pub(in crate::frame) struct PrintableAttachmentFrame<A>(pub A);
-impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
+#[repr(C)]
+struct PrintableAttachmentFrame<A> {
+    attachment: A,
+    location: &'static Location<'static>,
+    source: Option<Box<Frame>>,
+}
+
+// SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
+unsafe impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
     for PrintableAttachmentFrame<A>
 {
     fn kind(&self) -> FrameKind<'_> {
-        FrameKind::Attachment(AttachmentKind::Printable(&self.0))
+        FrameKind::Attachment(AttachmentKind::Printable(&self.attachment))
     }
 
     fn type_id(&self) -> TypeId {
         TypeId::of::<A>()
     }
 
+    fn location(&self) -> &'static Location<'static> {
+        self.location
+    }
+
+    fn source(&self) -> Option<&Frame> {
+        self.source.as_ref().map(Box::as_ref)
+    }
+
+    fn source_mut(&mut self) -> Option<&mut Frame> {
+        self.source.as_mut().map(Box::as_mut)
+    }
+
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        demand.provide_ref(&self.0);
+        demand.provide_ref(&self.attachment);
     }
 }
 
@@ -82,8 +171,6 @@ impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
 /// [`Report::request_ref()`]: crate::Report::request_ref
 pub struct Frame {
     frame: Box<dyn FrameImpl>,
-    source: Option<Box<Self>>,
-    location: &'static Location<'static>,
 }
 
 impl Frame {
@@ -97,9 +184,11 @@ impl Frame {
         C: Context,
     {
         Self {
-            frame: Box::new(context),
-            source,
-            location,
+            frame: Box::new(ContextFrame {
+                context,
+                location,
+                source,
+            }),
         }
     }
 
@@ -113,9 +202,11 @@ impl Frame {
         A: Send + Sync + 'static,
     {
         Self {
-            frame: Box::new(AttachmentFrame(attachment)),
-            source,
-            location,
+            frame: Box::new(AttachmentFrame {
+                attachment,
+                location,
+                source,
+            }),
         }
     }
 
@@ -132,16 +223,18 @@ impl Frame {
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self {
-            frame: Box::new(PrintableAttachmentFrame(attachment)),
-            source,
-            location,
+            frame: Box::new(PrintableAttachmentFrame {
+                attachment,
+                location,
+                source,
+            }),
         }
     }
 
     /// Returns the location where this `Frame` was created.
     #[must_use]
-    pub const fn location(&self) -> &'static Location<'static> {
-        self.location
+    pub fn location(&self) -> &'static Location<'static> {
+        self.frame.location()
     }
 
     /// Returns a shared reference to the source of this `Frame`.
@@ -150,14 +243,8 @@ impl Frame {
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub const fn source(&self) -> Option<&Self> {
-        // TODO: Change to `self.source.as_ref().map(Box::as_ref)` when this is possible in a const
-        //   function. On stable toolchain, clippy is not smart enough yet.
-        #[cfg_attr(not(nightly), allow(clippy::needless_match))]
-        match &self.source {
-            Some(source) => Some(source),
-            None => None,
-        }
+    pub fn source(&self) -> Option<&Self> {
+        self.frame.source()
     }
 
     /// Returns a mutable reference to the source of this `Frame`.
@@ -167,7 +254,7 @@ impl Frame {
     /// [`Report`]: crate::Report
     #[must_use]
     pub fn source_mut(&mut self) -> Option<&mut Self> {
-        self.source.as_mut().map(Box::as_mut)
+        self.frame.source_mut()
     }
 
     /// Returns how the `Frame` was created.
@@ -235,7 +322,7 @@ impl Provider for Frame {
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = fmt.debug_struct("Frame");
-        debug.field("location", &self.location);
+        debug.field("location", self.location());
         match self.kind() {
             FrameKind::Context(context) => {
                 debug.field("context", &context);
