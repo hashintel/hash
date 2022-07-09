@@ -56,7 +56,7 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .then(Backtrace::capture);
 
                 let mut report = Report::from_frame(
-                    Frame::from_context::<EyreContext>(EyreContext(eyre), Location::caller(), None),
+                    Frame::from_context(EyreContext(eyre), Location::caller(), None),
                     #[cfg(all(nightly, feature = "std"))]
                     backtrace,
                     #[cfg(feature = "spantrace")]
