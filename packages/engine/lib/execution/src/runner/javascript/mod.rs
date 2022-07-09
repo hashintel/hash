@@ -29,7 +29,7 @@ use arrow::{
 use futures::{Future, FutureExt};
 use memory::{
     arrow::{ArrowBatch, ColumnChange},
-    shared_memory::{arrow_continuation, Metaversion, Segment},
+    shared_memory::{arrow_continuation, Segment},
 };
 use stateful::{
     agent::AgentBatch,
@@ -455,15 +455,12 @@ fn mem_batch_to_js<'s>(
     scope: &mut v8::HandleScope<'s>,
     batch_id: &str,
     mem: Object<'s>,
-    persisted: Metaversion,
 ) -> Result<Value<'s>> {
     let batch = v8::Object::new(scope);
     let batch_id = new_js_string(scope, batch_id);
 
     let id_field = new_js_string(scope, "id");
     let mem_field = new_js_string(scope, "mem");
-    let mem_version_field = new_js_string(scope, "mem_version");
-    let batch_version_field = new_js_string(scope, "batch_version");
 
     batch
         .set(scope, id_field.into(), batch_id.into())
@@ -471,23 +468,11 @@ fn mem_batch_to_js<'s>(
     batch
         .set(scope, mem_field.into(), mem.into())
         .ok_or_else(|| Error::V8("Could not set mem field on batch".to_string()))?;
-    let js_memory = v8::Number::new(scope, persisted.memory() as f64);
-    batch
-        .set(scope, mem_version_field.into(), js_memory.into())
-        .ok_or_else(|| Error::V8("Could not set mem_version field on batch".to_string()))?;
-    let js_batch = v8::Number::new(scope, persisted.batch() as f64);
-    batch
-        .set(scope, batch_version_field.into(), js_batch.into())
-        .ok_or_else(|| Error::V8("Could not set batch_version field on batch".to_string()))?;
 
     Ok(batch.into())
 }
 
-fn batch_to_js<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    segment: &Segment,
-    persisted: Metaversion,
-) -> Result<Value<'s>> {
+fn batch_to_js<'s>(scope: &mut v8::HandleScope<'s>, segment: &Segment) -> Result<Value<'s>> {
     // The memory is owned by the shared memory, we don't want JS or Rust to try to de-allocate it
     unsafe extern "C" fn no_op(_: *mut std::ffi::c_void, _: usize, _: *mut std::ffi::c_void) {}
 
@@ -510,7 +495,7 @@ fn batch_to_js<'s>(
     let array_buffer = v8::ArrayBuffer::with_backing_store(scope, &backing_store.make_shared());
 
     let batch_id = segment.id();
-    mem_batch_to_js(scope, batch_id, array_buffer.into(), persisted)
+    mem_batch_to_js(scope, batch_id, array_buffer.into())
 }
 
 fn state_to_js<'s, 'a>(
@@ -526,11 +511,7 @@ fn state_to_js<'s, 'a>(
         .zip(message_batches.by_ref())
         .enumerate()
     {
-        let agent_batch = batch_to_js(
-            scope,
-            agent_batch.batch.segment(),
-            agent_batch.batch.segment().read_persisted_metaversion(),
-        )?;
+        let agent_batch = batch_to_js(scope, agent_batch.batch.segment())?;
         js_agent_batches
             .set_index(scope, i_batch as u32, agent_batch)
             .ok_or_else(|| {
@@ -539,11 +520,7 @@ fn state_to_js<'s, 'a>(
                 ))
             })?;
 
-        let message_batch = batch_to_js(
-            scope,
-            message_batch.batch.segment(),
-            message_batch.batch.segment().read_persisted_metaversion(),
-        )?;
+        let message_batch = batch_to_js(scope, message_batch.batch.segment())?;
         js_message_batches
             .set_index(scope, i_batch as u32, message_batch)
             .ok_or_else(|| {
@@ -1643,11 +1620,7 @@ impl<'s> ThreadLocalRunner<'s> {
         } = ctx_batch_sync;
 
         let js_sim_id = sim_id_to_js(scope, sim_run_id);
-        let js_batch_id = batch_to_js(
-            scope,
-            context_batch.segment(),
-            context_batch.segment().read_persisted_metaversion(),
-        )?;
+        let js_batch_id = batch_to_js(scope, context_batch.segment())?;
         let js_idxs = new_js_array_from_usizes(scope, &state_group_start_indices)?;
         let js_current_step = current_step_to_js(scope, current_step);
         call_js_function(scope, self.embedded.ctx_batch_sync, self.this, &[
