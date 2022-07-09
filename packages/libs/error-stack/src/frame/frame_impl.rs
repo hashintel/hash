@@ -1,6 +1,8 @@
 use alloc::boxed::Box;
+#[cfg(nightly)]
+use core::any::Demand;
 use core::{
-    any::{Demand, TypeId},
+    any::TypeId,
     fmt::{Debug, Display},
     panic::Location,
 };
