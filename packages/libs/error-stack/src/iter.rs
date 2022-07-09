@@ -6,10 +6,8 @@ use core::{
     fmt::Formatter,
     iter::FusedIterator,
     marker::PhantomData,
-    ptr::NonNull,
     slice::{Iter, IterMut},
 };
-use std::iter::Map;
 
 use crate::{Frame, Report};
 
@@ -113,14 +111,14 @@ impl fmt::Debug for Frames<'_> {
 /// Use [`Report::frames_mut()`] to create this iterator.
 #[must_use]
 pub struct FramesMut<'r> {
-    stack: Vec<Map<IterMut<'r, Frame>, fn(&mut Frame) -> NonNull<Frame>>>,
+    stack: Vec<IterMut<'r, Frame>>,
     _marker: PhantomData<&'r mut Frame>,
 }
 
 impl<'r> FramesMut<'r> {
     pub(crate) fn new<C>(report: &'r mut Report<C>) -> Self {
         Self {
-            stack: vec![report.frames.iter_mut().map(NonNull::from)],
+            stack: vec![report.frames.iter_mut()],
             _marker: PhantomData,
         }
     }
@@ -130,7 +128,7 @@ impl<'r> Iterator for FramesMut<'r> {
     type Item = &'r mut Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut frame = next(&mut self.stack)?;
+        let frame: *mut Frame = next(&mut self.stack)?;
 
         // SAFETY: We require a mutable reference to `Report` to create `FramesMut` to get a
         // mutable reference to `Frame`.
@@ -138,10 +136,9 @@ impl<'r> Iterator for FramesMut<'r> {
         // won't access the same data.
         // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
         unsafe {
-            self.stack
-                .push(frame.as_mut().sources_mut().iter_mut().map(NonNull::from));
+            self.stack.push((&mut *frame).sources_mut().iter_mut());
 
-            Some(frame.as_mut())
+            Some(&mut *frame)
         }
     }
 }
