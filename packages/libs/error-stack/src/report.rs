@@ -41,12 +41,15 @@ use crate::{
 /// ## `Backtrace` and `SpanTrace`
 ///
 /// `Report` is able to [`provide`] a [`Backtrace`] and a [`SpanTrace`], which can be retrieved by
-/// calling [`backtrace()`] or [`span_trace()`] respectively. If the root context [`provide`]s a
-/// [`Backtrace`] or a [`SpanTrace`], those are returned, otherwise, if configured, an attempt is
-/// made to capture them when creating a `Report`. To enable capturing of the backtrace, make sure
-/// `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to the
+/// calling [`request_ref::<Backtrace>()`] or [`request_ref::<SpanTrance>()`] respectively. If the
+/// root context [`provide`]s a [`Backtrace`] or a [`SpanTrace`], those are returned, otherwise, if
+/// configured, an attempt is made to capture them when creating a `Report`. To enable capturing of
+/// the backtrace, make sure `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to the
 /// [`Backtrace` documentation][`Backtrace`]. To enable capturing of the span trace, an
 /// [`ErrorLayer`] has to be enabled. Please also see the [Feature Flags] section.
+/// A single `Report` can have multiple [`Backtrace`]s and [`SpanTrace`]s, depending on the amount
+/// of related errors the `Report` consists of. Therefore it isn't guaranteed that [`request_ref()`]
+/// will only ever return a single [`Backtrace`] or [`SpanTrace`].
 ///
 /// [`provide`]: core::any::Provider::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
@@ -57,8 +60,8 @@ use crate::{
 /// [`change_context()`]: Self::change_context
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
-/// [`backtrace()`]: Self::backtrace
-/// [`span_trace()`]: Self::span_trace
+/// [`request_ref::<Backtrace>()`]: Self::request_ref
+/// [`request_ref::<SpanTrace>()`]: Self::request_ref
 /// [Feature Flags]: index.html#feature-flags
 ///
 /// # Examples
@@ -177,6 +180,10 @@ use crate::{
 ///     # Ok(())
 /// }
 /// ```
+///
+/// Get the attached backtrace and spantrace:
+///
+/// TODO
 #[must_use]
 #[repr(transparent)]
 pub struct Report<C> {
@@ -408,45 +415,6 @@ impl<C> Report<C> {
             Location::caller(),
             self.frames.into_boxed_slice(),
         ))
-    }
-
-    /// Returns the backtrace of the error, if captured.
-    ///
-    /// Note, that `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` has to be set to enable backtraces.
-    ///
-    /// [`ReportBackTrace`]: crate::tags::ReportBackTrace
-    #[must_use]
-    #[cfg(all(nightly, feature = "std"))]
-    pub fn backtrace(&self) -> Option<&Backtrace> {
-        let backtrace = self.request_ref::<Backtrace>().next()?;
-
-        if backtrace.status() == BacktraceStatus::Captured {
-            Some(backtrace)
-        } else {
-            None
-        }
-    }
-
-    /// Returns the span trace of the error, if captured.
-    ///
-    /// Note, that [`ErrorLayer`] has to be enabled to enable span traces.
-    ///
-    /// [`ReportSpanTrace`]: crate::tags::ReportSpanTrace
-    /// [`ErrorLayer`]: tracing_error::ErrorLayer
-    #[must_use]
-    #[cfg(feature = "spantrace")]
-    pub fn span_trace(&self) -> Option<&SpanTrace> {
-        #[cfg(not(nightly))]
-        let span_trace = self.downcast_ref::<SpanTrace>()?;
-
-        #[cfg(nightly)]
-        let span_trace = self.request_ref::<SpanTrace>().next()?;
-
-        if span_trace.status() == SpanTraceStatus::CAPTURED {
-            Some(span_trace)
-        } else {
-            None
-        }
     }
 
     /// Return the direct source frames of this report,
