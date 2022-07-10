@@ -395,8 +395,6 @@ mod context;
 mod ext;
 #[cfg(feature = "hooks")]
 mod hook;
-#[cfg(test)]
-pub(crate) mod test_helper;
 
 #[cfg(any(feature = "anyhow", feature = "eyre"))]
 pub use self::compat::IntoReportCompat;
