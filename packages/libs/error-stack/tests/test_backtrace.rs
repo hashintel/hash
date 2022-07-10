@@ -21,17 +21,18 @@ fn captured() {
 #[test]
 fn provided() {
     let error = ErrorB::new(10);
-    let error_backtrace = error
-        .backtrace()
-        .expect("No backtrace captured")
-        .to_string();
+    let error_backtrace = error.backtrace().expect("No backtrace captured");
+    let error_backtrace_len = error_backtrace.frames().len();
+    #[cfg(not(miri))]
+    let error_backtrace_string = error_backtrace.to_string();
 
     let report = Report::new(error);
-    assert_eq!(
-        report
-            .backtrace()
-            .expect("No backtrace captured")
-            .to_string(),
-        error_backtrace
-    );
+    let report_backtrace = report.backtrace().expect("No backtrace captured");
+    let report_backtrace_len = report_backtrace.frames().len();
+    #[cfg(not(miri))]
+    let report_backtrace_string = report_backtrace.to_string();
+
+    assert_eq!(error_backtrace_len, report_backtrace_len);
+    #[cfg(not(miri))]
+    assert_eq!(error_backtrace_string, report_backtrace_string);
 }

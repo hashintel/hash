@@ -1,5 +1,5 @@
 #![cfg_attr(nightly, feature(provide_any))]
-#![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
+#![cfg_attr(all(nightly, feature = "std"), feature(backtrace, backtrace_frames))]
 #![cfg(any(feature = "eyre", feature = "anyhow"))]
 
 mod common;
@@ -62,21 +62,26 @@ fn anyhow_provider() {
 #[cfg(all(nightly, feature = "std", feature = "anyhow"))]
 fn anyhow_backtrace() {
     let error = ErrorB::new(0);
-    let error_backtrace = error
-        .backtrace()
-        .expect("No backtrace captured")
-        .to_string();
+    let error_backtrace = error.backtrace().expect("No backtrace captured");
+    let error_backtrace_len = error_backtrace.frames().len();
+    #[cfg(not(miri))]
+    let error_backtrace_string = error_backtrace.to_string();
 
     let report = Err::<(), _>(anyhow::anyhow!(error))
         .into_report()
         .unwrap_err();
     let frame = report.frames().next().unwrap();
 
-    let backtrace = frame
+    let report_backtrace = frame
         .request_ref::<Backtrace>()
         .expect("No backtrace captured");
+    let report_backtrace_len = report_backtrace.frames().len();
+    #[cfg(not(miri))]
+    let report_backtrace_string = report_backtrace.to_string();
 
-    assert_eq!(error_backtrace, backtrace.to_string());
+    assert_eq!(error_backtrace_len, report_backtrace_len);
+    #[cfg(not(miri))]
+    assert_eq!(error_backtrace_string, report_backtrace_string);
 }
 
 #[test]
@@ -116,7 +121,7 @@ fn anyhow_output() {
     assert_eq!(anyhow_display_extended, context_display_extended);
 }
 
-#[cfg(all(feature = "eyre", not(miri)))]
+#[cfg(feature = "eyre")]
 fn install_eyre_hook() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
@@ -197,6 +202,10 @@ fn eyre_backtrace() {
 
 #[test]
 #[cfg(feature = "eyre")]
+#[cfg_attr(
+    miri,
+    ignore = "bug: miri is failing for `eyre`, this is unrelated to our implementation"
+)]
 fn eyre_output() {
     install_eyre_hook();
 

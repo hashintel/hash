@@ -185,14 +185,20 @@ impl<C> Report<C> {
         let provider = temporary_provider(&context);
 
         #[cfg(all(nightly, feature = "std"))]
-        let backtrace = if core::any::request_ref::<Backtrace, _>(&provider).is_some() {
+        let backtrace = if core::any::request_ref::<Backtrace, _>(&provider)
+            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
+            .is_some()
+        {
             None
         } else {
             Some(Backtrace::capture())
         };
 
         #[cfg(all(nightly, feature = "spantrace"))]
-        let span_trace = if core::any::request_ref::<SpanTrace, _>(&provider).is_some() {
+        let span_trace = if core::any::request_ref::<SpanTrace, _>(&provider)
+            .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED)
+            .is_some()
+        {
             None
         } else {
             Some(SpanTrace::capture())
