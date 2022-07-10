@@ -11,6 +11,26 @@ use core::{
 
 use crate::{Frame, Report};
 
+/// Helper function, which is used in both `Frames` and `FramesMut`,
+/// which implements the following algorithm:
+/// Given a list of iterators take the last iterator
+/// and use items from it until the iterator has been exhausted,
+/// if that is the case (it returned `None`), remove the iterator from the list,
+/// and retry the next iterator, until we reached the end, and no longer have iterators in the list.
+///
+/// Example:
+///
+/// ```text
+/// 1) Out: - Stack: [A, G]
+/// 2) Out: A Stack: [G] [B, C]
+/// 3) Out: B Stack: [G] [C] [D, E]
+/// 4) Out: D Stack: [G] [C] [E]
+/// 4) Out: E Stack: [G] [C]
+/// 5) Out: C Stack: [G] [F]
+/// 6) Out: F Stack: [G]
+/// 7) Out: G Stack: [H]
+/// 8) Out: H Stack: -
+/// ```
 fn next<T: Iterator<Item = U>, U>(iter: &mut Vec<T>) -> Option<U> {
     let out;
     loop {
@@ -89,10 +109,8 @@ impl<'r> Iterator for Frames<'r> {
     /// 8) Out: H Stack: -
     /// ```
     fn next(&mut self) -> Option<Self::Item> {
-        // this delays the conversion from slice to Vec, we cannot do this in new, due to the fact
-        // that Vec::push() is not const, nor are iter methods.
-
         let frame = next(&mut self.stack)?;
+
         self.stack.push(frame.sources().iter());
         Some(frame)
     }
@@ -128,12 +146,17 @@ impl<'r> Iterator for FramesMut<'r> {
     type Item = &'r mut Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let frame: *mut Frame = next(&mut self.stack)?;
+        let frame = next(&mut self.stack)?;
+        let frame: *mut Frame = frame;
 
-        // SAFETY: We require a mutable reference to `Report` to create `FramesMut` to get a
-        // mutable reference to `Frame`.
-        // The borrow checker is unable to prove that subsequent calls to `next()`
-        // won't access the same data.
+        // SAFETY:
+        // We require both mutable access to the frame for all sources
+        // (as a mutable iterator) and we need to return the mutable frame itself.
+        // We will never access the same value twice, and only store their mutable iterator until
+        // the next `next()` call.
+        // This function acts like a dynamic chain of multiple `IterMut`.
+        // The borrow checker is unable to prove that subsequent calls to
+        // `next()` won't access the same data.
         // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
         unsafe {
             self.stack.push((&mut *frame).sources_mut().iter_mut());
