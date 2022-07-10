@@ -1,6 +1,6 @@
 //! Iterators over [`Frame`]s.
 
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use core::{
     fmt,
     fmt::Formatter,
@@ -257,7 +257,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{iter::zip, panic::Location};
+    use alloc::boxed::Box;
+    use core::{iter::zip, panic::Location};
 
     use crate::{Frame, Report};
 

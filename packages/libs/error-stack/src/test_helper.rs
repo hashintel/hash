@@ -56,7 +56,7 @@ pub fn messages<E>(report: &Report<E>) -> Vec<String> {
 }
 
 #[cfg(all(nightly, feature = "std"))]
-fn supports_backtrace() -> bool {
+pub fn supports_backtrace() -> bool {
     // we need to track 3 states:
     //  1) -1 (not checked)
     //  2) 0 (disabled)
@@ -81,7 +81,7 @@ fn supports_backtrace() -> bool {
 }
 
 #[cfg(feature = "spantrace")]
-fn supports_spantrace() -> bool {
+pub fn supports_spantrace() -> bool {
     static STATE: AtomicI8 = AtomicI8::new(-1);
 
     match STATE.load(Ordering::SeqCst) {

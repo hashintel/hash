@@ -296,16 +296,20 @@ mod tests {
         ));
 
         #[cfg(all(nightly, feature = "std"))]
-        assert!(matches!(
-            kinds_a.next(),
-            Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
-        ));
+        if supports_backtrace() {
+            assert!(matches!(
+                kinds_a.next(),
+                Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
+            ));
+        }
 
         #[cfg(feature = "spantrace")]
-        assert!(matches!(
-            kinds_a.next(),
-            Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
-        ));
+        if supports_spantrace() {
+            assert!(matches!(
+                kinds_a.next(),
+                Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
+            ));
+        }
 
         assert!(matches!(kinds_a.next(), Some(FrameKind::Context(_))));
 
@@ -321,16 +325,20 @@ mod tests {
         assert!(matches!(kinds_b.next(), Some(FrameKind::Context(_))));
 
         #[cfg(all(nightly, feature = "std"))]
-        assert!(matches!(
-            kinds_b.next(),
-            Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
-        ));
+        if supports_backtrace() {
+            assert!(matches!(
+                kinds_b.next(),
+                Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
+            ));
+        }
 
         #[cfg(feature = "spantrace")]
-        assert!(matches!(
-            kinds_b.next(),
-            Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
-        ));
+        if supports_spantrace() {
+            assert!(matches!(
+                kinds_b.next(),
+                Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
+            ));
+        }
 
         assert!(matches!(kinds_b.next(), Some(FrameKind::Context(_))));
         assert_eq!(
