@@ -498,10 +498,7 @@ impl<T: Context> Report<T> {
     /// # }
     /// ```
     #[must_use]
-    pub fn current_context(&self) -> &T
-    where
-        T: Send + Sync + 'static,
-    {
+    pub fn current_context(&self) -> &T {
         self.downcast_ref().unwrap_or_else(|| {
             // Panics if there isn't an attached context which matches `T`. As it's not possible to
             // create a `Report` without a valid context and this method can only be called when `T`
