@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
 use core::{fmt, panic::Location};
@@ -44,6 +43,24 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
         match self {
             Ok(t) => Ok(t),
             Err(anyhow) => {
+                #[cfg(all(nightly, feature = "std"))]
+                let backtrace = anyhow
+                    .chain()
+                    .all(|error| error.backtrace().is_none())
+                    .then(Backtrace::capture)
+                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured));
+
+                #[cfg(feature = "spantrace")]
+                let spantrace = Some(tracing_error::SpanTrace::capture())
+                    .filter(|st| st.status() == tracing_error::SpanTraceStatus::CAPTURED);
+
+                #[cfg(feature = "std")]
+                let sources = anyhow
+                    .chain()
+                    .skip(1)
+                    .map(ToString::to_string)
+                    .collect::<alloc::vec::Vec<_>>();
+
                 #[allow(unused_mut)]
                 let mut report =
                     Report::from_frame(Frame::from_compat::<AnyhowError, AnyhowContext>(
@@ -52,29 +69,14 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     ));
 
                 #[cfg(all(nightly, feature = "std"))]
-                if let Some(backtrace) = anyhow
-                    .chain()
-                    .all(|error| error.backtrace().is_none())
-                    .then(Backtrace::capture)
-                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured))
-                {
+                if let Some(backtrace) = backtrace {
                     report = report.attach(backtrace);
                 }
 
                 #[cfg(feature = "spantrace")]
-                {
-                    let span = tracing_error::SpanTrace::capture();
-                    if span.status() == tracing_error::SpanTraceStatus::CAPTURED {
-                        report = report.attach(tracing_error::SpanTrace::capture());
-                    }
+                if let Some(spantrace) = spantrace {
+                    report = report.attach(spantrace);
                 }
-
-                #[cfg(feature = "std")]
-                let sources = anyhow
-                    .chain()
-                    .skip(1)
-                    .map(ToString::to_string)
-                    .collect::<Vec<_>>();
 
                 #[cfg(feature = "std")]
                 for source in sources {

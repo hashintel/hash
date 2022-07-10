@@ -268,6 +268,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::cognitive_complexity)]
     fn kinds() {
         let report = Report::new(ContextA);
         let report = report.attach_printable("A1");

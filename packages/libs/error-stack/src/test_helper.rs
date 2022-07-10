@@ -126,6 +126,7 @@ pub fn expect_messages<'a>(messages: &[&'a str]) -> Vec<&'a str> {
 
 /// Conditionally add two new frames to the count, as these are backtrace and spantrace.
 #[allow(unused_mut)]
+#[allow(clippy::missing_const_for_fn)]
 pub fn expect_count(mut count: usize) -> usize {
     #[cfg(all(nightly, feature = "std"))]
     if supports_backtrace() {

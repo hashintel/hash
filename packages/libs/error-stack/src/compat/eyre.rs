@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
 use core::{fmt, panic::Location};
@@ -44,34 +43,37 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
         match self {
             Ok(t) => Ok(t),
             Err(eyre) => {
-                let mut report = Report::from_frame(Frame::from_compat::<EyreReport, EyreContext>(
-                    EyreContext(eyre),
-                    Location::caller(),
-                ));
-
                 #[cfg(all(nightly, feature = "std"))]
-                if let Some(backtrace) = eyre
+                let backtrace = eyre
                     .chain()
                     .all(|error| error.backtrace().is_none())
                     .then(Backtrace::capture)
-                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured))
-                {
-                    report = report.attach(backtrace);
-                }
+                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured));
 
                 #[cfg(feature = "spantrace")]
-                {
-                    let span = tracing_error::SpanTrace::capture();
-                    if span.status() == tracing_error::SpanTraceStatus::CAPTURED {
-                        report = report.attach(tracing_error::SpanTrace::capture());
-                    }
-                }
+                let spantrace = Some(tracing_error::SpanTrace::capture())
+                    .filter(|st| st.status() == tracing_error::SpanTraceStatus::CAPTURED);
 
                 let sources = eyre
                     .chain()
                     .skip(1)
                     .map(alloc::string::ToString::to_string)
                     .collect::<alloc::vec::Vec<_>>();
+
+                let mut report = Report::from_frame(Frame::from_compat::<EyreReport, EyreContext>(
+                    EyreContext(eyre),
+                    Location::caller(),
+                ));
+
+                #[cfg(all(nightly, feature = "std"))]
+                if let Some(backtrace) = backtrace {
+                    report = report.attach(backtrace);
+                }
+
+                #[cfg(feature = "spantrace")]
+                if let Some(spantrace) = spantrace {
+                    report = report.attach(spantrace);
+                }
 
                 for source in sources {
                     report = report.attach_printable(source);

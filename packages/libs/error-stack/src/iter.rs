@@ -19,10 +19,10 @@ fn next<T: Iterator<Item = U>, U>(iter: &mut Vec<T>) -> Option<U> {
         if let Some(next) = last.next() {
             out = next;
             break;
-        } else {
-            // exhausted, therefore cannot be used anymore.
-            iter.pop();
         }
+
+        // exhausted, therefore cannot be used anymore.
+        iter.pop();
     }
 
     Some(out)
@@ -262,6 +262,7 @@ mod tests {
 
     use crate::{Frame, Report};
 
+    #[allow(clippy::many_single_char_names)]
     fn build() -> Report<()> {
         let d = Frame::from_attachment('D', Location::caller(), Box::new([]));
         let e = Frame::from_attachment('E', Location::caller(), Box::new([]));
