@@ -6,7 +6,7 @@ mod common;
 use common::*;
 use error_stack::{AttachmentKind, FrameKind, IteratorExt, Report, ResultExt};
 #[cfg(feature = "futures")]
-use error_stack::{FutureExt, StreamReportExt};
+use error_stack::{FutureExt, StreamExt};
 
 fn test_messages<E>(report: &Report<E>) {
     assert_eq!(messages(report), [

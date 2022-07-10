@@ -6,7 +6,7 @@ mod result;
 pub mod stream;
 
 #[cfg(feature = "futures")]
-pub use self::future::FutureExt;
+pub use self::{future::FutureExt, stream::StreamExt};
 pub use self::{
     iter::IteratorExt,
     result::{IntoReport, Result, ResultExt},

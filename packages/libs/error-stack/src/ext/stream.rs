@@ -17,7 +17,7 @@ use crate::{Context, Report, ResultExt};
 /// Extension trait for [`Stream`] to provide contextual information on [`Report`]s.
 ///
 /// [`Report`]: crate::Report
-pub trait StreamReportExt: Stream + Sized {
+pub trait StreamExt: Stream + Sized {
     /// Adds a new attachment to the [`Report`] inside the [`Result`] when
     /// calling [`Stream::poll_next`].
     ///
@@ -77,7 +77,7 @@ pub trait StreamReportExt: Stream + Sized {
         F: Fn() -> C;
 }
 
-impl<S> StreamReportExt for S
+impl<S> StreamExt for S
 where
     S: Stream,
     S::Item: ResultExt,
