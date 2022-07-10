@@ -15,7 +15,6 @@ use crate::context::temporary_provider;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
-    display::report,
     iter::{Frames, FramesMut},
     AttachmentKind, Context, Frame, FrameKind,
 };
@@ -570,7 +569,26 @@ impl<Context> fmt::Display for Report<Context> {
             return display_hook(self.generalized(), fmt);
         }
 
-        fmt.write_str(&report(self))?;
+        for (index, frame) in self
+            .frames()
+            .filter_map(|frame| match frame.kind() {
+                FrameKind::Context(context) => Some(context.to_string()),
+                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                    Some(attachment.to_string())
+                }
+                FrameKind::Attachment(AttachmentKind::Opaque(_)) => None,
+            })
+            .enumerate()
+        {
+            if index == 0 {
+                fmt::Display::fmt(&frame, fmt)?;
+                if !fmt.alternate() {
+                    break;
+                }
+            } else {
+                write!(fmt, ": {frame}")?;
+            }
+        }
 
         Ok(())
     }
@@ -587,9 +605,9 @@ impl<Context> fmt::Debug for Report<Context> {
             let mut debug = fmt.debug_struct("Report");
             debug.field("frames", &self.frames());
             #[cfg(all(nightly, feature = "std"))]
-            debug.field("backtrace", &self.backtrace());
+            debug.field("backtrace", &self.downcast_ref::<Backtrace>());
             #[cfg(feature = "spantrace")]
-            debug.field("span_trace", &self.span_trace());
+            debug.field("span_trace", &self.downcast_ref::<SpanTrace>());
             debug.finish()
         } else {
             let mut context_idx = -1;
@@ -635,12 +653,12 @@ impl<Context> fmt::Debug for Report<Context> {
             }
 
             #[cfg(all(nightly, feature = "std"))]
-            if let Some(backtrace) = self.backtrace() {
+            if let Some(backtrace) = self.downcast_ref::<Backtrace>() {
                 write!(fmt, "\n\nStack backtrace:\n{backtrace}")?;
             }
 
             #[cfg(feature = "spantrace")]
-            if let Some(span_trace) = self.span_trace() {
+            if let Some(span_trace) = self.downcast_ref::<SpanTrace>() {
                 write!(fmt, "\n\nSpan trace:\n{span_trace}")?;
             }
 

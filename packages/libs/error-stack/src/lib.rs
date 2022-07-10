@@ -400,7 +400,6 @@
 //!  `hooks`   |Enables the usage of [`set_display_hook`] and [`set_debug_hook`]| `std`   | disabled
 //! `spantrace`| Enables the capturing of [`SpanTrace`]s                        |         | disabled
 //!  `futures` | Provides a [`FutureExt`] adaptor                               |         | disabled
-//! `fancy`    | Enable use of color and box-drawing characters on [`Display`]  |         | enabled
 //! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
@@ -443,7 +442,6 @@ mod macros;
 mod report;
 
 mod context;
-mod display;
 mod ext;
 #[cfg(feature = "hooks")]
 mod hook;
