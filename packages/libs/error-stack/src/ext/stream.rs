@@ -285,7 +285,7 @@ impl_stream_adaptor_lazy! {
 impl_stream_adaptor_lazy! {
     StreamWithLazyPrintableAttachment,
     attach_printable_lazy,
-    Display + Debug + Clone + Sync + Send + 'static,
+    Display + Debug + Sync + Send + 'static,
     S::Item
 }
 
