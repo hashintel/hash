@@ -24,7 +24,7 @@ eyre = { version = "0.6.8", default-features = false, optional = true }
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
 futures = { version = "0.3.21", default-features = false, features = ["executor"] }
-trybuild = { version = "1.0.63", features = ["diff"] }
+trybuild = "1.0.63"
 tracing = "0.1.35"
 tracing-subscriber = "0.3.14"
 

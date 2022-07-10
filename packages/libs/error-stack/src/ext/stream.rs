@@ -1,6 +1,6 @@
 //! Implements support for `error-stack` functionality for streams.
 //!
-//! The main trait in this module is [`StreamReportExt`] (which is so named to
+//! The main trait in this module is [`StreamExt`] (which is so named to
 //! avoid conflict with other stream-related types common to the Rust `async`
 //! ecosystem).
 //!
@@ -166,7 +166,7 @@ macro_rules! impl_stream_adaptor {
         $output:ty
     ) => {
         #[pin_project::pin_project]
-        #[doc=concat!("This is the adaptor type returned by [`StreamReportExt::", stringify!($document_for), "`]")]
+        #[doc=concat!("This is the adaptor type returned by [`StreamExt::", stringify!($document_for), "`]")]
         pub struct $name<S, A> {
             #[pin]
             stream: S,
@@ -213,7 +213,7 @@ macro_rules! impl_stream_adaptor_lazy {
         $output:ty
     ) => {
         #[pin_project::pin_project]
-        #[doc=concat!("This is the adaptor type returned by [`StreamReportExt::", stringify!($method), "`]")]
+        #[doc=concat!("This is the adaptor type returned by [`StreamExt::", stringify!($method), "`]")]
         pub struct $name<S, A> {
             #[pin]
             stream: S,

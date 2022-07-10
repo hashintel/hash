@@ -1,4 +1,6 @@
 //! Compatibility module to convert errors from other libraries into [`Report`].
+//!
+//! [`Report`]: crate::Report
 
 #[cfg(feature = "anyhow")]
 mod anyhow;
