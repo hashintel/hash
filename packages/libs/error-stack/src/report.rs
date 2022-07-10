@@ -522,10 +522,7 @@ impl<Context> fmt::Display for Report<Context> {
             .frames()
             .filter_map(|frame| match frame.kind() {
                 FrameKind::Context(context) => Some(context.to_string()),
-                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                    Some(attachment.to_string())
-                }
-                FrameKind::Attachment(AttachmentKind::Opaque(_)) => None,
+                FrameKind::Attachment(_) => None,
             })
             .enumerate()
         {
