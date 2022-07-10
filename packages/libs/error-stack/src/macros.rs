@@ -243,7 +243,7 @@ macro_rules! bail {
 #[macro_export]
 macro_rules! ensure {
     ($cond:expr, $err:expr $(,)?) => {{
-        if !$cond {
+        if !bool::from($cond) {
             $crate::bail!($err)
         }
     }};
