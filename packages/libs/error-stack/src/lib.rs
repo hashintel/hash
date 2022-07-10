@@ -385,7 +385,7 @@
 
 extern crate alloc;
 
-pub(crate) mod compat;
+pub mod compat;
 mod frame;
 pub mod iter;
 mod macros;
@@ -396,8 +396,6 @@ mod ext;
 #[cfg(feature = "hooks")]
 mod hook;
 
-#[cfg(any(feature = "anyhow", feature = "eyre"))]
-pub use self::compat::IntoReportCompat;
 #[doc(inline)]
 pub use self::ext::*;
 #[cfg(feature = "hooks")]
