@@ -79,11 +79,11 @@ impl MemoryId {
     fn prefix(id: Uuid) -> String {
         if cfg!(target_os = "macos") {
             // We need to_string otherwise it's not truncated when formatting
-            let id = id.to_simple_ref().to_string();
+            let id = id.as_simple().to_string();
             // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
             format!("shm_{id:.20}")
         } else {
-            let id = id.to_simple_ref();
+            let id = id.as_simple();
             format!("shm_{id}")
         }
     }
