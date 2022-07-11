@@ -78,18 +78,6 @@
 //!     # }; Ok(content)
 //! }
 //! # let report = read_file("test.txt").unwrap_err();
-//! #
-//! # #[allow(unused_mut)]
-//! # let mut count = 1;
-//! # #[cfg(all(nightly, feature = "std"))]
-//! # {
-//! #   count += 1;
-//! # }
-//! # #[cfg(feature = "spantrace")]
-//! # {
-//! #   count += 1;
-//! # }
-//! # assert_eq!(report.frames().count(), count);
 //! # assert!(report.contains::<io::Error>());
 //! # }
 //! ```
@@ -140,18 +128,6 @@
 //!     # }; Ok(content)
 //! }
 //! # let report = parse_config("test.txt").unwrap_err();
-//! #
-//! # #[allow(unused_mut)]
-//! # let mut count = 2;
-//! # #[cfg(all(nightly, feature = "std"))]
-//! # {
-//! #   count += 1;
-//! # }
-//! # #[cfg(feature = "spantrace")]
-//! # {
-//! #   count += 1;
-//! # }
-//! # assert_eq!(report.frames().count(), count);
 //! # assert!(report.contains::<io::Error>());
 //! # assert!(report.contains::<ParseConfigError>());
 //! # }
@@ -193,18 +169,6 @@
 //!     Ok(content)
 //! }
 //! # let report = parse_config("test.txt").unwrap_err();
-//! #
-//! # #[allow(unused_mut)]
-//! # let mut count = 4;
-//! # #[cfg(all(nightly, feature = "std"))]
-//! # {
-//! #   count += 1;
-//! # }
-//! # #[cfg(feature = "spantrace")]
-//! # {
-//! #   count += 1;
-//! # }
-//! # assert_eq!(report.frames().count(), count);
 //! # assert!(report.contains::<std::io::Error>());
 //! # assert_eq!(report.downcast_ref::<Suggestion>().unwrap(), &Suggestion("Use a file you can read next time!"));
 //! # #[cfg(nightly)]
@@ -414,7 +378,7 @@
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`Display`]: std::fmt::Display
 //! [`SpanTrace`]: tracing_error::SpanTrace
-//! [`smallvec`]: https://docs.rs/smallvec/latest/smallvec/index.html
+//! [`smallvec`]: https://docs.rs/smallvec
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]

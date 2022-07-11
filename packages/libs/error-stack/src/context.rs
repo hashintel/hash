@@ -63,18 +63,6 @@ use crate::Report;
 /// # #[cfg(all(feature = "std", not(miri)))]
 /// # assert!(err.contains::<io::Error>());
 /// # assert!(err.contains::<ConfigError>());
-/// #
-/// # #[allow(unused_mut)]
-/// # let mut count = 2;
-/// # #[cfg(all(nightly, feature = "std"))]
-/// # {
-/// #   count += 1;
-/// # }
-/// # #[cfg(feature = "spantrace")]
-/// # {
-/// #   count += 1;
-/// # }
-/// # assert_eq!(err.frames().count(), count);
 /// ```
 pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// Provide values which can then be requested by [`Report`].

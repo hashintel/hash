@@ -11,14 +11,14 @@ use core::{
 
 use crate::{Frame, Report};
 
-/// Helper function, which is used in both `Frames` and `FramesMut`,
-/// which implements the following algorithm:
-/// Given a list of iterators take the last iterator
-/// and use items from it until the iterator has been exhausted,
-/// if that is the case (it returned `None`), remove the iterator from the list,
-/// and retry the next iterator, until we reached the end, and no longer have iterators in the list.
+/// Helper function, which is used in both `Frames` and `FramesMut`.
 ///
-/// Example:
+/// To traverse the frames, the following algorithm is used:
+/// Given a list of iterators, take the last iterator, and use items from it until the iterator has
+/// been exhausted. If that is the case (it returned `None`), remove the iterator from the list,
+/// and continue with the next iterator until all iterators are exhausted.
+///
+/// # Example
 ///
 /// ```text
 /// 1) Out: - Stack: [A, G]
@@ -31,7 +31,7 @@ use crate::{Frame, Report};
 /// 7) Out: G Stack: [H]
 /// 8) Out: H Stack: -
 /// ```
-fn next<T: Iterator<Item = U>, U>(iter: &mut Vec<T>) -> Option<U> {
+fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
     let out;
     loop {
         let last = iter.last_mut()?;
@@ -50,11 +50,10 @@ fn next<T: Iterator<Item = U>, U>(iter: &mut Vec<T>) -> Option<U> {
 
 /// Iterator over the [`Frame`] stack of a [`Report`].
 ///
-/// This uses an implementation of the Pre-Order,
-/// NLR Depth-First Search algorithm to resolve the tree.
-/// The example below shows in numbers the index of the different depths,
-/// using this we're able to linearize all frames and sort topologically, meaning that
-/// this ensures no child ever is before it's parent.
+/// This uses an implementation of the Pre-Order, NLR Depth-First Search algorithm to resolve the
+/// tree. The example below shows in numbers the index of the different depths, using this we're
+/// able to linearize all frames and sort topologically, meaning that this ensures no child ever is
+/// before its parent.
 ///
 /// ```text
 ///      1
@@ -63,7 +62,6 @@ fn next<T: Iterator<Item = U>, U>(iter: &mut Vec<T>) -> Option<U> {
 ///  / | \  \
 /// 3  4  5  7
 /// ```
-///
 ///
 /// Use [`Report::frames()`] to create this iterator.
 #[must_use]
@@ -74,8 +72,6 @@ pub struct Frames<'r> {
 
 impl<'r> Frames<'r> {
     pub(crate) fn new<C>(report: &'r Report<C>) -> Self {
-        // we cannot use .frames.iter().rev().collect() here, due to the const context
-
         Self {
             stack: vec![report.frames.iter()],
         }
@@ -130,14 +126,12 @@ impl fmt::Debug for Frames<'_> {
 #[must_use]
 pub struct FramesMut<'r> {
     stack: Vec<IterMut<'r, Frame>>,
-    _marker: PhantomData<&'r mut Frame>,
 }
 
 impl<'r> FramesMut<'r> {
     pub(crate) fn new<C>(report: &'r mut Report<C>) -> Self {
         Self {
             stack: vec![report.frames.iter_mut()],
-            _marker: PhantomData,
         }
     }
 }
@@ -150,16 +144,14 @@ impl<'r> Iterator for FramesMut<'r> {
         let frame: *mut Frame = frame;
 
         // SAFETY:
-        // We require both mutable access to the frame for all sources
-        // (as a mutable iterator) and we need to return the mutable frame itself.
-        // We will never access the same value twice, and only store their mutable iterator until
-        // the next `next()` call.
-        // This function acts like a dynamic chain of multiple `IterMut`.
-        // The borrow checker is unable to prove that subsequent calls to
-        // `next()` won't access the same data.
+        // We require both mutable access to the frame for all sources (as a mutable iterator) and
+        // we need to return the mutable frame itself. We will never access the same value twice,
+        // and only store their mutable iterator until the next `next()` call. This function acts
+        // like a dynamic chain of multiple `IterMut`. The borrow checker is unable to prove that
+        // subsequent calls to `next()` won't access the same data. 
         // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
         unsafe {
-            self.stack.push((&mut *frame).sources_mut().iter_mut());
+            self.stack.push((*frame).sources_mut().iter_mut());
 
             Some(&mut *frame)
         }
