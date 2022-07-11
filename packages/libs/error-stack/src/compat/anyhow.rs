@@ -2,14 +2,28 @@
 use core::any::Demand;
 use core::{fmt, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
-use std::{backtrace::Backtrace, error::Error};
+use std::{
+    backtrace::{Backtrace, BacktraceStatus},
+    ops::Deref,
+};
 
 use anyhow::Error as AnyhowError;
 
-use crate::{Context, Frame, IntoReportCompat, Report, Result};
+use crate::{compat::IntoReportCompat, Context, Frame, Report, Result};
 
+/// A [`Context`] wrapper for [`anyhow::Error`].
+///
+/// It provides the [`anyhow::Error`] and [`Backtrace`] if it was captured.
 #[repr(transparent)]
-struct AnyhowContext(AnyhowError);
+pub struct AnyhowContext(AnyhowError);
+
+impl AnyhowContext {
+    /// Returns a reference to the underlying [`anyhow::Error`].
+    #[must_use]
+    pub const fn as_anyhow(&self) -> &AnyhowError {
+        &self.0
+    }
+}
 
 impl fmt::Debug for AnyhowContext {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -28,18 +42,23 @@ impl Context for AnyhowContext {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         demand.provide_ref(&self.0);
         #[cfg(feature = "std")]
-        if let Some(backtrace) = self.0.chain().find_map(Error::backtrace) {
+        if let Some(backtrace) = self
+            .0
+            .deref()
+            .backtrace()
+            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
+        {
             demand.provide_ref(backtrace);
         }
     }
 }
 
 impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
-    type Err = AnyhowError;
+    type Err = AnyhowContext;
     type Ok = T;
 
     #[track_caller]
-    fn into_report(self) -> Result<T, AnyhowError> {
+    fn into_report(self) -> Result<T, AnyhowContext> {
         match self {
             Ok(t) => Ok(t),
             Err(anyhow) => {
@@ -51,10 +70,16 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     .collect::<Vec<_>>();
 
                 #[cfg(all(nightly, feature = "std"))]
-                let backtrace = anyhow
-                    .chain()
-                    .all(|error| error.backtrace().is_none())
-                    .then(Backtrace::capture);
+                let backtrace = if anyhow
+                    .deref()
+                    .backtrace()
+                    .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
+                    .is_some()
+                {
+                    None
+                } else {
+                    Some(Backtrace::capture())
+                };
 
                 #[cfg_attr(not(feature = "std"), allow(unused_mut))]
                 let mut report = Report::from_frame(
@@ -72,27 +97,6 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
 
                 Err(report)
             }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use anyhow::anyhow;
-
-    use crate::{test_helper::messages, IntoReportCompat};
-
-    #[test]
-    fn conversion() {
-        let anyhow: Result<(), _> = Err(anyhow!("A").context("B").context("C"));
-
-        let report = anyhow.into_report().unwrap_err();
-        #[cfg(feature = "std")]
-        let expected_output = ["A", "B", "C"];
-        #[cfg(not(feature = "std"))]
-        let expected_output = ["C"];
-        for (anyhow, expected) in messages(&report).into_iter().zip(expected_output) {
-            assert_eq!(anyhow, expected);
         }
     }
 }

@@ -2,14 +2,27 @@
 use core::any::Demand;
 use core::{fmt, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
-use std::{backtrace::Backtrace, error::Error};
+use std::{
+    backtrace::{Backtrace, BacktraceStatus},
+    ops::Deref,
+};
 
 use eyre::Report as EyreReport;
 
-use crate::{Context, Frame, IntoReportCompat, Report, Result};
+use crate::{compat::IntoReportCompat, Context, Frame, Report, Result};
 
+/// A [`Context`] wrapper for [`eyre::Report`].
+///
+/// It provides the [`eyre::Report`] and [`Backtrace`] if it was captured.
 #[repr(transparent)]
-struct EyreContext(EyreReport);
+pub struct EyreContext(EyreReport);
+
+impl EyreContext {
+    /// Returns a reference to the underlying [`anyhow::Error`].
+    pub const fn as_eyre(&self) -> &EyreReport {
+        &self.0
+    }
+}
 
 impl fmt::Debug for EyreContext {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -28,18 +41,23 @@ impl Context for EyreContext {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         demand.provide_ref(&self.0);
         #[cfg(feature = "std")]
-        if let Some(backtrace) = self.0.chain().find_map(Error::backtrace) {
+        if let Some(backtrace) = self
+            .0
+            .deref()
+            .backtrace()
+            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
+        {
             demand.provide_ref(backtrace);
         }
     }
 }
 
 impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
-    type Err = EyreReport;
+    type Err = EyreContext;
     type Ok = T;
 
     #[track_caller]
-    fn into_report(self) -> Result<T, EyreReport> {
+    fn into_report(self) -> Result<T, EyreContext> {
         match self {
             Ok(t) => Ok(t),
             Err(eyre) => {
@@ -50,10 +68,16 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .collect::<alloc::vec::Vec<_>>();
 
                 #[cfg(all(nightly, feature = "std"))]
-                let backtrace = eyre
-                    .chain()
-                    .all(|error| error.backtrace().is_none())
-                    .then(Backtrace::capture);
+                let backtrace = if eyre
+                    .deref()
+                    .backtrace()
+                    .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
+                    .is_some()
+                {
+                    None
+                } else {
+                    Some(Backtrace::capture())
+                };
 
                 let mut report = Report::from_frame(
                     Frame::from_context(EyreContext(eyre), Location::caller(), None),
@@ -69,32 +93,6 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
 
                 Err(report)
             }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use alloc::boxed::Box;
-
-    use eyre::eyre;
-
-    use crate::{test_helper::messages, IntoReportCompat};
-
-    #[test]
-    #[cfg_attr(
-        miri,
-        ignore = "bug: miri is failing for `eyre`, this is unrelated to our implementation"
-    )]
-    fn conversion() {
-        eyre::set_hook(Box::new(eyre::DefaultHandler::default_with)).expect("Could not set hook");
-
-        let eyre: Result<(), _> = Err(eyre!("A").wrap_err("B").wrap_err("C"));
-
-        let report = eyre.into_report().unwrap_err();
-        let expected_output = ["A", "B", "C"];
-        for (eyre, expected) in messages(&report).into_iter().zip(expected_output) {
-            assert_eq!(eyre, expected);
         }
     }
 }
