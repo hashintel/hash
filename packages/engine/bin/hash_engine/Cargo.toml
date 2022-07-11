@@ -10,8 +10,8 @@ experiment-control = { path = "../../lib/experiment-control", default-features =
 
 error-stack = { version = "0.1.1", features = ["spantrace"] }
 
-tokio = "1.18.2"
-tracing = "0.1.29"
+tokio = "1.19.2"
+tracing = "0.1.35"
 
 [[bin]]
 name = "hash_engine"
