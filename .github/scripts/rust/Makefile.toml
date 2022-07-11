@@ -170,4 +170,4 @@ install_crate = { rustup_component_name = "miri" }
 
 [tasks.install-nextest]
 private = true
-install_crate = { crate_name = "nextest", binary = "cargo", test_arg = ["nextest", "--version"] }
+install_crate = { crate_name = "cargo-nextest", binary = "cargo", test_arg = ["nextest", "--version"] }
