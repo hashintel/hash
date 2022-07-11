@@ -1,7 +1,10 @@
-use core::{fmt, result::Result};
+use core::fmt;
 use std::sync::Arc;
 
-use tokio::sync::{mpsc, Mutex};
+use error_stack::Report;
+use tokio::sync::{mpsc, mpsc::error::SendError, Mutex};
+
+use crate::error::{ErrorKind, Result};
 
 /// Create a new single-producer multi-consumer queue.
 ///
@@ -33,8 +36,11 @@ impl<T> fmt::Debug for Sender<T> {
 impl<T: Send> Sender<T> {
     /// Send a value into the queue. Returns an error if all receive ends of the queue
     /// are dropped.
-    pub(crate) async fn send(&mut self, value: T) -> Result<(), mpsc::error::SendError<T>> {
-        self.sender.send(value).await
+    pub(crate) async fn send(&mut self, value: T) -> Result<()> {
+        self.sender
+            .send(value)
+            .await
+            .map_err(|_send_error| Report::from(SendError(())).change_context(ErrorKind::Send))
     }
 }
 

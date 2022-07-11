@@ -1,0 +1,5 @@
+{
+  "migrations-dir": "./postgres/migration",
+  "migration-file-language": "ts",
+  "tsconfig": "./tsconfig.json"
+}

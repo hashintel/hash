@@ -1,5 +1,5 @@
 import { ApolloError } from "apollo-server-errors";
-import { Resolver } from "../../apiTypes.gen";
+import { ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Entity, UnresolvedGQLUnknownEntity } from "../../../model";
 import {
@@ -8,10 +8,11 @@ import {
 } from "./linkGroups";
 import { DbUnknownEntity } from "../../../db/adapter";
 
-export const linkedEntities: Resolver<
+export const linkedEntities: ResolverFn<
   Promise<UnresolvedGQLUnknownEntity[]>,
   DbUnknownEntity,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (entity, _, { dataSources }) => {
   const source = await Entity.getEntity(dataSources.db, {
     accountId: entity.accountId,
@@ -46,11 +47,7 @@ export const linkedEntities: Resolver<
       .filter(
         (link, i, all) =>
           // ...that don't have the source entity as their destination (these are redundant)
-          !(
-            link.destinationEntityId === source.entityId &&
-            (link.destinationEntityVersionId === undefined ||
-              link.destinationEntityVersionId === source.entityVersionId)
-          ) &&
+          !(link.destinationEntityId === source.entityId) &&
           // ...and that are not duplicates
           all.findIndex(linkHasSameDestinationAs(link)) === i,
       )

@@ -9,14 +9,19 @@ generates:
     config:
       noSchemaStitching: true
   ./src/graphql/apiTypes.gen.ts:
+    documents:
+      - ../shared/src/queries/*.ts
+      - ./src/collab/graphql/queries/*.ts
     hooks:
       afterOneFileWrite:
         - prettier --write
     plugins:
       - "typescript"
       - "typescript-resolvers"
+      - "typescript-operations"
     config:
       noSchemaStitching: true
+      skipTypename: true
       scalars:
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
         Date: string

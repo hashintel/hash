@@ -3,6 +3,7 @@ import { linkFieldsFragment } from "./link.queries";
 
 export const linkedAggregationsFragment = gql`
   fragment LinkedAggregationsFields on LinkedAggregation {
+    aggregationId
     sourceAccountId
     sourceEntityId
     path
@@ -37,6 +38,41 @@ export const linkedAggregationsFragment = gql`
       properties
     }
   }
+`;
+
+export const entityFieldsFragment = gql`
+  fragment EntityFields on UnknownEntity {
+    __typename
+    id
+    entityVersionId
+    entityId
+    accountId
+    updatedAt
+    createdAt
+    entityVersionCreatedAt
+    createdByAccountId
+    entityTypeId
+    properties
+    linkGroups {
+      links {
+        ...LinkFields
+      }
+      sourceEntityId
+      sourceEntityVersionId
+      path
+    }
+    linkedEntities {
+      accountId
+      entityId
+      entityTypeId
+      properties
+    }
+    linkedAggregations {
+      ...LinkedAggregationsFields
+    }
+  }
+  ${linkFieldsFragment}
+  ${linkedAggregationsFragment}
 `;
 
 export const getEntity = gql`
@@ -162,6 +198,7 @@ export const aggregateEntity = gql`
         properties
       }
       operation {
+        entityTypeId
         pageNumber
         pageCount
         itemsPerPage
@@ -182,40 +219,11 @@ export const aggregateEntity = gql`
   }
 `;
 
-// @todo dedupe
-export const getAccountEntityTypes = gql`
-  query getAccountEntityTypesShared(
-    $accountId: ID!
-    $includeOtherTypesInUse: Boolean = false
-  ) {
-    getAccountEntityTypes(
-      accountId: $accountId
-      includeOtherTypesInUse: $includeOtherTypesInUse
-    ) {
-      entityId
-      entityVersionId
-      properties
+export const getEntities = gql`
+  query getEntities($accountId: ID!, $filter: EntityFilter) {
+    entities(accountId: $accountId, filter: $filter) {
+      ...EntityFields
     }
   }
-`;
-
-// @todo dedupe
-export const createEntityType = gql`
-  mutation createEntityTypeShared(
-    $accountId: ID!
-    $description: String
-    $name: String!
-    $schema: JSONObject!
-  ) {
-    createEntityType(
-      accountId: $accountId
-      description: $description
-      name: $name
-      schema: $schema
-    ) {
-      entityId
-      entityTypeName
-      properties
-    }
-  }
+  ${entityFieldsFragment}
 `;

@@ -15,7 +15,6 @@ export type CreateLinkArgs = {
   index?: number;
   source: Entity;
   destination: Entity;
-  destinationEntityVersionId?: string;
 };
 
 /**
@@ -63,7 +62,6 @@ type LinkConstructorArgs = {
   removedFromSourceByAccountId?: string;
   destinationAccountId: string;
   destinationEntityId: string;
-  destinationEntityVersionId?: string;
   updatedAt: Date;
   updatedByAccountId: string;
 };
@@ -85,7 +83,6 @@ class __Link {
 
   destinationAccountId: string;
   destinationEntityId: string;
-  destinationEntityVersionId?: string;
 
   updatedAt: Date;
   updatedByAccountId: string;
@@ -103,7 +100,6 @@ class __Link {
     removedFromSourceByAccountId,
     destinationAccountId,
     destinationEntityId,
-    destinationEntityVersionId,
     updatedAt,
     updatedByAccountId,
   }: LinkConstructorArgs) {
@@ -120,7 +116,6 @@ class __Link {
     this.removedFromSourceByAccountId = removedFromSourceByAccountId;
     this.destinationAccountId = destinationAccountId;
     this.destinationEntityId = destinationEntityId;
-    this.destinationEntityVersionId = destinationEntityVersionId;
     this.updatedAt = updatedAt;
     this.updatedByAccountId = updatedByAccountId;
   }
@@ -161,21 +156,11 @@ class __Link {
   }
 
   static async create(client: DbClient, params: CreateLinkArgs): Promise<Link> {
-    const {
-      stringifiedPath,
-      source,
-      destination,
-      destinationEntityVersionId,
-      index,
-    } = params;
+    const { stringifiedPath, source, destination, index } = params;
 
     Link.validatePath(stringifiedPath);
 
     /** @todo: check entity type to see if there is an inverse relationship needs to be created */
-
-    if (destinationEntityVersionId) {
-      /** @todo: ensure destination entity has version where entityVersionId === destinationEntityVersionId */
-    }
 
     const { accountId: sourceAccountId, entityId: sourceEntityId } = source;
     const { accountId: destinationAccountId, entityId: destinationEntityId } =
@@ -189,7 +174,6 @@ class __Link {
       sourceEntityVersionIds: new Set([source.entityVersionId]),
       destinationAccountId,
       destinationEntityId,
-      destinationEntityVersionId,
       index,
     });
 
@@ -235,15 +219,10 @@ class __Link {
   }
 
   private async fetchDestination(client: DbClient) {
-    const destination = this.destinationEntityVersionId
-      ? await Entity.getEntity(client, {
-          accountId: this.destinationAccountId,
-          entityVersionId: this.destinationEntityVersionId,
-        })
-      : await Entity.getEntityLatestVersion(client, {
-          accountId: this.destinationAccountId,
-          entityId: this.destinationEntityId,
-        });
+    const destination = await Entity.getEntityLatestVersion(client, {
+      accountId: this.destinationAccountId,
+      entityId: this.destinationEntityId,
+    });
     if (!destination) {
       throw new Error(
         `Critical: couldn't find destination entity of link with link id ${this.linkId}`,
@@ -281,7 +260,6 @@ class __Link {
       sourceEntityId: this.sourceEntityId,
       destinationAccountId: this.destinationAccountId,
       destinationEntityId: this.destinationEntityId,
-      destinationEntityVersionId: this.destinationEntityVersionId,
       path: this.stringifiedPath,
       index: this.index,
     };

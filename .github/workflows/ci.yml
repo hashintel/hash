@@ -137,8 +137,8 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml build
-          docker-compose --file external-services/docker-compose.yml up --detach
+          docker-compose --file packages/hash/external-services/docker-compose.yml build
+          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
 
       - name: Seed data
         if: ${{ success() || failure() }}
@@ -149,7 +149,7 @@ jobs:
         if: ${{ success() || failure() }}
         run: |
           yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
-          yarn wait-on --timeout 30000 http://localhost:5001
+          yarn wait-on --timeout 30000 http://0.0.0.0:5001
         env:
           NODE_ENV: test
 
@@ -159,7 +159,7 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
 
       - name: Show backend logs
         if: ${{ success() || failure() }}
@@ -192,8 +192,8 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml build
-          docker-compose --file external-services/docker-compose.yml up --detach
+          docker-compose --file packages/hash/external-services/docker-compose.yml build
+          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
 
       - name: Seed data
         if: ${{ success() || failure() }}
@@ -204,14 +204,14 @@ jobs:
         if: ${{ success() || failure() }}
         run: |
           yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
-          yarn wait-on --timeout 30000 http://localhost:5001
+          yarn wait-on --timeout 30000 http://0.0.0.0:5001
 
       - name: Build and launch frontend
         if: ${{ success() || failure() }}
         run: |
           yarn workspace @hashintel/hash-frontend next build
           yarn workspace @hashintel/hash-frontend start 2>&1 | tee var/logs/frontend.log & ## ampersand enables background mode
-          yarn wait-on --timeout 30000 http://localhost:3000
+          yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - run: yarn playwright install-deps chrome firefox
         if: ${{ success() || failure() }}
@@ -224,7 +224,7 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
           cat var/logs/external-services.log
 
       - name: Show backend logs

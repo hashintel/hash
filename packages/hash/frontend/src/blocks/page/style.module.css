@@ -17,9 +17,12 @@
 
 .Block {
   display: flex;
-  align-items: center;
-  word-break: break-all;
+  justify-content: center;
+  align-items: flex-start;
   margin: 30px 0;
+  word-break: break-word;
+  white-space: pre-wrap;
+  outline: none !important;
 }
 
 /**
@@ -33,13 +36,13 @@
 .Block__UI {
   user-select: none;
   flex: 0 1 auto;
-  margin-right: 30px;
+  margin-right: 0.75rem;
   display: flex;
   align-items: center;
 }
 
 .Block__UI select {
-  padding: 5px 6px;
+  padding: 0.25rem;
   border: 1px solid #ddd;
   border-radius: 4px;
 }

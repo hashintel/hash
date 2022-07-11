@@ -1,12 +1,11 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
-import { tw } from "twind";
-import { NextPage } from "next";
 
-import styles from "./index.module.scss";
+import { Box, Typography } from "@mui/material";
 import { useUser } from "../components/hooks/useUser";
+import { NextPageWithLayout } from "../shared/layout";
 
-const Home: NextPage = () => {
+const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { user, loading } = useUser();
 
@@ -24,15 +23,15 @@ const Home: NextPage = () => {
   }, [loading, router, user]);
 
   return (
-    <main className={styles.Main}>
-      <section
-        style={{ marginTop: "30vh" }}
-        className={tw`flex justify-center`}
+    <Box component="main" pt="30vh" display="flex" justifyContent="center">
+      <Typography
+        variant="h1"
+        sx={({ palette }) => ({ color: palette.gray[70], fontWeight: 400 })}
       >
-        <h1>Loading ...</h1>
-      </section>
-    </main>
+        Loading...
+      </Typography>
+    </Box>
   );
 };
 
-export default Home;
+export default Page;

@@ -14,7 +14,10 @@
     "baseUrl": ".",
     "paths": {
       "@hashintel/hash-shared/*": ["./packages/hash/shared/src/*"],
-      "@hashintel/hash-backend-utils/*": ["./packages/hash/backend-utils/src/*"]
+      "@hashintel/hash-backend-utils/*": [
+        "./packages/hash/backend-utils/src/*"
+      ],
+      "@hashintel/hash-design-system/*": ["./packages/hash/design-system/src/*"]
     }
   },
   "ts-node": {

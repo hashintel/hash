@@ -78,6 +78,9 @@ build
 # intellij IDEs config
 /.idea/
 
+# Python virtual environment
+**/venv
+
 # Python compiled files and package metadata
 **/__pycache__
 **/*.egg-info

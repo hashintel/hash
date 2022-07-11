@@ -3,9 +3,12 @@ import { RedisQueueProducer } from "@hashintel/hash-backend-utils/queue/redis";
 import { QueueProducer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { supportedRealtimeTables } from "@hashintel/hash-backend-utils/realtime";
 
 // The tables to monitor for changes
-export const MONITOR_TABLES = ["public.entity_versions"];
+export const MONITOR_TABLES = supportedRealtimeTables.map(
+  (table) => `public.${table}`,
+);
 
 // The realtime service will push all updates from the Postgres changestream to the
 // following queues.

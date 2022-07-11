@@ -312,7 +312,7 @@ export class ApiClient {
         updatePageContents,
         vars,
       )
-      .then((res) => res.updatePageContents);
+      .then((res) => res.updatePageContents.page);
 
   createLinkedAggregation = async (
     vars: CreateLinkedAggregationMutationVariables,

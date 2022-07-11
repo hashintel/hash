@@ -1,4 +1,4 @@
-import { BlockVariant } from "blockprotocol";
+import { BlockVariant, JSONObject } from "blockprotocol";
 import { isString } from "lodash";
 import { NodeSpec, ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
@@ -17,8 +17,8 @@ import {
 } from "./entity";
 import {
   createEntityStore,
-  draftEntityForEntityId,
   EntityStore,
+  EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
@@ -26,7 +26,8 @@ import {
   addEntityStoreAction,
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
-  newDraftId,
+  createDraftIdForEntity,
+  mustGetDraftEntityFromEntityId,
 } from "./entityStorePlugin";
 import {
   childrenForTextEntity,
@@ -63,9 +64,14 @@ type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
 type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
 
+/**
+ * Manages the creation and editing of the ProseMirror schema.
+ * Editing the ProseMirror schema on the fly involves unsupported hacks flagged below.
+ */
 export class ProsemirrorSchemaManager {
   constructor(
     public schema: Schema,
+    private accountId: string,
     private view: EditorView<Schema> | null = null,
     private componentNodeViewFactory: ComponentNodeViewFactory | null = null,
   ) {}
@@ -205,8 +211,13 @@ export class ProsemirrorSchemaManager {
    *
    * @todo support taking a signal
    */
-  async fetchAndDefineBlock(componentId: string): Promise<BlockMeta> {
-    const meta = await fetchBlockMeta(componentId);
+  async fetchAndDefineBlock(
+    componentId: string,
+    options?: { bustCache: boolean },
+  ): Promise<BlockMeta> {
+    const meta = await fetchBlockMeta(componentId, {
+      bustCache: !!options?.bustCache,
+    });
 
     await this.defineRemoteBlock(componentId);
 
@@ -239,7 +250,7 @@ export class ProsemirrorSchemaManager {
       Object.values(data.store.saved)
         .map((entity: any) => entity.properties?.componentId)
         .filter(isString)
-        .map(this.fetchAndDefineBlock, this),
+        .map((componentId) => this.fetchAndDefineBlock(componentId), this),
     );
   }
 
@@ -259,6 +270,36 @@ export class ProsemirrorSchemaManager {
     for (const componentId of Array.from(componentIds.values())) {
       await this.defineRemoteBlock(componentId);
     }
+  }
+
+  /**
+   *  This assumes the block info has been fetched and the
+   *  entities (block entity and child entity)
+   *  @todo this only works for non-text blocks,
+   *  It should be updated to handle text blocks
+   */
+  createLocalBlock({
+    targetComponentId,
+    draftBlockId,
+    draftChildEntityId,
+    textContent = [],
+  }: {
+    targetComponentId: string;
+    draftBlockId?: string | null;
+    draftChildEntityId?: string | null;
+    textContent?: ProsemirrorNode<Schema>[];
+  }) {
+    return this.schema.nodes.block!.create({}, [
+      this.schema.nodes.entity!.create(
+        { draftId: draftBlockId },
+        this.schema.nodes.entity!.create(
+          {
+            draftId: draftChildEntityId,
+          },
+          [this.schema.nodes[targetComponentId]!.create({}, textContent)],
+        ),
+      ),
+    ]);
   }
 
   /**
@@ -328,19 +369,13 @@ export class ProsemirrorSchemaManager {
        * @todo arguably this doesn't need to be here – remove it if possible
        *   when working on switching blocks
        */
-      return this.schema.nodes.block!.create({}, [
-        this.schema.nodes.entity!.create(
-          { draftId: draftBlockId },
-          this.schema.nodes.entity!.create(
-            {
-              draftId: isDraftBlockEntity(blockEntity)
-                ? blockEntity.properties.entity.draftId
-                : null,
-            },
-            [this.schema.nodes[targetComponentId]!.create({}, [])],
-          ),
-        ),
-      ]);
+      return this.createLocalBlock({
+        targetComponentId,
+        draftBlockId,
+        draftChildEntityId: isDraftBlockEntity(blockEntity)
+          ? blockEntity.properties.entity.draftId
+          : null,
+      });
     }
   }
 
@@ -355,14 +390,10 @@ export class ProsemirrorSchemaManager {
 
     const newNodes = await Promise.all(
       entities.map((blockEntity) => {
-        const draftEntity = draftEntityForEntityId(
+        const draftEntity = mustGetDraftEntityFromEntityId(
           store.draft,
           blockEntity.entityId,
         );
-
-        if (!draftEntity) {
-          throw new Error("Missing draft entity");
-        }
 
         return this.createRemoteBlock(
           blockEntity.properties.componentId,
@@ -409,6 +440,23 @@ export class ProsemirrorSchemaManager {
     view.dispatch(tr);
   }
 
+  /**
+   * @todo consider removing the old block from the entity store
+   * @todo need to support variants here (copied from {@link replaceNodeWithRemoteBlock} - is this still relevant?
+   */
+  async deleteNode(node: ProsemirrorNode<Schema>, pos: number) {
+    const { view } = this;
+
+    if (!view) {
+      throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
+    }
+
+    const { tr } = view.state;
+
+    tr.delete(pos, pos + node.nodeSize);
+    view.dispatch(tr);
+  }
+
   // @todo handle empty variant properties
   // @todo handle saving the results of this
   // @todo handle non-intermediary entities
@@ -427,6 +475,7 @@ export class ProsemirrorSchemaManager {
     let blockIdForNode = draftBlockId;
 
     if (blockIdForNode) {
+      // we already have a block which we're swapping
       const entityStoreState = entityStorePluginState(this.view.state);
 
       const blockEntity = entityStoreState.store.draft[blockIdForNode];
@@ -436,23 +485,11 @@ export class ProsemirrorSchemaManager {
       }
 
       if (targetComponentId === blockEntity.properties.componentId) {
-        /**
-         * I've temporarily made it so all changes involved text result in
-         * creating a new variant entity, instead of updating the one that's
-         * there. That's because the save mechanism doesn't yet know to process
-         * updates to entities that aren't in the prosemirror document. This
-         * forces the update to be saved anyway, at cost of throw away variant
-         * entities.
-         *
-         * @todo update the existing entity where possible, instead of
-         * creating new ones
-         */
         if (
-          !blockComponentRequiresText(meta.componentSchema)
-          // ||
-          // // isTextContainingEntityProperties(
-          // //   blockEntity.properties.entity.properties,
-          // // )
+          !blockComponentRequiresText(meta.componentSchema) ||
+          isTextContainingEntityProperties(
+            blockEntity.properties.entity.properties,
+          )
         ) {
           /**
            * In the event we're switching to another variant of the same
@@ -473,6 +510,7 @@ export class ProsemirrorSchemaManager {
             },
           });
         } else {
+          // we're swapping to the same text component - preserve text
           blockIdForNode = await this.createNewDraftBlock(
             tr,
             {
@@ -490,6 +528,7 @@ export class ProsemirrorSchemaManager {
           );
         }
       } else {
+        // we're swapping a block to a different component
         let entityProperties = targetVariant?.properties ?? {};
         if (blockComponentRequiresText(meta.componentSchema)) {
           const textEntityLink = isDraftTextContainingEntityProperties(
@@ -514,14 +553,16 @@ export class ProsemirrorSchemaManager {
         );
       }
     } else {
+      // we're adding a new block, rather than swapping an existing one
       let entityProperties = targetVariant?.properties ?? {};
 
       if (blockComponentRequiresText(meta.componentSchema)) {
-        const newTextDraftId = newDraftId();
+        const newTextDraftId = createDraftIdForEntity(null);
 
         addEntityStoreAction(this.view.state, tr, {
           type: "newDraftEntity",
           payload: {
+            accountId: this.accountId,
             draftId: newTextDraftId,
             entityId: null,
           },
@@ -565,6 +606,96 @@ export class ProsemirrorSchemaManager {
     return [tr, newNode, meta] as const;
   }
 
+  /**
+   * This handles changing the block's data (blockEntity.properties.entity)
+   * to point to the targetEntity and updating the prosemirror tree to render
+   * the block with updated content
+   */
+  swapBlockData(entityId: string, targetEntity: EntityStoreType, pos: number) {
+    if (!this.view) {
+      throw new Error("Cannot trigger updateBlock without view");
+    }
+
+    const { tr } = this.view.state;
+    const entityStore = entityStorePluginStateFromTransaction(
+      tr,
+      this.view.state,
+    ).store;
+
+    const blockEntity = entityId ? entityStore.saved[entityId] : null;
+    const blockData = isBlockEntity(blockEntity)
+      ? blockEntity.properties.entity
+      : null;
+
+    if (!isBlockEntity(blockEntity) || !blockData) {
+      throw new Error("Can only update data of a BlockEntity");
+    }
+
+    // If the target entity is the same as the block's child entity
+    // we don't need to do anything
+    if (targetEntity.entityId === blockData.entityId) {
+      return;
+    }
+
+    addEntityStoreAction(this.view.state, tr, {
+      type: "updateBlockEntityProperties",
+      payload: {
+        targetEntity,
+        blockEntityDraftId: mustGetDraftEntityFromEntityId(
+          entityStore.draft,
+          blockEntity.entityId,
+        ).draftId,
+      },
+    });
+
+    const updatedStore = entityStorePluginStateFromTransaction(
+      tr,
+      this.view.state,
+    ).store;
+
+    const newBlockNode = this.createLocalBlock({
+      targetComponentId: blockEntity.properties.componentId,
+      draftBlockId: createDraftIdForEntity(blockEntity.entityId),
+      draftChildEntityId: mustGetDraftEntityFromEntityId(
+        updatedStore.draft,
+        targetEntity.entityId,
+      )?.draftId,
+    });
+
+    tr.replaceRangeWith(pos, pos + newBlockNode.nodeSize, newBlockNode);
+    this.view.dispatch(tr);
+  }
+
+  /**
+   * Updates the provided properties on the specified entity.
+   * Merges provided properties in with existing properties.
+   * @param entityId the id of the entity to update
+   * @param propertiesToUpdate the properties to update
+   */
+  updateEntityProperties(entityId: string, propertiesToUpdate: JSONObject) {
+    if (!this.view) {
+      throw new Error("Cannot trigger updateEntityProperties without view");
+    }
+
+    const { tr } = this.view.state;
+
+    const entityStore = entityStorePluginStateFromTransaction(
+      tr,
+      this.view.state,
+    ).store.draft;
+
+    addEntityStoreAction(this.view.state, tr, {
+      type: "updateEntityProperties",
+      payload: {
+        draftId: mustGetDraftEntityFromEntityId(entityStore, entityId).draftId,
+        properties: propertiesToUpdate,
+        merge: true,
+      },
+    });
+
+    this.view.dispatch(tr);
+  }
+
   private async createNewDraftBlock(
     tr: Transaction<Schema>,
     entityProperties: {},
@@ -574,25 +705,27 @@ export class ProsemirrorSchemaManager {
       throw new Error("Cannot trigger createNewDraftBlock without view");
     }
 
-    const newBlockId = newDraftId();
+    const newBlockId = createDraftIdForEntity(null);
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
+        accountId: this.accountId,
         draftId: newBlockId,
         entityId: null,
       },
     });
 
-    const newVariantDraftId = newDraftId();
+    const newVariantDraftId = createDraftIdForEntity(null);
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
+        accountId: this.accountId,
         draftId: newVariantDraftId,
         entityId: null,
       },
     });
 
-    // // @todo handle non-intermediary entities
+    // @todo handle non-intermediary entities
     addEntityStoreAction(this.view.state, tr, {
       type: "updateEntityProperties",
       payload: {

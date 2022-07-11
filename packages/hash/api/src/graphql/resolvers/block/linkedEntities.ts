@@ -1,12 +1,13 @@
 import { ApolloError } from "apollo-server-errors";
 import { Block, UnresolvedGQLBlock, UnresolvedGQLEntity } from "../../../model";
-import { Resolver } from "../../apiTypes.gen";
+import { ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
-export const data: Resolver<
+export const data: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   UnresolvedGQLBlock,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, ctx) => {
   const { dataSources } = ctx;
 

@@ -24,22 +24,25 @@ export const getEntityTypeQuery = gql`
     }
   }
 `;
-
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
     $accountId: ID!
-    $description: String!
+    $description: String
     $name: String!
+    $schema: JSONObject
   ) {
     createEntityType(
       accountId: $accountId
       description: $description
       name: $name
+      schema: $schema
     ) {
-      ...EntityTypeFields
+      accountId
+      entityId
+      entityTypeName
+      properties
     }
   }
-  ${entityTypeFieldsFragment}
 `;
 
 export const updateEntityTypeMutation = gql`

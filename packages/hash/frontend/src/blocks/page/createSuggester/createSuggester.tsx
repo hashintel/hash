@@ -1,5 +1,8 @@
 import type { BlockVariant } from "blockprotocol";
-import { blockComponentRequiresText } from "@hashintel/hash-shared/blockMeta";
+import {
+  blockComponentRequiresText,
+  BlockMeta,
+} from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import {
@@ -13,7 +16,6 @@ import { RenderPortal } from "../usePortals";
 import { ensureMounted } from "../../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
 import { MentionSuggester } from "./MentionSuggester";
-import { RemoteBlockMetadata } from "../../userBlocks";
 
 interface Trigger {
   char: "@" | "/";
@@ -34,7 +36,19 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   if (!cursor) return null;
 
   // the cursor's parent is the node that contains it
-  const text = cursor.parent.textContent;
+  const parentContent = cursor.parent.content;
+
+  let text = "";
+
+  parentContent.forEach((node) => {
+    // replace non-text nodes with a space so that regex stops
+    // matching at that point
+    if (node.text) {
+      text += node.text;
+    } else {
+      text += " ";
+    }
+  });
 
   // the cursor's position inside its parent
   const cursorPos = cursor.parentOffset;
@@ -42,18 +56,20 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // the parent's position relative to the document root
   const parentPos = cursor.pos - cursorPos;
 
-  const match = /(@|\/)\S*$/.exec(text.substring(0, cursorPos));
+  const match = /\B(@|\/)\S*$/.exec(text.substring(0, cursorPos));
   if (!match) return null;
 
-  const from = match.index;
+  const from = parentPos + match.index;
 
   // match upto the first whitespace character or the end of the node
-  const to = cursorPos + text.substring(cursorPos).search(/\s|$/g);
+  const to = cursor.pos + text.substring(cursorPos).search(/\s|$/g);
+
+  const search = state.doc.textBetween(from + 1, to);
 
   return {
-    search: text.substring(from, to),
-    from: parentPos + from,
-    to: parentPos + to,
+    search,
+    from,
+    to,
     char: match[1] as Trigger["char"],
   };
 };
@@ -161,10 +177,10 @@ export const createSuggester = (
            */
           const onBlockSuggesterChange = (
             variant: BlockVariant,
-            userBlockMeta: RemoteBlockMetadata,
+            blockMeta: BlockMeta["componentMetadata"],
           ) => {
             getManager()
-              .createRemoteBlockTr(userBlockMeta.componentId, null, variant)
+              .createRemoteBlockTr(blockMeta.componentId, null, variant)
               .then(([tr, node, meta]) => {
                 const $end = view.state.doc.resolve(to);
                 const endPosition = $end.end(1);

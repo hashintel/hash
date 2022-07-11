@@ -167,9 +167,28 @@ class __Page extends Entity {
       latestOnly: true,
     });
 
-    return await Promise.all(
+    const pages = await Promise.all(
       pageEntities.map((entity) => Page.fromEntity(client, entity)),
     );
+
+    return await Promise.all(
+      pages.map(async (page) => {
+        if (await page.isArchived(client)) {
+          return [];
+        }
+        return page;
+      }),
+    ).then((filteredPages) => filteredPages.flat());
+  }
+
+  async isArchived(client: DbClient): Promise<Boolean> {
+    if (this.properties.archived) {
+      return true;
+    }
+
+    const parentPage = await this.getParentPage(client);
+
+    return parentPage ? await parentPage.isArchived(client) : false;
   }
 
   static async fromEntity(client: DbClient, entity: Entity): Promise<Page> {
@@ -387,9 +406,13 @@ class __Page extends Entity {
 
   async removeBlock(
     client: DbClient,
-    params: { position: number; removedByAccountId: string },
+    params: {
+      position: number;
+      removedByAccountId: string;
+      allowRemovingFinal?: boolean;
+    },
   ) {
-    const { position } = params;
+    const { allowRemovingFinal, position } = params;
 
     const contentLinks = await this.getOutgoingLinks(client, {
       path: ["contents"],
@@ -407,7 +430,7 @@ class __Page extends Entity {
       );
     }
 
-    if (contentLinks.length === 1) {
+    if (!allowRemovingFinal && contentLinks.length === 1) {
       throw new Error("Cannot remove final block from page");
     }
 

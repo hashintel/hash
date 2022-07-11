@@ -1,12 +1,12 @@
 import { ApolloClient } from "@apollo/client";
-import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
+import {
+  AggregationVersion,
+  LinkVersion,
+} from "@hashintel/hash-backend-utils/pgTables";
+import { RealtimeMessage } from "@hashintel/hash-backend-utils/realtime";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import {
-  BlockEntity,
-  flatMapBlocks,
-  isTextContainingEntityProperties,
-} from "@hashintel/hash-shared/entity";
+import { BlockEntity, flatMapBlocks } from "@hashintel/hash-shared/entity";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
@@ -17,25 +17,27 @@ import {
 import {
   GetBlocksQuery,
   GetBlocksQueryVariables,
+  GetLinkedAggregationQuery,
+  GetLinkedAggregationQueryVariables,
+  GetLinkQuery,
+  GetLinkQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
   LatestEntityRef,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
-  getBlocksQuery,
-  getPageQuery,
-} from "@hashintel/hash-shared/queries/page.queries";
-import {
-  createNecessaryEntities,
-  updatePageMutation,
-} from "@hashintel/hash-shared/save";
+  getLinkedAggregationIdentifierFieldsQuery,
+  getLinkQuery,
+} from "@hashintel/hash-shared/queries/link.queries";
 import { Response } from "express";
 import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
+import { getBlocksQuery } from "./graphql/queries/blocks.queries";
+import { getPageQuery } from "./graphql/queries/page.queries";
+import { save } from "./save";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -116,7 +118,7 @@ export class Instance {
     }, POSITION_CLEANUP_INTERVAL);
 
     this.unsubscribeFromEntityWatcher = this.entityWatcher.subscribe(
-      (entityVersion) => this.processEntityVersion(entityVersion),
+      (message) => this.processWatcherMessage(message),
     );
   }
 
@@ -170,7 +172,7 @@ export class Instance {
    * talk to the GraphQL server to resolve links on the incoming entity, and
    * walkValueForEntity cannot handle async operations
    */
-  private async processEntityVersion(entityVersion: EntityVersion) {
+  private async processWatcherMessage({ table, record }: RealtimeMessage) {
     if (this.errored) {
       return;
     }
@@ -203,16 +205,108 @@ export class Instance {
         ({ accountId, entityId }) => `${accountId}/${entityId}`,
       );
 
-      const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
-      const entityVersionRef = getEntityRef(entityVersion);
+      /**
+       * This fetches entity references relevant to the provided LinkVersion or AggregationVersion.
+       * Multiple entity refs may be returned, as a LinkVersion has both a source and a destination.
+       * The LinkedEntities for a destination can change if any of its properties are resolved via incoming links.
+       * This uses {@link getEntityRef} to memoize the refs, so they can be checked against refs
+       * acquired through that function directly.
+       */
+      const getEntityRefsFromLinkOrAggregation = (
+        recordToGetIdsFrom: LinkVersion | AggregationVersion,
+      ): Promise<LatestEntityRef[]> => {
+        const variables =
+          "linkId" in recordToGetIdsFrom
+            ? {
+                sourceAccountId: recordToGetIdsFrom.sourceAccountId,
+                linkId: recordToGetIdsFrom.linkId,
+              }
+            : {
+                sourceAccountId: recordToGetIdsFrom.sourceAccountId,
+                aggregationId: recordToGetIdsFrom.aggregationId,
+              };
+        return this.fallbackClient
+          .query<
+            GetLinkQuery | GetLinkedAggregationQuery,
+            GetLinkQueryVariables | GetLinkedAggregationQueryVariables
+          >({
+            query:
+              "linkId" in recordToGetIdsFrom
+                ? getLinkQuery
+                : getLinkedAggregationIdentifierFieldsQuery,
+            variables,
+            fetchPolicy: "network-only",
+          })
+          .then(({ data }) => {
+            if ("getLink" in data) {
+              const {
+                sourceAccountId,
+                sourceEntityId,
+                destinationAccountId,
+                destinationEntityId,
+              } = data.getLink;
+              return [
+                getEntityRef({
+                  accountId: sourceAccountId,
+                  entityId: sourceEntityId,
+                }),
+                getEntityRef({
+                  accountId: destinationAccountId,
+                  entityId: destinationEntityId,
+                }),
+              ];
+            } else {
+              const { sourceAccountId, sourceEntityId } =
+                data.getLinkedAggregation;
+              return [
+                getEntityRef({
+                  accountId: sourceAccountId,
+                  entityId: sourceEntityId,
+                }),
+              ];
+            }
+          });
+      };
 
+      const recordUpdatedAt = new Date(record.updatedAt).getTime();
+
+      const affectedEntityRefs: LatestEntityRef[] =
+        table === "entity_versions"
+          ? [getEntityRef(record)] // an entity itself has been updated - get its ref
+          : await getEntityRefsFromLinkOrAggregation(record); // a link or linked aggregation has been updated - get the affected entities
+
+      /**
+       * Determine which blocks to refresh by checking if any of the entities within it are affected
+       */
       const blocksToRefresh = new Set(
         flatMapBlocks(this.savedContents, (entity, blockEntity) => {
           const entityRef = getEntityRef(entity);
 
+          // check if the entity itself is affected
+          let affected = affectedEntityRefs.includes(entityRef);
+
+          if (!affected && "linkedEntities" in entity) {
+            // this is the entity within the block, i.e. the 'child' entity
+            // check if any of its linked entities or linked aggregations are affected
+            // we don't need to check this if we already know it's affected
+            affected =
+              entity.linkedEntities.some((linkedEntity) =>
+                affectedEntityRefs.includes(getEntityRef(linkedEntity)),
+              ) ||
+              entity.linkedAggregations.some(
+                ({ sourceAccountId, sourceEntityId }) =>
+                  affectedEntityRefs.includes(
+                    getEntityRef({
+                      accountId: sourceAccountId,
+                      entityId: sourceEntityId,
+                    }),
+                  ),
+              );
+          }
+
           if (
-            entityRef === entityVersionRef &&
-            entityVersionTime > new Date(entity.updatedAt).getTime()
+            affected &&
+            recordUpdatedAt > new Date(entity.updatedAt).getTime()
           ) {
             return [getEntityRef(blockEntity)];
           }
@@ -276,26 +370,35 @@ export class Instance {
     }
   }
 
-  private updateSavedContents(nextSavedContents: BlockEntity[]) {
+  private updateSavedContents(
+    blocks: BlockEntity[],
+    additionalActions: EntityStorePluginAction[] = [],
+    draftToEntity: Record<string, string> = {},
+  ) {
     if (this.errored) {
       return;
     }
 
+    this.sendUpdates();
     const { tr } = this.state;
+
+    for (const action of additionalActions) {
+      addEntityStoreAction(this.state, tr, action);
+    }
+
     addEntityStoreAction(this.state, tr, {
       type: "mergeNewPageContents",
-      payload: nextSavedContents,
+      payload: {
+        blocks,
+        presetDraftIds: draftToEntity,
+      },
     });
     this.state = this.state.apply(tr);
-    this.savedContents = nextSavedContents;
-    this.recordStoreUpdate();
-  }
-
-  /**
-   * @todo remove this – we should be able to send the tracked actions to other
-   *       clients, instead of the whole store
-   */
-  private recordStoreUpdate() {
+    this.savedContents = blocks;
+    /**
+     * @todo remove this – we should be able to send the tracked actions to other
+     *       clients, instead of the whole store
+     */
     this.addUpdates([
       {
         type: "store",
@@ -352,9 +455,9 @@ export class Instance {
 
         this.sendUpdates();
 
-        if (apolloClient) {
+        if (apolloClient && steps.length + actions.length > 0) {
           // @todo offload saves to a separate process / debounce them
-          this.save(apolloClient)(clientID);
+          this.save(apolloClient)();
         }
       } catch (err) {
         this.error(err);
@@ -364,7 +467,7 @@ export class Instance {
       return { version: this.version };
     };
 
-  save = (apolloClient: ApolloClient<unknown>) => (clientID: string) => {
+  save = (apolloClient: ApolloClient<unknown>) => () => {
     this.saveChain = this.saveChain
       .catch()
       .then(async () => {
@@ -372,117 +475,15 @@ export class Instance {
           throw new Error("Saving when instance stopped");
         }
 
-        const { actions, createdEntities } = await createNecessaryEntities(
-          this.state,
-          this.accountId,
+        const [nextBlocks, draftToEntity] = await save(
           apolloClient,
-        );
-
-        if (actions.length) {
-          this.addEvents(apolloClient)(
-            this.version,
-            [],
-            `${clientID}-server`,
-            actions,
-          );
-        }
-
-        return createdEntities;
-      })
-      .then((createdEntities) => {
-        const { doc } = this.state;
-        const store = entityStorePluginState(this.state);
-
-        return updatePageMutation(
           this.accountId,
           this.pageEntityId,
-          doc,
-          this.savedContents,
+          this.state.doc,
           entityStorePluginState(this.state).store,
-          apolloClient,
-          createdEntities,
-        ).then((newPage) => {
-          const actions: EntityStorePluginAction[] = [];
+        );
 
-          /**
-           * We need to look through our doc for any nodes that were missing
-           * entityIds (i.e, that are new) and insert them from the save.
-           *
-           * @todo allow the client to pick entity ids to remove the need to
-           * do this
-           */
-          doc.descendants((node, pos) => {
-            const resolved = doc.resolve(pos);
-            const idx = resolved.index(0);
-            const blockEntity = newPage.properties.contents[idx];
-
-            if (!blockEntity) {
-              throw new Error("Cannot find block node in save result");
-            }
-
-            if (isEntityNode(node)) {
-              let targetEntityId: string;
-
-              if (!node.attrs.draftId) {
-                throw new Error(
-                  "Cannot process save when node missing a draft id",
-                );
-              }
-
-              /**
-               * @todo doesn't update entity id for text containing entities
-               *       when created
-               */
-              switch (resolved.depth) {
-                case 1:
-                  targetEntityId = blockEntity.entityId;
-                  break;
-
-                case 2:
-                  targetEntityId = isTextContainingEntityProperties(
-                    blockEntity.properties.entity.properties,
-                  )
-                    ? blockEntity.properties.entity.properties.text.data
-                        .entityId
-                    : blockEntity.properties.entity.entityId;
-                  break;
-
-                default:
-                  throw new Error("unexpected structure");
-              }
-
-              const entity = store.store.draft[node.attrs.draftId];
-
-              if (!entity) {
-                throw new Error(
-                  `Cannot find corresponding draft entity for node post-save`,
-                );
-              }
-
-              if (targetEntityId !== entity.entityId) {
-                actions.push({
-                  type: "updateEntityId",
-                  payload: {
-                    draftId: entity.draftId,
-                    entityId: targetEntityId,
-                  },
-                });
-              }
-            }
-          });
-
-          if (actions.length) {
-            this.addEvents(apolloClient)(
-              this.version,
-              [],
-              `${clientID}-server`,
-              actions,
-              false,
-            );
-          }
-
-          this.updateSavedContents(newPage.properties.contents);
-        });
+        this.updateSavedContents(nextBlocks, [], draftToEntity);
       })
       .catch((err) => {
         this.error(err);
@@ -747,18 +748,15 @@ const newInstance =
       variables: { entityId: pageEntityId, accountId },
     });
 
-    const state = createProseMirrorState();
+    const state = createProseMirrorState({ accountId });
 
-    const manager = new ProsemirrorSchemaManager(state.schema);
+    const manager = new ProsemirrorSchemaManager(state.schema, accountId);
 
     /**
      * @todo check plugins
      */
     const newState = state.apply(
-      await manager.createEntityUpdateTransaction(
-        data.page.properties.contents,
-        state,
-      ),
+      await manager.createEntityUpdateTransaction(data.page.contents, state),
     );
 
     // The instance may have been created whilst another user we were doing the above work
@@ -771,7 +769,7 @@ const newInstance =
       pageEntityId,
       newState,
       manager,
-      data.page.properties.contents,
+      data.page.contents,
       entityWatcher,
       apolloClient,
     );
@@ -785,6 +783,7 @@ export const getInstance =
     if (forceNewInstance || instances[pageEntityId]?.errored) {
       instances[pageEntityId]?.stop();
       delete instances[pageEntityId];
+      instanceCount--;
     }
     const inst =
       instances[pageEntityId] ||

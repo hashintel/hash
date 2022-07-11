@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-errors";
 import { set } from "lodash";
-import { Resolver, Entity as GQLEntity, LinkGroup } from "../../apiTypes.gen";
+import { Entity as GQLEntity, LinkGroup, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Entity, Link } from "../../../model";
 import { DbClient } from "../../../db";
@@ -22,11 +22,10 @@ type LinkGroupsObject = {
 };
 
 /**
- * @returns true if linkA and linkB have the same destination entity (with the same specificed version)
+ * @returns true if linkA and linkB have the same destination entity
  */
 export const linkHasSameDestinationAs = (linkA: Link) => (linkB: Link) =>
-  linkA.destinationEntityId === linkB.destinationEntityId &&
-  linkA.destinationEntityVersionId === linkB.destinationEntityVersionId;
+  linkA.destinationEntityId === linkB.destinationEntityId;
 
 /**
  * Adds the outgoing links to the provided linkGroups object
@@ -82,17 +81,6 @@ const addEntityOutgoingLinks =
     }
   };
 
-const areEntitiesEquivalent = (
-  entity: Entity,
-  otherEntity: Entity,
-): boolean => {
-  return (
-    entity.accountId === otherEntity.accountId &&
-    entity.entityId === otherEntity.entityId &&
-    entity.entityVersionId === otherEntity.entityVersionId
-  );
-};
-
 /**
  * Adds the outgoing links of the aggregation results of an entity to the provided linkGroups object
  */
@@ -111,7 +99,7 @@ const addEntityAggregationResultOutgoingLinks =
       .filter((result, i, all) => {
         return (
           all.findIndex((resultEntity) =>
-            areEntitiesEquivalent(resultEntity, result),
+            resultEntity.isEquivalentTo(result),
           ) === i
         );
       });
@@ -167,10 +155,11 @@ const mapLinkGroupsObjectToGQLLinkGroups = (
     )
     .flat(2);
 
-export const linkGroups: Resolver<
+export const linkGroups: ResolverFn<
   GQLEntity["linkGroups"],
   DbUnknownEntity,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (sourceEntity, _, { dataSources }) => {
   const source = await Entity.getEntity(dataSources.db, {
     accountId: sourceEntity.accountId,

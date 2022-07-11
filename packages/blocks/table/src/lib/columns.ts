@@ -1,4 +1,4 @@
-import { isRecord } from "./identifyEntity";
+import { isRecord } from "./identify-entity";
 
 type TableColumn = { Header: string; accessor: string } & {
   columns?: TableColumn[];
@@ -22,7 +22,9 @@ export const makeColumns = (
     }
 
     const column: TableColumn = {
-      Header: accessor.split(".").join(" "),
+      // hack to remove properties from showing up in title
+      // @todo remove the need for this
+      Header: accessor.split(".").join(" ").replace("properties", ""),
       accessor,
     };
     if (isRecord(value)) {

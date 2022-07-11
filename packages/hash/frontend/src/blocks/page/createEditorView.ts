@@ -18,6 +18,10 @@ import { RenderPortal } from "./usePortals";
 
 export type BlocksMetaMap = Record<string, BlockMeta>;
 
+/**
+ * An editor view manages the DOM structure that represents an editable document.
+ * @see https://prosemirror.net/docs/ref/#view.EditorView
+ */
 export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
@@ -35,7 +39,7 @@ export const createEditorView = (
     errorPlugin,
   ];
 
-  const state = createProseMirrorState({ plugins });
+  const state = createProseMirrorState({ accountId, plugins });
 
   let connection: EditorConnection;
 
@@ -103,6 +107,7 @@ export const createEditorView = (
 
   manager = new ProsemirrorSchemaManager(
     state.schema,
+    accountId,
     view,
     // Reason for adding `_decorations`:
     // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
@@ -111,14 +116,7 @@ export const createEditorView = (
         throw new Error("Invalid config for nodeview");
       }
 
-      return new ComponentView(
-        node,
-        editorView,
-        getPos,
-        renderPortal,
-        meta,
-        accountId,
-      );
+      return new ComponentView(node, editorView, getPos, renderPortal, meta);
     },
   );
 
@@ -128,12 +126,15 @@ export const createEditorView = (
     view,
     manager,
     plugins,
+    accountId,
     () => {
       view.dispatch(onError(view.state.tr));
     },
   );
 
   view.dom.classList.add(styles.ProseMirror!);
+  // Prevent keyboard navigation on the editor
+  view.dom.setAttribute("tabIndex", "-1");
 
   // prosemirror will use the first node type (per group) for auto-creation.
   // we want this to be the paragraph node type.

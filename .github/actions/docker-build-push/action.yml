@@ -1,0 +1,71 @@
+name: Build Docker image
+description: Build and push Docker image
+
+inputs:
+  AWS_ACCESS_KEY_ID:
+    description: AWS access key id
+    required: true
+  AWS_SECRET_ACCESS_KEY:
+    description: AWS secret access key
+    required: true
+  AWS_REGION:
+    description: AWS region
+    required: true
+  AWS_ECR_URL:
+    description: AWS ECR url
+    required: true
+  SHORTNAME:
+    description: Name of the thing that is being built. Keep path-friendly, please don't use special characters or spaces.
+    required: true
+  IMAGE_NAME:
+    description: Name of the image within the registry
+    required: true
+  IMAGE_TAG:
+    description: Name of the image within the registry
+    required: false
+    default: latest
+  DOCKERFILE_LOCATION:
+    description: Location of the Dockerfile
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # Set up AWS ECR login
+    - uses: ./.github/actions/docker-ecr-login
+      with:
+        AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ inputs.AWS_REGION }}
+
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: docker-${{inputs.SHORTNAME}}-${{ hashFiles('yarn.lock') }}
+        restore-keys: |
+          docker-${{inputs.SHORTNAME}}-${{ hashFiles('yarn.lock') }}
+          docker-${{inputs.SHORTNAME}}-
+          docker-
+
+    # Build images and push to ECR
+    - name: Build and push ${{inputs.SHORTNAME}} image
+      uses: docker/build-push-action@v2
+      env:
+        GH_RUN_ID: ${{ github.run_id }}
+      with:
+        # The Dockerfile is in a leaf-folder without access to what it needs.
+        # Thus the context is within the root, while the dockerfile is deeply nested.
+        context: ${{ github.workspace }}
+        push: true
+        file: ${{ inputs.DOCKERFILE_LOCATION }}
+        tags: ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:${{ inputs.IMAGE_TAG }} , ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
+
+    # Make sure that cache doesn't get too bloated.
+    - name: Move cache
+      shell: bash
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache

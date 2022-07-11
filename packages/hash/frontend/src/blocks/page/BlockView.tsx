@@ -4,64 +4,23 @@ import {
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
+import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { BlockVariant } from "blockprotocol";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createRef, forwardRef, RefObject, useMemo, useState } from "react";
-import { useOutsideClick } from "rooks";
-import { tw } from "twind";
-import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
-import { DragVerticalIcon } from "../../components/icons";
-import { RemoteBlockMetadata } from "../userBlocks";
+import { createRef } from "react";
+
 import { BlockViewContext } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
-import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 import styles from "./style.module.css";
+
 import { RenderPortal } from "./usePortals";
+import { BlockHandle } from "./BlockHandle";
 
-type BlockHandleProps = {
-  entityId: string | null;
-  onTypeChange: BlockSuggesterProps["onChange"];
-  entityStore: EntityStore;
-};
-
-export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ entityId, onTypeChange, entityStore }, ref) => {
-    const [isPopoverVisible, setPopoverVisible] = useState(false);
-
-    useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
-      setPopoverVisible(false),
-    );
-
-    const blockSuggesterProps: BlockSuggesterProps = useMemo(
-      () => ({
-        onChange: (variant, block) => {
-          onTypeChange(variant, block);
-          setPopoverVisible(false);
-        },
-      }),
-      [onTypeChange],
-    );
-
-    return (
-      <div ref={ref} className={tw`relative cursor-pointer`}>
-        <DragVerticalIcon onClick={() => setPopoverVisible(true)} />
-        {isPopoverVisible && (
-          <BlockContextMenu
-            entityId={entityId}
-            blockSuggesterProps={blockSuggesterProps}
-            closeMenu={() => setPopoverVisible(false)}
-            entityStore={entityStore}
-          />
-        )}
-      </div>
-    );
-  },
-);
-
-export const blockDomId = (blockEntityId: string) => `entity-${blockEntityId}`;
+export const getBlockDomId = (blockEntityId: string) =>
+  `entity-${blockEntityId}`;
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject
@@ -77,9 +36,6 @@ export class BlockView implements NodeView<Schema> {
 
   /** used to hide node-view specific events from prosemirror */
   blockHandleRef = createRef<HTMLDivElement>();
-
-  /** used to hide dragging-related events from prosemirror */
-  dragHandleRef = createRef<HTMLDivElement>();
 
   private store: EntityStore;
   private unsubscribe: Function;
@@ -102,13 +58,14 @@ export class BlockView implements NodeView<Schema> {
 
   constructor(
     public node: ProsemirrorNode<Schema>,
-    public view: EditorView<Schema>,
+    public editorView: EditorView<Schema>,
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
+    this.dom.setAttribute("data-testid", "block");
 
     this.selectContainer = document.createElement("div");
     this.selectContainer.classList.add(styles.Block__UI!);
@@ -121,8 +78,8 @@ export class BlockView implements NodeView<Schema> {
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content!);
 
-    this.store = entityStorePluginState(view.state).store;
-    this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
+    this.store = entityStorePluginState(editorView.state).store;
+    this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
       this.store = store;
       this.update(this.node);
     });
@@ -158,7 +115,7 @@ export class BlockView implements NodeView<Schema> {
      */
     return (
       this.blockHandleRef.current?.contains(evt.target as Node) ||
-      (evt.target === this.dragHandleRef.current && evt.type === "mousedown")
+      (evt.target === this.blockHandleRef.current && evt.type === "mousedown")
     );
   }
 
@@ -210,17 +167,18 @@ export class BlockView implements NodeView<Schema> {
     const blockEntityId = this.getBlockEntityIdFromNode(this.node);
 
     if (blockEntityId) {
-      this.dom.id = blockDomId(blockEntityId);
+      this.dom.id = getBlockDomId(blockEntityId);
     }
 
     this.renderPortal(
       <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-        <div
-          data-testid="block-handle"
-          className={styles.Block__Handle}
-          ref={this.dragHandleRef}
+        <BlockHandle
+          deleteBlock={this.deleteBlock}
+          entityId={blockEntityId}
+          entityStore={this.store}
+          onTypeChange={this.onBlockChange}
+          ref={this.blockHandleRef}
           onMouseDown={() => {
             /**
              * We only want to allow dragging from the drag handle
@@ -235,7 +193,7 @@ export class BlockView implements NodeView<Schema> {
             this.dragging = true;
             this.dom.classList.add(styles["Block--dragging"]!);
 
-            const { tr } = this.view.state;
+            const { tr } = this.editorView.state;
 
             /**
              * By triggering a selection of the node, we can ensure
@@ -243,20 +201,17 @@ export class BlockView implements NodeView<Schema> {
              * starts
              */
             tr.setSelection(
-              NodeSelection.create<Schema>(this.view.state.doc, this.getPos()),
+              NodeSelection.create<Schema>(
+                this.editorView.state.doc,
+                this.getPos(),
+              ),
             );
 
-            this.view.dispatch(tr);
+            this.editorView.dispatch(tr);
 
             this.update(this.node);
           }}
           onClick={this.onDragEnd}
-        />
-        <BlockHandle
-          ref={this.blockHandleRef}
-          entityId={blockEntityId}
-          onTypeChange={this.onBlockChange}
-          entityStore={this.store}
         />
       </BlockViewContext.Provider>,
       this.selectContainer,
@@ -272,13 +227,20 @@ export class BlockView implements NodeView<Schema> {
     document.removeEventListener("dragend", this.onDragEnd);
   }
 
-  /**
-   * @todo restore the ability to load in new block types here
-   */
-  onBlockChange = (variant: BlockVariant, meta: RemoteBlockMetadata) => {
-    const { node, view, getPos } = this;
+  deleteBlock = () => {
+    const { node, getPos } = this;
+    this.manager.deleteNode(node, getPos()).catch((err: Error) => {
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error(
+        `Error deleting node at position ${getPos()}: ${err.message}`,
+      );
+    });
+  };
 
-    const state = view.state;
+  onBlockChange = (variant: BlockVariant, meta: BlockConfig) => {
+    const { node, editorView, getPos } = this;
+
+    const state = editorView.state;
     const child = state.doc.resolve(getPos() + 1).nodeAfter;
     const draftId = child?.attrs.draftId;
 

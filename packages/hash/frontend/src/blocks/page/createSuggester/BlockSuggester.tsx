@@ -2,35 +2,18 @@ import { BlockVariant } from "blockprotocol";
 import { VFC } from "react";
 import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 
 import { Suggester } from "./Suggester";
-import { RemoteBlockMetadata, useUserBlocks } from "../../userBlocks";
+import { useUserBlocks } from "../../userBlocks";
 import { useFilteredBlocks } from "./useFilteredBlocks";
-import { WarnIcon } from "../../../components/icons/WarnIcon";
+import { WarnIcon } from "../../../shared/icons";
 
 export interface BlockSuggesterProps {
   search?: string;
-  onChange(variant: BlockVariant, block: RemoteBlockMetadata): void;
+  onChange(variant: BlockVariant, block: BlockMeta["componentMetadata"]): void;
   sx?: SxProps<Theme>;
 }
-
-// @todo remove this when API returns actual icon URL
-export const getVariantIcon = (option: {
-  variant: BlockVariant;
-  meta: RemoteBlockMetadata;
-}): string | undefined => {
-  if (option.variant.icon?.startsWith("/")) {
-    return `https://blockprotocol.org${option.variant.icon}`;
-  }
-
-  if (option.variant.icon?.startsWith("public/")) {
-    return `https://blockprotocol.org${
-      option.meta.icon!.split("public/")[0]
-    }public/${option.variant.icon.split("public/")[1]}`;
-  }
-
-  return option.variant.icon;
-};
 
 /**
  * used to present list of blocks to choose from to the user
@@ -56,7 +39,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
               <img
                 className={tw`w-6 h-6`}
                 alt={option.variant.name}
-                src={getVariantIcon(option)}
+                src={option.variant.icon ?? "/format-font.svg"}
               />
             )}
           </div>
@@ -110,7 +93,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
           </Box>
         ) : null
       }
-      itemKey={({ meta, variant }) => `${meta.name}/${variant.name}`}
+      itemKey={({ meta, variant }) => `${meta.componentId}/${variant.name}`}
       onChange={(option) => {
         onChange(option.variant, option.meta);
       }}

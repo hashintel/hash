@@ -4,20 +4,16 @@ use crate::run_test;
 mod city_infection_model {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
-    run_test!(city_infection_model, experiment: infected_linspace, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(city_infection_model, experiment: duration_range_monte_carlo, #[ignore]);
+    run_test!(city_infection_model, experiment: infected_linspace, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
+    run_test!(city_infection_model, experiment: duration_range_monte_carlo, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
 }
 
 // https://core.hash.ai/@hash/sugarscape/7.5.0
 mod sugarscape {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
-    run_test!(sugarscape, experiment: initial_sugar_linear_sweep, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(sugarscape, experiment: agent_density_linspace, #[ignore]);
+    run_test!(sugarscape, experiment: initial_sugar_linear_sweep, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
+    run_test!(sugarscape, experiment: agent_density_linspace, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
 }
 
 run_test!(published_display_behaviors);
@@ -35,48 +31,36 @@ mod boids_3d {
 mod model_market {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
-    run_test!(model_market, experiment: startup_rate, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(model_market, experiment: max_price_arange, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(model_market, experiment: min_price_arange, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(model_market, experiment: max_cost_arange, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(model_market, experiment: min_cost_arange, #[ignore]);
+    run_test!(model_market, experiment: startup_rate, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
+    run_test!(model_market, experiment: max_price_arange, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
+    run_test!(model_market, experiment: min_price_arange, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
+    run_test!(model_market, experiment: max_cost_arange, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
+    run_test!(model_market, experiment: min_cost_arange, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
 }
 
 // https://core.hash.ai/@hash/wildfires-regrowth/9.8.0
 mod wildfire_regrowth {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
-    run_test!(wildfire_regrowth, experiment: test_experiment, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(wildfire_regrowth, experiment: lightning_chance_linspace, #[ignore]);
+    run_test!(wildfire_regrowth, experiment: test_experiment, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
+    run_test!(wildfire_regrowth, experiment: lightning_chance_linspace, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
 }
 
 // https://core.hash.ai/@hash/ant-foraging/7.4.0
 mod ant_foraging {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
-    run_test!(ant_foraging, experiment: number_of_ants_arange, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(ant_foraging, experiment: decay_rate_arange, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(ant_foraging, experiment: diffusion_rate_arange, #[ignore]);
+    run_test!(ant_foraging, experiment: number_of_ants_arange, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
+    run_test!(ant_foraging, experiment: decay_rate_arange, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
+    run_test!(ant_foraging, experiment: diffusion_rate_arange, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
 }
 
 // https://core.hash.ai/@hash/virus-mutation-and-drug-resistance/3.5.0
 mod virus_mutation_and_drug_resistance {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
-    run_test!(virus_mutation_and_drug_resistance, experiment: mutation_linspace, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(virus_mutation_and_drug_resistance, experiment: vaccination_linspace, #[ignore]);
+    run_test!(virus_mutation_and_drug_resistance, experiment: mutation_linspace, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
+    run_test!(virus_mutation_and_drug_resistance, experiment: vaccination_linspace, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
 }
 
 // https://core.hash.ai/@hash/virus-mutation-and-drug-resistance/3.5.0
@@ -90,8 +74,7 @@ mod warehouse_logistics {
 mod rainfall {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
-    run_test!(rainfall, experiment: sweep_rain_rate, #[ignore]);
+    run_test!(rainfall, experiment: sweep_rain_rate, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
 }
 
 // https://core.hash.ai/@hash/rumor-mill-public-health-practices/2.2.3
@@ -116,9 +99,9 @@ mod interconnected_call_center {
     use crate::run_test;
 
     // Bug: https://app.asana.com/0/1201707629991362/1201756436717252/f
-    run_test!(interconnected_call_center, experiment: call_time_linspace, #[ignore]);
+    run_test!(interconnected_call_center, experiment: call_time_linspace, #[ignore = "bug: Unused non-nullable behavior keys"]);
     // Bug: https://app.asana.com/0/1201707629991362/1201756436717252/f
-    run_test!(interconnected_call_center, experiment: call_time_arange, #[ignore]);
+    run_test!(interconnected_call_center, experiment: call_time_arange, #[ignore = "bug: Unused non-nullable behavior keys"]);
 }
 
 // https://core.hash.ai/@hash/air-defense-system/1.3.1
@@ -132,8 +115,7 @@ mod air_defense_system {
 }
 
 // https://core.hash.ai/@hash/city-infection-model-with-vaccine/1.0.3
-// Rust behavior is currently not supported
-run_test!(city_infection_model_with_vaccine, #[ignore]);
+run_test!(city_infection_model_with_vaccine, #[ignore = "unimplemented: Rust behaviors are currently not supported"]);
 
 // https://core.hash.ai/@hash/wholesale-warehouse1/1.1.1
 run_test!(wholesale_warehouse1);

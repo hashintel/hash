@@ -3,7 +3,7 @@
 </p>
 <div align="center">
  <a href="https://github.com/hashintel/hash/blob/main/packages/hash/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-agpl3.svg" alt="GNU Affero General Public License version 3" /></a>
- <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
+ <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_hash"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
 # HASH
@@ -26,7 +26,7 @@ To run HASH locally, please follow these steps:
     ## ≥ 2.17
     
     node --version
-    ## ≥ 16.13 and < 17.00 (`@opensearch-project/opensearch` currently does not support node 17)
+    ## ≥ 16.13
     
     yarn --version
     ## ≥ 1.16
@@ -220,16 +220,10 @@ Your tests will be less wired to the implementation details and thus be closer t
 
 ## Code quality
 
-We perform automated linting and formatting checks on pull requests using GitHub Actions. You may
-also run these checks using the git hooks provided in [./hooks](./hooks). To install these hooks,
-run:
+We perform automated linting and formatting checks on pull requests using GitHub Actions.
+When a pull request is created or updated, GitHub Action will run those checks. This includes ESLint, TSC, Prettier, Markdownlint, rustfmt, and a few other tools. Some checks may be skipped depending on the files that have been changed in the pull request.
 
-```sh
-yarn install-hooks
-```
-
-This installs the hooks into your `.git/hooks` directory as symlinks to the corresponding script in
-`./hooks`.
+First-time contributors need to wait for a maintainer to manually launch the checks.
 
 ## Monorepo
 
@@ -254,8 +248,8 @@ The below `package.json` file outlines the minimum requirements a package has to
     "postinstall": "yarn build"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "5.6.0",
-    "@typescript-eslint/parser": "5.6.0",
+    "@typescript-eslint/eslint-plugin": "5.17.0",
+    "@typescript-eslint/parser": "5.17.0",
     "eslint": "^7.32.0",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^8.3.0",
@@ -265,7 +259,7 @@ The below `package.json` file outlines the minimum requirements a package has to
     "eslint-plugin-react": "^7.28.0",
     "eslint-plugin-react-hooks": "^4.3.0",
     "rimraf": "3.2.0",
-    "typescript": "4.6.2"
+    "typescript": "4.7.4"
   }
 }
 ```
@@ -390,3 +384,18 @@ If the service should report metrics to a StatsD server, the following variables
 - `NEXT_PUBLIC_API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
 - `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
 - `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
+
+## Contributors
+
+HASH's development is being led by various employees of _[HASH](https://hash.dev/)_ (the company). The current core team includes:
+
+- Ahmad Atta
+- Alexander Kachkaev
+- Alfie Mountfield
+- Ben Werner
+- Ciaran Morinan
+- Maggie Appleton
+- Nate Higgins
+- Valentino Ugbala
+
+As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).

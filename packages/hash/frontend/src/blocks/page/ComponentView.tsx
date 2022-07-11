@@ -1,7 +1,6 @@
 import {
   blockComponentRequiresText,
   BlockMeta,
-  componentIdToUrl,
 } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
@@ -80,11 +79,10 @@ export class ComponentView implements NodeView<Schema> {
 
   constructor(
     private node: ProsemirrorNode<Schema>,
-    public view: EditorView<Schema>,
+    public editorView: EditorView<Schema>,
     public getPos: () => number,
     private renderPortal: RenderPortal,
     private meta: BlockMeta,
-    public accountId: string,
   ) {
     const { componentMetadata, componentSchema } = meta;
     const { source } = componentMetadata;
@@ -109,8 +107,8 @@ export class ComponentView implements NodeView<Schema> {
 
     this.dom.appendChild(this.target);
 
-    this.store = entityStorePluginState(view.state).store;
-    this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
+    this.store = entityStorePluginState(editorView.state).store;
+    this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
       this.store = store;
       this.update(this.node);
     });
@@ -122,11 +120,10 @@ export class ComponentView implements NodeView<Schema> {
     this.node = node;
 
     if (isComponentNode(node) && componentNodeToId(node) === this.componentId) {
-      const blockDraftId: string = this.view.state.doc
+      const blockDraftId: string = this.editorView.state.doc
         .resolve(this.getPos())
         .node(2).attrs.draftId;
 
-      const mappedUrl = componentIdToUrl(this.componentId);
       const entity = this.store.draft[blockDraftId]!;
 
       // @todo handle entity id not being defined
@@ -152,7 +149,7 @@ export class ComponentView implements NodeView<Schema> {
           fallback={(props) => <ErrorBlock {...props} onRetry={onRetry} />}
         >
           <BlockLoader
-            sourceUrl={`${mappedUrl}/${this.sourceName}`}
+            sourceUrl={this.sourceName}
             blockEntityId={entityId}
             shouldSandbox={!this.editable}
             editableRef={this.editable ? this.editableRef : undefined}

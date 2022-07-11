@@ -1,35 +1,53 @@
-FROM node:16 AS builder
+FROM node:16.14.2-alpine AS builder
 
 WORKDIR /app
 
+# Ensure that the node module layer can be cached
+COPY package.json .
+COPY yarn.lock .
+RUN yarn install --frozen-lockfile --production --ignore-scripts --prefer-offline
+
+# Also ensure that api node modules can be cached
+COPY packages/hash/api/package.json packages/hash/api/
+COPY packages/hash/shared/package.json packages/hash/shared/
+COPY packages/hash/backend-utils/package.json packages/hash/backend-utils/
+RUN yarn workspace @hashintel/hash-api install --frozen-lockfile --ignore-scripts --prefer-offline
+
+COPY tsconfig.base.json .
+
+COPY packages/hash/api/codegen.yml packages/hash/api/codegen.yml
+COPY packages/hash/api/src/graphql/typeDefs packages/hash/api/src/graphql/typeDefs
+COPY packages/hash/api/src/collab/graphql/queries packages/hash/api/src/collab/graphql/queries
+COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+
+RUN yarn workspace @hashintel/hash-api codegen
+
+COPY packages/hash/shared/codegen.yml packages/hash/shared/codegen.yml
+COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+
+RUN yarn workspace @hashintel/hash-shared codegen
+
+
+COPY packages/hash/backend-utils packages/hash/backend-utils
 COPY packages/hash/api packages/hash/api
 COPY packages/hash/shared packages/hash/shared
-COPY packages/hash/frontend packages/hash/frontend
-COPY packages/hash/backend-utils packages/hash/backend-utils
-COPY package.json .
-COPY tsconfig.base.json .
-COPY yarn.lock .
 
-RUN --mount=type=cache,mode=0755,target=/yarn-cache \
-  --mount=type=cache,mode=0755,target=/var/cache/apt \
-  --mount=type=cache,mode=0755,target=/var/lib/apt \
-  yarn workspace @hashintel/hash-api install --cache-folder /yarn-cache \
-  && yarn workspace @hashintel/hash-api codegen && yarn workspace @hashintel/hash-frontend codegen && yarn workspace @hashintel/hash-shared codegen \
-  && yarn install --production --ignore-scripts --prefer-offline --cache-folder /yarn-cache # Remove devDependencies
 
 #########################################################################################
 
-FROM ubuntu:20.04
+FROM node:16.14.2-alpine
 
 COPY --from=builder /app /app
-COPY --from=builder /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /app
 
 # Run as a non-root user
-RUN groupadd -g 999 appuser \
-  && useradd -r -u 999 -g appuser appuser
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+USER root
+RUN chown appuser:appgroup /app
 
 USER appuser
+ENV NODE_ENV production
 
 CMD ["yarn", "workspace","@hashintel/hash-api", "start"]

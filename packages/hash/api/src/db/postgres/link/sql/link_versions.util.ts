@@ -1,7 +1,6 @@
 import { sql } from "slonik";
 
 import { Connection } from "../../types";
-import { DbLinkRow } from "./links.util";
 import { DbLinkVersion } from "../../../adapter";
 import { mapColumnNamesToSQL } from "../../util";
 
@@ -26,23 +25,6 @@ export type DbLinkVersionRow = {
   updated_at: string;
   updated_by_account_id: string;
 };
-
-export const selectAllLinkVersions = sql<DbLinkRow>`
-  select ${linkVersionsColumnNamesSQL}
-  from links
-`;
-
-export const selectAllLinkVersionsOfLink = (params: {
-  sourceAccountId: string;
-  linkId: string;
-}) => sql<DbLinkRow>`
-  select ${linkVersionsColumnNamesSQL}
-  from link_versions
-  where
-      source_account_id = ${params.sourceAccountId}
-    and
-      link_id = ${params.linkId}
-`;
 
 export const insertLinkVersionRow = async (
   conn: Connection,

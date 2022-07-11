@@ -12,6 +12,7 @@ import {
   Visibility,
 } from "../graphql/apiTypes.gen";
 import { EntityTypeMeta, EntityTypeTypeFields } from "../db/adapter";
+import { SystemType } from "../types/entityTypes";
 import {
   compileAjvSchema,
   entityTypePropertyKeyValidator,
@@ -266,6 +267,15 @@ class __EntityType {
     params: { schema$id: string },
   ): Promise<EntityType | null> {
     const dbEntityType = await client.getEntityTypeBySchema$id(params);
+
+    return dbEntityType ? new EntityType(dbEntityType) : null;
+  }
+
+  static async getEntityTypeBySystemTypeName(
+    client: DbClient,
+    params: { systemTypeName: SystemType },
+  ) {
+    const dbEntityType = await client.getSystemTypeLatestVersion(params);
 
     return dbEntityType ? new EntityType(dbEntityType) : null;
   }

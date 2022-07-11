@@ -1,5 +1,6 @@
 import "./loadTestEnv";
 import {
+  Aggregation,
   Entity,
   EntityType,
   Org,
@@ -554,7 +555,7 @@ describe("logged in user ", () => {
         entityId: page.entityId,
         actions: [
           {
-            insertNewBlock: {
+            insertBlock: {
               accountId: existingUser.accountId,
               componentId: "https://blockprotocol.org/blocks/@hash/header",
               position: 0,
@@ -653,13 +654,13 @@ describe("logged in user ", () => {
     const componentId = "https://blockprotocol.org/blocks/@hash/unknown";
     let entityTypeComponentId: string;
     it("can add a block with unknown componentId", async () => {
-      // No type argument given to insertNewBlock, only componentId
+      // No type argument given to insertBlock, only componentId
       const updatedPage = await client.updatePageContents({
         accountId: page.accountId,
         entityId: page.entityId,
         actions: [
           {
-            insertNewBlock: {
+            insertBlock: {
               accountId: existingUser.accountId,
               componentId,
               position: 0,
@@ -715,13 +716,13 @@ describe("logged in user ", () => {
     });
 
     it("can use entityType that has been created through componentId", async () => {
-      // Again, no type argument given to insertNewBlock, only componentId
+      // Again, no type argument given to insertBlock, only componentId
       const updatedPage = await client.updatePageContents({
         accountId: page.accountId,
         entityId: page.entityId,
         actions: [
           {
-            insertNewBlock: {
+            insertBlock: {
               accountId: existingUser.accountId,
               componentId,
               position: 0,
@@ -855,7 +856,7 @@ describe("logged in user ", () => {
       entityId: page.entityId,
       actions: [
         {
-          insertNewBlock: {
+          insertBlock: {
             accountId: page.accountId,
             componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             position: 1,
@@ -868,7 +869,7 @@ describe("logged in user ", () => {
           },
         },
         {
-          insertNewBlock: {
+          insertBlock: {
             accountId: page.accountId,
             componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             position: 2,
@@ -922,7 +923,7 @@ describe("logged in user ", () => {
         entityId: createPage.entityId,
         actions: [
           {
-            insertNewBlock: {
+            insertBlock: {
               accountId: existingUser.accountId,
               componentId: "https://blockprotocol.org/blocks/@hash/header",
               position: 0,
@@ -944,7 +945,7 @@ describe("logged in user ", () => {
         entityId: createPage.entityId,
         actions: [
           {
-            insertNewBlock: {
+            insertBlock: {
               accountId: existingUser.accountId,
               componentId: "https://blockprotocol.org/blocks/@hash/divider",
               position: 1,
@@ -1069,7 +1070,7 @@ describe("logged in user ", () => {
       entityId: page.entityId,
       actions: [
         {
-          insertNewBlock: {
+          insertBlock: {
             accountId: page.accountId,
             componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             position: 1,
@@ -1408,7 +1409,7 @@ describe("logged in user ", () => {
       expect(result.entityId).toEqual(subPage.entityId);
       expect(pageTree).toContainEqual({
         entityId: subPage.entityId,
-        properties: { title },
+        properties: { title, pageEntityId: subPage.entityId },
         parentPageEntityId: superPage.entityId,
       });
     });
@@ -1439,7 +1440,7 @@ describe("logged in user ", () => {
       expect(result.entityId).toEqual(subSubPage.entityId);
       expect(pageTree).toContainEqual({
         entityId: subSubPage.entityId,
-        properties: { title },
+        properties: { title, pageEntityId: subSubPage.entityId },
         parentPageEntityId: subPage.entityId,
       });
     });
@@ -1502,17 +1503,23 @@ describe("logged in user ", () => {
       expect(treePages).toContainEqual({
         parentPageEntityId: undefined,
         entityId: superPage.entityId,
-        properties: { title: superTitle },
+        properties: { title: superTitle, pageEntityId: superPage.entityId },
         children: [
           {
             parentPageEntityId: superPage.entityId,
             entityId: subPage.entityId,
-            properties: { title: subPage.properties.title },
+            properties: {
+              title: subPage.properties.title,
+              pageEntityId: subPage.entityId,
+            },
             children: [
               {
                 parentPageEntityId: subPage.entityId,
                 entityId: subSubPage.entityId,
-                properties: { title: subSubPage.properties.title },
+                properties: {
+                  title: subSubPage.properties.title,
+                  pageEntityId: subSubPage.entityId,
+                },
                 children: undefined,
               },
             ],
@@ -1540,7 +1547,7 @@ describe("logged in user ", () => {
       expect(result.entityId).toEqual(subSubPage.entityId);
       expect(pageTree).toContainEqual({
         entityId: subSubPage.entityId,
-        properties: { title },
+        properties: { title, pageEntityId: subSubPage.entityId },
         parentPageEntityId: superPage.entityId,
       });
     });
@@ -1564,7 +1571,7 @@ describe("logged in user ", () => {
       expect(result.entityId).toEqual(subSubPage.entityId);
       expect(pageTree).toContainEqual({
         entityId: subSubPage.entityId,
-        properties: { title },
+        properties: { title, pageEntityId: subSubPage.entityId },
         parentPageEntityId: null,
       });
     });
@@ -1641,8 +1648,11 @@ describe("logged in user ", () => {
     });
     expect(gqlAggregation.results).toHaveLength(numberOfAggregateEntities);
 
-    const aggregation = (await sourceEntity.getAggregation(db, {
-      stringifiedPath: variables.path,
+    const { aggregationId } = gqlAggregation;
+
+    const aggregation = (await Aggregation.getAggregationById(db, {
+      ...variables,
+      aggregationId,
     }))!;
 
     expect(aggregation).not.toBeNull();
@@ -1693,7 +1703,7 @@ describe("logged in user ", () => {
 
     const stringifiedPath = "$.test";
 
-    await sourceEntity.createAggregation(db, {
+    const { aggregationId } = await sourceEntity.createAggregation(db, {
       stringifiedPath,
       createdBy: existingUser,
       operation: {
@@ -1714,8 +1724,7 @@ describe("logged in user ", () => {
     const updatedGQLAggregation = await client.updateLinkedAggregationOperation(
       {
         sourceAccountId: sourceEntity.accountId,
-        sourceEntityId: sourceEntity.entityId,
-        path: stringifiedPath,
+        aggregationId,
         updatedOperation,
       },
     );
@@ -1725,8 +1734,9 @@ describe("logged in user ", () => {
       pageCount: 0,
     });
 
-    const aggregation = (await sourceEntity.getAggregation(db, {
-      stringifiedPath,
+    const aggregation = (await Aggregation.getAggregationById(db, {
+      sourceAccountId: existingUser.accountId,
+      aggregationId,
     }))!;
 
     expect(aggregation).not.toBeNull();
@@ -1744,7 +1754,7 @@ describe("logged in user ", () => {
 
     const stringifiedPath = "$.test";
 
-    await sourceEntity.createAggregation(db, {
+    const { aggregationId } = await sourceEntity.createAggregation(db, {
       stringifiedPath,
       createdBy: existingUser,
       operation: {
@@ -1756,12 +1766,12 @@ describe("logged in user ", () => {
 
     await client.deleteLinkedAggregation({
       sourceAccountId: sourceEntity.accountId,
-      sourceEntityId: sourceEntity.entityId,
-      path: stringifiedPath,
+      aggregationId,
     });
 
-    const aggregation = await sourceEntity.getAggregation(db, {
-      stringifiedPath,
+    const aggregation = await Aggregation.getAggregationById(db, {
+      sourceAccountId: sourceEntity.accountId,
+      aggregationId,
     });
 
     expect(aggregation).toBeNull();

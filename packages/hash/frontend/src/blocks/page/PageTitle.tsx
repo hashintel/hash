@@ -77,7 +77,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}
-      className={tw`font-medium text-2xl w-full py-0.5 -mx-1 px-1 mt-px ${
+      className={tw`border-none font-medium text-2xl w-full py-0.5 -mx-1 px-1 mt-px ${
         updateEntitiesLoading ? "opacity-50" : undefined
       }`}
       value={inputValue}

@@ -9,7 +9,6 @@ const linkFieldsFragment = gql`
     sourceEntityId
     destinationAccountId
     destinationEntityId
-    destinationEntityVersionId
   }
 `;
 
@@ -110,6 +109,7 @@ const pageFieldsFragment = gql`
     }
     properties {
       __typename
+      pageEntityId
       archived
       summary
       title
@@ -147,6 +147,7 @@ export const getAccountPagesTree = gql`
       entityId
       properties {
         title
+        pageEntityId
       }
       parentPageEntityId
     }
@@ -164,7 +165,9 @@ export const updatePageContents = gql`
       entityId: $entityId
       actions: $actions
     ) {
-      ...PageFields
+      page {
+        ...PageFields
+      }
     }
   }
   ${pageFieldsFragment}

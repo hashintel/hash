@@ -1,28 +1,41 @@
 import { Connection } from "../types";
-import {
-  acquireEntityLock,
-  getEntityLatestVersion,
-  updateVersionedEntity,
-} from "../entity";
+import { acquireEntityLock, getEntityLatestVersion } from "../entity";
 import { DbEntityNotFoundError } from "../..";
-import { deleteAggregationRow } from "./util";
+import {
+  deleteAggregationRow,
+  removeAggregationFromSource,
+} from "./sql/aggregations.util";
 import { requireTransaction } from "../util";
+import { getAggregation } from "./getAggregation";
+import { DbClient } from "../../adapter";
+import { DbAggregationNotFoundError } from "../../errors";
 
+/** See {@link DbClient.deleteAggregation} */
 export const deleteAggregation = async (
   existingConnection: Connection,
-  params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
-    deletedByAccountId: string;
-  },
+  {
+    sourceAccountId,
+    aggregationId,
+    deletedByAccountId,
+  }: Parameters<DbClient["deleteAggregation"]>[0],
 ): Promise<void> =>
   requireTransaction(existingConnection)(async (conn) => {
-    const { sourceAccountId, sourceEntityId, deletedByAccountId } = params;
+    const dbAggregation = await getAggregation(conn, {
+      sourceAccountId,
+      aggregationId,
+    });
+
+    if (!dbAggregation) {
+      throw new DbAggregationNotFoundError({ aggregationId });
+    }
+
+    const now = new Date();
+
+    const { sourceEntityId } = dbAggregation;
 
     await acquireEntityLock(conn, { entityId: sourceEntityId });
 
-    let dbSourceEntity = await getEntityLatestVersion(conn, {
+    const dbSourceEntity = await getEntityLatestVersion(conn, {
       accountId: sourceAccountId,
       entityId: sourceEntityId,
     }).then((dbEntity) => {
@@ -41,15 +54,13 @@ export const deleteAggregation = async (
        * When the source entity is versioned, we have to create a new version
        * of the entity.
        */
-
-      dbSourceEntity = await updateVersionedEntity(conn, {
-        updatedByAccountId: deletedByAccountId,
-        entity: dbSourceEntity,
-        /** @todo: re-implement method to not require updated `properties` */
-        properties: dbSourceEntity.properties,
-        omittedAggregations: [params],
+      await removeAggregationFromSource(conn, {
+        sourceAccountId,
+        aggregationId,
+        removedFromSourceAt: now,
+        removedFromSourceBy: deletedByAccountId,
       });
     } else {
-      await deleteAggregationRow(conn, params);
+      await deleteAggregationRow(conn, { sourceAccountId, aggregationId });
     }
   });

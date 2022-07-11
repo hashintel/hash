@@ -76,6 +76,19 @@ describe("Entity model class ", () => {
     });
   });
 
+  it("isEquivalentTo method correctly asserts equivalency between two instances of the class", async () => {
+    expect(entityA.isEquivalentTo(entityB)).toBe(false);
+
+    const secondEntityA = await Entity.getEntity(db, {
+      accountId: entityA.accountId,
+      entityVersionId: entityA.entityVersionId,
+    });
+
+    expect(secondEntityA).not.toBeNull();
+
+    expect(entityA.isEquivalentTo(secondEntityA!)).toBe(true);
+  });
+
   it("can get outgoing links", async () => {
     const outgoingLinks = await entityA.getOutgoingLinks(db);
 

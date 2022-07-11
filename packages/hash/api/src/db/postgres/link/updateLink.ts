@@ -13,6 +13,7 @@ import {
   updateLinkVersionIndices,
 } from "./sql/link_versions.util";
 
+/** See {@link DbClient.updateLink} */
 export const updateLink = async (
   existingConnection: Connection,
   params: Parameters<DbClient["updateLink"]>[0],

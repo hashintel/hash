@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "HASH backend utilities",
-  "license": "SSPL-1.0",
+  "license": "AGPL-3.0",
   "exports": {
     "./*": "./src/*.ts"
   },
@@ -21,13 +21,13 @@
     "test": "jest"
   },
   "dependencies": {
-    "@opensearch-project/opensearch": "1.0.0",
-    "apollo-datasource": "3.3.0",
-    "blockprotocol": "0.0.7",
+    "@opensearch-project/opensearch": "1.1.0",
+    "apollo-datasource": "3.3.2",
+    "blockprotocol": "0.0.10",
     "dotenv-flow": "3.2.0",
     "redis": "3.1.2",
     "slonik": "24.1.2",
-    "wait-on": "6.0.0",
+    "wait-on": "6.0.1",
     "winston": "3.3.3"
   },
   "devDependencies": {
@@ -36,6 +36,6 @@
     "@types/redis": "2.8.32",
     "@types/wait-on": "5.3.1",
     "rimraf": "^3.0.2",
-    "typescript": "4.6.2"
+    "typescript": "4.7.4"
   }
 }

@@ -152,7 +152,7 @@ const main = async () => {
     if (shutdown.isTriggered()) {
       break;
     }
-    logger.debug(
+    logger.silly(
       "Queue is owned by another consumer. Attempting to acquire ownership again ...",
     );
   }

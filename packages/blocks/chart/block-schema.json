@@ -1,0 +1,57 @@
+{
+  "type": "object",
+  "default": {
+    "title": "Chart Title",
+    "xAxisLabel": "X Axis",
+    "yAxisLabel": "Y Axis",
+    "series": []
+  },
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "xAxisLabel": {
+      "type": "string"
+    },
+    "yAxisLabel": {
+      "type": "string"
+    },
+    "series": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "seriesId": {
+            "type": "string"
+          },
+          "seriesName": {
+            "type": "string"
+          },
+          "xAxisPropertyKey": {
+            "type": "string"
+          },
+          "yAxisPropertyKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "seriesId",
+          "seriesName",
+          "xAxisPropertyKey",
+          "yAxisPropertyKey"
+        ]
+      }
+    },
+    "displayDataPointLabels": {
+      "type": "boolean",
+      "default": false
+    },
+    "displayLegend": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "configProperties": ["displayDataPointLabels", "displayLegend"],
+  "required": ["series", "title", "xAxisLabel", "yAxisLabel"],
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

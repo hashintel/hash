@@ -1,16 +1,19 @@
 use std::{
+    fs::remove_file,
     path::{Path, PathBuf},
     process::ExitStatus,
 };
 
 use async_trait::async_trait;
-use error::{Report, Result, ResultExt};
-use hash_engine_lib::{
-    proto::{EngineMsg, ExperimentId},
-    utils::{LogFormat, LogLevel, OutputLocation},
+use error_stack::{IntoReport, Report, ResultExt};
+use execution::package::experiment::ExperimentId;
+use experiment_control::{
+    comms::EngineMsg,
+    controller::run::cleanup_experiment,
+    environment::{LogFormat, LogLevel, OutputLocation},
 };
 
-use crate::process;
+use crate::{process, OrchestratorError, Result};
 
 const ENGINE_BIN_PATH_DEFAULT: &str = env!("CARGO_BIN_FILE_HASH_ENGINE");
 
@@ -20,7 +23,7 @@ const ENGINE_BIN_PATH_FALLBACK: &str = "./target/debug/hash_engine";
 #[cfg(not(debug_assertions))]
 const ENGINE_BIN_PATH_FALLBACK: &str = "./target/release/hash_engine";
 
-/// A local [`hash_engine`] subprocess using the [`std::process`] library.  
+/// A local `hash_engine` subprocess using the [`std::process`] library.  
 pub struct LocalProcess {
     child: tokio::process::Child,
     client: Option<nano::Client>,
@@ -29,8 +32,10 @@ pub struct LocalProcess {
 
 #[async_trait]
 impl process::Process for LocalProcess {
-    async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
-        self.child
+    async fn exit_and_cleanup(mut self: Box<Self>, experiment_id: ExperimentId) -> Result<()> {
+        // Kill the child process as it didn't stop on its own
+        let kill_result = self
+            .child
             .kill()
             .await
             .or_else(|e| match e.kind() {
@@ -39,13 +44,32 @@ impl process::Process for LocalProcess {
                 std::io::ErrorKind::InvalidInput => Ok(()),
                 _ => Err(Report::new(e)),
             })
-            .wrap_err("Could not kill the process")?;
+            .change_context(OrchestratorError::from("Could not kill the process"));
+
+        let engine_socket_path = format!("run-{experiment_id}");
+        match remove_file(&engine_socket_path) {
+            Ok(_) => {
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Removed file {engine_socket_path:?} that should've been cleaned up."
+                );
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => {
+                tracing::warn!(
+                    experiment = %experiment_id,
+                    "Could not clean up {engine_socket_path:?}: {err}"
+                );
+            }
+        }
+
+        cleanup_experiment(experiment_id);
 
         debug!("Cleaned up local engine process for experiment");
-        Ok(())
+        Ok(kill_result?)
     }
 
-    /// Creates or reuses a [`nano::Client`] to send a message to the [`hash_engine`] subprocess.
+    /// Creates or reuses a [`nano::Client`] to send a message to the `hash_engine` subprocess.
     ///
     /// # Errors
     ///
@@ -55,21 +79,33 @@ impl process::Process for LocalProcess {
         // We create the client on the first call here, rather than when the LocalCommand is run,
         // because the engine process needs some time before it's ready to accept NNG connections.
         if self.client.is_none() {
-            self.client = Some(nano::Client::new(&self.engine_url, 1)?);
+            self.client = Some(nano::Client::new(&self.engine_url, 1).change_context_lazy(
+                || {
+                    OrchestratorError::from(format!(
+                        "Could not create nano client for engine at {:?}",
+                        self.engine_url
+                    ))
+                },
+            )?);
         }
-        self.client
+        Ok(self
+            .client
             .as_mut()
             .unwrap()
             .send(msg)
             .await
-            .map_err(Report::from)
+            .change_context(OrchestratorError::from("Could not send engine message"))?)
     }
 
     async fn wait(&mut self) -> Result<ExitStatus> {
-        self.child
+        Ok(self
+            .child
             .wait()
             .await
-            .wrap_err("Could not wait for the process to exit")
+            .report()
+            .change_context(OrchestratorError::from(
+                "Could not wait for the process to exit",
+            ))?)
     }
 }
 
@@ -84,6 +120,8 @@ pub struct LocalCommand {
     output_location: OutputLocation,
     log_folder: PathBuf,
     target_max_group_size: Option<usize>,
+    js_runner_initial_heap_constraint: Option<usize>,
+    js_runner_max_heap_size: Option<usize>,
 }
 
 impl LocalCommand {
@@ -98,6 +136,8 @@ impl LocalCommand {
         output_location: OutputLocation,
         log_folder: PathBuf,
         target_max_group_size: Option<usize>,
+        js_runner_initial_heap_constraint: Option<usize>,
+        js_runner_max_heap_size: Option<usize>,
     ) -> Self {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
@@ -112,6 +152,8 @@ impl LocalCommand {
             output_location,
             log_folder,
             target_max_group_size,
+            js_runner_initial_heap_constraint,
+            js_runner_max_heap_size,
         }
     }
 }
@@ -157,11 +199,19 @@ impl process::Command for LocalCommand {
             cmd.arg("--target-max-group-size")
                 .arg(target_max_group_size.to_string());
         }
+        if let Some(js_runner_initial_heap_constraint) = self.js_runner_initial_heap_constraint {
+            cmd.arg("--js-runner-initial-heap-constraint")
+                .arg(js_runner_initial_heap_constraint.to_string());
+        }
+        if let Some(js_runner_max_heap_size) = self.js_runner_max_heap_size {
+            cmd.arg("--js-runner-max-heap-size")
+                .arg(js_runner_max_heap_size.to_string());
+        }
         debug!("Running `{cmd:?}`");
 
-        let child = cmd
-            .spawn()
-            .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))?;
+        let child = cmd.spawn().report().change_context_lazy(|| {
+            OrchestratorError::from(format!("Could not run command: {process_path:?}"))
+        })?;
         debug!("Spawned local engine process for experiment");
 
         Ok(Box::new(LocalProcess {

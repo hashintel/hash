@@ -12,7 +12,7 @@ import { getRequiredEnv } from "../util";
  * Sets up snowplow telemetry for HASH usage. Disabled by default.
  * This tracking function simply sends an event when the platform starts to record usage metrics.
  */
-export const setupTelemtry = (): [Emitter, Tracker] => {
+export const setupTelemetry = (): [Emitter, Tracker] => {
   const protocol =
     process.env.HASH_TELEMETRY_HTTPS === "true"
       ? HttpProtocol.HTTPS

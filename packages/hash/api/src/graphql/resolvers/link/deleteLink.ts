@@ -1,29 +1,25 @@
 import { ApolloError } from "apollo-server-errors";
-import { MutationDeleteLinkArgs, Resolver } from "../../apiTypes.gen";
-import { Entity } from "../../../model";
+import { MutationDeleteLinkArgs, ResolverFn } from "../../apiTypes.gen";
+import { Link } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const deleteLink: Resolver<
+export const deleteLink: ResolverFn<
   Promise<boolean>,
   {},
   LoggedInGraphQLContext,
   MutationDeleteLinkArgs
-> = (_, { sourceAccountId, sourceEntityId, linkId }, { dataSources, user }) =>
+> = (_, { sourceAccountId, linkId }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
-    const source = await Entity.getEntityLatestVersion(client, {
-      accountId: sourceAccountId,
-      entityId: sourceEntityId,
-    });
+    const link = await Link.get(client, { sourceAccountId, linkId });
 
-    if (!source) {
+    if (!link) {
       throw new ApolloError(
-        `Link source entity with accountId ${sourceAccountId} and entityId ${sourceEntityId} not found`,
+        `Link with sourceAccountId ${sourceAccountId} and linkId ${linkId} not found`,
         "NOT_FOUND",
       );
     }
 
-    await source.deleteOutgoingLink(client, {
-      linkId,
+    await link.delete(client, {
       deletedByAccountId: user.accountId,
     });
 

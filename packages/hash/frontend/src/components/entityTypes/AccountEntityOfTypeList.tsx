@@ -6,8 +6,9 @@ import {
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
-import { entityName } from "../../lib/entities";
-import { Link } from "../Link";
+import { Typography } from "@mui/material";
+import { guessEntityName } from "../../lib/entities";
+import { Link } from "../../shared/ui";
 
 type AccountEntityOfTypeListProps = {
   accountId: string;
@@ -38,12 +39,18 @@ export const AccountEntityOfTypeList: VoidFunctionComponent<
     return null;
   }
 
+  const results = data.aggregateEntity.results;
+
+  if (results.length === 0) {
+    return <Typography variant="largeTextLabels">None</Typography>;
+  }
+
   return (
     <ul>
-      {data.aggregateEntity.results.map((entity) => (
+      {results.map((entity) => (
         <li className={tw`mb-2`} key={entity.entityId}>
           <Link noLinkStyle href={`/${accountId}/entities/${entity.entityId}`}>
-            <a>{entityName(entity)}</a>
+            <a>{guessEntityName(entity)}</a>
           </Link>
         </li>
       ))}

@@ -2,6 +2,10 @@ import * as crypto from "crypto";
 import * as http from "http";
 
 import { sql } from "slonik";
+import {
+  clearIntervalAsync,
+  setIntervalAsync,
+} from "set-interval-async/dynamic";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   createPostgresConnPool,
@@ -19,7 +23,7 @@ import { MONITOR_TABLES, generateQueues } from "./config";
 const SLOT_NAME = "realtime";
 
 // The number of milliseconds between queries to the replication slot
-const POLL_INTERVAL_MILLIS = 5_000;
+const POLL_INTERVAL_MILLIS = 150;
 
 // An identifier for this instance of the realtime service. It is used to ensure
 // only a single instance of the service is reading from the replication slot
@@ -191,8 +195,15 @@ const main = async () => {
   }, OWNERSHIP_EXPIRY_MILLIS);
 
   // Poll the replication slot for new data
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  const int2 = setInterval(async () => {
+  // We are using set-interval-async/dynamic as the built-in setInterval might
+  // call the callback in an overlapping manner if the promise takes longer
+  // than the interval.
+  //
+  // set-interval-async/dynamic makes sure that no more than a single
+  // instance of the callback promise is executed at any given time.
+  // We can then also reduce the interval without fear that we will be stacking
+  // DB queries unnecessarily.
+  const int2 = setIntervalAsync(async () => {
     if (!slotAcquired) {
       return;
     }
@@ -207,7 +218,7 @@ const main = async () => {
       return;
     }
     receivedTerminationSignal = true;
-    clearInterval(int2);
+    await clearIntervalAsync(int2);
 
     // Ownership will expire, but release anyway
     await releaseSlotOwnership(pool);

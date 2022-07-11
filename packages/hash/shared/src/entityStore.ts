@@ -1,4 +1,5 @@
 import { Draft, produce } from "immer";
+import { createDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
 import { DistributiveOmit } from "./util";
 
@@ -8,13 +9,17 @@ type PropertiesType<Properties extends {}> = Properties extends {
   entity: EntityStoreType;
 }
   ? DistributiveOmit<Properties, "entity"> & {
+      /**
+       * @deprecated
+       * @todo Don't use this, use links
+       */
       entity: DraftEntity<Properties["entity"]>;
     }
   : Properties;
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
-  accountId?: string | null;
-  entityId: Type["entityId"] | null;
+  accountId: string;
+  entityId: string | null;
   entityTypeId?: string | null;
   entityVersionId?: string | null;
 
@@ -23,7 +28,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   //  keep a dict of entity ids to draft ids, and vice versa
   draftId: string;
 
-  entityVersionCreatedAt: string;
+  updatedAt: string;
 
   linkGroups?: Type extends { linkGroups: any }
     ? Type["linkGroups"]
@@ -68,12 +73,15 @@ export const isDraftBlockEntity = (
   isBlockEntity(entity) && isDraftEntity(entity);
 
 /**
+ * Returns the draft entity associated with an entity id, or undefined if it does not.
+ * Use mustGetDraftEntityFromEntityId if you want an error if the entity is missing.
  * @todo we could store a map of entity id <-> draft id to make this easier
  */
-export const draftEntityForEntityId = (
+export const getDraftEntityFromEntityId = (
   draft: EntityStore["draft"],
   entityId: string,
-) => Object.values(draft).find((entity) => entity.entityId === entityId);
+): DraftEntity | undefined =>
+  Object.values(draft).find((entity) => entity.entityId === entityId);
 
 const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
@@ -105,6 +113,7 @@ const restoreDraftId = (
   // eslint-disable-next-line no-param-reassign
   (entity as unknown as DraftEntity).draftId = entityToDraft[textEntityId]!;
 };
+
 /**
  * @todo this should be flat – so that we don't have to traverse links
  * @todo clean up
@@ -112,11 +121,17 @@ const restoreDraftId = (
 export const createEntityStore = (
   contents: BlockEntity[],
   draftData: Record<string, DraftEntity>,
+  presetDraftIds: Record<string, string> = {},
 ): EntityStore => {
   const saved: EntityStore["saved"] = {};
   const draft: EntityStore["draft"] = {};
 
-  const entityToDraft: Record<string, string> = {};
+  const entityToDraft = Object.fromEntries(
+    Object.entries(presetDraftIds).map(([draftId, entityId]) => [
+      entityId,
+      draftId,
+    ]),
+  );
 
   for (const row of Object.values(draftData)) {
     if (row.entityId) {
@@ -127,7 +142,7 @@ export const createEntityStore = (
 
   for (const entity of entities) {
     if (!entityToDraft[entity.entityId]) {
-      entityToDraft[entity.entityId] = `draft-${entity.entityId}`;
+      entityToDraft[entity.entityId] = createDraftIdForEntity(entity.entityId);
     }
   }
 
@@ -149,8 +164,8 @@ export const createEntityStore = (
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
           if (
-            new Date(draftData[draftId]!.entityVersionCreatedAt).getTime() >
-            new Date(draftEntity.entityVersionCreatedAt).getTime()
+            new Date(draftData[draftId]!.updatedAt).getTime() >
+            new Date(draftEntity.updatedAt).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
           }
@@ -184,7 +199,26 @@ export const createEntityStore = (
   }
 
   for (const [draftId, draftEntity] of Object.entries(draftData)) {
-    draft[draftId] ??= draftEntity;
+    const updated = {
+      ...draftEntity,
+      entityId: presetDraftIds[draftEntity.draftId] ?? draftEntity.entityId,
+    };
+
+    draft[draftId] ??= updated;
+  }
+
+  for (const [draftId, entityId] of Object.entries(presetDraftIds)) {
+    const draftEntity = draft[draftId];
+    if (!draftEntity) {
+      throw new Error("Cannot update relevant entity id");
+    }
+    if (draftEntity.entityId && draftEntity.entityId !== entityId) {
+      throw new Error("Cannot update entity id of existing draft entity");
+    }
+
+    draft[draftId] = produce(draftEntity, (draftDraftEntity) => {
+      draftDraftEntity.entityId = entityId;
+    });
   }
 
   return { saved, draft };

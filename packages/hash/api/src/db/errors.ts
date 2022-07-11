@@ -1,5 +1,3 @@
-import { DbEntity } from "./adapter";
-
 export class DbEntityNotFoundError extends Error {
   accountId?: string;
   entityId: string;
@@ -66,42 +64,11 @@ export class DbLinkNotFoundError extends Error {
 }
 
 export class DbAggregationNotFoundError extends Error {
-  sourceAccountId?: string;
-  sourceEntityId?: string;
-  path: string;
+  aggregationId: string;
 
-  constructor(params: {
-    sourceAccountId?: string;
-    sourceEntityId?: string;
-    path: string;
-  }) {
-    const { sourceAccountId, sourceEntityId, path } = params;
-    super(
-      `Aggregation with path ${path} for source entity with id ${sourceEntityId} in account ${sourceAccountId} not found`,
-    );
-    this.sourceAccountId = sourceAccountId;
-    this.sourceEntityId = sourceEntityId;
-    this.path = path;
-  }
-}
-
-export class DbInvalidLinksError extends Error {
-  entity: DbEntity;
-  invalid: { entityId: string; entityVersionId?: string }[];
-
-  constructor(params: {
-    entity: DbEntity;
-    invalid: { entityId: string; entityVersionId?: string }[];
-  }) {
-    const { entity, invalid } = params;
-    super(
-      `entity ${entity.entityId} with version ID ${
-        entity.entityVersionId
-      } and type "${
-        entity.entityTypeName
-      }" links to unknown entities: ${JSON.stringify(invalid)}`,
-    );
-    this.entity = entity;
-    this.invalid = invalid;
+  constructor(params: { aggregationId: string }) {
+    const { aggregationId } = params;
+    super(`Aggregation with aggregationId ${aggregationId} not found`);
+    this.aggregationId = aggregationId;
   }
 }

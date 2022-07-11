@@ -21,7 +21,6 @@ export const linksColumnNames = [
   "removed_from_source_by_account_id",
   "destination_account_id",
   "destination_entity_id",
-  "destination_entity_version_id",
 ];
 
 export const linksColumnNamesSQL = mapColumnNamesToSQL(linksColumnNames);
@@ -38,7 +37,6 @@ export type DbLinkRow = {
   removed_from_source_by_account_id: string | null;
   destination_account_id: string;
   destination_entity_id: string;
-  destination_entity_version_id: string | null;
 };
 
 export type DbLinkWithVersionRow = DbLinkRow & DbLinkVersionRow;
@@ -101,6 +99,7 @@ export const selectLatestVersionOfLink = (params: {
   order by link_id, updated_at desc
 `;
 
+/** selects all links with a specific destination entity */
 export const selectAllLinksWithDestinationEntity = (params: {
   destinationAccountId: string;
   destinationEntityId: string;
@@ -118,6 +117,7 @@ export const selectAllLinksWithDestinationEntity = (params: {
   )}
 `;
 
+/** selects all links with a specific source entity */
 export const selectAllLinksWithSourceEntity = (params: {
   sourceAccountId: string;
   sourceEntityId: string;
@@ -145,7 +145,7 @@ export const selectAllLinksWithSourceEntity = (params: {
               sql`applied_to_source_at <= ${params.activeAt.toISOString()}`,
               // either the link was removed after the timestamp, or the link hasn't been removed yet
               sql`(
-                  removed_from_source_at >= ${params.activeAt.toISOString()}
+                  removed_from_source_at > ${params.activeAt.toISOString()}
                 or
                   removed_from_source_at is null 
               )`,
@@ -188,7 +188,6 @@ export const insertLink = async (
           null,
           dbLink.destinationAccountId,
           dbLink.destinationEntityId,
-          dbLink.destinationEntityVersionId ?? null,
         ],
         sql`, `,
       )})
@@ -224,8 +223,6 @@ export const mapDbRowsToDbLink = (
     dbLinkWithVersionRow.removed_from_source_by_account_id ?? undefined,
   destinationAccountId: dbLinkWithVersionRow.destination_account_id,
   destinationEntityId: dbLinkWithVersionRow.destination_entity_id,
-  destinationEntityVersionId:
-    dbLinkWithVersionRow.destination_entity_version_id ?? undefined,
   updatedAt: new Date(dbLinkWithVersionRow.updated_at),
   updatedByAccountId: dbLinkWithVersionRow.updated_by_account_id,
 });

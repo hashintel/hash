@@ -1,13 +1,13 @@
 import {
   MutationRequestFileUploadArgs,
-  Resolver,
+  ResolverFn,
   RequestFileUploadResponse,
   File as GQLFile,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { File } from "../../../model";
 
-export const requestFileUpload: Resolver<
+export const requestFileUpload: ResolverFn<
   Promise<RequestFileUploadResponse>,
   {},
   LoggedInGraphQLContext,

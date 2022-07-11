@@ -1,18 +1,20 @@
-//! Library for running an experiment on a [`hash_engine`] process.
+//! Library for running an experiment on a `hash_engine` process.
 //!
 //! This crate is used for parsing a project manifest file [`Manifest`] into an experiment
-//! configuration, which then can be run on a [`hash_engine`] subprocess.
+//! configuration, which then can be run on a `hash_engine` subprocess.
+//!
+//! [`Manifest`]: experiment_structure::Manifest
 
 #[macro_use]
 extern crate tracing;
 
+pub mod error;
 mod experiment;
 mod experiment_server;
-mod manifest;
 pub mod process;
 
 pub use self::{
-    experiment::{Experiment, ExperimentConfig, ExperimentType},
+    error::{OrchestratorError, Result},
+    experiment::{Experiment, ExperimentConfig},
     experiment_server::{Handler, Server},
-    manifest::Manifest,
 };

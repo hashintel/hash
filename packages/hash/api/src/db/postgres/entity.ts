@@ -1,13 +1,7 @@
 import { sql, NotFoundError } from "slonik";
 import { uniq } from "lodash";
 
-import {
-  DbAggregation,
-  DbLink,
-  DbEntity,
-  EntityType,
-  EntityVersion,
-} from "../adapter";
+import { DbLink, DbEntity, EntityType, EntityVersion } from "../adapter";
 import { Connection } from "./types";
 import { EntityTypePGRow, mapPGRowToEntityType } from "./entitytypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
@@ -16,8 +10,6 @@ import { insertEntityAccount } from "./account";
 import { DbEntityNotFoundError } from "../errors";
 import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
 import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
-import { getEntityAggregations } from "./aggregation/getEntityAggregations";
-import { addSourceEntityVersionIdToAggregation } from "./aggregation/util";
 import { SystemType } from "../../types/entityTypes";
 import { requireTransaction } from "./util";
 
@@ -677,51 +669,8 @@ export const acquireEntityLock = async (
     .query(sql`select pg_advisory_xact_lock(${hashCode(params.entityId)})`)
     .then((_) => null);
 
-const addSourceEntityVersionIdToAggregations = async (
-  conn: Connection,
-  params: {
-    entity: DbEntity;
-    omittedAggregations?: {
-      sourceAccountId: string;
-      sourceEntityId: string;
-      path: string;
-    }[];
-    newSourceEntityVersionId: string;
-  },
-) => {
-  const { entity } = params;
-
-  const aggregations = await getEntityAggregations(conn, {
-    sourceAccountId: entity.accountId,
-    sourceEntityId: entity.entityId,
-    sourceEntityVersionId: entity.entityVersionId,
-  });
-
-  const isDbAggregationInNextVersion = (aggregation: DbAggregation): boolean =>
-    params.omittedAggregations?.find(
-      ({ path }) => path === aggregation.path,
-    ) === undefined;
-
-  const { newSourceEntityVersionId } = params;
-
-  await Promise.all(
-    aggregations
-      .filter(isDbAggregationInNextVersion)
-      .map(({ sourceAccountId, sourceEntityId, path }) =>
-        addSourceEntityVersionIdToAggregation(conn, {
-          sourceAccountId,
-          sourceEntityId,
-          path,
-          newSourceEntityVersionId,
-        }),
-      ),
-  );
-};
-
 /** Update the properties of the provided entity by creating a new version.
  * @throws `DbEntityNotFoundError` if the entity does not exist.
- * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
- *          does not exist.
  */
 export const updateVersionedEntity = async (
   conn: Connection,
@@ -729,11 +678,6 @@ export const updateVersionedEntity = async (
     entity: DbEntity;
     properties: any;
     updatedByAccountId: string;
-    omittedAggregations?: {
-      sourceAccountId: string;
-      sourceEntityId: string;
-      path: string;
-    }[];
   },
 ) => {
   const { entity, properties } = params;
@@ -764,16 +708,8 @@ export const updateVersionedEntity = async (
     deferred
   `);
 
-  const { omittedAggregations } = params;
-
   await Promise.all([
     insertEntityVersion(conn, newEntityVersion),
-
-    addSourceEntityVersionIdToAggregations(conn, {
-      entity,
-      omittedAggregations,
-      newSourceEntityVersionId: newEntityVersion.entityVersionId,
-    }),
 
     // Make a reference to this entity's account in the `entity_account` lookup table
     insertEntityAccount(conn, newEntityVersion),
@@ -816,8 +752,6 @@ const updateNonVersionedEntity = async (
 /** Update an entity, either versioned or non-versioned. Note: the update is applied
  * to the latest version of the entity.
  * @throws `DbEntityNotFoundError` if the entity does not exist.
- * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
- *          does not exist.
  */
 export const updateEntity = async (
   conn: Connection,
@@ -849,21 +783,15 @@ export const getDestinationEntityOfLink = async (
   conn: Connection,
   link: DbLink,
 ): Promise<DbEntity> => {
-  const destinationEntity = link.destinationEntityVersionId
-    ? await getEntity(conn, {
-        accountId: link.destinationAccountId,
-        entityVersionId: link.destinationEntityVersionId,
-      })
-    : await getEntityLatestVersion(conn, {
-        accountId: link.destinationAccountId,
-        entityId: link.destinationEntityId,
-      });
+  const destinationEntity = await getEntityLatestVersion(conn, {
+    accountId: link.destinationAccountId,
+    entityId: link.destinationEntityId,
+  });
 
   if (!destinationEntity) {
     throw new DbEntityNotFoundError({
       accountId: link.destinationAccountId,
       entityId: link.destinationEntityId,
-      entityVersionId: link.destinationEntityVersionId,
     });
   }
 

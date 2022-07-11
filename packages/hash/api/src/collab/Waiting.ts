@@ -16,7 +16,9 @@ export class Waiting {
     this.inst = inst;
     this.userId = userId;
     this.finish = finish;
-    resp.setTimeout(1000 * 60 * 5, () => {
+
+    // Force pollers to restart polling after 5 seconds.
+    resp.setTimeout(1000 * 5, () => {
       this.abort();
       this.send({});
     });

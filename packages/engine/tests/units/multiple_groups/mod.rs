@@ -3,6 +3,7 @@ use crate::experiment::run_test_suite;
 // TODO: We should expand this test suite with more simulations, and ideally not need to duplicate
 //  the experiment projects such as Sugarscape
 #[tokio::test]
+#[cfg_attr(miri, ignore)]
 async fn sugarscape() {
     let project_path = std::path::Path::new(file!())
         .parent()
@@ -15,6 +16,7 @@ async fn sugarscape() {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)]
 async fn age() {
     let project_path = std::path::Path::new(file!())
         .parent()

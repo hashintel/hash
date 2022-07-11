@@ -1,3 +1,9 @@
+//! Server-Client communication using NNG.
+//!
+//! Contains the [`Server`] and [`Client`] types. The [`Server`] will create a connection given an
+//! `url` and the client can then connect to the server using the same `url`. It's then possible to
+//! send messages from the [`Client`] to the [`Server`].
+
 #![feature(lint_reasons)]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings)))))]
 #![deny(
@@ -29,7 +35,6 @@
 #![warn(
     clippy::pedantic,
     clippy::nursery,
-    clippy::restriction,
     reason = "All clippy warnings are enabled by default"
 )]
 // TODO: DOC
@@ -41,15 +46,6 @@
 #![allow(
     clippy::missing_inline_in_public_items,
     reason = "We didn't any serious optimization work until now"
-)]
-#![allow(
-    clippy::blanket_clippy_restriction_lints,
-    clippy::implicit_return,
-    clippy::expect_used,
-    clippy::unreachable,
-    clippy::integer_arithmetic,
-    clippy::pattern_type_mismatch,
-    reason = "Allow lints, which are too verbose to be applied"
 )]
 #![allow(
     clippy::redundant_pub_crate,
@@ -67,6 +63,6 @@ const RECV_EXPECT_MESSAGE: &str = "Could not receive message from nng";
 
 pub use self::{
     client::Client,
-    error::{Error, Result},
+    error::{ErrorKind, Result},
     server::Server,
 };

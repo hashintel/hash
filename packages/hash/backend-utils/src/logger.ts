@@ -23,6 +23,7 @@ const getDefaultLoggerLevel = () => {
 };
 
 export class Logger {
+  silly: (...msg: any) => void;
   debug: (...msg: any) => void;
   info: (...msg: any) => void;
   warn: (...msg: any) => void;
@@ -65,6 +66,7 @@ export class Logger {
         }),
       );
     }
+    this.silly = logger.silly.bind(logger);
     this.debug = logger.debug.bind(logger);
     this.info = logger.info.bind(logger);
     this.warn = logger.warn.bind(logger);

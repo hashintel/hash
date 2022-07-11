@@ -2,13 +2,13 @@
   <img src="https://cdn-us1.hash.ai/assets/hengine-github-readme-header%402x.png">
 </p>
 <div align="center">
- <a href="https://github.com/hashintel/hash/blob/main/packages/engine/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-sspl.svg" alt="Server Side Public License" /></a>
- <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
+ <a href="https://github.com/hashintel/hash/blob/main/packages/engine/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-elastic.svg" alt="Elastic License v2" /></a>
+ <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
 # hEngine
 
-[HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_engine) (or **hEngine**) is the computational simulation engine at the heart of [HASH](https://hash.ai/platform?utm_medium=organic&utm_source=github_readme_engine), dual-licensed under the Server Side Public License and Elastic License, at your option. The public version available here is our experimental 'next-gen' engine whose architecture and performance characteristics differ significantly to the stable version powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine).
+[HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_engine) (or **hEngine**) is the computational simulation engine at the heart of [HASH](https://hash.ai/platform?utm_medium=organic&utm_source=github_readme_engine). It is publicly and freely available here under the Elastic License. This public version of hEngine is our experimental 'next-gen' engine whose architecture and performance characteristics differ significantly to the stable version powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine).
 
 ## Table of Contents
 
@@ -40,6 +40,7 @@
     - [Workers](#workers)
     - [Simulation Runs and the Package System](#simulation-runs-and-the-package-system)
     - [DataStore](#datastore)
+- [Contributors](#contributors)
 
 ## Issue Tracking
 
@@ -85,28 +86,7 @@ Depending on your needs, different dependencies are required. Building this proj
 
 - a C++ compiler, pkg-config, openssl development files (see [Possible Dependencies and Debugging](#possible-dependencies-and-debugging))
 
-- For now, you need a pre-compiled _libv8_monolith.a_ accessible under the `$V8_PATH` environment variable
-
-  - The following will produce the necessary files under `~/.v8/vendor` by downloading a precompiled library from a Ruby Gem. The `<URL TO GEM>` should be the link to the relevant gem on the [rubyjs/libv8 releases page](https://github.com/rubyjs/libv8/releases/tag/v8.4.255.0)
-
-    ```shell
-    mkdir -p ~/.v8/tmp # Create the .v8 directory and a tmp folder
-    cd ~/.v8/tmp
-    curl -L -o libv8.tar.gz <URL TO GEM> # Download the Ruby gem
-    tar xf libv8.tar.gz # Extract the gem
-    tar xf data.tar.gz # Extract the data folder
-    mv -v vendor/v8/* .. # Move out the wanted files
-    cd ..
-    rm -rf tmp # Delete the tmp folder
-    ```
-
-  - With the V8 folder containing `include` and `out.gn` you can then set the variable for your terminal session with `export V8_PATH=<path to folder>` or you can set it permanently by [adding it to your shell's environment](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
-
-  - Please also see [macOS Developer Specific Instructions](#macos-developer-specific-instructions) if you are running macOS
-
-- Python [3.7.x]
-
-  - Python installation guidance from [their website](https://www.python.org/downloads/)
+- Please also see [macOS Developer Specific Instructions](#macos-developer-specific-instructions) if you are running macOS
 
 ### Optional dependencies
 
@@ -123,11 +103,25 @@ Depending on your needs, different dependencies are required. Building this proj
         git checkout $latestTag
         ```
 
+- Python [3.7.x] is required for Python initialization or Python behaviors.
+
+  - Python installation guidance from [their website](https://www.python.org/downloads/)
+
 ### macOS Developer Specific Instructions
 
-Due to ARM-Based Macs, the `macos` `target_os` has some added complications for development.
+#### For all macs
+
+Unfortunately, Apple currently doesn't provide a way to resize shared-memory allocations. To work around this allocations need to be sufficiently big such that they will not need to be resized. This can be done by setting the `OS_MEMORY_ALLOC_OVERRIDE` environment variable. A reasonable starting value might be `250000000`, but it is heavily dependent on the memory-requirements of your simulation. This can be done using the command line
+
+```sh
+export OS_MEMORY_ALLOC_OVERRIDE=250000000
+```
+
+If you see an error containing `Stateful(Memory(SharedMemory(UnknownOsError(22))))`, you may find that increasing the value of the `OS_MEMORY_ALLOC_OVERRIDE` environment variable may help.
 
 #### For ARM-Based Macs
+
+On ARM-Based Macs, the `macos` `target_os` has some added complications for development.
 
 Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
 
@@ -141,11 +135,9 @@ Due to limitations in Cargo at the moment we can't properly check if it's being 
 
   - Using the x86 brew to install `nng` (which will then install an x86 version). This should result in an nng installation at: `/usr/local/Cellar/nng/1.5.2`
 
-- It's then necessary to set the `NNG_PATH` environment variable, similar to `V8_PATH`
+- It's then necessary to set the `NNG_PATH` environment variable
 
   - The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
-
-- If the V8 monolith is failing to link due to symbol errors, it might be necessary to download the gem for the "darwin_universal" version.
 
 ### Possible Dependencies and Debugging
 
@@ -159,9 +151,7 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 ### Project Setup / Building
 
 - Run `cargo build`
-- Setup a Python environment by running `./src/worker/runner/python/setup.sh` and follow the instructions from the help.
-
-> **WIP** - In the future, setting up Python will only be required if Python behaviors are present, but for now it is always required.
+- **optional:** If Python initialization or Python behaviors are used, set up a Python environment by running `./lib/execution/src/runner/python/setup.sh` and follow the instructions from the help.
 
 ### Running for development
 
@@ -226,15 +216,15 @@ If one of the environment variables shown in the help page is passed, it will ov
 
 > **Warning** - Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` will be ignored and the run will possibly fail in unclear ways.
 >
-> Currently, the easiest way of creating a project is by using the integrated IDE at [https://core.hash.ai][hcore] (hCore). In the absence of an in-depth description of expected project structure (which will be coming in the future), downloading a project from hCore is currently the easiest way to learn how one should be set out.
+> Currently, the easiest way to create a project is by using [HASH Core](https://core.hash.ai). In the future, an in-depth description of the expected project structure will be given here instead.
 
-In order to download and then run a simulation from hCore, you can download it by clicking `File -> Export Project` from the toolbar on the top. For help in finding or creating, and editing, simulations in hCore, take a look at our [online documentation][docs]. Then save and unzip the downloaded project to a location of your choice, for example by
+In order to download and run a simulation from HASH Core, use `File -> Export Project` (this is available in the toolbar at the top of the page). For help in finding or creating, and editing, simulations in HASH Core, take a look at our [online documentation][docs]. Then save and unzip the downloaded project to a location of your choice, for example by
 
 ```shell
 unzip my-project.zip -d my-hash-project
 ```
 
-To run the simulation, [build the binaries](#project-setup--building) and pass your project to the CLI:
+To run the simulation, [build the binaries](#project-setup--building) and pass the project location as a CLI argument:
 
 ```shell
 cargo run --bin cli -- --project /path/to/my-hash-project single-run --num-steps <NUM-STEPS>
@@ -246,11 +236,31 @@ In order to see more logging information while the simulation is running, you ca
 export RUST_LOG=debug
 ```
 
+If your simulation requires a lot of memory and uses JavaScript behaviors, the JavaScript runner may run out of memory.
+As a first step, you can provide a larger heap size to the runner:
+
+```shell
+cargo run --bin cli -- --js-runner-max-heap-size <NEW-SIZE-IN-MB> <YOUR-CLI-ARGUMENTS>
+```
+
+This will increase the heap size, but you may still run into limitations beyond 4GB.
+The next step is to recompile V8, the underlying JavaScript engine, and set flags for it:
+
+```shell
+export V8_FROM_SOURCE = "1"
+export GN_ARGS = "v8_enable_pointer_compression=false v8_enable_shared_ro_heap=true"
+```
+
+- `V8_FROM_SOURCE` will force the V8 engine to be compiled from source and not use a pre-compiled version.
+  This will take quite a long time (expect at least 15 minutes). This can be mitigated in subsequent compiles by using [sccache](https://github.com/mozilla/sccache) or [ccache](https://ccache.dev/). Our build scripts will detect and use them. Set the environment variable `$SCCACHE` or `$CCACHE` if the binary is not in your `$PATH`.
+- `v8_enable_pointer_compression` is an optimization reducing RAM usage but limits the heap size to 4 gigabytes.
+- `v8_enable_shared_ro_heap` enables read-only memory sharing by V8 isolates. This means, that read-only memory may be shared across different workers for JavaScript. Enabling this is required to compile V8 without pointer compression.
+
 [docs]: https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine
 
 ### Simulation Inputs
 
-> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all input formats and options, and expected project structure. For now, it's recommended that you create your simulations within [hCore] and use the "Export Project" functionality.
+> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all input formats and options, and expected project structure. For now, we recommend that you create your simulations within [hCore] and use the "Export Project" functionality.
 
 #### Behavior keys
 
@@ -334,7 +344,7 @@ If you haven't created and exported a project from [hCore], it's also possible t
 
 ### Simulation Outputs
 
-> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. Currently, the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
+> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. Currently, the engine has two main form of outputs, one coming from the [json_state package](./lib/execution/src/package/simulation/output/json_state) and the other from the [analysis package](./lib/execution/src/package/simulation/output/analysis).
 
 At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<PROJECT NAME>/<EXPERIMENT NAME>/<EXPERIMENT ID>/<SIMULATION ID>` directories.
 
@@ -357,7 +367,7 @@ During the run, the output may be buffered into the `./parts` folder in multiple
 
 > **WIP** - This feature is currently unstable
 
-[hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
+[hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./lib/execution/src/package/simulation/output/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
 
 ### Logging
 
@@ -367,43 +377,28 @@ The engine (and CLI) currently logs to both stderr, and to the `./log` directory
 
 Being familiar with running experiments and simulations on the HASH platform will help a lot with understanding the Engine. The [docs](https://hash.ai/docs/simulation/?utm_medium=organic&utm_source=github_readme_engine) are also a good place to search for clarification on some terms used below when unclear.
 
-### High-level Overview
+## The Project Layout
 
-> **Note** the links provided in the following section point towards the general relevant parts of the codebase, this section can be treated as an initial guide to the folder and source-code structure.
+Currently the hEngine consists of two binaries located within the [`./bin`](bin) folder.
+To read the documentation for the various components, run:
 
-#### Starting an Experiment / the CLI
+```sh
+cargo doc --workspace --no-deps --open
+```
 
-Experiments are started through the [CLI](./bin/cli), the main entry-point to the engine. The CLI is responsible for parsing input, starting Workers and simulation runs.
+and explore the documentation for the relevant crates (starting with the following two)
 
-#### Workers
+### The CLI
 
-Most logic relating to the model (including, most importantly, user provided behaviors) is executed on [Runners](./src/worker/runner). These are execution environments implemented in Python, JavaScript, or Rust. One of each Language Runner is managed by a single [Worker](./src/worker). Workers then in turn belong to a Worker Pool, a collection of Workers that serve a single experiment.
+Located within [`./bin/cli`](bin/cli), the CLI binary is responsible for the orchestration of a HASH simulation project, handling the management of engine processes for its experiments.
 
-#### Simulation Runs and the Package System
+### The Engine Process(es)
 
-After initialization, the core of the flow of a [simulation](./src/simulation) is handled within the 'main loop', a pipeline of logic that's applied to each step of the simulation. At the core of this implementation is the Simulation Package System.
+Located within [`./bin/hash_engine`](bin/hash_engine), the HASH Engine binary implements all of the logic required for running a single experiment and its one or more simulations.
 
-A Simulation Package is a contained set of logic belonging to one of the following types:
+## Contributors
 
-- Initialization
-- Context
-- State
-- Output
+hEngine is under active development. Its primary contributors are:
 
-Initialization packages are run before starting the main loop of the simulation. They're responsible setting up the initial state of the agents within the simulation.
-
-Context packages deal with state that encompasses contextual information surrounding the agents within a simulation.
-
-State packages interact with actual agent-state, including things such as executing agent behaviors and correcting spatial positioning.
-
-Output packages are responsible for creating feedback to be given to the user about the simulation run's state, including things like saving snapshots of agent-state or providing analysis and network visualization.
-
-Upon using the initialization packages to initialize the run, the main loop is started which consists of a pipeline going from context packages -> state packages -> output packages for every step.
-
-The packages utilize a [communication implementation](./src/simulation/comms) to interface with the [Workers](./src/worker) mostly through the use of defined types of [Tasks](./src/simulation/task). The communication therefore defines the control-flow of the Runner's executions. Any substantial data that isn't encapsulated within a message is shared that between Packages and Runners through the [DataStore](./src/datastore).
-
-#### DataStore
-
-The [DataStore](./src/datastore) is the backend responsible for keeping the data between the simulation run main loops and language runners in sync. It encapsulates logic surrounding read/write access, as well as low-level shared memory representation.
-
-[hcore]: https://core.hash.ai?utm_medium=organic&utm_source=github_readme_engine
+- [Tim Diekmann](https://hash.ai/@timdiekmann) - HASH
+- [Alfie Mountfield](https://hash.ai/@alfie) - HASH
