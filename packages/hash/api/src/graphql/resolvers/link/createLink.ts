@@ -1,9 +1,9 @@
 import { ApolloError } from "apollo-server-errors";
-import { MutationCreateLinkArgs, Resolver } from "../../apiTypes.gen";
+import { MutationCreateLinkArgs, ResolverFn } from "../../apiTypes.gen";
 import { Entity, UnresolvedGQLLink } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const createLink: Resolver<
+export const createLink: ResolverFn<
   Promise<UnresolvedGQLLink>,
   {},
   LoggedInGraphQLContext,

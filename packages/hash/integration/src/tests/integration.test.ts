@@ -1408,7 +1408,7 @@ describe("logged in user ", () => {
       expect(result.entityId).toEqual(subPage.entityId);
       expect(pageTree).toContainEqual({
         entityId: subPage.entityId,
-        properties: { title },
+        properties: { title, pageEntityId: subPage.entityId },
         parentPageEntityId: superPage.entityId,
       });
     });
@@ -1439,7 +1439,7 @@ describe("logged in user ", () => {
       expect(result.entityId).toEqual(subSubPage.entityId);
       expect(pageTree).toContainEqual({
         entityId: subSubPage.entityId,
-        properties: { title },
+        properties: { title, pageEntityId: subSubPage.entityId },
         parentPageEntityId: subPage.entityId,
       });
     });
@@ -1502,17 +1502,23 @@ describe("logged in user ", () => {
       expect(treePages).toContainEqual({
         parentPageEntityId: undefined,
         entityId: superPage.entityId,
-        properties: { title: superTitle },
+        properties: { title: superTitle, pageEntityId: superPage.entityId },
         children: [
           {
             parentPageEntityId: superPage.entityId,
             entityId: subPage.entityId,
-            properties: { title: subPage.properties.title },
+            properties: {
+              title: subPage.properties.title,
+              pageEntityId: subPage.entityId,
+            },
             children: [
               {
                 parentPageEntityId: subPage.entityId,
                 entityId: subSubPage.entityId,
-                properties: { title: subSubPage.properties.title },
+                properties: {
+                  title: subSubPage.properties.title,
+                  pageEntityId: subSubPage.entityId,
+                },
                 children: undefined,
               },
             ],
@@ -1540,7 +1546,7 @@ describe("logged in user ", () => {
       expect(result.entityId).toEqual(subSubPage.entityId);
       expect(pageTree).toContainEqual({
         entityId: subSubPage.entityId,
-        properties: { title },
+        properties: { title, pageEntityId: subSubPage.entityId },
         parentPageEntityId: superPage.entityId,
       });
     });
@@ -1564,7 +1570,7 @@ describe("logged in user ", () => {
       expect(result.entityId).toEqual(subSubPage.entityId);
       expect(pageTree).toContainEqual({
         entityId: subSubPage.entityId,
-        properties: { title },
+        properties: { title, pageEntityId: subSubPage.entityId },
         parentPageEntityId: null,
       });
     });

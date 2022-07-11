@@ -1,8 +1,8 @@
-import { QueryAccountPagesArgs, Resolver } from "../../apiTypes.gen";
+import { QueryAccountPagesArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Page, UnresolvedGQLEntity } from "../../../model";
 
-export const accountPages: Resolver<
+export const accountPages: ResolverFn<
   Promise<UnresolvedGQLEntity[]>,
   {},
   GraphQLContext,
