@@ -1,5 +1,5 @@
 import { HtmlBlockDefinition, renderHtmlBlock } from "@blockprotocol/core";
-import React, { useEffect, useRef, VFC } from "react";
+import React, { useEffect, useRef, useState, VFC } from "react";
 
 type HtmlElementLoaderProps = {
   html: HtmlBlockDefinition;
@@ -7,6 +7,7 @@ type HtmlElementLoaderProps = {
 
 export const HtmlLoader: VFC<HtmlElementLoaderProps> = ({ html }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const [, setError] = useState<never>();
 
   const jsonDefinition = JSON.stringify(html);
 
@@ -20,6 +21,9 @@ export const HtmlLoader: VFC<HtmlElementLoaderProps> = ({ html }) => {
       renderHtmlBlock(node, definition, controller.signal).catch((err: any) => {
         if (err?.name !== "AbortError") {
           node.innerText = `Error: ${err}`;
+          setError(() => {
+            throw new Error(`Error rendering HTML block: ${err}`);
+          });
         }
       });
 
