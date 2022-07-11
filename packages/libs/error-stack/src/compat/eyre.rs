@@ -63,12 +63,14 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
         match self {
             Ok(t) => Ok(t),
             Err(eyre) => {
+                // only capture a backtrace if needed, otherwise the eyre context provides one
                 #[cfg(all(nightly, feature = "std"))]
                 let backtrace = eyre
                     .deref()
                     .backtrace()
-                    .cloned()
-                    .or_else(|| Some(Backtrace::capture()))
+                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured))
+                    .is_none()
+                    .then(Backtrace::capture)
                     .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured));
 
                 #[cfg(feature = "spantrace")]

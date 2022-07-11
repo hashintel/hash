@@ -63,12 +63,14 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
         match self {
             Ok(t) => Ok(t),
             Err(anyhow) => {
+                // only capture a backtrace if needed, otherwise the anyhow context provides one
                 #[cfg(all(nightly, feature = "std"))]
                 let backtrace = anyhow
                     .deref()
                     .backtrace()
-                    .cloned()
-                    .or_else(|| Some(Backtrace::capture()))
+                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured))
+                    .is_none()
+                    .then(Backtrace::capture)
                     .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured));
 
                 #[cfg(feature = "spantrace")]
