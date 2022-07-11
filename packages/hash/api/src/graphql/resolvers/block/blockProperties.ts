@@ -6,7 +6,7 @@ import {
 } from "../../../model";
 import {
   BlockProperties as GQLBlockProperties,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
@@ -18,12 +18,13 @@ import { GraphQLContext } from "../../context";
  *
  * @deprecated
  */
-export const blockProperties: Resolver<
+export const blockProperties: ResolverFn<
   Promise<
     Omit<GQLBlockProperties, "entity"> & { entity: UnresolvedGQLUnknownEntity }
   >,
   UnresolvedGQLBlock,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, { dataSources }) => {
   const { db } = dataSources;
 

@@ -1,11 +1,11 @@
 import { ApolloError } from "apollo-server-express";
 
-import { QueryPageArgs, Resolver } from "../../apiTypes.gen";
+import { QueryPageArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { entity } from "../entity";
 import { UnresolvedGQLEntity } from "../../../model";
 
-export const page: Resolver<
+export const page: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   GraphQLContext,
