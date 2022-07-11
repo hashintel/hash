@@ -3,6 +3,7 @@ import { ReactElement, ReactNode } from "react";
 import { LayoutWithHeader } from "./layout/layout-with-header";
 import {
   LayoutWithSidebar,
+  LayoutWithSidebarProps,
   SidebarContextProvider,
 } from "./layout/layout-with-sidebar";
 import { PlainLayout } from "./layout/plain-layout";
@@ -19,10 +20,13 @@ export const getLayoutWithHeader = (page: ReactElement) => {
   return <LayoutWithHeader>{page}</LayoutWithHeader>;
 };
 
-export const getLayoutWithSidebar = (page: ReactElement) => {
+export const getLayoutWithSidebar = (
+  page: ReactElement,
+  layoutWithSidebarProps: LayoutWithSidebarProps = {},
+) => {
   return (
     <SidebarContextProvider>
-      <LayoutWithSidebar>{page}</LayoutWithSidebar>
+      <LayoutWithSidebar {...layoutWithSidebarProps}>{page}</LayoutWithSidebar>
     </SidebarContextProvider>
   );
 };

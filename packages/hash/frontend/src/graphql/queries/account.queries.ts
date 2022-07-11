@@ -41,6 +41,7 @@ export const getAccountPages = gql`
     accountPages(accountId: $accountId) {
       entityId
       properties {
+        pageEntityId
         title
         summary
       }
@@ -54,6 +55,7 @@ export const getAccountPagesTree = gql`
       entityId
       properties {
         title
+        pageEntityId
       }
       parentPageEntityId
     }
