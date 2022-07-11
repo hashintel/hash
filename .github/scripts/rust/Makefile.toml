@@ -134,6 +134,7 @@ run_task = { name = ["test-task-lib", "test-task-doc"]}
 [tasks.test-task-lib]
 extend = "task"
 args = ["hack", "@@split(CARGO_TEST_HACK_FLAGS, )", "nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "${@}"]
+dependencies = ["install-nextest"]
 
 [tasks.test-task-doc]
 extend = "task"
