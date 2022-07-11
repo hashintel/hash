@@ -712,6 +712,7 @@ mod tests {
     use core::fmt::{Display, Formatter};
 
     #[allow(unused_imports)]
+    #[allow(clippy::wildcard_imports)]
     use crate::test_helper::*;
     use crate::{report, Context};
 
