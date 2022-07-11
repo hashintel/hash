@@ -11,16 +11,8 @@ import { parseLinkedAggregationIdentifier } from "../../../lib/entities";
 
 export const useBlockProtocolDeleteLinkedAggregation = (): {
   deleteLinkedAggregation: EmbedderGraphMessageCallbacks["deleteLinkedAggregation"];
-  deleteLinkedAggregationLoading: boolean;
-  deleteLinkedAggregationError: any;
 } => {
-  const [
-    runDeleteLinkedAggregationsMutation,
-    {
-      loading: deleteLinkedAggregationLoading,
-      error: deleteLinkedAggregationError,
-    },
-  ] = useMutation<
+  const [runDeleteLinkedAggregationsMutation] = useMutation<
     DeleteLinkedAggregationMutation,
     DeleteLinkedAggregationMutationVariables
   >(deleteLinkedAggregationMutation);
@@ -70,7 +62,5 @@ export const useBlockProtocolDeleteLinkedAggregation = (): {
 
   return {
     deleteLinkedAggregation,
-    deleteLinkedAggregationLoading,
-    deleteLinkedAggregationError,
   };
 };

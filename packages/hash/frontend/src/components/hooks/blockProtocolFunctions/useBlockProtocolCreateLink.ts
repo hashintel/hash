@@ -14,15 +14,11 @@ import {
 
 export const useBlockProtocolCreateLink = (): {
   createLink: EmbedderGraphMessageCallbacks["createLink"];
-  createLinkLoading: boolean;
-  createLinkError: any;
 } => {
-  const [
-    runCreateLinksMutation,
-    { loading: createLinkLoading, error: createLinkError },
-  ] = useMutation<CreateLinkMutation, CreateLinkMutationVariables>(
-    createLinkMutation,
-  );
+  const [runCreateLinksMutation] = useMutation<
+    CreateLinkMutation,
+    CreateLinkMutationVariables
+  >(createLinkMutation);
 
   const createLink: EmbedderGraphMessageCallbacks["createLink"] = useCallback(
     async ({ data }) => {
@@ -79,7 +75,5 @@ export const useBlockProtocolCreateLink = (): {
 
   return {
     createLink,
-    createLinkLoading,
-    createLinkError,
   };
 };

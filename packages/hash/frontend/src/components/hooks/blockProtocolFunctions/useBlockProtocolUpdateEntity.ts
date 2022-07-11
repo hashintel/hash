@@ -18,7 +18,6 @@ export const useBlockProtocolUpdateEntity = (
 ): {
   updateEntity: EmbedderGraphMessageCallbacks["updateEntity"];
   updateEntityLoading: boolean;
-  updateEntityError: any;
 } => {
   const [
     updateEntityFn,
@@ -64,12 +63,11 @@ export const useBlockProtocolUpdateEntity = (
       [updateEntityFn, updateForPage, updatePageFn],
     );
 
+  // @todo consider removing this state and implementing loading locally
   const updateEntityLoading = updateUnknownEntityLoading || updatePageLoading;
-  const updateEntityError = updateUnknownEntityError ?? updatePageError;
 
   return {
     updateEntity,
     updateEntityLoading,
-    updateEntityError,
   };
 };

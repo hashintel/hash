@@ -11,15 +11,11 @@ import { convertApiEntityTypeToBpEntityType } from "../../../lib/entities";
 
 export const useBlockProtocolUpdateEntityType = (): {
   updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"];
-  updateEntityTypeLoading: boolean;
-  updateEntityTypeError: any;
 } => {
-  const [
-    runUpdateEntityTypeMutation,
-    { loading: updateEntityTypeLoading, error: updateEntityTypeError },
-  ] = useMutation<UpdateEntityTypeMutation, UpdateEntityTypeMutationVariables>(
-    updateEntityTypeMutation,
-  );
+  const [runUpdateEntityTypeMutation] = useMutation<
+    UpdateEntityTypeMutation,
+    UpdateEntityTypeMutationVariables
+  >(updateEntityTypeMutation);
 
   const updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"] =
     useCallback(
@@ -62,7 +58,5 @@ export const useBlockProtocolUpdateEntityType = (): {
 
   return {
     updateEntityType,
-    updateEntityTypeLoading,
-    updateEntityTypeError,
   };
 };

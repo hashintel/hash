@@ -11,15 +11,11 @@ import { parseLinkIdentifier } from "../../../lib/entities";
 
 export const useBlockProtocolDeleteLink = (): {
   deleteLink: EmbedderGraphMessageCallbacks["deleteLink"];
-  deleteLinkLoading: boolean;
-  deleteLinkError: any;
 } => {
-  const [
-    runDeleteLinkMutation,
-    { loading: deleteLinkLoading, error: deleteLinkError },
-  ] = useMutation<DeleteLinkMutation, DeleteLinkMutationVariables>(
-    deleteLinkMutation,
-  );
+  const [runDeleteLinkMutation] = useMutation<
+    DeleteLinkMutation,
+    DeleteLinkMutationVariables
+  >(deleteLinkMutation);
 
   const deleteLink: EmbedderGraphMessageCallbacks["deleteLink"] = useCallback(
     async ({ data }) => {
@@ -65,7 +61,5 @@ export const useBlockProtocolDeleteLink = (): {
 
   return {
     deleteLink,
-    deleteLinkLoading,
-    deleteLinkError,
   };
 };

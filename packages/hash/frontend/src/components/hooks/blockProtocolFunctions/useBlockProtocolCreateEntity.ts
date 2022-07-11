@@ -13,13 +13,11 @@ export const useBlockProtocolCreateEntity = (
   accountId: string,
 ): {
   createEntity: EmbedderGraphMessageCallbacks["createEntity"];
-  createEntityLoading: boolean;
-  createEntityError: any;
 } => {
-  const [createFn, { loading: createEntityLoading, error: createEntityError }] =
-    useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
-      createEntityQuery,
-    );
+  const [createFn] = useMutation<
+    CreateEntityMutation,
+    CreateEntityMutationVariables
+  >(createEntityQuery);
 
   const createEntity: EmbedderGraphMessageCallbacks["createEntity"] =
     useCallback(
@@ -63,7 +61,5 @@ export const useBlockProtocolCreateEntity = (
 
   return {
     createEntity,
-    createEntityLoading,
-    createEntityError,
   };
 };

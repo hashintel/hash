@@ -13,16 +13,8 @@ import {
 
 export const useBlockProtocolCreateLinkedAggregation = (): {
   createLinkedAggregation: EmbedderGraphMessageCallbacks["createLinkedAggregation"];
-  createLinkedAggregationLoading: boolean;
-  createLinkedAggregationError: any;
 } => {
-  const [
-    runCreateLinkedAggregationMutation,
-    {
-      loading: createLinkedAggregationLoading,
-      error: createLinkedAggregationError,
-    },
-  ] = useMutation<
+  const [runCreateLinkedAggregationMutation] = useMutation<
     CreateLinkedAggregationOperationMutation,
     CreateLinkedAggregationOperationMutationVariables
   >(createLinkedAggregationMutation);
@@ -83,7 +75,5 @@ export const useBlockProtocolCreateLinkedAggregation = (): {
 
   return {
     createLinkedAggregation,
-    createLinkedAggregationLoading,
-    createLinkedAggregationError,
   };
 };
