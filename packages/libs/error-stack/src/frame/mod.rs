@@ -1,16 +1,13 @@
-mod attachment;
-mod erasable;
+mod frame_impl;
 mod kind;
-mod vtable;
 
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::{self, Demand, Provider};
-use core::{fmt, marker::PhantomData, panic::Location, ptr::NonNull};
+use core::{any::TypeId, fmt, panic::Location};
 
+use self::frame_impl::FrameImpl;
 pub use self::kind::{AttachmentKind, FrameKind};
-use self::{erasable::ErasableFrame, vtable::VTable};
-use crate::{frame::attachment::AttachmentProvider, Context};
 
 /// A single context or attachment inside of a [`Report`].
 ///
@@ -24,101 +21,14 @@ use crate::{frame::attachment::AttachmentProvider, Context};
 /// [`Report::new()`]: crate::Report::new
 /// [`Report::request_ref()`]: crate::Report::request_ref
 pub struct Frame {
-    erased_frame: NonNull<ErasableFrame>,
-    location: &'static Location<'static>,
-    source: Option<Box<Self>>,
-    // NOTE: this marker has no consequences for variance, but is necessary for dropck to
-    //   understand that we logically own a `T`. For details, see
-    //   https://github.com/rust-lang/rfcs/blob/master/text/0769-sound-generic-drop.md#phantom-data
-    _marker: PhantomData<ErasableFrame>,
+    frame: Box<dyn FrameImpl>,
 }
 
 impl Frame {
-    /// Crates a frame from an unerased object.
-    fn from_unerased<T>(
-        object: T,
-        location: &'static Location<'static>,
-        source: Option<Box<Self>>,
-        vtable: &'static VTable,
-    ) -> Self {
-        Self {
-            erased_frame: ErasableFrame::new(object, vtable),
-            location,
-            source,
-            _marker: PhantomData,
-        }
-    }
-
-    /// Crates a frame from a [`Context`].
-    pub(crate) fn from_context<C>(
-        context: C,
-        location: &'static Location<'static>,
-        source: Option<Box<Self>>,
-    ) -> Self
-    where
-        C: Context,
-    {
-        Self::from_unerased(context, location, source, VTable::new_context::<C>())
-    }
-
-    /// Crates a frame from an attachment.
-    pub(crate) fn from_attachment<A>(
-        attachment: A,
-        location: &'static Location<'static>,
-        source: Option<Box<Self>>,
-    ) -> Self
-    where
-        A: Send + Sync + 'static,
-    {
-        Self::from_unerased(
-            AttachmentProvider::new(attachment),
-            location,
-            source,
-            VTable::new_attachment::<A>(),
-        )
-    }
-
-    /// Crates a frame from an attachment which implements [`Debug`] and [`Display`].
-    ///
-    /// [`Debug`]: core::fmt::Debug
-    /// [`Display`]: core::fmt::Display
-    pub(crate) fn from_printable_attachment<A>(
-        attachment: A,
-        location: &'static Location<'static>,
-        source: Option<Box<Self>>,
-    ) -> Self
-    where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        Self::from_unerased(
-            AttachmentProvider::new(attachment),
-            location,
-            source,
-            VTable::new_printable_attachment::<A>(),
-        )
-    }
-
-    /// Crates a frame from [`anyhow::Error`].
-    #[cfg(any(feature = "anyhow", feature = "eyre"))]
-    pub(crate) fn from_compat<T, C: Context>(
-        compat: C,
-        location: &'static Location<'static>,
-    ) -> Self
-    where
-        T: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        Self::from_unerased(compat, location, None, VTable::new_compat::<T, C>())
-    }
-
-    fn vtable(&self) -> &'static VTable {
-        // SAFETY: Use vtable to attach the frames' native vtable for the right original type.
-        unsafe { self.erased_frame.as_ref().vtable() }
-    }
-
     /// Returns the location where this `Frame` was created.
     #[must_use]
-    pub const fn location(&self) -> &'static Location<'static> {
-        self.location
+    pub fn location(&self) -> &'static Location<'static> {
+        self.frame.location()
     }
 
     /// Returns a shared reference to the source of this `Frame`.
@@ -127,14 +37,8 @@ impl Frame {
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub const fn source(&self) -> Option<&Self> {
-        // TODO: Change to `self.source.as_ref().map(Box::as_ref)` when this is possible in a const
-        //   function. On stable toolchain, clippy is not smart enough yet.
-        #[cfg_attr(not(nightly), allow(clippy::needless_match))]
-        match &self.source {
-            Some(source) => Some(source),
-            None => None,
-        }
+    pub fn source(&self) -> Option<&Self> {
+        self.frame.source()
     }
 
     /// Returns a mutable reference to the source of this `Frame`.
@@ -144,13 +48,13 @@ impl Frame {
     /// [`Report`]: crate::Report
     #[must_use]
     pub fn source_mut(&mut self) -> Option<&mut Self> {
-        self.source.as_mut().map(Box::as_mut)
+        self.frame.source_mut()
     }
 
     /// Returns how the `Frame` was created.
     #[must_use]
     pub fn kind(&self) -> FrameKind<'_> {
-        self.vtable().unerase(&self.erased_frame)
+        self.frame.kind()
     }
 
     /// Requests the reference to `T` from the `Frame` if provided.
@@ -182,36 +86,37 @@ impl Frame {
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        self.vtable().downcast_ref(self.erased_frame)
+        (TypeId::of::<T>() == FrameImpl::type_id(&*self.frame)).then(|| {
+            // SAFETY: just checked whether we are pointing to the correct type, and we can rely on
+            // that check for memory safety because we have implemented `FrameImpl` for all types;
+            // no other impls can exist as they would conflict with our impl.
+            unsafe { &*(self.frame.as_ref() as *const dyn FrameImpl).cast::<T>() }
+        })
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
-        self.vtable().downcast_mut(self.erased_frame)
+        (TypeId::of::<T>() == FrameImpl::type_id(&*self.frame)).then(|| {
+            // SAFETY: just checked whether we are pointing to the correct type, and we can rely on
+            // that check for memory safety because we have implemented `FrameImpl` for all types;
+            // no other impls can exist as they would conflict with our impl.
+            unsafe { &mut *(self.frame.as_mut() as *mut dyn FrameImpl).cast::<T>() }
+        })
     }
 }
-
-// SAFETY: We own the data contained in Frame and the owned data is guaranteed to be `Send`
-unsafe impl Send for Frame {}
-// SAFETY: We own the data contained in Frame and the owned data is guaranteed to be `Sync`
-unsafe impl Sync for Frame {}
 
 #[cfg(nightly)]
 impl Provider for Frame {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        self.vtable().provide(self.erased_frame, demand);
-        demand.provide_value(|| self.location);
-        if let Some(source) = &self.source {
-            demand.provide_ref::<Self>(source);
-        }
+        self.frame.provide(demand);
     }
 }
 
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = fmt.debug_struct("Frame");
-        debug.field("location", &self.location);
+        debug.field("location", self.location());
         match self.kind() {
             FrameKind::Context(context) => {
                 debug.field("context", &context);
@@ -224,12 +129,6 @@ impl fmt::Debug for Frame {
             }
         }
         debug.finish()
-    }
-}
-
-impl Drop for Frame {
-    fn drop(&mut self) {
-        self.vtable().drop(self.erased_frame);
     }
 }
 
