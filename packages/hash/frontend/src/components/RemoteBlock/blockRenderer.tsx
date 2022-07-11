@@ -28,6 +28,6 @@ export const BlockRenderer: VoidFunctionComponent<BlockRendererProps> = ({
     return <HtmlLoader html={html} />;
   }
   throw new Error(
-    "One of reactElement, customElement or htmlString must be provided.",
+    "One of reactElement, customElement or html must be provided.",
   );
 };

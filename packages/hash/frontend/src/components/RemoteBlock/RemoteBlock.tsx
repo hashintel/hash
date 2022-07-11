@@ -1,4 +1,4 @@
-import { BlockMetadata } from "@blockprotocol/core";
+import { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
 import {
   BlockGraphProperties,
   EmbedderGraphMessageCallbacks,
@@ -19,7 +19,7 @@ type RemoteBlockProps = {
     | "deleteEntity"
     | "deleteEntityType"
   >;
-  graphProperties: Required<BlockGraphProperties<Record<string, any>>["graph"]>;
+  graphProperties: Required<BlockGraphProperties<UnknownRecord>["graph"]>;
   blockMetadata: BlockMetadata;
   crossFrame?: boolean;
   editableRef?: unknown;
@@ -110,7 +110,7 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
       {graphService ? (
         <BlockRenderer
           customElement={
-            (entryPoint === "custom-element" ? blockSource : undefined) as any
+            entryPoint === "custom-element" ? blockSource : undefined
           }
           html={
             (entryPoint === "html"
@@ -118,9 +118,7 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
               : undefined) as any
           }
           properties={propsToInject}
-          ReactComponent={
-            (entryPoint === "react" ? blockSource : undefined) as any
-          }
+          ReactComponent={entryPoint === "react" ? blockSource : undefined}
         />
       ) : null}
     </div>

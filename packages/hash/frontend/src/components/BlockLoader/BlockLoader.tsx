@@ -1,3 +1,4 @@
+import { UnknownRecord } from "@blockprotocol/core";
 import {
   Entity as BpEntity,
   BlockGraphProperties,
@@ -88,7 +89,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { updateLink } = useBlockProtocolUpdateLink();
 
   const graphProperties = useMemo<
-    Required<BlockGraphProperties<Record<string, any>>["graph"]>
+    Required<BlockGraphProperties<UnknownRecord>["graph"]>
   >(() => {
     const convertedEntityTypesForProvidedEntities: BpEntityType[] = [];
 
