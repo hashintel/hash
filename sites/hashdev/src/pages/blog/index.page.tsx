@@ -18,7 +18,8 @@ import { Subscribe } from "../../components/PreFooter";
 import { parseNameFromFileName } from "../../util/clientMdxUtil";
 import { getAllPages, Page } from "../../util/mdxUtil";
 import { NextPageWithLayout } from "../../util/nextTypes";
-import { BlogPostProps, getPhoto } from "./[...blogSlug].page";
+import { getPhoto } from "./shared/get-photo";
+import { BlogPostProps } from "./[...blogSlug].page";
 
 type BlogIndividualPage = Page<BlogPostProps> & {
   photos: {

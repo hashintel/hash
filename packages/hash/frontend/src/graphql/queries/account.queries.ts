@@ -9,6 +9,13 @@ export const getAccounts = gql`
         accountId
       }
       ... on User {
+        memberOf {
+          entityId
+          org {
+            entityId
+            accountId
+          }
+        }
         properties {
           shortname
           preferredName

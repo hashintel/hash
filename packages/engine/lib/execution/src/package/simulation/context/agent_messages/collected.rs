@@ -21,7 +21,7 @@ impl Messages {
             .map(|(agent_id, agent_name)| {
                 let by_id = message_map.get_msg_refs(
                     &uuid::Uuid::from_slice(agent_id)?
-                        .to_hyphenated_ref()
+                        .hyphenated()
                         .to_string(), //TODO[6](optimization) lose the string creation
                 );
 
