@@ -102,9 +102,9 @@ mod tests {
 
         let report = anyhow.into_report().unwrap_err();
         #[cfg(feature = "std")]
-        let expected_output = expect_messages(&["A", "B", "C"]);
+        let expected_output = ["A", "B", "C"];
         #[cfg(not(feature = "std"))]
-        let expected_output = expect_messages(&["C"]);
+        let expected_output = ["C"];
         for (anyhow, expected) in messages(&report).into_iter().zip(expected_output) {
             assert_eq!(anyhow, expected);
         }
