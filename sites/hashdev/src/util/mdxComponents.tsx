@@ -23,6 +23,7 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
 
   p: (props: TypographyProps<"p">) => {
     if (!Array.isArray(props.children) && typeof props.children !== "string") {
+      // eslint-disable-next-line react/jsx-no-useless-fragment -- fragment is required by tsc
       return <>{props.children}</>;
     }
     return <Typography {...props} variant="hashBodyCopy" />;
