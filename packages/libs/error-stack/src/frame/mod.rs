@@ -34,7 +34,7 @@ impl Frame {
     #[allow(missing_docs)]
     #[must_use]
     #[deprecated = "use `sources()` instead"]
-    pub const fn source(&self) -> Option<&Self> {
+    pub fn source(&self) -> Option<&Self> {
         self.frame.sources().first()
     }
 
@@ -44,7 +44,7 @@ impl Frame {
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub const fn sources(&self) -> &[Self] {
+    pub fn sources(&self) -> &[Self] {
         self.frame.sources()
     }
 
