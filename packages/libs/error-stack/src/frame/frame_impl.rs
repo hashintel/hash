@@ -157,7 +157,7 @@ unsafe impl<A: 'static + Debug + Display + Send + Sync> FrameImpl for PrintableA
 }
 
 impl Frame {
-    /// Crates a frame from a [`Context`].
+    /// Creates a frame from a [`Context`].
     pub(crate) fn from_context<C>(
         context: C,
         location: &'static Location<'static>,
