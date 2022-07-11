@@ -1,10 +1,10 @@
 import { Entity, UnresolvedGQLEntity } from "../../../model";
 import { validateEntityTypeChoice } from "../../../util";
 
-import { QueryEntitiesArgs, Resolver } from "../../apiTypes.gen";
+import { QueryEntitiesArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
-export const entities: Resolver<
+export const entities: ResolverFn<
   Promise<UnresolvedGQLEntity[]>,
   {},
   GraphQLContext,

@@ -1,10 +1,10 @@
-import { QueryGetAccountEntityTypesArgs, Resolver } from "../../apiTypes.gen";
+import { QueryGetAccountEntityTypesArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import EntityType, {
   UnresolvedGQLEntityType,
 } from "../../../model/entityType.model";
 
-export const getAccountEntityTypes: Resolver<
+export const getAccountEntityTypes: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
   {},
   GraphQLContext,

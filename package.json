@@ -20,9 +20,6 @@
       "packages/hash/tsconfig",
       "sites/hashai",
       "sites/hashdev"
-    ],
-    "nohoist": [
-      "**/ts-invariant"
     ]
   },
   "scripts": {

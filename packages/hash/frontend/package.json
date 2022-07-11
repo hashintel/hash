@@ -16,7 +16,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@apollo/client": "3.3.21",
+    "@apollo/client": "3.6.9",
     "@emotion/cache": "11.7.1",
     "@emotion/react": "11.9.0",
     "@emotion/server": "11.4.0",
@@ -78,10 +78,10 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "1.21.5",
-    "@graphql-codegen/fragment-matcher": "2.0.1",
-    "@graphql-codegen/typescript": "1.22.1",
-    "@graphql-codegen/typescript-operations": "1.18.0",
+    "@graphql-codegen/cli": "2.7.0",
+    "@graphql-codegen/fragment-matcher": "3.2.1",
+    "@graphql-codegen/typescript": "2.6.0",
+    "@graphql-codegen/typescript-operations": "2.4.3",
     "@next/bundle-analyzer": "12.2.0",
     "@testing-library/dom": "8.14.0",
     "@testing-library/jest-dom": "5.16.4",

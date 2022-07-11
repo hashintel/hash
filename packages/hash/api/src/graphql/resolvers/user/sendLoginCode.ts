@@ -5,11 +5,11 @@ import { User } from "../../../model";
 import {
   MutationSendLoginCodeArgs,
   VerificationCodeMetadata,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
-export const sendLoginCode: Resolver<
+export const sendLoginCode: ResolverFn<
   Promise<VerificationCodeMetadata>,
   {},
   GraphQLContext,
