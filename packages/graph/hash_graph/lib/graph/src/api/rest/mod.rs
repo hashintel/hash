@@ -1,6 +1,6 @@
 //! The Axum webserver for accessing the Graph API datastore operations.
 //!
-//! Handler methods are grouped by routes that make up the `web_api`.
+//! Handler methods are grouped by routes that make up the REST API.
 
 mod api_resource;
 mod data_type;
