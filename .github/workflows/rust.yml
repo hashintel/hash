@@ -99,9 +99,12 @@ jobs:
           key: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
 
-      - name: Install cargo-make
+      - name: Install tools
         shell: bash
-        run: cargo install cargo-make
+        run: |
+          cargo install quickinstall
+          cargo quickinstall cargo-make
+          cargo quickinstall cargo-hack
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
@@ -177,9 +180,13 @@ jobs:
           key: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
 
-      - name: Install cargo-make
+      - name: Install tools
         shell: bash
-        run: cargo install cargo-make
+        run: |
+          cargo install quickinstall
+          cargo quickinstall cargo-make
+          cargo quickinstall cargo-hack
+          cargo quickinstall cargo-nextest
 
       - name: Install Python
         if: matrix.directory == 'packages/engine'
