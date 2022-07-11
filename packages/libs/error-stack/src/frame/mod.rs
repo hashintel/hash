@@ -121,6 +121,12 @@ impl Frame {
         self.location
     }
 
+    #[must_use]
+    #[deprecated = "use `sources()` instead"]
+    pub const fn source(&self) -> Option<&Self> {
+        self.sources.first()
+    }
+
     /// Returns a shared reference to the source of this `Frame`.
     ///
     /// This corresponds to the `Frame` below this one in a [`Report`].
@@ -129,6 +135,12 @@ impl Frame {
     #[must_use]
     pub const fn sources(&self) -> &[Self] {
         &self.sources
+    }
+
+    #[must_use]
+    #[deprecated = "use `sources_mut()` instead"]
+    pub fn source_mut(&mut self) -> Option<&mut Self> {
+        self.sources.first_mut()
     }
 
     /// Returns a mutable reference to the sources of this `Frame`.
