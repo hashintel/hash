@@ -14,7 +14,11 @@ fn captured() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 
     let report = create_report();
-    let backtrace = report.backtrace().expect("No backtrace captured");
+    assert_eq!(report.request_ref::<std::backtrace::Backtrace>().count(), 1);
+    let backtrace = report
+        .request_ref::<std::backtrace::Backtrace>()
+        .next()
+        .expect("No backtrace captured");
     assert!(!backtrace.frames().is_empty());
 }
 
@@ -27,7 +31,11 @@ fn provided() {
     let error_backtrace_string = error_backtrace.to_string();
 
     let report = Report::new(error);
-    let report_backtrace = report.backtrace().expect("No backtrace captured");
+    assert_eq!(report.request_ref::<std::backtrace::Backtrace>().count(), 1);
+    let report_backtrace = report
+        .request_ref::<std::backtrace::Backtrace>()
+        .next()
+        .expect("No backtrace captured");
     let report_backtrace_len = report_backtrace.frames().len();
     #[cfg(not(miri))]
     let report_backtrace_string = report_backtrace.to_string();

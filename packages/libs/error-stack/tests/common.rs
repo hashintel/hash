@@ -265,6 +265,7 @@ pub fn expect_count(mut count: usize) -> usize {
     count
 }
 
+#[allow(unused_macros)]
 macro_rules! assert_kinds {
     (#count,) => {0usize};
     (#count, $x:tt $($xs:tt)*) => {1usize + assert_kinds!(#count, $($xs)*)};

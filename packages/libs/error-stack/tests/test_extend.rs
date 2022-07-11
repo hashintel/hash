@@ -47,3 +47,14 @@ fn extend_one() {
     assert_eq!(err1.current().len(), 3);
     assert_eq!(err1.frames().count(), count);
 }
+
+#[test]
+fn extend() {
+    let mut err1 = report!(Error).attach_printable("Not Supported");
+    let err2 = report!(Error).attach_printable("Not Supported");
+    let err3 = report!(Error).attach_printable("Not Supported");
+
+    err1.extend([err2, err3]);
+    assert_eq!(err1.current().len(), 3);
+    assert_eq!(err1.frames().count(), expect_count(2) * 3);
+}

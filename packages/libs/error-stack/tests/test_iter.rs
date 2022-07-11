@@ -3,12 +3,8 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use core::iter::zip;
-use std::{
-    fmt::{Display, Formatter},
-    process::Termination,
-};
+use std::fmt::{Display, Formatter};
 
 mod common;
 use error_stack::{report, Context, Report};

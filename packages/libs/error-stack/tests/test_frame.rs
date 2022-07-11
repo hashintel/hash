@@ -12,14 +12,19 @@ fn opaque_attachment() {
         .attach(AttachmentA(10))
         .attach(AttachmentB(20));
 
+    assert_eq!(report.current().len(), 1);
     let frame = report.frames_mut().next().expect("No frame found");
-    let source = frame.source_mut().expect("No source frame found");
+    let source = frame
+        .sources_mut()
+        .first_mut()
+        .expect("No source frame found");
     let attachment = source
         .downcast_mut::<AttachmentA>()
         .expect("Wrong source frame");
     attachment.0 += 10;
 
-    let source = frame.source().expect("No source frame found");
+    assert_eq!(frame.sources().len(), 1);
+    let source = frame.sources().first().expect("No source frame found");
     let attachment = source
         .downcast_ref::<AttachmentA>()
         .expect("Wrong source frame");
@@ -32,14 +37,19 @@ fn printable_attachment() {
         .attach_printable(PrintableA(10))
         .attach_printable(PrintableB(20));
 
+    assert_eq!(report.current().len(), 1);
     let frame = report.frames_mut().next().expect("No frame found");
-    let source = frame.source_mut().expect("No source frame found");
+    let source = frame
+        .sources_mut()
+        .first_mut()
+        .expect("No source frame found");
     let attachment = source
         .downcast_mut::<PrintableA>()
         .expect("Wrong source frame");
     attachment.0 += 10;
 
-    let source = frame.source().expect("No source frame found");
+    assert_eq!(frame.sources().len(), 1);
+    let source = frame.sources().first().expect("No source frame found");
     let attachment = source
         .downcast_ref::<PrintableA>()
         .expect("Wrong source frame");
@@ -52,14 +62,19 @@ fn context() {
         .change_context(ContextA(10))
         .change_context(ContextB(20));
 
+    assert_eq!(report.current().len(), 1);
     let frame = report.frames_mut().next().expect("No frame found");
-    let source = frame.source_mut().expect("No source frame found");
+    let source = frame
+        .sources_mut()
+        .first_mut()
+        .expect("No source frame found");
     let context = source
         .downcast_mut::<ContextA>()
         .expect("Wrong source frame");
     context.0 += 10;
 
-    let source = frame.source().expect("No source frame found");
+    assert_eq!(frame.sources().len(), 1);
+    let source = frame.sources().first().expect("No source frame found");
     let context = source
         .downcast_ref::<ContextA>()
         .expect("Wrong source frame");
