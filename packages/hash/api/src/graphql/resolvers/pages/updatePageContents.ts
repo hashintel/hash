@@ -11,7 +11,7 @@ import { exactlyOne } from "../../../util";
 import {
   EntityDefinition,
   MutationUpdatePageContentsArgs,
-  Resolver,
+  ResolverFn,
   SwapBlockData,
   UpdateEntity,
   UpdatePageAction,
@@ -72,7 +72,7 @@ class PlaceholderResultsMap {
 
 // @todo these actions need to be processed in order to ensure placeholders
 // work as expected
-export const updatePageContents: Resolver<
+export const updatePageContents: ResolverFn<
   Promise<
     {
       page: UnresolvedGQLEntity;

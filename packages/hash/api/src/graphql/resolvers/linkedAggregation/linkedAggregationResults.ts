@@ -6,12 +6,13 @@ import {
   UnresolvedGQLLinkedAggregation,
   UnresolvedGQLUnknownEntity,
 } from "../../../model";
-import { Resolver } from "../../apiTypes.gen";
+import { ResolverFn } from "../../apiTypes.gen";
 
-export const linkedAggregationResults: Resolver<
+export const linkedAggregationResults: ResolverFn<
   UnresolvedGQLUnknownEntity[],
   UnresolvedGQLLinkedAggregation,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (
   { sourceAccountId, sourceEntityId, aggregationId },
   _,
