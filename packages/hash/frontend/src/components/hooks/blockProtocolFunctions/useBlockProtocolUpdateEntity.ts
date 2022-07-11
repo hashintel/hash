@@ -19,15 +19,15 @@ export const useBlockProtocolUpdateEntity = (
   updateEntity: EmbedderGraphMessageCallbacks["updateEntity"];
   updateEntityLoading: boolean;
 } => {
-  const [
-    updateEntityFn,
-    { loading: updateUnknownEntityLoading, error: updateUnknownEntityError },
-  ] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
-    updateEntityQuery,
-  );
+  const [updateEntityFn, { loading: updateUnknownEntityLoading }] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityQuery);
 
-  const [updatePageFn, { loading: updatePageLoading, error: updatePageError }] =
-    useMutation<UpdatePageMutation, UpdatePageMutationVariables>(updatePage);
+  const [updatePageFn, { loading: updatePageLoading }] = useMutation<
+    UpdatePageMutation,
+    UpdatePageMutationVariables
+  >(updatePage);
 
   const updateEntity: EmbedderGraphMessageCallbacks["updateEntity"] =
     useCallback(
