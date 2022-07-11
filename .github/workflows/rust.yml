@@ -90,7 +90,6 @@ jobs:
           path: |
             ~/.cargo/.crates.toml
             ~/.cargo/.crates2.json
-            ~/.cargo/bin
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
@@ -101,7 +100,7 @@ jobs:
       - name: Install tools
         shell: bash
         run: |
-          cargo install quickinstall
+          cargo install cargo-quickinstall
           cargo quickinstall cargo-make
           cargo quickinstall cargo-hack
 
@@ -171,7 +170,6 @@ jobs:
           path: |
             ~/.cargo/.crates.toml
             ~/.cargo/.crates2.json
-            ~/.cargo/bin
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/checkouts
@@ -182,7 +180,7 @@ jobs:
       - name: Install tools
         shell: bash
         run: |
-          cargo install quickinstall
+          cargo install cargo-quickinstall
           cargo quickinstall cargo-make
           cargo quickinstall cargo-hack
           cargo quickinstall cargo-nextest
