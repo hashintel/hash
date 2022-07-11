@@ -161,7 +161,7 @@ impl Frame {
     pub(crate) fn from_context<C>(
         context: C,
         location: &'static Location<'static>,
-        sources: Box<[Frame]>,
+        sources: Box<[Self]>,
     ) -> Self
     where
         C: Context,
@@ -179,7 +179,7 @@ impl Frame {
     pub(crate) fn from_attachment<A>(
         attachment: A,
         location: &'static Location<'static>,
-        sources: Box<[Frame]>,
+        sources: Box<[Self]>,
     ) -> Self
     where
         A: Send + Sync + 'static,
@@ -200,7 +200,7 @@ impl Frame {
     pub(crate) fn from_printable_attachment<A>(
         attachment: A,
         location: &'static Location<'static>,
-        sources: Box<[Frame]>,
+        sources: Box<[Self]>,
     ) -> Self
     where
         A: Display + Debug + Send + Sync + 'static,

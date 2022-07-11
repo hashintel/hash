@@ -8,6 +8,7 @@ mod common;
 #[macro_use]
 extern crate alloc;
 
+#[cfg(feature = "eyre")]
 use core::sync::atomic::Ordering;
 #[cfg(all(nightly, feature = "std"))]
 use std::{backtrace::Backtrace, backtrace::BacktraceStatus};
@@ -52,6 +53,7 @@ fn anyhow() {
         .attach_printable(PrintableA(0))
         .attach_printable(PrintableB(0));
 
+    #[allow(unused_mut)]
     let mut report_messages = messages(&report);
     #[cfg(all(nightly, feature = "std"))]
     {
@@ -189,6 +191,7 @@ fn eyre() {
         .attach_printable(PrintableA(0))
         .attach_printable(PrintableB(0));
 
+    #[allow(unused_mut)]
     let mut report_messages = messages(&report);
 
     #[allow(unused_mut)]

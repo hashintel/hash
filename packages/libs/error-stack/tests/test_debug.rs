@@ -26,7 +26,7 @@ fn report_normal() {
         })
         .collect::<Vec<_>>();
 
-    let expected_output = format!(
+    let _expected_output = format!(
         r#"Context B
              at {}
       - Printable C
@@ -56,7 +56,7 @@ fn extended() {
 
     let locations = report.frames().map(Frame::location).collect::<Vec<_>>();
 
-    let expected_output = format!(
+    let _expected_output = format!(
         r#"Report {{
     frames: [
         Frame {{
