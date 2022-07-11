@@ -236,6 +236,34 @@ impl<C> Report<C> {
         this
     }
 
+    #[must_use]
+    #[cfg(all(nightly, feature = "std"))]
+    #[deprecated = "a report might contain multiple backtraces, use `request_ref::<Backtrace>()` \
+                    instead"]
+    pub fn backtrace(&self) -> Option<&Backtrace> {
+        self.request_ref::<Backtrace>().next()
+    }
+
+    #[must_use]
+    #[cfg(feature = "spantrace")]
+    #[cfg_attr(
+        nightly,
+        deprecated = "a report might contain multiple spantraces, use \
+                      `request_ref::<SpanTrace>()` instead"
+    )]
+    #[cfg_attr(
+        not(nightly),
+        deprecated = "a report might contain multiple spantraces, use \
+                      `frames().filter(Frame::downcast_ref::<SpanTrace>)` instead"
+    )]
+    pub fn span_trace(&self) -> Option<&SpanTrace> {
+        #[cfg(nightly)]
+        return self.request_ref::<SpanTrace>().next();
+
+        #[cfg(not(nightly))]
+        return self.downcast_ref::<SpanTrace>();
+    }
+
     /// Add an existing [`Report`] as an additional source of this report.
     ///
     /// Should report consist of multiple frames ([`extend_one()`] was called on it before),
