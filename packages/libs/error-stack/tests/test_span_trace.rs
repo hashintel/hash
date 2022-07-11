@@ -68,7 +68,15 @@ fn provided() {
     }
 
     let report = capture_error(func_a);
-    let span_trace = report.span_trace().expect("No span trace captured");
+    #[cfg(nightly)]
+    let span_trace = report
+        .request_ref::<SpanTrace>()
+        .next()
+        .expect("No span trace captured");
+    #[cfg(not(nightly))]
+    let span_trace = report
+        .downcast_ref::<SpanTrace>()
+        .expect("No span trace captured");
 
     let mut num_spans = 0;
     span_trace.with_spans(|_, _| {

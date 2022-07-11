@@ -6,6 +6,7 @@ pub use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+#[allow(unused_imports)]
 use core::{
     fmt, iter,
     sync::atomic::{AtomicI8, Ordering},
