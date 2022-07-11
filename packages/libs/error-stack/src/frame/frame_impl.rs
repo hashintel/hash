@@ -193,7 +193,7 @@ impl Frame {
         }
     }
 
-    /// Crates a frame from an attachment which implements [`Debug`] and [`Display`].
+    /// Creates a frame from an attachment which implements [`Debug`] and [`Display`].
     ///
     /// [`Debug`]: core::fmt::Debug
     /// [`Display`]: core::fmt::Display
