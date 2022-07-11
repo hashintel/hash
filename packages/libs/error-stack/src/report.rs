@@ -81,18 +81,6 @@ use crate::{
 /// # const _: &str = stringify! {
 /// ...
 /// # }; Ok(content) }
-/// #
-/// # #[allow(unused_mut)]
-/// # let mut count = 2;
-/// # #[cfg(all(nightly, feature = "std"))]
-/// # {
-/// #   count += 1;
-/// # }
-/// # #[cfg(feature = "spantrace")]
-/// # {
-/// #   count += 1;
-/// # }
-/// # assert_eq!(fake_main().unwrap_err().frames().count(), count);
 /// # }
 /// ```
 ///
@@ -163,17 +151,6 @@ use crate::{
 ///     # };
 ///     # Ok(()) }
 ///     # let err = fake_main().unwrap_err();
-///     # #[allow(unused_mut)]
-///     # let mut count = 3;
-///     # #[cfg(all(nightly, feature = "std"))]
-///     # {
-///     #   count += 1;
-///     # }
-///     # #[cfg(feature = "spantrace")]
-///     # {
-///     #   count += 1;
-///     # }
-///     # assert_eq!(err.frames().count(), count);
 ///     # assert!(err.contains::<ConfigError>());
 ///     # assert_eq!(err.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
 ///     # Ok(())
@@ -605,7 +582,7 @@ impl<Context> fmt::Debug for Report<Context> {
             let mut debug = fmt.debug_struct("Report");
             debug.field("frames", &self.frames());
             #[cfg(all(nightly, feature = "std"))]
-            debug.field("backtrace", &self.downcast_ref::<Backtrace>());
+            debug.field("backtrace", &self.request_ref::<Backtrace>());
             #[cfg(feature = "spantrace")]
             debug.field("span_trace", &self.downcast_ref::<SpanTrace>());
             debug.finish()
