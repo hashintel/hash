@@ -14,7 +14,7 @@ use uuid::Uuid;
 use super::api_resource::RoutedResource;
 use crate::{
     datastore::{BaseIdAlreadyExists, BaseIdDoesNotExist, Datastore, QueryError},
-    types::{schema::PropertyType, AccountId, BaseId, Qualified, QualifiedPropertyType, VersionId},
+    types::{schema::PropertyType, AccountId, Qualified, QualifiedPropertyType, VersionId},
 };
 
 #[derive(OpenApi)]
@@ -25,7 +25,7 @@ use crate::{
         // get_property_type_many,
         update_property_type
     ),
-    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, BaseId, QualifiedPropertyType),
+    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, QualifiedPropertyType),
     tags(
         (name = "PropertyType", description = "Property type management API")
     )

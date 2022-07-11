@@ -5,6 +5,28 @@ use serde_json::json;
 
 use crate::types::schema::Uri;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DataTypeReference {
+    // TODO: Test if the URI is an actual data type
+    #[serde(rename = "$ref")]
+    reference: Uri,
+}
+
+impl DataTypeReference {
+    /// Creates a new `DataTypeReference` from the given `reference`.
+    #[must_use]
+    pub const fn new(reference: Uri) -> Self {
+        Self { reference }
+    }
+
+    #[must_use]
+    pub const fn reference(&self) -> &Uri {
+        &self.reference
+    }
+}
+
+/// Will serialize as a constant value `"dataType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum DataTypeTag {
@@ -154,7 +176,26 @@ impl DataType {
 
 #[cfg(test)]
 mod tests {
+    use std::error::Error;
+
     use super::*;
+
+    #[test]
+    fn data_type_reference() -> Result<(), Box<dyn Error>> {
+        let reference = DataTypeReference::new(Uri::new("https://example.com/data_type"));
+        let json = serde_json::to_value(&reference)?;
+
+        assert_eq!(
+            json,
+            json!({
+                "$ref": "https://example.com/data_type"
+            })
+        );
+
+        let reference2: DataTypeReference = serde_json::from_value(json)?;
+        assert_eq!(reference, reference2);
+        Ok(())
+    }
 
     fn validate(data_type: &DataType, json: serde_json::Value) -> Result<(), serde_json::Error> {
         let data_type_json = serde_json::to_value(&json)?;
