@@ -1,8 +1,8 @@
 import {
-  QueryAggregateEntityArgs,
-  Resolver,
   AggregateOperation,
   AggregateOperationInput,
+  QueryAggregateEntityArgs,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Aggregation, Entity, UnresolvedGQLEntity } from "../../../model";
@@ -51,7 +51,7 @@ export const dbAggregateEntity =
     };
   };
 
-export const aggregateEntity: Resolver<
+export const aggregateEntity: ResolverFn<
   Promise<{
     results: UnresolvedGQLEntity[];
     operation: AggregateOperation;

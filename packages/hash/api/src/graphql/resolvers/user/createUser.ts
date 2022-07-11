@@ -2,13 +2,13 @@ import { ApolloError } from "apollo-server-express";
 
 import {
   MutationCreateUserArgs,
-  Resolver,
+  ResolverFn,
   VerificationCodeMetadata,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { User } from "../../../model";
 
-export const createUser: Resolver<
+export const createUser: ResolverFn<
   Promise<VerificationCodeMetadata>,
   {},
   GraphQLContext,
