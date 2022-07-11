@@ -1,11 +1,12 @@
 //! Iterators over [`Frame`]s.
 
 use alloc::{vec, vec::Vec};
+#[cfg(nightly)]
+use core::marker::PhantomData;
 use core::{
     fmt,
     fmt::Formatter,
     iter::FusedIterator,
-    marker::PhantomData,
     slice::{Iter, IterMut},
 };
 

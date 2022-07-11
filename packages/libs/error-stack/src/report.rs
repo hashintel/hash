@@ -273,7 +273,7 @@ impl<C> Report<C> {
             this = this.attach(backtrace);
         }
 
-        #[cfg(all(nightly, feature = "spantrace"))]
+        #[cfg(feature = "spantrace")]
         if let Some(span_trace) = span_trace.filter(|st| st.status() == SpanTraceStatus::CAPTURED) {
             this = this.attach(span_trace);
         }
