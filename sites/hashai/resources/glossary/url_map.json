@@ -128,7 +128,7 @@
   {
     "title": "Enterprise Resource Planning",
     "description": "Enterprise resource planning uses an integrated software system to manage a business' daily tasks.",
-    "slug": "enterprise-resource-planning",
+    "slug": "erp",
     "tags": ["Business Software"]
   },
   {
@@ -283,7 +283,7 @@
   {
     "title": "Robotic Process Automation",
     "description": "Robotic process automation uses software to perform repeatable business tasks.",
-    "slug": "robotic-process-automation",
+    "slug": "rpa",
     "tags": ["Business Software"]
   },
   {
