@@ -1,18 +1,14 @@
-import { imageSize as legacyImageSize } from "image-size";
 import { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { promisify } from "util";
 import {
   BlogPagePhotos,
   BlogPostContent,
   BlogPostHead,
-  BlogPostPagePhoto,
   BlogPostPhotosContext,
 } from "../../components/BlogPost";
 import { MdxPageContent } from "../../components/MdxPageContent";
 import { getAllPageHrefs, getSerializedPage } from "../../util/mdxUtil";
-
-const imageSize = promisify(legacyImageSize);
+import { getPhoto } from "./shared/get-photo";
 
 export type BlogPostProps = {
   title: string;
@@ -51,21 +47,6 @@ export const getStaticPaths: GetStaticPaths<
     paths,
     fallback: false,
   };
-};
-
-export const getPhoto = async (
-  src: string | null,
-): Promise<BlogPostPagePhoto | null> => {
-  if (!src) return null;
-  const fullUrl = `/public/${src}`;
-  // @todo this is relative to CLI dir – need to make it absolute
-  const size = await imageSize(`.${fullUrl}`);
-
-  if (!size || size.width === undefined || size.height === undefined) {
-    return null;
-  }
-
-  return { src: `/${src}`, height: size.height, width: size.width };
 };
 
 export const getStaticProps: GetStaticProps<

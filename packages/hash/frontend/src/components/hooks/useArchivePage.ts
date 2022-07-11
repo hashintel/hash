@@ -1,45 +1,64 @@
 import { useMutation } from "@apollo/client";
-import { useRouter } from "next/router";
 import {
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { updatePage } from "@hashintel/hash-shared/queries/page.queries";
+import {
+  getPageInfoQuery,
+  updatePage,
+} from "@hashintel/hash-shared/queries/page.queries";
 
 import { useCallback } from "react";
-import { getAccountPages } from "../../graphql/queries/account.queries";
+import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
-export const useArchivePage = (accountId: string) => {
-  const router = useRouter();
-
-  const [updateEntityFn] = useMutation<
+export const useArchivePage = () => {
+  const [updatePageFn] = useMutation<
     UpdatePageMutation,
     UpdatePageMutationVariables
-  >(updatePage, {
-    refetchQueries: () => [
+  >(updatePage);
+
+  const getRefecthQueries = useCallback(
+    (accountId: string, pageEntityId: string) => [
       {
-        query: getAccountPages,
+        query: getAccountPagesTree,
         variables: { accountId },
       },
+      {
+        query: getPageInfoQuery,
+        variables: {
+          entityId: pageEntityId,
+          accountId,
+        },
+      },
     ],
-  });
+    [],
+  );
 
   const archivePage = useCallback(
-    async (pageEntityId: string) => {
-      await updateEntityFn({
+    async (accountId: string, pageEntityId: string) =>
+      await updatePageFn({
         variables: {
           accountId,
           entityId: pageEntityId,
           properties: { archived: true },
         },
-      });
-
-      if (router.asPath === `/${accountId}/${pageEntityId}`) {
-        return router.push(`/${accountId}`);
-      }
-    },
-    [updateEntityFn, accountId, router],
+        refetchQueries: getRefecthQueries(accountId, pageEntityId),
+      }),
+    [updatePageFn, getRefecthQueries],
   );
 
-  return { archivePage };
+  const unarchivePage = useCallback(
+    async (accountId: string, pageEntityId: string) =>
+      await updatePageFn({
+        variables: {
+          accountId,
+          entityId: pageEntityId,
+          properties: { archived: false },
+        },
+        refetchQueries: getRefecthQueries(accountId, pageEntityId),
+      }),
+    [updatePageFn, getRefecthQueries],
+  );
+
+  return { archivePage, unarchivePage };
 };
