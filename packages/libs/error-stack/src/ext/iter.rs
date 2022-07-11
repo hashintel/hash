@@ -21,8 +21,6 @@ pub trait IteratorExt: Iterator + Sized {
     /// Applies [`Report::attach`] to every [`Err`] variant in the iterator. For more
     /// information, see the documentation for [`Report::attach`].
     ///
-    /// [`Report`]: crate::Report
-    /// [`Report::attach`]: crate::Report::attach
     /// [`Iterator`]: std::iter::Iterator
     fn attach<A>(self, attachment: A) -> IteratorWithAttachment<Self, A>
     where
@@ -31,11 +29,9 @@ pub trait IteratorExt: Iterator + Sized {
     /// Lazily adds a new attachment to each [`Report`] inside the [`Iterator`] when calling
     /// [`Iterator::next`].
     ///
-    /// Applies [`ResultExt::attach_lazy`] to every [`Err`] variant in the iterator. For more
+    /// Applies [`Report::attach`] to every [`Err`] variant in the iterator. For more
     /// information, see the documentation for [`Report::attach`].
     ///
-    /// [`Report`]: crate::Report
-    /// [`Report::attach`]: crate::Report::attach
     /// [`poll`]: Future::poll
     fn attach_lazy<A, F>(self, attachment: F) -> IteratorWithLazyAttachment<Self, F>
     where
@@ -48,8 +44,6 @@ pub trait IteratorExt: Iterator + Sized {
     /// Applies [`Report::attach_printable`] to every [`Err`] variant in the iterator. For more
     /// information, see the documentation for [`Report::attach_printable`].
     ///
-    /// [`Report`]: crate::Report
-    /// [`Report::attach_printable`]: crate::Report::attach_printable
     /// [`poll`]: Future::poll
     fn attach_printable<A>(self, attachment: A) -> IteratorWithPrintableAttachment<Self, A>
     where
@@ -58,11 +52,9 @@ pub trait IteratorExt: Iterator + Sized {
     /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`]
     /// when calling [`Iterator::next`].
     ///
-    /// Applies [`Report::attach_printable_lazy`] to every [`Err`] variant in the iterator. For more
-    /// information, see the documentation for [`Report::attach_printable_lazy`].
+    /// Applies [`Report::attach_printable`] to every [`Err`] variant in the iterator. For more
+    /// information, see the documentation for [`Report::attach_printable`].
     ///
-    /// [`Report`]: crate::Report
-    /// [`Report::attach_printable_lazy`]: crate::Report::attach_printable
     /// [`poll`]: Future::poll
     fn attach_printable_lazy<A, F>(
         self,
@@ -78,8 +70,6 @@ pub trait IteratorExt: Iterator + Sized {
     /// Applies [`Report::change_context`] to every [`Err`] variant in the iterator. For more
     /// information, see the documentation for [`Report::change_context`].
     ///
-    /// [`Report`]: crate::Report
-    /// [`Report::change_context`]: crate::Report::change_context
     /// [`poll`]: Future::poll
     fn change_context<C>(self, context: C) -> IteratorWithContext<Self, C>
     where
@@ -91,8 +81,6 @@ pub trait IteratorExt: Iterator + Sized {
     /// Applies [`Report::change_context`] to every [`Err`] variant in the iterator. For more
     /// information, see the documentation for [`Report::change_context`].
     ///
-    /// [`Report`]: crate::Report
-    /// [`Report::change_context_lazy`]: crate::Report::change_context_lazy
     /// [`poll`]: Future::poll
     fn change_context_lazy<C, F>(self, context: F) -> IteratorWithLazyContext<Self, F>
     where
@@ -284,55 +272,4 @@ impl_lazy_iterator_adaptor! {
     attach_printable_lazy,
     Display + Debug + Send + Sync + 'static,
     I::Item
-}
-
-#[cfg(test)]
-/// Just tests that some simple uses of `IteratorExt` (and related types) works.
-mod test_simple_compiles {
-    use super::*;
-    use crate::test_helper::messages;
-
-    #[derive(Debug)]
-    pub struct UhOhError;
-
-    impl core::fmt::Display for UhOhError {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            f.write_str("UhOhError")
-        }
-    }
-
-    impl crate::Context for UhOhError {}
-
-    #[test]
-    fn report_with_vec() {
-        use alloc::{string::ToString, vec};
-
-        let items = vec![
-            Ok(1),
-            Ok(1),
-            Ok(2),
-            Ok(5),
-            Ok(14),
-            Ok(42),
-            Ok(132),
-            Ok(429),
-            Ok(1430),
-            Ok(4862),
-            Ok(16796),
-            Err(UhOhError),
-        ]
-        .into_iter()
-        .map(crate::ext::result::IntoReport::into_report);
-
-        let report = items.into_iter().attach_lazy(|| "context".to_string());
-
-        for each in report {
-            match each {
-                Ok(_) => (),
-                Err(err) => {
-                    assert_eq!(messages(&err), vec!["Opaque", "UhOhError"]);
-                }
-            }
-        }
-    }
 }

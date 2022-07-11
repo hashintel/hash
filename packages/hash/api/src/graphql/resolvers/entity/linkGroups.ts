@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-errors";
 import { set } from "lodash";
-import { Resolver, Entity as GQLEntity, LinkGroup } from "../../apiTypes.gen";
+import { Entity as GQLEntity, LinkGroup, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Entity, Link } from "../../../model";
 import { DbClient } from "../../../db";
@@ -155,10 +155,11 @@ const mapLinkGroupsObjectToGQLLinkGroups = (
     )
     .flat(2);
 
-export const linkGroups: Resolver<
+export const linkGroups: ResolverFn<
   GQLEntity["linkGroups"],
   DbUnknownEntity,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (sourceEntity, _, { dataSources }) => {
   const source = await Entity.getEntity(dataSources.db, {
     accountId: sourceEntity.accountId,

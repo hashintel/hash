@@ -23,6 +23,7 @@ export const setParentPage = gql`
       properties {
         title
         summary
+        pageEntityId
         __typename
       }
       __typename

@@ -1,15 +1,19 @@
 [announcement post]: https://hash.dev/blog/announcing-error-stack
 [crates.io]: https://crates.io/crates/error-stack
 [libs.rs]: https://lib.rs/crates/error-stack
+[rust-version]: https://www.rust-lang.org
 [documentation]: https://docs.rs/error-stack
 [license]: ./LICENSE.md
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
+[![rust-version](https://img.shields.io/badge/Rust-1.61.0-orange)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
+
+[Open issues](https://github.com/hashintel/hash/issues?q=is%3Aissue+is%3Aopen+label%3AA-error-stack) / [Discussions](https://github.com/hashintel/hash/discussions?discussions_q=label%3AA-error-stack)
 
 # error-stack
 
@@ -75,7 +79,7 @@ fn start_experiments(
             Ok(move || experiment.0 * experiment.1)
         })
         .collect::<Result<Vec<_>, ExperimentError>>()
-        .attach_printable("Unable to setup experiments")?;
+        .attach_printable("Unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
@@ -94,7 +98,7 @@ This will most likely result in an error and print
 ```text
 Error: Experiment error: Could not run experiment
              at examples/demo.rs:54:18
-      - Unable to setup experiments
+      - Unable to set up experiments
 
 Caused by:
    0: invalid experiment description

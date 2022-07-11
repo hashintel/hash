@@ -19,8 +19,10 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  word-break: break-all;
   margin: 30px 0;
+  word-break: break-word;
+  white-space: pre-wrap;
+  outline: none !important;
 }
 
 /**
