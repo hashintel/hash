@@ -8,6 +8,7 @@ use std::{
 };
 
 use anyhow::Error as AnyhowError;
+use futures::StreamExt;
 
 use crate::{compat::IntoReportCompat, Context, Frame, Report, Result};
 
@@ -64,9 +65,10 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
             Err(anyhow) => {
                 #[cfg(all(nightly, feature = "std"))]
                 let backtrace = anyhow
-                    .chain()
-                    .all(|error| error.backtrace().is_none())
-                    .then(Backtrace::capture)
+                    .deref()
+                    .backtrace()
+                    .cloned()
+                    .or_else(|| Some(Backtrace::capture()))
                     .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured));
 
                 #[cfg(feature = "spantrace")]
@@ -81,11 +83,13 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     .collect::<alloc::vec::Vec<_>>();
 
                 #[allow(unused_mut)]
-                let mut report =
-                    Report::from_frame(Frame::from_context(AnyhowContext(anyhow), Location::caller(), None));
+                let mut report = Report::from_frame(Frame::from_context(
+                    AnyhowContext(anyhow),
+                    Location::caller(),
+                    Box::new([]),
+                ));
 
                 #[cfg(all(nightly, feature = "std"))]
-<<<<<<< HEAD
                 if let Some(backtrace) = backtrace {
                     report = report.attach(backtrace);
                 }
@@ -94,19 +98,6 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                 if let Some(spantrace) = spantrace {
                     report = report.attach(spantrace);
                 }
-=======
-                let backtrace = if anyhow
-                    .deref()
-                    .backtrace()
-                    .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
-                    .is_some()
-                {
-                    None
-                } else {
-                    Some(Backtrace::capture())
-                };
->>>>>>> original/main
-
 
                 #[cfg(feature = "std")]
                 for source in sources {
@@ -118,28 +109,3 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
         }
     }
 }
-<<<<<<< HEAD
-
-#[cfg(test)]
-mod tests {
-    use anyhow::anyhow;
-
-    #[allow(clippy::wildcard_imports)]
-    use crate::{test_helper::*, IntoReportCompat};
-
-    #[test]
-    fn conversion() {
-        let anyhow: Result<(), _> = Err(anyhow!("A").context("B").context("C"));
-
-        let report = anyhow.into_report().unwrap_err();
-        #[cfg(feature = "std")]
-        let expected_output = ["A", "B", "C"];
-        #[cfg(not(feature = "std"))]
-        let expected_output = ["C"];
-        for (anyhow, expected) in messages(&report).into_iter().zip(expected_output) {
-            assert_eq!(anyhow, expected);
-        }
-    }
-}
-=======
->>>>>>> original/main

@@ -1,6 +1,8 @@
+use alloc::borrow::Cow;
 #[cfg(nightly)]
 use core::any::Demand;
 use core::{fmt, panic::Location};
+use std::error::Error;
 #[cfg(all(nightly, feature = "std"))]
 use std::{
     backtrace::{Backtrace, BacktraceStatus},
@@ -63,9 +65,10 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
             Err(eyre) => {
                 #[cfg(all(nightly, feature = "std"))]
                 let backtrace = eyre
-                    .chain()
-                    .all(|error| error.backtrace().is_none())
-                    .then(Backtrace::capture)
+                    .deref()
+                    .backtrace()
+                    .cloned()
+                    .or_else(|| Some(Backtrace::capture()))
                     .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured));
 
                 #[cfg(feature = "spantrace")]
@@ -78,25 +81,16 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .map(alloc::string::ToString::to_string)
                     .collect::<alloc::vec::Vec<_>>();
 
-                let mut report = Report::from_frame(Frame::from_context(EyreContext(eyre), Location::caller(), None));
+                let mut report = Report::from_frame(Frame::from_context(
+                    EyreContext(eyre),
+                    Location::caller(),
+                    Box::new([]),
+                ));
 
                 #[cfg(all(nightly, feature = "std"))]
-<<<<<<< HEAD
                 if let Some(backtrace) = backtrace {
                     report = report.attach(backtrace);
                 }
-=======
-                let backtrace = if eyre
-                    .deref()
-                    .backtrace()
-                    .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
-                    .is_some()
-                {
-                    None
-                } else {
-                    Some(Backtrace::capture())
-                };
->>>>>>> original/main
 
                 #[cfg(feature = "spantrace")]
                 if let Some(spantrace) = spantrace {
@@ -112,33 +106,3 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
         }
     }
 }
-<<<<<<< HEAD
-
-#[cfg(test)]
-mod tests {
-    use alloc::boxed::Box;
-
-    use eyre::eyre;
-
-    #[allow(clippy::wildcard_imports)]
-    use crate::{test_helper::*, IntoReportCompat};
-
-    #[test]
-    #[cfg_attr(
-        miri,
-        ignore = "bug: miri is failing for `eyre`, this is unrelated to our implementation"
-    )]
-    fn conversion() {
-        eyre::set_hook(Box::new(eyre::DefaultHandler::default_with)).expect("Could not set hook");
-
-        let eyre: Result<(), _> = Err(eyre!("A").wrap_err("B").wrap_err("C"));
-
-        let report = eyre.into_report().unwrap_err();
-        let expected_output = expect_messages(&["A", "B", "C"]);
-        for (eyre, expected) in messages(&report).into_iter().zip(expected_output) {
-            assert_eq!(eyre, expected);
-        }
-    }
-}
-=======
->>>>>>> original/main

@@ -464,7 +464,7 @@ impl<C> Report<C> {
     ///
     /// [`frames()`]: Self::frames
     #[must_use]
-    pub fn sources(&self) -> &[Frame] {
+    pub fn current(&self) -> &[Frame] {
         &self.frames
     }
 
@@ -745,56 +745,5 @@ impl<Context> Extend<Self> for Report<Context> {
         for item in iter {
             self.extend_one(item);
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use core::fmt::{Display, Formatter};
-
-    #[allow(unused_imports)]
-    #[allow(clippy::wildcard_imports)]
-    use crate::test_helper::*;
-    use crate::{report, Context};
-
-    #[derive(Debug)]
-    struct Error;
-
-    impl Display for Error {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("Error")
-        }
-    }
-
-    impl Context for Error {}
-
-    #[test]
-    fn extend_one_nested() {
-        let mut err1 = report!(Error).attach_printable("Not Supported");
-        let err2 = report!(Error).attach_printable("Not Supported");
-        let mut err3 = report!(Error).attach_printable("Not Supported");
-
-        let count = expect_count(2) * 3;
-
-        err1.extend_one(err2);
-        err3.extend_one(err1);
-
-        assert_eq!(err3.frames.len(), 3);
-        assert_eq!(err3.frames().count(), count);
-    }
-
-    #[test]
-    fn extend_one() {
-        let mut err1 = report!(Error).attach_printable("Not Supported");
-        let err2 = report!(Error).attach_printable("Not Supported");
-        let err3 = report!(Error).attach_printable("Not Supported");
-
-        let count = expect_count(2) * 3;
-
-        err1.extend_one(err2);
-        err1.extend_one(err3);
-
-        assert_eq!(err1.frames.len(), 3);
-        assert_eq!(err1.frames().count(), count);
     }
 }
