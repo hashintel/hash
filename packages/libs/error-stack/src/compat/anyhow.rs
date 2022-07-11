@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
 use core::{fmt, panic::Location};
@@ -8,7 +9,6 @@ use std::{
 };
 
 use anyhow::Error as AnyhowError;
-use futures::StreamExt;
 
 use crate::{compat::IntoReportCompat, Context, Frame, Report, Result};
 
