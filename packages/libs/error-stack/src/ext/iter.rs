@@ -273,6 +273,7 @@ impl_lazy_iterator_adaptor! {
     Display + Debug + Send + Sync + 'static,
     I::Item
 }
+<<<<<<< HEAD
 
 #[cfg(test)]
 /// Just tests that some simple uses of `IteratorExt` (and related types) works.
@@ -325,3 +326,5 @@ mod test_simple_compiles {
         }
     }
 }
+=======
+>>>>>>> original/main

@@ -2,14 +2,27 @@
 use core::any::Demand;
 use core::{fmt, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
-use std::{backtrace::Backtrace, error::Error};
+use std::{
+    backtrace::{Backtrace, BacktraceStatus},
+    ops::Deref,
+};
 
 use eyre::Report as EyreReport;
 
-use crate::{Context, Frame, IntoReportCompat, Report, Result};
+use crate::{compat::IntoReportCompat, Context, Frame, Report, Result};
 
+/// A [`Context`] wrapper for [`eyre::Report`].
+///
+/// It provides the [`eyre::Report`] and [`Backtrace`] if it was captured.
 #[repr(transparent)]
-struct EyreContext(EyreReport);
+pub struct EyreContext(EyreReport);
+
+impl EyreContext {
+    /// Returns a reference to the underlying [`anyhow::Error`].
+    pub const fn as_eyre(&self) -> &EyreReport {
+        &self.0
+    }
+}
 
 impl fmt::Debug for EyreContext {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -28,18 +41,23 @@ impl Context for EyreContext {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         demand.provide_ref(&self.0);
         #[cfg(feature = "std")]
-        if let Some(backtrace) = self.0.chain().find_map(Error::backtrace) {
+        if let Some(backtrace) = self
+            .0
+            .deref()
+            .backtrace()
+            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
+        {
             demand.provide_ref(backtrace);
         }
     }
 }
 
 impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
-    type Err = EyreReport;
+    type Err = EyreContext;
     type Ok = T;
 
     #[track_caller]
-    fn into_report(self) -> Result<T, EyreReport> {
+    fn into_report(self) -> Result<T, EyreContext> {
         match self {
             Ok(t) => Ok(t),
             Err(eyre) => {
@@ -63,9 +81,22 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                 let mut report = Report::from_frame(Frame::from_context(EyreContext(eyre), Location::caller(), None));
 
                 #[cfg(all(nightly, feature = "std"))]
+<<<<<<< HEAD
                 if let Some(backtrace) = backtrace {
                     report = report.attach(backtrace);
                 }
+=======
+                let backtrace = if eyre
+                    .deref()
+                    .backtrace()
+                    .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
+                    .is_some()
+                {
+                    None
+                } else {
+                    Some(Backtrace::capture())
+                };
+>>>>>>> original/main
 
                 #[cfg(feature = "spantrace")]
                 if let Some(spantrace) = spantrace {
@@ -81,6 +112,7 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
         }
     }
 }
+<<<<<<< HEAD
 
 #[cfg(test)]
 mod tests {
@@ -108,3 +140,5 @@ mod tests {
         }
     }
 }
+=======
+>>>>>>> original/main

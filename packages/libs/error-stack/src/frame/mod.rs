@@ -145,6 +145,7 @@ impl fmt::Debug for Frame {
         debug.finish()
     }
 }
+<<<<<<< HEAD
 
 #[cfg(test)]
 mod tests {
@@ -266,3 +267,5 @@ mod tests {
         );
     }
 }
+=======
+>>>>>>> original/main

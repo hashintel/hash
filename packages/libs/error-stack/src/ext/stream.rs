@@ -1,6 +1,6 @@
 //! Implements support for `error-stack` functionality for streams.
 //!
-//! The main trait in this module is [`StreamReportExt`] (which is so named to
+//! The main trait in this module is [`StreamExt`] (which is so named to
 //! avoid conflict with other stream-related types common to the Rust `async`
 //! ecosystem).
 //!
@@ -17,7 +17,7 @@ use crate::{Context, Report, ResultExt};
 /// Extension trait for [`Stream`] to provide contextual information on [`Report`]s.
 ///
 /// [`Report`]: crate::Report
-pub trait StreamReportExt: Stream + Sized {
+pub trait StreamExt: Stream + Sized {
     /// Adds a new attachment to the [`Report`] inside the [`Result`] when
     /// calling [`Stream::poll_next`].
     ///
@@ -77,7 +77,7 @@ pub trait StreamReportExt: Stream + Sized {
         F: Fn() -> C;
 }
 
-impl<S> StreamReportExt for S
+impl<S> StreamExt for S
 where
     S: Stream,
     S::Item: ResultExt,
@@ -166,7 +166,7 @@ macro_rules! impl_stream_adaptor {
         $output:ty
     ) => {
         #[pin_project::pin_project]
-        #[doc=concat!("This is the adaptor type returned by [`StreamReportExt::", stringify!($document_for), "`]")]
+        #[doc=concat!("This is the adaptor type returned by [`StreamExt::", stringify!($document_for), "`]")]
         pub struct $name<S, A> {
             #[pin]
             stream: S,
@@ -213,7 +213,7 @@ macro_rules! impl_stream_adaptor_lazy {
         $output:ty
     ) => {
         #[pin_project::pin_project]
-        #[doc=concat!("This is the adaptor type returned by [`StreamReportExt::", stringify!($method), "`]")]
+        #[doc=concat!("This is the adaptor type returned by [`StreamExt::", stringify!($method), "`]")]
         pub struct $name<S, A> {
             #[pin]
             stream: S,
@@ -285,7 +285,7 @@ impl_stream_adaptor_lazy! {
 impl_stream_adaptor_lazy! {
     StreamWithLazyPrintableAttachment,
     attach_printable_lazy,
-    Display + Debug + Clone + Sync + Send + 'static,
+    Display + Debug + Sync + Send + 'static,
     S::Item
 }
 
@@ -295,6 +295,7 @@ impl_stream_adaptor_lazy! {
     Context,
     Result<<S::Item as ResultExt>::Ok, Report<A>>
 }
+<<<<<<< HEAD
 
 #[cfg(test)]
 mod simple_functionality_tests {
@@ -350,3 +351,5 @@ mod simple_functionality_tests {
         });
     }
 }
+=======
+>>>>>>> original/main
