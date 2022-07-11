@@ -85,23 +85,16 @@ jobs:
           override: true
 
       - name: Cache Rust dependencies
-        id: rust-cache
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v1
         with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/checkouts
-            **/target/
-          key: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
+          working-directory: ${{ matrix.directory }}
 
-      - name: Install cargo-make
+      - name: Install tools
         shell: bash
-        run: cargo install cargo-make
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make
+          cargo quickinstall cargo-hack
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
@@ -113,17 +106,11 @@ jobs:
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings --show-coverage
+        run: cargo make rustdoc --check -D warnings
 
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings --show-coverage --document-private-items
-
-      - name: Clear cargo cache
-        if: steps.rust-cache.outputs.cache-hit != 'true'
-        run: |
-          cargo install cargo-cache
-          cargo cache --autoclean-expensive
+        run: cargo make rustdoc --check -D warnings --document-private-items
 
   test:
     name: test
@@ -163,23 +150,18 @@ jobs:
           key: ${{ hashFiles('**/yarn.lock') }}
 
       - name: Cache Rust dependencies
-        id: rust-cache
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v1
         with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/checkouts
-            **/target/
-          key: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
+          working-directory: ${{ matrix.directory }}
+          key: ${{ matrix.profile }}
 
-      - name: Install cargo-make
+      - name: Install tools
         shell: bash
-        run: cargo install cargo-make
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make
+          cargo quickinstall cargo-hack
+          cargo quickinstall cargo-nextest
 
       - name: Install Python
         if: matrix.directory == 'packages/engine'
@@ -217,12 +199,6 @@ jobs:
                     --argjson message "$message" \
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
-
-      - name: Clear cargo cache
-        if: steps.rust-cache.outputs.cache-hit != 'true'
-        run: |
-          cargo install cargo-cache
-          cargo cache --autoclean-expensive
 
   publish:
     name: publish

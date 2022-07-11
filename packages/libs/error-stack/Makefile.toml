@@ -1,6 +1,15 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
-CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
-CARGO_MIRI_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
+CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
+CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
+CARGO_MIRI_FLAGS = "--tests --lib"
+
+
+[tasks.test-task]
+dependencies = ["install-rust-src"]
+
+# Required for UI tests
+[tasks.install-rust-src]
+private = true
+install_crate = { rustup_component_name = "rust-src" }
