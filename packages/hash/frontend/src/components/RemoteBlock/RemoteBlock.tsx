@@ -105,20 +105,52 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
   // @todo remove this React default when we update all blocks to 0.2
   const entryPoint = blockMetadata.blockType?.entryPoint ?? "react";
 
+  if (entryPoint === "html" && typeof blockSource !== "string") {
+    throw new Error(
+      `'html' entryPoint expects source to be typeof 'string', but got: ${typeof blockSource}`,
+    );
+  } else if (entryPoint === "custom-element") {
+    if (!(blockSource instanceof HTMLElement)) {
+      throw new Error(
+        `'custom-element' entryPoint expects parsed source to be instanceof 'HTMLElement'`,
+      );
+    }
+    if (typeof blockMetadata.blockType.tagName !== "string") {
+      throw new Error(
+        `Must provide blockType.tagName when entryPoint is 'custom-element'`,
+      );
+    }
+  } else if (entryPoint === "react" && typeof blockSource !== "function") {
+    throw new Error(
+      `'react' entryPoint expects parsed source to be typeof 'function', but got: ${typeof blockSource}`,
+    );
+  } else if (!["html", "custom-element", "react"].includes(entryPoint)) {
+    throw new Error(`Invalid entryPoint '${entryPoint}'`);
+  }
+
   return (
     <div ref={wrapperRef}>
       {graphService ? (
         <BlockRenderer
           customElement={
-            entryPoint === "custom-element" ? blockSource : undefined
+            entryPoint === "custom-element"
+              ? {
+                  elementClass: blockSource as typeof HTMLElement,
+                  tagName: blockMetadata.blockType.tagName as string,
+                }
+              : undefined
           }
           html={
-            (entryPoint === "html"
-              ? { source: blockSource, url: sourceUrl }
-              : undefined) as any
+            entryPoint === "html"
+              ? { source: blockSource as string, url: sourceUrl }
+              : undefined
           }
           properties={propsToInject}
-          ReactComponent={entryPoint === "react" ? blockSource : undefined}
+          ReactComponent={
+            entryPoint === "react"
+              ? (blockSource as (...props: any[]) => JSX.Element)
+              : undefined
+          }
         />
       ) : null}
     </div>
