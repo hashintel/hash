@@ -68,7 +68,7 @@ export const convertApiEntitiesToBpEntities = (
     ApiEntity,
     "accountId" | "entityId" | "entityTypeId" | "properties"
   >[],
-): BpEntity[] => records.map(convertApiEntityToBpEntity);
+): BpEntity[] => records.map((record) => convertApiEntityToBpEntity(record));
 
 /**
  * We send blocks an 'entityId' that is a stringified object in {@link convertApiEntityToBpEntity}
@@ -225,7 +225,7 @@ export const convertApiLinkToBpLink = ({
  * @see convertApiLinkToBpLink
  */
 export const convertApiLinksToBpLinks = (records: ApiLink[]): BpLink[] =>
-  records.map(convertApiLinkToBpLink);
+  records.map((record) => convertApiLinkToBpLink(record));
 
 type ApiLinkedAggregationIdentifier = {
   accountId: string;
@@ -306,7 +306,8 @@ export const convertApiLinkGroupToBpLinkGroup = (
 
 export const convertApiLinkGroupsToBpLinkGroups = (
   linkGroups: ApiLinkGroup[],
-): BpLinkGroup[] => linkGroups.map(convertApiLinkGroupToBpLinkGroup);
+): BpLinkGroup[] =>
+  linkGroups.map((record) => convertApiLinkGroupToBpLinkGroup(record));
 
 type MinimalApiLinkedAggregation = Pick<
   ApiLinkedAggregation,
@@ -406,7 +407,8 @@ export const convertApiEntityTypeToBpEntityType = ({
  */
 export const convertApiEntityTypesToBpEntityTypes = (
   records: Pick<ApiEntityType, "entityId" | "entityTypeId" | "properties">[],
-): BpEntityType[] => records.map(convertApiEntityTypeToBpEntityType);
+): BpEntityType[] =>
+  records.map((record) => convertApiEntityTypeToBpEntityType(record));
 
 /**
  * This is a temporary solution to guess a display label for an entity.
