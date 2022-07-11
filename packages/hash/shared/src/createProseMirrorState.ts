@@ -46,7 +46,7 @@ export const createProseMirrorState = ({
     // to call the undo and redo default browser actions (https://stackoverflow.com/a/70831583)
     // After the collab rework this should be replaced with a proper implementation
     "Mod-z": () => document.execCommand("undo"),
-    "Ctrl-y": () => document.execCommand("redo"),
+    "Mod-y": () => document.execCommand("redo"),
     "Mod-Shift-z": () => document.execCommand("redo"),
   });
 
