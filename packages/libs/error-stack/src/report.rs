@@ -597,13 +597,22 @@ impl<Context> fmt::Debug for Report<Context> {
             return debug_hook(self.generalized(), fmt);
         }
 
+        #[cfg(all(nightly, feature = "std"))]
+        let backtrace = self.request_ref::<Backtrace>().next();
+
+        #[cfg(all(nightly, feature = "spantrace"))]
+        let spantrace = self.request_ref::<SpanTrace>().next();
+
+        #[cfg(all(not(nightly), feature = "spantrace"))]
+        let spantrace = self.downcast_ref::<SpanTrace>();
+
         if fmt.alternate() {
             let mut debug = fmt.debug_struct("Report");
             debug.field("frames", &self.frames());
             #[cfg(all(nightly, feature = "std"))]
-            debug.field("backtrace", &self.request_ref::<Backtrace>());
+            debug.field("backtrace", &backtrace);
             #[cfg(feature = "spantrace")]
-            debug.field("span_trace", &self.downcast_ref::<SpanTrace>());
+            debug.field("span_trace", &spantrace);
             debug.finish()
         } else {
             let mut context_idx = -1;
@@ -649,12 +658,12 @@ impl<Context> fmt::Debug for Report<Context> {
             }
 
             #[cfg(all(nightly, feature = "std"))]
-            if let Some(backtrace) = self.downcast_ref::<Backtrace>() {
+            if let Some(backtrace) = backtrace {
                 write!(fmt, "\n\nStack backtrace:\n{backtrace}")?;
             }
 
             #[cfg(feature = "spantrace")]
-            if let Some(span_trace) = self.downcast_ref::<SpanTrace>() {
+            if let Some(span_trace) = spantrace {
                 write!(fmt, "\n\nSpan trace:\n{span_trace}")?;
             }
 
