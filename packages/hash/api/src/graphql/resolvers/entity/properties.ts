@@ -3,7 +3,7 @@ import { DbUnknownEntity } from "../../../db/adapter";
 
 import { Block, File, Page } from "../../../model";
 import { isRecord } from "../../../util";
-import { Resolver, UnknownEntity, FileProperties } from "../../apiTypes.gen";
+import { ResolverFn, UnknownEntity, FileProperties } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { fileUrlResolver } from "../file/fileUrlResolver";
 
@@ -132,10 +132,11 @@ export const resolveLinkedData = async (
   }
 };
 
-export const properties: Resolver<
+export const properties: ResolverFn<
   UnknownEntity["properties"],
   DbUnknownEntity,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (entity, _, ctx, info) => {
   await resolveLinkedData(ctx, entity.accountId, entity.properties, info);
   /**

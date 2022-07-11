@@ -2,11 +2,11 @@ import { UserInputError } from "apollo-server-errors";
 import { ApolloError } from "apollo-server-express";
 import { exactlyOne, validateEntityTypeChoice } from "../../../util";
 
-import { QueryGetEntityTypeArgs, Resolver } from "../../apiTypes.gen";
+import { QueryGetEntityTypeArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { UnresolvedGQLEntityType, EntityType } from "../../../model";
 
-export const getEntityType: Resolver<
+export const getEntityType: ResolverFn<
   Promise<UnresolvedGQLEntityType>,
   {},
   GraphQLContext,

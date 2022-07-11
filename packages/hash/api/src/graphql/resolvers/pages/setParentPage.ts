@@ -1,9 +1,9 @@
 import { ApolloError } from "apollo-server-express";
-import { MutationSetParentPageArgs, Resolver } from "../../apiTypes.gen";
+import { MutationSetParentPageArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { Page, UnresolvedGQLEntity } from "../../../model";
 
-export const setParentPage: Resolver<
+export const setParentPage: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
