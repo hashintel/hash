@@ -1,7 +1,16 @@
+//! Compatibility module to convert errors from other libraries into [`Report`].
+//!
+//! [`Report`]: crate::Report
+
 #[cfg(feature = "anyhow")]
 mod anyhow;
 #[cfg(feature = "eyre")]
 mod eyre;
+
+#[cfg(feature = "anyhow")]
+pub use self::anyhow::AnyhowContext;
+#[cfg(feature = "eyre")]
+pub use self::eyre::EyreContext;
 
 /// Compatibility trait to convert from external libraries to [`Report`].
 ///
@@ -14,7 +23,6 @@ mod eyre;
 /// [`IntoReport`]: crate::IntoReport
 /// [`Context`]: crate::Context
 /// [`Error`]: std::error::Error
-#[cfg(any(feature = "anyhow", feature = "eyre"))]
 pub trait IntoReportCompat: Sized {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
