@@ -23,7 +23,7 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
 
   p: (props: TypographyProps<"p">) => {
     if (!Array.isArray(props.children) && typeof props.children !== "string") {
-      return <>props.children</>;
+      return <>{props.children}</>;
     }
     return <Typography {...props} variant="hashBodyCopy" />;
   },
