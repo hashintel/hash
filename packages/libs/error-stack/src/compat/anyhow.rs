@@ -93,7 +93,8 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
 mod tests {
     use anyhow::anyhow;
 
-    use crate::{test_helper::messages, IntoReportCompat};
+    #[allow(clippy::wildcard_imports)]
+    use crate::{test_helper::*, IntoReportCompat};
 
     #[test]
     fn conversion() {
@@ -101,9 +102,9 @@ mod tests {
 
         let report = anyhow.into_report().unwrap_err();
         #[cfg(feature = "std")]
-        let expected_output = ["A", "B", "C"];
+        let expected_output = expect_messages(&["A", "B", "C"]);
         #[cfg(not(feature = "std"))]
-        let expected_output = ["C"];
+        let expected_output = expect_messages(&["C"]);
         for (anyhow, expected) in messages(&report).into_iter().zip(expected_output) {
             assert_eq!(anyhow, expected);
         }

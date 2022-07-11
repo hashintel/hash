@@ -210,6 +210,46 @@
 //! [`Extend`] and [`extend_one()`] and are able to propagate all errors instead of just a single
 //! one.
 //!
+//! ```rust
+//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
+//! # use std::{fs, path::Path};
+//! # use error_stack::{IntoReport, Report};
+//! # pub type Config = String;
+//!
+//! # #[cfg(all(not(miri), feature = "std"))] {
+//! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<std::io::Error>> {
+//!     let mut configs = Vec::new();
+//!     let mut error: Option<Report<std::io::Error>> = None;
+//!
+//!     for path in paths {
+//!         let path = path.as_ref();
+//!
+//!         match fs::read_to_string(path).into_report() {
+//!             Ok(ok) => {
+//!                 configs.push(ok);
+//!             }
+//!             Err(err) => {
+//!                 if let Some(error) = error.as_mut() {
+//!                     error.extend_one(err);
+//!                 } else {
+//!                     error = Some(err);
+//!                 }
+//!             }
+//!         }
+//!     }
+//!
+//!     if let Some(error) = error {
+//!         return Err(error);
+//!     }
+//!
+//!     Ok(configs)
+//! }
+//!
+//! # let report = parse_configs(&["test.txt", "test2.txt", "test3.txt"]).unwrap_err();
+//! # assert!(report.contains::<std::io::Error>());
+//! # }
+//! ```
+//!
 //! [`Extend`]: std::iter::Extend
 //!
 //! # In-Depth Explanation
