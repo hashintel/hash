@@ -124,8 +124,8 @@ jobs:
       - name: Clear cargo cache
         if: steps.rust-cache.outputs.cache-hit != 'true'
         run: |
-          cargo install cargo-cache
-          cargo cache --autoclean-expensive
+          cargo quickinstall cargo-cache
+          cargo cache --autoclean
 
   test:
     name: test
@@ -226,8 +226,8 @@ jobs:
       - name: Clear cargo cache
         if: steps.rust-cache.outputs.cache-hit != 'true'
         run: |
-          cargo install cargo-cache
-          cargo cache --autoclean-expensive
+          cargo quickinstall cargo-cache
+          cargo cache --autoclean
 
   publish:
     name: publish
