@@ -1,0 +1,77 @@
+error: unexpected end of macro invocation
+  --> tests/ui/macro_invalid_args.rs:23:13
+   |
+23 |     let _ = report!();
+   |             ^^^^^^^^^ missing tokens in macro arguments
+
+error: unexpected end of macro invocation
+  --> tests/ui/macro_invalid_args.rs:33:5
+   |
+33 |     bail!()
+   |     ^^^^^^^ missing tokens in macro arguments
+
+error: unexpected end of macro invocation
+  --> tests/ui/macro_invalid_args.rs:49:25
+   |
+49 |     let _ = ensure!(true);
+   |                         ^ missing tokens in macro arguments
+
+error: unexpected end of macro invocation
+  --> tests/ui/macro_invalid_args.rs:55:13
+   |
+55 |     let _ = ensure!();
+   |             ^^^^^^^^^ missing tokens in macro arguments
+
+error[E0599]: the method `__kind` exists for reference `&&str`, but its trait bounds were not satisfied
+  --> tests/ui/macro_invalid_args.rs:17:13
+   |
+17 |     let _ = report!("Error");
+   |             ^^^^^^^^^^^^^^^^
+   |
+   = note: the following trait bounds were not satisfied:
+           `str: error_stack::Context`
+           which is required by `&str: __private::specialization::ContextTag`
+           `&str: error_stack::Context`
+           which is required by `&&str: __private::specialization::ContextTag`
+   = note: this error originates in the macro `report` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: the method `__kind` exists for reference `&&str`, but its trait bounds were not satisfied
+  --> tests/ui/macro_invalid_args.rs:29:5
+   |
+29 |     bail!("Error")
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: the following trait bounds were not satisfied:
+           `str: error_stack::Context`
+           which is required by `&str: __private::specialization::ContextTag`
+           `&str: error_stack::Context`
+           which is required by `&&str: __private::specialization::ContextTag`
+   = note: this error originates in the macro `$crate::report` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: the method `__kind` exists for reference `&&str`, but its trait bounds were not satisfied
+  --> tests/ui/macro_invalid_args.rs:37:13
+   |
+37 |     let _ = ensure!(true, "Error");
+   |             ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: the following trait bounds were not satisfied:
+           `str: error_stack::Context`
+           which is required by `&str: __private::specialization::ContextTag`
+           `&str: error_stack::Context`
+           which is required by `&&str: __private::specialization::ContextTag`
+   = note: this error originates in the macro `$crate::report` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> tests/ui/macro_invalid_args.rs:43:21
+    |
+43  |     let _ = ensure!("No boolean", RootError);
+    |             --------^^^^^^^^^^^^------------
+    |             |       |
+    |             |       expected `bool`, found `&str`
+    |             arguments to this function are incorrect
+    |
+note: associated function defined here
+   --> $RUST/core/src/convert/mod.rs
+    |
+    |     fn from(_: T) -> Self;
+    |        ^^^^

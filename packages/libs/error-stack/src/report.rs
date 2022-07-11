@@ -185,14 +185,20 @@ impl<C> Report<C> {
         let provider = temporary_provider(&context);
 
         #[cfg(all(nightly, feature = "std"))]
-        let backtrace = if core::any::request_ref::<Backtrace, _>(&provider).is_some() {
+        let backtrace = if core::any::request_ref::<Backtrace, _>(&provider)
+            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
+            .is_some()
+        {
             None
         } else {
             Some(Backtrace::capture())
         };
 
         #[cfg(all(nightly, feature = "spantrace"))]
-        let span_trace = if core::any::request_ref::<SpanTrace, _>(&provider).is_some() {
+        let span_trace = if core::any::request_ref::<SpanTrace, _>(&provider)
+            .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED)
+            .is_some()
+        {
             None
         } else {
             Some(SpanTrace::capture())
@@ -498,10 +504,7 @@ impl<T: Context> Report<T> {
     /// # }
     /// ```
     #[must_use]
-    pub fn current_context(&self) -> &T
-    where
-        T: Send + Sync + 'static,
-    {
+    pub fn current_context(&self) -> &T {
         self.downcast_ref().unwrap_or_else(|| {
             // Panics if there isn't an attached context which matches `T`. As it's not possible to
             // create a `Report` without a valid context and this method can only be called when `T`
@@ -525,10 +528,7 @@ impl<Context> fmt::Display for Report<Context> {
             .frames()
             .filter_map(|frame| match frame.kind() {
                 FrameKind::Context(context) => Some(context.to_string()),
-                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                    Some(attachment.to_string())
-                }
-                FrameKind::Attachment(AttachmentKind::Opaque(_)) => None,
+                FrameKind::Attachment(_) => None,
             })
             .enumerate()
         {
