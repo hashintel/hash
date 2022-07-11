@@ -264,10 +264,13 @@ impl<C> Report<C> {
         return self.downcast_ref::<SpanTrace>();
     }
 
-    /// Add an existing [`Report`] as an additional source of this report.
+    /// Merge two [`Report`]s together
     ///
-    /// Should report consist of multiple frames ([`extend_one()`] was called on it before),
-    /// then this merges both.
+    /// This function appends the [`current()`] frames of the other [`Report`] to the [`current()`]
+    /// frames of this report.
+    /// Meaning `A.extend_one(B) -> A.current() = A.current() + B.current()`
+    ///
+    /// [`current()`]: Self::current
     ///
     /// ```rust
     /// use std::{
@@ -309,18 +312,6 @@ impl<C> Report<C> {
     ///
     /// error1.extend_one(error2);
     /// error3.extend_one(error1);
-    ///
-    /// # #[allow(unused_mut)]
-    /// # let mut count = 6;
-    /// # #[cfg(all(nightly, feature = "std"))]
-    /// # {
-    /// #   count += 3;
-    /// # }
-    /// # #[cfg(feature = "spantrace")]
-    /// # {
-    /// #   count += 3;
-    /// # }
-    /// # assert_eq!(error3.frames().count(), count);
     ///
     /// // ^ This is equivalent to:
     /// // error3.extend_one(error1);
@@ -704,5 +695,55 @@ impl<Context> Extend<Self> for Report<Context> {
         for item in iter {
             self.extend_one(item);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::fmt::{Display, Formatter};
+
+    #[allow(unused_imports)]
+    use crate::test_helper::*;
+    use crate::{report, Context};
+
+    #[derive(Debug)]
+    struct Error;
+
+    impl Display for Error {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+            f.write_str("Error")
+        }
+    }
+
+    impl Context for Error {}
+
+    #[test]
+    fn extend_one_nested() {
+        let mut err1 = report!(Error).attach_printable("Not Supported");
+        let err2 = report!(Error).attach_printable("Not Supported");
+        let mut err3 = report!(Error).attach_printable("Not Supported");
+
+        let count = expect_count(2) * 3;
+
+        err1.extend_one(err2);
+        err3.extend_one(err1);
+
+        assert_eq!(err3.frames.len(), 3);
+        assert_eq!(err3.frames().count(), count);
+    }
+
+    #[test]
+    fn extend_one() {
+        let mut err1 = report!(Error).attach_printable("Not Supported");
+        let err2 = report!(Error).attach_printable("Not Supported");
+        let err3 = report!(Error).attach_printable("Not Supported");
+
+        let count = expect_count(2) * 3;
+
+        err1.extend_one(err2);
+        err1.extend_one(err3);
+
+        assert_eq!(err1.frames.len(), 3);
+        assert_eq!(err1.frames().count(), count);
     }
 }

@@ -68,11 +68,11 @@ pub fn supports_backtrace() -> bool {
             let bt = std::backtrace::Backtrace::capture();
             if bt.status() == std::backtrace::BacktraceStatus::Captured {
                 STATE.store(1, Ordering::SeqCst);
+                true
             } else {
                 STATE.store(0, Ordering::SeqCst);
+                false
             }
-
-            supports_backtrace()
         }
         0 => false,
         1 => true,
@@ -89,11 +89,11 @@ pub fn supports_spantrace() -> bool {
             let st = tracing_error::SpanTrace::capture();
             if st.status() == tracing_error::SpanTraceStatus::CAPTURED {
                 STATE.store(1, Ordering::SeqCst);
+                true
             } else {
                 STATE.store(0, Ordering::SeqCst);
+                false
             }
-
-            supports_spantrace()
         }
         0 => false,
         1 => true,
