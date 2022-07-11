@@ -1,12 +1,16 @@
+#![cfg_attr(nightly, feature(provide_any))]
+#![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
+
+extern crate alloc;
+
 use alloc::boxed::Box;
-use core::{iter::zip, panic::Location};
+use core::iter::zip;
 use std::{
     fmt::{Display, Formatter},
     process::Termination,
 };
 
 mod common;
-use common::*;
 use error_stack::{report, Context, Report};
 
 #[derive(Debug)]
@@ -56,13 +60,14 @@ fn build() -> Report<Root> {
 fn iter() {
     let report = build();
 
-    for (frame, &letter) in zip(
-        report.frames(),
+    for (lhs, &rhs) in zip(
+        report
+            .frames()
+            .filter_map(|frame| frame.downcast_ref::<char>())
+            .copied(),
         ['A', 'B', 'D', 'E', 'C', 'F', 'G', 'H'].iter(),
     ) {
-        let lhs = *frame.downcast_ref::<char>().unwrap();
-
-        assert_eq!(lhs, letter);
+        assert_eq!(lhs, rhs);
     }
 }
 
@@ -70,12 +75,13 @@ fn iter() {
 fn iter_mut() {
     let mut report = build();
 
-    for (frame, &letter) in zip(
-        report.frames_mut(),
+    for (lhs, &rhs) in zip(
+        report
+            .frames_mut()
+            .filter_map(|frame| frame.downcast_ref::<char>())
+            .copied(),
         ['A', 'B', 'D', 'E', 'C', 'F', 'G', 'H'].iter(),
     ) {
-        let lhs = *frame.downcast_ref::<char>().unwrap();
-
-        assert_eq!(lhs, letter);
+        assert_eq!(lhs, rhs);
     }
 }

@@ -264,3 +264,45 @@ pub fn expect_count(mut count: usize) -> usize {
 
     count
 }
+
+macro_rules! assert_kinds {
+    (#count,) => {0usize};
+    (#count, $x:tt $($xs:tt)*) => {1usize + assert_kinds!(#count, $($xs)*)};
+
+    ($report:ident, [
+        $($prefix:pat_param),*
+        => (trace)
+        $($suffix:pat_param),*
+    ]) => {
+        let split_at = assert_kinds!(#count, $(($prefix))*);
+
+        let kinds = frame_kinds($report);
+        let (lhs, rhs) = kinds.split_at(split_at);
+
+        assert!(matches!(lhs, [$($prefix),*]));
+
+        let mut rhs = rhs.iter();
+
+        #[cfg(all(nightly, feature = "std"))]
+        if supports_backtrace() {
+            assert!(matches!(
+                rhs.next(),
+                Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
+            ));
+        }
+
+        #[cfg(feature = "spantrace")]
+        if supports_spantrace() {
+            assert!(matches!(
+                rhs.next(),
+                Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
+            ));
+        }
+
+        $(
+            assert!(matches!(rhs.next(), Some($suffix)));
+        )*
+
+        assert!(matches!(rhs.next(), None));
+    };
+}

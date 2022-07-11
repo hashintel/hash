@@ -1,3 +1,6 @@
+#![cfg_attr(nightly, feature(provide_any))]
+#![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
+
 mod common;
 use core::fmt::{Display, Formatter};
 
