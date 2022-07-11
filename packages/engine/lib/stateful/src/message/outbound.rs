@@ -220,7 +220,7 @@ impl Message {
             // 1. *&String -> String
             // 2. *String -> &str
             // 3. (wrap in a temp ref, for std::borrow::Borrow), thus &**
-            if is_system_message(&**kind) {
+            if is_system_message(kind) {
                 return Ok(());
             }
             // otherwise throw an error
