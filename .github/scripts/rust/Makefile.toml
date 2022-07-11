@@ -128,8 +128,16 @@ description = "Runs the test suite"
 run_task = { name = ["test-task"] }
 
 [tasks.test-task]
+private = true
+run_task = { name = ["test-task-lib", "test-task-doc"]}
+
+[tasks.test-task-lib]
 extend = "task"
-args = ["hack", "@@split(CARGO_TEST_HACK_FLAGS, )", "test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "${@}"]
+args = ["hack", "@@split(CARGO_TEST_HACK_FLAGS, )", "nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "${@}"]
+
+[tasks.test-task-doc]
+extend = "task"
+args = ["test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "--doc", "--all-features"]
 
 
 [tasks.miri]
@@ -158,3 +166,7 @@ install_crate = { rustup_component_name = "rustfmt" }
 private = true
 condition = { channels = ["nightly"] }
 install_crate = { rustup_component_name = "miri" }
+
+[tasks.install-nextest]
+private = true
+install_crate = { crate_name = "nextest", binary = "cargo", test_arg = ["nextest", "--version"] }
