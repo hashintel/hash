@@ -60,10 +60,7 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .map(alloc::string::ToString::to_string)
                     .collect::<alloc::vec::Vec<_>>();
 
-                let mut report = Report::from_frame(Frame::from_compat::<EyreReport, EyreContext>(
-                    EyreContext(eyre),
-                    Location::caller(),
-                ));
+                let mut report = Report::from_frame(Frame::from_context(EyreContext(eyre), Location::caller(), None));
 
                 #[cfg(all(nightly, feature = "std"))]
                 if let Some(backtrace) = backtrace {

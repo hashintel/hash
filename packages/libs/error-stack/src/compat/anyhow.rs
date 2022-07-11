@@ -63,10 +63,7 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
 
                 #[allow(unused_mut)]
                 let mut report =
-                    Report::from_frame(Frame::from_compat::<AnyhowError, AnyhowContext>(
-                        AnyhowContext(anyhow),
-                        Location::caller(),
-                    ));
+                    Report::from_frame(Frame::from_context(AnyhowContext(anyhow), Location::caller(), None));
 
                 #[cfg(all(nightly, feature = "std"))]
                 if let Some(backtrace) = backtrace {
@@ -77,6 +74,7 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                 if let Some(spantrace) = spantrace {
                     report = report.attach(spantrace);
                 }
+
 
                 #[cfg(feature = "std")]
                 for source in sources {
