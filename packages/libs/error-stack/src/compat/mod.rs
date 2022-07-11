@@ -1,0 +1,39 @@
+//! Compatibility module to convert errors from other libraries into [`Report`].
+//!
+//! [`Report`]: crate::Report
+
+#[cfg(feature = "anyhow")]
+mod anyhow;
+#[cfg(feature = "eyre")]
+mod eyre;
+
+#[cfg(feature = "anyhow")]
+pub use self::anyhow::AnyhowContext;
+#[cfg(feature = "eyre")]
+pub use self::eyre::EyreContext;
+
+/// Compatibility trait to convert from external libraries to [`Report`].
+///
+/// *Note*: It's not possible to implement [`IntoReport`] or [`Context`] on other error libraries'
+/// types as both traits have blanket implementation relying on [`Error`]. Thus, implementing either
+/// trait would violate the orphan rule; the upstream crate could implement [`Error`] and this would
+/// imply an implementation for [`IntoReport`]/[`Context`].
+///
+/// [`Report`]: crate::Report
+/// [`IntoReport`]: crate::IntoReport
+/// [`Context`]: crate::Context
+/// [`Error`]: std::error::Error
+pub trait IntoReportCompat: Sized {
+    /// Type of the [`Ok`] value in the [`Result`]
+    type Ok;
+
+    /// Type of the resulting [`Err`] variant wrapped inside a [`Report<E>`].
+    ///
+    /// [`Report<E>`]: crate::Report
+    type Err;
+
+    /// Converts the [`Err`] variant of the [`Result`] to a [`Report`]
+    ///
+    /// [`Report`]: crate::Report
+    fn into_report(self) -> crate::Result<Self::Ok, Self::Err>;
+}
