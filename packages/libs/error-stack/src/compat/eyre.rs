@@ -1,8 +1,7 @@
-use alloc::borrow::Cow;
+use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
 use core::{fmt, panic::Location};
-use std::error::Error;
 #[cfg(all(nightly, feature = "std"))]
 use std::{
     backtrace::{Backtrace, BacktraceStatus},
