@@ -1,10 +1,10 @@
 import { ApolloError } from "apollo-server-express";
 
-import { MutationUpdateEntityTypeArgs, Resolver } from "../../apiTypes.gen";
+import { MutationUpdateEntityTypeArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 
-export const updateEntityType: Resolver<
+export const updateEntityType: ResolverFn<
   Promise<UnresolvedGQLEntityType>,
   {},
   LoggedInGraphQLContext,

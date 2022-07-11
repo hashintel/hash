@@ -1,5 +1,5 @@
 import { genId } from "../../../util";
-import { MutationCreateFileFromLinkArgs, Resolver } from "../../apiTypes.gen";
+import { MutationCreateFileFromLinkArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { File, UnresolvedGQLUnknownEntity } from "../../../model";
 
@@ -13,7 +13,7 @@ function guessFileNameFromURL(url: string): string {
   }
 }
 
-export const createFileFromLink: Resolver<
+export const createFileFromLink: ResolverFn<
   Promise<UnresolvedGQLUnknownEntity>,
   {},
   LoggedInGraphQLContext,

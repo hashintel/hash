@@ -82,7 +82,7 @@ export const useGetInvitationInfo = () => {
     if (!router.isReady) return;
 
     if (isParsedInvitationEmailQuery(query) && !getOrgEmailInvitationCalled) {
-      getOrgEmailInvitation({
+      void getOrgEmailInvitation({
         variables: {
           orgEntityId: query.orgEntityId,
           invitationEmailToken: query.invitationEmailToken,
@@ -92,7 +92,7 @@ export const useGetInvitationInfo = () => {
       isParsedInvitationLinkQuery(query) &&
       !getOrgInvitationLinkCalled
     ) {
-      getOrgInvitationLink({
+      void getOrgInvitationLink({
         variables: {
           orgEntityId: query.orgEntityId,
           invitationLinkToken: query.invitationLinkToken,
