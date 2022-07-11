@@ -9,7 +9,7 @@ use core::{
     slice::{Iter, IterMut},
 };
 
-use crate::{Frame, Report};
+use crate::Frame;
 
 /// Helper function, which is used in both `Frames` and `FramesMut`.
 ///
@@ -64,6 +64,30 @@ fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
 /// ```
 ///
 /// Use [`Report::frames()`] to create this iterator.
+///
+/// We use a reversed stack of the implementation, considering the following tree:
+///
+/// ```text
+///     A     G
+///    / \    |
+///   B   C   H
+///  / \  |
+/// D   E F
+/// ```
+///
+/// The algorithm will create the following through iteration:
+///
+/// ```text
+/// 1) Out: - Stack: [A, G]
+/// 2) Out: A Stack: [G] [B, C]
+/// 3) Out: B Stack: [G] [C] [D, E]
+/// 4) Out: D Stack: [G] [C] [E]
+/// 4) Out: E Stack: [G] [C]
+/// 5) Out: C Stack: [G] [F]
+/// 6) Out: F Stack: [G]
+/// 7) Out: G Stack: [H]
+/// 8) Out: H Stack: -
+/// ```
 #[must_use]
 #[derive(Clone)]
 pub struct Frames<'r> {
@@ -71,9 +95,9 @@ pub struct Frames<'r> {
 }
 
 impl<'r> Frames<'r> {
-    pub(crate) fn new<C>(report: &'r Report<C>) -> Self {
+    pub(crate) fn new(frames: &'r [Frame]) -> Self {
         Self {
-            stack: vec![report.frames.iter()],
+            stack: vec![frames.iter()],
         }
     }
 }
@@ -81,29 +105,6 @@ impl<'r> Frames<'r> {
 impl<'r> Iterator for Frames<'r> {
     type Item = &'r Frame;
 
-    /// We use a reversed stack of the implementation, considering the following tree:
-    ///
-    /// ```text
-    ///     A     G
-    ///    / \    |
-    ///   B   C   H
-    ///  / \  |
-    /// D   E F
-    /// ```
-    ///
-    /// The algorithm will create the following through iteration:
-    ///
-    /// ```text
-    /// 1) Out: - Stack: [A, G]
-    /// 2) Out: A Stack: [G] [B, C]
-    /// 3) Out: B Stack: [G] [C] [D, E]
-    /// 4) Out: D Stack: [G] [C] [E]
-    /// 4) Out: E Stack: [G] [C]
-    /// 5) Out: C Stack: [G] [F]
-    /// 6) Out: F Stack: [G]
-    /// 7) Out: G Stack: [H]
-    /// 8) Out: H Stack: -
-    /// ```
     fn next(&mut self) -> Option<Self::Item> {
         let frame = next(&mut self.stack)?;
 
@@ -129,9 +130,9 @@ pub struct FramesMut<'r> {
 }
 
 impl<'r> FramesMut<'r> {
-    pub(crate) fn new<C>(report: &'r mut Report<C>) -> Self {
+    pub(crate) fn new(frames: &'r mut [Frame]) -> Self {
         Self {
-            stack: vec![report.frames.iter_mut()],
+            stack: vec![frames.iter_mut()],
         }
     }
 }
@@ -148,7 +149,7 @@ impl<'r> Iterator for FramesMut<'r> {
         // we need to return the mutable frame itself. We will never access the same value twice,
         // and only store their mutable iterator until the next `next()` call. This function acts
         // like a dynamic chain of multiple `IterMut`. The borrow checker is unable to prove that
-        // subsequent calls to `next()` won't access the same data. 
+        // subsequent calls to `next()` won't access the same data.
         // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
         unsafe {
             self.stack.push((*frame).sources_mut().iter_mut());
@@ -172,9 +173,9 @@ pub struct RequestRef<'r, T: ?Sized> {
 
 #[cfg(nightly)]
 impl<'r, T: ?Sized> RequestRef<'r, T> {
-    pub(super) fn new<Context>(report: &'r Report<Context>) -> Self {
+    pub(super) fn new(frames: &'r [Frame]) -> Self {
         Self {
-            frames: report.frames(),
+            frames: Frames::new(frames),
             _marker: PhantomData,
         }
     }
@@ -227,9 +228,9 @@ pub struct RequestValue<'r, T> {
 
 #[cfg(nightly)]
 impl<'r, T> RequestValue<'r, T> {
-    pub(super) fn new<Context>(report: &'r Report<Context>) -> Self {
+    pub(super) fn new(frames: &'r [Frame]) -> Self {
         Self {
-            frames: report.frames(),
+            frames: Frames::new(frames),
             _marker: PhantomData,
         }
     }

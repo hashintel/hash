@@ -427,26 +427,26 @@ impl<C> Report<C> {
 
     /// Returns an iterator over the [`Frame`] stack of the report.
     pub fn frames(&self) -> Frames<'_> {
-        Frames::new(self)
+        Frames::new(&self.frames)
     }
 
     /// Returns an iterator over the [`Frame`] stack of the report with mutable elements.
     pub fn frames_mut(&mut self) -> FramesMut<'_> {
-        FramesMut::new(self)
+        FramesMut::new(&mut self.frames)
     }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
-        RequestRef::new(self)
+        RequestRef::new(&self.frames)
     }
 
     /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
-        RequestValue::new(self)
+        RequestValue::new(&self.frames)
     }
 
     /// Returns if `T` is the type held by any frame inside of the report.
