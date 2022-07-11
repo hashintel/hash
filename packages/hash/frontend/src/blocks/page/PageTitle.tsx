@@ -61,7 +61,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
 
     void updateEntity({
       data: {
-        entityId: JSON.stringify({ accountId, entityId, entityTypeId: "Page" }),
+        entityId: JSON.stringify({ accountId, entityId }),
         properties: { title: valueToSave },
       },
     });
