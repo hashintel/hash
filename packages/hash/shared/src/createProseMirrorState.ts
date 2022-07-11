@@ -47,7 +47,7 @@ export const createProseMirrorState = ({
     // After the collab rework this should be replaced with a proper implementation
     "Mod-z": () => document.execCommand("undo"),
     "Ctrl-y": () => document.execCommand("redo"),
-    "Cmd-shift-z": () => document.execCommand("redo"),
+    "Mod-Shift-z": () => document.execCommand("redo"),
   });
 
   return EditorState.create<Schema>({
