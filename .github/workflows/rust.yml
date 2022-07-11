@@ -85,18 +85,9 @@ jobs:
           override: true
 
       - name: Cache Rust dependencies
-        id: rust-cache
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v1.4.0
         with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/checkouts
-            **/target/
-          key: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
+          working-directory: ${{ matrix.directory }}
 
       - name: Install tools
         shell: bash
@@ -120,12 +111,6 @@ jobs:
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
         run: cargo make rustdoc --check -D warnings --document-private-items
-
-      - name: Clear cargo cache
-        if: steps.rust-cache.outputs.cache-hit != 'true'
-        run: |
-          cargo quickinstall cargo-cache
-          cargo cache --autoclean
 
   test:
     name: test
@@ -165,18 +150,9 @@ jobs:
           key: ${{ hashFiles('**/yarn.lock') }}
 
       - name: Cache Rust dependencies
-        id: rust-cache
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v1.4.0
         with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/checkouts
-            **/target/
-          key: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
+          working-directory: ${{ matrix.directory }}
 
       - name: Install tools
         shell: bash
@@ -222,12 +198,6 @@ jobs:
                     --argjson message "$message" \
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
-
-      - name: Clear cargo cache
-        if: steps.rust-cache.outputs.cache-hit != 'true'
-        run: |
-          cargo quickinstall cargo-cache
-          cargo cache --autoclean
 
   publish:
     name: publish
