@@ -175,7 +175,7 @@ impl Frame {
         }
     }
 
-    /// Crates a frame from an attachment.
+    /// Creates a frame from an attachment.
     pub(crate) fn from_attachment<A>(
         attachment: A,
         location: &'static Location<'static>,
