@@ -121,6 +121,7 @@ impl Frame {
         self.location
     }
 
+    #[allow(missing_docs)]
     #[must_use]
     #[deprecated = "use `sources()` instead"]
     pub const fn source(&self) -> Option<&Self> {
@@ -137,6 +138,7 @@ impl Frame {
         &self.sources
     }
 
+    #[allow(missing_docs)]
     #[must_use]
     #[deprecated = "use `sources_mut()` instead"]
     pub fn source_mut(&mut self) -> Option<&mut Self> {
