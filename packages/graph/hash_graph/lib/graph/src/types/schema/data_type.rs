@@ -107,7 +107,7 @@ impl DataType {
     pub fn text() -> Self {
         Self::new(
             Uri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/text",
+                "https://blockprotocol.org/types/@blockprotocol/data-type/text".to_owned(),
                 1,
             ),
             "Text".to_owned(),
@@ -122,7 +122,7 @@ impl DataType {
     pub fn number() -> Self {
         Self::new(
             Uri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/number",
+                "https://blockprotocol.org/types/@blockprotocol/data-type/number".to_owned(),
                 1,
             ),
             "Number".to_owned(),
@@ -137,7 +137,7 @@ impl DataType {
     pub fn boolean() -> Self {
         Self::new(
             Uri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/boolean",
+                "https://blockprotocol.org/types/@blockprotocol/data-type/boolean".to_owned(),
                 1,
             ),
             "Boolean".to_owned(),
@@ -152,7 +152,7 @@ impl DataType {
     pub fn null() -> Self {
         Self::new(
             Uri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/null",
+                "https://blockprotocol.org/types/@blockprotocol/data-type/null".to_owned(),
                 1,
             ),
             "Null".to_owned(),
@@ -167,7 +167,7 @@ impl DataType {
     pub fn object() -> Self {
         Self::new(
             Uri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/object",
+                "https://blockprotocol.org/types/@blockprotocol/data-type/object".to_owned(),
                 1,
             ),
             "Object".to_owned(),
@@ -182,7 +182,7 @@ impl DataType {
     pub fn empty_list() -> Self {
         Self::new(
             Uri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/empty-list",
+                "https://blockprotocol.org/types/@blockprotocol/data-type/empty-list".to_owned(),
                 1,
             ),
             "Empty List".to_owned(),
@@ -201,7 +201,8 @@ mod tests {
 
     #[test]
     fn data_type_reference() -> Result<(), Box<dyn Error>> {
-        let reference = DataTypeReference::new(Uri::new("https://example.com/data_type", 1));
+        let reference =
+            DataTypeReference::new(Uri::new("https://example.com/data_type".to_owned(), 1));
         let json = serde_json::to_value(&reference)?;
 
         assert_eq!(

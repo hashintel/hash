@@ -1,46 +1,38 @@
 use std::{fmt, num::ParseIntError, result::Result as StdResult, str::FromStr};
 
 use error_stack::{ensure, Context, Report};
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 pub type BaseId = String;
 pub type BaseIdRef = str;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, sqlx::Type)]
-#[serde(transparent)]
-#[sqlx(transparent)]
-// TODO: Change representation to store the version directly
-pub struct Uri(String);
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Uri {
+    base_id: String,
+    version: u32,
+}
 
 impl Uri {
     /// Creates a new `Uri` from the given `base_id` and `version`.
     #[must_use]
-    pub fn new(base_id: &str, version: u32) -> Self {
-        Self(format!("{base_id}/v/{version}"))
+    pub const fn new(base_id: String, version: u32) -> Self {
+        Self { base_id, version }
     }
 
     #[must_use]
     pub fn base_id(&self) -> &BaseIdRef {
-        self.0
-            .split_once("/v/")
-            .unwrap_or_else(|| unreachable!("URI was validated before"))
-            .0
+        &self.base_id
     }
 
     #[must_use]
-    pub fn version(&self) -> u32 {
-        self.0
-            .split_once("/v/")
-            .unwrap_or_else(|| unreachable!("URI was validated before"))
-            .1
-            .parse()
-            .unwrap_or_else(|_| unreachable!("URI was validated before"))
+    pub const fn version(&self) -> u32 {
+        self.version
     }
 }
 
 impl fmt::Display for Uri {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}", self.0)
+        write!(fmt, "{}/v/{}", self.base_id, self.version)
     }
 }
 
@@ -85,11 +77,20 @@ impl FromStr for Uri {
         });
 
         Ok(Self::new(
-            base_id,
+            base_id.to_owned(),
             version.parse().map_err(|error| ParseUriError {
                 kind: UriErrorKind::InvalidVersion(error),
             })?,
         ))
+    }
+}
+
+impl Serialize for Uri {
+    fn serialize<S>(&self, serializer: S) -> StdResult<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.to_string().serialize(serializer)
     }
 }
 

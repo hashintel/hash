@@ -698,7 +698,7 @@ mod tests {
     pub fn object_v2() -> DataType {
         DataType::new(
             Uri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/object",
+                "https://blockprotocol.org/types/@blockprotocol/data-type/object".to_owned(),
                 2,
             ),
             "Object".to_owned(),
