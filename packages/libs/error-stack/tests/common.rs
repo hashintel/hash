@@ -16,6 +16,7 @@ use std::cell::OnceCell;
 use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
 #[cfg(feature = "futures")]
 use futures_core::{Future, Stream};
+use once_cell::sync::Lazy;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct RootError;
@@ -187,44 +188,22 @@ pub fn supports_backtrace() -> bool {
     //  1) -1 (not checked)
     //  2) 0 (disabled)
     //  3) 1 (enabled)
-    static STATE: AtomicI8 = AtomicI8::new(-1);
+    static STATE: Lazy<bool> = Lazy::new(|| {
+        let bt = std::backtrace::Backtrace::capture();
+        bt.status() == std::backtrace::BacktraceStatus::Captured
+    });
 
-    match STATE.load(Ordering::SeqCst) {
-        -1 => {
-            let bt = std::backtrace::Backtrace::capture();
-            if bt.status() == std::backtrace::BacktraceStatus::Captured {
-                STATE.store(1, Ordering::SeqCst);
-                true
-            } else {
-                STATE.store(0, Ordering::SeqCst);
-                false
-            }
-        }
-        0 => false,
-        1 => true,
-        _ => unreachable!(),
-    }
+    *STATE
 }
 
 #[cfg(feature = "spantrace")]
 pub fn supports_spantrace() -> bool {
-    static STATE: AtomicI8 = AtomicI8::new(-1);
+    static STATE: Lazy<bool> = Lazy::new(|| {
+        let st = tracing_error::SpanTrace::capture();
+        st.status() == tracing_error::SpanTraceStatus::CAPTURED
+    });
 
-    match STATE.load(Ordering::SeqCst) {
-        -1 => {
-            let st = tracing_error::SpanTrace::capture();
-            if st.status() == tracing_error::SpanTraceStatus::CAPTURED {
-                STATE.store(1, Ordering::SeqCst);
-                true
-            } else {
-                STATE.store(0, Ordering::SeqCst);
-                false
-            }
-        }
-        0 => false,
-        1 => true,
-        _ => unreachable!(),
-    }
+    *STATE
 }
 
 /// Conditionally add two opaque layers to the end,

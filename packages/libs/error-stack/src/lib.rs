@@ -216,7 +216,6 @@
 //! # use error_stack::{IntoReport, Report};
 //! # pub type Config = String;
 //!
-//! # #[cfg(all(not(miri), feature = "std"))] {
 //! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<std::io::Error>> {
 //!     let mut configs = Vec::new();
 //!     let mut error: Option<Report<std::io::Error>> = None;
@@ -247,7 +246,6 @@
 //!
 //! # let report = parse_configs(&["test.txt", "test2.txt", "test3.txt"]).unwrap_err();
 //! # assert!(report.contains::<std::io::Error>());
-//! # }
 //! ```
 //!
 //! # In-Depth Explanation
