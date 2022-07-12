@@ -5,12 +5,12 @@ use uuid::Uuid;
 
 use crate::{
     datastore::{
-        BaseIdAlreadyExists, BaseIdDoesNotExist, DatabaseConnectionInfo, Datastore, DatastoreError,
-        InsertionError, QueryError, UpdateError,
+        error::UriAlreadyExist, BaseIdAlreadyExists, BaseIdDoesNotExist, DatabaseConnectionInfo,
+        Datastore, DatastoreError, InsertionError, QueryError, UpdateError,
     },
     types::{
         schema::{DataType, EntityType, PropertyType},
-        AccountId, BaseId, Qualified, VersionId,
+        AccountId, BaseIdRef, Qualified, Uri, VersionId,
     },
 };
 
@@ -41,7 +41,7 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if checking for the [`BaseId`] failed.
-    async fn contains_base_id(&mut self, base_id: &BaseId) -> Result<bool, QueryError> {
+    async fn contains_base_id(&mut self, base_id: &BaseIdRef) -> Result<bool, QueryError> {
         let (exists,) =
             sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM base_ids WHERE base_id = $1);"#)
                 .bind(base_id)
@@ -49,9 +49,62 @@ impl PostgresDatabase {
                 .await
                 .report()
                 .change_context(QueryError)
-                .attach_printable_lazy(|| base_id.clone())?;
+                .attach_printable_lazy(|| base_id.to_owned())?;
 
         Ok(exists)
+    }
+
+    /// Checks if the specified [`Uri`] exists in the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`DatastoreError`], if checking for the [`Uri`] failed.
+    async fn contains_uri(&mut self, uri: &Uri) -> Result<bool, QueryError> {
+        let (exists,) = sqlx::query_as(
+            r#"SELECT EXISTS(SELECT 1 FROM ids WHERE base_id = $1 AND version = $2);"#,
+        )
+        .bind(uri.base_id())
+        .bind(i64::from(uri.version()))
+        .fetch_one(&self.pool)
+        .await
+        .report()
+        .change_context(QueryError)
+        .attach_printable_lazy(|| uri.clone())?;
+
+        Ok(exists)
+    }
+
+    /// Inserts the specified [`Uri`] into the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`DatastoreError`], if inserting the [`Uri`] failed.
+    async fn insert_uri(&mut self, uri: &Uri) -> Result<VersionId, InsertionError> {
+        if self
+            .contains_uri(uri)
+            .await
+            .change_context(InsertionError)?
+        {
+            return Err(Report::new(InsertionError)
+                .attach_printable(UriAlreadyExist)
+                .attach(uri.clone()));
+        }
+
+        // TODO: Make this a transaction
+        let version_id = VersionId::new(Uuid::new_v4());
+        self.insert_version_id(version_id).await?;
+
+        sqlx::query(r#"INSERT INTO ids (base_id, version, version_id) VALUES ($1, $2, $3);"#)
+            .bind(uri.base_id())
+            .bind(i64::from(uri.version()))
+            .bind(version_id)
+            .execute(&self.pool)
+            .await
+            .report()
+            .change_context(InsertionError)
+            .attach_printable_lazy(|| uri.clone())?;
+
+        Ok(version_id)
     }
 
     /// Inserts the specified [`BaseId`] into the database.
@@ -59,31 +112,26 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`BaseId`] failed.
-    async fn insert_base_id(&mut self, base_id: &BaseId) -> Result<(), InsertionError> {
+    async fn insert_base_id(&mut self, base_id: &BaseIdRef) -> Result<(), InsertionError> {
         sqlx::query(r#"INSERT INTO base_ids (base_id) VALUES ($1);"#)
             .bind(base_id)
             .execute(&self.pool)
             .await
             .report()
             .change_context(InsertionError)
-            .attach_printable_lazy(|| base_id.clone())?;
+            .attach_printable_lazy(|| base_id.to_owned())?;
 
         Ok(())
     }
 
-    /// Inserts a new [`VersionId`] and associates it with an existing [`BaseId`].
+    /// Inserts the specified [`VersionId`] into the database.
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if inserting failed.
-    async fn insert_version_id(
-        &mut self,
-        version_id: VersionId,
-        base_id: &BaseId,
-    ) -> Result<(), InsertionError> {
-        sqlx::query(r#"INSERT INTO ids (version_id, base_id) VALUES ($1, $2);"#)
+    /// - [`DatastoreError`], if inserting the [`VersionId`] failed.
+    async fn insert_version_id(&mut self, version_id: VersionId) -> Result<(), InsertionError> {
+        sqlx::query(r#"INSERT INTO version_ids (version_id) VALUES ($1);"#)
             .bind(version_id)
-            .bind(base_id)
             .execute(&self.pool)
             .await
             .report()
@@ -215,26 +263,29 @@ impl Datastore for PostgresDatabase {
         data_type: DataType,
         created_by: AccountId,
     ) -> Result<Qualified<DataType>, InsertionError> {
-        let base_id = data_type.id();
+        let uri = data_type.id();
 
         if self
-            .contains_base_id(base_id)
+            .contains_base_id(uri.base_id())
             .await
             .change_context(InsertionError)
             .attach_lazy(|| data_type.clone())?
         {
             return Err(Report::new(InsertionError)
-                .attach(data_type.clone())
-                .attach_printable(BaseIdAlreadyExists::new(base_id.clone())));
+                .attach_printable(BaseIdAlreadyExists)
+                .attach_printable(uri.base_id().to_owned())
+                .attach(data_type.clone()));
         }
-        self.insert_base_id(base_id)
+
+        self.insert_base_id(uri.base_id())
             .await
             .attach_lazy(|| data_type.clone())?;
 
-        let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_version_id(version_id, base_id)
+        let version_id = self
+            .insert_uri(uri)
             .await
             .attach_lazy(|| data_type.clone())?;
+
         self.insert_data_type(version_id, &data_type, created_by)
             .await
             .attach_lazy(|| data_type.clone())?;
@@ -277,25 +328,26 @@ impl Datastore for PostgresDatabase {
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Qualified<DataType>, UpdateError> {
-        let base_id = data_type.id();
+        let uri = data_type.id();
 
         if !self
-            .contains_base_id(base_id)
+            .contains_base_id(uri.base_id())
             .await
             .change_context(UpdateError)
             .attach_lazy(|| data_type.clone())?
         {
             return Err(Report::new(UpdateError)
                 .attach_printable(BaseIdDoesNotExist)
-                .attach_printable(base_id.clone()))
-            .attach_lazy(|| data_type.clone())?;
+                .attach_printable(uri.base_id().to_owned())
+                .attach(data_type.clone()));
         }
 
-        let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_version_id(version_id, base_id)
+        let version_id = self
+            .insert_uri(uri)
             .await
             .change_context(UpdateError)
             .attach_lazy(|| data_type.clone())?;
+
         self.insert_data_type(version_id, &data_type, updated_by)
             .await
             .change_context(UpdateError)
@@ -309,26 +361,29 @@ impl Datastore for PostgresDatabase {
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Qualified<PropertyType>, InsertionError> {
-        let base_id = property_type.id();
+        let uri = property_type.id();
 
         if self
-            .contains_base_id(base_id)
+            .contains_base_id(uri.base_id())
             .await
             .change_context(InsertionError)
             .attach_lazy(|| property_type.clone())?
         {
             return Err(Report::new(InsertionError)
-                .attach(property_type.clone())
-                .attach_printable(BaseIdAlreadyExists::new(base_id.clone())));
+                .attach_printable(BaseIdAlreadyExists)
+                .attach_printable(uri.base_id().to_owned())
+                .attach(property_type.clone()));
         }
-        self.insert_base_id(base_id)
+
+        self.insert_base_id(uri.base_id())
             .await
             .attach_lazy(|| property_type.clone())?;
 
-        let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_version_id(version_id, base_id)
+        let version_id = self
+            .insert_uri(uri)
             .await
             .attach_lazy(|| property_type.clone())?;
+
         self.insert_property_type(version_id, &property_type, created_by)
             .await
             .attach_lazy(|| property_type.clone())?;
@@ -371,25 +426,26 @@ impl Datastore for PostgresDatabase {
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Qualified<PropertyType>, UpdateError> {
-        let base_id = property_type.id();
+        let uri = property_type.id();
 
         if !self
-            .contains_base_id(base_id)
+            .contains_base_id(uri.base_id())
             .await
             .change_context(UpdateError)
             .attach_lazy(|| property_type.clone())?
         {
             return Err(Report::new(UpdateError)
                 .attach_printable(BaseIdDoesNotExist)
-                .attach_printable(base_id.clone()))
-            .attach_lazy(|| property_type.clone())?;
+                .attach_printable(uri.base_id().to_owned())
+                .attach(property_type.clone()));
         }
 
-        let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_version_id(version_id, base_id)
+        let version_id = self
+            .insert_uri(uri)
             .await
             .change_context(UpdateError)
             .attach_lazy(|| property_type.clone())?;
+
         self.insert_property_type(version_id, &property_type, updated_by)
             .await
             .change_context(UpdateError)
@@ -403,26 +459,28 @@ impl Datastore for PostgresDatabase {
         entity_type: EntityType,
         created_by: AccountId,
     ) -> Result<Qualified<EntityType>, InsertionError> {
-        let base_id = entity_type.id();
+        let uri = entity_type.id();
 
         if self
-            .contains_base_id(base_id)
+            .contains_base_id(uri.base_id())
             .await
             .change_context(InsertionError)
             .attach_lazy(|| entity_type.clone())?
         {
             return Err(Report::new(InsertionError)
-                .attach(entity_type.clone())
-                .attach_printable(BaseIdAlreadyExists::new(base_id.clone())));
+                .attach_printable(BaseIdAlreadyExists)
+                .attach_printable(uri.base_id().to_owned())
+                .attach(entity_type.clone()));
         }
-        self.insert_base_id(base_id)
+        self.insert_base_id(uri.base_id())
             .await
             .attach_lazy(|| entity_type.clone())?;
 
-        let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_version_id(version_id, base_id)
+        let version_id = self
+            .insert_uri(uri)
             .await
             .attach_lazy(|| entity_type.clone())?;
+
         self.insert_entity_type(version_id, &entity_type, created_by)
             .await
             .attach_lazy(|| entity_type.clone())?;
@@ -465,25 +523,26 @@ impl Datastore for PostgresDatabase {
         entity_type: EntityType,
         updated_by: AccountId,
     ) -> Result<Qualified<EntityType>, UpdateError> {
-        let base_id = entity_type.id();
+        let uri = entity_type.id();
 
         if !self
-            .contains_base_id(base_id)
+            .contains_base_id(uri.base_id())
             .await
             .change_context(UpdateError)
             .attach_lazy(|| entity_type.clone())?
         {
             return Err(Report::new(UpdateError)
                 .attach_printable(BaseIdDoesNotExist)
-                .attach_printable(base_id.clone()))
-            .attach_lazy(|| entity_type.clone())?;
+                .attach_printable(uri.base_id().to_owned())
+                .attach(entity_type.clone()));
         }
 
-        let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_version_id(version_id, base_id)
+        let version_id = self
+            .insert_uri(uri)
             .await
             .change_context(UpdateError)
             .attach_lazy(|| entity_type.clone())?;
+
         self.insert_entity_type(version_id, &entity_type, updated_by)
             .await
             .change_context(UpdateError)
@@ -511,7 +570,7 @@ impl Datastore for PostgresDatabase {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::LazyLock;
+    use std::{collections::HashMap, sync::LazyLock};
 
     use super::*;
     use crate::{datastore::DatabaseType, types::AccountId};
@@ -538,7 +597,7 @@ mod tests {
     //   a test case. Remove this as soon as we have a proper test framework.
     async fn remove_base_id(
         db: &mut PostgresDatabase,
-        base_id: &BaseId,
+        base_id: &BaseIdRef,
     ) -> Result<(), DatastoreError> {
         sqlx::query(r#"DELETE FROM base_ids WHERE base_id = $1;"#)
             .bind(base_id)
@@ -606,7 +665,7 @@ mod tests {
             .change_context(DatastoreError)?;
 
         // Clean up to avoid conflicts in next tests
-        remove_base_id(&mut db, data_type.inner().id()).await?;
+        remove_base_id(&mut db, data_type.inner().id().base_id()).await?;
 
         Ok(())
     }
@@ -630,8 +689,23 @@ mod tests {
         assert_eq!(data_type.inner(), created_data_type.inner());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_id(&mut db, data_type.inner().id()).await?;
+        remove_base_id(&mut db, data_type.inner().id().base_id()).await?;
         Ok(())
+    }
+
+    /// Returns the primitive `Object` data type.
+    #[must_use]
+    pub fn object_v2() -> DataType {
+        DataType::new(
+            Uri::new(
+                "https://blockprotocol.org/types/@blockprotocol/data-type/object",
+                2,
+            ),
+            "Object".to_owned(),
+            Some("A plain JSON object with no pre-defined structure".to_owned()),
+            "object".to_owned(),
+            HashMap::default(),
+        )
     }
 
     #[tokio::test]
@@ -646,25 +720,25 @@ mod tests {
             .change_context(DatastoreError)?;
 
         let updated_data_type = db
-            .update_data_type(DataType::object(), account_id)
+            .update_data_type(object_v2(), account_id)
             .await
             .change_context(DatastoreError)?;
 
-        assert_eq!(data_type.inner(), updated_data_type.inner());
+        assert_ne!(data_type.inner(), updated_data_type.inner());
         assert_ne!(data_type.version_id(), updated_data_type.version_id());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_id(&mut db, data_type.inner().id()).await?;
+        remove_base_id(&mut db, data_type.inner().id().base_id()).await?;
         Ok(())
     }
 
     fn quote_property_type_v1() -> PropertyType {
         serde_json::from_value(serde_json::json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote/v/1",
           "title": "Favorite Quote",
           "oneOf": [
-            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text" }
+            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1" }
           ]
         }))
         .expect("Invalid property type")
@@ -673,10 +747,10 @@ mod tests {
     fn quote_property_type_v2() -> PropertyType {
         serde_json::from_value(serde_json::json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote/v/2",
           "title": "Favourite Quote",
           "oneOf": [
-            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text" }
+            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1" }
           ]
         }))
         .expect("Invalid property type")
@@ -694,7 +768,7 @@ mod tests {
             .change_context(DatastoreError)?;
 
         // Clean up to avoid conflicts in next tests
-        remove_base_id(&mut db, property_type.inner().id()).await?;
+        remove_base_id(&mut db, property_type.inner().id().base_id()).await?;
         Ok(())
     }
 
@@ -717,7 +791,7 @@ mod tests {
         assert_eq!(property_type.inner(), created_property_type.inner());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_id(&mut db, property_type.inner().id()).await?;
+        remove_base_id(&mut db, property_type.inner().id().base_id()).await?;
         Ok(())
     }
 
@@ -746,7 +820,7 @@ mod tests {
         );
 
         // Clean up to avoid conflicts in next tests
-        remove_base_id(&mut db, property_type.inner().id()).await?;
+        remove_base_id(&mut db, property_type.inner().id().base_id()).await?;
         Ok(())
     }
 
@@ -758,13 +832,13 @@ mod tests {
             "type": "object",
             "properties": {
                 "https://blockprotocol.org/types/@alice/property-type/name": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name/v/1"
                 },
                 "https://blockprotocol.org/types/@alice/property-type/blurb": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/blurb"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/blurb/v/1"
                 },
                 "https://blockprotocol.org/types/@alice/property-type/published-on": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/published-on"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/published-on/v/1"
                 }
             },
             "required": [
@@ -775,31 +849,30 @@ mod tests {
     }
 
     fn book_entity_type_v2() -> EntityType {
-        // TODO: Update version number
         serde_json::from_value(serde_json::json!({
             "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/book/v/1",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/book/v/2",
             "title": "Book",
             "type": "object",
             "properties": {
                 "https://blockprotocol.org/types/@alice/property-type/name": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name/v/1"
                 },
                 "https://blockprotocol.org/types/@alice/property-type/blurb": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/blurb"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/blurb/v/1"
                 },
                 "https://blockprotocol.org/types/@alice/property-type/published-on": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/published-on"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/published-on/v/1"
                 }
             },
             "required": [
                 "https://blockprotocol.org/types/@alice/property-type/name"
             ],
             "links": {
-                "https://blockprotocol.org/types/@alice/property-type/written-by": {}
+                "https://blockprotocol.org/types/@alice/property-type/written-by/v/1": {}
             },
             "requiredLinks": [
-                "https://blockprotocol.org/types/@alice/property-type/written-by"
+                "https://blockprotocol.org/types/@alice/property-type/written-by/v/1"
             ],
         }))
         .expect("Invalid entity type")
@@ -817,7 +890,7 @@ mod tests {
             .change_context(DatastoreError)?;
 
         // Clean up to avoid conflicts in next tests
-        remove_base_id(&mut db, entity_type.inner().id()).await?;
+        remove_base_id(&mut db, entity_type.inner().id().base_id()).await?;
         Ok(())
     }
 
@@ -840,7 +913,7 @@ mod tests {
         assert_eq!(entity_type.inner(), created_entity_type.inner());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_id(&mut db, entity_type.inner().id()).await?;
+        remove_base_id(&mut db, entity_type.inner().id().base_id()).await?;
         Ok(())
     }
 
@@ -866,7 +939,7 @@ mod tests {
         assert_ne!(entity_type.version_id(), updated_entity_type.version_id());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_id(&mut db, entity_type.inner().id()).await?;
+        remove_base_id(&mut db, entity_type.inner().id().base_id()).await?;
         Ok(())
     }
 }

@@ -34,17 +34,34 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 
   pgm.createTable(
-    "ids",
+    "version_ids",
     {
       version_id: {
         type: "UUID",
         primaryKey: true,
       },
+    },
+    {
+      ifNotExists: true,
+    },
+  );
+
+  pgm.createTable(
+    "ids",
+    {
       base_id: {
         type: "TEXT",
         notNull: true,
         references: "base_ids",
         onDelete: "CASCADE",
+      },
+      version: {
+        type: "INT",
+        notNull: true,
+      },
+      version_id: {
+        type: "UUID",
+        references: "version_ids",
       },
     },
     {
@@ -55,6 +72,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         `),
     },
   );
+  pgm.addConstraint("ids", "ids_primary_key", {
+    primaryKey: ["base_id", "version"],
+  });
 
   pgm.createTable(
     "data_types",
@@ -62,7 +82,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       version_id: {
         type: "UUID",
         primaryKey: true,
-        references: "ids",
+        references: "version_ids",
         onDelete: "CASCADE",
       },
       schema: {
@@ -86,7 +106,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       version_id: {
         type: "UUID",
         primaryKey: true,
-        references: "ids",
+        references: "version_ids",
         onDelete: "CASCADE",
       },
       schema: {
@@ -148,7 +168,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       version_id: {
         type: "UUID",
         primaryKey: true,
-        references: "ids",
+        references: "version_ids",
         onDelete: "CASCADE",
       },
       schema: {

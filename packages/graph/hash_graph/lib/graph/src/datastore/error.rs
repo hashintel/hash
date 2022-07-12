@@ -2,8 +2,6 @@ use std::fmt;
 
 use error_stack::Context;
 
-use crate::types::BaseId;
-
 #[derive(Debug)]
 #[must_use]
 pub struct InsertionError;
@@ -42,19 +40,11 @@ impl Context for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct BaseIdAlreadyExists {
-    pub base_id: BaseId,
-}
-
-impl BaseIdAlreadyExists {
-    pub const fn new(base_id: BaseId) -> Self {
-        Self { base_id }
-    }
-}
+pub struct BaseIdAlreadyExists;
 
 impl fmt::Display for BaseIdAlreadyExists {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Base id does not exist")
+        fmt.write_str("Base id already exists")
     }
 }
 
@@ -71,3 +61,15 @@ impl fmt::Display for BaseIdDoesNotExist {
 }
 
 impl Context for BaseIdDoesNotExist {}
+
+#[derive(Debug)]
+#[must_use]
+pub struct UriAlreadyExist;
+
+impl fmt::Display for UriAlreadyExist {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Uri already exists")
+    }
+}
+
+impl Context for UriAlreadyExist {}
