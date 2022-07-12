@@ -5,20 +5,17 @@
 //!
 //! [`datastore`]: crate::datastore
 
-pub mod array;
-pub mod combinator;
+mod array;
+mod combinator;
 mod data_type;
+mod entity_type;
 mod object;
-pub mod property_type;
+mod property_type;
 
 use core::fmt;
 
 #[doc(inline)]
-pub use self::{
-    combinator::{OneOf, ValueOrArray},
-    data_type::DataType,
-    property_type::PropertyType,
-};
+pub use self::{data_type::DataType, entity_type::EntityType, property_type::PropertyType};
 use crate::types::Uri;
 
 #[derive(Debug)]
@@ -26,9 +23,11 @@ pub enum ValidationError {
     /// A schema has marked a property with a [`Uri`] as required but the [`Uri`] does not exist in
     /// the `properties`.
     MissingRequiredProperty(Uri),
+    /// A schema has marked a link as required but the link does not exist in the schema.
+    MissingRequiredLink(Uri),
     /// At least `expected` number of properties are required, but only `actual` were provided.
     MismatchedPropertyCount { actual: usize, expected: usize },
-    /// [`OneOf`] requires at least one element.
+    /// `oneOf` requires at least one element.
     EmptyOneOf,
 }
 
@@ -40,6 +39,13 @@ impl fmt::Display for ValidationError {
                     fmt,
                     "The schema has marked the \"{uri}\" property as required, but it wasn't \
                      defined in the `\"properties\"` object"
+                )
+            }
+            Self::MissingRequiredLink(link) => {
+                write!(
+                    fmt,
+                    "The schema has marked the \"{link}\" link as required, but it wasn't defined \
+                     in the `\"links\"` object"
                 )
             }
             Self::MismatchedPropertyCount { actual, expected } => {

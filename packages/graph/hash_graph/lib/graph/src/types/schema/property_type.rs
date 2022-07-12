@@ -4,9 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::schema::{
     array::{Array, Itemized},
+    combinator::{OneOf, ValueOrArray},
     data_type::DataTypeReference,
     object::Object,
-    OneOf, Uri, ValueOrArray,
+    Uri,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -32,6 +33,7 @@ impl PropertyTypeReference {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
+#[allow(clippy::enum_variant_names)]
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
     // TODO: Check if `Objcet::properties` matches the URI specified in `PropertyTypeReference`
@@ -160,8 +162,15 @@ mod tests {
 
     use super::*;
 
-    fn test_property_type_schema(schema: serde_json::Value) -> PropertyType {
-        serde_json::from_value::<PropertyType>(schema).expect("Not a valid schema")
+    fn test_property_type_schema(schema: &serde_json::Value) -> PropertyType {
+        let property_type: PropertyType =
+            serde_json::from_value(schema.clone()).expect("invalid schema");
+        assert_eq!(
+            serde_json::to_value(property_type.clone()).expect("Could not serialize"),
+            *schema,
+            "{property_type:#?}"
+        );
+        property_type
     }
 
     fn test_property_type_data_refs(
@@ -198,7 +207,7 @@ mod tests {
 
     #[test]
     fn favorite_quote() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote",
           "title": "Favorite Quote",
@@ -216,7 +225,7 @@ mod tests {
 
     #[test]
     fn age() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/age",
           "title": "Age",
@@ -236,7 +245,7 @@ mod tests {
 
     #[test]
     fn user_id() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/user-id",
           "title": "User ID",
@@ -258,7 +267,7 @@ mod tests {
 
     #[test]
     fn contact_information() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/contact-information",
           "title": "Contact Information",
@@ -290,7 +299,7 @@ mod tests {
 
     #[test]
     fn interests() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/interests",
           "title": "Interests",
@@ -326,7 +335,7 @@ mod tests {
 
     #[test]
     fn numbers() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/numbers",
           "title": "Numbers",
@@ -353,7 +362,7 @@ mod tests {
 
     #[test]
     fn contrived_property() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/contrived-property",
           "title": "Contrived Property",
