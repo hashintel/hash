@@ -282,7 +282,7 @@ const rewriteLinkedAggregationIdentifier = ({
 export const parseLinkedAggregationIdentifier = (
   stringifiedLinkId: string,
 ): ApiLinkedAggregationIdentifier => {
-  let identifierObject: ApiLinkedAggregationIdentifier;
+  let identifierObject: unknown;
   try {
     identifierObject = JSON.parse(stringifiedLinkId);
   } catch (err) {
