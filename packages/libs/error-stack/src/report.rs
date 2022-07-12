@@ -458,12 +458,26 @@ impl<C> Report<C> {
         ))
     }
 
-    /// Return the direct source frames of this report,
+    /// Return the direct current frames of this report,
     /// to get an iterator over the topological sorting of all frames refer to [`frames()`]
     ///
+    /// This is not the same as [`Report::current_context`], this function gets the underlying
+    /// frames that make up this report, while [`Report::current_context`] traverses the stack of
+    /// frames to find the current context. A [`Report`] and be made up of multiple [`Frame`]s,
+    /// which stack on top of each other. Considering `PrintableA<PrintableA<Context>>`,
+    /// [`Report::current_frames`] will return the "outer" layer `PrintableA`, while
+    /// [`Report::current_context`] will return the underlying `Context` (the current type
+    /// parameter of this [`Report`])
+    ///
+    /// Using [`Extend`] and [`extend_one()`], a [`Report`] can additionally be made up of multiple
+    /// stacks of frames and builds a "group" of them, but a [`Report`] can only ever have a single
+    /// `Context`, therefore this function returns a slice instead, while
+    /// [`Report::current_context`] only returns a single reference.
+    ///
     /// [`frames()`]: Self::frames
+    /// [`extend_one()`]: Self::extend_one
     #[must_use]
-    pub fn current(&self) -> &[Frame] {
+    pub fn current_frames(&self) -> &[Frame] {
         &self.frames
     }
 

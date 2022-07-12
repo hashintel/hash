@@ -29,7 +29,7 @@ fn extend_one_nested() {
     err1.extend_one(err2);
     err3.extend_one(err1);
 
-    assert_eq!(err3.current().len(), 3);
+    assert_eq!(err3.current_frames().len(), 3);
     assert_eq!(err3.frames().count(), count);
 }
 
@@ -44,7 +44,7 @@ fn extend_one() {
     err1.extend_one(err2);
     err1.extend_one(err3);
 
-    assert_eq!(err1.current().len(), 3);
+    assert_eq!(err1.current_frames().len(), 3);
     assert_eq!(err1.frames().count(), count);
 }
 
@@ -55,6 +55,6 @@ fn extend() {
     let err3 = report!(Error).attach_printable("Not Supported");
 
     err1.extend([err2, err3]);
-    assert_eq!(err1.current().len(), 3);
+    assert_eq!(err1.current_frames().len(), 3);
     assert_eq!(err1.frames().count(), expect_count(2) * 3);
 }

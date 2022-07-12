@@ -12,7 +12,7 @@ fn opaque_attachment() {
         .attach(AttachmentA(10))
         .attach(AttachmentB(20));
 
-    assert_eq!(report.current().len(), 1);
+    assert_eq!(report.current_frames().len(), 1);
     let frame = report.frames_mut().next().expect("No frame found");
     let source = frame
         .sources_mut()
@@ -37,7 +37,7 @@ fn printable_attachment() {
         .attach_printable(PrintableA(10))
         .attach_printable(PrintableB(20));
 
-    assert_eq!(report.current().len(), 1);
+    assert_eq!(report.current_frames().len(), 1);
     let frame = report.frames_mut().next().expect("No frame found");
     let source = frame
         .sources_mut()
@@ -62,7 +62,7 @@ fn context() {
         .change_context(ContextA(10))
         .change_context(ContextB(20));
 
-    assert_eq!(report.current().len(), 1);
+    assert_eq!(report.current_frames().len(), 1);
     let frame = report.frames_mut().next().expect("No frame found");
     let source = frame
         .sources_mut()

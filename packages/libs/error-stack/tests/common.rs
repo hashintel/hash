@@ -184,10 +184,6 @@ pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
 
 #[cfg(all(nightly, feature = "std"))]
 pub fn supports_backtrace() -> bool {
-    // we need to track 3 states:
-    //  1) -1 (not checked)
-    //  2) 0 (disabled)
-    //  3) 1 (enabled)
     static STATE: Lazy<bool> = Lazy::new(|| {
         let bt = std::backtrace::Backtrace::capture();
         bt.status() == std::backtrace::BacktraceStatus::Captured
