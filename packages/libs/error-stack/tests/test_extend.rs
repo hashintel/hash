@@ -5,7 +5,7 @@ mod common;
 use core::fmt::{Display, Formatter};
 
 use common::*;
-use error_stack::{report, Context};
+use error_stack::{report, Context, Report};
 
 #[derive(Debug)]
 struct Error;
@@ -57,4 +57,22 @@ fn extend() {
     err1.extend([err2, err3]);
     assert_eq!(err1.current_frames().len(), 3);
     assert_eq!(err1.frames().count(), expect_count(2) * 3);
+}
+
+#[test]
+fn collect() {
+    let report: Option<Report<Error>> = vec![report!(Error), report!(Error), report!(Error)]
+        .into_iter()
+        .collect();
+
+    let report = report.expect("should be some");
+    assert_eq!(report.current_frames().len(), 3);
+    assert_eq!(report.frames().count(), expect_count(1) * 3);
+}
+
+#[test]
+fn collect_none() {
+    let report: Option<Report<Error>> = vec![].into_iter().collect();
+
+    assert!(report.is_none());
 }

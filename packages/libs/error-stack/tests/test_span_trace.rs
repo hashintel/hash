@@ -54,6 +54,33 @@ fn captured() {
 }
 
 #[test]
+fn captured_deprecated() {
+    install_tracing_subscriber();
+
+    #[tracing::instrument]
+    fn func_b() -> Result<(), RootError> {
+        create_error()
+    }
+
+    #[tracing::instrument]
+    fn func_a() -> Result<(), RootError> {
+        func_b()
+    }
+
+    let report = capture_error(func_a);
+
+    #[allow(deprecated)]
+    let span_trace = report.span_trace().expect("No span trace captured");
+
+    let mut num_spans = 0;
+    span_trace.with_spans(|_, _| {
+        num_spans += 1;
+        true
+    });
+    assert_eq!(num_spans, 2);
+}
+
+#[test]
 fn provided() {
     install_tracing_subscriber();
 

@@ -4,6 +4,8 @@
 
 mod common;
 
+use std::iter::zip;
+
 use common::*;
 
 #[test]
@@ -29,6 +31,56 @@ fn opaque_attachment() {
         .downcast_ref::<AttachmentA>()
         .expect("Wrong source frame");
     assert_eq!(attachment.0, 20);
+}
+
+#[test]
+fn source_deprecated() {
+    let mut report = create_report()
+        .attach(AttachmentA(10))
+        .attach(AttachmentB(20));
+
+    assert_eq!(report.current_frames().len(), 1);
+    let mut frame = report.frames_mut().next().expect("No frame found");
+
+    #[allow(deprecated)]
+    let source = frame.source_mut().expect("No source frame found");
+    let attachment = source
+        .downcast_mut::<AttachmentA>()
+        .expect("Wrong source frame");
+    attachment.0 += 10;
+
+    #[allow(deprecated)]
+    let source = frame.source().expect("No source frame found");
+    let attachment = source
+        .downcast_ref::<AttachmentA>()
+        .expect("Wrong source frame");
+    assert_eq!(attachment.0, 20);
+}
+
+#[test]
+fn sources() {
+    let mut a = create_report().attach(AttachmentA(10));
+    let mut b = create_report().attach(AttachmentA(20));
+    b.extend_one(a);
+    let mut b = b.attach(AttachmentB(30));
+
+    assert_eq!(b.current_frames().len(), 1);
+    let mut frame = b.frames_mut().next().expect("No frames");
+    assert_eq!(frame.sources().len(), 2);
+
+    for source in frame.sources_mut() {
+        let attachment = source
+            .downcast_mut::<AttachmentA>()
+            .expect("Wrong source frame");
+        attachment.0 += 5;
+    }
+
+    for (source, expect) in zip(frame.sources(), [15, 25]) {
+        let attachment = source
+            .downcast_ref::<AttachmentA>()
+            .expect("Wrong source frame");
+        assert_eq!(attachment.0, expect);
+    }
 }
 
 #[test]
