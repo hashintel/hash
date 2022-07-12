@@ -6,6 +6,10 @@
 #[cfg(not(feature = "std"))]
 use alloc::string::ToString;
 use alloc::{borrow::ToOwned, format, string::String, vec, vec::Vec};
+use std::{cell::OnceCell, collections::VecDeque, io::Write};
+
+use colored::{ColoredString, Colorize};
+use termcolor::{Buffer, BufferWriter, Color, ColorSpec, WriteColor};
 
 use crate::{AttachmentKind, Frame, FrameKind, Report};
 
@@ -24,25 +28,93 @@ const ENTRY_END: &str = "\x1b[31m╰─▶\x1b[0m ";
 #[cfg(not(feature = "fancy"))]
 const ENTRY_END: &str = "\\-> ";
 
-const SPACE: &str = "    ";
+enum ForceColor {
+    Yes,
+    No,
+}
+
+enum Fancy {
+    #[cfg(feature = "hook-fancy")]
+    Yes,
+    No,
+}
+
+struct Settings {
+    force_ascii: bool,
+    force_color: Option<ForceColor>,
+    compact: bool,
+    fancy: Fancy,
+}
+
+enum Instruction {
+    Content(String),
+    Entry { end: bool },
+    Vertical,
+    Indent,
+}
+
+impl Instruction {
+    fn plain(text: String) -> Line {
+        let mut queue = VecDeque::new();
+        queue.push_back(Instruction::Content(text));
+
+        queue
+    }
+
+    #[cfg(feature = "hook-fancy")]
+    fn with_red<F: FnOnce(&mut T) -> std::io::Result<()>, T: WriteColor>(
+        writer: &mut T,
+        f: F,
+    ) -> std::io::Result<()> {
+        let mut spec = ColorSpec::new();
+        spec.set_fg(Some(Color::Red)).set_bold(true);
+
+        writer.set_color(&spec)?;
+        f(writer)?;
+        writer.reset()
+    }
+
+    #[cfg(feature = "hook-fancy")]
+    fn render<T: WriteColor>(self, write: &mut T) -> std::io::Result<()> {
+        match self {
+            Instruction::Content(text) => write.write_all(text.as_bytes()),
+            Instruction::Entry { end } => Self::with_red(write, |write| {
+                if end {
+                    write.write_all("╰─▶ ".as_bytes())?;
+                } else {
+                    write.write_all("├─▶ ".as_bytes())?;
+                }
+
+                Ok(())
+            }),
+            Instruction::Vertical => {
+                Self::with_red(write, |write| write.write_all("|   ".as_bytes()))
+            }
+            Instruction::Indent => write.write_all("    ".as_bytes()),
+        }
+    }
+}
+
+type Line = VecDeque<Instruction>;
+type Lines = Vec<Line>;
 
 #[cfg(all(nightly, feature = "std"))]
-fn backtrace<'a>(frame: &'a Frame, bt: &mut Vec<&'a std::backtrace::Backtrace>) -> Option<String> {
+fn backtrace<'a>(frame: &'a Frame, bt: &mut Vec<&'a std::backtrace::Backtrace>) -> Option<Line> {
     if let Some(backtrace) = frame.request_ref::<std::backtrace::Backtrace>() {
         bt.push(backtrace);
 
-        Some(format!(
+        Some(Instruction::plain(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             bt.len()
-        ))
+        )))
     } else {
         None
     }
 }
 
 #[cfg(feature = "spantrace")]
-fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -> Option<String> {
+fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -> Option<Line> {
     if let Some(span_trace) = frame.request_ref::<tracing_error::SpanTrace>() {
         let mut span = 0;
         span_trace.with_spans(|_, _| {
@@ -52,7 +124,10 @@ fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -
 
         st.push(span_trace);
 
-        Some(format!("spantrace with {span} frames ({})", st.len()))
+        Some(Instruction::plain(format!(
+            "spantrace with {span} frames ({})",
+            st.len()
+        )))
     } else {
         None
     }
@@ -64,10 +139,10 @@ fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -
 #[allow(unused_variables)]
 fn frame<'a>(
     frame: &'a Frame,
-    defer: &mut Vec<Vec<String>>,
+    defer: &mut Vec<Lines>,
     #[cfg(all(nightly, feature = "std"))] bt: &mut Vec<&'a std::backtrace::Backtrace>,
     #[cfg(feature = "spantrace")] st: &mut Vec<&'a tracing_error::SpanTrace>,
-) -> Option<Vec<String>> {
+) -> Option<Lines> {
     // We allow `unused_mut` due to the fact that certain feature configurations will require
     // this to be mutable (backtrace and spantrace overwrite extend the lines)
     #[allow(unused_mut)]
@@ -100,7 +175,7 @@ fn frame<'a>(
         return None;
     }
 
-    Some(lines)
+    Some(lines.into_iter().map(Instruction::plain).collect())
 }
 
 // we allow needless lifetime, as in some scenarios (where spantrace and backtrace are disabled)
@@ -110,7 +185,7 @@ fn frame_root<'a>(
     root: &'a Frame,
     #[cfg(all(nightly, feature = "std"))] bt: &mut Vec<&'a std::backtrace::Backtrace>,
     #[cfg(feature = "spantrace")] st: &mut Vec<&'a tracing_error::SpanTrace>,
-) -> Vec<String> {
+) -> Lines {
     let mut plain = vec![root];
 
     let next;
@@ -162,10 +237,14 @@ fn frame_root<'a>(
     match opaque {
         0 => {}
         1 => {
-            groups.push(vec!["1 additional attachment".to_owned()]);
+            groups.push(vec![Instruction::plain(
+                "1 additional attachment".to_owned(),
+            )]);
         }
         n => {
-            groups.push(vec![format!("{n} additional attachments")]);
+            groups.push(vec![Instruction::plain(format!(
+                "{n} additional attachments"
+            ))]);
         }
     }
 
@@ -196,21 +275,22 @@ fn frame_root<'a>(
             let last = pos == total - 1;
             let first = pos == 0;
 
-            content.into_iter().enumerate().map(move |(idx, line)| {
+            content.into_iter().enumerate().map(move |(idx, mut line)| {
                 if first {
                     // the first line is the title, therefore not indented.
-                    line
                 } else if last {
                     if idx == 0 {
-                        format!("{ENTRY_END}{line}")
+                        line.push_front(Instruction::Entry { end: true });
                     } else {
-                        format!("{SPACE}{line}")
+                        line.push_front(Instruction::Indent);
                     }
                 } else if idx == 0 {
-                    format!("{ENTRY}{line}")
+                    line.push_front(Instruction::Entry { end: false });
                 } else {
-                    format!("{VERTICAL}{line}")
+                    line.push_front(Instruction::Vertical);
                 }
+
+                line
             })
         })
         .collect()
@@ -233,7 +313,7 @@ pub fn report<C>(report: &Report<C>) -> String {
         );
 
         lines.extend(display);
-        lines.push("".to_owned());
+        lines.push(Instruction::plain("".to_owned()));
     }
 
     #[cfg(all(nightly, feature = "std"))]
@@ -241,8 +321,14 @@ pub fn report<C>(report: &Report<C>) -> String {
         lines.extend(vec!["".to_owned(); 2]);
 
         for (pos, backtrace) in bt.into_iter().enumerate() {
-            lines.push(format!("Backtrace No. {}", pos + 1));
-            lines.extend(backtrace.to_string().split('\n').map(ToOwned::to_owned));
+            lines.push(Instruction::plain(format!("Backtrace No. {}", pos + 1)));
+            lines.extend(
+                backtrace
+                    .to_string()
+                    .split('\n')
+                    .map(ToOwned::to_owned)
+                    .map(Instruction::plain),
+            );
         }
     }
 
@@ -251,8 +337,14 @@ pub fn report<C>(report: &Report<C>) -> String {
         lines.extend(vec!["".to_owned(); 2]);
 
         for (pos, span_trace) in st.into_iter().enumerate() {
-            lines.push(format!("Spantrace No. {}", pos + 1));
-            lines.extend(span_trace.to_string().split('\n').map(ToOwned::to_owned));
+            lines.push(Instruction::plain(format!("Spantrace No. {}", pos + 1)));
+            lines.extend(
+                span_trace
+                    .to_string()
+                    .split('\n')
+                    .map(ToOwned::to_owned)
+                    .map(Instruction::plain),
+            );
         }
     }
 
