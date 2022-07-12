@@ -63,6 +63,9 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
         match self {
             Ok(t) => Ok(t),
             Err(anyhow) => {
+                // we cannot use `Report::new()` directly, due to the fact that it captures traces,
+                // regardless of the fact if anyhow already provided one.
+
                 // only capture a backtrace if needed, otherwise the anyhow context provides one
                 #[cfg(all(nightly, feature = "std"))]
                 let backtrace = anyhow

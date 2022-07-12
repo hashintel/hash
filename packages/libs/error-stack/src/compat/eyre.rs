@@ -62,6 +62,9 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
         match self {
             Ok(t) => Ok(t),
             Err(eyre) => {
+                // we cannot use `Report::new()` directly, due to the fact that it captures traces,
+                // regardless of the fact if eyre already provided one.
+
                 // only capture a backtrace if needed, otherwise the eyre context provides one
                 #[cfg(all(nightly, feature = "std"))]
                 let backtrace = eyre
