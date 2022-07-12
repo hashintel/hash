@@ -79,8 +79,7 @@ impl StateReadProxy {
 
     pub fn n_accessible_agents(&self) -> usize {
         self.agent_proxies
-            .batches()
-            .into_iter()
+            .batches_iter()
             .map(|batch| batch.num_agents())
             .sum()
     }
