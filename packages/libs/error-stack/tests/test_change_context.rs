@@ -1,6 +1,7 @@
 #![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
 
+#[macro_use]
 mod common;
 
 use common::*;
@@ -9,23 +10,21 @@ use error_stack::{AttachmentKind, FrameKind, IteratorExt, Report, ResultExt};
 use error_stack::{FutureExt, StreamExt};
 
 fn test_messages<E>(report: &Report<E>) {
-    assert_eq!(messages(report), [
-        "Opaque",
-        "Context B",
-        "Opaque",
-        "Context A",
-        "Root error"
-    ]);
+    assert_eq!(
+        messages(report),
+        expect_messages(&["Opaque", "Context B", "Opaque", "Context A", "Root error"])
+    );
 }
 
 fn test_kinds<E>(report: &Report<E>) {
-    assert!(matches!(frame_kinds(report).as_slice(), [
+    assert_kinds!(report, [
         FrameKind::Attachment(AttachmentKind::Opaque(_)),
         FrameKind::Context(_),
         FrameKind::Attachment(AttachmentKind::Opaque(_)),
-        FrameKind::Context(_),
-        FrameKind::Context(_),
-    ]));
+        FrameKind::Context(_)
+        => (trace)
+        FrameKind::Context(_)
+    ]);
 }
 
 #[test]
