@@ -73,7 +73,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   );
 
   const handleDisplayTimeChange = useCallback(
-    (newDisplayTime) => {
+    (newDisplayTime: boolean) => {
       setLocalDisplayTime(newDisplayTime);
       updateRemoteData({ displayTime: newDisplayTime });
     },

@@ -5,6 +5,7 @@ import { tw } from "twind";
 interface CollabPositionIndicatorProps {
   backgroundColor: string;
   title: string;
+  children?: React.ReactNode;
 }
 
 export const CollabPositionIndicator: FC<CollabPositionIndicatorProps> = ({

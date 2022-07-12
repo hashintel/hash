@@ -204,16 +204,19 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     }
   }, [localState.serializedDocument, entityId, localState.darkMode]);
 
-  const updateDimensions = useCallback((_, { size }: ResizeCallbackData) => {
-    setLocalState((prev) => ({
-      ...prev,
-      width: size.width,
-      height: size.height,
-    }));
-  }, []);
+  const updateDimensions = useCallback(
+    (_: React.SyntheticEvent, { size }: ResizeCallbackData) => {
+      setLocalState((prev) => ({
+        ...prev,
+        width: size.width,
+        height: size.height,
+      }));
+    },
+    [],
+  );
 
   const updateRemoteDimensions = useCallback(
-    (_, { size }: ResizeCallbackData) => {
+    (_: React.SyntheticEvent, { size }: ResizeCallbackData) => {
       updateRemoteData({
         width: size.width,
         height: size.height,
