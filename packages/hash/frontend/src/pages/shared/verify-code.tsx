@@ -54,7 +54,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
   const { text, emailResent, syntheticLoading } = state;
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const updateState = useCallback((newState) => {
+  const updateState = useCallback((newState: Partial<typeof state>) => {
     setState((prevState) => ({
       ...prevState,
       ...newState,

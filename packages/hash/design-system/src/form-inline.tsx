@@ -1,7 +1,9 @@
 import * as React from "react";
 import { Box, buttonClasses, outlinedInputClasses } from "@mui/material";
 
-type FormInlineProps = {};
+type FormInlineProps = {
+  children?: React.ReactNode;
+};
 
 /**
  * This is useful for rendering a TextField and Button component inline

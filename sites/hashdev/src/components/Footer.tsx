@@ -61,7 +61,7 @@ const FooterLinkWithLabel: FC<
   );
 };
 
-export const FooterSection: FC<{ label: ReactNode }> = ({
+export const FooterSection: FC<{ children?: ReactNode; label: ReactNode }> = ({
   label,
   children,
 }) => (

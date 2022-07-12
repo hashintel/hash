@@ -64,7 +64,7 @@ impl MemoryId {
                 id,
                 suffix: rand::random::<u16>(),
             };
-            if !Path::new(&format!("/dev/shm/{id}")).exists() {
+            if !Path::new(&format!("/dev/shm/{memory_id}")).exists() {
                 return memory_id;
             }
         }
