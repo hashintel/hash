@@ -9,12 +9,16 @@ description = "HASH Graph API"
 [dependencies]
 async-trait = "0.1.56"
 axum = "0.5.11"
-clap = { version = "3.2.7", features = ["derive", "env"], optional = true }
+clap = { version = "3.2.10", features = ["derive", "env"], optional = true }
 error-stack = "0.1.1"
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
 sqlx = { version = "0.6.0", features = ["runtime-tokio-native-tls", "postgres", "macros", "uuid", "time", "json", "sqlx-macros"] }
 tokio = { version = "1.18.2", features = ["rt", "macros"] }
+tracing = "0.1.35"
+tracing-appender = "0.2.2"
+tracing-error = "0.2.0"
+tracing-subscriber = { version = "0.3.14", features = ["env-filter", "json"] }
 uuid = { version = "1.1.2", features = ["v4", "serde"] }
 utoipa = { git = "https://github.com/juhaku/utoipa", rev = "031073f", features = ["uuid"] }
 
