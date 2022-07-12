@@ -1721,8 +1721,7 @@ impl<'s> ThreadLocalRunner<'s> {
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
         // TODO: Pass `agent_pool` and `msg_pool` by reference
-        let (agent_batches, msg_batches) =
-            state_to_js(scope, agent_batches.into_iter(), msg_batches.into_iter())?;
+        let (agent_batches, msg_batches) = state_to_js(scope, agent_batches, msg_batches)?;
 
         let js_sim_id = sim_id_to_js(scope, sim_id);
         let js_idxs = new_js_array_from_usizes(scope, &group_indices)?;
