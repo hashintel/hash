@@ -32,10 +32,9 @@ use crate::{
 ///
 /// ## Multiple Errors
 ///
-/// `Report` is able to represent multiple errors that have occurred.
-/// Errors can be combined using the [`extend_one()`],
-/// which will add the [`Frame`] stack of the other error as an additional source to the current
-/// report.
+/// `Report` is able to represent multiple errors that have occurred. Errors can be combined using
+/// the [`extend_one()`], which will add the [`Frame`] stack of the other error as an additional
+/// source to the current report.
 ///
 /// ## `Backtrace` and `SpanTrace`
 ///
@@ -366,7 +365,7 @@ impl<C> Report<C> {
     /// ```
     ///
     /// [`extend_one()`]: Self::extend_one
-    pub fn extend_one<T>(&mut self, mut report: Report<T>) {
+    pub fn extend_one(&mut self, mut report: Self) {
         self.frames.append(&mut report.frames);
     }
 

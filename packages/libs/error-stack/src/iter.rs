@@ -12,7 +12,7 @@ use core::{
 
 use crate::Frame;
 
-/// Helper function, which is used in both `Frames` and `FramesMut`.
+/// Helper function, which is used in both [`Frames`] and [`FramesMut`].
 ///
 /// To traverse the frames, the following algorithm is used:
 /// Given a list of iterators, take the last iterator, and use items from it until the iterator has
@@ -52,9 +52,14 @@ fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
 /// Iterator over the [`Frame`] stack of a [`Report`].
 ///
 /// This uses an implementation of the Pre-Order, NLR Depth-First Search algorithm to resolve the
-/// tree. The example below shows in numbers the index of the different depths, using this we're
-/// able to linearize all frames and sort topologically, meaning that this ensures no child ever is
-/// before its parent.
+/// tree.
+///
+/// Use [`Report::frames()`] to create this iterator.
+///
+/// # Example
+///
+/// This shows in numbers the index of the different depths, using this it's possible to linearize
+/// all frames and sort topologically, meaning that this ensures no child ever is before its parent.
 ///
 /// ```text
 ///      1
@@ -64,9 +69,8 @@ fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
 /// 3  4  5  7
 /// ```
 ///
-/// Use [`Report::frames()`] to create this iterator.
 ///
-/// We use a reversed stack of the implementation, considering the following tree:
+/// A reversed stack of the implementation is used. Considering the following tree:
 ///
 /// ```text
 ///     A     G
@@ -76,7 +80,7 @@ fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
 /// D   E F
 /// ```
 ///
-/// The algorithm will create the following through iteration:
+/// the algorithm will create the following through iteration:
 ///
 /// ```text
 /// 1) Out: - Stack: [A, G]
