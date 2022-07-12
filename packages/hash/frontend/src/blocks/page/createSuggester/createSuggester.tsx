@@ -54,8 +54,6 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // the cursor's position inside its parent
   const cursorPos = cursor.parentOffset;
 
-  console.log({ ...cursor });
-
   // the parent's position relative to the document root
   const parentPos = cursor.pos - cursorPos;
 
