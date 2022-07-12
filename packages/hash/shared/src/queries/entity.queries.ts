@@ -4,7 +4,6 @@ import { linkFieldsFragment } from "./link.queries";
 const minimalEntityTypeFieldsFragment = gql`
   fragment MinimalEntityTypeFields on EntityType {
     entityId
-    entityTypeId
     properties
   }
 `;

@@ -230,9 +230,9 @@ export const convertApiLinkToBpLink = ({
     );
   }
 
-  if (destinationAccountId.includes("{")) {
+  if (destinationEntityId.includes("{")) {
     throw new Error(
-      `destinationAccountId has already been re-written as a stringified object: ${destinationAccountId}`,
+      `destinationEntityId has already been re-written as a stringified object: ${destinationEntityId}`,
     );
   }
 
@@ -423,17 +423,8 @@ export function convertApiLinkedAggregationToBpLinkedAggregation(
  */
 export const convertApiEntityTypeToBpEntityType = ({
   entityId,
-  entityTypeId,
   properties,
-}: Pick<
-  ApiEntityType,
-  "entityId" | "entityTypeId" | "properties"
->): BpEntityType => {
-  if (entityTypeId.includes("{")) {
-    throw new Error(
-      `entityTypeId has already been re-written as a stringified object: ${entityTypeId}`,
-    );
-  }
+}: Pick<ApiEntityType, "entityId" | "properties">): BpEntityType => {
   return {
     entityTypeId: entityId,
     schema: properties,

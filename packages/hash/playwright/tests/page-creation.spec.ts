@@ -119,7 +119,7 @@ test("user can create page", async ({ page }) => {
    *
    * @see https://app.asana.com/0/1201095311341924/1202033760322934/f
    */
-  await blockContextMenu.locator("text=Load Block").click();
+  await blockContextMenu.locator("text=Re-load Block").click();
 
   await expect(
     blockContextMenu.locator('[placeholder="Load Block from URL..."]'),
