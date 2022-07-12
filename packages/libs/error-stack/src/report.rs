@@ -362,7 +362,7 @@ impl<C> Report<C> {
     ///
     /// This function implements the same functionality as
     /// [`Extend::extend_one` (#7261)](https://github.com/rust-lang/rust/issues/72631).
-    /// Once stabilised this function will be deprecated in favor of [`Extend`].
+    /// Once stabilised this function will be removed in favor of [`Extend`].
     ///
     /// [`extend_one()`]: Self::extend_one
     // TODO: once #7261 is stabilized deprecate and remove this function
