@@ -242,6 +242,58 @@ pub fn expect_count(mut count: usize) -> usize {
     count
 }
 
+/// Helper macro used to match against the kinds.
+///
+/// Normally `assert(matches!(frames, [...]))` would be enough, but due to our architecture (we
+/// conditionally create a `Backtrace` and `SpanTrace` layer).
+/// We also need to check if those layers are present.
+///
+/// This isn't something can easily be done with a match statement,
+/// due to the possible permutations, depending on the platform support and features enabled.
+///
+/// Therefore this macro generates logic to accommodate for that problem.
+///
+/// The input is
+/// ```no_run
+/// assert_kinds!(report, [
+///     prefix_patterns
+///     => (trace)
+///     suffix_patterns
+/// ])
+/// ```
+///
+/// where `patterns` are normal match patterns, equivalent with the ones used as input in
+/// `assert!(matches!(frames, [patterns]))`.
+///
+/// The place where `=> (trace)` is used is where this macro inserts additional conditional code
+/// to test for backtrace and spantrace opaque layers.
+///
+/// This roughly compiles down to:
+///
+/// ```ignore
+/// let kinds = frame_kinds(report);
+/// let (lhs, rhs) = kinds.split_at(prefix_patterns.len());
+///
+/// assert!(matches!(kinds, prefix_patterns));
+///
+/// let rhs = rhs.into_iter();
+///
+/// if backtrace enabled and supported {
+///     assert!(matches!(rhs.next()), Some(Opaque Layer))
+/// }
+///
+/// if spantrace enabled and supported {
+///     assert!(matches!(rhs.next()), Some(Opaque Layer))
+/// }
+///
+/// for pattern in suffix_patterns {
+///     assert!(matches!(rhs.next()), Some(pattern))
+/// }
+///
+/// assert!(matches!(rhs.next()), None);
+/// ```
+///
+/// This is simplified pseudo-code to illustrate how the macro works.
 #[allow(unused_macros)]
 macro_rules! assert_kinds {
     (#count,) => {0usize};
