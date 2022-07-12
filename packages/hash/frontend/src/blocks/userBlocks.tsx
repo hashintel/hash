@@ -2,6 +2,7 @@ import {
   createContext,
   Dispatch,
   FC,
+  ReactNode,
   SetStateAction,
   useContext,
   useEffect,
@@ -22,10 +23,10 @@ interface UserBlocksContextState {
 /** @private enforces use of custom provider */
 const UserBlocksContext = createContext<UserBlocksContextState | null>(null);
 
-export const UserBlocksProvider: FC<{ value: BlocksMetaMap }> = ({
-  value: initialUserBlocks,
-  children,
-}) => {
+export const UserBlocksProvider: FC<{
+  value: BlocksMetaMap;
+  children?: ReactNode;
+}> = ({ value: initialUserBlocks, children }) => {
   const [value, setValue] = useCachedDefaultState(
     initialUserBlocks,
     "hash-workspace-user-blocks",

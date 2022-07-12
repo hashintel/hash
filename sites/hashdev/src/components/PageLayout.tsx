@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/system";
-import { FC } from "react";
+import { FC, ReactNode } from "react";
 import { Footer } from "./Footer";
 import { HiringBanner } from "./HiringBanner";
 import { Navbar } from "./Navbar";
@@ -8,7 +8,7 @@ import { PreFooter } from "./PreFooter";
 
 // @todo extract NavLink component
 
-export const PageLayout: FC<{ subscribe?: boolean }> = ({
+export const PageLayout: FC<{ children?: ReactNode; subscribe?: boolean }> = ({
   children,
   subscribe = true,
 }) => {

@@ -34,7 +34,7 @@ export const useCollabPositionReporter = (
 ): CollabPositionReporter => {
   const reportWithHeartbeatRef = useRef<CollabPositionReporter>(() => {});
 
-  const reportPosition = useCallback((entityId) => {
+  const reportPosition = useCallback((entityId: string | null) => {
     reportWithHeartbeatRef.current(entityId);
   }, []);
 

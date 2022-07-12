@@ -11,6 +11,7 @@ type ResizeBlockProps = {
   maxWidth: number;
   updateDimensions: (width: number, height: number) => void;
   shouldRespectAspectRatio: boolean;
+  children?: React.ReactNode;
 };
 
 const BLOCK_RESIZER_POSITIONS = [
