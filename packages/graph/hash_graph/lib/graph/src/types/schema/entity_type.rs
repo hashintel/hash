@@ -75,7 +75,7 @@ impl EntityType {
         }
     }
 
-    /// Creates a new `PropertyType`.
+    /// Creates a new `EntityType`.
     ///
     /// # Errors
     ///
