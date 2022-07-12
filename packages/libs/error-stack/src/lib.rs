@@ -443,6 +443,8 @@ mod context;
 mod ext;
 #[cfg(feature = "hooks")]
 mod hook;
+#[cfg(feature = "serde")]
+mod serde;
 
 #[doc(inline)]
 pub use self::ext::*;
