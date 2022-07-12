@@ -18,6 +18,21 @@ import {
   LinkedAggregation as ApiLinkedAggregation,
 } from "../graphql/apiTypes.gen";
 
+const isObject = (thing: unknown): thing is {} =>
+  typeof thing === "object" && thing !== null;
+
+const hasKey = <K extends string, T extends {}>(
+  key: K,
+  object: T,
+): object is T & Record<K, unknown> => key in object;
+
+const hasKeyForString = <K extends string, T extends {}>(
+  key: K,
+  object: T,
+): object is T & Record<K, string> => {
+  return hasKey(key, object) && typeof object[key] === "string";
+};
+
 export type ApiEntityIdentifier = {
   accountId: string;
   entityId: string;
@@ -79,7 +94,7 @@ export const convertApiEntitiesToBpEntities = (
 export function parseEntityIdentifier(
   stringifiedIdentifier: string,
 ): ApiEntityIdentifier {
-  let identifierObject: ApiEntityIdentifier;
+  let identifierObject: unknown;
   try {
     identifierObject = JSON.parse(stringifiedIdentifier);
   } catch (err) {
@@ -88,7 +103,15 @@ export function parseEntityIdentifier(
     );
   }
 
-  if (!identifierObject.accountId) {
+  if (!isObject(identifierObject)) {
+    throw new Error(
+      `Parsed entity identifier is not an object: ${JSON.stringify(
+        identifierObject,
+      )}`,
+    );
+  }
+
+  if (!hasKeyForString("accountId", identifierObject)) {
     throw new Error(
       `Parsed identifier for Entity does not contain accountId key. Provided identifier: ${JSON.stringify(
         identifierObject,
@@ -98,7 +121,7 @@ export function parseEntityIdentifier(
     );
   }
 
-  if (!identifierObject.entityId) {
+  if (!hasKeyForString("entityId", identifierObject)) {
     throw new Error(
       `Parsed identifier for Entity does not contain entityId key. Provided identifier: ${JSON.stringify(
         identifierObject,
@@ -132,7 +155,7 @@ const rewriteLinkIdentifier = ({ accountId, linkId }: ApiLinkIdentifier) =>
 export const parseLinkIdentifier = (
   stringifiedLinkId: string,
 ): ApiLinkIdentifier => {
-  let identifierObject: ApiLinkIdentifier;
+  let identifierObject: unknown;
   try {
     identifierObject = JSON.parse(stringifiedLinkId);
   } catch (err) {
@@ -141,7 +164,15 @@ export const parseLinkIdentifier = (
     );
   }
 
-  if (!identifierObject.accountId) {
+  if (!isObject(identifierObject)) {
+    throw new Error(
+      `Parsed link identifier is not an object: ${JSON.stringify(
+        identifierObject,
+      )}`,
+    );
+  }
+
+  if (!hasKeyForString("accountId", identifierObject)) {
     throw new Error(
       `Parsed identifier for Link does not contain accountId key. Provided identifier: ${JSON.stringify(
         identifierObject,
@@ -151,7 +182,7 @@ export const parseLinkIdentifier = (
     );
   }
 
-  if (!identifierObject.linkId) {
+  if (!hasKeyForString("linkId", identifierObject)) {
     throw new Error(
       `Parsed identifier for Link does not contain linkId key. Provided identifier: ${JSON.stringify(
         identifierObject,
@@ -260,7 +291,15 @@ export const parseLinkedAggregationIdentifier = (
     );
   }
 
-  if (!identifierObject.accountId) {
+  if (!isObject(identifierObject)) {
+    throw new Error(
+      `Parsed aggregation identifier is not an object: ${JSON.stringify(
+        identifierObject,
+      )}`,
+    );
+  }
+
+  if (!hasKeyForString("accountId", identifierObject)) {
     throw new Error(
       `Parsed identifier for LinkedAggregation does not contain accountId key. Provided identifier: ${JSON.stringify(
         identifierObject,
@@ -270,7 +309,7 @@ export const parseLinkedAggregationIdentifier = (
     );
   }
 
-  if (!identifierObject.aggregationId) {
+  if (!hasKeyForString("aggregationId", identifierObject)) {
     throw new Error(
       `Parsed identifier for LinkedAggregation does not contain aggregationId key. Provided identifier: ${JSON.stringify(
         identifierObject,
