@@ -156,7 +156,7 @@ fn anyhow_output() {
     assert_eq!(anyhow_display_extended, context_display_extended);
 }
 
-#[cfg(all(feature = "eyre"))]
+#[cfg(feature = "eyre")]
 fn install_eyre_hook() {
     static ONCE: std::sync::Once = Once::new();
 

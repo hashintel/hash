@@ -250,8 +250,6 @@
 //! # }
 //! ```
 //!
-//! [`Extend`]: std::iter::Extend
-//!
 //! # In-Depth Explanation
 //!
 //! ## Crate Philosophy
@@ -407,9 +405,6 @@
 //! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
-//!
-//! You can enable further size optimizations, by including [`smallvec`] in your dependencies and
-//! enabling the `union` feature. This will reduce the size of [`Report`] by one machine word.
 //!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
