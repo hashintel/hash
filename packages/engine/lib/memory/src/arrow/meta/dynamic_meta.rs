@@ -66,7 +66,7 @@ impl DynamicMetadata {
         }
     }
 
-    /// Constructs the relevant [`Dynamic`] metadata from the given [`arrow::ipc::RecordBatch`]
+    /// Constructs the relevant [`DynamicMetadata`] from the given [`arrow::ipc::RecordBatch`]
     /// message (note: not [`arrow::record_batch::RecordBatch`]).
     pub fn from_record_batch(
         record_batch: &ipc::RecordBatch<'_>,
