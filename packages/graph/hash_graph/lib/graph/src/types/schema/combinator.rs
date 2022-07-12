@@ -6,14 +6,14 @@ use crate::types::schema::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum Optional<T> {
     None {},
     Some(T),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum ValueOrArray<T> {
     Value(T),
     Array(Itemized<Array, T>),
@@ -26,7 +26,7 @@ pub struct OneOfRepr<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(try_from = "OneOfRepr<T>", rename_all = "camelCase")]
+#[serde(try_from = "OneOfRepr<T>")]
 pub struct OneOf<T> {
     #[serde(flatten)]
     repr: OneOfRepr<T>,

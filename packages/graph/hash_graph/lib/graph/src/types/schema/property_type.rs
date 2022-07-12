@@ -163,7 +163,14 @@ mod tests {
     use super::*;
 
     fn test_property_type_schema(schema: serde_json::Value) -> PropertyType {
-        serde_json::from_value::<PropertyType>(schema).expect("Not a valid schema")
+        let property_type: PropertyType =
+            serde_json::from_value(schema.clone()).expect("invalid schema");
+        assert_eq!(
+            serde_json::to_value(property_type.clone()).expect("Could not serialize"),
+            schema,
+            "{property_type:#?}"
+        );
+        property_type
     }
 
     fn test_property_type_data_refs(

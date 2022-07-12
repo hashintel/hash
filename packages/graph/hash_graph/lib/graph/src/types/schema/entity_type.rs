@@ -26,15 +26,15 @@ pub struct EntityTypeRepr {
     title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     default: HashMap<Uri, serde_json::Value>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     examples: Vec<HashMap<Uri, serde_json::Value>>,
     #[serde(flatten)]
     properties: Object<PropertyTypeReference>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     links: HashMap<String, Optional<MaybeOrdered<Array>>>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     required_links: Vec<String>,
 }
 
@@ -193,7 +193,14 @@ mod tests {
     use super::*;
 
     fn test_entity_type_schema(schema: serde_json::Value) -> EntityType {
-        serde_json::from_value(schema).expect("invalid schema")
+        let entity_type: EntityType =
+            serde_json::from_value(schema.clone()).expect("invalid schema");
+        assert_eq!(
+            serde_json::to_value(entity_type.clone()).expect("Could not serialize"),
+            schema,
+            "{entity_type:#?}"
+        );
+        entity_type
     }
 
     fn test_property_refs(entity_type: &EntityType, uris: impl IntoIterator<Item = &'static str>) {
