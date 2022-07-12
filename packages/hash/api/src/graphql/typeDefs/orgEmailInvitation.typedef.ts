@@ -70,7 +70,6 @@ export const orgEmailInvitationTypedef = gql`
     The version timeline of the entity.
     """
     history: [EntityVersion!]
-
     """
     The outgoing links of the entity.
     """
