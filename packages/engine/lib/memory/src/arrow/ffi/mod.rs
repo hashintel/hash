@@ -6,7 +6,7 @@ use std::{ffi::c_void, os::raw::c_char, sync::Arc};
 
 use arrow::ipc;
 
-use super::meta::{Dynamic, Static};
+use super::meta::{DynamicMetadata, StaticMetadata};
 use crate::{
     arrow::meta,
     shared_memory::{CSegment, Segment},
@@ -57,11 +57,11 @@ pub struct ArrowArray {
 
 // Call this at the beginning of the experiment runs
 #[no_mangle]
-unsafe extern "C" fn get_static_metadata(schema: usize) -> *const meta::Static {
+unsafe extern "C" fn get_static_metadata(schema: usize) -> *const meta::StaticMetadata {
     let schema = schema as *const ArrowSchema;
     match schema_conversion::c_schema_to_rust(&*schema) {
         Ok(rust_schema) => {
-            let meta = Static::from_schema(Arc::new(rust_schema));
+            let meta = StaticMetadata::from_schema(Arc::new(rust_schema));
             let boxed = Box::new(meta);
             Box::into_raw(boxed)
         }
@@ -73,7 +73,7 @@ unsafe extern "C" fn get_static_metadata(schema: usize) -> *const meta::Static {
 }
 
 #[no_mangle]
-unsafe extern "C" fn free_static_metadata(ptr: *mut meta::Static) {
+unsafe extern "C" fn free_static_metadata(ptr: *mut meta::StaticMetadata) {
     if !ptr.is_null() {
         Box::from_raw(ptr);
     }
@@ -94,7 +94,9 @@ unsafe extern "C" fn free_c_arrow_array(array: usize) {
 // Call this when a new batch is loaded
 // Lifetime: lifetime of batch
 #[no_mangle]
-unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CSegment) -> *const meta::Dynamic {
+unsafe extern "C" fn get_dynamic_metadata(
+    memory_ptr: *const CSegment,
+) -> *const meta::DynamicMetadata {
     let c_memory = &*memory_ptr;
     let segment = &mut *(c_memory.segment as *mut Segment);
     match segment.get_metadata() {
@@ -114,13 +116,14 @@ unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CSegment) -> *const
             };
             // Can't fail if memory.get_metadata worked
             let data_buffer_len = segment.get_data_buffer_len().unwrap();
-            let dynamic_meta = match Dynamic::from_record_batch(&batch_message, data_buffer_len) {
-                Ok(ret) => ret,
-                Err(why) => {
-                    tracing::error!("Error in `get_dynamic_metadata`: {:?}", &why);
-                    return std::ptr::null();
-                }
-            };
+            let dynamic_meta =
+                match DynamicMetadata::from_record_batch(&batch_message, data_buffer_len) {
+                    Ok(ret) => ret,
+                    Err(why) => {
+                        tracing::error!("Error in `get_dynamic_metadata`: {:?}", &why);
+                        return std::ptr::null();
+                    }
+                };
             let boxed = Box::new(dynamic_meta);
             Box::into_raw(boxed)
         }
@@ -132,7 +135,7 @@ unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CSegment) -> *const
 }
 
 #[no_mangle]
-unsafe extern "C" fn free_dynamic_metadata(ptr: *mut meta::Dynamic) {
+unsafe extern "C" fn free_dynamic_metadata(ptr: *mut meta::DynamicMetadata) {
     if !ptr.is_null() {
         Box::from_raw(ptr);
     }

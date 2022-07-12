@@ -11,7 +11,7 @@ use crate::{
 /// It contains the Nodes and Buffers that are also in the metadata buffer of a shared batch. This
 /// metadata can be modified and later used to overwrite shared batch Arrow metadata
 #[derive(Debug, Clone)]
-pub struct Dynamic {
+pub struct DynamicMetadata {
     /// Agent count i.e. row count
     pub length: usize,
     /// Length of the data buffer
@@ -22,15 +22,15 @@ pub struct Dynamic {
     pub buffers: Vec<Buffer>,
 }
 
-impl Dynamic {
+impl DynamicMetadata {
     #[must_use]
     pub fn new(
         length: usize,
         data_length: usize,
         nodes: Vec<Node>,
         buffers: Vec<Buffer>,
-    ) -> Dynamic {
-        Dynamic {
+    ) -> DynamicMetadata {
+        DynamicMetadata {
             length,
             data_length,
             nodes,
@@ -41,7 +41,7 @@ impl Dynamic {
     pub fn from_column_dynamic_meta_list(
         cols: &[ColumnDynamicMetadata],
         num_elements: usize,
-    ) -> Dynamic {
+    ) -> DynamicMetadata {
         let nodes = cols.iter().flat_map(|meta| meta.nodes()).cloned().collect();
         let mut buffers = Vec::with_capacity(cols.iter().map(|d| d.buffers.len()).sum());
         let mut next_offset = 0;
@@ -58,7 +58,7 @@ impl Dynamic {
             .last()
             .map(|buffer: &Buffer| buffer.get_next_offset())
             .unwrap_or(0);
-        Dynamic {
+        DynamicMetadata {
             length: num_elements,
             data_length,
             nodes,
@@ -104,7 +104,7 @@ impl Dynamic {
             })
             .collect::<crate::Result<_>>()?;
 
-        Ok(Dynamic {
+        Ok(DynamicMetadata {
             length: record_batch.length() as usize,
             data_length,
             nodes,

@@ -10,7 +10,7 @@ use crate::{
         change::ColumnChange,
         flush::GrowableBatch,
         load,
-        meta::{self, Dynamic},
+        meta::{self, DynamicMetadata},
     },
     error::{Error, Result},
     shared_memory::{Metaversion, Segment},
@@ -25,10 +25,10 @@ pub struct ArrowBatch {
 
     /// Metadata referring to positions, sizes, null counts and value counts of different Arrow
     /// buffers.
-    dynamic_meta: meta::Dynamic,
+    dynamic_meta: meta::DynamicMetadata,
 
     /// Map of which Arrow `Buffer`s and `FieldNode`s correspond to which column.
-    static_meta: Arc<meta::Static>,
+    static_meta: Arc<meta::StaticMetadata>,
 
     /// When growable columns are modified, their Arrow intermediate column representations are
     /// kept here and wait for the `self.flush_changes()` call, which inserts them into
@@ -43,8 +43,8 @@ impl ArrowBatch {
     pub fn new(
         segment: Segment,
         record_batch: RecordBatch,
-        dynamic_meta: meta::Dynamic,
-        static_meta: Arc<meta::Static>,
+        dynamic_meta: meta::DynamicMetadata,
+        static_meta: Arc<meta::StaticMetadata>,
         changes: Vec<ColumnChange>,
         loaded_metaversion: Metaversion,
     ) -> Self {
@@ -119,7 +119,7 @@ impl ArrowBatch {
             "Can't reload record batch; see validate_markers"
         );
         let record_batch_message = load::record_batch_message(&self.segment)?;
-        let dynamic_meta = Dynamic::from_record_batch(
+        let dynamic_meta = DynamicMetadata::from_record_batch(
             &record_batch_message,
             self.segment().get_data_buffer()?.len(),
         )?;
@@ -137,11 +137,11 @@ impl ArrowBatch {
     }
 
     // Have to implement twice, because GrowableBatch trait isn't public.
-    pub fn static_meta(&self) -> &meta::Static {
+    pub fn static_meta(&self) -> &meta::StaticMetadata {
         &self.static_meta
     }
 
-    pub fn dynamic_meta(&self) -> &meta::Dynamic {
+    pub fn dynamic_meta(&self) -> &meta::DynamicMetadata {
         &self.dynamic_meta
     }
 
@@ -329,15 +329,15 @@ impl ArrowBatch {
 }
 
 impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
-    fn static_meta(&self) -> &meta::Static {
+    fn static_meta(&self) -> &meta::StaticMetadata {
         &self.static_meta
     }
 
-    fn dynamic_meta(&self) -> &meta::Dynamic {
+    fn dynamic_meta(&self) -> &meta::DynamicMetadata {
         &self.dynamic_meta
     }
 
-    fn dynamic_meta_mut(&mut self) -> &mut meta::Dynamic {
+    fn dynamic_meta_mut(&mut self) -> &mut meta::DynamicMetadata {
         &mut self.dynamic_meta
     }
 

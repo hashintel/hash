@@ -114,8 +114,10 @@ impl ContextBatch {
             .iter()
             .map(|column_writer| column_writer.dynamic_metadata())
             .collect::<Result<Vec<_>>>()?;
-        let dynamic =
-            meta::Dynamic::from_column_dynamic_meta_list(&column_dynamic_meta_list, num_agents);
+        let dynamic = meta::DynamicMetadata::from_column_dynamic_meta_list(
+            &column_dynamic_meta_list,
+            num_agents,
+        );
 
         let current_data_size = self.segment.get_data_buffer_len()?;
         if current_data_size < dynamic.data_length {
