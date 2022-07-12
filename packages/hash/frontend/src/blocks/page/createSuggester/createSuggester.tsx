@@ -25,6 +25,7 @@ interface Trigger {
   from: number;
   /** ending prosemirror document position */
   to: number;
+  isEmptyBlock: boolean;
 }
 
 /**
@@ -53,6 +54,8 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // the cursor's position inside its parent
   const cursorPos = cursor.parentOffset;
 
+  console.log({ ...cursor });
+
   // the parent's position relative to the document root
   const parentPos = cursor.pos - cursorPos;
 
@@ -71,6 +74,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
     from,
     to,
     char: match[1] as Trigger["char"],
+    isEmptyBlock: cursor.parentOffset <= 1,
   };
 };
 
@@ -162,7 +166,13 @@ export const createSuggester = (
 
           if (!state.isOpen()) return this.destroy!();
 
-          const { from, to, search, char: triggerChar } = state.trigger!;
+          const {
+            from,
+            to,
+            search,
+            char: triggerChar,
+            isEmptyBlock,
+          } = state.trigger!;
           const coords = view.coordsAtPos(from);
 
           const style: CSSProperties = {
@@ -182,16 +192,24 @@ export const createSuggester = (
             getManager()
               .createRemoteBlockTr(blockMeta.componentId, null, variant)
               .then(([tr, node, meta]) => {
-                const $end = view.state.doc.resolve(to);
-                const endPosition = $end.end(1);
-                tr.insert(endPosition, node);
+                const endPosition = view.state.doc.resolve(to).pos;
 
-                if (blockComponentRequiresText(meta.componentSchema)) {
-                  tr.setSelection(
-                    TextSelection.create<Schema>(tr.doc, endPosition),
-                  );
+                // if it's an empty block replace current node
+                if (isEmptyBlock) {
+                  tr.replaceRangeWith(from, endPosition, node);
+
+                  if (blockComponentRequiresText(meta.componentSchema)) {
+                    tr.setSelection(TextSelection.create<Schema>(tr.doc, from));
+                  }
+                } else {
+                  tr.insert(endPosition, node);
+                  if (blockComponentRequiresText(meta.componentSchema)) {
+                    tr.setSelection(
+                      TextSelection.create<Schema>(tr.doc, endPosition),
+                    );
+                  }
+                  tr.replaceWith(from, to, []);
                 }
-                tr.replaceWith(from, to, []);
 
                 view.dispatch(tr);
               })
