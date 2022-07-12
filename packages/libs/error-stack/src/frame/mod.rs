@@ -31,24 +31,38 @@ impl Frame {
         self.frame.location()
     }
 
+    #[allow(missing_docs)]
+    #[must_use]
+    #[deprecated = "use `sources()` instead"]
+    pub fn source(&self) -> Option<&Self> {
+        self.frame.sources().first()
+    }
+
     /// Returns a shared reference to the source of this `Frame`.
     ///
     /// This corresponds to the `Frame` below this one in a [`Report`].
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub fn source(&self) -> Option<&Self> {
-        self.frame.source()
+    pub fn sources(&self) -> &[Self] {
+        self.frame.sources()
     }
 
-    /// Returns a mutable reference to the source of this `Frame`.
+    #[allow(missing_docs)]
+    #[must_use]
+    #[deprecated = "use `sources_mut()` instead"]
+    pub fn source_mut(&mut self) -> Option<&mut Self> {
+        self.frame.sources_mut().first_mut()
+    }
+
+    /// Returns a mutable reference to the sources of this `Frame`.
     ///
     /// This corresponds to the `Frame` below this one in a [`Report`].
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub fn source_mut(&mut self) -> Option<&mut Self> {
-        self.frame.source_mut()
+    pub fn sources_mut(&mut self) -> &mut [Self] {
+        self.frame.sources_mut()
     }
 
     /// Returns how the `Frame` was created.

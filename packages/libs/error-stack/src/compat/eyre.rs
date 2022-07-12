@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
 use core::{fmt, panic::Location};
@@ -61,31 +62,44 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
         match self {
             Ok(t) => Ok(t),
             Err(eyre) => {
+                // we cannot use `Report::new()` directly, due to the fact that it captures traces,
+                // regardless of the fact if eyre already provided one.
+
+                // only capture a backtrace if needed, otherwise the eyre context provides one
+                #[cfg(all(nightly, feature = "std"))]
+                let backtrace = eyre
+                    .deref()
+                    .backtrace()
+                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured))
+                    .is_none()
+                    .then(Backtrace::capture)
+                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured));
+
+                #[cfg(feature = "spantrace")]
+                let spantrace = Some(tracing_error::SpanTrace::capture())
+                    .filter(|st| st.status() == tracing_error::SpanTraceStatus::CAPTURED);
+
                 let sources = eyre
                     .chain()
                     .skip(1)
                     .map(alloc::string::ToString::to_string)
                     .collect::<alloc::vec::Vec<_>>();
 
-                #[cfg(all(nightly, feature = "std"))]
-                let backtrace = if eyre
-                    .deref()
-                    .backtrace()
-                    .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
-                    .is_some()
-                {
-                    None
-                } else {
-                    Some(Backtrace::capture())
-                };
+                let mut report = Report::from_frame(Frame::from_context(
+                    EyreContext(eyre),
+                    Location::caller(),
+                    Box::new([]),
+                ));
 
-                let mut report = Report::from_frame(
-                    Frame::from_context(EyreContext(eyre), Location::caller(), None),
-                    #[cfg(all(nightly, feature = "std"))]
-                    backtrace,
-                    #[cfg(feature = "spantrace")]
-                    Some(tracing_error::SpanTrace::capture()),
-                );
+                #[cfg(all(nightly, feature = "std"))]
+                if let Some(backtrace) = backtrace {
+                    report = report.attach(backtrace);
+                }
+
+                #[cfg(feature = "spantrace")]
+                if let Some(spantrace) = spantrace {
+                    report = report.attach(spantrace);
+                }
 
                 for source in sources {
                     report = report.attach_printable(source);
