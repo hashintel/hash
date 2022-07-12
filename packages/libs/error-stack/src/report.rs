@@ -323,9 +323,7 @@ impl<C> Report<C> {
     ///     path::Path,
     /// };
     ///
-    /// use error_stack::{Context, Report};
-    /// # #[cfg(all(not(miri), feature = "std"))]
-    /// use error_stack::{IntoReport, ResultExt};
+    /// use error_stack::{Context, Report, IntoReport, ResultExt};
     ///
     /// #[derive(Debug)]
     /// struct IoError;
@@ -363,7 +361,12 @@ impl<C> Report<C> {
     /// // error3.extend_one(error2);
     /// ```
     ///
+    /// This function implements the same functionality as
+    /// [`Extend::extend_one` (#7261)](https://github.com/rust-lang/rust/issues/72631).
+    /// Once stabilised this function will be deprecated in favor of [`Extend`].
+    ///
     /// [`extend_one()`]: Self::extend_one
+    // TODO: once #7261 is stabilized deprecate and remove this function
     pub fn extend_one(&mut self, mut report: Self) {
         self.frames.append(&mut report.frames);
     }
