@@ -36,7 +36,7 @@ impl PropertyTypeReference {
 #[allow(clippy::enum_variant_names)]
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
-    // TODO: Check if `Objcet::properties` matches the URI specified in `PropertyTypeReference`
+    // TODO: Check if `Object::properties` matches the URI specified in `PropertyTypeReference`
     PropertyTypeObject(Object<ValueOrArray<PropertyTypeReference>, 1>),
     ArrayOfPropertyValues(Itemized<Array, OneOf<Self>>),
 }

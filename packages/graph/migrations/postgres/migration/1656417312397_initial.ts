@@ -149,6 +149,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "UUID",
         primaryKey: true,
         references: "ids",
+        onDelete: "CASCADE",
       },
       schema: {
         type: "JSONB",

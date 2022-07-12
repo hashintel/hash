@@ -9,6 +9,7 @@ mod array;
 mod combinator;
 mod data_type;
 mod entity_type;
+mod link;
 mod object;
 mod property_type;
 

@@ -5,11 +5,13 @@ use serde::{Deserialize, Serialize};
 use crate::types::schema::{
     array::{Array, MaybeOrdered},
     combinator::Optional,
+    link::Links,
     object::Object,
     property_type::PropertyTypeReference,
     Uri, ValidationError,
 };
 
+/// Will serialize as a constant value `"entityType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(clippy::use_self)]
@@ -17,9 +19,10 @@ pub enum EntityTypeTag {
     EntityType,
 }
 
+/// Intermediate representation used during deserialization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct EntityTypeRepr {
+pub struct EntityType {
     kind: EntityTypeTag,
     #[serde(rename = "$id")]
     id: Uri,
@@ -31,18 +34,9 @@ pub struct EntityTypeRepr {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     examples: Vec<HashMap<Uri, serde_json::Value>>,
     #[serde(flatten)]
-    properties: Object<PropertyTypeReference>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    required_links: Vec<Uri>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(try_from = "EntityTypeRepr")]
-pub struct EntityType {
+    property_object: Object<PropertyTypeReference>,
     #[serde(flatten)]
-    repr: EntityTypeRepr,
+    links: Links,
 }
 
 impl EntityType {
@@ -51,27 +45,24 @@ impl EntityType {
     #[allow(clippy::too_many_arguments)]
     pub fn new_unchecked(
         id: Uri,
-        title: impl Into<String>,
-        description: impl Into<Option<String>>,
-        default: impl Into<HashMap<Uri, serde_json::Value>>,
-        examples: impl Into<Vec<HashMap<Uri, serde_json::Value>>>,
-        properties: impl Into<HashMap<Uri, PropertyTypeReference>>,
-        required: impl Into<Vec<Uri>>,
-        links: impl Into<HashMap<Uri, Optional<MaybeOrdered<Array>>>>,
-        required_links: impl Into<Vec<Uri>>,
+        title: String,
+        description: Option<String>,
+        default: HashMap<Uri, serde_json::Value>,
+        examples: Vec<HashMap<Uri, serde_json::Value>>,
+        properties: HashMap<Uri, PropertyTypeReference>,
+        required: Vec<Uri>,
+        links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
+        required_links: Vec<Uri>,
     ) -> Self {
         Self {
-            repr: EntityTypeRepr {
-                kind: EntityTypeTag::EntityType,
-                id,
-                title: title.into(),
-                description: description.into(),
-                default: default.into(),
-                examples: examples.into(),
-                properties: Object::new_unchecked(properties, required),
-                links: links.into(),
-                required_links: required_links.into(),
-            },
+            kind: EntityTypeTag::EntityType,
+            id,
+            title,
+            description,
+            default,
+            examples,
+            property_object: Object::new_unchecked(properties, required),
+            links: Links::new_unchecked(links, required_links),
         }
     }
 
@@ -85,84 +76,70 @@ impl EntityType {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uri,
-        title: impl Into<String>,
-        description: impl Into<Option<String>>,
-        default: impl Into<HashMap<Uri, serde_json::Value>>,
-        examples: impl Into<Vec<HashMap<Uri, serde_json::Value>>>,
-        properties: impl Into<HashMap<Uri, PropertyTypeReference>>,
-        required: impl Into<Vec<Uri>>,
-        links: impl Into<HashMap<Uri, Optional<MaybeOrdered<Array>>>>,
-        required_links: impl Into<Vec<Uri>>,
+        title: String,
+        description: Option<String>,
+        default: HashMap<Uri, serde_json::Value>,
+        examples: Vec<HashMap<Uri, serde_json::Value>>,
+        properties: HashMap<Uri, PropertyTypeReference>,
+        required: Vec<Uri>,
+        links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
+        required_links: Vec<Uri>,
     ) -> Result<Self, ValidationError> {
-        let entity_type = Self {
-            repr: EntityTypeRepr {
-                kind: EntityTypeTag::EntityType,
-                id,
-                title: title.into(),
-                description: description.into(),
-                default: default.into(),
-                examples: examples.into(),
-                properties: Object::new(properties, required)?,
-                links: links.into(),
-                required_links: required_links.into(),
-            },
-        };
-        entity_type.validate()?;
-        Ok(entity_type)
-    }
-
-    fn validate(&self) -> Result<(), ValidationError> {
-        for link in self.required_links() {
-            if !self.links().contains_key(link) {
-                return Err(ValidationError::MissingRequiredLink(link.clone()));
-            }
-        }
-        Ok(())
+        Ok(Self {
+            kind: EntityTypeTag::EntityType,
+            id,
+            title,
+            description,
+            default,
+            examples,
+            property_object: Object::new(properties, required)?,
+            links: Links::new(links, required_links)?,
+        })
     }
 
     #[must_use]
     pub const fn id(&self) -> &Uri {
-        &self.repr.id
+        &self.id
     }
 
     #[must_use]
     pub fn title(&self) -> &str {
-        &self.repr.title
+        &self.title
     }
 
     #[must_use]
     pub fn description(&self) -> Option<&str> {
-        self.repr.description.as_deref()
+        self.description.as_deref()
     }
 
     #[must_use]
     pub const fn default(&self) -> &HashMap<Uri, serde_json::Value> {
-        &self.repr.default
+        &self.default
     }
 
     #[must_use]
     pub const fn examples(&self) -> &Vec<HashMap<Uri, serde_json::Value>> {
-        &self.repr.examples
+        &self.examples
     }
 
     #[must_use]
     pub const fn properties(&self) -> &HashMap<Uri, PropertyTypeReference> {
-        self.repr.properties.properties()
+        self.property_object.properties()
     }
 
     #[must_use]
     pub fn required(&self) -> &[Uri] {
-        self.repr.properties.required()
+        self.property_object.required()
     }
 
     #[must_use]
     pub const fn links(&self) -> &HashMap<Uri, Optional<MaybeOrdered<Array>>> {
-        &self.repr.links
+        self.links.links()
     }
 
     #[must_use]
     pub fn required_links(&self) -> &[Uri] {
-        &self.repr.required_links
+        self.links.required()
     }
 
     #[must_use]
@@ -173,16 +150,6 @@ impl EntityType {
     #[must_use]
     pub fn link_references(&self) -> HashSet<&Uri> {
         self.links().iter().map(|(link, _)| link).collect()
-    }
-}
-
-impl TryFrom<EntityTypeRepr> for EntityType {
-    type Error = ValidationError;
-
-    fn try_from(entity_type: EntityTypeRepr) -> Result<Self, ValidationError> {
-        let entity_type = Self { repr: entity_type };
-        entity_type.validate()?;
-        Ok(entity_type)
     }
 }
 
@@ -405,7 +372,7 @@ mod tests {
     fn song() {
         let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/Song",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/song",
             "type": "object",
             "title": "Song",
             "properties": {
@@ -440,7 +407,7 @@ mod tests {
                     "type": "array",
                     "ordered": true
                 }
-            }
+            },
         }));
 
         test_property_refs(&entity_type, [

@@ -54,19 +54,20 @@ pub struct DataType {
 
 impl DataType {
     /// Creates a new `DataType`.
-    pub fn new(
+    #[must_use]
+    pub const fn new(
         id: Uri,
-        title: impl Into<String>,
-        description: impl Into<Option<String>>,
-        json_type: impl Into<String>,
+        title: String,
+        description: Option<String>,
+        json_type: String,
         additional_properties: HashMap<String, serde_json::Value>,
     ) -> Self {
         Self {
             kind: DataTypeTag::DataType,
             id,
-            title: title.into(),
-            description: description.into(),
-            json_type: json_type.into(),
+            title,
+            description,
+            json_type,
             additional_properties,
         }
     }
@@ -106,9 +107,9 @@ impl DataType {
     pub fn text() -> Self {
         Self::new(
             Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/text"),
-            "Text",
-            "An ordered sequence of characters".to_owned(),
-            "string",
+            "Text".to_owned(),
+            Some("An ordered sequence of characters".to_owned()),
+            "string".to_owned(),
             HashMap::default(),
         )
     }
@@ -118,9 +119,9 @@ impl DataType {
     pub fn number() -> Self {
         Self::new(
             Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/number"),
-            "Number",
-            "An arithmetical value (in the Real number system)".to_owned(),
-            "number",
+            "Number".to_owned(),
+            Some("An arithmetical value (in the Real number system)".to_owned()),
+            "number".to_owned(),
             HashMap::default(),
         )
     }
@@ -130,9 +131,9 @@ impl DataType {
     pub fn boolean() -> Self {
         Self::new(
             Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/boolean"),
-            "Boolean",
-            "A True or False value".to_owned(),
-            "boolean",
+            "Boolean".to_owned(),
+            Some("A True or False value".to_owned()),
+            "boolean".to_owned(),
             HashMap::default(),
         )
     }
@@ -142,9 +143,9 @@ impl DataType {
     pub fn null() -> Self {
         Self::new(
             Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/null"),
-            "Null",
-            "A placeholder value representing 'nothing'".to_owned(),
-            "null",
+            "Null".to_owned(),
+            Some("A placeholder value representing 'nothing'".to_owned()),
+            "null".to_owned(),
             HashMap::default(),
         )
     }
@@ -154,9 +155,9 @@ impl DataType {
     pub fn object() -> Self {
         Self::new(
             Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/object"),
-            "Object",
-            "A plain JSON object with no pre-defined structure".to_owned(),
-            "object",
+            "Object".to_owned(),
+            Some("A plain JSON object with no pre-defined structure".to_owned()),
+            "object".to_owned(),
             HashMap::default(),
         )
     }
@@ -166,9 +167,9 @@ impl DataType {
     pub fn empty_list() -> Self {
         Self::new(
             Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/empty-list"),
-            "Empty List",
-            "An Empty List".to_owned(),
-            "array",
+            "Empty List".to_owned(),
+            Some("An Empty List".to_owned()),
+            "array".to_owned(),
             [("const".to_owned(), json!([]))].into_iter().collect(),
         )
     }

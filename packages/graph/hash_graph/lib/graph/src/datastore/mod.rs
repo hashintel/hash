@@ -11,7 +11,7 @@ pub use self::{
     postgres::PostgresDatabase,
 };
 use crate::types::{
-    schema::{DataType, PropertyType},
+    schema::{DataType, EntityType, PropertyType},
     AccountId, Qualified, VersionId,
 };
 
@@ -206,13 +206,24 @@ pub trait Datastore: Clone + Send + Sync + 'static {
         updated_by: AccountId,
     ) -> Result<Qualified<PropertyType>, UpdateError>;
 
-    async fn create_entity_type() -> Result<(), InsertionError>;
+    async fn create_entity_type(
+        &mut self,
+        entity_type: EntityType,
+        created_by: AccountId,
+    ) -> Result<Qualified<EntityType>, InsertionError>;
 
-    async fn get_entity_type() -> Result<(), QueryError>;
+    async fn get_entity_type(
+        &self,
+        version_id: VersionId,
+    ) -> Result<Qualified<EntityType>, QueryError>;
 
     async fn get_entity_type_many() -> Result<(), QueryError>;
 
-    async fn update_entity_type() -> Result<(), UpdateError>;
+    async fn update_entity_type(
+        &mut self,
+        entity_type: EntityType,
+        updated_by: AccountId,
+    ) -> Result<Qualified<EntityType>, UpdateError>;
 
     // TODO - perhaps we want to separate the Datastore into the Type Graph and the Data Graph
 
