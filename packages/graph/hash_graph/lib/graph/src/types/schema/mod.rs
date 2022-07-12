@@ -27,7 +27,7 @@ pub enum ValidationError {
     MissingRequiredLink(Uri),
     /// At least `expected` number of properties are required, but only `actual` were provided.
     MismatchedPropertyCount { actual: usize, expected: usize },
-    /// [`OneOf`] requires at least one element.
+    /// `oneOf` requires at least one element.
     EmptyOneOf,
 }
 
