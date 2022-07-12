@@ -24,7 +24,7 @@ pub enum ValidationError {
     /// the `properties`.
     MissingRequiredProperty(Uri),
     /// A schema has marked a link as required but the link does not exist in schema.
-    MissingRequiredLink(String),
+    MissingRequiredLink(Uri),
     /// At least `expected` number of properties are required, but only `actual` were provided.
     MismatchedPropertyCount { actual: usize, expected: usize },
     /// [`OneOf`] requires at least one element.

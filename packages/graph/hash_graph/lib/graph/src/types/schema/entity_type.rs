@@ -33,9 +33,9 @@ pub struct EntityTypeRepr {
     #[serde(flatten)]
     properties: Object<PropertyTypeReference>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    links: HashMap<String, Optional<MaybeOrdered<Array>>>,
+    links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    required_links: Vec<String>,
+    required_links: Vec<Uri>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,8 +57,8 @@ impl EntityType {
         examples: impl Into<Vec<HashMap<Uri, serde_json::Value>>>,
         properties: impl Into<HashMap<Uri, PropertyTypeReference>>,
         required: impl Into<Vec<Uri>>,
-        links: impl Into<HashMap<String, Optional<MaybeOrdered<Array>>>>,
-        required_links: impl Into<Vec<String>>,
+        links: impl Into<HashMap<Uri, Optional<MaybeOrdered<Array>>>>,
+        required_links: impl Into<Vec<Uri>>,
     ) -> Self {
         Self {
             repr: EntityTypeRepr {
@@ -91,8 +91,8 @@ impl EntityType {
         examples: impl Into<Vec<HashMap<Uri, serde_json::Value>>>,
         properties: impl Into<HashMap<Uri, PropertyTypeReference>>,
         required: impl Into<Vec<Uri>>,
-        links: impl Into<HashMap<String, Optional<MaybeOrdered<Array>>>>,
-        required_links: impl Into<Vec<String>>,
+        links: impl Into<HashMap<Uri, Optional<MaybeOrdered<Array>>>>,
+        required_links: impl Into<Vec<Uri>>,
     ) -> Result<Self, ValidationError> {
         let entity_type = Self {
             repr: EntityTypeRepr {
@@ -156,12 +156,12 @@ impl EntityType {
     }
 
     #[must_use]
-    pub const fn links(&self) -> &HashMap<String, Optional<MaybeOrdered<Array>>> {
+    pub const fn links(&self) -> &HashMap<Uri, Optional<MaybeOrdered<Array>>> {
         &self.repr.links
     }
 
     #[must_use]
-    pub fn required_links(&self) -> &[String] {
+    pub fn required_links(&self) -> &[Uri] {
         &self.repr.required_links
     }
 
@@ -171,8 +171,8 @@ impl EntityType {
     }
 
     #[must_use]
-    pub fn link_references(&self) -> HashSet<&str> {
-        self.links().iter().map(|(link, _)| link.as_str()).collect()
+    pub fn link_references(&self) -> HashSet<&Uri> {
+        self.links().iter().map(|(link, _)| link).collect()
     }
 }
 
@@ -217,8 +217,12 @@ mod tests {
     }
 
     fn test_link_refs(entity_type: &EntityType, links: impl IntoIterator<Item = &'static str>) {
-        let expected_link_references = links.into_iter().collect::<HashSet<_>>();
-        let link_references = entity_type.link_references();
+        let expected_link_references = links.into_iter().map(Uri::new).collect::<HashSet<_>>();
+        let link_references = entity_type
+            .link_references()
+            .into_iter()
+            .cloned()
+            .collect::<HashSet<_>>();
 
         assert_eq!(link_references, expected_link_references);
     }
