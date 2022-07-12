@@ -41,6 +41,8 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if checking for the [`BaseId`] failed.
+    ///
+    /// [`BaseId`]: crate::types::BaseId
     async fn contains_base_id(&mut self, base_id: &BaseIdRef) -> Result<bool, QueryError> {
         let (exists,) =
             sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM base_ids WHERE base_id = $1);"#)
@@ -112,6 +114,8 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`BaseId`] failed.
+    ///
+    /// [`BaseId`]: crate::types::BaseId
     async fn insert_base_id(&mut self, base_id: &BaseIdRef) -> Result<(), InsertionError> {
         sqlx::query(r#"INSERT INTO base_ids (base_id) VALUES ($1);"#)
             .bind(base_id)
@@ -593,6 +597,8 @@ mod tests {
     });
 
     /// Removes the [`BaseId`] and all related data from the database.
+    ///
+    /// [`BaseId`]: crate::types::BaseId
     // TODO: We don't intend to remove data. This is used for cleaning up the database after running
     //   a test case. Remove this as soon as we have a proper test framework.
     async fn remove_base_id(
