@@ -12,7 +12,7 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use memory::{
-    arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
+    arrow::meta,
     shared_memory::{MemoryId, Metaversion, Segment},
 };
 use rayon::iter::{
@@ -159,7 +159,7 @@ impl ContextBatch {
                 column_writer.write(buffer, meta)
             })?;
 
-        let meta_buffer = get_dynamic_meta_flatbuffers(&dynamic)?;
+        let meta_buffer = dynamic.get_flatbuffers()?;
         let change = self.segment.set_metadata(&meta_buffer)?;
         persisted.increment_with(&change);
 

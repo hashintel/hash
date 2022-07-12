@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arrow::datatypes::Schema;
-use memory::arrow::{meta, meta::conversion::HashStaticMeta};
+use memory::arrow::{meta, meta::Static};
 
 use crate::{error::Result, field::FieldSpecMap};
 
@@ -21,7 +21,7 @@ pub struct AgentSchema {
 impl AgentSchema {
     pub fn new(field_spec_map: FieldSpecMap) -> Result<Self> {
         let arrow_schema = Arc::new(field_spec_map.create_arrow_schema()?);
-        let static_meta = arrow_schema.get_static_metadata();
+        let static_meta = Static::from_schema(arrow_schema.clone());
 
         Ok(Self {
             arrow: arrow_schema,

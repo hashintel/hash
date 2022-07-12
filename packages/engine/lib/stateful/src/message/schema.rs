@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arrow::datatypes::Schema;
-use memory::arrow::{meta, meta::conversion::HashStaticMeta};
+use memory::arrow::{meta, meta::Static};
 
 use crate::message::arrow::MESSAGE_BATCH_SCHEMA;
 
@@ -19,7 +19,7 @@ pub struct MessageSchema {
 impl Default for MessageSchema {
     fn default() -> Self {
         let arrow = Arc::new(MESSAGE_BATCH_SCHEMA.clone());
-        let static_meta = Arc::new(arrow.get_static_metadata());
+        let static_meta = Arc::new(Static::from_schema(arrow.clone()));
 
         Self { arrow, static_meta }
     }

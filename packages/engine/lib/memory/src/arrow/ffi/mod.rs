@@ -6,11 +6,9 @@ use std::{ffi::c_void, os::raw::c_char, sync::Arc};
 
 use arrow::ipc;
 
+use super::meta::{Dynamic, Static};
 use crate::{
-    arrow::meta::{
-        self,
-        conversion::{HashDynamicMeta, HashStaticMeta},
-    },
+    arrow::meta,
     shared_memory::{CSegment, Segment},
     Error,
 };
@@ -63,7 +61,7 @@ unsafe extern "C" fn get_static_metadata(schema: usize) -> *const meta::Static {
     let schema = schema as *const ArrowSchema;
     match schema_conversion::c_schema_to_rust(&*schema) {
         Ok(rust_schema) => {
-            let meta = Arc::new(rust_schema).get_static_metadata();
+            let meta = Static::from_schema(Arc::new(rust_schema));
             let boxed = Box::new(meta);
             Box::into_raw(boxed)
         }
@@ -116,7 +114,7 @@ unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CSegment) -> *const
             };
             // Can't fail if memory.get_metadata worked
             let data_buffer_len = segment.get_data_buffer_len().unwrap();
-            let dynamic_meta = match batch_message.into_meta(data_buffer_len) {
+            let dynamic_meta = match Dynamic::from_record_batch(&batch_message, data_buffer_len) {
                 Ok(ret) => ret,
                 Err(why) => {
                     tracing::error!("Error in `get_dynamic_metadata`: {:?}", &why);

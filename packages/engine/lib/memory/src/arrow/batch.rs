@@ -10,7 +10,7 @@ use crate::{
         change::ColumnChange,
         flush::GrowableBatch,
         load,
-        meta::{self, conversion::HashDynamicMeta},
+        meta::{self, Dynamic},
     },
     error::{Error, Result},
     shared_memory::{Metaversion, Segment},
@@ -119,8 +119,10 @@ impl ArrowBatch {
             "Can't reload record batch; see validate_markers"
         );
         let record_batch_message = load::record_batch_message(&self.segment)?;
-        let dynamic_meta =
-            record_batch_message.into_meta(self.segment().get_data_buffer()?.len())?;
+        let dynamic_meta = Dynamic::from_record_batch(
+            &record_batch_message,
+            self.segment().get_data_buffer()?.len(),
+        )?;
 
         // The record batch was loaded at least once before, since this struct has a `RecordBatch`
         // field, and the Arrow schema doesn't change, so we can reuse it.

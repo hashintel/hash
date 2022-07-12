@@ -1,3 +1,8 @@
+use std::sync::Arc;
+
+use arrow::datatypes::Schema;
+
+use super::conversion::schema_to_column_hierarchy;
 use crate::arrow::meta::{Column, Dynamic, NodeStatic};
 
 /// Static metadata remains constant for a simulation run.
@@ -76,5 +81,10 @@ impl Static {
     #[must_use]
     pub fn get_node_count(&self) -> usize {
         self.node_count
+    }
+
+    pub fn from_schema(schema: Arc<Schema>) -> Self {
+        let (indices, padding, data) = schema_to_column_hierarchy(schema);
+        Self::new(indices, padding, data)
     }
 }

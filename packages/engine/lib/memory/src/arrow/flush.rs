@@ -1,7 +1,7 @@
 use arrow::{array::ArrayData, buffer::Buffer, util::bit_util};
 
 use crate::{
-    arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
+    arrow::meta,
     error::Result,
     shared_memory::{padding, BufferChange, Segment},
 };
@@ -305,7 +305,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
             "New dynamic metadata row count is inconsistent with existing static metadata"
         );
         let change = change.combine(self.segment_mut().set_data_length(new_data_length)?);
-        let meta_buffer = get_dynamic_meta_flatbuffers(self.dynamic_meta())?;
+        let meta_buffer = self.dynamic_meta().get_flatbuffers()?;
         let change = change.combine(self.segment_mut().set_metadata(&meta_buffer)?);
 
         if cfg!(debug_assertions) {

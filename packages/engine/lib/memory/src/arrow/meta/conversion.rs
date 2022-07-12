@@ -1,13 +1,9 @@
 use std::sync::Arc;
 
-use arrow::{
-    datatypes::{DataType, Field, IntervalUnit, Schema, TimeUnit},
-    ipc,
-};
-use flatbuffers::FlatBufferBuilder;
+use arrow::datatypes::{DataType, Field, IntervalUnit, Schema, TimeUnit};
 
 use crate::{
-    arrow::meta::{self, Buffer, BufferType, Node, NodeMapping},
+    arrow::meta::{self, BufferType, NodeMapping},
     error::{Error, Result},
 };
 
@@ -91,120 +87,10 @@ impl TryFrom<DataType> for SupportedDataTypes {
     }
 }
 
-// TODO: Make this a method on `meta::Static`
-pub trait HashStaticMeta {
-    fn get_static_metadata(&self) -> meta::Static;
-}
-
-impl HashStaticMeta for Arc<Schema> {
-    fn get_static_metadata(&self) -> meta::Static {
-        let (indices, padding, data) = schema_to_column_hierarchy(self.clone());
-        meta::Static::new(indices, padding, data)
-    }
-}
-
-// TODO: Make this a method on `meta::Dynamic`
-pub trait HashDynamicMeta {
-    // TODO: Rename
-    #[allow(clippy::wrong_self_convention)]
-    fn into_meta(&self, data_length: usize) -> Result<meta::Dynamic>;
-}
-
-impl HashDynamicMeta for ipc::RecordBatch<'_> {
-    fn into_meta(&self, data_length: usize) -> Result<meta::Dynamic> {
-        let nodes = self
-            .nodes()
-            .ok_or_else(|| Error::ArrowBatch("Missing field nodes".into()))?
-            .iter()
-            .map(|n| Node {
-                length: n.length() as usize,
-                null_count: n.null_count() as usize,
-            })
-            .collect();
-
-        let buffers = self
-            .buffers()
-            .ok_or_else(|| Error::ArrowBatch("Missing buffers".into()))?;
-
-        let buffers: Vec<Buffer> = buffers
-            .iter()
-            .enumerate()
-            .map(|(i, b)| {
-                let padding = buffers
-                    .get(i + 1)
-                    .map_or(data_length - (b.offset() + b.length()) as usize, |next| {
-                        (next.offset() - b.offset() - b.length()) as usize
-                    });
-
-                Ok(Buffer {
-                    offset: b.offset() as usize,
-                    length: b.length() as usize,
-                    padding,
-                })
-            })
-            .collect::<Result<_>>()?;
-
-        Ok(meta::Dynamic {
-            length: self.length() as usize,
-            data_length,
-            nodes,
-            buffers,
-        })
-    }
-}
-
-/// Computes the flat_buffers builder from the metadata, using this builder
-/// the metadata of a shared batch can be modified
-// TODO: Make this a method on `meta::Dynamic`
-pub fn get_dynamic_meta_flatbuffers(meta: &meta::Dynamic) -> Result<Vec<u8>> {
-    // TODO: OPTIM: Evaluate, if we want to return the flatbuffer instead to remove the slice-to-vec
-    //   conversion.
-    // Build Arrow Buffer and FieldNode messages
-    let buffers: Vec<ipc::Buffer> = meta
-        .buffers
-        .iter()
-        .map(|b| ipc::Buffer::new(b.offset as i64, b.length as i64))
-        .collect();
-    let nodes: Vec<ipc::FieldNode> = meta
-        .nodes
-        .iter()
-        .map(|n| ipc::FieldNode::new(n.length as i64, n.null_count as i64))
-        .collect();
-
-    let mut fbb = FlatBufferBuilder::new();
-
-    // Copied from `ipc.rs` from function `record_batch_to_bytes`
-    // with some modifications:
-    // - `meta.length` is used instead of `batch.num_rows()` (refers to the same thing)
-    // - `meta.data_length ` is used instead of `arrow_data.len()` (same thing)
-    let buffers = fbb.create_vector(&buffers);
-    let nodes = fbb.create_vector(&nodes);
-
-    let root = {
-        let mut batch_builder = ipc::RecordBatchBuilder::new(&mut fbb);
-        batch_builder.add_length(meta.length as i64);
-        batch_builder.add_nodes(nodes);
-        batch_builder.add_buffers(buffers);
-        let b = batch_builder.finish();
-        b.as_union_value()
-    };
-    // create an ipc::Message
-    let mut message = ipc::MessageBuilder::new(&mut fbb);
-    message.add_version(ipc::MetadataVersion::V4);
-    message.add_header_type(ipc::MessageHeader::RecordBatch);
-    message.add_bodyLength(meta.data_length as i64);
-    message.add_header(root);
-    let root = message.finish();
-    fbb.finish(root, None);
-    let finished_data = fbb.finished_data();
-
-    Ok(finished_data.to_vec())
-}
-
 /// Column hierarchy is the mapping from column index to buffer and node indices.
 /// This also returns information about which buffers are growable
 // TODO: Move this to `column`
-fn schema_to_column_hierarchy(
+pub(crate) fn schema_to_column_hierarchy(
     schema: Arc<Schema>,
 ) -> (Vec<meta::Column>, Vec<bool>, Vec<meta::NodeStatic>) {
     let mut padding_meta = vec![];
