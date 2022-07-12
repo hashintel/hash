@@ -57,11 +57,7 @@ const addEntityOutgoingLinks =
 
         set(
           linkGroupsObject,
-          [
-            `${entity.accountId}*${entity.entityId}`,
-            entityVersionId,
-            stringifiedPath,
-          ],
+          [`${accountId}*${entityId}`, entityVersionId, stringifiedPath],
           (existingLinks ?? []).concat([outgoingLink]),
         );
       }
