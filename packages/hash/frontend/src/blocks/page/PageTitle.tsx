@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { tw } from "twind";
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
+import { rewriteEntityIdentifier } from "../../lib/entities";
 
 type PageTitleProps = {
   accountId: string;
@@ -61,7 +62,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
 
     void updateEntity({
       data: {
-        entityId: JSON.stringify({ accountId, entityId }),
+        entityId: rewriteEntityIdentifier({ accountId, entityId }),
         properties: { title: valueToSave },
       },
     });

@@ -15,6 +15,11 @@ import {
   parseEntityIdentifier,
 } from "../../../lib/entities";
 
+/**
+ * Update an entity. You must specify if it's a page entity that's being updated,
+ * as a different API route will be called to do so (due to special handling required)
+ * @param updateForPage pass 'true' if this is intended to update a page
+ */
 export const useBlockProtocolUpdateEntity = (
   updateForPage: boolean = false,
 ): {

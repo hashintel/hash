@@ -180,7 +180,7 @@ export const SimpleEntityEditor: VoidFunctionComponent<
       : "New Entity";
 
   const createLinkWithFixedSource: CreateLinkFnWithFixedSource | undefined =
-    "entityId" in variableProps
+    "entityProperties" in variableProps
       ? (action) =>
           variableProps
             .createLink({

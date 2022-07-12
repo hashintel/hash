@@ -47,7 +47,7 @@ export const CustomElementLoader: React.VFC<CustomElementLoaderProps> = ({
        */
       let i = 0;
       do {
-        existingCustomElement = customElements.get(tagName);
+        existingCustomElement = customElements.get(`${tagName}${i}`);
         i++;
       } while (existingCustomElement);
       try {

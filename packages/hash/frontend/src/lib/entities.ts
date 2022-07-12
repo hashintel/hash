@@ -436,7 +436,7 @@ export const convertApiEntityTypeToBpEntityType = ({
  * @see convertApiEntityTypeToBpEntityType
  */
 export const convertApiEntityTypesToBpEntityTypes = (
-  records: Pick<ApiEntityType, "entityId" | "entityTypeId" | "properties">[],
+  records: Pick<ApiEntityType, "entityId" | "properties">[],
 ): BpEntityType[] =>
   records.map((record) => convertApiEntityTypeToBpEntityType(record));
 
