@@ -161,12 +161,13 @@ use crate::{
 ///
 /// Get the attached backtrace and spantrace:
 ///
-/// ```
+/// ```should_panic
 /// # #![cfg_attr(nightly, feature(backtrace))]
 ///
 /// use error_stack::{IntoReport, ResultExt, Result};
 ///
-/// # fn main() -> Result<String, std::io::Error> {
+/// # #[allow(unused_variables)]
+/// # fn main() -> Result<(), std::io::Error> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .into_report()
@@ -192,7 +193,7 @@ use crate::{
 ///
 /// # const _: &str = stringify! {
 /// ...
-/// # }; Ok(content)
+/// # }; Ok(())
 /// # }
 /// ```
 #[must_use]
