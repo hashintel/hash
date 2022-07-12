@@ -19,6 +19,7 @@ import {
   createFileFromLink,
   requestFileUpload,
 } from "../../../graphql/queries/file.queries";
+import { rewriteEntityIdentifier } from "../../../lib/entities";
 
 // https://dev.to/qortex/compute-md5-checksum-for-a-file-in-typescript-59a4
 
@@ -132,10 +133,12 @@ export const useBlockProtocolFileUpload = (accountId: string) => {
 
         return {
           data: {
-            entityId: fileEntityId,
+            entityId: rewriteEntityIdentifier({
+              accountId,
+              entityId: fileEntityId,
+            }),
             url: properties.url,
             mediaType,
-            accountId,
           },
         };
       }
@@ -197,10 +200,14 @@ export const useBlockProtocolFileUpload = (accountId: string) => {
       }
 
       return {
-        accountId: uploadedFileEntity.accountId,
-        entityId: uploadedFileEntity.entityId,
-        url: properties.url,
-        mediaType,
+        data: {
+          entityId: rewriteEntityIdentifier({
+            accountId: uploadedFileEntity.accountId,
+            entityId: uploadedFileEntity.entityId,
+          }),
+          url: properties.url,
+          mediaType,
+        },
       };
     },
     [accountId, client, createFileFromLinkFn, requestFileUploadFn],
