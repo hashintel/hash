@@ -25,7 +25,7 @@ thiserror = "1.0.31"
 tokio = { version = "1.19.2", features = ["macros", "rt", "sync", "process", "time"] }
 tracing = "0.1.35"
 uuid = "1.1.2"
-v8 = "=0.42.0"
+v8 = "0.45.0"
 
 [features]
 default = ["build-nng"]
