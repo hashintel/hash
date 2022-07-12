@@ -4,6 +4,7 @@ import { tw } from "twind";
 
 type MenuProps = {
   label: string;
+  children?: React.ReactNode;
 };
 
 /**

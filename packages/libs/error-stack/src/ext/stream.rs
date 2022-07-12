@@ -1,6 +1,6 @@
 //! Implements support for `error-stack` functionality for streams.
 //!
-//! The main trait in this module is [`StreamReportExt`] (which is so named to
+//! The main trait in this module is [`StreamExt`] (which is so named to
 //! avoid conflict with other stream-related types common to the Rust `async`
 //! ecosystem).
 //!
@@ -17,7 +17,7 @@ use crate::{Context, Report, ResultExt};
 /// Extension trait for [`Stream`] to provide contextual information on [`Report`]s.
 ///
 /// [`Report`]: crate::Report
-pub trait StreamReportExt: Stream + Sized {
+pub trait StreamExt: Stream + Sized {
     /// Adds a new attachment to the [`Report`] inside the [`Result`] when
     /// calling [`Stream::poll_next`].
     ///
@@ -77,7 +77,7 @@ pub trait StreamReportExt: Stream + Sized {
         F: Fn() -> C;
 }
 
-impl<S> StreamReportExt for S
+impl<S> StreamExt for S
 where
     S: Stream,
     S::Item: ResultExt,
@@ -166,7 +166,7 @@ macro_rules! impl_stream_adaptor {
         $output:ty
     ) => {
         #[pin_project::pin_project]
-        #[doc=concat!("This is the adaptor type returned by [`StreamReportExt::", stringify!($document_for), "`]")]
+        #[doc=concat!("This is the adaptor type returned by [`StreamExt::", stringify!($document_for), "`]")]
         pub struct $name<S, A> {
             #[pin]
             stream: S,
@@ -213,7 +213,7 @@ macro_rules! impl_stream_adaptor_lazy {
         $output:ty
     ) => {
         #[pin_project::pin_project]
-        #[doc=concat!("This is the adaptor type returned by [`StreamReportExt::", stringify!($method), "`]")]
+        #[doc=concat!("This is the adaptor type returned by [`StreamExt::", stringify!($method), "`]")]
         pub struct $name<S, A> {
             #[pin]
             stream: S,
@@ -285,7 +285,7 @@ impl_stream_adaptor_lazy! {
 impl_stream_adaptor_lazy! {
     StreamWithLazyPrintableAttachment,
     attach_printable_lazy,
-    Display + Debug + Clone + Sync + Send + 'static,
+    Display + Debug + Sync + Send + 'static,
     S::Item
 }
 
@@ -294,58 +294,4 @@ impl_stream_adaptor_lazy! {
     change_context_lazy,
     Context,
     Result<<S::Item as ResultExt>::Ok, Report<A>>
-}
-
-#[cfg(test)]
-mod simple_functionality_tests {
-    use alloc::{string::ToString, vec};
-
-    use super::*;
-
-    #[derive(Debug)]
-    pub struct UhOhError;
-
-    impl core::fmt::Display for UhOhError {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            f.write_str("UhOhError")
-        }
-    }
-
-    impl crate::Context for UhOhError {}
-
-    #[test]
-    fn can_attach_to_stream() {
-        use futures::{executor::block_on, StreamExt};
-
-        use crate::test_helper::messages;
-
-        block_on(async {
-            let items = vec![
-                Ok(1),
-                Ok(1),
-                Ok(2),
-                Ok(5),
-                Ok(14),
-                Ok(42),
-                Ok(132),
-                Ok(429),
-                Ok(1430),
-                Ok(4862),
-                Ok(16796),
-                Err(UhOhError),
-            ]
-            .into_iter()
-            .map(crate::ext::result::IntoReport::into_report);
-
-            let stream = futures::stream::iter(items);
-
-            let mut stream = stream.attach("here is some context".to_string());
-
-            while let Some(next) = stream.next().await {
-                if let Err(e) = next {
-                    assert_eq!(messages(&e), vec!["Opaque", "UhOhError"]);
-                }
-            }
-        });
-    }
 }

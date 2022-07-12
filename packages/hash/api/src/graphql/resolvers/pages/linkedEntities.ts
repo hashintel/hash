@@ -4,13 +4,14 @@ import {
   UnresolvedGQLPage,
   UnresolvedGQLUnknownEntity,
 } from "../../../model";
-import { Resolver, Scalars } from "../../apiTypes.gen";
+import { ResolverFn, Scalars } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
-const contents: Resolver<
+const contents: ResolverFn<
   Promise<UnresolvedGQLUnknownEntity[]>,
   UnresolvedGQLPage,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, { dataSources }) => {
   const { db } = dataSources;
   const page = await Page.getPageById(db, { accountId, entityId });
@@ -27,10 +28,11 @@ const contents: Resolver<
   return blocks.map((block) => block.toGQLUnknownEntity());
 };
 
-const parentPage: Resolver<
+const parentPage: ResolverFn<
   Promise<UnresolvedGQLUnknownEntity | null>,
   UnresolvedGQLPage,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, { dataSources: { db } }) => {
   const page = await Page.getPageById(db, { accountId, entityId });
 
@@ -46,10 +48,11 @@ const parentPage: Resolver<
   return parentPageEntity?.toGQLUnknownEntity() ?? null;
 };
 
-const parentPageEntityId: Resolver<
+const parentPageEntityId: ResolverFn<
   Promise<Scalars["ID"] | null>,
   UnresolvedGQLPage,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, { dataSources: { db } }) => {
   const page = await Page.getPageById(db, { accountId, entityId });
 

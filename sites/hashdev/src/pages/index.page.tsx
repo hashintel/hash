@@ -74,10 +74,11 @@ const Hero: VFC = () => (
 );
 
 const Project: FC<{
-  title: ReactNode;
   buttons: ReactNode;
+  children?: ReactNode;
   image: ReactNode;
   mobileImage: ReactNode;
+  title: ReactNode;
 }> = ({ buttons, children, title, image, mobileImage }) => {
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down("md"));

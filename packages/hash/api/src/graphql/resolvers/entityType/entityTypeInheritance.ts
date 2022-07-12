@@ -1,13 +1,14 @@
 import { ApolloError } from "apollo-server-express";
 
-import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
+import { ResolverFn, EntityType as GQLEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 
-const children: Resolver<
+const children: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
   GQLEntityType,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (params, _, { dataSources: { db } }) => {
   const { entityId: entityTypeId } = params;
 
@@ -28,10 +29,11 @@ const children: Resolver<
   return entityTypeChildren.map((child) => child.toGQLEntityType());
 };
 
-const parents: Resolver<
+const parents: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
   GQLEntityType,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (params, _, { dataSources: { db } }) => {
   const { entityId: entityTypeId } = params;
 
@@ -52,10 +54,11 @@ const parents: Resolver<
   return entityTypeParents.map((parent) => parent.toGQLEntityType());
 };
 
-const ancestors: Resolver<
+const ancestors: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
   GQLEntityType,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (params, _, { dataSources: { db } }) => {
   const { entityId: entityTypeId } = params;
 
