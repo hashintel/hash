@@ -43,6 +43,7 @@ declare interface OrderedMapPrivateInterface<T> {
 const createComponentNodeSpec = (
   spec: Omit<Partial<NodeSpec>, "group">,
 ): NodeSpec => ({
+  // @todo remove this as its unused
   /**
    * @todo consider if we should encode the component id here / any other
    *       information
@@ -83,14 +84,29 @@ export class ProsemirrorSchemaManager {
    * and we need to ensure this continues to work between updates to
    * Prosemirror. We could also consider asking them to make adding a new node
    * type officially supported.
+   *
+   * @todo rename
    */
   defineNewNode(componentId: string, spec: NodeSpec) {
     const existingSchema = this.schema;
     const existingSchemaSpec = existingSchema.spec;
-    const map = existingSchemaSpec.nodes;
-    const privateMap: OrderedMapPrivateInterface<NodeSpec> = map as any;
+    const map: OrderedMapPrivateInterface<NodeSpec> =
+      existingSchemaSpec.nodes as any;
 
-    privateMap.content.push(componentId, spec);
+    const idx = map.content.indexOf(componentId);
+
+    if (idx > -1) {
+      const existingSpec = map.content[idx + 1]!;
+
+      if (typeof existingSpec === "string") {
+        throw new Error("Spec is expectedly a string");
+      }
+
+      // @todo deleting properties?
+      Object.assign(existingSpec, spec);
+    } else {
+      map.content.push(componentId, spec);
+    }
 
     // eslint-disable-next-line no-new
     new (class extends Schema {
@@ -132,7 +148,7 @@ export class ProsemirrorSchemaManager {
    * the schema, and create a node view wrapper for you too.
    */
   defineNewBlock(meta: BlockMeta) {
-    const { componentMetadata, componentSchema } = meta;
+    const { componentMetadata } = meta;
     const { componentId } = componentMetadata;
 
     if (this.schema.nodes[componentId]) {
@@ -147,12 +163,12 @@ export class ProsemirrorSchemaManager {
        * it has an editableRef prop in its schema – we need a more sophisticated
        * way for block authors to communicate this to us
        */
-      ...(blockComponentRequiresText(componentSchema)
-        ? {
-            content: "inline*",
-            marks: "_",
-          }
-        : {}),
+      // ...(blockComponentRequiresText(componentSchema)
+      //   ? {
+      //       content: "inline*",
+      //       marks: "_",
+      //     }
+      //   : {}),
     });
 
     this.defineNewNode(componentId, spec);
@@ -302,39 +318,48 @@ export class ProsemirrorSchemaManager {
     ]);
   }
 
-  /**
-   * Creating a new type of block in prosemirror, without necessarily having
-   * requested the block metadata yet.
-   */
-  async createRemoteBlock(
+  // @todo entity store should probably be required, right?
+  private async isBlockEntityCompatibleWithComponent(
+    entityStore: EntityStore | undefined,
+    draftBlockId: string | null | undefined,
     targetComponentId: string,
-    entityStore?: EntityStore,
-    // @todo this needs to be mandatory otherwises properties may get lost
-    draftBlockId?: string | null,
   ) {
     const meta = await this.fetchAndDefineBlock(targetComponentId);
-    const requiresText = blockComponentRequiresText(meta.componentSchema);
-    let blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
+    const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
 
     if (blockEntity) {
       if (!isBlockEntity(blockEntity)) {
-        throw new Error("Can only create remote block from block entity");
+        throw new Error("Can only create block from block entity");
       }
 
       if (blockEntity.properties.componentId !== targetComponentId) {
-        const blockMeta = await fetchBlockMeta(
+        const blockMeta = await this.fetchAndDefineBlock(
           blockEntity.properties.componentId,
         );
 
+        // If switching between two blocks where one requires text and the
+        // other doesn't
         if (
-          blockComponentRequiresText(blockMeta.componentSchema) !== requiresText
+          blockComponentRequiresText(blockMeta.componentSchema) !==
+          blockComponentRequiresText(meta.componentSchema)
         ) {
-          blockEntity = null;
+          return false;
         }
       }
     }
 
-    if (requiresText) {
+    return true;
+  }
+
+  private renderBlock(
+    draftBlockId: string | null | undefined,
+    entityStore: EntityStore | undefined,
+    targetComponentId: string,
+    meta: BlockMeta,
+  ) {
+    const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
+
+    if (blockComponentRequiresText(meta.componentSchema)) {
       const draftTextEntity =
         draftBlockId && entityStore
           ? getTextEntityFromDraftBlock(draftBlockId, entityStore)
@@ -377,6 +402,33 @@ export class ProsemirrorSchemaManager {
           : null,
       });
     }
+  }
+
+  /**
+   * Creating a new type of block in prosemirror, without necessarily having
+   * requested the block metadata yet.
+   */
+  async createRemoteBlock(
+    targetComponentId: string,
+    entityStore?: EntityStore,
+    // @todo this needs to be mandatory otherwises properties may get lost
+    draftBlockId?: string | null,
+  ) {
+    const meta = await this.fetchAndDefineBlock(targetComponentId);
+    let blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
+
+    if (
+      blockEntity &&
+      !(await this.isBlockEntityCompatibleWithComponent(
+        entityStore,
+        draftBlockId,
+        targetComponentId,
+      ))
+    ) {
+      blockEntity = null;
+    }
+
+    return this.renderBlock(draftBlockId, entityStore, targetComponentId, meta);
   }
 
   async createEntityUpdateTransaction(
@@ -442,7 +494,8 @@ export class ProsemirrorSchemaManager {
 
   /**
    * @todo consider removing the old block from the entity store
-   * @todo need to support variants here (copied from {@link replaceNodeWithRemoteBlock} - is this still relevant?
+   * @todo need to support variants here (copied from
+   *   {@link replaceNodeWithRemoteBlock} - is this still relevant?
    */
   async deleteNode(node: ProsemirrorNode<Schema>, pos: number) {
     const { view } = this;
@@ -749,5 +802,28 @@ export class ProsemirrorSchemaManager {
       },
     });
     return newBlockId;
+  }
+
+  upgradeToEditableNode(
+    componentId: string,
+    _draftBlockId: string,
+    _position: number,
+    _store: EntityStore,
+    _node: ProsemirrorNode<Schema>,
+    meta: BlockMeta,
+  ) {
+    if (this.schema.nodes[componentId]!.isTextblock) {
+      console.log("Already upgraded, skipping…");
+      return;
+    }
+
+    this.defineNewNode(componentId, {
+      content: "inline*",
+      marks: "_",
+    });
+
+    if (this.view) {
+      this.defineNodeView(componentId, meta);
+    }
   }
 }

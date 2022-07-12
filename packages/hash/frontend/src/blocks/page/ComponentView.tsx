@@ -1,7 +1,4 @@
-import {
-  blockComponentRequiresText,
-  BlockMeta,
-} from "@hashintel/hash-shared/blockMeta";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
@@ -16,6 +13,7 @@ import {
   componentNodeToId,
   isComponentNode,
 } from "@hashintel/hash-shared/prosemirror";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import * as Sentry from "@sentry/nextjs";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -83,8 +81,9 @@ export class ComponentView implements NodeView<Schema> {
     public getPos: () => number,
     private renderPortal: RenderPortal,
     private meta: BlockMeta,
+    private manager: ProsemirrorSchemaManager,
   ) {
-    const { componentMetadata, componentSchema } = meta;
+    const { componentMetadata } = meta;
     const { source } = componentMetadata;
 
     if (!source) {
@@ -96,7 +95,8 @@ export class ComponentView implements NodeView<Schema> {
 
     this.dom.setAttribute("data-dom", "true");
 
-    this.editable = blockComponentRequiresText(componentSchema);
+    // @todo this may break non-editable blocks
+    this.editable = true;
 
     if (this.editable) {
       this.contentDOM = document.createElement("div");
@@ -120,9 +120,7 @@ export class ComponentView implements NodeView<Schema> {
     this.node = node;
 
     if (isComponentNode(node) && componentNodeToId(node) === this.componentId) {
-      const blockDraftId: string = this.editorView.state.doc
-        .resolve(this.getPos())
-        .node(2).attrs.draftId;
+      const blockDraftId = this.getBlockDraftId();
 
       const entity = this.store.draft[blockDraftId]!;
 
@@ -152,7 +150,7 @@ export class ComponentView implements NodeView<Schema> {
             sourceUrl={this.sourceName}
             blockEntityId={entityId}
             shouldSandbox={!this.editable}
-            editableRef={this.editable ? this.editableRef : undefined}
+            editableRef={this.editableRef}
             // @todo these asserted non-null fields do not definitely exist when the block is first loaded
             accountId={childEntity?.accountId!}
             entityId={childEntity?.entityId!}
@@ -177,12 +175,29 @@ export class ComponentView implements NodeView<Schema> {
     }
   }
 
+  private getBlockDraftId() {
+    const blockDraftId: string = this.editorView.state.doc
+      .resolve(this.getPos())
+      .node(2).attrs.draftId;
+
+    return blockDraftId;
+  }
+
   editableRef = (editableNode: HTMLElement) => {
     if (
       this.contentDOM &&
       editableNode &&
       !editableNode.contains(this.contentDOM)
     ) {
+      this.manager.upgradeToEditableNode(
+        this.componentId,
+        this.getBlockDraftId(),
+        this.getPos(),
+        this.store,
+        this.node,
+        this.meta,
+      );
+
       editableNode.appendChild(this.contentDOM);
       this.contentDOM.style.display = "";
     }
@@ -199,7 +214,7 @@ export class ComponentView implements NodeView<Schema> {
       event.preventDefault();
     }
 
-    return !blockComponentRequiresText(this.meta.componentSchema);
+    return !this.manager.schema.nodes[this.componentId]!.isTextblock;
   }
 
   // This condition is designed to check that the event isn’t coming from React-handled code.
