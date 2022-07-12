@@ -2,13 +2,16 @@ use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::schema::{
-    array::{Array, MaybeOrdered},
-    combinator::Optional,
-    link::Links,
-    object::Object,
-    property_type::PropertyTypeReference,
-    Uri, ValidationError,
+use crate::types::{
+    schema::{
+        array::{Array, MaybeOrdered},
+        combinator::Optional,
+        link::Links,
+        object::Object,
+        property_type::PropertyTypeReference,
+        Uri, ValidationError,
+    },
+    BaseId,
 };
 
 /// Will serialize as a constant value `"entityType"`
@@ -49,8 +52,8 @@ impl EntityType {
         description: Option<String>,
         default: HashMap<Uri, serde_json::Value>,
         examples: Vec<HashMap<Uri, serde_json::Value>>,
-        properties: HashMap<Uri, PropertyTypeReference>,
-        required: Vec<Uri>,
+        properties: HashMap<BaseId, PropertyTypeReference>,
+        required: Vec<BaseId>,
         links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
         required_links: Vec<Uri>,
     ) -> Self {
@@ -80,8 +83,8 @@ impl EntityType {
         description: Option<String>,
         default: HashMap<Uri, serde_json::Value>,
         examples: Vec<HashMap<Uri, serde_json::Value>>,
-        properties: HashMap<Uri, PropertyTypeReference>,
-        required: Vec<Uri>,
+        properties: HashMap<BaseId, PropertyTypeReference>,
+        required: Vec<BaseId>,
         links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
         required_links: Vec<Uri>,
     ) -> Result<Self, ValidationError> {
@@ -123,12 +126,12 @@ impl EntityType {
     }
 
     #[must_use]
-    pub const fn properties(&self) -> &HashMap<Uri, PropertyTypeReference> {
+    pub const fn properties(&self) -> &HashMap<BaseId, PropertyTypeReference> {
         self.property_object.properties()
     }
 
     #[must_use]
-    pub fn required(&self) -> &[Uri] {
+    pub fn required(&self) -> &[BaseId] {
         self.property_object.required()
     }
 
@@ -155,6 +158,8 @@ impl EntityType {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use serde_json::json;
 
     use super::*;
@@ -171,20 +176,22 @@ mod tests {
     }
 
     fn test_property_refs(entity_type: &EntityType, uris: impl IntoIterator<Item = &'static str>) {
-        let expected_property_references = uris.into_iter().map(Uri::new).collect::<HashSet<_>>();
+        let expected_property_references = uris.into_iter().collect::<HashSet<_>>();
 
         let property_references = entity_type
             .property_type_references()
             .into_iter()
-            .map(PropertyTypeReference::reference)
-            .cloned()
+            .map(|reference| reference.reference().base_id())
             .collect::<HashSet<_>>();
 
         assert_eq!(property_references, expected_property_references);
     }
 
     fn test_link_refs(entity_type: &EntityType, links: impl IntoIterator<Item = &'static str>) {
-        let expected_link_references = links.into_iter().map(Uri::new).collect::<HashSet<_>>();
+        let expected_link_references = links
+            .into_iter()
+            .map(|uri| Uri::from_str(uri).expect("Invalid URI"))
+            .collect::<HashSet<_>>();
         let link_references = entity_type
             .link_references()
             .into_iter()
@@ -198,28 +205,28 @@ mod tests {
     fn book() {
         let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/book",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/book/v/1",
             "title": "Book",
             "type": "object",
             "properties": {
                 "https://blockprotocol.org/types/@alice/property-type/name": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name/v/1"
                 },
                 "https://blockprotocol.org/types/@alice/property-type/blurb": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/blurb"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/blurb/v/1"
                 },
                 "https://blockprotocol.org/types/@alice/property-type/published-on": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/published-on"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/published-on/v/1"
                 }
             },
             "required": [
                 "https://blockprotocol.org/types/@alice/property-type/name"
             ],
             "links": {
-                "https://blockprotocol.org/types/@alice/property-type/written-by": {}
+                "https://blockprotocol.org/types/@alice/property-type/written-by/v/1": {}
             },
             "requiredLinks": [
-                "https://blockprotocol.org/types/@alice/property-type/written-by"
+                "https://blockprotocol.org/types/@alice/property-type/written-by/v/1"
             ]
         }));
 
@@ -230,7 +237,7 @@ mod tests {
         ]);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/written-by",
+            "https://blockprotocol.org/types/@alice/property-type/written-by/v/1",
         ]);
     }
 
@@ -238,18 +245,18 @@ mod tests {
     fn address() {
         let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/uk-address",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/uk-address/v/1",
             "type": "object",
             "title": "UK Address",
             "properties": {
                 "https://blockprotocol.org/types/@alice/property-type/address-line-1": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/address-line-1"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/address-line-1/v/1"
                 },
                 "https://blockprotocol.org/types/@alice/property-type/postcode": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/postcode"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/postcode/v/1"
                 },
                 "https://blockprotocol.org/types/@alice/property-type/city": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/city"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/city/v/1"
                 }
             },
             "required": [
@@ -272,12 +279,12 @@ mod tests {
     fn organization() {
         let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/organization",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/organization/v/1",
             "type": "object",
             "title": "Organization",
             "properties": {
                 "https://blockprotocol.org/types/@alice/property-type/name": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name/v/1"
                 }
             }
         }));
@@ -293,21 +300,21 @@ mod tests {
     fn building() {
         let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/building",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/building/v/1",
             "type": "object",
             "title": "Bulding",
             "properties": {},
             "links": {
-                "https://blockprotocol.org/types/@alice/property-type/located-at": {},
-                "https://blockprotocol.org/types/@alice/property-type/tenant": {}
+                "https://blockprotocol.org/types/@alice/property-type/located-at/v/1": {},
+                "https://blockprotocol.org/types/@alice/property-type/tenant/v/1": {}
             }
         }));
 
         test_property_refs(&entity_type, []);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/located-at",
-            "https://blockprotocol.org/types/@alice/property-type/tenant",
+            "https://blockprotocol.org/types/@alice/property-type/located-at/v/1",
+            "https://blockprotocol.org/types/@alice/property-type/tenant/v/1",
         ]);
     }
 
@@ -315,16 +322,16 @@ mod tests {
     fn person() {
         let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/person",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/person/v/1",
             "type": "object",
             "title": "Person",
             "properties": {
                 "https://blockprotocol.org/types/@alice/property-type/name": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name/v/1"
                 }
             },
             "links": {
-                "https://blockprotocol.org/types/@alice/property-type/friend-of": {
+                "https://blockprotocol.org/types/@alice/property-type/friend-of/v/1": {
                     "type": "array",
                     "ordered": false
                 }
@@ -336,7 +343,7 @@ mod tests {
         ]);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/friend-of",
+            "https://blockprotocol.org/types/@alice/property-type/friend-of/v/1",
         ]);
     }
 
@@ -344,15 +351,15 @@ mod tests {
     fn playlist() {
         let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/playlist",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/playlist/v/1",
             "type": "object",
             "title": "Playlist",
             "properties": {
                 "https://blockprotocol.org/types/@alice/property-type/name": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name"}
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name/v/1"}
             },
             "links": {
-                "https://blockprotocol.org/types/@alice/property-type/contains": {
+                "https://blockprotocol.org/types/@alice/property-type/contains/v/1": {
                     "type": "array",
                     "ordered": true
                 }
@@ -364,7 +371,7 @@ mod tests {
         ]);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/contains",
+            "https://blockprotocol.org/types/@alice/property-type/contains/v/1",
         ]);
     }
 
@@ -372,12 +379,12 @@ mod tests {
     fn song() {
         let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/song",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/song/v/1",
             "type": "object",
             "title": "Song",
             "properties": {
                 "https://blockprotocol.org/types/@alice/property-type/name": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name/v/1"
                 }
             }
         }));
@@ -393,17 +400,17 @@ mod tests {
     fn page() {
         let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/page",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/page/v/1",
             "type": "object",
             "title": "Page",
             "properties": {
                 "https://blockprotocol.org/types/@alice/property-type/text": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/text"
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/text/v/1"
                 }
             },
             "links": {
-                "https://blockprotocol.org/types/@alice/property-type/written-by": {},
-                "https://blockprotocol.org/types/@alice/property-type/contains": {
+                "https://blockprotocol.org/types/@alice/property-type/written-by/v/1": {},
+                "https://blockprotocol.org/types/@alice/property-type/contains/v/1": {
                     "type": "array",
                     "ordered": true
                 }
@@ -415,8 +422,8 @@ mod tests {
         ]);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/written-by",
-            "https://blockprotocol.org/types/@alice/property-type/contains",
+            "https://blockprotocol.org/types/@alice/property-type/written-by/v/1",
+            "https://blockprotocol.org/types/@alice/property-type/contains/v/1",
         ]);
     }
 }
