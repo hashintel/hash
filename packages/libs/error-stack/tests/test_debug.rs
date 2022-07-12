@@ -7,6 +7,7 @@ use common::*;
 use error_stack::{Frame, FrameKind};
 
 #[test]
+#[ignore]
 fn report_normal() {
     let report = create_report()
         .attach_printable(PrintableA(0))
@@ -26,7 +27,7 @@ fn report_normal() {
         })
         .collect::<Vec<_>>();
 
-    let _expected_output = format!(
+    let expected_output = format!(
         r#"Context B
              at {}
       - Printable C
@@ -43,10 +44,11 @@ Caused by:
         locations[0], locations[1], locations[2]
     );
 
-    // assert!(format!("{report:?}").starts_with(&expected_output));
+    assert!(format!("{report:?}").starts_with(&expected_output));
 }
 
 #[test]
+#[ignore]
 fn extended() {
     let report = create_report()
         .attach_printable(PrintableA(10))
@@ -56,7 +58,7 @@ fn extended() {
 
     let locations = report.frames().map(Frame::location).collect::<Vec<_>>();
 
-    let _expected_output = format!(
+    let expected_output = format!(
         r#"Report {{
     frames: [
         Frame {{
@@ -113,5 +115,5 @@ fn extended() {
         locations[4].line(),
     );
 
-    // assert!(dbg!(format!("{report:#?}")).starts_with(&dbg!(expected_output)));
+    assert!(dbg!(format!("{report:#?}")).starts_with(&dbg!(expected_output)));
 }

@@ -11,6 +11,7 @@ use core::{
     fmt, iter,
     sync::atomic::{AtomicI8, Ordering},
 };
+use std::cell::OnceCell;
 
 use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
 #[cfg(feature = "futures")]

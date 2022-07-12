@@ -1,15 +1,10 @@
 #![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace, backtrace_frames))]
 #![cfg(any(feature = "eyre", feature = "anyhow"))]
-#![cfg_attr(not(feature = "std"), no_std)]
 
 mod common;
 
-#[macro_use]
-extern crate alloc;
-
-#[cfg(feature = "eyre")]
-use core::sync::atomic::Ordering;
+use std::sync::Once;
 #[cfg(all(nightly, feature = "std"))]
 use std::{backtrace::Backtrace, backtrace::BacktraceStatus};
 #[cfg(feature = "std")]
@@ -163,15 +158,12 @@ fn anyhow_output() {
 
 #[cfg(all(feature = "eyre"))]
 fn install_eyre_hook() {
-    static ONCE: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+    static ONCE: std::sync::Once = Once::new();
 
-    if ONCE
-        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-        .is_ok()
-    {
+    ONCE.call_once(|| {
         eyre::set_hook(alloc::boxed::Box::new(eyre::DefaultHandler::default_with))
-            .expect("Could not set hook");
-    }
+            .expect("Could not set hook")
+    });
 }
 
 #[test]
@@ -201,7 +193,7 @@ fn eyre() {
     {
         remove_backtrace_context(&eyre, &mut report_messages);
 
-        if !has_backtrace(&eyre) {
+        if !has_backtrace(&eyre) && supports_backtrace() {
             swap = true;
         }
     }

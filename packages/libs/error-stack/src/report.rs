@@ -40,16 +40,16 @@ use crate::{
 /// ## `Backtrace` and `SpanTrace`
 ///
 /// `Report` is able to [`provide`] a [`Backtrace`] and a [`SpanTrace`], which can be retrieved by
-/// calling [`request_ref::<Backtrace>()`] ([`downcast_ref::<Backtrace>()`] on stable) or
-/// [`request_ref::<SpanTrace>()`] ([`downcast_ref::<SpanTrace>()`] on stable) respectively. If the
-/// root context [`provide`]s a [`Backtrace`] or a [`SpanTrace`], those are returned, otherwise, if
-/// configured, an attempt is made to capture them when creating a `Report`. To enable capturing of
-/// the backtrace, make sure `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to the
-/// [`Backtrace` documentation][`Backtrace`]. To enable capturing of the span trace, an
-/// [`ErrorLayer`] has to be enabled. Please also see the [Feature Flags] section. A single `Report`
-/// can have multiple [`Backtrace`]s and [`SpanTrace`]s, depending on the amount of related errors
-/// the `Report` consists of. Therefore it isn't guaranteed that [`request_ref()`] will only ever
-/// return a single [`Backtrace`] or [`SpanTrace`].
+/// calling [`request_ref::<Backtrace>()`] or [`request_ref::<SpanTrace>()`]
+/// ([`downcast_ref::<SpanTrace>()`] on stable) respectively. If the root context [`provide`]s a
+/// [`Backtrace`] or a [`SpanTrace`], those are returned, otherwise, if configured, an attempt is
+/// made to capture them when creating a `Report`. To enable capturing of the backtrace, make sure
+/// `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to the [`Backtrace`
+/// documentation][`Backtrace`]. To enable capturing of the span trace, an [`ErrorLayer`] has to be
+/// enabled. Please also see the [Feature Flags] section. A single `Report` can have multiple
+/// [`Backtrace`]s and [`SpanTrace`]s, depending on the amount of related errors the `Report`
+/// consists of. Therefore it isn't guaranteed that [`request_ref()`] will only ever return a single
+/// [`Backtrace`] or [`SpanTrace`].
 ///
 /// [`provide`]: core::any::Provider::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
@@ -62,7 +62,6 @@ use crate::{
 /// [`request_value()`]: Self::request_value
 /// [`request_ref::<Backtrace>()`]: Self::request_ref
 /// [`request_ref::<SpanTrace>()`]: Self::request_ref
-/// [`downcast_ref::<Backtrace>()`]: Self::downcast_ref
 /// [`downcast_ref::<SpanTrace>()`]: Self::downcast_ref
 /// [Feature Flags]: index.html#feature-flags
 ///
