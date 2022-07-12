@@ -9,7 +9,7 @@ use crate::{
         InsertionError, QueryError, UpdateError,
     },
     types::{
-        schema::{DataType, PropertyType},
+        schema::{DataType, EntityType, PropertyType},
         AccountId, BaseId, Qualified, VersionId,
     },
 };
@@ -165,6 +165,44 @@ impl PostgresDatabase {
         .report()
         .change_context(InsertionError)
         .attach_lazy(|| property_type.clone())?;
+
+        Ok(())
+    }
+
+    /// Inserts an [`EntityType`] identified by [`VersionId`], and associated with an [`AccountId`],
+    /// into the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`DatastoreError`], if inserting failed.
+    async fn insert_entity_type(
+        &mut self,
+        version_id: VersionId,
+        entity_type: &EntityType,
+        created_by: AccountId,
+    ) -> Result<(), InsertionError> {
+        sqlx::query_as::<_, (Uuid,)>(
+            r#"
+            INSERT INTO entity_types (
+                version_id,
+                schema,
+                created_by
+            ) 
+            VALUES ($1, $2, $3)
+            RETURNING version_id;
+            "#,
+        )
+        .bind(version_id)
+        .bind(
+            serde_json::to_value(entity_type)
+                .unwrap_or_else(|err| unreachable!("Could not serialize property type: {err}")),
+        )
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
+        .report()
+        .change_context(InsertionError)
+        .attach_lazy(|| entity_type.clone())?;
 
         Ok(())
     }
@@ -360,20 +398,98 @@ impl Datastore for PostgresDatabase {
         Ok(Qualified::new(version_id, property_type, updated_by))
     }
 
-    async fn create_entity_type() -> Result<(), InsertionError> {
-        todo!()
+    async fn create_entity_type(
+        &mut self,
+        entity_type: EntityType,
+        created_by: AccountId,
+    ) -> Result<Qualified<EntityType>, InsertionError> {
+        let base_id = entity_type.id();
+
+        if self
+            .contains_base_id(base_id)
+            .await
+            .change_context(InsertionError)
+            .attach_lazy(|| entity_type.clone())?
+        {
+            return Err(Report::new(InsertionError)
+                .attach(entity_type.clone())
+                .attach_printable(BaseIdAlreadyExists::new(base_id.clone())));
+        }
+        self.insert_base_id(base_id)
+            .await
+            .attach_lazy(|| entity_type.clone())?;
+
+        let version_id = VersionId::new(Uuid::new_v4());
+        self.insert_version_id(version_id, base_id)
+            .await
+            .attach_lazy(|| entity_type.clone())?;
+        self.insert_entity_type(version_id, &entity_type, created_by)
+            .await
+            .attach_lazy(|| entity_type.clone())?;
+
+        Ok(Qualified::new(version_id, entity_type, created_by))
     }
 
-    async fn get_entity_type() -> Result<(), QueryError> {
-        todo!()
+    async fn get_entity_type(
+        &self,
+        version_id: VersionId,
+    ) -> Result<Qualified<EntityType>, QueryError> {
+        let (entity_type, created_by) = sqlx::query_as(
+            r#"
+            SELECT "schema", created_by
+            FROM entity_types
+            WHERE version_id = $1;
+            "#,
+        )
+        .bind(version_id)
+        .fetch_one(&self.pool)
+        .await
+        .report()
+        .change_context(QueryError)
+        .attach_printable(version_id)?;
+
+        Ok(Qualified::new(
+            version_id,
+            serde_json::from_value(entity_type)
+                .unwrap_or_else(|err| unreachable!("Could not deserialize entity type: {err}")),
+            created_by,
+        ))
     }
 
     async fn get_entity_type_many() -> Result<(), QueryError> {
         todo!()
     }
 
-    async fn update_entity_type() -> Result<(), UpdateError> {
-        todo!()
+    async fn update_entity_type(
+        &mut self,
+        entity_type: EntityType,
+        updated_by: AccountId,
+    ) -> Result<Qualified<EntityType>, UpdateError> {
+        let base_id = entity_type.id();
+
+        if !self
+            .contains_base_id(base_id)
+            .await
+            .change_context(UpdateError)
+            .attach_lazy(|| entity_type.clone())?
+        {
+            return Err(Report::new(UpdateError)
+                .attach_printable(BaseIdDoesNotExist)
+                .attach_printable(base_id.clone()))
+            .attach_lazy(|| entity_type.clone())?;
+        }
+
+        let version_id = VersionId::new(Uuid::new_v4());
+        self.insert_version_id(version_id, base_id)
+            .await
+            .change_context(UpdateError)
+            .attach_lazy(|| entity_type.clone())?;
+        self.insert_entity_type(version_id, &entity_type, updated_by)
+            .await
+            .change_context(UpdateError)
+            .attach_lazy(|| entity_type.clone())?;
+
+        Ok(Qualified::new(version_id, entity_type, updated_by))
     }
 
     async fn create_entity() -> Result<(), InsertionError> {
@@ -625,6 +741,123 @@ mod tests {
         );
 
         remove_base_id(&mut db, property_type.inner().id()).await?;
+        Ok(())
+    }
+
+    fn book_entity_type_v1() -> EntityType {
+        serde_json::from_value(serde_json::json!({
+            "kind": "entityType",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/book/v/1",
+            "title": "Book",
+            "type": "object",
+            "properties": {
+                "https://blockprotocol.org/types/@alice/property-type/name": {
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name"
+                },
+                "https://blockprotocol.org/types/@alice/property-type/blurb": {
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/blurb"
+                },
+                "https://blockprotocol.org/types/@alice/property-type/published-on": {
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/published-on"
+                }
+            },
+            "required": [
+                "https://blockprotocol.org/types/@alice/property-type/name"
+            ],
+        }))
+        .expect("Invalid entity type")
+    }
+
+    fn book_entity_type_v2() -> EntityType {
+        // TODO: Update version number
+        serde_json::from_value(serde_json::json!({
+            "kind": "entityType",
+            "$id": "https://blockprotocol.org/types/@alice/entity-type/book/v/1",
+            "title": "Book",
+            "type": "object",
+            "properties": {
+                "https://blockprotocol.org/types/@alice/property-type/name": {
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name"
+                },
+                "https://blockprotocol.org/types/@alice/property-type/blurb": {
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/blurb"
+                },
+                "https://blockprotocol.org/types/@alice/property-type/published-on": {
+                    "$ref": "https://blockprotocol.org/types/@alice/property-type/published-on"
+                }
+            },
+            "required": [
+                "https://blockprotocol.org/types/@alice/property-type/name"
+            ],
+            "links": {
+                "https://blockprotocol.org/types/@alice/property-type/written-by": {}
+            },
+            "requiredLinks": [
+                "https://blockprotocol.org/types/@alice/property-type/written-by"
+            ],
+        }))
+        .expect("Invalid entity type")
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "miri can't run in async context")]
+    async fn create_entity_type() -> Result<(), DatastoreError> {
+        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let account_id = create_account_id(&db.pool).await?;
+
+        let entity_type = db
+            .create_entity_type(book_entity_type_v1(), account_id)
+            .await
+            .change_context(DatastoreError)?;
+
+        remove_base_id(&mut db, entity_type.inner().id()).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "miri can't run in async context")]
+    async fn get_entity_type_by_identifier() -> Result<(), DatastoreError> {
+        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let account_id = create_account_id(&db.pool).await?;
+
+        let created_entity_type = db
+            .create_entity_type(book_entity_type_v1(), account_id)
+            .await
+            .change_context(DatastoreError)?;
+
+        let entity_type = db
+            .get_entity_type(created_entity_type.version_id())
+            .await
+            .change_context(DatastoreError)?;
+
+        assert_eq!(entity_type.inner(), created_entity_type.inner());
+
+        remove_base_id(&mut db, entity_type.inner().id()).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "miri can't run in async context")]
+    async fn update_existing_entity_type() -> Result<(), DatastoreError> {
+        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let account_id = create_account_id(&db.pool).await?;
+
+        let entity_type = db
+            .create_entity_type(book_entity_type_v1(), account_id)
+            .await
+            .change_context(DatastoreError)?;
+
+        let new_entity_type = book_entity_type_v2();
+        let updated_entity_type = db
+            .update_entity_type(new_entity_type.clone(), account_id)
+            .await
+            .change_context(DatastoreError)?;
+
+        assert_eq!(updated_entity_type.inner(), &new_entity_type);
+        assert_ne!(entity_type.inner(), updated_entity_type.inner());
+        assert_ne!(entity_type.version_id(), updated_entity_type.version_id());
+
+        remove_base_id(&mut db, entity_type.inner().id()).await?;
         Ok(())
     }
 }
