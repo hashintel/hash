@@ -309,11 +309,11 @@ impl<C> Report<C> {
 
     /// Merge two [`Report`]s together
     ///
-    /// This function appends the [`current()`] frames of the other [`Report`] to the [`current()`]
-    /// frames of this report.
-    /// Meaning `A.extend_one(B) -> A.current() = A.current() + B.current()`
+    /// This function appends the [`current_frames()`] of the other [`Report`] to the
+    /// [`current_frames()`] of this report.
+    /// Meaning `A.extend_one(B) -> A.current_frames() = A.current_frames() + B.current_frames()`
     ///
-    /// [`current()`]: Self::current
+    /// [`current_frames()`]: Self::current_frames
     ///
     /// ```rust
     /// use std::{

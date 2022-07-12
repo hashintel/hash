@@ -15,6 +15,7 @@ use core::{
 use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
 #[cfg(feature = "futures")]
 use futures_core::{Future, Stream};
+#[allow(unused_imports)]
 use once_cell::sync::Lazy;
 
 #[derive(Debug, PartialEq, Eq)]

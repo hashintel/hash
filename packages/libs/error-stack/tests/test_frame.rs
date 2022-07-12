@@ -40,7 +40,7 @@ fn source_deprecated() {
         .attach(AttachmentB(20));
 
     assert_eq!(report.current_frames().len(), 1);
-    let mut frame = report.frames_mut().next().expect("No frame found");
+    let frame = report.frames_mut().next().expect("No frame found");
 
     #[allow(deprecated)]
     let source = frame.source_mut().expect("No source frame found");
@@ -59,13 +59,13 @@ fn source_deprecated() {
 
 #[test]
 fn sources() {
-    let mut a = create_report().attach(AttachmentA(10));
+    let a = create_report().attach(AttachmentA(10));
     let mut b = create_report().attach(AttachmentA(20));
     b.extend_one(a);
     let mut b = b.attach(AttachmentB(30));
 
     assert_eq!(b.current_frames().len(), 1);
-    let mut frame = b.frames_mut().next().expect("No frames");
+    let frame = b.frames_mut().next().expect("No frames");
     assert_eq!(frame.sources().len(), 2);
 
     for source in frame.sources_mut() {

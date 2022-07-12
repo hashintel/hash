@@ -93,6 +93,9 @@ fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
 /// 7) Out: G Stack: [H]
 /// 8) Out: H Stack: -
 /// ```
+///
+/// [`Report`]: crate::Report
+/// [`Report::frames()`]: crate::Report::frames
 #[must_use]
 #[derive(Clone)]
 pub struct Frames<'r> {
@@ -129,6 +132,9 @@ impl fmt::Debug for Frames<'_> {
 /// Iterator over the mutable [`Frame`] stack of a [`Report`].
 ///
 /// Use [`Report::frames_mut()`] to create this iterator.
+///
+/// [`Report`]: crate::Report
+/// [`Report::frames_mut()`]: crate::Report::frames_mut
 #[must_use]
 pub struct FramesMut<'r> {
     stack: Vec<IterMut<'r, Frame>>,
@@ -169,6 +175,9 @@ impl<'r> FusedIterator for FramesMut<'r> {}
 /// Iterator over requested references in the [`Frame`] stack of a [`Report`].
 ///
 /// Use [`Report::request_ref()`] to create this iterator.
+///
+/// [`Report`]: crate::Report
+/// [`Report::request_ref()`]: crate::Report::request_ref
 #[must_use]
 #[cfg(nightly)]
 pub struct RequestRef<'r, T: ?Sized> {
@@ -224,6 +233,9 @@ where
 /// Iterator over requested values in the [`Frame`] stack of a [`Report`].
 ///
 /// Use [`Report::request_value()`] to create this iterator.
+///
+/// [`Report`]: crate::Report
+/// [`Report::request_value()`]: crate::Report::request_value
 #[must_use]
 #[cfg(nightly)]
 pub struct RequestValue<'r, T> {

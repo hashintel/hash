@@ -4,6 +4,7 @@
 
 mod common;
 
+#[cfg(feature = "eyre")]
 use std::sync::Once;
 #[cfg(all(nightly, feature = "std"))]
 use std::{backtrace::Backtrace, backtrace::BacktraceStatus};
@@ -158,11 +159,10 @@ fn anyhow_output() {
 
 #[cfg(feature = "eyre")]
 fn install_eyre_hook() {
-    static ONCE: std::sync::Once = Once::new();
+    static ONCE: Once = Once::new();
 
     ONCE.call_once(|| {
-        eyre::set_hook(alloc::boxed::Box::new(eyre::DefaultHandler::default_with))
-            .expect("Could not set hook")
+        eyre::set_hook(Box::new(eyre::DefaultHandler::default_with)).expect("Could not set hook")
     });
 }
 

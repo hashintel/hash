@@ -210,6 +210,8 @@
 //! [`Extend`] and [`extend_one()`] and are able to propagate all errors instead of just a single
 //! one.
 //!
+//! [`extend_one()`]: Report::extend_one
+//!
 //! ```rust
 //! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
