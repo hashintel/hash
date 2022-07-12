@@ -164,11 +164,9 @@ use crate::{
 /// ```
 /// # #![cfg_attr(nightly, feature(backtrace))]
 ///
-/// # #[cfg(all(not(miri), feature = "std"))] {
 /// use error_stack::{IntoReport, ResultExt, Result};
 ///
-/// # #[allow(dead_code)]
-/// # fn fake_main() -> Result<String, std::io::Error> {
+/// # fn main() -> Result<String, std::io::Error> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .into_report()
@@ -194,7 +192,7 @@ use crate::{
 ///
 /// # const _: &str = stringify! {
 /// ...
-/// # }; Ok(content) }
+/// # }; Ok(content)
 /// # }
 /// ```
 #[must_use]
