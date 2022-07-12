@@ -30,15 +30,12 @@ pub struct Object<V, const MIN: usize = 0> {
 impl<V, const MIN: usize> Object<V, MIN> {
     /// Creates a new `Object` without validating.
     #[must_use]
-    pub fn new_unchecked(
-        properties: impl Into<HashMap<Uri, V>>,
-        required: impl Into<Vec<Uri>>,
-    ) -> Self {
+    pub fn new_unchecked(properties: HashMap<Uri, V>, required: Vec<Uri>) -> Self {
         Self {
             repr: ObjectRepr {
                 r#type: ObjectTypeTag::Object,
-                properties: properties.into(),
-                required: required.into(),
+                properties,
+                required,
             },
         }
     }
@@ -51,10 +48,7 @@ impl<V, const MIN: usize> Object<V, MIN> {
     ///   `properties`.
     /// - [`ValidationError::MismatchedPropertyCount`] if the number of properties is less than
     ///   `MIN`.
-    pub fn new(
-        properties: impl Into<HashMap<Uri, V>>,
-        required: impl Into<Vec<Uri>>,
-    ) -> Result<Self, ValidationError> {
+    pub fn new(properties: HashMap<Uri, V>, required: Vec<Uri>) -> Result<Self, ValidationError> {
         let object = Self::new_unchecked(properties, required);
         object.validate()?;
         Ok(object)
@@ -109,7 +103,7 @@ mod tests {
         #[test]
         fn empty() -> Result<(), Box<dyn Error>> {
             check(
-                &Object::new([], [])?,
+                &Object::new(HashMap::new(), vec![])?,
                 json!({
                     "type": "object",
                     "properties": {}
@@ -122,11 +116,11 @@ mod tests {
         fn one() -> Result<(), Box<dyn Error>> {
             check(
                 &Object::new(
-                    [(
+                    HashMap::from([(
                         Uri::new("https://example.com/property_type"),
                         "value".to_owned(),
-                    )],
-                    [],
+                    )]),
+                    vec![],
                 )?,
                 json!({
                     "type": "object",
@@ -142,7 +136,7 @@ mod tests {
         fn multiple() -> Result<(), Box<dyn Error>> {
             check(
                 &Object::new(
-                    [
+                    HashMap::from([
                         (
                             Uri::new("https://example.com/property_type_a"),
                             "value_a".to_owned(),
@@ -151,8 +145,8 @@ mod tests {
                             Uri::new("https://example.com/property_type_b"),
                             "value_b".to_owned(),
                         ),
-                    ],
-                    [],
+                    ]),
+                    vec![],
                 )?,
                 json!({
                     "type": "object",
@@ -182,11 +176,11 @@ mod tests {
         fn one() -> Result<(), Box<dyn Error>> {
             check(
                 &Object::new(
-                    [(
+                    HashMap::from([(
                         Uri::new("https://example.com/property_type"),
                         "value".to_owned(),
-                    )],
-                    [],
+                    )]),
+                    vec![],
                 )?,
                 json!({
                     "type": "object",
@@ -202,7 +196,7 @@ mod tests {
         fn multiple() -> Result<(), Box<dyn Error>> {
             check(
                 &Object::new(
-                    [
+                    HashMap::from([
                         (
                             Uri::new("https://example.com/property_type_a"),
                             "value_a".to_owned(),
@@ -211,8 +205,8 @@ mod tests {
                             Uri::new("https://example.com/property_type_b"),
                             "value_b".to_owned(),
                         ),
-                    ],
-                    [],
+                    ]),
+                    vec![],
                 )?,
                 json!({
                     "type": "object",
@@ -230,7 +224,7 @@ mod tests {
     fn required() -> Result<(), Box<dyn Error>> {
         check(
             &Object::<String>::new(
-                [
+                HashMap::from([
                     (
                         Uri::new("https://example.com/property_type_a"),
                         "value_a".to_owned(),
@@ -239,8 +233,8 @@ mod tests {
                         Uri::new("https://example.com/property_type_b"),
                         "value_b".to_owned(),
                     ),
-                ],
-                [Uri::new("https://example.com/property_type_a")],
+                ]),
+                vec![Uri::new("https://example.com/property_type_a")],
             )?,
             json!({
                 "type": "object",

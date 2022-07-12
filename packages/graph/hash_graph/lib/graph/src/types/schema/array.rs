@@ -20,11 +20,11 @@ pub struct Array {
 
 impl Array {
     #[must_use]
-    pub fn new(min_items: impl Into<Option<usize>>, max_items: impl Into<Option<usize>>) -> Self {
+    pub const fn new(min_items: Option<usize>, max_items: Option<usize>) -> Self {
         Self {
             r#type: ArrayTypeTag::Array,
-            min_items: min_items.into(),
-            max_items: max_items.into(),
+            min_items,
+            max_items,
         }
     }
 
@@ -114,7 +114,7 @@ mod tests {
         #[test]
         fn constrained() -> Result<(), serde_json::Error> {
             check(
-                &Array::new(10, None),
+                &Array::new(Some(10), None),
                 json!({
                     "type": "array",
                     "minItems": 10,
@@ -122,7 +122,7 @@ mod tests {
             )?;
 
             check(
-                &Array::new(None, 20),
+                &Array::new(None, Some(20)),
                 json!({
                     "type": "array",
                     "maxItems": 20,
@@ -130,7 +130,7 @@ mod tests {
             )?;
 
             check(
-                &Array::new(10, 20),
+                &Array::new(Some(10), Some(20)),
                 json!({
                     "type": "array",
                     "minItems": 10,
@@ -169,7 +169,7 @@ mod tests {
         #[test]
         fn constrained() -> Result<(), serde_json::Error> {
             check(
-                &Itemized::new(Array::new(10, 20), "string".to_owned()),
+                &Itemized::new(Array::new(Some(10), Some(20)), "string".to_owned()),
                 json!({
                     "type": "array",
                     "items": "string",
@@ -228,7 +228,7 @@ mod tests {
         #[test]
         fn constrained() -> Result<(), serde_json::Error> {
             check(
-                &MaybeOrdered::new(Array::new(10, 20), false),
+                &MaybeOrdered::new(Array::new(Some(10), Some(20)), false),
                 json!({
                     "type": "array",
                     "ordered": false,
