@@ -162,12 +162,12 @@ mod tests {
 
     use super::*;
 
-    fn test_property_type_schema(schema: serde_json::Value) -> PropertyType {
+    fn test_property_type_schema(schema: &serde_json::Value) -> PropertyType {
         let property_type: PropertyType =
             serde_json::from_value(schema.clone()).expect("invalid schema");
         assert_eq!(
             serde_json::to_value(property_type.clone()).expect("Could not serialize"),
-            schema,
+            *schema,
             "{property_type:#?}"
         );
         property_type
@@ -207,7 +207,7 @@ mod tests {
 
     #[test]
     fn favorite_quote() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote",
           "title": "Favorite Quote",
@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn age() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/age",
           "title": "Age",
@@ -245,7 +245,7 @@ mod tests {
 
     #[test]
     fn user_id() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/user-id",
           "title": "User ID",
@@ -267,7 +267,7 @@ mod tests {
 
     #[test]
     fn contact_information() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/contact-information",
           "title": "Contact Information",
@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn interests() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/interests",
           "title": "Interests",
@@ -335,7 +335,7 @@ mod tests {
 
     #[test]
     fn numbers() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/numbers",
           "title": "Numbers",
@@ -362,7 +362,7 @@ mod tests {
 
     #[test]
     fn contrived_property() {
-        let property_type = test_property_type_schema(json!({
+        let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
           "$id": "https://blockprotocol.org/types/@alice/property-type/contrived-property",
           "title": "Contrived Property",

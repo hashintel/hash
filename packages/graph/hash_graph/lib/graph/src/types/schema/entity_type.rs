@@ -192,12 +192,12 @@ mod tests {
 
     use super::*;
 
-    fn test_entity_type_schema(schema: serde_json::Value) -> EntityType {
+    fn test_entity_type_schema(schema: &serde_json::Value) -> EntityType {
         let entity_type: EntityType =
             serde_json::from_value(schema.clone()).expect("invalid schema");
         assert_eq!(
             serde_json::to_value(entity_type.clone()).expect("Could not serialize"),
-            schema,
+            *schema,
             "{entity_type:#?}"
         );
         entity_type
@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn book() {
-        let entity_type = test_entity_type_schema(json!({
+        let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
             "$id": "https://blockprotocol.org/types/@alice/entity-type/book",
             "title": "Book",
@@ -265,7 +265,7 @@ mod tests {
 
     #[test]
     fn address() {
-        let entity_type = test_entity_type_schema(json!({
+        let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
             "$id": "https://blockprotocol.org/types/@alice/entity-type/uk-address",
             "type": "object",
@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn organization() {
-        let entity_type = test_entity_type_schema(json!({
+        let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
             "$id": "https://blockprotocol.org/types/@alice/entity-type/organization",
             "type": "object",
@@ -320,7 +320,7 @@ mod tests {
 
     #[test]
     fn building() {
-        let entity_type = test_entity_type_schema(json!({
+        let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
             "$id": "https://blockprotocol.org/types/@alice/entity-type/building",
             "type": "object",
@@ -342,7 +342,7 @@ mod tests {
 
     #[test]
     fn person() {
-        let entity_type = test_entity_type_schema(json!({
+        let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
             "$id": "https://blockprotocol.org/types/@alice/entity-type/person",
             "type": "object",
@@ -371,7 +371,7 @@ mod tests {
 
     #[test]
     fn playlist() {
-        let entity_type = test_entity_type_schema(json!({
+        let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
             "$id": "https://blockprotocol.org/types/@alice/entity-type/playlist",
             "type": "object",
@@ -399,7 +399,7 @@ mod tests {
 
     #[test]
     fn song() {
-        let entity_type = test_entity_type_schema(json!({
+        let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
             "$id": "https://blockprotocol.org/types/@alice/entity-type/Song",
             "type": "object",
@@ -420,7 +420,7 @@ mod tests {
 
     #[test]
     fn page() {
-        let entity_type = test_entity_type_schema(json!({
+        let entity_type = test_entity_type_schema(&json!({
             "kind": "entityType",
             "$id": "https://blockprotocol.org/types/@alice/entity-type/page",
             "type": "object",
