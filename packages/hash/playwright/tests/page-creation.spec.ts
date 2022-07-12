@@ -110,7 +110,7 @@ test("user can create page", async ({ page }) => {
 
   await blockContextMenu
     .locator('[placeholder="Load Block from URL..."]')
-    .fill("https://blockprotocol.org/blocks/@shinypb/emoji-trading-cards");
+    .fill("https://blockprotocol.org/blocks/@hash/code");
 
   /**
    * This is creating a new block above the current one, instead of switching
