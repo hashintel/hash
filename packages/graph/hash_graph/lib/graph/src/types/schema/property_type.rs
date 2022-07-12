@@ -4,9 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::schema::{
     array::{Array, Itemized},
+    combinator::{OneOf, ValueOrArray},
     data_type::DataTypeReference,
     object::Object,
-    OneOf, Uri, ValueOrArray,
+    Uri,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -32,6 +33,7 @@ impl PropertyTypeReference {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
+#[allow(clippy::enum_variant_names)]
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
     // TODO: Check if `Objcet::properties` matches the URI specified in `PropertyTypeReference`
