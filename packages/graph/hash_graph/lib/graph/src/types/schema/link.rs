@@ -21,7 +21,7 @@ pub struct LinksRepr {
     required_links: Vec<Uri>,
 }
 
-/// Links to entities.
+/// Schema definition for links to entities.
 ///
 /// Optionally contains a list of required links.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

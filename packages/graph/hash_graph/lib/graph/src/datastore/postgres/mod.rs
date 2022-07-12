@@ -195,7 +195,7 @@ impl PostgresDatabase {
         .bind(version_id)
         .bind(
             serde_json::to_value(entity_type)
-                .unwrap_or_else(|err| unreachable!("Could not serialize property type: {err}")),
+                .unwrap_or_else(|err| unreachable!("Could not serialize entity type: {err}")),
         )
         .bind(created_by)
         .fetch_one(&self.pool)
@@ -605,6 +605,7 @@ mod tests {
             .await
             .change_context(DatastoreError)?;
 
+        // Clean up to avoid conflicts in next tests
         remove_base_id(&mut db, data_type.inner().id()).await?;
 
         Ok(())
@@ -628,6 +629,7 @@ mod tests {
 
         assert_eq!(data_type.inner(), created_data_type.inner());
 
+        // Clean up to avoid conflicts in next tests
         remove_base_id(&mut db, data_type.inner().id()).await?;
         Ok(())
     }
@@ -651,6 +653,7 @@ mod tests {
         assert_eq!(data_type.inner(), updated_data_type.inner());
         assert_ne!(data_type.version_id(), updated_data_type.version_id());
 
+        // Clean up to avoid conflicts in next tests
         remove_base_id(&mut db, data_type.inner().id()).await?;
         Ok(())
     }
@@ -690,6 +693,7 @@ mod tests {
             .await
             .change_context(DatastoreError)?;
 
+        // Clean up to avoid conflicts in next tests
         remove_base_id(&mut db, property_type.inner().id()).await?;
         Ok(())
     }
@@ -712,6 +716,7 @@ mod tests {
 
         assert_eq!(property_type.inner(), created_property_type.inner());
 
+        // Clean up to avoid conflicts in next tests
         remove_base_id(&mut db, property_type.inner().id()).await?;
         Ok(())
     }
@@ -740,6 +745,7 @@ mod tests {
             updated_property_type.version_id()
         );
 
+        // Clean up to avoid conflicts in next tests
         remove_base_id(&mut db, property_type.inner().id()).await?;
         Ok(())
     }
@@ -810,6 +816,7 @@ mod tests {
             .await
             .change_context(DatastoreError)?;
 
+        // Clean up to avoid conflicts in next tests
         remove_base_id(&mut db, entity_type.inner().id()).await?;
         Ok(())
     }
@@ -832,6 +839,7 @@ mod tests {
 
         assert_eq!(entity_type.inner(), created_entity_type.inner());
 
+        // Clean up to avoid conflicts in next tests
         remove_base_id(&mut db, entity_type.inner().id()).await?;
         Ok(())
     }
@@ -857,6 +865,7 @@ mod tests {
         assert_ne!(entity_type.inner(), updated_entity_type.inner());
         assert_ne!(entity_type.version_id(), updated_entity_type.version_id());
 
+        // Clean up to avoid conflicts in next tests
         remove_base_id(&mut db, entity_type.inner().id()).await?;
         Ok(())
     }
