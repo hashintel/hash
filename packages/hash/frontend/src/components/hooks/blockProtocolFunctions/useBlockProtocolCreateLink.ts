@@ -15,7 +15,7 @@ import {
 export const useBlockProtocolCreateLink = (): {
   createLink: EmbedderGraphMessageCallbacks["createLink"];
 } => {
-  const [runCreateLinksMutation] = useMutation<
+  const [runCreateLinkMutation] = useMutation<
     CreateLinkMutation,
     CreateLinkMutationVariables
   >(createLinkMutation);
@@ -43,7 +43,7 @@ export const useBlockProtocolCreateLink = (): {
       const { accountId: destinationAccountId, entityId: destinationEntityId } =
         parseEntityIdentifier(bpFormattedDestinationEntityId);
 
-      const { data: responseData } = await runCreateLinksMutation({
+      const { data: responseData } = await runCreateLinkMutation({
         variables: {
           link: {
             path,
@@ -70,7 +70,7 @@ export const useBlockProtocolCreateLink = (): {
         data: convertApiLinkToBpLink(responseData.createLink),
       };
     },
-    [runCreateLinksMutation],
+    [runCreateLinkMutation],
   );
 
   return {

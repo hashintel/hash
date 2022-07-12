@@ -10,8 +10,10 @@ import {
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import { convertApiEntityToBpEntity } from "../../../lib/entities";
-import { addIdentifiersToMessageData } from "./shared";
+import {
+  convertApiEntityToBpEntity,
+  parseEntityIdentifier,
+} from "../../../lib/entities";
 
 export const useBlockProtocolUpdateEntity = (
   updateForPage: boolean = false,
@@ -31,15 +33,25 @@ export const useBlockProtocolUpdateEntity = (
 
   const updateEntity: EmbedderGraphMessageCallbacks["updateEntity"] =
     useCallback(
-      async (message) => {
-        const { accountId, entityId, properties } =
-          addIdentifiersToMessageData(message);
+      async ({ data }) => {
+        if (!data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "'data' must be provided for updateEntity",
+              },
+            ],
+          };
+        }
+
+        const { accountId, entityId } = parseEntityIdentifier(data.entityId);
 
         return (updateForPage ? updatePageFn : updateEntityFn)({
           variables: {
             accountId,
             entityId,
-            properties,
+            properties: data.properties,
           },
         }).then(({ data: apiResponseData }) => {
           if (!apiResponseData) {
