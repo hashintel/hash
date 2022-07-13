@@ -184,7 +184,7 @@ mod tests {
         let property_references = entity_type
             .property_type_references()
             .into_iter()
-            .map(|reference| reference.uri().base_uri().to_string())
+            .map(|reference| reference.uri().to_string())
             .collect::<HashSet<_>>();
 
         assert_eq!(property_references, expected_property_references);
@@ -234,9 +234,9 @@ mod tests {
         }));
 
         test_property_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/name",
-            "https://blockprotocol.org/types/@alice/property-type/blurb",
-            "https://blockprotocol.org/types/@alice/property-type/published-on",
+            "https://blockprotocol.org/types/@alice/property-type/name/v/1",
+            "https://blockprotocol.org/types/@alice/property-type/blurb/v/1",
+            "https://blockprotocol.org/types/@alice/property-type/published-on/v/1",
         ]);
 
         test_link_refs(&entity_type, [
@@ -270,9 +270,9 @@ mod tests {
         }));
 
         test_property_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/address-line-1",
-            "https://blockprotocol.org/types/@alice/property-type/postcode",
-            "https://blockprotocol.org/types/@alice/property-type/city",
+            "https://blockprotocol.org/types/@alice/property-type/address-line-1/v/1",
+            "https://blockprotocol.org/types/@alice/property-type/postcode/v/1",
+            "https://blockprotocol.org/types/@alice/property-type/city/v/1",
         ]);
 
         test_link_refs(&entity_type, []);
@@ -293,7 +293,7 @@ mod tests {
         }));
 
         test_property_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/name",
+            "https://blockprotocol.org/types/@alice/property-type/name/v/1",
         ]);
 
         test_link_refs(&entity_type, []);
@@ -342,7 +342,7 @@ mod tests {
         }));
 
         test_property_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/name",
+            "https://blockprotocol.org/types/@alice/property-type/name/v/1",
         ]);
 
         test_link_refs(&entity_type, [
@@ -370,7 +370,7 @@ mod tests {
         }));
 
         test_property_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/name",
+            "https://blockprotocol.org/types/@alice/property-type/name/v/1",
         ]);
 
         test_link_refs(&entity_type, [
@@ -393,7 +393,7 @@ mod tests {
         }));
 
         test_property_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/name",
+            "https://blockprotocol.org/types/@alice/property-type/name/v/1",
         ]);
 
         test_link_refs(&entity_type, []);
@@ -421,7 +421,7 @@ mod tests {
         }));
 
         test_property_refs(&entity_type, [
-            "https://blockprotocol.org/types/@alice/property-type/text",
+            "https://blockprotocol.org/types/@alice/property-type/text/v/1",
         ]);
 
         test_link_refs(&entity_type, [

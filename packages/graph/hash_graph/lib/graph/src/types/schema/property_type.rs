@@ -206,7 +206,7 @@ mod tests {
         let property_references = property_type
             .property_type_references()
             .into_iter()
-            .map(|reference| reference.uri().base_uri().to_string())
+            .map(|reference| reference.uri().to_string())
             .collect::<HashSet<_>>();
 
         assert_eq!(property_references, expected_property_references);
@@ -299,8 +299,8 @@ mod tests {
         test_property_type_data_refs(&property_type, []);
 
         test_property_type_property_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/property-type/email",
-            "https://blockprotocol.org/types/@blockprotocol/property-type/phone-number",
+            "https://blockprotocol.org/types/@blockprotocol/property-type/email/v/1",
+            "https://blockprotocol.org/types/@blockprotocol/property-type/phone-number/v/1",
         ]);
     }
 
@@ -334,9 +334,9 @@ mod tests {
         test_property_type_data_refs(&property_type, []);
 
         test_property_type_property_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-film",
-            "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-song",
-            "https://blockprotocol.org/types/@blockprotocol/property-type/hobby",
+            "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-film/v/1",
+            "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-song/v/1",
+            "https://blockprotocol.org/types/@blockprotocol/property-type/hobby/v/1",
         ]);
     }
 
