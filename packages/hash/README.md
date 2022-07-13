@@ -394,7 +394,7 @@ HASH's development is being led by various employees of _[HASH](https://hash.dev
 - Alfie Mountfield
 - Ben Werner
 - Ciaran Morinan
-- Maggie Appleton
+- Luís Bettencourt
 - Nate Higgins
 - Valentino Ugbala
 
