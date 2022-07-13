@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 
+use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::types::schema::VersionedUri;
+use crate::types::{
+    schema::{object::ValidateUri, ValidationError, VersionedUri},
+    BaseUri,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -23,6 +27,19 @@ impl DataTypeReference {
     #[must_use]
     pub const fn uri(&self) -> &VersionedUri {
         &self.uri
+    }
+}
+
+impl ValidateUri for DataTypeReference {
+    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
+        ensure!(
+            base_uri == self.uri().base_uri(),
+            ValidationError::BaseUriMismatch {
+                base_uri: base_uri.clone(),
+                versioned_uri: self.uri().clone()
+            }
+        );
+        Ok(())
     }
 }
 
@@ -195,7 +212,7 @@ impl DataType {
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
+    use std::{error::Error, result::Result};
 
     use super::*;
 

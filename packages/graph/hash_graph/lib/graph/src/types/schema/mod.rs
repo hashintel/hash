@@ -24,6 +24,14 @@ pub enum ValidationError {
     /// A schema has marked a property with a [`BaseUri`] as required but the [`BaseUri`] does not
     /// exist in the `properties`.
     MissingRequiredProperty(BaseUri),
+    /// When associating a property name with a reference to a Type, we expect the name to match
+    /// the [`VersionedUri::base_uri`] inside the reference.
+    ///
+    /// [`VersionedUri::base_uri`]: crate::types::VersionedUri::base_uri
+    BaseUriMismatch {
+        base_uri: BaseUri,
+        versioned_uri: VersionedUri,
+    },
     /// A schema has marked a link as required but the link does not exist in the schema.
     MissingRequiredLink(VersionedUri),
     /// At least `expected` number of properties are required, but only `actual` were provided.
@@ -38,21 +46,31 @@ impl fmt::Display for ValidationError {
             Self::MissingRequiredProperty(uri) => {
                 write!(
                     fmt,
-                    "The schema has marked the \"{uri}\" property as required, but it wasn't \
+                    "the schema has marked the \"{uri}\" property as required, but it wasn't \
                      defined in the `\"properties\"` object"
+                )
+            }
+            Self::BaseUriMismatch {
+                base_uri,
+                versioned_uri,
+            } => {
+                write!(
+                    fmt,
+                    "expected base URI ({base_uri}) differed from the base URI of \
+                     ({versioned_uri})"
                 )
             }
             Self::MissingRequiredLink(link) => {
                 write!(
                     fmt,
-                    "The schema has marked the \"{link}\" link as required, but it wasn't defined \
+                    "the schema has marked the \"{link}\" link as required, but it wasn't defined \
                      in the `\"links\"` object"
                 )
             }
             Self::MismatchedPropertyCount { actual, expected } => {
                 write!(
                     fmt,
-                    "At least {expected} properties are required, but only {actual} were provided"
+                    "at least {expected} properties are required, but only {actual} were provided"
                 )
             }
             Self::EmptyOneOf => fmt.write_str("`\"one_of\"` must have at least one item"),

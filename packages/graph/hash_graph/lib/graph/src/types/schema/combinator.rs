@@ -1,8 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::schema::{
-    array::{Array, Itemized},
-    ValidationError,
+use crate::types::{
+    schema::{
+        array::{Array, Itemized},
+        object::ValidateUri,
+        ValidationError,
+    },
+    BaseUri,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -17,6 +21,15 @@ pub enum Optional<T> {
 pub enum ValueOrArray<T> {
     Value(T),
     Array(Itemized<Array, T>),
+}
+
+impl<T: ValidateUri> ValidateUri for ValueOrArray<T> {
+    fn validate_uri(&self, base_uri: &BaseUri) -> error_stack::Result<(), ValidationError> {
+        match self {
+            Self::Value(value) => value.validate_uri(base_uri),
+            Self::Array(array) => array.items().validate_uri(base_uri),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

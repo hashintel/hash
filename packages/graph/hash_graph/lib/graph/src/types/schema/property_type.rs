@@ -1,13 +1,17 @@
 use std::collections::HashSet;
 
+use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::types::schema::{
-    array::{Array, Itemized},
-    combinator::{OneOf, ValueOrArray},
-    data_type::DataTypeReference,
-    object::Object,
-    VersionedUri,
+use crate::types::{
+    schema::{
+        array::{Array, Itemized},
+        combinator::{OneOf, ValueOrArray},
+        data_type::DataTypeReference,
+        object::{Object, ValidateUri},
+        ValidationError, VersionedUri,
+    },
+    BaseUri,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -31,12 +35,24 @@ impl PropertyTypeReference {
     }
 }
 
+impl ValidateUri for PropertyTypeReference {
+    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
+        ensure!(
+            base_uri == self.uri().base_uri(),
+            ValidationError::BaseUriMismatch {
+                base_uri: base_uri.clone(),
+                versioned_uri: self.uri().clone()
+            }
+        );
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 #[allow(clippy::enum_variant_names)]
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
-    // TODO: Check if `Object::properties` matches the URI specified in `PropertyTypeReference`
     PropertyTypeObject(Object<ValueOrArray<PropertyTypeReference>, 1>),
     ArrayOfPropertyValues(Itemized<Array, OneOf<Self>>),
 }

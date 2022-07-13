@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use error_stack::{ensure, Result};
+use serde::{de, Deserialize, Deserializer, Serialize};
 
 use crate::types::{schema::ValidationError, BaseUri};
 
@@ -20,14 +21,17 @@ struct ObjectRepr<V> {
     required: Vec<BaseUri>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(try_from = "ObjectRepr<V>", rename_all = "camelCase")]
+pub trait ValidateUri {
+    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError>;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Object<V, const MIN: usize = 0> {
     #[serde(flatten)]
     repr: ObjectRepr<V>,
 }
 
-impl<V, const MIN: usize> Object<V, MIN> {
+impl<V: ValidateUri, const MIN: usize> Object<V, MIN> {
     /// Creates a new `Object` without validating.
     #[must_use]
     pub fn new_unchecked(properties: HashMap<BaseUri, V>, required: Vec<BaseUri>) -> Self {
@@ -59,17 +63,24 @@ impl<V, const MIN: usize> Object<V, MIN> {
 
     fn validate(&self) -> Result<(), ValidationError> {
         let num_properties = self.properties().len();
-        if num_properties < MIN {
-            return Err(ValidationError::MismatchedPropertyCount {
+        ensure!(
+            num_properties >= MIN,
+            ValidationError::MismatchedPropertyCount {
                 actual: num_properties,
                 expected: MIN,
-            });
-        }
-        for uri in self.required() {
-            if !self.properties().contains_key(uri) {
-                return Err(ValidationError::MissingRequiredProperty(uri.clone()));
             }
+        );
+
+        for uri in self.required() {
+            ensure!(
+                self.properties().contains_key(uri),
+                ValidationError::MissingRequiredProperty(uri.clone())
+            );
         }
+        for (base_uri, reference) in self.properties() {
+            reference.validate_uri(base_uri)?;
+        }
+
         Ok(())
     }
 
@@ -82,35 +93,40 @@ impl<V, const MIN: usize> Object<V, MIN> {
     }
 }
 
-impl<V, const MIN: usize> TryFrom<ObjectRepr<V>> for Object<V, MIN> {
-    type Error = ValidationError;
-
-    fn try_from(object: ObjectRepr<V>) -> Result<Self, ValidationError> {
-        Self::new(object.properties, object.required)
+impl<'de, V: ValidateUri + Deserialize<'de>, const MIN: usize> Deserialize<'de> for Object<V, MIN> {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let object = Self {
+            repr: ObjectRepr::deserialize(deserializer)?,
+        };
+        object.validate().map_err(de::Error::custom)?;
+        Ok(object)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
-
     use serde_json::json;
 
     use super::*;
     use crate::types::{
-        schema::tests::{check, check_invalid_json},
+        schema::{
+            property_type::PropertyTypeReference,
+            tests::{check, check_invalid_json},
+        },
         VersionedUri,
     };
 
     mod unconstrained {
         use super::*;
-        use crate::types::VersionedUri;
-        type Object = super::Object<String, 0>;
+        type Object = super::Object<PropertyTypeReference, 0>;
 
         #[test]
-        fn empty() -> Result<(), Box<dyn Error>> {
+        fn empty() -> Result<(), serde_json::Error> {
             check(
-                &Object::new(HashMap::new(), vec![])?,
+                &Object::new_unchecked(HashMap::new(), vec![]),
                 json!({
                     "type": "object",
                     "properties": {}
@@ -120,21 +136,17 @@ mod tests {
         }
 
         #[test]
-        fn one() -> Result<(), Box<dyn Error>> {
+        fn one() -> Result<(), serde_json::Error> {
+            let uri = VersionedUri::new("https://example.com/property_type".to_owned(), 1);
             check(
-                &Object::new(
-                    HashMap::from([(
-                        VersionedUri::new("https://example.com/property_type".to_owned(), 1)
-                            .base_uri()
-                            .clone(),
-                        "value".to_owned(),
-                    )]),
+                &Object::new_unchecked(
+                    HashMap::from([(uri.base_uri().clone(), PropertyTypeReference::new(uri))]),
                     vec![],
-                )?,
+                ),
                 json!({
                     "type": "object",
                     "properties": {
-                        "https://example.com/property_type": "value",
+                        "https://example.com/property_type": { "$ref": "https://example.com/property_type/v/1" },
                     }
                 }),
             )?;
@@ -142,30 +154,22 @@ mod tests {
         }
 
         #[test]
-        fn multiple() -> Result<(), Box<dyn Error>> {
+        fn multiple() -> Result<(), serde_json::Error> {
+            let uri_a = VersionedUri::new("https://example.com/property_type_a".to_owned(), 1);
+            let uri_b = VersionedUri::new("https://example.com/property_type_b".to_owned(), 1);
             check(
-                &Object::new(
+                &Object::new_unchecked(
                     HashMap::from([
-                        (
-                            VersionedUri::new("https://example.com/property_type_a".to_owned(), 1)
-                                .base_uri()
-                                .clone(),
-                            "value_a".to_owned(),
-                        ),
-                        (
-                            VersionedUri::new("https://example.com/property_type_b".to_owned(), 1)
-                                .base_uri()
-                                .clone(),
-                            "value_b".to_owned(),
-                        ),
+                        (uri_a.base_uri().clone(), PropertyTypeReference::new(uri_a)),
+                        (uri_b.base_uri().clone(), PropertyTypeReference::new(uri_b)),
                     ]),
                     vec![],
-                )?,
+                ),
                 json!({
                     "type": "object",
                     "properties": {
-                        "https://example.com/property_type_a": "value_a",
-                        "https://example.com/property_type_b": "value_b",
+                        "https://example.com/property_type_a": { "$ref": "https://example.com/property_type_a/v/1" },
+                        "https://example.com/property_type_b": { "$ref": "https://example.com/property_type_b/v/1" },
                     }
                 }),
             )?;
@@ -176,7 +180,7 @@ mod tests {
     mod constrained {
         use super::*;
         use crate::types::VersionedUri;
-        type Object = super::Object<String, 1>;
+        type Object = super::Object<PropertyTypeReference, 1>;
 
         #[test]
         fn empty() {
@@ -187,21 +191,17 @@ mod tests {
         }
 
         #[test]
-        fn one() -> Result<(), Box<dyn Error>> {
+        fn one() -> Result<(), serde_json::Error> {
+            let uri = VersionedUri::new("https://example.com/property_type".to_owned(), 1);
             check(
-                &Object::new(
-                    HashMap::from([(
-                        VersionedUri::new("https://example.com/property_type".to_owned(), 1)
-                            .base_uri()
-                            .clone(),
-                        "value".to_owned(),
-                    )]),
+                &Object::new_unchecked(
+                    HashMap::from([(uri.base_uri().clone(), PropertyTypeReference::new(uri))]),
                     vec![],
-                )?,
+                ),
                 json!({
                     "type": "object",
                     "properties": {
-                        "https://example.com/property_type": "value",
+                        "https://example.com/property_type": { "$ref": "https://example.com/property_type/v/1" },
                     }
                 }),
             )?;
@@ -209,30 +209,22 @@ mod tests {
         }
 
         #[test]
-        fn multiple() -> Result<(), Box<dyn Error>> {
+        fn multiple() -> Result<(), serde_json::Error> {
+            let uri_a = VersionedUri::new("https://example.com/property_type_a".to_owned(), 1);
+            let uri_b = VersionedUri::new("https://example.com/property_type_b".to_owned(), 1);
             check(
-                &Object::new(
+                &Object::new_unchecked(
                     HashMap::from([
-                        (
-                            VersionedUri::new("https://example.com/property_type_a".to_owned(), 1)
-                                .base_uri()
-                                .clone(),
-                            "value_a".to_owned(),
-                        ),
-                        (
-                            VersionedUri::new("https://example.com/property_type_b".to_owned(), 1)
-                                .base_uri()
-                                .clone(),
-                            "value_b".to_owned(),
-                        ),
+                        (uri_a.base_uri().clone(), PropertyTypeReference::new(uri_a)),
+                        (uri_b.base_uri().clone(), PropertyTypeReference::new(uri_b)),
                     ]),
                     vec![],
-                )?,
+                ),
                 json!({
                     "type": "object",
                     "properties": {
-                        "https://example.com/property_type_a": "value_a",
-                        "https://example.com/property_type_b": "value_b",
+                        "https://example.com/property_type_a": { "$ref": "https://example.com/property_type_a/v/1" },
+                        "https://example.com/property_type_b": { "$ref": "https://example.com/property_type_b/v/1" },
                     }
                 }),
             )?;
@@ -241,34 +233,25 @@ mod tests {
     }
 
     #[test]
-    fn required() -> Result<(), Box<dyn Error>> {
+    fn required() -> Result<(), serde_json::Error> {
+        let uri_a = VersionedUri::new("https://example.com/property_type_a".to_owned(), 1);
+        let uri_b = VersionedUri::new("https://example.com/property_type_b".to_owned(), 1);
         check(
-            &Object::<String>::new(
+            &Object::<_, 0>::new_unchecked(
                 HashMap::from([
                     (
-                        VersionedUri::new("https://example.com/property_type_a".to_owned(), 1)
-                            .base_uri()
-                            .clone(),
-                        "value_a".to_owned(),
+                        uri_a.base_uri().clone(),
+                        PropertyTypeReference::new(uri_a.clone()),
                     ),
-                    (
-                        VersionedUri::new("https://example.com/property_type_b".to_owned(), 1)
-                            .base_uri()
-                            .clone(),
-                        "value_b".to_owned(),
-                    ),
+                    (uri_b.base_uri().clone(), PropertyTypeReference::new(uri_b)),
                 ]),
-                vec![
-                    VersionedUri::new("https://example.com/property_type_a".to_owned(), 1)
-                        .base_uri()
-                        .clone(),
-                ],
-            )?,
+                vec![uri_a.base_uri().clone()],
+            ),
             json!({
                 "type": "object",
                 "properties": {
-                    "https://example.com/property_type_a": "value_a",
-                    "https://example.com/property_type_b": "value_b",
+                    "https://example.com/property_type_a": { "$ref": "https://example.com/property_type_a/v/1" },
+                    "https://example.com/property_type_b": { "$ref": "https://example.com/property_type_b/v/1" },
                 },
                 "required": [
                     "https://example.com/property_type_a"
@@ -280,23 +263,33 @@ mod tests {
 
     #[test]
     fn additional_properties() {
-        check_invalid_json::<Object<String>>(json!({
+        check_invalid_json::<Object<PropertyTypeReference>>(json!({
             "type": "object",
             "properties": {
-                "https://example.com/property_type_a": "value_a",
-                "https://example.com/property_type_b": "value_b",
+                "https://example.com/property_type_a": { "$ref": "https://example.com/property_type_a/v/1" },
+                "https://example.com/property_type_b": { "$ref": "https://example.com/property_type_b/v/1" },
             },
             "additional_properties": 10
         }));
     }
 
     #[test]
-    fn invalid_required() {
-        check_invalid_json::<Object<String>>(json!({
+    fn invalid_uri() {
+        check_invalid_json::<Object<PropertyTypeReference>>(json!({
             "type": "object",
             "properties": {
-                "https://example.com/property_type_a": "value_a",
-                "https://example.com/property_type_b": "value_b",
+                "https://example.com/property_type_a": { "$ref": "https://example.com/property_type_b/v/1" }
+            }
+        }));
+    }
+
+    #[test]
+    fn invalid_required() {
+        check_invalid_json::<Object<PropertyTypeReference>>(json!({
+            "type": "object",
+            "properties": {
+                "https://example.com/property_type_a": { "$ref": "https://example.com/property_type_a/v/1" },
+                "https://example.com/property_type_b": { "$ref": "https://example.com/property_type_b/v/1" },
             },
             "required": [
                 "https://example.com/property_type_c"
