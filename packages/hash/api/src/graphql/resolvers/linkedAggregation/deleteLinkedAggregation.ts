@@ -1,12 +1,12 @@
 import { ApolloError } from "apollo-server-errors";
 import {
   MutationDeleteLinkedAggregationArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { Aggregation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const deleteLinkedAggregation: Resolver<
+export const deleteLinkedAggregation: ResolverFn<
   Promise<boolean>,
   {},
   LoggedInGraphQLContext,

@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client";
 import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { escapeRegExp } from "lodash";
 import React, {
+  ReactNode,
   useCallback,
   useEffect,
   useState,
@@ -52,6 +53,7 @@ const toBlockUrl = (searchPage: PageSearchResult): string => {
 
 const ResultList: React.FC<{
   isMobile: boolean;
+  children?: ReactNode;
 }> = ({ isMobile, ...props }) => (
   <Box
     component="ul"
@@ -73,6 +75,7 @@ const ResultList: React.FC<{
 
 const ResultItem: React.FC<{
   sx?: SxProps<Theme>;
+  children?: ReactNode;
 }> = ({ sx = [], ...props }) => {
   const theme = useTheme();
 

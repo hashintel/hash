@@ -1,4 +1,4 @@
-FROM node:16.14.2-alpine AS builder
+FROM node:16.16.0-alpine AS builder
 
 WORKDIR /app
 
@@ -31,7 +31,7 @@ COPY packages/hash/search-loader packages/hash/search-loader
 
 #########################################################################################
 
-FROM node:16.14.2-alpine
+FROM node:16.16.0-alpine
 
 COPY --from=builder /app /app
 

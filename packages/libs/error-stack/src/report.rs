@@ -1,3 +1,5 @@
+#[cfg(not(feature = "small"))]
+use alloc::vec;
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
@@ -16,6 +18,7 @@ use crate::{
     iter::{Frames, FramesMut},
     AttachmentKind, Context, Frame, FrameKind,
 };
+
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
 ///
 /// Attachments can be added by using [`attach()`]. The [`Frame`] stack can be iterated by using
@@ -27,26 +30,38 @@ use crate::{
 /// Attachments, and objects [`provide`]d by a [`Context`], are directly retrievable by calling
 /// [`request_ref()`] or [`request_value()`].
 ///
+/// ## Multiple Errors
+///
+/// `Report` is able to represent multiple errors that have occurred. Errors can be combined using
+/// the [`extend_one()`], which will add the [`Frame`] stack of the other error as an additional
+/// source to the current report.
+///
 /// ## `Backtrace` and `SpanTrace`
 ///
 /// `Report` is able to [`provide`] a [`Backtrace`] and a [`SpanTrace`], which can be retrieved by
-/// calling [`backtrace()`] or [`span_trace()`] respectively. If the root context [`provide`]s a
+/// calling [`request_ref::<Backtrace>()`] or [`request_ref::<SpanTrace>()`]
+/// ([`downcast_ref::<SpanTrace>()`] on stable) respectively. If the root context [`provide`]s a
 /// [`Backtrace`] or a [`SpanTrace`], those are returned, otherwise, if configured, an attempt is
 /// made to capture them when creating a `Report`. To enable capturing of the backtrace, make sure
-/// `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to the
-/// [`Backtrace` documentation][`Backtrace`]. To enable capturing of the span trace, an
-/// [`ErrorLayer`] has to be enabled. Please also see the [Feature Flags] section.
+/// `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is set according to the [`Backtrace`
+/// documentation][`Backtrace`]. To enable capturing of the span trace, an [`ErrorLayer`] has to be
+/// enabled. Please also see the [Feature Flags] section. A single `Report` can have multiple
+/// [`Backtrace`]s and [`SpanTrace`]s, depending on the amount of related errors the `Report`
+/// consists of. Therefore it isn't guaranteed that [`request_ref()`] will only ever return a single
+/// [`Backtrace`] or [`SpanTrace`].
 ///
 /// [`provide`]: core::any::Provider::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
+/// [`extend_one()`]: Self::extend_one
 /// [`new()`]: Self::new
 /// [`frames()`]: Self::frames
 /// [`change_context()`]: Self::change_context
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
-/// [`backtrace()`]: Self::backtrace
-/// [`span_trace()`]: Self::span_trace
+/// [`request_ref::<Backtrace>()`]: Self::request_ref
+/// [`request_ref::<SpanTrace>()`]: Self::request_ref
+/// [`downcast_ref::<SpanTrace>()`]: Self::downcast_ref
 /// [Feature Flags]: index.html#feature-flags
 ///
 /// # Examples
@@ -58,6 +73,7 @@ use crate::{
 /// # #[cfg(all(not(miri), feature = "std"))] {
 /// use error_stack::{IntoReport, ResultExt, Result};
 ///
+/// # #[allow(dead_code)]
 /// # fn fake_main() -> Result<String, std::io::Error> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
@@ -67,7 +83,6 @@ use crate::{
 /// # const _: &str = stringify! {
 /// ...
 /// # }; Ok(content) }
-/// # assert_eq!(fake_main().unwrap_err().frames().count(), 2);
 /// # }
 /// ```
 ///
@@ -138,33 +153,66 @@ use crate::{
 ///     # };
 ///     # Ok(()) }
 ///     # let err = fake_main().unwrap_err();
-///     # assert_eq!(err.frames().count(), 3);
 ///     # assert!(err.contains::<ConfigError>());
 ///     # assert_eq!(err.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
 ///     # Ok(())
 /// }
 /// ```
+///
+/// Get the attached backtrace and spantrace:
+///
+/// ```should_panic
+/// # #![cfg_attr(nightly, feature(backtrace))]
+///
+/// use error_stack::{IntoReport, ResultExt, Result};
+///
+/// # #[allow(unused_variables)]
+/// # fn main() -> Result<(), std::io::Error> {
+/// let config_path = "./path/to/config.file";
+/// let content = std::fs::read_to_string(config_path)
+///     .into_report()
+///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"));
+///
+/// let content = match content {
+///     Err(err) => {
+///         # #[cfg(all(nightly, feature = "std"))]
+///         for backtrace in err.request_ref::<std::backtrace::Backtrace>() {
+///             println!("Backtrace: {backtrace}");
+///         }   
+///
+///         # #[cfg(all(nightly, feature = "spantrace"))]
+///         for spantrace in err.request_ref::<tracing_error::SpanTrace>() {
+///             println!("Spantrace: {spantrace}")
+///         }
+///
+///         return Err(err)
+///     }
+///
+///     Ok(ok) => ok
+/// };
+///
+/// # const _: &str = stringify! {
+/// ...
+/// # }; Ok(())
+/// # }
+/// ```
 #[must_use]
 #[repr(transparent)]
 pub struct Report<C> {
-    inner: Box<ReportImpl>,
+    #[cfg(feature = "small")]
+    pub(super) frames: smallvec::SmallVec<[Frame; 1]>,
+    #[cfg(not(feature = "small"))]
+    pub(super) frames: Vec<Frame>,
     _context: PhantomData<C>,
 }
 
 impl<C> Report<C> {
-    pub(crate) fn from_frame(
-        frame: Frame,
-        #[cfg(all(nightly, feature = "std"))] backtrace: Option<Backtrace>,
-        #[cfg(feature = "spantrace")] span_trace: Option<SpanTrace>,
-    ) -> Self {
+    pub(crate) fn from_frame(frame: Frame) -> Self {
         Self {
-            inner: Box::new(ReportImpl {
-                frame,
-                #[cfg(all(nightly, feature = "std"))]
-                backtrace,
-                #[cfg(feature = "spantrace")]
-                span_trace,
-            }),
+            #[cfg(feature = "small")]
+            frames: smallvec::smallvec![frame],
+            #[cfg(not(feature = "small"))]
+            frames: vec![frame],
             _context: PhantomData,
         }
     }
@@ -211,13 +259,115 @@ impl<C> Report<C> {
         #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
         drop(provider);
 
-        Self::from_frame(
-            Frame::from_context(context, Location::caller(), None),
-            #[cfg(all(nightly, feature = "std"))]
-            backtrace,
-            #[cfg(feature = "spantrace")]
-            span_trace,
-        )
+        let frame = Frame::from_context(context, Location::caller(), Box::new([]));
+        #[allow(unused_mut)]
+        let mut this = Self::from_frame(frame);
+
+        #[cfg(all(nightly, feature = "std"))]
+        if let Some(backtrace) =
+            backtrace.filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
+        {
+            this = this.attach(backtrace);
+        }
+
+        #[cfg(feature = "spantrace")]
+        if let Some(span_trace) = span_trace.filter(|st| st.status() == SpanTraceStatus::CAPTURED) {
+            this = this.attach(span_trace);
+        }
+
+        this
+    }
+
+    #[allow(missing_docs)]
+    #[must_use]
+    #[cfg(all(nightly, feature = "std"))]
+    #[deprecated = "a report might contain multiple backtraces, use `request_ref::<Backtrace>()` \
+                    instead"]
+    pub fn backtrace(&self) -> Option<&Backtrace> {
+        self.request_ref::<Backtrace>().next()
+    }
+
+    #[allow(missing_docs)]
+    #[must_use]
+    #[cfg(feature = "spantrace")]
+    #[cfg_attr(
+        nightly,
+        deprecated = "a report might contain multiple spantraces, use \
+                      `request_ref::<SpanTrace>()` instead"
+    )]
+    #[cfg_attr(
+        not(nightly),
+        deprecated = "a report might contain multiple spantraces, use \
+                      `frames().filter(Frame::downcast_ref::<SpanTrace>)` instead"
+    )]
+    pub fn span_trace(&self) -> Option<&SpanTrace> {
+        #[cfg(nightly)]
+        return self.request_ref::<SpanTrace>().next();
+
+        #[cfg(not(nightly))]
+        return self.downcast_ref::<SpanTrace>();
+    }
+
+    /// Merge two [`Report`]s together
+    ///
+    /// This function appends the [`current_frames()`] of the other [`Report`] to the
+    /// [`current_frames()`] of this report.
+    /// Meaning `A.extend_one(B) -> A.current_frames() = A.current_frames() + B.current_frames()`
+    ///
+    /// [`current_frames()`]: Self::current_frames
+    ///
+    /// ```rust
+    /// use std::{
+    ///     fmt::{Display, Formatter},
+    ///     path::Path,
+    /// };
+    ///
+    /// use error_stack::{Context, Report, IntoReport, ResultExt};
+    ///
+    /// #[derive(Debug)]
+    /// struct IoError;
+    ///
+    /// impl Display for IoError {
+    ///     # fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    ///     #     const _: &str = stringify!(
+    ///             ...
+    ///     #     );
+    ///     #     f.write_str("Io Error")
+    ///     # }
+    /// }
+    ///
+    /// # impl Context for IoError {}
+    ///
+    /// # #[allow(unused_variables)]
+    /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<IoError>> {
+    ///     # #[cfg(any(miri, not(feature = "std")))]
+    ///     # return Err(error_stack::report!(IoError).attach_printable("Not supported"));
+    ///     # #[cfg(all(not(miri), feature = "std"))]
+    ///     std::fs::read_to_string(path.as_ref())
+    ///         .into_report()
+    ///         .change_context(IoError)
+    /// }
+    ///
+    /// let mut error1 = read_config("config.txt").unwrap_err();
+    /// let error2 = read_config("config2.txt").unwrap_err();
+    /// let mut error3 = read_config("config3.txt").unwrap_err();
+    ///
+    /// error1.extend_one(error2);
+    /// error3.extend_one(error1);
+    ///
+    /// // ^ This is equivalent to:
+    /// // error3.extend_one(error1);
+    /// // error3.extend_one(error2);
+    /// ```
+    ///
+    /// This function implements the same functionality as
+    /// [`Extend::extend_one` (#7261)](https://github.com/rust-lang/rust/issues/72631).
+    /// Once stabilised this function will be removed in favor of [`Extend`].
+    ///
+    /// [`extend_one()`]: Self::extend_one
+    // TODO: once #7261 is stabilized deprecate and remove this function
+    pub fn extend_one(&mut self, mut report: Self) {
+        self.frames.append(&mut report.frames);
     }
 
     /// Adds additional information to the [`Frame`] stack.
@@ -236,17 +386,11 @@ impl<C> Report<C> {
     where
         A: Send + Sync + 'static,
     {
-        Self::from_frame(
-            Frame::from_attachment(
-                attachment,
-                Location::caller(),
-                Some(Box::new(self.inner.frame)),
-            ),
-            #[cfg(all(nightly, feature = "std"))]
-            self.inner.backtrace,
-            #[cfg(feature = "spantrace")]
-            self.inner.span_trace,
-        )
+        Self::from_frame(Frame::from_attachment(
+            attachment,
+            Location::caller(),
+            self.frames.into_boxed_slice(),
+        ))
     }
 
     /// Adds additional (printable) information to the [`Frame`] stack.
@@ -292,17 +436,11 @@ impl<C> Report<C> {
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self::from_frame(
-            Frame::from_printable_attachment(
-                attachment,
-                Location::caller(),
-                Some(Box::new(self.inner.frame)),
-            ),
-            #[cfg(all(nightly, feature = "std"))]
-            self.inner.backtrace,
-            #[cfg(feature = "spantrace")]
-            self.inner.span_trace,
-        )
+        Self::from_frame(Frame::from_printable_attachment(
+            attachment,
+            Location::caller(),
+            self.frames.into_boxed_slice(),
+        ))
     }
 
     /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
@@ -314,87 +452,58 @@ impl<C> Report<C> {
     where
         T: Context,
     {
-        Report::from_frame(
-            Frame::from_context(
-                context,
-                Location::caller(),
-                Some(Box::new(self.inner.frame)),
-            ),
-            #[cfg(all(nightly, feature = "std"))]
-            self.inner.backtrace,
-            #[cfg(feature = "spantrace")]
-            self.inner.span_trace,
-        )
+        Report::from_frame(Frame::from_context(
+            context,
+            Location::caller(),
+            self.frames.into_boxed_slice(),
+        ))
     }
 
-    /// Returns the backtrace of the error, if captured.
+    /// Return the direct current frames of this report,
+    /// to get an iterator over the topological sorting of all frames refer to [`frames()`]
     ///
-    /// Note, that `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` has to be set to enable backtraces.
+    /// This is not the same as [`Report::current_context`], this function gets the underlying
+    /// frames that make up this report, while [`Report::current_context`] traverses the stack of
+    /// frames to find the current context. A [`Report`] and be made up of multiple [`Frame`]s,
+    /// which stack on top of each other. Considering `PrintableA<PrintableA<Context>>`,
+    /// [`Report::current_frames`] will return the "outer" layer `PrintableA`, while
+    /// [`Report::current_context`] will return the underlying `Context` (the current type
+    /// parameter of this [`Report`])
     ///
-    /// [`ReportBackTrace`]: crate::tags::ReportBackTrace
+    /// Using [`Extend`] and [`extend_one()`], a [`Report`] can additionally be made up of multiple
+    /// stacks of frames and builds a "group" of them, but a [`Report`] can only ever have a single
+    /// `Context`, therefore this function returns a slice instead, while
+    /// [`Report::current_context`] only returns a single reference.
+    ///
+    /// [`frames()`]: Self::frames
+    /// [`extend_one()`]: Self::extend_one
     #[must_use]
-    #[cfg(all(nightly, feature = "std"))]
-    pub fn backtrace(&self) -> Option<&Backtrace> {
-        let backtrace = self.inner.backtrace.as_ref().unwrap_or_else(|| {
-            // Should never panic as it's either stored inside of `Report` or is provided by a frame
-            self.request_ref::<Backtrace>()
-                .next()
-                .expect("Backtrace is not available")
-        });
-        if backtrace.status() == BacktraceStatus::Captured {
-            Some(backtrace)
-        } else {
-            None
-        }
-    }
-
-    /// Returns the span trace of the error, if captured.
-    ///
-    /// Note, that [`ErrorLayer`] has to be enabled to enable span traces.
-    ///
-    /// [`ReportSpanTrace`]: crate::tags::ReportSpanTrace
-    /// [`ErrorLayer`]: tracing_error::ErrorLayer
-    #[must_use]
-    #[cfg(feature = "spantrace")]
-    pub fn span_trace(&self) -> Option<&SpanTrace> {
-        #[cfg(not(nightly))]
-        let span_trace = self.inner.span_trace.as_ref()?;
-        #[cfg(nightly)]
-        let span_trace = self
-            .inner
-            .span_trace
-            .as_ref()
-            .or_else(|| self.request_ref::<SpanTrace>().next())?;
-
-        if span_trace.status() == SpanTraceStatus::CAPTURED {
-            Some(span_trace)
-        } else {
-            None
-        }
+    pub fn current_frames(&self) -> &[Frame] {
+        &self.frames
     }
 
     /// Returns an iterator over the [`Frame`] stack of the report.
-    pub const fn frames(&self) -> Frames<'_> {
-        Frames::new(self)
+    pub fn frames(&self) -> Frames<'_> {
+        Frames::new(&self.frames)
     }
 
     /// Returns an iterator over the [`Frame`] stack of the report with mutable elements.
     pub fn frames_mut(&mut self) -> FramesMut<'_> {
-        FramesMut::new(self)
+        FramesMut::new(&mut self.frames)
     }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
-    pub const fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
-        RequestRef::new(self)
+    pub fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
+        RequestRef::new(&self.frames)
     }
 
     /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
     #[cfg(nightly)]
-    pub const fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
-        RequestValue::new(self)
+    pub fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
+        RequestValue::new(&self.frames)
     }
 
     /// Returns if `T` is the type held by any frame inside of the report.
@@ -459,16 +568,6 @@ impl<C> Report<C> {
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.frames_mut().find_map(Frame::downcast_mut::<T>)
-    }
-
-    /// Returns a shared reference to the most recently added [`Frame`].
-    pub(crate) const fn frame(&self) -> &Frame {
-        &self.inner.frame
-    }
-
-    /// Returns a unique reference to the most recently added [`Frame`].
-    pub(crate) fn frame_mut(&mut self) -> &mut Frame {
-        &mut self.inner.frame
     }
 }
 
@@ -553,13 +652,22 @@ impl<Context> fmt::Debug for Report<Context> {
             return debug_hook(self.generalized(), fmt);
         }
 
+        #[cfg(all(nightly, feature = "std"))]
+        let backtrace = self.request_ref::<Backtrace>().next();
+
+        #[cfg(all(nightly, feature = "spantrace"))]
+        let spantrace = self.request_ref::<SpanTrace>().next();
+
+        #[cfg(all(not(nightly), feature = "spantrace"))]
+        let spantrace = self.downcast_ref::<SpanTrace>();
+
         if fmt.alternate() {
             let mut debug = fmt.debug_struct("Report");
             debug.field("frames", &self.frames());
             #[cfg(all(nightly, feature = "std"))]
-            debug.field("backtrace", &self.backtrace());
+            debug.field("backtrace", &backtrace);
             #[cfg(feature = "spantrace")]
-            debug.field("span_trace", &self.span_trace());
+            debug.field("span_trace", &spantrace);
             debug.finish()
         } else {
             let mut context_idx = -1;
@@ -605,12 +713,12 @@ impl<Context> fmt::Debug for Report<Context> {
             }
 
             #[cfg(all(nightly, feature = "std"))]
-            if let Some(backtrace) = self.backtrace() {
+            if let Some(backtrace) = backtrace {
                 write!(fmt, "\n\nStack backtrace:\n{backtrace}")?;
             }
 
             #[cfg(feature = "spantrace")]
-            if let Some(span_trace) = self.span_trace() {
+            if let Some(span_trace) = spantrace {
                 write!(fmt, "\n\nSpan trace:\n{span_trace}")?;
             }
 
@@ -633,10 +741,23 @@ impl<Context> std::process::Termination for Report<Context> {
     }
 }
 
-pub struct ReportImpl {
-    pub(super) frame: Frame,
-    #[cfg(all(nightly, feature = "std"))]
-    backtrace: Option<Backtrace>,
-    #[cfg(feature = "spantrace")]
-    span_trace: Option<SpanTrace>,
+impl<Context> FromIterator<Report<Context>> for Option<Report<Context>> {
+    fn from_iter<T: IntoIterator<Item = Report<Context>>>(iter: T) -> Self {
+        let mut iter = iter.into_iter();
+
+        let mut base = iter.next()?;
+        for rest in iter {
+            base.extend_one(rest);
+        }
+
+        Some(base)
+    }
+}
+
+impl<Context> Extend<Self> for Report<Context> {
+    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
+        for item in iter {
+            self.extend_one(item);
+        }
+    }
 }

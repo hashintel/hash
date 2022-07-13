@@ -1,4 +1,4 @@
-import { useState, FC } from "react";
+import { useState, FC, ReactNode } from "react";
 import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import {
@@ -9,6 +9,7 @@ import {
 import { Link } from "../../ui";
 
 type NavLinkProps = {
+  children?: ReactNode;
   title: string;
   endAdornmentProps: {
     tooltipTitle: string;

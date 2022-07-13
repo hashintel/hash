@@ -1,7 +1,7 @@
 use arrow::{array::ArrayData, buffer::Buffer, util::bit_util};
 
 use crate::{
-    arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
+    arrow::meta,
     error::Result,
     shared_memory::{padding, BufferChange, Segment},
 };
@@ -65,9 +65,9 @@ pub trait GrowableColumn<D: GrowableArrayData>: Sized {
 //       remove the type parameters from the trait? (would simplify impl of this trait a bit; still
 //       couldn't make the trait public (outside the datastore) though due to `memory_mut`)
 pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
-    fn static_meta(&self) -> &meta::Static;
-    fn dynamic_meta(&self) -> &meta::Dynamic;
-    fn dynamic_meta_mut(&mut self) -> &mut meta::Dynamic;
+    fn static_meta(&self) -> &meta::StaticMetadata;
+    fn dynamic_meta(&self) -> &meta::DynamicMetadata;
+    fn dynamic_meta_mut(&mut self) -> &mut meta::DynamicMetadata;
     // TODO: Change to `segment` after creating CSegment in py FFI
     fn segment(&self) -> &Segment;
     // TODO: segment_mut?
@@ -305,7 +305,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
             "New dynamic metadata row count is inconsistent with existing static metadata"
         );
         let change = change.combine(self.segment_mut().set_data_length(new_data_length)?);
-        let meta_buffer = get_dynamic_meta_flatbuffers(self.dynamic_meta())?;
+        let meta_buffer = self.dynamic_meta().get_flatbuffers()?;
         let change = change.combine(self.segment_mut().set_metadata(&meta_buffer)?);
 
         if cfg!(debug_assertions) {
@@ -321,7 +321,7 @@ fn push_non_modify_actions(
     first_index: usize,
     last_index: usize,
     mut this_buffer_offset: usize,
-    dynamic_meta: &meta::Dynamic,
+    dynamic_meta: &meta::DynamicMetadata,
 ) -> usize {
     if first_index > last_index {
         // No non-modify actions needed

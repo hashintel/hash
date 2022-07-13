@@ -10,7 +10,7 @@ import { SearchHit } from "@hashintel/hash-backend-utils/search/adapter";
 import {
   QuerySearchPagesArgs,
   PageSearchResult,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { DbAdapter } from "../../../db";
@@ -154,7 +154,7 @@ const getPagesLinkingToTextEntities = async (
 /**
  * @deprecated in favor of pageSearchResultConnection.
  */
-export const searchPages: Resolver<
+export const searchPages: ResolverFn<
   Promise<PageSearchResult[]>,
   {},
   GraphQLContext,

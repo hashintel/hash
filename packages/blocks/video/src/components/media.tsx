@@ -11,9 +11,9 @@ import {
   Link,
   LinkGroup,
   BlockGraphProperties,
-  useGraphBlockService,
   UpdateEntityData,
 } from "@blockprotocol/graph";
+import { useGraphBlockService } from "@blockprotocol/graph/react";
 import React, {
   Dispatch,
   SetStateAction,

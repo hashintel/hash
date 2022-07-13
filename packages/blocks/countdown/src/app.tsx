@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 
-import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 
 import { Display } from "./display";
 import { DatePickerInput } from "./date-picker-input";
@@ -73,7 +76,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   );
 
   const handleDisplayTimeChange = useCallback(
-    (newDisplayTime) => {
+    (newDisplayTime: boolean) => {
       setLocalDisplayTime(newDisplayTime);
       updateRemoteData({ displayTime: newDisplayTime });
     },

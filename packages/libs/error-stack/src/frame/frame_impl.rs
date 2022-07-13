@@ -37,14 +37,14 @@ pub(super) unsafe trait FrameImpl: 'static {
     /// This corresponds to the `Frame` below this one in a [`Report`].
     ///
     /// [`Report`]: crate::Report
-    fn source(&self) -> Option<&Frame>;
+    fn sources(&self) -> &[Frame];
 
     /// Returns a mutable reference to the source of this `Frame`.
     ///
     /// This corresponds to the `Frame` below this one in a [`Report`].
     ///
     /// [`Report`]: crate::Report
-    fn source_mut(&mut self) -> Option<&mut Frame>;
+    fn sources_mut(&mut self) -> &mut [Frame];
 
     /// Provide values which can then be requested.
     #[cfg(nightly)]
@@ -55,7 +55,7 @@ pub(super) unsafe trait FrameImpl: 'static {
 struct ContextFrame<C> {
     context: C,
     location: &'static Location<'static>,
-    source: Option<Box<Frame>>,
+    sources: Box<[Frame]>,
 }
 
 // SAFETY: `type_id` returns `C` and `C` is the first field in `#[repr(C)]`
@@ -72,12 +72,12 @@ unsafe impl<C: Context> FrameImpl for ContextFrame<C> {
         self.location
     }
 
-    fn source(&self) -> Option<&Frame> {
-        self.source.as_ref().map(Box::as_ref)
+    fn sources(&self) -> &[Frame] {
+        &self.sources
     }
 
-    fn source_mut(&mut self) -> Option<&mut Frame> {
-        self.source.as_mut().map(Box::as_mut)
+    fn sources_mut(&mut self) -> &mut [Frame] {
+        &mut self.sources
     }
 
     #[cfg(nightly)]
@@ -90,7 +90,7 @@ unsafe impl<C: Context> FrameImpl for ContextFrame<C> {
 struct AttachmentFrame<A> {
     attachment: A,
     location: &'static Location<'static>,
-    source: Option<Box<Frame>>,
+    sources: Box<[Frame]>,
 }
 
 // SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
@@ -107,12 +107,12 @@ unsafe impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
         self.location
     }
 
-    fn source(&self) -> Option<&Frame> {
-        self.source.as_ref().map(Box::as_ref)
+    fn sources(&self) -> &[Frame] {
+        &self.sources
     }
 
-    fn source_mut(&mut self) -> Option<&mut Frame> {
-        self.source.as_mut().map(Box::as_mut)
+    fn sources_mut(&mut self) -> &mut [Frame] {
+        &mut self.sources
     }
 
     #[cfg(nightly)]
@@ -125,7 +125,7 @@ unsafe impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
 struct PrintableAttachmentFrame<A> {
     attachment: A,
     location: &'static Location<'static>,
-    source: Option<Box<Frame>>,
+    sources: Box<[Frame]>,
 }
 
 // SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
@@ -142,12 +142,12 @@ unsafe impl<A: 'static + Debug + Display + Send + Sync> FrameImpl for PrintableA
         self.location
     }
 
-    fn source(&self) -> Option<&Frame> {
-        self.source.as_ref().map(Box::as_ref)
+    fn sources(&self) -> &[Frame] {
+        &self.sources
     }
 
-    fn source_mut(&mut self) -> Option<&mut Frame> {
-        self.source.as_mut().map(Box::as_mut)
+    fn sources_mut(&mut self) -> &mut [Frame] {
+        &mut self.sources
     }
 
     #[cfg(nightly)]
@@ -161,7 +161,7 @@ impl Frame {
     pub(crate) fn from_context<C>(
         context: C,
         location: &'static Location<'static>,
-        source: Option<Box<Self>>,
+        sources: Box<[Self]>,
     ) -> Self
     where
         C: Context,
@@ -170,7 +170,7 @@ impl Frame {
             frame: Box::new(ContextFrame {
                 context,
                 location,
-                source,
+                sources,
             }),
         }
     }
@@ -179,7 +179,7 @@ impl Frame {
     pub(crate) fn from_attachment<A>(
         attachment: A,
         location: &'static Location<'static>,
-        source: Option<Box<Self>>,
+        sources: Box<[Self]>,
     ) -> Self
     where
         A: Send + Sync + 'static,
@@ -188,7 +188,7 @@ impl Frame {
             frame: Box::new(AttachmentFrame {
                 attachment,
                 location,
-                source,
+                sources,
             }),
         }
     }
@@ -200,7 +200,7 @@ impl Frame {
     pub(crate) fn from_printable_attachment<A>(
         attachment: A,
         location: &'static Location<'static>,
-        source: Option<Box<Self>>,
+        sources: Box<[Self]>,
     ) -> Self
     where
         A: Display + Debug + Send + Sync + 'static,
@@ -209,7 +209,7 @@ impl Frame {
             frame: Box::new(PrintableAttachmentFrame {
                 attachment,
                 location,
-                source,
+                sources,
             }),
         }
     }

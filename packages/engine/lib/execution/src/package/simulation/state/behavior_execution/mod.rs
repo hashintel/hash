@@ -156,7 +156,7 @@ impl BehaviorExecution {
         agent_proxies: &mut PoolWriteProxy<AgentBatch>,
     ) -> Result<()> {
         let behavior_ids = chain::gather_behavior_chains(
-            &agent_proxies.batches(),
+            &agent_proxies.batches_iter().collect::<Vec<_>>(),
             &self.behavior_ids,
             self.behavior_ids_col_data_types.clone(),
             self.behavior_ids_col_index,
@@ -177,8 +177,11 @@ impl BehaviorExecution {
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
-    fn get_first_lang(&self, agent_batches: &[&AgentBatch]) -> Result<Option<Language>> {
-        for agent_pool in agent_batches.iter() {
+    fn get_first_lang<'a>(
+        &self,
+        agent_batches: &mut impl Iterator<Item = &'a AgentBatch>,
+    ) -> Result<Option<Language>> {
+        for agent_pool in agent_batches {
             for agent_behaviors in
                 chain::behavior_list_bytes_iter(agent_pool.batch.record_batch()?)?
             {
@@ -245,7 +248,7 @@ impl StatePackage for BehaviorExecution {
         //       (instead of reading behavior ids in Rust) or by returning the first language from
         //       fix_behavior_chains.
         state_proxy.maybe_reload()?;
-        let lang = match self.get_first_lang(&state_proxy.agent_pool().batches())? {
+        let lang = match self.get_first_lang(&mut state_proxy.agent_pool().batches_iter())? {
             Some(lang) => lang,
             None => {
                 tracing::warn!("No behaviors were found to execute");

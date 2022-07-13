@@ -1,7 +1,7 @@
 import { ApolloError } from "apollo-server-errors";
 import { OrgEmailInvitation } from "../../../model";
 import {
-  Resolver,
+  ResolverFn,
   OrgEmailInvitation as GQLOrgEmailInvitation,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
@@ -10,10 +10,11 @@ import { UnresolvedGQLEntity } from "../../../model/entity.model";
 const notFoundMsg = (entityId: string, accountId: string) =>
   `OrgEmailInvitation with entityId ${entityId} in account ${accountId} not found in datastore`;
 
-const org: Resolver<
+const org: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   GQLOrgEmailInvitation,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, { dataSources }) => {
   const orgEmailInvitation = await OrgEmailInvitation.getOrgEmailInvitation(
     dataSources.db,
@@ -29,10 +30,11 @@ const org: Resolver<
   return orgEmailInvitationOrg.toGQLUnknownEntity();
 };
 
-const inviter: Resolver<
+const inviter: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   GQLOrgEmailInvitation,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, { dataSources }) => {
   const orgEmailInvitation = await OrgEmailInvitation.getOrgEmailInvitation(
     dataSources.db,

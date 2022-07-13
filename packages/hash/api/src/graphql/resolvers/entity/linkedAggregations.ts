@@ -1,13 +1,14 @@
 import { ApolloError } from "apollo-server-express";
 import { DbUnknownEntity } from "../../../db/adapter";
 import { Entity, UnresolvedGQLLinkedAggregation } from "../../../model";
-import { Resolver } from "../../apiTypes.gen";
+import { ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
-export const linkedAggregations: Resolver<
+export const linkedAggregations: ResolverFn<
   Promise<UnresolvedGQLLinkedAggregation[]>,
   DbUnknownEntity,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, { dataSources }) => {
   const source = await Entity.getEntityLatestVersion(dataSources.db, {
     accountId,
