@@ -1,4 +1,4 @@
-import type { BlockVariant } from "blockprotocol";
+import type { BlockVariant } from "@blockprotocol/core";
 import {
   blockComponentRequiresText,
   BlockMeta,

@@ -111,7 +111,7 @@ impl ContextPackage for Neighbors {
         let _run_entered = tracing::trace_span!("run").entered();
 
         let agent_pool = state_proxy.agent_pool();
-        let batches = agent_pool.batches();
+        let batches = agent_pool.batches_iter().collect::<Vec<_>>();
         let states = Self::neighbor_vec(&batches)?;
         let map = NeighborMap::gather(states, &self.topology)?;
 

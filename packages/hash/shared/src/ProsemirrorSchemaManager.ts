@@ -1,4 +1,4 @@
-import { BlockVariant, JSONObject } from "blockprotocol";
+import { BlockVariant, JsonObject } from "@blockprotocol/core";
 import { isString } from "lodash";
 import { NodeSpec, ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
@@ -672,7 +672,7 @@ export class ProsemirrorSchemaManager {
    * @param entityId the id of the entity to update
    * @param propertiesToUpdate the properties to update
    */
-  updateEntityProperties(entityId: string, propertiesToUpdate: JSONObject) {
+  updateEntityProperties(entityId: string, propertiesToUpdate: JsonObject) {
     if (!this.view) {
       throw new Error("Cannot trigger updateEntityProperties without view");
     }

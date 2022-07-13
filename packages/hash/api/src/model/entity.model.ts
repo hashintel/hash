@@ -1,4 +1,4 @@
-import { JSONObject } from "blockprotocol";
+import { JsonObject } from "@blockprotocol/core";
 import { ApolloError } from "apollo-server-errors";
 import { PathComponent } from "jsonpath";
 import { merge } from "lodash";
@@ -54,7 +54,7 @@ export type EntityConstructorArgs = {
   entityVersionId: string;
   accountId: string;
   entityType: DbEntityType | EntityType;
-  properties: JSONObject;
+  properties: JsonObject;
   visibility: Visibility;
   metadata: EntityMeta;
   createdByAccountId: string;
@@ -89,17 +89,17 @@ export type CreateEntityArgs =
   | CreateEntityWithEntityTypeVersionIdArgs
   | CreateEntityWithSystemTypeArgs;
 
-export type UpdatePropertiesPayload<T = JSONObject> = {
+export type UpdatePropertiesPayload<T = JsonObject> = {
   properties: T;
   updatedByAccountId: string;
 };
 
-export type PartialPropertiesUpdatePayload<T = JSONObject> = {
+export type PartialPropertiesUpdatePayload<T = JsonObject> = {
   properties: Partial<T>;
   updatedByAccountId: string;
 };
 
-export type UpdateEntityPropertiesParams<T = JSONObject> = {
+export type UpdateEntityPropertiesParams<T = JsonObject> = {
   accountId: string;
   entityId: string;
   properties: T;
@@ -111,7 +111,7 @@ class __Entity {
   entityVersionId: string;
   accountId: string;
   entityType: EntityType;
-  properties: JSONObject;
+  properties: JsonObject;
   visibility: Visibility;
   metadata: EntityMeta;
   createdByAccountId: string;
@@ -281,7 +281,7 @@ class __Entity {
       properties: {
         ...this.properties,
         ...params.properties,
-      } as JSONObject,
+      } as JsonObject,
     });
   }
 
@@ -657,7 +657,6 @@ class __Entity {
       /** @todo: stop casting this */
       entityTypeName: this.entityType.properties.title as string,
       entityType: this.entityType.toGQLEntityType(),
-      metadataId: this.entityId,
       createdAt: this.createdAt.toISOString(),
       /** TODO: We should update the gql definition of entities to match the new created_at/updated_at system
        * For now keeping it as it is to avoid changing too many things at once

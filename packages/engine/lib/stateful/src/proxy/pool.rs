@@ -32,17 +32,8 @@ impl<B> PoolReadProxy<B> {
         self.batches.get(index).map(Deref::deref)
     }
 
-    // TODO: Use a concrete type, e.g.
-    //   struct BatchIter<'b, B + 'b> {
-    //       iter: std::slice::Iter<'b, BatchReadProxy<B>>,
-    //   }
     pub fn batches_iter(&self) -> impl Iterator<Item = &B> {
         self.batches.iter().map(Deref::deref)
-    }
-
-    // TODO: Remove and use `batches_iter` instead
-    pub fn batches(&self) -> Vec<&B> {
-        self.batches_iter().collect()
     }
 }
 
@@ -113,15 +104,6 @@ impl<B> PoolWriteProxy<B> {
 
     pub fn batches_iter_mut(&mut self) -> impl Iterator<Item = &mut B> {
         self.batches.iter_mut().map(DerefMut::deref_mut)
-    }
-
-    // TODO: Remove and use `batches_iter` instead
-    pub fn batches(&self) -> Vec<&B> {
-        self.batches_iter().collect()
-    }
-
-    pub fn batches_mut(&mut self) -> Vec<&mut B> {
-        self.batches_iter_mut().collect()
     }
 
     /// For each batch, downgrade write access to read access.

@@ -6,12 +6,12 @@
  * @see https://app.asana.com/0/1200211978612931/1201906715110980/f
  * @todo Deduplicate this file
  */
+import { useGraphBlockService } from "@blockprotocol/graph/react";
 import {
   Entity,
   Link,
   LinkGroup,
   BlockGraphProperties,
-  useGraphBlockService,
   UpdateEntityData,
 } from "@blockprotocol/graph";
 import React, {
