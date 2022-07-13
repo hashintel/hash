@@ -123,7 +123,7 @@ test("user can create page", async ({ page }) => {
 
   await expect(
     blockContextMenu.locator('[placeholder="Load block from URL..."]'),
-  ).toHaveCount(0, { timeout: 1000 });
+  ).toHaveCount(0, { timeout: 2000 });
 
   await expect(
     blockRegionLocator.locator(`[data-testid="block"]:nth-child(3) p`),
