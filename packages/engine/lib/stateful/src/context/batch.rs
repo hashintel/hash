@@ -12,7 +12,7 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use memory::{
-    arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
+    arrow::meta,
     shared_memory::{MemoryId, Metaversion, Segment},
 };
 use rayon::iter::{
@@ -114,8 +114,10 @@ impl ContextBatch {
             .iter()
             .map(|column_writer| column_writer.dynamic_metadata())
             .collect::<Result<Vec<_>>>()?;
-        let dynamic =
-            meta::Dynamic::from_column_dynamic_meta_list(&column_dynamic_meta_list, num_agents);
+        let dynamic = meta::DynamicMetadata::from_column_dynamic_meta_list(
+            &column_dynamic_meta_list,
+            num_agents,
+        );
 
         let current_data_size = self.segment.get_data_buffer_len()?;
         if current_data_size < dynamic.data_length {
@@ -159,7 +161,7 @@ impl ContextBatch {
                 column_writer.write(buffer, meta)
             })?;
 
-        let meta_buffer = get_dynamic_meta_flatbuffers(&dynamic)?;
+        let meta_buffer = dynamic.get_flatbuffers()?;
         let change = self.segment.set_metadata(&meta_buffer)?;
         persisted.increment_with(&change);
 

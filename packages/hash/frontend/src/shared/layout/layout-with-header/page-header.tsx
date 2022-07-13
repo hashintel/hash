@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import { Box, useTheme, useMediaQuery } from "@mui/material";
 
 import { useLogout } from "../../../components/hooks/useLogout";
@@ -9,7 +9,7 @@ import { ActionsDropdown } from "./actions-dropdown";
 import { Button, Link } from "../../ui";
 import { HashAlphaNavIcon } from "../../icons";
 
-const Nav: React.FC = ({ children }) => (
+const Nav: React.FC<{ children?: ReactNode }> = ({ children }) => (
   <Box
     component="nav"
     sx={{

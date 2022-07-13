@@ -88,8 +88,8 @@ const PropertyTypeSelect: VoidFunctionComponent<
           value: "__other_type_divider",
         },
         ...availableEntityTypes.map((entityType) => ({
-          label: entityType.title,
-          value: entityType.$id,
+          label: entityType.schema.title,
+          value: entityType.schema.$id,
         })),
       );
     }

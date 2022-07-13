@@ -1,56 +1,73 @@
-import { useApolloClient } from "@apollo/client";
+import { useLazyQuery } from "@apollo/client";
 
-import { BlockProtocolAggregateEntityTypesFunction } from "blockprotocol";
+import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { useCallback } from "react";
 import {
   GetAccountEntityTypesQuery,
   GetAccountEntityTypesQueryVariables,
 } from "../../../graphql/apiTypes.gen";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
+import { convertApiEntityTypeToBpEntityType } from "../../../lib/entities";
 
-export const useBlockProtocolAggregateEntityTypes = (): {
-  aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction;
+export const useBlockProtocolAggregateEntityTypes = (
+  accountId: string,
+): {
+  aggregateEntityTypes: EmbedderGraphMessageCallbacks["aggregateEntityTypes"];
 } => {
-  const apolloClient = useApolloClient();
+  const [aggregateEntityTypesInDb] = useLazyQuery<
+    GetAccountEntityTypesQuery,
+    GetAccountEntityTypesQueryVariables
+  >(getAccountEntityTypes);
 
-  const aggregateEntityTypes =
-    useCallback<BlockProtocolAggregateEntityTypesFunction>(
-      async (payload) => {
-        if (!payload.accountId) {
-          throw new Error(
-            "aggregateEntityTypes needs to be passed an accountId",
-          );
-        }
-
-        const rawQueryResult = await apolloClient.query<
-          GetAccountEntityTypesQuery,
-          GetAccountEntityTypesQueryVariables
-        >({
-          query: getAccountEntityTypes,
-          variables: {
-            accountId: payload.accountId,
-            includeOtherTypesInUse: payload.includeOtherTypesInUse,
-          },
-        });
-
-        // TODO: Consider using aggregate query to avoid result conversion on the client
-        const results = rawQueryResult.data.getAccountEntityTypes;
-
+  const aggregateEntityTypes = useCallback<
+    EmbedderGraphMessageCallbacks["aggregateEntityTypes"]
+  >(
+    async ({ data }) => {
+      if (!data) {
         return {
-          results: rawQueryResult.data.getAccountEntityTypes.map((item) => ({
-            entityTypeId: item.entityId,
-            ...item.properties,
-          })),
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "'data' must be provided for aggregateEntityTypes",
+            },
+          ],
+        };
+      }
+      const response = await aggregateEntityTypesInDb({
+        query: getAccountEntityTypes,
+        variables: {
+          accountId,
+          includeOtherTypesInUse: data.includeOtherTypesInUse,
+        },
+      });
+
+      if (!response.data) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "Error calling aggregateEntityTypes",
+            },
+          ],
+        };
+      }
+
+      const responseData = response.data.getAccountEntityTypes;
+
+      return {
+        data: {
+          results: responseData.map(convertApiEntityTypeToBpEntityType),
           operation: {
-            itemsPerPage: results.length,
+            itemsPerPage: responseData.length,
             pageCount: 1,
             pageNumber: 0,
-            totalCount: results.length,
+            totalCount: responseData.length,
           },
-        };
-      },
-      [apolloClient],
-    );
+        },
+      };
+    },
+    [accountId, aggregateEntityTypesInDb],
+  );
 
   return { aggregateEntityTypes };
 };

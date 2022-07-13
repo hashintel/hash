@@ -71,10 +71,6 @@ export const fileTypedef = gql`
     """
     history: [EntityVersion!]
     """
-    The metadata ID of the entity. This is shared across all versions of the same entity.
-    """
-    metadataId: ID!
-    """
     The outgoing links of the entity.
     """
     linkGroups: [LinkGroup!]!

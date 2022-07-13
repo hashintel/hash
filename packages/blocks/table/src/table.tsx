@@ -5,15 +5,23 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { TableOptions, useSortBy, useTable } from "react-table";
+import {
+  CellProps,
+  Renderer,
+  TableOptions,
+  useSortBy,
+  useTable,
+} from "react-table";
 
 import {
-  BlockComponent,
-  useGraphBlockService,
   LinkedAggregation,
   EntityType,
   UpdateEntityData,
 } from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 import { tw } from "twind";
 import { orderBy } from "lodash";
 
@@ -148,7 +156,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
       }, // this is passed into EditableCell
       data: tableData.data || [],
       defaultColumn: {
-        Cell: EditableCell,
+        Cell: EditableCell as Renderer<CellProps<{}, unknown>>,
       },
       manualSortBy: true,
     },

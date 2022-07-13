@@ -1359,7 +1359,6 @@ describe("logged in user ", () => {
       const newDescription = "Now this is updated";
 
       const updatedEntityType = await client.updateEntityType({
-        accountId: existingUser.accountId,
         entityId: entityType.entityId,
         schema: {
           ...validSchemaInput.schema,

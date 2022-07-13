@@ -104,7 +104,7 @@ impl ContextPackage for ApiRequests {
         let _entered = run_span.entered(); // The rest of this is sync so this is fine
 
         let agent_pool = state_proxy.agent_pool();
-        let batches = agent_pool.batches();
+        let batches = agent_pool.batches_iter().collect::<Vec<_>>();
         let responses_per_agent = agent::arrow::agent_id_iter(&batches)?
             .map(move |agent_id| {
                 let mut ext_responses = vec![];

@@ -78,7 +78,6 @@
 //!     # }; Ok(content)
 //! }
 //! # let report = read_file("test.txt").unwrap_err();
-//! # assert_eq!(report.frames().count(), 1);
 //! # assert!(report.contains::<io::Error>());
 //! # }
 //! ```
@@ -129,7 +128,6 @@
 //!     # }; Ok(content)
 //! }
 //! # let report = parse_config("test.txt").unwrap_err();
-//! # assert_eq!(report.frames().count(), 2);
 //! # assert!(report.contains::<io::Error>());
 //! # assert!(report.contains::<ParseConfigError>());
 //! # }
@@ -171,7 +169,6 @@
 //!     Ok(content)
 //! }
 //! # let report = parse_config("test.txt").unwrap_err();
-//! # assert_eq!(report.frames().count(), 4);
 //! # assert!(report.contains::<std::io::Error>());
 //! # assert_eq!(report.downcast_ref::<Suggestion>().unwrap(), &Suggestion("Use a file you can read next time!"));
 //! # #[cfg(nightly)]
@@ -204,6 +201,54 @@
 //! [`attach_printable`]: Report::attach_printable
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
+//!
+//! ### Multiple Errors
+//!
+//! [`Report`] supports the combination and propagation of multiple errors natively.
+//! This is useful in cases like parallel processing where multiple errors might happen
+//! independently from each other, in these use-cases you are able to use the implementations of
+//! [`Extend`] and [`extend_one()`] and are able to propagate all errors instead of just a single
+//! one.
+//!
+//! [`extend_one()`]: Report::extend_one
+//!
+//! ```rust
+//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
+//! # use std::{fs, path::Path};
+//! # use error_stack::{IntoReport, Report};
+//! # pub type Config = String;
+//!
+//! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<std::io::Error>> {
+//!     let mut configs = Vec::new();
+//!     let mut error: Option<Report<std::io::Error>> = None;
+//!
+//!     for path in paths {
+//!         let path = path.as_ref();
+//!
+//!         match fs::read_to_string(path).into_report() {
+//!             Ok(ok) => {
+//!                 configs.push(ok);
+//!             }
+//!             Err(err) => {
+//!                 if let Some(error) = error.as_mut() {
+//!                     error.extend_one(err);
+//!                 } else {
+//!                     error = Some(err);
+//!                 }
+//!             }
+//!         }
+//!     }
+//!
+//!     if let Some(error) = error {
+//!         return Err(error);
+//!     }
+//!
+//!     Ok(configs)
+//! }
+//!
+//! # let report = parse_configs(&["test.txt", "test2.txt", "test3.txt"]).unwrap_err();
+//! # assert!(report.contains::<std::io::Error>());
+//! ```
 //!
 //! # In-Depth Explanation
 //!
@@ -357,6 +402,7 @@
 //!  `hooks`   |Enables the usage of [`set_display_hook`] and [`set_debug_hook`]| `std`   | disabled
 //! `spantrace`| Enables the capturing of [`SpanTrace`]s                        |         | disabled
 //!  `futures` | Provides a [`FutureExt`] adaptor                               |         | disabled
+//! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
 //!
@@ -365,11 +411,13 @@
 //!
 //! [`Error`]: std::error::Error
 //! [`Backtrace`]: std::backtrace::Backtrace
+//! [`Display`]: std::fmt::Display
 //! [`SpanTrace`]: tracing_error::SpanTrace
+//! [`smallvec`]: https://docs.rs/smallvec
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
-#![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
+#![cfg_attr(all(nightly, feature = "std"), feature(backtrace, backtrace_frames))]
 #![warn(
     missing_docs,
     clippy::pedantic,

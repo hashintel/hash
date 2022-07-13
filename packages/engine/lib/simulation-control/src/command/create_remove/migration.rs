@@ -132,7 +132,7 @@ pub struct BufferAction<'a> {
 #[derive(Debug, Clone)]
 pub struct BufferActions<'a> {
     pub actions: Vec<BufferAction<'a>>,
-    pub new_dynamic_meta: meta::Dynamic,
+    pub new_dynamic_meta: meta::DynamicMetadata,
 }
 
 #[derive(Debug, Clone)]
@@ -456,8 +456,8 @@ impl<'a> BufferActions<'a> {
         mut next_state: NextState,
         children_meta: &NodeMapping,
         column_meta: &meta::Column,
-        static_meta: &meta::Static,
-        dynamic_meta: Option<&meta::Dynamic>,
+        static_meta: &meta::StaticMetadata,
+        dynamic_meta: Option<&meta::DynamicMetadata>,
         parent_range_actions: &RangeActions,
         agent_batch: Option<&AgentBatch>,
         agent_batches: &[&AgentBatch],
@@ -1023,7 +1023,7 @@ impl<'a> BufferActions<'a> {
         agent_batches: &[&AgentBatch],
         batch_index: Option<usize>,
         base_range_actions: RangeActions,
-        static_meta: &meta::Static,
+        static_meta: &meta::StaticMetadata,
         new_agents: Option<&'a RecordBatch>,
     ) -> Result<BufferActions<'a>> {
         let agent_batch = batch_index.map(|index| agent_batches[index]);
@@ -1078,7 +1078,7 @@ impl<'a> BufferActions<'a> {
             })
         });
         let new_dynamic_meta =
-            meta::Dynamic::new(num_agents, data_length, node_metas, buffer_metas);
+            meta::DynamicMetadata::new(num_agents, data_length, node_metas, buffer_metas);
 
         let bufferactions = BufferActions {
             actions,
@@ -1300,8 +1300,8 @@ impl From<&RowActions> for RangeActions {
 /// `memory` doesn't have a data buffer, so it can't contain an Arrow record batch.
 fn offsets_start_at_zero(
     segment: &Segment,
-    static_meta: &meta::Static,
-    dynamic_meta: &meta::Dynamic,
+    static_meta: &meta::StaticMetadata,
+    dynamic_meta: &meta::DynamicMetadata,
 ) -> Result<bool> {
     let data = segment.get_data_buffer()?;
 

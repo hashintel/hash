@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { tw } from "twind";
 
-import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 
 import { CopyIcon } from "./icons";
 import { languages, LanguageType } from "./utils";

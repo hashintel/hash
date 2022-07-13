@@ -16,7 +16,8 @@ mod data_ffi;
 mod error;
 
 use std::{
-    cell::RefCell, collections::HashMap, fs, pin::Pin, ptr::NonNull, rc::Rc, slice, sync::Arc,
+    cell::RefCell, collections::HashMap, fs, iter::empty, pin::Pin, ptr::NonNull, rc::Rc, slice,
+    sync::Arc,
 };
 
 use arrow::{
@@ -418,32 +419,75 @@ fn current_step_to_js<'s>(scope: &mut v8::HandleScope<'s>, current_step: usize) 
     v8::Number::new(scope, current_step as f64).into()
 }
 
+/// This enum is returned from [`batches_from_shared_store`]. We want to return a single type which
+/// implements [`Iterator`], however, this is difficult because depending on the shared
+/// store in question we might return any of four different iterators. To make one type from the
+/// four, we use an `enum` here, and then implement [`Iterator`] for it, calling the
+/// [`Iterator::next`] method on the underlying iterator.
+enum EmptyOrNonEmpty<OUTPUT, I1, I2, I3, I4> {
+    Empty(std::iter::Empty<OUTPUT>),
+    Read(I1),
+    Write(I2),
+    PartialRead(I3),
+    PartialWrite(I4),
+}
+
+impl<OUTPUT, I1, I2, I3, I4> Iterator for EmptyOrNonEmpty<OUTPUT, I1, I2, I3, I4>
+where
+    I1: Iterator<Item = OUTPUT>,
+    I2: Iterator<Item = OUTPUT>,
+    I3: Iterator<Item = OUTPUT>,
+    I4: Iterator<Item = OUTPUT>,
+{
+    type Item = OUTPUT;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            EmptyOrNonEmpty::Empty(empty) => empty.next(),
+            EmptyOrNonEmpty::Write(non_empty) => non_empty.next(),
+            EmptyOrNonEmpty::Read(non_empty) => non_empty.next(),
+            EmptyOrNonEmpty::PartialRead(i) => i.next(),
+            EmptyOrNonEmpty::PartialWrite(i) => i.next(),
+        }
+    }
+}
+
 fn batches_from_shared_store(
     shared_store: &TaskSharedStore,
-) -> Result<(Vec<&AgentBatch>, Vec<&MessageBatch>, Vec<usize>)> {
+) -> Result<(
+    impl Iterator<Item = &AgentBatch>,
+    impl Iterator<Item = &MessageBatch>,
+    Vec<usize>,
+)> {
     // TODO: Remove duplication between read and write access
     Ok(match &shared_store.state {
-        SharedState::None => (vec![], vec![], vec![]),
+        SharedState::None => (
+            EmptyOrNonEmpty::Empty(empty()),
+            EmptyOrNonEmpty::Empty(empty()),
+            vec![],
+        ),
         SharedState::Write(state) => (
-            state.agent_pool().batches(),
-            state.message_pool().batches(),
+            EmptyOrNonEmpty::Write(state.agent_pool().batches_iter()),
+            EmptyOrNonEmpty::Write(state.message_pool().batches_iter()),
             (0..state.agent_pool().len()).collect(),
         ),
         SharedState::Read(state) => (
-            state.agent_pool().batches(),
-            state.message_pool().batches(),
+            EmptyOrNonEmpty::Read(state.agent_pool().batches_iter()),
+            EmptyOrNonEmpty::Read(state.message_pool().batches_iter()),
             (0..state.agent_pool().len()).collect(),
         ),
         SharedState::Partial(partial) => {
             match partial {
                 PartialSharedState::Read(partial) => (
-                    partial.state_proxy.agent_pool().batches(),
-                    partial.state_proxy.message_pool().batches(),
+                    EmptyOrNonEmpty::PartialRead(partial.state_proxy.agent_pool().batches_iter()),
+                    EmptyOrNonEmpty::PartialRead(partial.state_proxy.message_pool().batches_iter()),
                     partial.group_indices.clone(), // TODO: Avoid cloning?
                 ),
                 PartialSharedState::Write(partial) => (
-                    partial.state_proxy.agent_pool().batches(),
-                    partial.state_proxy.message_pool().batches(),
+                    EmptyOrNonEmpty::PartialWrite(partial.state_proxy.agent_pool().batches_iter()),
+                    EmptyOrNonEmpty::PartialWrite(
+                        partial.state_proxy.message_pool().batches_iter(),
+                    ),
                     partial.group_indices.clone(), // TODO: Avoid cloning?
                 ),
             }
@@ -1677,8 +1721,7 @@ impl<'s> ThreadLocalRunner<'s> {
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
         // TODO: Pass `agent_pool` and `msg_pool` by reference
-        let (agent_batches, msg_batches) =
-            state_to_js(scope, agent_batches.into_iter(), msg_batches.into_iter())?;
+        let (agent_batches, msg_batches) = state_to_js(scope, agent_batches, msg_batches)?;
 
         let js_sim_id = sim_id_to_js(scope, sim_id);
         let js_idxs = new_js_array_from_usizes(scope, &group_indices)?;
