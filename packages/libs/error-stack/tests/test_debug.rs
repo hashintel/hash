@@ -7,6 +7,7 @@ use common::*;
 use error_stack::{Frame, FrameKind};
 
 #[test]
+#[ignore]
 fn report_normal() {
     let report = create_report()
         .attach_printable(PrintableA(0))
@@ -47,6 +48,7 @@ Caused by:
 }
 
 #[test]
+#[ignore]
 fn extended() {
     let report = create_report()
         .attach_printable(PrintableA(10))
