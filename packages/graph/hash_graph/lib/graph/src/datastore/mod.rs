@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use error_stack::{Context, Result};
 
 pub use self::{
-    error::{BaseIdAlreadyExists, BaseIdDoesNotExist, InsertionError, QueryError, UpdateError},
+    error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     postgres::PostgresDatabase,
 };
 use crate::types::{

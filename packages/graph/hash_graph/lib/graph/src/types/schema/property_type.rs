@@ -198,12 +198,15 @@ mod tests {
         property_type: &PropertyType,
         uris: impl IntoIterator<Item = &'static str>,
     ) {
-        let expected_property_references = uris.into_iter().collect::<HashSet<_>>();
+        let expected_property_references = uris
+            .into_iter()
+            .map(ToString::to_string)
+            .collect::<HashSet<_>>();
 
         let property_references = property_type
             .property_type_references()
             .into_iter()
-            .map(|reference| reference.reference().base_id())
+            .map(|reference| reference.reference().base_uri().to_string())
             .collect::<HashSet<_>>();
 
         assert_eq!(property_references, expected_property_references);

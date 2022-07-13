@@ -3,25 +3,42 @@ use std::{fmt, result::Result as StdResult, str::FromStr};
 use error_stack::{Context, IntoReport, Report, Result, ResultExt};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-pub type BaseId = String;
-pub type BaseIdRef = str;
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
+#[serde(transparent)]
+#[sqlx(transparent)]
+pub struct BaseUri(String);
+
+impl fmt::Debug for BaseUri {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, fmt)
+    }
+}
+
+impl fmt::Display for BaseUri {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct VersionedUri {
-    base_id: BaseId,
+    base_uri: BaseUri,
     version: u32,
 }
 
 impl VersionedUri {
-    /// Creates a new `VersionedUri` from the given `base_id` and `version`.
+    /// Creates a new `VersionedUri` from the given `base_uri` and `version`.
     #[must_use]
-    pub const fn new(base_id: BaseId, version: u32) -> Self {
-        Self { base_id, version }
+    pub const fn new(base_uri: String, version: u32) -> Self {
+        Self {
+            base_uri: BaseUri(base_uri),
+            version,
+        }
     }
 
     #[must_use]
-    pub fn base_id(&self) -> &BaseIdRef {
-        &self.base_id
+    pub const fn base_uri(&self) -> &BaseUri {
+        &self.base_uri
     }
 
     #[must_use]
@@ -32,7 +49,7 @@ impl VersionedUri {
 
 impl fmt::Display for VersionedUri {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}/v/{}", self.base_id, self.version)
+        write!(fmt, "{}/v/{}", self.base_uri.0, self.version)
     }
 }
 
@@ -51,10 +68,10 @@ impl FromStr for VersionedUri {
     type Err = Report<ParseUriError>;
 
     fn from_str(uri: &str) -> Result<Self, ParseUriError> {
-        let (base_id, version) = uri.rsplit_once("/v/").ok_or(ParseUriError)?;
+        let (base_uri, version) = uri.rsplit_once("/v/").ok_or(ParseUriError)?;
 
         Ok(Self::new(
-            base_id.to_owned(),
+            base_uri.to_owned(),
             version.parse().report().change_context(ParseUriError)?,
         ))
     }

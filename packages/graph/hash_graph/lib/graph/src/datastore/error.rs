@@ -40,27 +40,27 @@ impl Context for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct BaseIdAlreadyExists;
+pub struct BaseUriAlreadyExists;
 
-impl fmt::Display for BaseIdAlreadyExists {
+impl fmt::Display for BaseUriAlreadyExists {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("Base id already exists")
     }
 }
 
-impl Context for BaseIdAlreadyExists {}
+impl Context for BaseUriAlreadyExists {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct BaseIdDoesNotExist;
+pub struct BaseUriDoesNotExist;
 
-impl fmt::Display for BaseIdDoesNotExist {
+impl fmt::Display for BaseUriDoesNotExist {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("Base id already exists")
     }
 }
 
-impl Context for BaseIdDoesNotExist {}
+impl Context for BaseUriDoesNotExist {}
 
 #[derive(Debug)]
 #[must_use]

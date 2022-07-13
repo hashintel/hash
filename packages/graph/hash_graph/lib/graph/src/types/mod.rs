@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::Component;
 use uuid::Uuid;
 
-pub use self::uri::{BaseId, BaseIdRef, VersionedUri};
+pub use self::uri::{BaseUri, VersionedUri};
 use crate::types::schema::{DataType, PropertyType};
 
 #[repr(transparent)]

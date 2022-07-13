@@ -11,7 +11,7 @@ use crate::types::{
         property_type::PropertyTypeReference,
         ValidationError, VersionedUri,
     },
-    BaseId,
+    BaseUri,
 };
 
 /// Will serialize as a constant value `"entityType"`
@@ -52,8 +52,8 @@ impl EntityType {
         description: Option<String>,
         default: HashMap<VersionedUri, serde_json::Value>,
         examples: Vec<HashMap<VersionedUri, serde_json::Value>>,
-        properties: HashMap<BaseId, PropertyTypeReference>,
-        required: Vec<BaseId>,
+        properties: HashMap<BaseUri, PropertyTypeReference>,
+        required: Vec<BaseUri>,
         links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
         required_links: Vec<VersionedUri>,
     ) -> Self {
@@ -83,8 +83,8 @@ impl EntityType {
         description: Option<String>,
         default: HashMap<VersionedUri, serde_json::Value>,
         examples: Vec<HashMap<VersionedUri, serde_json::Value>>,
-        properties: HashMap<BaseId, PropertyTypeReference>,
-        required: Vec<BaseId>,
+        properties: HashMap<BaseUri, PropertyTypeReference>,
+        required: Vec<BaseUri>,
         links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
         required_links: Vec<VersionedUri>,
     ) -> Result<Self, ValidationError> {
@@ -126,12 +126,12 @@ impl EntityType {
     }
 
     #[must_use]
-    pub const fn properties(&self) -> &HashMap<BaseId, PropertyTypeReference> {
+    pub const fn properties(&self) -> &HashMap<BaseUri, PropertyTypeReference> {
         self.property_object.properties()
     }
 
     #[must_use]
-    pub fn required(&self) -> &[BaseId] {
+    pub fn required(&self) -> &[BaseUri] {
         self.property_object.required()
     }
 
@@ -176,12 +176,15 @@ mod tests {
     }
 
     fn test_property_refs(entity_type: &EntityType, uris: impl IntoIterator<Item = &'static str>) {
-        let expected_property_references = uris.into_iter().collect::<HashSet<_>>();
+        let expected_property_references = uris
+            .into_iter()
+            .map(ToString::to_string)
+            .collect::<HashSet<_>>();
 
         let property_references = entity_type
             .property_type_references()
             .into_iter()
-            .map(|reference| reference.reference().base_id())
+            .map(|reference| reference.reference().base_uri().to_string())
             .collect::<HashSet<_>>();
 
         assert_eq!(property_references, expected_property_references);

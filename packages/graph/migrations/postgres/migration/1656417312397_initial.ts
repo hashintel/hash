@@ -21,9 +21,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 
   pgm.createTable(
-    "base_ids",
+    "base_uris",
     {
-      base_id: {
+      base_uri: {
         type: "TEXT",
         primaryKey: true,
       },
@@ -49,10 +49,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable(
     "ids",
     {
-      base_id: {
+      base_uri: {
         type: "TEXT",
         notNull: true,
-        references: "base_ids",
+        references: "base_uris",
         onDelete: "CASCADE",
       },
       version: {
@@ -73,7 +73,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   );
   pgm.addConstraint("ids", "ids_primary_key", {
-    primaryKey: ["base_id", "version"],
+    primaryKey: ["base_uri", "version"],
   });
 
   pgm.createTable(
