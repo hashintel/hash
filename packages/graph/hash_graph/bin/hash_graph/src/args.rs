@@ -1,6 +1,6 @@
 use clap::{AppSettings::DeriveDisplayOrder, Args as _, Command, Parser};
 use clap_complete::Shell;
-use graph::datastore::DatabaseConnectionInfo;
+use graph::{datastore::DatabaseConnectionInfo, logging::LoggingArgs};
 
 /// Arguments passed to the program.
 #[derive(Debug, Parser)]
@@ -8,6 +8,9 @@ use graph::datastore::DatabaseConnectionInfo;
 pub struct Args {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
+
+    #[clap(flatten)]
+    pub log_config: LoggingArgs,
 
     /// Generate a completion script for the given shell and outputs it to stdout.
     #[clap(long, arg_enum, exclusive = true)]

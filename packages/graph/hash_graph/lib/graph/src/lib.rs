@@ -42,4 +42,5 @@
 
 pub mod api;
 pub mod datastore;
+pub mod logging;
 pub mod types;
