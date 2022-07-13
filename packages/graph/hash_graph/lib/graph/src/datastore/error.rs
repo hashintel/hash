@@ -44,7 +44,7 @@ pub struct BaseUriAlreadyExists;
 
 impl fmt::Display for BaseUriAlreadyExists {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("base URI already exists")
+        fmt.write_str("tried to insert a new base URI but it already existed")
     }
 }
 
