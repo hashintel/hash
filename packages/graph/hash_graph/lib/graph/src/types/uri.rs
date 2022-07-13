@@ -1,6 +1,6 @@
-use std::{fmt, num::ParseIntError, result::Result as StdResult, str::FromStr};
+use std::{fmt, result::Result as StdResult, str::FromStr};
 
-use error_stack::{ensure, Context, IntoReport, Report, Result, ResultExt};
+use error_stack::{Context, IntoReport, Report, Result, ResultExt};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 pub type BaseId = String;
