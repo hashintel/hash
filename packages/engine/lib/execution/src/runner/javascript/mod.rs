@@ -420,10 +420,10 @@ fn current_step_to_js<'s>(scope: &mut v8::HandleScope<'s>, current_step: usize) 
 }
 
 /// This enum is returned from [`batches_from_shared_store`]. We want to return a single type which
-/// implements [`std::iter::Iterator`], however, this is difficult because depending on the shared
+/// implements [`Iterator`], however, this is difficult because depending on the shared
 /// store in question we might return any of four different iterators. To make one type from the
-/// four, we use an `enum` here, and then implement [`std::iter::Iterator`] for it, calling the
-/// [`std::iter::Iterator::next`] method on the underlying iterator.
+/// four, we use an `enum` here, and then implement [`Iterator`] for it, calling the
+/// [`Iterator::next`] method on the underlying iterator.
 enum EmptyOrNonEmpty<OUTPUT, I1, I2, I3, I4> {
     Empty(std::iter::Empty<OUTPUT>),
     Read(I1),
