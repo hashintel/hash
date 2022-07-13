@@ -38,10 +38,10 @@ impl PropertyTypeReference {
 impl ValidateUri for PropertyTypeReference {
     fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
         ensure!(
-            base_uri == self.reference.base_uri(),
+            base_uri == self.uri().base_uri(),
             ValidationError::BaseUriMismatch {
                 base_uri: base_uri.clone(),
-                versioned_uri: self.reference.clone()
+                versioned_uri: self.uri().clone()
             }
         );
         Ok(())
