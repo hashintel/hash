@@ -122,7 +122,7 @@ test("user can create page", async ({ page }) => {
   await blockContextMenu.locator("text=Re-load block").click();
 
   await expect(
-    blockContextMenu.locator('[placeholder="Re-load block"]'),
+    blockContextMenu.locator('[placeholder="Load Block from URL..."]'),
   ).toHaveCount(0, { timeout: 1000 });
 
   await expect(
