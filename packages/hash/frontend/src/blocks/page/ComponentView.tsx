@@ -151,6 +151,7 @@ export class ComponentView implements NodeView<Schema> {
           <BlockLoader
             sourceUrl={this.sourceName}
             blockEntityId={entityId}
+            entityType={childEntity?.entityType}
             blockMetadata={this.meta.componentMetadata}
             // @todo uncomment this when sandbox is fixed
             // shouldSandbox={!this.editable}
