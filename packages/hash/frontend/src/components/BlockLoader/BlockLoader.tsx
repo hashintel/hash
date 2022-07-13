@@ -38,10 +38,10 @@ import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
 type BlockLoaderProps = {
   accountId: string;
   blockEntityId: string;
-  blockEntityType?: ApiEntityType;
   blockMetadata: BlockConfig;
   editableRef: unknown;
   entityId: string;
+  entityType?: Pick<ApiEntityType, "entityId" | "properties">;
   entityTypeId: string;
   entityProperties: {};
   linkGroups: BlockEntity["properties"]["entity"]["linkGroups"];
@@ -60,10 +60,10 @@ type BlockLoaderProps = {
 export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   accountId,
   blockEntityId,
-  blockEntityType,
   blockMetadata,
   editableRef,
   entityId,
+  entityType,
   entityTypeId,
   entityProperties,
   linkGroups,
@@ -93,10 +93,9 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   >(() => {
     const convertedEntityTypesForProvidedEntities: BpEntityType[] = [];
 
-    // @todo feed this through from ComponentView
-    if (blockEntityType) {
+    if (entityType) {
       convertedEntityTypesForProvidedEntities.push(
-        convertApiEntityTypeToBpEntityType(blockEntityType),
+        convertApiEntityTypeToBpEntityType(entityType),
       );
     }
 
@@ -115,7 +114,9 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       );
       convertedEntityTypesForProvidedEntities.push(
         ...convertApiEntityTypesToBpEntityTypes(
-          linkedAggregation.results.map(({ entityType }) => entityType),
+          linkedAggregation.results.map(
+            ({ entityType: resultEntityType }) => resultEntityType,
+          ),
         ),
       );
     }
@@ -142,7 +143,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     };
   }, [
     accountId,
-    blockEntityType,
+    entityType,
     entityId,
     entityProperties,
     entityTypeId,
