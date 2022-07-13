@@ -44,7 +44,7 @@ pub struct BaseUriAlreadyExists;
 
 impl fmt::Display for BaseUriAlreadyExists {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Base id already exists")
+        fmt.write_str("Base URI already exists")
     }
 }
 
@@ -56,7 +56,7 @@ pub struct BaseUriDoesNotExist;
 
 impl fmt::Display for BaseUriDoesNotExist {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Base id already exists")
+        fmt.write_str("Base URI does not exists")
     }
 }
 
