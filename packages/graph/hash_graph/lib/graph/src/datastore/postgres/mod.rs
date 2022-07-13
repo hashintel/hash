@@ -27,6 +27,7 @@ impl PostgresDatabase {
     ///
     /// - [`DatastoreError`], if creating a [`PgPool`] connection returns an error.
     pub async fn new(db_info: &DatabaseConnectionInfo) -> Result<Self, DatastoreError> {
+        tracing::debug!("Creating connection pool to Postgres");
         Ok(Self {
             pool: PgPool::connect(&db_info.url())
                 .await
