@@ -21,8 +21,8 @@ use crate::types::{BaseUri, VersionedUri};
 
 #[derive(Debug)]
 pub enum ValidationError {
-    /// A schema has marked a property with a [`VersionedUri`] as required but the [`VersionedUri`]
-    /// does not exist in the `properties`.
+    /// A schema has marked a property with a [`BaseUri`] as required but the [`BaseUri`] does not
+    /// exist in the `properties`.
     MissingRequiredProperty(BaseUri),
     /// A schema has marked a link as required but the link does not exist in the schema.
     MissingRequiredLink(VersionedUri),
