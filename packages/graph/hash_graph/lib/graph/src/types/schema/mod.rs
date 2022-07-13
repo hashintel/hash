@@ -17,15 +17,15 @@ use core::fmt;
 
 #[doc(inline)]
 pub use self::{data_type::DataType, entity_type::EntityType, property_type::PropertyType};
-use crate::types::{BaseId, Uri};
+use crate::types::{BaseId, VersionedUri};
 
 #[derive(Debug)]
 pub enum ValidationError {
-    /// A schema has marked a property with a [`Uri`] as required but the [`Uri`] does not exist in
-    /// the `properties`.
+    /// A schema has marked a property with a [`VersionedUri`] as required but the [`VersionedUri`]
+    /// does not exist in the `properties`.
     MissingRequiredProperty(BaseId),
     /// A schema has marked a link as required but the link does not exist in the schema.
-    MissingRequiredLink(Uri),
+    MissingRequiredLink(VersionedUri),
     /// At least `expected` number of properties are required, but only `actual` were provided.
     MismatchedPropertyCount { actual: usize, expected: usize },
     /// `oneOf` requires at least one element.

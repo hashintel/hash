@@ -3,25 +3,25 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::types::schema::Uri;
+use crate::types::schema::VersionedUri;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DataTypeReference {
     // TODO: Test if the URI is an actual data type
     #[serde(rename = "$ref")]
-    reference: Uri,
+    reference: VersionedUri,
 }
 
 impl DataTypeReference {
     /// Creates a new `DataTypeReference` from the given `reference`.
     #[must_use]
-    pub const fn new(reference: Uri) -> Self {
+    pub const fn new(reference: VersionedUri) -> Self {
         Self { reference }
     }
 
     #[must_use]
-    pub const fn reference(&self) -> &Uri {
+    pub const fn reference(&self) -> &VersionedUri {
         &self.reference
     }
 }
@@ -38,7 +38,7 @@ enum DataTypeTag {
 pub struct DataType {
     kind: DataTypeTag,
     #[serde(rename = "$id")]
-    id: Uri,
+    id: VersionedUri,
     title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
@@ -56,7 +56,7 @@ impl DataType {
     /// Creates a new `DataType`.
     #[must_use]
     pub const fn new(
-        id: Uri,
+        id: VersionedUri,
         title: String,
         description: Option<String>,
         json_type: String,
@@ -73,7 +73,7 @@ impl DataType {
     }
 
     #[must_use]
-    pub const fn id(&self) -> &Uri {
+    pub const fn id(&self) -> &VersionedUri {
         &self.id
     }
 
@@ -106,7 +106,7 @@ impl DataType {
     #[must_use]
     pub fn text() -> Self {
         Self::new(
-            Uri::new(
+            VersionedUri::new(
                 "https://blockprotocol.org/types/@blockprotocol/data-type/text".to_owned(),
                 1,
             ),
@@ -121,7 +121,7 @@ impl DataType {
     #[must_use]
     pub fn number() -> Self {
         Self::new(
-            Uri::new(
+            VersionedUri::new(
                 "https://blockprotocol.org/types/@blockprotocol/data-type/number".to_owned(),
                 1,
             ),
@@ -136,7 +136,7 @@ impl DataType {
     #[must_use]
     pub fn boolean() -> Self {
         Self::new(
-            Uri::new(
+            VersionedUri::new(
                 "https://blockprotocol.org/types/@blockprotocol/data-type/boolean".to_owned(),
                 1,
             ),
@@ -151,7 +151,7 @@ impl DataType {
     #[must_use]
     pub fn null() -> Self {
         Self::new(
-            Uri::new(
+            VersionedUri::new(
                 "https://blockprotocol.org/types/@blockprotocol/data-type/null".to_owned(),
                 1,
             ),
@@ -166,7 +166,7 @@ impl DataType {
     #[must_use]
     pub fn object() -> Self {
         Self::new(
-            Uri::new(
+            VersionedUri::new(
                 "https://blockprotocol.org/types/@blockprotocol/data-type/object".to_owned(),
                 1,
             ),
@@ -181,7 +181,7 @@ impl DataType {
     #[must_use]
     pub fn empty_list() -> Self {
         Self::new(
-            Uri::new(
+            VersionedUri::new(
                 "https://blockprotocol.org/types/@blockprotocol/data-type/empty-list".to_owned(),
                 1,
             ),
@@ -201,8 +201,10 @@ mod tests {
 
     #[test]
     fn data_type_reference() -> Result<(), Box<dyn Error>> {
-        let reference =
-            DataTypeReference::new(Uri::new("https://example.com/data_type".to_owned(), 1));
+        let reference = DataTypeReference::new(VersionedUri::new(
+            "https://example.com/data_type".to_owned(),
+            1,
+        ));
         let json = serde_json::to_value(&reference)?;
 
         assert_eq!(

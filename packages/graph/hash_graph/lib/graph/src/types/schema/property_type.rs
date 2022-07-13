@@ -7,7 +7,7 @@ use crate::types::schema::{
     combinator::{OneOf, ValueOrArray},
     data_type::DataTypeReference,
     object::Object,
-    Uri,
+    VersionedUri,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -15,18 +15,18 @@ use crate::types::schema::{
 pub struct PropertyTypeReference {
     // TODO: Test if the URI is an actual property type
     #[serde(rename = "$ref")]
-    reference: Uri,
+    reference: VersionedUri,
 }
 
 impl PropertyTypeReference {
     /// Creates a new `PropertyTypeReference` from the given `reference`.
     #[must_use]
-    pub const fn new(reference: Uri) -> Self {
+    pub const fn new(reference: VersionedUri) -> Self {
         Self { reference }
     }
 
     #[must_use]
-    pub const fn reference(&self) -> &Uri {
+    pub const fn reference(&self) -> &VersionedUri {
         &self.reference
     }
 }
@@ -91,7 +91,7 @@ enum PropertyTypeTag {
 pub struct PropertyType {
     kind: PropertyTypeTag,
     #[serde(rename = "$id")]
-    id: Uri,
+    id: VersionedUri,
     title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
@@ -103,7 +103,7 @@ impl PropertyType {
     /// Creates a new `PropertyType`.
     #[must_use]
     pub const fn new(
-        id: Uri,
+        id: VersionedUri,
         title: String,
         description: Option<String>,
         one_of: OneOf<PropertyValues>,
@@ -118,7 +118,7 @@ impl PropertyType {
     }
 
     #[must_use]
-    pub const fn id(&self) -> &Uri {
+    pub const fn id(&self) -> &VersionedUri {
         &self.id
     }
 
@@ -181,7 +181,7 @@ mod tests {
     ) {
         let expected_data_type_references = uris
             .into_iter()
-            .map(|uri| Uri::from_str(uri).expect("Invalid URI"))
+            .map(|uri| VersionedUri::from_str(uri).expect("Invalid URI"))
             .collect::<HashSet<_>>();
 
         let data_type_references = property_type

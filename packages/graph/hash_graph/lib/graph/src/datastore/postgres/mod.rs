@@ -10,7 +10,7 @@ use crate::{
     },
     types::{
         schema::{DataType, EntityType, PropertyType},
-        AccountId, BaseIdRef, Qualified, Uri, VersionId,
+        AccountId, BaseIdRef, Qualified, VersionId, VersionedUri,
     },
 };
 
@@ -56,12 +56,12 @@ impl PostgresDatabase {
         Ok(exists)
     }
 
-    /// Checks if the specified [`Uri`] exists in the database.
+    /// Checks if the specified [`VersionedUri`] exists in the database.
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if checking for the [`Uri`] failed.
-    async fn contains_uri(&mut self, uri: &Uri) -> Result<bool, QueryError> {
+    /// - [`DatastoreError`], if checking for the [`VersionedUri`] failed.
+    async fn contains_uri(&mut self, uri: &VersionedUri) -> Result<bool, QueryError> {
         let (exists,) = sqlx::query_as(
             r#"SELECT EXISTS(SELECT 1 FROM ids WHERE base_id = $1 AND version = $2);"#,
         )
@@ -76,12 +76,12 @@ impl PostgresDatabase {
         Ok(exists)
     }
 
-    /// Inserts the specified [`Uri`] into the database.
+    /// Inserts the specified [`VersionedUri`] into the database.
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if inserting the [`Uri`] failed.
-    async fn insert_uri(&mut self, uri: &Uri) -> Result<VersionId, InsertionError> {
+    /// - [`DatastoreError`], if inserting the [`VersionedUri`] failed.
+    async fn insert_uri(&mut self, uri: &VersionedUri) -> Result<VersionId, InsertionError> {
         if self
             .contains_uri(uri)
             .await
@@ -703,7 +703,7 @@ mod tests {
     #[must_use]
     pub fn object_v2() -> DataType {
         DataType::new(
-            Uri::new(
+            VersionedUri::new(
                 "https://blockprotocol.org/types/@blockprotocol/data-type/object".to_owned(),
                 2,
             ),

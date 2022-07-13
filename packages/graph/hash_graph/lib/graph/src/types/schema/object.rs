@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::{schema::ValidationError, BaseId};
+use crate::types::{schema::ValidationError, BaseUri};
 
 /// Will serialize as a constant value `"object"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,9 +15,9 @@ enum ObjectTypeTag {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ObjectRepr<V> {
     r#type: ObjectTypeTag,
-    properties: HashMap<BaseId, V>,
+    properties: HashMap<BaseUri, V>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    required: Vec<BaseId>,
+    required: Vec<BaseUri>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ pub struct Object<V, const MIN: usize = 0> {
 impl<V, const MIN: usize> Object<V, MIN> {
     /// Creates a new `Object` without validating.
     #[must_use]
-    pub fn new_unchecked(properties: HashMap<BaseId, V>, required: Vec<BaseId>) -> Self {
+    pub fn new_unchecked(properties: HashMap<BaseUri, V>, required: Vec<BaseUri>) -> Self {
         Self {
             repr: ObjectRepr {
                 r#type: ObjectTypeTag::Object,
@@ -49,8 +49,8 @@ impl<V, const MIN: usize> Object<V, MIN> {
     /// - [`ValidationError::MismatchedPropertyCount`] if the number of properties is less than
     ///   `MIN`.
     pub fn new(
-        properties: HashMap<BaseId, V>,
-        required: Vec<BaseId>,
+        properties: HashMap<BaseUri, V>,
+        required: Vec<BaseUri>,
     ) -> Result<Self, ValidationError> {
         let object = Self::new_unchecked(properties, required);
         object.validate()?;
@@ -73,11 +73,11 @@ impl<V, const MIN: usize> Object<V, MIN> {
         Ok(())
     }
 
-    pub const fn properties(&self) -> &HashMap<BaseId, V> {
+    pub const fn properties(&self) -> &HashMap<BaseUri, V> {
         &self.repr.properties
     }
 
-    pub fn required(&self) -> &[BaseId] {
+    pub fn required(&self) -> &[BaseUri] {
         &self.repr.required
     }
 }
@@ -120,7 +120,7 @@ mod tests {
             check(
                 &Object::new(
                     HashMap::from([(
-                        BaseId::from("https://example.com/property_type"),
+                        BaseUri::from("https://example.com/property_type"),
                         "value".to_owned(),
                     )]),
                     vec![],
@@ -141,11 +141,11 @@ mod tests {
                 &Object::new(
                     HashMap::from([
                         (
-                            BaseId::from("https://example.com/property_type_a"),
+                            BaseUri::from("https://example.com/property_type_a"),
                             "value_a".to_owned(),
                         ),
                         (
-                            BaseId::from("https://example.com/property_type_b"),
+                            BaseUri::from("https://example.com/property_type_b"),
                             "value_b".to_owned(),
                         ),
                     ]),
@@ -180,7 +180,7 @@ mod tests {
             check(
                 &Object::new(
                     HashMap::from([(
-                        BaseId::from("https://example.com/property_type"),
+                        BaseUri::from("https://example.com/property_type"),
                         "value".to_owned(),
                     )]),
                     vec![],
@@ -201,11 +201,11 @@ mod tests {
                 &Object::new(
                     HashMap::from([
                         (
-                            BaseId::from("https://example.com/property_type_a"),
+                            BaseUri::from("https://example.com/property_type_a"),
                             "value_a".to_owned(),
                         ),
                         (
-                            BaseId::from("https://example.com/property_type_b"),
+                            BaseUri::from("https://example.com/property_type_b"),
                             "value_b".to_owned(),
                         ),
                     ]),
@@ -229,15 +229,15 @@ mod tests {
             &Object::<String>::new(
                 HashMap::from([
                     (
-                        BaseId::from("https://example.com/property_type_a"),
+                        BaseUri::from("https://example.com/property_type_a"),
                         "value_a".to_owned(),
                     ),
                     (
-                        BaseId::from("https://example.com/property_type_b"),
+                        BaseUri::from("https://example.com/property_type_b"),
                         "value_b".to_owned(),
                     ),
                 ]),
-                vec![BaseId::from("https://example.com/property_type_a")],
+                vec![BaseUri::from("https://example.com/property_type_a")],
             )?,
             json!({
                 "type": "object",

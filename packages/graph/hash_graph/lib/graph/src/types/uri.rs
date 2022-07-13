@@ -7,13 +7,13 @@ pub type BaseId = String;
 pub type BaseIdRef = str;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Uri {
+pub struct VersionedUri {
     base_id: BaseId,
     version: u32,
 }
 
-impl Uri {
-    /// Creates a new `Uri` from the given `base_id` and `version`.
+impl VersionedUri {
+    /// Creates a new `VersionedUri` from the given `base_id` and `version`.
     #[must_use]
     pub const fn new(base_id: BaseId, version: u32) -> Self {
         Self { base_id, version }
@@ -30,7 +30,7 @@ impl Uri {
     }
 }
 
-impl fmt::Display for Uri {
+impl fmt::Display for VersionedUri {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "{}/v/{}", self.base_id, self.version)
     }
@@ -47,7 +47,7 @@ impl fmt::Display for ParseUriError {
 
 impl Context for ParseUriError {}
 
-impl FromStr for Uri {
+impl FromStr for VersionedUri {
     type Err = Report<ParseUriError>;
 
     fn from_str(uri: &str) -> Result<Self, ParseUriError> {
@@ -60,7 +60,7 @@ impl FromStr for Uri {
     }
 }
 
-impl Serialize for Uri {
+impl Serialize for VersionedUri {
     fn serialize<S>(&self, serializer: S) -> StdResult<S::Ok, S::Error>
     where
         S: Serializer,
@@ -69,7 +69,7 @@ impl Serialize for Uri {
     }
 }
 
-impl<'de> Deserialize<'de> for Uri {
+impl<'de> Deserialize<'de> for VersionedUri {
     fn deserialize<D>(deserializer: D) -> StdResult<Self, D::Error>
     where
         D: Deserializer<'de>,

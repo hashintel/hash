@@ -9,7 +9,7 @@ use crate::types::{
         link::Links,
         object::Object,
         property_type::PropertyTypeReference,
-        Uri, ValidationError,
+        ValidationError, VersionedUri,
     },
     BaseId,
 };
@@ -28,14 +28,14 @@ pub enum EntityTypeTag {
 pub struct EntityType {
     kind: EntityTypeTag,
     #[serde(rename = "$id")]
-    id: Uri,
+    id: VersionedUri,
     title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    default: HashMap<Uri, serde_json::Value>,
+    default: HashMap<VersionedUri, serde_json::Value>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    examples: Vec<HashMap<Uri, serde_json::Value>>,
+    examples: Vec<HashMap<VersionedUri, serde_json::Value>>,
     #[serde(flatten)]
     property_object: Object<PropertyTypeReference>,
     #[serde(flatten)]
@@ -47,15 +47,15 @@ impl EntityType {
     #[must_use]
     #[allow(clippy::too_many_arguments)]
     pub fn new_unchecked(
-        id: Uri,
+        id: VersionedUri,
         title: String,
         description: Option<String>,
-        default: HashMap<Uri, serde_json::Value>,
-        examples: Vec<HashMap<Uri, serde_json::Value>>,
+        default: HashMap<VersionedUri, serde_json::Value>,
+        examples: Vec<HashMap<VersionedUri, serde_json::Value>>,
         properties: HashMap<BaseId, PropertyTypeReference>,
         required: Vec<BaseId>,
-        links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
-        required_links: Vec<Uri>,
+        links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
+        required_links: Vec<VersionedUri>,
     ) -> Self {
         Self {
             kind: EntityTypeTag::EntityType,
@@ -78,15 +78,15 @@ impl EntityType {
     /// - [`ValidationError::MissingRequiredLink`] if a required link is not a key in `links`.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        id: Uri,
+        id: VersionedUri,
         title: String,
         description: Option<String>,
-        default: HashMap<Uri, serde_json::Value>,
-        examples: Vec<HashMap<Uri, serde_json::Value>>,
+        default: HashMap<VersionedUri, serde_json::Value>,
+        examples: Vec<HashMap<VersionedUri, serde_json::Value>>,
         properties: HashMap<BaseId, PropertyTypeReference>,
         required: Vec<BaseId>,
-        links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
-        required_links: Vec<Uri>,
+        links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
+        required_links: Vec<VersionedUri>,
     ) -> Result<Self, ValidationError> {
         Ok(Self {
             kind: EntityTypeTag::EntityType,
@@ -101,7 +101,7 @@ impl EntityType {
     }
 
     #[must_use]
-    pub const fn id(&self) -> &Uri {
+    pub const fn id(&self) -> &VersionedUri {
         &self.id
     }
 
@@ -116,12 +116,12 @@ impl EntityType {
     }
 
     #[must_use]
-    pub const fn default(&self) -> &HashMap<Uri, serde_json::Value> {
+    pub const fn default(&self) -> &HashMap<VersionedUri, serde_json::Value> {
         &self.default
     }
 
     #[must_use]
-    pub const fn examples(&self) -> &Vec<HashMap<Uri, serde_json::Value>> {
+    pub const fn examples(&self) -> &Vec<HashMap<VersionedUri, serde_json::Value>> {
         &self.examples
     }
 
@@ -136,12 +136,12 @@ impl EntityType {
     }
 
     #[must_use]
-    pub const fn links(&self) -> &HashMap<Uri, Optional<MaybeOrdered<Array>>> {
+    pub const fn links(&self) -> &HashMap<VersionedUri, Optional<MaybeOrdered<Array>>> {
         self.links.links()
     }
 
     #[must_use]
-    pub fn required_links(&self) -> &[Uri] {
+    pub fn required_links(&self) -> &[VersionedUri] {
         self.links.required()
     }
 
@@ -151,7 +151,7 @@ impl EntityType {
     }
 
     #[must_use]
-    pub fn link_references(&self) -> HashSet<&Uri> {
+    pub fn link_references(&self) -> HashSet<&VersionedUri> {
         self.links().iter().map(|(link, _)| link).collect()
     }
 }
@@ -190,7 +190,7 @@ mod tests {
     fn test_link_refs(entity_type: &EntityType, links: impl IntoIterator<Item = &'static str>) {
         let expected_link_references = links
             .into_iter()
-            .map(|uri| Uri::from_str(uri).expect("Invalid URI"))
+            .map(|uri| VersionedUri::from_str(uri).expect("Invalid URI"))
             .collect::<HashSet<_>>();
         let link_references = entity_type
             .link_references()
