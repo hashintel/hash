@@ -166,7 +166,7 @@ fn buffer_actions_from_pending_batch<'a>(
 
     let range_actions = RangeActions::new(remove, copy, create);
 
-    let agent_batches = state_proxy.agent_pool().batches();
+    let agent_batches = state_proxy.agent_pool().batches_iter().collect::<Vec<_>>();
     BufferActions::from(
         &agent_batches,
         pending_batch.old_batch_index(),
