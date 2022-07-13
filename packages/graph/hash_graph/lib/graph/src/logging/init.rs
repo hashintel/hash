@@ -109,7 +109,7 @@ pub fn init_logger<P: AsRef<Path>>(
     };
 
     let json_file_appender =
-        tracing_appender::rolling::never(log_folder, format!("{log_file_name}.json"));
+        tracing_appender::rolling::never(log_folder, format!("{log_file_name}.jsonl"));
     let (non_blocking, json_file_guard) = tracing_appender::non_blocking(json_file_appender);
 
     let json_file_layer = fmt::layer()
