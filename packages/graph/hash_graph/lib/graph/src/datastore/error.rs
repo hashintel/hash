@@ -64,12 +64,12 @@ impl Context for BaseIdDoesNotExist {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct UriAlreadyExist;
+pub struct UriAlreadyExists;
 
-impl fmt::Display for UriAlreadyExist {
+impl fmt::Display for UriAlreadyExists {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("Uri already exists")
     }
 }
 
-impl Context for UriAlreadyExist {}
+impl Context for UriAlreadyExists {}

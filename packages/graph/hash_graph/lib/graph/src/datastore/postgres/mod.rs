@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     datastore::{
-        error::UriAlreadyExist, BaseIdAlreadyExists, BaseIdDoesNotExist, DatabaseConnectionInfo,
+        error::UriAlreadyExists, BaseIdAlreadyExists, BaseIdDoesNotExist, DatabaseConnectionInfo,
         Datastore, DatastoreError, InsertionError, QueryError, UpdateError,
     },
     types::{
@@ -88,7 +88,7 @@ impl PostgresDatabase {
             .change_context(InsertionError)?
         {
             return Err(Report::new(InsertionError)
-                .attach_printable(UriAlreadyExist)
+                .attach_printable(UriAlreadyExists)
                 .attach(uri.clone()));
         }
 
