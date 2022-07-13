@@ -184,7 +184,7 @@ mod tests {
         let property_references = entity_type
             .property_type_references()
             .into_iter()
-            .map(|reference| reference.reference().base_uri().to_string())
+            .map(|reference| reference.uri().base_uri().to_string())
             .collect::<HashSet<_>>();
 
         assert_eq!(property_references, expected_property_references);

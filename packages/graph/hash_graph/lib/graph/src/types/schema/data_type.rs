@@ -21,7 +21,7 @@ impl DataTypeReference {
     }
 
     #[must_use]
-    pub const fn reference(&self) -> &VersionedUri {
+    pub const fn uri(&self) -> &VersionedUri {
         &self.reference
     }
 }

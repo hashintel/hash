@@ -26,7 +26,7 @@ impl PropertyTypeReference {
     }
 
     #[must_use]
-    pub const fn reference(&self) -> &VersionedUri {
+    pub const fn uri(&self) -> &VersionedUri {
         &self.reference
     }
 }
@@ -187,7 +187,7 @@ mod tests {
         let data_type_references = property_type
             .data_type_references()
             .into_iter()
-            .map(DataTypeReference::reference)
+            .map(DataTypeReference::uri)
             .cloned()
             .collect::<HashSet<_>>();
 
@@ -206,7 +206,7 @@ mod tests {
         let property_references = property_type
             .property_type_references()
             .into_iter()
-            .map(|reference| reference.reference().base_uri().to_string())
+            .map(|reference| reference.uri().base_uri().to_string())
             .collect::<HashSet<_>>();
 
         assert_eq!(property_references, expected_property_references);
