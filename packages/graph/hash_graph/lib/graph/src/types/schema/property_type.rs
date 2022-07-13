@@ -19,19 +19,19 @@ use crate::types::{
 pub struct PropertyTypeReference {
     // TODO: Test if the URI is an actual property type
     #[serde(rename = "$ref")]
-    reference: VersionedUri,
+    uri: VersionedUri,
 }
 
 impl PropertyTypeReference {
-    /// Creates a new `PropertyTypeReference` from the given `reference`.
+    /// Creates a new `PropertyTypeReference` from the given [`VersionedUri`].
     #[must_use]
-    pub const fn new(reference: VersionedUri) -> Self {
-        Self { reference }
+    pub const fn new(uri: VersionedUri) -> Self {
+        Self { uri }
     }
 
     #[must_use]
     pub const fn uri(&self) -> &VersionedUri {
-        &self.reference
+        &self.uri
     }
 }
 

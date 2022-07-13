@@ -14,19 +14,19 @@ use crate::types::{
 pub struct DataTypeReference {
     // TODO: Test if the URI is an actual data type
     #[serde(rename = "$ref")]
-    reference: VersionedUri,
+    uri: VersionedUri,
 }
 
 impl DataTypeReference {
-    /// Creates a new `DataTypeReference` from the given `reference`.
+    /// Creates a new `DataTypeReference` from the given [`VersionedUri`].
     #[must_use]
-    pub const fn new(reference: VersionedUri) -> Self {
-        Self { reference }
+    pub const fn new(uri: VersionedUri) -> Self {
+        Self { uri }
     }
 
     #[must_use]
     pub const fn uri(&self) -> &VersionedUri {
-        &self.reference
+        &self.uri
     }
 }
 
