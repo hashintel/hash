@@ -147,6 +147,7 @@ export class ComponentView implements NodeView<Schema> {
         <Sentry.ErrorBoundary
           beforeCapture={beforeCapture}
           fallback={(props) => <ErrorBlock {...props} onRetry={onRetry} />}
+          onError={() => this.target.setAttribute("data-error", "true")}
         >
           <BlockLoader
             sourceUrl={this.sourceName}

@@ -113,6 +113,12 @@ const BlockHandle: ForwardRefRenderFunction<
         openConfigMenu={configMenuPopupState.open}
         popupState={contextMenuPopupState}
         ref={blockMenuRef}
+        swapType={
+          !!blockSchema?.properties?.text ||
+          !!document
+            .querySelector(`[data-entity-id="${entityId}"]`)
+            ?.getAttribute("data-error")
+        }
       />
 
       <BlockConfigMenu

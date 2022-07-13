@@ -13,17 +13,21 @@ type Option = {
 export const useFilteredBlocks = (
   searchText: string,
   blocksMetaMap: BlocksMetaMap,
+  textBlocksOnly = false,
 ) => {
   return useMemo(() => {
-    const allOptions: Option[] = Object.values(blocksMetaMap).flatMap(
-      ({ componentMetadata: blockMeta }) =>
+    const allOptions: Option[] = Object.values(blocksMetaMap)
+      .filter(
+        (block) => !textBlocksOnly || block?.componentSchema?.properties?.text,
+      )
+      .flatMap(({ componentMetadata: blockMeta }) =>
         // Assumes that variants have been built for all blocks in toBlockConfig
         // any required changes to block metadata should happen there
         (blockMeta.variants ?? []).map((variant) => ({
           variant,
           meta: blockMeta,
         })),
-    );
+      );
 
     return fuzzySearchBy(
       allOptions,
