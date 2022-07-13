@@ -56,7 +56,8 @@ impl fmt::Display for ValidationError {
             } => {
                 write!(
                     fmt,
-                    "expected base URI {base_uri} differed from the base URI of {versioned_uri}"
+                    "expected base URI ({base_uri}) differed from the base URI of \
+                     ({versioned_uri})"
                 )
             }
             Self::MissingRequiredLink(link) => {
