@@ -77,8 +77,8 @@ impl<V: ValidateUri, const MIN: usize> Object<V, MIN> {
                 ValidationError::MissingRequiredProperty(uri.clone())
             );
         }
-        for (base_uri, referenced) in self.properties() {
-            referenced.validate_uri(base_uri)?;
+        for (base_uri, reference) in self.properties() {
+            reference.validate_uri(base_uri)?;
         }
 
         Ok(())
