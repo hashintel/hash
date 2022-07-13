@@ -109,7 +109,7 @@ test("user can create page", async ({ page }) => {
   const blockContextMenu = page.locator('[data-testid="block-context-menu"]');
 
   await blockContextMenu
-    .locator('[placeholder="Load Block from URL..."]')
+    .locator('[placeholder="Load block from URL..."]')
     .fill("https://blockprotocol.org/blocks/@hash/code");
 
   /**
@@ -122,8 +122,8 @@ test("user can create page", async ({ page }) => {
   await blockContextMenu.locator("text=Re-load block").click();
 
   await expect(
-    blockContextMenu.locator('[placeholder="Load Block from URL..."]'),
-  ).toHaveCount(0, { timeout: 1000 });
+    blockContextMenu.locator('[placeholder="Load block from URL..."]'),
+  ).toHaveCount(0, { timeout: 2000 });
 
   await expect(
     blockRegionLocator.locator(`[data-testid="block"]:nth-child(3) p`),
