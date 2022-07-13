@@ -21,10 +21,23 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 
   pgm.createTable(
-    "base_ids",
+    "base_uris",
     {
-      base_id: {
+      base_uri: {
         type: "TEXT",
+        primaryKey: true,
+      },
+    },
+    {
+      ifNotExists: true,
+    },
+  );
+
+  pgm.createTable(
+    "version_ids",
+    {
+      version_id: {
+        type: "UUID",
         primaryKey: true,
       },
     },
@@ -36,15 +49,19 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable(
     "ids",
     {
-      version_id: {
-        type: "UUID",
-        primaryKey: true,
-      },
-      base_id: {
+      base_uri: {
         type: "TEXT",
         notNull: true,
-        references: "base_ids",
+        references: "base_uris",
         onDelete: "CASCADE",
+      },
+      version: {
+        type: "INT",
+        notNull: true,
+      },
+      version_id: {
+        type: "UUID",
+        references: "version_ids",
       },
     },
     {
@@ -55,6 +72,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         `),
     },
   );
+  pgm.addConstraint("ids", "ids_primary_key", {
+    primaryKey: ["base_uri", "version"],
+  });
 
   pgm.createTable(
     "data_types",
@@ -62,7 +82,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       version_id: {
         type: "UUID",
         primaryKey: true,
-        references: "ids",
+        references: "version_ids",
         onDelete: "CASCADE",
       },
       schema: {
@@ -86,7 +106,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       version_id: {
         type: "UUID",
         primaryKey: true,
-        references: "ids",
+        references: "version_ids",
         onDelete: "CASCADE",
       },
       schema: {
@@ -148,7 +168,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       version_id: {
         type: "UUID",
         primaryKey: true,
-        references: "ids",
+        references: "version_ids",
         onDelete: "CASCADE",
       },
       schema: {

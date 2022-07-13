@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::schema::{Uri, ValidationError};
+use crate::types::{schema::ValidationError, BaseUri};
 
 /// Will serialize as a constant value `"object"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,9 +15,9 @@ enum ObjectTypeTag {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ObjectRepr<V> {
     r#type: ObjectTypeTag,
-    properties: HashMap<Uri, V>,
+    properties: HashMap<BaseUri, V>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    required: Vec<Uri>,
+    required: Vec<BaseUri>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ pub struct Object<V, const MIN: usize = 0> {
 impl<V, const MIN: usize> Object<V, MIN> {
     /// Creates a new `Object` without validating.
     #[must_use]
-    pub fn new_unchecked(properties: HashMap<Uri, V>, required: Vec<Uri>) -> Self {
+    pub fn new_unchecked(properties: HashMap<BaseUri, V>, required: Vec<BaseUri>) -> Self {
         Self {
             repr: ObjectRepr {
                 r#type: ObjectTypeTag::Object,
@@ -48,7 +48,10 @@ impl<V, const MIN: usize> Object<V, MIN> {
     ///   `properties`.
     /// - [`ValidationError::MismatchedPropertyCount`] if the number of properties is less than
     ///   `MIN`.
-    pub fn new(properties: HashMap<Uri, V>, required: Vec<Uri>) -> Result<Self, ValidationError> {
+    pub fn new(
+        properties: HashMap<BaseUri, V>,
+        required: Vec<BaseUri>,
+    ) -> Result<Self, ValidationError> {
         let object = Self::new_unchecked(properties, required);
         object.validate()?;
         Ok(object)
@@ -70,11 +73,11 @@ impl<V, const MIN: usize> Object<V, MIN> {
         Ok(())
     }
 
-    pub const fn properties(&self) -> &HashMap<Uri, V> {
+    pub const fn properties(&self) -> &HashMap<BaseUri, V> {
         &self.repr.properties
     }
 
-    pub fn required(&self) -> &[Uri] {
+    pub fn required(&self) -> &[BaseUri] {
         &self.repr.required
     }
 }
@@ -94,10 +97,14 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::types::schema::tests::{check, check_invalid_json};
+    use crate::types::{
+        schema::tests::{check, check_invalid_json},
+        VersionedUri,
+    };
 
     mod unconstrained {
         use super::*;
+        use crate::types::VersionedUri;
         type Object = super::Object<String, 0>;
 
         #[test]
@@ -117,7 +124,9 @@ mod tests {
             check(
                 &Object::new(
                     HashMap::from([(
-                        Uri::new("https://example.com/property_type"),
+                        VersionedUri::new("https://example.com/property_type".to_owned(), 1)
+                            .base_uri()
+                            .clone(),
                         "value".to_owned(),
                     )]),
                     vec![],
@@ -138,11 +147,15 @@ mod tests {
                 &Object::new(
                     HashMap::from([
                         (
-                            Uri::new("https://example.com/property_type_a"),
+                            VersionedUri::new("https://example.com/property_type_a".to_owned(), 1)
+                                .base_uri()
+                                .clone(),
                             "value_a".to_owned(),
                         ),
                         (
-                            Uri::new("https://example.com/property_type_b"),
+                            VersionedUri::new("https://example.com/property_type_b".to_owned(), 1)
+                                .base_uri()
+                                .clone(),
                             "value_b".to_owned(),
                         ),
                     ]),
@@ -162,6 +175,7 @@ mod tests {
 
     mod constrained {
         use super::*;
+        use crate::types::VersionedUri;
         type Object = super::Object<String, 1>;
 
         #[test]
@@ -177,7 +191,9 @@ mod tests {
             check(
                 &Object::new(
                     HashMap::from([(
-                        Uri::new("https://example.com/property_type"),
+                        VersionedUri::new("https://example.com/property_type".to_owned(), 1)
+                            .base_uri()
+                            .clone(),
                         "value".to_owned(),
                     )]),
                     vec![],
@@ -198,11 +214,15 @@ mod tests {
                 &Object::new(
                     HashMap::from([
                         (
-                            Uri::new("https://example.com/property_type_a"),
+                            VersionedUri::new("https://example.com/property_type_a".to_owned(), 1)
+                                .base_uri()
+                                .clone(),
                             "value_a".to_owned(),
                         ),
                         (
-                            Uri::new("https://example.com/property_type_b"),
+                            VersionedUri::new("https://example.com/property_type_b".to_owned(), 1)
+                                .base_uri()
+                                .clone(),
                             "value_b".to_owned(),
                         ),
                     ]),
@@ -226,15 +246,23 @@ mod tests {
             &Object::<String>::new(
                 HashMap::from([
                     (
-                        Uri::new("https://example.com/property_type_a"),
+                        VersionedUri::new("https://example.com/property_type_a".to_owned(), 1)
+                            .base_uri()
+                            .clone(),
                         "value_a".to_owned(),
                     ),
                     (
-                        Uri::new("https://example.com/property_type_b"),
+                        VersionedUri::new("https://example.com/property_type_b".to_owned(), 1)
+                            .base_uri()
+                            .clone(),
                         "value_b".to_owned(),
                     ),
                 ]),
-                vec![Uri::new("https://example.com/property_type_a")],
+                vec![
+                    VersionedUri::new("https://example.com/property_type_a".to_owned(), 1)
+                        .base_uri()
+                        .clone(),
+                ],
             )?,
             json!({
                 "type": "object",

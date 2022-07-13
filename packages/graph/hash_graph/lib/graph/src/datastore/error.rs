@@ -2,8 +2,6 @@ use std::fmt;
 
 use error_stack::Context;
 
-use crate::types::BaseId;
-
 #[derive(Debug)]
 #[must_use]
 pub struct InsertionError;
@@ -42,32 +40,36 @@ impl Context for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct BaseIdAlreadyExists {
-    pub base_id: BaseId,
-}
+pub struct BaseUriAlreadyExists;
 
-impl BaseIdAlreadyExists {
-    pub const fn new(base_id: BaseId) -> Self {
-        Self { base_id }
-    }
-}
-
-impl fmt::Display for BaseIdAlreadyExists {
+impl fmt::Display for BaseUriAlreadyExists {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Base id does not exist")
+        fmt.write_str("tried to insert a new base URI but it already existed")
     }
 }
 
-impl Context for BaseIdAlreadyExists {}
+impl Context for BaseUriAlreadyExists {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct BaseIdDoesNotExist;
+pub struct BaseUriDoesNotExist;
 
-impl fmt::Display for BaseIdDoesNotExist {
+impl fmt::Display for BaseUriDoesNotExist {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Base id already exists")
+        fmt.write_str("base URI does not exist")
     }
 }
 
-impl Context for BaseIdDoesNotExist {}
+impl Context for BaseUriDoesNotExist {}
+
+#[derive(Debug)]
+#[must_use]
+pub struct VersionedUriAlreadyExists;
+
+impl fmt::Display for VersionedUriAlreadyExists {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("tried to insert a versioned URI but it already existed")
+    }
+}
+
+impl Context for VersionedUriAlreadyExists {}

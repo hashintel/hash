@@ -7,7 +7,7 @@ use crate::types::schema::{
     combinator::{OneOf, ValueOrArray},
     data_type::DataTypeReference,
     object::Object,
-    Uri,
+    VersionedUri,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -15,18 +15,18 @@ use crate::types::schema::{
 pub struct PropertyTypeReference {
     // TODO: Test if the URI is an actual property type
     #[serde(rename = "$ref")]
-    reference: Uri,
+    reference: VersionedUri,
 }
 
 impl PropertyTypeReference {
     /// Creates a new `PropertyTypeReference` from the given `reference`.
     #[must_use]
-    pub const fn new(reference: Uri) -> Self {
+    pub const fn new(reference: VersionedUri) -> Self {
         Self { reference }
     }
 
     #[must_use]
-    pub const fn reference(&self) -> &Uri {
+    pub const fn uri(&self) -> &VersionedUri {
         &self.reference
     }
 }
@@ -91,7 +91,7 @@ enum PropertyTypeTag {
 pub struct PropertyType {
     kind: PropertyTypeTag,
     #[serde(rename = "$id")]
-    id: Uri,
+    id: VersionedUri,
     title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
@@ -103,7 +103,7 @@ impl PropertyType {
     /// Creates a new `PropertyType`.
     #[must_use]
     pub const fn new(
-        id: Uri,
+        id: VersionedUri,
         title: String,
         description: Option<String>,
         one_of: OneOf<PropertyValues>,
@@ -118,7 +118,7 @@ impl PropertyType {
     }
 
     #[must_use]
-    pub const fn id(&self) -> &Uri {
+    pub const fn id(&self) -> &VersionedUri {
         &self.id
     }
 
@@ -158,6 +158,8 @@ impl PropertyType {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use serde_json::json;
 
     use super::*;
@@ -177,12 +179,15 @@ mod tests {
         property_type: &PropertyType,
         uris: impl IntoIterator<Item = &'static str>,
     ) {
-        let expected_data_type_references = uris.into_iter().map(Uri::new).collect::<HashSet<_>>();
+        let expected_data_type_references = uris
+            .into_iter()
+            .map(|uri| VersionedUri::from_str(uri).expect("Invalid URI"))
+            .collect::<HashSet<_>>();
 
         let data_type_references = property_type
             .data_type_references()
             .into_iter()
-            .map(DataTypeReference::reference)
+            .map(DataTypeReference::uri)
             .cloned()
             .collect::<HashSet<_>>();
 
@@ -193,13 +198,15 @@ mod tests {
         property_type: &PropertyType,
         uris: impl IntoIterator<Item = &'static str>,
     ) {
-        let expected_property_references = uris.into_iter().map(Uri::new).collect::<HashSet<_>>();
+        let expected_property_references = uris
+            .into_iter()
+            .map(ToString::to_string)
+            .collect::<HashSet<_>>();
 
         let property_references = property_type
             .property_type_references()
             .into_iter()
-            .map(PropertyTypeReference::reference)
-            .cloned()
+            .map(|reference| reference.uri().to_string())
             .collect::<HashSet<_>>();
 
         assert_eq!(property_references, expected_property_references);
@@ -209,15 +216,15 @@ mod tests {
     fn favorite_quote() {
         let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote/v/1",
           "title": "Favorite Quote",
           "oneOf": [
-            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text" }
+            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1" }
           ]
         }));
 
         test_property_type_data_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/data-type/text",
+            "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1",
         ]);
 
         test_property_type_property_refs(&property_type, []);
@@ -227,17 +234,17 @@ mod tests {
     fn age() {
         let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/age",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/age/v/1",
           "title": "Age",
           "oneOf": [
             {
-              "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number"
+              "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1"
             }
           ]
         }));
 
         test_property_type_data_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/data-type/number",
+            "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1",
         ]);
 
         test_property_type_property_refs(&property_type, []);
@@ -247,19 +254,19 @@ mod tests {
     fn user_id() {
         let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/user-id",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/user-id/v/1",
           "title": "User ID",
           "oneOf": [
-            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text" },
+            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1" },
             {
-              "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number"
+              "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1"
             }
           ]
         }));
 
         test_property_type_data_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/data-type/number",
-            "https://blockprotocol.org/types/@blockprotocol/data-type/text",
+            "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1",
+            "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1",
         ]);
 
         test_property_type_property_refs(&property_type, []);
@@ -269,17 +276,17 @@ mod tests {
     fn contact_information() {
         let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/contact-information",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/contact-information/v/1",
           "title": "Contact Information",
           "oneOf": [
             {
               "type": "object",
               "properties": {
                 "https://blockprotocol.org/types/@blockprotocol/property-type/email": {
-                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/email"
+                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/email/v/1"
                 },
                 "https://blockprotocol.org/types/@blockprotocol/property-type/phone-number": {
-                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/phone-number"
+                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/phone-number/v/1"
                 }
               },
               "required": [
@@ -292,8 +299,8 @@ mod tests {
         test_property_type_data_refs(&property_type, []);
 
         test_property_type_property_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/property-type/email",
-            "https://blockprotocol.org/types/@blockprotocol/property-type/phone-number",
+            "https://blockprotocol.org/types/@blockprotocol/property-type/email/v/1",
+            "https://blockprotocol.org/types/@blockprotocol/property-type/phone-number/v/1",
         ]);
     }
 
@@ -301,22 +308,22 @@ mod tests {
     fn interests() {
         let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/interests",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/interests/v/1",
           "title": "Interests",
           "oneOf": [
             {
               "type": "object",
               "properties": {
                 "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-film": {
-                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-film"
+                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-film/v/1"
                 },
                 "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-song": {
-                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-song"
+                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-song/v/1"
                 },
                 "https://blockprotocol.org/types/@blockprotocol/property-type/hobby": {
                   "type": "array",
                   "items": {
-                    "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/hobby"
+                    "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/hobby/v/1"
                   }
                 }
               }
@@ -327,9 +334,9 @@ mod tests {
         test_property_type_data_refs(&property_type, []);
 
         test_property_type_property_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-film",
-            "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-song",
-            "https://blockprotocol.org/types/@blockprotocol/property-type/hobby",
+            "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-film/v/1",
+            "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-song/v/1",
+            "https://blockprotocol.org/types/@blockprotocol/property-type/hobby/v/1",
         ]);
     }
 
@@ -337,7 +344,7 @@ mod tests {
     fn numbers() {
         let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/numbers",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/numbers/v/1",
           "title": "Numbers",
           "oneOf": [
             {
@@ -345,7 +352,7 @@ mod tests {
               "items": {
                 "oneOf": [
                   {
-                    "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number"
+                    "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1"
                   }
                 ]
               }
@@ -354,7 +361,7 @@ mod tests {
         }));
 
         test_property_type_data_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/data-type/number",
+            "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1",
         ]);
 
         test_property_type_property_refs(&property_type, []);
@@ -364,18 +371,18 @@ mod tests {
     fn contrived_property() {
         let property_type = test_property_type_schema(&json!({
           "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/contrived-property",
+          "$id": "https://blockprotocol.org/types/@alice/property-type/contrived-property/v/1",
           "title": "Contrived Property",
           "oneOf": [
             {
-              "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number"
+              "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1"
             },
             {
               "type": "array",
               "items": {
                 "oneOf": [
                   {
-                    "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number"
+                    "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1"
                   }
                 ]
               },
@@ -385,7 +392,7 @@ mod tests {
         }));
 
         test_property_type_data_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/data-type/number",
+            "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1",
         ]);
 
         test_property_type_property_refs(&property_type, []);

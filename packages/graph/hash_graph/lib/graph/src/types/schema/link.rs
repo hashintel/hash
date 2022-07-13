@@ -8,7 +8,7 @@ use crate::types::{
         combinator::Optional,
         ValidationError,
     },
-    Uri,
+    VersionedUri,
 };
 
 /// Intermediate representation used during deserialization.
@@ -16,9 +16,9 @@ use crate::types::{
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LinksRepr {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
+    links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    required_links: Vec<Uri>,
+    required_links: Vec<VersionedUri>,
 }
 
 /// Schema definition for links to entities.
@@ -45,8 +45,8 @@ impl Links {
     /// Creates a new `Links` without validating.
     #[must_use]
     pub const fn new_unchecked(
-        links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
-        required: Vec<Uri>,
+        links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
+        required: Vec<VersionedUri>,
     ) -> Self {
         Self {
             repr: LinksRepr {
@@ -62,8 +62,8 @@ impl Links {
     ///
     /// - [`ValidationError::MissingRequiredLink`] if a required link is not a key in `links`.
     pub fn new(
-        links: HashMap<Uri, Optional<MaybeOrdered<Array>>>,
-        required: Vec<Uri>,
+        links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
+        required: Vec<VersionedUri>,
     ) -> Result<Self, ValidationError> {
         let entity_type = Self::new_unchecked(links, required);
         entity_type.validate()?;
@@ -80,12 +80,12 @@ impl Links {
     }
 
     #[must_use]
-    pub const fn links(&self) -> &HashMap<Uri, Optional<MaybeOrdered<Array>>> {
+    pub const fn links(&self) -> &HashMap<VersionedUri, Optional<MaybeOrdered<Array>>> {
         &self.repr.links
     }
 
     #[must_use]
-    pub fn required(&self) -> &[Uri] {
+    pub fn required(&self) -> &[VersionedUri] {
         &self.repr.required_links
     }
 }

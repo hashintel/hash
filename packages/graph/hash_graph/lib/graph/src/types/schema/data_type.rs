@@ -3,25 +3,25 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::types::schema::Uri;
+use crate::types::schema::VersionedUri;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DataTypeReference {
     // TODO: Test if the URI is an actual data type
     #[serde(rename = "$ref")]
-    reference: Uri,
+    reference: VersionedUri,
 }
 
 impl DataTypeReference {
     /// Creates a new `DataTypeReference` from the given `reference`.
     #[must_use]
-    pub const fn new(reference: Uri) -> Self {
+    pub const fn new(reference: VersionedUri) -> Self {
         Self { reference }
     }
 
     #[must_use]
-    pub const fn reference(&self) -> &Uri {
+    pub const fn uri(&self) -> &VersionedUri {
         &self.reference
     }
 }
@@ -38,7 +38,7 @@ enum DataTypeTag {
 pub struct DataType {
     kind: DataTypeTag,
     #[serde(rename = "$id")]
-    id: Uri,
+    id: VersionedUri,
     title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
@@ -56,7 +56,7 @@ impl DataType {
     /// Creates a new `DataType`.
     #[must_use]
     pub const fn new(
-        id: Uri,
+        id: VersionedUri,
         title: String,
         description: Option<String>,
         json_type: String,
@@ -73,7 +73,7 @@ impl DataType {
     }
 
     #[must_use]
-    pub const fn id(&self) -> &Uri {
+    pub const fn id(&self) -> &VersionedUri {
         &self.id
     }
 
@@ -106,7 +106,10 @@ impl DataType {
     #[must_use]
     pub fn text() -> Self {
         Self::new(
-            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/text"),
+            VersionedUri::new(
+                "https://blockprotocol.org/types/@blockprotocol/data-type/text".to_owned(),
+                1,
+            ),
             "Text".to_owned(),
             Some("An ordered sequence of characters".to_owned()),
             "string".to_owned(),
@@ -118,7 +121,10 @@ impl DataType {
     #[must_use]
     pub fn number() -> Self {
         Self::new(
-            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/number"),
+            VersionedUri::new(
+                "https://blockprotocol.org/types/@blockprotocol/data-type/number".to_owned(),
+                1,
+            ),
             "Number".to_owned(),
             Some("An arithmetical value (in the Real number system)".to_owned()),
             "number".to_owned(),
@@ -130,7 +136,10 @@ impl DataType {
     #[must_use]
     pub fn boolean() -> Self {
         Self::new(
-            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/boolean"),
+            VersionedUri::new(
+                "https://blockprotocol.org/types/@blockprotocol/data-type/boolean".to_owned(),
+                1,
+            ),
             "Boolean".to_owned(),
             Some("A True or False value".to_owned()),
             "boolean".to_owned(),
@@ -142,7 +151,10 @@ impl DataType {
     #[must_use]
     pub fn null() -> Self {
         Self::new(
-            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/null"),
+            VersionedUri::new(
+                "https://blockprotocol.org/types/@blockprotocol/data-type/null".to_owned(),
+                1,
+            ),
             "Null".to_owned(),
             Some("A placeholder value representing 'nothing'".to_owned()),
             "null".to_owned(),
@@ -154,7 +166,10 @@ impl DataType {
     #[must_use]
     pub fn object() -> Self {
         Self::new(
-            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/object"),
+            VersionedUri::new(
+                "https://blockprotocol.org/types/@blockprotocol/data-type/object".to_owned(),
+                1,
+            ),
             "Object".to_owned(),
             Some("A plain JSON object with no pre-defined structure".to_owned()),
             "object".to_owned(),
@@ -166,7 +181,10 @@ impl DataType {
     #[must_use]
     pub fn empty_list() -> Self {
         Self::new(
-            Uri::new("https://blockprotocol.org/types/@blockprotocol/data-type/empty-list"),
+            VersionedUri::new(
+                "https://blockprotocol.org/types/@blockprotocol/data-type/empty-list".to_owned(),
+                1,
+            ),
             "Empty List".to_owned(),
             Some("An Empty List".to_owned()),
             "array".to_owned(),
@@ -183,13 +201,16 @@ mod tests {
 
     #[test]
     fn data_type_reference() -> Result<(), Box<dyn Error>> {
-        let reference = DataTypeReference::new(Uri::new("https://example.com/data_type"));
+        let reference = DataTypeReference::new(VersionedUri::new(
+            "https://example.com/data_type".to_owned(),
+            1,
+        ));
         let json = serde_json::to_value(&reference)?;
 
         assert_eq!(
             json,
             json!({
-                "$ref": "https://example.com/data_type"
+                "$ref": "https://example.com/data_type/v/1"
             })
         );
 
@@ -213,7 +234,7 @@ mod tests {
             &DataType::text(),
             json!({
               "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/text",
+              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1",
               "title": "Text",
               "description": "An ordered sequence of characters",
               "type": "string"
@@ -228,7 +249,7 @@ mod tests {
             &DataType::number(),
             json!({
               "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/number",
+              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1",
               "title": "Number",
               "description": "An arithmetical value (in the Real number system)",
               "type": "number"
@@ -243,7 +264,7 @@ mod tests {
             &DataType::boolean(),
             json!({
               "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/boolean",
+              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/boolean/v/1",
               "title": "Boolean",
               "description": "A True or False value",
               "type": "boolean"
@@ -258,7 +279,7 @@ mod tests {
             &DataType::null(),
             json!({
               "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/null",
+              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/null/v/1",
               "title": "Null",
               "description": "A placeholder value representing 'nothing'",
               "type": "null"
@@ -273,7 +294,7 @@ mod tests {
             &DataType::object(),
             json!({
               "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/object",
+              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/object/v/1",
               "title": "Object",
               "description": "A plain JSON object with no pre-defined structure",
               "type": "object"
@@ -288,7 +309,7 @@ mod tests {
             &DataType::empty_list(),
             json!({
               "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/empty-list",
+              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/empty-list/v/1",
               "title": "Empty List",
               "description": "An Empty List",
               "type": "array",

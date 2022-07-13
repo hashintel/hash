@@ -1,6 +1,7 @@
 //! Model types used across datastores
 
 pub mod schema;
+mod uri;
 
 use core::fmt;
 
@@ -8,27 +9,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::Component;
 use uuid::Uuid;
 
+pub use self::uri::{BaseUri, VersionedUri};
 use crate::types::schema::{DataType, PropertyType};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
-#[serde(transparent)]
-#[sqlx(transparent)]
-// TODO: Check if the Uri is valid
-pub struct Uri(String);
-
-impl Uri {
-    /// Creates a new `Uri` from the given string.
-    #[must_use]
-    pub fn new<T: Into<String>>(uri: T) -> Self {
-        Self(uri.into())
-    }
-}
-
-impl fmt::Display for Uri {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}", self.0)
-    }
-}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]
@@ -41,8 +23,6 @@ impl AccountId {
         Self(uuid)
     }
 }
-
-pub type BaseId = Uri;
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]

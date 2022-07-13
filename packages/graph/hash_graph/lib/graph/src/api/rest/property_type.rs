@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
-    datastore::{BaseIdAlreadyExists, BaseIdDoesNotExist, Datastore, QueryError},
+    datastore::{BaseUriAlreadyExists, BaseUriDoesNotExist, Datastore, QueryError},
     types::{schema::PropertyType, AccountId, Qualified, QualifiedPropertyType, VersionId},
 };
 
@@ -79,7 +79,7 @@ async fn create_property_type<D: Datastore>(
         .create_property_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
-            if report.contains::<BaseIdAlreadyExists>() {
+            if report.contains::<BaseUriAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
 
@@ -161,7 +161,7 @@ async fn update_property_type<D: Datastore>(
         .update_property_type(body.schema, body.created_by)
         .await
         .map_err(|report| {
-            if report.contains::<BaseIdDoesNotExist>() {
+            if report.contains::<BaseUriDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
 
