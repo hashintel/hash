@@ -68,7 +68,7 @@ pub struct VersionedUriAlreadyExists;
 
 impl fmt::Display for VersionedUriAlreadyExists {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("versioned URI does already exist")
+        fmt.write_str("tried to insert a versioned URI but it already existed")
     }
 }
 
