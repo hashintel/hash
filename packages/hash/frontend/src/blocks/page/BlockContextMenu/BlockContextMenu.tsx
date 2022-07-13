@@ -181,7 +181,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
       data-testid="block-context-menu"
     >
       <Box component="li" px={2} pt={1.5} mb={1}>
-        <BlockLoaderInput />
+        <BlockLoaderInput onLoad={() => popupState.close()} />
       </Box>
 
       {menuItems.map(
