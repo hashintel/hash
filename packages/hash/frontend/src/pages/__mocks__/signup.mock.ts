@@ -8,6 +8,7 @@ const newUser = {
   email: "test@example.com",
   verificationCode: "exhorted-focalising-fluidity-wingmen",
   verificationCodeMetadata: {
+    __typename: "VerificationCodeMetadata",
     id: "ec2ce5a9-7c95-4061-b3bd-39a258682439",
     createdAt: "2021-09-21T22:32:38.559Z",
   },

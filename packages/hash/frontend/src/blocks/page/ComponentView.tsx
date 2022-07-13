@@ -151,13 +151,14 @@ export class ComponentView implements NodeView<Schema> {
           <BlockLoader
             sourceUrl={this.sourceName}
             blockEntityId={entityId}
-            shouldSandbox={!this.editable}
+            blockMetadata={this.meta.componentMetadata}
+            // @todo uncomment this when sandbox is fixed
+            // shouldSandbox={!this.editable}
             editableRef={this.editable ? this.editableRef : undefined}
             // @todo these asserted non-null fields do not definitely exist when the block is first loaded
             accountId={childEntity?.accountId!}
             entityId={childEntity?.entityId!}
             entityTypeId={childEntity?.entityTypeId!}
-            entityTypeVersionId={childEntity?.entityVersionId!}
             entityProperties={
               childEntity && "properties" in childEntity
                 ? childEntity.properties

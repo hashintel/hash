@@ -3061,6 +3061,23 @@
   dependencies:
     uuid "^8.3.2"
 
+"@blockprotocol/core@0.0.8":
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.8.tgz#21924dfd24315120427d3ccef4f3c836eaf6a782"
+  integrity sha512-Xy9litxz1gn6192zgXIPTg7vRdFGLANDtXfC70JlA7375H3voW15+SZnYvo/8UARyIcBMhm4d/0XZDa+uqE2Kw==
+  dependencies:
+    es-module-lexer "^0.10.5"
+    uuid "^8.3.2"
+
+"@blockprotocol/graph@0.0.11-canary.4":
+  version "0.0.11-canary.4"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.11-canary.4.tgz#8dea16358c6fa812fcd8a4f9729719440b820e69"
+  integrity sha512-uEdDneOBjDwHrdcHRj2zpAf27jl9ZF7t3WvUYDj80aIX2GudnOsLNOuqxDWALi/h/yBobdawazdovZV018kyKw==
+  dependencies:
+    "@blockprotocol/core" "0.0.8"
+    lit "^2.2.5"
+    react "^17.0.2"
+
 "@blockprotocol/graph@0.0.8":
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.8.tgz#27b28c6cb18168fc02b71df7b6a24b3fb494b413"
@@ -4082,10 +4099,10 @@
   resolved "https://registry.yarnpkg.com/@leichtgewicht/ip-codec/-/ip-codec-2.0.3.tgz#0300943770e04231041a51bd39f0439b5c7ab4f0"
   integrity sha512-nkalE/f1RvRGChwBnEIoBfSEYOXnCRdleKuv6+lePbMDrMZXeDQnqak5XDOeBgrPPyPfAdcCu/B5z+v3VhplGg==
 
-"@lit-labs/react@^1.0.4":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@lit-labs/react/-/react-1.0.4.tgz#e87a620338955a4e12163b0f3bee18a99c651174"
-  integrity sha512-Sy4RCxTZpTE2TwByjVac6gC7jzr8bCQC6s9bJhhJDKos4ZlN2cqcuVz63n0mpSSr1zxFh+Z0o0VR223l36Y4Ag==
+"@lit-labs/react@1.0.6", "@lit-labs/react@^1.0.4":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@lit-labs/react/-/react-1.0.6.tgz#4cd861cfac92c3f2e0ab78921d4d0e223949665a"
+  integrity sha512-uDtfJv5XunmsydTNRST+MU8U6QyETCw8BKoeMw2Q4Te1r5paAD9sVJfxESP7Dbk0G4tqCRS0BsyNmYJSGCrJyQ==
 
 "@lit/reactive-element@^1.3.0":
   version "1.3.2"
@@ -9191,6 +9208,11 @@ es-abstract@^1.18.0-next.2, es-abstract@^1.19.0, es-abstract@^1.19.1:
     string.prototype.trimend "^1.0.4"
     string.prototype.trimstart "^1.0.4"
     unbox-primitive "^1.0.1"
+
+es-module-lexer@^0.10.5:
+  version "0.10.5"
+  resolved "https://registry.yarnpkg.com/es-module-lexer/-/es-module-lexer-0.10.5.tgz#06f76d51fa53b1f78e3bd8bb36dd275eda2fdd53"
+  integrity sha512-+7IwY/kiGAacQfY+YBhKMvEmyAJnw5grTUgjG85Pe7vcUI/6b7pZjZG8nQ7+48YhzEAEqrEgD2dCz/JIK+AYvw==
 
 es-module-lexer@^0.9.0:
   version "0.9.3"

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   loadCrossFrameRemoteBlock,
   loadRemoteBlock,
-  UnknownComponent,
+  UnknownBlock,
 } from "./loadRemoteBlock";
 import { isTopWindow } from "./util";
 
@@ -10,14 +10,14 @@ type UseRemoteBlockHook = {
   (url: string, crossFrame?: boolean, onBlockLoaded?: () => void): [
     boolean,
     Error | undefined,
-    UnknownComponent | string | undefined,
+    UnknownBlock | undefined,
   ];
 };
 
 type UseRemoteComponentState = {
   loading: boolean;
   err?: Error | undefined;
-  component?: UnknownComponent | string | undefined;
+  component?: UnknownBlock | undefined;
   url: string | null;
 };
 

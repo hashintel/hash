@@ -1,20 +1,28 @@
 import { useQuery } from "@apollo/client";
+import {
+  BlockGraph,
+  EmbedderGraphMessageCallbacks,
+} from "@blockprotocol/graph";
 import { useRouter } from "next/router";
+import { useMemo } from "react";
 
-import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 
 import {
   GetEntityQuery,
   GetEntityQueryVariables,
-  UnknownEntity,
 } from "../../../graphql/apiTypes.gen";
-import { useBlockProtocolUpdateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
-import { guessEntityName } from "../../../lib/entities";
+import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
+import {
+  convertApiEntitiesToBpEntities,
+  convertApiLinkGroupsToBpLinkGroups,
+  guessEntityName,
+  rewriteEntityIdentifier,
+} from "../../../lib/entities";
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
-import { useBlockProtocolDeleteLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
-import { useBlockProtocolCreateLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
+import { useBlockProtocolDeleteLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
+import { useBlockProtocolCreateLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
@@ -28,38 +36,48 @@ const Page: NextPageWithLayout = () => {
   const { accountId } = useRouteAccountInfo();
   const entityId = query["entity-id"] as string;
 
-  const { data, refetch: refetchEntity } = useQuery<
-    GetEntityQuery,
-    GetEntityQueryVariables
-  >(getEntity, {
-    variables: {
-      accountId,
-      entityId,
+  const { data, refetch } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
+    getEntity,
+    {
+      variables: {
+        accountId,
+        entityId,
+      },
     },
-  });
-  const { createLinks } = useBlockProtocolCreateLinks();
-  const { deleteLinks } = useBlockProtocolDeleteLinks();
-  const { updateEntities } = useBlockProtocolUpdateEntities();
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  );
+  const { createLink } = useBlockProtocolCreateLink();
+  const { deleteLink } = useBlockProtocolDeleteLink();
+  const { updateEntity } = useBlockProtocolUpdateEntity();
+  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
 
-  const updateAndNavigateToFirstEntity: BlockProtocolUpdateEntitiesFunction = (
-    args,
-  ) => {
-    return updateEntities(args)
-      .then((res) => {
-        void router.push(
-          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`,
-        );
-        return res;
-      })
-      .catch((err) => {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error(`Error updating entity: ${err.message}`);
-        throw err;
-      });
-  };
+  const updateAndNavigateToFirstEntity: EmbedderGraphMessageCallbacks["updateEntity"] =
+    (args) => {
+      return updateEntity(args)
+        .then((res) => {
+          if (!res.data) {
+            throw new Error("No data returned from updateEntity call");
+          }
+          void router.push(`/${accountId}/entities/${res.data.entityId}`);
+          return res;
+        })
+        .catch((err) => {
+          // eslint-disable-next-line no-console -- TODO: consider using logger
+          console.error(`Error updating entity: ${err.message}`);
+          throw err;
+        });
+    };
 
   const entity = data?.entity;
+
+  const blockGraph = useMemo<BlockGraph>(() => {
+    return {
+      depth: 1,
+      linkedEntities: convertApiEntitiesToBpEntities(
+        entity?.linkedEntities ?? [],
+      ),
+      linkGroups: convertApiLinkGroupsToBpLinkGroups(entity?.linkGroups ?? []),
+    };
+  }, [entity]);
 
   return (
     <>
@@ -74,13 +92,17 @@ const Page: NextPageWithLayout = () => {
         {entity && (
           <SimpleEntityEditor
             aggregateEntities={aggregateEntities}
-            createLinks={createLinks}
-            deleteLinks={deleteLinks}
-            updateEntities={updateAndNavigateToFirstEntity}
+            blockGraph={blockGraph}
+            createLink={createLink}
+            deleteLink={deleteLink}
+            entityId={rewriteEntityIdentifier({
+              accountId,
+              entityId,
+            })}
+            updateEntity={updateAndNavigateToFirstEntity}
             entityProperties={entity.properties}
+            refetchEntity={refetch}
             schema={entity.entityType.properties}
-            refetchEntity={refetchEntity}
-            {...entity}
           />
         )}
       </div>

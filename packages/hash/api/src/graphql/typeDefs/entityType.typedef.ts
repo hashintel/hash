@@ -51,7 +51,6 @@ export const entityTypeTypedef = gql`
     Update an entity type
     """
     updateEntityType(
-      accountId: ID!
       """
       The fixed id of the entityType to update, i.e. its entityId
       """
@@ -144,10 +143,6 @@ export const entityTypeTypedef = gql`
     The version timeline of the entity.
     """
     history: [EntityVersion!]
-    """
-    The metadata ID of the entity. This is shared across all versions of the same entity.
-    """
-    metadataId: ID!
     """
     The outgoing links of the entity.
     """

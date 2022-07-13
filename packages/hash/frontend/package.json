@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@apollo/client": "3.6.9",
+    "@blockprotocol/core": "0.0.8",
+    "@blockprotocol/graph": "0.0.11-canary.4",
     "@emotion/cache": "11.7.1",
     "@emotion/react": "11.9.0",
     "@emotion/server": "11.4.0",
@@ -28,6 +30,7 @@
     "@hashintel/hash-design-system": "0.0.0",
     "@hashintel/hash-shared": "0.0.0",
     "@headlessui/react": "1.4.1",
+    "@lit-labs/react": "1.0.6",
     "@mui/icons-material": "5.4.2",
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
@@ -129,5 +132,8 @@
     "rimraf": "^3.0.2",
     "sass": "1.52.3",
     "typescript": "4.7.4"
+  },
+  "engines": {
+    "node": ">=16.13.0"
   }
 }

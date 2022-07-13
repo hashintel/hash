@@ -1,9 +1,8 @@
+import { JsonObject } from "@blockprotocol/core";
 import {
-  BlockProtocolEntityType,
-  BlockProtocolUpdateEntityTypesFunction,
-  BlockProtocolProps,
-  JSONObject,
-} from "blockprotocol";
+  EmbedderGraphMessageCallbacks,
+  EntityType,
+} from "@blockprotocol/graph";
 import React, {
   createContext,
   FormEvent,
@@ -32,48 +31,46 @@ export type SchemaSelectElementType = VoidFunctionComponent<{
 }>;
 
 export const SchemaOptionsContext = createContext<{
-  availableEntityTypes: BlockProtocolEntityType[];
+  availableEntityTypes: EntityType[];
   subSchemas: [string, JsonSchema][];
 } | null>(null);
 
 type JsonSchemaEditorProps = {
+  aggregateEntityTypes: EmbedderGraphMessageCallbacks["aggregateEntityTypes"];
   GoToSchemaElement: SchemaSelectElementType;
-  schema: JsonSchema;
   subSchemaReference?: string;
-} & Pick<
-  BlockProtocolProps,
-  "accountId" | "aggregateEntityTypes" | "entityTypeId" | "updateEntityTypes"
->;
+  updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"];
+} & EntityType;
 
 const entityTypeIdMatchesSchema = (entityTypeId: string, schema: JsonSchema) =>
   !!schema.$id?.includes(entityTypeId);
 
 export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
-  accountId,
   aggregateEntityTypes,
   entityTypeId,
   GoToSchemaElement,
   schema: possiblyStaleDbSchema,
   subSchemaReference,
-  updateEntityTypes,
+  updateEntityType,
 }) => {
   const [availableEntityTypes, setAvailableEntityTypes] = useState<
-    BlockProtocolEntityType[] | undefined
+    EntityType[] | undefined
   >(undefined);
 
   useEffect(() => {
-    if (aggregateEntityTypes && accountId) {
+    if (aggregateEntityTypes) {
       aggregateEntityTypes({
-        accountId,
-        includeOtherTypesInUse: true,
+        data: {
+          includeOtherTypesInUse: true,
+        },
       })
-        .then((response) => setAvailableEntityTypes(response.results))
+        .then((response) => setAvailableEntityTypes(response.data?.results))
         .catch((err) =>
           // eslint-disable-next-line no-console -- TODO: consider using logger
           console.error(`Error fetching entity type options: ${err.message}`),
         );
     }
-  }, [accountId, aggregateEntityTypes]);
+  }, [aggregateEntityTypes]);
 
   // The user will be working with a draft in local state, to enable optimistic UI and handle fast/competing updates
   const [workingSchemaDraft, dispatch] = useReducer(
@@ -90,22 +87,18 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
 
   const debouncedUpdate = useMemo(
     () =>
-      debounce<BlockProtocolUpdateEntityTypesFunction>((...args) => {
-        if (!updateEntityTypes) {
+      debounce<EmbedderGraphMessageCallbacks["updateEntityType"]>((...args) => {
+        if (!updateEntityType) {
           throw new Error(
             "updateEntityType function not provided. Schema cannot be updated.",
           );
         }
-        return updateEntityTypes(...args);
+        return updateEntityType(...args);
       }, 800),
-    [updateEntityTypes],
+    [updateEntityType],
   );
 
   useEffect(() => {
-    if (!accountId) {
-      throw new Error("accountId not provided. Schema cannot be updated.");
-    }
-
     if (!entityTypeId) {
       throw new Error("entityTypeId not provided. Schema cannot be updated.");
     }
@@ -125,19 +118,17 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
       return;
     }
     // Send updates to the API periodically when the draft is updated
-    debouncedUpdate([
-      {
-        accountId,
+    debouncedUpdate({
+      data: {
         entityTypeId,
-        schema: workingSchemaDraft as JSONObject,
+        schema: workingSchemaDraft as JsonObject,
       },
-    ])?.catch((err) => {
+    })?.catch((err) => {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error(`Error updating schema: ${err.message}`);
       throw err;
     });
   }, [
-    accountId,
     debouncedUpdate,
     entityTypeId,
     possiblyStaleDbSchema,
@@ -193,7 +184,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   const { title } = workingSchemaDraft;
   const { description } = selectedSchema;
 
-  const readonly = !updateEntityTypes || !entityTypeId;
+  const readonly = !updateEntityType || !entityTypeId;
 
   const addSubSchema = (newSubSchemaName: string) =>
     dispatchSchemaUpdate({
@@ -269,7 +260,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
         </div>
       </section>
 
-      {updateEntityTypes || subSchemas.length > 0 ? (
+      {subSchemas.length > 0 ? (
         <section className={tw`mt-8`}>
           <h2>Sub-schemas in {title}</h2>
           {subSchemas.map((subSchema) => (
@@ -282,25 +273,24 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
               workingSchemaDraft={workingSchemaDraft}
             />
           ))}
-          {updateEntityTypes ? (
-            <div className={tw`mt-8`}>
-              <div className={tw`text-uppercase font-bold text-sm mr-12 mb-1`}>
-                New sub-schema
-              </div>
-              <form onSubmit={onNewSubSchemaFormSubmit}>
-                <TextInputOrDisplay
-                  className={tw`w-64`}
-                  required
-                  placeholder="MySubSchema"
-                  readonly={false}
-                  updateText={(value) => setNewSubSchemaName(value)}
-                  value={newSubSchemaName}
-                />
-                <br />
-                <Button type="submit">Create Sub-schema</Button>
-              </form>
+          <div className={tw`mt-8`}>
+            <div className={tw`text-uppercase font-bold text-sm mr-12 mb-1`}>
+              New sub-schema
             </div>
-          ) : null}
+            <form onSubmit={onNewSubSchemaFormSubmit}>
+              <TextInputOrDisplay
+                className={tw`w-64`}
+                required
+                placeholder="MySubSchema"
+                readonly={false}
+                updateText={(value) => setNewSubSchemaName(value)}
+                value={newSubSchemaName}
+              />
+              <br />
+              <Button type="submit">Create Sub-schema</Button>
+            </form>
+          </div>
+          )
         </section>
       ) : null}
     </div>

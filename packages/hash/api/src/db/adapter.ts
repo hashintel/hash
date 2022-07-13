@@ -363,7 +363,6 @@ export interface DbClient {
    *    The unique name should be under "title"
    */
   updateEntityType(params: {
-    accountId: string; // @todo: can we remove this?
     entityId: string;
     updatedByAccountId: string;
     entityVersionId?: string;

@@ -7,12 +7,13 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { tw } from "twind";
-import { useBlockProtocolUpdateEntities } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
+import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
+import { rewriteEntityIdentifier } from "../../lib/entities";
 
 type PageTitleProps = {
-  value: string;
   accountId: string;
-  metadataId: string;
+  entityId: string;
+  value: string;
 };
 
 // TODO: Improve page title validation and use it when creating pages.
@@ -23,13 +24,13 @@ const cleanUpTitle = (value: string): string =>
 
 // TODO: Add read-only mode based on page permissions
 export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
-  value,
-  metadataId,
   accountId,
+  entityId,
+  value,
 }) => {
   // TODO: Display update error once expected UX is discussed
-  const { updateEntities, updateEntitiesLoading } =
-    useBlockProtocolUpdateEntities();
+  const { updateEntity, updateEntityLoading } =
+    useBlockProtocolUpdateEntity(true);
   const [inputValue, setInputValue] = useState<string>(value);
 
   useEffect(() => {
@@ -59,26 +60,24 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
       return;
     }
 
-    void updateEntities([
-      {
-        accountId,
-        entityId: metadataId,
-        entityTypeId: "Page",
-        data: { title: valueToSave },
+    void updateEntity({
+      data: {
+        entityId: rewriteEntityIdentifier({ accountId, entityId }),
+        properties: { title: valueToSave },
       },
-    ]);
+    });
   };
 
   // TODO: Assign appropriate a11y attributes
   return (
     <input
       placeholder="A title for the page"
-      disabled={updateEntitiesLoading}
+      disabled={updateEntityLoading}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}
       className={tw`border-none font-medium text-2xl w-full py-0.5 -mx-1 px-1 mt-px ${
-        updateEntitiesLoading ? "opacity-50" : undefined
+        updateEntityLoading ? "opacity-50" : undefined
       }`}
       value={inputValue}
     />

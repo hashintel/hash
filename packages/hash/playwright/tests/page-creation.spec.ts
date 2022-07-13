@@ -110,7 +110,7 @@ test("user can create page", async ({ page }) => {
 
   await blockContextMenu
     .locator('[placeholder="Load Block from URL..."]')
-    .fill("https://blockprotocol.org/blocks/@shinypb/emoji-trading-cards");
+    .fill("https://blockprotocol.org/blocks/@hash/code");
 
   /**
    * This is creating a new block above the current one, instead of switching
@@ -119,7 +119,7 @@ test("user can create page", async ({ page }) => {
    *
    * @see https://app.asana.com/0/1201095311341924/1202033760322934/f
    */
-  await blockContextMenu.locator("text=Load Block").click();
+  await blockContextMenu.locator("text=Re-load block").click();
 
   await expect(
     blockContextMenu.locator('[placeholder="Load Block from URL..."]'),
