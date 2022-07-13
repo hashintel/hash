@@ -24,8 +24,11 @@ pub enum ValidationError {
     /// A schema has marked a property with a [`BaseUri`] as required but the [`BaseUri`] does not
     /// exist in the `properties`.
     MissingRequiredProperty(BaseUri),
-    /// Referring to a [`VersionUri`] from a [`BaseUri`] requires that the [`VersionUri::base_uri`]
-    /// matches the [`BaseUri`].
+    /// Referring to a [`VersionedUri`] from a [`BaseUri`] requires that the
+    /// [`VersionedUri::base_uri`] matches the [`BaseUri`].
+    ///
+    /// [`VersionedUri`]: crate::types::VersionedUri
+    /// [`VersionedUri::base_uri`]: crate::types::VersionedUri::base_uri
     BaseUriMismatch {
         base_uri: BaseUri,
         versioned_uri: VersionedUri,
