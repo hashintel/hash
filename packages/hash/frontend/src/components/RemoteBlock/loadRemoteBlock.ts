@@ -2,7 +2,10 @@ import { memoizeFetchFunction } from "../../lib/memoize";
 import { blockDependencies } from "../../../block.dependencies";
 import { crossFrameFetchFn } from "../sandbox/FramedBlock/util";
 
-export type UnknownComponent = (...props: any[]) => JSX.Element;
+export type UnknownBlock =
+  | string
+  | typeof HTMLElement
+  | ((...props: any[]) => JSX.Element);
 
 export type FetchSourceFn = (
   url: string,
@@ -31,7 +34,7 @@ type FetchAndParseFn = (
 ) => (
   url: string,
   signal?: AbortSignal,
-) => Promise<string | Record<string, UnknownComponent>>;
+) => Promise<string | Record<string, UnknownBlock>>;
 
 const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
   fetchSourceFn(url, signal).then((source) => {
@@ -51,10 +54,9 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
     func(requires, module, exports);
 
     /**
-     * @todo check it's actually a React component
-     * we can use a different rendering strategy for other component types
+     * @todo check it's actually a React component or HTMLElement
      * */
-    return module.exports as Record<string, UnknownComponent>;
+    return module.exports;
   });
 
 export const loadRemoteBlock = memoizeFetchFunction(

@@ -1,59 +1,75 @@
-import { useApolloClient } from "@apollo/client";
+import { useLazyQuery } from "@apollo/client";
 
 import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolAggregateEntitiesResult,
-  BlockProtocolEntity,
-} from "blockprotocol";
+  AggregateEntitiesResult,
+  EmbedderGraphMessageCallbacks,
+  Entity,
+} from "@blockprotocol/graph";
 import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
-import { cloneEntityTreeWithPropertiesMovedUp } from "../../../lib/entities";
 import {
   AggregateEntityQuery,
   AggregateEntityQueryVariables,
 } from "../../../graphql/apiTypes.gen";
+import { convertApiEntityToBpEntity } from "../../../lib/entities";
 
-export const useBlockProtocolAggregateEntities = (): {
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction;
+export const useBlockProtocolAggregateEntities = (
+  accountId: string,
+): {
+  aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"];
 } => {
-  const client = useApolloClient();
+  const [aggregateEntitiesInDb] = useLazyQuery<
+    AggregateEntityQuery,
+    AggregateEntityQueryVariables
+  >(aggregateEntity);
 
-  const aggregateEntities: BlockProtocolAggregateEntitiesFunction = useCallback(
-    async (action) => {
-      if (!action.accountId) {
-        throw new Error("aggregateEntities needs to be passed an accountId");
-      }
+  const aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"] =
+    useCallback(
+      async ({ data }) => {
+        if (!data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "'data' must be provided for aggregateEntities",
+              },
+            ],
+          };
+        }
 
-      /**
-       * Using client.query since useLazyQuery does not return anything
-       * useLazyQuery should return a promise as of apollo-client 3.5
-       * @see https://github.com/apollographql/apollo-client/issues/7714
-       * We can possibly revert once that happens
-       */
-      const response = await client.query<
-        AggregateEntityQuery,
-        AggregateEntityQueryVariables
-      >({
-        query: aggregateEntity,
-        variables: {
-          accountId: action.accountId,
-          operation: {
-            ...action.operation,
-            entityTypeId: action.operation.entityTypeId!,
+        const { operation: requestedOperation } = data;
+
+        const response = await aggregateEntitiesInDb({
+          variables: {
+            accountId,
+            operation: requestedOperation,
           },
-        },
-      });
-      const { operation, results } = response.data.aggregateEntity;
-      const newResults = results.map((result) =>
-        cloneEntityTreeWithPropertiesMovedUp(result),
-      );
-      return {
-        operation,
-        results: newResults,
-      } as BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>;
-    },
-    [client],
-  );
+        });
+
+        if (!response.data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "Error calling aggregateEntities",
+              },
+            ],
+          };
+        }
+
+        const { operation: returnedOperation, results } =
+          response.data.aggregateEntity;
+
+        return {
+          data: {
+            operation:
+              returnedOperation as AggregateEntitiesResult<Entity>["operation"],
+            results: results.map(convertApiEntityToBpEntity),
+          },
+        };
+      },
+      [accountId, aggregateEntitiesInDb],
+    );
 
   return {
     aggregateEntities,

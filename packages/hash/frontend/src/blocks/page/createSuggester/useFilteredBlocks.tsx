@@ -1,5 +1,5 @@
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { BlockVariant } from "blockprotocol";
+import { BlockVariant } from "@blockprotocol/core";
 import { useMemo } from "react";
 
 import { fuzzySearchBy } from "./fuzzySearchBy";
@@ -28,7 +28,7 @@ export const useFilteredBlocks = (
     return fuzzySearchBy(
       allOptions,
       searchText,
-      (option) => option.variant.name ?? option.variant.displayName ?? "",
+      (option) => option.variant.name ?? "",
     );
   }, [blocksMetaMap, searchText]);
 };

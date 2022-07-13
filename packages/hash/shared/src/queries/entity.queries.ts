@@ -1,6 +1,13 @@
 import gql from "graphql-tag";
 import { linkFieldsFragment } from "./link.queries";
 
+const minimalEntityTypeFieldsFragment = gql`
+  fragment MinimalEntityTypeFields on EntityType {
+    entityId
+    properties
+  }
+`;
+
 export const linkedAggregationsFragment = gql`
   fragment LinkedAggregationsFields on LinkedAggregation {
     aggregationId
@@ -36,8 +43,14 @@ export const linkedAggregationsFragment = gql`
       entityVersionCreatedAt
       createdByAccountId
       properties
+      entityTypeId
+      entityType {
+        ...MinimalEntityTypeFields
+      }
+      visibility
     }
   }
+  ${minimalEntityTypeFieldsFragment}
 `;
 
 export const entityFieldsFragment = gql`
@@ -52,11 +65,15 @@ export const entityFieldsFragment = gql`
     entityVersionCreatedAt
     createdByAccountId
     entityTypeId
+    entityType {
+      ...MinimalEntityTypeFields
+    }
     properties
     linkGroups {
       links {
         ...LinkFields
       }
+      sourceAccountId
       sourceEntityId
       sourceEntityVersionId
       path
@@ -65,12 +82,16 @@ export const entityFieldsFragment = gql`
       accountId
       entityId
       entityTypeId
+      entityType {
+        ...MinimalEntityTypeFields
+      }
       properties
     }
     linkedAggregations {
       ...LinkedAggregationsFields
     }
   }
+  ${minimalEntityTypeFieldsFragment}
   ${linkFieldsFragment}
   ${linkedAggregationsFragment}
 `;
@@ -90,6 +111,7 @@ export const getEntity = gql`
         links {
           ...LinkFields
         }
+        sourceAccountId
         sourceEntityId
         sourceEntityVersionId
         path
@@ -105,9 +127,7 @@ export const getEntity = gql`
       }
       updatedAt
       accountId
-      ... on UnknownEntity {
-        properties
-      }
+      properties
       entityType {
         entityId
         properties
@@ -150,9 +170,7 @@ export const createEntity = gql`
       entityTypeName
       updatedAt
       accountId
-      ... on UnknownEntity {
-        properties
-      }
+      properties
       visibility
     }
   }
@@ -170,15 +188,13 @@ export const updateEntity = gql`
       properties: $properties
     ) {
       __typename
-      id
+      accountId
       entityId
       entityTypeId
       entityTypeVersionId
       entityTypeName
       updatedAt
-      ... on UnknownEntity {
-        properties
-      }
+      properties
     }
   }
 `;
