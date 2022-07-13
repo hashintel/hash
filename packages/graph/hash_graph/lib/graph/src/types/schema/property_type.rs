@@ -94,15 +94,6 @@ impl PropertyValues {
     }
 }
 
-impl ValidateUri for PropertyValues {
-    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
-        match self {
-            Self::DataTypeReference(reference) => reference.validate_uri(base_uri),
-            _ => Ok(()),
-        }
-    }
-}
-
 /// Will serialize as a constant value `"propertyType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
