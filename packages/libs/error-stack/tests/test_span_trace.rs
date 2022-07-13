@@ -6,7 +6,7 @@ mod common;
 
 use common::*;
 use error_stack::Result;
-use tracing_error::ErrorLayer;
+use tracing_error::{ErrorLayer, SpanTrace};
 use tracing_subscriber::layer::SubscriberExt;
 
 fn install_tracing_subscriber() {
@@ -34,6 +34,42 @@ fn captured() {
     }
 
     let report = capture_error(func_a);
+
+    #[cfg(nightly)]
+    let span_trace = report
+        .request_ref::<SpanTrace>()
+        .next()
+        .expect("No span trace captured");
+    #[cfg(not(nightly))]
+    let span_trace = report
+        .downcast_ref::<SpanTrace>()
+        .expect("No span trace captured");
+
+    let mut num_spans = 0;
+    span_trace.with_spans(|_, _| {
+        num_spans += 1;
+        true
+    });
+    assert_eq!(num_spans, 2);
+}
+
+#[test]
+fn captured_deprecated() {
+    install_tracing_subscriber();
+
+    #[tracing::instrument]
+    fn func_b() -> Result<(), RootError> {
+        create_error()
+    }
+
+    #[tracing::instrument]
+    fn func_a() -> Result<(), RootError> {
+        func_b()
+    }
+
+    let report = capture_error(func_a);
+
+    #[allow(deprecated)]
     let span_trace = report.span_trace().expect("No span trace captured");
 
     let mut num_spans = 0;
@@ -59,7 +95,15 @@ fn provided() {
     }
 
     let report = capture_error(func_a);
-    let span_trace = report.span_trace().expect("No span trace captured");
+    #[cfg(nightly)]
+    let span_trace = report
+        .request_ref::<SpanTrace>()
+        .next()
+        .expect("No span trace captured");
+    #[cfg(not(nightly))]
+    let span_trace = report
+        .downcast_ref::<SpanTrace>()
+        .expect("No span trace captured");
 
     let mut num_spans = 0;
     span_trace.with_spans(|_, _| {

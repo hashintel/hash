@@ -4,11 +4,39 @@
 
 mod common;
 
+#[cfg(feature = "eyre")]
+use std::sync::Once;
 #[cfg(all(nightly, feature = "std"))]
-use std::{backtrace::Backtrace, error::Error};
+use std::{backtrace::Backtrace, backtrace::BacktraceStatus};
+#[cfg(feature = "std")]
+use std::{error::Error, ops::Deref};
 
 use common::*;
 use error_stack::compat::IntoReportCompat;
+
+#[cfg(all(nightly, feature = "std"))]
+fn has_backtrace<E: Deref<Target = dyn Error + Send + Sync>>(err: &Result<(), E>) -> bool {
+    err.as_ref()
+        .unwrap_err()
+        .deref()
+        .backtrace()
+        .filter(|bt| bt.status() == BacktraceStatus::Captured)
+        .is_some()
+}
+
+#[cfg(all(nightly, feature = "std"))]
+fn remove_backtrace_context<E: Deref<Target = dyn Error + Send + Sync>>(
+    err: &Result<(), E>,
+    messages: &mut Vec<String>,
+) {
+    if has_backtrace(err) {
+        // anyhow/eyre has a backtrace, this means we don't add it ourselves,
+        // therefore we need to remove the context (if it supports backtrace)
+        let last = messages.pop().unwrap();
+        messages.pop();
+        messages.push(last)
+    }
+}
 
 #[test]
 #[cfg(all(feature = "std", feature = "anyhow"))]
@@ -16,16 +44,24 @@ fn anyhow() {
     let anyhow: Result<(), _> = Err(anyhow::anyhow!(RootError)
         .context(PrintableA(0))
         .context(PrintableB(0)));
-    let anyhow_report = anyhow.into_report().unwrap_err();
 
     let report = create_report()
         .attach_printable(PrintableA(0))
         .attach_printable(PrintableB(0));
 
+    #[allow(unused_mut)]
+    let mut report_messages = messages(&report);
+    #[cfg(all(nightly, feature = "std"))]
+    {
+        remove_backtrace_context(&anyhow, &mut report_messages);
+    }
+
+    let anyhow_report = anyhow.into_report().unwrap_err();
+
     for (anyhow, error_stack) in messages(&anyhow_report)
         .into_iter()
         .rev()
-        .zip(messages(&report))
+        .zip(report_messages)
     {
         assert_eq!(anyhow, error_stack);
     }
@@ -123,10 +159,11 @@ fn anyhow_output() {
 
 #[cfg(feature = "eyre")]
 fn install_eyre_hook() {
-    static ONCE: std::sync::Once = std::sync::Once::new();
+    static ONCE: Once = Once::new();
+
     ONCE.call_once(|| {
-        eyre::set_hook(Box::new(eyre::DefaultHandler::default_with)).expect("Could not set hook");
-    })
+        eyre::set_hook(Box::new(eyre::DefaultHandler::default_with)).expect("Could not set hook")
+    });
 }
 
 #[test]
@@ -141,17 +178,40 @@ fn eyre() {
     let eyre: Result<(), _> = Err(eyre::eyre!(RootError)
         .wrap_err(PrintableA(0))
         .wrap_err(PrintableB(0)));
-    let eyre_report = eyre.into_report().unwrap_err();
 
     let report = create_report()
         .attach_printable(PrintableA(0))
         .attach_printable(PrintableB(0));
 
-    for (eyre, error_stack) in messages(&eyre_report)
-        .into_iter()
-        .rev()
-        .zip(messages(&report))
+    #[allow(unused_mut)]
+    let mut report_messages = messages(&report);
+
+    #[allow(unused_mut)]
+    let mut swap = false;
+
+    #[cfg(all(nightly, feature = "std"))]
     {
+        remove_backtrace_context(&eyre, &mut report_messages);
+
+        if !has_backtrace(&eyre) && supports_backtrace() {
+            swap = true;
+        }
+    }
+
+    let eyre_report = eyre.into_report().unwrap_err();
+    let mut eyre_messages = messages(&eyre_report);
+
+    if swap {
+        // we're reversing the whole thing, but that also means that the optional opaque layer
+        // isn't at the correct place when looking at the messages.
+        // ["Root error", "Printable A", "Opaque", "Printable B"]
+        // ["Printable B", "Opaque", "Printable A", "Root error"]
+        // which isn't correct as opaque needs to be before `Root` to be represented correctly.
+
+        eyre_messages.swap(1, 2);
+    }
+
+    for (eyre, error_stack) in eyre_messages.into_iter().rev().zip(report_messages) {
         assert_eq!(eyre, error_stack);
     }
 }
