@@ -323,14 +323,12 @@ fn shared_store_to_fbs<'f>(
         SharedState::Read(state) => {
             let a: Vec<_> = state
                 .agent_pool()
-                .batches()
-                .iter()
+                .batches_iter()
                 .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                 .collect();
             let m: Vec<_> = state
                 .message_pool()
-                .batches()
-                .iter()
+                .batches_iter()
                 .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                 .collect();
             let indices = (0..a.len()).collect();
@@ -339,14 +337,12 @@ fn shared_store_to_fbs<'f>(
         SharedState::Write(state) => {
             let a: Vec<_> = state
                 .agent_pool()
-                .batches()
-                .iter()
+                .batches_iter()
                 .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                 .collect();
             let m: Vec<_> = state
                 .message_pool()
-                .batches()
-                .iter()
+                .batches_iter()
                 .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                 .collect();
             let indices = (0..a.len()).collect();
@@ -357,14 +353,12 @@ fn shared_store_to_fbs<'f>(
                 let state = &partial.state_proxy;
                 let a: Vec<_> = state
                     .agent_pool()
-                    .batches()
-                    .iter()
+                    .batches_iter()
                     .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                     .collect();
                 let m: Vec<_> = state
                     .message_pool()
-                    .batches()
-                    .iter()
+                    .batches_iter()
                     .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                     .collect();
                 (a, m, partial.group_indices.clone())
@@ -373,14 +367,12 @@ fn shared_store_to_fbs<'f>(
                 let state = &partial.state_proxy;
                 let a: Vec<_> = state
                     .agent_pool()
-                    .batches()
-                    .iter()
+                    .batches_iter()
                     .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                     .collect();
                 let m: Vec<_> = state
                     .message_pool()
-                    .batches()
-                    .iter()
+                    .batches_iter()
                     .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                     .collect();
                 (a, m, partial.group_indices.clone())

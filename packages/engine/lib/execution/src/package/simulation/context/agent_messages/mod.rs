@@ -95,7 +95,7 @@ impl ContextPackage for AgentMessages {
         let pkg_span = Span::current();
         let _run_entered = tracing::trace_span!("run").entered();
         let agent_pool = state_proxy.agent_pool();
-        let batches = agent_pool.batches();
+        let batches = agent_pool.batches_iter().collect::<Vec<_>>();
         let id_name_iter =
             agent::arrow::agent_id_iter(&batches)?.zip(agent::arrow::agent_name_iter(&batches)?);
 
