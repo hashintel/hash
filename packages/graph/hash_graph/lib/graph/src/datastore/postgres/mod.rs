@@ -176,9 +176,9 @@ impl PostgresDatabase {
             .await
             .change_context(InsertionError)?
         {
-            return Err(Report::new(InsertionError)
-                .attach_printable(BaseUriAlreadyExists)
-                .attach_printable(uri.base_uri().clone()));
+            return Err(Report::new(BaseUriAlreadyExists)
+                .attach_printable(uri.base_uri().clone())
+                .change_context(InsertionError));
         }
 
         self.insert_base_uri(uri.base_uri()).await?;
@@ -216,9 +216,9 @@ impl PostgresDatabase {
             .await
             .change_context(UpdateError)?
         {
-            return Err(Report::new(UpdateError)
-                .attach_printable(BaseUriDoesNotExist)
-                .attach_printable(uri.base_uri().clone()));
+            return Err(Report::new(BaseUriDoesNotExist)
+                .attach_printable(uri.base_uri().clone())
+                .change_context(UpdateError));
         }
 
         let version_id = self.insert_uri(uri).await.change_context(UpdateError)?;
