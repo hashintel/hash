@@ -7,10 +7,10 @@ use crate::types::{
 ///
 /// [`PostgresDatabase`]: crate::datastore::PostgresDatabase
 pub trait DatabaseType {
-    /// Returns the identifying ID of this type.
+    /// Returns the unique versioned URI used to identify this instance of a type.
     fn uri(&self) -> &VersionedUri;
 
-    /// Returns the table, where this type is stored.
+    /// Returns the name of the table where this type is stored.
     fn table() -> &'static str;
 }
 
