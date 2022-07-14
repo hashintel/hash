@@ -1,7 +1,4 @@
-import {
-  blockComponentRequiresText,
-  BlockMeta,
-} from "@hashintel/hash-shared/blockMeta";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockVariant } from "@blockprotocol/core";
 import { useMemo } from "react";
 
