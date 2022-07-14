@@ -245,6 +245,8 @@ impl PostgresDatabase {
     where
         T: DatabaseType + Serialize + Sync,
     {
+        // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
+        //   module.
         sqlx::query(&format!(
             r#"
             INSERT INTO {} (
@@ -281,6 +283,8 @@ impl PostgresDatabase {
         &self,
         version_id: VersionId,
     ) -> Result<Qualified<T>, QueryError> {
+        // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
+        //   module.
         let (data_type, created_by) = sqlx::query_as(&format!(
             r#"
             SELECT "schema", created_by
