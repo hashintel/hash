@@ -1,5 +1,4 @@
 import { BlockVariant, JsonObject } from "@blockprotocol/core";
-import { isString } from "lodash";
 import { NodeSpec, ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";

@@ -5,6 +5,7 @@ import {
   disableEntityStoreTransactionInterpretation,
   entityStorePluginState,
   TrackedAction,
+  EntityStorePluginAction,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { isString } from "lodash";
@@ -245,7 +246,13 @@ export class EditorConnection {
     this.run(GET(`${this.url}/events?${query}`)).then(
       async (stringifiedData) => {
         // @todo type this
-        const data = JSON.parse(stringifiedData);
+        const data = JSON.parse(stringifiedData) as {
+          actions: EntityStorePluginAction[];
+          clientIDs: number[];
+          steps: { [key: string]: any }[];
+          store: EntityStore | null;
+          version: number;
+        };
 
         if (this.state.edit) {
           const tr = this.state.edit.tr;
@@ -270,25 +277,19 @@ export class EditorConnection {
             shouldDispatch = true;
           }
 
-          const componentIds =
-            data.actions?.reduce((acc, curr) => {
-              if (
-                curr.type === "updateEntityProperties" &&
-                curr.payload?.properties?.componentId
-              ) {
-                return acc.concat(
-                  curr.payload.properties.componentId as string,
-                );
-              }
-              return acc;
-            }, []) ?? [];
+          // pull out all componentIds and ensure they are defined
+          const componentIds = data.actions?.reduce((acc, curr) => {
+            if (
+              curr.type === "updateEntityProperties" &&
+              "componentId" in curr.payload.properties &&
+              !acc.includes(curr.payload.properties.componentId)
+            ) {
+              return acc.concat(curr.payload.properties.componentId);
+            }
+            return acc;
+          }, [] as string[]);
 
-          // fix types
-          const unique = Array.from(
-            new Set(componentIds),
-          ) as unknown as string[];
-
-          await this.manager.ensureBlocksDefined(unique);
+          await this.manager.ensureBlocksDefined(componentIds);
 
           if (data.actions?.length) {
             for (const action of data.actions) {
