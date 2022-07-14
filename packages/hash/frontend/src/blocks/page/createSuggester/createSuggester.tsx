@@ -1,8 +1,6 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import {
-  blockComponentRequiresText,
-  BlockMeta,
-} from "@hashintel/hash-shared/blockMeta";
+import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
+import { isComponentNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import {
@@ -12,8 +10,9 @@ import {
   TextSelection,
 } from "prosemirror-state";
 import React, { CSSProperties } from "react";
-import { RenderPortal } from "../usePortals";
+import { loadBlockComponent } from "../../../components/RemoteBlock/useRemoteBlock";
 import { ensureMounted } from "../../../lib/dom";
+import { RenderPortal } from "../usePortals";
 import { BlockSuggester } from "./BlockSuggester";
 import { MentionSuggester } from "./MentionSuggester";
 
@@ -95,12 +94,12 @@ const key = new PluginKey<SuggesterState, Schema>("suggester");
  * Suggester plugin factory
  *
  * Behaviour:
- * Typing one of the trigger characters followed by any number of non-whitespace characters will
- * activate the plugin and open a popup right under the "textual trigger".
- * Moving the cursor outside the trigger will close the popup. Pressing the
- * Escape-key while inside the trigger will disable the plugin until a trigger
- * is newly encountered (e.g. by leaving/deleting and reentering/retyping a
- * trigger).
+ * Typing one of the trigger characters followed by any number of
+ * non-whitespace characters will activate the plugin and open a popup right
+ * under the "textual trigger". Moving the cursor outside the trigger will
+ * close the popup. Pressing the Escape-key while inside the trigger will
+ * disable the plugin until a trigger is newly encountered (e.g. by
+ * leaving/deleting and reentering/retyping a trigger).
  */
 export const createSuggester = (
   renderPortal: RenderPortal,
@@ -174,25 +173,66 @@ export const createSuggester = (
           /**
            * @todo actually create and insert an instance of the selected block
            *   type variant
+           *   @todo remove need to rely on time
            */
           const onBlockSuggesterChange = (
             variant: BlockVariant,
-            blockMeta: BlockMeta["componentMetadata"],
+            blockMeta: BlockConfig,
           ) => {
-            getManager()
-              .createRemoteBlockTr(blockMeta.componentId, null, variant)
-              .then(([tr, node, meta]) => {
+            Promise.all([
+              getManager().createRemoteBlockTr(
+                blockMeta.componentId,
+                null,
+                variant,
+              ),
+              // Ensure the code is loaded into memory – which we need for
+              // cursor management
+              loadBlockComponent(blockMeta.source),
+            ])
+              .then(([[tr, node]]) => {
                 const endPosition = view.state.doc.resolve(to).pos;
                 tr.insert(endPosition, node);
-
-                if (blockComponentRequiresText(meta.componentSchema)) {
-                  tr.setSelection(
-                    TextSelection.create<Schema>(tr.doc, endPosition + 1),
-                  );
-                }
                 tr.replaceWith(from, to, []);
 
+                const nodePosition = tr.mapping.map(endPosition + 1);
+
                 view.dispatch(tr);
+
+                setImmediate(() => {
+                  const $pos = view.state.doc.resolve(nodePosition - 1);
+
+                  if ($pos) {
+                    $pos.node().descendants((child, offset) => {
+                      if (isComponentNode(child)) {
+                        const position = $pos.start() + offset;
+                        const dom: HTMLElement | null = view.nodeDOM(
+                          position,
+                        ) as any;
+
+                        if (dom) {
+                          setTimeout(() => {
+                            if (dom.contentEditable !== "false") {
+                              view.dispatch(
+                                view.state.tr.setSelection(
+                                  TextSelection.create<Schema>(
+                                    view.state.doc,
+                                    position,
+                                  ),
+                                ),
+                              );
+                            }
+                          }, 10);
+                        }
+
+                        return false;
+                      }
+                    });
+                  }
+
+                  // tr.setSelection(
+                  //   TextSelection.create<Schema>(tr.doc, endPosition + 1),
+                  // );
+                });
               })
               .catch((err) => {
                 // eslint-disable-next-line no-console -- TODO: consider using logger

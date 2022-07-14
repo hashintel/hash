@@ -21,7 +21,29 @@ type UseRemoteComponentState = {
   url: string | null;
 };
 
+// @todo put this in context
 const remoteModuleCache: Record<string, UseRemoteComponentState> = {};
+
+export const loadBlockComponent = (
+  sourceUrl: string,
+  crossFrame = false,
+  signal?: AbortSignal,
+) => {
+  const blockLoaderFn = crossFrame
+    ? loadCrossFrameRemoteBlock
+    : loadRemoteBlock;
+
+  return blockLoaderFn(sourceUrl, signal).then((module) => {
+    remoteModuleCache[sourceUrl] = {
+      loading: false,
+      err: undefined,
+      component: typeof module === "string" ? module : module.default,
+      url: sourceUrl,
+    };
+
+    return remoteModuleCache[sourceUrl]!;
+  });
+};
 
 /**
  * @see https://github.com/Paciolan/remote-component/blob/master/src/hooks/useRemoteComponent.ts
@@ -63,43 +85,37 @@ export const useRemoteBlock: UseRemoteBlockHook = (
       return;
     }
 
-    let update = setState;
     const controller = new AbortController();
     const signal = controller.signal;
 
-    update({ loading: true, err: undefined, component: undefined, url: null });
+    setState({
+      loading: true,
+      err: undefined,
+      component: undefined,
+      url: null,
+    });
 
-    const blockLoaderFn = crossFrame
-      ? loadCrossFrameRemoteBlock
-      : loadRemoteBlock;
-
-    blockLoaderFn(url, signal)
-      .then((module) => {
-        update({
-          loading: false,
-          err: undefined,
-          component: typeof module === "string" ? module : module.default,
-          url,
-        });
+    loadBlockComponent(url, crossFrame, signal)
+      .then((result) => {
+        setState(result);
 
         if (onBlockLoadedRef.current && !signal.aborted) {
           onBlockLoadedRef.current();
         }
       })
-      .catch((newErr) =>
-        update({
-          loading: false,
-          err: newErr,
-          component: undefined,
-          url: null,
-        }),
-      );
+      .catch((newErr) => {
+        if (!controller.signal.aborted) {
+          setState({
+            loading: false,
+            err: newErr,
+            component: undefined,
+            url: null,
+          });
+        }
+      });
 
     return () => {
       controller.abort();
-
-      // invalidate update function for stale closures
-      update = () => {};
     };
   }, [err, crossFrame, loading, onBlockLoaded, url, loadedUrl]);
 

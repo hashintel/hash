@@ -588,7 +588,7 @@ export class ProsemirrorSchemaManager {
       blockIdForNode,
     );
 
-    return [tr, newNode, meta] as const;
+    return [tr, newNode] as const;
   }
 
   /**
