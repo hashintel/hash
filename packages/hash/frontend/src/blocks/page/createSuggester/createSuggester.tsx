@@ -25,7 +25,6 @@ interface Trigger {
   from: number;
   /** ending prosemirror document position */
   to: number;
-  isEmptyBlock: boolean;
 }
 
 /**
@@ -72,7 +71,6 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
     from,
     to,
     char: match[1] as Trigger["char"],
-    isEmptyBlock: cursor.parentOffset <= 1,
   };
 };
 
@@ -164,13 +162,7 @@ export const createSuggester = (
 
           if (!state.isOpen()) return this.destroy!();
 
-          const {
-            from,
-            to,
-            search,
-            char: triggerChar,
-            isEmptyBlock,
-          } = state.trigger!;
+          const { from, to, search, char: triggerChar } = state.trigger!;
           const coords = view.coordsAtPos(from);
 
           const style: CSSProperties = {
@@ -191,22 +183,12 @@ export const createSuggester = (
               .createRemoteBlockTr(blockMeta.componentId, null, variant)
               .then(([tr, node, meta]) => {
                 const endPosition = view.state.doc.resolve(to).pos;
+                tr.insert(endPosition, node);
 
-                // if it's an empty block replace current node
-                if (isEmptyBlock) {
-                  tr.replaceRangeWith(from, endPosition, node);
-
-                  if (blockComponentRequiresText(meta.componentSchema)) {
-                    tr.setSelection(TextSelection.create<Schema>(tr.doc, from));
-                  }
-                } else {
-                  tr.insert(endPosition, node);
-                  if (blockComponentRequiresText(meta.componentSchema)) {
-                    tr.setSelection(
-                      TextSelection.create<Schema>(tr.doc, endPosition),
-                    );
-                  }
-                  tr.replaceWith(from, to, []);
+                if (blockComponentRequiresText(meta.componentSchema)) {
+                  tr.setSelection(
+                    TextSelection.create<Schema>(tr.doc, endPosition + 1),
+                  );
                 }
 
                 view.dispatch(tr);
