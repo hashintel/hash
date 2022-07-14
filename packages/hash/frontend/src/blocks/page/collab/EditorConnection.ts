@@ -1,5 +1,5 @@
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
@@ -203,11 +203,19 @@ export class EditorConnection {
 
     this.run(GET(url))
       .then((responseText) => {
-        // @todo type this
-        const data = JSON.parse(responseText);
+        const data = JSON.parse(responseText) as {
+          doc: { [key: string]: any };
+          store: EntityStore;
+          version: number;
+        };
 
         const componentIds = Object.values(data.store.saved)
-          .map((entity: any) => entity.properties?.componentId)
+          .filter(isBlockEntity)
+          .map(
+            (entity) =>
+              "componentId" in entity.properties &&
+              entity.properties?.componentId,
+          )
           .filter(isString);
 
         return this.manager.ensureBlocksDefined(componentIds).then(() => data);
@@ -245,7 +253,6 @@ export class EditorConnection {
     const query = `version=${this.state.version}`;
     this.run(GET(`${this.url}/events?${query}`)).then(
       async (stringifiedData) => {
-        // @todo type this
         const data = JSON.parse(stringifiedData) as {
           actions: EntityStorePluginAction[];
           clientIDs: number[];
