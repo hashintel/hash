@@ -1,7 +1,7 @@
 mod database_type;
 
 use async_trait::async_trait;
-use error_stack::{ensure, IntoReport, Report, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde::{de::DeserializeOwned, Serialize};
 use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
@@ -100,15 +100,21 @@ impl PostgresDatabase {
     where
         E: Executor<'e, Database = Postgres>,
     {
-        sqlx::query(r#"INSERT INTO ids (base_uri, version, version_id) VALUES ($1, $2, $3);"#)
-            .bind(uri.base_uri())
-            .bind(i64::from(uri.version()))
-            .bind(version_id)
-            .execute(executor)
-            .await
-            .report()
-            .change_context(InsertionError)
-            .attach_printable_lazy(|| uri.clone())?;
+        let _version_id: (VersionId,) = sqlx::query_as(
+            r#"
+            INSERT INTO ids (base_uri, version, version_id)
+            VALUES ($1, $2, $3)
+            RETURNING version_id;
+            "#,
+        )
+        .bind(uri.base_uri())
+        .bind(i64::from(uri.version()))
+        .bind(version_id)
+        .fetch_one(executor)
+        .await
+        .report()
+        .change_context(InsertionError)
+        .attach_printable_lazy(|| uri.clone())?;
 
         Ok(())
     }
@@ -124,13 +130,19 @@ impl PostgresDatabase {
     where
         E: Executor<'e, Database = Postgres>,
     {
-        sqlx::query(r#"INSERT INTO base_uris (base_uri) VALUES ($1);"#)
-            .bind(base_uri)
-            .execute(executor)
-            .await
-            .report()
-            .change_context(InsertionError)
-            .attach_printable_lazy(|| base_uri.clone())?;
+        let _base_uri: (BaseUri,) = sqlx::query_as(
+            r#"
+            INSERT INTO base_uris (base_uri) 
+            VALUES ($1)
+            RETURNING base_uri;
+            "#,
+        )
+        .bind(base_uri)
+        .fetch_one(executor)
+        .await
+        .report()
+        .change_context(InsertionError)
+        .attach_printable_lazy(|| base_uri.clone())?;
 
         Ok(())
     }
@@ -147,13 +159,19 @@ impl PostgresDatabase {
     where
         E: Executor<'e, Database = Postgres>,
     {
-        sqlx::query(r#"INSERT INTO version_ids (version_id) VALUES ($1);"#)
-            .bind(version_id)
-            .execute(executor)
-            .await
-            .report()
-            .change_context(InsertionError)
-            .attach_printable(version_id)?;
+        let _version_id: (VersionId,) = sqlx::query_as(
+            r#"
+            INSERT INTO version_ids (version_id) 
+            VALUES ($1)
+            RETURNING version_id;
+            "#,
+        )
+        .bind(version_id)
+        .fetch_one(executor)
+        .await
+        .report()
+        .change_context(InsertionError)
+        .attach_printable(version_id)?;
 
         Ok(())
     }
@@ -294,13 +312,9 @@ impl PostgresDatabase {
     {
         // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
         //   module.
-        let (inserted_id,) = sqlx::query_as(&format!(
+        let _version_id: (VersionId,) = sqlx::query_as(&format!(
             r#"
-            INSERT INTO {} (
-                version_id,
-                schema,
-                created_by
-            ) 
+            INSERT INTO {} (version_id, schema, created_by) 
             VALUES ($1, $2, $3)
             RETURNING version_id;
             "#,
@@ -317,12 +331,6 @@ impl PostgresDatabase {
         .await
         .report()
         .change_context(InsertionError)?;
-
-        ensure!(
-            version_id == inserted_id,
-            Report::new(InsertionError)
-                .attach_printable("Inserted data does not match the expected data")
-        );
 
         Ok(())
     }
