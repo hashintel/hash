@@ -259,7 +259,8 @@ impl PostgresDatabase {
         .bind(version_id)
         .bind(
             serde_json::to_value(database_type)
-                .unwrap_or_else(|err| unreachable!("Could not serialize data type: {err}")),
+                .report()
+                .change_context(InsertionError)?,
         )
         .bind(created_by)
         .execute(&self.pool)
@@ -298,7 +299,8 @@ impl PostgresDatabase {
         Ok(Qualified::new(
             version_id,
             serde_json::from_value(data_type)
-                .unwrap_or_else(|err| unreachable!("Could not deserialize data type: {err}")),
+                .report()
+                .change_context(QueryError)?,
             created_by,
         ))
     }
