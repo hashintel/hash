@@ -1,12 +1,16 @@
+mod database_type;
+
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{ensure, IntoReport, Report, Result, ResultExt};
+use serde::{de::DeserializeOwned, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
     datastore::{
-        error::VersionedUriAlreadyExists, BaseUriAlreadyExists, BaseUriDoesNotExist,
-        DatabaseConnectionInfo, Datastore, DatastoreError, InsertionError, QueryError, UpdateError,
+        error::VersionedUriAlreadyExists, postgres::database_type::DatabaseType,
+        BaseUriAlreadyExists, BaseUriDoesNotExist, DatabaseConnectionInfo, Datastore,
+        DatastoreError, InsertionError, QueryError, UpdateError,
     },
     types::{
         schema::{DataType, EntityType, PropertyType},
@@ -44,7 +48,7 @@ impl PostgresDatabase {
     /// - [`DatastoreError`], if checking for the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
-    async fn contains_base_uri(&mut self, base_uri: &BaseUri) -> Result<bool, QueryError> {
+    async fn contains_base_uri(&self, base_uri: &BaseUri) -> Result<bool, QueryError> {
         let (exists,) =
             sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM base_uris WHERE base_uri = $1);"#)
                 .bind(base_uri)
@@ -62,7 +66,7 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if checking for the [`VersionedUri`] failed.
-    async fn contains_uri(&mut self, uri: &VersionedUri) -> Result<bool, QueryError> {
+    async fn contains_uri(&self, uri: &VersionedUri) -> Result<bool, QueryError> {
         let (exists,) = sqlx::query_as(
             r#"SELECT EXISTS(SELECT 1 FROM ids WHERE base_uri = $1 AND version = $2);"#,
         )
@@ -82,7 +86,7 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`VersionedUri`] failed.
-    async fn insert_uri(&mut self, uri: &VersionedUri) -> Result<VersionId, InsertionError> {
+    async fn insert_uri(&self, uri: &VersionedUri) -> Result<VersionId, InsertionError> {
         if self
             .contains_uri(uri)
             .await
@@ -117,7 +121,7 @@ impl PostgresDatabase {
     /// - [`DatastoreError`], if inserting the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
-    async fn insert_base_uri(&mut self, base_uri: &BaseUri) -> Result<(), InsertionError> {
+    async fn insert_base_uri(&self, base_uri: &BaseUri) -> Result<(), InsertionError> {
         sqlx::query(r#"INSERT INTO base_uris (base_uri) VALUES ($1);"#)
             .bind(base_uri)
             .execute(&self.pool)
@@ -134,7 +138,7 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`VersionId`] failed.
-    async fn insert_version_id(&mut self, version_id: VersionId) -> Result<(), InsertionError> {
+    async fn insert_version_id(&self, version_id: VersionId) -> Result<(), InsertionError> {
         sqlx::query(r#"INSERT INTO version_ids (version_id) VALUES ($1);"#)
             .bind(version_id)
             .execute(&self.pool)
@@ -146,59 +150,106 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    /// Inserts a [`DataType`] identified by [`VersionId`], and associated with an [`AccountId`],
-    /// into the database.
+    /// Inserts the specified [`DatabaseType`].
+    ///
+    /// This first extracts the [`BaseUri`] from the [`VersionedUri`] and attempts to insert it into
+    /// the database. It will create a new [`VersionId`] for this [`VersionedUri`] and then finally
+    /// inserts the entry.
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if inserting failed.
-    async fn insert_data_type(
-        &mut self,
-        version_id: VersionId,
-        data_type: &DataType,
+    /// - If the [`BaseUri`] already exists
+    ///
+    /// [`BaseUri`]: crate::types::BaseUri
+    async fn create<T>(
+        &self,
+        database_type: T,
         created_by: AccountId,
-    ) -> Result<(), InsertionError> {
-        sqlx::query_as::<_, (Uuid,)>(
-            r#"
-            INSERT INTO data_types (
-                version_id,
-                schema,
-                created_by
-            ) 
-            VALUES ($1, $2, $3)
-            RETURNING version_id;
-            "#,
-        )
-        .bind(version_id)
-        .bind(
-            serde_json::to_value(data_type)
-                .unwrap_or_else(|err| unreachable!("Could not serialize data type: {err}")),
-        )
-        .bind(created_by)
-        .fetch_one(&self.pool)
-        .await
-        .report()
-        .change_context(InsertionError)
-        .attach_lazy(|| data_type.clone())?;
+    ) -> Result<Qualified<T>, InsertionError>
+    where
+        T: DatabaseType + Serialize + Send + Sync,
+    {
+        let uri = database_type.uri();
 
-        Ok(())
+        if self
+            .contains_base_uri(uri.base_uri())
+            .await
+            .change_context(InsertionError)?
+        {
+            return Err(Report::new(BaseUriAlreadyExists)
+                .attach_printable(uri.base_uri().clone())
+                .change_context(InsertionError));
+        }
+
+        self.insert_base_uri(uri.base_uri()).await?;
+
+        let version_id = self.insert_uri(uri).await?;
+
+        self.insert_with_id(version_id, &database_type, created_by)
+            .await?;
+
+        Ok(Qualified::new(version_id, database_type, created_by))
     }
 
-    /// Inserts a [`PropertyType`] identified by [`VersionId`], and associated with an
+    /// Updates the specified [`DatabaseType`].
+    ///
+    /// First this ensures the [`BaseUri`] of the type already exists. It then creates a
+    /// new [`VersionId`] from the contained [`VersionedUri`] and inserts the type.
+    ///
+    /// # Errors
+    ///
+    /// - If the [`BaseUri`] does not already exist
+    ///
+    /// [`BaseUri`]: crate::types::BaseUri
+    async fn update<T>(
+        &self,
+        database_type: T,
+        updated_by: AccountId,
+    ) -> Result<Qualified<T>, UpdateError>
+    where
+        T: DatabaseType + Serialize + Send + Sync,
+    {
+        let uri = database_type.uri();
+
+        if !self
+            .contains_base_uri(uri.base_uri())
+            .await
+            .change_context(UpdateError)?
+        {
+            return Err(Report::new(BaseUriDoesNotExist)
+                .attach_printable(uri.base_uri().clone())
+                .change_context(UpdateError));
+        }
+
+        let version_id = self.insert_uri(uri).await.change_context(UpdateError)?;
+
+        self.insert_with_id(version_id, &database_type, updated_by)
+            .await
+            .change_context(UpdateError)?;
+
+        Ok(Qualified::new(version_id, database_type, updated_by))
+    }
+
+    /// Inserts a [`DatabaseType`] identified by [`VersionId`], and associated with an
     /// [`AccountId`], into the database.
     ///
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting failed.
-    async fn insert_property_type(
-        &mut self,
+    async fn insert_with_id<T>(
+        &self,
         version_id: VersionId,
-        property_type: &PropertyType,
+        database_type: &T,
         created_by: AccountId,
-    ) -> Result<(), InsertionError> {
-        sqlx::query_as::<_, (Uuid,)>(
+    ) -> Result<(), InsertionError>
+    where
+        T: DatabaseType + Serialize + Sync,
+    {
+        // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
+        //   module.
+        let (inserted_id,) = sqlx::query_as(&format!(
             r#"
-            INSERT INTO property_types (
+            INSERT INTO {} (
                 version_id,
                 schema,
                 created_by
@@ -206,109 +257,49 @@ impl PostgresDatabase {
             VALUES ($1, $2, $3)
             RETURNING version_id;
             "#,
-        )
+            T::table()
+        ))
         .bind(version_id)
         .bind(
-            serde_json::to_value(property_type)
-                .unwrap_or_else(|err| unreachable!("Could not serialize property type: {err}")),
+            serde_json::to_value(database_type)
+                .report()
+                .change_context(InsertionError)?,
         )
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .report()
-        .change_context(InsertionError)
-        .attach_lazy(|| property_type.clone())?;
+        .change_context(InsertionError)?;
+
+        ensure!(
+            version_id == inserted_id,
+            Report::new(InsertionError)
+                .attach_printable("Inserted data does not match the expected data")
+        );
 
         Ok(())
     }
 
-    /// Inserts an [`EntityType`] identified by [`VersionId`], and associated with an [`AccountId`],
-    /// into the database.
+    /// Returns the specified [`DatabaseType`].
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if inserting failed.
-    async fn insert_entity_type(
-        &mut self,
-        version_id: VersionId,
-        entity_type: &EntityType,
-        created_by: AccountId,
-    ) -> Result<(), InsertionError> {
-        sqlx::query_as::<_, (Uuid,)>(
-            r#"
-            INSERT INTO entity_types (
-                version_id,
-                schema,
-                created_by
-            ) 
-            VALUES ($1, $2, $3)
-            RETURNING version_id;
-            "#,
-        )
-        .bind(version_id)
-        .bind(
-            serde_json::to_value(entity_type)
-                .unwrap_or_else(|err| unreachable!("Could not serialize entity type: {err}")),
-        )
-        .bind(created_by)
-        .fetch_one(&self.pool)
-        .await
-        .report()
-        .change_context(InsertionError)
-        .attach_lazy(|| entity_type.clone())?;
-
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl Datastore for PostgresDatabase {
-    async fn create_data_type(
-        &mut self,
-        data_type: DataType,
-        created_by: AccountId,
-    ) -> Result<Qualified<DataType>, InsertionError> {
-        let uri = data_type.id();
-
-        if self
-            .contains_base_uri(uri.base_uri())
-            .await
-            .change_context(InsertionError)
-            .attach_lazy(|| data_type.clone())?
-        {
-            return Err(Report::new(InsertionError)
-                .attach_printable(BaseUriAlreadyExists)
-                .attach_printable(uri.base_uri().clone())
-                .attach(data_type.clone()));
-        }
-
-        self.insert_base_uri(uri.base_uri())
-            .await
-            .attach_lazy(|| data_type.clone())?;
-
-        let version_id = self
-            .insert_uri(uri)
-            .await
-            .attach_lazy(|| data_type.clone())?;
-
-        self.insert_data_type(version_id, &data_type, created_by)
-            .await
-            .attach_lazy(|| data_type.clone())?;
-
-        Ok(Qualified::new(version_id, data_type, created_by))
-    }
-
-    async fn get_data_type(
+    /// - If the specified [`VersionId`] does not already exist.
+    // TODO: We can't distinguish between an DB error and a non-existing version currently
+    async fn get_by_version<T: DatabaseType + DeserializeOwned>(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<DataType>, QueryError> {
-        let (data_type, created_by) = sqlx::query_as(
+    ) -> Result<Qualified<T>, QueryError> {
+        // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
+        //   module.
+        let (data_type, created_by) = sqlx::query_as(&format!(
             r#"
             SELECT "schema", created_by
-            FROM data_types
+            FROM {}
             WHERE version_id = $1;
             "#,
-        )
+            T::table()
+        ))
         .bind(version_id)
         .fetch_one(&self.pool)
         .await
@@ -319,241 +310,82 @@ impl Datastore for PostgresDatabase {
         Ok(Qualified::new(
             version_id,
             serde_json::from_value(data_type)
-                .unwrap_or_else(|err| unreachable!("Could not deserialize data type: {err}")),
+                .report()
+                .change_context(QueryError)?,
             created_by,
         ))
     }
+}
 
-    async fn get_data_type_many() -> Result<(), QueryError> {
-        todo!()
+#[async_trait]
+impl Datastore for PostgresDatabase {
+    async fn create_data_type(
+        &self,
+        data_type: DataType,
+        created_by: AccountId,
+    ) -> Result<Qualified<DataType>, InsertionError> {
+        self.create(data_type, created_by).await
+    }
+
+    async fn get_data_type(
+        &self,
+        version_id: VersionId,
+    ) -> Result<Qualified<DataType>, QueryError> {
+        self.get_by_version(version_id).await
     }
 
     async fn update_data_type(
-        &mut self,
+        &self,
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Qualified<DataType>, UpdateError> {
-        let uri = data_type.id();
-
-        if !self
-            .contains_base_uri(uri.base_uri())
-            .await
-            .change_context(UpdateError)
-            .attach_lazy(|| data_type.clone())?
-        {
-            return Err(Report::new(UpdateError)
-                .attach_printable(BaseUriDoesNotExist)
-                .attach_printable(uri.base_uri().clone())
-                .attach(data_type.clone()));
-        }
-
-        let version_id = self
-            .insert_uri(uri)
-            .await
-            .change_context(UpdateError)
-            .attach_lazy(|| data_type.clone())?;
-
-        self.insert_data_type(version_id, &data_type, updated_by)
-            .await
-            .change_context(UpdateError)
-            .attach_lazy(|| data_type.clone())?;
-
-        Ok(Qualified::new(version_id, data_type, updated_by))
+        self.update(data_type, updated_by).await
     }
 
     async fn create_property_type(
-        &mut self,
+        &self,
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Qualified<PropertyType>, InsertionError> {
-        let uri = property_type.id();
-
-        if self
-            .contains_base_uri(uri.base_uri())
-            .await
-            .change_context(InsertionError)
-            .attach_lazy(|| property_type.clone())?
-        {
-            return Err(Report::new(InsertionError)
-                .attach_printable(BaseUriAlreadyExists)
-                .attach_printable(uri.base_uri().clone())
-                .attach(property_type.clone()));
-        }
-
-        self.insert_base_uri(uri.base_uri())
-            .await
-            .attach_lazy(|| property_type.clone())?;
-
-        let version_id = self
-            .insert_uri(uri)
-            .await
-            .attach_lazy(|| property_type.clone())?;
-
-        self.insert_property_type(version_id, &property_type, created_by)
-            .await
-            .attach_lazy(|| property_type.clone())?;
-
-        Ok(Qualified::new(version_id, property_type, created_by))
+        self.create(property_type, created_by).await
     }
 
     async fn get_property_type(
         &self,
         version_id: VersionId,
     ) -> Result<Qualified<PropertyType>, QueryError> {
-        let (property_type, created_by) = sqlx::query_as(
-            r#"
-            SELECT "schema", created_by
-            FROM property_types
-            WHERE version_id = $1;
-            "#,
-        )
-        .bind(version_id)
-        .fetch_one(&self.pool)
-        .await
-        .report()
-        .change_context(QueryError)
-        .attach_printable(version_id)?;
-
-        Ok(Qualified::new(
-            version_id,
-            serde_json::from_value(property_type)
-                .unwrap_or_else(|err| unreachable!("Could not deserialize property type: {err}")),
-            created_by,
-        ))
-    }
-
-    async fn get_property_type_many() -> Result<(), QueryError> {
-        todo!()
+        self.get_by_version(version_id).await
     }
 
     async fn update_property_type(
-        &mut self,
+        &self,
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Qualified<PropertyType>, UpdateError> {
-        let uri = property_type.id();
-
-        if !self
-            .contains_base_uri(uri.base_uri())
-            .await
-            .change_context(UpdateError)
-            .attach_lazy(|| property_type.clone())?
-        {
-            return Err(Report::new(UpdateError)
-                .attach_printable(BaseUriDoesNotExist)
-                .attach_printable(uri.base_uri().clone())
-                .attach(property_type.clone()));
-        }
-
-        let version_id = self
-            .insert_uri(uri)
-            .await
-            .change_context(UpdateError)
-            .attach_lazy(|| property_type.clone())?;
-
-        self.insert_property_type(version_id, &property_type, updated_by)
-            .await
-            .change_context(UpdateError)
-            .attach_lazy(|| property_type.clone())?;
-
-        Ok(Qualified::new(version_id, property_type, updated_by))
+        self.update(property_type, updated_by).await
     }
 
     async fn create_entity_type(
-        &mut self,
+        &self,
         entity_type: EntityType,
         created_by: AccountId,
     ) -> Result<Qualified<EntityType>, InsertionError> {
-        let uri = entity_type.id();
-
-        if self
-            .contains_base_uri(uri.base_uri())
-            .await
-            .change_context(InsertionError)
-            .attach_lazy(|| entity_type.clone())?
-        {
-            return Err(Report::new(InsertionError)
-                .attach_printable(BaseUriAlreadyExists)
-                .attach_printable(uri.base_uri().clone())
-                .attach(entity_type.clone()));
-        }
-        self.insert_base_uri(uri.base_uri())
-            .await
-            .attach_lazy(|| entity_type.clone())?;
-
-        let version_id = self
-            .insert_uri(uri)
-            .await
-            .attach_lazy(|| entity_type.clone())?;
-
-        self.insert_entity_type(version_id, &entity_type, created_by)
-            .await
-            .attach_lazy(|| entity_type.clone())?;
-
-        Ok(Qualified::new(version_id, entity_type, created_by))
+        self.create(entity_type, created_by).await
     }
 
     async fn get_entity_type(
         &self,
         version_id: VersionId,
     ) -> Result<Qualified<EntityType>, QueryError> {
-        let (entity_type, created_by) = sqlx::query_as(
-            r#"
-            SELECT "schema", created_by
-            FROM entity_types
-            WHERE version_id = $1;
-            "#,
-        )
-        .bind(version_id)
-        .fetch_one(&self.pool)
-        .await
-        .report()
-        .change_context(QueryError)
-        .attach_printable(version_id)?;
-
-        Ok(Qualified::new(
-            version_id,
-            serde_json::from_value(entity_type)
-                .unwrap_or_else(|err| unreachable!("Could not deserialize entity type: {err}")),
-            created_by,
-        ))
-    }
-
-    async fn get_entity_type_many() -> Result<(), QueryError> {
-        todo!()
+        self.get_by_version(version_id).await
     }
 
     async fn update_entity_type(
-        &mut self,
+        &self,
         entity_type: EntityType,
         updated_by: AccountId,
     ) -> Result<Qualified<EntityType>, UpdateError> {
-        let uri = entity_type.id();
-
-        if !self
-            .contains_base_uri(uri.base_uri())
-            .await
-            .change_context(UpdateError)
-            .attach_lazy(|| entity_type.clone())?
-        {
-            return Err(Report::new(UpdateError)
-                .attach_printable(BaseUriDoesNotExist)
-                .attach_printable(uri.base_uri().clone())
-                .attach(entity_type.clone()));
-        }
-
-        let version_id = self
-            .insert_uri(uri)
-            .await
-            .change_context(UpdateError)
-            .attach_lazy(|| entity_type.clone())?;
-
-        self.insert_entity_type(version_id, &entity_type, updated_by)
-            .await
-            .change_context(UpdateError)
-            .attach_lazy(|| entity_type.clone())?;
-
-        Ok(Qualified::new(version_id, entity_type, updated_by))
+        self.update(entity_type, updated_by).await
     }
 
     async fn create_entity() -> Result<(), InsertionError> {
@@ -561,10 +393,6 @@ impl Datastore for PostgresDatabase {
     }
 
     async fn get_entity() -> Result<(), QueryError> {
-        todo!()
-    }
-
-    async fn get_entity_many() -> Result<(), QueryError> {
         todo!()
     }
 
@@ -603,7 +431,7 @@ mod tests {
     // TODO: We don't intend to remove data. This is used for cleaning up the database after running
     //   a test case. Remove this as soon as we have a proper test framework.
     async fn remove_base_uri(
-        db: &mut PostgresDatabase,
+        db: &PostgresDatabase,
         base_uri: &BaseUri,
     ) -> Result<(), DatastoreError> {
         sqlx::query(r#"DELETE FROM base_uris WHERE base_uri = $1;"#)
@@ -661,7 +489,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_data_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool)
             .await
             .change_context(DatastoreError)?;
@@ -672,7 +500,7 @@ mod tests {
             .change_context(DatastoreError)?;
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, data_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, data_type.inner().id().base_uri()).await?;
 
         Ok(())
     }
@@ -680,7 +508,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn get_data_type_by_identifier() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let created_data_type = db
@@ -696,7 +524,7 @@ mod tests {
         assert_eq!(data_type.inner(), created_data_type.inner());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, data_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, data_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
@@ -718,7 +546,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn update_existing_data_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let data_type = db
@@ -735,7 +563,7 @@ mod tests {
         assert_ne!(data_type.version_id(), updated_data_type.version_id());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, data_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, data_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
@@ -766,7 +594,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_property_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let property_type = db
@@ -775,14 +603,14 @@ mod tests {
             .change_context(DatastoreError)?;
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, property_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, property_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn get_property_type_by_identifier() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let created_property_type = db
@@ -798,14 +626,14 @@ mod tests {
         assert_eq!(property_type.inner(), created_property_type.inner());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, property_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, property_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn update_existing_property_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let property_type = db
@@ -827,7 +655,7 @@ mod tests {
         );
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, property_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, property_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
@@ -888,7 +716,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_entity_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let entity_type = db
@@ -897,14 +725,14 @@ mod tests {
             .change_context(DatastoreError)?;
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, entity_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, entity_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn get_entity_type_by_identifier() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let created_entity_type = db
@@ -920,14 +748,14 @@ mod tests {
         assert_eq!(entity_type.inner(), created_entity_type.inner());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, entity_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, entity_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn update_existing_entity_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let entity_type = db
@@ -946,7 +774,7 @@ mod tests {
         assert_ne!(entity_type.version_id(), updated_entity_type.version_id());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, entity_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, entity_type.inner().id().base_uri()).await?;
         Ok(())
     }
 }
