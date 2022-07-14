@@ -7,6 +7,7 @@ import {
   TrackedAction,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { isString } from "lodash";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
@@ -204,7 +205,11 @@ export class EditorConnection {
         // @todo type this
         const data = JSON.parse(responseText);
 
-        return this.manager.ensureBlocksDefined(data).then(() => data);
+        const componentIds = Object.values(data.store.saved)
+          .map((entity: any) => entity.properties?.componentId)
+          .filter(isString);
+
+        return this.manager.ensureBlocksDefined(componentIds).then(() => data);
       })
       .then((data) => {
         const doc = this.schema.nodeFromJSON(data.doc);
@@ -238,7 +243,7 @@ export class EditorConnection {
     }
     const query = `version=${this.state.version}`;
     this.run(GET(`${this.url}/events?${query}`)).then(
-      (stringifiedData) => {
+      async (stringifiedData) => {
         // @todo type this
         const data = JSON.parse(stringifiedData);
 
@@ -264,6 +269,26 @@ export class EditorConnection {
             }
             shouldDispatch = true;
           }
+
+          const componentIds =
+            data.actions?.reduce((acc, curr) => {
+              if (
+                curr.type === "updateEntityProperties" &&
+                curr.payload?.properties?.componentId
+              ) {
+                return acc.concat(
+                  curr.payload.properties.componentId as string,
+                );
+              }
+              return acc;
+            }, []) ?? [];
+
+          // fix types
+          const unique = Array.from(
+            new Set(componentIds),
+          ) as unknown as string[];
+
+          await this.manager.ensureBlocksDefined(unique);
 
           if (data.actions?.length) {
             for (const action of data.actions) {
