@@ -34,5 +34,5 @@ export const useFilteredBlocks = (
       searchText,
       (option) => option.variant.name ?? "",
     );
-  }, [blocksMetaMap, searchText]);
+  }, [blocksMetaMap, textBlocksOnly, searchText]);
 };
