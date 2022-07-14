@@ -152,7 +152,7 @@ impl PostgresDatabase {
 
     /// Inserts the specified [`DatabaseType`].
     ///
-    /// This first checks, if the [`BaseUri`] of the type does not already exist. If not, it will
+    /// This first checks, if the [`BaseUri`] of the type does not already exist.If not, it will
     /// insert the [`BaseUri`] and creates a new [`VersionId`] from the contained [`VersionedUri`]
     /// and inserts the type.
     ///
