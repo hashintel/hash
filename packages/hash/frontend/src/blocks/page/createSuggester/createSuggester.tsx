@@ -190,6 +190,7 @@ export const createSuggester = (
                     TextSelection.create<Schema>(tr.doc, endPosition + 1),
                   );
                 }
+                tr.replaceWith(from, to, []);
 
                 view.dispatch(tr);
               })
