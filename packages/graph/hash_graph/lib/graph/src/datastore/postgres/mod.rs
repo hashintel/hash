@@ -1,7 +1,7 @@
 mod database_type;
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{ensure, IntoReport, Report, Result, ResultExt};
 use serde::{de::DeserializeOwned, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -247,14 +247,15 @@ impl PostgresDatabase {
     {
         // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
         //   module.
-        sqlx::query(&format!(
+        let (inserted_id,) = sqlx::query_as(&format!(
             r#"
             INSERT INTO {} (
                 version_id,
                 schema,
                 created_by
             ) 
-            VALUES ($1, $2, $3);
+            VALUES ($1, $2, $3)
+            RETURNING version_id;
             "#,
             T::table()
         ))
@@ -265,10 +266,16 @@ impl PostgresDatabase {
                 .change_context(InsertionError)?,
         )
         .bind(created_by)
-        .execute(&self.pool)
+        .fetch_one(&self.pool)
         .await
         .report()
         .change_context(InsertionError)?;
+
+        ensure!(
+            version_id == inserted_id,
+            Report::new(InsertionError)
+                .attach_printable("Inserted data does not match the expected data")
+        );
 
         Ok(())
     }
