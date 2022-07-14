@@ -193,7 +193,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     /// # Errors:
     ///
     /// - if the account referred to by `created_by` does not exist.
-    /// - if the [`BaseUri`] of the `property_type` already exist.
+    /// - if the [`BaseUri`] of the `property_type` already exists.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
     async fn create_property_type(
