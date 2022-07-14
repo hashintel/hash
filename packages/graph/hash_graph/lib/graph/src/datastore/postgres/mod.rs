@@ -179,7 +179,14 @@ impl PostgresDatabase {
     {
         let uri = database_type.uri();
 
-        if Self::contains_base_uri(&self.pool, uri.base_uri())
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        if Self::contains_base_uri(&mut transaction, uri.base_uri())
             .await
             .change_context(InsertionError)?
         {
@@ -188,9 +195,9 @@ impl PostgresDatabase {
                 .change_context(InsertionError));
         }
 
-        Self::insert_base_uri(&self.pool, uri.base_uri()).await?;
+        Self::insert_base_uri(&mut transaction, uri.base_uri()).await?;
 
-        if Self::contains_uri(&self.pool, uri)
+        if Self::contains_uri(&mut transaction, uri)
             .await
             .change_context(InsertionError)?
         {
@@ -200,9 +207,15 @@ impl PostgresDatabase {
         }
 
         let version_id = VersionId::new(Uuid::new_v4());
-        Self::insert_version_id(&self.pool, version_id).await?;
-        Self::insert_uri(&self.pool, uri, version_id).await?;
-        Self::insert_with_id(&self.pool, version_id, &database_type, created_by).await?;
+        Self::insert_version_id(&mut transaction, version_id).await?;
+        Self::insert_uri(&mut transaction, uri, version_id).await?;
+        Self::insert_with_id(&mut transaction, version_id, &database_type, created_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(InsertionError)?;
 
         Ok(Qualified::new(version_id, database_type, created_by))
     }
@@ -227,7 +240,14 @@ impl PostgresDatabase {
     {
         let uri = database_type.uri();
 
-        if !Self::contains_base_uri(&self.pool, uri.base_uri())
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        if !Self::contains_base_uri(&mut transaction, uri.base_uri())
             .await
             .change_context(UpdateError)?
         {
@@ -237,14 +257,20 @@ impl PostgresDatabase {
         }
 
         let version_id = VersionId::new(Uuid::new_v4());
-        Self::insert_version_id(&self.pool, version_id)
+        Self::insert_version_id(&mut transaction, version_id)
             .await
             .change_context(UpdateError)?;
-        Self::insert_uri(&self.pool, uri, version_id)
+        Self::insert_uri(&mut transaction, uri, version_id)
             .await
             .change_context(UpdateError)?;
-        Self::insert_with_id(&self.pool, version_id, &database_type, updated_by)
+        Self::insert_with_id(&mut transaction, version_id, &database_type, updated_by)
             .await
+            .change_context(UpdateError)?;
+
+        transaction
+            .commit()
+            .await
+            .report()
             .change_context(UpdateError)?;
 
         Ok(Qualified::new(version_id, database_type, updated_by))
