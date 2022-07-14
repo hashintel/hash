@@ -65,9 +65,8 @@ export const componentViewTargetSelector = "div[data-target=true]";
  *    The node type name is the id of the block component (i.e. its URI).
  */
 export class ComponentView implements NodeView<Schema> {
-  dom: HTMLDivElement = document.createElement("div");
-  contentDOM: HTMLElement | undefined = undefined;
-  editable: boolean;
+  dom = document.createElement("div");
+  contentDOM = document.createElement("div");
 
   private target = createComponentViewTarget();
 
@@ -84,7 +83,7 @@ export class ComponentView implements NodeView<Schema> {
     private renderPortal: RenderPortal,
     private meta: BlockMeta,
   ) {
-    const { componentMetadata, componentSchema } = meta;
+    const { componentMetadata } = meta;
     const { source } = componentMetadata;
 
     if (!source) {
@@ -95,17 +94,12 @@ export class ComponentView implements NodeView<Schema> {
     this.componentId = componentMetadata.componentId;
 
     this.dom.setAttribute("data-dom", "true");
-
-    this.editable = blockComponentRequiresText(componentSchema);
-
-    if (this.editable) {
-      this.contentDOM = document.createElement("div");
-      this.contentDOM.setAttribute("data-contentDOM", "true");
-      this.contentDOM.style.display = "none";
-      this.dom.appendChild(this.contentDOM);
-    }
-
+    this.contentDOM.setAttribute("data-contentDOM", "true");
+    this.contentDOM.style.display = "none";
+    this.dom.appendChild(this.contentDOM);
     this.dom.appendChild(this.target);
+
+    this.dom.contentEditable = "false";
 
     this.store = entityStorePluginState(editorView.state).store;
     this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
@@ -155,7 +149,7 @@ export class ComponentView implements NodeView<Schema> {
             blockMetadata={this.meta.componentMetadata}
             // @todo uncomment this when sandbox is fixed
             // shouldSandbox={!this.editable}
-            editableRef={this.editable ? this.editableRef : undefined}
+            editableRef={this.editableRef}
             // @todo these asserted non-null fields do not definitely exist when the block is first loaded
             accountId={childEntity?.accountId!}
             entityId={childEntity?.entityId!}
@@ -180,19 +174,26 @@ export class ComponentView implements NodeView<Schema> {
   }
 
   editableRef = (editableNode: HTMLElement) => {
-    if (
-      this.contentDOM &&
-      editableNode &&
-      !editableNode.contains(this.contentDOM)
-    ) {
-      editableNode.appendChild(this.contentDOM);
-      this.contentDOM.style.display = "";
+    if (editableNode) {
+      if (!editableNode.contains(this.contentDOM)) {
+        editableNode.appendChild(this.contentDOM);
+        this.contentDOM.style.display = "";
+      }
+
+      this.dom.removeAttribute("contentEditable");
+    } else {
+      this.destroyEditableRef();
     }
   };
 
+  private destroyEditableRef() {
+    this.dom.contentEditable = "false";
+    this.contentDOM.style.display = "none";
+    this.dom.appendChild(this.contentDOM);
+  }
+
   destroy() {
-    this.dom.remove();
-    this.renderPortal(null, this.target);
+    this.destroyEditableRef();
     this.unsubscribe();
   }
 

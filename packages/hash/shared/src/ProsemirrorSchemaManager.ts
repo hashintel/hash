@@ -24,9 +24,9 @@ import {
 } from "./entityStore";
 import {
   addEntityStoreAction,
+  createDraftIdForEntity,
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
-  createDraftIdForEntity,
   mustGetDraftEntityFromEntityId,
 } from "./entityStorePlugin";
 import {
@@ -39,26 +39,6 @@ import {
 declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];
 }
-
-const createComponentNodeSpec = (
-  spec: Omit<Partial<NodeSpec>, "group">,
-): NodeSpec => ({
-  /**
-   * @todo consider if we should encode the component id here / any other
-   *       information
-   */
-  toDOM: (node) => {
-    if (node.type.isTextblock) {
-      return ["span", { "data-hash-type": "component" }, 0];
-    } else {
-      return ["span", { "data-hash-type": "component" }];
-    }
-  },
-  selectable: false,
-
-  ...spec,
-  group: componentNodeGroupName,
-});
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
@@ -132,7 +112,7 @@ export class ProsemirrorSchemaManager {
    * the schema, and create a node view wrapper for you too.
    */
   defineNewBlock(meta: BlockMeta) {
-    const { componentMetadata, componentSchema } = meta;
+    const { componentMetadata } = meta;
     const { componentId } = componentMetadata;
 
     if (this.schema.nodes[componentId]) {
@@ -141,21 +121,25 @@ export class ProsemirrorSchemaManager {
 
     this.prepareToDisableBlankDefaultComponentNode();
 
-    const spec = createComponentNodeSpec({
-      /**
-       * Currently we detect whether a block takes editable text by detecting if
-       * it has an editableRef prop in its schema – we need a more sophisticated
-       * way for block authors to communicate this to us
-       */
-      ...(blockComponentRequiresText(componentSchema)
-        ? {
-            content: "inline*",
-            marks: "_",
-          }
-        : {}),
-    });
+    this.defineNewNode(componentId, {
+      selectable: false,
+      content: "inline*",
+      marks: "_",
+      group: componentNodeGroupName,
 
-    this.defineNewNode(componentId, spec);
+      /**
+       * Used for serializing when drag and dropping
+       * @todo consider if we should encode the component id here / any other
+       *       information
+       */
+      toDOM(node) {
+        if (node.textContent?.length > 0) {
+          return ["span", { "data-hash-type": "component" }, 0];
+        } else {
+          return ["span", { "data-hash-type": "component" }];
+        }
+      },
+    });
     this.defineNodeView(componentId, meta);
   }
 
@@ -442,7 +426,8 @@ export class ProsemirrorSchemaManager {
 
   /**
    * @todo consider removing the old block from the entity store
-   * @todo need to support variants here (copied from {@link replaceNodeWithRemoteBlock} - is this still relevant?
+   * @todo need to support variants here (copied from
+   *   {@link replaceNodeWithRemoteBlock} - is this still relevant?
    */
   async deleteNode(node: ProsemirrorNode<Schema>, pos: number) {
     const { view } = this;
