@@ -3,9 +3,14 @@ use crate::types::{
     VersionedUri,
 };
 
+/// A type, which is stored in a [`PostgresDatabase`].
+///
+/// [`PostgresDatabase`]: crate::datastore::PostgresDatabase
 pub trait DatabaseType {
+    /// Returns the identifying ID of this type.
     fn uri(&self) -> &VersionedUri;
 
+    /// Returns the table, where this type is stored.
     fn table() -> &'static str;
 }
 
