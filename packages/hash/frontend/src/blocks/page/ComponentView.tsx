@@ -1,7 +1,4 @@
-import {
-  blockComponentRequiresText,
-  BlockMeta,
-} from "@hashintel/hash-shared/blockMeta";
+import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
@@ -65,33 +62,30 @@ export const componentViewTargetSelector = "div[data-target=true]";
  *    The node type name is the id of the block component (i.e. its URI).
  */
 export class ComponentView implements NodeView<Schema> {
-  dom = document.createElement("div");
-  contentDOM = document.createElement("div");
+  public readonly dom = document.createElement("div");
+  public readonly contentDOM = document.createElement("div");
 
-  private target = createComponentViewTarget();
+  private readonly target = createComponentViewTarget();
 
-  private readonly componentId: string;
   private readonly sourceName: string;
 
+  private readonly unsubscribe: Function;
+
+  private editable = false;
   private store: EntityStore;
-  private unsubscribe: Function;
 
   constructor(
     private node: ProsemirrorNode<Schema>,
-    public editorView: EditorView<Schema>,
-    public getPos: () => number,
-    private renderPortal: RenderPortal,
-    private meta: BlockMeta,
+    private readonly editorView: EditorView<Schema>,
+    private readonly getPos: () => number,
+    private readonly renderPortal: RenderPortal,
+    private readonly config: BlockConfig,
   ) {
-    const { componentMetadata } = meta;
-    const { source } = componentMetadata;
-
-    if (!source) {
+    if (!config.source) {
       throw new Error("Cannot create new block for component missing a source");
     }
 
-    this.sourceName = source;
-    this.componentId = componentMetadata.componentId;
+    this.sourceName = config.source;
 
     this.dom.setAttribute("data-dom", "true");
     this.contentDOM.setAttribute("data-contentDOM", "true");
@@ -113,7 +107,10 @@ export class ComponentView implements NodeView<Schema> {
   update(node: ProsemirrorNode<Schema>) {
     this.node = node;
 
-    if (isComponentNode(node) && componentNodeToId(node) === this.componentId) {
+    if (
+      isComponentNode(node) &&
+      componentNodeToId(node) === this.config.componentId
+    ) {
       const blockDraftId: string = this.editorView.state.doc
         .resolve(this.getPos())
         .node(2).attrs.draftId;
@@ -129,7 +126,7 @@ export class ComponentView implements NodeView<Schema> {
       const childEntity = getChildEntity(entity);
 
       const beforeCapture = (scope: Sentry.Scope) => {
-        scope.setTag("block", this.componentId);
+        scope.setTag("block", this.config.componentId);
       };
 
       const onRetry = () => {
@@ -143,10 +140,9 @@ export class ComponentView implements NodeView<Schema> {
           fallback={(props) => <ErrorBlock {...props} onRetry={onRetry} />}
         >
           <BlockLoader
-            sourceUrl={this.sourceName}
             blockEntityId={entityId}
             entityType={childEntity?.entityType}
-            blockMetadata={this.meta.componentMetadata}
+            blockMetadata={this.config}
             // @todo uncomment this when sandbox is fixed
             // shouldSandbox={!this.editable}
             editableRef={this.editableRef}
@@ -181,6 +177,7 @@ export class ComponentView implements NodeView<Schema> {
       }
 
       this.dom.removeAttribute("contentEditable");
+      this.editable = true;
     } else {
       this.destroyEditableRef();
     }
@@ -190,6 +187,7 @@ export class ComponentView implements NodeView<Schema> {
     this.dom.contentEditable = "false";
     this.contentDOM.style.display = "none";
     this.dom.appendChild(this.contentDOM);
+    this.editable = false;
   }
 
   destroy() {
@@ -202,7 +200,7 @@ export class ComponentView implements NodeView<Schema> {
       event.preventDefault();
     }
 
-    return !blockComponentRequiresText(this.meta.componentSchema);
+    return !this.editable;
   }
 
   // This condition is designed to check that the event isn’t coming from React-handled code.
@@ -226,11 +224,8 @@ export class ComponentView implements NodeView<Schema> {
 
     const targetIsContentDom = event.target === this.contentDOM;
 
-    const handledByReact =
-      event.type === "childList"
-        ? targetIsOutsideContentDOM
-        : targetIsOutsideContentDOM || targetIsContentDom;
-
-    return handledByReact;
+    return event.type === "childList"
+      ? targetIsOutsideContentDOM
+      : targetIsOutsideContentDOM || targetIsContentDom;
   }
 }

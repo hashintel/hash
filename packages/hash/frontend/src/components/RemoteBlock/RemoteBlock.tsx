@@ -24,7 +24,6 @@ type RemoteBlockProps = {
   crossFrame?: boolean;
   editableRef?: unknown;
   onBlockLoaded?: () => void;
-  sourceUrl: string;
 };
 
 export const BlockLoadingIndicator: React.VFC = () => <div>Loading...</div>;
@@ -42,10 +41,9 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
   graphCallbacks,
   graphProperties,
   onBlockLoaded,
-  sourceUrl,
 }) => {
   const [loading, err, blockSource] = useRemoteBlock(
-    sourceUrl,
+    blockMetadata.source,
     crossFrame,
     onBlockLoaded,
   );
@@ -109,7 +107,7 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
           blockSource={blockSource}
           blockType={blockMetadata.blockType}
           properties={propsToInject}
-          sourceUrl={sourceUrl}
+          sourceUrl={blockMetadata.source}
         />
       ) : null}
     </div>

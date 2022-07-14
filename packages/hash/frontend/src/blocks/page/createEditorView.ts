@@ -150,8 +150,10 @@ export const createEditorView = (
   }
 
   /** note that {@link ProsemirrorSchemaManager#defineNewBlock} is idempotent */
-  manager.defineNewBlock(paragraphBlockMeta);
-  blocksMetaArray.forEach((blockMeta) => manager.defineNewBlock(blockMeta));
+  manager.defineNewBlock(paragraphBlockMeta.componentMetadata);
+  blocksMetaArray.forEach((blockMeta) =>
+    manager.defineNewBlock(blockMeta.componentMetadata),
+  );
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);

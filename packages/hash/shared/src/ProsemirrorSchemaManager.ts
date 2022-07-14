@@ -6,6 +6,7 @@ import { EditorProps, EditorView } from "prosemirror-view";
 
 import {
   blockComponentRequiresText,
+  BlockConfig,
   BlockMeta,
   fetchBlockMeta,
 } from "./blockMeta";
@@ -42,7 +43,7 @@ declare interface OrderedMapPrivateInterface<T> {
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
-type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
+type ComponentNodeViewFactory = (meta: BlockConfig) => NodeViewFactory;
 
 /**
  * Manages the creation and editing of the ProseMirror schema.
@@ -111,17 +112,14 @@ export class ProsemirrorSchemaManager {
    * already fetched all the necessary metadata. It'll define a new node type in
    * the schema, and create a node view wrapper for you too.
    */
-  defineNewBlock(meta: BlockMeta) {
-    const { componentMetadata } = meta;
-    const { componentId } = componentMetadata;
-
-    if (this.schema.nodes[componentId]) {
+  defineNewBlock(meta: BlockConfig) {
+    if (this.schema.nodes[meta.componentId]) {
       return;
     }
 
     this.prepareToDisableBlankDefaultComponentNode();
 
-    this.defineNewNode(componentId, {
+    this.defineNewNode(meta.componentId, {
       selectable: false,
       content: "inline*",
       marks: "_",
@@ -140,7 +138,7 @@ export class ProsemirrorSchemaManager {
         }
       },
     });
-    this.defineNodeView(componentId, meta);
+    this.defineNodeView(meta);
   }
 
   /**
@@ -177,13 +175,13 @@ export class ProsemirrorSchemaManager {
     }
   }
 
-  defineNodeView(componentId: string, meta: BlockMeta) {
+  defineNodeView(meta: BlockConfig) {
     if (this.componentNodeViewFactory && this.view) {
       this.view.setProps({
         nodeViews: {
           // Private API
           ...(this.view as any).nodeViews,
-          [componentId]: this.componentNodeViewFactory(meta),
+          [meta.componentId]: this.componentNodeViewFactory(meta),
         },
       });
     }
@@ -216,10 +214,12 @@ export class ProsemirrorSchemaManager {
    */
   async defineRemoteBlock(
     componentId: string,
-    metaPromise?: Promise<BlockMeta>,
+    metaPromise?: Promise<BlockConfig>,
   ) {
     if (!this.schema.nodes[componentId]) {
-      const blockMetaPromise = metaPromise ?? fetchBlockMeta(componentId);
+      const blockMetaPromise =
+        metaPromise ??
+        fetchBlockMeta(componentId).then((meta) => meta.componentMetadata);
 
       this.defineNewBlock(await blockMetaPromise);
     }

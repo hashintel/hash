@@ -17,21 +17,10 @@ export interface BlockConfig extends BlockMetadata {
  * @deprecated
  * @todo remove this
  */
-export type Block = {
-  entityId: string;
-  versionId: string;
-  accountId: string;
-  entity: Record<any, any>;
-  componentId: string;
+export type BlockMeta = {
   componentMetadata: BlockConfig;
   componentSchema: JsonSchema;
 };
-
-/**
- * @deprecated
- * @todo remove this
- */
-export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
 /**
  * The cache is designed to store promises, not resolved values, in order to

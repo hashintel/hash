@@ -48,7 +48,6 @@ type BlockLoaderProps = {
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
   // shouldSandbox?: boolean;
-  sourceUrl: string;
 };
 
 // const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
@@ -70,7 +69,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   linkedEntities,
   linkedAggregations,
   // shouldSandbox,
-  sourceUrl,
 }) => {
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
@@ -202,7 +200,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       graphCallbacks={functions}
       graphProperties={graphProperties}
       onBlockLoaded={onRemoteBlockLoaded}
-      sourceUrl={sourceUrl}
     />
   );
 };
