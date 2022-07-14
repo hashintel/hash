@@ -22,6 +22,7 @@
     clippy::print_stderr,
     clippy::rc_buffer,
     clippy::rc_mutex,
+    clippy::same_name_method,
     clippy::str_to_string,
     clippy::string_add,
     clippy::string_slice,

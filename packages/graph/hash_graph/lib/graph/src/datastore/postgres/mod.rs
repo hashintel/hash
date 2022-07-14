@@ -169,7 +169,7 @@ impl PostgresDatabase {
     where
         T: DatabaseType + Serialize + Send + Sync,
     {
-        let uri = database_type.id();
+        let uri = database_type.uri();
 
         if self
             .contains_base_uri(uri.base_uri())
@@ -209,7 +209,7 @@ impl PostgresDatabase {
     where
         T: DatabaseType + Serialize + Send + Sync,
     {
-        let uri = database_type.id();
+        let uri = database_type.uri();
 
         if !self
             .contains_base_uri(uri.base_uri())

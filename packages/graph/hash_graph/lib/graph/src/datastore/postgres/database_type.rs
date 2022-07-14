@@ -4,14 +4,14 @@ use crate::types::{
 };
 
 pub trait DatabaseType {
-    fn id(&self) -> &VersionedUri;
+    fn uri(&self) -> &VersionedUri;
 
     fn table() -> &'static str;
 }
 
 impl DatabaseType for DataType {
-    fn id(&self) -> &VersionedUri {
-        DataType::id(self)
+    fn uri(&self) -> &VersionedUri {
+        self.id()
     }
 
     fn table() -> &'static str {
@@ -20,8 +20,8 @@ impl DatabaseType for DataType {
 }
 
 impl DatabaseType for PropertyType {
-    fn id(&self) -> &VersionedUri {
-        PropertyType::id(self)
+    fn uri(&self) -> &VersionedUri {
+        self.id()
     }
 
     fn table() -> &'static str {
@@ -30,8 +30,8 @@ impl DatabaseType for PropertyType {
 }
 
 impl DatabaseType for EntityType {
-    fn id(&self) -> &VersionedUri {
-        EntityType::id(self)
+    fn uri(&self) -> &VersionedUri {
+        self.id()
     }
 
     fn table() -> &'static str {
