@@ -150,6 +150,17 @@ impl PostgresDatabase {
         Ok(())
     }
 
+    /// Inserts the specified [`DataBaseType`].
+    ///
+    /// This first checks, if the [`BaseUri`] of the type does not already exist. If not, it will
+    /// insert the [`BaseUri`] and creates a new [`VersionId`] from the contained [`VersionedUri`]
+    /// and inserts the type.
+    ///
+    /// # Errors
+    ///
+    /// - If the [`BaseUri`] already exists
+    ///
+    /// [`BaseUri`]: crate::types::BaseUri
     async fn create<T>(
         &self,
         database_type: T,
@@ -180,6 +191,16 @@ impl PostgresDatabase {
         Ok(Qualified::new(version_id, database_type, created_by))
     }
 
+    /// Updates the specified [`DataBaseType`].
+    ///
+    /// This first checks, if the [`BaseUri`] of the type does exist. It will then creates a new
+    /// [`VersionId`] from the contained [`VersionedUri`] and inserts the type.
+    ///
+    /// # Errors
+    ///
+    /// - If the [`BaseUri`] does not already exist
+    ///
+    /// [`BaseUri`]: crate::types::BaseUri
     async fn update<T>(
         &self,
         database_type: T,
@@ -249,6 +270,12 @@ impl PostgresDatabase {
         Ok(())
     }
 
+    /// Returns the specified [`DataBaseType`].
+    ///
+    /// # Errors
+    ///
+    /// - If the specified [`VersionId`] does not already exist.
+    // TODO: We can't distinguish between an DB error and a non-existing version currently
     async fn get_by_version<T: DataBaseType + DeserializeOwned>(
         &self,
         version_id: VersionId,
@@ -294,10 +321,6 @@ impl Datastore for PostgresDatabase {
         self.get_by_version(version_id).await
     }
 
-    async fn get_data_type_many() -> Result<(), QueryError> {
-        todo!()
-    }
-
     async fn update_data_type(
         &self,
         data_type: DataType,
@@ -319,10 +342,6 @@ impl Datastore for PostgresDatabase {
         version_id: VersionId,
     ) -> Result<Qualified<PropertyType>, QueryError> {
         self.get_by_version(version_id).await
-    }
-
-    async fn get_property_type_many() -> Result<(), QueryError> {
-        todo!()
     }
 
     async fn update_property_type(
@@ -348,10 +367,6 @@ impl Datastore for PostgresDatabase {
         self.get_by_version(version_id).await
     }
 
-    async fn get_entity_type_many() -> Result<(), QueryError> {
-        todo!()
-    }
-
     async fn update_entity_type(
         &self,
         entity_type: EntityType,
@@ -365,10 +380,6 @@ impl Datastore for PostgresDatabase {
     }
 
     async fn get_entity() -> Result<(), QueryError> {
-        todo!()
-    }
-
-    async fn get_entity_many() -> Result<(), QueryError> {
         todo!()
     }
 

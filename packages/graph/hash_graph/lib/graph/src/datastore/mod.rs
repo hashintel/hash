@@ -159,7 +159,8 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     ///
     /// # Errors:
     ///
-    /// - [`DatastoreError`], if the account referred to by `created_by` does not exist.
+    /// - if the account referred to by `created_by` does not exist.
+    /// - if the [`BaseUri`] of the `data_type` already exist.
     async fn create_data_type(
         &self,
         data_type: DataType,
@@ -170,55 +171,81 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
+    /// - if the requested [`DataType`] doesn't exist.
     async fn get_data_type(&self, version_id: VersionId)
     -> Result<Qualified<DataType>, QueryError>;
-
-    async fn get_data_type_many() -> Result<(), QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
+    /// - if the [`DataType`] doesn't exist.
     async fn update_data_type(
         &self,
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Qualified<DataType>, UpdateError>;
 
+    /// Creates a new [`PropertyType`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the account referred to by `created_by` does not exist.
+    /// - if the [`BaseUri`] of the `property_type` already exist.
     async fn create_property_type(
         &self,
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Qualified<PropertyType>, InsertionError>;
 
+    /// Get an existing [`PropertyType`] by a [`VersionId`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`PropertyType`] doesn't exist.
     async fn get_property_type(
         &self,
         version_id: VersionId,
     ) -> Result<Qualified<PropertyType>, QueryError>;
 
-    async fn get_property_type_many() -> Result<(), QueryError>;
-
+    /// Update the definition of an existing [`PropertyType`].
+    ///
+    /// # Errors
+    ///
+    /// - if the [`PropertyType`] doesn't exist.
     async fn update_property_type(
         &self,
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Qualified<PropertyType>, UpdateError>;
 
+    /// Creates a new [`EntityType`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the account referred to by `created_by` does not exist.
+    /// - if the [`BaseUri`] of the `entity_type` already exist.
     async fn create_entity_type(
         &self,
         entity_type: EntityType,
         created_by: AccountId,
     ) -> Result<Qualified<EntityType>, InsertionError>;
 
+    /// Get an existing [`EntityType`] by a [`VersionId`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`EntityType`] doesn't exist.
     async fn get_entity_type(
         &self,
         version_id: VersionId,
     ) -> Result<Qualified<EntityType>, QueryError>;
 
-    async fn get_entity_type_many() -> Result<(), QueryError>;
-
+    /// Update the definition of an existing [`EntityType`].
+    ///
+    /// # Errors
+    ///
+    /// - if the [`EntityType`] doesn't exist.
     async fn update_entity_type(
         &self,
         entity_type: EntityType,
@@ -227,11 +254,20 @@ pub trait Datastore: Clone + Send + Sync + 'static {
 
     // TODO - perhaps we want to separate the Datastore into the Type Graph and the Data Graph
 
+    /// Creates a new `Entity`.
     async fn create_entity() -> Result<(), InsertionError>;
 
+    /// Get an existing `Entity`.
+    ///
+    /// # Errors
+    ///
+    /// - if the requested `Entity` doesn't exist.
     async fn get_entity() -> Result<(), QueryError>;
 
-    async fn get_entity_many() -> Result<(), QueryError>;
-
+    /// Updates an existing `Entity`.
+    ///
+    /// # Errors
+    ///
+    /// - if the `Entity` doesn't exist.
     async fn update_entity() -> Result<(), UpdateError>;
 }
