@@ -48,7 +48,7 @@ impl PostgresDatabase {
     /// - [`DatastoreError`], if checking for the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
-    async fn contains_base_uri(&mut self, base_uri: &BaseUri) -> Result<bool, QueryError> {
+    async fn contains_base_uri(&self, base_uri: &BaseUri) -> Result<bool, QueryError> {
         let (exists,) =
             sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM base_uris WHERE base_uri = $1);"#)
                 .bind(base_uri)
@@ -66,7 +66,7 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if checking for the [`VersionedUri`] failed.
-    async fn contains_uri(&mut self, uri: &VersionedUri) -> Result<bool, QueryError> {
+    async fn contains_uri(&self, uri: &VersionedUri) -> Result<bool, QueryError> {
         let (exists,) = sqlx::query_as(
             r#"SELECT EXISTS(SELECT 1 FROM ids WHERE base_uri = $1 AND version = $2);"#,
         )
@@ -86,7 +86,7 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`VersionedUri`] failed.
-    async fn insert_uri(&mut self, uri: &VersionedUri) -> Result<VersionId, InsertionError> {
+    async fn insert_uri(&self, uri: &VersionedUri) -> Result<VersionId, InsertionError> {
         if self
             .contains_uri(uri)
             .await
@@ -121,7 +121,7 @@ impl PostgresDatabase {
     /// - [`DatastoreError`], if inserting the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
-    async fn insert_base_uri(&mut self, base_uri: &BaseUri) -> Result<(), InsertionError> {
+    async fn insert_base_uri(&self, base_uri: &BaseUri) -> Result<(), InsertionError> {
         sqlx::query(r#"INSERT INTO base_uris (base_uri) VALUES ($1);"#)
             .bind(base_uri)
             .execute(&self.pool)
@@ -138,7 +138,7 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`VersionId`] failed.
-    async fn insert_version_id(&mut self, version_id: VersionId) -> Result<(), InsertionError> {
+    async fn insert_version_id(&self, version_id: VersionId) -> Result<(), InsertionError> {
         sqlx::query(r#"INSERT INTO version_ids (version_id) VALUES ($1);"#)
             .bind(version_id)
             .execute(&self.pool)
@@ -151,7 +151,7 @@ impl PostgresDatabase {
     }
 
     async fn create<T>(
-        &mut self,
+        &self,
         database_type: T,
         created_by: AccountId,
     ) -> Result<Qualified<T>, InsertionError>
@@ -181,7 +181,7 @@ impl PostgresDatabase {
     }
 
     async fn update<T>(
-        &mut self,
+        &self,
         database_type: T,
         updated_by: AccountId,
     ) -> Result<Qualified<T>, UpdateError>
@@ -216,7 +216,7 @@ impl PostgresDatabase {
     ///
     /// - [`DatastoreError`], if inserting failed.
     async fn insert_with_id<T>(
-        &mut self,
+        &self,
         version_id: VersionId,
         database_type: &T,
         created_by: AccountId,
@@ -250,7 +250,7 @@ impl PostgresDatabase {
     }
 
     async fn get_by_version<T: DataBaseType + DeserializeOwned>(
-        &mut self,
+        &self,
         version_id: VersionId,
     ) -> Result<Qualified<T>, QueryError> {
         let (data_type, created_by) = sqlx::query_as(&format!(
@@ -280,7 +280,7 @@ impl PostgresDatabase {
 #[async_trait]
 impl Datastore for PostgresDatabase {
     async fn create_data_type(
-        &mut self,
+        &self,
         data_type: DataType,
         created_by: AccountId,
     ) -> Result<Qualified<DataType>, InsertionError> {
@@ -299,7 +299,7 @@ impl Datastore for PostgresDatabase {
     }
 
     async fn update_data_type(
-        &mut self,
+        &self,
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Qualified<DataType>, UpdateError> {
@@ -307,7 +307,7 @@ impl Datastore for PostgresDatabase {
     }
 
     async fn create_property_type(
-        &mut self,
+        &self,
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Qualified<PropertyType>, InsertionError> {
@@ -326,7 +326,7 @@ impl Datastore for PostgresDatabase {
     }
 
     async fn update_property_type(
-        &mut self,
+        &self,
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Qualified<PropertyType>, UpdateError> {
@@ -334,7 +334,7 @@ impl Datastore for PostgresDatabase {
     }
 
     async fn create_entity_type(
-        &mut self,
+        &self,
         entity_type: EntityType,
         created_by: AccountId,
     ) -> Result<Qualified<EntityType>, InsertionError> {
@@ -353,7 +353,7 @@ impl Datastore for PostgresDatabase {
     }
 
     async fn update_entity_type(
-        &mut self,
+        &self,
         entity_type: EntityType,
         updated_by: AccountId,
     ) -> Result<Qualified<EntityType>, UpdateError> {
@@ -407,7 +407,7 @@ mod tests {
     // TODO: We don't intend to remove data. This is used for cleaning up the database after running
     //   a test case. Remove this as soon as we have a proper test framework.
     async fn remove_base_uri(
-        db: &mut PostgresDatabase,
+        db: &PostgresDatabase,
         base_uri: &BaseUri,
     ) -> Result<(), DatastoreError> {
         sqlx::query(r#"DELETE FROM base_uris WHERE base_uri = $1;"#)
@@ -465,7 +465,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_data_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool)
             .await
             .change_context(DatastoreError)?;
@@ -476,7 +476,7 @@ mod tests {
             .change_context(DatastoreError)?;
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, data_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, data_type.inner().id().base_uri()).await?;
 
         Ok(())
     }
@@ -484,7 +484,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn get_data_type_by_identifier() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let created_data_type = db
@@ -500,7 +500,7 @@ mod tests {
         assert_eq!(data_type.inner(), created_data_type.inner());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, data_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, data_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
@@ -522,7 +522,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn update_existing_data_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let data_type = db
@@ -539,7 +539,7 @@ mod tests {
         assert_ne!(data_type.version_id(), updated_data_type.version_id());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, data_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, data_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
@@ -570,7 +570,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_property_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let property_type = db
@@ -579,14 +579,14 @@ mod tests {
             .change_context(DatastoreError)?;
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, property_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, property_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn get_property_type_by_identifier() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let created_property_type = db
@@ -602,14 +602,14 @@ mod tests {
         assert_eq!(property_type.inner(), created_property_type.inner());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, property_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, property_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn update_existing_property_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let property_type = db
@@ -631,7 +631,7 @@ mod tests {
         );
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, property_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, property_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
@@ -692,7 +692,7 @@ mod tests {
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn create_entity_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let entity_type = db
@@ -701,14 +701,14 @@ mod tests {
             .change_context(DatastoreError)?;
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, entity_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, entity_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn get_entity_type_by_identifier() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let created_entity_type = db
@@ -724,14 +724,14 @@ mod tests {
         assert_eq!(entity_type.inner(), created_entity_type.inner());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, entity_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, entity_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "miri can't run in async context")]
     async fn update_existing_entity_type() -> Result<(), DatastoreError> {
-        let mut db = PostgresDatabase::new(&DB_INFO).await?;
+        let db = PostgresDatabase::new(&DB_INFO).await?;
         let account_id = create_account_id(&db.pool).await?;
 
         let entity_type = db
@@ -750,7 +750,7 @@ mod tests {
         assert_ne!(entity_type.version_id(), updated_entity_type.version_id());
 
         // Clean up to avoid conflicts in next tests
-        remove_base_uri(&mut db, entity_type.inner().id().base_uri()).await?;
+        remove_base_uri(&db, entity_type.inner().id().base_uri()).await?;
         Ok(())
     }
 }

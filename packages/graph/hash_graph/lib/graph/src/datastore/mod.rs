@@ -161,7 +161,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     ///
     /// - [`DatastoreError`], if the account referred to by `created_by` does not exist.
     async fn create_data_type(
-        &mut self,
+        &self,
         data_type: DataType,
         created_by: AccountId,
     ) -> Result<Qualified<DataType>, InsertionError>;
@@ -182,13 +182,13 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     ///
     /// - [`DatastoreError`], if the [`DataType`] doesn't exist.
     async fn update_data_type(
-        &mut self,
+        &self,
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Qualified<DataType>, UpdateError>;
 
     async fn create_property_type(
-        &mut self,
+        &self,
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Qualified<PropertyType>, InsertionError>;
@@ -201,13 +201,13 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     async fn get_property_type_many() -> Result<(), QueryError>;
 
     async fn update_property_type(
-        &mut self,
+        &self,
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Qualified<PropertyType>, UpdateError>;
 
     async fn create_entity_type(
-        &mut self,
+        &self,
         entity_type: EntityType,
         created_by: AccountId,
     ) -> Result<Qualified<EntityType>, InsertionError>;
@@ -220,7 +220,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     async fn get_entity_type_many() -> Result<(), QueryError>;
 
     async fn update_entity_type(
-        &mut self,
+        &self,
         entity_type: EntityType,
         updated_by: AccountId,
     ) -> Result<Qualified<EntityType>, UpdateError>;
