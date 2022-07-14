@@ -663,10 +663,12 @@ const scheduleNotifyEntityStoreSubscribers = collect<
 
     // If the plugin state has changed, notify listeners
     if (nextPluginState !== prevPluginState) {
-      const listeners = EntityStoreListeners.get(entityStorePlugin) ?? [];
+      const listeners = EntityStoreListeners.get(entityStorePlugin);
 
-      for (const listener of listeners) {
-        listener(nextPluginState.store);
+      if (listeners) {
+        for (const listener of Array.from(listeners)) {
+          listener(nextPluginState.store);
+        }
       }
     }
   }
