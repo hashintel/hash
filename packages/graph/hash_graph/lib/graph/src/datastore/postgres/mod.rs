@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     datastore::{
-        error::VersionedUriAlreadyExists, postgres::database_type::DataBaseType,
+        error::VersionedUriAlreadyExists, postgres::database_type::DatabaseType,
         BaseUriAlreadyExists, BaseUriDoesNotExist, DatabaseConnectionInfo, Datastore,
         DatastoreError, InsertionError, QueryError, UpdateError,
     },
@@ -150,7 +150,7 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    /// Inserts the specified [`DataBaseType`].
+    /// Inserts the specified [`DatabaseType`].
     ///
     /// This first checks, if the [`BaseUri`] of the type does not already exist. If not, it will
     /// insert the [`BaseUri`] and creates a new [`VersionId`] from the contained [`VersionedUri`]
@@ -167,7 +167,7 @@ impl PostgresDatabase {
         created_by: AccountId,
     ) -> Result<Qualified<T>, InsertionError>
     where
-        T: DataBaseType + Serialize + Send + Sync,
+        T: DatabaseType + Serialize + Send + Sync,
     {
         let uri = database_type.id();
 
@@ -191,7 +191,7 @@ impl PostgresDatabase {
         Ok(Qualified::new(version_id, database_type, created_by))
     }
 
-    /// Updates the specified [`DataBaseType`].
+    /// Updates the specified [`DatabaseType`].
     ///
     /// This first checks, if the [`BaseUri`] of the type does exist. It will then creates a new
     /// [`VersionId`] from the contained [`VersionedUri`] and inserts the type.
@@ -207,7 +207,7 @@ impl PostgresDatabase {
         updated_by: AccountId,
     ) -> Result<Qualified<T>, UpdateError>
     where
-        T: DataBaseType + Serialize + Send + Sync,
+        T: DatabaseType + Serialize + Send + Sync,
     {
         let uri = database_type.id();
 
@@ -230,7 +230,7 @@ impl PostgresDatabase {
         Ok(Qualified::new(version_id, database_type, updated_by))
     }
 
-    /// Inserts a [`DataBaseType`] identified by [`VersionId`], and associated with an
+    /// Inserts a [`DatabaseType`] identified by [`VersionId`], and associated with an
     /// [`AccountId`], into the database.
     ///
     /// # Errors
@@ -243,7 +243,7 @@ impl PostgresDatabase {
         created_by: AccountId,
     ) -> Result<(), InsertionError>
     where
-        T: DataBaseType + Serialize + Sync,
+        T: DatabaseType + Serialize + Sync,
     {
         sqlx::query(&format!(
             r#"
@@ -270,13 +270,13 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    /// Returns the specified [`DataBaseType`].
+    /// Returns the specified [`DatabaseType`].
     ///
     /// # Errors
     ///
     /// - If the specified [`VersionId`] does not already exist.
     // TODO: We can't distinguish between an DB error and a non-existing version currently
-    async fn get_by_version<T: DataBaseType + DeserializeOwned>(
+    async fn get_by_version<T: DatabaseType + DeserializeOwned>(
         &self,
         version_id: VersionId,
     ) -> Result<Qualified<T>, QueryError> {

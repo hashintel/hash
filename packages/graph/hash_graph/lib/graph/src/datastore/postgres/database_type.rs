@@ -3,13 +3,13 @@ use crate::types::{
     VersionedUri,
 };
 
-pub trait DataBaseType {
+pub trait DatabaseType {
     fn id(&self) -> &VersionedUri;
 
     fn table() -> &'static str;
 }
 
-impl DataBaseType for DataType {
+impl DatabaseType for DataType {
     fn id(&self) -> &VersionedUri {
         DataType::id(self)
     }
@@ -19,7 +19,7 @@ impl DataBaseType for DataType {
     }
 }
 
-impl DataBaseType for PropertyType {
+impl DatabaseType for PropertyType {
     fn id(&self) -> &VersionedUri {
         PropertyType::id(self)
     }
@@ -29,7 +29,7 @@ impl DataBaseType for PropertyType {
     }
 }
 
-impl DataBaseType for EntityType {
+impl DatabaseType for EntityType {
     fn id(&self) -> &VersionedUri {
         EntityType::id(self)
     }

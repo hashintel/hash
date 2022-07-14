@@ -161,6 +161,8 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     ///
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `data_type` already exist.
+    ///
+    /// [`BaseUri`]: crate::types::BaseUri
     async fn create_data_type(
         &self,
         data_type: DataType,
@@ -192,6 +194,8 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     ///
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `property_type` already exist.
+    ///
+    /// [`BaseUri`]: crate::types::BaseUri
     async fn create_property_type(
         &self,
         property_type: PropertyType,
@@ -225,6 +229,8 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     ///
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `entity_type` already exist.
+    ///
+    /// [`BaseUri`]: crate::types::BaseUri
     async fn create_entity_type(
         &self,
         entity_type: EntityType,
