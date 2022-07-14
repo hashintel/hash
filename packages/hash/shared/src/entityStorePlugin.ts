@@ -30,7 +30,6 @@ type EntityStorePluginStateListener = (store: EntityStore) => void;
 export type TrackedAction = { action: EntityStorePluginAction; id: string };
 type EntityStorePluginState = {
   store: EntityStore;
-  listeners: EntityStorePluginStateListener[];
   trackedActions: TrackedAction[];
 };
 
@@ -56,8 +55,6 @@ export type EntityStorePluginAction = { received?: boolean } & (
       };
     }
   | { type: "store"; payload: EntityStore }
-  | { type: "subscribe"; payload: EntityStorePluginStateListener }
-  | { type: "unsubscribe"; payload: EntityStorePluginStateListener }
   | {
       type: "updateEntityProperties";
       payload: { draftId: string; properties: {}; merge: boolean };
@@ -75,6 +72,11 @@ export type EntityStorePluginAction = { received?: boolean } & (
       payload: { blockEntityDraftId: string; targetEntity: EntityStoreType };
     }
 );
+
+const EntityStoreListeners = new WeakMap<
+  Plugin<EntityStorePluginState, Schema>,
+  Set<EntityStorePluginStateListener>
+>();
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
   "entityStore",
@@ -117,10 +119,10 @@ export const entityStorePluginStateFromTransaction = (
 
 /**
  * Creates a draftId for an entity.
- * If the entityId is not yet available, a fake draft id is used for the session.
- * Pass 'null' if the entity is new and the entityId is not available.
- * Do NOT change the entity's draftId mid-session - leave it as fake.
- * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId
+ * If the entityId is not yet available, a fake draft id is used for the
+ * session. Pass 'null' if the entity is new and the entityId is not available.
+ * Do NOT change the entity's draftId mid-session - leave it as fake. If you
+ * need to recall the entity's draftId, use mustGetDraftEntityForEntityId
  */
 export const createDraftIdForEntity = (entityId: string | null) =>
   entityId ? `draft-${entityId}` : `fake-${uuid()}`;
@@ -165,10 +167,12 @@ const updateEntitiesByDraftId = (
 
 /**
  * The method does the following
- * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
+ * 1. Fetches the targetEntity from draft store if it exists and adds it to
+ * draft store if it's not present
  * 2. Sets targetEntity as the new block data
  * @param draftEntityStore draft entity store
- * @param blockEntityDraftId draft id of the Block Entity whose child entity should be changed
+ * @param blockEntityDraftId draft id of the Block Entity whose child entity
+ *   should be changed
  * @param targetEntity entity to be changed to
  */
 const swapBlockData = (
@@ -241,20 +245,6 @@ const entityStoreReducer = (
         trackedActions: [],
       };
     }
-
-    case "subscribe":
-      return {
-        ...state,
-        listeners: Array.from(new Set([...state.listeners, action.payload])),
-      };
-
-    case "unsubscribe":
-      return {
-        ...state,
-        listeners: state.listeners.filter(
-          (listener) => listener !== action.payload,
-        ),
-      };
 
     case "updateEntityProperties": {
       if (!state.store.draft[action.payload.draftId]) {
@@ -364,25 +354,30 @@ const updateEntityStoreListeners = collect<
     unsubscribe: boolean | undefined | void,
   ]
 >((updates) => {
-  const transactions = new Map<EditorView<Schema>, Transaction<Schema>>();
-
   for (const [view, listener, unsubscribe] of updates) {
-    if (!transactions.has(view)) {
-      const { tr } = view.state;
-      tr.setMeta("addToHistory", false);
-      transactions.set(view, tr);
+    const plugin = entityStorePluginKey.get(view.state);
+
+    if (!plugin) {
+      throw new Error("Can only trigger on views with the plugin installed");
     }
 
-    const tr = transactions.get(view)!;
+    let listeners = EntityStoreListeners.get(plugin);
 
-    addEntityStoreAction(view.state, tr, {
-      type: unsubscribe ? "unsubscribe" : "subscribe",
-      payload: listener,
-    });
-  }
+    if (unsubscribe) {
+      if (listeners) {
+        listeners.delete(listener);
+      }
+    } else {
+      if (!listeners) {
+        listeners = new Set();
+      }
 
-  for (const [view, transaction] of Array.from(transactions.entries())) {
-    view.dispatch(transaction);
+      listeners.add(listener);
+    }
+
+    if (listeners) {
+      EntityStoreListeners.set(plugin, listeners);
+    }
   }
 });
 
@@ -398,8 +393,10 @@ export const subscribeToEntityStore = (
 };
 
 /**
- * Retrieves the draft entity for an entity, given its entityId and the draft store.
- * @throws {Error} if entity not found - use getDraftEntityForEntityId if you don't want an error on missing entities.
+ * Retrieves the draft entity for an entity, given its entityId and the draft
+ * store.
+ * @throws {Error} if entity not found - use getDraftEntityForEntityId if you
+ *   don't want an error on missing entities.
  */
 export const mustGetDraftEntityFromEntityId = (
   draftStore: EntityStore["draft"],
@@ -666,7 +663,9 @@ const scheduleNotifyEntityStoreSubscribers = collect<
 
     // If the plugin state has changed, notify listeners
     if (nextPluginState !== prevPluginState) {
-      for (const listener of nextPluginState.listeners) {
+      const listeners = EntityStoreListeners.get(entityStorePlugin) ?? [];
+
+      for (const listener of listeners) {
         listener(nextPluginState.store);
       }
     }
@@ -684,7 +683,6 @@ export const createEntityStorePlugin = ({
       init(_): EntityStorePluginState {
         return {
           store: createEntityStore([], {}),
-          listeners: [],
           trackedActions: [],
         };
       },
