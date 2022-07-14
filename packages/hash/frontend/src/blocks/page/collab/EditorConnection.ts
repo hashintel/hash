@@ -288,7 +288,7 @@ export class EditorConnection {
           const componentIds = data.actions?.reduce((acc, curr) => {
             if (
               curr.type === "updateEntityProperties" &&
-              "componentId" in curr.payload.properties &&
+              isString(curr.payload.properties.componentId) &&
               !acc.includes(curr.payload.properties.componentId)
             ) {
               return acc.concat(curr.payload.properties.componentId);
