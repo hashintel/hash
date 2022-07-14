@@ -3,7 +3,7 @@ use crate::types::{
     VersionedUri,
 };
 
-/// A type, which is stored in a [`PostgresDatabase`].
+/// Provides an abstraction over elements of the Type System stored in the Database.
 ///
 /// [`PostgresDatabase`]: crate::datastore::PostgresDatabase
 pub trait DatabaseType {
