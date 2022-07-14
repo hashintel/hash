@@ -1,4 +1,7 @@
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import {
+  blockComponentRequiresText,
+  BlockMeta,
+} from "@hashintel/hash-shared/blockMeta";
 import { BlockVariant } from "@blockprotocol/core";
 import { useMemo } from "react";
 
@@ -10,6 +13,15 @@ type Option = {
   meta: BlockMeta["componentMetadata"];
 };
 
+const SWAPPABLE_BLOCKS = [
+  "https://blockprotocol.org/blocks/@hash/paragraph",
+  "https://blockprotocol.org/blocks/@hash/header",
+  "https://blockprotocol.org/blocks/@hash/callout",
+];
+
+export const isBlockSwappable = (blockId: string = "") =>
+  SWAPPABLE_BLOCKS.includes(blockId);
+
 export const useFilteredBlocks = (
   searchText: string,
   blocksMetaMap: BlocksMetaMap,
@@ -18,7 +30,9 @@ export const useFilteredBlocks = (
   return useMemo(() => {
     const allOptions: Option[] = Object.values(blocksMetaMap)
       .filter(
-        (block) => !textBlocksOnly || block?.componentSchema?.properties?.text,
+        (block) =>
+          !textBlocksOnly ||
+          isBlockSwappable(block.componentMetadata.componentId),
       )
       .flatMap(({ componentMetadata: blockMeta }) =>
         // Assumes that variants have been built for all blocks in toBlockConfig

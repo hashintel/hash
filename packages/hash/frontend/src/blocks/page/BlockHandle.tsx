@@ -15,6 +15,7 @@ import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { useBlockView } from "./BlockViewContext";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
+import { isBlockSwappable } from "./createSuggester/useFilteredBlocks";
 
 type BlockHandleProps = {
   deleteBlock: () => void;
@@ -114,7 +115,7 @@ const BlockHandle: ForwardRefRenderFunction<
         popupState={contextMenuPopupState}
         ref={blockMenuRef}
         swapType={
-          !!blockSchema?.properties?.text ||
+          isBlockSwappable(blockEntity?.properties.componentId) ||
           !!document
             .querySelector(`[data-entity-id="${entityId}"]`)
             ?.getAttribute("data-error")
