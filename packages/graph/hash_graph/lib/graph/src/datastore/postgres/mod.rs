@@ -3,7 +3,7 @@ mod database_type;
 use async_trait::async_trait;
 use error_stack::{ensure, IntoReport, Report, Result, ResultExt};
 use serde::{de::DeserializeOwned, Serialize};
-use sqlx::PgPool;
+use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
 
 use crate::{
@@ -48,11 +48,14 @@ impl PostgresDatabase {
     /// - [`DatastoreError`], if checking for the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
-    async fn contains_base_uri(&self, base_uri: &BaseUri) -> Result<bool, QueryError> {
+    async fn contains_base_uri<'e, E>(executor: E, base_uri: &BaseUri) -> Result<bool, QueryError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let (exists,) =
             sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM base_uris WHERE base_uri = $1);"#)
                 .bind(base_uri)
-                .fetch_one(&self.pool)
+                .fetch_one(executor)
                 .await
                 .report()
                 .change_context(QueryError)
@@ -66,13 +69,16 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if checking for the [`VersionedUri`] failed.
-    async fn contains_uri(&self, uri: &VersionedUri) -> Result<bool, QueryError> {
+    async fn contains_uri<'e, E>(executor: E, uri: &VersionedUri) -> Result<bool, QueryError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let (exists,) = sqlx::query_as(
             r#"SELECT EXISTS(SELECT 1 FROM ids WHERE base_uri = $1 AND version = $2);"#,
         )
         .bind(uri.base_uri())
         .bind(i64::from(uri.version()))
-        .fetch_one(&self.pool)
+        .fetch_one(executor)
         .await
         .report()
         .change_context(QueryError)
@@ -86,32 +92,25 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`VersionedUri`] failed.
-    async fn insert_uri(&self, uri: &VersionedUri) -> Result<VersionId, InsertionError> {
-        if self
-            .contains_uri(uri)
-            .await
-            .change_context(InsertionError)?
-        {
-            return Err(Report::new(InsertionError)
-                .attach_printable(VersionedUriAlreadyExists)
-                .attach(uri.clone()));
-        }
-
-        // TODO: Make this a transaction
-        let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_version_id(version_id).await?;
-
+    async fn insert_uri<'e, E>(
+        executor: E,
+        uri: &VersionedUri,
+        version_id: VersionId,
+    ) -> Result<(), InsertionError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         sqlx::query(r#"INSERT INTO ids (base_uri, version, version_id) VALUES ($1, $2, $3);"#)
             .bind(uri.base_uri())
             .bind(i64::from(uri.version()))
             .bind(version_id)
-            .execute(&self.pool)
+            .execute(executor)
             .await
             .report()
             .change_context(InsertionError)
             .attach_printable_lazy(|| uri.clone())?;
 
-        Ok(version_id)
+        Ok(())
     }
 
     /// Inserts the specified [`BaseUri`] into the database.
@@ -121,10 +120,13 @@ impl PostgresDatabase {
     /// - [`DatastoreError`], if inserting the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
-    async fn insert_base_uri(&self, base_uri: &BaseUri) -> Result<(), InsertionError> {
+    async fn insert_base_uri<'e, E>(executor: E, base_uri: &BaseUri) -> Result<(), InsertionError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         sqlx::query(r#"INSERT INTO base_uris (base_uri) VALUES ($1);"#)
             .bind(base_uri)
-            .execute(&self.pool)
+            .execute(executor)
             .await
             .report()
             .change_context(InsertionError)
@@ -138,10 +140,16 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`VersionId`] failed.
-    async fn insert_version_id(&self, version_id: VersionId) -> Result<(), InsertionError> {
+    async fn insert_version_id<'e, E>(
+        executor: E,
+        version_id: VersionId,
+    ) -> Result<(), InsertionError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         sqlx::query(r#"INSERT INTO version_ids (version_id) VALUES ($1);"#)
             .bind(version_id)
-            .execute(&self.pool)
+            .execute(executor)
             .await
             .report()
             .change_context(InsertionError)
@@ -171,8 +179,7 @@ impl PostgresDatabase {
     {
         let uri = database_type.uri();
 
-        if self
-            .contains_base_uri(uri.base_uri())
+        if Self::contains_base_uri(&self.pool, uri.base_uri())
             .await
             .change_context(InsertionError)?
         {
@@ -181,12 +188,21 @@ impl PostgresDatabase {
                 .change_context(InsertionError));
         }
 
-        self.insert_base_uri(uri.base_uri()).await?;
+        Self::insert_base_uri(&self.pool, uri.base_uri()).await?;
 
-        let version_id = self.insert_uri(uri).await?;
+        if Self::contains_uri(&self.pool, uri)
+            .await
+            .change_context(InsertionError)?
+        {
+            return Err(Report::new(InsertionError)
+                .attach_printable(VersionedUriAlreadyExists)
+                .attach(uri.clone()));
+        }
 
-        self.insert_with_id(version_id, &database_type, created_by)
-            .await?;
+        let version_id = VersionId::new(Uuid::new_v4());
+        Self::insert_version_id(&self.pool, version_id).await?;
+        Self::insert_uri(&self.pool, uri, version_id).await?;
+        Self::insert_with_id(&self.pool, version_id, &database_type, created_by).await?;
 
         Ok(Qualified::new(version_id, database_type, created_by))
     }
@@ -211,8 +227,7 @@ impl PostgresDatabase {
     {
         let uri = database_type.uri();
 
-        if !self
-            .contains_base_uri(uri.base_uri())
+        if !Self::contains_base_uri(&self.pool, uri.base_uri())
             .await
             .change_context(UpdateError)?
         {
@@ -221,9 +236,14 @@ impl PostgresDatabase {
                 .change_context(UpdateError));
         }
 
-        let version_id = self.insert_uri(uri).await.change_context(UpdateError)?;
-
-        self.insert_with_id(version_id, &database_type, updated_by)
+        let version_id = VersionId::new(Uuid::new_v4());
+        Self::insert_version_id(&self.pool, version_id)
+            .await
+            .change_context(UpdateError)?;
+        Self::insert_uri(&self.pool, uri, version_id)
+            .await
+            .change_context(UpdateError)?;
+        Self::insert_with_id(&self.pool, version_id, &database_type, updated_by)
             .await
             .change_context(UpdateError)?;
 
@@ -236,13 +256,14 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting failed.
-    async fn insert_with_id<T>(
-        &self,
+    async fn insert_with_id<'e, E, T>(
+        executor: E,
         version_id: VersionId,
         database_type: &T,
         created_by: AccountId,
     ) -> Result<(), InsertionError>
     where
+        E: Executor<'e, Database = Postgres>,
         T: DatabaseType + Serialize + Sync,
     {
         // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
@@ -266,7 +287,7 @@ impl PostgresDatabase {
                 .change_context(InsertionError)?,
         )
         .bind(created_by)
-        .fetch_one(&self.pool)
+        .fetch_one(executor)
         .await
         .report()
         .change_context(InsertionError)?;
@@ -286,10 +307,10 @@ impl PostgresDatabase {
     ///
     /// - If the specified [`VersionId`] does not already exist.
     // TODO: We can't distinguish between an DB error and a non-existing version currently
-    async fn get_by_version<T: DatabaseType + DeserializeOwned>(
-        &self,
-        version_id: VersionId,
-    ) -> Result<Qualified<T>, QueryError> {
+    async fn get_by_version<T>(&self, version_id: VersionId) -> Result<Qualified<T>, QueryError>
+    where
+        T: DatabaseType + DeserializeOwned,
+    {
         // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
         //   module.
         let (data_type, created_by) = sqlx::query_as(&format!(
