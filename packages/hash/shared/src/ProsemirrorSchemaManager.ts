@@ -244,7 +244,7 @@ export class ProsemirrorSchemaManager {
    * used to ensure all blocks used by a given document are loaded before
    * PM tries to instantiate them.
    */
-  async ensureBlocksDefined(componentIds: string[]) {
+  async ensureBlocksDefined(componentIds: string[] = []) {
     return Promise.all(
       componentIds.map((componentId) => {
         return this.fetchAndDefineBlock(componentId);
