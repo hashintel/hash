@@ -45,6 +45,7 @@ module.exports = withSentryConfig(
       // Thus, we can get Playwright test results and Preview releases for WIP PRs.
       eslint: { ignoreDuringBuilds: true },
       typescript: { ignoreBuildErrors: true },
+      output: "standalone",
 
       webpack: (webpackConfig) => {
         webpackConfig.module.rules.push({

@@ -1,6 +1,11 @@
 import { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
+import {
+  BlockGraphProperties,
+  EmbedderGraphMessageCallbacks,
+  useGraphEmbedderService,
+} from "@blockprotocol/graph";
 
-import { useGraphEmbedderService } from "@blockprotocol/graph/react";
+console.log(useGraphEmbedderService);
 
 import React from "react";
 import { BlockRenderer } from "./blockRenderer";
@@ -100,18 +105,16 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     graph: graphProperties,
   };
 
-  return null;
-  //
-  // return (
-  //   <div ref={wrapperRef}>
-  //     {graphService ? (
-  //       <BlockRenderer
-  //         blockSource={blockSource}
-  //         blockType={blockMetadata.blockType}
-  //         properties={propsToInject}
-  //         sourceUrl={sourceUrl}
-  //       />
-  //     ) : null}
-  //   </div>
-  // );
+  return (
+    <div ref={wrapperRef}>
+      {graphService ? (
+        <BlockRenderer
+          blockSource={blockSource}
+          blockType={blockMetadata.blockType}
+          properties={propsToInject}
+          sourceUrl={sourceUrl}
+        />
+      ) : null}
+    </div>
+  );
 };
