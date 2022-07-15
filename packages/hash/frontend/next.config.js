@@ -1,8 +1,10 @@
 const { config } = require("dotenv-flow");
+const path = require("path");
 const withTM = require("next-transpile-modules")([
   "@hashintel/hash-shared",
   "@hashintel/hash-design-system",
 ]); // pass the modules you would like to see transpiled
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
@@ -36,7 +38,6 @@ process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
 module.exports = withSentryConfig(
   withBundleAnalyzer(
     withTM({
-      swcMinify: true,
       pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx"],
 
       // We call linters in GitHub Actions for all pull requests. By not linting
@@ -45,7 +46,6 @@ module.exports = withSentryConfig(
       eslint: { ignoreDuringBuilds: true },
       typescript: { ignoreBuildErrors: true },
       output: "standalone",
-      reactStrictMode: "true",
 
       experimental: {
         // this includes files from the monorepo base two directories up
@@ -66,7 +66,23 @@ module.exports = withSentryConfig(
           "@material-ui/icons": false,
         };
 
-        return webpackConfig;
+        //  Build the sandbox HTML, which will have the sandbox script injected
+        const framedBlockFolder = "/src/components/sandbox/FramedBlock";
+        webpackConfig.plugins.push(
+          new HtmlWebpackPlugin({
+            filename: "static/sandbox.html",
+            template: path.join(__dirname, framedBlockFolder, "index.html"),
+            chunks: ["sandbox"],
+          }),
+        );
+        return {
+          ...webpackConfig,
+          entry: () =>
+            webpackConfig.entry().then((entry) => ({
+              ...entry,
+              sandbox: path.join(__dirname, framedBlockFolder, "index.tsx"),
+            })),
+        };
       },
       sassOptions: {
         prependData: `
