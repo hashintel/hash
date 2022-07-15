@@ -34,7 +34,7 @@ cargo make doc --open
 
 ## Test the code
 
-The code base consist of two test suites: The unit test suite and the integration tests. To run the unit-test suite, simply run the `test` command:
+The code base has two test suites: The unit test suite and the integration tests. To run the unit-test suite, simply run the `test` command:
 
 ```shell
 cargo make test
