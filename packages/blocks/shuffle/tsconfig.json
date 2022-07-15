@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "commonjs",
+    "noEmit": true,
+    "target": "es6"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}
