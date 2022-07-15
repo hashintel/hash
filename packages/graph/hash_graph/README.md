@@ -31,3 +31,17 @@ Every command line argument passed will also be forwarded to the subcommand, e.g
 ```shell
 cargo make doc --open
 ```
+
+## Test the code
+
+The code base consist of two test suites: The unit test suite and the integration tests. To run the unit-test suite, simply run the `test` command:
+
+```shell
+cargo make test
+```
+
+For the integration tests, the database needs to be deployed [as specified here](../README.md#running-the-database). Next, the integration test suite can be started:
+
+```shell
+cargo make test-integration
+```
