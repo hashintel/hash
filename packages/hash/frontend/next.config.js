@@ -1,10 +1,8 @@
 const { config } = require("dotenv-flow");
-const path = require("path");
 const withTM = require("next-transpile-modules")([
   "@hashintel/hash-shared",
   "@hashintel/hash-design-system",
 ]); // pass the modules you would like to see transpiled
-const HtmlWebpackPlugin = require("html-webpack-plugin");
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
@@ -60,24 +58,6 @@ module.exports = withSentryConfig(
         webpackConfig.resolve.fallback = {
           "@material-ui/core": false,
           "@material-ui/icons": false,
-        };
-
-        //  Build the sandbox HTML, which will have the sandbox script injected
-        const framedBlockFolder = "/src/components/sandbox/FramedBlock";
-        webpackConfig.plugins.push(
-          new HtmlWebpackPlugin({
-            filename: "static/sandbox.html",
-            template: path.join(__dirname, framedBlockFolder, "index.html"),
-            chunks: ["sandbox"],
-          }),
-        );
-        return {
-          ...webpackConfig,
-          entry: () =>
-            webpackConfig.entry().then((entry) => ({
-              ...entry,
-              sandbox: path.join(__dirname, framedBlockFolder, "index.tsx"),
-            })),
         };
       },
       sassOptions: {
