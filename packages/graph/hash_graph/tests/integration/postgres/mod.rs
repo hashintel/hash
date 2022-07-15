@@ -8,7 +8,7 @@ use graph::{
     },
     types::{schema::DataType, AccountId, BaseUri, Qualified, VersionId},
 };
-use sqlx::{Connection, PgConnection};
+use sqlx::{Connection, Executor, PgConnection};
 use tokio::runtime::Runtime;
 use uuid::Uuid;
 
@@ -135,21 +135,28 @@ async fn remove_account_id(connection: &mut PgConnection, account_id: AccountId)
 }
 
 async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
-    async fn remove_version_id_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
-        sqlx::query(r#"DELETE FROM version_ids USING ids WHERE ids.version_id = version_ids.version_id AND base_uri = $1;"#)
-            .bind(base_uri)
-            .execute(connection)
-            .await
-            .expect("could not remove version_id for base uri");
-    }
-    async fn remove_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
-        sqlx::query(r#"DELETE FROM base_uris WHERE base_uri = $1;"#)
-            .bind(base_uri)
-            .execute(connection)
-            .await
-            .expect("could not remove base_uri");
-    }
+    connection
+        .execute(
+            sqlx::query(
+                r#"
+        DELETE FROM version_ids 
+        USING ids 
+        WHERE ids.version_id = version_ids.version_id AND base_uri = $1;"#,
+            )
+            .bind(base_uri),
+        )
+        .await
+        .expect("could not remove version_id for base uri");
 
-    remove_version_id_by_base_uri(connection, base_uri).await;
-    remove_base_uri(connection, base_uri).await;
+    connection
+        .execute(
+            sqlx::query(
+                r#"
+        DELETE FROM base_uris 
+        WHERE base_uri = $1;"#,
+            )
+            .bind(base_uri),
+        )
+        .await
+        .expect("could not remove base_uri");
 }
