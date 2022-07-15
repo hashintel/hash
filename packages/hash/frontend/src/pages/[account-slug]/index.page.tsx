@@ -7,6 +7,9 @@ import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
 import { useRouteAccountInfo } from "../../shared/routing";
 
+import { GraphEmbedderHandler } from "@blockprotocol/graph";
+console.log({ GraphEmbedderHandler });
+
 const Page: NextPageWithLayout = () => {
   const { user } = useUser();
   const { data: orgs } = useOrgs();
