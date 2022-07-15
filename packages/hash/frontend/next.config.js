@@ -45,6 +45,7 @@ module.exports = withSentryConfig(
       eslint: { ignoreDuringBuilds: true },
       typescript: { ignoreBuildErrors: true },
       output: "standalone",
+      reactStrictMode: "true",
 
       webpack: (webpackConfig) => {
         webpackConfig.module.rules.push({
