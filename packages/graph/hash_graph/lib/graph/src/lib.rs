@@ -46,5 +46,5 @@ pub mod logging;
 pub mod types;
 
 #[cfg(test)]
-#[path = "../../../tests/testdata/lib.rs"]
+#[path = "../../../tests/test_data/lib.rs"]
 mod test_data;
