@@ -1,4 +1,5 @@
 mod data_type;
+mod entity_type;
 mod property_type;
 
 use error_stack::Result;
@@ -8,7 +9,7 @@ use graph::{
         QueryError, UpdateError,
     },
     types::{
-        schema::{DataType, PropertyType},
+        schema::{DataType, EntityType, PropertyType},
         AccountId, BaseUri, Qualified, VersionId,
     },
 };
@@ -134,6 +135,40 @@ impl DatabaseTestWrapper {
         self.rt.block_on(async {
             self.postgres
                 .update_property_type(property_type, self.account_id)
+                .await
+        })
+    }
+
+    pub fn create_entity_type(
+        &mut self,
+        entity_type: EntityType,
+    ) -> Result<Qualified<EntityType>, InsertionError> {
+        self.rt.block_on(async {
+            let entity_type = self
+                .postgres
+                .create_entity_type(entity_type, self.account_id)
+                .await?;
+            self.created_base_uris
+                .push(entity_type.inner().id().base_uri().clone());
+            Ok(entity_type)
+        })
+    }
+
+    pub fn get_entity_type(
+        &mut self,
+        version_id: VersionId,
+    ) -> Result<Qualified<EntityType>, QueryError> {
+        self.rt
+            .block_on(async { self.postgres.get_entity_type(version_id).await })
+    }
+
+    pub fn update_entity_type(
+        &mut self,
+        entity_type: EntityType,
+    ) -> Result<Qualified<EntityType>, UpdateError> {
+        self.rt.block_on(async {
+            self.postgres
+                .update_entity_type(entity_type, self.account_id)
                 .await
         })
     }

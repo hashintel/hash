@@ -161,8 +161,6 @@ impl EntityType {
 mod tests {
     use std::str::FromStr;
 
-    use serde_json::json;
-
     use super::*;
 
     fn test_entity_type_schema(schema: &serde_json::Value) -> EntityType {
@@ -208,7 +206,7 @@ mod tests {
     #[test]
     fn book() {
         let entity_type = test_entity_type_schema(
-            &serde_json::from_str(crate::test_data::entity_type::BOOK_V1).expect("invalid JSON"),
+            &serde_json::from_str(crate::test_data::entity_type::BOOK_V2).expect("invalid JSON"),
         );
 
         test_property_refs(&entity_type, [
