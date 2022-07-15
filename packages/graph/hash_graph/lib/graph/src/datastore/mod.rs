@@ -103,7 +103,7 @@ impl DatabaseConnectionInfo {
     ///
     /// [`Display`]: core::fmt::Display.
     #[must_use]
-    fn url(&self) -> String {
+    pub fn url(&self) -> String {
         let db_type = match self.database_type {
             DatabaseType::Postgres => "postgres",
         };

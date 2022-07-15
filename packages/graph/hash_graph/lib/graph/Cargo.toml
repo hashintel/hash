@@ -23,8 +23,14 @@ uuid = { version = "1.1.2", features = ["v4", "serde"] }
 utoipa = { git = "https://github.com/juhaku/utoipa", rev = "031073f", features = ["uuid"] }
 
 [dev-dependencies]
+tokio = { version = "1.18.2", features = ["rt", "rt-multi-thread"] }
 
 [build-dependencies]
 
 [features]
 clap = ["dep:clap"]
+
+[[test]]
+test = false
+name = "integration"
+path = "../../tests/integration/lib.rs"
