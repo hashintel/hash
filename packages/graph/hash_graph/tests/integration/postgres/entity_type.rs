@@ -1,11 +1,11 @@
-use crate::postgres::Database;
+use crate::postgres::DatabaseTestWrapper;
 
 #[test]
 fn insert() {
     let person_et = serde_json::from_str(crate::test_data::entity_type::PERSON_V1)
         .expect("could not parse entity type");
 
-    let mut database = Database::new();
+    let mut database = DatabaseTestWrapper::new();
     database
         .create_entity_type(person_et)
         .expect("could not create entity type");
@@ -16,7 +16,7 @@ fn query() {
     let song_et = serde_json::from_str(crate::test_data::entity_type::SONG_V1)
         .expect("could not parse entity type");
 
-    let mut database = Database::new();
+    let mut database = DatabaseTestWrapper::new();
 
     let created_entity_type = database
         .create_entity_type(song_et)
@@ -36,7 +36,7 @@ fn update() {
     let book_et_v2 = serde_json::from_str(crate::test_data::entity_type::BOOK_V2)
         .expect("could not parse entity type");
 
-    let mut database = Database::new();
+    let mut database = DatabaseTestWrapper::new();
 
     let created_entity_type = database
         .create_entity_type(book_et_v1)
