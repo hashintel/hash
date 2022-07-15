@@ -29,6 +29,13 @@ import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
 
+/**
+ * @see https://nextjs.org/docs/advanced-features/output-file-tracing
+ */
+export const unstable_includeFiles = [
+  "./node_modules/@blockprotocol/graph/dist/graph-service.json",
+];
+
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
   paths: [], // indicates that no page needs be created at build time
