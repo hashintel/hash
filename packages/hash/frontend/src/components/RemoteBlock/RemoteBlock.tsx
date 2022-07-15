@@ -104,16 +104,18 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     graph: graphProperties,
   };
 
-  return (
-    <div ref={wrapperRef}>
-      {graphService ? (
-        <BlockRenderer
-          blockSource={blockSource}
-          blockType={blockMetadata.blockType}
-          properties={propsToInject}
-          sourceUrl={sourceUrl}
-        />
-      ) : null}
-    </div>
-  );
+  return null;
+  //
+  // return (
+  //   <div ref={wrapperRef}>
+  //     {graphService ? (
+  //       <BlockRenderer
+  //         blockSource={blockSource}
+  //         blockType={blockMetadata.blockType}
+  //         properties={propsToInject}
+  //         sourceUrl={sourceUrl}
+  //       />
+  //     ) : null}
+  //   </div>
+  // );
 };
