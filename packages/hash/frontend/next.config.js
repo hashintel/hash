@@ -59,6 +59,8 @@ module.exports = withSentryConfig(
           "@material-ui/core": false,
           "@material-ui/icons": false,
         };
+
+        return webpackConfig;
       },
       sassOptions: {
         prependData: `
