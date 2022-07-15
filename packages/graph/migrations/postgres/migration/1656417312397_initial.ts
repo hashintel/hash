@@ -61,6 +61,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       },
       version_id: {
         type: "UUID",
+        onDelete: "CASCADE",
         references: "version_ids",
       },
     },
