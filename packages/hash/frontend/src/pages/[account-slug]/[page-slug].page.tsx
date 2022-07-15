@@ -33,7 +33,7 @@ import { Button } from "../../shared/ui/button";
  * @see https://nextjs.org/docs/advanced-features/output-file-tracing
  */
 export const unstable_includeFiles = [
-  "node_modules/@blockprotocol/graph/dist/graph-service.json",
+  "../../node_modules/@blockprotocol/graph/dist/graph-service.json",
 ];
 
 // Apparently defining this is necessary in order to get server rendered props?
