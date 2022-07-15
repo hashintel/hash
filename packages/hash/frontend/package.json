@@ -18,7 +18,7 @@
   "dependencies": {
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.8",
-    "@blockprotocol/graph": "0.0.11-canary.11",
+    "@blockprotocol/graph": "0.0.11-canary.14",
     "@emotion/cache": "11.7.1",
     "@emotion/react": "11.9.0",
     "@emotion/server": "11.4.0",
