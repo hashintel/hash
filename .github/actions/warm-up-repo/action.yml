@@ -4,7 +4,7 @@ description: Prepares Node and Yarn dependencies
 inputs:
   playwright-deps:
     default: ""
-    description: "List of "
+    description: "List of browsers separated by space, e.g. 'chrome firefox'"
     required: false
 
 runs:
@@ -21,5 +21,5 @@ runs:
         PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: ${{ inputs.playwright-deps == '' }}
 
     - run: yarn playwright install-deps ${{ inputs.playwright-deps }}
-      if: ${{ success() || failure() }}
+      if: ${{ inputs.playwright-deps != '' }}
       shell: bash
