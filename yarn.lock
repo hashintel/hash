@@ -3069,10 +3069,10 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
-"@blockprotocol/graph@0.0.11-canary.12":
-  version "0.0.11-canary.12"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.11-canary.12.tgz#24efe8f6df658735541490b3b01cd219d161ffd2"
-  integrity sha512-8qeEc88lxpUz+SCe/T8dYXwVuxx803YGw8iYr60hco0d03gsys+Q4lcGZwVgDiTR9Ylvt46mnRaJgj40wpvARg==
+"@blockprotocol/graph@0.0.11-canary.13":
+  version "0.0.11-canary.13"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.11-canary.13.tgz#d5a77f191a509b3894001935b9cdd4d10fc7be1f"
+  integrity sha512-zwE9nITc1Ep316tnEXT7neceS3RlPTz7yjJ0/K7K2UN7sKhAYon938DI2cv7PNYehC8SZbeNCNUG4K2Gs9Fo3A==
   dependencies:
     "@blockprotocol/core" "0.0.8"
     lit "^2.2.5"
