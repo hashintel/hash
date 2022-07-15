@@ -1,11 +1,11 @@
-use crate::postgres::Database;
+use crate::postgres::DatabaseTestWrapper;
 
 #[test]
 fn insert() {
     let boolean_dt = serde_json::from_str(crate::test_data::data_type::BOOLEAN_V1)
         .expect("could not parse data type");
 
-    let mut database = Database::new();
+    let mut database = DatabaseTestWrapper::new();
     database
         .create_data_type(boolean_dt)
         .expect("could not create data type");
@@ -16,7 +16,7 @@ fn query() {
     let empty_list_dt = serde_json::from_str(crate::test_data::data_type::EMPTY_LIST_V1)
         .expect("could not parse data type");
 
-    let mut database = Database::new();
+    let mut database = DatabaseTestWrapper::new();
 
     let created_data_type = database
         .create_data_type(empty_list_dt)
@@ -36,7 +36,7 @@ fn update() {
     let object_dt_v2 = serde_json::from_str(crate::test_data::data_type::OBJECT_V2)
         .expect("could not parse data type");
 
-    let mut database = Database::new();
+    let mut database = DatabaseTestWrapper::new();
 
     let created_data_type = database
         .create_data_type(object_dt_v1)

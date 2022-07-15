@@ -12,7 +12,7 @@ use sqlx::{Connection, PgConnection};
 use tokio::runtime::Runtime;
 use uuid::Uuid;
 
-pub struct Database {
+pub struct DatabaseTestWrapper {
     postgres: PostgresDatabase,
     connection: Option<PgConnection>,
     created_base_uris: Vec<BaseUri>,
@@ -20,7 +20,7 @@ pub struct Database {
     rt: Runtime,
 }
 
-impl Database {
+impl DatabaseTestWrapper {
     pub fn new() -> Self {
         const USER: &str = "postgres";
         const PASSWORD: &str = "postgres";
@@ -96,7 +96,7 @@ impl Database {
     }
 }
 
-impl Drop for Database {
+impl Drop for DatabaseTestWrapper {
     fn drop(&mut self) {
         let mut connection = self.connection.take().unwrap();
         let account_id = self.account_id;
