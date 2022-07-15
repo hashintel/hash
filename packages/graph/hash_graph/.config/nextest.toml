@@ -1,5 +1,0 @@
-[profile.default]
-# TODO: Remove this. Currently, it's required as we are using unit-tests for integration tests. This means that our
-#   tests have dependencies on the database, and multiple threads mean that tests pollute each other and may break
-#   constraints
-test-threads = 1

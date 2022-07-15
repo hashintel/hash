@@ -233,3 +233,8 @@ async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
         .await
         .expect("could not remove base_uri");
 }
+
+#[test]
+fn can_connect() {
+    DatabaseTestWrapper::new();
+}

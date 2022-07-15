@@ -455,38 +455,3 @@ impl Datastore for PostgresDatabase {
         todo!()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use std::sync::LazyLock;
-
-    use super::*;
-    use crate::datastore::DatabaseType;
-
-    const USER: &str = "postgres";
-    const PASSWORD: &str = "postgres";
-    const HOST: &str = "localhost";
-    const PORT: u16 = 5432;
-    const DATABASE: &str = "graph";
-
-    static DB_INFO: LazyLock<DatabaseConnectionInfo> = LazyLock::new(|| {
-        DatabaseConnectionInfo::new(
-            DatabaseType::Postgres,
-            USER.to_owned(),
-            PASSWORD.to_owned(),
-            HOST.to_owned(),
-            PORT,
-            DATABASE.to_owned(),
-        )
-    });
-
-    // TODO - long term we likely want to gate these behind config or something, probably do not
-    //  want to add a dependency on the external service for *unit* tests
-    #[tokio::test]
-    #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    async fn can_connect() -> Result<(), DatastoreError> {
-        PostgresDatabase::new(&DB_INFO).await?;
-
-        Ok(())
-    }
-}
