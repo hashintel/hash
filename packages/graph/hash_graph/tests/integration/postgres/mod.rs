@@ -1,4 +1,5 @@
 mod data_type;
+mod property_type;
 
 use error_stack::Result;
 use graph::{
@@ -6,7 +7,10 @@ use graph::{
         DatabaseConnectionInfo, DatabaseType, Datastore, InsertionError, PostgresDatabase,
         QueryError, UpdateError,
     },
-    types::{schema::DataType, AccountId, BaseUri, Qualified, VersionId},
+    types::{
+        schema::{DataType, PropertyType},
+        AccountId, BaseUri, Qualified, VersionId,
+    },
 };
 use sqlx::{Connection, Executor, PgConnection};
 use tokio::runtime::Runtime;
@@ -96,6 +100,40 @@ impl DatabaseTestWrapper {
         self.rt.block_on(async {
             self.postgres
                 .update_data_type(data_type, self.account_id)
+                .await
+        })
+    }
+
+    pub fn create_property_type(
+        &mut self,
+        property_type: PropertyType,
+    ) -> Result<Qualified<PropertyType>, InsertionError> {
+        self.rt.block_on(async {
+            let property_type = self
+                .postgres
+                .create_property_type(property_type, self.account_id)
+                .await?;
+            self.created_base_uris
+                .push(property_type.inner().id().base_uri().clone());
+            Ok(property_type)
+        })
+    }
+
+    pub fn get_property_type(
+        &mut self,
+        version_id: VersionId,
+    ) -> Result<Qualified<PropertyType>, QueryError> {
+        self.rt
+            .block_on(async { self.postgres.get_property_type(version_id).await })
+    }
+
+    pub fn update_property_type(
+        &mut self,
+        property_type: PropertyType,
+    ) -> Result<Qualified<PropertyType>, UpdateError> {
+        self.rt.block_on(async {
+            self.postgres
+                .update_property_type(property_type, self.account_id)
                 .await
         })
     }

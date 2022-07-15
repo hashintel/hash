@@ -1,0 +1,17 @@
+{
+  "kind": "propertyType",
+  "$id": "https://blockprotocol.org/@alice/types/property-type/numbers/v/1",
+  "title": "Numbers",
+  "oneOf": [
+    {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
+          }
+        ]
+      }
+    }
+  ]
+}
