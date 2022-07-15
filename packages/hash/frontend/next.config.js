@@ -47,10 +47,6 @@ module.exports = withSentryConfig(
       typescript: { ignoreBuildErrors: true },
       output: "standalone",
 
-      experimental: {
-        outputFileTracingRoot: path.join(__dirname),
-      },
-
       webpack: (webpackConfig) => {
         webpackConfig.module.rules.push({
           test: /\.svg$/,
