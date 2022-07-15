@@ -1,11 +1,11 @@
-use crate::postgres::Database;
+use crate::postgres::DatabaseTestWrapper;
 
 #[test]
 fn insert() {
     let age_pt = serde_json::from_str(crate::test_data::property_type::AGE_V1)
         .expect("could not parse property type");
 
-    let mut database = Database::new();
+    let mut database = DatabaseTestWrapper::new();
     database
         .create_property_type(age_pt)
         .expect("could not create property type");
@@ -16,7 +16,7 @@ fn query() {
     let interests_pt = serde_json::from_str(crate::test_data::property_type::INTERESTS_V1)
         .expect("could not parse property type");
 
-    let mut database = Database::new();
+    let mut database = DatabaseTestWrapper::new();
 
     let created_property_type = database
         .create_property_type(interests_pt)
@@ -38,7 +38,7 @@ fn update() {
         serde_json::from_str(crate::test_data::property_type::CONTACT_INFORMATION_V2)
             .expect("could not parse property type");
 
-    let mut database = Database::new();
+    let mut database = DatabaseTestWrapper::new();
 
     let created_property_type = database
         .create_property_type(contact_info_pt_v1)
