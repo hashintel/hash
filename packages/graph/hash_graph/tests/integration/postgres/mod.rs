@@ -17,6 +17,9 @@ pub struct DatabaseTestWrapper {
     connection: Option<PgConnection>,
     created_base_uris: Vec<BaseUri>,
     account_id: AccountId,
+    // We need a runtime in the `Drop` implementation, so the test wrapper uses it's own runtime.
+    // This implies, tests must not be `async`, so the functions on this struct needs to be
+    // non-`async`.
     rt: Runtime,
 }
 
