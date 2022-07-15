@@ -458,7 +458,7 @@ impl Datastore for PostgresDatabase {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, sync::LazyLock};
+    use std::sync::LazyLock;
 
     use super::*;
     use crate::{datastore::DatabaseType, types::AccountId};
@@ -538,87 +538,6 @@ mod tests {
                 .change_context(DatastoreError)
                 .attach_printable("Could not select entity types")?;
 
-        Ok(())
-    }
-
-    #[tokio::test]
-    #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    async fn create_data_type() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
-        let account_id = create_account_id(&db.pool)
-            .await
-            .change_context(DatastoreError)?;
-
-        let data_type = db
-            .create_data_type(DataType::number(), account_id)
-            .await
-            .change_context(DatastoreError)?;
-
-        // Clean up to avoid conflicts in next tests
-        remove_base_uri(&db, data_type.inner().id().base_uri()).await?;
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    async fn get_data_type_by_identifier() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
-        let account_id = create_account_id(&db.pool).await?;
-
-        let created_data_type = db
-            .create_data_type(DataType::boolean(), account_id)
-            .await
-            .change_context(DatastoreError)?;
-
-        let data_type = db
-            .get_data_type(created_data_type.version_id())
-            .await
-            .change_context(DatastoreError)?;
-
-        assert_eq!(data_type.inner(), created_data_type.inner());
-
-        // Clean up to avoid conflicts in next tests
-        remove_base_uri(&db, data_type.inner().id().base_uri()).await?;
-        Ok(())
-    }
-
-    /// Returns the primitive `Object` data type.
-    #[must_use]
-    pub fn object_v2() -> DataType {
-        DataType::new(
-            VersionedUri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/object".to_owned(),
-                2,
-            ),
-            "Object".to_owned(),
-            Some("A plain JSON object with no pre-defined structure".to_owned()),
-            "object".to_owned(),
-            HashMap::default(),
-        )
-    }
-
-    #[tokio::test]
-    #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    async fn update_existing_data_type() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
-        let account_id = create_account_id(&db.pool).await?;
-
-        let data_type = db
-            .create_data_type(DataType::object(), account_id)
-            .await
-            .change_context(DatastoreError)?;
-
-        let updated_data_type = db
-            .update_data_type(object_v2(), account_id)
-            .await
-            .change_context(DatastoreError)?;
-
-        assert_ne!(data_type.inner(), updated_data_type.inner());
-        assert_ne!(data_type.version_id(), updated_data_type.version_id());
-
-        // Clean up to avoid conflicts in next tests
-        remove_base_uri(&db, data_type.inner().id().base_uri()).await?;
         Ok(())
     }
 
