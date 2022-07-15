@@ -47,6 +47,11 @@ module.exports = withSentryConfig(
       output: "standalone",
       reactStrictMode: "true",
 
+      experimental: {
+        // this includes files from the monorepo base two directories up
+        outputFileTracingRoot: path.join(__dirname, "../../"),
+      },
+
       webpack: (webpackConfig) => {
         webpackConfig.module.rules.push({
           test: /\.svg$/,
