@@ -40,6 +40,7 @@
     "@sentry/react": "7.5.1",
     "@svgr/webpack": "6.2.1",
     "@twind/next": "1.0.9",
+    "@vercel/nft": "0.20.1",
     "ajv": "8.11.0",
     "blockprotocol": "0.0.10",
     "clsx": "1.1.1",
