@@ -124,7 +124,7 @@ impl DataType {
     pub fn text() -> Self {
         Self::new(
             VersionedUri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/text".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text".to_owned(),
                 1,
             ),
             "Text".to_owned(),
@@ -139,7 +139,7 @@ impl DataType {
     pub fn number() -> Self {
         Self::new(
             VersionedUri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/number".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/number".to_owned(),
                 1,
             ),
             "Number".to_owned(),
@@ -154,7 +154,7 @@ impl DataType {
     pub fn boolean() -> Self {
         Self::new(
             VersionedUri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/boolean".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean".to_owned(),
                 1,
             ),
             "Boolean".to_owned(),
@@ -169,7 +169,7 @@ impl DataType {
     pub fn null() -> Self {
         Self::new(
             VersionedUri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/null".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/null".to_owned(),
                 1,
             ),
             "Null".to_owned(),
@@ -184,7 +184,7 @@ impl DataType {
     pub fn object() -> Self {
         Self::new(
             VersionedUri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/object".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/object".to_owned(),
                 1,
             ),
             "Object".to_owned(),
@@ -199,7 +199,7 @@ impl DataType {
     pub fn empty_list() -> Self {
         Self::new(
             VersionedUri::new(
-                "https://blockprotocol.org/types/@blockprotocol/data-type/empty-list".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list".to_owned(),
                 1,
             ),
             "Empty List".to_owned(),
@@ -249,13 +249,7 @@ mod tests {
     fn text() {
         validate(
             &DataType::text(),
-            json!({
-              "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1",
-              "title": "Text",
-              "description": "An ordered sequence of characters",
-              "type": "string"
-            }),
+            serde_json::from_str(crate::test_data::data_type::TEXT_V1).expect("invalid JSON"),
         )
         .expect("Invalid data type");
     }
@@ -264,13 +258,7 @@ mod tests {
     fn number() {
         validate(
             &DataType::number(),
-            json!({
-              "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1",
-              "title": "Number",
-              "description": "An arithmetical value (in the Real number system)",
-              "type": "number"
-            }),
+            serde_json::from_str(crate::test_data::data_type::NUMBER_V1).expect("invalid JSON"),
         )
         .expect("Invalid data type");
     }
@@ -279,13 +267,7 @@ mod tests {
     fn boolean() {
         validate(
             &DataType::boolean(),
-            json!({
-              "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/boolean/v/1",
-              "title": "Boolean",
-              "description": "A True or False value",
-              "type": "boolean"
-            }),
+            serde_json::from_str(crate::test_data::data_type::BOOLEAN_V1).expect("invalid JSON"),
         )
         .expect("Invalid data type");
     }
@@ -294,13 +276,7 @@ mod tests {
     fn null() {
         validate(
             &DataType::null(),
-            json!({
-              "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/null/v/1",
-              "title": "Null",
-              "description": "A placeholder value representing 'nothing'",
-              "type": "null"
-            }),
+            serde_json::from_str(crate::test_data::data_type::NULL_V1).expect("invalid JSON"),
         )
         .expect("Invalid data type");
     }
@@ -309,13 +285,7 @@ mod tests {
     fn object() {
         validate(
             &DataType::object(),
-            json!({
-              "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/object/v/1",
-              "title": "Object",
-              "description": "A plain JSON object with no pre-defined structure",
-              "type": "object"
-            }),
+            serde_json::from_str(crate::test_data::data_type::OBJECT_V1).expect("invalid JSON"),
         )
         .expect("Invalid data type");
     }
@@ -324,14 +294,7 @@ mod tests {
     fn empty_list() {
         validate(
             &DataType::empty_list(),
-            json!({
-              "kind": "dataType",
-              "$id": "https://blockprotocol.org/types/@blockprotocol/data-type/empty-list/v/1",
-              "title": "Empty List",
-              "description": "An Empty List",
-              "type": "array",
-              "const": []
-            }),
+            serde_json::from_str(crate::test_data::data_type::EMPTY_LIST_V1).expect("invalid JSON"),
         )
         .expect("Invalid data type");
     }
