@@ -1,0 +1,11 @@
+{
+  "kind": "entityType",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/building/v/1",
+  "type": "object",
+  "title": "Bulding",
+  "properties": {},
+  "links": {
+    "https://blockprotocol.org/@alice/types/property-type/located-at/v/1": {},
+    "https://blockprotocol.org/@alice/types/property-type/tenant/v/1": {}
+  }
+}

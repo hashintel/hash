@@ -461,7 +461,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use super::*;
-    use crate::{datastore::DatabaseType, types::AccountId};
+    use crate::datastore::DatabaseType;
 
     const USER: &str = "postgres";
     const PASSWORD: &str = "postgres";
@@ -480,41 +480,6 @@ mod tests {
         )
     });
 
-    /// Removes the [`BaseUri`] and all related data from the database.
-    ///
-    /// [`BaseUri`]: crate::types::BaseUri
-    // TODO: We don't intend to remove data. This is used for cleaning up the database after running
-    //   a test case. Remove this as soon as we have a proper test framework.
-    async fn remove_base_uri(
-        db: &PostgresDatabase,
-        base_uri: &BaseUri,
-    ) -> Result<(), DatastoreError> {
-        sqlx::query(r#"DELETE FROM base_uris WHERE base_uri = $1;"#)
-            .bind(base_uri)
-            .execute(&db.pool)
-            .await
-            .report()
-            .change_context(DatastoreError)
-            .attach_printable("Could not delete base_uri")
-            .attach_printable_lazy(|| format!("{base_uri:?}"))?;
-
-        Ok(())
-    }
-
-    async fn create_account_id(pool: &PgPool) -> Result<AccountId, DatastoreError> {
-        let account_id = AccountId::new(Uuid::new_v4());
-
-        sqlx::query(r#"INSERT INTO accounts (account_id) VALUES ($1);"#)
-            .bind(&account_id)
-            .fetch_all(pool)
-            .await
-            .report()
-            .change_context(DatastoreError)
-            .attach_printable("Could not insert account")?;
-
-        Ok(account_id)
-    }
-
     // TODO - long term we likely want to gate these behind config or something, probably do not
     //  want to add a dependency on the external service for *unit* tests
     #[tokio::test]
@@ -522,141 +487,6 @@ mod tests {
     async fn can_connect() -> Result<(), DatastoreError> {
         PostgresDatabase::new(&DB_INFO).await?;
 
-        Ok(())
-    }
-
-    #[tokio::test]
-    #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    async fn get_entity_types() -> Result<(), DatastoreError> {
-        let pool = PostgresDatabase::new(&DB_INFO).await?.pool;
-
-        let _rows: Vec<(VersionId, serde_json::Value, AccountId)> =
-            sqlx::query_as("SELECT * from entity_types")
-                .fetch_all(&pool)
-                .await
-                .report()
-                .change_context(DatastoreError)
-                .attach_printable("Could not select entity types")?;
-
-        Ok(())
-    }
-
-    fn book_entity_type_v1() -> EntityType {
-        serde_json::from_value(serde_json::json!({
-            "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/book/v/1",
-            "title": "Book",
-            "type": "object",
-            "properties": {
-                "https://blockprotocol.org/types/@alice/property-type/name": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name/v/1"
-                },
-                "https://blockprotocol.org/types/@alice/property-type/blurb": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/blurb/v/1"
-                },
-                "https://blockprotocol.org/types/@alice/property-type/published-on": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/published-on/v/1"
-                }
-            },
-            "required": [
-                "https://blockprotocol.org/types/@alice/property-type/name"
-            ],
-        }))
-        .expect("Invalid entity type")
-    }
-
-    fn book_entity_type_v2() -> EntityType {
-        serde_json::from_value(serde_json::json!({
-            "kind": "entityType",
-            "$id": "https://blockprotocol.org/types/@alice/entity-type/book/v/2",
-            "title": "Book",
-            "type": "object",
-            "properties": {
-                "https://blockprotocol.org/types/@alice/property-type/name": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/name/v/1"
-                },
-                "https://blockprotocol.org/types/@alice/property-type/blurb": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/blurb/v/1"
-                },
-                "https://blockprotocol.org/types/@alice/property-type/published-on": {
-                    "$ref": "https://blockprotocol.org/types/@alice/property-type/published-on/v/1"
-                }
-            },
-            "required": [
-                "https://blockprotocol.org/types/@alice/property-type/name"
-            ],
-            "links": {
-                "https://blockprotocol.org/types/@alice/property-type/written-by/v/1": {}
-            },
-            "requiredLinks": [
-                "https://blockprotocol.org/types/@alice/property-type/written-by/v/1"
-            ],
-        }))
-        .expect("Invalid entity type")
-    }
-
-    #[tokio::test]
-    #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    async fn create_entity_type() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
-        let account_id = create_account_id(&db.pool).await?;
-
-        let entity_type = db
-            .create_entity_type(book_entity_type_v1(), account_id)
-            .await
-            .change_context(DatastoreError)?;
-
-        // Clean up to avoid conflicts in next tests
-        remove_base_uri(&db, entity_type.inner().id().base_uri()).await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    async fn get_entity_type_by_identifier() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
-        let account_id = create_account_id(&db.pool).await?;
-
-        let created_entity_type = db
-            .create_entity_type(book_entity_type_v1(), account_id)
-            .await
-            .change_context(DatastoreError)?;
-
-        let entity_type = db
-            .get_entity_type(created_entity_type.version_id())
-            .await
-            .change_context(DatastoreError)?;
-
-        assert_eq!(entity_type.inner(), created_entity_type.inner());
-
-        // Clean up to avoid conflicts in next tests
-        remove_base_uri(&db, entity_type.inner().id().base_uri()).await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    #[cfg_attr(miri, ignore = "miri can't run in async context")]
-    async fn update_existing_entity_type() -> Result<(), DatastoreError> {
-        let db = PostgresDatabase::new(&DB_INFO).await?;
-        let account_id = create_account_id(&db.pool).await?;
-
-        let entity_type = db
-            .create_entity_type(book_entity_type_v1(), account_id)
-            .await
-            .change_context(DatastoreError)?;
-
-        let new_entity_type = book_entity_type_v2();
-        let updated_entity_type = db
-            .update_entity_type(new_entity_type.clone(), account_id)
-            .await
-            .change_context(DatastoreError)?;
-
-        assert_eq!(updated_entity_type.inner(), &new_entity_type);
-        assert_ne!(entity_type.inner(), updated_entity_type.inner());
-        assert_ne!(entity_type.version_id(), updated_entity_type.version_id());
-
-        // Clean up to avoid conflicts in next tests
-        remove_base_uri(&db, entity_type.inner().id().base_uri()).await?;
         Ok(())
     }
 }
