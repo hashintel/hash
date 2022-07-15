@@ -176,8 +176,6 @@ impl PropertyType {
 mod tests {
     use std::str::FromStr;
 
-    use serde_json::json;
-
     use super::*;
 
     fn test_property_type_schema(schema: &serde_json::Value) -> PropertyType {
@@ -230,17 +228,13 @@ mod tests {
 
     #[test]
     fn favorite_quote() {
-        let property_type = test_property_type_schema(&json!({
-          "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/favorite-quote/v/1",
-          "title": "Favorite Quote",
-          "oneOf": [
-            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1" }
-          ]
-        }));
+        let property_type = test_property_type_schema(
+            &serde_json::from_str(crate::test_data::property_type::FAVOURITE_QUOTE_V1)
+                .expect("invalid JSON"),
+        );
 
         test_property_type_data_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         ]);
 
         test_property_type_property_refs(&property_type, []);
@@ -248,19 +242,12 @@ mod tests {
 
     #[test]
     fn age() {
-        let property_type = test_property_type_schema(&json!({
-          "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/age/v/1",
-          "title": "Age",
-          "oneOf": [
-            {
-              "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1"
-            }
-          ]
-        }));
+        let property_type = test_property_type_schema(
+            &serde_json::from_str(crate::test_data::property_type::AGE_V1).expect("invalid JSON"),
+        );
 
         test_property_type_data_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
         ]);
 
         test_property_type_property_refs(&property_type, []);
@@ -268,21 +255,14 @@ mod tests {
 
     #[test]
     fn user_id() {
-        let property_type = test_property_type_schema(&json!({
-          "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/user-id/v/1",
-          "title": "User ID",
-          "oneOf": [
-            { "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1" },
-            {
-              "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1"
-            }
-          ]
-        }));
+        let property_type = test_property_type_schema(
+            &serde_json::from_str(crate::test_data::property_type::USER_ID_V1)
+                .expect("invalid JSON"),
+        );
 
         test_property_type_data_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1",
-            "https://blockprotocol.org/types/@blockprotocol/data-type/text/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         ]);
 
         test_property_type_property_refs(&property_type, []);
@@ -290,94 +270,44 @@ mod tests {
 
     #[test]
     fn contact_information() {
-        let property_type = test_property_type_schema(&json!({
-          "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/contact-information/v/1",
-          "title": "Contact Information",
-          "oneOf": [
-            {
-              "type": "object",
-              "properties": {
-                "https://blockprotocol.org/types/@blockprotocol/property-type/email": {
-                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/email/v/1"
-                },
-                "https://blockprotocol.org/types/@blockprotocol/property-type/phone-number": {
-                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/phone-number/v/1"
-                }
-              },
-              "required": [
-                "https://blockprotocol.org/types/@blockprotocol/property-type/email"
-              ]
-            }
-          ]
-        }));
+        let property_type = test_property_type_schema(
+            &serde_json::from_str(crate::test_data::property_type::CONTACT_INFORMATION_V1)
+                .expect("invalid JSON"),
+        );
 
         test_property_type_data_refs(&property_type, []);
 
         test_property_type_property_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/property-type/email/v/1",
-            "https://blockprotocol.org/types/@blockprotocol/property-type/phone-number/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/email/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/phone-number/v/1",
         ]);
     }
 
     #[test]
     fn interests() {
-        let property_type = test_property_type_schema(&json!({
-          "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/interests/v/1",
-          "title": "Interests",
-          "oneOf": [
-            {
-              "type": "object",
-              "properties": {
-                "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-film": {
-                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-film/v/1"
-                },
-                "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-song": {
-                  "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-song/v/1"
-                },
-                "https://blockprotocol.org/types/@blockprotocol/property-type/hobby": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "https://blockprotocol.org/types/@blockprotocol/property-type/hobby/v/1"
-                  }
-                }
-              }
-            }
-          ]
-        }));
+        let property_type = test_property_type_schema(
+            &serde_json::from_str(crate::test_data::property_type::INTERESTS_V1)
+                .expect("invalid JSON"),
+        );
 
         test_property_type_data_refs(&property_type, []);
 
         test_property_type_property_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-film/v/1",
-            "https://blockprotocol.org/types/@blockprotocol/property-type/favorite-song/v/1",
-            "https://blockprotocol.org/types/@blockprotocol/property-type/hobby/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/favorite-film/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/favorite-song/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/hobby/v/1",
         ]);
     }
 
     #[test]
     fn numbers() {
-        let property_type = test_property_type_schema(&json!({
-          "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/numbers/v/1",
-          "title": "Numbers",
-          "oneOf": [
-            {
-              "type": "array",
-              "items": {
-                "oneOf": [
-                  {
-                    "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1"
-                  }
-                ]
-              }
-            }
-          ]
-        }));
+        let property_type = test_property_type_schema(
+            &serde_json::from_str(crate::test_data::property_type::NUMBERS_V1)
+                .expect("invalid JSON"),
+        );
 
         test_property_type_data_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
         ]);
 
         test_property_type_property_refs(&property_type, []);
@@ -385,30 +315,13 @@ mod tests {
 
     #[test]
     fn contrived_property() {
-        let property_type = test_property_type_schema(&json!({
-          "kind": "propertyType",
-          "$id": "https://blockprotocol.org/types/@alice/property-type/contrived-property/v/1",
-          "title": "Contrived Property",
-          "oneOf": [
-            {
-              "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1"
-            },
-            {
-              "type": "array",
-              "items": {
-                "oneOf": [
-                  {
-                    "$ref": "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1"
-                  }
-                ]
-              },
-              "maxItems": 4
-            }
-          ]
-        }));
+        let property_type = test_property_type_schema(
+            &serde_json::from_str(crate::test_data::property_type::CONTRIVED_PROPERTY_V1)
+                .expect("invalid JSON"),
+        );
 
         test_property_type_data_refs(&property_type, [
-            "https://blockprotocol.org/types/@blockprotocol/data-type/number/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
         ]);
 
         test_property_type_property_refs(&property_type, []);
