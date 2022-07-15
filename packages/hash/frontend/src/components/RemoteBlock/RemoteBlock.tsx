@@ -4,7 +4,7 @@ import {
   EmbedderGraphMessageCallbacks,
 } from "@blockprotocol/graph";
 
-import { useGraphEmbedderService } from "@blockprotocol/graph/new-test";
+import { useGraphEmbedderService } from "@blockprotocol/graph/react";
 
 import React from "react";
 import { BlockRenderer } from "./blockRenderer";
