@@ -1,0 +1,21 @@
+{
+  "kind": "propertyType",
+  "$id": "https://blockprotocol.org/@alice/types/property-type/contrived-property/v/1",
+  "title": "Contrived Property",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
+    },
+    {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
+          }
+        ]
+      },
+      "maxItems": 4
+    }
+  ]
+}
