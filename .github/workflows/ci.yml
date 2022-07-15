@@ -6,7 +6,7 @@ jobs:
     name: Linting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: ./.github/actions/warm-up-repo
 
@@ -125,7 +125,7 @@ jobs:
     name: Backend integration tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: ./.github/actions/warm-up-repo
 
@@ -180,7 +180,15 @@ jobs:
     name: Playwright tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          path: packages/hash/frontend/.next/cache
+          key: ${{ runner.os }}-frontend-next-cache-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/hash/frontend/**') }}
+          restore-keys: |
+            ${{ runner.os }}-frontend-next-cache-${{ hashFiles('yarn.lock') }}-
+            ${{ runner.os }}-frontend-next-cache
 
       - uses: ./.github/actions/warm-up-repo
         with:
@@ -256,7 +264,7 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: ./.github/actions/warm-up-repo
 
