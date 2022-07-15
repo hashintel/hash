@@ -14,9 +14,11 @@ use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
     postgres: PostgresDatabase,
-    connection: Option<PgConnection>,
     created_base_uris: Vec<BaseUri>,
     account_id: AccountId,
+    // `PostgresDatabase` does not expose functionality to remove entries, so a direct connection
+    // to the database is used.
+    connection: Option<PgConnection>,
     // We need a runtime in the `Drop` implementation, so the test wrapper uses it's own runtime.
     // This implies, tests must not be `async`, so the functions on this struct needs to be
     // non-`async`.
@@ -57,9 +59,9 @@ impl DatabaseTestWrapper {
 
         Self {
             postgres,
-            connection: Some(connection),
             created_base_uris: Vec::new(),
             account_id,
+            connection: Some(connection),
             rt,
         }
     }
