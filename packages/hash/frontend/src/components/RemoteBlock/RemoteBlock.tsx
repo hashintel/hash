@@ -2,10 +2,11 @@ import { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
 import {
   BlockGraphProperties,
   EmbedderGraphMessageCallbacks,
-  useGraphEmbedderService,
 } from "@blockprotocol/graph";
 
-console.log(useGraphEmbedderService);
+import { useGraphEmbedderService } from "@blockprotocol/graph/react";
+
+console.log("Test thing", useGraphEmbedderService);
 
 import React from "react";
 import { BlockRenderer } from "./blockRenderer";
