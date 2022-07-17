@@ -15,7 +15,8 @@
     "serve": "node_modules/.bin/block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.10"
+    "@blockprotocol/graph": "0.0.10",
+    "@mui/material": "5.9.0"
   },
   "devDependencies": {
     "block-scripts": "0.0.13",
