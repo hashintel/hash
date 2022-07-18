@@ -7,12 +7,5 @@
     "https://blockprotocol.org/@alice/types/property-type/text": {
       "$ref": "https://blockprotocol.org/@alice/types/property-type/text/v/1"
     }
-  },
-  "links": {
-    "https://blockprotocol.org/@alice/types/property-type/written-by/v/1": {},
-    "https://blockprotocol.org/@alice/types/property-type/contains/v/1": {
-      "type": "array",
-      "ordered": true
-    }
   }
 }

@@ -14,5 +14,11 @@
       "$ref": "https://blockprotocol.org/@alice/types/property-type/published-on/v/1"
     }
   },
-  "required": ["https://blockprotocol.org/@alice/types/property-type/name"]
+  "required": ["https://blockprotocol.org/@alice/types/property-type/name"],
+  "links": {
+    "https://blockprotocol.org/@alice/types/property-type/written-by/v/1": {}
+  },
+  "requiredLinks": [
+    "https://blockprotocol.org/@alice/types/property-type/written-by/v/1"
+  ]
 }
