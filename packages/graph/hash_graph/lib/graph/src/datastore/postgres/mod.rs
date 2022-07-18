@@ -287,37 +287,38 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting failed.
-    async fn insert_with_id<'e, E, T>(
-        executor: E,
+    async fn insert_with_id<T>(
+        transaction: &mut Transaction<'_, Postgres>,
         version_id: VersionId,
         database_type: &T,
         created_by: AccountId,
     ) -> Result<(), InsertionError>
     where
-        E: Executor<'e, Database = Postgres>,
         T: DatabaseType + Serialize + Sync,
     {
         // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
         //   module.
-        let _version_id: (VersionId,) = sqlx::query_as(&format!(
-            r#"
+        transaction
+            .fetch_one(
+                sqlx::query(&format!(
+                    r#"
             INSERT INTO {} (version_id, schema, created_by) 
             VALUES ($1, $2, $3)
             RETURNING version_id;
             "#,
-            T::table()
-        ))
-        .bind(version_id)
-        .bind(
-            serde_json::to_value(database_type)
-                .report()
-                .change_context(InsertionError)?,
-        )
-        .bind(created_by)
-        .fetch_one(executor)
-        .await
-        .report()
-        .change_context(InsertionError)?;
+                    T::table()
+                ))
+                .bind(version_id)
+                .bind(
+                    serde_json::to_value(database_type)
+                        .report()
+                        .change_context(InsertionError)?,
+                )
+                .bind(created_by),
+            )
+            .await
+            .report()
+            .change_context(InsertionError)?;
 
         Ok(())
     }
@@ -360,37 +361,93 @@ impl PostgresDatabase {
 
     async fn insert_property_type_references(
         transaction: &mut Transaction<'_, Postgres>,
-        property_type: &PropertyType,
+        property_type: &Qualified<PropertyType>,
     ) -> Result<(), InsertionError> {
-        // TODO: Store this as mapping in `property_type_property_type_references`
-        let _property_type_ids = Self::property_type_reference_ids(
+        let property_type_ids = Self::property_type_reference_ids(
             transaction,
-            property_type.property_type_references(),
+            property_type.inner().property_type_references(),
         )
         .await
         .change_context(InsertionError)
         .attach_printable("Could not find referenced property types")?;
 
-        // TODO: Store this as mapping in `property_type_data_type_references`
-        let _data_type_ids =
-            Self::data_type_reference_ids(transaction, property_type.data_type_references())
+        for target_id in property_type_ids {
+            transaction
+                .fetch_one(
+                    sqlx::query(
+                        r#"
+                    INSERT INTO property_type_property_type_references (source_property_type_version_id, target_property_type_version_id)
+                    VALUES ($1, $2)
+                    RETURNING source_property_type_version_id;
+                    "#,
+                    )
+                        .bind(property_type.version_id())
+                        .bind(target_id),
+                )
                 .await
-                .change_context(InsertionError)
-                .attach_printable("Could not find referenced data types")?;
+                .report()
+                .change_context(InsertionError)?;
+        }
+
+        let data_type_ids = Self::data_type_reference_ids(
+            transaction,
+            property_type.inner().data_type_references(),
+        )
+        .await
+        .change_context(InsertionError)
+        .attach_printable("Could not find referenced data types")?;
+
+        for target_id in data_type_ids {
+            transaction
+                .fetch_one(
+                    sqlx::query(
+                        r#"
+                    INSERT INTO property_type_data_type_references (source_property_type_version_id, target_data_type_version_id)
+                    VALUES ($1, $2)
+                    RETURNING source_property_type_version_id;
+                    "#,
+                    )
+                        .bind(property_type.version_id())
+                        .bind(target_id),
+                )
+                .await
+                .report()
+                .change_context(InsertionError)?;
+        }
 
         Ok(())
     }
 
     async fn insert_entity_references(
         transaction: &mut Transaction<'_, Postgres>,
-        entity_type: &EntityType,
+        entity_type: &Qualified<EntityType>,
     ) -> Result<(), InsertionError> {
         // TODO: Store this as mapping in `entity_type_property_types`
-        let _property_type_ids =
-            Self::property_type_reference_ids(transaction, entity_type.property_type_references())
+        let property_type_ids = Self::property_type_reference_ids(
+            transaction,
+            entity_type.inner().property_type_references(),
+        )
+        .await
+        .change_context(InsertionError)
+        .attach_printable("Could not find referenced property types")?;
+
+        for target_id in property_type_ids {
+            transaction
+                .fetch_one(
+                    sqlx::query(
+                        r#"
+                    INSERT INTO entity_type_property_types (source_entity_type_version_id, target_property_type_version_id)
+                    VALUES ($1, $2)
+                    RETURNING source_entity_type_version_id;
+                    "#,
+                    )
+                        .bind(entity_type.version_id())
+                        .bind(target_id),
+                )
                 .await
-                .change_context(InsertionError)
-                .attach_printable("Could not find referenced property types")?;
+                .report()
+                .change_context(InsertionError)?;
+        }
 
         // TODO: Store link references
 
@@ -525,13 +582,13 @@ impl Datastore for PostgresDatabase {
             .report()
             .change_context(InsertionError)?;
 
+        let property_type = Self::create(&mut transaction, property_type, created_by).await?;
+
         Self::insert_property_type_references(&mut transaction, &property_type)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not insert references for property type")
             .attach_lazy(|| property_type.clone())?;
-
-        let qualified = Self::create(&mut transaction, property_type, created_by).await?;
 
         transaction
             .commit()
@@ -539,7 +596,7 @@ impl Datastore for PostgresDatabase {
             .report()
             .change_context(InsertionError)?;
 
-        Ok(qualified)
+        Ok(property_type)
     }
 
     async fn get_property_type(
@@ -561,13 +618,13 @@ impl Datastore for PostgresDatabase {
             .report()
             .change_context(UpdateError)?;
 
+        let property_type = Self::update(&mut transaction, property_type, updated_by).await?;
+
         Self::insert_property_type_references(&mut transaction, &property_type)
             .await
             .change_context(UpdateError)
             .attach_printable("Could not insert references for property type")
             .attach_lazy(|| property_type.clone())?;
-
-        let qualified = Self::update(&mut transaction, property_type, updated_by).await?;
 
         transaction
             .commit()
@@ -575,7 +632,7 @@ impl Datastore for PostgresDatabase {
             .report()
             .change_context(UpdateError)?;
 
-        Ok(qualified)
+        Ok(property_type)
     }
 
     async fn create_entity_type(
@@ -590,13 +647,13 @@ impl Datastore for PostgresDatabase {
             .report()
             .change_context(InsertionError)?;
 
+        let entity_type = Self::create(&mut transaction, entity_type, created_by).await?;
+
         Self::insert_entity_references(&mut transaction, &entity_type)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not insert references for entity type")
             .attach_lazy(|| entity_type.clone())?;
-
-        let qualified = Self::create(&mut transaction, entity_type, created_by).await?;
 
         transaction
             .commit()
@@ -604,7 +661,7 @@ impl Datastore for PostgresDatabase {
             .report()
             .change_context(InsertionError)?;
 
-        Ok(qualified)
+        Ok(entity_type)
     }
 
     async fn get_entity_type(
@@ -626,13 +683,13 @@ impl Datastore for PostgresDatabase {
             .report()
             .change_context(UpdateError)?;
 
+        let entity_type = Self::update(&mut transaction, entity_type, updated_by).await?;
+
         Self::insert_entity_references(&mut transaction, &entity_type)
             .await
             .change_context(UpdateError)
             .attach_printable("Could not insert references for entity type")
             .attach_lazy(|| entity_type.clone())?;
-
-        let qualified = Self::update(&mut transaction, entity_type, updated_by).await?;
 
         transaction
             .commit()
@@ -640,7 +697,7 @@ impl Datastore for PostgresDatabase {
             .report()
             .change_context(UpdateError)?;
 
-        Ok(qualified)
+        Ok(entity_type)
     }
 
     async fn create_entity() -> Result<(), InsertionError> {

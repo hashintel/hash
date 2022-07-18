@@ -132,11 +132,13 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "UUID",
         notNull: true,
         references: "property_types",
+        onDelete: "CASCADE",
       },
       target_property_type_version_id: {
         type: "UUID",
         notNull: true,
         references: "property_types",
+        onDelete: "CASCADE",
       },
     },
     {
@@ -151,11 +153,13 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "UUID",
         notNull: true,
         references: "property_types",
+        onDelete: "CASCADE",
       },
       target_data_type_version_id: {
         type: "UUID",
         notNull: true,
         references: "data_types",
+        onDelete: "CASCADE",
       },
     },
     {
@@ -194,11 +198,13 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "UUID",
         notNull: true,
         references: "entity_types",
+        onDelete: "CASCADE",
       },
       target_property_type_version_id: {
         type: "UUID",
         notNull: true,
         references: "property_types",
+        onDelete: "CASCADE",
       },
     },
     {
