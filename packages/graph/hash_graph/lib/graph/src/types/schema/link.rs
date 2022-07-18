@@ -4,18 +4,54 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{
     schema::{
-        array::MaybeOrderedItemizedArray, entity_type::EntityTypeReference, object::ValidateUri,
+        array::{Array, Itemized},
+        entity_type::EntityTypeReference,
+        object::ValidateUri,
         ValidationError,
     },
     BaseUri, VersionedUri,
 };
 
-// TODO: Temporary solution, we can't use the `ValueOrArray` combinator
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MaybeOrderedArray<T> {
+    #[serde(flatten)]
+    array: Itemized<Array, T>,
+    // By default, this will not be ordered.
+    #[serde(default)]
+    ordered: bool,
+}
+
+impl<T> MaybeOrderedArray<T> {
+    #[must_use]
+    pub const fn new(
+        ordered: bool,
+        items: T,
+        min_items: Option<usize>,
+        max_items: Option<usize>,
+    ) -> Self {
+        Self {
+            array: Itemized::new(Array::new(min_items, max_items), items),
+            ordered,
+        }
+    }
+
+    #[must_use]
+    pub const fn array(&self) -> &Itemized<Array, T> {
+        &self.array
+    }
+
+    #[must_use]
+    pub const fn ordered(&self) -> bool {
+        self.ordered
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged, deny_unknown_fields)]
 pub enum ValueOrMaybeOrderedArray<T> {
     Value(T),
-    Array(MaybeOrderedItemizedArray<T>),
+    Array(MaybeOrderedArray<T>),
 }
 
 impl<T: ValidateUri> ValidateUri for ValueOrMaybeOrderedArray<T> {
@@ -107,5 +143,120 @@ impl Links {
     #[must_use]
     pub fn required(&self) -> &[VersionedUri] {
         &self.repr.required_links
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+    use crate::types::schema::tests::{check, check_deserialization, check_invalid_json};
+
+    // TODO - write some tests for validation of Link schemas, although most testing happens on
+    //  entity types
+
+    mod maybe_ordered_array {
+        use super::*;
+        use crate::types::schema::tests::StringTypeStruct;
+
+        #[test]
+        fn unordered() -> Result<(), serde_json::Error> {
+            check(
+                &MaybeOrderedArray::new(false, StringTypeStruct::default(), None, None),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "ordered": false,
+                }),
+            )?;
+
+            check_deserialization(
+                &MaybeOrderedArray::new(false, StringTypeStruct::default(), None, None),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                }),
+            )?;
+
+            Ok(())
+        }
+
+        #[test]
+        fn ordered() -> Result<(), serde_json::Error> {
+            check(
+                &MaybeOrderedArray::new(true, StringTypeStruct::default(), None, None),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "ordered": true
+                }),
+            )
+        }
+
+        #[test]
+        fn constrained() -> Result<(), serde_json::Error> {
+            check(
+                &MaybeOrderedArray::new(false, StringTypeStruct::default(), Some(10), Some(20)),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "ordered": false,
+                    "minItems": 10,
+                    "maxItems": 20,
+                }),
+            )
+        }
+
+        #[test]
+        fn additional_properties() {
+            check_invalid_json::<MaybeOrderedArray<Array>>(json!({
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "ordered": false,
+                "minItems": 10,
+                "maxItems": 20,
+                "additional": 30,
+            }));
+        }
+    }
+
+    mod value_or_maybe_ordered_array {
+        use serde_json::json;
+
+        use super::*;
+        use crate::types::schema::tests::{check, StringTypeStruct};
+
+        #[test]
+        fn value() -> Result<(), serde_json::Error> {
+            check(
+                &ValueOrMaybeOrderedArray::Value("value".to_owned()),
+                json!("value"),
+            )
+        }
+
+        #[test]
+        fn array() -> Result<(), serde_json::Error> {
+            check(
+                &MaybeOrderedArray::new(false, StringTypeStruct::default(), None, None),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "ordered": false
+                }),
+            )
+        }
     }
 }
