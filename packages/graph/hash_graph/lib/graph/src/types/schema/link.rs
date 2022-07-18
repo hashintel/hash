@@ -4,19 +4,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{
     schema::{
-        array::{Array, Itemized},
-        entity_type::EntityTypeReference,
-        object::ValidateUri,
-        ValidationError,
+        array::Array, entity_type::EntityTypeReference, object::ValidateUri, ValidationError,
     },
     BaseUri, VersionedUri,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct MaybeOrderedArray<T> {
     #[serde(flatten)]
-    array: Itemized<Array, T>,
+    array: Array<T>,
     // By default, this will not be ordered.
     #[serde(default)]
     ordered: bool,
@@ -31,13 +28,13 @@ impl<T> MaybeOrderedArray<T> {
         max_items: Option<usize>,
     ) -> Self {
         Self {
-            array: Itemized::new(Array::new(min_items, max_items), items),
+            array: Array::new(items, min_items, max_items),
             ordered,
         }
     }
 
     #[must_use]
-    pub const fn array(&self) -> &Itemized<Array, T> {
+    pub const fn array(&self) -> &Array<T> {
         &self.array
     }
 
@@ -218,7 +215,7 @@ mod tests {
 
         #[test]
         fn additional_properties() {
-            check_invalid_json::<MaybeOrderedArray<Array>>(json!({
+            check_invalid_json::<MaybeOrderedArray<StringTypeStruct>>(json!({
                 "type": "array",
                 "items": {
                     "type": "string"

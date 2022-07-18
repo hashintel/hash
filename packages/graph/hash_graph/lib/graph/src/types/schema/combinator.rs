@@ -3,13 +3,6 @@ use serde::{Deserialize, Serialize};
 use crate::types::schema::ValidationError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged, deny_unknown_fields)]
-pub enum Optional<T> {
-    None {},
-    Some(T),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OneOfRepr<T> {
     one_of: Vec<T>,
@@ -70,20 +63,6 @@ mod tests {
 
     use super::*;
     use crate::types::schema::tests::{check, check_invalid_json};
-
-    mod optional {
-        use super::*;
-
-        #[test]
-        fn none() -> Result<(), serde_json::Error> {
-            check(&Optional::<()>::None {}, json!({}))
-        }
-
-        #[test]
-        fn some() -> Result<(), serde_json::Error> {
-            check(&Optional::Some("value".to_owned()), json!("value"))
-        }
-    }
 
     mod one_of {
         use std::error::Error;

@@ -8,24 +8,31 @@ enum ArrayTypeTag {
     Array,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Array {
+pub struct Array<T> {
     r#type: ArrayTypeTag,
+    items: T,
     #[serde(skip_serializing_if = "Option::is_none")]
     min_items: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     max_items: Option<usize>,
 }
 
-impl Array {
+impl<T> Array<T> {
     #[must_use]
-    pub const fn new(min_items: Option<usize>, max_items: Option<usize>) -> Self {
+    pub const fn new(items: T, min_items: Option<usize>, max_items: Option<usize>) -> Self {
         Self {
             r#type: ArrayTypeTag::Array,
+            items,
             min_items,
             max_items,
         }
+    }
+
+    #[must_use]
+    pub const fn items(&self) -> &T {
+        &self.items
     }
 
     #[must_use]
@@ -39,135 +46,51 @@ impl Array {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Itemized<A, T> {
-    #[serde(flatten)]
-    array: A,
-    items: T,
-}
-
-impl<A, T> Itemized<A, T> {
-    #[must_use]
-    pub const fn new(array: A, items: T) -> Self {
-        Self { array, items }
-    }
-
-    #[must_use]
-    pub const fn array(&self) -> &A {
-        &self.array
-    }
-
-    #[must_use]
-    pub const fn items(&self) -> &T {
-        &self.items
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::types::schema::tests::{check, check_invalid_json};
+    use crate::types::schema::tests::{check, check_invalid_json, StringTypeStruct};
 
-    mod untyped {
-        use super::*;
-
-        #[test]
-        fn unconstrained() -> Result<(), serde_json::Error> {
-            check(
-                &Array::default(),
-                json!({
-                    "type": "array",
-                }),
-            )
-        }
-
-        #[test]
-        fn constrained() -> Result<(), serde_json::Error> {
-            check(
-                &Array::new(Some(10), None),
-                json!({
-                    "type": "array",
-                    "minItems": 10,
-                }),
-            )?;
-
-            check(
-                &Array::new(None, Some(20)),
-                json!({
-                    "type": "array",
-                    "maxItems": 20,
-                }),
-            )?;
-
-            check(
-                &Array::new(Some(10), Some(20)),
-                json!({
-                    "type": "array",
-                    "minItems": 10,
-                    "maxItems": 20,
-                }),
-            )?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn additional_properties() {
-            check_invalid_json::<Array>(json!({
+    #[test]
+    fn unconstrained() -> Result<(), serde_json::Error> {
+        check(
+            &Array::new(StringTypeStruct::default(), None, None),
+            json!({
                 "type": "array",
-                "minItems": 10,
-                "maxItems": 20,
-                "additional": 30,
-            }));
-        }
+                "items": {
+                    "type": "string"
+                },
+            }),
+        )
     }
 
-    mod typed {
-        use super::*;
-        use crate::types::schema::tests::StringTypeStruct;
-
-        #[test]
-        fn unconstrained() -> Result<(), serde_json::Error> {
-            check(
-                &Itemized::new(Array::default(), StringTypeStruct::default()),
-                json!({
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                }),
-            )
-        }
-
-        #[test]
-        fn constrained() -> Result<(), serde_json::Error> {
-            check(
-                &Itemized::new(Array::new(Some(10), Some(20)), StringTypeStruct::default()),
-                json!({
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "minItems": 10,
-                    "maxItems": 20,
-                }),
-            )
-        }
-
-        #[test]
-        fn additional_properties() {
-            check_invalid_json::<Itemized<Array, String>>(json!({
+    #[test]
+    fn constrained() -> Result<(), serde_json::Error> {
+        check(
+            &Array::new(StringTypeStruct::default(), Some(10), Some(20)),
+            json!({
                 "type": "array",
                 "items": {
                     "type": "string"
                 },
                 "minItems": 10,
                 "maxItems": 20,
-                "additional": 30,
-            }));
-        }
+            }),
+        )
+    }
+
+    #[test]
+    fn additional_properties() {
+        check_invalid_json::<Array<StringTypeStruct>>(json!({
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "minItems": 10,
+            "maxItems": 20,
+            "additional": 30,
+        }));
     }
 }

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{
     schema::{
-        array::{Array, Itemized},
+        array::Array,
         combinator::OneOf,
         data_type::DataTypeReference,
         object::{Object, ValidateUri},
@@ -52,7 +52,7 @@ impl ValidateUri for PropertyTypeReference {
 #[serde(untagged, deny_unknown_fields)]
 pub enum ValueOrArray<T> {
     Value(T),
-    Array(Itemized<Array, T>),
+    Array(Array<T>),
 }
 
 impl<T: ValidateUri> ValidateUri for ValueOrArray<T> {
@@ -70,7 +70,7 @@ impl<T: ValidateUri> ValidateUri for ValueOrArray<T> {
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
     PropertyTypeObject(Object<ValueOrArray<PropertyTypeReference>, 1>),
-    ArrayOfPropertyValues(Itemized<Array, OneOf<Self>>),
+    ArrayOfPropertyValues(Array<OneOf<Self>>),
 }
 
 impl PropertyValues {
@@ -358,7 +358,7 @@ mod tests {
         #[test]
         fn array() -> Result<(), serde_json::Error> {
             check(
-                &ValueOrArray::Array(Itemized::new(Array::default(), StringTypeStruct::default())),
+                &ValueOrArray::Array(Array::new(StringTypeStruct::default(), None, None)),
                 json!({
                     "type": "array",
                     "items": {
