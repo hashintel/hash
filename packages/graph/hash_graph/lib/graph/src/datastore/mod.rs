@@ -12,7 +12,7 @@ pub use self::{
 };
 use crate::types::{
     schema::{DataType, EntityType, PropertyType},
-    AccountId, Qualified, VersionId, VersionedUri,
+    AccountId, Qualified, VersionId,
 };
 
 #[derive(Debug)]
