@@ -3,7 +3,7 @@ mod database_type;
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde::{de::DeserializeOwned, Serialize};
-use sqlx::{Executor, PgPool, Postgres};
+use sqlx::{Executor, PgPool, Postgres, Row, Transaction};
 use uuid::Uuid;
 
 use crate::{
@@ -48,20 +48,27 @@ impl PostgresDatabase {
     /// - [`DatastoreError`], if checking for the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
-    async fn contains_base_uri<'e, E>(executor: E, base_uri: &BaseUri) -> Result<bool, QueryError>
-    where
-        E: Executor<'e, Database = Postgres>,
-    {
-        let (exists,) =
-            sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM base_uris WHERE base_uri = $1);"#)
-                .bind(base_uri)
-                .fetch_one(executor)
-                .await
-                .report()
-                .change_context(QueryError)
-                .attach_printable_lazy(|| base_uri.clone())?;
-
-        Ok(exists)
+    async fn contains_base_uri(
+        transaction: &mut Transaction<'_, Postgres>,
+        base_uri: &BaseUri,
+    ) -> Result<bool, QueryError> {
+        Ok(transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                        SELECT EXISTS(
+                            SELECT 1
+                            FROM base_uris
+                            WHERE base_uri = $1
+                        );"#,
+                )
+                .bind(base_uri),
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable_lazy(|| base_uri.clone())?
+            .get(0))
     }
 
     /// Checks if the specified [`VersionedUri`] exists in the database.
@@ -69,22 +76,28 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if checking for the [`VersionedUri`] failed.
-    async fn contains_uri<'e, E>(executor: E, uri: &VersionedUri) -> Result<bool, QueryError>
-    where
-        E: Executor<'e, Database = Postgres>,
-    {
-        let (exists,) = sqlx::query_as(
-            r#"SELECT EXISTS(SELECT 1 FROM ids WHERE base_uri = $1 AND version = $2);"#,
-        )
-        .bind(uri.base_uri())
-        .bind(i64::from(uri.version()))
-        .fetch_one(executor)
-        .await
-        .report()
-        .change_context(QueryError)
-        .attach_printable_lazy(|| uri.clone())?;
-
-        Ok(exists)
+    async fn contains_uri(
+        transaction: &mut Transaction<'_, Postgres>,
+        uri: &VersionedUri,
+    ) -> Result<bool, QueryError> {
+        Ok(transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                        SELECT EXISTS(
+                            SELECT 1
+                            FROM ids
+                            WHERE base_uri = $1 AND version = $2
+                        );"#,
+                )
+                .bind(uri.base_uri())
+                .bind(i64::from(uri.version())),
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable_lazy(|| uri.clone())?
+            .get(0))
     }
 
     /// Inserts the specified [`VersionedUri`] into the database.
@@ -92,29 +105,28 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`VersionedUri`] failed.
-    async fn insert_uri<'e, E>(
-        executor: E,
+    async fn insert_uri(
+        transaction: &mut Transaction<'_, Postgres>,
         uri: &VersionedUri,
         version_id: VersionId,
-    ) -> Result<(), InsertionError>
-    where
-        E: Executor<'e, Database = Postgres>,
-    {
-        let _version_id: (VersionId,) = sqlx::query_as(
-            r#"
-            INSERT INTO ids (base_uri, version, version_id)
-            VALUES ($1, $2, $3)
-            RETURNING version_id;
-            "#,
-        )
-        .bind(uri.base_uri())
-        .bind(i64::from(uri.version()))
-        .bind(version_id)
-        .fetch_one(executor)
-        .await
-        .report()
-        .change_context(InsertionError)
-        .attach_printable_lazy(|| uri.clone())?;
+    ) -> Result<(), InsertionError> {
+        transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    INSERT INTO ids (base_uri, version, version_id)
+                    VALUES ($1, $2, $3)
+                    RETURNING version_id;
+                    "#,
+                )
+                .bind(uri.base_uri())
+                .bind(i64::from(uri.version()))
+                .bind(version_id),
+            )
+            .await
+            .report()
+            .change_context(InsertionError)
+            .attach_printable_lazy(|| uri.clone())?;
 
         Ok(())
     }
@@ -126,23 +138,25 @@ impl PostgresDatabase {
     /// - [`DatastoreError`], if inserting the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
-    async fn insert_base_uri<'e, E>(executor: E, base_uri: &BaseUri) -> Result<(), InsertionError>
-    where
-        E: Executor<'e, Database = Postgres>,
-    {
-        let _base_uri: (BaseUri,) = sqlx::query_as(
-            r#"
-            INSERT INTO base_uris (base_uri) 
-            VALUES ($1)
-            RETURNING base_uri;
-            "#,
-        )
-        .bind(base_uri)
-        .fetch_one(executor)
-        .await
-        .report()
-        .change_context(InsertionError)
-        .attach_printable_lazy(|| base_uri.clone())?;
+    async fn insert_base_uri(
+        transaction: &mut Transaction<'_, Postgres>,
+        base_uri: &BaseUri,
+    ) -> Result<(), InsertionError> {
+        transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    INSERT INTO base_uris (base_uri) 
+                    VALUES ($1)
+                    RETURNING base_uri;
+                    "#,
+                )
+                .bind(base_uri),
+            )
+            .await
+            .report()
+            .change_context(InsertionError)
+            .attach_printable_lazy(|| base_uri.clone())?;
 
         Ok(())
     }
@@ -152,26 +166,25 @@ impl PostgresDatabase {
     /// # Errors
     ///
     /// - [`DatastoreError`], if inserting the [`VersionId`] failed.
-    async fn insert_version_id<'e, E>(
-        executor: E,
+    async fn insert_version_id(
+        transaction: &mut Transaction<'_, Postgres>,
         version_id: VersionId,
-    ) -> Result<(), InsertionError>
-    where
-        E: Executor<'e, Database = Postgres>,
-    {
-        let _version_id: (VersionId,) = sqlx::query_as(
-            r#"
-            INSERT INTO version_ids (version_id) 
-            VALUES ($1)
-            RETURNING version_id;
-            "#,
-        )
-        .bind(version_id)
-        .fetch_one(executor)
-        .await
-        .report()
-        .change_context(InsertionError)
-        .attach_printable(version_id)?;
+    ) -> Result<(), InsertionError> {
+        transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    INSERT INTO version_ids (version_id) 
+                    VALUES ($1)
+                    RETURNING version_id;
+                    "#,
+                )
+                .bind(version_id),
+            )
+            .await
+            .report()
+            .change_context(InsertionError)
+            .attach_printable(version_id)?;
 
         Ok(())
     }
@@ -188,7 +201,7 @@ impl PostgresDatabase {
     ///
     /// [`BaseUri`]: crate::types::BaseUri
     async fn create<T>(
-        &self,
+        transaction: &mut Transaction<'_, Postgres>,
         database_type: T,
         created_by: AccountId,
     ) -> Result<Qualified<T>, InsertionError>
@@ -197,14 +210,7 @@ impl PostgresDatabase {
     {
         let uri = database_type.uri();
 
-        let mut transaction = self
-            .pool
-            .begin()
-            .await
-            .report()
-            .change_context(InsertionError)?;
-
-        if Self::contains_base_uri(&mut transaction, uri.base_uri())
+        if Self::contains_base_uri(transaction, uri.base_uri())
             .await
             .change_context(InsertionError)?
         {
@@ -213,9 +219,9 @@ impl PostgresDatabase {
                 .change_context(InsertionError));
         }
 
-        Self::insert_base_uri(&mut transaction, uri.base_uri()).await?;
+        Self::insert_base_uri(transaction, uri.base_uri()).await?;
 
-        if Self::contains_uri(&mut transaction, uri)
+        if Self::contains_uri(transaction, uri)
             .await
             .change_context(InsertionError)?
         {
@@ -225,15 +231,9 @@ impl PostgresDatabase {
         }
 
         let version_id = VersionId::new(Uuid::new_v4());
-        Self::insert_version_id(&mut transaction, version_id).await?;
-        Self::insert_uri(&mut transaction, uri, version_id).await?;
-        Self::insert_with_id(&mut transaction, version_id, &database_type, created_by).await?;
-
-        transaction
-            .commit()
-            .await
-            .report()
-            .change_context(InsertionError)?;
+        Self::insert_version_id(transaction, version_id).await?;
+        Self::insert_uri(transaction, uri, version_id).await?;
+        Self::insert_with_id(transaction, version_id, &database_type, created_by).await?;
 
         Ok(Qualified::new(version_id, database_type, created_by))
     }
@@ -249,7 +249,7 @@ impl PostgresDatabase {
     ///
     /// [`BaseUri`]: crate::types::BaseUri
     async fn update<T>(
-        &self,
+        transaction: &mut Transaction<'_, Postgres>,
         database_type: T,
         updated_by: AccountId,
     ) -> Result<Qualified<T>, UpdateError>
@@ -258,14 +258,7 @@ impl PostgresDatabase {
     {
         let uri = database_type.uri();
 
-        let mut transaction = self
-            .pool
-            .begin()
-            .await
-            .report()
-            .change_context(UpdateError)?;
-
-        if !Self::contains_base_uri(&mut transaction, uri.base_uri())
+        if !Self::contains_base_uri(transaction, uri.base_uri())
             .await
             .change_context(UpdateError)?
         {
@@ -275,20 +268,14 @@ impl PostgresDatabase {
         }
 
         let version_id = VersionId::new(Uuid::new_v4());
-        Self::insert_version_id(&mut transaction, version_id)
+        Self::insert_version_id(transaction, version_id)
             .await
             .change_context(UpdateError)?;
-        Self::insert_uri(&mut transaction, uri, version_id)
+        Self::insert_uri(transaction, uri, version_id)
             .await
             .change_context(UpdateError)?;
-        Self::insert_with_id(&mut transaction, version_id, &database_type, updated_by)
+        Self::insert_with_id(transaction, version_id, &database_type, updated_by)
             .await
-            .change_context(UpdateError)?;
-
-        transaction
-            .commit()
-            .await
-            .report()
             .change_context(UpdateError)?;
 
         Ok(Qualified::new(version_id, database_type, updated_by))
@@ -467,7 +454,22 @@ impl Datastore for PostgresDatabase {
         data_type: DataType,
         created_by: AccountId,
     ) -> Result<Qualified<DataType>, InsertionError> {
-        self.create(data_type, created_by).await
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        let qualified = Self::create(&mut transaction, data_type, created_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        Ok(qualified)
     }
 
     async fn get_data_type(
@@ -482,7 +484,22 @@ impl Datastore for PostgresDatabase {
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Qualified<DataType>, UpdateError> {
-        self.update(data_type, updated_by).await
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        let qualified = Self::update(&mut transaction, data_type, updated_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        Ok(qualified)
     }
 
     async fn create_property_type(
@@ -495,7 +512,23 @@ impl Datastore for PostgresDatabase {
             .change_context(InsertionError)
             .attach_printable("Could not insert references for property type")
             .attach_lazy(|| property_type.clone())?;
-        self.create(property_type, created_by).await
+
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        let qualified = Self::create(&mut transaction, property_type, created_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        Ok(qualified)
     }
 
     async fn get_property_type(
@@ -515,7 +548,23 @@ impl Datastore for PostgresDatabase {
             .change_context(UpdateError)
             .attach_printable("Could not insert references for property type")
             .attach_lazy(|| property_type.clone())?;
-        self.update(property_type, updated_by).await
+
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        let qualified = Self::update(&mut transaction, property_type, updated_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        Ok(qualified)
     }
 
     async fn create_entity_type(
@@ -528,7 +577,23 @@ impl Datastore for PostgresDatabase {
             .change_context(InsertionError)
             .attach_printable("Could not insert references for entity type")
             .attach_lazy(|| entity_type.clone())?;
-        self.create(entity_type, created_by).await
+
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        let qualified = Self::create(&mut transaction, entity_type, created_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        Ok(qualified)
     }
 
     async fn get_entity_type(
@@ -548,7 +613,23 @@ impl Datastore for PostgresDatabase {
             .change_context(UpdateError)
             .attach_printable("Could not insert references for entity type")
             .attach_lazy(|| entity_type.clone())?;
-        self.update(entity_type, updated_by).await
+
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        let qualified = Self::update(&mut transaction, entity_type, updated_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        Ok(qualified)
     }
 
     async fn create_entity() -> Result<(), InsertionError> {
