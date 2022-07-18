@@ -9,9 +9,14 @@
     }
   },
   "links": {
-    "https://blockprotocol.org/@alice/types/property-type/written-by/v/1": {},
-    "https://blockprotocol.org/@alice/types/property-type/contains/v/1": {
+    "https://blockprotocol.org/@alice/types/link-type/written-by/v/1": {
+      "$ref": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+    },
+    "https://blockprotocol.org/@alice/types/link-type/contains/v/1": {
       "type": "array",
+      "items": {
+        "$ref": "https://hash.ai/@hash/types/entity-type/block/v/1"
+      },
       "ordered": true
     }
   }
