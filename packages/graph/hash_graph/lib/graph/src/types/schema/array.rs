@@ -65,23 +65,31 @@ impl<A, T> Itemized<A, T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct MaybeOrdered<A> {
+#[serde(rename_all = "camelCase")]
+pub struct MaybeOrderedItemizedArray<T> {
     #[serde(flatten)]
-    array: A,
+    array: Itemized<Array, T>,
     // By default, this will not be ordered.
     #[serde(default)]
     ordered: bool,
 }
 
-impl<A> MaybeOrdered<A> {
+impl<T> MaybeOrderedItemizedArray<T> {
     #[must_use]
-    pub const fn new(array: A, ordered: bool) -> Self {
-        Self { array, ordered }
+    pub const fn new(
+        items: T,
+        ordered: bool,
+        min_items: Option<usize>,
+        max_items: Option<usize>,
+    ) -> Self {
+        Self {
+            array: Itemized::new(Array::new(min_items, max_items), items),
+            ordered,
+        }
     }
 
     #[must_use]
-    pub const fn array(&self) -> &A {
+    pub const fn array(&self) -> &Itemized<Array, T> {
         &self.array
     }
 
@@ -197,17 +205,19 @@ mod tests {
         #[test]
         fn unordered() -> Result<(), serde_json::Error> {
             check(
-                &MaybeOrdered::new(Array::default(), false),
+                &MaybeOrderedItemizedArray::new("string".to_owned(), false, None, None),
                 json!({
                     "type": "array",
+                    "items": "string",
                     "ordered": false,
                 }),
             )?;
 
             check_deserialization(
-                &MaybeOrdered::new(Array::default(), false),
+                &MaybeOrderedItemizedArray::new("string".to_owned(), false, None, None),
                 json!({
-                    "type": "array"
+                    "type": "array",
+                    "items": "string"
                 }),
             )?;
 
@@ -217,9 +227,10 @@ mod tests {
         #[test]
         fn ordered() -> Result<(), serde_json::Error> {
             check(
-                &MaybeOrdered::new(Array::default(), true),
+                &MaybeOrderedItemizedArray::new("string".to_owned(), true, None, None),
                 json!({
                     "type": "array",
+                    "items": "string",
                     "ordered": true
                 }),
             )
@@ -228,9 +239,10 @@ mod tests {
         #[test]
         fn constrained() -> Result<(), serde_json::Error> {
             check(
-                &MaybeOrdered::new(Array::new(Some(10), Some(20)), false),
+                &MaybeOrderedItemizedArray::new("string".to_owned(), false, Some(10), Some(20)),
                 json!({
                     "type": "array",
+                    "items": "string",
                     "ordered": false,
                     "minItems": 10,
                     "maxItems": 20,
@@ -240,7 +252,7 @@ mod tests {
 
         #[test]
         fn additional_properties() {
-            check_invalid_json::<MaybeOrdered<Array>>(json!({
+            check_invalid_json::<MaybeOrderedItemizedArray<Array>>(json!({
                 "type": "array",
                 "ordered": false,
                 "minItems": 10,

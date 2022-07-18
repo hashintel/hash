@@ -4,19 +4,37 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{
     schema::{
-        array::{Array, MaybeOrdered},
-        combinator::Optional,
+        array::MaybeOrderedItemizedArray, entity_type::EntityTypeReference, object::ValidateUri,
         ValidationError,
     },
-    VersionedUri,
+    BaseUri, VersionedUri,
 };
+
+// TODO: Temporary solution, we can't use the `ValueOrArray` combinator
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged, deny_unknown_fields)]
+pub enum ValueOrMaybeOrderedArray<T> {
+    Value(T),
+    Array(MaybeOrderedItemizedArray<T>),
+}
+
+impl<T: ValidateUri> ValidateUri for ValueOrMaybeOrderedArray<T> {
+    fn validate_uri(&self, base_uri: &BaseUri) -> error_stack::Result<(), ValidationError> {
+        match self {
+            Self::Value(value) => value.validate_uri(base_uri),
+            Self::Array(array) => array.array().items().validate_uri(base_uri),
+        }
+    }
+}
 
 /// Intermediate representation used during deserialization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LinksRepr {
+    // TODO - Update the value definition once we fix Forking Hell and decide on something beyond
+    //  EntityTypeReferences
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
+    links: HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     required_links: Vec<VersionedUri>,
 }
@@ -45,7 +63,7 @@ impl Links {
     /// Creates a new `Links` without validating.
     #[must_use]
     pub const fn new_unchecked(
-        links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
+        links: HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>>,
         required: Vec<VersionedUri>,
     ) -> Self {
         Self {
@@ -62,7 +80,7 @@ impl Links {
     ///
     /// - [`ValidationError::MissingRequiredLink`] if a required link is not a key in `links`.
     pub fn new(
-        links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
+        links: HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>>,
         required: Vec<VersionedUri>,
     ) -> Result<Self, ValidationError> {
         let entity_type = Self::new_unchecked(links, required);
@@ -80,7 +98,9 @@ impl Links {
     }
 
     #[must_use]
-    pub const fn links(&self) -> &HashMap<VersionedUri, Optional<MaybeOrdered<Array>>> {
+    pub const fn links(
+        &self,
+    ) -> &HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>> {
         &self.repr.links
     }
 

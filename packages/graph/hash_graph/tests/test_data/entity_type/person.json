@@ -9,8 +9,11 @@
     }
   },
   "links": {
-    "https://blockprotocol.org/@alice/types/property-type/friend-of/v/1": {
+    "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1": {
       "type": "array",
+      "items": {
+        "$ref": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+      },
       "ordered": false
     }
   }
