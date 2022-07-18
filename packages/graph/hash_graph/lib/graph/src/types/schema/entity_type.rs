@@ -206,7 +206,7 @@ mod tests {
     #[test]
     fn book() {
         let entity_type = test_entity_type_schema(
-            &serde_json::from_str(crate::test_data::entity_type::BOOK_V2).expect("invalid JSON"),
+            &serde_json::from_str(crate::test_data::entity_type::BOOK_V1).expect("invalid JSON"),
         );
 
         test_property_refs(&entity_type, [
@@ -311,7 +311,7 @@ mod tests {
     #[test]
     fn page() {
         let entity_type = test_entity_type_schema(
-            &serde_json::from_str(crate::test_data::entity_type::PAGE_V1).expect("invalid JSON"),
+            &serde_json::from_str(crate::test_data::entity_type::PAGE_V2).expect("invalid JSON"),
         );
 
         test_property_refs(&entity_type, [
