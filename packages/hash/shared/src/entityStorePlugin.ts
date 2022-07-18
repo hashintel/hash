@@ -123,6 +123,8 @@ export const entityStorePluginStateFromTransaction = (
  * session. Pass 'null' if the entity is new and the entityId is not available.
  * Do NOT change the entity's draftId mid-session - leave it as fake. If you
  * need to recall the entity's draftId, use mustGetDraftEntityForEntityId
+ *
+ * @todo should maybe always be random to handle a block being present twice
  */
 export const createDraftIdForEntity = (entityId: string | null) =>
   entityId ? `draft-${entityId}` : `fake-${uuid()}`;

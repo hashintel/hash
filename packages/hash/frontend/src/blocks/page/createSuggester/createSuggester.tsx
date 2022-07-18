@@ -1,6 +1,6 @@
 import type { BlockVariant } from "@blockprotocol/core";
 import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
-import { isComponentNode } from "@hashintel/hash-shared/prosemirror";
+import { findComponentNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import {
@@ -10,7 +10,6 @@ import {
   TextSelection,
 } from "prosemirror-state";
 import React, { CSSProperties } from "react";
-import { loadBlockComponent } from "../../../components/RemoteBlock/useRemoteBlock";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../usePortals";
 import { BlockSuggester } from "./BlockSuggester";
@@ -73,7 +72,10 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   };
 };
 
-type SuggesterAction = { type: "escape" };
+export type SuggesterAction =
+  | { type: "escape" }
+  | { type: "key" }
+  | { type: "autoselect"; payload: { position: number | null } };
 
 interface SuggesterState {
   /** whether or not the suggester is disabled */
@@ -82,13 +84,17 @@ interface SuggesterState {
   trigger: Trigger | null;
   /** whether or not the suggester is currently open */
   isOpen(): boolean;
+
+  autoselectingPosition: number | null;
 }
 
 /**
  * used to tag the suggester plugin/make it a singleton
  * @see https://prosemirror.net/docs/ref/#state.PluginKey
  */
-const key = new PluginKey<SuggesterState, Schema>("suggester");
+export const suggesterPluginKey = new PluginKey<SuggesterState, Schema>(
+  "suggester",
+);
 
 /**
  * Suggester plugin factory
@@ -107,11 +113,12 @@ export const createSuggester = (
   accountId: string,
 ) =>
   new Plugin<SuggesterState, Schema>({
-    key,
+    key: suggesterPluginKey,
     state: {
       init() {
         return {
           trigger: null,
+          autoselectingPosition: null,
           disabled: false,
           isOpen() {
             return this.trigger !== null && !this.disabled;
@@ -120,23 +127,38 @@ export const createSuggester = (
       },
       /** produces a new state from the old state and incoming transactions (cf. reducer) */
       apply(tr, state, _prevEditorState, nextEditorState) {
-        const action: SuggesterAction | undefined = tr.getMeta(key);
+        const action: SuggesterAction | undefined =
+          tr.getMeta(suggesterPluginKey);
 
         switch (action?.type) {
           case "escape":
-            return { ...state, disabled: true };
+            return { ...state, disabled: true, autoselectingPosition: null };
+
+          case "key":
+            return { ...state, autoselectingPosition: null };
+
+          case "autoselect":
+            return { ...state, autoselectingPosition: action.payload.position };
         }
 
+        const autoselectingPosition =
+          state.autoselectingPosition === null
+            ? null
+            : tr.mapping.map(state.autoselectingPosition);
         const trigger = findTrigger(nextEditorState);
         const disabled = state.disabled && trigger !== null;
 
-        return { ...state, trigger, disabled };
+        return { ...state, trigger, disabled, autoselectingPosition };
       },
     },
     props: {
       /** cannot use EditorProps.handleKeyDown because it doesn't capture all keys (notably Enter) */
       handleDOMEvents: {
         keydown(view, event) {
+          view.dispatch(
+            view.state.tr.setMeta(suggesterPluginKey, { type: "key" }),
+          );
+
           switch (event.key) {
             // stop prosemirror from handling these keyboard events while the suggester handles them
             case "Enter":
@@ -144,7 +166,9 @@ export const createSuggester = (
             case "ArrowDown":
               return this.getState(view.state).isOpen();
             case "Escape":
-              view.dispatch(view.state.tr.setMeta(key, { type: "escape" }));
+              view.dispatch(
+                view.state.tr.setMeta(suggesterPluginKey, { type: "escape" }),
+              );
               return false;
             default:
               return false;
@@ -157,7 +181,7 @@ export const createSuggester = (
 
       return {
         update(view) {
-          const state = key.getState(view.state)!;
+          const state = suggesterPluginKey.getState(view.state)!;
 
           if (!state.isOpen()) return this.destroy!();
 
@@ -179,60 +203,41 @@ export const createSuggester = (
             variant: BlockVariant,
             blockMeta: BlockConfig,
           ) => {
-            Promise.all([
-              getManager().createRemoteBlockTr(
-                blockMeta.componentId,
-                null,
-                variant,
-              ),
-              // Ensure the code is loaded into memory – which we need for
-              // cursor management
-              loadBlockComponent(blockMeta.source),
-            ])
-              .then(([[tr, node]]) => {
-                const endPosition = view.state.doc.resolve(to).pos;
-                tr.insert(endPosition, node);
+            getManager()
+              // @todo merge this
+              .createRemoteBlockTr(blockMeta.componentId, null, variant)
+              .then(([tr, node]) => {
+                tr.insert(to, node);
                 tr.replaceWith(from, to, []);
 
-                const nodePosition = tr.mapping.map(endPosition + 1);
+                const insertedBlockPosition = tr.doc
+                  .resolve(tr.mapping.map(from))
+                  .after(1);
+
+                const containingNode = tr.doc.nodeAt(insertedBlockPosition);
+
+                if (!containingNode) {
+                  throw new Error("Cannot find inserted node in transaction");
+                }
+
+                const insertedComponentPosition = findComponentNode(
+                  containingNode,
+                  insertedBlockPosition,
+                )?.[1];
+
+                if (typeof insertedComponentPosition !== "number") {
+                  throw new Error(
+                    "Cannot find inserted component node position in transaction",
+                  );
+                }
+
+                // @todo need to expire this
+                tr.setMeta(suggesterPluginKey, {
+                  type: "autoselect",
+                  payload: { position: insertedComponentPosition },
+                } as SuggesterAction);
 
                 view.dispatch(tr);
-
-                setImmediate(() => {
-                  const $pos = view.state.doc.resolve(nodePosition - 1);
-
-                  if ($pos) {
-                    $pos.node().descendants((child, offset) => {
-                      if (isComponentNode(child)) {
-                        const position = $pos.start() + offset;
-                        const dom: HTMLElement | null = view.nodeDOM(
-                          position,
-                        ) as any;
-
-                        if (dom) {
-                          setTimeout(() => {
-                            if (dom.contentEditable !== "false") {
-                              view.dispatch(
-                                view.state.tr.setSelection(
-                                  TextSelection.create<Schema>(
-                                    view.state.doc,
-                                    position,
-                                  ),
-                                ),
-                              );
-                            }
-                          }, 10);
-                        }
-
-                        return false;
-                      }
-                    });
-                  }
-
-                  // tr.setSelection(
-                  //   TextSelection.create<Schema>(tr.doc, endPosition + 1),
-                  // );
-                });
               })
               .catch((err) => {
                 // eslint-disable-next-line no-console -- TODO: consider using logger

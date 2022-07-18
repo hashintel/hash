@@ -15,9 +15,14 @@ import {
 } from "@hashintel/hash-shared/prosemirror";
 import * as Sentry from "@sentry/nextjs";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
+import {
+  SuggesterAction,
+  suggesterPluginKey,
+} from "./createSuggester/createSuggester";
 import { RenderPortal } from "./usePortals";
 
 /**
@@ -169,7 +174,16 @@ export class ComponentView implements NodeView<Schema> {
     }
   }
 
-  editableRef = (editableNode: HTMLElement) => {
+  editableRef = (editableNode: HTMLElement | null) => {
+    const nodeSelected =
+      suggesterPluginKey.getState(this.editorView.state)
+        ?.autoselectingPosition === this.getPos();
+
+    const tr = this.editorView.state.tr.setMeta(suggesterPluginKey, {
+      type: "autoselect",
+      payload: { position: null },
+    } as SuggesterAction);
+
     if (editableNode) {
       if (!editableNode.contains(this.contentDOM)) {
         editableNode.appendChild(this.contentDOM);
@@ -178,8 +192,14 @@ export class ComponentView implements NodeView<Schema> {
 
       this.dom.removeAttribute("contentEditable");
       this.editable = true;
+
+      tr.setSelection(TextSelection.create<Schema>(tr.doc, this.getPos()));
     } else {
       this.destroyEditableRef();
+    }
+
+    if (nodeSelected) {
+      this.editorView.dispatch(tr);
     }
   };
 
