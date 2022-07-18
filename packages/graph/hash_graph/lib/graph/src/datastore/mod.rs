@@ -12,7 +12,7 @@ pub use self::{
 };
 use crate::types::{
     schema::{DataType, EntityType, PropertyType},
-    AccountId, Qualified, VersionId,
+    AccountId, Qualified, VersionId, VersionedUri,
 };
 
 #[derive(Debug)]
@@ -160,6 +160,13 @@ impl fmt::Display for DatabaseConnectionInfo {
 /// raised depending on the implementation, e.g. connection issues.
 #[async_trait]
 pub trait Datastore: Clone + Send + Sync + 'static {
+    /// Returns the [`VersionId`] mapped from the specified [`VersionedUri`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the entry referred to by `uri` does not exist.
+    async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError>;
+
     /// Creates a new [`DataType`].
     ///
     /// # Errors:

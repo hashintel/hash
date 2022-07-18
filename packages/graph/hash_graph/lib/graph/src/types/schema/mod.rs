@@ -16,7 +16,11 @@ mod property_type;
 use core::fmt;
 
 #[doc(inline)]
-pub use self::{data_type::DataType, entity_type::EntityType, property_type::PropertyType};
+pub use self::{
+    data_type::{DataType, DataTypeReference},
+    entity_type::EntityType,
+    property_type::{PropertyType, PropertyTypeReference},
+};
 use crate::types::{BaseUri, VersionedUri};
 
 #[derive(Debug)]

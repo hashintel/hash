@@ -13,7 +13,7 @@ use crate::{
         DatastoreError, InsertionError, QueryError, UpdateError,
     },
     types::{
-        schema::{DataType, EntityType, PropertyType},
+        schema::{DataType, DataTypeReference, EntityType, PropertyType, PropertyTypeReference},
         AccountId, BaseUri, Qualified, VersionId, VersionedUri,
     },
 };
@@ -370,10 +370,98 @@ impl PostgresDatabase {
             created_by,
         ))
     }
+
+    async fn insert_property_type_references(
+        &self,
+        property_type: &PropertyType,
+    ) -> Result<(), InsertionError> {
+        // TODO: Store this as mapping in `property_type_property_type_references`
+        let _property_type_ids = self
+            .property_type_reference_ids(property_type.property_type_references())
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not find referenced property types")?;
+
+        // TODO: Store this as mapping in `property_type_data_type_references`
+        let _data_type_ids = self
+            .data_type_reference_ids(property_type.data_type_references())
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not find referenced data types")?;
+
+        Ok(())
+    }
+
+    async fn insert_entity_references(
+        &self,
+        entity_type: &EntityType,
+    ) -> Result<(), InsertionError> {
+        // TODO: Store this as mapping in `entity_type_property_types`
+        let _property_type_ids = self
+            .property_type_reference_ids(entity_type.property_type_references())
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not find referenced property types")?;
+
+        // TODO: Store link references
+
+        Ok(())
+    }
+
+    async fn property_type_reference_ids<'p, I>(
+        &self,
+        property_type_references: I,
+    ) -> Result<Vec<VersionId>, QueryError>
+    where
+        I: IntoIterator<Item = &'p PropertyTypeReference> + Send,
+        I::IntoIter: Send,
+    {
+        futures::future::try_join_all(
+            property_type_references
+                .into_iter()
+                .map(|reference| self.version_id_by_uri(reference.uri())),
+        )
+        .await
+    }
+
+    async fn data_type_reference_ids<'p, I>(
+        &self,
+        data_type_references: I,
+    ) -> Result<Vec<VersionId>, QueryError>
+    where
+        I: IntoIterator<Item = &'p DataTypeReference> + Send,
+        I::IntoIter: Send,
+    {
+        futures::future::try_join_all(
+            data_type_references
+                .into_iter()
+                .map(|reference| self.version_id_by_uri(reference.uri())),
+        )
+        .await
+    }
 }
 
 #[async_trait]
 impl Datastore for PostgresDatabase {
+    async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
+        let (version_id,) = sqlx::query_as(
+            r#"
+            SELECT version_id
+            FROM ids
+            WHERE base_uri = $1 AND version = $2;
+            "#,
+        )
+        .bind(uri.base_uri())
+        .bind(i64::from(uri.version()))
+        .fetch_one(&self.pool)
+        .await
+        .report()
+        .change_context(QueryError)
+        .attach_printable_lazy(|| uri.clone())?;
+
+        Ok(version_id)
+    }
+
     async fn create_data_type(
         &self,
         data_type: DataType,
@@ -402,6 +490,11 @@ impl Datastore for PostgresDatabase {
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Qualified<PropertyType>, InsertionError> {
+        self.insert_property_type_references(&property_type)
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not insert references for property type")
+            .attach_lazy(|| property_type.clone())?;
         self.create(property_type, created_by).await
     }
 
@@ -417,6 +510,11 @@ impl Datastore for PostgresDatabase {
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Qualified<PropertyType>, UpdateError> {
+        self.insert_property_type_references(&property_type)
+            .await
+            .change_context(UpdateError)
+            .attach_printable("Could not insert references for property type")
+            .attach_lazy(|| property_type.clone())?;
         self.update(property_type, updated_by).await
     }
 
@@ -425,6 +523,11 @@ impl Datastore for PostgresDatabase {
         entity_type: EntityType,
         created_by: AccountId,
     ) -> Result<Qualified<EntityType>, InsertionError> {
+        self.insert_entity_references(&entity_type)
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not insert references for entity type")
+            .attach_lazy(|| entity_type.clone())?;
         self.create(entity_type, created_by).await
     }
 
@@ -440,6 +543,11 @@ impl Datastore for PostgresDatabase {
         entity_type: EntityType,
         updated_by: AccountId,
     ) -> Result<Qualified<EntityType>, UpdateError> {
+        self.insert_entity_references(&entity_type)
+            .await
+            .change_context(UpdateError)
+            .attach_printable("Could not insert references for entity type")
+            .attach_lazy(|| entity_type.clone())?;
         self.update(entity_type, updated_by).await
     }
 
