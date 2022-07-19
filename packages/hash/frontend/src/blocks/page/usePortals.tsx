@@ -9,7 +9,7 @@ type PortalSet = Map<HTMLElement, BlockPortal>;
 export type RenderPortal = (
   reactNode: React.ReactNode | null,
   node: HTMLElement | null,
-  id: string,
+  id?: string,
 ) => void;
 
 const blankPortals = new Map();
