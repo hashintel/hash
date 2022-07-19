@@ -489,7 +489,7 @@ impl PostgresDatabase {
         Ok(ids)
     }
 
-    /// Returns the [`VersionId`] mapped from the specified [`VersionedUri`].
+    /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
     ///
     /// # Errors:
     ///
