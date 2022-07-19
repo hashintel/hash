@@ -186,10 +186,10 @@ impl EntityType {
     }
 
     #[must_use]
-    pub fn link_references(&self) -> HashMap<&VersionedUri, &EntityTypeReference> {
+    pub fn link_type_references(&self) -> HashMap<&VersionedUri, &EntityTypeReference> {
         self.links()
             .iter()
-            .map(|(link, entity_type)| (link, entity_type.inner()))
+            .map(|(link_type, entity_type)| (link_type, entity_type.inner()))
             .collect()
     }
 }
@@ -211,43 +211,48 @@ mod tests {
         entity_type
     }
 
-    fn test_property_refs(entity_type: &EntityType, uris: impl IntoIterator<Item = &'static str>) {
-        let expected_property_references = uris
+    fn test_property_type_references(
+        entity_type: &EntityType,
+        uris: impl IntoIterator<Item = &'static str>,
+    ) {
+        let expected_property_type_references = uris
             .into_iter()
             .map(|uri| VersionedUri::from_str(uri).expect("Invalid URI"))
             .collect::<HashSet<_>>();
 
-        let property_references = entity_type
+        let property_type_references = entity_type
             .property_type_references()
             .into_iter()
             .map(PropertyTypeReference::uri)
             .cloned()
             .collect::<HashSet<_>>();
 
-        assert_eq!(property_references, expected_property_references);
+        assert_eq!(property_type_references, expected_property_type_references);
     }
 
-    fn test_link_refs(
+    fn test_link_type_references(
         entity_type: &EntityType,
         links: impl IntoIterator<Item = (&'static str, &'static str)>,
     ) {
-        let expected_link_references = links
+        let expected_link_type_references = links
             .into_iter()
-            .map(|(link_uri, entity_type_uri)| {
+            .map(|(link_type_uri, entity_type_uri)| {
                 (
-                    VersionedUri::from_str(link_uri).expect("Invalid URI"),
+                    VersionedUri::from_str(link_type_uri).expect("Invalid URI"),
                     VersionedUri::from_str(entity_type_uri).expect("Invalid URI"),
                 )
             })
             .collect::<HashMap<_, _>>();
 
-        let link_references = entity_type
-            .link_references()
+        let link_type_references = entity_type
+            .link_type_references()
             .into_iter()
-            .map(|(link_uri, entity_type_ref)| (link_uri.clone(), entity_type_ref.uri().clone()))
+            .map(|(link_type_uri, entity_type_ref)| {
+                (link_type_uri.clone(), entity_type_ref.uri().clone())
+            })
             .collect::<HashMap<_, _>>();
 
-        assert_eq!(link_references, expected_link_references);
+        assert_eq!(link_type_references, expected_link_type_references);
     }
 
     #[test]
@@ -256,13 +261,13 @@ mod tests {
             &serde_json::from_str(crate::test_data::entity_type::BOOK_V1).expect("invalid JSON"),
         );
 
-        test_property_refs(&entity_type, [
+        test_property_type_references(&entity_type, [
             "https://blockprotocol.org/@alice/types/property-type/name/v/1",
             "https://blockprotocol.org/@alice/types/property-type/blurb/v/1",
             "https://blockprotocol.org/@alice/types/property-type/published-on/v/1",
         ]);
 
-        test_link_refs(&entity_type, [(
+        test_link_type_references(&entity_type, [(
             "https://blockprotocol.org/@alice/types/link-type/written-by/v/1",
             "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
         )]);
@@ -274,13 +279,13 @@ mod tests {
             &serde_json::from_str(crate::test_data::entity_type::ADDRESS_V1).expect("invalid JSON"),
         );
 
-        test_property_refs(&entity_type, [
+        test_property_type_references(&entity_type, [
             "https://blockprotocol.org/@alice/types/property-type/address-line-1/v/1",
             "https://blockprotocol.org/@alice/types/property-type/postcode/v/1",
             "https://blockprotocol.org/@alice/types/property-type/city/v/1",
         ]);
 
-        test_link_refs(&entity_type, []);
+        test_link_type_references(&entity_type, []);
     }
 
     #[test]
@@ -290,11 +295,11 @@ mod tests {
                 .expect("invalid JSON"),
         );
 
-        test_property_refs(&entity_type, [
+        test_property_type_references(&entity_type, [
             "https://blockprotocol.org/@alice/types/property-type/name/v/1",
         ]);
 
-        test_link_refs(&entity_type, []);
+        test_link_type_references(&entity_type, []);
     }
 
     #[test]
@@ -304,9 +309,9 @@ mod tests {
                 .expect("invalid JSON"),
         );
 
-        test_property_refs(&entity_type, []);
+        test_property_type_references(&entity_type, []);
 
-        test_link_refs(&entity_type, [
+        test_link_type_references(&entity_type, [
             (
                 "https://blockprotocol.org/@alice/types/link-type/located-at/v/1",
                 "https://blockprotocol.org/@alice/types/entity-type/uk-address/v/1",
@@ -324,11 +329,11 @@ mod tests {
             &serde_json::from_str(crate::test_data::entity_type::PERSON_V1).expect("invalid JSON"),
         );
 
-        test_property_refs(&entity_type, [
+        test_property_type_references(&entity_type, [
             "https://blockprotocol.org/@alice/types/property-type/name/v/1",
         ]);
 
-        test_link_refs(&entity_type, [(
+        test_link_type_references(&entity_type, [(
             "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1",
             "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
         )]);
@@ -341,11 +346,11 @@ mod tests {
                 .expect("invalid JSON"),
         );
 
-        test_property_refs(&entity_type, [
+        test_property_type_references(&entity_type, [
             "https://blockprotocol.org/@alice/types/property-type/name/v/1",
         ]);
 
-        test_link_refs(&entity_type, [(
+        test_link_type_references(&entity_type, [(
             "https://blockprotocol.org/@alice/types/link-type/contains/v/1",
             "https://blockprotocol.org/@alice/types/entity-type/song/v/1",
         )]);
@@ -357,11 +362,11 @@ mod tests {
             &serde_json::from_str(crate::test_data::entity_type::SONG_V1).expect("invalid JSON"),
         );
 
-        test_property_refs(&entity_type, [
+        test_property_type_references(&entity_type, [
             "https://blockprotocol.org/@alice/types/property-type/name/v/1",
         ]);
 
-        test_link_refs(&entity_type, []);
+        test_link_type_references(&entity_type, []);
     }
 
     #[test]
@@ -370,11 +375,11 @@ mod tests {
             &serde_json::from_str(crate::test_data::entity_type::PAGE_V2).expect("invalid JSON"),
         );
 
-        test_property_refs(&entity_type, [
+        test_property_type_references(&entity_type, [
             "https://blockprotocol.org/@alice/types/property-type/text/v/1",
         ]);
 
-        test_link_refs(&entity_type, [
+        test_link_type_references(&entity_type, [
             (
                 "https://blockprotocol.org/@alice/types/link-type/written-by/v/1",
                 "https://blockprotocol.org/@alice/types/entity-type/person/v/1",

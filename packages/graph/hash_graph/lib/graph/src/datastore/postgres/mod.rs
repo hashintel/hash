@@ -59,11 +59,11 @@ impl PostgresDatabase {
             .fetch_one(
                 sqlx::query(
                     r#"
-                        SELECT EXISTS(
-                            SELECT 1
-                            FROM base_uris
-                            WHERE base_uri = $1
-                        );"#,
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM base_uris
+                        WHERE base_uri = $1
+                    );"#,
                 )
                 .bind(base_uri),
             )
@@ -87,11 +87,11 @@ impl PostgresDatabase {
             .fetch_one(
                 sqlx::query(
                     r#"
-                        SELECT EXISTS(
-                            SELECT 1
-                            FROM ids
-                            WHERE base_uri = $1 AND version = $2
-                        );"#,
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM ids
+                        WHERE base_uri = $1 AND version = $2
+                    );"#,
                 )
                 .bind(uri.base_uri())
                 .bind(i64::from(uri.version())),
@@ -305,10 +305,10 @@ impl PostgresDatabase {
             .fetch_one(
                 sqlx::query(&format!(
                     r#"
-            INSERT INTO {} (version_id, schema, created_by) 
-            VALUES ($1, $2, $3)
-            RETURNING version_id;
-            "#,
+                    INSERT INTO {} (version_id, schema, created_by) 
+                    VALUES ($1, $2, $3)
+                    RETURNING version_id;
+                    "#,
                     T::table()
                 ))
                 .bind(version_id)
@@ -382,10 +382,10 @@ impl PostgresDatabase {
                 .fetch_one(
                     sqlx::query(
                         r#"
-                    INSERT INTO property_type_property_type_references (source_property_type_version_id, target_property_type_version_id)
-                    VALUES ($1, $2)
-                    RETURNING source_property_type_version_id;
-                    "#,
+                        INSERT INTO property_type_property_type_references (source_property_type_version_id, target_property_type_version_id)
+                        VALUES ($1, $2)
+                        RETURNING source_property_type_version_id;
+                        "#,
                     )
                         .bind(property_type.version_id())
                         .bind(target_id),
@@ -408,10 +408,10 @@ impl PostgresDatabase {
                 .fetch_one(
                     sqlx::query(
                         r#"
-                    INSERT INTO property_type_data_type_references (source_property_type_version_id, target_data_type_version_id)
-                    VALUES ($1, $2)
-                    RETURNING source_property_type_version_id;
-                    "#,
+                        INSERT INTO property_type_data_type_references (source_property_type_version_id, target_data_type_version_id)
+                        VALUES ($1, $2)
+                        RETURNING source_property_type_version_id;
+                        "#,
                     )
                         .bind(property_type.version_id())
                         .bind(target_id),
@@ -441,10 +441,10 @@ impl PostgresDatabase {
                 .fetch_one(
                     sqlx::query(
                         r#"
-                            INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
-                            VALUES ($1, $2)
-                            RETURNING source_entity_type_version_id;
-                            "#,
+                        INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
+                        VALUES ($1, $2)
+                        RETURNING source_entity_type_version_id;
+                        "#,
                     )
                         .bind(entity_type.version_id())
                         .bind(target_id),
@@ -457,9 +457,9 @@ impl PostgresDatabase {
         // FIXME: Without `collect` we get a weird lifetime error
         let entity_type_references = entity_type
             .inner()
-            .link_references()
+            .link_type_references()
             .into_iter()
-            .map(|(_link_type_uri, entity_type_uri)| entity_type_uri)
+            .map(|(_link_type_uri, entity_type_reference)| entity_type_reference)
             .collect::<Vec<_>>();
 
         // TODO: Store references in the database
@@ -467,7 +467,7 @@ impl PostgresDatabase {
             Self::entity_type_reference_ids(transaction, entity_type_references)
                 .await
                 .change_context(InsertionError)
-                .attach_printable("Could not find referenced entities")?;
+                .attach_printable("Could not find referenced entity types")?;
 
         Ok(())
     }
@@ -533,10 +533,10 @@ impl PostgresDatabase {
             .fetch_one(
                 sqlx::query(
                     r#"
-            SELECT version_id
-            FROM ids
-            WHERE base_uri = $1 AND version = $2;
-            "#,
+                    SELECT version_id
+                    FROM ids
+                    WHERE base_uri = $1 AND version = $2;
+                    "#,
                 )
                 .bind(uri.base_uri())
                 .bind(i64::from(uri.version())),
