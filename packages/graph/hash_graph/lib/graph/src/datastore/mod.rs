@@ -160,7 +160,7 @@ impl fmt::Display for DatabaseConnectionInfo {
 /// raised depending on the implementation, e.g. connection issues.
 #[async_trait]
 pub trait Datastore: Clone + Send + Sync + 'static {
-    /// Returns the [`VersionId`] mapped from the specified [`VersionedUri`].
+    /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
     ///
     /// # Errors:
     ///
