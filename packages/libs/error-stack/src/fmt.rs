@@ -332,12 +332,17 @@ mod hook {
 
     use crate::Frame;
 
-    struct Context {
+    struct AnyContext {
         defer: Vec<Vec<String>>,
         inner: HashMap<TypeId, Box<dyn Any>>,
     }
 
-    impl Context {
+    struct Context<'a, T> {
+        parent: &'a mut AnyContext,
+        _marker: PhantomData<T>,
+    }
+
+    impl<T> Context<T> {
         pub fn defer(&mut self, value: String) {
             self.0.push(value.split('\n').collect());
         }
@@ -345,40 +350,42 @@ mod hook {
         pub fn defer_lines<L: IntoIterator<Item = String>>(&mut self, lines: L) {
             self.0.push(lines.into_iter().collect())
         }
+    }
 
-        fn get<T: 'static, U>(&self) -> Option<&U> {
+    impl<T: 'static> Context<T> {
+        fn get<U>(&self) -> Option<&U> {
             let id = T::type_id();
 
-            let inner = self.inner.get(&id)?;
+            let inner = self.parent.inner.get(&id)?;
             inner.downcast_ref()
         }
 
-        fn get_mut<T: 'static, U>(&mut self) -> Option<&mut U> {
+        fn get_mut<U>(&mut self) -> Option<&mut U> {
             let id = T::type_id();
 
-            let inner = self.inner.get_mut(&id)?;
+            let inner = self.parent.inner.get_mut(&id)?;
             inner.downcast_mut()
         }
 
-        fn insert<T: 'static, U>(&mut self, value: U) -> Option<&U> {
+        fn insert<U>(&mut self, value: U) -> Option<&U> {
             let id = T::type_id();
 
-            let inner = self.inner.insert(id, Box::new(value));
+            let inner = self.parent.inner.insert(id, Box::new(value));
             let inner = inner.as_ref()?;
             inner.downcast_ref()
         }
     }
 
     pub trait Hook<T> {
-        fn call(&self, frame: &T, defer: &mut Context) -> Option<String>;
+        fn call(&self, frame: &T, defer: &mut AnyContext) -> Option<String>;
     }
 
     impl<F, T> Hook<T> for F
     where
-        F: Fn(&T, &mut Context) -> String,
+        F: Fn(&T, &mut Context<T>) -> String,
         T: Send + Sync + 'static,
     {
-        fn call(&self, frame: &T, defer: &mut Context) -> Option<String> {
+        fn call(&self, frame: &T, defer: &mut AnyContext) -> Option<String> {
             Some((self)(frame, defer))
         }
     }
@@ -395,7 +402,7 @@ mod hook {
         T: Send + Sync + 'static,
         R: Hook<Frame>,
     {
-        fn call(&self, frame: &Frame, defer: &mut Context) -> Option<String> {
+        fn call(&self, frame: &Frame, defer: &mut AnyContext) -> Option<String> {
             if let Some(frame) = frame.downcast_ref::<T>() {
                 self.left.call(frame, defer)
             } else {
@@ -405,7 +412,7 @@ mod hook {
     }
 
     impl<T> Hook<T> for () {
-        fn call(&self, _: &T, _: &mut Context) -> Option<String> {
+        fn call(&self, _: &T, _: &mut AnyContext) -> Option<String> {
             None
         }
     }
@@ -420,7 +427,7 @@ mod hook {
         L: Hook<Frame>,
         R: Hook<Frame>,
     {
-        fn call(&self, frame: &Frame, defer: &mut Context) -> Option<String> {
+        fn call(&self, frame: &Frame, defer: &mut AnyContext) -> Option<String> {
             self.left
                 .call(frame, defer)
                 .or_else(|| self.right.call(frame, defer))
@@ -428,7 +435,7 @@ mod hook {
     }
 
     impl Hook<Frame> for Box<dyn Hook<Frame>> {
-        fn call(&self, frame: &Frame, defer: &mut Context) -> Option<String> {
+        fn call(&self, frame: &Frame, defer: &mut AnyContext) -> Option<String> {
             let hook = self.as_ref();
 
             hook.call(frame, defer)
@@ -480,11 +487,51 @@ mod hook {
         #[cfg(all(nightly, feature = "std"))]
         use std::backtrace::Backtrace;
 
-        use crate::fmt::hook::Context;
+        #[cfg(feature = "spantrace")]
+        use tracing_error::SpanTrace;
 
-        fn backtrace(bt: &Backtrace, ctx: &mut Context) -> String {
-            // TODO: context
-            todo!()
+        use crate::fmt::hook::{AnyContext, Context};
+
+        #[cfg(all(nightly, feature = "std"))]
+        fn backtrace(backtrace: &Backtrace, ctx: &mut Context<Backtrace>) -> String {
+            let idx = match ctx.get::<usize>().copied() {
+                None => {
+                    ctx.insert(0);
+                    0
+                }
+                Some(idx) => idx,
+            };
+
+            ctx.defer(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+            ctx.insert(idx + 1);
+
+            format!(
+                "backtrace with {} frames ({})",
+                backtrace.frames().len(),
+                idx + 1
+            )
+        }
+
+        #[cfg(feature = "spantrace")]
+        fn spantrace(spantrace: &SpanTrace, ctx: &mut Context<SpanTrace>) -> String {
+            let idx = match ctx.get::<usize>().copied() {
+                None => {
+                    ctx.insert(0);
+                    0
+                }
+                Some(idx) => idx,
+            };
+
+            let mut span = 0;
+            spantrace.with_spans(|_, _| {
+                span += 1;
+                true
+            });
+
+            ctx.defer(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
+            ctx.insert(idx + 1);
+
+            format!("spantrace with {span} frames ({})", idx + 1)
         }
     }
 }
