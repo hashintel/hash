@@ -1,11 +1,11 @@
 import { Fragment, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Block } from "./usePortals";
+import { BlockPortal } from "./usePortals";
 import { BlockContext } from "./BlockContext";
 
 export interface PortalProps {
   draftId: string;
-  portals: [HTMLElement, Block][];
+  portals: [HTMLElement, BlockPortal][];
 }
 
 export const BlockPortals = ({ draftId, portals }: PortalProps) => {

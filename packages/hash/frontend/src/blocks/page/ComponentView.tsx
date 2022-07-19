@@ -153,13 +153,13 @@ export class ComponentView implements NodeView<Schema> {
                 <ErrorBlock
                   {...props}
                   onRetry={() => {
-                    ctx.setError(false);
+                    ctx?.setError(false);
                     onRetry();
                   }}
                 />
               )}
               onError={() => {
-                ctx.setError(true);
+                ctx?.setError(true);
               }}
             >
               <BlockLoader
