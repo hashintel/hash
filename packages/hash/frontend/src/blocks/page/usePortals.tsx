@@ -60,7 +60,7 @@ export const usePortals = () => {
       return { ...obj, [id]: [...(obj[id] || []), portal] };
     },
     {} as {
-      [id: string]: Array<[HTMLElement, BlockPortal]>;
+      [id: string]: [HTMLElement, BlockPortal][];
     },
   );
 
