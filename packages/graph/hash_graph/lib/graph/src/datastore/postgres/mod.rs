@@ -335,27 +335,30 @@ impl PostgresDatabase {
     {
         // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
         //   module.
-        let (data_type, created_by) = sqlx::query_as(&format!(
-            r#"
-            SELECT "schema", created_by
-            FROM {}
-            WHERE version_id = $1;
-            "#,
-            T::table()
-        ))
-        .bind(version_id)
-        .fetch_one(&self.pool)
-        .await
-        .report()
-        .change_context(QueryError)
-        .attach_printable(version_id)?;
+        let row = self
+            .pool
+            .fetch_one(
+                sqlx::query(&format!(
+                    r#"
+                    SELECT "schema", created_by
+                    FROM {}
+                    WHERE version_id = $1;
+                    "#,
+                    T::table()
+                ))
+                .bind(version_id),
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable(version_id)?;
 
         Ok(Qualified::new(
             version_id,
-            serde_json::from_value(data_type)
+            serde_json::from_value(row.get(0))
                 .report()
                 .change_context(QueryError)?,
-            created_by,
+            row.get(1),
         ))
     }
 
