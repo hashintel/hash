@@ -211,27 +211,37 @@ mod tests {
     fn test_property_refs(entity_type: &EntityType, uris: impl IntoIterator<Item = &'static str>) {
         let expected_property_references = uris
             .into_iter()
-            .map(ToString::to_string)
+            .map(|uri| VersionedUri::from_str(uri).expect("Invalid URI"))
             .collect::<HashSet<_>>();
 
         let property_references = entity_type
             .property_type_references()
             .into_iter()
-            .map(|reference| reference.uri().to_string())
+            .map(PropertyTypeReference::uri)
+            .cloned()
             .collect::<HashSet<_>>();
 
         assert_eq!(property_references, expected_property_references);
     }
 
-    fn test_link_refs(entity_type: &EntityType, links: impl IntoIterator<Item = &'static str>) {
+    fn test_link_refs(
+        entity_type: &EntityType,
+        links: impl IntoIterator<Item = (&'static str, &'static str)>,
+    ) {
         let expected_link_references = links
             .into_iter()
-            .map(|uri| VersionedUri::from_str(uri).expect("Invalid URI"))
+            .map(|(link_uri, entity_uri)| {
+                (
+                    VersionedUri::from_str(link_uri).expect("Invalid URI"),
+                    VersionedUri::from_str(entity_uri).expect("Invalid URI"),
+                )
+            })
             .collect::<HashSet<_>>();
+
         let link_references = entity_type
-            .link_references()
-            .into_iter()
-            .cloned()
+            .links()
+            .iter()
+            .map(|(link_uri, entity_uri)| (link_uri.clone(), entity_uri.inner().uri().clone()))
             .collect::<HashSet<_>>();
 
         assert_eq!(link_references, expected_link_references);
@@ -249,9 +259,10 @@ mod tests {
             "https://blockprotocol.org/@alice/types/property-type/published-on/v/1",
         ]);
 
-        test_link_refs(&entity_type, [
+        test_link_refs(&entity_type, [(
             "https://blockprotocol.org/@alice/types/link-type/written-by/v/1",
-        ]);
+            "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
+        )]);
     }
 
     #[test]
@@ -293,8 +304,14 @@ mod tests {
         test_property_refs(&entity_type, []);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/@alice/types/link-type/located-at/v/1",
-            "https://blockprotocol.org/@alice/types/link-type/tenant/v/1",
+            (
+                "https://blockprotocol.org/@alice/types/link-type/located-at/v/1",
+                "https://blockprotocol.org/@alice/types/entity-type/uk-address/v/1",
+            ),
+            (
+                "https://blockprotocol.org/@alice/types/link-type/tenant/v/1",
+                "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
+            ),
         ]);
     }
 
@@ -308,9 +325,10 @@ mod tests {
             "https://blockprotocol.org/@alice/types/property-type/name/v/1",
         ]);
 
-        test_link_refs(&entity_type, [
+        test_link_refs(&entity_type, [(
             "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1",
-        ]);
+            "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
+        )]);
     }
 
     #[test]
@@ -324,9 +342,10 @@ mod tests {
             "https://blockprotocol.org/@alice/types/property-type/name/v/1",
         ]);
 
-        test_link_refs(&entity_type, [
+        test_link_refs(&entity_type, [(
             "https://blockprotocol.org/@alice/types/link-type/contains/v/1",
-        ]);
+            "https://blockprotocol.org/@alice/types/entity-type/song/v/1",
+        )]);
     }
 
     #[test]
@@ -353,8 +372,14 @@ mod tests {
         ]);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/@alice/types/link-type/written-by/v/1",
-            "https://blockprotocol.org/@alice/types/link-type/contains/v/1",
+            (
+                "https://blockprotocol.org/@alice/types/link-type/written-by/v/1",
+                "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
+            ),
+            (
+                "https://blockprotocol.org/@alice/types/link-type/contains/v/1",
+                "https://hash.ai/@hash/types/entity-type/block/v/1",
+            ),
         ]);
     }
 }
