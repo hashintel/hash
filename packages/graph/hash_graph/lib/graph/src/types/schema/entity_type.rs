@@ -186,8 +186,8 @@ impl EntityType {
     }
 
     #[must_use]
-    pub fn link_references(&self) -> HashSet<&VersionedUri> {
-        self.links().iter().map(|(link, _)| link).collect()
+    pub fn link_references(&self) -> HashSet<&EntityTypeReference> {
+        self.links().iter().map(|(_, uri)| uri.inner()).collect()
     }
 }
 

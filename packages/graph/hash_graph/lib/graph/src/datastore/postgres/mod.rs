@@ -13,7 +13,10 @@ use crate::{
         DatastoreError, InsertionError, QueryError, UpdateError,
     },
     types::{
-        schema::{DataType, DataTypeReference, EntityType, PropertyType, PropertyTypeReference},
+        schema::{
+            DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
+            PropertyTypeReference,
+        },
         AccountId, BaseUri, Qualified, VersionId, VersionedUri,
     },
 };
@@ -453,6 +456,11 @@ impl PostgresDatabase {
         }
 
         // TODO: Store link references
+        let _link_type_ids = self
+            .entity_type_reference_ids(entity_type.link_references())
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not find referenced link")?;
 
         Ok(())
     }
@@ -515,6 +523,22 @@ impl PostgresDatabase {
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
+    }
+
+    async fn entity_type_reference_ids<'p, I>(
+        &self,
+        entity_type_references: I,
+    ) -> Result<Vec<VersionId>, QueryError>
+    where
+        I: IntoIterator<Item = &'p EntityTypeReference> + Send,
+        I::IntoIter: Send,
+    {
+        futures::future::try_join_all(
+            entity_type_references
+                .into_iter()
+                .map(|reference| self.version_id_by_uri(reference.uri())),
+        )
+        .await
     }
 }
 
