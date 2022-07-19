@@ -43,8 +43,10 @@ impl Instruction {
         f(writer)?;
         writer.reset()
     }
+}
 
-    fn render(self, fmt: &mut Formatter) -> core::fmt::Result {
+impl Display for Instruction {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Instruction::Content(text) => fmt.write_str(&text),
             #[cfg(feature = "glyph")]
@@ -70,41 +72,6 @@ impl Instruction {
 
 type Line = VecDeque<Instruction>;
 type Lines = Vec<Line>;
-
-#[cfg(all(nightly, feature = "std"))]
-fn backtrace<'a>(frame: &'a Frame, bt: &mut Vec<&'a std::backtrace::Backtrace>) -> Option<Line> {
-    if let Some(backtrace) = frame.request_ref::<std::backtrace::Backtrace>() {
-        bt.push(backtrace);
-
-        Some(Instruction::plain(format!(
-            "backtrace with {} frames ({})",
-            backtrace.frames().len(),
-            bt.len()
-        )))
-    } else {
-        None
-    }
-}
-
-#[cfg(feature = "spantrace")]
-fn spantrace<'a>(frame: &'a Frame, st: &mut Vec<&'a tracing_error::SpanTrace>) -> Option<Line> {
-    if let Some(span_trace) = frame.request_ref::<tracing_error::SpanTrace>() {
-        let mut span = 0;
-        span_trace.with_spans(|_, _| {
-            span += 1;
-            true
-        });
-
-        st.push(span_trace);
-
-        Some(Instruction::plain(format!(
-            "spantrace with {span} frames ({})",
-            st.len()
-        )))
-    } else {
-        None
-    }
-}
 
 // we allow needless lifetime, as in some scenarios (where spantrace and backtrace are disabled)
 // the lifetime is needless, but rewriting for that case would decrease readability.
@@ -134,19 +101,19 @@ fn frame<'a>(
     };
 
     // defer collection of backtrace and spantrace after all messages, so that they are always last.
-    #[cfg(all(nightly, feature = "std"))]
-    if let Some(backtrace) = backtrace(frame, bt) {
-        defer.push(vec![backtrace]);
-
-        return None;
-    }
-
-    #[cfg(feature = "spantrace")]
-    if let Some(spantrace) = spantrace(frame, st) {
-        defer.push(vec![spantrace]);
-
-        return None;
-    }
+    // #[cfg(all(nightly, feature = "std"))]
+    // if let Some(backtrace) = backtrace(frame, bt) {
+    //     defer.push(vec![backtrace]);
+    //
+    //     return None;
+    // }
+    //
+    // #[cfg(feature = "spantrace")]
+    // if let Some(spantrace) = spantrace(frame, st) {
+    //     defer.push(vec![spantrace]);
+    //
+    //     return None;
+    // }
 
     Some(lines.into_iter().map(Instruction::plain).collect())
 }
@@ -289,41 +256,11 @@ pub fn report<C>(report: &Report<C>) -> String {
         lines.push(Instruction::plain("".to_owned()));
     }
 
-    #[cfg(all(nightly, feature = "std"))]
-    {
-        lines.extend(vec!["".to_owned(); 2]);
-
-        for (pos, backtrace) in bt.into_iter().enumerate() {
-            lines.push(Instruction::plain(format!("Backtrace No. {}", pos + 1)));
-            lines.extend(
-                backtrace
-                    .to_string()
-                    .split('\n')
-                    .map(ToOwned::to_owned)
-                    .map(Instruction::plain),
-            );
-        }
-    }
-
-    #[cfg(feature = "spantrace")]
-    {
-        lines.extend(vec!["".to_owned(); 2]);
-
-        for (pos, span_trace) in st.into_iter().enumerate() {
-            lines.push(Instruction::plain(format!("Spantrace No. {}", pos + 1)));
-            lines.extend(
-                span_trace
-                    .to_string()
-                    .split('\n')
-                    .map(ToOwned::to_owned)
-                    .map(Instruction::plain),
-            );
-        }
-    }
-
     lines.into_iter().fold(String::new(), |mut acc, line| {
         acc.push('\n');
-        acc.push_str(&line);
+        for instruction in line {
+            acc.push_str(&format!("{instruction}"))
+        }
         acc
     })
 }
