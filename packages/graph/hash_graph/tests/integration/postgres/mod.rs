@@ -2,6 +2,8 @@ mod data_type;
 mod entity_type;
 mod property_type;
 
+use std::thread;
+
 use error_stack::Result;
 use graph::{
     datastore::{
@@ -71,14 +73,23 @@ impl DatabaseTestWrapper {
         }
     }
 
-    pub fn seed<D, P>(
+    pub fn seed<D, P, E>(
         &mut self,
         data_types: D,
         property_types: P,
-    ) -> Result<(Vec<Qualified<DataType>>, Vec<Qualified<PropertyType>>), InsertionError>
+        entity_types: E,
+    ) -> Result<
+        (
+            Vec<Qualified<DataType>>,
+            Vec<Qualified<PropertyType>>,
+            Vec<Qualified<EntityType>>,
+        ),
+        InsertionError,
+    >
     where
         D: IntoIterator<Item = &'static str>,
         P: IntoIterator<Item = &'static str>,
+        E: IntoIterator<Item = &'static str>,
     {
         let data_types = data_types
             .into_iter()
@@ -98,7 +109,16 @@ impl DatabaseTestWrapper {
             })
             .collect::<Result<_, _>>()?;
 
-        Ok((data_types, property_types))
+        let entity_types = entity_types
+            .into_iter()
+            .map(|entity_type| {
+                self.create_entity_type(
+                    serde_json::from_str(entity_type).expect("could not parse entity type"),
+                )
+            })
+            .collect::<Result<_, _>>()?;
+
+        Ok((data_types, property_types, entity_types))
     }
 
     pub fn create_data_type(
@@ -238,7 +258,7 @@ async fn remove_account_id(connection: &mut PgConnection, account_id: AccountId)
 }
 
 async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
-    connection
+    let result = connection
         .execute(
             sqlx::query(
                 r#"
@@ -248,10 +268,17 @@ async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
             )
             .bind(base_uri),
         )
-        .await
-        .expect("could not remove version_id for base uri");
+        .await;
 
-    connection
+    if let Err(result) = result {
+        if thread::panicking() {
+            eprintln!("could not remove version_id for base uri: {result:?}")
+        } else {
+            panic!("could not remove version_id for base uri: {result:?}")
+        }
+    }
+
+    let result = connection
         .execute(
             sqlx::query(
                 r#"
@@ -260,8 +287,15 @@ async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
             )
             .bind(base_uri),
         )
-        .await
-        .expect("could not remove base_uri");
+        .await;
+
+    if let Err(result) = result {
+        if thread::panicking() {
+            eprintln!("could not remove base_uri: {result:?}")
+        } else {
+            panic!("could not remove base_uri: {result:?}")
+        }
+    }
 }
 
 #[test]

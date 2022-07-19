@@ -13,7 +13,10 @@ use crate::{
         DatastoreError, InsertionError, QueryError, UpdateError,
     },
     types::{
-        schema::{DataType, DataTypeReference, EntityType, PropertyType, PropertyTypeReference},
+        schema::{
+            DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
+            PropertyTypeReference,
+        },
         AccountId, BaseUri, Qualified, VersionId, VersionedUri,
     },
 };
@@ -56,11 +59,11 @@ impl PostgresDatabase {
             .fetch_one(
                 sqlx::query(
                     r#"
-                        SELECT EXISTS(
-                            SELECT 1
-                            FROM base_uris
-                            WHERE base_uri = $1
-                        );"#,
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM base_uris
+                        WHERE base_uri = $1
+                    );"#,
                 )
                 .bind(base_uri),
             )
@@ -84,11 +87,11 @@ impl PostgresDatabase {
             .fetch_one(
                 sqlx::query(
                     r#"
-                        SELECT EXISTS(
-                            SELECT 1
-                            FROM ids
-                            WHERE base_uri = $1 AND version = $2
-                        );"#,
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM ids
+                        WHERE base_uri = $1 AND version = $2
+                    );"#,
                 )
                 .bind(uri.base_uri())
                 .bind(i64::from(uri.version())),
@@ -302,10 +305,10 @@ impl PostgresDatabase {
             .fetch_one(
                 sqlx::query(&format!(
                     r#"
-            INSERT INTO {} (version_id, schema, created_by) 
-            VALUES ($1, $2, $3)
-            RETURNING version_id;
-            "#,
+                    INSERT INTO {} (version_id, schema, created_by) 
+                    VALUES ($1, $2, $3)
+                    RETURNING version_id;
+                    "#,
                     T::table()
                 ))
                 .bind(version_id)
@@ -379,10 +382,10 @@ impl PostgresDatabase {
                 .fetch_one(
                     sqlx::query(
                         r#"
-                    INSERT INTO property_type_property_type_references (source_property_type_version_id, target_property_type_version_id)
-                    VALUES ($1, $2)
-                    RETURNING source_property_type_version_id;
-                    "#,
+                        INSERT INTO property_type_property_type_references (source_property_type_version_id, target_property_type_version_id)
+                        VALUES ($1, $2)
+                        RETURNING source_property_type_version_id;
+                        "#,
                     )
                         .bind(property_type.version_id())
                         .bind(target_id),
@@ -405,10 +408,10 @@ impl PostgresDatabase {
                 .fetch_one(
                     sqlx::query(
                         r#"
-                    INSERT INTO property_type_data_type_references (source_property_type_version_id, target_data_type_version_id)
-                    VALUES ($1, $2)
-                    RETURNING source_property_type_version_id;
-                    "#,
+                        INSERT INTO property_type_data_type_references (source_property_type_version_id, target_data_type_version_id)
+                        VALUES ($1, $2)
+                        RETURNING source_property_type_version_id;
+                        "#,
                     )
                         .bind(property_type.version_id())
                         .bind(target_id),
@@ -438,10 +441,10 @@ impl PostgresDatabase {
                 .fetch_one(
                     sqlx::query(
                         r#"
-                            INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
-                            VALUES ($1, $2)
-                            RETURNING source_entity_type_version_id;
-                            "#,
+                        INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
+                        VALUES ($1, $2)
+                        RETURNING source_entity_type_version_id;
+                        "#,
                     )
                         .bind(entity_type.version_id())
                         .bind(target_id),
@@ -451,7 +454,20 @@ impl PostgresDatabase {
                 .change_context(InsertionError)?;
         }
 
-        // TODO: Store link references
+        // FIXME: Without `collect` we get a weird lifetime error
+        let entity_type_references = entity_type
+            .inner()
+            .link_type_references()
+            .into_iter()
+            .map(|(_link_type_uri, entity_type_reference)| entity_type_reference)
+            .collect::<Vec<_>>();
+
+        // TODO: Store references in the database
+        let _entity_type_reference_ids =
+            Self::entity_type_reference_ids(transaction, entity_type_references)
+                .await
+                .change_context(InsertionError)
+                .attach_printable("Could not find referenced entity types")?;
 
         Ok(())
     }
@@ -488,6 +504,22 @@ impl PostgresDatabase {
         Ok(ids)
     }
 
+    async fn entity_type_reference_ids<'p, I>(
+        transaction: &mut Transaction<'_, Postgres>,
+        entity_type_references: I,
+    ) -> Result<Vec<VersionId>, QueryError>
+    where
+        I: IntoIterator<Item = &'p EntityTypeReference> + Send,
+        I::IntoIter: Send,
+    {
+        let entity_type_references = entity_type_references.into_iter();
+        let mut ids = Vec::with_capacity(entity_type_references.size_hint().0);
+        for reference in entity_type_references {
+            ids.push(Self::version_id_by_uri(transaction, reference.uri()).await?);
+        }
+        Ok(ids)
+    }
+
     /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
     ///
     /// # Errors:
@@ -501,10 +533,10 @@ impl PostgresDatabase {
             .fetch_one(
                 sqlx::query(
                     r#"
-            SELECT version_id
-            FROM ids
-            WHERE base_uri = $1 AND version = $2;
-            "#,
+                    SELECT version_id
+                    FROM ids
+                    WHERE base_uri = $1 AND version = $2;
+                    "#,
                 )
                 .bind(uri.base_uri())
                 .bind(i64::from(uri.version())),

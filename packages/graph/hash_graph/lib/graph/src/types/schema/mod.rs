@@ -18,7 +18,7 @@ use core::fmt;
 #[doc(inline)]
 pub use self::{
     data_type::{DataType, DataTypeReference},
-    entity_type::EntityType,
+    entity_type::{EntityType, EntityTypeReference},
     property_type::{PropertyType, PropertyTypeReference},
 };
 use crate::types::{BaseUri, VersionedUri};
