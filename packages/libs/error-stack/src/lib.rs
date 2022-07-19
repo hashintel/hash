@@ -444,7 +444,7 @@ mod ext;
 #[cfg(feature = "hooks")]
 mod hook;
 #[cfg(feature = "serde")]
-mod serde;
+mod ser;
 
 #[doc(inline)]
 pub use self::ext::*;
