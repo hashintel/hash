@@ -421,11 +421,10 @@ impl PostgresDatabase {
         Ok(())
     }
 
-    async fn insert_entity_references(
+    async fn insert_entity_type_references(
         transaction: &mut Transaction<'_, Postgres>,
         entity_type: &Qualified<EntityType>,
     ) -> Result<(), InsertionError> {
-        // TODO: Store this as mapping in `entity_type_property_type_references`
         let property_type_ids = Self::property_type_reference_ids(
             transaction,
             entity_type.inner().property_type_references(),
@@ -439,10 +438,10 @@ impl PostgresDatabase {
                 .fetch_one(
                     sqlx::query(
                         r#"
-                    INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
-                    VALUES ($1, $2)
-                    RETURNING source_entity_type_version_id;
-                    "#,
+                            INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
+                            VALUES ($1, $2)
+                            RETURNING source_entity_type_version_id;
+                            "#,
                     )
                         .bind(entity_type.version_id())
                         .bind(target_id),
@@ -652,7 +651,7 @@ impl Datastore for PostgresDatabase {
 
         let entity_type = Self::create(&mut transaction, entity_type, created_by).await?;
 
-        Self::insert_entity_references(&mut transaction, &entity_type)
+        Self::insert_entity_type_references(&mut transaction, &entity_type)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not insert references for entity type")
@@ -688,7 +687,7 @@ impl Datastore for PostgresDatabase {
 
         let entity_type = Self::update(&mut transaction, entity_type, updated_by).await?;
 
-        Self::insert_entity_references(&mut transaction, &entity_type)
+        Self::insert_entity_type_references(&mut transaction, &entity_type)
             .await
             .change_context(UpdateError)
             .attach_printable("Could not insert references for entity type")
