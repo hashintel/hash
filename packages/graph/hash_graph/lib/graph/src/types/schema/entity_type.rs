@@ -233,10 +233,10 @@ mod tests {
     ) {
         let expected_link_references = links
             .into_iter()
-            .map(|(link_uri, entity_uri)| {
+            .map(|(link_uri, entity_type_uri)| {
                 (
                     VersionedUri::from_str(link_uri).expect("Invalid URI"),
-                    VersionedUri::from_str(entity_uri).expect("Invalid URI"),
+                    VersionedUri::from_str(entity_type_uri).expect("Invalid URI"),
                 )
             })
             .collect::<HashMap<_, _>>();
@@ -244,7 +244,7 @@ mod tests {
         let link_references = entity_type
             .link_references()
             .into_iter()
-            .map(|(link_uri, entity_uri)| (link_uri.clone(), entity_uri.uri().clone()))
+            .map(|(link_uri, entity_type_ref)| (link_uri.clone(), entity_type_ref.uri().clone()))
             .collect::<HashMap<_, _>>();
 
         assert_eq!(link_references, expected_link_references);
