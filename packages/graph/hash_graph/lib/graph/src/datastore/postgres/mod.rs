@@ -459,7 +459,7 @@ impl PostgresDatabase {
             .inner()
             .link_references()
             .into_iter()
-            .map(|(_link_uri, entity_type_uri)| entity_type_uri)
+            .map(|(_link_type_uri, entity_type_uri)| entity_type_uri)
             .collect::<Vec<_>>();
 
         // TODO: Store references in the database
@@ -467,7 +467,7 @@ impl PostgresDatabase {
             Self::entity_type_reference_ids(transaction, entity_type_references)
                 .await
                 .change_context(InsertionError)
-                .attach_printable("Could not find referenced link")?;
+                .attach_printable("Could not find referenced entities")?;
 
         Ok(())
     }
