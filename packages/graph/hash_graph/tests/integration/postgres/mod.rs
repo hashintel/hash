@@ -1,5 +1,6 @@
 mod data_type;
 mod entity_type;
+mod link_type;
 mod property_type;
 
 use std::thread;
