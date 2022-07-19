@@ -1,11 +1,15 @@
+mod links;
+
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{ensure, Result};
+// I do not know why rustfmt insists to put this import here despite the fact that it's not an
+// external crate
+use links::{Links, ValueOrMaybeOrderedArray};
 use serde::{Deserialize, Serialize};
 
 use crate::types::{
     schema::{
-        link::{Links, ValueOrMaybeOrderedArray},
         object::{Object, ValidateUri},
         property_type::PropertyTypeReference,
         ValidationError, VersionedUri,
