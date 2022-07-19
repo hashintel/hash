@@ -425,7 +425,7 @@ impl PostgresDatabase {
         transaction: &mut Transaction<'_, Postgres>,
         entity_type: &Qualified<EntityType>,
     ) -> Result<(), InsertionError> {
-        // TODO: Store this as mapping in `entity_type_property_types`
+        // TODO: Store this as mapping in `entity_type_property_type_references`
         let property_type_ids = Self::property_type_reference_ids(
             transaction,
             entity_type.inner().property_type_references(),
