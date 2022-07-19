@@ -33,7 +33,7 @@ jobs:
     name: Build and push HASH api image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Docker image build through docker-build-push
         uses: ./.github/actions/docker-build-push
@@ -52,7 +52,7 @@ jobs:
     name: Build and push HASH realtime image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Docker image build through docker-build-push
         uses: ./.github/actions/docker-build-push
@@ -71,7 +71,7 @@ jobs:
     name: Build and push HASH searchloader image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Docker image build through docker-build-push
         uses: ./.github/actions/docker-build-push
@@ -94,7 +94,7 @@ jobs:
       - build-realtime
       - build-searchloader
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: ./.github/actions/docker-ecr-login
         with:
@@ -103,7 +103,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
 
       # Node is used for migrating the DB
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: 16
           cache: yarn
