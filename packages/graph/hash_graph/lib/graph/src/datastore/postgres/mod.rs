@@ -456,7 +456,7 @@ impl PostgresDatabase {
         }
 
         // TODO: Store link references
-        // FIXME: Without `collect` we gat a weird lifetime error
+        // FIXME: Without `collect` we get a weird lifetime error
         let entity_type_references = entity_type
             .link_references()
             .into_iter()
