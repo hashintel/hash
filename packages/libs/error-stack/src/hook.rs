@@ -1,5 +1,3 @@
-mod text;
-
 use std::{error::Error, fmt};
 
 use once_cell::sync::OnceCell;
