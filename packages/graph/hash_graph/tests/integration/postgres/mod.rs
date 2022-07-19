@@ -73,15 +73,17 @@ impl DatabaseTestWrapper {
         }
     }
 
-    pub fn seed<D, P, E>(
+    pub fn seed<D, P, L, E>(
         &mut self,
         data_types: D,
         property_types: P,
+        link_types: L,
         entity_types: E,
     ) -> Result<
         (
             Vec<Qualified<DataType>>,
             Vec<Qualified<PropertyType>>,
+            Vec<Qualified<LinkType>>,
             Vec<Qualified<EntityType>>,
         ),
         InsertionError,
@@ -89,6 +91,7 @@ impl DatabaseTestWrapper {
     where
         D: IntoIterator<Item = &'static str>,
         P: IntoIterator<Item = &'static str>,
+        L: IntoIterator<Item = &'static str>,
         E: IntoIterator<Item = &'static str>,
     {
         let data_types = data_types
@@ -109,6 +112,16 @@ impl DatabaseTestWrapper {
             })
             .collect::<Result<_, _>>()?;
 
+        // Insert link types before entity types so entity types can refer to them
+        let link_types = link_types
+            .into_iter()
+            .map(|link_type| {
+                self.create_link_type(
+                    serde_json::from_str(link_type).expect("could not parse link type"),
+                )
+            })
+            .collect::<Result<_, _>>()?;
+
         let entity_types = entity_types
             .into_iter()
             .map(|entity_type| {
@@ -118,7 +131,7 @@ impl DatabaseTestWrapper {
             })
             .collect::<Result<_, _>>()?;
 
-        Ok((data_types, property_types, entity_types))
+        Ok((data_types, property_types, link_types, entity_types))
     }
 
     pub fn create_data_type(
