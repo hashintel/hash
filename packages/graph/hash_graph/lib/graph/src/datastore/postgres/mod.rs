@@ -455,18 +455,20 @@ impl PostgresDatabase {
                 .change_context(InsertionError)?;
         }
 
-        // TODO: Store link references
         // FIXME: Without `collect` we get a weird lifetime error
         let entity_type_references = entity_type
+            .inner()
             .link_references()
             .into_iter()
-            .map(|(_link, entity)| entity)
+            .map(|(_link_uri, entity_type_uri)| entity_type_uri)
             .collect::<Vec<_>>();
-        let _link_type_ids = self
-            .entity_type_reference_ids(entity_type_references)
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced link")?;
+
+        // TODO: Store references in the database
+        let _entity_type_reference_ids =
+            Self::entity_type_reference_ids(transaction, entity_type_references)
+                .await
+                .change_context(InsertionError)
+                .attach_printable("Could not find referenced link")?;
 
         Ok(())
     }
@@ -503,6 +505,22 @@ impl PostgresDatabase {
         Ok(ids)
     }
 
+    async fn entity_type_reference_ids<'p, I>(
+        transaction: &mut Transaction<'_, Postgres>,
+        entity_type_references: I,
+    ) -> Result<Vec<VersionId>, QueryError>
+    where
+        I: IntoIterator<Item = &'p EntityTypeReference> + Send,
+        I::IntoIter: Send,
+    {
+        let entity_type_references = entity_type_references.into_iter();
+        let mut ids = Vec::with_capacity(entity_type_references.size_hint().0);
+        for reference in entity_type_references {
+            ids.push(Self::version_id_by_uri(transaction, reference.uri()).await?);
+        }
+        Ok(ids)
+    }
+
     /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
     ///
     /// # Errors:
@@ -529,22 +547,6 @@ impl PostgresDatabase {
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
-    }
-
-    async fn entity_type_reference_ids<'p, I>(
-        &self,
-        entity_type_references: I,
-    ) -> Result<Vec<VersionId>, QueryError>
-    where
-        I: IntoIterator<Item = &'p EntityTypeReference> + Send,
-        I::IntoIter: Send,
-    {
-        futures::future::try_join_all(
-            entity_type_references
-                .into_iter()
-                .map(|reference| self.version_id_by_uri(reference.uri())),
-        )
-        .await
     }
 }
 

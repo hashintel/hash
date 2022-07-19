@@ -189,7 +189,7 @@ impl EntityType {
     pub fn link_references(&self) -> HashMap<&VersionedUri, &EntityTypeReference> {
         self.links()
             .iter()
-            .map(|(link, entity)| (link, entity.inner()))
+            .map(|(link, entity_type)| (link, entity_type.inner()))
             .collect()
     }
 }
