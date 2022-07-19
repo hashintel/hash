@@ -7,9 +7,14 @@ use alloc::{borrow::ToOwned, collections::VecDeque, format, string::String, vec,
 use core::fmt::{Debug, Display, Formatter, Write};
 
 #[cfg(feature = "glyph")]
+use once_cell::sync::OnceCell;
+#[cfg(feature = "glyph")]
 use owo_colors::{colored::Color, colors::Red, OwoColorize, Stream::Stdout};
 
 use crate::{AttachmentKind, Frame, FrameKind, Report};
+
+#[cfg(feature = "hooks")]
+static HOOK: OnceCell<ErasedHook> = OnceCell::new();
 
 enum Instruction {
     Content(String),
@@ -337,6 +342,15 @@ mod hook {
         inner: HashMap<TypeId, Box<dyn Any>>,
     }
 
+    impl AnyContext {
+        fn cast<T>(&mut self) -> Context<T> {
+            Context {
+                parent: self,
+                _marker: PhantomData::default(),
+            }
+        }
+    }
+
     struct Context<'a, T> {
         parent: &'a mut AnyContext,
         _marker: PhantomData<T>,
@@ -344,30 +358,30 @@ mod hook {
 
     impl<T> Context<T> {
         pub fn defer(&mut self, value: String) {
-            self.0.push(value.split('\n').collect());
+            self.defer_line(value.split('\n'));
         }
 
         pub fn defer_lines<L: IntoIterator<Item = String>>(&mut self, lines: L) {
-            self.0.push(lines.into_iter().collect())
+            self.parent.defer.push(lines.into_iter().collect())
         }
     }
 
     impl<T: 'static> Context<T> {
-        fn get<U>(&self) -> Option<&U> {
+        pub fn get<U>(&self) -> Option<&U> {
             let id = T::type_id();
 
             let inner = self.parent.inner.get(&id)?;
             inner.downcast_ref()
         }
 
-        fn get_mut<U>(&mut self) -> Option<&mut U> {
+        pub fn get_mut<U>(&mut self) -> Option<&mut U> {
             let id = T::type_id();
 
             let inner = self.parent.inner.get_mut(&id)?;
             inner.downcast_mut()
         }
 
-        fn insert<U>(&mut self, value: U) -> Option<&U> {
+        pub fn insert<U>(&mut self, value: U) -> Option<&U> {
             let id = T::type_id();
 
             let inner = self.parent.inner.insert(id, Box::new(value));
@@ -386,7 +400,7 @@ mod hook {
         T: Send + Sync + 'static,
     {
         fn call(&self, frame: &T, defer: &mut AnyContext) -> Option<String> {
-            Some((self)(frame, defer))
+            Some((self)(frame, &mut defer.cast()))
         }
     }
 
@@ -490,7 +504,10 @@ mod hook {
         #[cfg(feature = "spantrace")]
         use tracing_error::SpanTrace;
 
-        use crate::fmt::hook::{AnyContext, Context};
+        use crate::{
+            fmt::hook::{AnyContext, Context, Hook},
+            Frame,
+        };
 
         #[cfg(all(nightly, feature = "std"))]
         fn backtrace(backtrace: &Backtrace, ctx: &mut Context<Backtrace>) -> String {
@@ -532,6 +549,29 @@ mod hook {
             ctx.insert(idx + 1);
 
             format!("spantrace with {span} frames ({})", idx + 1)
+        }
+
+        struct Builtin;
+
+        impl Hook<Frame> for Builtin {
+            fn call(&self, frame: &Frame, defer: &mut AnyContext) -> Option<String> {
+                #[cfg(all(nightly, feature = "std"))]
+                if let Some(bt) = frame.request_ref() {
+                    return Some(backtrace(bt, &mut defer.cast()));
+                }
+
+                #[cfg(all(feature = "spantrace", not(nightly)))]
+                if let Some(st) = frame.downcast_ref() {
+                    spantrace(st, &mut defer.cast())
+                }
+
+                #[cfg(all(feature = "spantrace", nightly))]
+                if let Some(st) = frame.request_ref() {
+                    return Some(spantrace(st, &mut defer.cast()));
+                }
+
+                None
+            }
         }
     }
 }
