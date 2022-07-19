@@ -1,11 +1,16 @@
 use crate::postgres::DatabaseTestWrapper;
+pub use crate::test_data::{data_type, entity_type, property_type};
 
 #[test]
 fn insert() {
-    let person_et = serde_json::from_str(crate::test_data::entity_type::PERSON_V1)
-        .expect("could not parse entity type");
+    let person_et =
+        serde_json::from_str(entity_type::PERSON_V1).expect("could not parse entity type");
 
     let mut database = DatabaseTestWrapper::new();
+    database
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1])
+        .expect("Could not seed database");
+
     database
         .create_entity_type(person_et)
         .expect("could not create entity type");
@@ -13,13 +18,16 @@ fn insert() {
 
 #[test]
 fn query() {
-    let song_et = serde_json::from_str(crate::test_data::entity_type::SONG_V1)
-        .expect("could not parse entity type");
+    let organization_et =
+        serde_json::from_str(entity_type::ORGANIZATION_V1).expect("could not parse entity type");
 
     let mut database = DatabaseTestWrapper::new();
+    database
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1])
+        .expect("Could not seed database");
 
     let created_entity_type = database
-        .create_entity_type(song_et)
+        .create_entity_type(organization_et)
         .expect("could not create entity type");
 
     let entity_type = database
@@ -31,19 +39,22 @@ fn query() {
 
 #[test]
 fn update() {
-    let book_et_v1 = serde_json::from_str(crate::test_data::entity_type::BOOK_V1)
-        .expect("could not parse entity type");
-    let book_et_v2 = serde_json::from_str(crate::test_data::entity_type::BOOK_V2)
-        .expect("could not parse entity type");
+    let page_et_v1 =
+        serde_json::from_str(entity_type::PAGE_V1).expect("could not parse entity type");
+    let page_et_v2 =
+        serde_json::from_str(entity_type::PAGE_V2).expect("could not parse entity type");
 
     let mut database = DatabaseTestWrapper::new();
+    database
+        .seed([data_type::TEXT_V1], [property_type::TEXT_V1])
+        .expect("Could not seed database");
 
     let created_entity_type = database
-        .create_entity_type(book_et_v1)
+        .create_entity_type(page_et_v1)
         .expect("could not create entity type");
 
     let updated_entity_type = database
-        .update_entity_type(book_et_v2)
+        .update_entity_type(page_et_v2)
         .expect("could not update entity type");
 
     assert_ne!(created_entity_type.inner(), updated_entity_type.inner());

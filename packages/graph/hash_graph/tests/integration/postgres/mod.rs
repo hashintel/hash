@@ -71,6 +71,36 @@ impl DatabaseTestWrapper {
         }
     }
 
+    pub fn seed<D, P>(
+        &mut self,
+        data_types: D,
+        property_types: P,
+    ) -> Result<(Vec<Qualified<DataType>>, Vec<Qualified<PropertyType>>), InsertionError>
+    where
+        D: IntoIterator<Item = &'static str>,
+        P: IntoIterator<Item = &'static str>,
+    {
+        let data_types = data_types
+            .into_iter()
+            .map(|data_type| {
+                self.create_data_type(
+                    serde_json::from_str(data_type).expect("could not parse data type"),
+                )
+            })
+            .collect::<Result<_, _>>()?;
+
+        let property_types = property_types
+            .into_iter()
+            .map(|property_type| {
+                self.create_property_type(
+                    serde_json::from_str(property_type).expect("could not parse data type"),
+                )
+            })
+            .collect::<Result<_, _>>()?;
+
+        Ok((data_types, property_types))
+    }
+
     pub fn create_data_type(
         &mut self,
         data_type: DataType,

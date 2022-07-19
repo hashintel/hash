@@ -1,0 +1,4 @@
+[profile.integration]
+# TODO: Remove this. Currently, it's required as the integration tests requires a set of data to be present. Currently,
+#   we seed the database before any test. This means multiple threads could pollute each test cases and may break them.
+test-threads = 1

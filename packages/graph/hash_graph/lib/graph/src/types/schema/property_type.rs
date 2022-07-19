@@ -245,7 +245,7 @@ mod tests {
     #[test]
     fn favorite_quote() {
         let property_type = test_property_type_schema(
-            &serde_json::from_str(crate::test_data::property_type::FAVOURITE_QUOTE_V1)
+            &serde_json::from_str(crate::test_data::property_type::FAVORITE_QUOTE_V1)
                 .expect("invalid JSON"),
         );
 
@@ -272,7 +272,7 @@ mod tests {
     #[test]
     fn user_id() {
         let property_type = test_property_type_schema(
-            &serde_json::from_str(crate::test_data::property_type::USER_ID_V1)
+            &serde_json::from_str(crate::test_data::property_type::USER_ID_V2)
                 .expect("invalid JSON"),
         );
 

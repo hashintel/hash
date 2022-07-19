@@ -1,6 +1,6 @@
 {
   "kind": "entityType",
-  "$id": "https://blockprotocol.org/@alice/types/entity-type/page/v/1",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/page/v/2",
   "type": "object",
   "title": "Page",
   "properties": {

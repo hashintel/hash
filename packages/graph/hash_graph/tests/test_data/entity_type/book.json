@@ -1,6 +1,6 @@
 {
   "kind": "entityType",
-  "$id": "https://blockprotocol.org/@alice/types/entity-type/book/v/2",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/book/v/1",
   "title": "Book",
   "type": "object",
   "properties": {
