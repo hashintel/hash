@@ -186,8 +186,11 @@ impl EntityType {
     }
 
     #[must_use]
-    pub fn link_references(&self) -> HashSet<&EntityTypeReference> {
-        self.links().iter().map(|(_, uri)| uri.inner()).collect()
+    pub fn link_references(&self) -> HashMap<&VersionedUri, &EntityTypeReference> {
+        self.links()
+            .iter()
+            .map(|(link, entity)| (link, entity.inner()))
+            .collect()
     }
 }
 
@@ -236,13 +239,13 @@ mod tests {
                     VersionedUri::from_str(entity_uri).expect("Invalid URI"),
                 )
             })
-            .collect::<HashSet<_>>();
+            .collect::<HashMap<_, _>>();
 
         let link_references = entity_type
-            .links()
-            .iter()
-            .map(|(link_uri, entity_uri)| (link_uri.clone(), entity_uri.inner().uri().clone()))
-            .collect::<HashSet<_>>();
+            .link_references()
+            .into_iter()
+            .map(|(link_uri, entity_uri)| (link_uri.clone(), entity_uri.uri().clone()))
+            .collect::<HashMap<_, _>>();
 
         assert_eq!(link_references, expected_link_references);
     }

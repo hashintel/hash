@@ -456,8 +456,14 @@ impl PostgresDatabase {
         }
 
         // TODO: Store link references
+        // FIXME: Without `collect` we gat a weird lifetime error
+        let entity_type_references = entity_type
+            .link_references()
+            .into_iter()
+            .map(|(_link, entity)| entity)
+            .collect::<Vec<_>>();
         let _link_type_ids = self
-            .entity_type_reference_ids(entity_type.link_references())
+            .entity_type_reference_ids(entity_type_references)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not find referenced link")?;
