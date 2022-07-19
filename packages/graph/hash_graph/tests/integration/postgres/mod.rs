@@ -238,7 +238,7 @@ async fn remove_account_id(connection: &mut PgConnection, account_id: AccountId)
 }
 
 async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
-    connection
+    let result = connection
         .execute(
             sqlx::query(
                 r#"
@@ -248,10 +248,17 @@ async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
             )
             .bind(base_uri),
         )
-        .await
-        .expect("could not remove version_id for base uri");
+        .await;
 
-    connection
+    if let Err(result) = result {
+        if thread::panicking() {
+            eprintln!("could not remove version_id for base uri: {result:?}")
+        } else {
+            panic!("could not remove version_id for base uri: {result:?}")
+        }
+    }
+
+    let result = connection
         .execute(
             sqlx::query(
                 r#"
@@ -260,8 +267,15 @@ async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
             )
             .bind(base_uri),
         )
-        .await
-        .expect("could not remove base_uri");
+        .await;
+
+    if let Err(result) = result {
+        if thread::panicking() {
+            eprintln!("could not remove base_uri: {result:?}")
+        } else {
+            panic!("could not remove base_uri: {result:?}")
+        }
+    }
 }
 
 #[test]
