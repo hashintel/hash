@@ -1,12 +1,15 @@
-import React, { Fragment, ReactNode, useCallback, useState } from "react";
-import { createPortal } from "react-dom";
+import React, { ReactNode, useCallback, useState } from "react";
 import { v4 as uuid } from "uuid";
+import { BlockPortals } from "./BlockPortals";
 
-type PortalSet = Map<HTMLElement, { key: string; reactNode: ReactNode }>;
+export type BlockPortal = { id: string; key: string; reactNode: ReactNode };
+
+type PortalSet = Map<HTMLElement, BlockPortal>;
 
 export type RenderPortal = (
   reactNode: React.ReactNode | null,
   node: HTMLElement | null,
+  id?: string,
 ) => void;
 
 const blankPortals = new Map();
@@ -28,7 +31,7 @@ export const usePortals = () => {
    *
    * To clear, pass null for jsx
    */
-  const renderPortal = useCallback<RenderPortal>((reactNode, node) => {
+  const renderPortal = useCallback<RenderPortal>((reactNode, node, id = "") => {
     if (node) {
       setPortals((prevPortals) => {
         const nextPortals = new Map(prevPortals);
@@ -36,7 +39,7 @@ export const usePortals = () => {
         if (reactNode) {
           const key = nextPortals.get(node)?.key ?? uuid();
 
-          nextPortals.set(node, { key, reactNode });
+          nextPortals.set(node, { id, key, reactNode });
         } else {
           nextPortals.delete(node);
         }
@@ -50,11 +53,26 @@ export const usePortals = () => {
     setPortals(blankPortals);
   }, []);
 
-  const renderedPortals = Array.from(portals.entries()).map(
-    ([target, { key, reactNode }]) => (
-      <Fragment key={key}>{createPortal(reactNode, target)}</Fragment>
-    ),
+  const groupedPortals = Array.from(portals.entries()).reduce(
+    (obj, portal) => {
+      const id = portal[1].id;
+
+      return { ...obj, [id]: [...(obj[id] || []), portal] };
+    },
+    {} as {
+      [id: string]: Array<[HTMLElement, BlockPortal]>;
+    },
   );
+
+  const renderedPortals = Object.keys(groupedPortals).map((draftId) => {
+    return (
+      <BlockPortals
+        key={draftId}
+        draftId={draftId}
+        portals={groupedPortals[draftId]!}
+      />
+    );
+  });
 
   return [renderedPortals, renderPortal, clearPortals] as const;
 };
