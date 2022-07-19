@@ -1,10 +1,10 @@
 pub const AGE_V1: &str = include_str!("age.json");
-pub const CONTACT_INFORMATION_V1: &str = include_str!("contact-information.json");
-pub const CONTRIVED_PROPERTY_V1: &str = include_str!("contrived-property.json");
-pub const FAVORITE_QUOTE_V1: &str = include_str!("favorite-quote.json");
+pub const CONTACT_INFORMATION_V1: &str = include_str!("contact_information.json");
+pub const CONTRIVED_PROPERTY_V1: &str = include_str!("contrived_property.json");
+pub const FAVORITE_QUOTE_V1: &str = include_str!("favorite_quote.json");
 pub const NAME_V1: &str = include_str!("name.json");
 pub const INTERESTS_V1: &str = include_str!("interests.json");
 pub const NUMBERS_V1: &str = include_str!("numbers.json");
 pub const TEXT_V1: &str = include_str!("text.json");
-pub const USER_ID_V1: &str = include_str!("user-id-v1.json");
-pub const USER_ID_V2: &str = include_str!("user-id-v2.json");
+pub const USER_ID_V1: &str = include_str!("user_id_v1.json");
+pub const USER_ID_V2: &str = include_str!("user_id_v2.json");
