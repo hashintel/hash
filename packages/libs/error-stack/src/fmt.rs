@@ -3,48 +3,13 @@
 //!
 //! This is inspired by [miette](https://docs.rs/miette/latest/miette/index.html)
 
-#[cfg(not(feature = "std"))]
-use alloc::string::ToString;
-use alloc::{borrow::ToOwned, format, string::String, vec, vec::Vec};
-use std::{cell::OnceCell, collections::VecDeque, io::Write};
+use alloc::{borrow::ToOwned, collections::VecDeque, format, string::String, vec, vec::Vec};
+use core::fmt::{Debug, Display, Formatter, Write};
 
-use colored::{ColoredString, Colorize};
-use termcolor::{Buffer, BufferWriter, Color, ColorSpec, WriteColor};
+#[cfg(feature = "glyph")]
+use owo_colors::{colored::Color, colors::Red, OwoColorize, Stream::Stdout};
 
 use crate::{AttachmentKind, Frame, FrameKind, Report};
-
-#[cfg(feature = "fancy")]
-const VERTICAL: &str = "\x1b[31m│\x1b[0m   ";
-#[cfg(not(feature = "fancy"))]
-const VERTICAL: &str = "|   ";
-
-#[cfg(feature = "fancy")]
-const ENTRY: &str = "\x1b[31m├─▶\x1b[0m ";
-#[cfg(not(feature = "fancy"))]
-const ENTRY: &str = "|-> ";
-
-#[cfg(feature = "fancy")]
-const ENTRY_END: &str = "\x1b[31m╰─▶\x1b[0m ";
-#[cfg(not(feature = "fancy"))]
-const ENTRY_END: &str = "\\-> ";
-
-enum ForceColor {
-    Yes,
-    No,
-}
-
-enum Fancy {
-    #[cfg(feature = "hook-fancy")]
-    Yes,
-    No,
-}
-
-struct Settings {
-    force_ascii: bool,
-    force_color: Option<ForceColor>,
-    compact: bool,
-    fancy: Fancy,
-}
 
 enum Instruction {
     Content(String),
@@ -61,7 +26,7 @@ impl Instruction {
         queue
     }
 
-    #[cfg(feature = "hook-fancy")]
+    #[cfg(feature = "glyph")]
     fn with_red<F: FnOnce(&mut T) -> std::io::Result<()>, T: WriteColor>(
         writer: &mut T,
         f: F,
@@ -74,23 +39,26 @@ impl Instruction {
         writer.reset()
     }
 
-    #[cfg(feature = "hook-fancy")]
-    fn render<T: WriteColor>(self, write: &mut T) -> std::io::Result<()> {
+    fn render(self, fmt: &mut Formatter) -> core::fmt::Result {
         match self {
-            Instruction::Content(text) => write.write_all(text.as_bytes()),
-            Instruction::Entry { end } => Self::with_red(write, |write| {
-                if end {
-                    write.write_all("╰─▶ ".as_bytes())?;
-                } else {
-                    write.write_all("├─▶ ".as_bytes())?;
-                }
-
-                Ok(())
-            }),
-            Instruction::Vertical => {
-                Self::with_red(write, |write| write.write_all("|   ".as_bytes()))
+            Instruction::Content(text) => fmt.write_str(&text),
+            #[cfg(feature = "glyph")]
+            Instruction::Entry { end: true } => {
+                "╰─▶ ".if_supports_color(Stdout, |text| text.red()).fmt(fmt)
             }
-            Instruction::Indent => write.write_all("    ".as_bytes()),
+            #[cfg(not(feature = "glyph"))]
+            Instruction::Entry { end: true } => fmt.write_str(r#"\->"#),
+            #[cfg(feature = "glyph")]
+            Instruction::Entry { end: false } => {
+                "├─▶ ".if_supports_color(Stdout, |text| text.red()).fmt(fmt)
+            }
+            #[cfg(not(feature = "glyph"))]
+            Instruction::Entry { end: false } => fmt.write_str("|-> "),
+            #[cfg(feature = "glyph")]
+            Instruction::Vertical => "│   ".if_supports_color(Stdout, |text| text.red()).fmt(fmt),
+            #[cfg(not(feature = "glyph"))]
+            Instruction::Vertical => fmt.write_str("|   "),
+            Instruction::Indent => fmt.write_str("    "),
         }
     }
 }
@@ -303,7 +271,7 @@ pub fn report<C>(report: &Report<C>) -> String {
     let mut st = Vec::new();
 
     let mut lines = vec![];
-    for frame in report.sources() {
+    for frame in report.current_frames() {
         let display = frame_root(
             frame,
             #[cfg(all(nightly, feature = "std"))]
@@ -353,4 +321,170 @@ pub fn report<C>(report: &Report<C>) -> String {
         acc.push_str(&line);
         acc
     })
+}
+
+mod hook {
+    use std::{
+        any::{Any, Demand, Provider, TypeId},
+        collections::HashMap,
+        marker::PhantomData,
+    };
+
+    use crate::Frame;
+
+    struct Context {
+        defer: Vec<Vec<String>>,
+        inner: HashMap<TypeId, Box<dyn Any>>,
+    }
+
+    impl Context {
+        pub fn defer(&mut self, value: String) {
+            self.0.push(value.split('\n').collect());
+        }
+
+        pub fn defer_lines<L: IntoIterator<Item = String>>(&mut self, lines: L) {
+            self.0.push(lines.into_iter().collect())
+        }
+
+        fn get<T: 'static, U>(&self) -> Option<&U> {
+            let id = T::type_id();
+
+            let inner = self.inner.get(&id)?;
+            inner.downcast_ref()
+        }
+
+        fn get_mut<T: 'static, U>(&mut self) -> Option<&mut U> {
+            let id = T::type_id();
+
+            let inner = self.inner.get_mut(&id)?;
+            inner.downcast_mut()
+        }
+
+        fn insert<T: 'static, U>(&mut self, value: U) -> Option<&U> {
+            let id = T::type_id();
+
+            let inner = self.inner.insert(id, Box::new(value));
+            let inner = inner.as_ref()?;
+            inner.downcast_ref()
+        }
+    }
+
+    pub trait Hook<T> {
+        fn call(&self, frame: &T, defer: &mut Context) -> Option<String>;
+    }
+
+    impl<F, T> Hook<T> for F
+    where
+        F: Fn(&T, &mut Context) -> String,
+        T: Send + Sync + 'static,
+    {
+        fn call(&self, frame: &T, defer: &mut Context) -> Option<String> {
+            Some((self)(frame, defer))
+        }
+    }
+
+    pub struct Stack<L, T, R> {
+        left: L,
+        right: R,
+        _marker: PhantomData<T>,
+    }
+
+    impl<L, T, R> Hook<Frame> for Stack<L, T, R>
+    where
+        L: Hook<T>,
+        T: Send + Sync + 'static,
+        R: Hook<Frame>,
+    {
+        fn call(&self, frame: &Frame, defer: &mut Context) -> Option<String> {
+            if let Some(frame) = frame.downcast_ref::<T>() {
+                self.left.call(frame, defer)
+            } else {
+                self.right.call(frame, defer)
+            }
+        }
+    }
+
+    impl<T> Hook<T> for () {
+        fn call(&self, _: &T, _: &mut Context) -> Option<String> {
+            None
+        }
+    }
+
+    pub struct Both<L, R> {
+        left: L,
+        right: R,
+    }
+
+    impl<L, R> Hook<Frame> for Both<L, R>
+    where
+        L: Hook<Frame>,
+        R: Hook<Frame>,
+    {
+        fn call(&self, frame: &Frame, defer: &mut Context) -> Option<String> {
+            self.left
+                .call(frame, defer)
+                .or_else(|| self.right.call(frame, defer))
+        }
+    }
+
+    impl Hook<Frame> for Box<dyn Hook<Frame>> {
+        fn call(&self, frame: &Frame, defer: &mut Context) -> Option<String> {
+            let hook = self.as_ref();
+
+            hook.call(frame, defer)
+        }
+    }
+
+    struct Hooks<T: Hook<Frame>>(T);
+
+    impl Hooks<()> {
+        pub fn new() -> Self {
+            Self(())
+        }
+    }
+
+    impl<T: Hook<Frame>> Hooks<T> {
+        fn new_with(hook: T) -> Self {
+            Hooks(hook)
+        }
+
+        pub fn push<U: Hook<V>, V: Send + Sync + 'static>(self, hook: T) -> Hooks<Stack<U, V, T>> {
+            let stack = Stack {
+                left: hook,
+                right: self.0,
+                _marker: PhantomData::default(),
+            };
+
+            Hooks::new_with(stack)
+        }
+
+        pub fn append<U: Hook<Frame>>(self, other: Hooks<U>) -> Hooks<Both<T, U>> {
+            let both = Both {
+                left: self.0,
+                right: other.0,
+            };
+
+            Hooks::new_with(both)
+        }
+    }
+
+    impl<T: Hook<Frame> + 'static> Hooks<T> {
+        pub fn erase(self) -> ErasedHooks {
+            Hooks::new_with(Box::new(self.0))
+        }
+    }
+
+    type ErasedHooks = Hooks<Box<dyn Hook<Frame>>>;
+
+    mod builtin {
+        #[cfg(all(nightly, feature = "std"))]
+        use std::backtrace::Backtrace;
+
+        use crate::fmt::hook::Context;
+
+        fn backtrace(bt: &Backtrace, ctx: &mut Context) -> String {
+            // TODO: context
+            todo!()
+        }
+    }
 }
