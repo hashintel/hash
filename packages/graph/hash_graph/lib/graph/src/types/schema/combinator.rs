@@ -1,36 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::{
-    schema::{
-        array::{Array, Itemized},
-        object::ValidateUri,
-        ValidationError,
-    },
-    BaseUri,
-};
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged, deny_unknown_fields)]
-pub enum Optional<T> {
-    None {},
-    Some(T),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged, deny_unknown_fields)]
-pub enum ValueOrArray<T> {
-    Value(T),
-    Array(Itemized<Array, T>),
-}
-
-impl<T: ValidateUri> ValidateUri for ValueOrArray<T> {
-    fn validate_uri(&self, base_uri: &BaseUri) -> error_stack::Result<(), ValidationError> {
-        match self {
-            Self::Value(value) => value.validate_uri(base_uri),
-            Self::Array(array) => array.items().validate_uri(base_uri),
-        }
-    }
-}
+use crate::types::schema::ValidationError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -93,40 +63,6 @@ mod tests {
 
     use super::*;
     use crate::types::schema::tests::{check, check_invalid_json};
-
-    mod optional {
-        use super::*;
-
-        #[test]
-        fn none() -> Result<(), serde_json::Error> {
-            check(&Optional::<()>::None {}, json!({}))
-        }
-
-        #[test]
-        fn some() -> Result<(), serde_json::Error> {
-            check(&Optional::Some("value".to_owned()), json!("value"))
-        }
-    }
-
-    mod value_or_array {
-        use super::*;
-
-        #[test]
-        fn value() -> Result<(), serde_json::Error> {
-            check(&ValueOrArray::Value("value".to_owned()), json!("value"))
-        }
-
-        #[test]
-        fn array() -> Result<(), serde_json::Error> {
-            check(
-                &ValueOrArray::Array(Itemized::new(Array::default(), "string".to_owned())),
-                json!({
-                    "type": "array",
-                    "items": "string",
-                }),
-            )
-        }
-    }
 
     mod one_of {
         use std::error::Error;

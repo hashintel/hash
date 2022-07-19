@@ -1,19 +1,51 @@
 use std::collections::{HashMap, HashSet};
 
-use error_stack::Result;
+use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::types::{
     schema::{
-        array::{Array, MaybeOrdered},
-        combinator::Optional,
-        link::Links,
-        object::Object,
+        link::{Links, ValueOrMaybeOrderedArray},
+        object::{Object, ValidateUri},
         property_type::PropertyTypeReference,
         ValidationError, VersionedUri,
     },
     BaseUri,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EntityTypeReference {
+    // TODO: Test if the URI is an actual entity type
+    #[serde(rename = "$ref")]
+    uri: VersionedUri,
+}
+
+impl EntityTypeReference {
+    /// Creates a new `EntityTypeReference` from the given [`VersionedUri`].
+    #[must_use]
+    pub const fn new(uri: VersionedUri) -> Self {
+        Self { uri }
+    }
+
+    #[must_use]
+    pub const fn uri(&self) -> &VersionedUri {
+        &self.uri
+    }
+}
+
+impl ValidateUri for EntityTypeReference {
+    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
+        ensure!(
+            base_uri == self.uri().base_uri(),
+            ValidationError::BaseUriMismatch {
+                base_uri: base_uri.clone(),
+                versioned_uri: self.uri().clone()
+            }
+        );
+        Ok(())
+    }
+}
 
 /// Will serialize as a constant value `"entityType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -55,7 +87,7 @@ impl EntityType {
         examples: Vec<HashMap<VersionedUri, serde_json::Value>>,
         properties: HashMap<BaseUri, PropertyTypeReference>,
         required: Vec<BaseUri>,
-        links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
+        links: HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>>,
         required_links: Vec<VersionedUri>,
     ) -> Self {
         Self {
@@ -86,7 +118,7 @@ impl EntityType {
         examples: Vec<HashMap<VersionedUri, serde_json::Value>>,
         properties: HashMap<BaseUri, PropertyTypeReference>,
         required: Vec<BaseUri>,
-        links: HashMap<VersionedUri, Optional<MaybeOrdered<Array>>>,
+        links: HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>>,
         required_links: Vec<VersionedUri>,
     ) -> Result<Self, ValidationError> {
         Ok(Self {
@@ -137,7 +169,9 @@ impl EntityType {
     }
 
     #[must_use]
-    pub const fn links(&self) -> &HashMap<VersionedUri, Optional<MaybeOrdered<Array>>> {
+    pub const fn links(
+        &self,
+    ) -> &HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>> {
         self.links.links()
     }
 
@@ -216,7 +250,7 @@ mod tests {
         ]);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/written-by/v/1",
+            "https://blockprotocol.org/@alice/types/link-type/written-by/v/1",
         ]);
     }
 
@@ -259,8 +293,8 @@ mod tests {
         test_property_refs(&entity_type, []);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/located-at/v/1",
-            "https://blockprotocol.org/@alice/types/property-type/tenant/v/1",
+            "https://blockprotocol.org/@alice/types/link-type/located-at/v/1",
+            "https://blockprotocol.org/@alice/types/link-type/tenant/v/1",
         ]);
     }
 
@@ -275,7 +309,7 @@ mod tests {
         ]);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/friend-of/v/1",
+            "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1",
         ]);
     }
 
@@ -291,7 +325,7 @@ mod tests {
         ]);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/contains/v/1",
+            "https://blockprotocol.org/@alice/types/link-type/contains/v/1",
         ]);
     }
 
@@ -319,8 +353,8 @@ mod tests {
         ]);
 
         test_link_refs(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/written-by/v/1",
-            "https://blockprotocol.org/@alice/types/property-type/contains/v/1",
+            "https://blockprotocol.org/@alice/types/link-type/written-by/v/1",
+            "https://blockprotocol.org/@alice/types/link-type/contains/v/1",
         ]);
     }
 }

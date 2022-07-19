@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{
     schema::{
-        array::{Array, Itemized},
-        combinator::{OneOf, ValueOrArray},
+        array::Array,
+        combinator::OneOf,
         data_type::DataTypeReference,
         object::{Object, ValidateUri},
         ValidationError, VersionedUri,
@@ -49,12 +49,28 @@ impl ValidateUri for PropertyTypeReference {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged, deny_unknown_fields)]
+pub enum ValueOrArray<T> {
+    Value(T),
+    Array(Array<T>),
+}
+
+impl<T: ValidateUri> ValidateUri for ValueOrArray<T> {
+    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
+        match self {
+            Self::Value(value) => value.validate_uri(base_uri),
+            Self::Array(array) => array.items().validate_uri(base_uri),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 #[allow(clippy::enum_variant_names)]
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
     PropertyTypeObject(Object<ValueOrArray<PropertyTypeReference>, 1>),
-    ArrayOfPropertyValues(Itemized<Array, OneOf<Self>>),
+    ArrayOfPropertyValues(Array<OneOf<Self>>),
 }
 
 impl PropertyValues {
@@ -325,5 +341,32 @@ mod tests {
         ]);
 
         test_property_type_property_refs(&property_type, []);
+    }
+
+    mod value_or_array {
+        use error_stack::IntoReport;
+        use serde_json::json;
+
+        use super::*;
+        use crate::types::schema::tests::{check, StringTypeStruct};
+
+        #[test]
+        fn value() -> Result<(), serde_json::Error> {
+            check(&ValueOrArray::Value("value".to_owned()), json!("value")).report()
+        }
+
+        #[test]
+        fn array() -> Result<(), serde_json::Error> {
+            check(
+                &ValueOrArray::Array(Array::new(StringTypeStruct::default(), None, None)),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                }),
+            )
+            .report()
+        }
     }
 }

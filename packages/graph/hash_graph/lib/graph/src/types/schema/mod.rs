@@ -90,6 +90,20 @@ mod tests {
 
     use serde::{Deserialize, Serialize};
 
+    /// Will serialize as a constant value `"string"`
+    #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub(super) enum StringTypeTag {
+        #[default]
+        String,
+    }
+
+    #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase", deny_unknown_fields)]
+    pub struct StringTypeStruct {
+        r#type: StringTypeTag,
+    }
+
     pub(super) fn check_serialization<T>(
         value: &T,
         json: &serde_json::Value,
