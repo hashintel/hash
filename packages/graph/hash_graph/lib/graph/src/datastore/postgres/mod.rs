@@ -439,7 +439,7 @@ impl PostgresDatabase {
                 .fetch_one(
                     sqlx::query(
                         r#"
-                    INSERT INTO entity_type_property_types (source_entity_type_version_id, target_property_type_version_id)
+                    INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
                     VALUES ($1, $2)
                     RETURNING source_entity_type_version_id;
                     "#,
