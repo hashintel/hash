@@ -6,5 +6,5 @@ pub const NAME_V1: &str = include_str!("name.json");
 pub const INTERESTS_V1: &str = include_str!("interests.json");
 pub const NUMBERS_V1: &str = include_str!("numbers.json");
 pub const TEXT_V1: &str = include_str!("text.json");
-pub const USER_ID_V1: &str = include_str!("user-id_v1.json");
-pub const USER_ID_V2: &str = include_str!("user-id_v2.json");
+pub const USER_ID_V1: &str = include_str!("user-id-v1.json");
+pub const USER_ID_V2: &str = include_str!("user-id-v2.json");
