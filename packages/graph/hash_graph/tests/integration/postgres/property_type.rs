@@ -18,7 +18,7 @@ fn insert() {
 
 #[test]
 fn query() {
-    let favourite_quote_pt = serde_json::from_str(property_type::FAVOURITE_QUOTE_V1)
+    let favorite_quote_pt = serde_json::from_str(property_type::FAVORITE_QUOTE_V1)
         .expect("could not parse property type");
 
     let mut database = DatabaseTestWrapper::new();
@@ -27,7 +27,7 @@ fn query() {
         .expect("Could not seed database");
 
     let created_property_type = database
-        .create_property_type(favourite_quote_pt)
+        .create_property_type(favorite_quote_pt)
         .expect("could not create property type");
 
     let property_type = database
