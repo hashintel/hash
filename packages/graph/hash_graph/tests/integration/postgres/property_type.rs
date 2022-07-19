@@ -8,7 +8,7 @@ fn insert() {
 
     let mut database = DatabaseTestWrapper::new();
     database
-        .seed([data_type::NUMBER_V1], [])
+        .seed([data_type::NUMBER_V1], [], [])
         .expect("Could not seed database");
 
     database
@@ -23,7 +23,7 @@ fn query() {
 
     let mut database = DatabaseTestWrapper::new();
     database
-        .seed([data_type::TEXT_V1], [])
+        .seed([data_type::TEXT_V1], [], [])
         .expect("Could not seed database");
 
     let created_property_type = database
@@ -46,7 +46,7 @@ fn update() {
 
     let mut database = DatabaseTestWrapper::new();
     database
-        .seed([data_type::NUMBER_V1, data_type::TEXT_V1], [])
+        .seed([data_type::NUMBER_V1, data_type::TEXT_V1], [], [])
         .expect("Could not seed database");
 
     let created_property_type = database

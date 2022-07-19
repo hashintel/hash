@@ -2,6 +2,8 @@ mod data_type;
 mod entity_type;
 mod property_type;
 
+use std::thread;
+
 use error_stack::Result;
 use graph::{
     datastore::{
@@ -71,14 +73,23 @@ impl DatabaseTestWrapper {
         }
     }
 
-    pub fn seed<D, P>(
+    pub fn seed<D, P, E>(
         &mut self,
         data_types: D,
         property_types: P,
-    ) -> Result<(Vec<Qualified<DataType>>, Vec<Qualified<PropertyType>>), InsertionError>
+        entity_types: E,
+    ) -> Result<
+        (
+            Vec<Qualified<DataType>>,
+            Vec<Qualified<PropertyType>>,
+            Vec<Qualified<EntityType>>,
+        ),
+        InsertionError,
+    >
     where
         D: IntoIterator<Item = &'static str>,
         P: IntoIterator<Item = &'static str>,
+        E: IntoIterator<Item = &'static str>,
     {
         let data_types = data_types
             .into_iter()
@@ -98,7 +109,16 @@ impl DatabaseTestWrapper {
             })
             .collect::<Result<_, _>>()?;
 
-        Ok((data_types, property_types))
+        let entity_types = entity_types
+            .into_iter()
+            .map(|entity_type| {
+                self.create_entity_type(
+                    serde_json::from_str(entity_type).expect("could not parse entity type"),
+                )
+            })
+            .collect::<Result<_, _>>()?;
+
+        Ok((data_types, property_types, entity_types))
     }
 
     pub fn create_data_type(
