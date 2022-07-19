@@ -11,7 +11,7 @@ pub use self::{
     postgres::PostgresDatabase,
 };
 use crate::types::{
-    schema::{DataType, EntityType, PropertyType},
+    schema::{DataType, EntityType, LinkType, PropertyType},
     AccountId, Qualified, VersionId,
 };
 
@@ -264,6 +264,39 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     ) -> Result<Qualified<EntityType>, UpdateError>;
 
     // TODO - perhaps we want to separate the Datastore into the Type Graph and the Data Graph
+
+    /// Creates a new [`LinkType`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the account referred to by `created_by` does not exist.
+    /// - if the [`BaseUri`] of the `property_type` already exists.
+    ///
+    /// [`BaseUri`]: crate::types::BaseUri
+    async fn create_link_type(
+        &self,
+        link_type: LinkType,
+        created_by: AccountId,
+    ) -> Result<Qualified<LinkType>, InsertionError>;
+
+    /// Get an existing [`LinkType`] by a [`VersionId`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`LinkType`] doesn't exist.
+    async fn get_link_type(&self, version_id: VersionId)
+    -> Result<Qualified<LinkType>, QueryError>;
+
+    /// Update the definition of an existing [`LinkType`].
+    ///
+    /// # Errors
+    ///
+    /// - if the [`LinkType`] doesn't exist.
+    async fn update_link_type(
+        &self,
+        property_type: LinkType,
+        updated_by: AccountId,
+    ) -> Result<Qualified<LinkType>, UpdateError>;
 
     /// Creates a new `Entity`.
     async fn create_entity() -> Result<(), InsertionError>;

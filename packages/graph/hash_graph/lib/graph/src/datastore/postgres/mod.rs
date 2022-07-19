@@ -14,7 +14,7 @@ use crate::{
     },
     types::{
         schema::{
-            DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
+            DataType, DataTypeReference, EntityType, EntityTypeReference, LinkType, PropertyType,
             PropertyTypeReference,
         },
         AccountId, BaseUri, Qualified, VersionId, VersionedUri,
@@ -732,6 +732,59 @@ impl Datastore for PostgresDatabase {
             .change_context(UpdateError)?;
 
         Ok(entity_type)
+    }
+
+    async fn create_link_type(
+        &self,
+        link_type: LinkType,
+        created_by: AccountId,
+    ) -> Result<Qualified<LinkType>, InsertionError> {
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        let qualified = Self::create(&mut transaction, link_type, created_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        Ok(qualified)
+    }
+
+    async fn get_link_type(
+        &self,
+        version_id: VersionId,
+    ) -> Result<Qualified<LinkType>, QueryError> {
+        self.get_by_version(version_id).await
+    }
+
+    async fn update_link_type(
+        &self,
+        link_type: LinkType,
+        updated_by: AccountId,
+    ) -> Result<Qualified<LinkType>, UpdateError> {
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        let qualified = Self::update(&mut transaction, link_type, updated_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        Ok(qualified)
     }
 
     async fn create_entity() -> Result<(), InsertionError> {

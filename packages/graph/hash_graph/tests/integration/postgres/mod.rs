@@ -11,7 +11,7 @@ use graph::{
         QueryError, UpdateError,
     },
     types::{
-        schema::{DataType, EntityType, PropertyType},
+        schema::{DataType, EntityType, LinkType, PropertyType},
         AccountId, BaseUri, Qualified, VersionId,
     },
 };
@@ -219,6 +219,40 @@ impl DatabaseTestWrapper {
         self.rt.block_on(async {
             self.postgres
                 .update_entity_type(entity_type, self.account_id)
+                .await
+        })
+    }
+
+    pub fn create_link_type(
+        &mut self,
+        link_type: LinkType,
+    ) -> Result<Qualified<LinkType>, InsertionError> {
+        self.rt.block_on(async {
+            let link_type = self
+                .postgres
+                .create_link_type(link_type, self.account_id)
+                .await?;
+            self.created_base_uris
+                .push(link_type.inner().id().base_uri().clone());
+            Ok(link_type)
+        })
+    }
+
+    pub fn get_link_type(
+        &mut self,
+        version_id: VersionId,
+    ) -> Result<Qualified<LinkType>, QueryError> {
+        self.rt
+            .block_on(async { self.postgres.get_link_type(version_id).await })
+    }
+
+    pub fn update_link_type(
+        &mut self,
+        link_type: LinkType,
+    ) -> Result<Qualified<LinkType>, UpdateError> {
+        self.rt.block_on(async {
+            self.postgres
+                .update_link_type(link_type, self.account_id)
                 .await
         })
     }
