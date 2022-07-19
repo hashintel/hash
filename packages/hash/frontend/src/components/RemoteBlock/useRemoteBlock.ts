@@ -80,6 +80,15 @@ export const useRemoteBlock: UseRemoteBlockHook = (
     onBlockLoadedRef.current = onBlockLoaded;
   });
 
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    if (!loadedRef.current && url === loadedUrl && !loading && !err) {
+      loadedRef.current = true;
+      onBlockLoadedRef.current?.();
+    }
+  });
+
   useEffect(() => {
     if (url === loadedUrl && !loading && !err) {
       return;
@@ -87,6 +96,8 @@ export const useRemoteBlock: UseRemoteBlockHook = (
 
     const controller = new AbortController();
     const signal = controller.signal;
+
+    loadedRef.current = false;
 
     setState({
       loading: true,
@@ -98,10 +109,6 @@ export const useRemoteBlock: UseRemoteBlockHook = (
     loadBlockComponent(url, crossFrame, signal)
       .then((result) => {
         setState(result);
-
-        if (onBlockLoadedRef.current && !signal.aborted) {
-          onBlockLoadedRef.current();
-        }
       })
       .catch((newErr) => {
         if (!controller.signal.aborted) {

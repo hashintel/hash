@@ -79,6 +79,8 @@ export class ComponentView implements NodeView<Schema> {
   private editable = false;
   private store: EntityStore;
 
+  private wasSuggested = false;
+
   constructor(
     private node: ProsemirrorNode<Schema>,
     private readonly editorView: EditorView<Schema>,
@@ -105,6 +107,19 @@ export class ComponentView implements NodeView<Schema> {
       this.store = store;
       this.update(this.node);
     });
+
+    this.wasSuggested =
+      suggesterPluginKey.getState(this.editorView.state)
+        ?.suggestedBlockPosition === this.getPos();
+
+    if (this.wasSuggested) {
+      this.editorView.dispatch(
+        this.editorView.state.tr.setMeta(suggesterPluginKey, {
+          type: "suggestedBlock",
+          payload: { position: null },
+        } as SuggesterAction),
+      );
+    }
 
     this.update(this.node);
   }
@@ -163,6 +178,7 @@ export class ComponentView implements NodeView<Schema> {
             linkGroups={childEntity?.linkGroups ?? []}
             linkedEntities={childEntity?.linkedEntities ?? []}
             linkedAggregations={childEntity?.linkedAggregations ?? []}
+            onBlockLoaded={this.onBlockLoaded}
           />
         </Sentry.ErrorBoundary>,
         this.target,
@@ -174,16 +190,26 @@ export class ComponentView implements NodeView<Schema> {
     }
   }
 
+  private onBlockLoaded = () => {
+    /**
+     * After two calls to setImmediate, we know the block will have had the
+     * chance to initiate an editable section and thereby become selected if
+     * initiated via the suggester. If it hasn't happened in that time, we want
+     * to expire the opportunity to become automatically selected.
+     *
+     * @todo find a better way of knowing there's been the opportunity for
+     *       this which doesn't depend on timing
+     */
+    if (this.wasSuggested) {
+      setImmediate(() =>
+        setImmediate(() => {
+          this.wasSuggested = false;
+        }),
+      );
+    }
+  };
+
   editableRef = (editableNode: HTMLElement | null) => {
-    const nodeSelected =
-      suggesterPluginKey.getState(this.editorView.state)
-        ?.autoselectingPosition === this.getPos();
-
-    const tr = this.editorView.state.tr.setMeta(suggesterPluginKey, {
-      type: "autoselect",
-      payload: { position: null },
-    } as SuggesterAction);
-
     if (editableNode) {
       if (!editableNode.contains(this.contentDOM)) {
         editableNode.appendChild(this.contentDOM);
@@ -193,13 +219,20 @@ export class ComponentView implements NodeView<Schema> {
       this.dom.removeAttribute("contentEditable");
       this.editable = true;
 
-      tr.setSelection(TextSelection.create<Schema>(tr.doc, this.getPos()));
+      if (this.wasSuggested) {
+        this.editorView.dispatch(
+          this.editorView.state.tr.setSelection(
+            TextSelection.create<Schema>(
+              this.editorView.state.doc,
+              this.getPos(),
+            ),
+          ),
+        );
+
+        this.wasSuggested = false;
+      }
     } else {
       this.destroyEditableRef();
-    }
-
-    if (nodeSelected) {
-      this.editorView.dispatch(tr);
     }
   };
 

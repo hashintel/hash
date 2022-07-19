@@ -7,7 +7,13 @@ import {
 } from "@blockprotocol/graph";
 import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import React, { useCallback, useMemo, VoidFunctionComponent } from "react";
+import React, {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  VoidFunctionComponent,
+} from "react";
 import { uniqBy } from "lodash";
 
 import {
@@ -47,6 +53,7 @@ type BlockLoaderProps = {
   linkGroups: BlockEntity["properties"]["entity"]["linkGroups"];
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
+  onBlockLoaded: () => void;
   // shouldSandbox?: boolean;
 };
 
@@ -68,6 +75,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   linkGroups,
   linkedEntities,
   linkedAggregations,
+  onBlockLoaded,
   // shouldSandbox,
 }) => {
   const { aggregateEntityTypes } =
@@ -171,11 +179,17 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     updateLinkedAggregation,
   };
 
-  const onBlockLoaded = useBlockLoaded();
+  const onBlockLoadedFromContext = useBlockLoaded();
+  const onBlockLoadedRef = useRef(onBlockLoaded);
+
+  useLayoutEffect(() => {
+    onBlockLoadedRef.current = onBlockLoaded;
+  });
 
   const onRemoteBlockLoaded = useCallback(() => {
-    onBlockLoaded(blockEntityId);
-  }, [blockEntityId, onBlockLoaded]);
+    onBlockLoadedFromContext(blockEntityId);
+    onBlockLoadedRef?.current();
+  }, [blockEntityId, onBlockLoadedFromContext]);
 
   // @todo upgrade sandbox for BP 0.2 and remove feature flag
   // if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {

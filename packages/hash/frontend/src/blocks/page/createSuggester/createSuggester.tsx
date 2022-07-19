@@ -75,7 +75,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
 export type SuggesterAction =
   | { type: "escape" }
   | { type: "key" }
-  | { type: "autoselect"; payload: { position: number | null } };
+  | { type: "suggestedBlock"; payload: { position: number | null } };
 
 interface SuggesterState {
   /** whether or not the suggester is disabled */
@@ -85,7 +85,7 @@ interface SuggesterState {
   /** whether or not the suggester is currently open */
   isOpen(): boolean;
 
-  autoselectingPosition: number | null;
+  suggestedBlockPosition: number | null;
 }
 
 /**
@@ -118,7 +118,7 @@ export const createSuggester = (
       init() {
         return {
           trigger: null,
-          autoselectingPosition: null,
+          suggestedBlockPosition: null,
           disabled: false,
           isOpen() {
             return this.trigger !== null && !this.disabled;
@@ -132,23 +132,28 @@ export const createSuggester = (
 
         switch (action?.type) {
           case "escape":
-            return { ...state, disabled: true, autoselectingPosition: null };
+            return { ...state, disabled: true, suggestedBlockPosition: null };
 
           case "key":
-            return { ...state, autoselectingPosition: null };
+            return { ...state, suggestedBlockPosition: null };
 
-          case "autoselect":
-            return { ...state, autoselectingPosition: action.payload.position };
+          case "suggestedBlock":
+            return {
+              ...state,
+              suggestedBlockPosition: action.payload.position,
+            };
         }
 
-        const autoselectingPosition =
-          state.autoselectingPosition === null
+        const suggestedBlockPosition =
+          state.suggestedBlockPosition === null ||
+          tr.selectionSet ||
+          tr.docChanged
             ? null
-            : tr.mapping.map(state.autoselectingPosition);
+            : tr.mapping.map(state.suggestedBlockPosition);
         const trigger = findTrigger(nextEditorState);
         const disabled = state.disabled && trigger !== null;
 
-        return { ...state, trigger, disabled, autoselectingPosition };
+        return { ...state, trigger, disabled, suggestedBlockPosition };
       },
     },
     props: {
@@ -231,9 +236,8 @@ export const createSuggester = (
                   );
                 }
 
-                // @todo need to expire this
                 tr.setMeta(suggesterPluginKey, {
-                  type: "autoselect",
+                  type: "suggestedBlock",
                   payload: { position: insertedComponentPosition },
                 } as SuggesterAction);
 
