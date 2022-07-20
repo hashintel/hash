@@ -38,10 +38,8 @@ async fn main() -> Result<(), GraphError> {
             err
         })?;
 
-    #[cfg(debug_assertions)]
+    // TODO: Revisit, once authentication is in place
     let account_id = AccountId::new(Uuid::nil());
-    #[cfg(not(debug_assertions))]
-    let account_id = AccountId::new(Uuid::new_v4());
 
     datastore
         .insert_account_id(account_id)

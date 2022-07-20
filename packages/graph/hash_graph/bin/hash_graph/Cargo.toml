@@ -15,4 +15,4 @@ error-stack = { version = "0.1.1", features = ["futures"] }
 graph = { path = "../../lib/graph", features = ["clap"] }
 tokio = { version = "1.18.2", features = ["rt", "macros"] }
 tracing = "0.1.35"
-uuid = { version = "1.1.2", features = ["v4"] }
+uuid = "1.1.2"
