@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::schema::VersionedUri;
+use crate::ontology::types::{uri::VersionedUri, OntologyType};
 
 /// Will serialize as a constant value `"linkType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -19,6 +19,12 @@ pub struct LinkType {
     description: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     related_keywords: Vec<String>,
+}
+
+impl OntologyType for LinkType {
+    fn uri(&self) -> &VersionedUri {
+        self.id()
+    }
 }
 
 impl LinkType {

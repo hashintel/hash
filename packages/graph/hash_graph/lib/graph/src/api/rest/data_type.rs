@@ -13,8 +13,11 @@ use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
-    datastore::{BaseUriAlreadyExists, BaseUriDoesNotExist, Datastore, QueryError},
-    types::{schema::DataType, AccountId, Qualified, QualifiedDataType, VersionId},
+    ontology::{
+        types::{DataType, Persisted, PersistedDataType},
+        AccountId, VersionId,
+    },
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
 };
 
 #[derive(OpenApi)]
@@ -24,7 +27,7 @@ use crate::{
         get_data_type,
         update_data_type
     ),
-    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, QualifiedDataType),
+    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, PersistedDataType),
     tags(
         (name = "DataType", description = "Data Type management API")
     )
@@ -33,13 +36,13 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<D: Datastore>() -> Router {
+    fn routes<S: Store>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-type",
             Router::new()
-                .route("/", post(create_data_type::<D>).put(update_data_type::<D>))
-                .route("/:version_id", get(get_data_type::<D>)),
+                .route("/", post(create_data_type::<S>).put(update_data_type::<S>))
+                .route("/:version_id", get(get_data_type::<S>)),
         )
     }
 }
@@ -57,22 +60,22 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-      (status = 201, content_type = "application/json", description = "Data type created successfully", body = QualifiedDataType),
+      (status = 201, content_type = "application/json", description = "Data type created successfully", body = PersistedDataType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 409, description = "Unable to create data type in the datastore as the base data type ID already exists"),
-      (status = 500, description = "Datastore error occurred"),
+      (status = 409, description = "Unable to create data type in the store as the base data type ID already exists"),
+      (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateDataTypeRequest,
 )]
-async fn create_data_type<D: Datastore>(
+async fn create_data_type<S: Store>(
     body: Json<CreateDataTypeRequest>,
-    datastore: Extension<D>,
-) -> Result<Json<Qualified<DataType>>, StatusCode> {
+    store: Extension<S>,
+) -> Result<Json<Persisted<DataType>>, StatusCode> {
     let Json(body) = body;
-    let Extension(datastore) = datastore;
+    let Extension(store) = store;
 
-    datastore
+    store
         .clone()
         .create_data_type(body.schema, body.account_id)
         .await
@@ -92,24 +95,24 @@ async fn create_data_type<D: Datastore>(
     path = "/data-type/{versionId}",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "Data type found", body = QualifiedDataType),
+        (status = 200, content_type = "application/json", description = "Data type found", body = PersistedDataType),
         (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
 
         (status = 404, description = "Data type was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("versionId" = Uuid, Path, description = "The version ID of data type"),
     )
 )]
-async fn get_data_type<D: Datastore>(
+async fn get_data_type<S: Store>(
     version_id: Path<Uuid>,
-    datastore: Extension<D>,
-) -> Result<Json<Qualified<DataType>>, impl IntoResponse> {
+    store: Extension<S>,
+) -> Result<Json<Persisted<DataType>>, impl IntoResponse> {
     let Path(version_id) = version_id;
-    let Extension(datastore) = datastore;
+    let Extension(store) = store;
 
-    datastore
+    store
         .get_data_type(VersionId::new(version_id))
         .await
         .map_err(|report| {
@@ -117,7 +120,7 @@ async fn get_data_type<D: Datastore>(
                 return StatusCode::NOT_FOUND;
             }
 
-            // Datastore errors such as connection failure are considered internal server errors.
+            // Store errors such as connection failure are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
@@ -135,22 +138,22 @@ struct UpdateDataTypeRequest {
     path = "/data-type",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "Data type updated successfully", body = QualifiedDataType),
+        (status = 200, content_type = "application/json", description = "Data type updated successfully", body = PersistedDataType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base data type ID was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = UpdateDataTypeRequest,
 )]
-async fn update_data_type<D: Datastore>(
+async fn update_data_type<S: Store>(
     body: Json<UpdateDataTypeRequest>,
-    datastore: Extension<D>,
-) -> Result<Json<Qualified<DataType>>, StatusCode> {
+    store: Extension<S>,
+) -> Result<Json<Persisted<DataType>>, StatusCode> {
     let Json(body) = body;
-    let Extension(datastore) = datastore;
+    let Extension(store) = store;
 
-    datastore
+    store
         .clone()
         .update_data_type(body.schema, body.account_id)
         .await

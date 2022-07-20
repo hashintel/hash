@@ -8,7 +8,7 @@ pub struct InsertionError;
 
 impl fmt::Display for InsertionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not insert into datastore")
+        fmt.write_str("Could not insert into store")
     }
 }
 
@@ -20,7 +20,7 @@ pub struct QueryError;
 
 impl fmt::Display for QueryError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not query from datastore")
+        fmt.write_str("Could not query from store")
     }
 }
 
@@ -32,7 +32,7 @@ pub struct UpdateError;
 
 impl fmt::Display for UpdateError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not update datastore")
+        fmt.write_str("Could not update store")
     }
 }
 

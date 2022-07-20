@@ -1,6 +1,6 @@
 use axum::Router;
 
-use crate::datastore::Datastore;
+use crate::store::Store;
 
 /// With REST, we define resources that can be acted on. These resources are defined through
 /// routes and HTTP methods.
@@ -9,7 +9,7 @@ use crate::datastore::Datastore;
 /// through a `Router`, making it explicitly clear we want to provide `OpenApi` specification as
 /// documentation for the routes.
 pub(super) trait RoutedResource: utoipa::OpenApi {
-    fn routes<D: Datastore>() -> Router;
+    fn routes<S: Store>() -> Router;
     fn documentation() -> utoipa::openapi::OpenApi {
         Self::openapi()
     }

@@ -51,7 +51,9 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::types::schema::tests::{check, check_invalid_json, StringTypeStruct};
+    use crate::ontology::types::serde_shared::tests::{
+        check, check_invalid_json, StringTypeStruct,
+    };
 
     #[test]
     fn unconstrained() -> Result<(), serde_json::Error> {

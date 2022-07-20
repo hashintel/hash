@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::schema::ValidationError;
+use crate::ontology::types::error::ValidationError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -62,7 +62,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::types::schema::tests::{check, check_invalid_json};
+    use crate::ontology::types::serde_shared::tests::{check, check_invalid_json};
 
     mod one_of {
         use std::error::Error;
