@@ -51,6 +51,16 @@ pub enum ValueOrMaybeOrderedArray<T> {
     Array(MaybeOrderedArray<T>),
 }
 
+impl<T> ValueOrMaybeOrderedArray<T> {
+    #[must_use]
+    pub const fn inner(&self) -> &T {
+        match self {
+            Self::Value(value) => value,
+            Self::Array(array) => array.array().items(),
+        }
+    }
+}
+
 impl<T: ValidateUri> ValidateUri for ValueOrMaybeOrderedArray<T> {
     fn validate_uri(&self, base_uri: &BaseUri) -> error_stack::Result<(), ValidationError> {
         match self {
