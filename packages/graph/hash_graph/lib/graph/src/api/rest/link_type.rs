@@ -22,7 +22,6 @@ use crate::{
     handlers(
         create_link_type,
         get_link_type,
-        // get_link_type_many,
         update_link_type
     ),
     components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId, QualifiedLinkType),
