@@ -19,11 +19,10 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", response.body.version_id);
 %}
 
 ### Get Text data type
-GET http://127.0.0.1:3000/data-type/{{text_data_type_id}}
+GET http://127.0.0.1:3000/data-type/https%3A%2F%2Fblockprotocol.org%2F%40blockprotocol%2Ftypes%2Fdata-type%2Ftext%2Fv%2F1
 
 > {%
     client.test("status", function() {
@@ -76,11 +75,10 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_id", response.body.version_id);
 %}
 
 ### Get Name property type
-GET http://127.0.0.1:3000/property-type/{{person_property_type_id}}
+GET http://127.0.0.1:3000/property-type/https%3A%2F%2Fblockprotocol.org%2F%40alice%2Ftypes%2Fproperty-type%2Fname%2Fv%2F1
 
 > {%
     client.test("status", function() {
@@ -133,11 +131,10 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friend_of_link_type_id", response.body.version_id);
 %}
 
 ### Get FriendOf link type
-GET http://127.0.0.1:3000/link-type/{{friend_of_link_type_id}}
+GET http://127.0.0.1:3000/link-type/https%3A%2F%2Fblockprotocol.org%2F%40alice%2Ftypes%2Flink-type%2Ffriend-of%2Fv%2F1
 
 > {%
     client.test("status", function() {
@@ -193,11 +190,10 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("page_person_type_id", response.body.version_id);
 %}
 
 ### Get Person entity type
-GET http://127.0.0.1:3000/entity-type/{{page_person_type_id}}
+GET http://127.0.0.1:3000/entity-type/https%3A%2F%2Fblockprotocol.org%2F%40alice%2Ftypes%2Fentity-type%2Fperson%2Fv%2F1
 
 > {%
     client.test("status", function() {

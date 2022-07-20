@@ -9,13 +9,12 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{Component, OpenApi};
-use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
     ontology::{
-        types::{LinkType, Persisted, PersistedLinkType},
-        AccountId, VersionId,
+        types::{uri::VersionedUri, LinkType, Persisted, PersistedLinkType},
+        AccountId,
     },
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
 };
@@ -92,28 +91,37 @@ async fn create_link_type<S: Store>(
 
 #[utoipa::path(
     get,
-    path = "/link-type/{versionId}",
+    path = "/link-type/{uri}",
     tag = "LinkType",
     responses(
         (status = 200, content_type = "application/json", description = "Link type found", body = PersistedLinkType),
-        (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Link type was not found"),
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("versionId" = Uuid, Path, description = "The version ID of link type"),
+        ("uri" = String, Path, description = "The URI of link type"),
     )
 )]
 async fn get_link_type<S: Store>(
-    version_id: Path<Uuid>,
+    uri: Path<VersionedUri>,
     store: Extension<S>,
 ) -> Result<Json<Persisted<LinkType>>, impl IntoResponse> {
-    let Path(version_id) = version_id;
+    let Path(uri) = uri;
     let Extension(store) = store;
 
+    let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
+        if report.contains::<QueryError>() {
+            return StatusCode::NOT_FOUND;
+        }
+
+        // Datastore errors such as connection failure are considered internal server errors.
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     store
-        .get_link_type(VersionId::new(version_id))
+        .get_link_type(version_id)
         .await
         .map_err(|report| {
             if report.contains::<QueryError>() {

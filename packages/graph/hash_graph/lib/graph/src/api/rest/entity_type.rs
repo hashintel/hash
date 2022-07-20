@@ -9,13 +9,12 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{Component, OpenApi};
-use uuid::Uuid;
 
 use crate::{
     api::rest::api_resource::RoutedResource,
     ontology::{
-        types::{EntityType, Persisted, PersistedEntityType},
-        AccountId, VersionId,
+        types::{uri::VersionedUri, EntityType, Persisted, PersistedEntityType},
+        AccountId,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
@@ -98,28 +97,37 @@ async fn create_entity_type<S: Store>(
 
 #[utoipa::path(
     get,
-    path = "/entity-type/{versionId}",
+    path = "/entity-type/{uri}",
     tag = "EntityType",
     responses(
         (status = 200, content_type = "application/json", description = "Entity type found", body = PersistedEntityType),
-        (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Entity type was not found"),
         (status = 500, description = "Datastore error occurred"),
     ),
     params(
-        ("versionId" = Uuid, Path, description = "The version ID of entity type"),
+        ("uri" = String, Path, description = "The URI of entity type"),
     )
 )]
 async fn get_entity_type<S: Store>(
-    version_id: Path<Uuid>,
-    datastore: Extension<S>,
+    uri: Path<VersionedUri>,
+    store: Extension<S>,
 ) -> Result<Json<Persisted<EntityType>>, impl IntoResponse> {
-    let Path(version_id) = version_id;
-    let Extension(datastore) = datastore;
+    let Path(uri) = uri;
+    let Extension(store) = store;
 
-    datastore
-        .get_entity_type(VersionId::new(version_id))
+    let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
+        if report.contains::<QueryError>() {
+            return StatusCode::NOT_FOUND;
+        }
+
+        // Datastore errors such as connection failure are considered internal server errors.
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .get_entity_type(version_id)
         .await
         .map_err(|report| {
             if report.contains::<QueryError>() {
