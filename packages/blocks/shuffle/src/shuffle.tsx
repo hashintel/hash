@@ -43,6 +43,12 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       },
     });
 
+  const onAdd = (index: number) =>
+    dispatch({
+      type: ActionType.ADD,
+      payload: { index },
+    });
+
   const onDelete = (index: number) =>
     dispatch({
       type: ActionType.DELETE,
@@ -60,16 +66,16 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
 
   return (
     <Box ref={blockRootRef}>
+      <Button onClick={() => dispatch({ type: ActionType.SHUFFLE })}>
+        Shuffle
+      </Button>
       <ItemList
         list={list}
         onReorder={onReorder}
         onValueChange={onValueChange}
+        onAdd={onAdd}
         onDelete={onDelete}
       />
-      <Button onClick={() => dispatch({ type: ActionType.ADD })}>Add</Button>
-      <Button onClick={() => dispatch({ type: ActionType.SHUFFLE })}>
-        Shuffle
-      </Button>
     </Box>
   );
 };

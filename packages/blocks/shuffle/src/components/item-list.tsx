@@ -9,6 +9,7 @@ type ItemListProps = {
   list: Items;
   onReorder: (sourceIndex: number, destinationIndex: number) => void;
   onValueChange: (index: number, value: string) => void;
+  onAdd: (index: number) => void;
   onDelete: (index: number) => void;
 };
 
@@ -16,6 +17,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
   list,
   onReorder,
   onValueChange,
+  onAdd,
   onDelete,
 }) => {
   const onDragEnd = (result) => {
@@ -29,14 +31,16 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <Droppable droppableId="droppable">
-        {(provided, snapshot) => (
+        {(provided, { draggingOverWith }) => (
           <List {...provided.droppableProps} ref={provided.innerRef}>
             {list.map((item, index) => (
               <Item
                 id={item.id}
                 index={index}
                 value={item.value}
+                canHover={!draggingOverWith || draggingOverWith === item.id}
                 onValueChange={(value: string) => onValueChange(index, value)}
+                onAdd={() => onAdd(index + 1)}
                 onDelete={() => onDelete(index)}
               />
             ))}

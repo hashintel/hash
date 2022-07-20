@@ -23,7 +23,7 @@ export enum ActionType {
 }
 
 export type ShuffleReducerAction =
-  | Action<ActionType.ADD>
+  | Action<ActionType.ADD, { index: number }>
   | Action<ActionType.UPDATE, { index: number; value: string }>
   | Action<ActionType.DELETE, { index: number }>
   | Action<
@@ -44,7 +44,7 @@ export const shuffleReducer: Reducer<Items, ShuffleReducerAction> = (
   switch (action.type) {
     case ActionType.ADD:
       return produce(items, (draftItems) => {
-        draftItems.push({
+        draftItems.splice(action.payload.index, 0, {
           id: uuid(),
           value: `Item ${items.length + 1}`,
         });
@@ -58,7 +58,6 @@ export const shuffleReducer: Reducer<Items, ShuffleReducerAction> = (
     case ActionType.DELETE:
       return produce(items, (draftItems) => {
         draftItems.splice(action.payload.index, 1);
-        console.log(draftItems.length);
         if (draftItems.length === 0) {
           draftItems.push({ id: uuid(), value: "Item 1" });
         }

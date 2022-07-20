@@ -15,7 +15,7 @@ const DevApp = () => {
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
       blockEntity={{
-        entityId: "test-block-1",
+        entityId: "test-shuffle-1",
         properties: {
           items: [
             { id: "1", value: "Item 1" },
