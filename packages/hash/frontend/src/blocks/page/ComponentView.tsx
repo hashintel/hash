@@ -19,6 +19,7 @@ import { TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
+import { BlockContext } from "./BlockContext";
 import {
   SuggesterAction,
   suggesterPluginKey,
@@ -155,33 +156,49 @@ export class ComponentView implements NodeView<Schema> {
       };
 
       this.renderPortal(
-        <Sentry.ErrorBoundary
-          beforeCapture={beforeCapture}
-          fallback={(props) => <ErrorBlock {...props} onRetry={onRetry} />}
-        >
-          <BlockLoader
-            blockEntityId={entityId}
-            entityType={childEntity?.entityType}
-            blockMetadata={this.config}
-            // @todo uncomment this when sandbox is fixed
-            // shouldSandbox={!this.editable}
-            editableRef={this.editableRef}
-            // @todo these asserted non-null fields do not definitely exist when the block is first loaded
-            accountId={childEntity?.accountId!}
-            entityId={childEntity?.entityId!}
-            entityTypeId={childEntity?.entityTypeId!}
-            entityProperties={
-              childEntity && "properties" in childEntity
-                ? childEntity.properties
-                : BLANK_PROPERTIES
-            }
-            linkGroups={childEntity?.linkGroups ?? []}
-            linkedEntities={childEntity?.linkedEntities ?? []}
-            linkedAggregations={childEntity?.linkedAggregations ?? []}
-            onBlockLoaded={this.onBlockLoaded}
-          />
-        </Sentry.ErrorBoundary>,
+        <BlockContext.Consumer>
+          {(ctx) => (
+            <Sentry.ErrorBoundary
+              beforeCapture={beforeCapture}
+              fallback={(props) => (
+                <ErrorBlock
+                  {...props}
+                  onRetry={() => {
+                    ctx?.setError(false);
+                    onRetry();
+                  }}
+                />
+              )}
+              onError={() => {
+                ctx?.setError(true);
+              }}
+            >
+              <BlockLoader
+                blockEntityId={entityId}
+                entityType={childEntity?.entityType}
+                blockMetadata={this.config}
+                // @todo uncomment this when sandbox is fixed
+                // shouldSandbox={!this.editable}
+                editableRef={this.editableRef}
+                // @todo these asserted non-null fields do not definitely exist when the block is first loaded
+                accountId={childEntity?.accountId!}
+                entityId={childEntity?.entityId!}
+                entityTypeId={childEntity?.entityTypeId!}
+                entityProperties={
+                  childEntity && "properties" in childEntity
+                    ? childEntity.properties
+                    : BLANK_PROPERTIES
+                }
+                linkGroups={childEntity?.linkGroups ?? []}
+                linkedEntities={childEntity?.linkedEntities ?? []}
+                linkedAggregations={childEntity?.linkedAggregations ?? []}
+                onBlockLoaded={this.onBlockLoaded}
+              />
+            </Sentry.ErrorBoundary>
+          )}
+        </BlockContext.Consumer>,
         this.target,
+        blockDraftId,
       );
 
       return true;

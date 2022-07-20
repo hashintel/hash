@@ -14,7 +14,9 @@ import { useUserBlocks } from "../userBlocks";
 import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { useBlockView } from "./BlockViewContext";
+import { useBlockContext } from "./BlockContext";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
+import { isBlockSwappable } from "./createSuggester/useFilteredBlocks";
 
 type BlockHandleProps = {
   deleteBlock: () => void;
@@ -85,6 +87,8 @@ const BlockHandle: ForwardRefRenderFunction<
     ? blocksMetaMap[blockEntity.properties.componentId]?.componentSchema
     : null;
 
+  const blockContext = useBlockContext();
+
   return (
     <Box ref={ref} data-testid="block-handle">
       <IconButton
@@ -113,6 +117,10 @@ const BlockHandle: ForwardRefRenderFunction<
         openConfigMenu={configMenuPopupState.open}
         popupState={contextMenuPopupState}
         ref={blockMenuRef}
+        swapType={
+          isBlockSwappable(blockEntity?.properties.componentId) ||
+          blockContext.error
+        }
       />
 
       <BlockConfigMenu
