@@ -1,6 +1,6 @@
 /**
  * Entrypoint of the Block Component.
  */
-import { App } from "./app";
+import { Shuffle } from "./shuffle";
 
-export default App;
+export default Shuffle;

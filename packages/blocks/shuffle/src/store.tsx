@@ -5,7 +5,7 @@ export type Item = {
   value: string;
 };
 
-export type ItemList = Item[];
+export type Items = Item[];
 
 export enum ActionType {
   ADD = "add",
@@ -50,7 +50,7 @@ export const initialList = [
   { id: uuid(), value: "Item 2" },
 ];
 
-export function reducer(list: ItemList, action: Actions) {
+export function reducer(list: Items, action: Actions) {
   switch (action.type) {
     case ActionType.ADD:
       return [
