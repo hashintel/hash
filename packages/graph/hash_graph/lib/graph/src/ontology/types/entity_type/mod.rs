@@ -11,6 +11,7 @@ use crate::ontology::types::{
     property_type::PropertyTypeReference,
     serde_shared::object::{Object, ValidateUri},
     uri::{BaseUri, VersionedUri},
+    OntologyType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -73,6 +74,12 @@ pub struct EntityType {
     property_object: Object<PropertyTypeReference>,
     #[serde(flatten)]
     links: Links,
+}
+
+impl OntologyType for EntityType {
+    fn uri(&self) -> &VersionedUri {
+        self.id()
+    }
 }
 
 impl EntityType {

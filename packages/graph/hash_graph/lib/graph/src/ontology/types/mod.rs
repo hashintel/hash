@@ -22,14 +22,22 @@ mod entity_type;
 mod link_type;
 mod property_type;
 
-pub use data_type::{DataType, DataTypeReference};
-pub use entity_type::{EntityType, EntityTypeReference};
-pub use link_type::LinkType;
-pub use property_type::{PropertyType, PropertyTypeReference};
+use crate::ontology::types::uri::VersionedUri;
+pub use crate::ontology::types::{
+    data_type::{DataType, DataTypeReference},
+    entity_type::{EntityType, EntityTypeReference},
+    link_type::LinkType,
+    property_type::{PropertyType, PropertyTypeReference},
+};
 
 pub mod error;
 
 mod serde_shared;
+
+pub trait OntologyType {
+    /// Returns the unique versioned URI used to identify this instance of a type.
+    fn uri(&self) -> &VersionedUri;
+}
 
 // TODO: constrain this to only work for valid inner Types.
 #[derive(Clone, Debug, Serialize, Deserialize, Component)]
@@ -38,7 +46,7 @@ mod serde_shared;
     QualifiedPropertyType = Qualified<PropertyType>,
     QualifiedLinkType = Qualified<LinkType>,
 )]
-pub struct Qualified<T> {
+pub struct Qualified<T: OntologyType> {
     version_id: VersionId,
     // TODO: we would want the inner types to be represented in the OpenAPI components list. This
     //   means that any generic instance used by the web API needs to have an alias above, and all
@@ -48,7 +56,7 @@ pub struct Qualified<T> {
     created_by: AccountId,
 }
 
-impl<T> Qualified<T> {
+impl<T: OntologyType> Qualified<T> {
     #[must_use]
     pub const fn new(version_id: VersionId, inner: T, created_by: AccountId) -> Self {
         Self {

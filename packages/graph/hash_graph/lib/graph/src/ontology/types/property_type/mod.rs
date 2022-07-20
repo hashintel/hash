@@ -12,6 +12,7 @@ use crate::ontology::types::{
         one_of::OneOf,
     },
     uri::{BaseUri, VersionedUri},
+    OntologyType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -129,6 +130,12 @@ pub struct PropertyType {
     description: Option<String>,
     #[serde(flatten)]
     one_of: OneOf<PropertyValues>,
+}
+
+impl OntologyType for PropertyType {
+    fn uri(&self) -> &VersionedUri {
+        self.id()
+    }
 }
 
 impl PropertyType {
