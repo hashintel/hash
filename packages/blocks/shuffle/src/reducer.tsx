@@ -33,8 +33,8 @@ export type ShuffleReducerAction =
   | Action<ActionType.SHUFFLE>;
 
 export const initialItems = [
-  { id: uuid(), value: "Item 1" },
-  { id: uuid(), value: "Item 2" },
+  { id: uuid(), value: "Thing 1" },
+  { id: uuid(), value: "Thing 2" },
 ];
 
 export const shuffleReducer: Reducer<Items, ShuffleReducerAction> = (
@@ -46,7 +46,7 @@ export const shuffleReducer: Reducer<Items, ShuffleReducerAction> = (
       return produce(items, (draftItems) => {
         draftItems.splice(action.payload.index, 0, {
           id: uuid(),
-          value: `Item ${items.length + 1}`,
+          value: `Thing ${items.length + 1}`,
         });
       });
 
@@ -59,7 +59,7 @@ export const shuffleReducer: Reducer<Items, ShuffleReducerAction> = (
       return produce(items, (draftItems) => {
         draftItems.splice(action.payload.index, 1);
         if (draftItems.length === 0) {
-          draftItems.push({ id: uuid(), value: "Item 1" });
+          draftItems.push({ id: uuid(), value: "Thing 1" });
         }
       });
 
