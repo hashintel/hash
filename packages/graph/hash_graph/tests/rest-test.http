@@ -1,5 +1,5 @@
 ### Insert Text data type
-POST localhost:3000/data-type
+POST http://127.0.0.1:3000/data-type
 Content-Type: application/json
 Accept: application/json
 
@@ -21,7 +21,7 @@ Accept: application/json
 %}
 
 ### Get Text data type
-GET localhost:3000/data-type/{{text_data_type_id}}
+GET http://127.0.0.1:3000/data-type/{{text_data_type_id}}
 
 > {%
     client.test("status", function() {
@@ -30,7 +30,7 @@ GET localhost:3000/data-type/{{text_data_type_id}}
 %}
 
 ### Update Text data type
-PUT localhost:3000/data-type
+PUT http://127.0.0.1:3000/data-type
 Content-Type: application/json
 Accept: application/json
 
@@ -52,7 +52,7 @@ Accept: application/json
 %}
 
 ### Insert Name property type
-POST localhost:3000/property-type
+POST http://127.0.0.1:3000/property-type
 Content-Type: application/json
 Accept: application/json
 
@@ -78,7 +78,7 @@ Accept: application/json
 %}
 
 ### Get Name property type
-GET localhost:3000/property-type/{{person_property_type_id}}
+GET http://127.0.0.1:3000/property-type/{{person_property_type_id}}
 
 > {%
     client.test("status", function() {
@@ -87,7 +87,7 @@ GET localhost:3000/property-type/{{person_property_type_id}}
 %}
 
 ### Update Name property type
-PUT localhost:3000/property-type
+PUT http://127.0.0.1:3000/property-type
 Content-Type: application/json
 Accept: application/json
 
@@ -112,7 +112,7 @@ Accept: application/json
 %}
 
 ### Insert FriendOf link type
-POST localhost:3000/link-type
+POST http://127.0.0.1:3000/link-type
 Content-Type: application/json
 Accept: application/json
 
@@ -135,7 +135,7 @@ Accept: application/json
 %}
 
 ### Get FriendOf link type
-GET localhost:3000/link-type/{{friend_of_link_type_id}}
+GET http://127.0.0.1:3000/link-type/{{friend_of_link_type_id}}
 
 > {%
     client.test("status", function() {
@@ -144,7 +144,7 @@ GET localhost:3000/link-type/{{friend_of_link_type_id}}
 %}
 
 ### Update FriendOf link type
-PUT localhost:3000/link-type
+PUT http://127.0.0.1:3000/link-type
 Content-Type: application/json
 Accept: application/json
 
@@ -168,7 +168,7 @@ Accept: application/json
 
 
 ### Insert Person entity type
-POST localhost:3000/entity-type
+POST http://127.0.0.1:3000/entity-type
 Content-Type: application/json
 Accept: application/json
 
@@ -195,7 +195,7 @@ Accept: application/json
 %}
 
 ### Get Person entity type
-GET localhost:3000/entity-type/{{page_person_type_id}}
+GET http://127.0.0.1:3000/entity-type/{{page_person_type_id}}
 
 > {%
     client.test("status", function() {
@@ -204,7 +204,7 @@ GET localhost:3000/entity-type/{{page_person_type_id}}
 %}
 
 ### Update Person entity type
-PUT localhost:3000/entity-type
+PUT http://127.0.0.1:3000/entity-type
 Content-Type: application/json
 Accept: application/json
 
