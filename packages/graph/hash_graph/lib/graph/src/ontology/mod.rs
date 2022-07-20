@@ -23,6 +23,12 @@ impl AccountId {
     }
 }
 
+impl fmt::Display for AccountId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}", &self.0)
+    }
+}
+
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[sqlx(transparent)]

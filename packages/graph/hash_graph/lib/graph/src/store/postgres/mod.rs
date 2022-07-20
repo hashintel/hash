@@ -55,6 +55,32 @@ impl PostgresDatabase {
         })
     }
 
+    /// Inserts the specified [`AccountId`] into the database.
+    ///
+    /// # Errors
+    ///
+    /// - if insertion failed, e.g. because the [`AccountId`] already exists.
+    // TODO: Revisit this when having authentication in place
+    pub async fn insert_account_id(&self, account_id: AccountId) -> Result<(), InsertionError> {
+        self.pool
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    INSERT INTO accounts (account_id)
+                    VALUES ($1)
+                    RETURNING account_id;
+                    "#,
+                )
+                .bind(account_id),
+            )
+            .await
+            .report()
+            .change_context(InsertionError)
+            .attach_printable(account_id)?;
+
+        Ok(())
+    }
+
     /// Checks if the specified [`BaseUri`] exists in the database.
     ///
     /// # Errors
