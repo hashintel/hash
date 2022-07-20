@@ -1,3 +1,4 @@
+import { Reducer } from "react";
 import { v4 as uuid } from "uuid";
 
 export type Item = {
@@ -7,6 +8,11 @@ export type Item = {
 
 export type Items = Item[];
 
+type Action<S, T = {}> = {
+  type: S;
+  payload?: T;
+};
+
 export enum ActionType {
   ADD = "add",
   UPDATE = "update",
@@ -15,42 +21,25 @@ export enum ActionType {
   SHUFFLE = "shuffle",
 }
 
-type AddAction = {
-  type: ActionType.ADD;
-};
+export type ShuffleReducerAction =
+  | Action<ActionType.ADD>
+  | Action<ActionType.UPDATE, { id: string; value: string }>
+  | Action<ActionType.DELETE, { id: string }>
+  | Action<
+      ActionType.REORDER,
+      { sourceIndex: number; destinationIndex: number }
+    >
+  | Action<ActionType.SHUFFLE>;
 
-type UpdateItemAction = {
-  type: ActionType.UPDATE;
-  payload: { id: string; value: string };
-};
-
-type DeleteItemAction = {
-  type: ActionType.DELETE;
-  payload: { id: string };
-};
-
-type ReorderAction = {
-  type: ActionType.REORDER;
-  payload: { sourceIndex: number; destinationIndex: number };
-};
-
-type ShuffleAction = {
-  type: ActionType.SHUFFLE;
-};
-
-type Actions =
-  | AddAction
-  | UpdateItemAction
-  | DeleteItemAction
-  | ReorderAction
-  | ShuffleAction;
-
-export const initialList = [
+export const initialItems = [
   { id: uuid(), value: "Item 1" },
   { id: uuid(), value: "Item 2" },
 ];
 
-export function reducer(list: Items, action: Actions) {
+export const shuffleReducer: Reducer<Items, ShuffleReducerAction> = (
+  list,
+  action,
+) => {
   switch (action.type) {
     case ActionType.ADD:
       return [
@@ -92,4 +81,4 @@ export function reducer(list: Items, action: Actions) {
     default:
       throw new Error();
   }
-}
+};

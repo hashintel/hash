@@ -3,7 +3,7 @@ import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
 import { Button } from "@mui/material";
 import Box from "@mui/material/Box";
 import { ItemList } from "./components/item-list";
-import { ActionType, initialList, Items, reducer } from "./store";
+import { ActionType, initialItems, Items, shuffleReducer } from "./reducer";
 
 type BlockEntityProperties = {
   items: Items;
@@ -21,8 +21,8 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   const { graphService } = useGraphBlockService(blockRootRef);
 
   const [list, dispatch] = useReducer(
-    reducer,
-    items?.length ? items : initialList,
+    shuffleReducer,
+    items?.length ? items : initialItems,
   );
 
   const onReorder = (sourceIndex: number, destinationIndex: number) =>
