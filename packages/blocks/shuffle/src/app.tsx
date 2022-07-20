@@ -1,22 +1,31 @@
-import React, { useReducer } from "react";
-import { BlockComponent } from "@blockprotocol/graph";
+import React, { useEffect, useReducer, useRef } from "react";
+import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
 import { Button } from "@mui/material";
 import Box from "@mui/material/Box";
 import List from "@mui/material/List";
 import { DragDropContext, Droppable } from "react-beautiful-dnd";
 import { Item } from "./item";
-import { ActionType, initialList, reducer } from "./store";
+import { ItemList, ActionType, initialList, reducer } from "./store";
 
 type BlockEntityProperties = {
-  name: string;
+  items: ItemList;
 };
 
 export const App: BlockComponent<BlockEntityProperties> = ({
   graph: {
-    blockEntity: { entityId, properties },
+    blockEntity: {
+      entityId,
+      properties: { items },
+    },
   },
 }) => {
-  const [list, dispatch] = useReducer(reducer, initialList);
+  const blockRootRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRootRef);
+
+  const [list, dispatch] = useReducer(
+    reducer,
+    items?.length ? items : initialList,
+  );
 
   const onDragEnd = (result) => {
     if (!result.destination) {
@@ -32,8 +41,17 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     });
   };
 
+  useEffect(() => {
+    void graphService?.updateEntity({
+      data: {
+        entityId,
+        properties: { items: list },
+      },
+    });
+  }, [entityId, list]);
+
   return (
-    <Box sx={{ width: "100%", bgcolor: "background.paper" }}>
+    <Box sx={{ width: "100%", bgcolor: "background.paper" }} ref={blockRootRef}>
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="droppable">
           {(provided, snapshot) => (

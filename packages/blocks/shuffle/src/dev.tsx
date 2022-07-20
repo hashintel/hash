@@ -16,7 +16,12 @@ const DevApp = () => {
       blockDefinition={{ ReactComponent: Component }}
       blockEntity={{
         entityId: "test-block-1",
-        properties: { name: "World" },
+        properties: {
+          items: [
+            { id: "1", value: "test 1" },
+            { id: "2", value: "test 2" },
+          ],
+        },
       }}
       debug
     />
