@@ -4,7 +4,6 @@ import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
 import {
-  blockComponentRequiresText,
   BlockConfig,
   BlockMeta,
   fetchBlockMeta,
@@ -44,6 +43,11 @@ declare interface OrderedMapPrivateInterface<T> {
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
 type ComponentNodeViewFactory = (meta: BlockConfig) => NodeViewFactory;
+
+const blockComponentRequiresText = (
+  componentSchema: BlockMeta["componentSchema"],
+) =>
+  !!componentSchema.properties && "editableRef" in componentSchema.properties;
 
 /**
  * Manages the creation and editing of the ProseMirror schema.

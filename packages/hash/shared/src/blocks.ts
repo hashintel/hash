@@ -225,11 +225,6 @@ export const fetchBlockMeta = async (
   return await promise;
 };
 
-export const blockComponentRequiresText = (
-  componentSchema: BlockMeta["componentSchema"],
-) =>
-  !!componentSchema.properties && "editableRef" in componentSchema.properties;
-
 /**
  * Default blocks loaded for every user.
  *
