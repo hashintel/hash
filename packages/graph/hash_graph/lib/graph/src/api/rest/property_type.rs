@@ -133,7 +133,7 @@ async fn get_property_type<S: Store>(
 struct UpdatePropertyTypeRequest {
     #[component(value_type = Any)]
     schema: PropertyType,
-    created_by: AccountId,
+    account_id: AccountId,
 }
 
 #[utoipa::path(
@@ -158,7 +158,7 @@ async fn update_property_type<S: Store>(
 
     store
         .clone()
-        .update_property_type(body.schema, body.created_by)
+        .update_property_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
             if report.contains::<BaseUriDoesNotExist>() {

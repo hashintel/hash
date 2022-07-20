@@ -130,7 +130,7 @@ async fn get_data_type<S: Store>(
 struct UpdateDataTypeRequest {
     #[component(value_type = Any)]
     schema: DataType,
-    created_by: AccountId,
+    account_id: AccountId,
 }
 
 #[utoipa::path(
@@ -155,7 +155,7 @@ async fn update_data_type<S: Store>(
 
     store
         .clone()
-        .update_data_type(body.schema, body.created_by)
+        .update_data_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
             if report.contains::<BaseUriDoesNotExist>() {
