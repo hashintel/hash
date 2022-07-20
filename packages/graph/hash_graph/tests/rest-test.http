@@ -77,7 +77,7 @@ Accept: application/json
     client.global.set("person_property_type_id", response.body.version_id);
 %}
 
-### Get Person property type
+### Get Name property type
 GET localhost:3000/property-type/{{person_property_type_id}}
 
 > {%
@@ -86,7 +86,7 @@ GET localhost:3000/property-type/{{person_property_type_id}}
     });
 %}
 
-### Update Person property type
+### Update Name property type
 PUT localhost:3000/property-type
 Content-Type: application/json
 Accept: application/json
