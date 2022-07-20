@@ -9,7 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { fetchBlockMeta } from "@hashintel/hash-shared/blocks";
 
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
 import { BlocksMetaMap } from "./page/createEditorView";

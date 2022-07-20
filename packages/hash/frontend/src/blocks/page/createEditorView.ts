@@ -1,4 +1,4 @@
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { BlockMeta } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";

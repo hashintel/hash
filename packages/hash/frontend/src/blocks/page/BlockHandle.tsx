@@ -16,7 +16,7 @@ import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { useBlockView } from "./BlockViewContext";
 import { useBlockContext } from "./BlockContext";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
-import { isBlockSwappable } from "./createSuggester/useFilteredBlocks";
+import { isBlockSwappable } from "@hashintel/hash-shared/blocks";
 
 type BlockHandleProps = {
   deleteBlock: () => void;

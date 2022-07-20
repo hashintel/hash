@@ -8,7 +8,8 @@ import {
   BlockConfig,
   BlockMeta,
   fetchBlockMeta,
-} from "./blockMeta";
+  isBlockSwappable,
+} from "./blocks";
 import {
   BlockEntity,
   getTextEntityFromDraftBlock,
@@ -43,17 +44,6 @@ declare interface OrderedMapPrivateInterface<T> {
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
 type ComponentNodeViewFactory = (meta: BlockConfig) => NodeViewFactory;
-
-const SWAPPABLE_BLOCKS = [
-  "https://blockprotocol.org/blocks/@hash/paragraph",
-  "https://blockprotocol.org/blocks/@hash/header",
-  "https://blockprotocol.org/blocks/@hash/callout",
-];
-
-// @todo this will be duplicated in https://github.com/hashintel/hash/pull/806
-// @todo this should work even when using local blocks
-export const isBlockSwappable = (blockId: string = "") =>
-  SWAPPABLE_BLOCKS.includes(blockId);
 
 /**
  * Manages the creation and editing of the ProseMirror schema.

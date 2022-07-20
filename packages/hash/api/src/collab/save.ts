@@ -1,5 +1,5 @@
 import { ApolloClient, ApolloError } from "@apollo/client";
-import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { fetchBlockMeta } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
   isDraftTextContainingEntityProperties,

@@ -1,6 +1,9 @@
 import { useQuery } from "@apollo/client";
-import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { defaultBlocks } from "@hashintel/hash-shared/defaultBlocks";
+import {
+  BlockMeta,
+  defaultBlocks,
+  fetchBlockMeta,
+} from "@hashintel/hash-shared/blocks";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { Box, Collapse, alpha } from "@mui/material";
 import { keyBy } from "lodash";

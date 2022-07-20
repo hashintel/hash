@@ -1,4 +1,4 @@
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { BlockMeta, isBlockSwappable } from "@hashintel/hash-shared/blocks";
 import { BlockVariant } from "@blockprotocol/core";
 import { useMemo } from "react";
 
@@ -9,15 +9,6 @@ type Option = {
   variant: BlockVariant;
   meta: BlockMeta["componentMetadata"];
 };
-
-const SWAPPABLE_BLOCKS = [
-  "https://blockprotocol.org/blocks/@hash/paragraph",
-  "https://blockprotocol.org/blocks/@hash/header",
-  "https://blockprotocol.org/blocks/@hash/callout",
-];
-
-export const isBlockSwappable = (blockId: string = "") =>
-  SWAPPABLE_BLOCKS.includes(blockId);
 
 export const useFilteredBlocks = (
   searchText: string,

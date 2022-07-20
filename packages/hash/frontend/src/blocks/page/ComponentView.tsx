@@ -1,4 +1,4 @@
-import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
+import { BlockConfig } from "@hashintel/hash-shared/blocks";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,

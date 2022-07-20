@@ -2,7 +2,7 @@ import { BlockVariant } from "@blockprotocol/core";
 import { VFC } from "react";
 import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { BlockMeta } from "@hashintel/hash-shared/blocks";
 
 import { Suggester } from "./Suggester";
 import { useUserBlocks } from "../../userBlocks";

@@ -1,5 +1,5 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
+import { BlockConfig } from "@hashintel/hash-shared/blocks";
 import { findComponentNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
