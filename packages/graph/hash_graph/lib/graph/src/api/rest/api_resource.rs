@@ -9,7 +9,7 @@ use crate::store::Store;
 /// through a `Router`, making it explicitly clear we want to provide `OpenApi` specification as
 /// documentation for the routes.
 pub(super) trait RoutedResource: utoipa::OpenApi {
-    fn routes<D: Store>() -> Router;
+    fn routes<S: Store>() -> Router;
     fn documentation() -> utoipa::openapi::OpenApi {
         Self::openapi()
     }

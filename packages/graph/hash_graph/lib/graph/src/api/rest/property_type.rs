@@ -36,16 +36,16 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<D: Store>() -> Router {
+    fn routes<S: Store>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-type",
             Router::new()
                 .route(
                     "/",
-                    post(create_property_type::<D>).put(update_property_type::<D>),
+                    post(create_property_type::<S>).put(update_property_type::<S>),
                 )
-                .route("/:version_id", get(get_property_type::<D>)),
+                .route("/:version_id", get(get_property_type::<S>)),
         )
     }
 }
@@ -71,9 +71,9 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
-async fn create_property_type<D: Store>(
+async fn create_property_type<S: Store>(
     body: Json<CreatePropertyTypeRequest>,
-    store: Extension<D>,
+    store: Extension<S>,
 ) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(body) = body;
     let Extension(store) = store;
@@ -108,9 +108,9 @@ async fn create_property_type<D: Store>(
         ("versionId" = Uuid, Path, description = "The version ID of property type"),
     )
 )]
-async fn get_property_type<D: Store>(
+async fn get_property_type<S: Store>(
     version_id: Path<Uuid>,
-    store: Extension<D>,
+    store: Extension<S>,
 ) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
     let Path(version_id) = version_id;
     let Extension(store) = store;
@@ -149,9 +149,9 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-async fn update_property_type<D: Store>(
+async fn update_property_type<S: Store>(
     body: Json<UpdatePropertyTypeRequest>,
-    store: Extension<D>,
+    store: Extension<S>,
 ) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(body) = body;
     let Extension(store) = store;

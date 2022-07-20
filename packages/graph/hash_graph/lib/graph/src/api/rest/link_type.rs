@@ -36,13 +36,13 @@ pub struct LinkTypeResource;
 
 impl RoutedResource for LinkTypeResource {
     /// Create routes for interacting with link types.
-    fn routes<D: Store>() -> Router {
+    fn routes<S: Store>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/link-type",
             Router::new()
-                .route("/", post(create_link_type::<D>).put(update_link_type::<D>))
-                .route("/:version_id", get(get_link_type::<D>)),
+                .route("/", post(create_link_type::<S>).put(update_link_type::<S>))
+                .route("/:version_id", get(get_link_type::<S>)),
         )
     }
 }
@@ -68,9 +68,9 @@ struct CreateLinkTypeRequest {
     ),
     request_body = CreateLinkTypeRequest,
 )]
-async fn create_link_type<D: Store>(
+async fn create_link_type<S: Store>(
     body: Json<CreateLinkTypeRequest>,
-    store: Extension<D>,
+    store: Extension<S>,
 ) -> Result<Json<Persisted<LinkType>>, StatusCode> {
     let Json(body) = body;
     let Extension(store) = store;
@@ -105,9 +105,9 @@ async fn create_link_type<D: Store>(
         ("versionId" = Uuid, Path, description = "The version ID of link type"),
     )
 )]
-async fn get_link_type<D: Store>(
+async fn get_link_type<S: Store>(
     version_id: Path<Uuid>,
-    store: Extension<D>,
+    store: Extension<S>,
 ) -> Result<Json<Persisted<LinkType>>, impl IntoResponse> {
     let Path(version_id) = version_id;
     let Extension(store) = store;
@@ -146,9 +146,9 @@ struct UpdateLinkTypeRequest {
     ),
     request_body = UpdateLinkTypeRequest,
 )]
-async fn update_link_type<D: Store>(
+async fn update_link_type<S: Store>(
     body: Json<UpdateLinkTypeRequest>,
-    store: Extension<D>,
+    store: Extension<S>,
 ) -> Result<Json<Persisted<LinkType>>, StatusCode> {
     let Json(body) = body;
     let Extension(store) = store;

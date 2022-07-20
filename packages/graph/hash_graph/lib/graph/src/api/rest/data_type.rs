@@ -36,13 +36,13 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<D: Store>() -> Router {
+    fn routes<S: Store>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-type",
             Router::new()
-                .route("/", post(create_data_type::<D>).put(update_data_type::<D>))
-                .route("/:version_id", get(get_data_type::<D>)),
+                .route("/", post(create_data_type::<S>).put(update_data_type::<S>))
+                .route("/:version_id", get(get_data_type::<S>)),
         )
     }
 }
@@ -68,9 +68,9 @@ struct CreateDataTypeRequest {
     ),
     request_body = CreateDataTypeRequest,
 )]
-async fn create_data_type<D: Store>(
+async fn create_data_type<S: Store>(
     body: Json<CreateDataTypeRequest>,
-    store: Extension<D>,
+    store: Extension<S>,
 ) -> Result<Json<Persisted<DataType>>, StatusCode> {
     let Json(body) = body;
     let Extension(store) = store;
@@ -105,9 +105,9 @@ async fn create_data_type<D: Store>(
         ("versionId" = Uuid, Path, description = "The version ID of data type"),
     )
 )]
-async fn get_data_type<D: Store>(
+async fn get_data_type<S: Store>(
     version_id: Path<Uuid>,
-    store: Extension<D>,
+    store: Extension<S>,
 ) -> Result<Json<Persisted<DataType>>, impl IntoResponse> {
     let Path(version_id) = version_id;
     let Extension(store) = store;
@@ -146,9 +146,9 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
-async fn update_data_type<D: Store>(
+async fn update_data_type<S: Store>(
     body: Json<UpdateDataTypeRequest>,
-    store: Extension<D>,
+    store: Extension<S>,
 ) -> Result<Json<Persisted<DataType>>, StatusCode> {
     let Json(body) = body;
     let Extension(store) = store;
