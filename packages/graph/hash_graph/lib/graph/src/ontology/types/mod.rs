@@ -15,21 +15,21 @@ use utoipa::Component;
 
 use crate::ontology::{AccountId, VersionId};
 
-mod serde_shared;
-
 pub mod uri;
 
-pub mod data_type;
-pub mod entity_type;
-pub mod link_type;
-pub mod property_type;
+mod data_type;
+mod entity_type;
+mod link_type;
+mod property_type;
+
+pub use data_type::{DataType, DataTypeReference};
+pub use entity_type::{EntityType, EntityTypeReference};
+pub use link_type::LinkType;
+pub use property_type::{PropertyType, PropertyTypeReference};
 
 pub mod error;
 
-pub use data_type::DataType;
-pub use entity_type::EntityType;
-pub use link_type::LinkType;
-pub use property_type::PropertyType;
+mod serde_shared;
 
 // TODO: constrain this to only work for valid inner Types.
 #[derive(Clone, Debug, Serialize, Deserialize, Component)]

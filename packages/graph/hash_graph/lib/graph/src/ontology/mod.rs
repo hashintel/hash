@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use utoipa::Component;
 use uuid::Uuid;
 
+// TODO - find a good place for AccountId and VersionId, perhaps they will become redundant in a
+//  future design
+
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[sqlx(transparent)]

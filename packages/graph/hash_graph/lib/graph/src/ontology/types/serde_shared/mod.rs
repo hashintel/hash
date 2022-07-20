@@ -1,6 +1,6 @@
 pub mod array;
-pub mod combinator;
 pub mod object;
+pub mod one_of;
 
 #[cfg(test)]
 pub mod tests {
@@ -11,7 +11,7 @@ pub mod tests {
     /// Will serialize as a constant value `"string"`
     #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
-    pub(in crate::ontology) enum StringTypeTag {
+    pub enum StringTypeTag {
         #[default]
         String,
     }
@@ -22,7 +22,7 @@ pub mod tests {
         r#type: StringTypeTag,
     }
 
-    pub(in crate::ontology) fn check_serialization<T>(
+    pub fn check_serialization<T>(
         value: &T,
         json: &serde_json::Value,
     ) -> Result<(), serde_json::Error>
@@ -38,7 +38,7 @@ pub mod tests {
         Ok(())
     }
 
-    pub(in crate::ontology) fn check_deserialization<T>(
+    pub fn check_deserialization<T>(
         value: &T,
         json: serde_json::Value,
     ) -> Result<(), serde_json::Error>
@@ -54,10 +54,7 @@ pub mod tests {
         Ok(())
     }
 
-    pub(in crate::ontology) fn check<T>(
-        value: &T,
-        json: serde_json::Value,
-    ) -> Result<(), serde_json::Error>
+    pub fn check<T>(value: &T, json: serde_json::Value) -> Result<(), serde_json::Error>
     where
         for<'de> T: Debug + PartialEq + Serialize + Deserialize<'de>,
     {
@@ -66,7 +63,7 @@ pub mod tests {
         Ok(())
     }
 
-    pub(in crate::ontology) fn check_invalid_json<T>(json: serde_json::Value)
+    pub fn check_invalid_json<T>(json: serde_json::Value)
     where
         for<'de> T: Debug + Deserialize<'de>,
     {

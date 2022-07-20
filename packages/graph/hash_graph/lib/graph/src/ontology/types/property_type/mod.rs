@@ -8,8 +8,8 @@ use crate::ontology::types::{
     error::ValidationError,
     serde_shared::{
         array::Array,
-        combinator::OneOf,
         object::{Object, ValidateUri},
+        one_of::OneOf,
     },
     uri::{BaseUri, VersionedUri},
 };

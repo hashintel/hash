@@ -12,11 +12,9 @@ use uuid::Uuid;
 use crate::{
     ontology::{
         types::{
-            data_type::DataTypeReference,
-            entity_type::EntityTypeReference,
-            property_type::PropertyTypeReference,
             uri::{BaseUri, VersionedUri},
-            DataType, EntityType, LinkType, PropertyType, Qualified,
+            DataType, DataTypeReference, EntityType, EntityTypeReference, LinkType, PropertyType,
+            PropertyTypeReference, Qualified,
         },
         AccountId, VersionId,
     },
