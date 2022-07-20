@@ -34,6 +34,8 @@ export const Item: FunctionComponent<ItemProps> = ({
           ref={provided.innerRef}
           onMouseOver={() => canHover && setIsHovered(true)}
           onMouseOut={() => setIsHovered(false)}
+          sx={{ marginBottom: 1 }}
+          disablePadding
           {...provided.draggableProps}
         >
           <Box
