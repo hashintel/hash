@@ -57,7 +57,11 @@ export type EntityStorePluginAction = { received?: boolean } & (
   | { type: "store"; payload: EntityStore }
   | {
       type: "updateEntityProperties";
-      payload: { draftId: string; properties: {}; merge: boolean };
+      payload: {
+        draftId: string;
+        properties: { [key: string]: unknown };
+        merge: boolean;
+      };
     }
   | {
       type: "newDraftEntity";

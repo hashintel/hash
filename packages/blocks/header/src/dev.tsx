@@ -10,15 +10,20 @@ import Component from "./index";
 
 const node = document.getElementById("app");
 
+const headerProperties = {
+  level: 2,
+  color: "red",
+  text: "Hello, World",
+};
+
 const App = () => (
-  <MockBlockDock>
-    <Component
-      entityId="test-header-1"
-      level={2}
-      color="red"
-      text="Hello, world!"
-    />
-  </MockBlockDock>
+  <MockBlockDock
+    blockDefinition={{ ReactComponent: Component }}
+    blockEntity={{
+      entityId: "test-header-1",
+      properties: headerProperties,
+    }}
+  />
 );
 
 ReactDOM.render(<App />, node);
