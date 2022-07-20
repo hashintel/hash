@@ -34,19 +34,19 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       },
     });
 
-  const onValueChange = (id: string, value: string) =>
+  const onValueChange = (index: number, value: string) =>
     dispatch({
       type: ActionType.UPDATE,
       payload: {
-        id,
+        index,
         value,
       },
     });
 
-  const onDelete = (id: string) =>
+  const onDelete = (index: number) =>
     dispatch({
       type: ActionType.DELETE,
-      payload: { id },
+      payload: { index },
     });
 
   useEffect(() => {

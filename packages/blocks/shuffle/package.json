@@ -17,6 +17,7 @@
   "dependencies": {
     "@blockprotocol/graph": "0.0.10",
     "@mui/material": "5.9.0",
+    "immer": "9.0.15",
     "react-beautiful-dnd": "13.1.0",
     "uuid": "8.3.2"
   },

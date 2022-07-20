@@ -1,4 +1,5 @@
 import { Reducer } from "react";
+import produce from "immer";
 import { v4 as uuid } from "uuid";
 
 export type Item = {
@@ -23,8 +24,8 @@ export enum ActionType {
 
 export type ShuffleReducerAction =
   | Action<ActionType.ADD>
-  | Action<ActionType.UPDATE, { id: string; value: string }>
-  | Action<ActionType.DELETE, { id: string }>
+  | Action<ActionType.UPDATE, { index: number; value: string }>
+  | Action<ActionType.DELETE, { index: number }>
   | Action<
       ActionType.REORDER,
       { sourceIndex: number; destinationIndex: number }
@@ -37,46 +38,46 @@ export const initialItems = [
 ];
 
 export const shuffleReducer: Reducer<Items, ShuffleReducerAction> = (
-  list,
+  items,
   action,
 ) => {
   switch (action.type) {
     case ActionType.ADD:
-      return [
-        ...list,
-        {
+      return produce(items, (draftItems) => {
+        draftItems.push({
           id: uuid(),
-          value: `Item ${list.length + 1}`,
-        },
-      ];
+          value: `Item ${items.length + 1}`,
+        });
+      });
 
     case ActionType.UPDATE:
-      return [...list].map((item) =>
-        item.id === action.payload.id
-          ? { ...item, value: action.payload.value }
-          : item,
-      );
+      return produce(items, (draftItems) => {
+        draftItems[action.payload.index].value = action.payload.value;
+      });
 
     case ActionType.DELETE:
-      const deleteList = [...list].filter(
-        (item) => item.id !== action.payload.id,
-      );
-      return deleteList.length ? deleteList : [{ id: uuid(), value: "Item 1" }];
+      return produce(items, (draftItems) => {
+        draftItems.splice(action.payload.index, 1);
+        console.log(draftItems.length);
+        if (draftItems.length === 0) {
+          draftItems.push({ id: uuid(), value: "Item 1" });
+        }
+      });
 
     case ActionType.REORDER:
-      const { sourceIndex, destinationIndex } = action.payload;
-
-      const reorderList = [...list];
-      const [removed] = reorderList.splice(sourceIndex, 1);
-      reorderList.splice(destinationIndex, 0, removed);
-
-      return reorderList;
+      return produce(items, (draftItems) => {
+        const { sourceIndex, destinationIndex } = action.payload;
+        const [removed] = draftItems.splice(sourceIndex, 1);
+        draftItems.splice(destinationIndex, 0, removed);
+      });
 
     case ActionType.SHUFFLE:
-      return [...list]
-        .map((value) => ({ value, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .map(({ value }) => value);
+      return produce(items, (draftItems) => {
+        return draftItems
+          .map((value) => ({ value, sort: Math.random() }))
+          .sort((a, b) => a.sort - b.sort)
+          .map(({ value }) => value);
+      });
 
     default:
       throw new Error();

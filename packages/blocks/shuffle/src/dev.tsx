@@ -18,8 +18,8 @@ const DevApp = () => {
         entityId: "test-block-1",
         properties: {
           items: [
-            { id: "1", value: "test 1" },
-            { id: "2", value: "test 2" },
+            { id: "1", value: "Item 1" },
+            { id: "2", value: "Item 2" },
           ],
         },
       }}
