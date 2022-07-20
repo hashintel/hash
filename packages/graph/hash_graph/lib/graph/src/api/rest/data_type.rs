@@ -22,7 +22,6 @@ use crate::{
     handlers(
         create_data_type,
         get_data_type,
-        // get_data_type_many,
         update_data_type
     ),
     components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, QualifiedDataType),
@@ -40,7 +39,6 @@ impl RoutedResource for DataTypeResource {
             "/data-type",
             Router::new()
                 .route("/", post(create_data_type::<D>).put(update_data_type::<D>))
-                // .route("/query", get(get_data_type_many))
                 .route("/:version_id", get(get_data_type::<D>)),
         )
     }
@@ -83,7 +81,7 @@ async fn create_data_type<D: Datastore>(
                 return StatusCode::CONFLICT;
             }
 
-            // Insertion/upddate errors are considered internal server errors.
+            // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
@@ -125,10 +123,6 @@ async fn get_data_type<D: Datastore>(
         .map(Json)
 }
 
-// async fn get_data_type_many() -> Result<String, StatusCode> {
-//     unimplemented!()
-// }
-
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateDataTypeRequest {
     #[component(value_type = Any)]
@@ -165,7 +159,7 @@ async fn update_data_type<D: Datastore>(
                 return StatusCode::NOT_FOUND;
             }
 
-            // Insertion/upddate errors are considered internal server errors.
+            // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)

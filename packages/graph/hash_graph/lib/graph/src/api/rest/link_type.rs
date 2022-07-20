@@ -1,4 +1,4 @@
-//! Web routes for CRU operations on Property types.
+//! Web routes for CRU operations on Link types.
 
 use axum::{
     extract::Path,
@@ -14,70 +14,67 @@ use uuid::Uuid;
 use super::api_resource::RoutedResource;
 use crate::{
     datastore::{BaseUriAlreadyExists, BaseUriDoesNotExist, Datastore, QueryError},
-    types::{schema::PropertyType, AccountId, Qualified, QualifiedPropertyType, VersionId},
+    types::{schema::LinkType, AccountId, Qualified, QualifiedLinkType, VersionId},
 };
 
 #[derive(OpenApi)]
 #[openapi(
     handlers(
-        create_property_type,
-        get_property_type,
-        update_property_type
+        create_link_type,
+        get_link_type,
+        update_link_type
     ),
-    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, QualifiedPropertyType),
+    components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId, QualifiedLinkType),
     tags(
-        (name = "PropertyType", description = "Property type management API")
+        (name = "LinkType", description = "Link type management API")
     )
 )]
-pub struct PropertyTypeResource;
+pub struct LinkTypeResource;
 
-impl RoutedResource for PropertyTypeResource {
-    /// Create routes for interacting with property types.
+impl RoutedResource for LinkTypeResource {
+    /// Create routes for interacting with link types.
     fn routes<D: Datastore>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
-            "/property-type",
+            "/link-type",
             Router::new()
-                .route(
-                    "/",
-                    post(create_property_type::<D>).put(update_property_type::<D>),
-                )
-                .route("/:version_id", get(get_property_type::<D>)),
+                .route("/", post(create_link_type::<D>).put(update_link_type::<D>))
+                .route("/:version_id", get(get_link_type::<D>)),
         )
     }
 }
 
 #[derive(Serialize, Deserialize, Component)]
-struct CreatePropertyTypeRequest {
+struct CreateLinkTypeRequest {
     #[component(value_type = Any)]
-    schema: PropertyType,
+    schema: LinkType,
     account_id: AccountId,
 }
 
 #[utoipa::path(
     post,
-    path = "/property-type",
-    request_body = CreatePropertyTypeRequest,
-    tag = "PropertyType",
+    path = "/link-type",
+    request_body = CreateLinkTypeRequest,
+    tag = "LinkType",
     responses(
-      (status = 201, content_type = "application/json", description = "Property type created successfully", body = QualifiedPropertyType),
+      (status = 201, content_type = "application/json", description = "Link type created successfully", body = QualifiedLinkType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 409, description = "Unable to create property type in the datastore as the base property type ID already exists"),
+      (status = 409, description = "Unable to create link type in the datastore as the base link type ID already exists"),
       (status = 500, description = "Datastore error occurred"),
     ),
-    request_body = CreatePropertyTypeRequest,
+    request_body = CreateLinkTypeRequest,
 )]
-async fn create_property_type<D: Datastore>(
-    body: Json<CreatePropertyTypeRequest>,
+async fn create_link_type<D: Datastore>(
+    body: Json<CreateLinkTypeRequest>,
     datastore: Extension<D>,
-) -> Result<Json<Qualified<PropertyType>>, StatusCode> {
+) -> Result<Json<Qualified<LinkType>>, StatusCode> {
     let Json(body) = body;
     let Extension(datastore) = datastore;
 
     datastore
         .clone()
-        .create_property_type(body.schema, body.account_id)
+        .create_link_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
             if report.contains::<BaseUriAlreadyExists>() {
@@ -92,28 +89,28 @@ async fn create_property_type<D: Datastore>(
 
 #[utoipa::path(
     get,
-    path = "/property-type/{versionId}",
-    tag = "PropertyType",
+    path = "/link-type/{versionId}",
+    tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type found", body = QualifiedPropertyType),
+        (status = 200, content_type = "application/json", description = "Link type found", body = QualifiedLinkType),
         (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
 
-        (status = 404, description = "Property type was not found"),
+        (status = 404, description = "Link type was not found"),
         (status = 500, description = "Datastore error occurred"),
     ),
     params(
-        ("versionId" = Uuid, Path, description = "The version ID of property type"),
+        ("versionId" = Uuid, Path, description = "The version ID of link type"),
     )
 )]
-async fn get_property_type<D: Datastore>(
+async fn get_link_type<D: Datastore>(
     version_id: Path<Uuid>,
     datastore: Extension<D>,
-) -> Result<Json<Qualified<PropertyType>>, impl IntoResponse> {
+) -> Result<Json<Qualified<LinkType>>, impl IntoResponse> {
     let Path(version_id) = version_id;
     let Extension(datastore) = datastore;
 
     datastore
-        .get_property_type(VersionId::new(version_id))
+        .get_link_type(VersionId::new(version_id))
         .await
         .map_err(|report| {
             if report.contains::<QueryError>() {
@@ -127,35 +124,35 @@ async fn get_property_type<D: Datastore>(
 }
 
 #[derive(Component, Serialize, Deserialize)]
-struct UpdatePropertyTypeRequest {
+struct UpdateLinkTypeRequest {
     #[component(value_type = Any)]
-    schema: PropertyType,
-    created_by: AccountId,
+    schema: LinkType,
+    account_id: AccountId,
 }
 
 #[utoipa::path(
     put,
-    path = "/property-type",
-    tag = "PropertyType",
+    path = "/link-type",
+    tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type updated successfully", body = QualifiedPropertyType),
+        (status = 200, content_type = "application/json", description = "Link type updated successfully", body = QualifiedLinkType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 404, description = "Base property type ID was not found"),
+        (status = 404, description = "Base link type ID was not found"),
         (status = 500, description = "Datastore error occurred"),
     ),
-    request_body = UpdatePropertyTypeRequest,
+    request_body = UpdateLinkTypeRequest,
 )]
-async fn update_property_type<D: Datastore>(
-    body: Json<UpdatePropertyTypeRequest>,
+async fn update_link_type<D: Datastore>(
+    body: Json<UpdateLinkTypeRequest>,
     datastore: Extension<D>,
-) -> Result<Json<Qualified<PropertyType>>, StatusCode> {
+) -> Result<Json<Qualified<LinkType>>, StatusCode> {
     let Json(body) = body;
     let Extension(datastore) = datastore;
 
     datastore
         .clone()
-        .update_property_type(body.schema, body.created_by)
+        .update_link_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
             if report.contains::<BaseUriDoesNotExist>() {
