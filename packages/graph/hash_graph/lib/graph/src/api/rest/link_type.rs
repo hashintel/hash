@@ -83,7 +83,7 @@ async fn create_link_type<D: Datastore>(
                 return StatusCode::CONFLICT;
             }
 
-            // Insertion/upddate errors are considered internal server errors.
+            // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
@@ -165,7 +165,7 @@ async fn update_link_type<D: Datastore>(
                 return StatusCode::NOT_FOUND;
             }
 
-            // Insertion/upddate errors are considered internal server errors.
+            // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
