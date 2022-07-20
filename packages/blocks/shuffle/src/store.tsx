@@ -1,17 +1,18 @@
 import { v4 as uuid } from "uuid";
 
-type Item = {
+export type Item = {
   id: string;
   value: string;
 };
 
-type List = Item[];
+export type ItemList = Item[];
 
 export enum ActionType {
   ADD = "add",
   UPDATE = "update",
   DELETE = "delete",
   REORDER = "reorder",
+  SHUFFLE = "shuffle",
 }
 
 type AddAction = {
@@ -33,14 +34,23 @@ type ReorderAction = {
   payload: { sourceIndex: number; destinationIndex: number };
 };
 
-type Actions = AddAction | UpdateItemAction | DeleteItemAction | ReorderAction;
+type ShuffleAction = {
+  type: ActionType.SHUFFLE;
+};
+
+type Actions =
+  | AddAction
+  | UpdateItemAction
+  | DeleteItemAction
+  | ReorderAction
+  | ShuffleAction;
 
 export const initialList = [
   { id: uuid(), value: "Item 1" },
   { id: uuid(), value: "Item 2" },
 ];
 
-export function reducer(list: List, action: Actions) {
+export function reducer(list: ItemList, action: Actions) {
   switch (action.type) {
     case ActionType.ADD:
       return [
@@ -72,6 +82,12 @@ export function reducer(list: List, action: Actions) {
       reorderList.splice(destinationIndex, 0, removed);
 
       return reorderList;
+
+    case ActionType.SHUFFLE:
+      return [...list]
+        .map((value) => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
 
     default:
       throw new Error();

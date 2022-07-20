@@ -66,6 +66,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         </Droppable>
       </DragDropContext>
       <Button onClick={() => dispatch({ type: ActionType.ADD })}>Add</Button>
+      <Button onClick={() => dispatch({ type: ActionType.SHUFFLE })}>
+        Shuffle
+      </Button>
     </Box>
   );
 };
