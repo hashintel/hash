@@ -41,16 +41,16 @@ async fn main() -> Result<(), GraphError> {
     // TODO: Revisit, once authentication is in place
     let account_id = AccountId::new(Uuid::nil());
 
-    datastore
+    if datastore
         .insert_account_id(account_id)
         .change_context(GraphError)
         .await
-        .map_err(|err| {
-            tracing::error!("{err:?}");
-            err
-        })?;
-
-    tracing::info!(%account_id, "Created account id");
+        .is_err()
+    {
+        tracing::info!(%account_id, "account id already exist");
+    } else {
+        tracing::info!(%account_id, "created account id");
+    }
 
     let rest_router = rest_api_router(datastore);
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
