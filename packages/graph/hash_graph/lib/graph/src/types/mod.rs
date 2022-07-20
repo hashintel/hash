@@ -10,7 +10,7 @@ use utoipa::Component;
 use uuid::Uuid;
 
 pub use self::uri::{BaseUri, VersionedUri};
-use crate::types::schema::{DataType, PropertyType};
+use crate::types::schema::{DataType, LinkType, PropertyType};
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]
@@ -44,7 +44,11 @@ impl fmt::Display for VersionId {
 
 // TODO: constrain this to only work for valid inner Types.
 #[derive(Clone, Debug, Serialize, Deserialize, Component)]
-#[aliases(QualifiedDataType = Qualified<DataType>, QualifiedPropertyType = Qualified<PropertyType>)]
+#[aliases(
+    QualifiedDataType = Qualified<DataType>,
+    QualifiedPropertyType = Qualified<PropertyType>,
+    QualifiedLinkType = Qualified<LinkType>,
+)]
 pub struct Qualified<T> {
     version_id: VersionId,
     // TODO: we would want the inner types to be represented in the OpenAPI components list. This

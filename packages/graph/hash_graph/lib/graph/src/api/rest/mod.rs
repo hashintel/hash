@@ -4,6 +4,7 @@
 
 mod api_resource;
 mod data_type;
+mod link_type;
 mod property_type;
 
 use axum::{routing::get, Extension, Json, Router};
@@ -16,6 +17,7 @@ fn api_resources<T: Datastore>() -> Vec<Router> {
     vec![
         data_type::DataTypeResource::routes::<T>(),
         property_type::PropertyTypeResource::routes::<T>(),
+        link_type::LinkTypeResource::routes::<T>(),
     ]
 }
 
@@ -23,6 +25,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
     vec![
         data_type::DataTypeResource::documentation(),
         property_type::PropertyTypeResource::documentation(),
+        link_type::LinkTypeResource::documentation(),
     ]
 }
 
