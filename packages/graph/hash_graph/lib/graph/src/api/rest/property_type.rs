@@ -14,7 +14,7 @@ use uuid::Uuid;
 use super::api_resource::RoutedResource;
 use crate::{
     ontology::{
-        types::{PropertyType, Qualified, QualifiedPropertyType},
+        types::{Persisted, PersistedPropertyType, PropertyType},
         AccountId, VersionId,
     },
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
@@ -27,7 +27,7 @@ use crate::{
         get_property_type,
         update_property_type
     ),
-    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, QualifiedPropertyType),
+    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, PersistedPropertyType),
     tags(
         (name = "PropertyType", description = "Property type management API")
     )
@@ -63,7 +63,7 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
-      (status = 201, content_type = "application/json", description = "Property type created successfully", body = QualifiedPropertyType),
+      (status = 201, content_type = "application/json", description = "Property type created successfully", body = PersistedPropertyType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
       (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
@@ -74,7 +74,7 @@ struct CreatePropertyTypeRequest {
 async fn create_property_type<D: Store>(
     body: Json<CreatePropertyTypeRequest>,
     store: Extension<D>,
-) -> Result<Json<Qualified<PropertyType>>, StatusCode> {
+) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(body) = body;
     let Extension(store) = store;
 
@@ -98,7 +98,7 @@ async fn create_property_type<D: Store>(
     path = "/property-type/{versionId}",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type found", body = QualifiedPropertyType),
+        (status = 200, content_type = "application/json", description = "Property type found", body = PersistedPropertyType),
         (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
 
         (status = 404, description = "Property type was not found"),
@@ -111,7 +111,7 @@ async fn create_property_type<D: Store>(
 async fn get_property_type<D: Store>(
     version_id: Path<Uuid>,
     store: Extension<D>,
-) -> Result<Json<Qualified<PropertyType>>, impl IntoResponse> {
+) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
     let Path(version_id) = version_id;
     let Extension(store) = store;
 
@@ -141,7 +141,7 @@ struct UpdatePropertyTypeRequest {
     path = "/property-type",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type updated successfully", body = QualifiedPropertyType),
+        (status = 200, content_type = "application/json", description = "Property type updated successfully", body = PersistedPropertyType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base property type ID was not found"),
@@ -152,7 +152,7 @@ struct UpdatePropertyTypeRequest {
 async fn update_property_type<D: Store>(
     body: Json<UpdatePropertyTypeRequest>,
     store: Extension<D>,
-) -> Result<Json<Qualified<PropertyType>>, StatusCode> {
+) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(body) = body;
     let Extension(store) = store;
 

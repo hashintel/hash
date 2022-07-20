@@ -14,7 +14,7 @@ use uuid::Uuid;
 use super::api_resource::RoutedResource;
 use crate::{
     ontology::{
-        types::{LinkType, Qualified, QualifiedLinkType},
+        types::{LinkType, Persisted, PersistedLinkType},
         AccountId, VersionId,
     },
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
@@ -27,7 +27,7 @@ use crate::{
         get_link_type,
         update_link_type
     ),
-    components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId, QualifiedLinkType),
+    components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId, PersistedLinkType),
     tags(
         (name = "LinkType", description = "Link type management API")
     )
@@ -60,7 +60,7 @@ struct CreateLinkTypeRequest {
     request_body = CreateLinkTypeRequest,
     tag = "LinkType",
     responses(
-      (status = 201, content_type = "application/json", description = "Link type created successfully", body = QualifiedLinkType),
+      (status = 201, content_type = "application/json", description = "Link type created successfully", body = PersistedLinkType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
       (status = 409, description = "Unable to create link type in the store as the base link type ID already exists"),
@@ -71,7 +71,7 @@ struct CreateLinkTypeRequest {
 async fn create_link_type<D: Store>(
     body: Json<CreateLinkTypeRequest>,
     store: Extension<D>,
-) -> Result<Json<Qualified<LinkType>>, StatusCode> {
+) -> Result<Json<Persisted<LinkType>>, StatusCode> {
     let Json(body) = body;
     let Extension(store) = store;
 
@@ -95,7 +95,7 @@ async fn create_link_type<D: Store>(
     path = "/link-type/{versionId}",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "Link type found", body = QualifiedLinkType),
+        (status = 200, content_type = "application/json", description = "Link type found", body = PersistedLinkType),
         (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
 
         (status = 404, description = "Link type was not found"),
@@ -108,7 +108,7 @@ async fn create_link_type<D: Store>(
 async fn get_link_type<D: Store>(
     version_id: Path<Uuid>,
     store: Extension<D>,
-) -> Result<Json<Qualified<LinkType>>, impl IntoResponse> {
+) -> Result<Json<Persisted<LinkType>>, impl IntoResponse> {
     let Path(version_id) = version_id;
     let Extension(store) = store;
 
@@ -138,7 +138,7 @@ struct UpdateLinkTypeRequest {
     path = "/link-type",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "Link type updated successfully", body = QualifiedLinkType),
+        (status = 200, content_type = "application/json", description = "Link type updated successfully", body = PersistedLinkType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base link type ID was not found"),
@@ -149,7 +149,7 @@ struct UpdateLinkTypeRequest {
 async fn update_link_type<D: Store>(
     body: Json<UpdateLinkTypeRequest>,
     store: Extension<D>,
-) -> Result<Json<Qualified<LinkType>>, StatusCode> {
+) -> Result<Json<Persisted<LinkType>>, StatusCode> {
     let Json(body) = body;
     let Extension(store) = store;
 

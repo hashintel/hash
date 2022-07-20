@@ -11,7 +11,7 @@ pub use self::{
     postgres::PostgresDatabase,
 };
 use crate::ontology::{
-    types::{DataType, EntityType, LinkType, PropertyType, Qualified},
+    types::{DataType, EntityType, LinkType, Persisted, PropertyType},
     AccountId, VersionId,
 };
 
@@ -180,7 +180,7 @@ pub trait Store: Clone + Send + Sync + 'static {
         &self,
         data_type: DataType,
         created_by: AccountId,
-    ) -> Result<Qualified<DataType>, InsertionError>;
+    ) -> Result<Persisted<DataType>, InsertionError>;
 
     /// Get an existing [`DataType`] by a [`VersionId`].
     ///
@@ -188,7 +188,7 @@ pub trait Store: Clone + Send + Sync + 'static {
     ///
     /// - if the requested [`DataType`] doesn't exist.
     async fn get_data_type(&self, version_id: VersionId)
-    -> Result<Qualified<DataType>, QueryError>;
+    -> Result<Persisted<DataType>, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -199,7 +199,7 @@ pub trait Store: Clone + Send + Sync + 'static {
         &self,
         data_type: DataType,
         updated_by: AccountId,
-    ) -> Result<Qualified<DataType>, UpdateError>;
+    ) -> Result<Persisted<DataType>, UpdateError>;
 
     /// Creates a new [`PropertyType`].
     ///
@@ -213,7 +213,7 @@ pub trait Store: Clone + Send + Sync + 'static {
         &self,
         property_type: PropertyType,
         created_by: AccountId,
-    ) -> Result<Qualified<PropertyType>, InsertionError>;
+    ) -> Result<Persisted<PropertyType>, InsertionError>;
 
     /// Get an existing [`PropertyType`] by a [`VersionId`].
     ///
@@ -223,7 +223,7 @@ pub trait Store: Clone + Send + Sync + 'static {
     async fn get_property_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<PropertyType>, QueryError>;
+    ) -> Result<Persisted<PropertyType>, QueryError>;
 
     /// Update the definition of an existing [`PropertyType`].
     ///
@@ -234,7 +234,7 @@ pub trait Store: Clone + Send + Sync + 'static {
         &self,
         property_type: PropertyType,
         updated_by: AccountId,
-    ) -> Result<Qualified<PropertyType>, UpdateError>;
+    ) -> Result<Persisted<PropertyType>, UpdateError>;
 
     /// Creates a new [`EntityType`].
     ///
@@ -248,7 +248,7 @@ pub trait Store: Clone + Send + Sync + 'static {
         &self,
         entity_type: EntityType,
         created_by: AccountId,
-    ) -> Result<Qualified<EntityType>, InsertionError>;
+    ) -> Result<Persisted<EntityType>, InsertionError>;
 
     /// Get an existing [`EntityType`] by a [`VersionId`].
     ///
@@ -258,7 +258,7 @@ pub trait Store: Clone + Send + Sync + 'static {
     async fn get_entity_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<EntityType>, QueryError>;
+    ) -> Result<Persisted<EntityType>, QueryError>;
 
     /// Update the definition of an existing [`EntityType`].
     ///
@@ -269,7 +269,7 @@ pub trait Store: Clone + Send + Sync + 'static {
         &self,
         entity_type: EntityType,
         updated_by: AccountId,
-    ) -> Result<Qualified<EntityType>, UpdateError>;
+    ) -> Result<Persisted<EntityType>, UpdateError>;
 
     // TODO - perhaps we want to separate the store into the Type Graph and the Data Graph
 
@@ -285,7 +285,7 @@ pub trait Store: Clone + Send + Sync + 'static {
         &self,
         link_type: LinkType,
         created_by: AccountId,
-    ) -> Result<Qualified<LinkType>, InsertionError>;
+    ) -> Result<Persisted<LinkType>, InsertionError>;
 
     /// Get an existing [`LinkType`] by a [`VersionId`].
     ///
@@ -293,7 +293,7 @@ pub trait Store: Clone + Send + Sync + 'static {
     ///
     /// - if the requested [`LinkType`] doesn't exist.
     async fn get_link_type(&self, version_id: VersionId)
-    -> Result<Qualified<LinkType>, QueryError>;
+    -> Result<Persisted<LinkType>, QueryError>;
 
     /// Update the definition of an existing [`LinkType`].
     ///
@@ -304,7 +304,7 @@ pub trait Store: Clone + Send + Sync + 'static {
         &self,
         property_type: LinkType,
         updated_by: AccountId,
-    ) -> Result<Qualified<LinkType>, UpdateError>;
+    ) -> Result<Persisted<LinkType>, UpdateError>;
 
     /// Creates a new `Entity`.
     async fn create_entity() -> Result<(), InsertionError>;

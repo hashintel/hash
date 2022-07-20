@@ -39,14 +39,14 @@ pub trait OntologyType {
     fn uri(&self) -> &VersionedUri;
 }
 
-// TODO: constrain this to only work for valid inner Types.
+/// A representation of an [`OntologyType`] that exists (has been `Persisted`) in a backing store.
 #[derive(Clone, Debug, Serialize, Deserialize, Component)]
 #[aliases(
-    QualifiedDataType = Qualified<DataType>,
-    QualifiedPropertyType = Qualified<PropertyType>,
-    QualifiedLinkType = Qualified<LinkType>,
+    PersistedDataType = Persisted<DataType>,
+    PersistedPropertyType = Persisted<PropertyType>,
+    PersistedLinkType = Persisted<LinkType>,
 )]
-pub struct Qualified<T: OntologyType> {
+pub struct Persisted<T: OntologyType> {
     version_id: VersionId,
     // TODO: we would want the inner types to be represented in the OpenAPI components list. This
     //   means that any generic instance used by the web API needs to have an alias above, and all
@@ -56,7 +56,7 @@ pub struct Qualified<T: OntologyType> {
     created_by: AccountId,
 }
 
-impl<T: OntologyType> Qualified<T> {
+impl<T: OntologyType> Persisted<T> {
     #[must_use]
     pub const fn new(version_id: VersionId, inner: T, created_by: AccountId) -> Self {
         Self {

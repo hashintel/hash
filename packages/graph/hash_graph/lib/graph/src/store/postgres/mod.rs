@@ -13,8 +13,8 @@ use crate::{
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
-            DataType, DataTypeReference, EntityType, EntityTypeReference, LinkType, PropertyType,
-            PropertyTypeReference, Qualified,
+            DataType, DataTypeReference, EntityType, EntityTypeReference, LinkType, Persisted,
+            PropertyType, PropertyTypeReference,
         },
         AccountId, VersionId,
     },
@@ -218,7 +218,7 @@ impl PostgresDatabase {
         transaction: &mut Transaction<'_, Postgres>,
         database_type: T,
         created_by: AccountId,
-    ) -> Result<Qualified<T>, InsertionError>
+    ) -> Result<Persisted<T>, InsertionError>
     where
         T: DatabaseType + Serialize + Send + Sync,
     {
@@ -249,7 +249,7 @@ impl PostgresDatabase {
         Self::insert_uri(transaction, uri, version_id).await?;
         Self::insert_with_id(transaction, version_id, &database_type, created_by).await?;
 
-        Ok(Qualified::new(version_id, database_type, created_by))
+        Ok(Persisted::new(version_id, database_type, created_by))
     }
 
     /// Updates the specified [`DatabaseType`].
@@ -266,7 +266,7 @@ impl PostgresDatabase {
         transaction: &mut Transaction<'_, Postgres>,
         database_type: T,
         updated_by: AccountId,
-    ) -> Result<Qualified<T>, UpdateError>
+    ) -> Result<Persisted<T>, UpdateError>
     where
         T: DatabaseType + Serialize + Send + Sync,
     {
@@ -292,7 +292,7 @@ impl PostgresDatabase {
             .await
             .change_context(UpdateError)?;
 
-        Ok(Qualified::new(version_id, database_type, updated_by))
+        Ok(Persisted::new(version_id, database_type, updated_by))
     }
 
     /// Inserts a [`DatabaseType`] identified by [`VersionId`], and associated with an
@@ -343,7 +343,7 @@ impl PostgresDatabase {
     ///
     /// - If the specified [`VersionId`] does not already exist.
     // TODO: We can't distinguish between an DB error and a non-existing version currently
-    async fn get_by_version<T>(&self, version_id: VersionId) -> Result<Qualified<T>, QueryError>
+    async fn get_by_version<T>(&self, version_id: VersionId) -> Result<Persisted<T>, QueryError>
     where
         T: DatabaseType + DeserializeOwned,
     {
@@ -367,7 +367,7 @@ impl PostgresDatabase {
             .change_context(QueryError)
             .attach_printable(version_id)?;
 
-        Ok(Qualified::new(
+        Ok(Persisted::new(
             version_id,
             serde_json::from_value(row.get(0))
                 .report()
@@ -378,7 +378,7 @@ impl PostgresDatabase {
 
     async fn insert_property_type_references(
         transaction: &mut Transaction<'_, Postgres>,
-        property_type: &Qualified<PropertyType>,
+        property_type: &Persisted<PropertyType>,
     ) -> Result<(), InsertionError> {
         let property_type_ids = Self::property_type_reference_ids(
             transaction,
@@ -437,7 +437,7 @@ impl PostgresDatabase {
 
     async fn insert_entity_type_references(
         transaction: &mut Transaction<'_, Postgres>,
-        entity_type: &Qualified<EntityType>,
+        entity_type: &Persisted<EntityType>,
     ) -> Result<(), InsertionError> {
         let property_type_ids = Self::property_type_reference_ids(
             transaction,
@@ -624,7 +624,7 @@ impl Store for PostgresDatabase {
         &self,
         data_type: DataType,
         created_by: AccountId,
-    ) -> Result<Qualified<DataType>, InsertionError> {
+    ) -> Result<Persisted<DataType>, InsertionError> {
         let mut transaction = self
             .pool
             .begin()
@@ -632,7 +632,7 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(InsertionError)?;
 
-        let qualified = Self::create(&mut transaction, data_type, created_by).await?;
+        let persisted = Self::create(&mut transaction, data_type, created_by).await?;
 
         transaction
             .commit()
@@ -640,13 +640,13 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(InsertionError)?;
 
-        Ok(qualified)
+        Ok(persisted)
     }
 
     async fn get_data_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<DataType>, QueryError> {
+    ) -> Result<Persisted<DataType>, QueryError> {
         self.get_by_version(version_id).await
     }
 
@@ -654,7 +654,7 @@ impl Store for PostgresDatabase {
         &self,
         data_type: DataType,
         updated_by: AccountId,
-    ) -> Result<Qualified<DataType>, UpdateError> {
+    ) -> Result<Persisted<DataType>, UpdateError> {
         let mut transaction = self
             .pool
             .begin()
@@ -662,7 +662,7 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(UpdateError)?;
 
-        let qualified = Self::update(&mut transaction, data_type, updated_by).await?;
+        let persisted = Self::update(&mut transaction, data_type, updated_by).await?;
 
         transaction
             .commit()
@@ -670,14 +670,14 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(UpdateError)?;
 
-        Ok(qualified)
+        Ok(persisted)
     }
 
     async fn create_property_type(
         &self,
         property_type: PropertyType,
         created_by: AccountId,
-    ) -> Result<Qualified<PropertyType>, InsertionError> {
+    ) -> Result<Persisted<PropertyType>, InsertionError> {
         let mut transaction = self
             .pool
             .begin()
@@ -705,7 +705,7 @@ impl Store for PostgresDatabase {
     async fn get_property_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<PropertyType>, QueryError> {
+    ) -> Result<Persisted<PropertyType>, QueryError> {
         self.get_by_version(version_id).await
     }
 
@@ -713,7 +713,7 @@ impl Store for PostgresDatabase {
         &self,
         property_type: PropertyType,
         updated_by: AccountId,
-    ) -> Result<Qualified<PropertyType>, UpdateError> {
+    ) -> Result<Persisted<PropertyType>, UpdateError> {
         let mut transaction = self
             .pool
             .begin()
@@ -742,7 +742,7 @@ impl Store for PostgresDatabase {
         &self,
         entity_type: EntityType,
         created_by: AccountId,
-    ) -> Result<Qualified<EntityType>, InsertionError> {
+    ) -> Result<Persisted<EntityType>, InsertionError> {
         let mut transaction = self
             .pool
             .begin()
@@ -770,7 +770,7 @@ impl Store for PostgresDatabase {
     async fn get_entity_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<EntityType>, QueryError> {
+    ) -> Result<Persisted<EntityType>, QueryError> {
         self.get_by_version(version_id).await
     }
 
@@ -778,7 +778,7 @@ impl Store for PostgresDatabase {
         &self,
         entity_type: EntityType,
         updated_by: AccountId,
-    ) -> Result<Qualified<EntityType>, UpdateError> {
+    ) -> Result<Persisted<EntityType>, UpdateError> {
         let mut transaction = self
             .pool
             .begin()
@@ -807,7 +807,7 @@ impl Store for PostgresDatabase {
         &self,
         link_type: LinkType,
         created_by: AccountId,
-    ) -> Result<Qualified<LinkType>, InsertionError> {
+    ) -> Result<Persisted<LinkType>, InsertionError> {
         let mut transaction = self
             .pool
             .begin()
@@ -815,7 +815,7 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(InsertionError)?;
 
-        let qualified = Self::create(&mut transaction, link_type, created_by).await?;
+        let persisted = Self::create(&mut transaction, link_type, created_by).await?;
 
         transaction
             .commit()
@@ -823,13 +823,13 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(InsertionError)?;
 
-        Ok(qualified)
+        Ok(persisted)
     }
 
     async fn get_link_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<LinkType>, QueryError> {
+    ) -> Result<Persisted<LinkType>, QueryError> {
         self.get_by_version(version_id).await
     }
 
@@ -837,7 +837,7 @@ impl Store for PostgresDatabase {
         &self,
         link_type: LinkType,
         updated_by: AccountId,
-    ) -> Result<Qualified<LinkType>, UpdateError> {
+    ) -> Result<Persisted<LinkType>, UpdateError> {
         let mut transaction = self
             .pool
             .begin()
@@ -845,7 +845,7 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(UpdateError)?;
 
-        let qualified = Self::update(&mut transaction, link_type, updated_by).await?;
+        let persisted = Self::update(&mut transaction, link_type, updated_by).await?;
 
         transaction
             .commit()
@@ -853,7 +853,7 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(UpdateError)?;
 
-        Ok(qualified)
+        Ok(persisted)
     }
 
     async fn create_entity() -> Result<(), InsertionError> {
