@@ -3,7 +3,10 @@ mod args;
 use std::{fmt, net::SocketAddr};
 
 use error_stack::{Context, FutureExt, Result};
-use graph::{api::rest::rest_api_router, datastore::PostgresDatabase, logging::init_logger};
+use graph::{
+    api::rest::rest_api_router, datastore::PostgresDatabase, logging::init_logger, types::AccountId,
+};
+use uuid::Uuid;
 
 use crate::args::Args;
 
@@ -34,6 +37,22 @@ async fn main() -> Result<(), GraphError> {
             tracing::error!("{err:?}");
             err
         })?;
+
+    #[cfg(debug_assertions)]
+    let account_id = AccountId::new(Uuid::nil());
+    #[cfg(not(debug_assertions))]
+    let account_id = AccountId::new(Uuid::new_v4());
+
+    datastore
+        .insert_account_id(account_id)
+        .change_context(GraphError)
+        .await
+        .map_err(|err| {
+            tracing::error!("{err:?}");
+            err
+        })?;
+
+    tracing::info!(%account_id, "Created account id");
 
     let rest_router = rest_api_router(datastore);
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

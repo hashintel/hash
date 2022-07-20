@@ -56,11 +56,15 @@ impl DatabaseTestWrapper {
                 .await
                 .expect("could not connect to database");
 
-            let mut connection = PgConnection::connect(&connection_info.url())
+            let account_id = AccountId::new(Uuid::new_v4());
+            postgres
+                .insert_account_id(account_id)
+                .await
+                .expect("Could not insert account id");
+
+            let connection = PgConnection::connect(&connection_info.url())
                 .await
                 .expect("could not connect to database");
-
-            let account_id = create_account_id(&mut connection).await;
 
             (postgres, connection, account_id)
         });
@@ -264,16 +268,6 @@ impl Drop for DatabaseTestWrapper {
             remove_account_id(&mut connection, account_id).await;
         });
     }
-}
-
-async fn create_account_id(connection: &mut PgConnection) -> AccountId {
-    let account_id = AccountId::new(Uuid::new_v4());
-    sqlx::query(r#"INSERT INTO accounts (account_id) VALUES ($1);"#)
-        .bind(account_id)
-        .fetch_all(connection)
-        .await
-        .expect("could not insert account id");
-    account_id
 }
 
 async fn remove_account_id(connection: &mut PgConnection, account_id: AccountId) {
