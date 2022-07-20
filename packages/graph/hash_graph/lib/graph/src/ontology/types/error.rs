@@ -9,8 +9,6 @@ pub enum ValidationError {
     MissingRequiredProperty(BaseUri),
     /// When associating a property name with a reference to a Type, we expect the name to match
     /// the [`VersionedUri::base_uri`] inside the reference.
-    ///
-    /// [`VersionedUri::base_uri`]: crate::types::VersionedUri::base_uri
     BaseUriMismatch {
         base_uri: BaseUri,
         versioned_uri: VersionedUri,

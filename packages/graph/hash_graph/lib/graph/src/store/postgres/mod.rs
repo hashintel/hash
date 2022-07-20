@@ -61,7 +61,7 @@ impl PostgresDatabase {
     ///
     /// - [`StoreError`], if checking for the [`BaseUri`] failed.
     ///
-    /// [`BaseUri`]: crate::types::BaseUri
+    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn contains_base_uri(
         transaction: &mut Transaction<'_, Postgres>,
         base_uri: &BaseUri,
@@ -151,7 +151,7 @@ impl PostgresDatabase {
     ///
     /// - [`StoreError`], if inserting the [`BaseUri`] failed.
     ///
-    /// [`BaseUri`]: crate::types::BaseUri
+    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn insert_base_uri(
         transaction: &mut Transaction<'_, Postgres>,
         base_uri: &BaseUri,
@@ -213,7 +213,7 @@ impl PostgresDatabase {
     ///
     /// - If the [`BaseUri`] already exists
     ///
-    /// [`BaseUri`]: crate::types::BaseUri
+    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn create<T>(
         transaction: &mut Transaction<'_, Postgres>,
         database_type: T,
@@ -261,7 +261,7 @@ impl PostgresDatabase {
     ///
     /// - If the [`BaseUri`] does not already exist
     ///
-    /// [`BaseUri`]: crate::types::BaseUri
+    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn update<T>(
         transaction: &mut Transaction<'_, Postgres>,
         database_type: T,
