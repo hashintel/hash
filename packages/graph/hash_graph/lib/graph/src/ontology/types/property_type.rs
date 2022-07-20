@@ -3,15 +3,15 @@ use std::collections::HashSet;
 use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::types::{
-    schema::{
+use crate::ontology::types::{
+    data_type::DataTypeReference,
+    error::ValidationError,
+    serde_shared::{
         array::Array,
         combinator::OneOf,
-        data_type::DataTypeReference,
         object::{Object, ValidateUri},
-        ValidationError, VersionedUri,
     },
-    BaseUri,
+    uri::{BaseUri, VersionedUri},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -349,7 +349,7 @@ mod tests {
         use serde_json::json;
 
         use super::*;
-        use crate::types::schema::tests::{check, StringTypeStruct};
+        use crate::ontology::types::serde_shared::tests::{check, StringTypeStruct};
 
         #[test]
         fn value() -> Result<(), serde_json::Error> {

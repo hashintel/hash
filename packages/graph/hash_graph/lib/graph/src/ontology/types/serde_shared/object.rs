@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use error_stack::{ensure, Result};
 use serde::{de, Deserialize, Deserializer, Serialize};
 
-use crate::types::{schema::ValidationError, BaseUri};
+use crate::ontology::types::{error::ValidationError, uri::BaseUri};
 
 /// Will serialize as a constant value `"object"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -111,12 +111,10 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::types::{
-        schema::{
-            property_type::PropertyTypeReference,
-            tests::{check, check_invalid_json},
-        },
-        VersionedUri,
+    use crate::ontology::types::{
+        property_type::PropertyTypeReference,
+        serde_shared::tests::{check, check_invalid_json},
+        uri::VersionedUri,
     };
 
     mod unconstrained {
@@ -179,7 +177,7 @@ mod tests {
 
     mod constrained {
         use super::*;
-        use crate::types::VersionedUri;
+        use crate::ontology::types::uri::VersionedUri;
         type Object = super::Object<PropertyTypeReference, 1>;
 
         #[test]

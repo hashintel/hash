@@ -7,13 +7,13 @@ use std::thread;
 
 use error_stack::Result;
 use graph::{
-    store::{
-        DatabaseConnectionInfo, DatabaseType, Store, InsertionError, PostgresDatabase,
-        QueryError, UpdateError,
+    ontology::{
+        types::{uri::BaseUri, DataType, EntityType, LinkType, PropertyType, Qualified},
+        AccountId, VersionId,
     },
-    types::{
-        schema::{DataType, EntityType, LinkType, PropertyType},
-        AccountId, BaseUri, Qualified, VersionId,
+    store::{
+        DatabaseConnectionInfo, DatabaseType, InsertionError, PostgresDatabase, QueryError, Store,
+        UpdateError,
     },
 };
 use sqlx::{Connection, Executor, PgConnection};

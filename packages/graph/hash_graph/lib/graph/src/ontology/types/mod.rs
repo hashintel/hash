@@ -1,46 +1,29 @@
-//! Model types used across stores
-
-pub mod schema;
-mod uri;
-
-use core::fmt;
-
+//! Schema definitions stored in the [`store`].
+//!
+//! This module contains the definitions of schemas, which means that the serialized structs are not
+//! the actual data but only the specification how a type is defined.
+//!
+//! [`store`]: crate::store
 use serde::{Deserialize, Serialize};
 use utoipa::Component;
-use uuid::Uuid;
 
-pub use self::uri::{BaseUri, VersionedUri};
-use crate::types::schema::{DataType, LinkType, PropertyType};
+use crate::ontology::{AccountId, VersionId};
 
-#[repr(transparent)]
-#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]
-#[sqlx(transparent)]
-pub struct AccountId(Uuid);
+mod serde_shared;
 
-impl AccountId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-}
+pub mod uri;
 
-#[repr(transparent)]
-#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]
-#[sqlx(transparent)]
-pub struct VersionId(Uuid);
+pub mod data_type;
+pub mod entity_type;
+pub mod link_type;
+pub mod property_type;
 
-impl VersionId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-}
+pub mod error;
 
-impl fmt::Display for VersionId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}", &self.0)
-    }
-}
+pub use data_type::DataType;
+pub use entity_type::EntityType;
+pub use link_type::LinkType;
+pub use property_type::PropertyType;
 
 // TODO: constrain this to only work for valid inner Types.
 #[derive(Clone, Debug, Serialize, Deserialize, Component)]

@@ -10,17 +10,20 @@ use tracing::log::LevelFilter;
 use uuid::Uuid;
 
 use crate::{
+    ontology::{
+        types::{
+            data_type::DataTypeReference,
+            entity_type::EntityTypeReference,
+            property_type::PropertyTypeReference,
+            uri::{BaseUri, VersionedUri},
+            DataType, EntityType, LinkType, PropertyType, Qualified,
+        },
+        AccountId, VersionId,
+    },
     store::{
         error::VersionedUriAlreadyExists, postgres::database_type::DatabaseType,
         BaseUriAlreadyExists, BaseUriDoesNotExist, DatabaseConnectionInfo, InsertionError,
         QueryError, Store, StoreError, UpdateError,
-    },
-    types::{
-        schema::{
-            DataType, DataTypeReference, EntityType, EntityTypeReference, LinkType, PropertyType,
-            PropertyTypeReference,
-        },
-        AccountId, BaseUri, Qualified, VersionId, VersionedUri,
     },
 };
 

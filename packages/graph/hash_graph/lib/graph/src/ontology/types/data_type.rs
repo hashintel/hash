@@ -4,9 +4,10 @@ use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::types::{
-    schema::{object::ValidateUri, ValidationError, VersionedUri},
-    BaseUri,
+use crate::ontology::types::{
+    error::ValidationError,
+    serde_shared::object::ValidateUri,
+    uri::{BaseUri, VersionedUri},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

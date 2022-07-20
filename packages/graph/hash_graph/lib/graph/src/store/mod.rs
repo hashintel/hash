@@ -10,9 +10,9 @@ pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     postgres::PostgresDatabase,
 };
-use crate::types::{
-    schema::{DataType, EntityType, LinkType, PropertyType},
-    AccountId, Qualified, VersionId,
+use crate::ontology::{
+    types::{DataType, EntityType, LinkType, PropertyType, Qualified},
+    AccountId, VersionId,
 };
 
 #[derive(Debug)]

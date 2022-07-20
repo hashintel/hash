@@ -13,8 +13,11 @@ use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
+    ontology::{
+        types::{PropertyType, Qualified, QualifiedPropertyType},
+        AccountId, VersionId,
+    },
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
-    types::{schema::PropertyType, AccountId, Qualified, QualifiedPropertyType, VersionId},
 };
 
 #[derive(OpenApi)]

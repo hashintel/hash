@@ -1,7 +1,4 @@
-use crate::types::{
-    schema::{DataType, EntityType, LinkType, PropertyType},
-    VersionedUri,
-};
+use crate::ontology::types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///

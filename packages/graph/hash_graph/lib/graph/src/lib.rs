@@ -42,8 +42,8 @@
 
 pub mod api;
 pub mod logging;
+pub mod ontology;
 pub mod store;
-pub mod types;
 
 #[cfg(test)]
 #[path = "../../../tests/test_data/lib.rs"]
