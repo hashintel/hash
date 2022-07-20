@@ -1,5 +1,5 @@
 import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
-import { JsonSchema } from "@hashintel/hash-shared/json-utils";
+import { JsonSchema } from "./json-utils";
 
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
 // eslint-disable-next-line global-require

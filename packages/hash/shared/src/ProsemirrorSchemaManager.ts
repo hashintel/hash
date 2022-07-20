@@ -30,12 +30,11 @@ import {
   mustGetDraftEntityFromEntityId,
 } from "./entityStorePlugin";
 import {
-  childrenForTextEntity,
   componentNodeGroupName,
   findComponentNode,
-  isComponentNode,
-  isComponentNodeType,
+  processSchemaMutations,
 } from "./prosemirror";
+import { childrenForTextEntity } from "./text";
 
 declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];
@@ -56,75 +55,26 @@ const blockComponentRequiresText = (
  */
 export class ProsemirrorSchemaManager {
   constructor(
-    public schema: Schema,
+    private schema: Schema,
     private accountId: string,
     private view: EditorView<Schema> | null = null,
     private componentNodeViewFactory: ComponentNodeViewFactory | null = null,
   ) {}
 
   /**
-   * This utilises getters to trick prosemirror into mutating itself in order
-   * to
-   * modify a schema with a new node type. This is likely to be quite brittle,
-   * and we need to ensure this continues to work between updates to
-   * Prosemirror. We could also consider asking them to make adding a new node
-   * type officially supported.
-   */
-  defineNewNode(componentId: string, spec: NodeSpec) {
-    const existingSchema = this.schema;
-    const existingSchemaSpec = existingSchema.spec;
-    const map = existingSchemaSpec.nodes;
-    const privateMap: OrderedMapPrivateInterface<NodeSpec> = map as any;
-
-    privateMap.content.push(componentId, spec);
-
-    // eslint-disable-next-line no-new
-    new (class extends Schema {
-      // @ts-expect-error: This is one of the hacks in our code to allow defining new node types at run time which isn't officially supported in ProseMirror
-      get nodes() {
-        return existingSchema.nodes;
-      }
-
-      set nodes(newNodes) {
-        for (const [key, value] of Object.entries(newNodes)) {
-          if (!this.nodes[key]) {
-            value.schema = existingSchema;
-            this.nodes[key] = value;
-          } else {
-            this.nodes[key]!.contentMatch = value.contentMatch;
-          }
-        }
-      }
-
-      // @ts-expect-error: This is one of the hacks in our code to allow defining new node types at run time which isn't officially supported in ProseMirror
-      get marks() {
-        return existingSchema.marks;
-      }
-
-      set marks(newMarks) {
-        for (const [key, value] of Object.entries(newMarks)) {
-          if (!this.marks[key]) {
-            value.schema = existingSchema;
-            this.marks[key] = value;
-          }
-        }
-      }
-    })(existingSchemaSpec);
-  }
-
-  /**
    * This is used to define a new block type inside prosemiror when you have
    * already fetched all the necessary metadata. It'll define a new node type in
    * the schema, and create a node view wrapper for you too.
    */
-  defineNewBlock(meta: BlockConfig) {
+  defineBlock(meta: BlockConfig) {
     if (this.schema.nodes[meta.componentId]) {
       return;
     }
 
-    this.prepareToDisableBlankDefaultComponentNode();
+    const map: OrderedMapPrivateInterface<NodeSpec> = this.schema.spec
+      .nodes as any;
 
-    this.defineNewNode(meta.componentId, {
+    map.content.push(meta.componentId, {
       selectable: false,
       content: "inline*",
       marks: "_",
@@ -143,44 +93,9 @@ export class ProsemirrorSchemaManager {
         }
       },
     });
-    this.defineNodeView(meta);
-  }
 
-  /**
-   * We have a "blank" node type which by default is allowed in place of
-   * component nodes, which is useful as we don't have any component nodes
-   * defined when the schema is first created (as they'll all defined
-   * dynamically). However, once we have defined a component node, we want that
-   * node to be created by default when needed to create a component node (i.e,
-   * when creating a new block, or when clearing the document) which means we
-   * need to remove the blank node from the component node group.
-   *
-   * @warning This does not actually immediately update the default component
-   *          node, as it does not take full effect until the next call to
-   *          {@link ProsemirrorSchemaManager#defineNewNode}
-   */
-  private prepareToDisableBlankDefaultComponentNode() {
-    const blankType = this.schema.nodes.blank!;
+    processSchemaMutations(this.schema);
 
-    if (isComponentNodeType(blankType)) {
-      if (blankType.spec.group?.includes(componentNodeGroupName)) {
-        if (blankType.spec.group !== componentNodeGroupName) {
-          throw new Error(
-            "Blank node type has group expression more complicated than we can handle",
-          );
-        }
-
-        delete blankType.spec.group;
-      }
-
-      blankType.groups!.splice(
-        blankType.groups!.indexOf(componentNodeGroupName),
-        1,
-      );
-    }
-  }
-
-  defineNodeView(meta: BlockConfig) {
     if (this.componentNodeViewFactory && this.view) {
       this.view.setProps({
         nodeViews: {
@@ -193,12 +108,12 @@ export class ProsemirrorSchemaManager {
   }
 
   /**
-   * Defining a new type of block in prosemirror. Designed to be cached so
+   * Defining a new type of block in Prosemirror. Designed to be cached so
    * doesn't need to request the block multiple times
    *
    * @todo support taking a signal
    */
-  async fetchAndDefineBlock(
+  async defineRemoteBlock(
     componentId: string,
     options?: { bustCache: boolean },
   ): Promise<BlockMeta> {
@@ -206,58 +121,21 @@ export class ProsemirrorSchemaManager {
       bustCache: !!options?.bustCache,
     });
 
-    await this.defineRemoteBlock(componentId);
+    this.defineBlock(meta);
 
     return meta;
   }
 
   /**
-   * Defining a new type of block in prosemirror. Designed to be cached so
-   * doesn't need to request the block multiple times
-   *
-   * @todo support taking a signal
-   */
-  async defineRemoteBlock(
-    componentId: string,
-    metaPromise?: Promise<BlockConfig>,
-  ) {
-    if (!this.schema.nodes[componentId]) {
-      const blockMetaPromise =
-        metaPromise ??
-        fetchBlockMeta(componentId).then((meta) => meta.componentMetadata);
-
-      this.defineNewBlock(await blockMetaPromise);
-    }
-  }
-
-  /**
-   * used to ensure all blocks used by a given document are loaded before
-   * PM tries to instantiate them.
+   * Blocks need to be defined before loading into Prosemirror
    */
   async ensureBlocksDefined(componentIds: string[] = []) {
     return Promise.all(
-      componentIds.map((componentId) => {
-        return this.fetchAndDefineBlock(componentId);
-      }, this),
+      componentIds.map(
+        (componentId) => this.defineRemoteBlock(componentId),
+        this,
+      ),
     );
-  }
-
-  async ensureDocDefined(doc: ProsemirrorNode<Schema>) {
-    const componentIds = new Set<string>();
-    doc.descendants((node) => {
-      if (isComponentNode(node) && node.type.name.startsWith("http")) {
-        componentIds.add(node.type.name);
-      }
-
-      return true;
-    });
-
-    /**
-     * @todo we should have some concurrency here
-     */
-    for (const componentId of Array.from(componentIds.values())) {
-      await this.defineRemoteBlock(componentId);
-    }
   }
 
   /**
@@ -300,7 +178,7 @@ export class ProsemirrorSchemaManager {
     // @todo this needs to be mandatory otherwises properties may get lost
     draftBlockId?: string | null,
   ) {
-    const meta = await this.fetchAndDefineBlock(targetComponentId);
+    const meta = await this.defineRemoteBlock(targetComponentId);
     const requiresText = blockComponentRequiresText(meta.componentSchema);
     let blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
 
@@ -368,13 +246,10 @@ export class ProsemirrorSchemaManager {
     }
   }
 
-  async createEntityUpdateTransaction(
-    entities: BlockEntity[],
-    state: EditorState<Schema>,
-  ) {
+  async loadPage(currentState: EditorState<Schema>, entities: BlockEntity[]) {
     const store = createEntityStore(
       entities,
-      entityStorePluginState(state).store.draft,
+      entityStorePluginState(currentState).store.draft,
     );
 
     const newNodes = await Promise.all(
@@ -392,11 +267,11 @@ export class ProsemirrorSchemaManager {
       }),
     );
 
-    const { tr } = state;
+    const { tr } = currentState;
 
-    addEntityStoreAction(state, tr, { type: "store", payload: store });
+    addEntityStoreAction(currentState, tr, { type: "store", payload: store });
 
-    tr.replaceWith(0, state.doc.content.size, newNodes);
+    tr.replaceWith(0, currentState.doc.content.size, newNodes);
 
     return tr;
   }
@@ -405,7 +280,7 @@ export class ProsemirrorSchemaManager {
    * @todo consider removing the old block from the entity store
    * @todo need to support variants here
    */
-  async replaceNodeWithRemoteBlock(
+  async replaceNode(
     draftBlockId: string,
     targetComponentId: string,
     targetVariant: BlockVariant,
@@ -432,7 +307,7 @@ export class ProsemirrorSchemaManager {
   /**
    * @todo consider removing the old block from the entity store
    * @todo need to support variants here (copied from
-   *   {@link replaceNodeWithRemoteBlock} - is this still relevant?
+   *   {@link replaceNode} - is this still relevant?
    */
   async deleteNode(node: ProsemirrorNode<Schema>, pos: number) {
     const { view } = this;
@@ -447,9 +322,6 @@ export class ProsemirrorSchemaManager {
     view.dispatch(tr);
   }
 
-  // @todo handle empty variant properties
-  // @todo handle saving the results of this
-  // @todo handle non-intermediary entities
   /**
    * @deprecated
    * @todo remove this
@@ -464,7 +336,7 @@ export class ProsemirrorSchemaManager {
     }
 
     const { tr } = this.view.state;
-    const meta = await this.fetchAndDefineBlock(targetComponentId);
+    const meta = await this.defineRemoteBlock(targetComponentId);
 
     let blockIdForNode = draftBlockId;
 
@@ -600,7 +472,7 @@ export class ProsemirrorSchemaManager {
     return [tr, newNode] as const;
   }
 
-  async replaceRangeWithBlock(
+  async replaceRange(
     targetComponentId: string,
     variant: BlockVariant,
     to: number,

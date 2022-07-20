@@ -149,10 +149,10 @@ export const createEditorView = (
     throw new Error("missing required block-type paragraph");
   }
 
-  /** note that {@link ProsemirrorSchemaManager#defineNewBlock} is idempotent */
-  manager.defineNewBlock(paragraphBlockMeta.componentMetadata);
+  /** note that {@link ProsemirrorSchemaManager#defineBlock} is idempotent */
+  manager.defineBlock(paragraphBlockMeta.componentMetadata);
   blocksMetaArray.forEach((blockMeta) =>
-    manager.defineNewBlock(blockMeta.componentMetadata),
+    manager.defineBlock(blockMeta.componentMetadata),
   );
 
   // @todo figure out how to use dev tools without it breaking fast refresh

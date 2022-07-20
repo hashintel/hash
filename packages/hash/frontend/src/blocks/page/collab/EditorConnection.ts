@@ -223,9 +223,6 @@ export class EditorConnection {
       .then((data) => {
         const doc = this.schema.nodeFromJSON(data.doc);
 
-        return this.manager.ensureDocDefined(doc).then(() => ({ doc, data }));
-      })
-      .then(({ data, doc }) => {
         this.closeRequest();
         this.dispatch({
           type: "loaded",

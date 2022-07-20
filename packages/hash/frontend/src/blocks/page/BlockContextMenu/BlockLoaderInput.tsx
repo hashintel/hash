@@ -42,7 +42,7 @@ export const BlockLoaderInput: React.VFC<BlockLoaderInputProps> = ({
     const normalizedUrl = createNormalizedBlockUrl(blockUrl);
 
     blockView.manager
-      .fetchAndDefineBlock(normalizedUrl, { bustCache: true })
+      .defineRemoteBlock(normalizedUrl, { bustCache: true })
       .then((blockMeta) => {
         unstable_batchedUpdates(() => {
           setError(null);

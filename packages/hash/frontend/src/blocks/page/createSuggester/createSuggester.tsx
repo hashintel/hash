@@ -203,7 +203,7 @@ export const createSuggester = (
             blockMeta: BlockConfig,
           ) => {
             getManager()
-              .replaceRangeWithBlock(blockMeta.componentId, variant, to, from)
+              .replaceRange(blockMeta.componentId, variant, to, from)
               .then(({ tr, componentPosition }) => {
                 tr.setMeta(suggesterPluginKey, {
                   type: "suggestedBlock",

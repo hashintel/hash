@@ -514,12 +514,12 @@ export class Instance {
         await this.saveChain;
 
         /**
-         * This is a potential security risk as the frontend can instruct us
+         * This is a *serious* security risk as the frontend can instruct us
          * to make a web request
+         *
+         * @todo deal with this?
          */
-        await Promise.all(
-          blockIds.map((id) => this.manager.defineRemoteBlock(id)),
-        );
+        await this.manager.ensureBlocksDefined(blockIds);
 
         const steps = jsonSteps.map((step) =>
           Step.fromJSON(this.state.doc.type.schema, step),
@@ -756,7 +756,7 @@ const newInstance =
      * @todo check plugins
      */
     const newState = state.apply(
-      await manager.createEntityUpdateTransaction(data.page.contents, state),
+      await manager.loadPage(state, data.page.contents),
     );
 
     // The instance may have been created whilst another user we were doing the above work
@@ -786,7 +786,7 @@ export const getInstance =
       instanceCount--;
     }
     const inst =
-      instances[pageEntityId] ||
+      instances[pageEntityId] ??
       (await newInstance(apolloClient, entityWatcher)(accountId, pageEntityId));
     inst.lastActive = Date.now();
     return inst;

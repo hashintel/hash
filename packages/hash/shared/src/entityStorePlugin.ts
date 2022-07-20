@@ -8,9 +8,9 @@ import { BlockEntity, isDraftTextContainingEntityProperties } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
-  getDraftEntityFromEntityId,
   EntityStore,
   EntityStoreType,
+  getDraftEntityFromEntityId,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
@@ -21,8 +21,8 @@ import {
   findComponentNodes,
   isComponentNode,
   isEntityNode,
-  textBlockNodeToEntityProperties,
 } from "./prosemirror";
+import { textBlockNodeToEntityProperties } from "./text";
 import { collect } from "./util";
 
 type EntityStorePluginStateListener = (store: EntityStore) => void;

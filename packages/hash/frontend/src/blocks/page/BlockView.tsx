@@ -250,13 +250,7 @@ export class BlockView implements NodeView<Schema> {
     }
 
     this.manager
-      .replaceNodeWithRemoteBlock(
-        draftId,
-        meta.componentId,
-        variant,
-        node,
-        getPos(),
-      )
+      .replaceNode(draftId, meta.componentId, variant, node, getPos())
       .catch((err: Error) => {
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
