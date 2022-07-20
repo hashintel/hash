@@ -2,7 +2,7 @@ import { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import {
   EntityStore,
-  getDraftEntityFromEntityId,
+  getDraftEntityByEntityId,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import { Box } from "@mui/material";
@@ -66,7 +66,7 @@ const BlockHandle: ForwardRefRenderFunction<
    * @todo remove this comment when all updates are sent via collab
    */
   const blockEntity = entityId
-    ? getDraftEntityFromEntityId(entityStore.draft, entityId) ?? null
+    ? getDraftEntityByEntityId(entityStore.draft, entityId) ?? null
     : null;
 
   if (blockEntity && !isBlockEntity(blockEntity)) {

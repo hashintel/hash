@@ -1,4 +1,7 @@
-import { BlockMeta } from "@hashintel/hash-shared/blocks";
+import {
+  BlockMeta,
+  prepareBlockMetaCache,
+} from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
@@ -150,10 +153,8 @@ export const createEditorView = (
   }
 
   /** note that {@link ProsemirrorSchemaManager#defineBlock} is idempotent */
-  manager.defineBlock(paragraphBlockMeta.componentMetadata);
-  blocksMetaArray.forEach((blockMeta) =>
-    manager.defineBlock(blockMeta.componentMetadata),
-  );
+  manager.defineBlock(paragraphBlockMeta);
+  blocksMetaArray.forEach((blockMeta) => manager.defineBlock(blockMeta));
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);

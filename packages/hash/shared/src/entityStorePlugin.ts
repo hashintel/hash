@@ -10,7 +10,7 @@ import {
   DraftEntity,
   EntityStore,
   EntityStoreType,
-  getDraftEntityFromEntityId,
+  getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
@@ -129,8 +129,9 @@ export const entityStorePluginStateFromTransaction = (
  * need to recall the entity's draftId, use mustGetDraftEntityForEntityId
  *
  * @todo should maybe always be random to handle a block being present twice
+ * @todo this is called when we ought to be using mustGetDraftEntityByEntityId
  */
-export const createDraftIdForEntity = (entityId: string | null) =>
+export const generateDraftIdForEntity = (entityId: string | null) =>
   entityId ? `draft-${entityId}` : `fake-${uuid()}`;
 
 /**
@@ -186,7 +187,7 @@ const swapBlockData = (
   blockEntityDraftId: string,
   targetEntity: EntityStoreType,
 ) => {
-  let targetDraftEntity = getDraftEntityFromEntityId(
+  let targetDraftEntity = getDraftEntityByEntityId(
     draftEntityStore,
     targetEntity.entityId,
   );
@@ -195,7 +196,7 @@ const swapBlockData = (
   // present there
   // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
   if (!targetDraftEntity) {
-    const targetEntityDraftId = createDraftIdForEntity(targetEntity.entityId);
+    const targetEntityDraftId = generateDraftIdForEntity(targetEntity.entityId);
     targetDraftEntity = {
       accountId: targetEntity.accountId,
       draftId: targetEntityDraftId,
@@ -401,14 +402,14 @@ export const subscribeToEntityStore = (
 /**
  * Retrieves the draft entity for an entity, given its entityId and the draft
  * store.
- * @throws {Error} if entity not found - use getDraftEntityForEntityId if you
+ * @throws {Error} if entity not found - use getDraftEntityByEntityId if you
  *   don't want an error on missing entities.
  */
-export const mustGetDraftEntityFromEntityId = (
+export const mustGetDraftEntityByEntityId = (
   draftStore: EntityStore["draft"],
   entityId: string,
 ) => {
-  const existingEntity = getDraftEntityFromEntityId(draftStore, entityId);
+  const existingEntity = getDraftEntityByEntityId(draftStore, entityId);
 
   if (!existingEntity) {
     throw new Error("invariant: entity missing from entity store");
@@ -588,13 +589,13 @@ class ProsemirrorStateChangeHandler {
       : null;
 
     const draftId = entityId
-      ? mustGetDraftEntityFromEntityId(draftEntityStore, entityId).draftId
+      ? mustGetDraftEntityByEntityId(draftEntityStore, entityId).draftId
       : /**
          * @todo this will lead to the frontend setting draft id uuids for
          *   new blocks – this is potentially insecure and needs
          *   considering
          */
-        node.attrs.draftId ?? createDraftIdForEntity(null);
+        node.attrs.draftId ?? generateDraftIdForEntity(null);
 
     if (!draftEntityStore[draftId]) {
       addEntityStoreAction(this.state, this.tr, {

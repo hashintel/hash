@@ -146,6 +146,21 @@ const transformBlockConfig = ({
   };
 };
 
+export const prepareBlockMetaCache = (
+  componentId: string,
+  meta: BlockMeta | Promise<BlockMeta>,
+) => {
+  if (typeof window !== "undefined") {
+    const key = componentIdToUrl(componentId);
+    if (!blockCache.has(key)) {
+      blockCache.set(
+        key,
+        Promise.resolve().then(() => meta),
+      );
+    }
+  }
+};
+
 // @todo deal with errors, loading, abort etc.
 export const fetchBlockMeta = async (
   componentId: string,
@@ -218,9 +233,7 @@ export const fetchBlockMeta = async (
     return result;
   })();
 
-  if (typeof window !== "undefined") {
-    blockCache.set(baseUrl, promise);
-  }
+  prepareBlockMetaCache(baseUrl, promise);
 
   return await promise;
 };

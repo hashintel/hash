@@ -51,7 +51,7 @@ export const BlockLoaderInput: React.VFC<BlockLoaderInputProps> = ({
             [normalizedUrl]: blockMeta,
           }));
         });
-        return blockView.manager.createRemoteBlock(normalizedUrl);
+        return blockView.manager.renderRemoteBlock(normalizedUrl);
       })
       .then((block) => {
         const { editorView } = blockView;

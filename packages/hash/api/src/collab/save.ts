@@ -8,7 +8,7 @@ import {
 import {
   DraftEntity,
   EntityStore,
-  getDraftEntityFromEntityId,
+  getDraftEntityByEntityId,
   isDraftBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
@@ -250,7 +250,7 @@ const calculateSaveActions = async (
   }
 
   const beforeBlockDraftIds = blocks.map((block) => {
-    const draftEntity = getDraftEntityFromEntityId(store.draft, block.entityId);
+    const draftEntity = getDraftEntityByEntityId(store.draft, block.entityId);
 
     if (!draftEntity) {
       throw new Error("Draft entity missing");
