@@ -32,6 +32,7 @@ import {
 import {
   childrenForTextEntity,
   componentNodeGroupName,
+  findComponentNode,
   isComponentNode,
   isComponentNodeType,
 } from "./prosemirror";
@@ -449,7 +450,11 @@ export class ProsemirrorSchemaManager {
   // @todo handle empty variant properties
   // @todo handle saving the results of this
   // @todo handle non-intermediary entities
-  async createRemoteBlockTr(
+  /**
+   * @deprecated
+   * @todo remove this
+   */
+  private async createRemoteBlockTr(
     targetComponentId: string,
     draftBlockId: string | null,
     targetVariant: BlockVariant,
@@ -593,6 +598,43 @@ export class ProsemirrorSchemaManager {
     );
 
     return [tr, newNode] as const;
+  }
+
+  async replaceRangeWithBlock(
+    targetComponentId: string,
+    variant: BlockVariant,
+    to: number,
+    from: number,
+  ) {
+    const [tr, node] = await this.createRemoteBlockTr(
+      targetComponentId,
+      null,
+      variant,
+    );
+
+    tr.insert(to, node);
+    tr.replaceWith(from, to, []);
+
+    const blockPosition = tr.doc.resolve(tr.mapping.map(from)).after(1);
+
+    const containingNode = tr.doc.nodeAt(blockPosition);
+
+    if (!containingNode) {
+      throw new Error("Cannot find inserted node in transaction");
+    }
+
+    const componentPosition = findComponentNode(
+      containingNode,
+      blockPosition,
+    )?.[1];
+
+    if (typeof componentPosition !== "number") {
+      throw new Error(
+        "Cannot find inserted component node position in transaction",
+      );
+    }
+
+    return { tr, blockPosition, componentPosition };
   }
 
   /**

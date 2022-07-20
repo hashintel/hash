@@ -1,6 +1,5 @@
 import type { BlockVariant } from "@blockprotocol/core";
 import { BlockConfig } from "@hashintel/hash-shared/blocks";
-import { findComponentNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import {
@@ -199,46 +198,16 @@ export const createSuggester = (
             left: coords.left + document.documentElement.scrollLeft,
           };
 
-          /**
-           * @todo actually create and insert an instance of the selected block
-           *   type variant
-           *   @todo remove need to rely on time
-           */
           const onBlockSuggesterChange = (
             variant: BlockVariant,
             blockMeta: BlockConfig,
           ) => {
             getManager()
-              // @todo merge this
-              .createRemoteBlockTr(blockMeta.componentId, null, variant)
-              .then(([tr, node]) => {
-                tr.insert(to, node);
-                tr.replaceWith(from, to, []);
-
-                const insertedBlockPosition = tr.doc
-                  .resolve(tr.mapping.map(from))
-                  .after(1);
-
-                const containingNode = tr.doc.nodeAt(insertedBlockPosition);
-
-                if (!containingNode) {
-                  throw new Error("Cannot find inserted node in transaction");
-                }
-
-                const insertedComponentPosition = findComponentNode(
-                  containingNode,
-                  insertedBlockPosition,
-                )?.[1];
-
-                if (typeof insertedComponentPosition !== "number") {
-                  throw new Error(
-                    "Cannot find inserted component node position in transaction",
-                  );
-                }
-
+              .replaceRangeWithBlock(blockMeta.componentId, variant, to, from)
+              .then(({ tr, componentPosition }) => {
                 tr.setMeta(suggesterPluginKey, {
                   type: "suggestedBlock",
-                  payload: { position: insertedComponentPosition },
+                  payload: { position: componentPosition },
                 } as SuggesterAction);
 
                 view.dispatch(tr);
