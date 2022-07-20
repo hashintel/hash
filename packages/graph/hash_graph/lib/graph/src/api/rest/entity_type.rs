@@ -130,7 +130,7 @@ async fn get_entity_type<D: Datastore>(
 struct UpdateEntityTypeRequest {
     #[component(value_type = Any)]
     schema: EntityType,
-    created_by: AccountId,
+    account_id: AccountId,
 }
 
 #[utoipa::path(
@@ -155,7 +155,7 @@ async fn update_entity_type<D: Datastore>(
 
     datastore
         .clone()
-        .update_entity_type(body.schema, body.created_by)
+        .update_entity_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
             if report.contains::<BaseUriDoesNotExist>() {
