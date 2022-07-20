@@ -1,4 +1,4 @@
-mod error;
+pub mod error;
 mod postgres;
 
 use std::fmt;
@@ -10,19 +10,19 @@ pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     postgres::PostgresDatabase,
 };
-use crate::types::{
-    schema::{DataType, EntityType, LinkType, PropertyType},
-    AccountId, Qualified, VersionId,
+use crate::ontology::{
+    types::{DataType, EntityType, LinkType, Persisted, PropertyType},
+    AccountId, VersionId,
 };
 
 #[derive(Debug)]
-pub struct DatastoreError;
+pub struct StoreError;
 
-impl Context for DatastoreError {}
+impl Context for StoreError {}
 
-impl fmt::Display for DatastoreError {
+impl fmt::Display for StoreError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("The Datastore encountered an error")
+        fmt.write_str("The store encountered an error")
     }
 }
 
@@ -160,14 +160,14 @@ impl fmt::Display for DatabaseConnectionInfo {
     }
 }
 
-/// Describes the API of a Datastore implementation.
+/// Describes the API of a store implementation.
 ///
 /// # Errors
 ///
 /// In addition to the errors described in the methods of this trait, further errors might also be
 /// raised depending on the implementation, e.g. connection issues.
 #[async_trait]
-pub trait Datastore: Clone + Send + Sync + 'static {
+pub trait Store: Clone + Send + Sync + 'static {
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -175,12 +175,12 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `data_type` already exist.
     ///
-    /// [`BaseUri`]: crate::types::BaseUri
+    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn create_data_type(
         &self,
         data_type: DataType,
         created_by: AccountId,
-    ) -> Result<Qualified<DataType>, InsertionError>;
+    ) -> Result<Persisted<DataType>, InsertionError>;
 
     /// Get an existing [`DataType`] by a [`VersionId`].
     ///
@@ -188,7 +188,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     ///
     /// - if the requested [`DataType`] doesn't exist.
     async fn get_data_type(&self, version_id: VersionId)
-    -> Result<Qualified<DataType>, QueryError>;
+    -> Result<Persisted<DataType>, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -199,7 +199,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
         &self,
         data_type: DataType,
         updated_by: AccountId,
-    ) -> Result<Qualified<DataType>, UpdateError>;
+    ) -> Result<Persisted<DataType>, UpdateError>;
 
     /// Creates a new [`PropertyType`].
     ///
@@ -208,12 +208,12 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `property_type` already exists.
     ///
-    /// [`BaseUri`]: crate::types::BaseUri
+    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn create_property_type(
         &self,
         property_type: PropertyType,
         created_by: AccountId,
-    ) -> Result<Qualified<PropertyType>, InsertionError>;
+    ) -> Result<Persisted<PropertyType>, InsertionError>;
 
     /// Get an existing [`PropertyType`] by a [`VersionId`].
     ///
@@ -223,7 +223,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     async fn get_property_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<PropertyType>, QueryError>;
+    ) -> Result<Persisted<PropertyType>, QueryError>;
 
     /// Update the definition of an existing [`PropertyType`].
     ///
@@ -234,7 +234,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
         &self,
         property_type: PropertyType,
         updated_by: AccountId,
-    ) -> Result<Qualified<PropertyType>, UpdateError>;
+    ) -> Result<Persisted<PropertyType>, UpdateError>;
 
     /// Creates a new [`EntityType`].
     ///
@@ -243,12 +243,12 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `entity_type` already exist.
     ///
-    /// [`BaseUri`]: crate::types::BaseUri
+    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn create_entity_type(
         &self,
         entity_type: EntityType,
         created_by: AccountId,
-    ) -> Result<Qualified<EntityType>, InsertionError>;
+    ) -> Result<Persisted<EntityType>, InsertionError>;
 
     /// Get an existing [`EntityType`] by a [`VersionId`].
     ///
@@ -258,7 +258,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     async fn get_entity_type(
         &self,
         version_id: VersionId,
-    ) -> Result<Qualified<EntityType>, QueryError>;
+    ) -> Result<Persisted<EntityType>, QueryError>;
 
     /// Update the definition of an existing [`EntityType`].
     ///
@@ -269,9 +269,9 @@ pub trait Datastore: Clone + Send + Sync + 'static {
         &self,
         entity_type: EntityType,
         updated_by: AccountId,
-    ) -> Result<Qualified<EntityType>, UpdateError>;
+    ) -> Result<Persisted<EntityType>, UpdateError>;
 
-    // TODO - perhaps we want to separate the Datastore into the Type Graph and the Data Graph
+    // TODO - perhaps we want to separate the store into the Type Graph and the Data Graph
 
     /// Creates a new [`LinkType`].
     ///
@@ -280,12 +280,12 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `property_type` already exists.
     ///
-    /// [`BaseUri`]: crate::types::BaseUri
+    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn create_link_type(
         &self,
         link_type: LinkType,
         created_by: AccountId,
-    ) -> Result<Qualified<LinkType>, InsertionError>;
+    ) -> Result<Persisted<LinkType>, InsertionError>;
 
     /// Get an existing [`LinkType`] by a [`VersionId`].
     ///
@@ -293,7 +293,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
     ///
     /// - if the requested [`LinkType`] doesn't exist.
     async fn get_link_type(&self, version_id: VersionId)
-    -> Result<Qualified<LinkType>, QueryError>;
+    -> Result<Persisted<LinkType>, QueryError>;
 
     /// Update the definition of an existing [`LinkType`].
     ///
@@ -304,7 +304,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
         &self,
         property_type: LinkType,
         updated_by: AccountId,
-    ) -> Result<Qualified<LinkType>, UpdateError>;
+    ) -> Result<Persisted<LinkType>, UpdateError>;
 
     /// Creates a new `Entity`.
     async fn create_entity() -> Result<(), InsertionError>;

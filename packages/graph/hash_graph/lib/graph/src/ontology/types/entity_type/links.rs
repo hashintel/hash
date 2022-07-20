@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::{
-    schema::{
-        array::Array, entity_type::EntityTypeReference, object::ValidateUri, ValidationError,
-    },
-    BaseUri, VersionedUri,
+use crate::ontology::types::{
+    entity_type::EntityTypeReference,
+    error::ValidationError,
+    serde_shared::{array::Array, object::ValidateUri},
+    uri::{BaseUri, VersionedUri},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -158,14 +158,16 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::types::schema::tests::{check, check_deserialization, check_invalid_json};
+    use crate::ontology::types::serde_shared::tests::{
+        check, check_deserialization, check_invalid_json,
+    };
 
     // TODO - write some tests for validation of Link schemas, although most testing happens on
     //  entity types
 
     mod maybe_ordered_array {
         use super::*;
-        use crate::types::schema::tests::StringTypeStruct;
+        use crate::ontology::types::serde_shared::tests::StringTypeStruct;
 
         #[test]
         fn unordered() -> Result<(), serde_json::Error> {
@@ -242,7 +244,7 @@ mod tests {
         use serde_json::json;
 
         use super::*;
-        use crate::types::schema::tests::{check, StringTypeStruct};
+        use crate::ontology::types::serde_shared::tests::{check, StringTypeStruct};
 
         #[test]
         fn value() -> Result<(), serde_json::Error> {

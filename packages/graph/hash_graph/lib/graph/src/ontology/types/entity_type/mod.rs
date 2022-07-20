@@ -5,14 +5,13 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::types::{
-    schema::{
-        entity_type::links::{Links, ValueOrMaybeOrderedArray},
-        object::{Object, ValidateUri},
-        property_type::PropertyTypeReference,
-        ValidationError, VersionedUri,
-    },
-    BaseUri,
+use crate::ontology::types::{
+    entity_type::links::{Links, ValueOrMaybeOrderedArray},
+    error::ValidationError,
+    property_type::PropertyTypeReference,
+    serde_shared::object::{Object, ValidateUri},
+    uri::{BaseUri, VersionedUri},
+    OntologyType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -75,6 +74,12 @@ pub struct EntityType {
     property_object: Object<PropertyTypeReference>,
     #[serde(flatten)]
     links: Links,
+}
+
+impl OntologyType for EntityType {
+    fn uri(&self) -> &VersionedUri {
+        self.id()
+    }
 }
 
 impl EntityType {

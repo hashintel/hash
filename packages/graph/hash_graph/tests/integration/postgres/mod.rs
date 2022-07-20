@@ -7,13 +7,13 @@ use std::thread;
 
 use error_stack::Result;
 use graph::{
-    datastore::{
-        DatabaseConnectionInfo, DatabaseType, Datastore, InsertionError, PostgresDatabase,
-        QueryError, UpdateError,
+    ontology::{
+        types::{uri::BaseUri, DataType, EntityType, LinkType, Persisted, PropertyType},
+        AccountId, VersionId,
     },
-    types::{
-        schema::{DataType, EntityType, LinkType, PropertyType},
-        AccountId, BaseUri, Qualified, VersionId,
+    store::{
+        DatabaseConnectionInfo, DatabaseType, InsertionError, PostgresDatabase, QueryError, Store,
+        UpdateError,
     },
 };
 use sqlx::{Connection, Executor, PgConnection};
@@ -121,7 +121,7 @@ impl DatabaseTestWrapper {
     pub fn create_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<Qualified<DataType>, InsertionError> {
+    ) -> Result<Persisted<DataType>, InsertionError> {
         self.rt.block_on(async {
             let data_type = self
                 .postgres
@@ -136,7 +136,7 @@ impl DatabaseTestWrapper {
     pub fn get_data_type(
         &mut self,
         version_id: VersionId,
-    ) -> Result<Qualified<DataType>, QueryError> {
+    ) -> Result<Persisted<DataType>, QueryError> {
         self.rt
             .block_on(async { self.postgres.get_data_type(version_id).await })
     }
@@ -144,7 +144,7 @@ impl DatabaseTestWrapper {
     pub fn update_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<Qualified<DataType>, UpdateError> {
+    ) -> Result<Persisted<DataType>, UpdateError> {
         self.rt.block_on(async {
             self.postgres
                 .update_data_type(data_type, self.account_id)
@@ -155,7 +155,7 @@ impl DatabaseTestWrapper {
     pub fn create_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<Qualified<PropertyType>, InsertionError> {
+    ) -> Result<Persisted<PropertyType>, InsertionError> {
         self.rt.block_on(async {
             let property_type = self
                 .postgres
@@ -170,7 +170,7 @@ impl DatabaseTestWrapper {
     pub fn get_property_type(
         &mut self,
         version_id: VersionId,
-    ) -> Result<Qualified<PropertyType>, QueryError> {
+    ) -> Result<Persisted<PropertyType>, QueryError> {
         self.rt
             .block_on(async { self.postgres.get_property_type(version_id).await })
     }
@@ -178,7 +178,7 @@ impl DatabaseTestWrapper {
     pub fn update_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<Qualified<PropertyType>, UpdateError> {
+    ) -> Result<Persisted<PropertyType>, UpdateError> {
         self.rt.block_on(async {
             self.postgres
                 .update_property_type(property_type, self.account_id)
@@ -189,7 +189,7 @@ impl DatabaseTestWrapper {
     pub fn create_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<Qualified<EntityType>, InsertionError> {
+    ) -> Result<Persisted<EntityType>, InsertionError> {
         self.rt.block_on(async {
             let entity_type = self
                 .postgres
@@ -204,7 +204,7 @@ impl DatabaseTestWrapper {
     pub fn get_entity_type(
         &mut self,
         version_id: VersionId,
-    ) -> Result<Qualified<EntityType>, QueryError> {
+    ) -> Result<Persisted<EntityType>, QueryError> {
         self.rt
             .block_on(async { self.postgres.get_entity_type(version_id).await })
     }
@@ -212,7 +212,7 @@ impl DatabaseTestWrapper {
     pub fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<Qualified<EntityType>, UpdateError> {
+    ) -> Result<Persisted<EntityType>, UpdateError> {
         self.rt.block_on(async {
             self.postgres
                 .update_entity_type(entity_type, self.account_id)
@@ -223,7 +223,7 @@ impl DatabaseTestWrapper {
     pub fn create_link_type(
         &mut self,
         link_type: LinkType,
-    ) -> Result<Qualified<LinkType>, InsertionError> {
+    ) -> Result<Persisted<LinkType>, InsertionError> {
         self.rt.block_on(async {
             let link_type = self
                 .postgres
@@ -238,7 +238,7 @@ impl DatabaseTestWrapper {
     pub fn get_link_type(
         &mut self,
         version_id: VersionId,
-    ) -> Result<Qualified<LinkType>, QueryError> {
+    ) -> Result<Persisted<LinkType>, QueryError> {
         self.rt
             .block_on(async { self.postgres.get_link_type(version_id).await })
     }
@@ -246,7 +246,7 @@ impl DatabaseTestWrapper {
     pub fn update_link_type(
         &mut self,
         link_type: LinkType,
-    ) -> Result<Qualified<LinkType>, UpdateError> {
+    ) -> Result<Persisted<LinkType>, UpdateError> {
         self.rt.block_on(async {
             self.postgres
                 .update_link_type(link_type, self.account_id)
