@@ -10,7 +10,7 @@ use utoipa::Component;
 use uuid::Uuid;
 
 pub use self::uri::{BaseUri, VersionedUri};
-use crate::types::schema::{DataType, LinkType, PropertyType};
+use crate::types::schema::{DataType, EntityType, LinkType, PropertyType};
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]
@@ -48,6 +48,7 @@ impl fmt::Display for VersionId {
     QualifiedDataType = Qualified<DataType>,
     QualifiedPropertyType = Qualified<PropertyType>,
     QualifiedLinkType = Qualified<LinkType>,
+    QualifiedEntityType = Qualified<EntityType>,
 )]
 pub struct Qualified<T> {
     version_id: VersionId,
