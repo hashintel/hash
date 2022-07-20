@@ -124,6 +124,11 @@ impl DatabaseConnectionInfo {
     }
 
     #[must_use]
+    pub fn password(&self) -> &str {
+        &self.password
+    }
+
+    #[must_use]
     pub fn host(&self) -> &str {
         &self.host
     }

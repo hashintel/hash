@@ -3,7 +3,10 @@ mod database_type;
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde::{de::DeserializeOwned, Serialize};
-use sqlx::{Executor, PgPool, Postgres, Row, Transaction};
+use sqlx::{
+    postgres::PgConnectOptions, ConnectOptions, Executor, PgPool, Postgres, Row, Transaction,
+};
+use tracing::log::LevelFilter;
 use uuid::Uuid;
 
 use crate::{
@@ -32,8 +35,15 @@ impl PostgresDatabase {
     /// - [`DatastoreError`], if creating a [`PgPool`] connection returns an error.
     pub async fn new(db_info: &DatabaseConnectionInfo) -> Result<Self, DatastoreError> {
         tracing::debug!("Creating connection pool to Postgres");
+        let mut connection_options = PgConnectOptions::default()
+            .username(db_info.user())
+            .password(db_info.password())
+            .host(db_info.host())
+            .port(db_info.port())
+            .database(db_info.database());
+        connection_options.log_statements(LevelFilter::Trace);
         Ok(Self {
-            pool: PgPool::connect(&db_info.url())
+            pool: PgPool::connect_with(connection_options)
                 .await
                 .report()
                 .change_context(DatastoreError)
