@@ -1,4 +1,4 @@
-//! Model types used across stores
+//! Model types that describe the elements of the HASH Ontology.
 
 pub mod types;
 

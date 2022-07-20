@@ -1,7 +1,13 @@
-//! Schema definitions stored in the [`store`].
+//! Definitions of the elements of the Type System stored in the [`store`].
 //!
-//! This module contains the definitions of schemas, which means that the serialized structs are not
-//! the actual data but only the specification how a type is defined.
+//! This module contains the definitions of [`DataType`]s, [`PropertyType`]s, [`EntityType`]s, and
+//! [`LinkType`]s. The structs are Rust representations of their meta-schemas defined within the
+//! Block Protocol specification, and are used to validate instances of types using [`serde`]. To
+//! aid with the de/serialization, intermediary structs and helpers are defined within:
+//! - [`uri`] - Definitions of the unique URI identifiers of Types
+//! - [`serde_shared`] - Common intermediary structs that are helpful with de/serialization
+//! - the type modules - specialized structs that live alongside the definitions of the types when
+//!   needed
 //!
 //! [`store`]: crate::store
 use serde::{Deserialize, Serialize};
