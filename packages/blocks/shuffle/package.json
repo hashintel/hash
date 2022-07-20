@@ -1,11 +1,16 @@
 {
-  "name": "shuffle",
+  "name": "@hashintel/shuffle",
   "version": "0.0.0",
   "description": "shuffle block",
   "keywords": [
     "blockprotocol",
     "blocks"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "packages/blocks/shuffle"
+  },
   "license": "MIT",
   "author": "luisbettencourt",
   "scripts": {
