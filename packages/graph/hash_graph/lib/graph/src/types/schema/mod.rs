@@ -1,9 +1,9 @@
-//! Schema definitions stored in the [`datastore`].
+//! Schema definitions stored in the [`store`].
 //!
 //! This module contains the definitions of schemas, which means that the serialized structs are not
 //! the actual data but only the specification how a type is defined.
 //!
-//! [`datastore`]: crate::datastore
+//! [`store`]: crate::store
 
 mod array;
 mod combinator;

@@ -7,8 +7,8 @@ use std::thread;
 
 use error_stack::Result;
 use graph::{
-    datastore::{
-        DatabaseConnectionInfo, DatabaseType, Datastore, InsertionError, PostgresDatabase,
+    store::{
+        DatabaseConnectionInfo, DatabaseType, Store, InsertionError, PostgresDatabase,
         QueryError, UpdateError,
     },
     types::{

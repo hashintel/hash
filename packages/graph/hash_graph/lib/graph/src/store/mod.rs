@@ -16,13 +16,13 @@ use crate::types::{
 };
 
 #[derive(Debug)]
-pub struct DatastoreError;
+pub struct StoreError;
 
-impl Context for DatastoreError {}
+impl Context for StoreError {}
 
-impl fmt::Display for DatastoreError {
+impl fmt::Display for StoreError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("The Datastore encountered an error")
+        fmt.write_str("The store encountered an error")
     }
 }
 
@@ -160,14 +160,14 @@ impl fmt::Display for DatabaseConnectionInfo {
     }
 }
 
-/// Describes the API of a Datastore implementation.
+/// Describes the API of a store implementation.
 ///
 /// # Errors
 ///
 /// In addition to the errors described in the methods of this trait, further errors might also be
 /// raised depending on the implementation, e.g. connection issues.
 #[async_trait]
-pub trait Datastore: Clone + Send + Sync + 'static {
+pub trait Store: Clone + Send + Sync + 'static {
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -271,7 +271,7 @@ pub trait Datastore: Clone + Send + Sync + 'static {
         updated_by: AccountId,
     ) -> Result<Qualified<EntityType>, UpdateError>;
 
-    // TODO - perhaps we want to separate the Datastore into the Type Graph and the Data Graph
+    // TODO - perhaps we want to separate the store into the Type Graph and the Data Graph
 
     /// Creates a new [`LinkType`].
     ///

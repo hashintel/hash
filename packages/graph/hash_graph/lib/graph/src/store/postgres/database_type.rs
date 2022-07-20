@@ -5,7 +5,7 @@ use crate::types::{
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///
-/// [`PostgresDatabase`]: crate::datastore::PostgresDatabase
+/// [`PostgresDatabase`]: crate::store::PostgresDatabase
 pub trait DatabaseType {
     /// Returns the unique versioned URI used to identify this instance of a type.
     fn uri(&self) -> &VersionedUri;

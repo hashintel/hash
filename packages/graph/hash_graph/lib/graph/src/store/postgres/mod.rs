@@ -10,10 +10,10 @@ use tracing::log::LevelFilter;
 use uuid::Uuid;
 
 use crate::{
-    datastore::{
+    store::{
         error::VersionedUriAlreadyExists, postgres::database_type::DatabaseType,
-        BaseUriAlreadyExists, BaseUriDoesNotExist, DatabaseConnectionInfo, Datastore,
-        DatastoreError, InsertionError, QueryError, UpdateError,
+        BaseUriAlreadyExists, BaseUriDoesNotExist, DatabaseConnectionInfo, InsertionError,
+        QueryError, Store, StoreError, UpdateError,
     },
     types::{
         schema::{
@@ -24,7 +24,7 @@ use crate::{
     },
 };
 
-/// A Postgres-backed Datastore
+/// A Postgres-backed store
 #[derive(Clone)]
 pub struct PostgresDatabase {
     pub pool: PgPool,
@@ -35,8 +35,8 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if creating a [`PgPool`] connection returns an error.
-    pub async fn new(db_info: &DatabaseConnectionInfo) -> Result<Self, DatastoreError> {
+    /// - [`StoreError`], if creating a [`PgPool`] connection returns an error.
+    pub async fn new(db_info: &DatabaseConnectionInfo) -> Result<Self, StoreError> {
         tracing::debug!("Creating connection pool to Postgres");
         let mut connection_options = PgConnectOptions::default()
             .username(db_info.user())
@@ -49,7 +49,7 @@ impl PostgresDatabase {
             pool: PgPool::connect_with(connection_options)
                 .await
                 .report()
-                .change_context(DatastoreError)
+                .change_context(StoreError)
                 .attach_printable_lazy(|| db_info.clone())?,
         })
     }
@@ -58,7 +58,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if checking for the [`BaseUri`] failed.
+    /// - [`StoreError`], if checking for the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
     async fn contains_base_uri(
@@ -88,7 +88,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if checking for the [`VersionedUri`] failed.
+    /// - [`StoreError`], if checking for the [`VersionedUri`] failed.
     async fn contains_uri(
         transaction: &mut Transaction<'_, Postgres>,
         uri: &VersionedUri,
@@ -117,7 +117,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if inserting the [`VersionedUri`] failed.
+    /// - [`StoreError`], if inserting the [`VersionedUri`] failed.
     async fn insert_uri(
         transaction: &mut Transaction<'_, Postgres>,
         uri: &VersionedUri,
@@ -148,7 +148,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if inserting the [`BaseUri`] failed.
+    /// - [`StoreError`], if inserting the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::types::BaseUri
     async fn insert_base_uri(
@@ -178,7 +178,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if inserting the [`VersionId`] failed.
+    /// - [`StoreError`], if inserting the [`VersionId`] failed.
     async fn insert_version_id(
         transaction: &mut Transaction<'_, Postgres>,
         version_id: VersionId,
@@ -299,7 +299,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`DatastoreError`], if inserting failed.
+    /// - [`StoreError`], if inserting failed.
     async fn insert_with_id<T>(
         transaction: &mut Transaction<'_, Postgres>,
         version_id: VersionId,
@@ -618,7 +618,7 @@ impl PostgresDatabase {
 }
 
 #[async_trait]
-impl Datastore for PostgresDatabase {
+impl Store for PostgresDatabase {
     async fn create_data_type(
         &self,
         data_type: DataType,

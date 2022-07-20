@@ -1,4 +1,4 @@
-//! The Axum webserver for accessing the Graph API datastore operations.
+//! The Axum webserver for accessing the Graph API operations.
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
@@ -11,9 +11,9 @@ use axum::{routing::get, Extension, Json, Router};
 use utoipa::{openapi, Modify, OpenApi};
 
 use self::api_resource::RoutedResource;
-use crate::datastore::Datastore;
+use crate::store::Store;
 
-fn api_resources<T: Datastore>() -> Vec<Router> {
+fn api_resources<T: Store>() -> Vec<Router> {
     vec![
         data_type::DataTypeResource::routes::<T>(),
         property_type::PropertyTypeResource::routes::<T>(),
@@ -29,8 +29,8 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
     ]
 }
 
-pub fn rest_api_router<T: Datastore>(datastore: T) -> Router {
-    // All api reosuces are merged together into a super-router.
+pub fn rest_api_router<T: Store>(store: T) -> Router {
+    // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<T>()
         .into_iter()
         .fold(Router::new(), axum::Router::merge);
@@ -41,7 +41,7 @@ pub fn rest_api_router<T: Datastore>(datastore: T) -> Router {
     // super-router can then be used as any other router.
     merged_routes
         // Make sure extensions are added at the end so they are made available to merged routers.
-        .layer(Extension(datastore))
+        .layer(Extension(store))
         .route(
             "/api-doc/openapi.json",
             get({

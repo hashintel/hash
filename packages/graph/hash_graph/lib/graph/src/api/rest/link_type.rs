@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
-    datastore::{BaseUriAlreadyExists, BaseUriDoesNotExist, Datastore, QueryError},
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
     types::{schema::LinkType, AccountId, Qualified, QualifiedLinkType, VersionId},
 };
 
@@ -33,7 +33,7 @@ pub struct LinkTypeResource;
 
 impl RoutedResource for LinkTypeResource {
     /// Create routes for interacting with link types.
-    fn routes<D: Datastore>() -> Router {
+    fn routes<D: Store>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/link-type",
@@ -60,19 +60,19 @@ struct CreateLinkTypeRequest {
       (status = 201, content_type = "application/json", description = "Link type created successfully", body = QualifiedLinkType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 409, description = "Unable to create link type in the datastore as the base link type ID already exists"),
-      (status = 500, description = "Datastore error occurred"),
+      (status = 409, description = "Unable to create link type in the store as the base link type ID already exists"),
+      (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateLinkTypeRequest,
 )]
-async fn create_link_type<D: Datastore>(
+async fn create_link_type<D: Store>(
     body: Json<CreateLinkTypeRequest>,
-    datastore: Extension<D>,
+    store: Extension<D>,
 ) -> Result<Json<Qualified<LinkType>>, StatusCode> {
     let Json(body) = body;
-    let Extension(datastore) = datastore;
+    let Extension(store) = store;
 
-    datastore
+    store
         .clone()
         .create_link_type(body.schema, body.account_id)
         .await
@@ -96,20 +96,20 @@ async fn create_link_type<D: Datastore>(
         (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
 
         (status = 404, description = "Link type was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("versionId" = Uuid, Path, description = "The version ID of link type"),
     )
 )]
-async fn get_link_type<D: Datastore>(
+async fn get_link_type<D: Store>(
     version_id: Path<Uuid>,
-    datastore: Extension<D>,
+    store: Extension<D>,
 ) -> Result<Json<Qualified<LinkType>>, impl IntoResponse> {
     let Path(version_id) = version_id;
-    let Extension(datastore) = datastore;
+    let Extension(store) = store;
 
-    datastore
+    store
         .get_link_type(VersionId::new(version_id))
         .await
         .map_err(|report| {
@@ -117,7 +117,7 @@ async fn get_link_type<D: Datastore>(
                 return StatusCode::NOT_FOUND;
             }
 
-            // Datastore errors such as connection failure are considered internal server errors.
+            // Store errors such as connection failure are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
@@ -139,18 +139,18 @@ struct UpdateLinkTypeRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base link type ID was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = UpdateLinkTypeRequest,
 )]
-async fn update_link_type<D: Datastore>(
+async fn update_link_type<D: Store>(
     body: Json<UpdateLinkTypeRequest>,
-    datastore: Extension<D>,
+    store: Extension<D>,
 ) -> Result<Json<Qualified<LinkType>>, StatusCode> {
     let Json(body) = body;
-    let Extension(datastore) = datastore;
+    let Extension(store) = store;
 
-    datastore
+    store
         .clone()
         .update_link_type(body.schema, body.account_id)
         .await

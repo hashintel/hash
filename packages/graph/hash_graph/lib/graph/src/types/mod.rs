@@ -1,4 +1,4 @@
-//! Model types used across datastores
+//! Model types used across stores
 
 pub mod schema;
 mod uri;
