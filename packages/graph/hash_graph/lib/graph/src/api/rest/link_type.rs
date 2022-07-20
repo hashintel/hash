@@ -40,7 +40,6 @@ impl RoutedResource for LinkTypeResource {
             "/link-type",
             Router::new()
                 .route("/", post(create_link_type::<D>).put(update_link_type::<D>))
-                // .route("/query", get(get_link_type_many))
                 .route("/:version_id", get(get_link_type::<D>)),
         )
     }
@@ -124,10 +123,6 @@ async fn get_link_type<D: Datastore>(
         })
         .map(Json)
 }
-
-// async fn get_link_type_many() -> Result<String, StatusCode> {
-//     unimplemented!()
-// }
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateLinkTypeRequest {

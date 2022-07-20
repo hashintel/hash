@@ -22,7 +22,6 @@ use crate::{
     handlers(
         create_property_type,
         get_property_type,
-        // get_property_type_many,
         update_property_type
     ),
     components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, QualifiedPropertyType),
@@ -124,10 +123,6 @@ async fn get_property_type<D: Datastore>(
         })
         .map(Json)
 }
-
-// async fn get_property_type_many() -> Result<String, StatusCode> {
-//     unimplemented!()
-// }
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdatePropertyTypeRequest {
