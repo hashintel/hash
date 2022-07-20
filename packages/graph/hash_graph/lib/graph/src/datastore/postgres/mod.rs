@@ -473,10 +473,10 @@ impl PostgresDatabase {
                 .fetch_one(
                     sqlx::query(
                         r#"
-                            INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
-                            VALUES ($1, $2)
-                            RETURNING source_entity_type_version_id;
-                            "#,
+                        INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
+                        VALUES ($1, $2)
+                        RETURNING source_entity_type_version_id;
+                        "#,
                     )
                         .bind(entity_type.version_id())
                         .bind(target_id),
@@ -497,10 +497,10 @@ impl PostgresDatabase {
                 .fetch_one(
                     sqlx::query(
                         r#"
-                            INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
-                            VALUES ($1, $2)
-                            RETURNING source_entity_type_version_id;
-                            "#,
+                        INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
+                        VALUES ($1, $2)
+                        RETURNING source_entity_type_version_id;
+                        "#,
                     )
                         .bind(entity_type.version_id())
                         .bind(target_id),

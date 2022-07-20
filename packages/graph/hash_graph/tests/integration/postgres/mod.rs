@@ -80,59 +80,38 @@ impl DatabaseTestWrapper {
         property_types: P,
         link_types: L,
         entity_types: E,
-    ) -> Result<
-        (
-            Vec<Qualified<DataType>>,
-            Vec<Qualified<PropertyType>>,
-            Vec<Qualified<LinkType>>,
-            Vec<Qualified<EntityType>>,
-        ),
-        InsertionError,
-    >
+    ) -> Result<(), InsertionError>
     where
         D: IntoIterator<Item = &'static str>,
         P: IntoIterator<Item = &'static str>,
         L: IntoIterator<Item = &'static str>,
         E: IntoIterator<Item = &'static str>,
     {
-        let data_types = data_types
-            .into_iter()
-            .map(|data_type| {
-                self.create_data_type(
-                    serde_json::from_str(data_type).expect("could not parse data type"),
-                )
-            })
-            .collect::<Result<_, _>>()?;
+        for data_type in data_types {
+            self.create_data_type(
+                serde_json::from_str(data_type).expect("could not parse data type"),
+            )?;
+        }
 
-        let property_types = property_types
-            .into_iter()
-            .map(|property_type| {
-                self.create_property_type(
-                    serde_json::from_str(property_type).expect("could not parse data type"),
-                )
-            })
-            .collect::<Result<_, _>>()?;
+        for property_type in property_types {
+            self.create_property_type(
+                serde_json::from_str(property_type).expect("could not parse data type"),
+            )?;
+        }
 
         // Insert link types before entity types so entity types can refer to them
-        let link_types = link_types
-            .into_iter()
-            .map(|link_type| {
-                self.create_link_type(
-                    serde_json::from_str(link_type).expect("could not parse link type"),
-                )
-            })
-            .collect::<Result<_, _>>()?;
+        for link_type in link_types {
+            self.create_link_type(
+                serde_json::from_str(link_type).expect("could not parse link type"),
+            )?;
+        }
 
-        let entity_types = entity_types
-            .into_iter()
-            .map(|entity_type| {
-                self.create_entity_type(
-                    serde_json::from_str(entity_type).expect("could not parse entity type"),
-                )
-            })
-            .collect::<Result<_, _>>()?;
-
-        Ok((data_types, property_types, link_types, entity_types))
+        for entity_type in entity_types {
+            self.create_entity_type(
+                serde_json::from_str(entity_type).expect("could not parse entity type"),
+            )?;
+        }
+        Ok(())
     }
 
     pub fn create_data_type(
