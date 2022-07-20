@@ -39,7 +39,6 @@ impl RoutedResource for DataTypeResource {
             "/data-type",
             Router::new()
                 .route("/", post(create_data_type::<D>).put(update_data_type::<D>))
-                // .route("/query", get(get_data_type_many))
                 .route("/:version_id", get(get_data_type::<D>)),
         )
     }

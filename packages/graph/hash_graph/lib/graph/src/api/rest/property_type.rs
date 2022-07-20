@@ -38,8 +38,10 @@ impl RoutedResource for PropertyTypeResource {
         Router::new().nest(
             "/property-type",
             Router::new()
-                .route("/", post(create_property_type::<D>).put(update_property_type::<D>))
-                // .route("/query", get(get_property_type_many))
+                .route(
+                    "/",
+                    post(create_property_type::<D>).put(update_property_type::<D>),
+                )
                 .route("/:version_id", get(get_property_type::<D>)),
         )
     }
