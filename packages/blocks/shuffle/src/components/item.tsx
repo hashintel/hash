@@ -28,7 +28,7 @@ export const Item: FunctionComponent<ItemProps> = ({
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <Draggable key={id} draggableId={id} index={index}>
+    <Draggable draggableId={id} index={index}>
       {(provided, { isDragging }) => (
         <ListItem
           ref={provided.innerRef}

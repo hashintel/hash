@@ -35,6 +35,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
           <List {...provided.droppableProps} ref={provided.innerRef}>
             {list.map((item, index) => (
               <Item
+                key={item.id}
                 id={item.id}
                 index={index}
                 value={item.value}
