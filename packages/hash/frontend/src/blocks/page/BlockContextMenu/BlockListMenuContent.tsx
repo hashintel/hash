@@ -27,7 +27,7 @@ export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { value: userBlocks } = useUserBlocks();
-  const blocks = useFilteredBlocks(searchQuery, userBlocks);
+  const blocks = useFilteredBlocks(searchQuery, userBlocks, true);
 
   // The essence of this is to autoFocus the input when
   // the blocklist menu comes up. We have a listener for

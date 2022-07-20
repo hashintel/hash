@@ -3076,19 +3076,10 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
-"@blockprotocol/graph@0.0.10":
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.10.tgz#9650366f672056131517c4af2ec4d69d1c2dda7f"
-  integrity sha512-qAQ33pXPX3g3yTLre8uhEkDop/TsL3haO9ccVr/SeHngb3nABotDl4U/0dtGETdbn40of3xoAXjr6Nfngm+PDQ==
-  dependencies:
-    "@blockprotocol/core" "0.0.8"
-    lit "^2.2.5"
-    react "^17.0.2"
-
-"@blockprotocol/graph@0.0.11-canary.4":
-  version "0.0.11-canary.4"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.11-canary.4.tgz#8dea16358c6fa812fcd8a4f9729719440b820e69"
-  integrity sha512-uEdDneOBjDwHrdcHRj2zpAf27jl9ZF7t3WvUYDj80aIX2GudnOsLNOuqxDWALi/h/yBobdawazdovZV018kyKw==
+"@blockprotocol/graph@0.0.11-canary.24":
+  version "0.0.11-canary.24"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.11-canary.24.tgz#e1018ad577d1eb4924ea2f068dec5259649c209e"
+  integrity sha512-us4h4ilVwuDKdHZPIeRMQiN1ak+vWcuF1vn4g1B6Rgf/dwG5Hf+8ube01QhUbg7JGIXVppwIN1OGoPWLxLyMYg==
   dependencies:
     "@blockprotocol/core" "0.0.8"
     lit "^2.2.5"
