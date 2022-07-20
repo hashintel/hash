@@ -2,7 +2,7 @@
 
 ## Running the database
 
-1.  In order to setup the database, first the database has to be started:
+1.  In order to set up the database, first the database has to be started:
 
 ```shell
 touch .env.local
