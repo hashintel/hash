@@ -1,4 +1,4 @@
-mod error;
+pub mod error;
 mod postgres;
 
 use std::fmt;

@@ -11,10 +11,16 @@ use serde::{Deserialize, Serialize};
 use utoipa::{Component, OpenApi};
 use uuid::Uuid;
 
-use super::api_resource::RoutedResource;
 use crate::{
-    datastore::{BaseUriAlreadyExists, BaseUriDoesNotExist, Datastore, QueryError},
-    types::{schema::EntityType, AccountId, Qualified, QualifiedEntityType, VersionId},
+    api::rest::api_resource::RoutedResource,
+    ontology::{
+        types::{EntityType, Persisted, PersistedEntityType},
+        AccountId, VersionId,
+    },
+    store::{
+        error::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
+        Store,
+    },
 };
 
 #[derive(OpenApi)]
@@ -24,7 +30,7 @@ use crate::{
         get_entity_type,
         update_entity_type
     ),
-    components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId, QualifiedEntityType),
+    components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId, PersistedEntityType),
     tags(
         (name = "EntityType", description = "Entity type management API")
     )
@@ -33,16 +39,16 @@ pub struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<D: Datastore>() -> Router {
+    fn routes<S: Store>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity-type",
             Router::new()
                 .route(
                     "/",
-                    post(create_entity_type::<D>).put(update_entity_type::<D>),
+                    post(create_entity_type::<S>).put(update_entity_type::<S>),
                 )
-                .route("/:version_id", get(get_entity_type::<D>)),
+                .route("/:version_id", get(get_entity_type::<S>)),
         )
     }
 }
@@ -60,7 +66,7 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
-      (status = 201, content_type = "application/json", description = "Entity type created successfully", body = QualifiedEntityType),
+      (status = 201, content_type = "application/json", description = "Entity type created successfully", body = PersistedEntityType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
       (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
@@ -68,10 +74,10 @@ struct CreateEntityTypeRequest {
     ),
     request_body = CreateEntityTypeRequest,
 )]
-async fn create_entity_type<D: Datastore>(
+async fn create_entity_type<S: Store>(
     body: Json<CreateEntityTypeRequest>,
-    datastore: Extension<D>,
-) -> Result<Json<Qualified<EntityType>>, StatusCode> {
+    datastore: Extension<S>,
+) -> Result<Json<Persisted<EntityType>>, StatusCode> {
     let Json(body) = body;
     let Extension(datastore) = datastore;
 
@@ -95,7 +101,7 @@ async fn create_entity_type<D: Datastore>(
     path = "/entity-type/{versionId}",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "Entity type found", body = QualifiedEntityType),
+        (status = 200, content_type = "application/json", description = "Entity type found", body = PersistedEntityType),
         (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
 
         (status = 404, description = "Entity type was not found"),
@@ -105,10 +111,10 @@ async fn create_entity_type<D: Datastore>(
         ("versionId" = Uuid, Path, description = "The version ID of entity type"),
     )
 )]
-async fn get_entity_type<D: Datastore>(
+async fn get_entity_type<S: Store>(
     version_id: Path<Uuid>,
-    datastore: Extension<D>,
-) -> Result<Json<Qualified<EntityType>>, impl IntoResponse> {
+    datastore: Extension<S>,
+) -> Result<Json<Persisted<EntityType>>, impl IntoResponse> {
     let Path(version_id) = version_id;
     let Extension(datastore) = datastore;
 
@@ -138,7 +144,7 @@ struct UpdateEntityTypeRequest {
     path = "/entity-type",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "Entity type updated successfully", body = QualifiedEntityType),
+        (status = 200, content_type = "application/json", description = "Entity type updated successfully", body = PersistedEntityType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base entity type ID was not found"),
@@ -146,10 +152,10 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
-async fn update_entity_type<D: Datastore>(
+async fn update_entity_type<S: Store>(
     body: Json<UpdateEntityTypeRequest>,
-    datastore: Extension<D>,
-) -> Result<Json<Qualified<EntityType>>, StatusCode> {
+    datastore: Extension<S>,
+) -> Result<Json<Persisted<EntityType>>, StatusCode> {
     let Json(body) = body;
     let Extension(datastore) = datastore;
 

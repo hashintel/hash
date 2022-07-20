@@ -45,6 +45,7 @@ pub trait OntologyType {
     PersistedDataType = Persisted<DataType>,
     PersistedPropertyType = Persisted<PropertyType>,
     PersistedLinkType = Persisted<LinkType>,
+    PersistedEntityType = Persisted<EntityType>
 )]
 pub struct Persisted<T: OntologyType> {
     version_id: VersionId,
