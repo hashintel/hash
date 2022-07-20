@@ -5,9 +5,9 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
 
-use self::links::{Links, ValueOrMaybeOrderedArray};
 use crate::types::{
     schema::{
+        entity_type::links::{Links, ValueOrMaybeOrderedArray},
         object::{Object, ValidateUri},
         property_type::PropertyTypeReference,
         ValidationError, VersionedUri,
