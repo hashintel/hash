@@ -98,8 +98,8 @@ impl DatabaseConnectionInfo {
 
     /// Creates a database connection url.
     ///
-    /// Note, that this will reveal the password, so output should not be printed. The [`Display`]
-    /// implementation should be used instead, which will mask the password.
+    /// Note, that this will reveal the password, so the returned output should not be printed. The
+    /// [`Display`] implementation should be used instead, which will mask the password.
     ///
     /// [`Display`]: core::fmt::Display.
     #[must_use]
@@ -123,6 +123,9 @@ impl DatabaseConnectionInfo {
         &self.user
     }
 
+    /// Returns the password in plain text.
+    ///
+    /// Note, that this will reveal the password, so the returned output should not be printed.
     #[must_use]
     pub fn password(&self) -> &str {
         &self.password
