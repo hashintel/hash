@@ -1,6 +1,6 @@
 use clap::{AppSettings::DeriveDisplayOrder, Args as _, Command, Parser};
 use clap_complete::Shell;
-use graph::{datastore::DatabaseConnectionInfo, logging::LoggingArgs};
+use graph::{logging::LoggingArgs, store::DatabaseConnectionInfo};
 
 /// Arguments passed to the program.
 #[derive(Debug, Parser)]

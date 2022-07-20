@@ -41,9 +41,13 @@
 #![allow(clippy::use_self, reason = "Too many false positives")]
 
 pub mod api;
-pub mod datastore;
+
+pub mod knowledge;
+pub mod ontology;
+
+pub mod store;
+
 pub mod logging;
-pub mod types;
 
 #[cfg(test)]
 #[path = "../../../tests/test_data/lib.rs"]

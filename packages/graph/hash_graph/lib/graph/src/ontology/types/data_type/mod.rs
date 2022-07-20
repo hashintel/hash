@@ -4,9 +4,11 @@ use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::types::{
-    schema::{object::ValidateUri, ValidationError, VersionedUri},
-    BaseUri,
+use crate::ontology::types::{
+    error::ValidationError,
+    serde_shared::object::ValidateUri,
+    uri::{BaseUri, VersionedUri},
+    OntologyType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -67,6 +69,12 @@ pub struct DataType {
     /// catch-all field to store all non-typed data.
     #[serde(flatten)]
     additional_properties: HashMap<String, serde_json::Value>,
+}
+
+impl OntologyType for DataType {
+    fn uri(&self) -> &VersionedUri {
+        self.id()
+    }
 }
 
 impl DataType {

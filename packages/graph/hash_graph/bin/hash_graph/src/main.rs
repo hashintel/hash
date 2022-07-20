@@ -3,7 +3,7 @@ mod args;
 use std::{fmt, net::SocketAddr};
 
 use error_stack::{Context, FutureExt, Result};
-use graph::{api::rest::rest_api_router, datastore::PostgresDatabase, logging::init_logger};
+use graph::{api::rest::rest_api_router, logging::init_logger, store::PostgresDatabase};
 
 use crate::args::Args;
 
@@ -27,7 +27,7 @@ async fn main() -> Result<(), GraphError> {
         &args.log_config.log_file_prefix,
     );
 
-    let datastore = PostgresDatabase::new(&args.db_info)
+    let store = PostgresDatabase::new(&args.db_info)
         .change_context(GraphError)
         .await
         .map_err(|err| {
@@ -35,7 +35,7 @@ async fn main() -> Result<(), GraphError> {
             err
         })?;
 
-    let rest_router = rest_api_router(datastore);
+    let rest_router = rest_api_router(store);
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
     tracing::info!("Listening on {addr}");

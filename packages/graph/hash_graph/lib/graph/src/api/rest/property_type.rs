@@ -13,8 +13,11 @@ use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
-    datastore::{BaseUriAlreadyExists, BaseUriDoesNotExist, Datastore, QueryError},
-    types::{schema::PropertyType, AccountId, Qualified, QualifiedPropertyType, VersionId},
+    ontology::{
+        types::{Persisted, PersistedPropertyType, PropertyType},
+        AccountId, VersionId,
+    },
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
 };
 
 #[derive(OpenApi)]
@@ -24,7 +27,7 @@ use crate::{
         get_property_type,
         update_property_type
     ),
-    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, QualifiedPropertyType),
+    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, PersistedPropertyType),
     tags(
         (name = "PropertyType", description = "Property type management API")
     )
@@ -33,16 +36,16 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<D: Datastore>() -> Router {
+    fn routes<S: Store>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-type",
             Router::new()
                 .route(
                     "/",
-                    post(create_property_type::<D>).put(update_property_type::<D>),
+                    post(create_property_type::<S>).put(update_property_type::<S>),
                 )
-                .route("/:version_id", get(get_property_type::<D>)),
+                .route("/:version_id", get(get_property_type::<S>)),
         )
     }
 }
@@ -60,22 +63,22 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
-      (status = 201, content_type = "application/json", description = "Property type created successfully", body = QualifiedPropertyType),
+      (status = 201, content_type = "application/json", description = "Property type created successfully", body = PersistedPropertyType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 409, description = "Unable to create property type in the datastore as the base property type ID already exists"),
-      (status = 500, description = "Datastore error occurred"),
+      (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
+      (status = 500, description = "Store error occurred"),
     ),
     request_body = CreatePropertyTypeRequest,
 )]
-async fn create_property_type<D: Datastore>(
+async fn create_property_type<S: Store>(
     body: Json<CreatePropertyTypeRequest>,
-    datastore: Extension<D>,
-) -> Result<Json<Qualified<PropertyType>>, StatusCode> {
+    store: Extension<S>,
+) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(body) = body;
-    let Extension(datastore) = datastore;
+    let Extension(store) = store;
 
-    datastore
+    store
         .clone()
         .create_property_type(body.schema, body.account_id)
         .await
@@ -95,24 +98,24 @@ async fn create_property_type<D: Datastore>(
     path = "/property-type/{versionId}",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type found", body = QualifiedPropertyType),
+        (status = 200, content_type = "application/json", description = "Property type found", body = PersistedPropertyType),
         (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
 
         (status = 404, description = "Property type was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("versionId" = Uuid, Path, description = "The version ID of property type"),
     )
 )]
-async fn get_property_type<D: Datastore>(
+async fn get_property_type<S: Store>(
     version_id: Path<Uuid>,
-    datastore: Extension<D>,
-) -> Result<Json<Qualified<PropertyType>>, impl IntoResponse> {
+    store: Extension<S>,
+) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
     let Path(version_id) = version_id;
-    let Extension(datastore) = datastore;
+    let Extension(store) = store;
 
-    datastore
+    store
         .get_property_type(VersionId::new(version_id))
         .await
         .map_err(|report| {
@@ -120,7 +123,7 @@ async fn get_property_type<D: Datastore>(
                 return StatusCode::NOT_FOUND;
             }
 
-            // Datastore errors such as connection failure are considered internal server errors.
+            // Store errors such as connection failure are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
@@ -138,22 +141,22 @@ struct UpdatePropertyTypeRequest {
     path = "/property-type",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type updated successfully", body = QualifiedPropertyType),
+        (status = 200, content_type = "application/json", description = "Property type updated successfully", body = PersistedPropertyType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base property type ID was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-async fn update_property_type<D: Datastore>(
+async fn update_property_type<S: Store>(
     body: Json<UpdatePropertyTypeRequest>,
-    datastore: Extension<D>,
-) -> Result<Json<Qualified<PropertyType>>, StatusCode> {
+    store: Extension<S>,
+) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(body) = body;
-    let Extension(datastore) = datastore;
+    let Extension(store) = store;
 
-    datastore
+    store
         .clone()
         .update_property_type(body.schema, body.created_by)
         .await
