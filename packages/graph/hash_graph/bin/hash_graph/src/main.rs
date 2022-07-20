@@ -3,7 +3,10 @@ mod args;
 use std::{fmt, net::SocketAddr};
 
 use error_stack::{Context, FutureExt, Result};
-use graph::{api::rest::rest_api_router, logging::init_logger, store::PostgresDatabase};
+use graph::{
+    api::rest::rest_api_router, logging::init_logger, ontology::AccountId, store::PostgresDatabase,
+};
+use uuid::Uuid;
 
 use crate::args::Args;
 
@@ -34,6 +37,20 @@ async fn main() -> Result<(), GraphError> {
             tracing::error!("{err:?}");
             err
         })?;
+
+    // TODO: Revisit, once authentication is in place
+    let account_id = AccountId::new(Uuid::nil());
+
+    if store
+        .insert_account_id(account_id)
+        .change_context(GraphError)
+        .await
+        .is_err()
+    {
+        tracing::info!(%account_id, "account id already exist");
+    } else {
+        tracing::info!(%account_id, "created account id");
+    }
 
     let rest_router = rest_api_router(store);
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

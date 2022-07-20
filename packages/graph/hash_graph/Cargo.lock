@@ -487,6 +487,7 @@ dependencies = [
  "graph",
  "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
