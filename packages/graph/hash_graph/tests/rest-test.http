@@ -1,0 +1,239 @@
+### Insert Text data type
+POST localhost:3000/data-type
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_id": "00000000-0000-0000-0000-000000000000",
+  "schema": {
+    "kind": "dataType",
+    "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+    "title": "Text",
+    "type": "string"
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("text_data_type_id", response.body.version_id);
+%}
+
+### Get Text data type
+GET localhost:3000/data-type/{{text_data_type_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Update Text data type
+PUT localhost:3000/data-type
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_id": "00000000-0000-0000-0000-000000000000",
+  "schema": {
+    "kind": "dataType",
+    "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/2",
+    "title": "Text",
+    "description": "An ordered sequence of characters",
+    "type": "string"
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert Name property type
+POST localhost:3000/property-type
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_id": "00000000-0000-0000-0000-000000000000",
+  "schema": {
+    "kind": "propertyType",
+    "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/1",
+    "title": "Name",
+    "oneOf": [
+      {
+        "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+      }
+    ]
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("person_property_type_id", response.body.version_id);
+%}
+
+### Get Person property type
+GET localhost:3000/property-type/{{person_property_type_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Update Person property type
+PUT localhost:3000/property-type
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_id": "00000000-0000-0000-0000-000000000000",
+  "schema": {
+    "kind": "propertyType",
+    "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/2",
+    "title": "Name",
+    "oneOf": [
+      {
+        "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/2"
+      }
+    ]
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert FriendOf link type
+POST localhost:3000/link-type
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_id": "00000000-0000-0000-0000-000000000000",
+  "schema": {
+    "kind": "linkType",
+    "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1",
+    "title": "Friend Of",
+    "description": "Someone who has a shared bond of mutual affection",
+    "relatedKeywords": []
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("friend_of_link_type_id", response.body.version_id);
+%}
+
+### Get FriendOf link type
+GET localhost:3000/link-type/{{friend_of_link_type_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Update FriendOf link type
+PUT localhost:3000/link-type
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_id": "00000000-0000-0000-0000-000000000000",
+  "schema": {
+    "kind": "linkType",
+    "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/2",
+    "title": "Friend Of",
+    "description": "Someone who has a shared bond of mutual affection",
+    "relatedKeywords": ["social"]
+  }
+
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+
+### Insert Person entity type
+POST localhost:3000/entity-type
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_id": "00000000-0000-0000-0000-000000000000",
+  "schema": {
+    "kind": "entityType",
+    "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
+    "type": "object",
+    "title": "Person",
+    "properties": {
+      "https://blockprotocol.org/@alice/types/property-type/name": {
+        "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/1"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("page_person_type_id", response.body.version_id);
+%}
+
+### Get Person entity type
+GET localhost:3000/entity-type/{{page_person_type_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Update Person entity type
+PUT localhost:3000/entity-type
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_id": "00000000-0000-0000-0000-000000000000",
+  "schema": {
+    "kind": "entityType",
+    "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
+    "type": "object",
+    "title": "Person",
+    "properties": {
+      "https://blockprotocol.org/@alice/types/property-type/name": {
+        "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/2"
+      }
+    },
+    "links": {
+      "https://blockprotocol.org/@alice/types/link-type/friend-of/v/2": {
+        "type": "array",
+        "items": {
+          "$ref": "https://blockprotocol.org/@alice/types/entity-type/person/v/2"
+        },
+        "ordered": false
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
