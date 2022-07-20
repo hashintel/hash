@@ -3,4 +3,5 @@
 
 pub mod data_type;
 pub mod entity_type;
+pub mod link_type;
 pub mod property_type;

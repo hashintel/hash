@@ -1,0 +1,7 @@
+{
+  "kind": "linkType",
+  "$id": "https://blockprotocol.org/@alice/types/link-type/contains/v/1",
+  "title": "Contains",
+  "description": "Have or hold within",
+  "relatedKeywords": []
+}

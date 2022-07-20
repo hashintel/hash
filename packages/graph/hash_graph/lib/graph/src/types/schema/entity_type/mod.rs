@@ -1,3 +1,5 @@
+mod links;
+
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{ensure, Result};
@@ -5,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{
     schema::{
-        link::{Links, ValueOrMaybeOrderedArray},
+        entity_type::links::{Links, ValueOrMaybeOrderedArray},
         object::{Object, ValidateUri},
         property_type::PropertyTypeReference,
         ValidationError, VersionedUri,

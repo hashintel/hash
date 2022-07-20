@@ -1,5 +1,6 @@
 mod data_type;
 mod entity_type;
+mod link_type;
 mod property_type;
 
 use std::thread;
@@ -11,7 +12,7 @@ use graph::{
         QueryError, UpdateError,
     },
     types::{
-        schema::{DataType, EntityType, PropertyType},
+        schema::{DataType, EntityType, LinkType, PropertyType},
         AccountId, BaseUri, Qualified, VersionId,
     },
 };
@@ -73,52 +74,44 @@ impl DatabaseTestWrapper {
         }
     }
 
-    pub fn seed<D, P, E>(
+    pub fn seed<D, P, L, E>(
         &mut self,
         data_types: D,
         property_types: P,
+        link_types: L,
         entity_types: E,
-    ) -> Result<
-        (
-            Vec<Qualified<DataType>>,
-            Vec<Qualified<PropertyType>>,
-            Vec<Qualified<EntityType>>,
-        ),
-        InsertionError,
-    >
+    ) -> Result<(), InsertionError>
     where
         D: IntoIterator<Item = &'static str>,
         P: IntoIterator<Item = &'static str>,
+        L: IntoIterator<Item = &'static str>,
         E: IntoIterator<Item = &'static str>,
     {
-        let data_types = data_types
-            .into_iter()
-            .map(|data_type| {
-                self.create_data_type(
-                    serde_json::from_str(data_type).expect("could not parse data type"),
-                )
-            })
-            .collect::<Result<_, _>>()?;
+        for data_type in data_types {
+            self.create_data_type(
+                serde_json::from_str(data_type).expect("could not parse data type"),
+            )?;
+        }
 
-        let property_types = property_types
-            .into_iter()
-            .map(|property_type| {
-                self.create_property_type(
-                    serde_json::from_str(property_type).expect("could not parse data type"),
-                )
-            })
-            .collect::<Result<_, _>>()?;
+        for property_type in property_types {
+            self.create_property_type(
+                serde_json::from_str(property_type).expect("could not parse data type"),
+            )?;
+        }
 
-        let entity_types = entity_types
-            .into_iter()
-            .map(|entity_type| {
-                self.create_entity_type(
-                    serde_json::from_str(entity_type).expect("could not parse entity type"),
-                )
-            })
-            .collect::<Result<_, _>>()?;
+        // Insert link types before entity types so entity types can refer to them
+        for link_type in link_types {
+            self.create_link_type(
+                serde_json::from_str(link_type).expect("could not parse link type"),
+            )?;
+        }
 
-        Ok((data_types, property_types, entity_types))
+        for entity_type in entity_types {
+            self.create_entity_type(
+                serde_json::from_str(entity_type).expect("could not parse entity type"),
+            )?;
+        }
+        Ok(())
     }
 
     pub fn create_data_type(
@@ -219,6 +212,40 @@ impl DatabaseTestWrapper {
         self.rt.block_on(async {
             self.postgres
                 .update_entity_type(entity_type, self.account_id)
+                .await
+        })
+    }
+
+    pub fn create_link_type(
+        &mut self,
+        link_type: LinkType,
+    ) -> Result<Qualified<LinkType>, InsertionError> {
+        self.rt.block_on(async {
+            let link_type = self
+                .postgres
+                .create_link_type(link_type, self.account_id)
+                .await?;
+            self.created_base_uris
+                .push(link_type.inner().id().base_uri().clone());
+            Ok(link_type)
+        })
+    }
+
+    pub fn get_link_type(
+        &mut self,
+        version_id: VersionId,
+    ) -> Result<Qualified<LinkType>, QueryError> {
+        self.rt
+            .block_on(async { self.postgres.get_link_type(version_id).await })
+    }
+
+    pub fn update_link_type(
+        &mut self,
+        link_type: LinkType,
+    ) -> Result<Qualified<LinkType>, UpdateError> {
+        self.rt.block_on(async {
+            self.postgres
+                .update_link_type(link_type, self.account_id)
                 .await
         })
     }

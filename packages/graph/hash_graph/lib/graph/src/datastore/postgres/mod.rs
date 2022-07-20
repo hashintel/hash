@@ -17,7 +17,7 @@ use crate::{
     },
     types::{
         schema::{
-            DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
+            DataType, DataTypeReference, EntityType, EntityTypeReference, LinkType, PropertyType,
             PropertyTypeReference,
         },
         AccountId, BaseUri, Qualified, VersionId, VersionedUri,
@@ -464,24 +464,66 @@ impl PostgresDatabase {
                 .change_context(InsertionError)?;
         }
 
-        // FIXME: Without `collect` we get a weird lifetime error
-        let entity_type_references = entity_type
+        let (link_type_uris, entity_type_references): (
+            Vec<&VersionedUri>,
+            Vec<&EntityTypeReference>,
+        ) = entity_type
             .inner()
             .link_type_references()
             .into_iter()
-            .map(|(_link_type_uri, entity_type_reference)| entity_type_reference)
-            .collect::<Vec<_>>();
+            .unzip();
 
-        // TODO: Store references in the database
-        let _entity_type_reference_ids =
+        let link_type_ids = Self::link_type_uris_to_version_ids(transaction, link_type_uris)
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not find referenced link types")?;
+
+        for target_id in link_type_ids {
+            transaction
+                .fetch_one(
+                    sqlx::query(
+                        r#"
+                        INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
+                        VALUES ($1, $2)
+                        RETURNING source_entity_type_version_id;
+                        "#,
+                    )
+                        .bind(entity_type.version_id())
+                        .bind(target_id),
+                )
+                .await
+                .report()
+                .change_context(InsertionError)?;
+        }
+
+        let entity_type_reference_ids =
             Self::entity_type_reference_ids(transaction, entity_type_references)
                 .await
                 .change_context(InsertionError)
                 .attach_printable("Could not find referenced entity types")?;
 
+        for target_id in entity_type_reference_ids {
+            transaction
+                .fetch_one(
+                    sqlx::query(
+                        r#"
+                        INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
+                        VALUES ($1, $2)
+                        RETURNING source_entity_type_version_id;
+                        "#,
+                    )
+                        .bind(entity_type.version_id())
+                        .bind(target_id),
+                )
+                .await
+                .report()
+                .change_context(InsertionError)?;
+        }
+
         Ok(())
     }
 
+    // TODO: Tidy these up by having an `Into<VersionedUri>` method or something for the references
     async fn property_type_reference_ids<'p, I>(
         transaction: &mut Transaction<'_, Postgres>,
         property_type_references: I,
@@ -526,6 +568,22 @@ impl PostgresDatabase {
         let mut ids = Vec::with_capacity(entity_type_references.size_hint().0);
         for reference in entity_type_references {
             ids.push(Self::version_id_by_uri(transaction, reference.uri()).await?);
+        }
+        Ok(ids)
+    }
+
+    async fn link_type_uris_to_version_ids<'p, I>(
+        transaction: &mut Transaction<'_, Postgres>,
+        link_type_uris: I,
+    ) -> Result<Vec<VersionId>, QueryError>
+    where
+        I: IntoIterator<Item = &'p VersionedUri> + Send,
+        I::IntoIter: Send,
+    {
+        let link_type_uris = link_type_uris.into_iter();
+        let mut ids = Vec::with_capacity(link_type_uris.size_hint().0);
+        for uri in link_type_uris {
+            ids.push(Self::version_id_by_uri(transaction, uri).await?);
         }
         Ok(ids)
     }
@@ -742,6 +800,59 @@ impl Datastore for PostgresDatabase {
             .change_context(UpdateError)?;
 
         Ok(entity_type)
+    }
+
+    async fn create_link_type(
+        &self,
+        link_type: LinkType,
+        created_by: AccountId,
+    ) -> Result<Qualified<LinkType>, InsertionError> {
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        let qualified = Self::create(&mut transaction, link_type, created_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        Ok(qualified)
+    }
+
+    async fn get_link_type(
+        &self,
+        version_id: VersionId,
+    ) -> Result<Qualified<LinkType>, QueryError> {
+        self.get_by_version(version_id).await
+    }
+
+    async fn update_link_type(
+        &self,
+        link_type: LinkType,
+        updated_by: AccountId,
+    ) -> Result<Qualified<LinkType>, UpdateError> {
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        let qualified = Self::update(&mut transaction, link_type, updated_by).await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        Ok(qualified)
     }
 
     async fn create_entity() -> Result<(), InsertionError> {

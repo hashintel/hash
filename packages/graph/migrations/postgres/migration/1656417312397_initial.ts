@@ -124,6 +124,53 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       ifNotExists: true,
     },
   );
+  pgm.createTable(
+    "entity_types",
+    {
+      version_id: {
+        type: "UUID",
+        primaryKey: true,
+        references: "version_ids",
+        onDelete: "CASCADE",
+      },
+      schema: {
+        type: "JSONB",
+        notNull: true,
+      },
+      created_by: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
+    },
+    {
+      ifNotExists: true,
+    },
+  );
+
+  pgm.createTable(
+    "link_types",
+    {
+      version_id: {
+        type: "UUID",
+        primaryKey: true,
+        references: "version_ids",
+        onDelete: "CASCADE",
+      },
+      schema: {
+        type: "JSONB",
+        notNull: true,
+      },
+      created_by: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
+    },
+    {
+      ifNotExists: true,
+    },
+  );
 
   pgm.createTable(
     "property_type_property_type_references",
@@ -168,30 +215,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 
   pgm.createTable(
-    "entity_types",
-    {
-      version_id: {
-        type: "UUID",
-        primaryKey: true,
-        references: "version_ids",
-        onDelete: "CASCADE",
-      },
-      schema: {
-        type: "JSONB",
-        notNull: true,
-      },
-      created_by: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
-    },
-    {
-      ifNotExists: true,
-    },
-  );
-
-  pgm.createTable(
     "entity_type_property_type_references",
     {
       source_entity_type_version_id: {
@@ -204,6 +227,48 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "UUID",
         notNull: true,
         references: "property_types",
+        onDelete: "CASCADE",
+      },
+    },
+    {
+      ifNotExists: true,
+    },
+  );
+
+  pgm.createTable(
+    "entity_type_link_type_references",
+    {
+      source_entity_type_version_id: {
+        type: "UUID",
+        notNull: true,
+        references: "entity_types",
+        onDelete: "CASCADE",
+      },
+      target_link_type_version_id: {
+        type: "UUID",
+        notNull: true,
+        references: "link_types",
+        onDelete: "CASCADE",
+      },
+    },
+    {
+      ifNotExists: true,
+    },
+  );
+
+  pgm.createTable(
+    "entity_type_entity_type_links",
+    {
+      source_entity_type_version_id: {
+        type: "UUID",
+        notNull: true,
+        references: "entity_types",
+        onDelete: "CASCADE",
+      },
+      target_entity_type_version_id: {
+        type: "UUID",
+        notNull: true,
+        references: "entity_types",
         onDelete: "CASCADE",
       },
     },
@@ -250,6 +315,9 @@ DROP TABLE IF EXISTS property_type_property_type_references CASCADE;
 DROP TABLE IF EXISTS property_type_data_type_references CASCADE;
 DROP TABLE IF EXISTS entity_types CASCADE;
 DROP TABLE IF EXISTS entity_type_property_type_references CASCADE;
+DROP TABLE IF EXISTS entity_type_link_type_references CASCADE;
+DROP TABLE IF EXISTS entity_type_entity_type_links CASCADE;
+DROP TABLE IF EXISTS link_types CASCADE;
 DROP TABLE IF EXISTS entities CASCADE;
 DROP TABLE IF EXISTS accounts CASCADE;
 DROP TABLE IF EXISTS ids CASCADE;

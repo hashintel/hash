@@ -1,5 +1,5 @@
 use crate::types::{
-    schema::{DataType, EntityType, PropertyType},
+    schema::{DataType, EntityType, LinkType, PropertyType},
     VersionedUri,
 };
 
@@ -41,5 +41,15 @@ impl DatabaseType for EntityType {
 
     fn table() -> &'static str {
         "entity_types"
+    }
+}
+
+impl DatabaseType for LinkType {
+    fn uri(&self) -> &VersionedUri {
+        self.id()
+    }
+
+    fn table() -> &'static str {
+        "link_types"
     }
 }

@@ -9,7 +9,7 @@ mod array;
 mod combinator;
 mod data_type;
 mod entity_type;
-mod link;
+mod link_type;
 mod object;
 mod property_type;
 
@@ -19,6 +19,7 @@ use core::fmt;
 pub use self::{
     data_type::{DataType, DataTypeReference},
     entity_type::{EntityType, EntityTypeReference},
+    link_type::LinkType,
     property_type::{PropertyType, PropertyTypeReference},
 };
 use crate::types::{BaseUri, VersionedUri};
