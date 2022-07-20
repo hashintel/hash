@@ -1,6 +1,7 @@
+import { v4 as uuid } from "uuid";
+
 type Item = {
-  id: number;
-  pos: number;
+  id: string;
   value: string;
 };
 
@@ -8,73 +9,70 @@ type List = Item[];
 
 export enum ActionType {
   ADD = "add",
-  UPDATE_ITEM = "updateItem",
+  UPDATE = "update",
+  DELETE = "delete",
   REORDER = "reorder",
 }
 
 type AddAction = {
   type: ActionType.ADD;
 };
+
 type UpdateItemAction = {
-  type: ActionType.UPDATE_ITEM;
-  payload: { sourceId: number; value: string };
+  type: ActionType.UPDATE;
+  payload: { id: string; value: string };
 };
+
+type DeleteItemAction = {
+  type: ActionType.DELETE;
+  payload: { id: string };
+};
+
 type ReorderAction = {
   type: ActionType.REORDER;
-  payload: { sourceId: number; targetId: number };
+  payload: { sourceIndex: number; destinationIndex: number };
 };
 
-type Actions = AddAction | UpdateItemAction | ReorderAction;
+type Actions = AddAction | UpdateItemAction | DeleteItemAction | ReorderAction;
 
-// const increaseAction: Action = {
-//   type: ActionKind.Increase,
-//   payload: 1,
-// };
-
-// const decreaseAction: Action = {
-//   type: ActionKind.Decrease,
-//   payload: 1,
-// };
-
-const createItem = (value: string): Partial<Item> => ({
-  id: Date.now(),
-  value,
-});
+export const initialList = [
+  { id: uuid(), value: "Item 1" },
+  { id: uuid(), value: "Item 2" },
+];
 
 export function reducer(list: List, action: Actions) {
   switch (action.type) {
     case ActionType.ADD:
       return [
         ...list,
-        { id: Date.now(), value: `Item ${list.length + 1}`, pos: list.length },
+        {
+          id: uuid(),
+          value: `Item ${list.length + 1}`,
+        },
       ];
-    case ActionType.UPDATE_ITEM:
-      return [...list].map((item) => {
-        if (item.id === action.payload.sourceId) {
-          return { ...item, value: action.payload.value };
-        }
 
-        return item;
-      });
+    case ActionType.UPDATE:
+      return [...list].map((item) =>
+        item.id === action.payload.id
+          ? { ...item, value: action.payload.value }
+          : item,
+      );
+
+    case ActionType.DELETE:
+      const deleteList = [...list].filter(
+        (item) => item.id !== action.payload.id,
+      );
+      return deleteList.length ? deleteList : [{ id: uuid(), value: "Item 1" }];
+
     case ActionType.REORDER:
-      const newList = [...list];
+      const { sourceIndex, destinationIndex } = action.payload;
 
-      const sourcePos = newList.find(
-        (item) => item.id === action.payload.sourceId,
-      ).pos;
-      const targetPos = newList.find(
-        (item) => item.id === action.payload.targetId,
-      ).pos;
+      const reorderList = [...list];
+      const [removed] = reorderList.splice(sourceIndex, 1);
+      reorderList.splice(destinationIndex, 0, removed);
 
-      return [...list].map((item) => {
-        if (item.id === action.payload.sourceId) {
-          return { ...item, pos: targetPos };
-        } else if (item.id === action.payload.targetId) {
-          return { ...item, pos: sourcePos };
-        }
+      return reorderList;
 
-        return item;
-      });
     default:
       throw new Error();
   }

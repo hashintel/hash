@@ -17,9 +17,8 @@
   "dependencies": {
     "@blockprotocol/graph": "0.0.10",
     "@mui/material": "5.9.0",
-    "react-dnd": "16.0.1",
-    "react-dnd-html5-backend": "16.0.1",
-    "react-motion": "0.5.2"
+    "react-beautiful-dnd": "13.1.0",
+    "uuid": "8.3.2"
   },
   "devDependencies": {
     "block-scripts": "0.0.13",
