@@ -2,9 +2,15 @@
 
 use std::{borrow::Cow, mem, sync::Arc};
 
-use arrow::{self, array::Array, record_batch::RecordBatch, util::bit_util};
+use arrow::{self, array::ArrayRef};
+use bytemuck::cast_slice;
 use memory::{
-    arrow::meta::{self, Buffer, Node, NodeMapping},
+    arrow::{
+        flush::GrowableArrayData,
+        meta::{self, Buffer, Node, NodeMapping},
+        record_batch::RecordBatch,
+        util::bit_util,
+    },
     shared_memory::{padding, MemoryId, Segment},
 };
 use stateful::{
@@ -461,7 +467,7 @@ impl<'a> BufferActions<'a> {
         parent_range_actions: &RangeActions,
         agent_batch: Option<&AgentBatch>,
         agent_batches: &[&AgentBatch],
-        new_agents: Option<&'b arrow::array::ArrayData>,
+        new_agents: Option<&'b ArrayRef>,
         actions: &mut Vec<BufferAction<'b>>,
         buffer_metas: &mut Vec<Buffer>,
         node_metas: &mut Vec<Node>,
@@ -588,11 +594,11 @@ impl<'a> BufferActions<'a> {
                         let maybe_buffer = if i == 0 {
                             ad.null_buffer()
                         } else {
-                            Some(&ad.buffers()[i - 1])
+                            Some(ad.buffer(i - 1))
                         };
 
                         if let Some(buffer) = maybe_buffer {
-                            let src_buffer = buffer.as_slice();
+                            let src_buffer = buffer;
                             range_actions.create().iter().for_each(|range| {
                                 unset_bit_count += copy_bits_unchecked(
                                     src_buffer,
@@ -787,10 +793,10 @@ impl<'a> BufferActions<'a> {
 
                     // CREATE ACTIONS
                     let create_actions = new_agents.map(|ad| {
-                        let buffer = &ad.buffers()[i - 1];
+                        let buffer = &ad.buffer(i - 1);
 
                         // TODO: SAFETY
-                        let src_buffer = unsafe { buffer.typed_data::<Offset>() };
+                        let src_buffer = cast_slice(buffer);
                         let mut total_create_len = 0;
                         let ret = range_actions
                             .create_mut()
@@ -924,9 +930,9 @@ impl<'a> BufferActions<'a> {
 
                     // CREATE ACTIONS
                     let create_actions = new_agents.map(|ad| {
-                        let buffer = &ad.buffers()[i - 1];
+                        let buffer = &ad.buffer(i - 1);
 
-                        let src_buffer = buffer.as_slice();
+                        let src_buffer = buffer;
                         range_actions
                             .create()
                             .iter()
@@ -1040,7 +1046,7 @@ impl<'a> BufferActions<'a> {
         let mut node_metas = Vec::with_capacity(static_meta.get_node_count());
         for (column_index, column) in static_meta.get_column_meta().iter().enumerate() {
             let new_agents_data_ref =
-                new_agents.map(|record_batch| record_batch.column(column_index).data_ref());
+                new_agents.map(|record_batch| record_batch.column(column_index));
             let range_actions = Cow::Borrowed(&base_range_actions);
             next_indices = Self::traverse_nodes(
                 next_indices,

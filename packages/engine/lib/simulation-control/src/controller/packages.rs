@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use arrow::chunk::Chunk;
 use execution::{
     package::simulation::{
         context::ContextPackage,
@@ -247,15 +248,15 @@ impl Packages {
         let schema = &sim_run_config.simulation_config().schema.context_schema;
         let columns = schema
             .arrow
-            .fields()
+            .fields
             .iter()
             .map(|arrow_field| {
                 keys_and_columns
-                    .get(arrow_field.name())
+                    .get(&arrow_field.name)
                     .ok_or_else(|| {
                         Error::from(format!(
                             "Expected to find an arrow column for key: {}",
-                            arrow_field.name()
+                            arrow_field.name
                         ))
                     })
                     .map(Arc::clone)
@@ -263,7 +264,7 @@ impl Packages {
             .collect::<Result<Vec<_>>>()?;
 
         let context = Context::from_columns(
-            columns,
+            Chunk::new(columns),
             &sim_run_config.simulation_config().schema.context_schema,
             MemoryId::new(
                 sim_run_config
@@ -357,15 +358,15 @@ impl Packages {
         let schema = &sim_config.simulation_config().schema.context_schema;
         let column_writers = schema
             .arrow
-            .fields()
+            .fields
             .iter()
             .map(|arrow_field| {
                 keys_and_column_writers
-                    .get(arrow_field.name())
+                    .get(&arrow_field.name)
                     .ok_or_else(|| {
                         Error::from(format!(
                             "Expected to find a context column writer for key: {}",
-                            arrow_field.name()
+                            arrow_field.name
                         ))
                     })
             })

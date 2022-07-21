@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use arrow::array::{MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray};
 use async_trait::async_trait;
 use stateful::{
     agent,
@@ -33,7 +34,6 @@ const CPU_BOUND: bool = true;
 pub const NEIGHBOR_INDEX_COUNT: usize = 2;
 
 pub type IndexType = u32;
-pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct NeighborsCreator;
 
@@ -82,7 +82,7 @@ pub struct Neighbors {
 }
 
 impl Neighbors {
-    fn neighbor_vec<'a>(batches: &'a [&AgentBatch]) -> Result<Vec<NeighborRef<'a>>> {
+    fn neighbor_vec<'a>(batches: &'a [&AgentBatch]) -> Result<Vec<NeighborRef>> {
         Ok(agent::arrow::position_iter(batches)?
             .zip(agent::arrow::index_iter(batches))
             .zip(agent::arrow::search_radius_iter(batches)?)
@@ -128,12 +128,12 @@ impl ContextPackage for Neighbors {
         num_agents: usize,
         _schema: &ContextSchema,
     ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
-        let index_builder = ArrowIndexBuilder::new(1024);
+        let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
 
-        let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 2);
-        let mut neighbors_builder = arrow::array::ListBuilder::new(neighbor_index_builder);
-
-        (0..num_agents).try_for_each(|_| neighbors_builder.append(true))?;
+        let neighbor_index_builder = MutableFixedSizeListArray::new(index_builder, 2);
+        // todo: this may not be the correct shape
+        let mut neighbors_builder: MutableListArray<i32, MutablePrimitiveArray<u32>> =
+            MutableListArray::with_capacity(num_agents);
 
         // TODO, this is unclean, we won't have to do this if we move empty arrow
         //   initialisation to be done per schema instead of per package
@@ -142,7 +142,7 @@ impl ContextPackage for Neighbors {
             .get_agent_scoped_field_spec("neighbors")?
             .create_key()?;
 
-        Ok(vec![(field_key, Arc::new(neighbors_builder.finish()))])
+        Ok(vec![(field_key, neighbors_builder.into_arc())])
     }
 
     fn span(&self) -> Span {

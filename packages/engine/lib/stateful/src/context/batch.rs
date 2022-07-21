@@ -2,17 +2,14 @@
 
 use std::sync::Arc;
 
-use arrow::{
-    datatypes::Schema,
-    ipc::{
-        self,
-        reader::read_record_batch,
-        writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
-    },
-    record_batch::RecordBatch,
-};
+use arrow::datatypes::Schema;
+use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef, MessageRef};
 use memory::{
-    arrow::meta,
+    arrow::{
+        ipc::{self, record_batch_msg_offset, write_record_batch_data_to_bytes},
+        meta,
+        record_batch::RecordBatch,
+    },
     shared_memory::{MemoryId, Metaversion, Segment},
 };
 use rayon::iter::{
@@ -51,34 +48,20 @@ impl ContextBatch {
         schema: Arc<Schema>,
         memory_id: MemoryId,
     ) -> Result<Self> {
-        let ipc_data_generator = IpcDataGenerator::default();
-        let mut dictionary_tracker = DictionaryTracker::new(true);
         let header = Metaversion::default().to_le_bytes();
-        let (_, encoded_data) = ipc_data_generator.encoded_batch(
-            record_batch,
-            &mut dictionary_tracker,
-            &IpcWriteOptions::default(),
-        )?;
+        let mut info = record_batch_msg_offset(record_batch)?;
+        let msg_data = info.take_msg_data();
+        let mut body_data = vec![];
+        write_record_batch_data_to_bytes(record_batch, &mut body_data, info);
 
-        let segment = Segment::from_batch_buffers(
-            memory_id,
-            &[],
-            &header,
-            &encoded_data.ipc_message,
-            &encoded_data.arrow_data,
-            false,
-        )?;
+        let segment =
+            Segment::from_batch_buffers(memory_id, &[], &header, &msg_data, &body_data, false)?;
         Self::from_segment(segment, schema)
     }
 
     fn from_segment(segment: Segment, schema: Arc<Schema>) -> Result<Self> {
         let persisted = segment.try_read_persisted_metaversion()?;
-        let buffers = segment.get_batch_buffers()?;
-
-        let rb_msg = ipc::root_as_message(buffers.meta())?
-            .header_as_record_batch()
-            .ok_or(Error::InvalidRecordBatchIpcMessage)?;
-        let batch = read_record_batch(buffers.data(), rb_msg, schema, &[])?;
+        let batch = ipc::read_record_batch(&segment, schema)?;
 
         Ok(Self {
             segment,
@@ -169,11 +152,7 @@ impl ContextBatch {
         self.segment.persist_metaversion(persisted);
 
         // Reload batch
-        let buffers = self.segment.get_batch_buffers()?;
-        let rb_msg = &ipc::root_as_message(buffers.meta())?
-            .header_as_record_batch()
-            .ok_or(Error::InvalidRecordBatchIpcMessage)?;
-        self.batch = read_record_batch(buffers.data(), *rb_msg, self.batch.schema(), &[])?;
+        self.batch = ipc::read_record_batch(&self.segment, self.batch.schema.clone())?;
         self.loaded = persisted;
 
         Ok(())

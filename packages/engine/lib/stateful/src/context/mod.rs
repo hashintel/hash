@@ -20,8 +20,8 @@ mod schema;
 
 use std::sync::Arc;
 
-use arrow::record_batch::RecordBatch;
-use memory::shared_memory::MemoryId;
+use arrow::{array::ArrayRef, chunk::Chunk};
+use memory::{arrow::record_batch::RecordBatch, shared_memory::MemoryId};
 
 pub use self::{
     batch::ContextBatch,
@@ -40,9 +40,9 @@ use crate::{
 /// all [`Agent`]s.
 ///
 /// It contains information about the general simulation, rather than data belonging to specific
-/// agents. This is effectively what the [`Agent`] 'can see', e.g. neighboring agents, incoming
+/// agents. This is effectively what the [`Agent`] can "see" - e.g. neighboring agents, incoming
 /// [`Message`]s and [`Globals`]. Due to it being a description of the current environment
-/// surrounding the [`Agent`], it's immutable (unlike an agent's specific [`State`]).
+/// surrounding the [`Agent`], it is immutable - in contrast to an individual agent's [`State`]).
 ///
 /// [`Agent`]: crate::agent::Agent
 /// [`Message`]: crate::message::Message
@@ -58,13 +58,17 @@ pub struct Context {
 }
 
 impl Context {
-    // TODO: DOC
+    /// Creates a new [`Context`] based on the Arrow arrays provided.
+    ///
+    /// note: if you are not sure what Arrow is, have a look at [memory::arrow]'s documentation
+    /// which provides some useful resources.
     pub fn from_columns(
-        cols: Vec<Arc<dyn arrow::array::Array>>,
+        cols: Chunk<ArrayRef>,
         context_schema: &ContextSchema,
         memory_id: MemoryId,
     ) -> Result<Context> {
-        let context_record_batch = RecordBatch::try_new(Arc::clone(&context_schema.arrow), cols)?;
+        // todo: check that the schema matches up with the columns
+        let context_record_batch = RecordBatch::new(Arc::clone(&context_schema.arrow), cols);
 
         let context_batch = ContextBatch::from_record_batch(
             &context_record_batch,

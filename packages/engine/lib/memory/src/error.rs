@@ -1,6 +1,6 @@
 use std::fmt;
 
-use arrow::{datatypes::DataType, error::ArrowError};
+use arrow::datatypes::DataType;
 use thiserror::Error as ThisError;
 
 #[derive(Debug)]
@@ -30,7 +30,7 @@ pub enum Error {
     Unique(String),
 
     #[error("Arrow Error: {0}")]
-    Arrow(#[from] ArrowError),
+    Arrow(#[from] arrow::error::Error),
 
     #[error("Invalid Arrow object downcast. Field name: {name}")]
     InvalidArrowDowncast { name: String },
@@ -82,6 +82,9 @@ pub enum Error {
 
     #[error("No column found in batch with name: {0}")]
     ColumnNotFound(String),
+
+    #[error("Planus arrow error: {0}")]
+    PlanusArrowError(#[from] arrow_format::ipc::planus::Error),
 }
 
 impl From<&str> for Error {

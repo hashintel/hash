@@ -75,7 +75,7 @@ impl Topology {
         let (pos_dir_mut_iter, mut position_was_corrected_col) = agent_batch.topology_iter_mut()?;
         pos_dir_mut_iter.enumerate().for_each(|(i, (pos, dir))| {
             let corrected = adjacency::correct_agent(pos, dir, &self.config);
-            unsafe { position_was_corrected_col.set(i, corrected) };
+            position_was_corrected_col.set(i, Some(corrected));
             ret |= corrected;
         });
         Ok(ret)

@@ -1,8 +1,8 @@
 //! TODO: DOC
 use std::sync::Arc;
 
-use arrow::record_batch::RecordBatch;
 use experiment_structure::SimulationRunConfig;
+use memory::arrow::record_batch::RecordBatch;
 use stateful::{
     agent::{AgentBatch, AgentSchema},
     proxy::PoolReadProxy,

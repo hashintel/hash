@@ -1,5 +1,11 @@
-use arrow::{array::ArrayData, record_batch::RecordBatch};
-use memory::arrow::{new_buffer, new_offsets_buffer, ColumnChange, IntoArrowChange};
+use arrow::{
+    array::{ListArray, MutableArray, MutableFixedSizeListArray, MutablePrimitiveArray, Utf8Array},
+    datatypes::DataType,
+};
+use memory::arrow::{
+    column_with_name_from_record_batch, new_buffer, new_offsets_buffer, record_batch::RecordBatch,
+    ColumnChange, IntoArrowChange,
+};
 use stateful::{agent::AgentBatch, state::StateColumn};
 
 use crate::{
@@ -42,25 +48,27 @@ pub fn behavior_list_bytes_iter(
 ) -> Result<impl Iterator<Item = Vec<&[u8]>>> {
     let column_name = "behaviors";
     let row_count = agent_batch.num_rows();
-    let (column_id, _) = agent_batch
-        .schema()
-        .column_with_name(column_name)
-        .ok_or_else(|| Error::ColumnNotFound(column_name.into()))?;
-    let column = agent_batch.column(column_id);
-    let col_data = column.data_ref();
+    let column = column_with_name_from_record_batch(agent_batch, column_name)?
+        .as_any()
+        .downcast_ref::<ListArray<i32>>()
+        .unwrap();
 
     // SAFETY: This column has data type `List<String>`. The first buffer of this type of column is
     //         an offset buffer and offsets (not `LargeList` offsets) have type `i32`. The first
     //         buffer of the child data is the same as the first buffer of a `String` column, which
     //         is also an offset buffer.
-    let list_indices = unsafe { col_data.buffers()[0].typed_data::<i32>() };
-    let string_indices = unsafe { col_data.child_data()[0].buffers()[0].typed_data::<i32>() };
-    let utf_8 = col_data.child_data()[0].buffers()[1].as_slice();
+    let list_indices = column.offsets();
+    let string_indices = column
+        .values()
+        .as_any()
+        .downcast_ref::<Utf8Array<i32>>()
+        .unwrap();
+    let utf_8 = string_indices.values();
 
     Ok((0..row_count).map(move |i| {
         let list_from = list_indices[i] as usize;
         let list_to = list_indices[i + 1] as usize;
-        let indices = &string_indices[list_from..=list_to];
+        let indices = &string_indices.offsets().as_slice()[list_from..=list_to];
         let mut next_index = indices[0] as usize;
         (0..list_to - list_from)
             .map(|j| {
@@ -112,47 +120,47 @@ impl IntoArrowChange for ChainList {
         debug_assert!(self.inner.len() >= range.end);
         let num_agents = range.end - range.start;
         let chains = &self.inner[range.start..range.end];
-        let mut offsets = new_offsets_buffer(num_agents);
-        // SAFETY: `new_offsets_buffer` is returning a buffer of `i32`
-        let mut_offsets = unsafe { offsets.typed_data_mut::<i32>() };
+        let mut offsets: Vec<i32> = new_offsets_buffer(num_agents);
+
         for i in 0..num_agents {
             let len = chains[i].inner.len() as i32;
-            mut_offsets[i + 1] = mut_offsets[i] + len;
+            offsets[i + 1] = offsets[i] + len;
         }
 
-        let num_behavior_ids = mut_offsets[num_agents] as usize;
+        let num_behavior_ids = offsets[num_agents] as usize;
         let num_indices = num_behavior_ids * BEHAVIOR_INDEX_INNER_COUNT;
 
         let mut data = new_buffer::<BehaviorIdInnerDataType>(num_indices);
-        // SAFETY: `new_buffer` is returning a buffer of `BehaviorIdInnerDataType`
-        let mut_data = unsafe { data.typed_data_mut::<BehaviorIdInnerDataType>() };
+
         let mut next_index = 0;
         for chain in chains.iter().take(num_agents) {
             for indices in &chain.inner {
-                mut_data[next_index] = indices.lang_index();
-                mut_data[next_index + 1] = indices.lang_behavior_index();
+                data[next_index] = indices.lang_index();
+                data[next_index + 1] = indices.lang_behavior_index();
                 next_index += 2;
             }
         }
 
         // Indices
-        let child_data = ArrayData::builder(self.data_types[2].clone())
-            .len(num_indices)
-            .add_buffer(data.into())
-            .build()?;
+        let child_data = MutablePrimitiveArray::<u16>::from_vec(data);
 
         // Fixed-length lists
-        let child_data = ArrayData::builder(self.data_types[1].clone())
-            .len(num_behavior_ids)
-            .add_child_data(child_data)
-            .build()?;
+        let mut child_data = MutableFixedSizeListArray::new(child_data, match self.data_types[1] {
+            DataType::FixedSizeList(_, len) => len,
+            _ => unreachable!(
+                "this is a bug: the wrong datatype is being passed to this function (or this \
+                 function is assuming the wrong datatype)"
+            ),
+        });
 
         // Variable-length lists
-        let data = ArrayData::builder(self.data_types[0].clone())
-            .len(num_agents)
-            .add_buffer(offsets.into())
-            .add_child_data(child_data)
-            .build()?;
+        let data = ListArray::from_data(
+            self.data_types[0].clone(),
+            offsets.into(),
+            child_data.as_arc(),
+            None,
+        )
+        .arced();
 
         Ok(ColumnChange {
             data,

@@ -71,7 +71,7 @@ pub fn index_iter<'b: 'a, 'a>(
 
 pub fn position_iter<'b: 'a, 'a>(
     agent_pool: &'a [&'b AgentBatch],
-) -> Result<impl Iterator<Item = Option<&'b [f64; POSITION_DIM]>> + 'a> {
+) -> Result<impl Iterator<Item = Option<[f64; POSITION_DIM]>> + 'a> {
     let mut iterables = Vec::with_capacity(agent_pool.len());
 
     // Collect iterators first, because we want to check for any errors.

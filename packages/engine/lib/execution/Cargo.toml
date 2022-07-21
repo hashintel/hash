@@ -8,7 +8,7 @@ flatbuffers_gen = { path = "../flatbuffers_gen", default-features = false }
 memory = { path = "../memory", default-features = false }
 stateful = { path = "../stateful", default-features = false }
 
-arrow = { version = "10.0.0", default-features = false }
+arrow = { package = "arrow2", version = "0.12.0", default-features = false }
 async-trait = "0.1.56"
 flatbuffers = "2.1.1"
 float-cmp = "0.9.0"
@@ -22,10 +22,17 @@ rayon = "1.5.3"
 serde = { version = "1.0.138", features = ["derive"] }
 serde_json = "1.0.82"
 thiserror = "1.0.31"
-tokio = { version = "1.19.2", features = ["macros", "rt", "sync", "process", "time"] }
+tokio = { version = "1.19.2", features = [
+    "macros",
+    "rt",
+    "sync",
+    "process",
+    "time",
+] }
 tracing = "0.1.35"
 uuid = "1.1.2"
 v8 = "0.45.0"
+num = "0.4.0"
 
 [features]
 default = ["build-nng"]

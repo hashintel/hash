@@ -1,191 +1,149 @@
 //! Module for converting the Arrow representation of [`Message`]
 
-use std::any::Any;
-
 use arrow::{
     array::{
-        Array, ArrayBuilder, ArrayData, ArrayRef, JsonEqual, ListArray, ListBuilder, StringBuilder,
-        StructBuilder,
+        Array, ListArray, MutableArray, MutableListArray, MutableUtf8Array, StructArray, TryPush,
     },
-    record_batch::RecordBatch,
+    datatypes::{DataType, Field},
 };
+use arrow2_convert::ArrowField;
+use memory::arrow::record_batch::RecordBatch;
 
+use super::{MESSAGE_ARROW_FIELDS, MESSAGE_ARROW_TYPE, MESSAGE_LIST_ARROW_FIELD};
 use crate::{
-    message::{
-        arrow::{column::MessageColumn, MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME},
-        payload, Message,
-    },
+    message::{arrow::MESSAGE_COLUMN_NAME, payload, Message},
     Error, Result,
 };
 
+/// The indices for each field in the [`RecordBatch`] which stores the messages.
 pub enum FieldIndex {
     To = 0,
     Type = 1,
     Data = 2,
 }
 
+/// The "from" column contains the identifiers
+/// ([UUID's](https://en.wikipedia.org/wiki/Universally_unique_identifier)) of the agents who sent
+/// each message.
 pub const FROM_COLUMN_INDEX: usize = 0;
+/// The "message" column contains the actual data.
 pub const MESSAGE_COLUMN_INDEX: usize = 1;
 
-struct MessageBuilder(StructBuilder);
+#[derive(Debug)]
+#[repr(transparent)]
+/// note: this struct is `#[repr(transparent)]`, as this is required for us to be able to
+/// convert `&ListArray` to `&OutboundArray`
+///
+/// The structure of the `MessageArray` is
+/// ```ignore
+/// ListArray(
+///   StructArray (to: ListArray(Utf8), type: Utf8, data: Utf8)
+/// )
+/// ```
+pub(crate) struct MessageArray(pub ListArray<i32>);
 
-impl MessageBuilder {
-    fn new() -> Self {
-        Self(StructBuilder::new(MESSAGE_ARROW_FIELDS.clone(), vec![
-            Box::new(ListBuilder::new(StringBuilder::new(64))),
-            Box::new(StringBuilder::new(64)),
-            Box::new(StringBuilder::new(512)),
-        ]))
+impl Array for MessageArray {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self.0.as_any()
     }
 
-    fn new_list(capacity: usize) -> ListBuilder<Self> {
-        ListBuilder::with_capacity(MessageBuilder::new(), capacity)
-    }
-
-    fn append(&mut self, message: &Message) -> Result<()> {
-        let (recipients, kind, data) = match message {
-            Message::CreateAgent(outbound) => (
-                &outbound.to,
-                payload::CreateAgent::KIND,
-                Some(serde_json::to_string(&outbound.data).map_err(Error::from)?),
-            ),
-            Message::RemoveAgent(outbound) => (
-                &outbound.to,
-                payload::RemoveAgent::KIND,
-                Some(serde_json::to_string(&outbound.data).map_err(Error::from)?),
-            ),
-            Message::StopSim(outbound) => (
-                &outbound.to,
-                payload::StopSim::KIND,
-                outbound.data.as_ref().map(|data| data.to_string()),
-            ),
-            Message::Generic(outbound) => (
-                &outbound.to,
-                outbound.r#type.as_str(),
-                outbound.data.as_ref().map(|data| data.to_string()),
-            ),
-        };
-
-        let to_builder = self
-            .0
-            .field_builder::<ListBuilder<StringBuilder>>(FieldIndex::To as usize)
-            .unwrap();
-        for to in recipients {
-            to_builder.values().append_value(to)?;
-        }
-        to_builder.append(true)?;
-
-        self.0
-            .field_builder::<StringBuilder>(FieldIndex::Type as usize)
-            .unwrap()
-            .append_value(kind)?;
-
-        if let Some(data) = data {
-            self.0
-                .field_builder::<StringBuilder>(FieldIndex::Data as usize)
-                .unwrap()
-                .append_value(&data)?;
-        } else {
-            self.0
-                .field_builder::<StringBuilder>(FieldIndex::Data as usize)
-                .unwrap()
-                .append(false)?;
-        }
-
-        self.0.append(true)?;
-        Ok(())
-    }
-}
-
-impl ArrayBuilder for MessageBuilder {
     fn len(&self) -> usize {
         self.0.len()
     }
 
-    fn is_empty(&self) -> bool {
-        self.0.is_empty()
+    fn data_type(&self) -> &arrow::datatypes::DataType {
+        self.0.data_type()
     }
 
-    fn finish(&mut self) -> ArrayRef {
-        ArrayBuilder::finish(&mut self.0)
+    fn validity(&self) -> Option<&arrow::bitmap::Bitmap> {
+        self.0.validity()
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn slice(&self, offset: usize, length: usize) -> Box<dyn Array> {
+        Array::slice(&self.0, offset, length)
     }
 
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
+    unsafe fn slice_unchecked(&self, offset: usize, length: usize) -> Box<dyn Array> {
+        Array::slice_unchecked(&self.0, offset, length)
     }
 
-    fn into_box_any(self: Box<Self>) -> Box<dyn Any> {
-        self
+    fn with_validity(&self, validity: Option<arrow::bitmap::Bitmap>) -> Box<dyn Array> {
+        Array::with_validity(&self.0, validity)
+    }
+
+    fn to_boxed(&self) -> Box<dyn Array> {
+        Array::to_boxed(&self.0)
     }
 }
 
-#[derive(Debug)]
-#[repr(transparent)] // Required for `&ListArray -> &OutboundArray`
-pub(crate) struct MessageArray(pub ListArray);
-
 impl MessageArray {
+    /// Creates a new (empty) [`MessageArray`].
     pub fn new(len: usize) -> Result<Self> {
-        let mut builder = MessageBuilder::new_list(len);
-        for _ in 0..len {
-            builder.append(true)?;
-        }
-        Ok(Self(builder.finish()))
+        Ok(Self(ListArray::new_null(
+            MESSAGE_LIST_ARROW_FIELD.data_type().clone(),
+            len,
+        )))
     }
 
     pub fn from_record_batch(batch: &RecordBatch) -> Result<&Self> {
         let list = batch
             .column(MESSAGE_COLUMN_INDEX)
             .as_any()
-            .downcast_ref::<ListArray>()
+            .downcast_ref::<ListArray<i32>>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: MESSAGE_COLUMN_NAME.into(),
             })?;
         // SAFETY: `OutboundArray` is marked as `#[repr(transparent)]`
-        Ok(unsafe { &*(list as *const ListArray as *const Self) })
-    }
-
-    #[allow(dead_code)] // Probably used for Rust runner
-    pub fn from_column(column: &MessageColumn) -> Result<Self> {
-        let mut builder = MessageBuilder::new_list(column.0.len());
-        for messages in &column.0 {
-            let messages_builder = builder.values();
-            for message in messages {
-                messages_builder.append(message)?;
-            }
-            builder.append(true)?;
-        }
-        Ok(Self(builder.finish()))
+        Ok(unsafe { &*(list as *const ListArray<i32> as *const Self) })
     }
 
     pub fn from_json(column: Vec<serde_json::Value>) -> Result<Self> {
-        let mut builder = MessageBuilder::new_list(column.len());
+        let mut to_builder: MutableListArray<i32, MutableUtf8Array<i32>> = MutableListArray::new();
+        let mut type_builder: MutableUtf8Array<i32> = MutableUtf8Array::new();
+        let mut data_builder: MutableUtf8Array<i32> = MutableUtf8Array::new();
+
         for messages in column {
-            let messages_builder = builder.values();
-            for message in serde_json::from_value::<Vec<_>>(messages)? {
-                messages_builder.append(&message)?;
+            for message in serde_json::from_value::<Vec<Message>>(messages)? {
+                let (recipients, kind, data) = match &message {
+                    Message::CreateAgent(outbound) => (
+                        &outbound.to,
+                        payload::CreateAgent::KIND,
+                        Some(serde_json::to_string(&outbound.data).map_err(Error::from)?),
+                    ),
+                    Message::RemoveAgent(outbound) => (
+                        &outbound.to,
+                        payload::RemoveAgent::KIND,
+                        Some(serde_json::to_string(&outbound.data).map_err(Error::from)?),
+                    ),
+                    Message::StopSim(outbound) => (
+                        &outbound.to,
+                        payload::StopSim::KIND,
+                        outbound.data.as_ref().map(|data| data.to_string()),
+                    ),
+                    Message::Generic(outbound) => (
+                        &outbound.to,
+                        outbound.r#type.as_str(),
+                        outbound.data.as_ref().map(|data| data.to_string()),
+                    ),
+                };
+                to_builder.try_push(Some(recipients.into_iter().map(Some)))?;
+                type_builder.try_push(Some(kind))?;
+                data_builder.try_push(data)?;
             }
-            builder.append(true)?;
         }
-        Ok(Self(builder.finish()))
-    }
-}
 
-impl JsonEqual for MessageArray {
-    fn equals_json(&self, json: &[&serde_json::Value]) -> bool {
-        self.0.equals_json(json)
-    }
-}
-
-impl Array for MessageArray {
-    fn as_any(&self) -> &dyn Any {
-        &self.0
+        todo!()
     }
 
-    fn data(&self) -> &ArrayData {
-        self.0.data()
+    fn message_array_datatype() -> DataType {
+        DataType::Struct(vec![
+            Field::new(
+                "to",
+                DataType::List(Box::new(Field::new("", DataType::Utf8, false))),
+                true,
+            ),
+            Field::new("type", DataType::Utf8, true),
+            Field::new("data", DataType::Utf8, true),
+        ])
     }
 }

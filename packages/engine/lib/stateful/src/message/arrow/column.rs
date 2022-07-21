@@ -1,7 +1,5 @@
-use arrow::{
-    array::{Array, ListArray, StringArray, StructArray},
-    record_batch::RecordBatch,
-};
+use arrow::array::{ListArray, StructArray, Utf8Array};
+use memory::arrow::record_batch::RecordBatch;
 
 use crate::{
     agent::Agent,
@@ -17,29 +15,29 @@ pub struct MessageColumn(pub Vec<Vec<Message>>);
 impl MessageColumn {
     fn from_array(array: &MessageArray) -> Result<Self> {
         let mut result = Vec::with_capacity(array.0.len());
-        let vals = array.0.values();
-        let vals = vals
-            .as_any()
-            .downcast_ref()
-            .ok_or(Error::InvalidArrowDowncast {
-                name: MESSAGE_COLUMN_NAME.into(),
-            })?;
 
-        let (to_column, r#type_column, data_column) = get_columns_from_struct_array(vals)?;
+        let (to_column, r#type_column, data_column) = get_columns_from_struct_array(
+            &array
+                .0
+                .values()
+                .as_any()
+                .downcast_ref::<StructArray>()
+                .unwrap(),
+        )?;
         let _to_values = to_column.values();
         let to_values = _to_values
             .as_any()
-            .downcast_ref::<StringArray>()
+            .downcast_ref::<Utf8Array<i32>>()
             .ok_or(Error::InvalidArrowDowncast { name: "to".into() })?;
 
         let mut offset = 0;
         let mut to_offset = 0;
 
         for i in 0..array.0.len() {
-            let messages_len = array.0.value_length(i) as usize;
+            let messages_len = array.0.values_iter().nth(i).unwrap().len();
             let mut messages: Vec<Message> = Vec::with_capacity(messages_len);
             for j in 0..messages_len {
-                let to_len = to_column.value_length(offset + j) as usize;
+                let to_len = to_column.value(offset + j).len();
                 let to: Vec<&str> = (0..to_len)
                     .map(|j| to_values.value(to_offset + j))
                     .collect();
@@ -68,8 +66,8 @@ impl MessageColumn {
 
 fn get_columns_from_struct_array(
     array: &StructArray,
-) -> Result<(&ListArray, &StringArray, &StringArray)> {
-    let columns = array.columns();
+) -> Result<(&ListArray<i32>, &Utf8Array<i32>, &Utf8Array<i32>)> {
+    let columns = array.values();
     if columns.len() != 3 {
         return Err(Error::UnexpectedVectorLength {
             len: columns.len(),
@@ -78,21 +76,17 @@ fn get_columns_from_struct_array(
     }
     let to_column = columns[0]
         .as_any()
-        .downcast_ref::<ListArray>()
+        .downcast_ref::<ListArray<i32>>()
         .ok_or(Error::InvalidArrowDowncast { name: "to".into() })?;
-    let type_column =
-        columns[1]
-            .as_any()
-            .downcast_ref::<StringArray>()
-            .ok_or(Error::InvalidArrowDowncast {
-                name: "type".into(),
-            })?;
-    let data_column =
-        columns[2]
-            .as_any()
-            .downcast_ref::<StringArray>()
-            .ok_or(Error::InvalidArrowDowncast {
-                name: "data".into(),
-            })?;
+    let type_column = columns[1].as_any().downcast_ref::<Utf8Array<i32>>().ok_or(
+        Error::InvalidArrowDowncast {
+            name: "type".into(),
+        },
+    )?;
+    let data_column = columns[2].as_any().downcast_ref::<Utf8Array<i32>>().ok_or(
+        Error::InvalidArrowDowncast {
+            name: "data".into(),
+        },
+    )?;
     Ok((to_column, type_column, data_column))
 }

@@ -21,7 +21,10 @@ pub unsafe fn c_schema_to_rust(c_schema: &ArrowSchema) -> Result<Schema> {
         Ok(())
     })?;
 
-    Ok(Schema::new(fields))
+    Ok(Schema {
+        fields,
+        metadata: Default::default(),
+    })
 }
 
 unsafe fn c_column_to_rust(c_field: &ArrowSchema) -> Result<Field> {
@@ -53,7 +56,7 @@ unsafe fn c_datatype_to_rust(c_field: &ArrowSchema) -> Result<DataType> {
             let size = split
                 .get(1)
                 .ok_or_else(|| dt_error("Missing fixed size binary datatype", field_type))?
-                .parse::<i32>()
+                .parse::<usize>()
                 .map_err(|e| dt_error(&e.to_string(), field_type))?;
 
             DataType::FixedSizeBinary(size)
@@ -67,7 +70,7 @@ unsafe fn c_datatype_to_rust(c_field: &ArrowSchema) -> Result<DataType> {
             let size = split
                 .get(1)
                 .ok_or_else(|| dt_error("Missing fixed size binary datatype", field_type))?
-                .parse::<i32>()
+                .parse::<usize>()
                 .map_err(|e| dt_error(&e.to_string(), field_type))?;
             DataType::FixedSizeList(Box::new(c_column_to_rust(&**c_field.children)?), size)
         }

@@ -7,6 +7,7 @@ use rayon::iter::{
 };
 use uuid::Uuid;
 
+use super::arrow::record_batch::get_message_field;
 use crate::{
     agent::AgentBatch,
     field::UUID_V4_LEN,
@@ -155,7 +156,7 @@ impl BatchPool for MessageBatchPool {
 
 pub fn recipient_iter_all<'b: 'r, 'r>(
     message_pool_proxy: &'b PoolReadProxy<MessageBatch>,
-) -> impl ParallelIterator<Item = (Vec<&'b str>, MessageReference)> + 'r {
+) -> impl ParallelIterator<Item = (Vec<String>, MessageReference)> + 'r {
     message_pool_proxy
         .batches
         .par_iter()

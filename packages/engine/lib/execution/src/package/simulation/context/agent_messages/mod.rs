@@ -7,7 +7,7 @@ mod writer;
 
 use std::sync::Arc;
 
-use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
+use arrow::array::{Array, MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray};
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
@@ -33,7 +33,6 @@ const CPU_BOUND: bool = true;
 pub const MESSAGE_INDEX_COUNT: usize = 3;
 
 pub type IndexType = u32;
-pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct AgentMessagesCreator;
 
@@ -117,18 +116,17 @@ impl ContextPackage for AgentMessages {
         num_agents: usize,
         _schema: &ContextSchema,
     ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>> {
-        let index_builder = ArrowIndexBuilder::new(1024);
-        let loc_builder = FixedSizeListBuilder::new(index_builder, 3);
-        let mut messages_builder = ListBuilder::new(loc_builder);
-
-        (0..num_agents).try_for_each(|_| messages_builder.append(true))?;
+        let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
+        let loc_builder = MutableFixedSizeListArray::new(index_builder, 3);
+        let mut messages_builder: MutableListArray<i32, MutablePrimitiveArray<u32>> =
+            MutableListArray::with_capacity(num_agents);
 
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
             .create_key()?;
 
-        Ok(vec![(field_key, Arc::new(messages_builder.finish()))])
+        Ok(vec![(field_key, messages_builder.into_arc())])
     }
 
     fn span(&self) -> Span {

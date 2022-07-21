@@ -9,7 +9,7 @@ use crate::{package::simulation::state::topology::TopologyConfig, Error, Result}
 pub(super) type PositionSubType = f64;
 pub(super) type Position = [PositionSubType; 3];
 
-pub type Tree<'a> = KdTree<PositionSubType, AgentIndex, &'a Position>;
+pub type Tree<'a> = KdTree<PositionSubType, AgentIndex, Position>;
 
 #[derive(Debug)]
 pub struct NeighborMap {
@@ -18,11 +18,11 @@ pub struct NeighborMap {
     pub total_count: usize,
 }
 
-pub type NeighborRef<'a> = ((Option<&'a [f64; 3]>, AgentIndex), Option<f64>);
+pub type NeighborRef = ((Option<[f64; 3]>, AgentIndex), Option<f64>);
 
 /// # Errors
 /// This function will not fail
-fn agents_adjacency_map<'a>(agents: &'a [NeighborRef<'_>]) -> Result<Tree<'a>> {
+fn agents_adjacency_map<'a>(agents: &'a [NeighborRef]) -> Result<Tree<'a>> {
     let mut tree = kdtree::kdtree::KdTree::new(3);
     agents.iter().try_for_each(|((pos, idx), _)| {
         pos.map_or(Ok(()), |unwrapped| {
@@ -90,7 +90,7 @@ fn gather_neighbors(
 
 impl NeighborMap {
     pub fn gather(
-        states: Vec<NeighborRef<'_>>,
+        states: Vec<NeighborRef>,
         topology_config: &TopologyConfig,
     ) -> Result<NeighborMap> {
         let num_states = states.len();

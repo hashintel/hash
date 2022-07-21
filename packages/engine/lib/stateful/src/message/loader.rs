@@ -1,10 +1,10 @@
+use arrow::array::Utf8Array;
+
+use super::arrow::array::FieldIndex;
 use crate::{
     field::UUID_V4_LEN,
     message::{
-        arrow::{
-            array::{FieldIndex, FROM_COLUMN_INDEX},
-            record_batch::get_message_field,
-        },
+        arrow::{array::FROM_COLUMN_INDEX, record_batch::get_message_field},
         MessageBatch,
     },
     Result,
@@ -32,25 +32,14 @@ impl<'a> MessageLoader<'a> {
     pub fn from_batch(message_batch: &'a MessageBatch) -> Result<Self> {
         let record_batch = message_batch.batch.record_batch()?;
         let column = record_batch.column(FROM_COLUMN_INDEX);
-        let data = column.data_ref();
-        let from = unsafe { data.buffers()[0].typed_data::<u8>() };
+        let data = column.as_any().downcast_ref::<Utf8Array<i32>>().unwrap();
+        let from = data.values().as_slice();
 
-        let (to_bufs, to) = get_message_field(record_batch, FieldIndex::To);
-        debug_assert_eq!(to_bufs.len(), 3);
-        let (typ_bufs, typ) = get_message_field(record_batch, FieldIndex::Type);
-        debug_assert_eq!(typ_bufs.len(), 2);
-        let (data_bufs, data) = get_message_field(record_batch, FieldIndex::Data);
-        debug_assert_eq!(data_bufs.len(), 2);
+        let to = get_message_field(record_batch, FieldIndex::To);
+        let typ = get_message_field(record_batch, FieldIndex::Type);
+        let data = get_message_field(record_batch, FieldIndex::Data);
 
-        Ok(Self {
-            from,
-            to_bufs,
-            to,
-            typ_bufs,
-            typ,
-            data_bufs,
-            data,
-        })
+        todo!()
     }
 
     pub(crate) fn get_from(&self, agent_index: usize) -> &'a [u8; UUID_V4_LEN] {

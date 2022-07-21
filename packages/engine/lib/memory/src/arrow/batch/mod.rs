@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
-use arrow::{
-    array::{ArrayData, ArrayRef},
-    record_batch::RecordBatch,
-};
+use arrow::array::ArrayRef;
 
+use super::record_batch::RecordBatch;
 use crate::{
     arrow::{
         change::ColumnChange,
         flush::GrowableBatch,
-        load,
+        ipc,
         meta::{self, DynamicMetadata},
     },
     error::{Error, Result},
     shared_memory::{Metaversion, Segment},
 };
+
+pub mod columns;
 
 /// Batch with Arrow data that can be accessed as an Arrow record batch
 pub struct ArrowBatch {
@@ -103,12 +103,11 @@ impl ArrowBatch {
             self.segment().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
         );
-        let record_batch_message = load::record_batch_message(&self.segment)?;
 
         // The record batch was loaded at least once before, since this struct has a `RecordBatch`
         // field, and the Arrow schema doesn't change, so we can reuse it.
         let schema = self.record_batch.schema();
-        self.record_batch = load::record_batch(&self.segment, record_batch_message, schema)?;
+        self.record_batch = ipc::read_record_batch(&self.segment, schema)?;
         Ok(())
     }
 
@@ -118,7 +117,7 @@ impl ArrowBatch {
             self.segment().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
         );
-        let record_batch_message = load::record_batch_message(&self.segment)?;
+        let record_batch_message = ipc::read_record_batch_message(&self.segment)?;
         let dynamic_meta = DynamicMetadata::from_record_batch(
             &record_batch_message,
             self.segment().get_data_buffer()?.len(),
@@ -127,7 +126,7 @@ impl ArrowBatch {
         // The record batch was loaded at least once before, since this struct has a `RecordBatch`
         // field, and the Arrow schema doesn't change, so we can reuse it.
         let schema = self.record_batch.schema();
-        self.record_batch = load::record_batch(&self.segment, record_batch_message, schema)?;
+        self.record_batch = ipc::read_record_batch(&self.segment, schema)?;
         *self.dynamic_meta_mut() = dynamic_meta;
         Ok(())
     }
@@ -328,7 +327,7 @@ impl ArrowBatch {
     }
 }
 
-impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
+impl GrowableBatch<ArrayRef, ColumnChange> for ArrowBatch {
     fn static_meta(&self) -> &meta::StaticMetadata {
         &self.static_meta
     }
@@ -348,13 +347,4 @@ impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
     fn segment_mut(&mut self) -> &mut Segment {
         &mut self.segment
     }
-}
-
-pub fn column_with_name<'a>(record_batch: &'a RecordBatch, name: &str) -> Result<&'a ArrayRef> {
-    let (index, _) = record_batch
-        .schema()
-        .column_with_name(name)
-        .ok_or_else(|| Error::ColumnNotFound(name.into()))?;
-
-    Ok(record_batch.column(index))
 }

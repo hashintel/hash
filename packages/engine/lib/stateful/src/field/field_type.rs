@@ -27,7 +27,7 @@ impl From<PresetFieldType> for DataType {
         match preset {
             PresetFieldType::Uint32 => Self::UInt32,
             PresetFieldType::Uint16 => Self::UInt16,
-            PresetFieldType::Id => Self::FixedSizeBinary(UUID_V4_LEN as i32),
+            PresetFieldType::Id => Self::FixedSizeBinary(UUID_V4_LEN),
         }
     }
 }
@@ -72,7 +72,7 @@ impl From<FieldTypeVariant> for DataType {
             FieldTypeVariant::AnyType => Self::Utf8,
             FieldTypeVariant::FixedLengthArray { field_type, len } => DataType::FixedSizeList(
                 Box::new(Field::new("item", DataType::from(field_type.variant), true)),
-                len as i32,
+                len,
             ),
             FieldTypeVariant::VariableLengthArray(field_type) => DataType::List(Box::new(
                 Field::new("item", DataType::from(field_type.variant), true),

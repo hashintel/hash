@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use arrow::datatypes::{DataType, Field, Schema};
 use stateful::{
@@ -55,30 +55,24 @@ fn get_schema() -> Result<()> {
 
     field_spec_map.try_extend([root_field_spec_from_agent_field(AgentStateField::AgentId)?])?;
 
-    let mut meta = HashMap::new();
+    let mut meta = BTreeMap::new();
     meta.insert("any_type_fields".into(), "".into());
     meta.insert("nullable".into(), "1,1,0,1".into());
-    let target = Schema::new_with_metadata(
-        vec![
-            Field::new("_PRIVATE_0_test1", DataType::Boolean, true),
-            Field::new(
-                "_PRIVATE_0_test3",
-                DataType::FixedSizeList(Box::new(Field::new("item", DataType::Float64, true)), 3),
-                true,
-            ),
-            Field::new(
-                "agent_id",
-                DataType::FixedSizeBinary(UUID_V4_LEN as i32),
-                false,
-            ),
-            Field::new(
-                "_PRIVATE_0_test2",
-                DataType::List(Box::new(Field::new("item", DataType::Float64, true))),
-                true,
-            ),
-        ],
-        meta,
-    );
+    let target = Schema::from(vec![
+        Field::new("_PRIVATE_0_test1", DataType::Boolean, true),
+        Field::new(
+            "_PRIVATE_0_test3",
+            DataType::FixedSizeList(Box::new(Field::new("item", DataType::Float64, true)), 3),
+            true,
+        ),
+        Field::new("agent_id", DataType::FixedSizeBinary(UUID_V4_LEN), false),
+        Field::new(
+            "_PRIVATE_0_test2",
+            DataType::List(Box::new(Field::new("item", DataType::Float64, true))),
+            true,
+        ),
+    ])
+    .with_metadata(meta);
 
     let schema = field_spec_map.create_arrow_schema().unwrap();
     assert_eq!(schema, target);

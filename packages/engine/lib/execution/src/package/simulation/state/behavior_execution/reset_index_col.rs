@@ -1,4 +1,4 @@
-use arrow::{array::ArrayData, datatypes::DataType};
+use arrow::array::PrimitiveArray;
 use memory::arrow::{new_buffer, ColumnChange, IntoArrowChange};
 use stateful::state::StateColumn;
 
@@ -22,10 +22,7 @@ impl IntoArrowChange for ResetIndexCol {
         let data = new_buffer::<BehaviorIndexInnerDataType>(num_agents);
 
         // Indices
-        let data = ArrayData::builder(DataType::Float64)
-            .len(num_agents)
-            .add_buffer(data.into())
-            .build()?;
+        let data = PrimitiveArray::<f64>::from_vec(data).arced();
 
         Ok(ColumnChange {
             data,

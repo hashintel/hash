@@ -7,7 +7,7 @@ mod writer;
 
 use std::sync::Arc;
 
-use arrow::datatypes::DataType;
+use arrow::{array::ListArray, datatypes::DataType};
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use stateful::{
@@ -133,17 +133,15 @@ impl ContextPackage for ApiRequests {
         num_agents: usize,
         context_schema: &ContextSchema,
     ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
-        let from_builder = Box::new(arrow::array::StringBuilder::new(1024));
-        let type_builder = Box::new(arrow::array::StringBuilder::new(1024));
-        let data_builder = Box::new(arrow::array::StringBuilder::new(1024));
-
         let field_key = self
             .context_field_spec_accessor
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
             .create_key()?;
         let arrow_fields = context_schema
             .arrow
-            .field_with_name(field_key.value())
+            .fields
+            .iter()
+            .find(|field| field.name == field_key.value())
             .map(|field| {
                 if let DataType::List(inner_field) = field.data_type() {
                     if let DataType::Struct(sub_fields) = inner_field.data_type() {
@@ -151,22 +149,14 @@ impl ContextPackage for ApiRequests {
                     }
                 }
                 unreachable!()
-            })?
+            })
+            .ok_or(Error::ColumnNotFound(field_key.value().to_string()))?
             .clone();
 
-        let api_response_builder = arrow::array::StructBuilder::new(arrow_fields, vec![
-            from_builder,
-            type_builder,
-            data_builder,
-        ]);
-        let mut api_response_list_builder = arrow::array::ListBuilder::new(api_response_builder);
+        let api_response_list: ListArray<i32> =
+            ListArray::new_null(DataType::Struct(arrow_fields), num_agents);
 
-        (0..num_agents).try_for_each(|_| api_response_list_builder.append(true))?;
-
-        Ok(vec![(
-            field_key,
-            Arc::new(api_response_list_builder.finish()),
-        )])
+        Ok(vec![(field_key, api_response_list.arced())])
     }
 
     fn span(&self) -> Span {

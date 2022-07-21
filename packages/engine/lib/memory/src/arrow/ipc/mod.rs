@@ -1,0 +1,49 @@
+//! This file handles writing Arrow data as raw bytes. We would use the types which [`arrow`]
+//! (arrow2 not arrow-rs) provides, except that they do not provide a way to write the different
+//! components of a message to seperate sections.
+//!
+//! IMPORTANT: do not feed the items in this module untrusted data (it might be ok, but they haven't
+//! been explicitly designed to do so).
+//!
+//! Note that "length" is used somewhat ambigously - sometimes we are referring to the number of
+//! _elements_ in an array, but sometimes to the number of _bytes_. If anything is unclear please
+//! update the naming of items and/or their documentation.
+//!
+//! Although this module contains an unfortunately large amount of code (especially when compared
+//! to how much it contained before we migrated to `arrow2`), this is difficult to avoid as `arrow2`
+//! has a lot more structure than `arrow`. If `arrow` is the tyranny of structurelessness, `arrow2`
+//! is the tyranny of structure.
+//!
+//! # Further reading
+//! - [This explanation of the IPC format](https://wesm.github.io/arrow-site-test/format/IPC.html)
+
+use arrow::io::ipc::write::{default_ipc_fields, schema_to_bytes};
+
+use super::record_batch::RecordBatch;
+
+// note: documented in-module
+pub mod offset;
+pub mod read;
+pub mod schema;
+pub mod write;
+
+pub use read::*;
+pub use schema::*;
+pub use write::*;
+
+/// Calculates the number of bytes that the schema occupies.
+///
+/// For convenience, this is how the Arrow format works (taken from https://wesm.github.io/arrow-site-test)
+/// ```ignore
+/// <continuation: 0xFFFFFFFF>
+/// <metadata_size: int32>
+/// <metadata_flatbuffer: bytes>
+/// <padding>
+/// <message body>
+/// ```
+pub fn calculate_schema_size(record_batch: &RecordBatch) -> usize {
+    let ipc_fields = default_ipc_fields(&record_batch.schema.fields);
+
+    let schema = schema_to_bytes(&record_batch.schema, &ipc_fields);
+    schema.len()
+}

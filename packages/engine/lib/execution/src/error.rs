@@ -29,7 +29,7 @@ pub enum Error {
     Python(#[from] PythonError),
 
     #[error("Arrow Error: {0}")]
-    Arrow(#[from] arrow::error::ArrowError),
+    Arrow(#[from] arrow::error::Error),
 
     #[error("IO error: {0:?}")]
     StdIo(#[from] std::io::Error),
