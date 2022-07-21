@@ -5,18 +5,19 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAccountEntityTypes } from "../../graphql/queries/account.queries";
 
-export const useAccountEntityTypes = (
-  accountId: string,
-  includeOtherTypesInUse?: boolean,
-) => {
+/**
+ * @todo consolidate this and useBlockProtocolAggregateEntityTypes
+ */
+export const useGetAllEntityTypes = (accountId: string) => {
   const { data } = useQuery<
     GetAccountEntityTypesQuery,
     GetAccountEntityTypesQueryVariables
   >(getAccountEntityTypes, {
     variables: {
       accountId,
-      includeOtherTypesInUse: includeOtherTypesInUse ?? false,
+      includeAllTypes: true,
     },
+    fetchPolicy: "network-only", // @todo sort out updating cache for entity type lists
   });
 
   return { data };

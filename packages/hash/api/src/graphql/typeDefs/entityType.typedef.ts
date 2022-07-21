@@ -17,12 +17,17 @@ export const entityTypeTypedef = gql`
         )
       choice: EntityTypeChoice
     ): EntityType!
+
     """
     Get all EntityTypes belonging to an account.
-    Optionally include types in use by the account, but belonging to other accounts.
+    Optionally include:
+    - types in use by the account, but belonging to other accounts.
+    - ALL types.
+    TODO: replace this with a new aggregateEntityTypes query instead
     """
     getAccountEntityTypes(
       accountId: ID!
+      includeAllTypes: Boolean = false
       includeOtherTypesInUse: Boolean = false
     ): [EntityType!]!
   }
