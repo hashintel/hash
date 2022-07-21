@@ -2,7 +2,10 @@
 
 use std::sync::Arc;
 
-use arrow::array::{MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray};
+use arrow::{
+    array::{MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray},
+    datatypes::{DataType, Field},
+};
 use async_trait::async_trait;
 use stateful::{
     agent,
@@ -132,8 +135,18 @@ impl ContextPackage for Neighbors {
 
         let neighbor_index_builder = MutableFixedSizeListArray::new(index_builder, 2);
         // todo: this may not be the correct shape
-        let mut neighbors_builder: MutableListArray<i32, MutablePrimitiveArray<u32>> =
-            MutableListArray::with_capacity(num_agents);
+        let neighbors_builder: MutableListArray<
+            i32,
+            MutableFixedSizeListArray<MutablePrimitiveArray<u32>>,
+        > = MutableListArray::new_from(
+            neighbor_index_builder,
+            DataType::List(Box::new(Field::new(
+                "item",
+                DataType::FixedSizeList(Box::new(Field::new("item", DataType::UInt32, false)), 3),
+                false,
+            ))),
+            num_agents,
+        );
 
         // TODO, this is unclean, we won't have to do this if we move empty arrow
         //   initialisation to be done per schema instead of per package

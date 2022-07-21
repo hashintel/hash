@@ -47,7 +47,7 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
 ///     provides all the offsets at which the columns are in the file
 ///   - record_batch RecordBatch is what arrow-rs uses to store the entire
 pub fn read_record_batch_message(
-    segment: &Segment,
+    _segment: &Segment,
 ) -> crate::Result<arrow_format::ipc::RecordBatchRef<'_>> {
     todo!()
 }

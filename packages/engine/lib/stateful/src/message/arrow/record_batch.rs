@@ -88,9 +88,9 @@ pub(crate) fn message_recipients_iter<'a>(
 }
 
 pub struct MessageField {
-    list_of_fields: ListArray<i32>,
-    list_of_strings: Option<ListArray<i32>>,
-    field: Utf8Array<i32>,
+    pub(crate) list_of_fields: ListArray<i32>,
+    pub(crate) list_of_strings: Option<ListArray<i32>>,
+    pub(crate) field: Utf8Array<i32>,
 }
 
 /// This function gets a message field. The message data's structure is

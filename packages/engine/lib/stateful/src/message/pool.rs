@@ -7,7 +7,6 @@ use rayon::iter::{
 };
 use uuid::Uuid;
 
-use super::arrow::record_batch::get_message_field;
 use crate::{
     agent::AgentBatch,
     field::UUID_V4_LEN,

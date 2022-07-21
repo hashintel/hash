@@ -3,7 +3,7 @@
 use std::{borrow::Cow, sync::Arc};
 
 use arrow::{
-    array::{BooleanArray, MutableBooleanArray, MutableFixedSizeListArray, MutablePrimitiveArray},
+    array::MutableBooleanArray,
     io::ipc::write::{default_ipc_fields, schema_to_bytes},
 };
 use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef};
@@ -142,8 +142,6 @@ impl AgentBatch {
 
         let record_batch = ipc::read_record_batch(&segment, schema)?;
 
-        let metaversion = segment.try_read_persisted_metaversion()?;
-
         Ok(Self {
             batch: ArrowBatch::new(
                 segment,
@@ -151,7 +149,7 @@ impl AgentBatch {
                 dynamic_meta,
                 static_meta,
                 vec![],
-                metaversion,
+                persisted,
             ),
             worker_index: worker_index.unwrap_or(0),
         })

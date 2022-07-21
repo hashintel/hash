@@ -1,15 +1,9 @@
 //! Module for converting the Arrow representation of [`Message`]
 
-use arrow::{
-    array::{
-        Array, ListArray, MutableArray, MutableListArray, MutableUtf8Array, StructArray, TryPush,
-    },
-    datatypes::{DataType, Field},
-};
-use arrow2_convert::ArrowField;
+use arrow::array::{Array, ListArray, MutableListArray, MutableUtf8Array, TryPush};
 use memory::arrow::record_batch::RecordBatch;
 
-use super::{MESSAGE_ARROW_FIELDS, MESSAGE_ARROW_TYPE, MESSAGE_LIST_ARROW_FIELD};
+use super::MESSAGE_LIST_ARROW_FIELD;
 use crate::{
     message::{arrow::MESSAGE_COLUMN_NAME, payload, Message},
     Error, Result,
@@ -133,17 +127,5 @@ impl MessageArray {
         }
 
         todo!()
-    }
-
-    fn message_array_datatype() -> DataType {
-        DataType::Struct(vec![
-            Field::new(
-                "to",
-                DataType::List(Box::new(Field::new("", DataType::Utf8, false))),
-                true,
-            ),
-            Field::new("type", DataType::Utf8, true),
-            Field::new("data", DataType::Utf8, true),
-        ])
     }
 }

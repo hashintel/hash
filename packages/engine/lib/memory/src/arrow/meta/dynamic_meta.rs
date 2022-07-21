@@ -136,7 +136,7 @@ impl DynamicMetadata {
             })
             .collect();
 
-        let mut message = ipc::Message::create(
+        let message = ipc::Message::create(
             &mut builder,
             ipc::MetadataVersion::V4,
             ipc::MessageHeader::RecordBatch(Box::new(ipc::RecordBatch {

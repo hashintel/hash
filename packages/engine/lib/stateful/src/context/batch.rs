@@ -3,7 +3,6 @@
 use std::sync::Arc;
 
 use arrow::datatypes::Schema;
-use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef, MessageRef};
 use memory::{
     arrow::{
         ipc::{self, record_batch_msg_offset, write_record_batch_data_to_bytes},

@@ -7,7 +7,10 @@ mod writer;
 
 use std::sync::Arc;
 
-use arrow::array::{Array, MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray};
+use arrow::{
+    array::{Array, MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray},
+    datatypes::{DataType, Field},
+};
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
@@ -118,8 +121,14 @@ impl ContextPackage for AgentMessages {
     ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>> {
         let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
         let loc_builder = MutableFixedSizeListArray::new(index_builder, 3);
-        let mut messages_builder: MutableListArray<i32, MutablePrimitiveArray<u32>> =
-            MutableListArray::with_capacity(num_agents);
+        let messages_builder: MutableListArray<
+            i32,
+            MutableFixedSizeListArray<MutablePrimitiveArray<u32>>,
+        > = MutableListArray::new_from(
+            loc_builder,
+            DataType::List(Box::new(Field::new("item", DataType::UInt32, false))),
+            num_agents,
+        );
 
         let field_key = self
             .context_field_spec_accessor

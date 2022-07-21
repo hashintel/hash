@@ -1,6 +1,6 @@
 use arrow::array::Utf8Array;
 
-use super::arrow::array::FieldIndex;
+use super::arrow::{array::FieldIndex, record_batch::MessageField};
 use crate::{
     field::UUID_V4_LEN,
     message::{
@@ -20,12 +20,11 @@ pub struct RawMessage<'a> {
 /// Loads messages from a [`MessageBatch`].
 pub struct MessageLoader<'a> {
     from: &'a [u8],
-    to_bufs: Vec<&'a [i32]>,
-    to: &'a str,
-    typ_bufs: Vec<&'a [i32]>,
-    typ: &'a str,
-    data_bufs: Vec<&'a [i32]>,
-    data: &'a str,
+
+    // todo: do we need this field?
+    // to: MessageField,
+    typ: MessageField,
+    data: MessageField,
 }
 
 impl<'a> MessageLoader<'a> {
@@ -35,11 +34,16 @@ impl<'a> MessageLoader<'a> {
         let data = column.as_any().downcast_ref::<Utf8Array<i32>>().unwrap();
         let from = data.values().as_slice();
 
-        let to = get_message_field(record_batch, FieldIndex::To);
+        // let to = get_message_field(record_batch, FieldIndex::To);
         let typ = get_message_field(record_batch, FieldIndex::Type);
         let data = get_message_field(record_batch, FieldIndex::Data);
 
-        todo!()
+        Ok(Self {
+            from,
+            // to,
+            typ,
+            data,
+        })
     }
 
     pub(crate) fn get_from(&self, agent_index: usize) -> &'a [u8; UUID_V4_LEN] {
@@ -50,36 +54,22 @@ impl<'a> MessageLoader<'a> {
         }
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn get_recipients(&self, agent_index: usize, message_index: usize) -> Vec<&'a str> {
-        let list_index = self.to_bufs[0][agent_index] as usize + message_index;
-        let list_start = self.to_bufs[1][list_index] as usize;
-        let list_end = self.to_bufs[1][list_index + 1] as usize;
-        let list_length = list_end - list_start;
-        (0..list_length)
-            .map(|i| {
-                let index = self.to_bufs[2][i + list_start] as usize;
-                let next_index = self.to_bufs[2][i + list_start + 1] as usize;
-                &self.to[index..next_index]
-            })
-            .collect()
+    pub(crate) fn get_type(&self, agent_index: usize, message_index: usize) -> &str {
+        let list_index = self.typ.list_of_fields.offsets()[agent_index] as usize + message_index;
+        let type_start = self.typ.field.offsets()[list_index] as usize;
+        let next_type_start = self.typ.field.offsets()[list_index + 1] as usize;
+        &std::str::from_utf8(&self.typ.field.values().as_slice()[type_start..next_type_start])
+            .unwrap()
     }
 
-    pub(crate) fn get_type(&self, agent_index: usize, message_index: usize) -> &'a str {
-        let list_index = self.typ_bufs[0][agent_index] as usize + message_index;
-        let type_start = self.typ_bufs[1][list_index] as usize;
-        let next_type_start = self.typ_bufs[1][list_index + 1] as usize;
-        &self.typ[type_start..next_type_start]
+    pub(crate) fn get_data(&self, agent_index: usize, message_index: usize) -> &str {
+        let list_index = self.data.list_of_fields.offsets()[agent_index] as usize + message_index;
+        let content_start = self.data.field.offsets()[list_index] as usize;
+        let next_content_start = self.data.field.offsets()[list_index + 1] as usize;
+        &std::str::from_utf8(&self.data.field.values()[content_start..next_content_start]).unwrap()
     }
 
-    pub(crate) fn get_data(&self, agent_index: usize, message_index: usize) -> &'a str {
-        let list_index = self.data_bufs[0][agent_index] as usize + message_index;
-        let content_start = self.data_bufs[1][list_index] as usize;
-        let next_content_start = self.data_bufs[1][list_index + 1] as usize;
-        &self.data[content_start..next_content_start]
-    }
-
-    pub fn get_raw_message(&self, agent_index: usize, message_index: usize) -> RawMessage<'a> {
+    pub fn get_raw_message(&'a self, agent_index: usize, message_index: usize) -> RawMessage<'a> {
         RawMessage {
             from: self.get_from(agent_index),
             data: self.get_data(agent_index, message_index),

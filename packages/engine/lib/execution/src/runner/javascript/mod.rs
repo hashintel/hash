@@ -23,12 +23,11 @@ use std::{
 use arrow::{
     array::{
         ArrayRef, BooleanArray, FixedSizeBinaryArray, FixedSizeListArray, ListArray,
-        MutableBooleanArray, PrimitiveArray, StructArray, Utf8Array,
+        PrimitiveArray, StructArray, Utf8Array,
     },
     bitmap::Bitmap,
     buffer::Buffer,
-    datatypes::{DataType, Field, Schema},
-    ffi::{import_array_from_c, ArrowArray},
+    datatypes::{DataType, Schema},
     io::ipc::write::{default_ipc_fields, schema_to_bytes},
     types::NativeType,
 };

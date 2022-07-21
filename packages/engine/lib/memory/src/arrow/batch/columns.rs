@@ -1,6 +1,6 @@
 //! This module contains code to access the columns in the batch.s
 
-use arrow::{array::ArrayRef, datatypes::Schema};
+use arrow::array::ArrayRef;
 
 use super::super::record_batch::RecordBatch;
 use crate::error::{Error, Result};
@@ -26,10 +26,4 @@ pub fn column_with_name_from_record_batch<'a>(
         .ok_or_else(|| Error::ColumnNotFound(name.into()))?;
 
     Ok(record_batch.column(index))
-}
-
-/// This is the type returned by [`get_column_with_index`].
-pub struct ColumnWithName<'a> {
-    name: &'a str,
-    column: &'a ArrayRef,
 }

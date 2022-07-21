@@ -1,6 +1,3 @@
-use arrow::io::ipc::write::Record;
-use arrow_format::ipc::RecordBatch;
-
 use super::offset;
 
 /// Contains the data which [`record_batch_msg_offset`] computes. This struct exists to make it
@@ -29,9 +26,9 @@ impl RecordBatchBytes {
 
 /// Writes the data section of the [`RecordBatch`] into the provided buffer.
 pub fn write_record_batch_data_to_bytes(
-    record_batch: &super::RecordBatch,
-    buf: &mut [u8],
-    info: RecordBatchBytes,
+    _record_batch: &super::RecordBatch,
+    _buf: &mut [u8],
+    _info: RecordBatchBytes,
 ) {
     todo!()
 }
