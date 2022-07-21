@@ -1,8 +1,28 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use serde::{Deserialize, Serialize};
+use utoipa::Component;
+use uuid::Uuid;
 
 use crate::ontology::types::uri::BaseUri;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Component)]
+#[repr(transparent)]
+#[sqlx(transparent)]
+pub struct EntityId(Uuid);
+
+impl EntityId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+impl fmt::Display for EntityId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}", &self.0)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entity {
