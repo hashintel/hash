@@ -25,9 +25,5 @@ dependencies = ["install-nextest"]
 script = """
 cargo build
 cargo run&
-pid=$!
 yarn httpyac send --all ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http
-ret=$?
-kill "$pid"
-exit $ret
 """
