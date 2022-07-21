@@ -182,13 +182,12 @@ export const createSuggester = (
             getManager()
               .createRemoteBlockTr(blockMeta.componentId, null, variant)
               .then(([tr, node, meta]) => {
-                const $end = view.state.doc.resolve(to);
-                const endPosition = $end.end(1);
+                const endPosition = view.state.doc.resolve(to).pos;
                 tr.insert(endPosition, node);
 
                 if (blockComponentRequiresText(meta.componentSchema)) {
                   tr.setSelection(
-                    TextSelection.create<Schema>(tr.doc, endPosition),
+                    TextSelection.create<Schema>(tr.doc, endPosition + 1),
                   );
                 }
                 tr.replaceWith(from, to, []);

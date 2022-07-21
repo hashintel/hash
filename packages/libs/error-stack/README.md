@@ -111,3 +111,17 @@ Caused by:
 ```
 
 Please see the [documentation] for a full description.
+
+## Troubleshooting
+
+### Emacs [rust-mode](https://github.com/rust-lang/rust-mode) workaround
+
+Due to [rust-lang/rust-mode#452](https://github.com/rust-lang/rust-mode/issues/452), errors messages are improperly parsed. As a result, the error messages show incorrect highlighting but also yield an incorrect hyperlink.
+
+The one workaround is to modify the regular expression used to format the string and create a hyperlink.
+
+```emacs-lisp
+(setq cargo-compilation-regexps
+      '("\\(?:at\\|',\\) \\(\\([^:\s]+\\):\\([0-9]+\\)\\)"
+        2 3 nil nil 1))
+```
