@@ -1,6 +1,4 @@
 {
-  // the outputs of the experiment (do not remove this comment - it is here to test that the
-  // engine supports comments in configuration files)
   "outputs": {
     "loaded_stock": [
       {
@@ -18,8 +16,6 @@
       }
     ]
   },
-  /* the plots to produce (do not remove this comment - it is here to test that the
-     engine supports comments in configuration files) */
   "plots": [
     {
       "timeseries": ["loaded_stock"],
