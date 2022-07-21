@@ -319,12 +319,13 @@ pub trait Store: Clone + Send + Sync + 'static {
     ///
     /// # Errors:
     ///
-    /// - if the account referred to by `created_by` does not exist
+    /// - if the [`EntityType`] doesn't exist
     /// - if the [`Entity`] is not valid with respect to the specified [`EntityType`]
+    /// - if the account referred to by `created_by` does not exist
     async fn create_entity(
         &self,
-        entity: Entity,
-        entity_type: EntityType,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
         created_by: AccountId,
     ) -> Result<EntityId, InsertionError>;
 

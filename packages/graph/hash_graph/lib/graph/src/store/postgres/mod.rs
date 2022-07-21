@@ -895,11 +895,54 @@ impl Store for PostgresDatabase {
 
     async fn create_entity(
         &self,
-        entity: Entity,
-        entity_type: EntityType,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
         created_by: AccountId,
     ) -> Result<EntityId, InsertionError> {
-        todo!()
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        let entity_type_id = Self::version_id_by_uri(&mut transaction, &entity_type_uri)
+            .await
+            .change_context(InsertionError)?;
+        let entity_type = self
+            .get_by_version::<EntityType>(entity_type_id)
+            .await
+            .change_context(InsertionError)?;
+
+        entity_type
+            .inner()
+            .validate(entity)
+            .change_context(InsertionError)?;
+
+        let entity_id = EntityId::new(Uuid::new_v4());
+        transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    INSERT INTO entities (entity_id, entity_type_version_id, properties, created_by) 
+                    VALUES ($1, $2, $3, $4)
+                    RETURNING version_id;
+                    "#,
+                )
+                    .bind(entity_id)
+                    .bind(
+                        serde_json::to_value(entity)
+                            .report()
+                            .change_context(InsertionError)?,
+                    )
+                    .bind(entity_type_id)
+                    .bind(created_by),
+            )
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        Ok(entity_id)
     }
 
     async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {

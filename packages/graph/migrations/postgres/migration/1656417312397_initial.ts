@@ -287,7 +287,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       entity_type_version_id: {
         type: "UUID",
         notNull: true,
-        references: "property_types",
+        references: "entity_types",
       },
       properties: {
         type: "JSONB",
