@@ -85,7 +85,7 @@ async fn create_entity_type<S: Store>(
         .create_entity_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not insert entity type");
+            tracing::error!(error=?report, "Could not create entity type");
 
             if report.contains::<BaseUriAlreadyExists>() {
                 return StatusCode::CONFLICT;
