@@ -345,7 +345,7 @@ pub trait Store: Clone + Send + Sync + 'static {
     async fn update_entity(
         &self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: &Entity,
         updated_by: AccountId,
     ) -> Result<(), UpdateError>;
 }

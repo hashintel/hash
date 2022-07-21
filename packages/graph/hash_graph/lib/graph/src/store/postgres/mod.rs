@@ -942,17 +942,42 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(InsertionError)?;
 
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
         Ok(entity_id)
     }
 
     async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
-        todo!()
+        let row = self
+            .pool
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    SELECT properties
+                    FROM entities
+                    WHERE entity_id = $1;
+                    "#,
+                )
+                .bind(entity_id),
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable(entity_id)?;
+
+        Ok(serde_json::from_value(row.get(0))
+            .report()
+            .change_context(QueryError)?)
     }
 
     async fn update_entity(
         &self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: &Entity,
         updated_by: AccountId,
     ) -> Result<(), UpdateError> {
         todo!()
