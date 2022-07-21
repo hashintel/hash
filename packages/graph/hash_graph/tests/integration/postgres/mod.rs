@@ -283,11 +283,8 @@ impl DatabaseTestWrapper {
         entity_id: EntityId,
         entity: &Entity,
     ) -> Result<(), UpdateError> {
-        self.rt.block_on(async {
-            self.postgres
-                .update_entity(entity_id, entity, self.account_id)
-                .await
-        })
+        self.rt
+            .block_on(async { self.postgres.update_entity(entity_id, entity).await })
     }
 }
 

@@ -974,12 +974,69 @@ impl Store for PostgresDatabase {
             .change_context(QueryError)?)
     }
 
-    async fn update_entity(
-        &self,
-        entity_id: EntityId,
-        entity: &Entity,
-        updated_by: AccountId,
-    ) -> Result<(), UpdateError> {
-        todo!()
+    async fn update_entity(&self, entity_id: EntityId, entity: &Entity) -> Result<(), UpdateError> {
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        let entity_type_id = self
+            .pool
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    SELECT entity_type_version_id
+                    FROM entities
+                    WHERE entity_id = $1;
+                    "#,
+                )
+                .bind(entity_id),
+            )
+            .await
+            .report()
+            .change_context(UpdateError)
+            .attach_printable(entity_id)?
+            .get(0);
+
+        let entity_type = self
+            .get_by_version::<EntityType>(entity_type_id)
+            .await
+            .change_context(UpdateError)?;
+
+        entity_type
+            .inner()
+            .validate(entity)
+            .change_context(UpdateError)?;
+
+        transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    UPDATE entities
+                    SET properties = $2
+                    WHERE entity_id = $1
+                    RETURNING entity_id;
+                    "#,
+                )
+                .bind(entity_id)
+                .bind(
+                    serde_json::to_value(entity)
+                        .report()
+                        .change_context(UpdateError)?,
+                ),
+            )
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        Ok(())
     }
 }
