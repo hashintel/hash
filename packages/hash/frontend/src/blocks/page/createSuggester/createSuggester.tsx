@@ -7,6 +7,7 @@ import {
   Plugin,
   PluginKey,
   TextSelection,
+  Transaction,
 } from "prosemirror-state";
 import React, { CSSProperties } from "react";
 import { ensureMounted } from "../../../lib/dom";
@@ -95,6 +96,16 @@ export const suggesterPluginKey = new PluginKey<SuggesterState, Schema>(
   "suggester",
 );
 
+const docChangedInTransaction = (tr: Transaction<Schema>) => {
+  const appendedTransaction: Transaction<Schema> | undefined = tr.getMeta(
+    "appendedTransaction",
+  );
+  const meta: SuggesterAction | undefined =
+    appendedTransaction?.getMeta(suggesterPluginKey);
+
+  return tr.docChanged && meta?.type !== "suggestedBlock";
+};
+
 /**
  * Suggester plugin factory
  *
@@ -146,7 +157,7 @@ export const createSuggester = (
         const suggestedBlockPosition =
           state.suggestedBlockPosition === null ||
           tr.selectionSet ||
-          tr.docChanged
+          docChangedInTransaction(tr)
             ? null
             : tr.mapping.map(state.suggestedBlockPosition);
         const trigger = findTrigger(nextEditorState);

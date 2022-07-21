@@ -153,6 +153,8 @@ export class ProsemirrorSchemaManager {
   /**
    * Creating a new type of block in prosemirror, without necessarily having
    * requested the block metadata yet.
+   *
+   * @todo rewrite for clarity
    */
   async renderRemoteBlock(
     targetComponentId: string,
@@ -421,40 +423,7 @@ export class ProsemirrorSchemaManager {
       }
     } else {
       // we're adding a new block, rather than swapping an existing one
-      let entityProperties = targetVariant?.properties ?? {};
-
-      if (blockComponentRequiresText(meta.componentSchema)) {
-        const newTextDraftId = generateDraftIdForEntity(null);
-
-        addEntityStoreAction(this.view.state, tr, {
-          type: "newDraftEntity",
-          payload: {
-            accountId: this.accountId,
-            draftId: newTextDraftId,
-            entityId: null,
-          },
-        });
-
-        // @todo should we use the text entity directly, or just copy the content?
-        addEntityStoreAction(this.view.state, tr, {
-          type: "updateEntityProperties",
-          payload: {
-            draftId: newTextDraftId,
-            // @todo indicate the entity type?
-            properties: { tokens: [] },
-            merge: false,
-          },
-        });
-
-        entityProperties = {
-          ...entityProperties,
-          text: {
-            __linkedData: {},
-            data: entityStorePluginStateFromTransaction(tr, this.view.state)
-              .store.draft[newTextDraftId]!,
-          },
-        };
-      }
+      const entityProperties = targetVariant?.properties ?? {};
 
       blockIdForNode = await this.createNewDraftBlock(
         tr,
