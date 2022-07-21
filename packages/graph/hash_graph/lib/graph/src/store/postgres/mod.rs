@@ -655,6 +655,7 @@ impl Store for PostgresDatabase {
     async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
         Self::version_id_by_uri_impl(&self.pool, uri).await
     }
+
     async fn create_data_type(
         &self,
         data_type: DataType,
