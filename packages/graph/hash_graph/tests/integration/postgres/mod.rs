@@ -1,4 +1,5 @@
 mod data_type;
+mod entity;
 mod entity_type;
 mod link_type;
 mod property_type;
@@ -280,7 +281,7 @@ impl DatabaseTestWrapper {
     pub fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: &Entity,
     ) -> Result<(), UpdateError> {
         self.rt.block_on(async {
             self.postgres

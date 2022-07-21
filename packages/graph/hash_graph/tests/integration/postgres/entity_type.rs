@@ -1,5 +1,7 @@
-pub use crate::test_data::{data_type, entity_type, property_type};
-use crate::{postgres::DatabaseTestWrapper, test_data::link_type};
+use crate::{
+    postgres::DatabaseTestWrapper,
+    test_data::{data_type, entity_type, link_type, property_type},
+};
 
 #[test]
 fn insert() {
@@ -12,7 +14,7 @@ fn insert() {
             [data_type::TEXT_V1],
             [property_type::NAME_V1],
             [link_type::FRIEND_OF_V1],
-            [],
+            [entity_type::ORGANIZATION_V1],
         )
         .expect("Could not seed database");
 

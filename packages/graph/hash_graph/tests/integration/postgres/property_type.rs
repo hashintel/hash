@@ -1,5 +1,7 @@
-use crate::postgres::DatabaseTestWrapper;
-pub use crate::test_data::{data_type, property_type};
+use crate::{
+    postgres::DatabaseTestWrapper,
+    test_data::{data_type, property_type},
+};
 
 #[test]
 fn insert() {
