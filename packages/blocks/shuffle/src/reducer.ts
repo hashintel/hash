@@ -9,9 +9,12 @@ export type Item = {
 
 export type Items = Item[];
 
-type Action<S, T = {}> = {
+type Action<S> = {
   type: S;
-  payload?: T;
+};
+
+type ActionWithPayload<S, T> = Action<S> & {
+  payload: T;
 };
 
 export enum ActionType {
@@ -23,10 +26,10 @@ export enum ActionType {
 }
 
 export type ShuffleReducerAction =
-  | Action<ActionType.ADD, { index: number }>
-  | Action<ActionType.UPDATE, { index: number; value: string }>
-  | Action<ActionType.DELETE, { index: number }>
-  | Action<
+  | ActionWithPayload<ActionType.ADD, { index: number }>
+  | ActionWithPayload<ActionType.UPDATE, { index: number; value: string }>
+  | ActionWithPayload<ActionType.DELETE, { index: number }>
+  | ActionWithPayload<
       ActionType.REORDER,
       { sourceIndex: number; destinationIndex: number }
     >
@@ -52,7 +55,11 @@ export const shuffleReducer: Reducer<Items, ShuffleReducerAction> = (
 
     case ActionType.UPDATE:
       return produce(items, (draftItems) => {
-        draftItems[action.payload.index].value = action.payload.value;
+        const { index, value } = action.payload;
+
+        if (draftItems[index]) {
+          draftItems[index]!.value = value;
+        }
       });
 
     case ActionType.DELETE:
@@ -67,7 +74,9 @@ export const shuffleReducer: Reducer<Items, ShuffleReducerAction> = (
       return produce(items, (draftItems) => {
         const { sourceIndex, destinationIndex } = action.payload;
         const [removed] = draftItems.splice(sourceIndex, 1);
-        draftItems.splice(destinationIndex, 0, removed);
+        if (removed) {
+          draftItems.splice(destinationIndex, 0, removed);
+        }
       });
 
     case ActionType.SHUFFLE:

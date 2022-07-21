@@ -1,8 +1,7 @@
-import React from "react";
+import React, { FunctionComponent } from "react";
 import { List } from "@mui/material";
-import { FunctionComponent } from "react";
+import { DragDropContext, Droppable, DropResult } from "react-beautiful-dnd";
 import { Items } from "../reducer";
-import { DragDropContext, Droppable } from "react-beautiful-dnd";
 import { Item } from "./item";
 
 type ItemListProps = {
@@ -20,7 +19,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
   onAdd,
   onDelete,
 }) => {
-  const onDragEnd = (result) => {
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) {
       return;
     }

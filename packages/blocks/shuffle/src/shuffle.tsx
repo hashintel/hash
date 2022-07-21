@@ -1,6 +1,10 @@
 import React, { useEffect, useReducer, useRef } from "react";
-import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
-import { Button } from "@mui/material";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
+// eslint-disable-next-line no-restricted-imports
+import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import { ItemList } from "./components/item-list";
 import { ActionType, initialItems, Items, shuffleReducer } from "./reducer";
@@ -62,7 +66,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
         properties: { items: list },
       },
     });
-  }, [entityId, list]);
+  }, [graphService, entityId, list]);
 
   return (
     <Box ref={blockRootRef}>

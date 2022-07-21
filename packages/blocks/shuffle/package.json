@@ -16,25 +16,30 @@
   "scripts": {
     "build": "node_modules/.bin/block-scripts build",
     "dev": "node_modules/.bin/block-scripts dev",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
     "serve": "node_modules/.bin/block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.10",
-    "@mui/material": "5.9.0",
-    "immer": "9.0.15",
+    "@blockprotocol/graph": "0.0.11-canary.24",
+    "@mui/icons-material": "5.4.2",
+    "@mui/material": "5.4.3",
+    "immer": "9.0.6",
     "react-beautiful-dnd": "13.1.0",
+    "typescript": "4.7.4",
     "uuid": "8.3.2"
   },
   "devDependencies": {
+    "@types/react-beautiful-dnd": "13.1.2",
     "block-scripts": "0.0.13",
     "mock-block-dock": "0.0.17",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "peerDependencies": {
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "block-scripts": {
     "port": 63212

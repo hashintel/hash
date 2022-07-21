@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React, { FunctionComponent, useState } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, IconButton, ListItem, TextField } from "@mui/material";
-import { FunctionComponent } from "react";
 import { Draggable } from "react-beautiful-dnd";
 
 type ItemProps = {
