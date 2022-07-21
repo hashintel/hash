@@ -35,17 +35,21 @@ impl Entity {
     #[must_use]
     pub const fn properties(&self) -> &HashMap<BaseUri, serde_json::Value> {
         &self.properties
-    } 
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ontology::types::EntityType;
 
-    fn test_entity(json: &str) {
-        let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
+    fn test_entity(entity: &str, schema: &str) {
+        let json_value: serde_json::Value = serde_json::from_str(entity).expect("invalid JSON");
 
         let entity: Entity = serde_json::from_value(json_value.clone()).expect("invalid entity");
+
+        let schema: EntityType = serde_json::from_str(schema).expect("invalid JSON");
+        schema.validate(&entity).expect("Invalid entity");
 
         assert_eq!(
             serde_json::to_value(entity.clone()).expect("could not serialize"),
@@ -56,41 +60,73 @@ mod tests {
 
     #[test]
     fn book() {
-        test_entity(crate::test_data::entity::BOOK_V1);
+        test_entity(
+            crate::test_data::entity::BOOK_V1,
+            crate::test_data::entity_type::BOOK_V1,
+        );
     }
 
     #[test]
     fn address() {
-        test_entity(crate::test_data::entity::ADDRESS_V1);
+        test_entity(
+            crate::test_data::entity::ADDRESS_V1,
+            crate::test_data::entity_type::ADDRESS_V1,
+        );
     }
 
     #[test]
     fn organization() {
-        test_entity(crate::test_data::entity::ORGANIZATION_V1);
+        test_entity(
+            crate::test_data::entity::ORGANIZATION_V1,
+            crate::test_data::entity_type::ORGANIZATION_V1,
+        );
     }
 
     #[test]
     fn building() {
-        test_entity(crate::test_data::entity::BUILDING_V1);
+        test_entity(
+            crate::test_data::entity::BUILDING_V1,
+            crate::test_data::entity_type::BUILDING_V1,
+        );
     }
 
     #[test]
     fn person() {
-        test_entity(crate::test_data::entity::PERSON_V1);
+        test_entity(
+            crate::test_data::entity::PERSON_V1,
+            crate::test_data::entity_type::PERSON_V1,
+        );
     }
 
     #[test]
     fn playlist() {
-        test_entity(crate::test_data::entity::PLAYLIST_V1);
+        test_entity(
+            crate::test_data::entity::PLAYLIST_V1,
+            crate::test_data::entity_type::PLAYLIST_V1,
+        );
     }
 
     #[test]
     fn song() {
-        test_entity(crate::test_data::entity::SONG_V1);
+        test_entity(
+            crate::test_data::entity::SONG_V1,
+            crate::test_data::entity_type::SONG_V1,
+        );
     }
 
     #[test]
-    fn page() {
-        test_entity(crate::test_data::entity::PAGE_V1);
+    fn page_v1() {
+        test_entity(
+            crate::test_data::entity::PAGE_V1,
+            crate::test_data::entity_type::PAGE_V1,
+        );
+    }
+
+    #[test]
+    fn page_v2() {
+        test_entity(
+            crate::test_data::entity::PAGE_V1,
+            crate::test_data::entity_type::PAGE_V2,
+        );
     }
 }
