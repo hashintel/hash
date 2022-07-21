@@ -167,7 +167,7 @@ impl EntityType {
             // TODO: Validate the property
         }
 
-        for required_property in allowed_properties.keys() {
+        for required_property in self.required() {
             ensure!(
                 properties.contains_key(required_property),
                 ValidationError::MissingRequiredProperty(required_property.clone())
