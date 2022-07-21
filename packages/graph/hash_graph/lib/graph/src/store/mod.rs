@@ -329,14 +329,14 @@ pub trait Store: Clone + Send + Sync + 'static {
         created_by: AccountId,
     ) -> Result<EntityId, InsertionError>;
 
-    /// Get an existing [`Entity`] by an [`EntityId`].
+    /// Get an existing [`Entity`] by its [`EntityId`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
     async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError>;
 
-    /// Update the an existing [`Entity`].
+    /// Update an existing [`Entity`].
     ///
     /// # Errors
     ///
