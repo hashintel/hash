@@ -557,23 +557,24 @@ class ProsemirrorStateChangeHandler {
       throw new Error("invariant: draft entity missing from store");
     }
 
+    const draftTextEntity = isDraftTextContainingEntityProperties(draftEntity)
+      ? draftEntity.text.data
+      : draftEntity;
+
     if (
-      "properties" in draftEntity &&
+      "properties" in draftTextEntity &&
       node.firstChild &&
+      // @todo is it a problem this is now always true for all component nodes
       node.firstChild.isTextblock
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
-      if (!isEqual(draftEntity.properties, nextProps)) {
-        /**
-         * @todo this is communicated by the contents of the
-         * prosemirror tree – do we really need to send this too?
-         */
+      if (!isEqual(draftTextEntity.properties, nextProps)) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
             merge: false,
-            draftId: draftEntity.draftId,
+            draftId: draftTextEntity.draftId,
             properties: nextProps,
           },
         });

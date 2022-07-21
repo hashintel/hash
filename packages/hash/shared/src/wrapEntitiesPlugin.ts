@@ -151,7 +151,7 @@ const prepareCommandForWrappedEntities =
       if ([schema.nodes.block, schema.nodes.entity].includes(node.type)) {
         return true;
       }
-
+      // @todo is it a problem this is now always true for all component nodes
       if (node.isTextblock) {
         const range = getRangeForNodeAtMappedPosition(pos, node, tr);
 

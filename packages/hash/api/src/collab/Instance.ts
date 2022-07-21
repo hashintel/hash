@@ -457,7 +457,8 @@ export class Instance {
 
         if (apolloClient && steps.length + actions.length > 0) {
           // @todo offload saves to a separate process / debounce them
-          this.save(apolloClient)();
+          // @todo restore saving
+          // this.save(apolloClient)();
         }
       } catch (err) {
         this.error(err);

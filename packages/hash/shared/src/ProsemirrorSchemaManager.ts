@@ -12,9 +12,10 @@ import {
 } from "./blocks";
 import {
   BlockEntity,
-  getTextEntityFromDraftBlock,
+  getChildDraftEntityFromTextBlock,
   isDraftTextContainingEntityProperties,
   isTextContainingEntityProperties,
+  isTextEntity,
 } from "./entity";
 import {
   createEntityStore,
@@ -208,24 +209,22 @@ export class ProsemirrorSchemaManager {
       | ProsemirrorNode<Schema>
       | ProsemirrorNode<Schema>[];
 
-    let draftChildEntityId: string | null;
+    const draftChildEntityId = isDraftBlockEntity(blockEntity)
+      ? blockEntity.properties.entity.draftId
+      : null;
 
     if (requiresText) {
       const draftTextEntity =
         draftBlockId && entityStore
-          ? getTextEntityFromDraftBlock(draftBlockId, entityStore)
+          ? getChildDraftEntityFromTextBlock(draftBlockId, entityStore)
           : null;
 
-      content = draftTextEntity
-        ? childrenForTextEntity(draftTextEntity, this.schema)
-        : [];
-
-      draftChildEntityId = draftTextEntity?.draftId ?? null;
+      content =
+        draftTextEntity && isTextEntity(draftTextEntity)
+          ? childrenForTextEntity(draftTextEntity, this.schema)
+          : [];
     } else {
       content = [];
-      draftChildEntityId = isDraftBlockEntity(blockEntity)
-        ? blockEntity.properties.entity.draftId
-        : null;
     }
 
     this.assertBlockDefined(targetComponentId);

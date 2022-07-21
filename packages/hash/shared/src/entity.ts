@@ -2,7 +2,6 @@ import {
   DraftEntity,
   EntityStore,
   EntityStoreType,
-  isBlockEntity,
   isDraftBlockEntity,
   isDraftEntity,
   isEntity,
@@ -89,13 +88,10 @@ export const isDraftTextContainingEntityProperties = (
   );
 };
 
-/**
- * @todo reduce duplication
- */
-export const getTextEntityFromDraftBlock = (
+export const getChildDraftEntityFromTextBlock = (
   draftBlockId: string,
   entityStore: EntityStore,
-): DraftEntity<Text> | null => {
+): DraftEntity | null => {
   const blockEntity = entityStore.draft[draftBlockId];
 
   if (!isDraftBlockEntity(blockEntity)) {
@@ -109,10 +105,6 @@ export const getTextEntityFromDraftBlock = (
     throw new Error("invariant: missing block entity");
   }
 
-  if (isTextEntity(blockPropertiesEntity)) {
-    return blockPropertiesEntity;
-  }
-
   if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
     // @todo look into why this was using entityId
     const linkEntity = blockPropertiesEntity.properties.text.data;
@@ -123,52 +115,14 @@ export const getTextEntityFromDraftBlock = (
 
     const textEntity = entityStore.draft[linkEntity.draftId];
 
-    if (!textEntity || !isTextEntity(textEntity)) {
+    if (!textEntity) {
       throw new Error("Missing text entity from draft store");
     }
 
     return textEntity;
   }
 
-  return null;
-};
-
-/**
- * @todo reduce duplication
- */
-export const getTextEntityFromSavedBlock = (
-  blockId: string,
-  entityStore: EntityStore,
-): Text | null => {
-  const blockEntity = entityStore.saved[blockId];
-
-  if (!isBlockEntity(blockEntity)) {
-    throw new Error("Can only get text entity from block entity");
-  }
-
-  const blockPropertiesEntityDraftId = blockEntity.properties.entity.entityId;
-  const blockPropertiesEntity = entityStore.saved[blockPropertiesEntityDraftId];
-
-  if (!blockPropertiesEntity) {
-    throw new Error("invariant: missing block entity");
-  }
-
-  if (isTextEntity(blockPropertiesEntity)) {
-    return blockPropertiesEntity;
-  }
-
-  if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
-    return blockPropertiesEntity.properties.text.data;
-  }
-
-  return null;
-};
-
-export const blockEntityIdExists = (entities: BlockEntity[]) => {
-  const ids = new Set(entities.map((block) => block.entityId));
-
-  return (blockEntityId: string | null): blockEntityId is string =>
-    !!blockEntityId && ids.has(blockEntityId);
+  return blockPropertiesEntity;
 };
 
 /**

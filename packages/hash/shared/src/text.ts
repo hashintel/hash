@@ -41,6 +41,7 @@ export const childrenForTextEntity = (
 export const textBlockNodeToEntityProperties = (
   node: ProsemirrorNode<Schema>,
 ) => {
+  // @todo is it a problem this is now always true for all component nodes
   if (!node.isTextblock) {
     throw new Error("Can only be used on text blocks");
   }
