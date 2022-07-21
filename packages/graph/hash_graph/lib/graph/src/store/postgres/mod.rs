@@ -615,16 +615,11 @@ impl PostgresDatabase {
         Ok(ids)
     }
 
-    /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
-    ///
-    /// # Errors:
-    ///
-    /// - if the entry referred to by `uri` does not exist.
-    async fn version_id_by_uri(
-        transaction: &mut Transaction<'_, Postgres>,
+    async fn version_id_by_uri_impl(
+        executor: impl Executor<'_, Database = Postgres>,
         uri: &VersionedUri,
     ) -> Result<VersionId, QueryError> {
-        Ok(transaction
+        Ok(executor
             .fetch_one(
                 sqlx::query(
                     r#"
@@ -642,10 +637,25 @@ impl PostgresDatabase {
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
     }
+
+    #[allow(
+        clippy::same_name_method,
+        reason = "This is required because the way SQLx implements their executors"
+    )]
+    async fn version_id_by_uri(
+        transaction: &mut Transaction<'_, Postgres>,
+        uri: &VersionedUri,
+    ) -> Result<VersionId, QueryError> {
+        Self::version_id_by_uri_impl(transaction, uri).await
+    }
 }
 
 #[async_trait]
 impl Store for PostgresDatabase {
+    async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
+        Self::version_id_by_uri_impl(&self.pool, uri).await
+    }
+
     async fn create_data_type(
         &self,
         data_type: DataType,

@@ -19,11 +19,11 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", response.body.version_id);
+    client.global.set("text_data_type_uri", encodeURIComponent(response.body.inner["$id"]));
 %}
 
 ### Get Text data type
-GET http://127.0.0.1:3000/data-type/{{text_data_type_id}}
+GET http://127.0.0.1:3000/data-type/{{text_data_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -76,11 +76,11 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_id", response.body.version_id);
+    client.global.set("person_property_type_uri", encodeURIComponent(response.body.inner["$id"]));
 %}
 
 ### Get Name property type
-GET http://127.0.0.1:3000/property-type/{{person_property_type_id}}
+GET http://127.0.0.1:3000/property-type/{{person_property_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -133,11 +133,11 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friend_of_link_type_id", response.body.version_id);
+    client.global.set("friend_of_link_type_uri", encodeURIComponent(response.body.inner["$id"]));
 %}
 
 ### Get FriendOf link type
-GET http://127.0.0.1:3000/link-type/{{friend_of_link_type_id}}
+GET http://127.0.0.1:3000/link-type/{{friend_of_link_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -193,11 +193,11 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("page_person_type_id", response.body.version_id);
+    client.global.set("page_person_type_uri", encodeURIComponent(response.body.inner["$id"]));
 %}
 
 ### Get Person entity type
-GET http://127.0.0.1:3000/entity-type/{{page_person_type_id}}
+GET http://127.0.0.1:3000/entity-type/{{page_person_type_uri}}
 
 > {%
     client.test("status", function() {

@@ -9,13 +9,12 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{Component, OpenApi};
-use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
     ontology::{
-        types::{Persisted, PersistedPropertyType, PropertyType},
-        AccountId, VersionId,
+        types::{uri::VersionedUri, Persisted, PersistedPropertyType, PropertyType},
+        AccountId,
     },
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
 };
@@ -83,6 +82,8 @@ async fn create_property_type<S: Store>(
         .create_property_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not create property type");
+
             if report.contains::<BaseUriAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
@@ -95,30 +96,43 @@ async fn create_property_type<S: Store>(
 
 #[utoipa::path(
     get,
-    path = "/property-type/{versionId}",
+    path = "/property-type/{uri}",
     tag = "PropertyType",
     responses(
         (status = 200, content_type = "application/json", description = "Property type found", body = PersistedPropertyType),
-        (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Property type was not found"),
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("versionId" = Uuid, Path, description = "The version ID of property type"),
+        ("uri" = String, Path, description = "The URI of property type"),
     )
 )]
 async fn get_property_type<S: Store>(
-    version_id: Path<Uuid>,
+    uri: Path<VersionedUri>,
     store: Extension<S>,
 ) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
-    let Path(version_id) = version_id;
+    let Path(uri) = uri;
     let Extension(store) = store;
 
+    let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
+        tracing::error!(error=?report, "Could not resolve URI");
+
+        if report.contains::<QueryError>() {
+            return StatusCode::NOT_FOUND;
+        }
+
+        // Datastore errors such as connection failure are considered internal server errors.
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     store
-        .get_property_type(VersionId::new(version_id))
+        .get_property_type(version_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not query property type");
+
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;
             }
@@ -161,6 +175,8 @@ async fn update_property_type<S: Store>(
         .update_property_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not update property type");
+
             if report.contains::<BaseUriDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
