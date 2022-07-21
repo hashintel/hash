@@ -3,6 +3,7 @@ extend = { path = "../Makefile.toml" }
 [env]
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
 CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
+RUST_LOG = "debug,hyper=warn"
 
 [env.production]
 CARGO_MAKE_CARGO_PROFILE = "production"
@@ -10,7 +11,7 @@ CARGO_MAKE_CARGO_PROFILE = "production"
 
 [tasks.test]
 run_task = [
-    { name = ["test-task", "yarn", "deployment-up", "recreate-db", "migrate-up", "test-integration", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI" ] } },
+    { name = ["test-task", "yarn", "deployment-up", "recreate-db", "migrate-up", "test-integration", "test-rest-api", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI" ] } },
     { name = ["test-task"] }
 ]
 
@@ -21,5 +22,13 @@ args = ["nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@s
 dependencies = ["install-nextest"]
 
 [tasks.test-rest-api]
-command = "yarn"
-args = ["httpyac", "send", "--all", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http"]
+# This is a temporary solution until we have e2e tests in place
+script = """
+cargo build
+cargo run&
+pid=$!
+yarn httpyac send --all ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http
+ret=$?
+kill "$pid"
+exit $ret
+"""
