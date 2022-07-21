@@ -114,7 +114,7 @@ async fn get_link_type<S: Store>(
     let Extension(store) = store;
 
     let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
-        tracing::error!(error=?report, "Could not query link type");
+        tracing::error!(error=?report, "Could not resolve URI");
 
         if report.contains::<QueryError>() {
             return StatusCode::NOT_FOUND;
@@ -128,6 +128,8 @@ async fn get_link_type<S: Store>(
         .get_link_type(version_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not query link type");
+
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;
             }

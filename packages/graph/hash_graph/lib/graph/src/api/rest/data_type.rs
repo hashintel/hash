@@ -114,6 +114,8 @@ async fn get_data_type<S: Store>(
     let Extension(store) = store;
 
     let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
+        tracing::error!(error=?report, "Could not resolve URI");
+
         if report.contains::<QueryError>() {
             return StatusCode::NOT_FOUND;
         }
