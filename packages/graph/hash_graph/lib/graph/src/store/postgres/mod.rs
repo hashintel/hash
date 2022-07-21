@@ -926,16 +926,16 @@ impl Store for PostgresDatabase {
                     r#"
                     INSERT INTO entities (entity_id, entity_type_version_id, properties, created_by) 
                     VALUES ($1, $2, $3, $4)
-                    RETURNING version_id;
+                    RETURNING entity_id;
                     "#,
                 )
                     .bind(entity_id)
+                    .bind(entity_type_id)
                     .bind(
                         serde_json::to_value(entity)
                             .report()
                             .change_context(InsertionError)?,
                     )
-                    .bind(entity_type_id)
                     .bind(created_by),
             )
             .await
