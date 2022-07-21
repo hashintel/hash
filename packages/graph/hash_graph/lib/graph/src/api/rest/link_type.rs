@@ -79,6 +79,8 @@ async fn create_link_type<S: Store>(
         .create_link_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not create link type");
+
             if report.contains::<BaseUriAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
@@ -112,6 +114,8 @@ async fn get_link_type<S: Store>(
     let Extension(store) = store;
 
     let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
+        tracing::error!(error=?report, "Could not query link type");
+
         if report.contains::<QueryError>() {
             return StatusCode::NOT_FOUND;
         }
@@ -166,6 +170,8 @@ async fn update_link_type<S: Store>(
         .update_link_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not update link type");
+
             if report.contains::<BaseUriDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }

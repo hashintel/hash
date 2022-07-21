@@ -82,6 +82,8 @@ async fn create_property_type<S: Store>(
         .create_property_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not create property type");
+
             if report.contains::<BaseUriAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
@@ -127,6 +129,8 @@ async fn get_property_type<S: Store>(
         .get_property_type(version_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not query property type");
+
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;
             }
@@ -169,6 +173,8 @@ async fn update_property_type<S: Store>(
         .update_property_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not update property type");
+
             if report.contains::<BaseUriDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }

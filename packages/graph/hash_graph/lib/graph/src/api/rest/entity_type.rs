@@ -85,6 +85,8 @@ async fn create_entity_type<S: Store>(
         .create_entity_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not insert entity type");
+
             if report.contains::<BaseUriAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
@@ -118,6 +120,8 @@ async fn get_entity_type<S: Store>(
     let Extension(store) = store;
 
     let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
+        tracing::error!(error=?report, "Could not query entity type");
+
         if report.contains::<QueryError>() {
             return StatusCode::NOT_FOUND;
         }
@@ -172,6 +176,8 @@ async fn update_entity_type<S: Store>(
         .update_entity_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not update entity type");
+
             if report.contains::<BaseUriDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }

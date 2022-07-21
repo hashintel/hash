@@ -79,6 +79,8 @@ async fn create_data_type<S: Store>(
         .create_data_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not create data type");
+
             if report.contains::<BaseUriAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
@@ -124,6 +126,8 @@ async fn get_data_type<S: Store>(
         .get_data_type(version_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not query data type");
+
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;
             }
@@ -166,6 +170,8 @@ async fn update_data_type<S: Store>(
         .update_data_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not update data type");
+
             if report.contains::<BaseUriDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
