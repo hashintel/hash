@@ -17,6 +17,7 @@ export const useGetAllEntityTypes = (accountId: string) => {
       accountId,
       includeAllTypes: true,
     },
+    fetchPolicy: "network-only", // @todo sort out updating cache for entity type lists
   });
 
   return { data };
