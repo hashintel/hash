@@ -19,7 +19,7 @@ fn insert() {
         )
         .expect("Could not seed database");
 
-    database
+    let entity_id = database
         .create_entity(
             &person,
             VersionedUri::new(
@@ -28,6 +28,12 @@ fn insert() {
             ),
         )
         .expect("could not create entity");
+
+    let entity = database
+        .get_entity(entity_id)
+        .expect("Could not query entity");
+
+    assert_eq!(entity, person);
 }
 
 #[test]
@@ -94,4 +100,10 @@ fn update() {
     database
         .update_entity(created_entity_id, &page_v2)
         .expect("could not update entity");
+
+    let entity = database
+        .get_entity(created_entity_id)
+        .expect("Could not query entity");
+
+    assert_eq!(entity, page_v2);
 }
