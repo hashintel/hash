@@ -46,7 +46,7 @@ For the integration tests, the database needs to be deployed [as specified here]
 cargo make test-integration
 ```
 
-If the binary is running, the REST API can be tested as well:
+The REST API can be tested as well. Note, that this does not clean up the database after running:
 
 ```shell
 cargo make test-rest-api
