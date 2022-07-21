@@ -147,7 +147,7 @@ impl EntityType {
     ///
     /// # Errors
     ///
-    /// - [`UnknownProperty`] if the entity specifies a property, which is not defined in the entity
+    /// - [`UnknownProperty`] if the entity specifies a property which is not defined in the entity
     ///   type schema,
     /// - [`MissingRequiredProperty`] if the entity type schema defines a required property which is
     ///   not present in the entity
