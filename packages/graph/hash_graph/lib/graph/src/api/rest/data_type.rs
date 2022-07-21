@@ -9,13 +9,12 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{Component, OpenApi};
-use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
     ontology::{
-        types::{DataType, Persisted, PersistedDataType},
-        AccountId, VersionId,
+        types::{uri::VersionedUri, DataType, Persisted, PersistedDataType},
+        AccountId,
     },
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
 };
@@ -80,6 +79,8 @@ async fn create_data_type<S: Store>(
         .create_data_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not create data type");
+
             if report.contains::<BaseUriAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
@@ -92,30 +93,43 @@ async fn create_data_type<S: Store>(
 
 #[utoipa::path(
     get,
-    path = "/data-type/{versionId}",
+    path = "/data-type/{uri}",
     tag = "DataType",
     responses(
         (status = 200, content_type = "application/json", description = "Data type found", body = PersistedDataType),
-        (status = 422, content_type = "text/plain", description = "Provided version_id is invalid"),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Data type was not found"),
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("versionId" = Uuid, Path, description = "The version ID of data type"),
+        ("uri" = String, Path, description = "The URI of data type"),
     )
 )]
 async fn get_data_type<S: Store>(
-    version_id: Path<Uuid>,
+    uri: Path<VersionedUri>,
     store: Extension<S>,
 ) -> Result<Json<Persisted<DataType>>, impl IntoResponse> {
-    let Path(version_id) = version_id;
+    let Path(uri) = uri;
     let Extension(store) = store;
 
+    let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
+        tracing::error!(error=?report, "Could not resolve URI");
+
+        if report.contains::<QueryError>() {
+            return StatusCode::NOT_FOUND;
+        }
+
+        // Datastore errors such as connection failure are considered internal server errors.
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     store
-        .get_data_type(VersionId::new(version_id))
+        .get_data_type(version_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not query data type");
+
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;
             }
@@ -158,6 +172,8 @@ async fn update_data_type<S: Store>(
         .update_data_type(body.schema, body.account_id)
         .await
         .map_err(|report| {
+            tracing::error!(error=?report, "Could not update data type");
+
             if report.contains::<BaseUriDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
