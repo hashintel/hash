@@ -30,6 +30,14 @@ pub struct Entity {
     properties: HashMap<BaseUri, serde_json::Value>,
 }
 
+impl Entity {
+    /// Returns the properties defined in this `Entity`.
+    #[must_use]
+    pub const fn properties(&self) -> &HashMap<BaseUri, serde_json::Value> {
+        &self.properties
+    } 
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

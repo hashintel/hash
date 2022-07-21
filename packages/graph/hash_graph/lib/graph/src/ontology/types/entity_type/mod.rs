@@ -5,13 +5,16 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::ontology::types::{
-    entity_type::links::{Links, ValueOrMaybeOrderedArray},
-    error::ValidationError,
-    property_type::PropertyTypeReference,
-    serde_shared::object::{Object, ValidateUri},
-    uri::{BaseUri, VersionedUri},
-    OntologyType,
+use crate::{
+    knowledge::Entity,
+    ontology::types::{
+        entity_type::links::{Links, ValueOrMaybeOrderedArray},
+        error::ValidationError,
+        property_type::PropertyTypeReference,
+        serde_shared::object::{Object, ValidateUri},
+        uri::{BaseUri, VersionedUri},
+        OntologyType,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -138,6 +141,40 @@ impl EntityType {
             property_object: Object::new(properties, required)?,
             links: Links::new(links, required_links)?,
         })
+    }
+
+    /// Validates the [`Entity`] against this `EntityType` schema.
+    ///
+    /// # Errors
+    ///
+    /// - [`UnknownProperty`] if the entity specifies a property, which is not defined in the entity
+    ///   type schema,
+    /// - [`MissingRequiredProperty`] if the entity type schema defines a required property which is
+    ///   not present in the entity
+    ///
+    /// [`UnknownProperty`]: ValidationError::UnknownProperty
+    /// [`MissingRequiredProperty`]: ValidationError::MissingRequiredProperty
+    pub fn validate(&self, entity: &Entity) -> Result<(), ValidationError> {
+        let allowed_properties = self.properties();
+        let properties = entity.properties();
+
+        #[allow(clippy::for_kv_map, reason = "We need to check the property as well")]
+        for (property_uri, _property) in properties {
+            ensure!(
+                allowed_properties.contains_key(property_uri),
+                ValidationError::UnknownProperty(property_uri.clone())
+            );
+            // TODO: Validate the property
+        }
+
+        for required_property in allowed_properties.keys() {
+            ensure!(
+                properties.contains_key(required_property),
+                ValidationError::MissingRequiredProperty(required_property.clone())
+            );
+        }
+
+        Ok(())
     }
 
     #[must_use]

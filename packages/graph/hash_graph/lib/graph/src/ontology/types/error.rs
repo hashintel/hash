@@ -7,6 +7,8 @@ pub enum ValidationError {
     /// A schema has marked a property with a [`BaseUri`] as required but the [`BaseUri`] does not
     /// exist in the `properties`.
     MissingRequiredProperty(BaseUri),
+    /// The entity specifies a property which is not defined in its schema.
+    UnknownProperty(BaseUri),
     /// When associating a property name with a reference to a Type, we expect the name to match
     /// the [`VersionedUri::base_uri`] inside the reference.
     BaseUriMismatch {
@@ -29,6 +31,13 @@ impl fmt::Display for ValidationError {
                     fmt,
                     "the schema has marked the \"{uri}\" property as required, but it wasn't \
                      defined in the `\"properties\"` object"
+                )
+            }
+            Self::UnknownProperty(uri) => {
+                write!(
+                    fmt,
+                    "the entity specifies the \"{uri}\" property but it wasn't defined in the \
+                     entity type schema object"
                 )
             }
             Self::BaseUriMismatch {
