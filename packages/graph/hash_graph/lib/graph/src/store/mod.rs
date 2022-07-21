@@ -10,9 +10,12 @@ pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     postgres::PostgresDatabase,
 };
-use crate::ontology::{
-    types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
-    AccountId, VersionId,
+use crate::{
+    knowledge::{Entity, EntityId},
+    ontology::{
+        types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
+        AccountId, VersionId,
+    },
 };
 
 #[derive(Debug)]
@@ -312,20 +315,36 @@ pub trait Store: Clone + Send + Sync + 'static {
         updated_by: AccountId,
     ) -> Result<Persisted<LinkType>, UpdateError>;
 
-    /// Creates a new `Entity`.
-    async fn create_entity() -> Result<(), InsertionError>;
+    /// Creates a new [`Entity`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the account referred to by `created_by` does not exist
+    /// - if the [`Entity`] is not valid with respect to the specified [`EntityType`]
+    async fn create_entity(
+        &self,
+        entity: Entity,
+        entity_type: EntityType,
+        created_by: AccountId,
+    ) -> Result<EntityId, InsertionError>;
 
-    /// Get an existing `Entity`.
+    /// Get an existing [`Entity`] by an [`EntityId`].
     ///
     /// # Errors
     ///
-    /// - if the requested `Entity` doesn't exist.
-    async fn get_entity() -> Result<(), QueryError>;
+    /// - if the requested [`Entity`] doesn't exist
+    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError>;
 
-    /// Updates an existing `Entity`.
+    /// Update the an existing [`Entity`].
     ///
     /// # Errors
     ///
-    /// - if the `Entity` doesn't exist.
-    async fn update_entity() -> Result<(), UpdateError>;
+    /// - if the account referred to by `updated_by` does not exist
+    /// - if the [`Entity`] is not valid with respect to its [`EntityType`]
+    async fn update_entity(
+        &self,
+        entity_id: EntityId,
+        entity: Entity,
+        updated_by: AccountId,
+    ) -> Result<(), UpdateError>;
 }

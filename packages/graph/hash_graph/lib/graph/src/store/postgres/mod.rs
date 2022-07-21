@@ -10,6 +10,7 @@ use tracing::log::LevelFilter;
 use uuid::Uuid;
 
 use crate::{
+    knowledge::{Entity, EntityId},
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
@@ -892,15 +893,25 @@ impl Store for PostgresDatabase {
         Ok(persisted)
     }
 
-    async fn create_entity() -> Result<(), InsertionError> {
+    async fn create_entity(
+        &self,
+        entity: Entity,
+        entity_type: EntityType,
+        created_by: AccountId,
+    ) -> Result<EntityId, InsertionError> {
         todo!()
     }
 
-    async fn get_entity() -> Result<(), QueryError> {
+    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
         todo!()
     }
 
-    async fn update_entity() -> Result<(), UpdateError> {
+    async fn update_entity(
+        &self,
+        entity_id: EntityId,
+        entity: Entity,
+        updated_by: AccountId,
+    ) -> Result<(), UpdateError> {
         todo!()
     }
 }
