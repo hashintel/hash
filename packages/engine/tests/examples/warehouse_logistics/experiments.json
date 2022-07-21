@@ -7,7 +7,11 @@
   },
   "find_optimal_layout": {
     "type": "optimization",
+    // the maximum number of runs (note: do not remove this comment - it is here to test that the
+    // engine supports comments)
     "maxRuns": 2,
+    /* the minimum number of steps (note: do not remove this comment - it is here to test that the
+      engine supports comments) */
     "minSteps": 100,
     "maxSteps": 1000,
     "metricName": "loaded_stock",
