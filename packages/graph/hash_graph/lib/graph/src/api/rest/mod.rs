@@ -4,6 +4,7 @@
 
 mod api_resource;
 mod data_type;
+mod entity;
 mod entity_type;
 mod link_type;
 mod property_type;
@@ -20,6 +21,7 @@ fn api_resources<T: Store>() -> Vec<Router> {
         property_type::PropertyTypeResource::routes::<T>(),
         link_type::LinkTypeResource::routes::<T>(),
         entity_type::EntityTypeResource::routes::<T>(),
+        entity::EntityResource::routes::<T>(),
     ]
 }
 
@@ -29,6 +31,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         property_type::PropertyTypeResource::documentation(),
         link_type::LinkTypeResource::documentation(),
         entity_type::EntityTypeResource::documentation(),
+        entity::EntityResource::documentation(),
     ]
 }
 
