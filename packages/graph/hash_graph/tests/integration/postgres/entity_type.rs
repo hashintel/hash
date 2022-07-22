@@ -14,7 +14,7 @@ fn insert() {
             [data_type::TEXT_V1],
             [property_type::NAME_V1],
             [link_type::FRIEND_OF_V1],
-            [entity_type::ORGANIZATION_V1],
+            [],
         )
         .expect("Could not seed database");
 

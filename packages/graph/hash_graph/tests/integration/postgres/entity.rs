@@ -71,20 +71,9 @@ fn update() {
 
     let mut database = DatabaseTestWrapper::new();
     database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::TEXT_V1, property_type::NAME_V1],
-            [
-                link_type::WRITTEN_BY_V1,
-                link_type::CONTAINS_V1,
-                link_type::FRIEND_OF_V1,
-            ],
-            [
-                entity_type::PERSON_V1,
-                entity_type::BLOCK_V1,
-                entity_type::PAGE_V1,
-            ],
-        )
+        .seed([data_type::TEXT_V1], [property_type::TEXT_V1], [], [
+            entity_type::PAGE_V1,
+        ])
         .expect("Could not seed database:");
 
     let created_entity_id = database
