@@ -282,9 +282,13 @@ impl DatabaseTestWrapper {
         &mut self,
         entity_id: EntityId,
         entity: &Entity,
+        entity_type_uri: VersionedUri,
     ) -> Result<(), UpdateError> {
-        self.rt
-            .block_on(async { self.postgres.update_entity(entity_id, entity).await })
+        self.rt.block_on(async {
+            self.postgres
+                .update_entity(entity_id, entity, entity_type_uri, self.account_id)
+                .await
+        })
     }
 }
 

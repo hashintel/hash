@@ -340,7 +340,15 @@ pub trait Store: Clone + Send + Sync + 'static {
     ///
     /// # Errors
     ///
-    /// - if the account referred to by `updated_by` does not exist
+    /// - if the [`Entity`] doesn't exist
+    /// - if the [`EntityType`] doesn't exist
     /// - if the [`Entity`] is not valid with respect to its [`EntityType`]
-    async fn update_entity(&self, entity_id: EntityId, entity: &Entity) -> Result<(), UpdateError>;
+    /// - if the account referred to by `updated_by` does not exist
+    async fn update_entity(
+        &self,
+        entity_id: EntityId,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
+        updated_by: AccountId,
+    ) -> Result<(), UpdateError>;
 }

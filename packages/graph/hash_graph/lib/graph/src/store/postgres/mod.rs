@@ -616,6 +616,46 @@ impl PostgresDatabase {
         Ok(ids)
     }
 
+    async fn insert_entity(
+        transaction: &mut Transaction<'_, Postgres>,
+        entity_id: EntityId,
+        version: i32,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
+        account_id: AccountId,
+    ) -> Result<EntityId, InsertionError> {
+        let entity_type_id = Self::version_id_by_uri(transaction, &entity_type_uri)
+            .await
+            .change_context(InsertionError)?;
+
+        // TODO: Validate entity against entity type
+
+        transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, created_by) 
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING entity_id;
+                    "#,
+                )
+                    .bind(entity_id)
+                    .bind(version)
+                    .bind(entity_type_id)
+                    .bind(
+                        serde_json::to_value(entity)
+                            .report()
+                            .change_context(InsertionError)?,
+                    )
+                    .bind(account_id),
+            )
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        Ok(entity_id)
+    }
+
     async fn version_id_by_uri_impl(
         executor: impl Executor<'_, Database = Postgres>,
         uri: &VersionedUri,
@@ -906,41 +946,16 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(InsertionError)?;
 
-        let entity_type_id = Self::version_id_by_uri(&mut transaction, &entity_type_uri)
-            .await
-            .change_context(InsertionError)?;
-        let entity_type = self
-            .get_by_version::<EntityType>(entity_type_id)
-            .await
-            .change_context(InsertionError)?;
-
-        entity_type
-            .inner()
-            .validate(entity)
-            .change_context(InsertionError)?;
-
         let entity_id = EntityId::new(Uuid::new_v4());
-        transaction
-            .fetch_one(
-                sqlx::query(
-                    r#"
-                    INSERT INTO entities (entity_id, entity_type_version_id, properties, created_by) 
-                    VALUES ($1, $2, $3, $4)
-                    RETURNING entity_id;
-                    "#,
-                )
-                    .bind(entity_id)
-                    .bind(entity_type_id)
-                    .bind(
-                        serde_json::to_value(entity)
-                            .report()
-                            .change_context(InsertionError)?,
-                    )
-                    .bind(created_by),
-            )
-            .await
-            .report()
-            .change_context(InsertionError)?;
+        Self::insert_entity(
+            &mut transaction,
+            entity_id,
+            0,
+            entity,
+            entity_type_uri,
+            created_by,
+        )
+        .await?;
 
         transaction
             .commit()
@@ -959,7 +974,11 @@ impl Store for PostgresDatabase {
                     r#"
                     SELECT properties
                     FROM entities
-                    WHERE entity_id = $1;
+                    WHERE entity_id = $1 AND version = (
+                        SELECT MAX("version")
+                        FROM entities
+                        WHERE entity_id = $1
+                    );
                     "#,
                 )
                 .bind(entity_id),
@@ -974,7 +993,13 @@ impl Store for PostgresDatabase {
             .change_context(QueryError)?)
     }
 
-    async fn update_entity(&self, entity_id: EntityId, entity: &Entity) -> Result<(), UpdateError> {
+    async fn update_entity(
+        &self,
+        entity_id: EntityId,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
+        updated_by: AccountId,
+    ) -> Result<(), UpdateError> {
         let mut transaction = self
             .pool
             .begin()
@@ -982,12 +1007,13 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(UpdateError)?;
 
-        let entity_type_id = self
+        // TODO: OPTIM: Combine version look-up and insertion into one query
+        let entity_version: i32 = self
             .pool
             .fetch_one(
                 sqlx::query(
                     r#"
-                    SELECT entity_type_version_id
+                    SELECT MAX("version")
                     FROM entities
                     WHERE entity_id = $1;
                     "#,
@@ -996,40 +1022,21 @@ impl Store for PostgresDatabase {
             )
             .await
             .report()
-            .change_context(UpdateError)
-            .attach_printable(entity_id)?
+            .change_context(QueryError)
+            .attach_printable(entity_id)
+            .change_context(UpdateError)?
             .get(0);
 
-        let entity_type = self
-            .get_by_version::<EntityType>(entity_type_id)
-            .await
-            .change_context(UpdateError)?;
-
-        entity_type
-            .inner()
-            .validate(entity)
-            .change_context(UpdateError)?;
-
-        transaction
-            .fetch_one(
-                sqlx::query(
-                    r#"
-                    UPDATE entities
-                    SET properties = $2
-                    WHERE entity_id = $1
-                    RETURNING entity_id;
-                    "#,
-                )
-                .bind(entity_id)
-                .bind(
-                    serde_json::to_value(entity)
-                        .report()
-                        .change_context(UpdateError)?,
-                ),
-            )
-            .await
-            .report()
-            .change_context(UpdateError)?;
+        Self::insert_entity(
+            &mut transaction,
+            entity_id,
+            entity_version + 1,
+            entity,
+            entity_type_uri,
+            updated_by,
+        )
+        .await
+        .change_context(UpdateError)?;
 
         transaction
             .commit()

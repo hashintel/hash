@@ -98,7 +98,14 @@ fn update() {
         .expect("could not create entity");
 
     database
-        .update_entity(created_entity_id, &page_v2)
+        .update_entity(
+            created_entity_id,
+            &page_v2,
+            VersionedUri::new(
+                "https://blockprotocol.org/@alice/types/entity-type/page".to_owned(),
+                1,
+            ),
+        )
         .expect("could not update entity");
 
     let entity = database
