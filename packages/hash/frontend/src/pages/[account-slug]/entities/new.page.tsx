@@ -13,7 +13,7 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
-import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
+import { useGetAllEntityTypes } from "../../../components/hooks/useGetAllEntityTypes";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import { parseEntityIdentifier } from "../../../lib/entities";
 
@@ -62,7 +62,7 @@ const Page: NextPageWithLayout = () => {
     }
   }, [router.query.entityTypeId, selectedTypeId]);
 
-  const { data } = useAccountEntityTypes(accountId, true);
+  const { data } = useGetAllEntityTypes(accountId);
 
   const typeOptions = data?.getAccountEntityTypes;
   const selectedType = useMemo(() => {
@@ -88,11 +88,15 @@ const Page: NextPageWithLayout = () => {
         >
           {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
           <option disabled value="none" />
-          {(typeOptions ?? []).map((type) => (
-            <option key={type.entityId} value={type.entityId}>
-              {type.properties.title}
-            </option>
-          ))}
+          {[...(typeOptions ?? [])]
+            .sort((a, b) =>
+              a.properties.title.localeCompare(b.properties.title),
+            )
+            .map((type) => (
+              <option key={type.entityId} value={type.entityId}>
+                {type.properties.title}
+              </option>
+            ))}
         </select>
       </div>
       <div>

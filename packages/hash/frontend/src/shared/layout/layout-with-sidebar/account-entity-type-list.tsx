@@ -16,7 +16,7 @@ import {
   TextField,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
-import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
+import { useGetAllEntityTypes } from "../../../components/hooks/useGetAllEntityTypes";
 import { NavLink } from "./nav-link";
 
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
@@ -119,7 +119,7 @@ type AccountEntityTypeListProps = {
 export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
   accountId,
 }) => {
-  const { data } = useAccountEntityTypes(accountId);
+  const { data } = useGetAllEntityTypes(accountId);
   const router = useRouter();
 
   const [sortType, setSortType] = useState<SortType>("asc");
