@@ -100,46 +100,51 @@ export type LinkProps = Omit<NextLinkProps, "passHref"> &
 
 // A styled version of the Next.js Link component:
 // https://nextjs.org/docs/api-reference/next/link
-export const Link = forwardRef<HTMLAnchorElement, LinkProps>((props, ref) => {
-  const { as: linkAs, className: classNameProps, href, ...other } = props;
+export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
+  (
+    props,
+    ref, // https://github.com/prettier/prettier/issues/11923
+  ) => {
+    const { as: linkAs, className: classNameProps, href, ...other } = props;
 
-  const router = useRouter();
-  const pathname = typeof href === "string" ? href : href.pathname;
-  const className = clsx(classNameProps, {
-    active: router.pathname === pathname,
-  });
+    const router = useRouter();
+    const pathname = typeof href === "string" ? href : href.pathname;
+    const className = clsx(classNameProps, {
+      active: router.pathname === pathname,
+    });
 
-  if (process.env.NODE_ENV !== "production") {
-    const children = other.children;
-    if (isValidElement(children) && children.type === Button) {
-      throw new Error(
-        "Please use <Button href='' /> instead of <Link><Button /></Link>",
+    if (process.env.NODE_ENV !== "production") {
+      const children = other.children;
+      if (isValidElement(children) && children.type === Button) {
+        throw new Error(
+          "Please use <Button href='' /> instead of <Link><Button /></Link>",
+        );
+      }
+    }
+
+    if (isHrefExternal(href)) {
+      other.rel = "noopener";
+      other.target = "_blank";
+
+      return (
+        <MuiLink
+          className={className}
+          href={href as string}
+          ref={ref}
+          {...other}
+        />
       );
     }
-  }
-
-  if (isHrefExternal(href)) {
-    other.rel = "noopener";
-    other.target = "_blank";
 
     return (
       <MuiLink
+        component={NextLinkComposed}
+        as={linkAs}
         className={className}
-        href={href as string}
         ref={ref}
+        to={href}
         {...other}
       />
     );
-  }
-
-  return (
-    <MuiLink
-      component={NextLinkComposed}
-      as={linkAs}
-      className={className}
-      ref={ref}
-      to={href}
-      {...other}
-    />
-  );
-});
+  },
+);

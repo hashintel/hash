@@ -2,7 +2,7 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the library during the build process.
  */
-import { useState } from "react";
+import { FunctionComponent, useState } from "react";
 import { render } from "react-dom";
 import { tw } from "twind";
 import { MockBlockDock } from "mock-block-dock";
@@ -58,10 +58,7 @@ const initialVariantIndex = 0;
 
 const initialState = getVariantProperties(variants[initialVariantIndex]!);
 
-/**
- * @type {import("react").FunctionComponent}
- */
-const AppComponent = () => {
+const AppComponent: FunctionComponent = () => {
   const [selectedVariantIndex, setSelectedVariantIndex] =
     useState(initialVariantIndex);
 

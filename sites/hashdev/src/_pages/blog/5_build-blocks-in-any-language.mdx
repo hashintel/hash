@@ -10,7 +10,7 @@ date: "2022-06-14"
 
 One of the main motivations behind recent Block Protocol updates has been to enable blocks to be written in a wider variety of languages. To make that possible, the ways in which blocks and embedding applications interact have changed significantly. As of version 0.2 of the specification, Block Protocol requests and responses are handled through DOM `CustomEvents` defined in accordance with JSON Schemas.
 
-It's now a lot easier to create blocks that are not tied to JavaScript, TypeScript, or As long as a block can use browser `Event`s, it can implement the Block Protocol. To show what the changes imply for adventurous block authors, this post will be a technical walk-through of how the Block Protocol can be implemented and used in a language that is not TypeScript. Specifically, we're going to build a block in F#—but the methodology and implementation details are applicable for other languages that support JavaScript as a transpilation target and JavaScript interoperability.
+It's now a lot easier to create blocks that are not tied to JavaScript, TypeScript, or React. As long as a block can use browser `Event`s, it can implement the Block Protocol. To show what the changes imply for adventurous block authors, this post will be a technical walk-through of how the Block Protocol can be implemented and used in a language that is not TypeScript. Specifically, we're going to build a block in F#—but the methodology and implementation details are applicable for other languages that support JavaScript as a transpilation target and JavaScript interoperability.
 
 ## Building blocks with F\#
 

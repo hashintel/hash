@@ -1,10 +1,10 @@
+import { Reducer, useEffect, useReducer, useRef } from "react";
 import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
 import { Box, CssBaseline, Theme, ThemeProvider } from "@mui/material";
 import { theme } from "@hashintel/hash-design-system";
-import { Reducer, useEffect, useReducer, useRef } from "react";
 import {
   PullRequestIdentifier,
   BlockState,

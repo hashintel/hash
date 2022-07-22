@@ -160,7 +160,7 @@
           {
             "name": "react",
             "importNames": ["FC", "VFC", "VoidFunctionComponent"],
-            "message": "Please use FunctionComponent instead."
+            "message": "Please use FunctionComponent instead"
           },
           {
             "name": "@testing-library/react",

@@ -1,6 +1,6 @@
+import { FunctionComponent, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
 
-import { FunctionComponent, useMemo, useState } from "react";
 import { GithubPullRequestEntityType } from "../types";
 import { GithubIcon } from "../icons";
 import { CustomAutocomplete } from "./custom-autocomplete";

@@ -3,7 +3,6 @@ import { UrlObject } from "url";
 import { useRouter } from "next/router";
 // eslint-disable-next-line no-restricted-imports
 import NextLink, { LinkProps as NextLinkProps } from "next/link";
-
 import MuiLink, { LinkProps as MuiLinkProps } from "@mui/material/Link";
 import { styled } from "@mui/material/styles";
 import { forwardRef, isValidElement } from "react";

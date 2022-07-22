@@ -1,4 +1,5 @@
 import { BlockProtocolEntity, BlockProtocolEntityType } from "blockprotocol";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import debounce from "lodash.debounce";
 // eslint-disable-next-line no-restricted-imports
 import Button from "@mui/material/Button";
@@ -15,7 +16,6 @@ import Select from "@mui/material/Select";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { EChart, SeriesOption, ECOption } from "./e-chart";
 
 const StyledTextField = styled(TextField)(({ theme }) => ({

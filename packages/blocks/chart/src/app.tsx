@@ -1,7 +1,7 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BlockProtocolEntityType } from "blockprotocol";
 
 import { BlockComponent } from "blockprotocol/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Chart,
   ChartConfigProperties,
