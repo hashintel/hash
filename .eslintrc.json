@@ -12,8 +12,6 @@
   "ignorePatterns": ["**/*.gen.*"],
   "globals": {
     "NodeJS": true,
-    "React": true,
-    "JSX": true,
     "FixMeLater": "readonly",
     "globalThis": "readonly"
   },
@@ -160,6 +158,11 @@
       {
         "paths": [
           {
+            "name": "react",
+            "importNames": ["FC", "VFC", "VoidFunctionComponent"],
+            "message": "Please use FunctionComponent instead."
+          },
+          {
             "name": "@testing-library/react",
             "importNames": ["render"],
             "message": "Please use ./src/tests/testUtils.tsx#render instead"
@@ -281,6 +284,15 @@
           "$scope",
           "staticContext"
         ]
+      }
+    ],
+    "unicorn/import-style": [
+      "error",
+      {
+        "styles": {
+          "react": { "named": true },
+          "react-dom": { "named": true }
+        }
       }
     ]
   },
