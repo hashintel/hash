@@ -276,7 +276,9 @@ Content-Type: application/json
 Accept: application/json
 
 {
+  "account_id": "00000000-0000-0000-0000-000000000000",
   "entity_id": "{{person_entity_id}}",
+  "entity_type_uri": "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
   "entity": {
     "https://blockprotocol.org/@alice/types/property-type/name": "Alice Allison"
   }

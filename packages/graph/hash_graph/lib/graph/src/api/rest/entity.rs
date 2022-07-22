@@ -64,9 +64,10 @@ struct CreateEntityRequest {
     request_body = CreateEntityRequest,
     tag = "Entity",
     responses(
-      (status = 201, content_type = "application/json", description = "entity created successfully", body = PersistedEntity),
+      (status = 201, content_type = "application/json", description = "entity created successfully", body = QualifiedEntity),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
+      (status = 404, description = "Entity Type URI was not found"),
       (status = 500, description = "Datastore error occurred"),
     ),
     request_body = CreateEntityRequest,
@@ -100,7 +101,7 @@ async fn create_entity<S: Store>(
     path = "/entity/{entity_id}",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "entity found", body = PersistedEntity),
+        (status = 200, content_type = "application/json", description = "entity found", body = QualifiedEntity),
         (status = 422, content_type = "text/plain", description = "Provided entity id is invalid"),
 
         (status = 404, description = "entity was not found"),
@@ -138,6 +139,8 @@ struct UpdateEntityRequest {
     #[component(value_type = Any)]
     entity: Entity,
     entity_id: EntityId,
+    entity_type_uri: VersionedUri,
+    account_id: AccountId,
 }
 
 #[utoipa::path(
@@ -145,10 +148,10 @@ struct UpdateEntityRequest {
     path = "/entity",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "entity updated successfully", body = PersistedEntity),
+        (status = 200, content_type = "application/json", description = "entity updated successfully", body = QualifiedEntity),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 404, description = "Entity ID was not found"),
+        (status = 404, description = "Entity ID or Entity Type URI was not found"),
         (status = 500, description = "Datastore error occurred"),
     ),
     request_body = UpdateEntityRequest,
@@ -157,12 +160,17 @@ async fn update_entity<S: Store>(
     body: Json<UpdateEntityRequest>,
     datastore: Extension<S>,
 ) -> Result<Json<QualifiedEntity>, StatusCode> {
-    let Json(UpdateEntityRequest { entity, entity_id }) = body;
+    let Json(UpdateEntityRequest {
+        entity,
+        entity_id,
+        entity_type_uri,
+        account_id,
+    }) = body;
     let Extension(datastore) = datastore;
 
     datastore
         .clone()
-        .update_entity(entity_id, &entity)
+        .update_entity(entity_id, &entity, entity_type_uri, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");
