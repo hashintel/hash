@@ -14,7 +14,10 @@ use crate::{
     api::rest::api_resource::RoutedResource,
     knowledge::{Entity, EntityId},
     ontology::{types::uri::VersionedUri, AccountId},
-    store::{error::QueryError, Store},
+    store::{
+        error::{EntityDoesNotExist, QueryError},
+        Store,
+    },
 };
 
 #[derive(Component, Serialize)]
@@ -175,7 +178,7 @@ async fn update_entity<S: Store>(
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");
 
-            if report.contains::<QueryError>() {
+            if report.contains::<QueryError>() || report.contains::<EntityDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
 
