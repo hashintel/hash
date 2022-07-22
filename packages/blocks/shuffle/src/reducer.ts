@@ -9,13 +9,9 @@ export type Item = {
 
 export type Items = Item[];
 
-type Action<S> = {
+type Action<S, T = void> = {
   type: S;
-};
-
-type ActionWithPayload<S, T> = Action<S> & {
-  payload: T;
-};
+} & (T extends void ? {} : { payload: T });
 
 export enum ActionType {
   ADD = "add",
@@ -26,10 +22,10 @@ export enum ActionType {
 }
 
 export type ShuffleReducerAction =
-  | ActionWithPayload<ActionType.ADD, { index: number }>
-  | ActionWithPayload<ActionType.UPDATE, { index: number; value: string }>
-  | ActionWithPayload<ActionType.DELETE, { index: number }>
-  | ActionWithPayload<
+  | Action<ActionType.ADD, { index: number }>
+  | Action<ActionType.UPDATE, { index: number; value: string }>
+  | Action<ActionType.DELETE, { index: number }>
+  | Action<
       ActionType.REORDER,
       { sourceIndex: number; destinationIndex: number }
     >
