@@ -10,6 +10,7 @@ use tracing::log::LevelFilter;
 use uuid::Uuid;
 
 use crate::{
+    knowledge::{Entity, EntityId},
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
@@ -19,7 +20,8 @@ use crate::{
         AccountId, VersionId,
     },
     store::{
-        error::VersionedUriAlreadyExists, postgres::database_type::DatabaseType,
+        error::{EntityDoesNotExist, VersionedUriAlreadyExists},
+        postgres::database_type::DatabaseType,
         BaseUriAlreadyExists, BaseUriDoesNotExist, DatabaseConnectionInfo, InsertionError,
         QueryError, Store, StoreError, UpdateError,
     },
@@ -137,6 +139,34 @@ impl PostgresDatabase {
             .report()
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
+            .get(0))
+    }
+
+    /// Checks if the specified [`Entity`] exists in the database.
+    ///
+    /// # Errors
+    ///
+    /// - if checking for the [`VersionedUri`] failed.
+    async fn contains_entity(
+        transaction: &mut Transaction<'_, Postgres>,
+        entity_id: EntityId,
+    ) -> Result<bool, QueryError> {
+        Ok(transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM entities
+                        WHERE entity_id = $1
+                    );"#,
+                )
+                .bind(entity_id),
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable(entity_id)?
             .get(0))
     }
 
@@ -615,6 +645,44 @@ impl PostgresDatabase {
         Ok(ids)
     }
 
+    async fn insert_entity(
+        transaction: &mut Transaction<'_, Postgres>,
+        entity_id: EntityId,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
+        account_id: AccountId,
+    ) -> Result<EntityId, InsertionError> {
+        let entity_type_id = Self::version_id_by_uri(transaction, &entity_type_uri)
+            .await
+            .change_context(InsertionError)?;
+
+        // TODO: Validate entity against entity type
+
+        transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, created_by) 
+                    VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4)
+                    RETURNING entity_id;
+                    "#,
+                )
+                    .bind(entity_id)
+                    .bind(entity_type_id)
+                    .bind(
+                        serde_json::to_value(entity)
+                            .report()
+                            .change_context(InsertionError)?,
+                    )
+                    .bind(account_id),
+            )
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        Ok(entity_id)
+    }
+
     async fn version_id_by_uri_impl(
         executor: impl Executor<'_, Database = Postgres>,
         uri: &VersionedUri,
@@ -892,15 +960,104 @@ impl Store for PostgresDatabase {
         Ok(persisted)
     }
 
-    async fn create_entity() -> Result<(), InsertionError> {
-        todo!()
+    async fn create_entity(
+        &self,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
+        created_by: AccountId,
+    ) -> Result<EntityId, InsertionError> {
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        let entity_id = EntityId::new(Uuid::new_v4());
+        Self::insert_entity(
+            &mut transaction,
+            entity_id,
+            entity,
+            entity_type_uri,
+            created_by,
+        )
+        .await?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(InsertionError)?;
+
+        Ok(entity_id)
     }
 
-    async fn get_entity() -> Result<(), QueryError> {
-        todo!()
+    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
+        let row = self
+            .pool
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    SELECT properties
+                    FROM entities
+                    WHERE entity_id = $1 AND version = (
+                        SELECT MAX("version")
+                        FROM entities
+                        WHERE entity_id = $1
+                    );
+                    "#,
+                )
+                .bind(entity_id),
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable(entity_id)?;
+
+        Ok(serde_json::from_value(row.get(0))
+            .report()
+            .change_context(QueryError)?)
     }
 
-    async fn update_entity() -> Result<(), UpdateError> {
-        todo!()
+    async fn update_entity(
+        &self,
+        entity_id: EntityId,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
+        updated_by: AccountId,
+    ) -> Result<(), UpdateError> {
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        if !Self::contains_entity(&mut transaction, entity_id)
+            .await
+            .change_context(UpdateError)?
+        {
+            return Err(Report::new(EntityDoesNotExist)
+                .attach_printable(entity_id)
+                .change_context(UpdateError));
+        }
+
+        Self::insert_entity(
+            &mut transaction,
+            entity_id,
+            entity,
+            entity_type_uri,
+            updated_by,
+        )
+        .await
+        .change_context(UpdateError)?;
+
+        transaction
+            .commit()
+            .await
+            .report()
+            .change_context(UpdateError)?;
+
+        Ok(())
     }
 }

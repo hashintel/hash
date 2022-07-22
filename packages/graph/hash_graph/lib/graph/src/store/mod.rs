@@ -10,9 +10,12 @@ pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     postgres::PostgresDatabase,
 };
-use crate::ontology::{
-    types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
-    AccountId, VersionId,
+use crate::{
+    knowledge::{Entity, EntityId},
+    ontology::{
+        types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
+        AccountId, VersionId,
+    },
 };
 
 #[derive(Debug)]
@@ -312,20 +315,40 @@ pub trait Store: Clone + Send + Sync + 'static {
         updated_by: AccountId,
     ) -> Result<Persisted<LinkType>, UpdateError>;
 
-    /// Creates a new `Entity`.
-    async fn create_entity() -> Result<(), InsertionError>;
+    /// Creates a new [`Entity`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the [`EntityType`] doesn't exist
+    /// - if the [`Entity`] is not valid with respect to the specified [`EntityType`]
+    /// - if the account referred to by `created_by` does not exist
+    async fn create_entity(
+        &self,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
+        created_by: AccountId,
+    ) -> Result<EntityId, InsertionError>;
 
-    /// Get an existing `Entity`.
+    /// Get the latest version of the [`Entity`] identified by [`EntityId`].
     ///
     /// # Errors
     ///
-    /// - if the requested `Entity` doesn't exist.
-    async fn get_entity() -> Result<(), QueryError>;
+    /// - if the requested [`Entity`] doesn't exist
+    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError>;
 
-    /// Updates an existing `Entity`.
+    /// Update an existing [`Entity`].
     ///
     /// # Errors
     ///
-    /// - if the `Entity` doesn't exist.
-    async fn update_entity() -> Result<(), UpdateError>;
+    /// - if the [`Entity`] doesn't exist
+    /// - if the [`EntityType`] doesn't exist
+    /// - if the [`Entity`] is not valid with respect to its [`EntityType`]
+    /// - if the account referred to by `updated_by` does not exist
+    async fn update_entity(
+        &self,
+        entity_id: EntityId,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
+        updated_by: AccountId,
+    ) -> Result<(), UpdateError>;
 }

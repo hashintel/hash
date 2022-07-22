@@ -282,12 +282,17 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     {
       entity_id: {
         type: "UUID",
-        primaryKey: true,
+        notNull: true,
+      },
+      version: {
+        type: "TIMESTAMP WITH TIME ZONE",
+        notNull: true,
       },
       entity_type_version_id: {
         type: "UUID",
         notNull: true,
-        references: "property_types",
+        references: "entity_types",
+        onDelete: "CASCADE",
       },
       properties: {
         type: "JSONB",
@@ -303,6 +308,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       ifNotExists: true,
     },
   );
+  pgm.addConstraint("entities", "entities_primary_key", {
+    primaryKey: ["entity_id", "version"],
+  });
 }
 
 // A down migration would cause data loss.

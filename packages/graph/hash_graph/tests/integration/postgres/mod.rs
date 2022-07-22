@@ -1,4 +1,5 @@
 mod data_type;
+mod entity;
 mod entity_type;
 mod link_type;
 mod property_type;
@@ -7,8 +8,12 @@ use std::thread;
 
 use error_stack::Result;
 use graph::{
+    knowledge::{Entity, EntityId},
     ontology::{
-        types::{uri::BaseUri, DataType, EntityType, LinkType, Persisted, PropertyType},
+        types::{
+            uri::{BaseUri, VersionedUri},
+            DataType, EntityType, LinkType, Persisted, PropertyType,
+        },
         AccountId, VersionId,
     },
     store::{
@@ -250,6 +255,36 @@ impl DatabaseTestWrapper {
         self.rt.block_on(async {
             self.postgres
                 .update_link_type(link_type, self.account_id)
+                .await
+        })
+    }
+
+    pub fn create_entity(
+        &mut self,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
+    ) -> Result<EntityId, InsertionError> {
+        self.rt.block_on(async {
+            self.postgres
+                .create_entity(entity, entity_type_uri, self.account_id)
+                .await
+        })
+    }
+
+    pub fn get_entity(&mut self, entity_id: EntityId) -> Result<Entity, QueryError> {
+        self.rt
+            .block_on(async { self.postgres.get_entity(entity_id).await })
+    }
+
+    pub fn update_entity(
+        &mut self,
+        entity_id: EntityId,
+        entity: &Entity,
+        entity_type_uri: VersionedUri,
+    ) -> Result<(), UpdateError> {
+        self.rt.block_on(async {
+            self.postgres
+                .update_entity(entity_id, entity, entity_type_uri, self.account_id)
                 .await
         })
     }
