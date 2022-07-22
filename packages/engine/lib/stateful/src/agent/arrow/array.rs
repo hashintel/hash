@@ -138,8 +138,7 @@ impl IntoRecordBatch for &[&Agent] {
 // `get_agent_id_array` is needed for public interface, but
 // this function avoids copying ids to separate `Vec`.
 fn agents_to_id_col(agents: &[&Agent]) -> Result<ArrayRef> {
-    let mut builder =
-        MutableFixedSizeBinaryArray::with_capacity(agents.len() * UUID_V4_LEN, UUID_V4_LEN);
+    let mut builder = MutableFixedSizeBinaryArray::with_capacity(agents.len(), UUID_V4_LEN);
     for agent in agents {
         builder.push(Some(agent.agent_id.as_bytes()));
     }

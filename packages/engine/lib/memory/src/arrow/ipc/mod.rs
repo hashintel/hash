@@ -21,10 +21,11 @@ use arrow::io::ipc::write::{default_ipc_fields, schema_to_bytes};
 
 use super::record_batch::RecordBatch;
 
-// note: documented in-module
 pub mod offset;
 pub mod read;
 pub mod schema;
+/// Contains code taken from arrow2 (and slightly modified) to allow us to write arrays.
+mod serialize;
 pub mod write;
 
 pub use read::*;

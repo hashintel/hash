@@ -1,5 +1,3 @@
-use super::offset;
-
 /// Contains the data which [`record_batch_msg_offset`] computes. This struct exists to make it
 /// impossible to call [`write_record_batch_data_to_bytes`] without first computing the necessary
 /// information using [`record_batch_msg_offset`]. Previously we did allow this behaviour, but it
@@ -26,11 +24,25 @@ impl RecordBatchBytes {
 
 /// Writes the data section of the [`RecordBatch`] into the provided buffer.
 pub fn write_record_batch_data_to_bytes(
-    _record_batch: &super::RecordBatch,
-    _buf: &mut [u8],
-    _info: RecordBatchBytes,
+    batch: &super::RecordBatch,
+    buf: &mut [u8],
+    info: RecordBatchBytes,
 ) {
-    todo!()
+    let mut arrow_data = Vec::with_capacity(info.data_len);
+    let mut offset = 0;
+    let mut buffers = vec![];
+    let mut nodes = vec![];
+    for array in batch.columns() {
+        super::serialize::write(
+            array.as_ref(),
+            &mut buffers,
+            &mut arrow_data,
+            &mut nodes,
+            &mut offset,
+            true,
+        );
+    }
+    buf.copy_from_slice(&arrow_data)
 }
 
 /// Converts part of a [`RecordBatch`] to bytes. This function *does not* write the whole of the
@@ -44,19 +56,19 @@ pub fn record_batch_msg_offset(
 ) -> crate::Result<RecordBatchBytes> {
     let mut nodes = vec![];
     let mut buffers = vec![];
+    let mut arrow_data = vec![];
 
     let mut offset = 0;
-    let mut arrow_data_len = 0;
 
     for array in record_batch.columns() {
-        offset::calculate_array_offset(
+        super::serialize::write(
             array.as_ref(),
             &mut buffers,
+            &mut arrow_data,
             &mut nodes,
             &mut offset,
-            array.len(),
-            &mut arrow_data_len,
-        );
+            cfg!(target = "little_endian"),
+        )
     }
 
     let mut flatbuffer_builder = arrow_format::ipc::planus::Builder::new();
@@ -72,7 +84,7 @@ pub fn record_batch_msg_offset(
     let data = flatbuffer_builder.finish(res, None).to_vec();
 
     Ok(RecordBatchBytes {
-        data_len: arrow_data_len,
+        data_len: arrow_data.len(),
         offset,
         msg_data: data,
     })
