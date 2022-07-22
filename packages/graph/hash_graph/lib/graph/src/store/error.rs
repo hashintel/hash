@@ -64,6 +64,18 @@ impl Context for BaseUriDoesNotExist {}
 
 #[derive(Debug)]
 #[must_use]
+pub struct EntityDoesNotExist;
+
+impl fmt::Display for EntityDoesNotExist {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Entity does not exist")
+    }
+}
+
+impl Context for EntityDoesNotExist {}
+
+#[derive(Debug)]
+#[must_use]
 pub struct VersionedUriAlreadyExists;
 
 impl fmt::Display for VersionedUriAlreadyExists {

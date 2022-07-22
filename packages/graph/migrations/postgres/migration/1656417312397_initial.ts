@@ -285,7 +285,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
       },
       version: {
-        type: "INT",
+        type: "TIMESTAMP",
         notNull: true,
       },
       entity_type_version_id: {

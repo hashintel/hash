@@ -20,7 +20,8 @@ use crate::{
         AccountId, VersionId,
     },
     store::{
-        error::VersionedUriAlreadyExists, postgres::database_type::DatabaseType,
+        error::{EntityDoesNotExist, VersionedUriAlreadyExists},
+        postgres::database_type::DatabaseType,
         BaseUriAlreadyExists, BaseUriDoesNotExist, DatabaseConnectionInfo, InsertionError,
         QueryError, Store, StoreError, UpdateError,
     },
@@ -138,6 +139,34 @@ impl PostgresDatabase {
             .report()
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
+            .get(0))
+    }
+
+    /// Checks if the specified [`Entity`] exists in the database.
+    ///
+    /// # Errors
+    ///
+    /// - if checking for the [`VersionedUri`] failed.
+    async fn contains_entity(
+        transaction: &mut Transaction<'_, Postgres>,
+        entity_id: EntityId,
+    ) -> Result<bool, QueryError> {
+        Ok(transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM entities
+                        WHERE entity_id = $1
+                    );"#,
+                )
+                .bind(entity_id),
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable(entity_id)?
             .get(0))
     }
 
@@ -619,7 +648,6 @@ impl PostgresDatabase {
     async fn insert_entity(
         transaction: &mut Transaction<'_, Postgres>,
         entity_id: EntityId,
-        version: i32,
         entity: &Entity,
         entity_type_uri: VersionedUri,
         account_id: AccountId,
@@ -635,12 +663,11 @@ impl PostgresDatabase {
                 sqlx::query(
                     r#"
                     INSERT INTO entities (entity_id, version, entity_type_version_id, properties, created_by) 
-                    VALUES ($1, $2, $3, $4, $5)
+                    VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4)
                     RETURNING entity_id;
                     "#,
                 )
                     .bind(entity_id)
-                    .bind(version)
                     .bind(entity_type_id)
                     .bind(
                         serde_json::to_value(entity)
@@ -950,7 +977,6 @@ impl Store for PostgresDatabase {
         Self::insert_entity(
             &mut transaction,
             entity_id,
-            0,
             entity,
             entity_type_uri,
             created_by,
@@ -1007,30 +1033,18 @@ impl Store for PostgresDatabase {
             .report()
             .change_context(UpdateError)?;
 
-        // TODO: OPTIM: Combine version look-up and insertion into one query
-        let entity_version: i32 = self
-            .pool
-            .fetch_one(
-                sqlx::query(
-                    r#"
-                    SELECT MAX("version")
-                    FROM entities
-                    WHERE entity_id = $1;
-                    "#,
-                )
-                .bind(entity_id),
-            )
+        if !Self::contains_entity(&mut transaction, entity_id)
             .await
-            .report()
-            .change_context(QueryError)
-            .attach_printable(entity_id)
             .change_context(UpdateError)?
-            .get(0);
+        {
+            return Err(Report::new(EntityDoesNotExist)
+                .attach_printable(entity_id)
+                .change_context(UpdateError));
+        }
 
         Self::insert_entity(
             &mut transaction,
             entity_id,
-            entity_version + 1,
             entity,
             entity_type_uri,
             updated_by,
