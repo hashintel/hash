@@ -731,6 +731,7 @@ dependencies = [
  "float-cmp",
  "futures",
  "glob",
+ "json_comments",
  "kdtree",
  "lazy_static",
  "memory",
@@ -782,6 +783,7 @@ dependencies = [
  "error-stack",
  "execution",
  "futures",
+ "json_comments",
  "rand 0.8.5",
  "rand_distr",
  "serde",
@@ -1237,6 +1239,12 @@ checksum = "7cc9ffccd38c451a86bf13657df244e9c3f37493cce8e5e21e940963777acc84"
 dependencies = [
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "json_comments"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41ee439ee368ba4a77ac70d04f14015415af8600d6c894dc1f11bd79758c57d5"
 
 [[package]]
 name = "kdtree"
