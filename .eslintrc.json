@@ -2,7 +2,7 @@
   "root": true,
   // this is the highest config lower ones will automatically extend
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint", "react-hooks", "jest"],
+  "plugins": ["@typescript-eslint", "react-hooks", "jest", "unicorn"],
   "extends": [
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
     "airbnb",
