@@ -1,11 +1,10 @@
-import * as React from "react";
-
 import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
 import { Box, CssBaseline, Theme, ThemeProvider } from "@mui/material";
 import { theme } from "@hashintel/hash-design-system";
+import { Reducer, useEffect, useReducer, useRef } from "react";
 import {
   PullRequestIdentifier,
   BlockState,
@@ -80,7 +79,7 @@ const getInitialState = (options: Partial<LocalState>) => ({
 export const App: BlockComponent<BlockEntityProperties> = ({
   graph: { blockEntity },
 }) => {
-  const blockRef = React.useRef<HTMLDivElement>(null);
+  const blockRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRef);
   const {
     entityId,
@@ -99,13 +98,13 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       infoMessage,
     },
     dispatch,
-  ] = React.useReducer<React.Reducer<LocalState, Actions>>(
+  ] = useReducer<Reducer<LocalState, Actions>>(
     reducer,
     getInitialState({
       selectedPullRequestIdentifier: remoteSelectedPullRequestIdentifier,
     }),
   );
-  const prevSelectedPullRequestIdRef = React.useRef(
+  const prevSelectedPullRequestIdRef = useRef(
     remoteSelectedPullRequestIdentifier,
   );
   if (
@@ -151,7 +150,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     dispatch({ type: "RESET_SELECTED_PR" });
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!graphService) return;
     if (!githubEntityTypeIds || !allPrs) {
       dispatch({
@@ -188,7 +187,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
 
   // Fetch PR Details => pullRequest, events and reviews
   // if there's a selectedPullRequestId
-  React.useEffect(() => {
+  useEffect(() => {
     if (!blockRef.current || !graphService) return;
     if (selectedPullRequestIdentifier && githubEntityTypeIds) {
       dispatch({

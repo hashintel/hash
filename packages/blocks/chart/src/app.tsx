@@ -1,7 +1,7 @@
-import * as React from "react";
 import { BlockProtocolEntityType } from "blockprotocol";
 
 import { BlockComponent } from "blockprotocol/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Chart,
   ChartConfigProperties,
@@ -66,7 +66,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     throw new Error("linkedAggregations is required to render the Chart block");
   }
 
-  const currentConfigProperties = React.useMemo<ChartConfigProperties>(
+  const currentConfigProperties = useMemo<ChartConfigProperties>(
     () => ({
       displayDataPointLabels,
       displayLegend,
@@ -74,7 +74,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     [displayDataPointLabels, displayLegend],
   );
 
-  const currentProperties = React.useMemo<ChartEntityProperties>(
+  const currentProperties = useMemo<ChartEntityProperties>(
     () => ({
       title,
       xAxisLabel,
@@ -85,11 +85,11 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     [title, xAxisLabel, yAxisLabel, series, currentConfigProperties],
   );
 
-  const [possibleEntityTypes, setPossibleEntityTypes] = React.useState<
+  const [possibleEntityTypes, setPossibleEntityTypes] = useState<
     BlockProtocolEntityType[]
   >([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!aggregateEntityTypes) {
       throw new Error(
         "aggregateEntityTypes is required to render the Chart block",
@@ -100,7 +100,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     );
   }, [aggregateEntityTypes, accountId]);
 
-  const updateChartEntityProperties = React.useCallback(
+  const updateChartEntityProperties = useCallback(
     async (updatedProperties: Partial<ChartEntityProperties>) => {
       if (!updateEntities) {
         throw new Error("updateEntities is required to render the Chart block");
@@ -123,7 +123,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     [updateEntities, entityId, accountId, currentProperties],
   );
 
-  const seriesDefinitions = React.useMemo<SeriesDefinition[]>(
+  const seriesDefinitions = useMemo<SeriesDefinition[]>(
     () =>
       series
         .map(({ seriesId, ...definition }) => {
@@ -152,7 +152,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     [series, linkedAggregations],
   );
 
-  const handleUpdateSeriesDefinition = React.useCallback(
+  const handleUpdateSeriesDefinition = useCallback(
     async (params: {
       seriesId: string;
       updatedDefinition: Partial<Omit<SeriesDefinition, "seriesId">>;
@@ -239,7 +239,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     ],
   );
 
-  const handleCreateSeriesDefinition = React.useCallback(
+  const handleCreateSeriesDefinition = useCallback(
     async (params: {
       definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
     }): Promise<void> => {
@@ -289,7 +289,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     ],
   );
 
-  const handleDeleteSeriesDefinition = React.useCallback(
+  const handleDeleteSeriesDefinition = useCallback(
     async (params: { seriesId: string }) => {
       if (!deleteLinkedAggregations) {
         throw new Error(

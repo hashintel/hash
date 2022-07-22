@@ -1,9 +1,10 @@
-import React, {
+import {
   useState,
   useCallback,
   useRef,
   useEffect,
   useLayoutEffect,
+  SyntheticEvent,
 } from "react";
 
 import {
@@ -208,7 +209,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   }, [localState.serializedDocument, entityId, localState.darkMode]);
 
   const updateDimensions = useCallback(
-    (_: React.SyntheticEvent, { size }: ResizeCallbackData) => {
+    (_: SyntheticEvent, { size }: ResizeCallbackData) => {
       setLocalState((prev) => ({
         ...prev,
         width: size.width,
@@ -219,7 +220,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   );
 
   const updateRemoteDimensions = useCallback(
-    (_: React.SyntheticEvent, { size }: ResizeCallbackData) => {
+    (_: SyntheticEvent, { size }: ResizeCallbackData) => {
       updateRemoteData({
         width: size.width,
         height: size.height,

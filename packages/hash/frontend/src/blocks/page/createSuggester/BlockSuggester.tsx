@@ -1,5 +1,5 @@
 import { BlockVariant } from "@blockprotocol/core";
-import { VFC } from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
@@ -20,7 +20,7 @@ export interface BlockSuggesterProps {
  *
  * @todo highlight variant of the prosemirror-node this suggester is attached to.
  */
-export const BlockSuggester: VFC<BlockSuggesterProps> = ({
+export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
   search = "",
   onChange,
   sx,

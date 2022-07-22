@@ -2,12 +2,12 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import { ThemeProvider } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProviderProps } from "@mui/material/styles/ThemeProvider";
-import { FC, ReactNode, useEffect } from "react";
+import { FunctionComponent, ReactNode, useEffect } from "react";
 import { createEmotionCache } from "../util/createEmotionCache";
 
 const clientSideEmotionCache = createEmotionCache();
 
-export const MuiProvider: FC<{
+export const MuiProvider: FunctionComponent<{
   children?: ReactNode;
   emotionCache?: EmotionCache;
   theme: ThemeProviderProps["theme"];

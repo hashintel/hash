@@ -5,14 +5,14 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useRef } from "react";
+import { FunctionComponent, useCallback, useEffect, useRef } from "react";
 import { useKeys } from "rooks";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
 import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { SearchIcon } from "../../../icons";
 
-const ClearSearchIcon: React.FC<{
+const ClearSearchIcon: FunctionComponent<{
   clearSearch: () => void;
 }> = ({ clearSearch }) => {
   return (
@@ -77,7 +77,7 @@ const ShortcutIcon = () => {
   );
 };
 
-export const SearchInput: React.FC<{
+export const SearchInput: FunctionComponent<{
   displayedQuery: string;
   isMobile: boolean;
   setResultListVisible: (visible: boolean) => void;

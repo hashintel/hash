@@ -1,4 +1,3 @@
-import * as React from "react";
 import TreeItem, {
   TreeItemProps,
   useTreeItem,
@@ -14,11 +13,12 @@ import {
   faFile,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { forwardRef, MouseEvent as ReactMouseEvent, Ref } from "react";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
 
 // tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
-const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
+const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
   const { label, nodeId, expandable, url, depth } = props;
   const popupState = usePopupState({
     variant: "popover",
@@ -29,13 +29,13 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
     useTreeItem(nodeId);
 
   const handleMouseDown = (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+    event: ReactMouseEvent<HTMLDivElement, MouseEvent>,
   ) => {
     preventSelection(event);
   };
 
   const handleExpansionClick = (
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    event: ReactMouseEvent<HTMLButtonElement, MouseEvent>,
   ) => {
     handleExpansion(event);
   };
@@ -44,7 +44,7 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
     <Box
       tabIndex={0}
       onMouseDown={handleMouseDown}
-      ref={ref as React.Ref<HTMLDivElement>}
+      ref={ref as Ref<HTMLDivElement>}
       sx={({ palette }) => ({
         display: "flex",
         alignItems: "center",

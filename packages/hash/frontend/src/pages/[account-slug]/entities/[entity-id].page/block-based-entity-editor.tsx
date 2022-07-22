@@ -1,4 +1,4 @@
-import { VoidFunctionComponent } from "react";
+import { FunctionComponent } from "react";
 import { theme } from "@hashintel/hash-design-system";
 import { EntityPropertiesBlock } from "./entity-properties-block";
 import { LocalReactBlockContainer } from "./local-react-block-container";
@@ -8,7 +8,7 @@ export interface BlockBasedEntityEditorProps {
   entityId: string;
 }
 
-export const BlockBasedEntityEditor: VoidFunctionComponent<
+export const BlockBasedEntityEditor: FunctionComponent<
   BlockBasedEntityEditorProps
 > = ({ accountId, entityId }) => {
   return (

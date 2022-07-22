@@ -10,6 +10,7 @@ import HoverPopover from "material-ui-popup-state/HoverPopover";
 import {
   cloneElement,
   forwardRef,
+  ReactElement,
   RefObject,
   useLayoutEffect,
   useRef,
@@ -21,9 +22,9 @@ import { MenuItem } from "../../../shared/ui";
 type BlockContextMenuItemProps = {
   itemKey: string;
   onClick?: () => void;
-  icon: JSX.Element;
+  icon: ReactElement;
   title: string;
-  subMenu?: JSX.Element;
+  subMenu?: ReactElement;
   subMenuWidth?: number;
 };
 

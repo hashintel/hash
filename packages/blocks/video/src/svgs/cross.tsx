@@ -1,7 +1,7 @@
-import React from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 
-const Cross: React.VoidFunctionComponent = () => {
+const Cross: FunctionComponent = () => {
   return (
     <svg
       className={tw`fill-current h-6 w-6 text-red-500`}

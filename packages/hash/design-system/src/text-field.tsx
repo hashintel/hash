@@ -11,7 +11,7 @@ import {
   TextFieldProps as MuiTextFieldProps,
   Typography,
 } from "@mui/material";
-import { forwardRef, VFC } from "react";
+import { forwardRef, FunctionComponent } from "react";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 
 type TextFieldProps = {
@@ -20,7 +20,7 @@ type TextFieldProps = {
   autoResize?: boolean;
 } & MuiTextFieldProps;
 
-export const TextField: VFC<TextFieldProps> = forwardRef(
+export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
   (
     {
       helperText,

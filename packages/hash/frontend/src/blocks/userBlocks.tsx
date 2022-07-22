@@ -1,7 +1,7 @@
 import {
   createContext,
   Dispatch,
-  FC,
+  FunctionComponent,
   ReactNode,
   SetStateAction,
   useContext,
@@ -23,7 +23,7 @@ interface UserBlocksContextState {
 /** @private enforces use of custom provider */
 const UserBlocksContext = createContext<UserBlocksContextState | null>(null);
 
-export const UserBlocksProvider: FC<{
+export const UserBlocksProvider: FunctionComponent<{
   value: BlocksMetaMap;
   children?: ReactNode;
 }> = ({ value: initialUserBlocks, children }) => {

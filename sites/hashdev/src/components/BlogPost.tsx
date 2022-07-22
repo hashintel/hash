@@ -2,7 +2,7 @@ import { Container, Stack, Typography } from "@mui/material";
 import { Box, TypographyProps } from "@mui/system";
 import Head from "next/head";
 import Image from "next/image";
-import { createContext, FC, ReactNode, useContext, VFC } from "react";
+import { createContext, ReactNode, useContext, FunctionComponent } from "react";
 import { format } from "date-fns";
 import { FRONTEND_URL } from "../config";
 import { Link } from "./Link";
@@ -38,7 +38,7 @@ export type BlogPostAuthorProps = TypographyProps & {
   small?: boolean;
 };
 
-export const BlogPostAuthor: FC<BlogPostAuthorProps> = ({
+export const BlogPostAuthor: FunctionComponent<BlogPostAuthorProps> = ({
   children,
   small = false,
   ...props
@@ -52,7 +52,7 @@ export const BlogPostAuthor: FC<BlogPostAuthorProps> = ({
   </Typography>
 );
 
-export const BlogPostHead: VFC<{
+export const BlogPostHead: FunctionComponent<{
   title?: string;
   subtitle?: string;
   author?: string;
@@ -243,7 +243,9 @@ export const BlogPostHead: VFC<{
   );
 };
 
-export const BlogPostContent: FC<{ children?: ReactNode }> = ({ children }) => (
+export const BlogPostContent: FunctionComponent<{ children?: ReactNode }> = ({
+  children,
+}) => (
   <Container>
     <Box
       sx={{

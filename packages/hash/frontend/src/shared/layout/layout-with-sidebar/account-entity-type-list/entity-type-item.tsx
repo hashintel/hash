@@ -1,5 +1,5 @@
 import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
-import { useRef, VFC } from "react";
+import { useRef, FunctionComponent } from "react";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 
@@ -50,7 +50,7 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
   },
 }));
 
-export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
+export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
   accountId,
   entityId,
   title,

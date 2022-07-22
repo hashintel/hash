@@ -19,14 +19,14 @@ import "prismjs/components/prism-fsharp";
 
 import { Box, BoxProps } from "@mui/material";
 import Prism from "prismjs";
-import React from "react";
+import { FunctionComponent } from "react";
 
 type SnippetProps = {
   source: string;
   language: string;
 } & BoxProps;
 
-export const Snippet: React.VFC<SnippetProps> = ({
+export const Snippet: FunctionComponent<SnippetProps> = ({
   source,
   language,
   ...boxProps

@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState, VFC } from "react";
+import { ReactNode, useEffect, useState, FunctionComponent } from "react";
 import {
   Box,
   Collapse,
@@ -14,7 +14,7 @@ type TextFieldProps = {
   displayErrorOnTouched?: boolean;
 } & MuiTextFieldProps;
 
-export const TextField: VFC<TextFieldProps> = ({
+export const TextField: FunctionComponent<TextFieldProps> = ({
   helperText,
   sx,
   ...textFieldProps

@@ -1,9 +1,9 @@
-import React, {
+import {
   ChangeEvent,
   useEffect,
   useRef,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { Column, Row } from "react-table";
 import { GraphBlockHandler } from "@blockprotocol/graph";
@@ -18,7 +18,7 @@ type EditableCellProps = {
   updateEntity?: GraphBlockHandler["updateEntity"];
 };
 
-export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
+export const EditableCell: FunctionComponent<EditableCellProps> = ({
   value: initialValue,
   row,
   column,

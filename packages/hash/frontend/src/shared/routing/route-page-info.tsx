@@ -1,5 +1,11 @@
 import { useRouter } from "next/router";
-import { createContext, VFC, useContext, useMemo, ReactNode } from "react";
+import {
+  createContext,
+  FunctionComponent,
+  useContext,
+  useMemo,
+  ReactNode,
+} from "react";
 
 type RoutePageInfo = {
   pageEntityId: string;
@@ -14,9 +20,9 @@ const RoutePageInfoContext = createContext<RoutePageInfo | undefined>(
  * although this wouldn't work when we switch to using slugs instead of pageEntityIds in the url.
  * When that happens the pageEntityId should be pulled properly in this component
  */
-export const RoutePageInfoProvider: VFC<{ children?: ReactNode }> = ({
-  children,
-}) => {
+export const RoutePageInfoProvider: FunctionComponent<{
+  children?: ReactNode;
+}> = ({ children }) => {
   const router = useRouter();
 
   const pageSlug = router.query["page-slug"];

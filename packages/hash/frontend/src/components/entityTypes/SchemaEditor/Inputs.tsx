@@ -1,9 +1,9 @@
-import { useEffect, useState, VoidFunctionComponent } from "react";
+import { useEffect, useState, FunctionComponent } from "react";
 import { tw } from "twind";
 import { Checkbox } from "../../forms/Checkbox";
 import { TextInput } from "../../forms/TextInput";
 
-export const TextInputOrDisplay: VoidFunctionComponent<{
+export const TextInputOrDisplay: FunctionComponent<{
   className?: string;
   clearOnUpdate?: boolean;
   placeholder?: string;
@@ -62,7 +62,7 @@ export const TextInputOrDisplay: VoidFunctionComponent<{
   );
 };
 
-export const ToggleInputOrDisplay: VoidFunctionComponent<{
+export const ToggleInputOrDisplay: FunctionComponent<{
   checked: boolean;
   onChange: (value: boolean) => void;
   readonly: boolean;
