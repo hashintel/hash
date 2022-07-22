@@ -51,7 +51,16 @@
     "displayName": "shuffle",
     "examples": [
       {
-        "name": "World"
+        "id": "1",
+        "value": "Alice"
+      },
+      {
+        "id": "2",
+        "value": "Bob"
+      },
+      {
+        "id": "3",
+        "value": "Charlie"
       }
     ],
     "icon": "public/omega.svg",
