@@ -329,7 +329,7 @@ pub trait Store: Clone + Send + Sync + 'static {
         created_by: AccountId,
     ) -> Result<EntityId, InsertionError>;
 
-    /// Get an existing [`Entity`] by its [`EntityId`].
+    /// Get the latest version of the [`Entity`] identified by [`EntityId`].
     ///
     /// # Errors
     ///
