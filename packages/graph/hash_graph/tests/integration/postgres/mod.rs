@@ -265,11 +265,9 @@ impl DatabaseTestWrapper {
         entity_type_uri: VersionedUri,
     ) -> Result<EntityId, InsertionError> {
         self.rt.block_on(async {
-            let entity_type = self
-                .postgres
+            self.postgres
                 .create_entity(entity, entity_type_uri, self.account_id)
-                .await?;
-            Ok(entity_type)
+                .await
         })
     }
 
