@@ -19,16 +19,17 @@ pub mod record_batch;
 pub mod util;
 
 mod batch;
+mod buffer;
 mod change;
 mod conversion;
 mod ffi;
 
 pub use self::{
     batch::{columns::column_with_name_from_record_batch, ArrowBatch},
+    buffer::{new_buffer, new_offsets_buffer, new_zero_bits},
     change::{ColumnChange, IntoArrowChange},
     conversion::{
         col_to_json_vals, json_utf8_json_vals, json_vals_to_any_type_col, json_vals_to_bool,
-        json_vals_to_col, json_vals_to_primitive, json_vals_to_utf8, new_buffer,
-        new_offsets_buffer, new_zero_bits,
+        json_vals_to_col, json_vals_to_primitive, json_vals_to_utf8,
     },
 };

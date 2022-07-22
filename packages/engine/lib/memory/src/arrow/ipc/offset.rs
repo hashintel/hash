@@ -2,8 +2,9 @@
 
 use arrow::{
     array::{
-        Array, BinaryArray, BooleanArray, DictionaryArray, DictionaryKey, FixedSizeListArray,
-        ListArray, MapArray, Offset, PrimitiveArray, StructArray, UnionArray, Utf8Array,
+        Array, BinaryArray, BooleanArray, DictionaryArray, DictionaryKey, FixedSizeBinaryArray,
+        FixedSizeListArray, ListArray, MapArray, Offset, PrimitiveArray, StructArray, UnionArray,
+        Utf8Array,
     },
     bitmap::Bitmap,
     buffer::Buffer,
@@ -80,13 +81,15 @@ pub(crate) fn calculate_array_offset(
                 PrimitiveType::MonthDayNano => months_days_ns
             }
         }
-        PhysicalType::Binary => calculate_binary_array_offset::<i32>(
+        PhysicalType::FixedSizeBinary => calculate_fixed_size_binary_offset(
             array.as_any().downcast_ref().unwrap(),
+            len,
             buffers,
+            nodes,
             arrow_data_len,
             offset,
         ),
-        PhysicalType::FixedSizeBinary => calculate_binary_array_offset::<i32>(
+        PhysicalType::Binary => calculate_binary_array_offset::<i32>(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data_len,
@@ -257,7 +260,7 @@ pub(crate) fn calculate_binary_array_offset<O: Offset>(
 ) {
     calculate_bitmap_offset(
         array.validity(),
-        array.len() - 1,
+        array.len(),
         offset,
         arrow_data_len,
         buffers,
@@ -373,6 +376,18 @@ pub(crate) fn calculate_union_offset(
     }
 }
 
+fn calculate_fixed_size_binary_offset(
+    array: &FixedSizeBinaryArray,
+    len: usize,
+    buffers: &mut Vec<arrow_format::ipc::Buffer>,
+    nodes: &mut Vec<arrow_format::ipc::FieldNode>,
+    arrow_data_len: &mut usize,
+    offset: &mut i64,
+) {
+    calculate_bitmap_offset(array.validity(), len, offset, arrow_data_len, buffers);
+    calculate_bytes(array.values().as_slice(), buffers, arrow_data_len, offset);
+}
+
 fn calculate_map_offset(
     array: &MapArray,
     len: usize,
@@ -383,7 +398,7 @@ fn calculate_map_offset(
 ) {
     calculate_bitmap_offset(
         array.validity(),
-        array.len() - 1,
+        array.len(),
         offset,
         arrow_data_len,
         buffers,

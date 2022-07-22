@@ -5,7 +5,6 @@ use arrow::{
         ArrayRef, FixedSizeBinaryArray, FixedSizeListArray, Float64Array,
         MutableFixedSizeBinaryArray, PrimitiveArray,
     },
-    buffer::Buffer,
     chunk::Chunk,
     datatypes::{DataType, Field, Schema},
 };
@@ -200,11 +199,9 @@ agents_to_vec_col_gen!(rgb, agents_to_rgb_col);
 fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<ArrayRef> {
     if let DataType::FixedSizeList(inner_field, inner_len) = dt.clone() {
         debug_assert!(matches!(inner_field.data_type(), DataType::UInt32));
-        let data_byte_size = inner_len as usize * num_agents * std::mem::size_of::<u32>();
-        let mut buffer = Vec::with_capacity(bit_util::round_upto_multiple_of_64(data_byte_size));
-        buffer.resize(data_byte_size, 0);
 
-        let primitive = PrimitiveArray::new(DataType::UInt32, Buffer::from(buffer), None);
+        let primitive: PrimitiveArray<u32> =
+            PrimitiveArray::new_null(DataType::UInt32, num_agents * inner_len);
 
         // todo: this is not the right data type
         Ok(Arc::new(arrow::array::FixedSizeListArray::new(

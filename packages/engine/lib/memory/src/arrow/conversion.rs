@@ -6,56 +6,20 @@ use arrow::{
         Array, ArrayRef, BooleanArray, FixedSizeListArray, ListArray, MutableArray,
         MutablePrimitiveArray, MutableUtf8Array, PrimitiveArray, StructArray, Utf8Array,
     },
-    bitmap::Bitmap,
+    bitmap::{Bitmap, MutableBitmap},
     buffer::Buffer,
     datatypes::{DataType, Field},
     types::NativeType,
 };
-use num::{Integer, Num};
+use num::Num;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
+use super::new_zero_bits;
 use crate::{
-    arrow::util::bit_util,
+    arrow::{buffer::new_offsets_buffer, util::bit_util},
     error::{Error, Result, SupportedType},
 };
-
-// `n_bits` 0 bits, possibly followed by more 0 bits for padding.
-pub fn new_zero_bits<T: Integer + Clone>(n_bits: usize) -> Vec<T> {
-    let n_bytes = bit_util::ceil(n_bits, 8);
-
-    // MutableBuffer makes a call to std::alloc::alloc_zeroed
-    // It also rounds up the capacity to a multiple of 64
-    let mut buffer = Vec::with_capacity(bit_util::round_upto_multiple_of_64(n_bytes));
-    buffer.resize(n_bytes, T::zero());
-    debug_assert!(buffer.as_slice().iter().all(|v| *v == T::zero()));
-    buffer
-}
-
-/// Get a mutable buffer for offsets to `n_elem` elements
-/// It is required that the buffer is filled to `n_elem` + 1
-/// offsets. All elements are zero in the beginning, so
-/// there is no need to set the first offset as `0_i32`
-pub fn new_offsets_buffer<T: Integer + Clone>(n_elem: usize) -> Vec<T> {
-    // Each offset is an i32 element
-    let offset_size = std::mem::size_of::<i32>();
-
-    let byte_length = (n_elem + 1) * offset_size;
-
-    // Buffer actually contains `n_elem` + 1 bytes
-    let mut buffer = Vec::with_capacity(bit_util::round_upto_multiple_of_64(byte_length));
-    // Resize so buffer.len() is the correct size
-    buffer.resize(byte_length, T::zero());
-    buffer
-}
-
-/// Creates a new (typed) buffer.
-pub fn new_buffer<T: Clone + Num>(n_elem: usize) -> Vec<T> {
-    let mut buffer = Vec::with_capacity(bit_util::round_upto_multiple_of_64(n_elem));
-    // Resize so buffer.len() is the correct size
-    buffer.resize(n_elem, T::zero());
-    buffer
-}
 
 pub fn json_vals_to_bool(vals: Vec<Value>) -> Result<array::BooleanArray> {
     let bools: Vec<Option<bool>> = vals
@@ -111,11 +75,11 @@ fn json_vals_to_list(
     inner_field: Box<Field>,
 ) -> Result<ListArray<i32>> {
     let n_elem = vals.len();
-    let mut null_bits = new_zero_bits(n_elem);
-    let mut_null_bits = null_bits.as_mut_slice();
+
+    let mut validity = MutableBitmap::from_len_zeroed(n_elem);
 
     let mut offsets = new_offsets_buffer(n_elem);
-    // SAFETY: `new_offsets_buffer` is returning a buffer of `i32`
+    debug_assert_eq!(offsets.len(), n_elem + 1);
     let mut_offsets = offsets.as_mut_slice();
     debug_assert!(mut_offsets.iter().all(|v| *v == 0));
 
@@ -124,7 +88,7 @@ fn json_vals_to_list(
     for (i_val, val) in vals.into_iter().enumerate() {
         match val {
             Value::Array(mut inner_vals) => {
-                bit_util::set_bit(mut_null_bits, i_val);
+                validity.set(i_val, true);
                 let prev_offset = mut_offsets[i_val];
                 mut_offsets[i_val + 1] = prev_offset + inner_vals.len() as i32;
                 combined_vals.append(&mut inner_vals);
@@ -138,12 +102,11 @@ fn json_vals_to_list(
     // Nested values are always nullable.
     let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
-    // todo: test this
     Ok(ListArray::new(
-        child_data.data_type().clone(),
+        DataType::List(inner_field.clone()),
         Buffer::from(offsets),
         child_data,
-        Some(Bitmap::from_u8_vec(null_bits, n_elem)),
+        validity.into(),
     ))
 }
 
@@ -182,7 +145,7 @@ fn json_vals_to_fixed_size_list(
     let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
     Ok(FixedSizeListArray::new(
-        inner_field.data_type().clone(),
+        DataType::FixedSizeList(inner_field.clone(), size as usize),
         child_data,
         Some(Bitmap::from_u8_vec(null_bits, n_elem)),
     ))
