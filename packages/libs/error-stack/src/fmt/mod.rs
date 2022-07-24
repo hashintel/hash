@@ -13,6 +13,7 @@ use core::{
     fmt::{Debug, Display, Formatter, Write},
 };
 
+pub use hook::{Builtin, Context, Hook, Hooks};
 #[cfg(nightly)]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "hooks")]
@@ -22,13 +23,10 @@ use owo_colors::{colored::Color, colors::Red, OwoColorize, Stream::Stdout};
 
 #[cfg(feature = "hooks")]
 use crate::fmt::hook::ErasedHooks;
-use crate::{
-    fmt::hook::{AnyContext, Builtin, Hook},
-    AttachmentKind, Frame, FrameKind, Report,
-};
+use crate::{fmt::hook::AnyContext, AttachmentKind, Frame, FrameKind, Report};
 
 #[cfg(feature = "hooks")]
-static HOOK: OnceCell<ErasedHooks> = OnceCell::new();
+pub static HOOK: OnceCell<ErasedHooks> = OnceCell::new();
 
 #[derive(Debug, Clone)]
 pub enum Line {

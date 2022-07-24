@@ -6,7 +6,7 @@ pub struct DebugDiagnostic {
 }
 
 impl DebugDiagnostic {
-    pub fn direct(output: String) -> Self {
+    pub fn next(output: String) -> Self {
         Self {
             output: Line::Next(output),
             text: vec![],

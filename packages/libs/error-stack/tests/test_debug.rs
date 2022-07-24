@@ -3,8 +3,14 @@
 
 mod common;
 
+use core::any::{Provider, TypeId};
+use std::any::Demand;
+
 use common::*;
-use error_stack::{Frame, FrameKind};
+use error_stack::{
+    fmt::{Builtin, Context, DebugDiagnostic, Hooks, Line, HOOK},
+    Frame, FrameKind,
+};
 
 #[test]
 fn report_nest() {
@@ -14,12 +20,43 @@ fn report_nest() {
 
         report.extend_one(
             create_report()
-                .attach(AttachmentB)
-                .attach(AttachmentA)
+                .attach(AttachmentB(0))
+                .attach(AttachmentA(1))
                 .attach_printable(PrintableB(1)),
         );
 
-        report.attach_printable("Test")
+        report.attach(AttachmentA(2)).attach_printable("Test")
+    });
+
+    let hooks = Hooks::new().push(
+        |val: &AttachmentA, ctx: &mut Context<AttachmentA>| -> Line {
+            let idx = ctx.get::<u8>().copied();
+            let idx = idx.unwrap_or(0) + 1;
+
+            ctx.insert(idx);
+
+            Line::Next(format!("Error {idx}"))
+        },
+    );
+    HOOK.set(hooks.erase());
+
+    println!("{report:?}");
+}
+
+#[test]
+fn report_provider() {
+    let mut report = create_report().attach_printable(PrintableA(0));
+    report.extend_one({
+        let mut report = create_report().attach_printable(PrintableB(1));
+
+        report.extend_one(
+            create_report()
+                .attach(DebugDiagnostic::next("ABC".to_owned()))
+                .attach(AttachmentA(1))
+                .attach_printable(PrintableB(1)),
+        );
+
+        report.attach(AttachmentA(2)).attach_printable("Test")
     });
 
     println!("{report:?}");

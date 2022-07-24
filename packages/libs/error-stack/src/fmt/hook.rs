@@ -145,9 +145,9 @@ impl Hook<Frame> for Box<dyn Hook<Frame> + Send + Sync> {
 
 pub struct Hooks<T: Hook<Frame>>(T);
 
-impl Hooks<()> {
+impl Hooks<Builtin> {
     pub fn new() -> Self {
-        Self(())
+        Self(Builtin)
     }
 }
 

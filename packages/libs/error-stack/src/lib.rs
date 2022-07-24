@@ -441,7 +441,7 @@ mod report;
 
 mod context;
 mod ext;
-mod fmt;
+pub mod fmt;
 #[cfg(feature = "hooks")]
 mod hook;
 
