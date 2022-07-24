@@ -12,8 +12,7 @@ use crate::{
 };
 
 pub struct AnyContext {
-    text: Vec<Vec<String>>,
-    defer: Lines,
+    pub(crate) text: Vec<Vec<String>>,
     inner: BTreeMap<TypeId, Box<dyn Any>>,
 }
 
@@ -21,7 +20,6 @@ impl Default for AnyContext {
     fn default() -> Self {
         Self {
             text: vec![],
-            defer: vec![],
             inner: BTreeMap::new(),
         }
     }
@@ -33,10 +31,6 @@ impl AnyContext {
             parent: self,
             _marker: PhantomData::default(),
         }
-    }
-
-    pub(crate) fn defer(&mut self, value: String) {
-        self.defer.push(Instruction::plain(value))
     }
 
     pub(crate) fn text(&mut self, value: String) {
@@ -141,7 +135,7 @@ where
     }
 }
 
-impl Hook<Frame> for Box<dyn Hook<Frame>> {
+impl Hook<Frame> for Box<dyn Hook<Frame> + Send + Sync> {
     fn call(&self, frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
         let hook = self.as_ref();
 
@@ -182,26 +176,19 @@ impl<T: Hook<Frame>> Hooks<T> {
     }
 }
 
-impl<T: Hook<Frame> + 'static> Hooks<T> {
+impl<T: Hook<Frame> + Send + Sync + 'static> Hooks<T> {
     pub fn erase(self) -> ErasedHooks {
         Hooks::new_with(Box::new(self.0))
     }
 }
 
 impl ErasedHooks {
-    pub fn call(&self, frame: &Frame, ctx: &mut AnyContext) -> Option<String> {
-        match self.0.call(frame, ctx) {
-            None => None,
-            Some(Line::Defer(defer)) => {
-                ctx.defer(defer);
-                None
-            }
-            Some(Line::Next(next)) => Some(next),
-        }
+    pub fn call(&self, frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
+        self.0.call(frame, ctx)
     }
 }
 
-pub type ErasedHooks = Hooks<Box<dyn Hook<Frame>>>;
+pub type ErasedHooks = Hooks<Box<dyn Hook<Frame> + Send + Sync>>;
 
 mod builtin {
     #[cfg(all(nightly, feature = "std"))]
@@ -280,19 +267,6 @@ mod builtin {
             }
 
             None
-        }
-    }
-
-    impl Builtin {
-        pub(crate) fn fallback(&self, frame: &Frame, ctx: &mut AnyContext) -> Option<String> {
-            match self.call(frame, ctx) {
-                None => None,
-                Some(Line::Defer(defer)) => {
-                    ctx.defer(defer);
-                    None
-                }
-                Some(Line::Next(next)) => Some(next),
-            }
         }
     }
 }

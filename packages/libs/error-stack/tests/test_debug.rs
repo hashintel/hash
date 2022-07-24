@@ -7,6 +7,25 @@ use common::*;
 use error_stack::{Frame, FrameKind};
 
 #[test]
+fn report_nest() {
+    let mut report = create_report().attach_printable(PrintableA(0));
+    report.extend_one({
+        let mut report = create_report().attach_printable(PrintableB(1));
+
+        report.extend_one(
+            create_report()
+                .attach(AttachmentB)
+                .attach(AttachmentA)
+                .attach_printable(PrintableB(1)),
+        );
+
+        report.attach_printable("Test")
+    });
+
+    println!("{report:?}");
+}
+
+#[test]
 fn report_normal() {
     let report = create_report()
         .attach_printable(PrintableA(0))

@@ -30,6 +30,7 @@ use crate::{
 #[cfg(feature = "hooks")]
 static HOOK: OnceCell<ErasedHooks> = OnceCell::new();
 
+#[derive(Debug, Clone)]
 pub enum Line {
     Defer(String),
     Next(String),
@@ -81,62 +82,33 @@ impl Display for Instruction {
 type Instructions = VecDeque<Instruction>;
 type Lines = Vec<Instructions>;
 
-fn frame(frame: &Frame, ctx: &mut AnyContext) -> Option<Lines> {
-    // We allow `unused_mut` due to the fact that certain feature configurations will require
-    // this to be mutable (backtrace and spantrace overwrite extend the lines)
-    #[allow(unused_mut)]
-    let mut lines = match frame.kind() {
-        FrameKind::Context(context) => context
-            .to_string()
-            .split('\n')
-            .map(ToOwned::to_owned)
-            .collect(),
-        FrameKind::Attachment(AttachmentKind::Opaque(_)) => vec![],
-        FrameKind::Attachment(AttachmentKind::Printable(attachment)) => attachment
-            .to_string()
-            .split('\n')
-            .map(ToOwned::to_owned)
-            .collect(),
-    };
+fn frame(frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
+    match frame.kind() {
+        FrameKind::Context(context) => Some(context.to_string()).map(Line::Next),
+        FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
+            #[cfg(nightly)]
+            if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
+                for text in debug.text() {
+                    ctx.text(text.clone());
+                }
 
-    #[cfg(nightly)]
-    if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
-        match debug.output() {
-            Line::Defer(defer) => {
-                ctx.defer(defer.clone());
+                return Some(debug.output().clone());
             }
-            Line::Next(next) => {
-                lines.extend(next.split('\n').map(ToOwned::to_owned));
+
+            #[cfg(feature = "hooks")]
+            if let Some(hooks) = HOOK.get() {
+                return hooks.call(frame, ctx);
             }
-        }
 
-        for text in debug.text() {
-            ctx.text(text.clone());
+            Builtin.call(frame, ctx)
         }
-
-        return Some(lines.into_iter().map(Instruction::plain).collect());
-    }
-
-    #[cfg(feature = "hooks")]
-    if let Some(hooks) = HOOK.get() {
-        if let Some(out) = hooks.call(frame, ctx) {
-            lines.extend(out.split('\n').map(ToOwned::to_owned));
-        }
-    } else {
-        if let Some(out) = Builtin.fallback(frame, ctx) {
-            lines.extend(out.split('\n').map(ToOwned::to_owned));
+        FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+            Some(attachment.to_string()).map(Line::Next)
         }
     }
-
-    #[cfg(not(feature = "hooks"))]
-    if let Some(out) = Builtin.fallback(frame, ctx) {
-        lines.extend(out.split('\n').map(ToOwned::to_owned));
-    }
-
-    Some(lines.into_iter().map(Instruction::plain).collect())
 }
 
-fn frame_top(root: &Frame, text: &Vec<Vec<String>>) -> Lines {
+fn frame_top(root: &Frame, ctx: &mut AnyContext) -> Lines {
     let mut plain = vec![root];
 
     let next;
@@ -160,26 +132,36 @@ fn frame_top(root: &Frame, text: &Vec<Vec<String>>) -> Lines {
         break;
     }
 
-    let mut groups = vec![];
-
-    let mut ctx = AnyContext::default();
+    let mut groups: Vec<Lines> = vec![];
+    let mut defer = vec![];
 
     let mut opaque = 0;
     for child in plain {
-        let content = frame(child, &mut ctx);
-
-        if let Some(lines) = content {
-            if lines.is_empty() {
-                opaque += 1;
-            } else {
-                groups.push(lines);
+        if let Some(line) = frame(child, ctx) {
+            match line {
+                Line::Defer(line) => {
+                    defer.extend(line.lines().map(ToOwned::to_owned));
+                }
+                Line::Next(line) => groups.push(
+                    line.lines()
+                        .map(ToOwned::to_owned)
+                        .map(Instruction::plain)
+                        .collect(),
+                ),
             }
+        } else {
+            opaque += 1;
         }
     }
 
-    // TODO: global context?!
-    // TODO: remove defer from AnyContext
-    groups.extend(vec![ctx.destruct()]);
+    for line in defer {
+        groups.push(
+            line.lines()
+                .map(ToOwned::to_owned)
+                .map(Instruction::plain)
+                .collect(),
+        )
+    }
 
     match opaque {
         0 => {}
@@ -197,7 +179,7 @@ fn frame_top(root: &Frame, text: &Vec<Vec<String>>) -> Lines {
 
     if let Some(group) = next {
         for child in group {
-            let content = frame_top(child, text);
+            let content = frame_top(child, ctx);
 
             if !content.is_empty() {
                 groups.push(content);
@@ -245,10 +227,10 @@ impl<C> Debug for Report<C> {
         }
 
         let mut lines = vec![];
-        let mut buffer = vec![];
+        let mut ctx = AnyContext::default();
 
         for frame in self.current_frames() {
-            let display = frame_top(frame, &mut buffer);
+            let display = frame_top(frame, &mut ctx);
 
             lines.extend(display);
             lines.push(Instruction::plain("".to_owned()));
@@ -262,11 +244,13 @@ impl<C> Debug for Report<C> {
             acc
         });
 
-        let suffix = buffer
+        let suffix = ctx
+            .text
             .into_iter()
             .map(|lines| lines.join("\n"))
             .collect::<Vec<_>>()
-            .join("\n");
+            .join("\n\n");
+        lines.push_str("\n\n");
         lines.push_str(&suffix);
 
         fmt.write_str(&lines)
