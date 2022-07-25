@@ -56,6 +56,16 @@ export class BlockView implements NodeView<Schema> {
     return draftEntity?.entityId ?? null;
   };
 
+  private getBlockDraftId() {
+    const blockEntityNode = this.node.firstChild;
+
+    if (!blockEntityNode || !isEntityNode(blockEntityNode)) {
+      throw new Error("Unexpected prosemirror structure");
+    }
+
+    return blockEntityNode.attrs.draftId ?? null;
+  }
+
   constructor(
     public node: ProsemirrorNode<Schema>,
     public editorView: EditorView<Schema>,
@@ -175,8 +185,8 @@ export class BlockView implements NodeView<Schema> {
         <CollabPositionIndicators blockEntityId={blockEntityId} />
         <BlockHandle
           deleteBlock={this.deleteBlock}
-          entityId={blockEntityId}
           entityStore={this.store}
+          draftId={this.getBlockDraftId()}
           onTypeChange={this.onBlockChange}
           ref={this.blockHandleRef}
           onMouseDown={() => {

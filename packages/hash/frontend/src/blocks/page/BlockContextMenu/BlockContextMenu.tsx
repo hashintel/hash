@@ -39,7 +39,6 @@ type BlockContextMenuProps = {
   blockEntity: BlockEntity | null;
   blockSuggesterProps: BlockSuggesterProps;
   deleteBlock: () => void;
-  entityId: string | null;
   openConfigMenu: () => void;
   popupState: PopupState;
   swapType: boolean;
@@ -55,7 +54,6 @@ const BlockContextMenu: ForwardRefRenderFunction<
     blockEntity,
     blockSuggesterProps,
     deleteBlock,
-    entityId,
     openConfigMenu,
     popupState,
     swapType,
@@ -65,6 +63,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const { data: users } = useUsers();
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
+
+  const entityId = blockEntity?.entityId ?? null;
 
   const menuItems = useMemo(() => {
     const hasChildEntity =

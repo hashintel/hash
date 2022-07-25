@@ -1,26 +1,22 @@
 import { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import {
-  EntityStore,
-  getDraftEntityByEntityId,
-  isBlockEntity,
-} from "@hashintel/hash-shared/entityStore";
+import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
+import { isBlockSwappable } from "@hashintel/hash-shared/blocks";
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { Box } from "@mui/material";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { ForwardRefRenderFunction, useRef, useMemo, forwardRef } from "react";
-import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { forwardRef, ForwardRefRenderFunction, useMemo, useRef } from "react";
 import { useUserBlocks } from "../userBlocks";
 import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
+import { useBlockContext } from "./BlockContext";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { useBlockView } from "./BlockViewContext";
-import { useBlockContext } from "./BlockContext";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
-import { isBlockSwappable } from "@hashintel/hash-shared/blocks";
 
 type BlockHandleProps = {
   deleteBlock: () => void;
-  entityId: string | null;
+  draftId: string | null;
   entityStore: EntityStore;
   onTypeChange: BlockSuggesterProps["onChange"];
   onMouseDown: () => void;
@@ -31,7 +27,7 @@ const BlockHandle: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockHandleProps
 > = (
-  { deleteBlock, entityId, entityStore, onTypeChange, onMouseDown, onClick },
+  { deleteBlock, draftId, entityStore, onTypeChange, onMouseDown, onClick },
   ref,
 ) => {
   const blockMenuRef = useRef(null);
@@ -65,12 +61,10 @@ const BlockHandle: ForwardRefRenderFunction<
    * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
    * @todo remove this comment when all updates are sent via collab
    */
-  const blockEntity = entityId
-    ? getDraftEntityByEntityId(entityStore.draft, entityId) ?? null
-    : null;
+  const blockEntity = draftId ? entityStore.draft[draftId] ?? null : null;
 
   if (blockEntity && !isBlockEntity(blockEntity)) {
-    throw new Error(`Non-block entity ${entityId} loaded into BlockView.`);
+    throw new Error(`Non-block entity ${draftId} loaded into BlockView.`);
   }
 
   const blockView = useBlockView();
@@ -113,7 +107,6 @@ const BlockHandle: ForwardRefRenderFunction<
         blockEntity={blockEntity}
         blockSuggesterProps={blockSuggesterProps}
         deleteBlock={deleteBlock}
-        entityId={entityId}
         openConfigMenu={configMenuPopupState.open}
         popupState={contextMenuPopupState}
         ref={blockMenuRef}
