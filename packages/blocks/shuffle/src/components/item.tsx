@@ -11,6 +11,7 @@ type ItemProps = {
   value: string;
   isDragging?: boolean;
   onValueChange?: (value: string) => void;
+  onItemBlur?: () => void;
   onAdd?: () => void;
   onDelete?: () => void;
 };
@@ -20,6 +21,7 @@ export const Item: FunctionComponent<ItemProps> = ({
   value,
   isDragging,
   onValueChange,
+  onItemBlur,
   onAdd,
   onDelete,
 }) => {
@@ -59,6 +61,7 @@ export const Item: FunctionComponent<ItemProps> = ({
         sx={{ border: "none", outline: "none" }}
         value={value}
         onChange={(event) => onValueChange?.(event.target.value)}
+        onBlur={() => onItemBlur?.()}
         InputProps={{
           disableUnderline: true,
         }}

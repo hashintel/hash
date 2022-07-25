@@ -14,13 +14,14 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Items } from "../reducer";
+import { Items } from "../shuffle";
 import { Item } from "./item";
 
 type ItemListProps = {
   list: Items;
   onReorder: (sourceIndex: number, destinationIndex: number) => void;
   onValueChange: (index: number, value: string) => void;
+  onItemBlur: () => void;
   onAdd: (index: number) => void;
   onDelete: (index: number) => void;
 };
@@ -29,6 +30,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
   list,
   onReorder,
   onValueChange,
+  onItemBlur,
   onAdd,
   onDelete,
 }) => {
@@ -76,6 +78,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
               value={item.value}
               isDragging={index === activeIndex}
               onValueChange={(value: string) => onValueChange(index, value)}
+              onItemBlur={() => onItemBlur()}
               onAdd={() => onAdd(index + 1)}
               onDelete={() => onDelete(index)}
             />

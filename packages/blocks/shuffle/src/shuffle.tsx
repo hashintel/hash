@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   BlockComponent,
   useGraphBlockService,
@@ -6,13 +6,25 @@ import {
 // eslint-disable-next-line no-restricted-imports
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
-import isEqual from "lodash.isequal";
+import produce from "immer";
+import { v4 as uuid } from "uuid";
 import { ItemList } from "./components/item-list";
-import { ActionType, initialItems, Items, shuffleReducer } from "./reducer";
+
+export type Item = {
+  id: string;
+  value: string;
+};
+
+export type Items = Item[];
 
 type BlockEntityProperties = {
   items: Items;
 };
+
+export const initialItems = [
+  { id: uuid(), value: "Thing 1" },
+  { id: uuid(), value: "Thing 2" },
+];
 
 export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   graph: {
@@ -25,64 +37,95 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
 
-  const [list, dispatch] = useReducer(
-    shuffleReducer,
-    items?.length ? items : initialItems,
-  );
-
-  const onReorder = (sourceIndex: number, destinationIndex: number) =>
-    dispatch({
-      type: ActionType.REORDER,
-      payload: {
-        sourceIndex,
-        destinationIndex,
-      },
-    });
-
-  const onValueChange = (index: number, value: string) =>
-    dispatch({
-      type: ActionType.UPDATE,
-      payload: {
-        index,
-        value,
-      },
-    });
-
-  const onAdd = (index: number) =>
-    dispatch({
-      type: ActionType.ADD,
-      payload: { index },
-    });
-
-  const onDelete = (index: number) =>
-    dispatch({
-      type: ActionType.DELETE,
-      payload: { index },
-    });
+  const [list, setList] = useState(items?.length ? items : initialItems);
 
   useEffect(() => {
-    if (!isEqual(list, items)) {
-      void graphService?.updateEntity({
-        data: {
-          entityId,
-          properties: { items: list },
-        },
-      });
+    if (items) {
+      setList(items);
     }
-  }, [graphService, entityId, list, items]);
+  }, [items]);
+
+  const publishChanges = (newItems: Items) => {
+    void graphService?.updateEntity({
+      data: {
+        entityId,
+        properties: { items: newItems },
+      },
+    });
+  };
+
+  const onReorder = (sourceIndex: number, destinationIndex: number) => {
+    const newItems = produce(list, (draftItems) => {
+      const [removed] = draftItems.splice(sourceIndex, 1);
+      if (removed) {
+        draftItems.splice(destinationIndex, 0, removed);
+      }
+    });
+
+    setList(newItems);
+    publishChanges(newItems);
+  };
+
+  const onValueChange = (index: number, value: string) => {
+    const newItems = produce(items, (draftItems) => {
+      if (draftItems[index]) {
+        draftItems[index]!.value = value;
+      }
+    });
+
+    setList(newItems);
+  };
+
+  const onItemBlur = () => {
+    publishChanges(list);
+  };
+
+  const onAdd = (index: number) => {
+    const newItems = produce(items, (draftItems) => {
+      draftItems.splice(index, 0, {
+        id: uuid(),
+        value: `Thing ${items.length + 1}`,
+      });
+    });
+
+    setList(newItems);
+    publishChanges(newItems);
+  };
+
+  const onDelete = (index: number) => {
+    const newItems = produce(items, (draftItems) => {
+      draftItems.splice(index, 1);
+      if (draftItems.length === 0) {
+        draftItems.push({ id: uuid(), value: "Thing 1" });
+      }
+    });
+
+    setList(newItems);
+    publishChanges(newItems);
+  };
+
+  const onShuffle = () => {
+    const newItems = produce(items, (draftItems) => {
+      return draftItems
+        .map((value) => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
+    });
+
+    setList(newItems);
+    publishChanges(newItems);
+  };
 
   return (
     <Box ref={blockRootRef}>
-      <Button
-        disabled={items?.length <= 1}
-        onClick={() => dispatch({ type: ActionType.SHUFFLE })}
-      >
+      <Button disabled={items?.length <= 1} onClick={() => onShuffle()}>
         Shuffle
       </Button>
       <ItemList
         list={list}
         onReorder={onReorder}
         onValueChange={onValueChange}
+        onItemBlur={onItemBlur}
         onAdd={onAdd}
         onDelete={onDelete}
       />
