@@ -67,7 +67,7 @@ impl PostgresStore {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if checking for the [`BaseUri`] failed.
+    /// - if checking for the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn contains_base_uri(
@@ -97,7 +97,7 @@ impl PostgresStore {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if checking for the [`VersionedUri`] failed.
+    /// - if checking for the [`VersionedUri`] failed.
     async fn contains_uri(
         transaction: &mut Transaction<'_, Postgres>,
         uri: &VersionedUri,
@@ -154,7 +154,7 @@ impl PostgresStore {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if inserting the [`VersionedUri`] failed.
+    /// - if inserting the [`VersionedUri`] failed.
     async fn insert_uri(
         transaction: &mut Transaction<'_, Postgres>,
         uri: &VersionedUri,
@@ -185,7 +185,7 @@ impl PostgresStore {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if inserting the [`BaseUri`] failed.
+    /// - if inserting the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn insert_base_uri(
@@ -215,7 +215,7 @@ impl PostgresStore {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if inserting the [`VersionId`] failed.
+    /// - if inserting the [`VersionId`] failed.
     async fn insert_version_id(
         transaction: &mut Transaction<'_, Postgres>,
         version_id: VersionId,
@@ -336,7 +336,7 @@ impl PostgresStore {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if inserting failed.
+    /// - if inserting failed.
     async fn insert_with_id<T>(
         transaction: &mut Transaction<'_, Postgres>,
         version_id: VersionId,
