@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use arrow::datatypes::Schema;
+use arrow2::datatypes::Schema;
 use memory::{
     arrow::{
         ipc::{

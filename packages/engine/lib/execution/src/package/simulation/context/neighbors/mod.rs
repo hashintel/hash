@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use arrow::{
+use arrow2::{
     array::{MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray},
     datatypes::{DataType, Field},
 };
@@ -130,7 +130,7 @@ impl ContextPackage for Neighbors {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow2::array::Array>)>> {
         let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
 
         let neighbor_index_builder = MutableFixedSizeListArray::new(index_builder, 2);

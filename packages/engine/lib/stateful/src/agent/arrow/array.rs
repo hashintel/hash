@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow::{
+use arrow2::{
     array::{
         ArrayRef, FixedSizeBinaryArray, FixedSizeListArray, MutableFixedSizeBinaryArray,
         PrimitiveArray,
@@ -148,21 +148,21 @@ fn agents_to_id_col(agents: &[&Agent]) -> Result<ArrayRef> {
 macro_rules! agents_to_vec_col_gen {
     ($field_name:ident, $function_name:ident) => {
         fn $function_name(agents: &[&Agent]) -> Result<FixedSizeListArray> {
-            let mut flat: arrow::array::MutableFixedSizeListArray<
-                arrow::array::MutablePrimitiveArray<f64>,
-            > = arrow::array::MutableFixedSizeListArray::new(
-                arrow::array::MutablePrimitiveArray::new(),
+            let mut flat: arrow2::array::MutableFixedSizeListArray<
+                arrow2::array::MutablePrimitiveArray<f64>,
+            > = arrow2::array::MutableFixedSizeListArray::new(
+                arrow2::array::MutablePrimitiveArray::new(),
                 3,
             );
 
             for agent in agents {
                 if let Some(dir) = agent.$field_name {
-                    arrow::array::TryPush::try_push(
+                    arrow2::array::TryPush::try_push(
                         &mut flat,
                         Some([Some(dir.0), Some(dir.1), Some(dir.2)]),
                     )?;
                 } else {
-                    arrow::array::TryPush::try_push(&mut flat, Option::<[Option<f64>; 3]>::None)?;
+                    arrow2::array::TryPush::try_push(&mut flat, Option::<[Option<f64>; 3]>::None)?;
                 }
             }
 
@@ -184,7 +184,7 @@ fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<ArrayR
             PrimitiveArray::new_null(DataType::UInt32, num_agents * inner_len);
 
         // todo: this is not the right data type
-        Ok(Arc::new(arrow::array::FixedSizeListArray::new(
+        Ok(Arc::new(arrow2::array::FixedSizeListArray::new(
             DataType::FixedSizeList(inner_field, inner_len),
             primitive.arced(),
             None,

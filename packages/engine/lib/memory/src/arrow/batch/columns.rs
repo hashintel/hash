@@ -1,6 +1,6 @@
 //! This module contains code to access the columns in the batch.s
 
-use arrow::array::ArrayRef;
+use arrow2::array::ArrayRef;
 
 use super::super::record_batch::RecordBatch;
 use crate::error::{Error, Result};

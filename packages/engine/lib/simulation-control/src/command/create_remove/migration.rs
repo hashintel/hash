@@ -2,7 +2,7 @@
 
 use std::{borrow::Cow, mem, sync::Arc};
 
-use arrow::{self, array::ArrayRef};
+use arrow2::{self, array::ArrayRef};
 use bytemuck::cast_slice;
 use memory::{
     arrow::{

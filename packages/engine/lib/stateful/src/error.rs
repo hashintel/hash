@@ -33,7 +33,7 @@ pub enum Error {
     OutboundMessageParse(#[from] crate::message::OutboundError),
 
     #[error("Arrow Error: {0}")]
-    Arrow(#[from] arrow::error::Error),
+    Arrow(#[from] arrow2::error::Error),
 
     #[error("Failed to read Arrow Schema from buffer")]
     ArrowSchemaRead,

@@ -7,7 +7,7 @@ mod writer;
 
 use std::sync::Arc;
 
-use arrow::{array::ListArray, datatypes::DataType};
+use arrow2::{array::ListArray, datatypes::DataType};
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use stateful::{
@@ -132,7 +132,7 @@ impl ContextPackage for ApiRequests {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow2::array::Array>)>> {
         let field_key = self
             .context_field_spec_accessor
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?

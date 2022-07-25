@@ -10,7 +10,7 @@
 //!
 //! For more information on these types please the the corresponding documentation.
 //!
-//! [`Schema`]: arrow::datatypes::Schema
+//! [`Schema`]: arrow2::datatypes::Schema
 
 mod accessor;
 mod field_type;

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use arrow::chunk::Chunk;
+use arrow2::chunk::Chunk;
 use execution::{
     package::simulation::{
         context::ContextPackage,
@@ -240,7 +240,7 @@ impl Packages {
             .into_iter()
             .flatten()
             .map(|(field_key, col)| (field_key.value().to_string(), col))
-            .collect::<HashMap<String, Arc<dyn arrow::array::Array>>>();
+            .collect::<HashMap<String, Arc<dyn arrow2::array::Array>>>();
 
         // because we aren't generating the columns from the schema, we need to reorder the cols
         // from the packages to match this is another reason to move column creation to be

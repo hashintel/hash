@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use arrow::{
+use arrow2::{
     array::{
         Array, BooleanArray, FixedSizeBinaryArray, MutableArray, MutableBooleanArray,
         MutableUtf8Array, PrimitiveArray, Utf8Array,
@@ -163,7 +163,7 @@ pub(crate) fn topology_mut_iter(
 
     let pos_column = pos_column
         .as_any()
-        .downcast_ref::<arrow::array::FixedSizeListArray>()
+        .downcast_ref::<arrow2::array::FixedSizeListArray>()
         .ok_or_else(|| Error::InvalidArrowDowncast {
             name: pos_column_name.into(),
         })?;
@@ -191,7 +191,7 @@ pub(crate) fn topology_mut_iter(
 
     let dir_column = dir_column
         .as_any()
-        .downcast_ref::<arrow::array::FixedSizeListArray>()
+        .downcast_ref::<arrow2::array::FixedSizeListArray>()
         .ok_or_else(|| Error::InvalidArrowDowncast {
             name: dir_column_name.into(),
         })?;
@@ -250,7 +250,7 @@ pub(crate) fn position_iter(
     let column_name = AgentStateField::Position.name();
     let fixed_size_list = column_with_name_from_record_batch(record_batch, column_name)?
         .as_any()
-        .downcast_ref::<arrow::array::FixedSizeListArray>()
+        .downcast_ref::<arrow2::array::FixedSizeListArray>()
         .ok_or_else(|| Error::InvalidArrowDowncast {
             name: column_name.into(),
         })?;
@@ -279,7 +279,7 @@ pub(crate) fn direction_iter(
 
     let column = column
         .as_any()
-        .downcast_ref::<arrow::array::FixedSizeListArray>()
+        .downcast_ref::<arrow2::array::FixedSizeListArray>()
         .ok_or_else(|| Error::InvalidArrowDowncast {
             name: column_name.into(),
         })?;
@@ -312,7 +312,7 @@ pub(crate) fn f64_iter<'a>(
 
     let column = column
         .as_any()
-        .downcast_ref::<arrow::array::Float64Array>()
+        .downcast_ref::<arrow2::array::Float64Array>()
         .ok_or_else(|| Error::InvalidArrowDowncast {
             name: column_name.into(),
         })?;
@@ -345,7 +345,7 @@ pub(crate) fn str_iter<'a>(
 
     let column = column
         .as_any()
-        .downcast_ref::<arrow::array::Utf8Array<i32>>()
+        .downcast_ref::<arrow2::array::Utf8Array<i32>>()
         .ok_or_else(|| Error::InvalidArrowDowncast {
             name: column_name.into(),
         })?;
@@ -368,7 +368,7 @@ pub(crate) fn bool_iter<'a>(
 
     let column = column
         .as_any()
-        .downcast_ref::<arrow::array::BooleanArray>()
+        .downcast_ref::<arrow2::array::BooleanArray>()
         .ok_or_else(|| Error::InvalidArrowDowncast {
             name: column_name.into(),
         })?;

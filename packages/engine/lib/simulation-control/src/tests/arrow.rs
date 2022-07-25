@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow2::datatypes::{DataType, Field, Schema};
 use stateful::{
     agent::{
         arrow::{IntoRecordBatch, PREVIOUS_INDEX_FIELD_KEY},

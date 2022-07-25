@@ -20,7 +20,7 @@ use std::{
     sync::Arc,
 };
 
-use arrow::{
+use arrow2::{
     array::{
         ArrayRef, BooleanArray, FixedSizeBinaryArray, FixedSizeListArray, ListArray,
         PrimitiveArray, StructArray, Utf8Array,

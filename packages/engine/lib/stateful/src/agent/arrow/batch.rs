@@ -2,7 +2,7 @@
 
 use std::{borrow::Cow, sync::Arc};
 
-use arrow::{
+use arrow2::{
     array::MutableBooleanArray,
     io::ipc::write::{default_ipc_fields, schema_to_bytes},
 };
@@ -102,7 +102,8 @@ impl AgentBatch {
                 Ok(Some(MessageHeaderRef::Schema(s))) => s,
                 _ => return Err(Error::ArrowSchemaRead),
             };
-            let schema: Arc<arrow::datatypes::Schema> = Arc::new(arrow_schema_from_fb(ipc_schema)?);
+            let schema: Arc<arrow2::datatypes::Schema> =
+                Arc::new(arrow_schema_from_fb(ipc_schema)?);
             let static_meta = Arc::new(StaticMetadata::from_schema(schema.clone()));
             (schema, static_meta)
         };

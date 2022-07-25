@@ -1,6 +1,6 @@
 use std::fmt;
 
-use arrow::datatypes::DataType;
+use arrow2::datatypes::DataType;
 use thiserror::Error as ThisError;
 
 #[derive(Debug)]
@@ -30,7 +30,7 @@ pub enum Error {
     Unique(String),
 
     #[error("Arrow Error: {0}")]
-    Arrow(#[from] arrow::error::Error),
+    Arrow(#[from] arrow2::error::Error),
 
     #[error("Invalid Arrow object downcast. Field name: {name}")]
     InvalidArrowDowncast { name: String },

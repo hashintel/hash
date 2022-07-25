@@ -5,7 +5,7 @@
 
 use core::fmt;
 
-use arrow::datatypes::{DataType, Field};
+use arrow2::datatypes::{DataType, Field};
 
 use crate::field::{FieldSpec, IsFixedSize, UUID_V4_LEN};
 

@@ -8,7 +8,7 @@ mod macros {
     $key_type:expr, | $_:tt $T:ident | $($body:tt)*
     ) => ({
         macro_rules! __with_ty__ {( $_ $T:ident ) => ( $($body)* )}
-        use arrow::datatypes::IntegerType::*;
+        use arrow2::datatypes::IntegerType::*;
         match $key_type {
             Int8 => __with_ty__! { i8 },
             Int16 => __with_ty__! { i16 },
@@ -27,8 +27,8 @@ mod macros {
     $key_type:expr, | $_:tt $T:ident | $($body:tt)*
     ) => ({
         macro_rules! __with_ty__ {( $_ $T:ident ) => ( $($body)* )}
-        use arrow::datatypes::PrimitiveType::*;
-        use arrow::types::{days_ms, months_days_ns};
+        use arrow2::datatypes::PrimitiveType::*;
+        use arrow2::types::{days_ms, months_days_ns};
         match $key_type {
             Int8 => __with_ty__! { i8 },
             Int16 => __with_ty__! { i16 },

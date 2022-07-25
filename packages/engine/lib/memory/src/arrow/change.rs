@@ -1,4 +1,4 @@
-use arrow::array::ArrayRef;
+use arrow2::array::ArrayRef;
 
 use crate::{arrow::flush::GrowableColumn, Result};
 

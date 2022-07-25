@@ -20,7 +20,7 @@ pub enum Error {
 
     #[cfg(test)]
     #[error("Arrow Error: {0}")]
-    Arrow(#[from] arrow::error::Error),
+    Arrow(#[from] arrow2::error::Error),
 
     #[cfg(test)]
     #[error("Invalid utf-8: {0}")]

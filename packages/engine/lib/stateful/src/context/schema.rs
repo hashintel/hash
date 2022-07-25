@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow::datatypes::Schema;
+use arrow2::datatypes::Schema;
 
 use crate::{field::FieldSpecMap, Result};
 

@@ -1,4 +1,4 @@
-use arrow::array::PrimitiveArray;
+use arrow2::array::PrimitiveArray;
 use memory::arrow::{new_buffer, ColumnChange, IntoArrowChange};
 use stateful::state::StateColumn;
 

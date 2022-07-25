@@ -1,4 +1,4 @@
-use arrow::datatypes::DataType;
+use arrow2::datatypes::DataType;
 
 use crate::{
     agent::{arrow::record_batch, AgentBatch},

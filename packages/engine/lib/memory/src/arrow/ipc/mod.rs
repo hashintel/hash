@@ -17,7 +17,7 @@
 //! # Further reading
 //! - [This explanation of the IPC format](https://wesm.github.io/arrow-site-test/format/IPC.html)
 
-use arrow::io::ipc::write::{default_ipc_fields, schema_to_bytes};
+use arrow2::io::ipc::write::{default_ipc_fields, schema_to_bytes};
 
 use super::record_batch::RecordBatch;
 

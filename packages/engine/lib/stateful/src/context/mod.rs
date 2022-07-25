@@ -20,7 +20,7 @@ mod schema;
 
 use std::sync::Arc;
 
-use arrow::{array::ArrayRef, chunk::Chunk};
+use arrow2::{array::ArrayRef, chunk::Chunk};
 use memory::{arrow::record_batch::RecordBatch, shared_memory::MemoryId};
 
 pub use self::{

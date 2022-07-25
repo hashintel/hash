@@ -1,6 +1,6 @@
 //! Module for converting the Arrow representation of [`Message`]
 
-use arrow::array::{Array, ListArray, MutableListArray, MutableUtf8Array, TryPush};
+use arrow2::array::{Array, ListArray, MutableListArray, MutableUtf8Array, TryPush};
 use memory::arrow::record_batch::RecordBatch;
 
 use super::MESSAGE_LIST_ARROW_FIELD;
@@ -45,11 +45,11 @@ impl Array for MessageArray {
         self.0.len()
     }
 
-    fn data_type(&self) -> &arrow::datatypes::DataType {
+    fn data_type(&self) -> &arrow2::datatypes::DataType {
         self.0.data_type()
     }
 
-    fn validity(&self) -> Option<&arrow::bitmap::Bitmap> {
+    fn validity(&self) -> Option<&arrow2::bitmap::Bitmap> {
         self.0.validity()
     }
 
@@ -61,7 +61,7 @@ impl Array for MessageArray {
         Array::slice_unchecked(&self.0, offset, length)
     }
 
-    fn with_validity(&self, validity: Option<arrow::bitmap::Bitmap>) -> Box<dyn Array> {
+    fn with_validity(&self, validity: Option<arrow2::bitmap::Bitmap>) -> Box<dyn Array> {
         Array::with_validity(&self.0, validity)
     }
 

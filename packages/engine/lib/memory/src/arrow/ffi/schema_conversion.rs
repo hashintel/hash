@@ -2,7 +2,7 @@
 
 use std::ffi::CStr;
 
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow2::datatypes::{DataType, Field, Schema};
 
 use crate::{
     arrow::ffi::ArrowSchema,

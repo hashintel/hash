@@ -1,4 +1,4 @@
-use arrow::{
+use arrow2::{
     array::{ListArray, MutableArray, MutableFixedSizeListArray, MutablePrimitiveArray, Utf8Array},
     datatypes::DataType,
 };
@@ -18,7 +18,7 @@ use crate::{
 pub fn gather_behavior_chains(
     agent_batches: &[&AgentBatch],
     behavior_ids: &BehaviorIds,
-    data_types: [arrow::datatypes::DataType; 3],
+    data_types: [arrow2::datatypes::DataType; 3],
     behavior_ids_col_index: usize,
 ) -> Result<StateColumn> {
     let inner = pool_behavior_list_bytes_iter(agent_batches)?
@@ -112,7 +112,7 @@ impl Chain {
 pub struct ChainList {
     inner: Vec<Chain>,
     behavior_ids_col_index: usize,
-    data_types: [arrow::datatypes::DataType; 3],
+    data_types: [arrow2::datatypes::DataType; 3],
 }
 
 impl IntoArrowChange for ChainList {

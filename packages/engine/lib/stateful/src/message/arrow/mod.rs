@@ -2,7 +2,7 @@ pub mod array;
 pub mod column;
 pub mod record_batch;
 
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow2::datatypes::{DataType, Field, Schema};
 use lazy_static::lazy_static;
 
 use crate::field::PresetFieldType;

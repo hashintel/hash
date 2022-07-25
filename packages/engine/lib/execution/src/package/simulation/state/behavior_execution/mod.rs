@@ -10,7 +10,7 @@ mod task;
 
 use std::sync::Arc;
 
-use arrow::datatypes::Schema;
+use arrow2::datatypes::Schema;
 use async_trait::async_trait;
 use stateful::{
     agent::AgentBatch,
@@ -150,7 +150,7 @@ pub fn index_of(schema: Arc<Schema>, field_name: &str) -> crate::Result<usize> {
 pub struct BehaviorExecution {
     behavior_ids: Arc<BehaviorIds>,
     behavior_ids_col_index: usize,
-    behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
+    behavior_ids_col_data_types: [arrow2::datatypes::DataType; 3],
     behavior_index_col_index: usize,
     comms: PackageComms,
 }

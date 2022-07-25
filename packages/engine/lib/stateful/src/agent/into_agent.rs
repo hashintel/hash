@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use arrow::{
+use arrow2::{
     array::{self, Array, FixedSizeListArray, Utf8Array},
     datatypes::{Field, Schema},
 };
@@ -205,7 +205,7 @@ fn set_states_agent_id(states: &mut [Agent], record_batch: &RecordBatch) -> Resu
         let array = record_batch
             .column(i_col)
             .as_any()
-            .downcast_ref::<arrow::array::FixedSizeBinaryArray>()
+            .downcast_ref::<arrow2::array::FixedSizeBinaryArray>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: "agent_id".into(),
             })?;
@@ -338,7 +338,7 @@ macro_rules! set_states_opt_f64_gen {
                 let array = record_batch
                     .column(i_col)
                     .as_any()
-                    .downcast_ref::<arrow::array::Float64Array>()
+                    .downcast_ref::<arrow2::array::Float64Array>()
                     .ok_or(Error::InvalidArrowDowncast {
                         name: $field.name().into(),
                     })?;
@@ -364,7 +364,7 @@ fn set_states_hidden(states: &mut [Agent], record_batch: &RecordBatch) -> Result
         let array = record_batch
             .column(i_col)
             .as_any()
-            .downcast_ref::<arrow::array::BooleanArray>()
+            .downcast_ref::<arrow2::array::BooleanArray>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: field.name().into(),
             })?;

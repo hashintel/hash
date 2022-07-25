@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use arrow::{
+use arrow2::{
     array::BooleanArray,
     chunk::Chunk,
     datatypes::{DataType, Field, Schema},

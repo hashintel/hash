@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use arrow::{array::Array, chunk::Chunk, datatypes::Schema};
+use arrow2::{array::Array, chunk::Chunk, datatypes::Schema};
 use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef, MessageRef};
 use memory::{
     arrow::{

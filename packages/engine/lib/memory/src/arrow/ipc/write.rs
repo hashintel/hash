@@ -1,4 +1,4 @@
-use arrow::{
+use arrow2::{
     datatypes::Schema,
     io::ipc::write::{default_ipc_fields, schema_to_bytes},
 };

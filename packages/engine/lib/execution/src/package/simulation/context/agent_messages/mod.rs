@@ -7,7 +7,7 @@ mod writer;
 
 use std::sync::Arc;
 
-use arrow::{
+use arrow2::{
     array::{Array, MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray},
     datatypes::{DataType, Field},
 };

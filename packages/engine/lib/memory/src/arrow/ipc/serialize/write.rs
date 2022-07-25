@@ -1,5 +1,5 @@
 #![allow(clippy::ptr_arg)] // false positive in clippy, see https://github.com/rust-lang/rust-clippy/issues/8463
-use arrow::{
+use arrow2::{
     array::*, bitmap::Bitmap, datatypes::PhysicalType, trusted_len::TrustedLen, types::NativeType,
 };
 use arrow_format::ipc;

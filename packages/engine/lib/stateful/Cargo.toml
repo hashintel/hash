@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 memory = { path = "../memory", default-features = false }
 
-arrow = { package = "arrow2", version = "0.12.0", default-features = false }
+arrow2 = {  version = "0.12.0", default-features = false }
 # arrow_format needs to be updated in line with arrow2
 arrow-format = { version = "=0.6.0", features = ["ipc"] }
 flatbuffers = "2.1.1"

@@ -1,4 +1,4 @@
-use arrow::array::{ListArray, StructArray, Utf8Array};
+use arrow2::array::{ListArray, StructArray, Utf8Array};
 use memory::arrow::record_batch::RecordBatch;
 
 use crate::{

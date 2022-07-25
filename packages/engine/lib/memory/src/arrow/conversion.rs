@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow::{
+use arrow2::{
     array,
     array::{
         Array, ArrayRef, BooleanArray, FixedSizeListArray, ListArray, MutableArray,

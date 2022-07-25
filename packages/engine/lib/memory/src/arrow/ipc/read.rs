@@ -2,7 +2,7 @@
 
 use std::{collections::BTreeMap, sync::Arc};
 
-use arrow::{
+use arrow2::{
     datatypes::{Metadata, Schema},
     io::ipc::{write::default_ipc_fields, IpcSchema},
 };
@@ -20,7 +20,7 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
 
     let mut reader = std::io::Cursor::new(segment.get_data_buffer()?);
 
-    let columns = arrow::io::ipc::read::read_record_batch(
+    let columns = arrow2::io::ipc::read::read_record_batch(
         batch,
         &schema.fields,
         &IpcSchema {
@@ -69,10 +69,10 @@ pub fn read_record_batch_message(
     Ok(batch)
 }
 
-/// Converts a flatbuffers message into a [`arrow::datatypes::Schema`].
+/// Converts a flatbuffers message into a [`arrow2::datatypes::Schema`].
 pub fn arrow_schema_from_fb(
     fb: arrow_format::ipc::SchemaRef,
-) -> crate::Result<arrow::datatypes::Schema> {
+) -> crate::Result<arrow2::datatypes::Schema> {
     let mut fields = vec![];
 
     let fb_fields_tmp = fb.fields()?;
@@ -80,7 +80,7 @@ pub fn arrow_schema_from_fb(
 
     for fb_field in fb_fields.iter() {
         let fb_field = fb_field?;
-        fields.push(arrow::datatypes::Field {
+        fields.push(arrow2::datatypes::Field {
             name: fb_field.name()?.unwrap().to_string(),
             data_type: fb_type_2_arrow2_type(TryFrom::try_from(fb_field.type_()?.unwrap())?),
             is_nullable: fb_field.nullable()?,
@@ -103,7 +103,7 @@ pub fn arrow_schema_from_fb(
         })
     }
 
-    Ok(arrow::datatypes::Schema {
+    Ok(arrow2::datatypes::Schema {
         fields,
         metadata: Metadata::default(),
     })
@@ -111,7 +111,7 @@ pub fn arrow_schema_from_fb(
 
 /// Converts from the flatbuffers representation of an Arrow type into the interal Rust [`arrow`]2
 /// representation.
-fn fb_type_2_arrow2_type(ty: arrow_format::ipc::Type) -> arrow::datatypes::DataType {
+fn fb_type_2_arrow2_type(ty: arrow_format::ipc::Type) -> arrow2::datatypes::DataType {
     match ty {
         arrow_format::ipc::Type::Null(_) => todo!(),
         arrow_format::ipc::Type::Int(_) => todo!(),

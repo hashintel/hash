@@ -1,4 +1,4 @@
-use arrow::{
+use arrow2::{
     array::{
         Array, ArrayRef, BinaryArray, BooleanArray, FixedSizeBinaryArray, ListArray,
         PrimitiveArray, Utf8Array,
@@ -52,39 +52,39 @@ impl GrowableArrayData for ArrayRef {
 
     fn buffer(&self, index: usize) -> &[u8] {
         match self.data_type().to_physical_type() {
-            arrow::datatypes::PhysicalType::Null => &[],
-            arrow::datatypes::PhysicalType::Boolean => {
+            arrow2::datatypes::PhysicalType::Null => &[],
+            arrow2::datatypes::PhysicalType::Boolean => {
                 // boolean arrays only have a "values" field - i.e. one buffer
                 debug_assert_eq!(index, 0);
 
                 let bool_array = self.as_any().downcast_ref::<BooleanArray>().unwrap();
                 bool_array.values().as_slice().0
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::Int8) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Int8) => {
                 debug_assert_eq!(index, 0);
 
                 let int_8_array = self.as_any().downcast_ref::<PrimitiveArray<i8>>().unwrap();
                 unsafe { std::mem::transmute(int_8_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::Int16) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Int16) => {
                 debug_assert_eq!(index, 0);
 
                 let int_16_array = self.as_any().downcast_ref::<PrimitiveArray<i16>>().unwrap();
                 unsafe { std::mem::transmute(int_16_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::Int32) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Int32) => {
                 debug_assert_eq!(index, 0);
 
                 let int_32_array = self.as_any().downcast_ref::<PrimitiveArray<i32>>().unwrap();
                 unsafe { std::mem::transmute(int_32_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::Int64) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Int64) => {
                 debug_assert_eq!(index, 0);
 
                 let int_64_array = self.as_any().downcast_ref::<PrimitiveArray<i64>>().unwrap();
                 unsafe { std::mem::transmute(int_64_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::Int128) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Int128) => {
                 debug_assert_eq!(index, 0);
 
                 let int_64_array = self
@@ -93,56 +93,56 @@ impl GrowableArrayData for ArrayRef {
                     .unwrap();
                 unsafe { std::mem::transmute(int_64_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::UInt8) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::UInt8) => {
                 debug_assert_eq!(index, 0);
 
                 let uint_8_array = self.as_any().downcast_ref::<PrimitiveArray<u8>>().unwrap();
                 unsafe { std::mem::transmute(uint_8_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::UInt16) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::UInt16) => {
                 debug_assert_eq!(index, 0);
 
                 let uint_16_array = self.as_any().downcast_ref::<PrimitiveArray<u16>>().unwrap();
                 unsafe { std::mem::transmute(uint_16_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::UInt32) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::UInt32) => {
                 debug_assert_eq!(index, 0);
 
                 let uint_32_array = self.as_any().downcast_ref::<PrimitiveArray<u32>>().unwrap();
                 unsafe { std::mem::transmute(uint_32_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::UInt64) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::UInt64) => {
                 debug_assert_eq!(index, 0);
 
                 let uint_64_array = self.as_any().downcast_ref::<PrimitiveArray<u64>>().unwrap();
                 unsafe { std::mem::transmute(uint_64_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::Float32) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Float32) => {
                 debug_assert_eq!(index, 0);
 
                 let float_32_array = self.as_any().downcast_ref::<PrimitiveArray<f32>>().unwrap();
                 unsafe { std::mem::transmute(float_32_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(PrimitiveType::Float64) => {
+            arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Float64) => {
                 debug_assert_eq!(index, 0);
 
                 let float_64_array = self.as_any().downcast_ref::<PrimitiveArray<f64>>().unwrap();
                 unsafe { std::mem::transmute(float_64_array.values().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Primitive(
+            arrow2::datatypes::PhysicalType::Primitive(
                 PrimitiveType::DaysMs | PrimitiveType::MonthDayNano,
             ) => {
                 todo!()
             }
-            arrow::datatypes::PhysicalType::Binary if index == 0 => {
+            arrow2::datatypes::PhysicalType::Binary if index == 0 => {
                 let binary = self.as_any().downcast_ref::<BinaryArray<i32>>().unwrap();
                 unsafe { std::mem::transmute(binary.offsets().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::Binary if index == 1 => {
+            arrow2::datatypes::PhysicalType::Binary if index == 1 => {
                 let binary = self.as_any().downcast_ref::<BinaryArray<i32>>().unwrap();
                 binary.values().as_slice()
             }
-            arrow::datatypes::PhysicalType::FixedSizeBinary => {
+            arrow2::datatypes::PhysicalType::FixedSizeBinary => {
                 debug_assert_eq!(index, 0);
 
                 let fixed_size_binary = self
@@ -151,40 +151,40 @@ impl GrowableArrayData for ArrayRef {
                     .unwrap();
                 fixed_size_binary.values().as_slice()
             }
-            arrow::datatypes::PhysicalType::LargeBinary => {
+            arrow2::datatypes::PhysicalType::LargeBinary => {
                 debug_assert_eq!(index, 0);
 
                 let large_binary = self.as_any().downcast_ref::<BinaryArray<i64>>().unwrap();
                 large_binary.values().as_slice()
             }
-            arrow::datatypes::PhysicalType::Utf8 => {
+            arrow2::datatypes::PhysicalType::Utf8 => {
                 debug_assert_eq!(index, 0);
 
                 let utf8 = self.as_any().downcast_ref::<Utf8Array<i32>>().unwrap();
                 utf8.values().as_slice()
             }
-            arrow::datatypes::PhysicalType::LargeUtf8 => {
+            arrow2::datatypes::PhysicalType::LargeUtf8 => {
                 debug_assert_eq!(index, 0);
 
                 let utf8 = self.as_any().downcast_ref::<Utf8Array<i64>>().unwrap();
                 utf8.values().as_slice()
             }
-            arrow::datatypes::PhysicalType::List if index == 0 => {
+            arrow2::datatypes::PhysicalType::List if index == 0 => {
                 let list = self.as_any().downcast_ref::<ListArray<i32>>().unwrap();
                 unsafe { std::mem::transmute(list.offsets().as_slice()) }
             }
-            arrow::datatypes::PhysicalType::List => {
+            arrow2::datatypes::PhysicalType::List => {
                 // only two buffers exist for a list (the two cases were handled above)
                 unreachable!()
             }
-            arrow::datatypes::PhysicalType::FixedSizeList => {
+            arrow2::datatypes::PhysicalType::FixedSizeList => {
                 unimplemented!()
             }
-            arrow::datatypes::PhysicalType::LargeList => todo!(),
-            arrow::datatypes::PhysicalType::Struct => unimplemented!(),
-            arrow::datatypes::PhysicalType::Union => todo!(),
-            arrow::datatypes::PhysicalType::Map => todo!(),
-            arrow::datatypes::PhysicalType::Dictionary(_) => todo!(),
+            arrow2::datatypes::PhysicalType::LargeList => todo!(),
+            arrow2::datatypes::PhysicalType::Struct => unimplemented!(),
+            arrow2::datatypes::PhysicalType::Union => todo!(),
+            arrow2::datatypes::PhysicalType::Map => todo!(),
+            arrow2::datatypes::PhysicalType::Dictionary(_) => todo!(),
             _ => {
                 panic!("The provided buffer index was out of range");
             }

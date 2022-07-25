@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow::array::ArrayRef;
+use arrow2::array::ArrayRef;
 
 use super::record_batch::RecordBatch;
 use crate::{

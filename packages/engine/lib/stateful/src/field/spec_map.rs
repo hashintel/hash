@@ -6,7 +6,7 @@ use std::{
     },
 };
 
-use arrow::datatypes::{Field, Schema};
+use arrow2::datatypes::{Field, Schema};
 
 use crate::{
     field::{FieldScope, FieldTypeVariant, IsFixedSize, RootFieldKey, RootFieldSpec},

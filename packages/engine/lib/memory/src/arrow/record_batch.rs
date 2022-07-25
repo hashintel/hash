@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow::{
+use arrow2::{
     array::ArrayRef,
     chunk::Chunk,
     datatypes::Schema,

@@ -1,4 +1,4 @@
-use arrow::array::Utf8Array;
+use arrow2::array::Utf8Array;
 
 use super::arrow::{array::FieldIndex, record_batch::MessageField};
 use crate::{
