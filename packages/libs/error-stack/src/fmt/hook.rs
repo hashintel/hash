@@ -253,12 +253,18 @@ impl<T> Hook<T, UInt0> for () {
 pub struct Hooks<T: Hook<Frame, UInt0>>(T);
 
 impl Hooks<Builtin> {
+    /// Create a new instance of `Hooks`, which is preloaded with [`Builtin`] hooks
+    /// to display [`Backtrace`] and [`SpanTrace`] if those features have been enabled.
     pub fn new() -> Self {
         Self(Builtin)
     }
 }
 
 impl Hooks<()> {
+    /// Create a new bare instance of `Hooks`, which does not have the [`Builtin`] hooks
+    /// pre-installed, use [`new()`] to get an instance with [`Builtin`] hook support.
+    ///
+    /// [`new()`]: Self::new
     pub fn bare() -> Self {
         Self(())
     }
