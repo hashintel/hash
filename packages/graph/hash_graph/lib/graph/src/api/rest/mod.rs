@@ -19,8 +19,7 @@ use crate::store::StorePool;
 
 fn api_resources<S>() -> Vec<Router>
 where
-    S: StorePool + Send + Sync + 'static,
-    S::Store: Send,
+    S: StorePool + 'static,
 {
     vec![
         data_type::DataTypeResource::routes::<S>(),
@@ -43,8 +42,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
 
 pub fn rest_api_router<S>(store: Arc<S>) -> Router
 where
-    S: StorePool + Send + Sync + 'static,
-    S::Store: Send,
+    S: StorePool + 'static,
 {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()

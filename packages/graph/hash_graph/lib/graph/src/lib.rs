@@ -1,6 +1,6 @@
 //! The entity-graph query-layer for the HASH datastore
 
-#![feature(lint_reasons, once_cell)]
+#![feature(lint_reasons, once_cell, generic_associated_types)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![warn(

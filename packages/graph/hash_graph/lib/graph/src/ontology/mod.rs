@@ -5,15 +5,16 @@ pub mod types;
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
+use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::Component;
 use uuid::Uuid;
 
 // TODO - find a good place for AccountId and VersionId, perhaps they will become redundant in a
 //  future design
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
 #[repr(transparent)]
-#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]
-#[sqlx(transparent)]
+#[postgres(transparent)]
 pub struct AccountId(Uuid);
 
 impl AccountId {
@@ -29,9 +30,9 @@ impl fmt::Display for AccountId {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
 #[repr(transparent)]
-#[derive(Clone, Copy, Debug, sqlx::Type, PartialEq, Eq, Serialize, Deserialize, Component)]
-#[sqlx(transparent)]
+#[postgres(transparent)]
 pub struct VersionId(Uuid);
 
 impl VersionId {

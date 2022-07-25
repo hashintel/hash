@@ -1,14 +1,15 @@
 use std::{collections::HashMap, fmt};
 
 use serde::{Deserialize, Serialize};
+use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::Component;
 use uuid::Uuid;
 
 use crate::ontology::types::uri::BaseUri;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Component)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
 #[repr(transparent)]
-#[sqlx(transparent)]
+#[postgres(transparent)]
 pub struct EntityId(Uuid);
 
 impl EntityId {

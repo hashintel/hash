@@ -6,7 +6,11 @@ use crate::store::Store;
 #[async_trait]
 pub trait StorePool: Send + Sync {
     type Error;
-    type Store: Store + Send;
+    type Store<'pool>: Store + Send + Sync
+    where
+        Self: 'pool;
 
-    async fn acquire(&self) -> Result<Self::Store, Self::Error>;
+    async fn acquire(&self) -> Result<Self::Store<'_>, Self::Error>;
+
+    async fn acquire_owned(&self) -> Result<Self::Store<'static>, Self::Error>;
 }

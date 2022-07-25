@@ -64,15 +64,15 @@ impl<T: OntologyType> Persisted<T> {
         }
     }
 
-    pub const fn version_id(&self) -> VersionId {
-        self.version_id
+    pub const fn version_id(&self) -> &VersionId {
+        &self.version_id
     }
 
     pub const fn inner(&self) -> &T {
         &self.inner
     }
 
-    pub const fn account_id(&self) -> AccountId {
-        self.created_by
+    pub const fn account_id(&self) -> &AccountId {
+        &self.created_by
     }
 }

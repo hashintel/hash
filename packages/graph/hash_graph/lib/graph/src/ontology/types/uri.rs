@@ -2,10 +2,11 @@ use std::{fmt, result::Result as StdResult, str::FromStr};
 
 use error_stack::{Context, IntoReport, Report, Result, ResultExt};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use tokio_postgres::types::{FromSql, ToSql};
 
-#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, FromSql, ToSql)]
 #[serde(transparent)]
-#[sqlx(transparent)]
+#[postgres(transparent)]
 pub struct BaseUri(String);
 
 impl fmt::Debug for BaseUri {
@@ -23,13 +24,13 @@ impl fmt::Display for BaseUri {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct VersionedUri {
     base_uri: BaseUri,
-    version: u32,
+    version: i32,
 }
 
 impl VersionedUri {
     /// Creates a new `VersionedUri` from the given `base_uri` and `version`.
     #[must_use]
-    pub const fn new(base_uri: String, version: u32) -> Self {
+    pub const fn new(base_uri: String, version: i32) -> Self {
         Self {
             base_uri: BaseUri(base_uri),
             version,
@@ -42,8 +43,8 @@ impl VersionedUri {
     }
 
     #[must_use]
-    pub const fn version(&self) -> u32 {
-        self.version
+    pub const fn version(&self) -> &i32 {
+        &self.version
     }
 }
 
