@@ -55,7 +55,7 @@ impl RecordBatch {
     /// Retrieves the column at the provided index in the [`RecordBatch`]. This function will panic
     /// if the requested index cannot be found. [`RecordBatch::try_column`] will return [`None`]
     /// instead of panicking.
-    pub fn column<'a>(&'a self, index: usize) -> &'a ArrayRef {
+    pub fn column(&self, index: usize) -> &ArrayRef {
         &self.columns[index]
     }
 
