@@ -11,12 +11,12 @@ use crate::{
     Frame,
 };
 
-pub struct AnyContext {
+pub(crate) struct HookContextImpl {
     pub(crate) text: Vec<Vec<String>>,
     inner: BTreeMap<TypeId, Box<dyn Any>>,
 }
 
-impl Default for AnyContext {
+impl Default for HookContextImpl {
     fn default() -> Self {
         Self {
             text: vec![],
@@ -25,9 +25,9 @@ impl Default for AnyContext {
     }
 }
 
-impl AnyContext {
-    fn cast<T>(&mut self) -> Context<T> {
-        Context {
+impl HookContextImpl {
+    pub(crate) fn cast<T>(&mut self) -> HookContext<T> {
+        HookContext {
             parent: self,
             _marker: PhantomData::default(),
         }
@@ -39,12 +39,12 @@ impl AnyContext {
     }
 }
 
-pub struct Context<'a, T> {
-    parent: &'a mut AnyContext,
+pub struct HookContext<'a, T> {
+    parent: &'a mut HookContextImpl,
     _marker: PhantomData<T>,
 }
 
-impl<T> Context<'_, T> {
+impl<T> HookContext<'_, T> {
     pub fn text(&mut self, value: String) {
         self.text_lines(value.lines().map(ToOwned::to_owned));
     }
@@ -54,7 +54,20 @@ impl<T> Context<'_, T> {
     }
 }
 
-impl<T: 'static> Context<'_, T> {
+impl<'a, T> HookContext<'a, T> {
+    pub fn cast<U>(self) -> HookContext<'a, U> {
+        HookContext {
+            parent: self.parent,
+            _marker: PhantomData::default(),
+        }
+    }
+
+    fn into_impl(self) -> &'a mut HookContextImpl {
+        self.parent
+    }
+}
+
+impl<T: 'static> HookContext<'_, T> {
     pub fn get<U: 'static>(&self) -> Option<&U> {
         let id = TypeId::of::<T>();
 
@@ -78,16 +91,16 @@ impl<T: 'static> Context<'_, T> {
 }
 
 pub trait Hook<T> {
-    fn call(&self, frame: &T, ctx: &mut AnyContext) -> Option<Line>;
+    fn call(&self, frame: &T, ctx: HookContext<T>) -> Option<Line>;
 }
 
 impl<F, T> Hook<T> for F
 where
-    F: Fn(&T, &mut Context<T>) -> Line,
+    F: Fn(&T, &mut HookContext<T>) -> Line,
     T: Send + Sync + 'static,
 {
-    fn call(&self, frame: &T, ctx: &mut AnyContext) -> Option<Line> {
-        Some((self)(frame, &mut ctx.cast()))
+    fn call(&self, frame: &T, mut ctx: HookContext<T>) -> Option<Line> {
+        Some((self)(frame, &mut ctx))
     }
 }
 
@@ -103,9 +116,9 @@ where
     T: Send + Sync + 'static,
     R: Hook<Frame>,
 {
-    fn call(&self, frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
+    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
         if let Some(frame) = frame.downcast_ref::<T>() {
-            self.left.call(frame, ctx)
+            self.left.call(frame, ctx.cast())
         } else {
             self.right.call(frame, ctx)
         }
@@ -113,7 +126,7 @@ where
 }
 
 impl<T> Hook<T> for () {
-    fn call(&self, _: &T, _: &mut AnyContext) -> Option<Line> {
+    fn call(&self, _: &T, _: HookContext<T>) -> Option<Line> {
         None
     }
 }
@@ -128,15 +141,17 @@ where
     L: Hook<Frame>,
     R: Hook<Frame>,
 {
-    fn call(&self, frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
+    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
+        let parent = ctx.into_impl();
+
         self.left
-            .call(frame, ctx)
-            .or_else(|| self.right.call(frame, ctx))
+            .call(frame, parent.cast())
+            .or_else(|| self.right.call(frame, parent.cast()))
     }
 }
 
 impl Hook<Frame> for Box<dyn Hook<Frame> + Send + Sync> {
-    fn call(&self, frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
+    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
         let hook = self.as_ref();
 
         hook.call(frame, ctx)
@@ -162,6 +177,7 @@ impl<T: Hook<Frame>> Hooks<T> {
         Self(hook)
     }
 
+    // TODO: potentially rename to `add()` instead.
     pub fn push<U: Hook<V>, V: Send + Sync + 'static>(self, hook: U) -> Hooks<Stack<U, V, T>> {
         let stack = Stack {
             left: hook,
@@ -189,8 +205,8 @@ impl<T: Hook<Frame> + Send + Sync + 'static> Hooks<T> {
 }
 
 impl ErasedHooks {
-    pub fn call(&self, frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
-        self.0.call(frame, ctx)
+    pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContextImpl) -> Option<Line> {
+        self.0.call(frame, ctx.cast())
     }
 }
 
@@ -205,14 +221,14 @@ mod builtin {
 
     use crate::{
         fmt::{
-            hook::{AnyContext, Context, Hook},
+            hook::{Hook, HookContext, HookContextImpl},
             Line,
         },
         Frame,
     };
 
     #[cfg(all(nightly, feature = "std"))]
-    fn backtrace(backtrace: &Backtrace, ctx: &mut Context<Backtrace>) -> Line {
+    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Line {
         let idx = match ctx.get::<usize>().copied() {
             None => {
                 ctx.insert(0);
@@ -232,7 +248,7 @@ mod builtin {
     }
 
     #[cfg(feature = "spantrace")]
-    fn spantrace(spantrace: &SpanTrace, ctx: &mut Context<SpanTrace>) -> Line {
+    fn spantrace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Line {
         let idx = match ctx.get::<usize>().copied() {
             None => {
                 ctx.insert(0);
@@ -256,7 +272,7 @@ mod builtin {
     pub struct Builtin;
 
     impl Hook<Frame> for Builtin {
-        fn call(&self, frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
+        fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
             #[cfg(all(nightly, feature = "std"))]
             if let Some(bt) = frame.request_ref() {
                 return Some(backtrace(bt, &mut ctx.cast()));

@@ -13,7 +13,7 @@ use core::{
     fmt::{Debug, Display, Formatter, Write},
 };
 
-pub use hook::{Builtin, Context, Hook, Hooks};
+pub use hook::{Builtin, Hook, HookContext, Hooks};
 #[cfg(nightly)]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "hooks")]
@@ -25,7 +25,7 @@ use owo_colors::{colored::Color, colors::Red, OwoColorize, Stream::Stdout};
 use crate::fmt::hook::ErasedHooks;
 #[cfg(feature = "hooks")]
 use crate::HookAlreadySet;
-use crate::{fmt::hook::AnyContext, AttachmentKind, Frame, FrameKind, Report, Result};
+use crate::{fmt::hook::HookContextImpl, AttachmentKind, Frame, FrameKind, Report, Result};
 
 #[cfg(feature = "hooks")]
 pub static HOOK: OnceCell<ErasedHooks> = OnceCell::new();
@@ -82,7 +82,7 @@ impl Display for Instruction {
 type Instructions = VecDeque<Instruction>;
 type Lines = Vec<Instructions>;
 
-fn frame(frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
+fn debug_frame(frame: &Frame, ctx: &mut HookContextImpl) -> Option<Line> {
     match frame.kind() {
         FrameKind::Context(context) => Some(context.to_string()).map(Line::Next),
         FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
@@ -100,7 +100,7 @@ fn frame(frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
                 return hooks.call(frame, ctx);
             }
 
-            Builtin.call(frame, ctx)
+            Builtin.call(frame, ctx.cast())
         }
         FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
             Some(attachment.to_string()).map(Line::Next)
@@ -108,7 +108,7 @@ fn frame(frame: &Frame, ctx: &mut AnyContext) -> Option<Line> {
     }
 }
 
-fn frame_top(root: &Frame, ctx: &mut AnyContext) -> Lines {
+fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
     let mut plain = vec![root];
 
     let next;
@@ -137,10 +137,10 @@ fn frame_top(root: &Frame, ctx: &mut AnyContext) -> Lines {
 
     let mut opaque = 0;
     for child in plain {
-        if let Some(line) = frame(child, ctx) {
+        if let Some(line) = debug_frame(child, ctx) {
             match line {
                 Line::Defer(line) => {
-                    defer.extend(line.lines().map(ToOwned::to_owned));
+                    defer.push(line);
                 }
                 Line::Next(line) => groups.push(
                     line.lines()
@@ -179,7 +179,7 @@ fn frame_top(root: &Frame, ctx: &mut AnyContext) -> Lines {
 
     if let Some(group) = next {
         for child in group {
-            let content = frame_top(child, ctx);
+            let content = debug_frame_root(child, ctx);
 
             if !content.is_empty() {
                 groups.push(content);
@@ -227,10 +227,10 @@ impl<C> Debug for Report<C> {
         }
 
         let mut lines = vec![];
-        let mut ctx = AnyContext::default();
+        let mut ctx = HookContextImpl::default();
 
         for frame in self.current_frames() {
-            let display = frame_top(frame, &mut ctx);
+            let display = debug_frame_root(frame, &mut ctx);
 
             lines.extend(display);
             lines.push(Instruction::plain("".to_owned()));
@@ -320,14 +320,14 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::{Context, Hooks, Line},
+    ///     fmt::{HookContext, Hooks, Line},
     ///     report, Report,
     /// };
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::add_debug_hook(
-    ///     Hooks::new().push(|val: &Suggestion, ctx: Context<Suggestion>| {
+    ///     Hooks::new().push(|val: &Suggestion, ctx: HookContext<Suggestion>| {
     ///         Line::Next(format!("Suggestion: {}", val.0))
     ///     }),
     /// )?;
@@ -336,7 +336,9 @@ impl Report<()> {
     /// ```
     // TODO: we might want to rename this before merge?
     //  This could lead to ambiguities with `set_debug_hook`
-    pub fn add_debug_hook<T: Hook<Frame>>(hook: Hooks<T>) -> Result<(), HookAlreadySet> {
+    pub fn add_debug_hook<T: Hook<Frame> + Send + Sync + 'static>(
+        hook: Hooks<T>,
+    ) -> Result<(), HookAlreadySet> {
         HOOK.set(hook.erase())
             .map_err(|_| Report::new(HookAlreadySet))
     }

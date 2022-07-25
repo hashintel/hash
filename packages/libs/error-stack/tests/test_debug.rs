@@ -8,7 +8,7 @@ use std::any::Demand;
 
 use common::*;
 use error_stack::{
-    fmt::{Builtin, Context, DebugDiagnostic, Hooks, Line, HOOK},
+    fmt::{Builtin, DebugDiagnostic, HookContext, Hooks, Line},
     Frame, FrameKind,
 };
 
@@ -29,7 +29,7 @@ fn report_nest() {
     });
 
     let hooks = Hooks::new().push(
-        |val: &AttachmentA, ctx: &mut Context<AttachmentA>| -> Line {
+        |val: &AttachmentA, ctx: &mut HookContext<AttachmentA>| -> Line {
             let idx = ctx.get::<u8>().copied();
             let idx = idx.unwrap_or(0) + 1;
 
