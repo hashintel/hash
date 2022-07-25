@@ -94,10 +94,21 @@ type UInt0 = ();
 type UInt1 = ((), UInt0);
 type UInt2 = ((), UInt1);
 
-/// A single DebugHook of a specific type `T`, which a specific number of arguments `U`.
+/// A Hook which potentially outputs a line, if conditions met in [`call()`] are met for a specific
+/// type `T`, and a specific number of arguments `U`.
 ///
-/// This trait is used for the implementation of
+/// This trait is used internally and is automatically implemented for `Fn(&T) -> Line`
+/// and `Fn(&T, &mut HookContext<T>) -> Line`
+///
+/// [`call()`]: Self::call
 pub trait Hook<T, U> {
+    /// This function gets called for every frame, but only if no other hook before has returned a
+    /// [`Line`].
+    ///
+    /// The implementation can either find an acceptable hook to process the frame
+    /// (will return [`Some`]) or cannot process the [`Frame`] and return [`None`],
+    /// elementary types *should* always return [`Some`] and not do any casting, while combinators
+    /// like [`Stack`] and [`Combine`] can use [`None`] to propagate to other elementary hooks.
     fn call(&self, frame: &T, ctx: HookContext<T>) -> Option<Line>;
 }
 
@@ -121,10 +132,40 @@ where
     }
 }
 
+/// A Stack is a simple struct which has a left and a right side,
+/// this is used to chain different hooks together into a list of typed hooks.
+///
+/// Consider the following list of hooks: `[HookA, HookB, HookC]` this would be modelled as:
+///
+/// ```text
+/// Stack<HookA,
+///     Stack<HookB,
+///         Stack<HookC, ()>
+///     >
+/// >
+/// ```
+///
+/// The [`Hook`] implementation of stack will check if the left side supports a [`downcast_ref`] for
+/// the specified frame, if that's the case it will execute the left [`call()`], otherwise it will
+/// call the right [`call()`], two combine multiple stacks use [`Combine`].
+///
+/// [`call()`]: Hook::call
+/// [`downcast_ref`]: Frame::downcast_ref
 pub struct Stack<L, T, R> {
     left: L,
     right: R,
     _marker: PhantomData<T>,
+}
+
+impl<L, T, R> Stack<L, T, R> {
+    /// Create a new stack
+    pub fn new(left: L, right: R) -> Self {
+        Self {
+            left,
+            right,
+            _marker: PhantomData::default(),
+        }
+    }
 }
 
 impl<L, T, U, R> Hook<Frame, UInt0> for Stack<L, (T, U), R>
@@ -142,18 +183,46 @@ where
     }
 }
 
-impl<T> Hook<T, UInt0> for () {
-    fn call(&self, _: &T, _: HookContext<T>) -> Option<Line> {
-        None
-    }
-}
-
-pub struct Both<L, R> {
+/// This is the same as [`Stack`], with the difference that it will combine both sides and try both
+/// if the left side was unsuccessful.
+/// This will short circuit.
+///
+/// Consider the following example: `[HookA, HookB, HookC]`
+///
+/// ```text
+/// Combine<
+///     Stack<HookA, ()>,
+///     Stack<
+///         HookB,
+///         Stack<HookC, ()>
+///     >
+/// >
+/// ```
+///
+/// is equivalent to:
+///
+/// ```text
+/// Stack<
+///     HookA,
+///     Stack<
+///         HookB,
+///         Stack<HookC, ()>
+///     >
+/// >
+/// ```
+pub struct Combine<L, R> {
     left: L,
     right: R,
 }
 
-impl<L, R> Hook<Frame, UInt0> for Both<L, R>
+impl<L, R> Combine<L, R> {
+    /// Create a new combine
+    pub fn new(left: L, right: R) -> Self {
+        Self { left, right }
+    }
+}
+
+impl<L, R> Hook<Frame, UInt0> for Combine<L, R>
 where
     L: Hook<Frame, UInt0>,
     R: Hook<Frame, UInt0>,
@@ -172,6 +241,12 @@ impl Hook<Frame, UInt0> for Box<dyn Hook<Frame, UInt0> + Send + Sync> {
         let hook = self.as_ref();
 
         hook.call(frame, ctx)
+    }
+}
+
+impl<T> Hook<T, UInt0> for () {
+    fn call(&self, _: &T, _: HookContext<T>) -> Option<Line> {
+        None
     }
 }
 
@@ -208,8 +283,8 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
         Hooks::new_with(stack)
     }
 
-    pub fn append<U: Hook<Frame, UInt0>>(self, other: Hooks<U>) -> Hooks<Both<T, U>> {
-        let both = Both {
+    pub fn combine<U: Hook<Frame, UInt0>>(self, other: Hooks<U>) -> Hooks<Combine<T, U>> {
+        let both = Combine {
             left: self.0,
             right: other.0,
         };
