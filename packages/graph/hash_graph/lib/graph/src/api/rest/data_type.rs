@@ -1,5 +1,7 @@
 //! Web routes for CRU operations on Data Types.
 
+use std::sync::Arc;
+
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -35,7 +37,7 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<S: Store>() -> Router {
+    fn routes<S: Store + Send + Sync + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-type",
@@ -67,16 +69,14 @@ struct CreateDataTypeRequest {
     ),
     request_body = CreateDataTypeRequest,
 )]
-async fn create_data_type<S: Store>(
+async fn create_data_type<S: Store + Send + Sync>(
     body: Json<CreateDataTypeRequest>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<DataType>>, StatusCode> {
-    let Json(body) = body;
-    let Extension(store) = store;
+    let Json(CreateDataTypeRequest { schema, account_id }) = body;
 
     store
-        .clone()
-        .create_data_type(body.schema, body.account_id)
+        .create_data_type(schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create data type");
@@ -106,13 +106,10 @@ async fn create_data_type<S: Store>(
         ("uri" = String, Path, description = "The URI of data type"),
     )
 )]
-async fn get_data_type<S: Store>(
+async fn get_data_type<S: Store + Send + Sync>(
     uri: Path<VersionedUri>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<DataType>>, impl IntoResponse> {
-    let Path(uri) = uri;
-    let Extension(store) = store;
-
     let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
         tracing::error!(error=?report, "Could not resolve URI");
 
@@ -160,16 +157,14 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
-async fn update_data_type<S: Store>(
+async fn update_data_type<S: Store + Send + Sync>(
     body: Json<UpdateDataTypeRequest>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<DataType>>, StatusCode> {
-    let Json(body) = body;
-    let Extension(store) = store;
+    let Json(UpdateDataTypeRequest { schema, account_id }) = body;
 
     store
-        .clone()
-        .update_data_type(body.schema, body.account_id)
+        .update_data_type(schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");

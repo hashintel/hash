@@ -1,5 +1,7 @@
 //! Web routes for CRU operations on entities.
 
+use std::sync::Arc;
+
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -42,7 +44,7 @@ pub struct EntityResource;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
-    fn routes<S: Store>() -> Router {
+    fn routes<S: Store + Send + Sync + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity",
@@ -75,19 +77,17 @@ struct CreateEntityRequest {
     ),
     request_body = CreateEntityRequest,
 )]
-async fn create_entity<S: Store>(
+async fn create_entity<S: Store + Send + Sync>(
     body: Json<CreateEntityRequest>,
-    datastore: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<QualifiedEntity>, StatusCode> {
     let Json(CreateEntityRequest {
         entity,
         entity_type_uri,
         account_id,
     }) = body;
-    let Extension(datastore) = datastore;
 
-    datastore
-        .clone()
+    store
         .create_entity(&entity, entity_type_uri, account_id)
         .await
         .map_err(|report| {
@@ -114,12 +114,11 @@ async fn create_entity<S: Store>(
         ("entity_id" = Uuid, Path, description = "The ID of the entity"),
     )
 )]
-async fn get_entity<S: Store>(
+async fn get_entity<S: Store + Send + Sync>(
     entity_id: Path<EntityId>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<QualifiedEntity>, impl IntoResponse> {
     let Path(entity_id) = entity_id;
-    let Extension(store) = store;
 
     store
         .get_entity(entity_id)
@@ -159,9 +158,9 @@ struct UpdateEntityRequest {
     ),
     request_body = UpdateEntityRequest,
 )]
-async fn update_entity<S: Store>(
+async fn update_entity<S: Store + Send + Sync>(
     body: Json<UpdateEntityRequest>,
-    datastore: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<QualifiedEntity>, StatusCode> {
     let Json(UpdateEntityRequest {
         entity,
@@ -169,10 +168,8 @@ async fn update_entity<S: Store>(
         entity_type_uri,
         account_id,
     }) = body;
-    let Extension(datastore) = datastore;
 
-    datastore
-        .clone()
+    store
         .update_entity(entity_id, &entity, entity_type_uri, account_id)
         .await
         .map_err(|report| {

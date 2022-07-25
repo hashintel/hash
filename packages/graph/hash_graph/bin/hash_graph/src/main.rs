@@ -1,6 +1,6 @@
 mod args;
 
-use std::{fmt, net::SocketAddr};
+use std::{fmt, net::SocketAddr, sync::Arc};
 
 use error_stack::{Context, FutureExt, Result};
 use graph::{
@@ -52,7 +52,7 @@ async fn main() -> Result<(), GraphError> {
         tracing::info!(%account_id, "created account id");
     }
 
-    let rest_router = rest_api_router(store);
+    let rest_router = rest_api_router(Arc::new(store));
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
     tracing::info!("Listening on {addr}");

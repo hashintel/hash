@@ -170,7 +170,7 @@ impl fmt::Display for DatabaseConnectionInfo {
 /// In addition to the errors described in the methods of this trait, further errors might also be
 /// raised depending on the implementation, e.g. connection issues.
 #[async_trait]
-pub trait Store: Clone + Send + Sync + 'static {
+pub trait Store {
     /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
     ///
     /// # Errors:

@@ -1,5 +1,7 @@
 //! Web routes for CRU operations on Property types.
 
+use std::sync::Arc;
+
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -35,7 +37,7 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<S: Store>() -> Router {
+    fn routes<S: Store + Send + Sync + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-type",
@@ -70,16 +72,14 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
-async fn create_property_type<S: Store>(
+async fn create_property_type<S: Store + Send + Sync>(
     body: Json<CreatePropertyTypeRequest>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
-    let Json(body) = body;
-    let Extension(store) = store;
+    let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
 
     store
-        .clone()
-        .create_property_type(body.schema, body.account_id)
+        .create_property_type(schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create property type");
@@ -109,13 +109,10 @@ async fn create_property_type<S: Store>(
         ("uri" = String, Path, description = "The URI of property type"),
     )
 )]
-async fn get_property_type<S: Store>(
+async fn get_property_type<S: Store + Send + Sync>(
     uri: Path<VersionedUri>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
-    let Path(uri) = uri;
-    let Extension(store) = store;
-
     let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
         tracing::error!(error=?report, "Could not resolve URI");
 
@@ -163,16 +160,14 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-async fn update_property_type<S: Store>(
+async fn update_property_type<S: Store + Send + Sync>(
     body: Json<UpdatePropertyTypeRequest>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
-    let Json(body) = body;
-    let Extension(store) = store;
+    let Json(UpdatePropertyTypeRequest { schema, account_id }) = body;
 
     store
-        .clone()
-        .update_property_type(body.schema, body.account_id)
+        .update_property_type(schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");
