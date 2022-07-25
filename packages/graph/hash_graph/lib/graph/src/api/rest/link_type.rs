@@ -1,5 +1,7 @@
 //! Web routes for CRU operations on Link types.
 
+use std::sync::Arc;
+
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -35,7 +37,7 @@ pub struct LinkTypeResource;
 
 impl RoutedResource for LinkTypeResource {
     /// Create routes for interacting with link types.
-    fn routes<S: Store>() -> Router {
+    fn routes<S: Store + Send + Sync + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/link-type",
@@ -67,16 +69,14 @@ struct CreateLinkTypeRequest {
     ),
     request_body = CreateLinkTypeRequest,
 )]
-async fn create_link_type<S: Store>(
+async fn create_link_type<S: Store + Send + Sync>(
     body: Json<CreateLinkTypeRequest>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<LinkType>>, StatusCode> {
-    let Json(body) = body;
-    let Extension(store) = store;
+    let Json(CreateLinkTypeRequest { schema, account_id }) = body;
 
     store
-        .clone()
-        .create_link_type(body.schema, body.account_id)
+        .create_link_type(schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create link type");
@@ -106,13 +106,10 @@ async fn create_link_type<S: Store>(
         ("uri" = String, Path, description = "The URI of link type"),
     )
 )]
-async fn get_link_type<S: Store>(
+async fn get_link_type<S: Store + Send + Sync>(
     uri: Path<VersionedUri>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<LinkType>>, impl IntoResponse> {
-    let Path(uri) = uri;
-    let Extension(store) = store;
-
     let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
         tracing::error!(error=?report, "Could not resolve URI");
 
@@ -160,16 +157,14 @@ struct UpdateLinkTypeRequest {
     ),
     request_body = UpdateLinkTypeRequest,
 )]
-async fn update_link_type<S: Store>(
+async fn update_link_type<S: Store + Send + Sync>(
     body: Json<UpdateLinkTypeRequest>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<LinkType>>, StatusCode> {
-    let Json(body) = body;
-    let Extension(store) = store;
+    let Json(UpdateLinkTypeRequest { schema, account_id }) = body;
 
     store
-        .clone()
-        .update_link_type(body.schema, body.account_id)
+        .update_link_type(schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update link type");

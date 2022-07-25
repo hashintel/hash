@@ -9,13 +9,15 @@ mod entity_type;
 mod link_type;
 mod property_type;
 
+use std::sync::Arc;
+
 use axum::{routing::get, Extension, Json, Router};
 use utoipa::{openapi, Modify, OpenApi};
 
 use self::api_resource::RoutedResource;
 use crate::store::Store;
 
-fn api_resources<T: Store>() -> Vec<Router> {
+fn api_resources<T: Store + Send + Sync + 'static>() -> Vec<Router> {
     vec![
         data_type::DataTypeResource::routes::<T>(),
         property_type::PropertyTypeResource::routes::<T>(),
@@ -35,7 +37,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
     ]
 }
 
-pub fn rest_api_router<T: Store>(store: T) -> Router {
+pub fn rest_api_router<T: Store + Send + Sync + 'static>(store: Arc<T>) -> Router {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<T>()
         .into_iter()

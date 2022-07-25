@@ -1,5 +1,7 @@
 //! Web routes for CRU operations on Entity types.
 
+use std::sync::Arc;
+
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -38,7 +40,7 @@ pub struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<S: Store>() -> Router {
+    fn routes<S: Store + Send + Sync + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity-type",
@@ -73,16 +75,14 @@ struct CreateEntityTypeRequest {
     ),
     request_body = CreateEntityTypeRequest,
 )]
-async fn create_entity_type<S: Store>(
+async fn create_entity_type<S: Store + Send + Sync>(
     body: Json<CreateEntityTypeRequest>,
-    datastore: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<EntityType>>, StatusCode> {
-    let Json(body) = body;
-    let Extension(datastore) = datastore;
+    let Json(CreateEntityTypeRequest { schema, account_id }) = body;
 
-    datastore
-        .clone()
-        .create_entity_type(body.schema, body.account_id)
+    store
+        .create_entity_type(schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity type");
@@ -112,13 +112,10 @@ async fn create_entity_type<S: Store>(
         ("uri" = String, Path, description = "The URI of entity type"),
     )
 )]
-async fn get_entity_type<S: Store>(
+async fn get_entity_type<S: Store + Send + Sync>(
     uri: Path<VersionedUri>,
-    store: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<EntityType>>, impl IntoResponse> {
-    let Path(uri) = uri;
-    let Extension(store) = store;
-
     let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
         tracing::error!(error=?report, "Could not resolve URI");
 
@@ -166,16 +163,14 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
-async fn update_entity_type<S: Store>(
+async fn update_entity_type<S: Store + Send + Sync>(
     body: Json<UpdateEntityTypeRequest>,
-    datastore: Extension<S>,
+    store: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<EntityType>>, StatusCode> {
-    let Json(body) = body;
-    let Extension(datastore) = datastore;
+    let Json(UpdateEntityTypeRequest { schema, account_id }) = body;
 
-    datastore
-        .clone()
-        .update_entity_type(body.schema, body.account_id)
+    store
+        .update_entity_type(schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");
