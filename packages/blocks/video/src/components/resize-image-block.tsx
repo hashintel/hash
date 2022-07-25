@@ -1,9 +1,4 @@
-import {
-  FunctionComponent,
-  MouseEvent as ReactMouseEvent,
-  useLayoutEffect,
-  useRef,
-} from "react";
+import { FunctionComponent, MouseEvent, useLayoutEffect, useRef } from "react";
 import { tw } from "twind";
 
 type ResizeBlockProps = {
@@ -47,8 +42,8 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
     }
   }, [width, imageSrc, updateWidth]);
 
-  const handleResize = (_evt: ReactMouseEvent, direction: "left" | "right") => {
-    function onMouseMove(mouseMoveEvt: MouseEvent) {
+  const handleResize = (_evt: MouseEvent, direction: "left" | "right") => {
+    function onMouseMove(mouseMoveEvt: globalThis.MouseEvent) {
       if (!imageRef.current) return;
       let newWidth;
       const { left, right } = imageRef.current.getBoundingClientRect();

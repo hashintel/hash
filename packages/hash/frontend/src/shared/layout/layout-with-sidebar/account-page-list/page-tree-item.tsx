@@ -13,7 +13,7 @@ import {
   faFile,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { forwardRef, MouseEvent as ReactMouseEvent, Ref } from "react";
+import { forwardRef, MouseEvent, Ref } from "react";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
 
@@ -29,13 +29,13 @@ const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
     useTreeItem(nodeId);
 
   const handleMouseDown = (
-    event: ReactMouseEvent<HTMLDivElement, MouseEvent>,
+    event: MouseEvent<HTMLDivElement, globalThis.MouseEvent>,
   ) => {
     preventSelection(event);
   };
 
   const handleExpansionClick = (
-    event: ReactMouseEvent<HTMLButtonElement, MouseEvent>,
+    event: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>,
   ) => {
     handleExpansion(event);
   };

@@ -5,7 +5,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  MouseEvent as ReactMouseEvent,
+  MouseEvent,
 } from "react";
 import { tw } from "twind";
 import { throttle } from "lodash";
@@ -113,13 +113,13 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
   }, [width, height, updateLocalDimensions]);
 
   const handleResize = (
-    _evt: ReactMouseEvent,
+    _evt: MouseEvent,
     direction: typeof BLOCK_RESIZER_POSITIONS[number]["position"],
   ) => {
     if (!childrenWrapperRef.current) return;
     let isResizing = false;
 
-    function onMouseMove(mouseMoveEvt: MouseEvent) {
+    function onMouseMove(mouseMoveEvt: globalThis.MouseEvent) {
       if (!divRef.current) return;
       if (!childrenWrapperRef.current) return;
       /**
