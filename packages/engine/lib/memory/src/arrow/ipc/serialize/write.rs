@@ -459,7 +459,7 @@ fn write_bitmap(
             if slice_offset != 0 {
                 // case where we can't slice the bitmap as the offsets are not multiple of 8
                 let bytes = Bitmap::from_trusted_len_iter(bitmap.iter());
-                let (slice, ..) = bytes.as_slice();
+                let (slice, _, _) = bytes.as_slice();
                 write_bytes(slice, buffers, arrow_data, offset)
             } else {
                 write_bytes(slice, buffers, arrow_data, offset)
@@ -520,7 +520,7 @@ fn _write_buffer<T: NativeType>(
     is_little_endian: bool,
     offset: i64,
 ) {
-    if is_little_endian == cfg!(target = "little_endian") {
+    if is_little_endian == cfg!(target_endian = "little") {
         // in native endianess we can use the bytes directly.
         let buffer = bytemuck::cast_slice(buffer);
         arrow_data[offset as usize..offset as usize + buffer.len()].copy_from_slice(buffer);

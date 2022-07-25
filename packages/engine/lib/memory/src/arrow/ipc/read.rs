@@ -25,7 +25,7 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
         &schema.fields,
         &IpcSchema {
             fields: default_ipc_fields(&schema.fields),
-            is_little_endian: true,
+            is_little_endian: cfg!(target_endian = "little"),
         },
         None,
         &Default::default(),

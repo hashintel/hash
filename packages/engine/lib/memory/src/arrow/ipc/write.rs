@@ -51,7 +51,7 @@ pub fn calculate_ipc_data_size(record_batch: &super::RecordBatch) -> IpcDataMeta
             &mut data_len,
             &mut nodes,
             &mut offset,
-            cfg!(target = "litte_endian"),
+            cfg!(target_endian = "little"),
         )
     }
 
@@ -62,6 +62,7 @@ pub fn calculate_ipc_data_size(record_batch: &super::RecordBatch) -> IpcDataMeta
     }
 }
 
+#[derive(Debug)]
 pub struct IpcDataMetadata {
     pub body_len: usize,
     pub nodes: Vec<arrow_format::ipc::FieldNode>,
@@ -104,14 +105,25 @@ pub fn write_record_batch_body(record_batch: &RecordBatch, buf: &mut [u8]) -> cr
     let mut offset = 0;
 
     for col in record_batch.columns() {
+        let before_offset = offset;
+        dbg!(col.data_type());
+
         super::serialize::write::write(
             col.as_ref(),
             &mut buffers,
             buf,
             &mut nodes,
             &mut offset,
-            true,
-        )
+            cfg!(target_endian = "little"),
+        );
+
+        if offset < before_offset {
+            panic!(
+                "The offsets list must be increasing, but the offset afterwards was {} (before it \
+                 was {})",
+                offset, before_offset
+            )
+        }
     }
 
     Ok(())
