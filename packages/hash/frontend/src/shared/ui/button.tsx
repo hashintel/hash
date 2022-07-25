@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { FunctionComponent, forwardRef, useMemo, ReactNode } from "react";
 import {
-  /* eslint-disable-next-line -- allow import of original button to extend it */
   Button as BaseButton,
   ButtonProps as BaseButtonProps,
 } from "@hashintel/hash-design-system";
