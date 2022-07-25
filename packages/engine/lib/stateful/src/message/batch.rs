@@ -6,7 +6,10 @@ use arrow::{array::Array, chunk::Chunk, datatypes::Schema};
 use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef, MessageRef};
 use memory::{
     arrow::{
-        column_with_name_from_record_batch, ipc, meta::DynamicMetadata, record_batch::RecordBatch,
+        column_with_name_from_record_batch,
+        ipc::{self, calculate_ipc_data_size, write_record_batch_message_header},
+        meta::DynamicMetadata,
+        record_batch::RecordBatch,
         ArrowBatch,
     },
     shared_memory::{MemoryId, Metaversion, Segment},
@@ -80,7 +83,7 @@ impl MessageBatch {
             self.arrow_schema.clone(),
             Chunk::new(vec![Arc::clone(&id_column), empty_message_column]),
         );
-        let write_metadata = ipc::record_batch_msg_offset(&record_batch)?;
+        let write_metadata = ipc::calculate_ipc_data_size(&record_batch);
 
         // Perform some light bound checks
         // we can't release memory on mac because we can't resize the segment
@@ -89,12 +92,12 @@ impl MessageBatch {
             if batch.segment().size > upper_bound
                 && batch
                     .segment()
-                    .target_total_size_accommodates_data_size(upper_bound, write_metadata.data_len)
+                    .target_total_size_accommodates_data_size(upper_bound, write_metadata.body_len)
             {
                 batch.segment_mut().resize(upper_bound)?;
                 let change = batch
                     .segment_mut()
-                    .set_data_length(write_metadata.data_len)?;
+                    .set_data_length(write_metadata.body_len)?;
                 debug_assert!(!change.resized() && !change.shifted());
                 // Always increment when resizing
                 metaversion_to_persist.increment();
@@ -103,7 +106,9 @@ impl MessageBatch {
 
         let old_metadata_size = batch.segment().get_metadata()?.len();
         // Write new metadata
-        let change = batch.segment_mut().set_metadata(&write_metadata.msg_data)?;
+        let mut metadata = vec![];
+        ipc::write_record_batch_message_header(&mut metadata, &write_metadata)?;
+        let change = batch.segment_mut().set_metadata(&metadata)?;
         debug_assert!(!change.resized() && !change.shifted());
         debug_assert_eq!(
             old_metadata_size,
@@ -116,10 +121,10 @@ impl MessageBatch {
         );
 
         let cur_len = batch.segment().get_data_buffer_len()?;
-        if cur_len < write_metadata.data_len
+        if cur_len < write_metadata.body_len
             && batch
                 .segment_mut()
-                .set_data_length(write_metadata.data_len)?
+                .set_data_length(write_metadata.body_len)?
                 .resized()
         {
             // This shouldn't happen very often unless the bounds above are very inaccurate.
@@ -127,13 +132,13 @@ impl MessageBatch {
             tracing::info!(
                 "Unexpected message batch memory resize. Was {}, should have been at least {}",
                 cur_len,
-                write_metadata.data_len
+                write_metadata.body_len
             );
         }
 
         let data_buffer = batch.segment_mut().get_mut_data_buffer()?;
         // Write new data
-        ipc::write_record_batch_data_to_bytes(&record_batch, data_buffer, write_metadata);
+        ipc::write_record_batch_body(&record_batch, data_buffer)?;
 
         // TODO: reloading batch could be faster if we persisted
         //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
@@ -164,21 +169,24 @@ impl MessageBatch {
 
         let header = Metaversion::default().to_le_bytes();
 
-        let info = ipc::record_batch_msg_offset(&record_batch)?;
+        let info = ipc::calculate_ipc_data_size(&record_batch);
+
+        let mut metadata = vec![];
+        ipc::write_record_batch_message_header(&mut metadata, &info)?;
 
         let mut segment = Segment::from_sizes(
             memory_id,
             0,
             header.len(),
-            info.msg_data.len(),
-            info.data_len,
+            metadata.len(),
+            info.body_len,
             true,
         )?;
-        let change = segment.set_metadata(&info.msg_data)?;
+        let change = segment.set_metadata(&metadata)?;
         debug_assert!(!change.resized() && !change.shifted());
 
         let data_buffer = segment.get_mut_data_buffer()?;
-        ipc::write_record_batch_data_to_bytes(&record_batch, data_buffer, info);
+        ipc::write_record_batch_body(&record_batch, data_buffer)?;
         let change = segment.set_header(&header)?;
         debug_assert!(!change.resized() && !change.shifted());
         Self::from_segment(segment, schema)
@@ -198,17 +206,20 @@ impl MessageBatch {
         msg_schema: &MessageSchema,
         memory_id: MemoryId,
     ) -> Result<Self> {
-        let mut buf = vec![];
-        let mut info = ipc::record_batch_msg_offset(record_batch)?;
-        let msg_data = info.take_msg_data();
-        ipc::write_record_batch_data_to_bytes(record_batch, &mut buf, info);
+        let info = calculate_ipc_data_size(record_batch);
+
+        let mut metadata = vec![];
+        write_record_batch_message_header(&mut metadata, &info)?;
+
+        let mut body = vec![];
+        ipc::write_record_batch_body(record_batch, &mut body)?;
 
         let segment = Segment::from_batch_buffers(
             memory_id,
             &[],
             &Metaversion::default().to_le_bytes(),
-            &msg_data,
-            &buf,
+            &metadata,
+            &body,
             true,
         )?;
         Self::from_segment(segment, msg_schema)

@@ -24,9 +24,13 @@ use super::record_batch::RecordBatch;
 pub mod offset;
 pub mod read;
 pub mod schema;
+pub mod write;
+
 /// Contains code taken from arrow2 (and slightly modified) to allow us to write arrays.
 mod serialize;
-pub mod write;
+
+#[cfg(test)]
+mod test;
 
 pub use read::*;
 pub use schema::*;

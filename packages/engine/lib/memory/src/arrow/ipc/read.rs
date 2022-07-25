@@ -1,11 +1,12 @@
 //! This file loads data from memory into
 
-use std::{collections::BTreeMap, io::Cursor, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use arrow::{
     datatypes::{Metadata, Schema},
-    io::ipc::read::{read_file_metadata, FileReader},
+    io::ipc::{write::default_ipc_fields, IpcSchema},
 };
+use arrow_format::ipc::planus::ReadAsRoot;
 
 use super::RecordBatch;
 use crate::shared_memory::Segment;
@@ -15,25 +16,25 @@ use crate::shared_memory::Segment;
 /// If the data in the [`Segment`] is incorrectly formatted, this method will
 /// return an error.
 pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Result<RecordBatch> {
-    let mut meta_reader = Cursor::new(segment.get_batch_buffers()?.meta());
-    let mut data_reader = Cursor::new(segment.get_batch_buffers()?.data());
+    let batch = read_record_batch_message(segment)?;
 
-    // todo: handle error
-    let metadata = read_file_metadata(&mut meta_reader).unwrap();
+    let mut reader = std::io::Cursor::new(segment.get_data_buffer()?);
 
-    let reader = FileReader::new(&mut data_reader, metadata, None);
+    let columns = arrow::io::ipc::read::read_record_batch(
+        batch,
+        &schema.fields,
+        &IpcSchema {
+            fields: default_ipc_fields(&schema.fields),
+            is_little_endian: true,
+        },
+        None,
+        &Default::default(),
+        arrow_format::ipc::MetadataVersion::V4,
+        &mut reader,
+        0,
+    )?;
 
-    // todo: handle error
-    let mut chunks = reader.collect::<arrow::error::Result<Vec<_>>>().unwrap();
-
-    // note: although it is possible to have more than one RecordBatch in a file, inside the engine
-    // we do not use this feature.
-    debug_assert_eq!(chunks.len(), 1);
-
-    Ok(RecordBatch {
-        schema,
-        columns: chunks.remove(0),
-    })
+    Ok(RecordBatch { schema, columns })
 }
 
 /// Loads the Flatbuffers RecordBatch _message_ - i.e. the data in the header (_not_ the data in the
@@ -47,9 +48,25 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
 ///     provides all the offsets at which the columns are in the file
 ///   - record_batch RecordBatch is what arrow-rs uses to store the entire
 pub fn read_record_batch_message(
-    _segment: &Segment,
+    segment: &Segment,
 ) -> crate::Result<arrow_format::ipc::RecordBatchRef<'_>> {
-    todo!()
+    let metadata = segment.get_metadata()?;
+    let msg = arrow_format::ipc::MessageRef::read_as_root(metadata)?;
+    let header = msg.header()?.ok_or_else(|| {
+        crate::Error::ArrowBatch(
+            "the message header was missing on the record batch - this is a bug in the engine"
+                .to_string(),
+        )
+    })?;
+    let batch = match header {
+        arrow_format::ipc::MessageHeaderRef::RecordBatch(batch) => batch,
+        _ => {
+            return Err(crate::Error::ArrowBatch(
+                "the message was not a record batch message".to_string(),
+            ));
+        }
+    };
+    Ok(batch)
 }
 
 /// Converts a flatbuffers message into a [`arrow::datatypes::Schema`].

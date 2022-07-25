@@ -109,15 +109,18 @@ unsafe extern "C" fn get_dynamic_metadata(
             let batch_message = match arrow_format::ipc::MessageRef::read_as_root(meta_buffer)
                 .map_err(Error::from)
                 .and_then(|message| {
-                    let header_ref = message
-                        .header()?
-                        .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))?;
+                    let header_ref = message.header()?.ok_or_else(|| {
+                        Error::ArrowBatch(format!("Couldn't read message: {:#?}", &message))
+                    })?;
 
                     match header_ref {
                         arrow_format::ipc::MessageHeaderRef::RecordBatch(record_batch) => {
                             Ok(record_batch)
                         }
-                        _ => Err(Error::ArrowBatch("Couldn't read message".into())),
+                        _ => Err(Error::ArrowBatch(format!(
+                            "Couldn't read message: {:#?}",
+                            &message
+                        ))),
                     }
                 }) {
                 Ok(ret) => ret,

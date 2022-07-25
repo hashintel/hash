@@ -10,9 +10,7 @@ use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef};
 use memory::{
     arrow::{
         flush::GrowableBatch,
-        ipc::{
-            self, arrow_schema_from_fb, record_batch_msg_offset, write_record_batch_data_to_bytes,
-        },
+        ipc::{self, arrow_schema_from_fb, write_record_batch_to_segment},
         meta::{self, DynamicMetadata, StaticMetadata},
         record_batch::RecordBatch,
         ArrowBatch, ColumnChange,
@@ -84,29 +82,7 @@ impl AgentBatch {
         schema: &AgentSchema,
         memory_id: MemoryId,
     ) -> Result<Self> {
-        let schema_buffer =
-            schema_to_bytes(&schema.arrow, &default_ipc_fields(&schema.arrow.fields));
-        let header_buffer = Metaversion::default().to_le_bytes();
-        let info = record_batch_msg_offset(record_batch)?;
-
-        let mut segment = Segment::from_sizes(
-            memory_id,
-            schema_buffer.len(),
-            header_buffer.len(),
-            info.msg_data.len(),
-            info.data_len,
-            true,
-        )?;
-
-        // Memory needs to be loaded after creating regardless of metaverion, so we can ignore, if
-        // the memory changed.
-        let _ = segment.set_schema(&schema_buffer)?;
-        let _ = segment.set_header(&header_buffer)?;
-        let _ = segment.set_metadata(&info.msg_data)?;
-
-        let data_buffer = segment.get_mut_data_buffer()?;
-        // Write new data
-        write_record_batch_data_to_bytes(record_batch, data_buffer, info);
+        let segment = write_record_batch_to_segment(record_batch, &schema.arrow, memory_id)?;
 
         Self::from_segment(segment, Some(schema), None)
     }
@@ -131,11 +107,16 @@ impl AgentBatch {
             (schema, static_meta)
         };
 
-        let batch_message =
-            match arrow_format::ipc::MessageRef::read_as_root(buffers.meta())?.header() {
-                Ok(Some(MessageHeaderRef::RecordBatch(r))) => r,
-                _ => return Err(Error::ArrowBatch("Couldn't read message".into())),
-            };
+        let message = arrow_format::ipc::MessageRef::read_as_root(buffers.meta())?;
+        let batch_message = match message.header() {
+            Ok(Some(MessageHeaderRef::RecordBatch(r))) => r,
+            _ => {
+                return Err(Error::ArrowBatch(format!(
+                    "Couldn't read message: {:#?}",
+                    &message
+                )));
+            }
+        };
 
         let dynamic_meta =
             DynamicMetadata::from_record_batch(&batch_message, buffers.data().len())?;

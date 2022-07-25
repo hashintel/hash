@@ -5,7 +5,10 @@ use std::sync::Arc;
 use arrow::datatypes::Schema;
 use memory::{
     arrow::{
-        ipc::{self, record_batch_msg_offset, write_record_batch_data_to_bytes},
+        ipc::{
+            self, calculate_ipc_data_size, write_record_batch_body,
+            write_record_batch_message_header,
+        },
         meta,
         record_batch::RecordBatch,
     },
@@ -48,13 +51,17 @@ impl ContextBatch {
         memory_id: MemoryId,
     ) -> Result<Self> {
         let header = Metaversion::default().to_le_bytes();
-        let mut info = record_batch_msg_offset(record_batch)?;
-        let msg_data = info.take_msg_data();
+
+        let info = calculate_ipc_data_size(&record_batch);
+
+        let mut metadata = vec![];
+        write_record_batch_message_header(&mut metadata, &info)?;
+
         let mut body_data = vec![];
-        write_record_batch_data_to_bytes(record_batch, &mut body_data, info);
+        write_record_batch_body(record_batch, &mut body_data)?;
 
         let segment =
-            Segment::from_batch_buffers(memory_id, &[], &header, &msg_data, &body_data, false)?;
+            Segment::from_batch_buffers(memory_id, &[], &header, &metadata, &body_data, false)?;
         Self::from_segment(segment, schema)
     }
 

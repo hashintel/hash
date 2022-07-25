@@ -9,7 +9,7 @@ use arrow::{
 
 /// A record batch is a common abstraction introduced to handle Arrow columns (particularly moving
 /// them over the IPC boundary).
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct RecordBatch {
     /// The schema which describes the columns in this [`RecordBatch`].
     pub schema: Arc<Schema>,
