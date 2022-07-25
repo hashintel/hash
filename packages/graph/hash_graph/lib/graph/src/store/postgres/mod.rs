@@ -1,14 +1,13 @@
 mod database_type;
+mod pool;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde::{de::DeserializeOwned, Serialize};
-use sqlx::{
-    postgres::PgConnectOptions, ConnectOptions, Executor, PgPool, Postgres, Row, Transaction,
-};
-use tracing::log::LevelFilter;
+use sqlx::{pool::PoolConnection, Acquire, Executor, Postgres, Row, Transaction};
 use uuid::Uuid;
 
+pub use self::pool::PostgresStorePool;
 use crate::{
     knowledge::{Entity, EntityId},
     ontology::{
@@ -22,38 +21,20 @@ use crate::{
     store::{
         error::{EntityDoesNotExist, VersionedUriAlreadyExists},
         postgres::database_type::DatabaseType,
-        BaseUriAlreadyExists, BaseUriDoesNotExist, DatabaseConnectionInfo, InsertionError,
-        QueryError, Store, StoreError, UpdateError,
+        BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, Store, UpdateError,
     },
 };
 
 /// A Postgres-backed store
-pub struct PostgresDatabase {
-    pub pool: PgPool,
+pub struct PostgresStore {
+    connection: PoolConnection<Postgres>,
 }
 
-impl PostgresDatabase {
+impl PostgresStore {
     /// Creates a new `PostgresDatabase` object.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`], if creating a [`PgPool`] connection returns an error.
-    pub async fn new(db_info: &DatabaseConnectionInfo) -> Result<Self, StoreError> {
-        tracing::debug!("Creating connection pool to Postgres");
-        let mut connection_options = PgConnectOptions::default()
-            .username(db_info.user())
-            .password(db_info.password())
-            .host(db_info.host())
-            .port(db_info.port())
-            .database(db_info.database());
-        connection_options.log_statements(LevelFilter::Trace);
-        Ok(Self {
-            pool: PgPool::connect_with(connection_options)
-                .await
-                .report()
-                .change_context(StoreError)
-                .attach_printable_lazy(|| db_info.clone())?,
-        })
+    #[must_use]
+    pub(crate) const fn new(connection: PoolConnection<Postgres>) -> Self {
+        Self { connection }
     }
 
     /// Inserts the specified [`AccountId`] into the database.
@@ -62,8 +43,8 @@ impl PostgresDatabase {
     ///
     /// - if insertion failed, e.g. because the [`AccountId`] already exists.
     // TODO: Revisit this when having authentication in place
-    pub async fn insert_account_id(&self, account_id: AccountId) -> Result<(), InsertionError> {
-        self.pool
+    pub async fn insert_account_id(&mut self, account_id: AccountId) -> Result<(), InsertionError> {
+        self.connection
             .fetch_one(
                 sqlx::query(
                     r#"
@@ -86,7 +67,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if checking for the [`BaseUri`] failed.
+    /// - if checking for the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn contains_base_uri(
@@ -116,7 +97,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if checking for the [`VersionedUri`] failed.
+    /// - if checking for the [`VersionedUri`] failed.
     async fn contains_uri(
         transaction: &mut Transaction<'_, Postgres>,
         uri: &VersionedUri,
@@ -173,7 +154,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if inserting the [`VersionedUri`] failed.
+    /// - if inserting the [`VersionedUri`] failed.
     async fn insert_uri(
         transaction: &mut Transaction<'_, Postgres>,
         uri: &VersionedUri,
@@ -204,7 +185,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if inserting the [`BaseUri`] failed.
+    /// - if inserting the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn insert_base_uri(
@@ -234,7 +215,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if inserting the [`VersionId`] failed.
+    /// - if inserting the [`VersionId`] failed.
     async fn insert_version_id(
         transaction: &mut Transaction<'_, Postgres>,
         version_id: VersionId,
@@ -355,7 +336,7 @@ impl PostgresDatabase {
     ///
     /// # Errors
     ///
-    /// - [`StoreError`], if inserting failed.
+    /// - if inserting failed.
     async fn insert_with_id<T>(
         transaction: &mut Transaction<'_, Postgres>,
         version_id: VersionId,
@@ -398,14 +379,14 @@ impl PostgresDatabase {
     ///
     /// - If the specified [`VersionId`] does not already exist.
     // TODO: We can't distinguish between an DB error and a non-existing version currently
-    async fn get_by_version<T>(&self, version_id: VersionId) -> Result<Persisted<T>, QueryError>
+    async fn get_by_version<T>(&mut self, version_id: VersionId) -> Result<Persisted<T>, QueryError>
     where
         T: DatabaseType + DeserializeOwned,
     {
         // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
         //   module.
         let row = self
-            .pool
+            .connection
             .fetch_one(
                 sqlx::query(&format!(
                     r#"
@@ -718,18 +699,18 @@ impl PostgresDatabase {
 }
 
 #[async_trait]
-impl Store for PostgresDatabase {
-    async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
-        Self::version_id_by_uri_impl(&self.pool, uri).await
+impl Store for PostgresStore {
+    async fn version_id_by_uri(&mut self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
+        Self::version_id_by_uri_impl(&mut self.connection, uri).await
     }
 
     async fn create_data_type(
-        &self,
+        &mut self,
         data_type: DataType,
         created_by: AccountId,
     ) -> Result<Persisted<DataType>, InsertionError> {
         let mut transaction = self
-            .pool
+            .connection
             .begin()
             .await
             .report()
@@ -747,19 +728,19 @@ impl Store for PostgresDatabase {
     }
 
     async fn get_data_type(
-        &self,
+        &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<DataType>, QueryError> {
         self.get_by_version(version_id).await
     }
 
     async fn update_data_type(
-        &self,
+        &mut self,
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Persisted<DataType>, UpdateError> {
         let mut transaction = self
-            .pool
+            .connection
             .begin()
             .await
             .report()
@@ -777,12 +758,12 @@ impl Store for PostgresDatabase {
     }
 
     async fn create_property_type(
-        &self,
+        &mut self,
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Persisted<PropertyType>, InsertionError> {
         let mut transaction = self
-            .pool
+            .connection
             .begin()
             .await
             .report()
@@ -806,19 +787,19 @@ impl Store for PostgresDatabase {
     }
 
     async fn get_property_type(
-        &self,
+        &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<PropertyType>, QueryError> {
         self.get_by_version(version_id).await
     }
 
     async fn update_property_type(
-        &self,
+        &mut self,
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Persisted<PropertyType>, UpdateError> {
         let mut transaction = self
-            .pool
+            .connection
             .begin()
             .await
             .report()
@@ -842,12 +823,12 @@ impl Store for PostgresDatabase {
     }
 
     async fn create_entity_type(
-        &self,
+        &mut self,
         entity_type: EntityType,
         created_by: AccountId,
     ) -> Result<Persisted<EntityType>, InsertionError> {
         let mut transaction = self
-            .pool
+            .connection
             .begin()
             .await
             .report()
@@ -871,19 +852,19 @@ impl Store for PostgresDatabase {
     }
 
     async fn get_entity_type(
-        &self,
+        &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<EntityType>, QueryError> {
         self.get_by_version(version_id).await
     }
 
     async fn update_entity_type(
-        &self,
+        &mut self,
         entity_type: EntityType,
         updated_by: AccountId,
     ) -> Result<Persisted<EntityType>, UpdateError> {
         let mut transaction = self
-            .pool
+            .connection
             .begin()
             .await
             .report()
@@ -907,12 +888,12 @@ impl Store for PostgresDatabase {
     }
 
     async fn create_link_type(
-        &self,
+        &mut self,
         link_type: LinkType,
         created_by: AccountId,
     ) -> Result<Persisted<LinkType>, InsertionError> {
         let mut transaction = self
-            .pool
+            .connection
             .begin()
             .await
             .report()
@@ -930,19 +911,19 @@ impl Store for PostgresDatabase {
     }
 
     async fn get_link_type(
-        &self,
+        &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<LinkType>, QueryError> {
         self.get_by_version(version_id).await
     }
 
     async fn update_link_type(
-        &self,
+        &mut self,
         link_type: LinkType,
         updated_by: AccountId,
     ) -> Result<Persisted<LinkType>, UpdateError> {
         let mut transaction = self
-            .pool
+            .connection
             .begin()
             .await
             .report()
@@ -960,13 +941,13 @@ impl Store for PostgresDatabase {
     }
 
     async fn create_entity(
-        &self,
+        &mut self,
         entity: &Entity,
         entity_type_uri: VersionedUri,
         created_by: AccountId,
     ) -> Result<EntityId, InsertionError> {
         let mut transaction = self
-            .pool
+            .connection
             .begin()
             .await
             .report()
@@ -991,9 +972,9 @@ impl Store for PostgresDatabase {
         Ok(entity_id)
     }
 
-    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
+    async fn get_entity(&mut self, entity_id: EntityId) -> Result<Entity, QueryError> {
         let row = self
-            .pool
+            .connection
             .fetch_one(
                 sqlx::query(
                     r#"
@@ -1019,14 +1000,14 @@ impl Store for PostgresDatabase {
     }
 
     async fn update_entity(
-        &self,
+        &mut self,
         entity_id: EntityId,
         entity: &Entity,
         entity_type_uri: VersionedUri,
         updated_by: AccountId,
     ) -> Result<(), UpdateError> {
         let mut transaction = self
-            .pool
+            .connection
             .begin()
             .await
             .report()

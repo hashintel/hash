@@ -18,7 +18,7 @@ use crate::{
     ontology::{types::uri::VersionedUri, AccountId},
     store::{
         error::{EntityDoesNotExist, QueryError},
-        Store,
+        Store, StorePool,
     },
 };
 
@@ -44,7 +44,7 @@ pub struct EntityResource;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
-    fn routes<S: Store + Send + Sync + 'static>() -> Router {
+    fn routes<S: StorePool + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity",
@@ -77,15 +77,20 @@ struct CreateEntityRequest {
     ),
     request_body = CreateEntityRequest,
 )]
-async fn create_entity<S: Store + Send + Sync>(
+async fn create_entity<S: StorePool>(
     body: Json<CreateEntityRequest>,
-    store: Extension<Arc<S>>,
+    pool: Extension<Arc<S>>,
 ) -> Result<Json<QualifiedEntity>, StatusCode> {
     let Json(CreateEntityRequest {
         entity,
         entity_type_uri,
         account_id,
     }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     store
         .create_entity(&entity, entity_type_uri, account_id)
@@ -114,11 +119,16 @@ async fn create_entity<S: Store + Send + Sync>(
         ("entity_id" = Uuid, Path, description = "The ID of the entity"),
     )
 )]
-async fn get_entity<S: Store + Send + Sync>(
+async fn get_entity<S: StorePool>(
     entity_id: Path<EntityId>,
-    store: Extension<Arc<S>>,
+    pool: Extension<Arc<S>>,
 ) -> Result<Json<QualifiedEntity>, impl IntoResponse> {
     let Path(entity_id) = entity_id;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     store
         .get_entity(entity_id)
@@ -158,9 +168,9 @@ struct UpdateEntityRequest {
     ),
     request_body = UpdateEntityRequest,
 )]
-async fn update_entity<S: Store + Send + Sync>(
+async fn update_entity<S: StorePool>(
     body: Json<UpdateEntityRequest>,
-    store: Extension<Arc<S>>,
+    pool: Extension<Arc<S>>,
 ) -> Result<Json<QualifiedEntity>, StatusCode> {
     let Json(UpdateEntityRequest {
         entity,
@@ -168,6 +178,11 @@ async fn update_entity<S: Store + Send + Sync>(
         entity_type_uri,
         account_id,
     }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     store
         .update_entity(entity_id, &entity, entity_type_uri, account_id)

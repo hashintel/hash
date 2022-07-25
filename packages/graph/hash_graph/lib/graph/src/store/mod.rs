@@ -1,4 +1,5 @@
 pub mod error;
+mod pool;
 mod postgres;
 
 use std::fmt;
@@ -8,7 +9,8 @@ use error_stack::{Context, Result};
 
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
-    postgres::PostgresDatabase,
+    pool::StorePool,
+    postgres::{PostgresStore, PostgresStorePool},
 };
 use crate::{
     knowledge::{Entity, EntityId},
@@ -176,7 +178,7 @@ pub trait Store {
     /// # Errors:
     ///
     /// - if the entry referred to by `uri` does not exist.
-    async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError>;
+    async fn version_id_by_uri(&mut self, uri: &VersionedUri) -> Result<VersionId, QueryError>;
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -186,7 +188,7 @@ pub trait Store {
     ///
     /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn create_data_type(
-        &self,
+        &mut self,
         data_type: DataType,
         created_by: AccountId,
     ) -> Result<Persisted<DataType>, InsertionError>;
@@ -196,8 +198,10 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(&self, version_id: VersionId)
-    -> Result<Persisted<DataType>, QueryError>;
+    async fn get_data_type(
+        &mut self,
+        version_id: VersionId,
+    ) -> Result<Persisted<DataType>, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -205,7 +209,7 @@ pub trait Store {
     ///
     /// - if the [`DataType`] doesn't exist.
     async fn update_data_type(
-        &self,
+        &mut self,
         data_type: DataType,
         updated_by: AccountId,
     ) -> Result<Persisted<DataType>, UpdateError>;
@@ -219,7 +223,7 @@ pub trait Store {
     ///
     /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn create_property_type(
-        &self,
+        &mut self,
         property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<Persisted<PropertyType>, InsertionError>;
@@ -230,7 +234,7 @@ pub trait Store {
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
     async fn get_property_type(
-        &self,
+        &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<PropertyType>, QueryError>;
 
@@ -240,7 +244,7 @@ pub trait Store {
     ///
     /// - if the [`PropertyType`] doesn't exist.
     async fn update_property_type(
-        &self,
+        &mut self,
         property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<Persisted<PropertyType>, UpdateError>;
@@ -254,7 +258,7 @@ pub trait Store {
     ///
     /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn create_entity_type(
-        &self,
+        &mut self,
         entity_type: EntityType,
         created_by: AccountId,
     ) -> Result<Persisted<EntityType>, InsertionError>;
@@ -265,7 +269,7 @@ pub trait Store {
     ///
     /// - if the requested [`EntityType`] doesn't exist.
     async fn get_entity_type(
-        &self,
+        &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<EntityType>, QueryError>;
 
@@ -275,7 +279,7 @@ pub trait Store {
     ///
     /// - if the [`EntityType`] doesn't exist.
     async fn update_entity_type(
-        &self,
+        &mut self,
         entity_type: EntityType,
         updated_by: AccountId,
     ) -> Result<Persisted<EntityType>, UpdateError>;
@@ -291,7 +295,7 @@ pub trait Store {
     ///
     /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn create_link_type(
-        &self,
+        &mut self,
         link_type: LinkType,
         created_by: AccountId,
     ) -> Result<Persisted<LinkType>, InsertionError>;
@@ -301,8 +305,10 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type(&self, version_id: VersionId)
-    -> Result<Persisted<LinkType>, QueryError>;
+    async fn get_link_type(
+        &mut self,
+        version_id: VersionId,
+    ) -> Result<Persisted<LinkType>, QueryError>;
 
     /// Update the definition of an existing [`LinkType`].
     ///
@@ -310,7 +316,7 @@ pub trait Store {
     ///
     /// - if the [`LinkType`] doesn't exist.
     async fn update_link_type(
-        &self,
+        &mut self,
         property_type: LinkType,
         updated_by: AccountId,
     ) -> Result<Persisted<LinkType>, UpdateError>;
@@ -323,7 +329,7 @@ pub trait Store {
     /// - if the [`Entity`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `created_by` does not exist
     async fn create_entity(
-        &self,
+        &mut self,
         entity: &Entity,
         entity_type_uri: VersionedUri,
         created_by: AccountId,
@@ -334,7 +340,7 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError>;
+    async fn get_entity(&mut self, entity_id: EntityId) -> Result<Entity, QueryError>;
 
     /// Update an existing [`Entity`].
     ///
@@ -345,7 +351,7 @@ pub trait Store {
     /// - if the [`Entity`] is not valid with respect to its [`EntityType`]
     /// - if the account referred to by `updated_by` does not exist
     async fn update_entity(
-        &self,
+        &mut self,
         entity_id: EntityId,
         entity: &Entity,
         entity_type_uri: VersionedUri,

@@ -18,7 +18,7 @@ use crate::{
         types::{uri::VersionedUri, Persisted, PersistedPropertyType, PropertyType},
         AccountId,
     },
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store, StorePool},
 };
 
 #[derive(OpenApi)]
@@ -37,7 +37,7 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<S: Store + Send + Sync + 'static>() -> Router {
+    fn routes<S: StorePool + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-type",
@@ -72,11 +72,16 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
-async fn create_property_type<S: Store + Send + Sync>(
+async fn create_property_type<S: StorePool>(
     body: Json<CreatePropertyTypeRequest>,
-    store: Extension<Arc<S>>,
+    pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     store
         .create_property_type(schema, account_id)
@@ -109,10 +114,15 @@ async fn create_property_type<S: Store + Send + Sync>(
         ("uri" = String, Path, description = "The URI of property type"),
     )
 )]
-async fn get_property_type<S: Store + Send + Sync>(
+async fn get_property_type<S: StorePool>(
     uri: Path<VersionedUri>,
-    store: Extension<Arc<S>>,
+    pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
         tracing::error!(error=?report, "Could not resolve URI");
 
@@ -160,11 +170,16 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-async fn update_property_type<S: Store + Send + Sync>(
+async fn update_property_type<S: StorePool>(
     body: Json<UpdatePropertyTypeRequest>,
-    store: Extension<Arc<S>>,
+    pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(UpdatePropertyTypeRequest { schema, account_id }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     store
         .update_property_type(schema, account_id)

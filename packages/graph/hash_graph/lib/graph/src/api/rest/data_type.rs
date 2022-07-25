@@ -18,7 +18,7 @@ use crate::{
         types::{uri::VersionedUri, DataType, Persisted, PersistedDataType},
         AccountId,
     },
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store},
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store, StorePool},
 };
 
 #[derive(OpenApi)]
@@ -37,7 +37,7 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<S: Store + Send + Sync + 'static>() -> Router {
+    fn routes<S: StorePool + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-type",
@@ -69,11 +69,16 @@ struct CreateDataTypeRequest {
     ),
     request_body = CreateDataTypeRequest,
 )]
-async fn create_data_type<S: Store + Send + Sync>(
+async fn create_data_type<S: StorePool>(
     body: Json<CreateDataTypeRequest>,
-    store: Extension<Arc<S>>,
+    pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<DataType>>, StatusCode> {
     let Json(CreateDataTypeRequest { schema, account_id }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     store
         .create_data_type(schema, account_id)
@@ -106,10 +111,15 @@ async fn create_data_type<S: Store + Send + Sync>(
         ("uri" = String, Path, description = "The URI of data type"),
     )
 )]
-async fn get_data_type<S: Store + Send + Sync>(
+async fn get_data_type<S: StorePool>(
     uri: Path<VersionedUri>,
-    store: Extension<Arc<S>>,
+    pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<DataType>>, impl IntoResponse> {
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
         tracing::error!(error=?report, "Could not resolve URI");
 
@@ -157,11 +167,16 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
-async fn update_data_type<S: Store + Send + Sync>(
+async fn update_data_type<S: StorePool>(
     body: Json<UpdateDataTypeRequest>,
-    store: Extension<Arc<S>>,
+    pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<DataType>>, StatusCode> {
     let Json(UpdateDataTypeRequest { schema, account_id }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     store
         .update_data_type(schema, account_id)
