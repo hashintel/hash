@@ -151,6 +151,12 @@ impl Hooks<Builtin> {
     }
 }
 
+impl Hooks<()> {
+    pub fn bare() -> Self {
+        Self(())
+    }
+}
+
 impl<T: Hook<Frame>> Hooks<T> {
     fn new_with(hook: T) -> Self {
         Self(hook)
