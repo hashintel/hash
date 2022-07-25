@@ -77,7 +77,7 @@ impl MessageBatch {
         let agent_record_batch = agent_batch.batch.record_batch()?; // Agent batch must be up to date
         let column_name = AgentStateField::AgentId.name();
         let id_column = column_with_name_from_record_batch(agent_record_batch, column_name)?;
-        let empty_message_column = MessageArray::new(agent_count).map(Arc::new)?;
+        let empty_message_column = Arc::new(MessageArray::new(agent_count));
 
         let record_batch = RecordBatch::new(
             self.arrow_schema.clone(),
@@ -160,7 +160,7 @@ impl MessageBatch {
         let agent_record_batch = agent_batch.batch.record_batch()?;
         let column_name = AgentStateField::AgentId.name();
         let id_column = column_with_name_from_record_batch(agent_record_batch, column_name)?;
-        let empty_message_column: Arc<dyn Array> = MessageArray::new(agent_count).map(Arc::new)?;
+        let empty_message_column: Arc<dyn Array> = Arc::new(MessageArray::new(agent_count));
 
         let record_batch = RecordBatch::new(
             Arc::clone(&schema.arrow),

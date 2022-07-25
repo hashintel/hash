@@ -158,7 +158,7 @@ pub fn from_json(
     let ids = Arc::new(get_agent_id_array(ids)?);
 
     let messages: Arc<dyn Array> = messages.map_or_else(
-        || MessageArray::new(agent_count).map(Arc::new),
+        || Ok(Arc::new(MessageArray::new(agent_count))),
         |values| MessageArray::from_json(values).map(Arc::new),
     )?;
 

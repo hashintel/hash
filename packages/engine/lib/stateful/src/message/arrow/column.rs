@@ -41,7 +41,7 @@ impl MessageColumn {
                 let to: Vec<&str> = (0..to_len)
                     .map(|j| to_values.value(to_offset + j))
                     .collect();
-                let r#type = r#type_column.value(offset + j);
+                let r#type = type_column.value(offset + j);
                 let data_string = data_column.value(offset + j);
                 messages.push(Message::new(&to, r#type, data_string)?);
                 to_offset += to_len;
