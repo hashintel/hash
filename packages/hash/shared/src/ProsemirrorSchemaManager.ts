@@ -1,5 +1,5 @@
 import { BlockVariant, JsonObject } from "@blockprotocol/core";
-import { Fragment, NodeSpec, ProsemirrorNode, Schema } from "prosemirror-model";
+import { NodeSpec, ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
@@ -50,11 +50,6 @@ const blockComponentRequiresText = (
   componentSchema: BlockMeta["componentSchema"],
 ) =>
   !!componentSchema.properties && "editableRef" in componentSchema.properties;
-
-const componentIdRequiresText = async (targetComponentId: string) => {
-  const meta = await fetchBlockMeta(targetComponentId);
-  return blockComponentRequiresText(meta.componentSchema);
-};
 
 /**
  * Manages the creation and editing of the ProseMirror schema.
@@ -188,7 +183,6 @@ export class ProsemirrorSchemaManager {
       entityStore,
       draftBlockId,
       targetComponentId,
-      await componentIdRequiresText(targetComponentId),
     );
   }
 
@@ -196,37 +190,24 @@ export class ProsemirrorSchemaManager {
     entityStore: EntityStore | undefined,
     draftBlockId: string | null | undefined,
     targetComponentId: string,
-
-    // @todo remove this
-    requiresText = false,
   ) {
     this.assertBlockDefined(targetComponentId);
 
     const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
 
-    let content:
-      | Fragment<Schema>
-      | ProsemirrorNode<Schema>
-      | ProsemirrorNode<Schema>[];
-
-    const draftChildEntityId = isDraftBlockEntity(blockEntity)
+    const childDraftId = isDraftBlockEntity(blockEntity)
       ? blockEntity.properties.entity.draftId
       : null;
 
-    if (requiresText) {
-      const draftTextEntity =
-        draftBlockId && entityStore
-          ? getChildDraftEntityFromTextBlock(draftBlockId, entityStore)
-          : null;
+    const blockData =
+      draftBlockId && entityStore
+        ? getChildDraftEntityFromTextBlock(draftBlockId, entityStore)
+        : null;
 
-      content =
-        draftTextEntity && isTextEntity(draftTextEntity)
-          ? childrenForTextEntity(draftTextEntity, this.schema)
-          : [];
-    } else {
-      content = [];
-    }
-
+    const content =
+      blockData && isTextEntity(blockData)
+        ? childrenForTextEntity(blockData, this.schema)
+        : [];
     this.assertBlockDefined(targetComponentId);
 
     return this.schema.nodes.block!.create({}, [
@@ -234,7 +215,7 @@ export class ProsemirrorSchemaManager {
         { draftId: draftBlockId },
         this.schema.nodes.entity!.create(
           {
-            draftId: draftChildEntityId,
+            draftId: childDraftId,
           },
           [this.schema.nodes[targetComponentId]!.create({}, content)],
         ),
