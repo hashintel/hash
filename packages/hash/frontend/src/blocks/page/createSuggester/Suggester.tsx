@@ -1,5 +1,5 @@
 import { Box, SxProps, Theme, Typography } from "@mui/material";
-import React, { ReactElement, useEffect, useRef, useState } from "react";
+import { ReactElement, useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
 import { SpinnerIcon } from "../../../shared/icons";

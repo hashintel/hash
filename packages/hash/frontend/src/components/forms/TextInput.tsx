@@ -1,4 +1,4 @@
-import { ChangeEvent, forwardRef } from "react";
+import { ChangeEvent, forwardRef, HTMLProps } from "react";
 import { tw } from "twind";
 import { InputLabelWrapper } from "./InputLabelWrapper";
 
@@ -10,7 +10,7 @@ type TextInputProps = {
   value?: string;
   transparent?: boolean;
   inputClassName?: string;
-} & Omit<React.HTMLProps<HTMLInputElement>, "label" | "value" | "onChange">;
+} & Omit<HTMLProps<HTMLInputElement>, "label" | "value" | "onChange">;
 
 export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
   (

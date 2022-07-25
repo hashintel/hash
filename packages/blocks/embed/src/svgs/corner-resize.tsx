@@ -1,11 +1,13 @@
-import React from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 
 type CornerResizeProps = {
   position: string;
 };
 
-export const CornerResize: React.VFC<CornerResizeProps> = ({ position }) => {
+export const CornerResize: FunctionComponent<CornerResizeProps> = ({
+  position,
+}) => {
   return (
     <svg
       viewBox="0 0 16 16"

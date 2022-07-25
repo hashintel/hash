@@ -1,4 +1,4 @@
-import React, { VFC } from "react";
+import { ChangeEvent, FunctionComponent } from "react";
 import { tw } from "twind";
 import Loader from "../svgs/loader";
 
@@ -10,7 +10,7 @@ type UploadMediaFormProps = {
   type: "image" | "video";
 };
 
-export const UploadMediaForm: VFC<UploadMediaFormProps> = ({
+export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
   loading,
   onFileChoose,
   onUrlChange,
@@ -71,7 +71,7 @@ export const UploadMediaForm: VFC<UploadMediaFormProps> = ({
               className={tw`hidden`}
               type="file"
               accept={`${type}/*`}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(event: ChangeEvent<HTMLInputElement>) =>
                 onFilesChoose(event.target.files)
               }
             />

@@ -5,7 +5,7 @@ import {
   EmbedderGraphMessageCallbacks,
 } from "@blockprotocol/graph";
 import jsonpath from "jsonpath";
-import { FormEvent, useMemo, VoidFunctionComponent } from "react";
+import { FormEvent, useMemo, FunctionComponent } from "react";
 import { unset } from "lodash";
 import { ISubmitEvent } from "@rjsf/core";
 import { tw } from "twind";
@@ -138,9 +138,12 @@ const splitSchema = (
   };
 };
 
-export const SimpleEntityEditor: VoidFunctionComponent<
-  SimpleEntityEditorProps
-> = ({ aggregateEntities, refetchEntity, schema, ...variableProps }) => {
+export const SimpleEntityEditor: FunctionComponent<SimpleEntityEditorProps> = ({
+  aggregateEntities,
+  refetchEntity,
+  schema,
+  ...variableProps
+}) => {
   const onSubmit = (args: ISubmitEvent<any>, event: FormEvent) => {
     event.preventDefault();
     if ("entityProperties" in variableProps) {

@@ -1,6 +1,6 @@
 import {
   createContext,
-  FC,
+  FunctionComponent,
   ReactNode,
   useContext,
   useMemo,
@@ -21,9 +21,9 @@ const SidebarContext = createContext<SidebarContextState>({
 
 export const useSidebarContext = () => useContext(SidebarContext);
 
-export const SidebarContextProvider: FC<{ children?: ReactNode }> = ({
-  children,
-}) => {
+export const SidebarContextProvider: FunctionComponent<{
+  children?: ReactNode;
+}> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
 
   const value = useMemo(

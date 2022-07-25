@@ -1,9 +1,9 @@
-import React from "react";
 import createEmotionServer from "@emotion/server/create-instance";
 import withTwindDocument from "@twind/next/document";
 import NextDocument, { Html, Head, Main, NextScript } from "next/document";
 
 import { createEmotionCache } from "@hashintel/hash-design-system";
+import { Children } from "react";
 import twindConfig from "../../twind.config";
 
 class Document extends NextDocument {
@@ -79,10 +79,7 @@ Document.getInitialProps = async (ctx) => {
   return {
     ...initialProps,
     // Styles fragment is rendered after the app and page rendering finish.
-    styles: [
-      ...React.Children.toArray(initialProps.styles),
-      ...emotionStyleTags,
-    ],
+    styles: [...Children.toArray(initialProps.styles), ...emotionStyleTags],
   };
 };
 

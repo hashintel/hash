@@ -1,5 +1,5 @@
-import React, {
-  FC,
+import {
+  FunctionComponent,
   forwardRef,
   HTMLAttributes,
   MutableRefObject,
@@ -7,7 +7,9 @@ import React, {
 } from "react";
 import DatePicker, { ReactDatePickerProps } from "react-datepicker";
 
-const CalenderIcon: FC<{ onClick: () => void }> = ({ onClick }) => {
+const CalenderIcon: FunctionComponent<{ onClick: () => void }> = ({
+  onClick,
+}) => {
   return (
     <svg
       width="17"

@@ -1,4 +1,4 @@
-import { HTMLProps, VoidFunctionComponent } from "react";
+import { HTMLProps, FunctionComponent } from "react";
 
 type CheckboxProps = {
   checked: boolean;
@@ -6,7 +6,7 @@ type CheckboxProps = {
   label?: string;
 } & Omit<HTMLProps<HTMLInputElement>, "onChange">;
 
-export const Checkbox: VoidFunctionComponent<CheckboxProps> = ({
+export const Checkbox: FunctionComponent<CheckboxProps> = ({
   checked,
   label,
   onChangeChecked,

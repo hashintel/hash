@@ -1,6 +1,6 @@
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, VFC } from "react";
+import { useMemo, FunctionComponent } from "react";
 import { tw } from "twind";
 import { useCollabPositionContext } from "../../contexts/CollabPositionContext";
 import { CollabPositionIndicator } from "./CollabPositionIndicator";
@@ -20,9 +20,9 @@ interface CollabPositionIndicatorsProps {
   blockEntityId: string | null;
 }
 
-export const CollabPositionIndicators: VFC<CollabPositionIndicatorsProps> = ({
-  blockEntityId,
-}) => {
+export const CollabPositionIndicators: FunctionComponent<
+  CollabPositionIndicatorsProps
+> = ({ blockEntityId }) => {
   const collabPositions = useCollabPositionContext();
 
   const relevantPresenceIndicators: CollabPosition[] = useMemo(

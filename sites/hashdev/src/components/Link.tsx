@@ -5,7 +5,7 @@ import clsx from "clsx";
 // eslint-disable-next-line no-restricted-imports
 import NextLink, { LinkProps as NextLinkProps } from "next/link";
 import { useRouter } from "next/router";
-import * as React from "react";
+import { forwardRef, isValidElement } from "react";
 import { UrlObject } from "url";
 import { FRONTEND_URL } from "../config";
 import { Button } from "./Button";
@@ -72,7 +72,7 @@ type NextLinkComposedProps = {
 } & Omit<NextLinkProps, "href" | "passHref"> &
   Omit<MuiLinkProps, "href" | "color">;
 
-export const NextLinkComposed = React.forwardRef<
+export const NextLinkComposed = forwardRef<
   HTMLAnchorElement,
   NextLinkComposedProps
 >((props, ref) => {
@@ -100,8 +100,11 @@ export type LinkProps = Omit<NextLinkProps, "passHref"> &
 
 // A styled version of the Next.js Link component:
 // https://nextjs.org/docs/api-reference/next/link
-export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
-  (props, ref) => {
+export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
+  (
+    props,
+    ref, // https://github.com/prettier/prettier/issues/11923
+  ) => {
     const { as: linkAs, className: classNameProps, href, ...other } = props;
 
     const router = useRouter();
@@ -112,7 +115,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
 
     if (process.env.NODE_ENV !== "production") {
       const children = other.children;
-      if (React.isValidElement(children) && children.type === Button) {
+      if (isValidElement(children) && children.type === Button) {
         throw new Error(
           "Please use <Button href='' /> instead of <Link><Button /></Link>",
         );

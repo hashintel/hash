@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import { createContext, useContext } from "react";
 
 type BlockContextType = {
   id: string;
@@ -6,7 +6,7 @@ type BlockContextType = {
   setError: (error: boolean) => void;
 };
 
-export const BlockContext = React.createContext<BlockContextType | null>(null);
+export const BlockContext = createContext<BlockContextType | null>(null);
 
 export const useBlockContext = () => {
   const blockContext = useContext(BlockContext);

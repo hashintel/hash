@@ -3,7 +3,7 @@ import {
   EmbedderGraphMessageCallbacks,
   EntityType,
 } from "@blockprotocol/graph";
-import React, {
+import {
   createContext,
   FormEvent,
   useCallback,
@@ -11,7 +11,7 @@ import React, {
   useMemo,
   useReducer,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { tw } from "twind";
 import { debounce, get } from "lodash";
@@ -26,7 +26,7 @@ import {
 import { SubSchemaItem } from "./SubSchemaItem";
 import { Button, Link } from "../../../shared/ui";
 
-export type SchemaSelectElementType = VoidFunctionComponent<{
+export type SchemaSelectElementType = FunctionComponent<{
   schemaRef: string;
 }>;
 
@@ -45,7 +45,7 @@ type JsonSchemaEditorProps = {
 const entityTypeIdMatchesSchema = (entityTypeId: string, schema: JsonSchema) =>
   !!schema.$id?.includes(entityTypeId);
 
-export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
+export const SchemaEditor: FunctionComponent<JsonSchemaEditorProps> = ({
   aggregateEntityTypes,
   entityTypeId,
   GoToSchemaElement,
