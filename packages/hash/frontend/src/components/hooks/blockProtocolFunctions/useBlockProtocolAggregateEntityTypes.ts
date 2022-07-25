@@ -37,7 +37,12 @@ export const useBlockProtocolAggregateEntityTypes = (
         query: getAccountEntityTypes,
         variables: {
           accountId,
-          includeOtherTypesInUse: data.includeOtherTypesInUse,
+          /**
+           * This will return ALL types across the entire system, rather than just the ones the account has entities of
+           * This is a temporary hack to allow using all types in dogfooding / testing,
+           * to be replaced by a proper API aggregateEntityTypes implementation (and fuller Block Protocol definition)
+           */
+          includeAllTypes: data.includeOtherTypesInUse,
         },
       });
 

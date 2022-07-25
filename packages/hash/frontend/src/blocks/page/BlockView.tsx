@@ -215,6 +215,7 @@ export class BlockView implements NodeView<Schema> {
         />
       </BlockViewContext.Provider>,
       this.selectContainer,
+      this.node.firstChild?.attrs.draftId,
     );
 
     return true;

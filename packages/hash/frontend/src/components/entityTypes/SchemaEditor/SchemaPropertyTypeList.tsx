@@ -84,13 +84,15 @@ const PropertyTypeSelect: VoidFunctionComponent<
       options.push(
         {
           disabled: true,
-          label: "---- Other entities ----",
+          label: "---- Entity types ----",
           value: "__other_type_divider",
         },
-        ...availableEntityTypes.map((entityType) => ({
-          label: entityType.schema.title,
-          value: entityType.schema.$id,
-        })),
+        ...availableEntityTypes
+          .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
+          .map((entityType) => ({
+            label: entityType.schema.title,
+            value: entityType.schema.$id,
+          })),
       );
     }
     return options;
