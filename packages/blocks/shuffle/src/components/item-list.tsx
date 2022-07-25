@@ -1,6 +1,19 @@
-import React, { FunctionComponent } from "react";
+import React, { FunctionComponent, useState } from "react";
 import { List } from "@mui/material";
-import { DragDropContext, Droppable, DropResult } from "react-beautiful-dnd";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { Items } from "../reducer";
 import { Item } from "./item";
 
@@ -19,35 +32,66 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
   onAdd,
   onDelete,
 }) => {
-  const onDragEnd = (result: DropResult) => {
-    if (!result.destination) {
-      return;
-    }
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-    onReorder(result.source.index, result.destination.index);
-  };
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const activeItem = activeIndex !== null && list[activeIndex];
 
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <Droppable droppableId="droppable">
-        {(provided, { draggingOverWith }) => (
-          <List {...provided.droppableProps} ref={provided.innerRef}>
-            {list.map((item, index) => (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={({ active }) => {
+        if (!active) {
+          return;
+        }
+
+        setActiveIndex(list.findIndex((item) => item.id === active.id));
+      }}
+      onDragEnd={({ active, over }) => {
+        setActiveIndex(null);
+
+        if (over?.id && active.id !== over?.id) {
+          const sourceIndex = list.findIndex((item) => item.id === active.id);
+          const destinationIndex = list.findIndex(
+            (item) => item.id === over.id,
+          );
+          onReorder(sourceIndex, destinationIndex);
+        }
+      }}
+      onDragCancel={() => setActiveIndex(null)}
+    >
+      <SortableContext items={list} strategy={verticalListSortingStrategy}>
+        <List>
+          {list.map((item, index) => (
+            <Item
+              key={item.id}
+              id={item.id}
+              value={item.value}
+              isDragging={index === activeIndex}
+              onValueChange={(value: string) => onValueChange(index, value)}
+              onAdd={() => onAdd(index + 1)}
+              onDelete={() => onDelete(index)}
+            />
+          ))}
+
+          <DragOverlay>
+            {activeItem ? (
               <Item
-                key={item.id}
-                id={item.id}
-                index={index}
-                value={item.value}
-                canHover={!draggingOverWith || draggingOverWith === item.id}
-                onValueChange={(value: string) => onValueChange(index, value)}
-                onAdd={() => onAdd(index + 1)}
-                onDelete={() => onDelete(index)}
+                key={activeItem.id}
+                id={activeItem.id}
+                value={activeItem.value}
               />
-            ))}
-            {provided.placeholder}
-          </List>
-        )}
-      </Droppable>
-    </DragDropContext>
+            ) : null}
+          </DragOverlay>
+        </List>
+      </SortableContext>
+    </DndContext>
   );
 };

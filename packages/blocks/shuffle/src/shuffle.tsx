@@ -71,7 +71,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   return (
     <Box ref={blockRootRef}>
       <Button
-        disabled={items.length <= 1}
+        disabled={items?.length <= 1}
         onClick={() => dispatch({ type: ActionType.SHUFFLE })}
       >
         Shuffle
