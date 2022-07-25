@@ -1,4 +1,4 @@
-import { useMemo, VFC } from "react";
+import { useMemo, FunctionComponent } from "react";
 import { tw } from "twind";
 import ArticleIcon from "@mui/icons-material/Article";
 
@@ -21,7 +21,7 @@ type SearchableItem = {
   isActiveOrgMember?: boolean;
 };
 
-export const MentionSuggester: VFC<MentionSuggesterProps> = ({
+export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   search = "",
   onChange,
   accountId,

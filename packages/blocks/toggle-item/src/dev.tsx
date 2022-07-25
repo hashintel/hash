@@ -2,8 +2,7 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the block during the build process.
  */
-import React from "react";
-import ReactDOM from "react-dom";
+import { render } from "react-dom";
 
 import { MockBlockDock } from "mock-block-dock";
 
@@ -22,4 +21,4 @@ const App = () => (
   </MockBlockDock>
 );
 
-ReactDOM.render(<App />, node);
+render(<App />, node);

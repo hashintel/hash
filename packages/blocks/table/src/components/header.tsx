@@ -1,4 +1,4 @@
-import React, { VFC } from "react";
+import { FunctionComponent, ReactNode } from "react";
 import { tw } from "twind";
 import { AggregateOperationInput } from "@blockprotocol/graph";
 import { ColumnInstance } from "react-table";
@@ -17,11 +17,11 @@ type HeaderProps = {
   onAggregate: (args: AggregateArgs) => void;
   toggleHideColumn: (columnId: string) => void;
   aggregateOptions: Pick<AggregateOperationInput, "multiFilter" | "multiSort">;
-  entityTypeDropdown: React.ReactNode;
+  entityTypeDropdown: ReactNode;
   entityTypeId: string;
 };
 
-export const Header: VFC<HeaderProps> = ({
+export const Header: FunctionComponent<HeaderProps> = ({
   onAggregate,
   columns,
   toggleHideColumn,

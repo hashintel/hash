@@ -9,7 +9,7 @@ import {
   useEffect,
   useRef,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
@@ -40,7 +40,7 @@ const resolvePropertySchema = (
  * This is a temporary implementation of 'provide an input based on a property schema'
  * We will need a more comprehensive implementation for the full entity editor
  */
-const ConfigurationInput: VoidFunctionComponent<{
+const ConfigurationInput: FunctionComponent<{
   name: string;
   onChange: (value: any) => void;
   rootSchema: JsonSchema;
@@ -180,7 +180,7 @@ type BlockConfigMenuProps = {
  * Useful for when the block doesn't provide the UI to do so itself.
  * Only the properties listed in the block's schema as 'configProperties' are shown.
  */
-export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
+export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
   anchorRef,
   blockEntity,
   blockSchema,

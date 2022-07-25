@@ -1,4 +1,11 @@
-import { useState, useMemo, useRef, VFC, useEffect, Ref } from "react";
+import {
+  useState,
+  useMemo,
+  useRef,
+  FunctionComponent,
+  useEffect,
+  Ref,
+} from "react";
 import {
   Box,
   Tooltip,
@@ -29,11 +36,12 @@ type SearchInputProps = {
   searchVisible: boolean;
   searchInputRef: Ref<HTMLInputElement>;
   showSearchInput: () => void;
+  // eslint-disable-next-line react/no-unused-prop-types -- @todo remove prop or use it in the component body
   hideSearchInput: () => void;
   onChangeText: (text: string) => void;
 };
 
-const SearchInput: VFC<SearchInputProps> = ({
+const SearchInput: FunctionComponent<SearchInputProps> = ({
   searchVisible,
   searchInputRef,
   showSearchInput,
@@ -116,9 +124,9 @@ type AccountEntityTypeListProps = {
   accountId: string;
 };
 
-export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
-  accountId,
-}) => {
+export const AccountEntityTypeList: FunctionComponent<
+  AccountEntityTypeListProps
+> = ({ accountId }) => {
   const { data } = useGetAllEntityTypes(accountId);
   const router = useRouter();
 

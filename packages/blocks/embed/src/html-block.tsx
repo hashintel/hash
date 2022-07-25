@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, VoidFunctionComponent } from "react";
+import { useEffect, useRef, FunctionComponent } from "react";
 import { tw } from "twind";
 import { toCSSText } from "./utils";
 
@@ -8,7 +8,7 @@ type HtmlBlockProps = {
   [key: string]: any;
 };
 
-export const HtmlBlock: VoidFunctionComponent<HtmlBlockProps> = ({
+export const HtmlBlock: FunctionComponent<HtmlBlockProps> = ({
   html,
   dimensions,
   ...props

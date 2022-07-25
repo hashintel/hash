@@ -1,4 +1,4 @@
-import React, { CSSProperties, useMemo, useRef } from "react";
+import { CSSProperties, useMemo, useRef } from "react";
 import { BlockComponent } from "@blockprotocol/graph/react";
 import DOMPurify from "dompurify";
 

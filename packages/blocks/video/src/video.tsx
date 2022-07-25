@@ -1,4 +1,3 @@
-import React from "react";
 import { BlockComponent } from "@blockprotocol/graph/react";
 import { Media, MediaEntityProperties } from "./components/media";
 

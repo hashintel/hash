@@ -1,4 +1,4 @@
-import React, { VFC } from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 import Pencil from "../svgs/pencil";
 import { ResizeImageBlock } from "./resize-image-block";
@@ -21,7 +21,7 @@ type MediaWithCaptionProps = {
     }
 );
 
-export const MediaWithCaption: VFC<MediaWithCaptionProps> = ({
+export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
   caption,
   src,
   onCaptionChange,

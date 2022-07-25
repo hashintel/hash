@@ -1,9 +1,9 @@
 import { MockBlockDock } from "mock-block-dock";
-import { VoidFunctionComponent } from "react";
+import { FunctionComponent } from "react";
 
 const CalcBlock = require("calculation-block").default;
 
-export const CalculationBlock: VoidFunctionComponent = () => (
+export const CalculationBlock: FunctionComponent = () => (
   <>
     <div
       style={{

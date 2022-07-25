@@ -1,4 +1,4 @@
-import React from "react";
+import { FormEvent, FunctionComponent } from "react";
 import { tw } from "twind";
 import Cross from "../svgs/cross";
 import Loader from "../svgs/loader";
@@ -15,7 +15,7 @@ type EditViewProps = {
   onSubmit: () => Promise<void>;
 };
 
-export const EditView: React.VFC<EditViewProps> = ({
+export const EditView: FunctionComponent<EditViewProps> = ({
   errorString,
   setErrorString,
   loading,
@@ -26,7 +26,7 @@ export const EditView: React.VFC<EditViewProps> = ({
   embedUrl,
   onSubmit,
 }) => {
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void onSubmit();
   };

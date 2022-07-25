@@ -1,5 +1,6 @@
 import {
   createContext,
+  FunctionComponent,
   ReactNode,
   useCallback,
   useContext,
@@ -17,10 +18,9 @@ type BlockLoadedProviderProps = {
   routeHash: string;
 };
 
-export const BlockLoadedProvider: React.FC<BlockLoadedProviderProps> = ({
-  routeHash,
-  children,
-}) => {
+export const BlockLoadedProvider: FunctionComponent<
+  BlockLoadedProviderProps
+> = ({ routeHash, children }) => {
   const scrollingComplete = useRef(false);
   const scrollFrameRequestIdRef = useRef<ReturnType<
     typeof requestAnimationFrame
