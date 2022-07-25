@@ -13,6 +13,8 @@ use core::{
     fmt::{Debug, Display, Formatter, Write},
 };
 
+#[cfg(feature = "hooks")]
+pub(crate) use hook::ErasedHooks;
 pub use hook::{Builtin, Hook, HookContext, Hooks};
 #[cfg(nightly)]
 pub use nightly::DebugDiagnostic;
@@ -22,13 +24,8 @@ use once_cell::sync::OnceCell;
 use owo_colors::{colored::Color, colors::Red, OwoColorize, Stream::Stdout};
 
 #[cfg(feature = "hooks")]
-use crate::fmt::hook::ErasedHooks;
-#[cfg(feature = "hooks")]
 use crate::HookAlreadySet;
 use crate::{fmt::hook::HookContextImpl, AttachmentKind, Frame, FrameKind, Report, Result};
-
-#[cfg(feature = "hooks")]
-pub static HOOK: OnceCell<ErasedHooks> = OnceCell::new();
 
 #[derive(Debug, Clone)]
 pub enum Line {
@@ -96,7 +93,7 @@ fn debug_frame(frame: &Frame, ctx: &mut HookContextImpl) -> Option<Line> {
             }
 
             #[cfg(feature = "hooks")]
-            if let Some(hooks) = HOOK.get() {
+            if let Some(hooks) = Report::format_hook() {
                 return hooks.call(frame, ctx);
             }
 
@@ -286,60 +283,5 @@ impl<Context> Display for Report<Context> {
         }
 
         Ok(())
-    }
-}
-
-#[cfg(feature = "hooks")]
-impl Report<()> {
-    /// Globally sets a hook which is called when formatting [`Report`] with the [`Debug`] trait.
-    /// While [`set_debug_hook`] replaces the debug hook, this function can be used to enrich the
-    /// already existing [`Debug`] implementation.
-    ///
-    /// [`Hooks`] are added via [`push()`], which is implemented for functions with the signature:
-    /// [`Fn(&T, Context<T>) -> Line + Send + Sync + 'static`]
-    ///
-    /// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`]
-    /// output.
-    ///
-    /// The default implementation provides supports for [`Backtrace`] and [`SpanTrace`],
-    /// if their necessary features have been enabled.
-    ///
-    /// [`set_debug_hook`]: Self::set_debug_hook
-    /// [`.attach()`]: Self::attach
-    /// [`Backtrace`]: std::backtrace::Backtrace
-    /// [`SpanTrace`]: tracing_error::SpanTrace
-    /// [`push()`]: crate::fmt::Hooks::push
-    ///
-    /// # Errors
-    ///
-    /// - Returns an error if a debug hook was already set
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use std::io::{Error, ErrorKind};
-    ///
-    /// use error_stack::{
-    ///     fmt::{HookContext, Hooks, Line},
-    ///     report, Report,
-    /// };
-    ///
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::add_debug_hook(
-    ///     Hooks::new().push(|val: &Suggestion, ctx: HookContext<Suggestion>| {
-    ///         Line::Next(format!("Suggestion: {}", val.0))
-    ///     }),
-    /// )?;
-    ///
-    /// let report = report!(Error::from(ErrorKind::InvalidInput));
-    /// ```
-    // TODO: we might want to rename this before merge?
-    //  This could lead to ambiguities with `set_debug_hook`
-    pub fn add_debug_hook<T: Hook<Frame> + Send + Sync + 'static>(
-        hook: Hooks<T>,
-    ) -> Result<(), HookAlreadySet> {
-        HOOK.set(hook.erase())
-            .map_err(|_| Report::new(HookAlreadySet))
     }
 }

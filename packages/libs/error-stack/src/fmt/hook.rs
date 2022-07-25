@@ -8,7 +8,7 @@ pub use builtin::Builtin;
 
 use crate::{
     fmt::{Instruction, Line, Lines},
-    Frame,
+    Frame, Report,
 };
 
 pub(crate) struct HookContextImpl {
@@ -250,6 +250,18 @@ impl<T> Hook<T, UInt0> for () {
     }
 }
 
+/// Holds a chain of [`Hook`]s, which are used to augment the [`Debug`] and [`Display`] information
+/// of attachments, which are normally not printable.
+///
+/// [`Hook`]s are added via [`push()`], which is implemented for functions with the signature:
+/// [`Fn(&T, HookContext<T>) -> Line + Send + Sync + 'static`] and
+/// [`Fn(&T) -> Line + Send + Sync + 'static`]
+///
+/// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`] and
+/// [`Display`] output.
+///
+/// The default implementation provides supports for [`Backtrace`] and [`SpanTrace`],
+/// if their necessary features have been enabled.
 pub struct Hooks<T: Hook<Frame, UInt0>>(T);
 
 impl Hooks<Builtin> {
@@ -305,13 +317,13 @@ impl<T: Hook<Frame, UInt0> + Send + Sync + 'static> Hooks<T> {
     }
 }
 
+pub(crate) type ErasedHooks = Hooks<Box<dyn Hook<Frame, UInt0> + Send + Sync>>;
+
 impl ErasedHooks {
     pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContextImpl) -> Option<Line> {
         self.0.call(frame, ctx.cast())
     }
 }
-
-pub type ErasedHooks = Hooks<Box<dyn Hook<Frame, UInt0> + Send + Sync>>;
 
 mod builtin {
     #[cfg(all(nightly, feature = "std"))]

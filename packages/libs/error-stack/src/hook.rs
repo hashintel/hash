@@ -2,10 +2,11 @@ use std::{error::Error, fmt};
 
 use once_cell::sync::OnceCell;
 
-use crate::{Report, Result};
+use crate::{fmt::ErasedHooks, Report, Result};
 
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
+static FMT_HOOK: OnceCell<ErasedHooks> = OnceCell::new();
 static DEBUG_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 static DISPLAY_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 
@@ -25,7 +26,75 @@ impl fmt::Display for HookAlreadySet {
 
 impl Error for HookAlreadySet {}
 
+pub(crate) mod sealed {
+    pub trait Sealed {}
+}
+
+/// Internal trait which is used for [`Report::install_hook`],
+/// this trait is sealed and cannot be implemented by foreign objects.
+pub trait Install: sealed::Sealed {
+    fn install(self) -> Result<(), HookAlreadySet>;
+}
+
+impl sealed::Sealed for ErasedHooks {}
+
+impl Install for ErasedHooks {
+    fn install(self) -> crate::Result<(), HookAlreadySet> {
+        FMT_HOOK.set(self).map_err(|_| Report::new(HookAlreadySet))
+    }
+}
+
 impl Report<()> {
+    /// Can be used to globally set different hooks that implement the [`Install`] trait,
+    /// the [`Install`] trait is internal only and cannot be implemented by foreign objects.
+    ///
+    /// This currently supports [`fmt::Hooks`].
+    /// [`fmt::Hooks`] can be used to augment the [`Debug`] and [`Display`] implementation
+    /// by providing additional information and output for specific attachment types.
+    ///
+    /// [`set_debug_hook`]: Self::set_debug_hook
+    /// [`.attach()`]: Self::attach
+    /// [`Backtrace`]: std::backtrace::Backtrace
+    /// [`SpanTrace`]: tracing_error::SpanTrace
+    /// [`push()`]: crate::fmt::Hooks::push
+    ///
+    /// # Errors
+    ///
+    /// - Returns an error if a debug hook was already set
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::io::{Error, ErrorKind};
+    ///
+    /// use error_stack::{
+    ///     fmt::{self, HookContext, Line},
+    ///     report, Report,
+    /// };
+    ///
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_hook(fmt::Hooks::new().push(
+    ///     |val: &Suggestion, ctx: HookContext<Suggestion>| {
+    ///         Line::Next(format!("Suggestion: {}", val.0))
+    ///     },
+    /// ))?;
+    ///
+    /// let report = report!(Error::from(ErrorKind::InvalidInput));
+    /// ```
+    #[cfg(feature = "hooks")]
+    pub fn install_hook<T: Install>(hook: T) -> Result<(), HookAlreadySet> {
+        hook.install()
+    }
+
+    /// Returns the hook that was previously set by [`install_hook`], if any.
+    ///
+    /// [`install_hook`]: Self::install_hook
+    #[cfg(feature = "hooks")]
+    pub(crate) fn format_hook() -> Option<&'static ErasedHooks> {
+        FMT_HOOK.get()
+    }
+
     /// Globally sets a hook which is called when formatting [`Report`] with the [`Debug`] trait.
     ///
     /// By intercepting the default [`Debug`] implementation, this hook adds the possibility for
@@ -59,6 +128,7 @@ impl Report<()> {
     /// assert_eq!(format!("{report:?}"), "custom debug implementation");
     /// # Ok(()) }
     /// ```
+    #[deprecated("use Report::<()>::install_hook() instead")]
     #[cfg(feature = "hooks")]
     pub fn set_debug_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
@@ -108,6 +178,7 @@ impl Report<()> {
     /// assert_eq!(report.to_string(), "custom display implementation");
     /// # Ok(()) }
     /// ```
+    #[deprecated("use Report::<()>::install_hook() instead")]
     #[cfg(feature = "hooks")]
     pub fn set_display_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
