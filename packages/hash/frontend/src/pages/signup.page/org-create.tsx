@@ -189,7 +189,6 @@ export const OrgCreate: FunctionComponent<OrgCreateProps> = ({
     <div className={tw`flex flex-col items-center`}>
       <h1 className={tw`text-3xl font-bold mb-12`}>Create a team workspace</h1>
       <div className={tw`text-center mb-6`}>
-        {}
         <label className={tw`flex flex-col cursor-pointer`}>
           {avatarImg ? (
             <img
