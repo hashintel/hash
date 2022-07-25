@@ -17,8 +17,8 @@ use graph::{
         AccountId, VersionId,
     },
     store::{
-        DatabaseConnectionInfo, DatabaseType, InsertionError, PostgresDatabase, QueryError, Store,
-        UpdateError,
+        DatabaseConnectionInfo, DatabaseType, InsertionError, PostgresDatabase,
+        PostgresDatabasePool, QueryError, Store, StorePool, UpdateError,
     },
 };
 use sqlx::{Connection, Executor, PgConnection};
@@ -26,7 +26,7 @@ use tokio::runtime::Runtime;
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
-    postgres: PostgresDatabase,
+    pool: PostgresDatabasePool,
     created_base_uris: Vec<BaseUri>,
     account_id: AccountId,
     // `PostgresDatabase` does not expose functionality to remove entries, so a direct connection
@@ -57,12 +57,14 @@ impl DatabaseTestWrapper {
 
         let rt = Runtime::new().expect("Could not create a test runtime");
         let (postgres, connection, account_id) = rt.block_on(async {
-            let postgres = PostgresDatabase::new(&connection_info)
+            let pool = PostgresDatabasePool::new(&connection_info)
                 .await
                 .expect("could not connect to database");
 
             let account_id = AccountId::new(Uuid::new_v4());
-            postgres
+            pool.acquire()
+                .await
+                .expect("could not acquire a database connection")
                 .insert_account_id(account_id)
                 .await
                 .expect("Could not insert account id");
@@ -71,16 +73,23 @@ impl DatabaseTestWrapper {
                 .await
                 .expect("could not connect to database");
 
-            (postgres, connection, account_id)
+            (pool, connection, account_id)
         });
 
         Self {
-            postgres,
+            pool: postgres,
             created_base_uris: Vec::new(),
             account_id,
             connection: Some(connection),
             rt,
         }
+    }
+
+    pub async fn database(&self) -> PostgresDatabase {
+        self.pool
+            .acquire()
+            .await
+            .expect("could not acquire a database connection")
     }
 
     pub fn seed<D, P, L, E>(
@@ -129,7 +138,10 @@ impl DatabaseTestWrapper {
     ) -> Result<Persisted<DataType>, InsertionError> {
         self.rt.block_on(async {
             let data_type = self
-                .postgres
+                .pool
+                .acquire()
+                .await
+                .expect("could not acquire a database connection")
                 .create_data_type(data_type, self.account_id)
                 .await?;
             self.created_base_uris
@@ -143,7 +155,7 @@ impl DatabaseTestWrapper {
         version_id: VersionId,
     ) -> Result<Persisted<DataType>, QueryError> {
         self.rt
-            .block_on(async { self.postgres.get_data_type(version_id).await })
+            .block_on(async { self.database().await.get_data_type(version_id).await })
     }
 
     pub fn update_data_type(
@@ -151,7 +163,8 @@ impl DatabaseTestWrapper {
         data_type: DataType,
     ) -> Result<Persisted<DataType>, UpdateError> {
         self.rt.block_on(async {
-            self.postgres
+            self.database()
+                .await
                 .update_data_type(data_type, self.account_id)
                 .await
         })
@@ -163,7 +176,10 @@ impl DatabaseTestWrapper {
     ) -> Result<Persisted<PropertyType>, InsertionError> {
         self.rt.block_on(async {
             let property_type = self
-                .postgres
+                .pool
+                .acquire()
+                .await
+                .expect("could not acquire a database connection")
                 .create_property_type(property_type, self.account_id)
                 .await?;
             self.created_base_uris
@@ -177,7 +193,7 @@ impl DatabaseTestWrapper {
         version_id: VersionId,
     ) -> Result<Persisted<PropertyType>, QueryError> {
         self.rt
-            .block_on(async { self.postgres.get_property_type(version_id).await })
+            .block_on(async { self.database().await.get_property_type(version_id).await })
     }
 
     pub fn update_property_type(
@@ -185,7 +201,10 @@ impl DatabaseTestWrapper {
         property_type: PropertyType,
     ) -> Result<Persisted<PropertyType>, UpdateError> {
         self.rt.block_on(async {
-            self.postgres
+            self.pool
+                .acquire()
+                .await
+                .expect("could not acquire a database connection")
                 .update_property_type(property_type, self.account_id)
                 .await
         })
@@ -197,7 +216,10 @@ impl DatabaseTestWrapper {
     ) -> Result<Persisted<EntityType>, InsertionError> {
         self.rt.block_on(async {
             let entity_type = self
-                .postgres
+                .pool
+                .acquire()
+                .await
+                .expect("could not acquire a database connection")
                 .create_entity_type(entity_type, self.account_id)
                 .await?;
             self.created_base_uris
@@ -211,7 +233,7 @@ impl DatabaseTestWrapper {
         version_id: VersionId,
     ) -> Result<Persisted<EntityType>, QueryError> {
         self.rt
-            .block_on(async { self.postgres.get_entity_type(version_id).await })
+            .block_on(async { self.database().await.get_entity_type(version_id).await })
     }
 
     pub fn update_entity_type(
@@ -219,7 +241,10 @@ impl DatabaseTestWrapper {
         entity_type: EntityType,
     ) -> Result<Persisted<EntityType>, UpdateError> {
         self.rt.block_on(async {
-            self.postgres
+            self.pool
+                .acquire()
+                .await
+                .expect("could not acquire a database connection")
                 .update_entity_type(entity_type, self.account_id)
                 .await
         })
@@ -231,7 +256,10 @@ impl DatabaseTestWrapper {
     ) -> Result<Persisted<LinkType>, InsertionError> {
         self.rt.block_on(async {
             let link_type = self
-                .postgres
+                .pool
+                .acquire()
+                .await
+                .expect("could not acquire a database connection")
                 .create_link_type(link_type, self.account_id)
                 .await?;
             self.created_base_uris
@@ -245,7 +273,7 @@ impl DatabaseTestWrapper {
         version_id: VersionId,
     ) -> Result<Persisted<LinkType>, QueryError> {
         self.rt
-            .block_on(async { self.postgres.get_link_type(version_id).await })
+            .block_on(async { self.database().await.get_link_type(version_id).await })
     }
 
     pub fn update_link_type(
@@ -253,7 +281,8 @@ impl DatabaseTestWrapper {
         link_type: LinkType,
     ) -> Result<Persisted<LinkType>, UpdateError> {
         self.rt.block_on(async {
-            self.postgres
+            self.database()
+                .await
                 .update_link_type(link_type, self.account_id)
                 .await
         })
@@ -265,7 +294,8 @@ impl DatabaseTestWrapper {
         entity_type_uri: VersionedUri,
     ) -> Result<EntityId, InsertionError> {
         self.rt.block_on(async {
-            self.postgres
+            self.database()
+                .await
                 .create_entity(entity, entity_type_uri, self.account_id)
                 .await
         })
@@ -273,7 +303,7 @@ impl DatabaseTestWrapper {
 
     pub fn get_entity(&mut self, entity_id: EntityId) -> Result<Entity, QueryError> {
         self.rt
-            .block_on(async { self.postgres.get_entity(entity_id).await })
+            .block_on(async { self.database().await.get_entity(entity_id).await })
     }
 
     pub fn update_entity(
@@ -283,7 +313,8 @@ impl DatabaseTestWrapper {
         entity_type_uri: VersionedUri,
     ) -> Result<(), UpdateError> {
         self.rt.block_on(async {
-            self.postgres
+            self.database()
+                .await
                 .update_entity(entity_id, entity, entity_type_uri, self.account_id)
                 .await
         })
