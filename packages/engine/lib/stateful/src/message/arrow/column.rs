@@ -17,7 +17,7 @@ impl MessageColumn {
         let mut result = Vec::with_capacity(array.0.len());
 
         let (to_column, r#type_column, data_column) = get_columns_from_struct_array(
-            &array
+            array
                 .0
                 .values()
                 .as_any()

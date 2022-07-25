@@ -52,7 +52,7 @@ impl ContextBatch {
     ) -> Result<Self> {
         let header = Metaversion::default().to_le_bytes();
 
-        let info = calculate_ipc_data_size(&record_batch);
+        let info = calculate_ipc_data_size(record_batch);
 
         let mut metadata = vec![];
         write_record_batch_message_header(&mut metadata, &info)?;

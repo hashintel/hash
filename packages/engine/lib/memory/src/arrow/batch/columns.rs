@@ -21,7 +21,7 @@ pub fn column_with_name_from_record_batch<'a>(
         .fields
         .iter()
         .enumerate()
-        .find_map(|(index, field)| (&field.name == name).then_some(Some(index)))
+        .find_map(|(index, field)| (field.name == name).then_some(Some(index)))
         .flatten()
         .ok_or_else(|| Error::ColumnNotFound(name.into()))?;
 

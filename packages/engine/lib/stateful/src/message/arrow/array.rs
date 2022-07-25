@@ -120,7 +120,7 @@ impl MessageArray {
                         outbound.data.as_ref().map(|data| data.to_string()),
                     ),
                 };
-                to_builder.try_push(Some(recipients.into_iter().map(Some)))?;
+                to_builder.try_push(Some(recipients.iter().map(Some)))?;
                 type_builder.try_push(Some(kind))?;
                 data_builder.try_push(data)?;
             }

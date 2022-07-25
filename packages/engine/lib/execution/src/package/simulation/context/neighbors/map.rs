@@ -22,7 +22,7 @@ pub type NeighborRef = ((Option<[f64; 3]>, AgentIndex), Option<f64>);
 
 /// # Errors
 /// This function will not fail
-fn agents_adjacency_map<'a>(agents: &'a [NeighborRef]) -> Result<Tree<'a>> {
+fn agents_adjacency_map(agents: &'_ [NeighborRef]) -> Result<Tree<'_>> {
     let mut tree = kdtree::kdtree::KdTree::new(3);
     agents.iter().try_for_each(|((pos, idx), _)| {
         pos.map_or(Ok(()), |unwrapped| {

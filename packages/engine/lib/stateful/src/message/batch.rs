@@ -81,7 +81,7 @@ impl MessageBatch {
 
         let record_batch = RecordBatch::new(
             self.arrow_schema.clone(),
-            Chunk::new(vec![Arc::clone(&id_column), empty_message_column]),
+            Chunk::new(vec![Arc::clone(id_column), empty_message_column]),
         );
         let write_metadata = ipc::calculate_ipc_data_size(&record_batch);
 

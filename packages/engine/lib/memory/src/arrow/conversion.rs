@@ -103,7 +103,7 @@ fn json_vals_to_list(
     let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
     Ok(ListArray::new(
-        DataType::List(inner_field.clone()),
+        DataType::List(inner_field),
         Buffer::from(offsets),
         child_data,
         validity.into(),
@@ -145,7 +145,7 @@ fn json_vals_to_fixed_size_list(
     let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
     Ok(FixedSizeListArray::new(
-        DataType::FixedSizeList(inner_field.clone(), size as usize),
+        DataType::FixedSizeList(inner_field, size as usize),
         child_data,
         Some(Bitmap::from_u8_vec(null_bits, n_elem)),
     ))

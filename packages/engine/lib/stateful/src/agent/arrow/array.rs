@@ -105,7 +105,7 @@ impl IntoRecordBatch for &[&Agent] {
             } else if name == AgentStateField::Height.name() {
                 Arc::new(json_vals_to_primitive::<f64>(vals, true)?)
             } else if name == AgentStateField::Scale.name() {
-                Arc::new(agents_to_scale_col(*self)?)
+                Arc::new(agents_to_scale_col(self)?)
             } else if name == AgentStateField::Color.name() {
                 Arc::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Rgb.name() {

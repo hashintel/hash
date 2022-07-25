@@ -85,7 +85,7 @@ pub struct Neighbors {
 }
 
 impl Neighbors {
-    fn neighbor_vec<'a>(batches: &'a [&AgentBatch]) -> Result<Vec<NeighborRef>> {
+    fn neighbor_vec(batches: &[&AgentBatch]) -> Result<Vec<NeighborRef>> {
         Ok(agent::arrow::position_iter(batches)?
             .zip(agent::arrow::index_iter(batches))
             .zip(agent::arrow::search_radius_iter(batches)?)

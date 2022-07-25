@@ -99,7 +99,7 @@ pub fn arrow_schema_from_fb(
                         Ok(map)
                     },
                 )
-                .unwrap_or(Ok(BTreeMap::default()))?,
+                .unwrap_or_else(|| Ok(BTreeMap::default()))?,
         })
     }
 

@@ -15,10 +15,10 @@ use crate::{
     Result,
 };
 
-pub(crate) fn message_usize_index_iter<'a>(
-    record_batch: &'a RecordBatch,
+pub(crate) fn message_usize_index_iter(
+    record_batch: &RecordBatch,
     batch_index: usize,
-) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = MessageReference>> + 'a {
+) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = MessageReference>> + '_ {
     let num_agents = record_batch.num_rows();
     let column = record_batch.column(MESSAGE_COLUMN_INDEX);
     // This is the offset buffer for message objects.
@@ -41,9 +41,9 @@ pub(crate) fn message_usize_index_iter<'a>(
     })
 }
 
-pub(crate) fn message_recipients_iter<'a>(
-    record_batch: &'a RecordBatch,
-) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = Vec<String>> + 'a> + 'a {
+pub(crate) fn message_recipients_iter(
+    record_batch: &'_ RecordBatch,
+) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = Vec<String>> + '_> + '_ {
     let num_agents = record_batch.num_rows();
 
     (0..num_agents).into_par_iter().map(move |j| {
@@ -53,9 +53,8 @@ pub(crate) fn message_recipients_iter<'a>(
             message_fields.list_of_fields,
             message_fields
                 .list_of_strings
-                .expect("the to field should always contain a list of strings")
-                .clone(),
-            message_fields.field.clone(),
+                .expect("the to field should always contain a list of strings"),
+            message_fields.field,
         );
 
         let row_index = list_of_fields.offsets()[j] as usize;
@@ -64,7 +63,6 @@ pub(crate) fn message_recipients_iter<'a>(
 
         let to_list_indices = list_of_strings.offsets()[row_index..=next_row_index].to_vec();
 
-        let list_of_strings = list_of_strings.clone();
         (0..num_messages).into_par_iter().map(move |k| {
             let to_list_index = to_list_indices[k] as usize;
             let next_to_list_index = to_list_indices[k + 1] as usize;

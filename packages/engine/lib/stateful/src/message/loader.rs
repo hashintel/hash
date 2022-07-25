@@ -58,7 +58,7 @@ impl<'a> MessageLoader<'a> {
         let list_index = self.typ.list_of_fields.offsets()[agent_index] as usize + message_index;
         let type_start = self.typ.field.offsets()[list_index] as usize;
         let next_type_start = self.typ.field.offsets()[list_index + 1] as usize;
-        &std::str::from_utf8(&self.typ.field.values().as_slice()[type_start..next_type_start])
+        std::str::from_utf8(&self.typ.field.values().as_slice()[type_start..next_type_start])
             .unwrap()
     }
 
@@ -66,7 +66,7 @@ impl<'a> MessageLoader<'a> {
         let list_index = self.data.list_of_fields.offsets()[agent_index] as usize + message_index;
         let content_start = self.data.field.offsets()[list_index] as usize;
         let next_content_start = self.data.field.offsets()[list_index + 1] as usize;
-        &std::str::from_utf8(&self.data.field.values()[content_start..next_content_start]).unwrap()
+        std::str::from_utf8(&self.data.field.values()[content_start..next_content_start]).unwrap()
     }
 
     pub fn get_raw_message(&'a self, agent_index: usize, message_index: usize) -> RawMessage<'a> {

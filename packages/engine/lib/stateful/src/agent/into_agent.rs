@@ -191,7 +191,7 @@ fn get_i_col(field: AgentStateField, record_batch: &RecordBatch) -> Result<Optio
 /// Carries out a linear search to find the requested field on the schema.
 pub fn schema_column_with_name(schema: &Schema, name: &str) -> Option<(usize, Field)> {
     schema.fields.iter().enumerate().find_map(|(i, field)| {
-        if &field.name == name {
+        if field.name == name {
             Some((i, field.clone()))
         } else {
             None

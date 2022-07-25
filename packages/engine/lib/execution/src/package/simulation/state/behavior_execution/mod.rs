@@ -144,7 +144,7 @@ pub fn index_of(schema: Arc<Schema>, field_name: &str) -> crate::Result<usize> {
         .iter()
         .enumerate()
         .find_map(|(index, field)| (field.name == field_name).then_some(index))
-        .ok_or(Error::ColumnNotFound(field_name.to_string()))
+        .ok_or_else(|| Error::ColumnNotFound(field_name.to_string()))
 }
 
 pub struct BehaviorExecution {

@@ -150,7 +150,7 @@ impl ContextPackage for ApiRequests {
                 }
                 unreachable!()
             })
-            .ok_or(Error::ColumnNotFound(field_key.value().to_string()))?
+            .ok_or_else(|| Error::ColumnNotFound(field_key.value().to_string()))?
             .clone();
 
         let api_response_list: ListArray<i32> =
