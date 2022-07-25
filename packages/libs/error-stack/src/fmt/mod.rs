@@ -27,12 +27,34 @@ use owo_colors::{colored::Color, colors::Red, OwoColorize, Stream::Stdout};
 use crate::HookAlreadySet;
 use crate::{fmt::hook::HookContextImpl, AttachmentKind, Frame, FrameKind, Report, Result};
 
+/// Different types of `Line` that exist during rendering.
+///
+/// # Example
+///
+/// Given Hooks:
+///
+/// * `AttachmentA -> Next`
+/// * `AttachmentB -> Defer`
+///
+/// The following chain of attachments: `A1`, `B2`, `A3`, `A4`, `A5`, `B6`, `A7`, `B8`, `A9` is
+/// going to be printed as: `A1`, `A3`, `A4`, `A5`, `A7`, `A9`, `B2`, `B6`, `B8`.
 #[derive(Debug, Clone)]
 pub enum Line {
+    /// Line is going to be emitted after all immediate lines have been emitted from the current
+    /// stack.
+    /// This means that deferred lines will always be last in a group.
     Defer(String),
+    /// Going to be emitted immediately as the next line in the chain of
+    /// attachments and contexts.
     Next(String),
 }
 
+/// The display of content is using an instruction style architecture,
+/// where we first render every indentation and action as an [`Instruction`], these instructions are
+/// a lot easier to reason about and enable better manipulation of the stream of data.
+///
+/// Once generation of all data is done, it is interpreted as a String, with glyphs or color added
+/// (if supported and enabled).
 enum Instruction {
     Content(String),
     Entry { end: bool },

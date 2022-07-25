@@ -382,6 +382,11 @@ mod builtin {
         Line::Defer(format!("spantrace with {span} frames ({})", idx + 1))
     }
 
+    /// Builtin hooks, which provide defaults for common attachments that are automatically created
+    /// by error_stack, this includes [`Backtrace`] and [`SpanTrace`]
+    ///
+    /// [`Backtrace`]: std::backtrace::Backtrace
+    /// [`SpanTrace`]: tracing_error::SpanTrace
     pub struct Builtin;
 
     impl Hook<Frame, UInt0> for Builtin {
