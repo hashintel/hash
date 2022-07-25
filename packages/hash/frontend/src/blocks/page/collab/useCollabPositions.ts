@@ -58,13 +58,22 @@ export const useCollabPositions = (
             pageEntityId,
             poll,
           });
-          const positions = JSON.parse(await activeRequest) as CollabPosition[];
+          const response = await activeRequest;
+          const positions =
+            // Check for no content
+            response !== ""
+              ? (JSON.parse(response) as CollabPosition[])
+              : undefined;
+
           activeRequest = undefined;
 
           if (pageHasChanged) {
             break;
           }
-          setPositionInfo({ accountId, pageEntityId, positions });
+
+          if (positions) {
+            setPositionInfo({ accountId, pageEntityId, positions });
+          }
           poll = true;
         } catch (error) {
           await sleep(requestRetryInterval);

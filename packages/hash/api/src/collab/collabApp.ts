@@ -287,6 +287,14 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           userIdToExclude: userInfo.entityId,
           response,
         });
+
+        // This connection times out after 5 seconds.
+        // No content is returned, such that the consumer doesn't receive
+        // misguiding data.
+        response.setTimeout(5000, () => {
+          response.status(204);
+          response.end();
+        });
       } catch (error) {
         next(error);
       }
