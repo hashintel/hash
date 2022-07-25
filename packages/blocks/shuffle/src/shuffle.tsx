@@ -6,6 +6,7 @@ import {
 // eslint-disable-next-line no-restricted-imports
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
+import isEqual from "lodash.isequal";
 import { ItemList } from "./components/item-list";
 import { ActionType, initialItems, Items, shuffleReducer } from "./reducer";
 
@@ -60,13 +61,15 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     });
 
   useEffect(() => {
-    void graphService?.updateEntity({
-      data: {
-        entityId,
-        properties: { items: list },
-      },
-    });
-  }, [graphService, entityId, list]);
+    if (!isEqual(list, items)) {
+      void graphService?.updateEntity({
+        data: {
+          entityId,
+          properties: { items: list },
+        },
+      });
+    }
+  }, [graphService, entityId, list, items]);
 
   return (
     <Box ref={blockRootRef}>
