@@ -90,11 +90,18 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-pub trait Hook<T> {
+type UInt0 = ();
+type UInt1 = ((), UInt0);
+type UInt2 = ((), UInt1);
+
+/// A single DebugHook of a specific type `T`, which a specific number of arguments `U`.
+///
+/// This trait is used for the implementation of
+pub trait Hook<T, U> {
     fn call(&self, frame: &T, ctx: HookContext<T>) -> Option<Line>;
 }
 
-impl<F, T> Hook<T> for F
+impl<F, T> Hook<T, UInt2> for F
 where
     F: Fn(&T, &mut HookContext<T>) -> Line,
     T: Send + Sync + 'static,
@@ -104,17 +111,27 @@ where
     }
 }
 
+impl<F, T> Hook<T, UInt1> for F
+where
+    F: Fn(&T) -> Line,
+    T: Send + Sync + 'static,
+{
+    fn call(&self, frame: &T, _: HookContext<T>) -> Option<Line> {
+        Some((self)(frame))
+    }
+}
+
 pub struct Stack<L, T, R> {
     left: L,
     right: R,
     _marker: PhantomData<T>,
 }
 
-impl<L, T, R> Hook<Frame> for Stack<L, T, R>
+impl<L, T, U, R> Hook<Frame, UInt0> for Stack<L, (T, U), R>
 where
-    L: Hook<T>,
+    L: Hook<T, U>,
     T: Send + Sync + 'static,
-    R: Hook<Frame>,
+    R: Hook<Frame, ()>,
 {
     fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
         if let Some(frame) = frame.downcast_ref::<T>() {
@@ -125,7 +142,7 @@ where
     }
 }
 
-impl<T> Hook<T> for () {
+impl<T> Hook<T, UInt0> for () {
     fn call(&self, _: &T, _: HookContext<T>) -> Option<Line> {
         None
     }
@@ -136,10 +153,10 @@ pub struct Both<L, R> {
     right: R,
 }
 
-impl<L, R> Hook<Frame> for Both<L, R>
+impl<L, R> Hook<Frame, UInt0> for Both<L, R>
 where
-    L: Hook<Frame>,
-    R: Hook<Frame>,
+    L: Hook<Frame, UInt0>,
+    R: Hook<Frame, UInt0>,
 {
     fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
         let parent = ctx.into_impl();
@@ -150,7 +167,7 @@ where
     }
 }
 
-impl Hook<Frame> for Box<dyn Hook<Frame> + Send + Sync> {
+impl Hook<Frame, UInt0> for Box<dyn Hook<Frame, UInt0> + Send + Sync> {
     fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
         let hook = self.as_ref();
 
@@ -158,7 +175,7 @@ impl Hook<Frame> for Box<dyn Hook<Frame> + Send + Sync> {
     }
 }
 
-pub struct Hooks<T: Hook<Frame>>(T);
+pub struct Hooks<T: Hook<Frame, UInt0>>(T);
 
 impl Hooks<Builtin> {
     pub fn new() -> Self {
@@ -172,13 +189,16 @@ impl Hooks<()> {
     }
 }
 
-impl<T: Hook<Frame>> Hooks<T> {
+impl<T: Hook<Frame, UInt0>> Hooks<T> {
     fn new_with(hook: T) -> Self {
         Self(hook)
     }
 
     // TODO: potentially rename to `add()` instead.
-    pub fn push<U: Hook<V>, V: Send + Sync + 'static>(self, hook: U) -> Hooks<Stack<U, V, T>> {
+    pub fn push<H: Hook<F, U>, F: Send + Sync + 'static, U>(
+        self,
+        hook: H,
+    ) -> Hooks<Stack<H, (F, U), T>> {
         let stack = Stack {
             left: hook,
             right: self.0,
@@ -188,7 +208,7 @@ impl<T: Hook<Frame>> Hooks<T> {
         Hooks::new_with(stack)
     }
 
-    pub fn append<U: Hook<Frame>>(self, other: Hooks<U>) -> Hooks<Both<T, U>> {
+    pub fn append<U: Hook<Frame, UInt0>>(self, other: Hooks<U>) -> Hooks<Both<T, U>> {
         let both = Both {
             left: self.0,
             right: other.0,
@@ -198,7 +218,7 @@ impl<T: Hook<Frame>> Hooks<T> {
     }
 }
 
-impl<T: Hook<Frame> + Send + Sync + 'static> Hooks<T> {
+impl<T: Hook<Frame, UInt0> + Send + Sync + 'static> Hooks<T> {
     pub fn erase(self) -> ErasedHooks {
         Hooks::new_with(Box::new(self.0))
     }
@@ -210,7 +230,7 @@ impl ErasedHooks {
     }
 }
 
-pub type ErasedHooks = Hooks<Box<dyn Hook<Frame> + Send + Sync>>;
+pub type ErasedHooks = Hooks<Box<dyn Hook<Frame, UInt0> + Send + Sync>>;
 
 mod builtin {
     #[cfg(all(nightly, feature = "std"))]
@@ -221,7 +241,7 @@ mod builtin {
 
     use crate::{
         fmt::{
-            hook::{Hook, HookContext, HookContextImpl},
+            hook::{Hook, HookContext, HookContextImpl, UInt0},
             Line,
         },
         Frame,
@@ -271,7 +291,7 @@ mod builtin {
 
     pub struct Builtin;
 
-    impl Hook<Frame> for Builtin {
+    impl Hook<Frame, UInt0> for Builtin {
         fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
             #[cfg(all(nightly, feature = "std"))]
             if let Some(bt) = frame.request_ref() {
