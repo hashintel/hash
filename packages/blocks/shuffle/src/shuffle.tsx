@@ -18,7 +18,7 @@ export type Item = {
 export type Items = Item[];
 
 type BlockEntityProperties = {
-  items: Items;
+  items?: Items;
 };
 
 export const initialItems = [
@@ -67,7 +67,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   };
 
   const onValueChange = (index: number, value: string) => {
-    const newItems = produce(items, (draftItems) => {
+    const newItems = produce(list, (draftItems) => {
       if (draftItems[index]) {
         draftItems[index]!.value = value;
       }
@@ -81,10 +81,10 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   };
 
   const onAdd = (index: number) => {
-    const newItems = produce(items, (draftItems) => {
+    const newItems = produce(list, (draftItems) => {
       draftItems.splice(index, 0, {
         id: uuid(),
-        value: `Thing ${items.length + 1}`,
+        value: `Thing ${list.length + 1}`,
       });
     });
 
@@ -93,7 +93,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   };
 
   const onDelete = (index: number) => {
-    const newItems = produce(items, (draftItems) => {
+    const newItems = produce(list, (draftItems) => {
       draftItems.splice(index, 1);
       if (draftItems.length === 0) {
         draftItems.push({ id: uuid(), value: "Thing 1" });
@@ -105,7 +105,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   };
 
   const onShuffle = () => {
-    const newItems = produce(items, (draftItems) => {
+    const newItems = produce(list, (draftItems) => {
       return draftItems
         .map((value) => ({ value, sort: Math.random() }))
         .sort((a, b) => a.sort - b.sort)
@@ -118,7 +118,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
 
   return (
     <Box ref={blockRootRef}>
-      <Button disabled={items?.length <= 1} onClick={() => onShuffle()}>
+      <Button disabled={list.length <= 1} onClick={() => onShuffle()}>
         Shuffle
       </Button>
       <ItemList
