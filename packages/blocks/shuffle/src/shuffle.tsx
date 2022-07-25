@@ -18,13 +18,13 @@ export type Item = {
 export type Items = Item[];
 
 type BlockEntityProperties = {
-  items?: Items;
+  items?: string[];
 };
 
-export const initialItems = [
-  { id: uuid(), value: "Thing 1" },
-  { id: uuid(), value: "Thing 2" },
-];
+export const initialItems = ["Thing 1", "Thing 2"];
+
+const createItems = (items: string[]) =>
+  items.map((item) => ({ id: uuid(), value: item }));
 
 export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   graph: {
@@ -37,11 +37,13 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
 
-  const [list, setList] = useState(items?.length ? items : initialItems);
+  const [list, setList] = useState(
+    createItems(items?.length ? items : initialItems),
+  );
 
   useEffect(() => {
     if (items) {
-      setList(items);
+      setList(createItems(items));
     }
   }, [items]);
 
@@ -49,7 +51,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     void graphService?.updateEntity({
       data: {
         entityId,
-        properties: { items: newItems },
+        properties: { items: newItems.map((item) => item.value) },
       },
     });
   };
