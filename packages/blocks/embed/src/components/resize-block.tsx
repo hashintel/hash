@@ -1,4 +1,12 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import {
+  FunctionComponent,
+  ReactNode,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  MouseEvent,
+} from "react";
 import { tw } from "twind";
 import { throttle } from "lodash";
 import { MIN_WIDTH, MIN_HEIGHT } from "../constants";
@@ -11,7 +19,7 @@ type ResizeBlockProps = {
   maxWidth: number;
   updateDimensions: (width: number, height: number) => void;
   shouldRespectAspectRatio: boolean;
-  children?: React.ReactNode;
+  children?: ReactNode;
 };
 
 const BLOCK_RESIZER_POSITIONS = [
@@ -43,7 +51,7 @@ const BLOCK_RESIZER_POSITIONS = [
  *  and should be imported from there
  */
 
-export const ResizeBlock: React.FC<ResizeBlockProps> = ({
+export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
   children,
   width,
   height,
@@ -105,13 +113,13 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
   }, [width, height, updateLocalDimensions]);
 
   const handleResize = (
-    _evt: React.MouseEvent,
+    _evt: MouseEvent,
     direction: typeof BLOCK_RESIZER_POSITIONS[number]["position"],
   ) => {
     if (!childrenWrapperRef.current) return;
     let isResizing = false;
 
-    function onMouseMove(mouseMoveEvt: MouseEvent) {
+    function onMouseMove(mouseMoveEvt: globalThis.MouseEvent) {
       if (!divRef.current) return;
       if (!childrenWrapperRef.current) return;
       /**

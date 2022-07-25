@@ -1,4 +1,4 @@
-import React, { VFC, ReactNode } from "react";
+import { FunctionComponent, ReactNode } from "react";
 import { tw } from "twind";
 
 import bgPattern from "../../assets/images/auth-bg-pattern.png";
@@ -11,7 +11,7 @@ export type AuthLayoutProps = {
   loading?: boolean;
 };
 
-export const AuthLayout: VFC<AuthLayoutProps> = ({
+export const AuthLayout: FunctionComponent<AuthLayoutProps> = ({
   children,
   onClose,
   showTopLogo,

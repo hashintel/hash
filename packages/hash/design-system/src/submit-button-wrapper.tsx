@@ -12,7 +12,7 @@ import {
   styled,
   Collapse,
 } from "@mui/material";
-import * as React from "react";
+import { forwardRef, FunctionComponent } from "react";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 
 const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
@@ -35,8 +35,8 @@ export type SubmitButtonWrapperProps = {
   helperText: string;
 } & BoxProps;
 
-export const SubmitButtonWrapper: React.FC<SubmitButtonWrapperProps> =
-  React.forwardRef(({ children, useTooltip, helperText, ...props }, ref) => {
+export const SubmitButtonWrapper: FunctionComponent<SubmitButtonWrapperProps> =
+  forwardRef(({ children, useTooltip, helperText, ...props }, ref) => {
     if (useTooltip && helperText) {
       return (
         <DisabledTooltip

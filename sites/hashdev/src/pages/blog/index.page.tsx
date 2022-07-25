@@ -9,7 +9,7 @@ import { Box } from "@mui/system";
 import { GetStaticProps } from "next";
 import Head from "next/head";
 import Image from "next/image";
-import { ComponentProps, FC, Fragment, VFC } from "react";
+import { ComponentProps, FunctionComponent, Fragment } from "react";
 import { BlogPostAuthor, BlogPostPagePhoto } from "../../components/BlogPost";
 import { GradientContainer } from "../../components/GradientContainer";
 import { Link } from "../../components/Link";
@@ -79,7 +79,7 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
   }
 };
 
-const BlogPostLink: FC<
+const BlogPostLink: FunctionComponent<
   { page: BlogIndividualPage } & Omit<ComponentProps<typeof Link>, "href">
 > = ({ page, children, ...props }) => (
   <Link
@@ -93,13 +93,16 @@ const BlogPostLink: FC<
   </Link>
 );
 
-const PostCopyContainer: FC<StackProps> = ({ children, ...props }) => (
+const PostCopyContainer: FunctionComponent<StackProps> = ({
+  children,
+  ...props
+}) => (
   <Stack {...props} direction="column" spacing={{ xs: 1, md: 2 }}>
     {children}
   </Stack>
 );
 
-const PostImage: VFC<{
+const PostImage: FunctionComponent<{
   page: BlogIndividualPage;
   fill?: boolean;
   square?: boolean;
@@ -118,7 +121,7 @@ const PostImage: VFC<{
     </BlogPostLink>
   ) : null;
 
-const BigPost: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
+const BigPost: FunctionComponent<{ page: BlogIndividualPage }> = ({ page }) => (
   <Stack direction="column" spacing={{ xs: 3, md: 4 }}>
     <Box position="relative">
       <PostImage page={page} fill={false} />
@@ -141,7 +144,7 @@ const BigPost: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
   </Stack>
 );
 
-const Post: VFC<{
+const Post: FunctionComponent<{
   post: BlogIndividualPage;
   collapsed?: boolean;
   displayPhoto?: boolean;
@@ -189,7 +192,7 @@ const Post: VFC<{
   </Stack>
 );
 
-const FourPostsRow: VFC<{
+const FourPostsRow: FunctionComponent<{
   reverse?: boolean;
   posts: BlogIndividualPage[];
   displayPhotos: boolean;
@@ -223,7 +226,9 @@ const FourPostsRow: VFC<{
   </Stack>
 );
 
-const ThreePostsRow: VFC<{ posts: BlogIndividualPage[] }> = ({ posts }) => (
+const ThreePostsRow: FunctionComponent<{ posts: BlogIndividualPage[] }> = ({
+  posts,
+}) => (
   <Stack direction={{ xs: "column", md: "row" }} spacing={5}>
     {posts.map((post) => (
       <Post post={post} collapsed key={post.fileName} />

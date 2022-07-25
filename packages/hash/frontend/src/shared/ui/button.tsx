@@ -1,6 +1,6 @@
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
-import { VFC, forwardRef, useMemo, ReactNode } from "react";
+import { FunctionComponent, forwardRef, useMemo, ReactNode } from "react";
 import {
   /* eslint-disable-next-line -- allow import of original button to extend it */
   Button as BaseButton,
@@ -12,7 +12,7 @@ export type ButtonProps = {
   children: ReactNode;
 } & BaseButtonProps; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
-export const Button: VFC<ButtonProps> = forwardRef(
+export const Button: FunctionComponent<ButtonProps> = forwardRef(
   ({ children, href, ...props }, ref) => {
     const linkProps = useMemo(() => {
       if (href && isHrefExternal(href)) {

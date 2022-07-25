@@ -3,7 +3,7 @@ import {
   ReactNode,
   useContext,
   useMemo,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { Schema } from "jsonschema";
 
@@ -22,7 +22,7 @@ type SchemaPropertyTypeListProps = {
   updatePermittedType?: (newType: string) => void; // @todo support selecting multiple types
 };
 
-const PropertyTypeDisplay: VoidFunctionComponent<
+const PropertyTypeDisplay: FunctionComponent<
   Omit<SchemaPropertyTypeListProps, "readonly" | "updatePermittedType">
 > = ({ $ref, hasSubSchema, GoToSchemaElement, propertyName, type }) => {
   if ($ref) {
@@ -44,7 +44,7 @@ const PropertyTypeDisplay: VoidFunctionComponent<
   );
 };
 
-const PropertyTypeSelect: VoidFunctionComponent<
+const PropertyTypeSelect: FunctionComponent<
   Omit<
     SchemaPropertyTypeListProps,
     "hasSubSchema" | "GoToSchemaElement" | "propertyName" | "readonly"
@@ -108,7 +108,7 @@ const PropertyTypeSelect: VoidFunctionComponent<
   );
 };
 
-export const SchemaPropertyTypeList: VoidFunctionComponent<
+export const SchemaPropertyTypeList: FunctionComponent<
   SchemaPropertyTypeListProps
 > = ({ readonly, ...props }) => {
   if (!readonly) {

@@ -1,4 +1,3 @@
-import React from "react";
 import Document, {
   Html,
   Head,
@@ -7,6 +6,7 @@ import Document, {
   DocumentContext,
 } from "next/document";
 import createEmotionServer from "@emotion/server/create-instance";
+import { Children } from "react";
 import { createEmotionCache } from "../util/createEmotionCache";
 
 class MyDocument extends Document {
@@ -65,10 +65,7 @@ class MyDocument extends Document {
     return {
       ...initialProps,
       // Styles fragment is rendered after the app and page rendering finish.
-      styles: [
-        ...React.Children.toArray(initialProps.styles),
-        ...emotionStyleTags,
-      ],
+      styles: [...Children.toArray(initialProps.styles), ...emotionStyleTags],
     };
   }
 

@@ -1,4 +1,4 @@
-import React, { FormEvent, useRef, useState } from "react";
+import { FormEvent, FunctionComponent, useRef, useState } from "react";
 import { tw } from "twind";
 import LanguageIcon from "@mui/icons-material/Language";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -11,7 +11,7 @@ type LinkModalProps = {
   removeLink: () => void;
 };
 
-export const LinkModal: React.VFC<LinkModalProps> = ({
+export const LinkModal: FunctionComponent<LinkModalProps> = ({
   savedLinkMarkHref,
   updateLink,
   removeLink,

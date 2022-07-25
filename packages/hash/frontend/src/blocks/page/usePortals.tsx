@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback, useState } from "react";
+import { ReactNode, useCallback, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { BlockPortals } from "./BlockPortals";
 
@@ -7,7 +7,7 @@ export type BlockPortal = { id: string; key: string; reactNode: ReactNode };
 type PortalSet = Map<HTMLElement, BlockPortal>;
 
 export type RenderPortal = (
-  reactNode: React.ReactNode | null,
+  reactNode: ReactNode | null,
   node: HTMLElement | null,
   id?: string,
 ) => void;

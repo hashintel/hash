@@ -3,8 +3,7 @@
  * This file is not bundled with the library during the build process.
  */
 
-import React from "react";
-import ReactDOM from "react-dom";
+import { render } from "react-dom";
 import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
@@ -27,4 +26,4 @@ const App = () => {
   );
 };
 
-ReactDOM.render(<App />, node);
+render(<App />, node);

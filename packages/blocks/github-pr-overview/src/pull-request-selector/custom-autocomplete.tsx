@@ -1,4 +1,4 @@
-import * as React from "react";
+import { forwardRef, ReactElement, Ref } from "react";
 import { KeyboardArrowDown } from "@mui/icons-material";
 import {
   AutocompleteProps as MuiAutocompleteProps,
@@ -26,7 +26,7 @@ const CustomAutocomplete = <T,>(
     sx = [],
     ...props
   }: AutocompleteProps<T>,
-  ref: React.Ref<HTMLDivElement>,
+  ref: Ref<HTMLDivElement>,
 ) => {
   const renderInput = (params: AutocompleteRenderInputParams) => {
     if (customRenderInput) {
@@ -85,12 +85,12 @@ const CustomAutocomplete = <T,>(
 };
 
 // type assertion approach inspiration from https://stackoverflow.com/a/58473012
-const CustomAutocompleteForwardRef = React.forwardRef(CustomAutocomplete) as <
+const CustomAutocompleteForwardRef = forwardRef(CustomAutocomplete) as <
   T extends {},
 >(
   props: AutocompleteProps<T> & {
-    ref?: React.Ref<HTMLDivElement>;
+    ref?: Ref<HTMLDivElement>;
   },
-) => React.ReactElement;
+) => ReactElement;
 
 export { CustomAutocompleteForwardRef as CustomAutocomplete };

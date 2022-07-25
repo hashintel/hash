@@ -1,10 +1,10 @@
-import React, { VFC } from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 import Cross from "../svgs/cross";
 
 type ImageErrorAlertProps = { error: string | null; onClearError: () => void };
 
-export const ErrorAlert: VFC<ImageErrorAlertProps> = ({
+export const ErrorAlert: FunctionComponent<ImageErrorAlertProps> = ({
   error,
   onClearError,
 }) => (
