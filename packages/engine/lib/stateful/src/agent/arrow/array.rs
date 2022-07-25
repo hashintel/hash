@@ -2,15 +2,15 @@ use std::sync::Arc;
 
 use arrow::{
     array::{
-        ArrayRef, FixedSizeBinaryArray, FixedSizeListArray, Float64Array,
-        MutableFixedSizeBinaryArray, PrimitiveArray,
+        ArrayRef, FixedSizeBinaryArray, FixedSizeListArray, MutableFixedSizeBinaryArray,
+        PrimitiveArray,
     },
     chunk::Chunk,
-    datatypes::{DataType, Field, Schema},
+    datatypes::{DataType, Schema},
 };
 use memory::arrow::{
     json_vals_to_any_type_col, json_vals_to_bool, json_vals_to_col, json_vals_to_primitive,
-    json_vals_to_utf8, new_zero_bits, record_batch::RecordBatch, util::bit_util,
+    json_vals_to_utf8, record_batch::RecordBatch,
 };
 
 use crate::{
@@ -148,44 +148,25 @@ fn agents_to_id_col(agents: &[&Agent]) -> Result<ArrayRef> {
 macro_rules! agents_to_vec_col_gen {
     ($field_name:ident, $function_name:ident) => {
         fn $function_name(agents: &[&Agent]) -> Result<FixedSizeListArray> {
-            let mut flat: Vec<Option<f64>> = Vec::with_capacity(agents.len() * 3);
-            let mut null_bits = new_zero_bits(agents.len());
-            let mut_null_bits = null_bits.as_mut_slice();
-            let mut null_count = 0;
-            for (i_agent, agent) in agents.iter().enumerate() {
+            let mut flat: arrow::array::MutableFixedSizeListArray<
+                arrow::array::MutablePrimitiveArray<f64>,
+            > = arrow::array::MutableFixedSizeListArray::new(
+                arrow::array::MutablePrimitiveArray::new(),
+                3,
+            );
+
+            for agent in agents {
                 if let Some(dir) = agent.$field_name {
-                    flat.push(Some(dir.0));
-                    flat.push(Some(dir.1));
-                    flat.push(Some(dir.2));
-                    bit_util::set_bit(mut_null_bits, i_agent);
+                    arrow::array::TryPush::try_push(
+                        &mut flat,
+                        Some([Some(dir.0), Some(dir.1), Some(dir.2)]),
+                    )?;
                 } else {
-                    // Null -- put arbitrary data
-                    flat.push(None);
-                    flat.push(None);
-                    flat.push(None);
-                    null_count += 1;
+                    arrow::array::TryPush::try_push(&mut flat, Option::<[Option<f64>; 3]>::None)?;
                 }
             }
-            let child_array: Float64Array = flat.into();
 
-            let data_type =
-                DataType::FixedSizeList(Box::new(Field::new("item", DataType::Float64, true)), 3);
-
-            Ok(FixedSizeListArray::new(
-                data_type,
-                child_array.arced(),
-                Some(
-                    arrow::bitmap::Bitmap::try_new(null_bits, null_count)
-                        .expect("bug - the engine is not correctly creating validity bitmaps"),
-                ),
-            ))
-            // ArrayData::builder(dt)
-            //     .len(agents.len())
-            //     .null_count(null_count)
-            //     .null_bit_buffer(null_bits.into())
-            //     .add_child_data(child_array.data().clone())
-            //     .build()?
-            //     .into()
+            Ok(flat.into())
         }
     };
 }
@@ -217,8 +198,7 @@ fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<ArrayR
 }
 
 pub(crate) fn get_agent_id_array(agent_ids: &[AgentId]) -> Result<FixedSizeBinaryArray> {
-    let mut builder =
-        MutableFixedSizeBinaryArray::with_capacity(agent_ids.len() * UUID_V4_LEN, UUID_V4_LEN);
+    let mut builder = MutableFixedSizeBinaryArray::with_capacity(UUID_V4_LEN, UUID_V4_LEN);
     for agent_id in agent_ids {
         builder.push(Some(agent_id.as_bytes()));
     }
