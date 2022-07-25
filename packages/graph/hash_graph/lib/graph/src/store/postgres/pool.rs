@@ -3,13 +3,13 @@ use error_stack::{IntoReport, Result, ResultExt};
 use sqlx::{postgres::PgConnectOptions, ConnectOptions, PgPool};
 use tracing::log::LevelFilter;
 
-use crate::store::{DatabaseConnectionInfo, PostgresDatabase, StoreError, StorePool};
+use crate::store::{DatabaseConnectionInfo, PostgresStore, StoreError, StorePool};
 
-pub struct PostgresDatabasePool {
+pub struct PostgresStorePool {
     pool: PgPool,
 }
 
-impl PostgresDatabasePool {
+impl PostgresStorePool {
     /// Creates a new `PostgresDatabasePool`.
     ///
     /// # Errors
@@ -36,11 +36,11 @@ impl PostgresDatabasePool {
 }
 
 #[async_trait]
-impl StorePool for PostgresDatabasePool {
+impl StorePool for PostgresStorePool {
     type Error = sqlx::Error;
-    type Store = PostgresDatabase;
+    type Store = PostgresStore;
 
     async fn acquire(&self) -> Result<Self::Store, Self::Error> {
-        Ok(PostgresDatabase::new(self.pool.acquire().await?))
+        Ok(PostgresStore::new(self.pool.acquire().await?))
     }
 }

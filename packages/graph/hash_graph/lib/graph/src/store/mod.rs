@@ -10,7 +10,7 @@ use error_stack::{Context, Result};
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     pool::StorePool,
-    postgres::{PostgresDatabase, PostgresDatabasePool},
+    postgres::{PostgresStore, PostgresStorePool},
 };
 use crate::{
     knowledge::{Entity, EntityId},

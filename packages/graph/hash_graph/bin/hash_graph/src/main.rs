@@ -7,7 +7,7 @@ use graph::{
     api::rest::rest_api_router,
     logging::init_logger,
     ontology::AccountId,
-    store::{PostgresDatabasePool, StorePool},
+    store::{PostgresStorePool, StorePool},
 };
 use uuid::Uuid;
 
@@ -33,7 +33,7 @@ async fn main() -> Result<(), GraphError> {
         &args.log_config.log_file_prefix,
     );
 
-    let pool = PostgresDatabasePool::new(&args.db_info)
+    let pool = PostgresStorePool::new(&args.db_info)
         .await
         .change_context(GraphError)
         .map_err(|err| {

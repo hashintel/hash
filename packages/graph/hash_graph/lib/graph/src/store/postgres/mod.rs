@@ -7,7 +7,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use sqlx::{pool::PoolConnection, Acquire, Executor, Postgres, Row, Transaction};
 use uuid::Uuid;
 
-pub use self::pool::PostgresDatabasePool;
+pub use self::pool::PostgresStorePool;
 use crate::{
     knowledge::{Entity, EntityId},
     ontology::{
@@ -26,11 +26,11 @@ use crate::{
 };
 
 /// A Postgres-backed store
-pub struct PostgresDatabase {
+pub struct PostgresStore {
     connection: PoolConnection<Postgres>,
 }
 
-impl PostgresDatabase {
+impl PostgresStore {
     /// Creates a new `PostgresDatabase` object.
     #[must_use]
     pub(crate) const fn new(connection: PoolConnection<Postgres>) -> Self {
@@ -699,7 +699,7 @@ impl PostgresDatabase {
 }
 
 #[async_trait]
-impl Store for PostgresDatabase {
+impl Store for PostgresStore {
     async fn version_id_by_uri(&mut self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
         Self::version_id_by_uri_impl(&mut self.connection, uri).await
     }

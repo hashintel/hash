@@ -17,8 +17,8 @@ use graph::{
         AccountId, VersionId,
     },
     store::{
-        DatabaseConnectionInfo, DatabaseType, InsertionError, PostgresDatabase,
-        PostgresDatabasePool, QueryError, Store, StorePool, UpdateError,
+        DatabaseConnectionInfo, DatabaseType, InsertionError, PostgresStore, PostgresStorePool,
+        QueryError, Store, StorePool, UpdateError,
     },
 };
 use sqlx::{Connection, Executor, PgConnection};
@@ -26,7 +26,7 @@ use tokio::runtime::Runtime;
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
-    pool: PostgresDatabasePool,
+    pool: PostgresStorePool,
     created_base_uris: Vec<BaseUri>,
     account_id: AccountId,
     // `PostgresDatabase` does not expose functionality to remove entries, so a direct connection
@@ -57,7 +57,7 @@ impl DatabaseTestWrapper {
 
         let rt = Runtime::new().expect("Could not create a test runtime");
         let (postgres, connection, account_id) = rt.block_on(async {
-            let pool = PostgresDatabasePool::new(&connection_info)
+            let pool = PostgresStorePool::new(&connection_info)
                 .await
                 .expect("could not connect to database");
 
@@ -85,7 +85,7 @@ impl DatabaseTestWrapper {
         }
     }
 
-    pub async fn database(&self) -> PostgresDatabase {
+    pub async fn database(&self) -> PostgresStore {
         self.pool
             .acquire()
             .await
