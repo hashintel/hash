@@ -18,13 +18,9 @@ pub(crate) use hook::ErasedHooks;
 pub use hook::{Builtin, Hook, HookContext, Hooks};
 #[cfg(nightly)]
 pub use nightly::DebugDiagnostic;
-#[cfg(feature = "hooks")]
-use once_cell::sync::OnceCell;
 #[cfg(feature = "glyph")]
 use owo_colors::{colored::Color, colors::Red, OwoColorize, Stream::Stdout};
 
-#[cfg(feature = "hooks")]
-use crate::HookAlreadySet;
 use crate::{fmt::hook::HookContextImpl, AttachmentKind, Frame, FrameKind, Report, Result};
 
 /// Different types of `Line` that exist during rendering.
