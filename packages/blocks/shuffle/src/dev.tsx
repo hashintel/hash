@@ -4,7 +4,7 @@
  */
 import { MockBlockDock } from "mock-block-dock";
 import React from "react";
-import ReactDOM from "react-dom";
+import { render } from "react-dom";
 
 import Component from "./index";
 
@@ -25,4 +25,4 @@ const DevApp = () => {
   );
 };
 
-ReactDOM.render(<DevApp />, node);
+render(<DevApp />, node);
