@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   BlockComponent,
   useGraphBlockService,
@@ -39,7 +39,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
 
-  const [list, setList] = useState(() =>
+  const [draftItems, setDraftItems] = useState(() =>
     createItems(items?.length ? items : initialItems),
   );
 
@@ -50,14 +50,14 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     if (
       !isEqual(
         items,
-        list.map((item) => item.value),
+        draftItems.map((item) => item.value),
       )
     ) {
-      setList(createItems(items));
+      setDraftItems(createItems(items));
     }
   }
 
-  const publishChanges = (newItems: Items) => {
+  const publishItems = (newItems: Items) => {
     void graphService?.updateEntity({
       data: {
         entityId,
@@ -66,67 +66,65 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     });
   };
 
-  const onReorder = (sourceIndex: number, destinationIndex: number) => {
-    const newItems = produce(list, (draftItems) => {
-      const [removed] = draftItems.splice(sourceIndex, 1);
-      if (removed) {
-        draftItems.splice(destinationIndex, 0, removed);
-      }
-    });
+  const updateItems = (newItems: Items, publish = true) => {
+    setDraftItems(newItems);
 
-    setList(newItems);
-    publishChanges(newItems);
+    if (publish) {
+      publishItems(newItems);
+    }
   };
 
-  const onValueChange = (index: number, value: string) => {
-    const newItems = produce(list, (draftItems) => {
-      if (draftItems[index]) {
-        draftItems[index]!.value = value;
-      }
-    });
+  const onReorder = (sourceIndex: number, destinationIndex: number) =>
+    updateItems(
+      produce(draftItems, (newItems) => {
+        const [removed] = newItems.splice(sourceIndex, 1);
+        if (removed) {
+          newItems.splice(destinationIndex, 0, removed);
+        }
+      }),
+    );
 
-    setList(newItems);
-  };
+  const onValueChange = (index: number, value: string) =>
+    updateItems(
+      produce(draftItems, (newItems) => {
+        if (newItems[index]) {
+          newItems[index]!.value = value; // eslint-disable-line no-param-reassign
+        }
+      }),
+      false,
+    );
 
-  const onItemBlur = () => {
-    publishChanges(list);
-  };
+  const onItemBlur = () => publishItems(draftItems);
 
-  const onAdd = (index: number) => {
-    const newItems = produce(list, (draftItems) => {
-      draftItems.splice(index, 0, {
-        id: uuid(),
-        value: `Thing ${list.length + 1}`,
-      });
-    });
+  const onAdd = (index: number) =>
+    updateItems(
+      produce(draftItems, (newItems) => {
+        newItems.splice(index, 0, {
+          id: uuid(),
+          value: `Thing ${draftItems.length + 1}`,
+        });
+      }),
+    );
 
-    setList(newItems);
-    publishChanges(newItems);
-  };
+  const onDelete = (index: number) =>
+    updateItems(
+      produce(draftItems, (newItems) => {
+        newItems.splice(index, 1);
+        if (newItems.length === 0) {
+          newItems.push({ id: uuid(), value: "Thing 1" });
+        }
+      }),
+    );
 
-  const onDelete = (index: number) => {
-    const newItems = produce(list, (draftItems) => {
-      draftItems.splice(index, 1);
-      if (draftItems.length === 0) {
-        draftItems.push({ id: uuid(), value: "Thing 1" });
-      }
-    });
-
-    setList(newItems);
-    publishChanges(newItems);
-  };
-
-  const onShuffle = () => {
-    const newItems = produce(list, (draftItems) => {
-      return draftItems
-        .map((value) => ({ value, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .map(({ value }) => value);
-    });
-
-    setList(newItems);
-    publishChanges(newItems);
-  };
+  const onShuffle = () =>
+    updateItems(
+      produce(draftItems, (newItems) => {
+        return newItems
+          .map((value) => ({ value, sort: Math.random() }))
+          .sort((a, b) => a.sort - b.sort)
+          .map(({ value }) => value);
+      }),
+    );
 
   return (
     <Box
@@ -136,13 +134,13 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       <Button
         variant="outlined"
         sx={{ alignSelf: "end" }}
-        disabled={list.length <= 1}
+        disabled={draftItems.length <= 1}
         onClick={() => onShuffle()}
       >
         <ShuffleIcon />
       </Button>
       <ItemList
-        list={list}
+        list={draftItems}
         onReorder={onReorder}
         onValueChange={onValueChange}
         onItemBlur={onItemBlur}
