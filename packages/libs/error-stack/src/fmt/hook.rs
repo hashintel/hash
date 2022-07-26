@@ -143,6 +143,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// consistent with [`incr()`].
     ///
     /// [`incr()`]: Self::incr
+    /// [`text()`]: Self::text
     pub fn decr(&mut self) -> isize {
         let counter: Option<&mut isize> = self
             .parent
@@ -177,8 +178,8 @@ type UInt2 = ((), UInt1);
 /// A Hook which potentially outputs a line, if conditions met in [`call()`] are met for a specific
 /// type `T`, and a specific number of arguments `U`.
 ///
-/// This trait is used internally and is automatically implemented for `Fn(&T) -> Line`
-/// and `Fn(&T, &mut HookContext<T>) -> Line`
+/// This trait is used internally and is automatically implemented for [`Fn(&T) -> Line`]
+/// and [`Fn(&T, &mut HookContext<T>) -> Line`]
 ///
 /// [`call()`]: Self::call
 pub trait Hook<T, U> {
@@ -188,7 +189,7 @@ pub trait Hook<T, U> {
     /// The implementation can either find an acceptable hook to process the frame
     /// (will return [`Some`]) or cannot process the [`Frame`] and return [`None`],
     /// elementary types *should* always return [`Some`] and not do any casting, while combinators
-    /// like [`Stack`] and [`Combine`] can use [`None`] to propagate to other elementary hooks.
+    /// can use [`None`] to propagate to other elementary hooks.
     fn call(&self, frame: &T, ctx: HookContext<T>) -> Option<Line>;
 }
 
@@ -345,7 +346,7 @@ impl<T> Hook<T, UInt0> for () {
 /// Holds a chain of [`Hook`]s, which are used to augment the [`Debug`] and [`Display`] information
 /// of attachments, which are normally not printable.
 ///
-/// [`Hook`]s are added via [`push()`], which is implemented for functions with the signature:
+/// [`Hook`]s are added via [`.push()`], which is implemented for functions with the signature:
 /// [`Fn(&T, HookContext<T>) -> Line + Send + Sync + 'static`] and
 /// [`Fn(&T) -> Line + Send + Sync + 'static`]
 ///
@@ -354,6 +355,11 @@ impl<T> Hook<T, UInt0> for () {
 ///
 /// The default implementation provides supports for [`Backtrace`] and [`SpanTrace`],
 /// if their necessary features have been enabled.
+///
+/// [`Backtrace`]: std::backtrace::Backtrace
+/// [`SpanTrace`]: tracing_error::SpanTrace
+/// [`Display`]: core::fmt::Display
+/// [`.push()`]: Hooks::push
 #[cfg(feature = "hooks")]
 #[must_use]
 pub struct Hooks<T: Hook<Frame, UInt0>>(T);
@@ -362,6 +368,9 @@ pub struct Hooks<T: Hook<Frame, UInt0>>(T);
 impl Hooks<Builtin> {
     /// Create a new instance of `Hooks`, which is preloaded with [`Builtin`] hooks
     /// to display [`Backtrace`] and [`SpanTrace`] if those features have been enabled.
+    ///
+    /// [`Backtrace`]: std::backtrace::Backtrace
+    /// [`SpanTrace`]: tracing_error::SpanTrace
     pub const fn new() -> Self {
         Self(Builtin)
     }

@@ -53,8 +53,8 @@ where
 }
 
 impl Report<()> {
-    /// Can be used to globally set different hooks that implement the [`Install`] trait,
-    /// the [`Install`] trait is internal only and cannot be implemented by foreign objects.
+    /// Can be used to globally set different hooks that implement the `Install` trait,
+    /// the `Install` trait is internal only and cannot be implemented by foreign objects.
     ///
     /// This currently supports [`fmt::Hooks`].
     /// [`fmt::Hooks`] can be used to augment the [`Debug`] and [`Display`] implementation
@@ -65,6 +65,8 @@ impl Report<()> {
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
     /// [`push()`]: crate::fmt::Hooks::push
+    /// [`fmt::Hooks`]: crate::fmt::Hooks
+    /// [`Display`]: core::fmt::Display
     ///
     /// # Errors
     ///
