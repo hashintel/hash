@@ -41,14 +41,13 @@ export const childrenForTextEntity = (
 export const textBlockNodeToEntityProperties = (
   node: ProsemirrorNode<Schema>,
 ) => {
-  // @todo is it a problem this is now always true for all component nodes
-  if (!node.isTextblock) {
-    throw new Error("Can only be used on text blocks");
-  }
-
   const tokens: TextToken[] = [];
 
   node.content.descendants((child) => {
+    if (!child.isInline) {
+      return;
+    }
+
     switch (child.type.name) {
       case "hardBreak": {
         tokens.push({ tokenType: "hardBreak" });
