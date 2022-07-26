@@ -4,7 +4,7 @@ volumes:
     external: true
 services:
   postgres:
-    image: postgres:14-alpine
+    build: ./postgres
     deploy:
       restart_policy:
         condition: on-failure
@@ -14,7 +14,7 @@ services:
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - hash-graph-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
