@@ -145,7 +145,7 @@ impl PostgresStore {
             .await
             .report()
             .change_context(InsertionError)
-            .attach_printable_lazy(|| entity_id.clone())?;
+            .attach_printable(entity_id)?;
 
         Ok(())
     }
