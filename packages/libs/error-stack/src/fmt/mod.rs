@@ -67,18 +67,26 @@ impl Line {
     }
 }
 
+#[derive(Debug)]
+enum Glyph {
+    Location,
+}
+
 /// The display of content is using an instruction style architecture,
 /// where we first render every indentation and action as an [`Instruction`], these instructions are
 /// a lot easier to reason about and enable better manipulation of the stream of data.
 ///
 /// Once generation of all data is done, it is interpreted as a String, with glyphs or color added
 /// (if supported and enabled).
+#[derive(Debug)]
 enum Instruction {
     Content(String),
     Gray(String),
     Entry { end: bool },
     Vertical,
     Indent,
+    Title { end: bool },
+    Glyph(Glyph),
 }
 
 impl Instruction {
@@ -91,7 +99,7 @@ impl Instruction {
 
     fn location(text: &'static Location) -> Instructions {
         let mut queue = VecDeque::new();
-        queue.push_back(Instruction::Indent);
+        queue.push_back(Instruction::Glyph(Glyph::Location));
         queue.push_back(Instruction::Gray(text.to_string()));
 
         queue
@@ -122,11 +130,28 @@ impl Display for Instruction {
             Instruction::Vertical => fmt.write_str("|   "),
             Instruction::Indent => fmt.write_str("    "),
             #[cfg(feature = "glyph")]
-            Instruction::Gray(text) => {
-                fmt::Display::fmt(&text.if_supports_color(Stdout, |text| text.bright_black(), fmt))
-            }
+            Instruction::Gray(text) => fmt::Display::fmt(
+                &text.if_supports_color(Stdout, |text| text.bright_black()),
+                fmt,
+            ),
             #[cfg(not(feature = "glyph"))]
             Instruction::Gray(text) => fmt.write_str(text),
+            #[cfg(feature = "glyph")]
+            Instruction::Title { end: true } => {
+                fmt::Display::fmt(&"╰ ".if_supports_color(Stdout, |text| text.red()), fmt)
+            }
+            #[cfg(not(feature = "glyph"))]
+            Instruction::Title { end: true } => fmt.write_str("\\-"),
+            #[cfg(feature = "glyph")]
+            Instruction::Title { end: false } => {
+                fmt::Display::fmt(&"│ ".if_supports_color(Stdout, |text| text.red()), fmt)
+            }
+            #[cfg(not(feature = "glyph"))]
+            Instruction::Title { end: false } => fmt.write_str("| "),
+            #[cfg(feature = "glyph")]
+            Instruction::Glyph(Glyph::Location) => fmt.write_str("📌 "),
+            #[cfg(not(feature = "glyph"))]
+            Instruction::Glyph(Glyph::Location) => fmt.write_str("@ "),
         }
     }
 }
@@ -134,14 +159,17 @@ impl Display for Instruction {
 type Instructions = VecDeque<Instruction>;
 type Lines = Vec<Instructions>;
 
-fn debug_frame(frame: &Frame, ctx: &mut HookContextImpl) -> Option<(Line, &'static Location)> {
+fn debug_frame(
+    frame: &Frame,
+    ctx: &mut HookContextImpl,
+) -> Option<(Line, &'static Location<'static>)> {
     let line = match frame.kind() {
         FrameKind::Context(context) => Some(context.to_string()).map(Line::Next),
         FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
             #[cfg(all(nightly, feature = "experimental"))]
             if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
                 for text in debug.text() {
-                    ctx.text(text.clone());
+                    ctx.cast::<()>().text(text.clone());
                 }
 
                 return Some(debug.output().clone()).map(|line| (line, frame.location()));
@@ -160,6 +188,24 @@ fn debug_frame(frame: &Frame, ctx: &mut HookContextImpl) -> Option<(Line, &'stat
     }?;
 
     Some((line, frame.location()))
+}
+
+fn push(groups: &mut Vec<Lines>, line: String, loc: &'static Location<'static>) {
+    groups.push(
+        line.lines()
+            .map(ToOwned::to_owned)
+            .map(Instruction::plain)
+            .chain(once(Instruction::location(loc)))
+            .enumerate()
+            .map(|(idx, mut line)| {
+                if idx != 0 {
+                    line.push_front(Instruction::Title { end: false });
+                }
+
+                line
+            })
+            .collect(),
+    );
 }
 
 fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
@@ -196,13 +242,7 @@ fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
                 Line::Defer(line) => {
                     defer.push((line, loc));
                 }
-                Line::Next(line) => groups.push(
-                    line.lines()
-                        .map(ToOwned::to_owned)
-                        .map(Instruction::plain)
-                        .chain(once(Instruction::location(loc)))
-                        .collect(),
-                ),
+                Line::Next(line) => push(&mut groups, line, loc),
             }
         } else {
             opaque += 1;
@@ -210,13 +250,7 @@ fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
     }
 
     for (line, loc) in defer {
-        groups.push(
-            line.lines()
-                .map(ToOwned::to_owned)
-                .map(Instruction::plain)
-                .chain(once(Instruction::location(loc)))
-                .collect(),
-        )
+        push(&mut groups, line, loc)
     }
 
     match opaque {
@@ -253,8 +287,16 @@ fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
         .flat_map(|(pos, content)| {
             let last = pos == total - 1;
             let first = pos == 0;
+            let len = content.len();
 
             content.into_iter().enumerate().map(move |(idx, mut line)| {
+                // in the title we need to change from |- to \- if there are no other values.
+                if (!first || last) && idx == len - 1 {
+                    if let Some(Instruction::Title { end }) = line.front_mut() {
+                        *end = true;
+                    }
+                }
+
                 if first {
                     // the first line is the title, therefore not indented.
                 } else if last {
@@ -308,8 +350,13 @@ impl<C> Debug for Report<C> {
                 .map(|lines| lines.join("\n"))
                 .collect::<Vec<_>>()
                 .join("\n\n");
-            lines.push_str("\n\n");
-            lines.push_str(&suffix);
+
+            if !suffix.is_empty() {
+                lines.push_str("\n\n");
+                lines.push_str(&"━".repeat(40));
+                lines.push_str("\n\n");
+                lines.push_str(&suffix);
+            }
         }
 
         fmt.write_str(&lines)
