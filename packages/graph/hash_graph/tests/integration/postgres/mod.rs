@@ -29,7 +29,7 @@ use uuid::Uuid;
 type PgConnection = PostgresStore<PooledConnection<'static, PostgresConnectionManager<NoTls>>>;
 
 pub struct DatabaseTestWrapper {
-    pool: PostgresStorePool,
+    pool: PostgresStorePool<NoTls>,
     created_base_uris: Vec<BaseUri>,
     created_entity_ids: Vec<EntityId>,
     account_id: AccountId,
@@ -61,7 +61,7 @@ impl DatabaseTestWrapper {
 
         let rt = Runtime::new().expect("Could not create a test runtime");
         let (postgres, connection, account_id) = rt.block_on(async {
-            let pool = PostgresStorePool::new(&connection_info)
+            let pool = PostgresStorePool::new(&connection_info, NoTls)
                 .await
                 .expect("could not connect to database");
 
