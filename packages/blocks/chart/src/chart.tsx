@@ -1,5 +1,5 @@
 import { BlockProtocolEntity, BlockProtocolEntityType } from "blockprotocol";
-import * as React from "react";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import debounce from "lodash.debounce";
 // eslint-disable-next-line no-restricted-imports
 import Button from "@mui/material/Button";
@@ -38,14 +38,13 @@ type EditableChartTitleProps = {
   updateTitle: (updatedTitle: string) => Promise<void>;
 };
 
-const EditableChartTitle: React.FC<EditableChartTitleProps> = ({
+const EditableChartTitle: FunctionComponent<EditableChartTitleProps> = ({
   title: initialTitle,
   updateTitle,
 }) => {
-  const [textFieldValue, setTextFieldValue] =
-    React.useState<string>(initialTitle);
+  const [textFieldValue, setTextFieldValue] = useState<string>(initialTitle);
 
-  const debouncedUpdateTitle = React.useMemo(
+  const debouncedUpdateTitle = useMemo(
     () =>
       debounce(async (updatedTitle: string) => updateTitle(updatedTitle), 500),
     [updateTitle],
@@ -108,14 +107,14 @@ const parsePossiblePropertyKeysFromEntityType = (
         .map(([propertyKey]) => propertyKey)
     : [];
 
-const CreateNewSeriesDefinition: React.FC<{
+const CreateNewSeriesDefinition: FunctionComponent<{
   possibleEntityTypes: BlockProtocolEntityType[];
   createDefinition: (params: {
     definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
   }) => Promise<void>;
   cancel: () => void;
 }> = ({ createDefinition, cancel, possibleEntityTypes }) => {
-  const [newDefinition, setNewDefinition] = React.useState<{
+  const [newDefinition, setNewDefinition] = useState<{
     entityType?: BlockProtocolEntityType;
     seriesName?: string;
     seriesType: SeriesType;
@@ -123,12 +122,12 @@ const CreateNewSeriesDefinition: React.FC<{
     yAxisPropertyKey?: string;
   }>({ seriesType: "scatter" });
 
-  const reset = React.useCallback(
+  const reset = useCallback(
     () => setNewDefinition({ seriesType: "scatter" }),
     [],
   );
 
-  const possiblePropertyKeys = React.useMemo(
+  const possiblePropertyKeys = useMemo(
     () =>
       newDefinition.entityType
         ? parsePossiblePropertyKeysFromEntityType(newDefinition.entityType)
@@ -136,7 +135,7 @@ const CreateNewSeriesDefinition: React.FC<{
     [newDefinition.entityType],
   );
 
-  const handleCreate = React.useCallback(() => {
+  const handleCreate = useCallback(() => {
     const {
       entityType,
       xAxisPropertyKey,
@@ -166,7 +165,7 @@ const CreateNewSeriesDefinition: React.FC<{
     });
   }, [newDefinition, createDefinition, reset]);
 
-  const handleCancel = React.useCallback(() => {
+  const handleCancel = useCallback(() => {
     reset();
     cancel();
   }, [reset, cancel]);
@@ -310,7 +309,7 @@ const CreateNewSeriesDefinition: React.FC<{
   );
 };
 
-const EditableChartSeriesDefinition: React.FC<{
+const EditableChartSeriesDefinition: FunctionComponent<{
   possibleEntityTypes: BlockProtocolEntityType[];
   seriesDefinition: SeriesDefinition;
   updateSeriesDefinition: (params: {
@@ -325,14 +324,14 @@ const EditableChartSeriesDefinition: React.FC<{
   updateSeriesDefinition,
   deleteSeriesDefinition,
 }) => {
-  const [isUpdating, setIsUpdating] = React.useState<boolean>(false);
-  const [isDeleting, setIsDeleting] = React.useState<boolean>(false);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
-  const [seriesName, setSeriesName] = React.useState<string>(
+  const [seriesName, setSeriesName] = useState<string>(
     seriesDefinition.seriesName,
   );
 
-  const debouncedUpdateSeriesName = React.useMemo(
+  const debouncedUpdateSeriesName = useMemo(
     () =>
       debounce(async (updatedSeriesName: string) => {
         setIsUpdating(true);
@@ -490,7 +489,7 @@ const EditableChartSeriesDefinition: React.FC<{
   );
 };
 
-const EditableChartSeriesDefinitions: React.FC<{
+const EditableChartSeriesDefinitions: FunctionComponent<{
   possibleEntityTypes: BlockProtocolEntityType[];
   seriesDefinitions: SeriesDefinition[];
   updateSeriesDefinition: (params: {
@@ -511,7 +510,7 @@ const EditableChartSeriesDefinitions: React.FC<{
   deleteSeriesDefinition,
 }) => {
   const [creatingNewDefinition, setCreatingNewDefinition] =
-    React.useState<boolean>(false);
+    useState<boolean>(false);
 
   const handleAddSeries = () => {
     setCreatingNewDefinition(true);
@@ -626,7 +625,7 @@ type ChartProps = {
   config: ChartConfigProperties;
 };
 
-export const Chart: React.FC<ChartProps> = ({
+export const Chart: FunctionComponent<ChartProps> = ({
   title,
   updateTitle,
   xAxisName,
@@ -638,7 +637,7 @@ export const Chart: React.FC<ChartProps> = ({
   deleteSeriesDefinition,
   config,
 }) => {
-  const series = React.useMemo(
+  const series = useMemo(
     () => mapSeriesDefinitionsToEChartSeries({ seriesDefinitions, config }),
     [seriesDefinitions, config],
   );

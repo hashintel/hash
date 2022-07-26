@@ -1,25 +1,27 @@
 {
   "private": true,
   "description": "HASH monorepo",
-  "workspaces": [
-    "packages/blocks/*",
-    "packages/engine/apache-arrow-js-bundle",
-    "packages/hash/api",
-    "packages/hash/backend-utils",
-    "packages/hash/datastore",
-    "packages/hash/design-system",
-    "packages/hash/eslint-config",
-    "packages/hash/frontend",
-    "packages/hash/integration",
-    "packages/hash/playwright",
-    "packages/hash/realtime",
-    "packages/hash/search-loader",
-    "packages/hash/shared",
-    "packages/hash/task-executor",
-    "packages/hash/tsconfig",
-    "sites/hashai",
-    "sites/hashdev"
-  ],
+  "workspaces": {
+    "packages": [
+      "packages/blocks/*",
+      "packages/engine/apache-arrow-js-bundle",
+      "packages/hash/api",
+      "packages/hash/backend-utils",
+      "packages/hash/datastore",
+      "packages/hash/design-system",
+      "packages/hash/eslint-config",
+      "packages/hash/frontend",
+      "packages/hash/integration",
+      "packages/hash/playwright",
+      "packages/hash/realtime",
+      "packages/hash/search-loader",
+      "packages/hash/shared",
+      "packages/hash/task-executor",
+      "packages/hash/tsconfig",
+      "sites/hashai",
+      "sites/hashdev"
+    ]
+  },
   "scripts": {
     "codegen": "yarn workspace @hashintel/hash-api codegen && yarn workspace @hashintel/hash-frontend codegen && yarn workspace @hashintel/hash-integration codegen && yarn workspace @hashintel/hash-shared codegen",
     "dev": "concurrently \"yarn:dev:backend\" \"yarn:dev:frontend\"",
@@ -62,13 +64,17 @@
     ]
   },
   "resolutions": {
-    "node-fetch": "^2.6.7"
+    "@types/react": "18.0.15",
+    "node-fetch": "^2.6.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "check-dependency-version-consistency": "2.0.0",
+    "check-dependency-version-consistency": "3.0.0",
     "concurrently": "7.0.0",
     "cross-env": "7.0.3",
     "dotenv-flow": "3.2.0",
+    "eslint-plugin-unicorn": "43.0.2",
     "husky": "7.0.4",
     "lint-staged": "12.3.3",
     "lockfile-lint": "4.6.2",

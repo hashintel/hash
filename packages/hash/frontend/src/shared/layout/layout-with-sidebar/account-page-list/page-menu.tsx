@@ -1,4 +1,4 @@
-import { VFC, useMemo, useState } from "react";
+import { FunctionComponent, useMemo, useState } from "react";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
@@ -14,11 +14,14 @@ type PageMenuProps = {
   entityId: string;
 };
 
-export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
+export const PageMenu: FunctionComponent<PageMenuProps> = ({
+  popupState,
+  entityId,
+}) => {
   const [copied, setCopied] = useState(false);
   const { accountId } = useRouteAccountInfo();
   const { createSubPage } = useCreatePage(accountId);
-  const { archivePage } = useArchivePage(accountId);
+  const { archivePage } = useArchivePage();
 
   // Commented out menu items whose functionality have not been
   // implemented yet
@@ -64,7 +67,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
         onClick: async () => {
           try {
             // @todo handle loading/error states properly
-            await archivePage(entityId);
+            await archivePage(accountId, entityId);
           } catch (err) {
             // eslint-disable-next-line no-console -- TODO: consider using logger
             console.log("Error archiving page: ", err);

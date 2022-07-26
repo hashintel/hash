@@ -1,0 +1,11 @@
+error: unused `error_stack::Report` that must be used
+  --> tests/ui/must_use.rs:19:5
+   |
+19 |     Report::new(RootError);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> tests/ui/must_use.rs:1:9
+   |
+1  | #![deny(unused_must_use)]
+   |         ^^^^^^^^^^^^^^^

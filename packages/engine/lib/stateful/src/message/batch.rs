@@ -15,7 +15,7 @@ use memory::{
     arrow::{
         column_with_name,
         ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-        meta::conversion::HashDynamicMeta,
+        meta::DynamicMetadata,
         ArrowBatch,
     },
     shared_memory::{MemoryId, Metaversion, Segment},
@@ -226,7 +226,7 @@ impl MessageBatch {
             .expect("Unable to read IPC message as record batch");
 
         let data_length = buffers.data().len();
-        let dynamic_meta = batch_message.into_meta(data_length)?;
+        let dynamic_meta = DynamicMetadata::from_record_batch(&batch_message, data_length)?;
 
         let record_batch =
             read_record_batch(buffers.data(), batch_message, Arc::clone(&schema.arrow), &[

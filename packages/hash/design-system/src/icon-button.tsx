@@ -1,16 +1,15 @@
 import {
-  /* eslint-disable-next-line -- allow import of original icon button to extend it */
   IconButton as MuiIconButton,
   IconButtonProps as MuiIconButtonProps,
 } from "@mui/material";
-import * as React from "react";
+import { forwardRef, FunctionComponent } from "react";
 
 export type IconButtonProps = {
   unpadded?: boolean;
   rounded?: boolean;
 } & MuiIconButtonProps;
 
-export const IconButton: React.FC<IconButtonProps> = React.forwardRef(
+export const IconButton: FunctionComponent<IconButtonProps> = forwardRef(
   ({ children, unpadded, rounded, sx = [], ...props }, ref) => {
     return (
       <MuiIconButton

@@ -1,10 +1,10 @@
 import { ApolloError } from "apollo-server-express";
 
-import { QueryGetLinkArgs, Resolver } from "../../apiTypes.gen";
+import { QueryGetLinkArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { UnresolvedGQLLink, Link } from "../../../model";
 
-export const getLink: Resolver<
+export const getLink: ResolverFn<
   Promise<UnresolvedGQLLink>,
   {},
   GraphQLContext,

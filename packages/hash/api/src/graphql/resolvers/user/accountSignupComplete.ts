@@ -1,9 +1,10 @@
 import { User } from "../../../model";
-import { Resolver, User as GQLUser } from "../../apiTypes.gen";
+import { ResolverFn, User as GQLUser } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
-export const accountSignupComplete: Resolver<
+export const accountSignupComplete: ResolverFn<
   Promise<GQLUser["accountSignupComplete"]>,
   GQLUser,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ properties }) => User.isAccountSignupComplete(properties);

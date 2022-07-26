@@ -10,7 +10,7 @@ mod static_meta;
 pub use self::{
     buffer::{Buffer, BufferAction, BufferType},
     column::{Column, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder},
-    dynamic_meta::Dynamic,
+    dynamic_meta::DynamicMetadata,
     node::{Node, NodeMapping, NodeStatic},
-    static_meta::Static,
+    static_meta::StaticMetadata,
 };

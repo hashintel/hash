@@ -1,4 +1,4 @@
-import * as React from "react";
+import { FunctionComponent, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Timeline, { timelineClasses } from "@mui/lab/Timeline";
 
@@ -104,12 +104,14 @@ export type GithubPrTimelineProps = {
   events: GithubIssueEventEntityType["properties"][];
 };
 
-export const GithubPrTimeline: React.FunctionComponent<
-  GithubPrTimelineProps
-> = ({ pullRequest, events, reviews }) => {
-  const [timelineOpacity, setTimelineOpacity] = React.useState(false);
+export const GithubPrTimeline: FunctionComponent<GithubPrTimelineProps> = ({
+  pullRequest,
+  events,
+  reviews,
+}) => {
+  const [timelineOpacity, setTimelineOpacity] = useState(false);
 
-  const nodes = React.useMemo(() => {
+  const nodes = useMemo(() => {
     // there isn't an issue event for opening so we manually make an object to append to the timeline
     const openedEvent = {
       id: pullRequest.node_id,
@@ -130,16 +132,16 @@ export const GithubPrTimeline: React.FunctionComponent<
     return sortBy([openedEvent, ...reviewEvents, ...events], "created_at");
   }, [pullRequest, events, reviews]);
 
-  const possibleEventTypes = React.useMemo(
+  const possibleEventTypes = useMemo(
     () => uniq(nodes.map((event) => event.event!)),
     [nodes],
   );
 
-  const [selectedEventTypes, setSelectedEventTypes] = React.useState(
+  const [selectedEventTypes, setSelectedEventTypes] = useState(
     addDefaultFromPossible(possibleEventTypes),
   );
 
-  const filteredNodes = React.useMemo(
+  const filteredNodes = useMemo(
     () =>
       nodes.filter(
         (event) =>

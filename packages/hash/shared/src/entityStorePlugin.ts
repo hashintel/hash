@@ -60,7 +60,11 @@ export type EntityStorePluginAction = { received?: boolean } & (
   | { type: "unsubscribe"; payload: EntityStorePluginStateListener }
   | {
       type: "updateEntityProperties";
-      payload: { draftId: string; properties: {}; merge: boolean };
+      payload: {
+        draftId: string;
+        properties: { [key: string]: unknown };
+        merge: boolean;
+      };
     }
   | {
       type: "newDraftEntity";

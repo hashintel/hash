@@ -1,9 +1,9 @@
 import { ApolloError } from "apollo-server-errors";
-import { MutationDeleteLinkArgs, Resolver } from "../../apiTypes.gen";
+import { MutationDeleteLinkArgs, ResolverFn } from "../../apiTypes.gen";
 import { Link } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const deleteLink: Resolver<
+export const deleteLink: ResolverFn<
   Promise<boolean>,
   {},
   LoggedInGraphQLContext,

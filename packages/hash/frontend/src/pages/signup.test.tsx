@@ -1,4 +1,3 @@
-import React from "react";
 import { waitFor } from "@testing-library/dom";
 
 import { mockUseRouter } from "../testUtils/mockUseRouter";

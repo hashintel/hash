@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { startCase } from "lodash";
-import * as React from "react";
+import { FunctionComponent, useState } from "react";
 import {
   LinkIcon,
   PullRequestClosedIcon,
@@ -64,13 +64,13 @@ const getTimelineContentText = (event: TimelineItemProps["event"]) => {
   }
 };
 
-export const TimelineItem: React.FC<TimelineItemProps> = ({
+export const TimelineItem: FunctionComponent<TimelineItemProps> = ({
   event,
   hideConnector,
   setTimelineOpacity,
   hideDate,
 }) => {
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const copyToClipboard = (link: string | null | undefined) => {
     if (link) {

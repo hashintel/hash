@@ -1,11 +1,12 @@
 import { useQuery } from "@apollo/client";
 import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { escapeRegExp } from "lodash";
-import React, {
+import {
+  ReactNode,
   useCallback,
   useEffect,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
@@ -50,8 +51,9 @@ const toBlockUrl = (searchPage: PageSearchResult): string => {
   return segments.join("");
 };
 
-const ResultList: React.FC<{
+const ResultList: FunctionComponent<{
   isMobile: boolean;
+  children?: ReactNode;
 }> = ({ isMobile, ...props }) => (
   <Box
     component="ul"
@@ -71,8 +73,9 @@ const ResultList: React.FC<{
   </Box>
 );
 
-const ResultItem: React.FC<{
+const ResultItem: FunctionComponent<{
   sx?: SxProps<Theme>;
+  children?: ReactNode;
 }> = ({ sx = [], ...props }) => {
   const theme = useTheme();
 
@@ -140,7 +143,7 @@ const getSearchBarResponsiveStyles = (
   return {};
 };
 
-const SearchBarWhenSearchIsEnabled: React.VFC = () => {
+const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
   const theme = useTheme();
 
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -256,7 +259,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
   );
 };
 
-const SearchBarWhenSearchIsDisabled: VoidFunctionComponent = () => {
+const SearchBarWhenSearchIsDisabled: FunctionComponent = () => {
   return <div />;
 };
 

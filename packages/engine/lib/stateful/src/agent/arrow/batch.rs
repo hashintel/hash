@@ -15,10 +15,7 @@ use memory::{
     arrow::{
         flush::GrowableBatch,
         ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-        meta::{
-            self,
-            conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
-        },
+        meta::{self, DynamicMetadata, StaticMetadata},
         ArrowBatch, ColumnChange,
     },
     shared_memory::{BufferChange, MemoryId, Metaversion, Segment},
@@ -134,7 +131,7 @@ impl AgentBatch {
                 None => return Err(Error::ArrowSchemaRead),
             };
             let schema = Arc::new(ipc::convert::fb_to_schema(ipc_schema));
-            let static_meta = Arc::new(schema.get_static_metadata());
+            let static_meta = Arc::new(StaticMetadata::from_schema(schema.clone()));
             (schema, static_meta)
         };
 
@@ -142,7 +139,8 @@ impl AgentBatch {
             .header_as_record_batch()
             .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))?;
 
-        let dynamic_meta = batch_message.into_meta(buffers.data().len())?;
+        let dynamic_meta =
+            DynamicMetadata::from_record_batch(&batch_message, buffers.data().len())?;
 
         let record_batch = read_record_batch(buffers.data(), batch_message, schema, &[])?;
 
@@ -161,14 +159,14 @@ impl AgentBatch {
 
     pub fn get_prepared_memory_for_data(
         schema: &Arc<AgentSchema>,
-        dynamic_meta: &meta::Dynamic,
+        dynamic_meta: &meta::DynamicMetadata,
         memory_id: MemoryId,
     ) -> Result<Segment> {
         let ipc_data_generator = IpcDataGenerator::default();
         let schema_buffer =
             ipc_data_generator.schema_to_bytes(&schema.arrow, &IpcWriteOptions::default());
         let header_buffer = Metaversion::default().to_le_bytes();
-        let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
+        let meta_buffer = dynamic_meta.get_flatbuffers()?;
 
         let mut memory = Segment::from_sizes(
             memory_id,
@@ -200,10 +198,10 @@ impl AgentBatch {
     /// Set dynamic metadata and write it to memory (without checking or updating metaversions).
     pub fn flush_dynamic_meta_unchecked(
         &mut self,
-        dynamic_meta: &meta::Dynamic,
+        dynamic_meta: &meta::DynamicMetadata,
     ) -> Result<BufferChange> {
         *self.batch.dynamic_meta_mut() = dynamic_meta.clone();
-        let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
+        let meta_buffer = dynamic_meta.get_flatbuffers()?;
         Ok(self.batch.segment_mut().set_metadata(&meta_buffer)?)
     }
 

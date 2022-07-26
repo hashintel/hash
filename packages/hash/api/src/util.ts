@@ -1,5 +1,5 @@
+import { JsonObject } from "@blockprotocol/core";
 import { ApolloError } from "apollo-server-express";
-import { JSONObject } from "blockprotocol";
 import { Uuid4 } from "id128";
 import { EntityTypeChoice } from "./graphql/apiTypes.gen";
 import { CreateEntityArgs } from "./model";
@@ -53,7 +53,7 @@ export const isRecord = (thing: unknown): thing is Record<string, any> => {
 export const createEntityArgsBuilder = (params: {
   accountId: string;
   createdByAccountId: string;
-  properties: JSONObject;
+  properties: JsonObject;
   versioned: boolean;
   entityTypeId?: string | null;
   entityTypeVersionId?: string | null;

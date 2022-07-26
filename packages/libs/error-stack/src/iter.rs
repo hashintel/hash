@@ -1,22 +1,111 @@
 //! Iterators over [`Frame`]s.
 
-use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData};
+use alloc::{vec, vec::Vec};
+#[cfg(nightly)]
+use core::marker::PhantomData;
+use core::{
+    fmt,
+    fmt::Formatter,
+    iter::FusedIterator,
+    slice::{Iter, IterMut},
+};
 
-use crate::{Frame, Report};
+use crate::Frame;
+
+/// Helper function, which is used in both [`Frames`] and [`FramesMut`].
+///
+/// To traverse the frames, the following algorithm is used:
+/// Given a list of iterators, take the last iterator, and use items from it until the iterator has
+/// been exhausted. If that is the case (it returned `None`), remove the iterator from the list,
+/// and continue with the next iterator until all iterators are exhausted.
+///
+/// # Example
+///
+/// ```text
+/// 1) Out: - Stack: [A, G]
+/// 2) Out: A Stack: [G] [B, C]
+/// 3) Out: B Stack: [G] [C] [D, E]
+/// 4) Out: D Stack: [G] [C] [E]
+/// 4) Out: E Stack: [G] [C]
+/// 5) Out: C Stack: [G] [F]
+/// 6) Out: F Stack: [G]
+/// 7) Out: G Stack: [H]
+/// 8) Out: H Stack: -
+/// ```
+fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
+    let out;
+    loop {
+        let last = iter.last_mut()?;
+
+        if let Some(next) = last.next() {
+            out = next;
+            break;
+        }
+
+        // exhausted, therefore cannot be used anymore.
+        iter.pop();
+    }
+
+    Some(out)
+}
 
 /// Iterator over the [`Frame`] stack of a [`Report`].
 ///
+/// This uses an implementation of the Pre-Order, NLR Depth-First Search algorithm to resolve the
+/// tree.
+///
 /// Use [`Report::frames()`] to create this iterator.
+///
+/// # Example
+///
+/// This shows in numbers the index of the different depths, using this it's possible to linearize
+/// all frames and sort topologically, meaning that this ensures no child ever is before its parent.
+///
+/// ```text
+///      1
+///     / \
+///    2   6
+///  / | \  \
+/// 3  4  5  7
+/// ```
+///
+///
+/// A reversed stack of the implementation is used. Considering the following tree:
+///
+/// ```text
+///     A     G
+///    / \    |
+///   B   C   H
+///  / \  |
+/// D   E F
+/// ```
+///
+/// the algorithm will create the following through iteration:
+///
+/// ```text
+/// 1) Out: - Stack: [A, G]
+/// 2) Out: A Stack: [G] [B, C]
+/// 3) Out: B Stack: [G] [C] [D, E]
+/// 4) Out: D Stack: [G] [C] [E]
+/// 4) Out: E Stack: [G] [C]
+/// 5) Out: C Stack: [G] [F]
+/// 6) Out: F Stack: [G]
+/// 7) Out: G Stack: [H]
+/// 8) Out: H Stack: -
+/// ```
+///
+/// [`Report`]: crate::Report
+/// [`Report::frames()`]: crate::Report::frames
 #[must_use]
 #[derive(Clone)]
 pub struct Frames<'r> {
-    current: Option<&'r Frame>,
+    stack: Vec<Iter<'r, Frame>>,
 }
 
 impl<'r> Frames<'r> {
-    pub(crate) const fn new<C>(report: &'r Report<C>) -> Self {
+    pub(crate) fn new(frames: &'r [Frame]) -> Self {
         Self {
-            current: Some(report.frame()),
+            stack: vec![frames.iter()],
         }
     }
 }
@@ -25,12 +114,10 @@ impl<'r> Iterator for Frames<'r> {
     type Item = &'r Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.current.take().map(|current| {
-            if let Some(source) = current.source() {
-                self.current = Some(source);
-            }
-            current
-        })
+        let frame = next(&mut self.stack)?;
+
+        self.stack.push(frame.sources().iter());
+        Some(frame)
     }
 }
 
@@ -45,17 +132,18 @@ impl fmt::Debug for Frames<'_> {
 /// Iterator over the mutable [`Frame`] stack of a [`Report`].
 ///
 /// Use [`Report::frames_mut()`] to create this iterator.
+///
+/// [`Report`]: crate::Report
+/// [`Report::frames_mut()`]: crate::Report::frames_mut
 #[must_use]
 pub struct FramesMut<'r> {
-    current: Option<*mut Frame>,
-    _marker: PhantomData<&'r mut Frame>,
+    stack: Vec<IterMut<'r, Frame>>,
 }
 
 impl<'r> FramesMut<'r> {
-    pub(crate) fn new<C>(report: &'r mut Report<C>) -> Self {
+    pub(crate) fn new(frames: &'r mut [Frame]) -> Self {
         Self {
-            current: Some(report.frame_mut()),
-            _marker: PhantomData,
+            stack: vec![frames.iter_mut()],
         }
     }
 }
@@ -64,16 +152,20 @@ impl<'r> Iterator for FramesMut<'r> {
     type Item = &'r mut Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let current = self.current.take()?;
-        // SAFETY: We require a mutable reference to `Report` to create `FramesMut` to get a mutable
-        //   reference to `Frame`. The borrow checker is unable to prove that subsequent calls to
-        //   `next()` won't access the same data.
-        //   NB: It's almost never possible to implement a mutable iterator without `unsafe`.
+        let frame = next(&mut self.stack)?;
+        let frame: *mut Frame = frame;
+
+        // SAFETY:
+        // We require both mutable access to the frame for all sources (as a mutable iterator) and
+        // we need to return the mutable frame itself. We will never access the same value twice,
+        // and only store their mutable iterator until the next `next()` call. This function acts
+        // like a dynamic chain of multiple `IterMut`. The borrow checker is unable to prove that
+        // subsequent calls to `next()` won't access the same data.
+        // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
         unsafe {
-            if let Some(source) = (*current).source_mut() {
-                self.current = Some(source);
-            }
-            Some(&mut *current)
+            self.stack.push((*frame).sources_mut().iter_mut());
+
+            Some(&mut *frame)
         }
     }
 }
@@ -83,6 +175,9 @@ impl<'r> FusedIterator for FramesMut<'r> {}
 /// Iterator over requested references in the [`Frame`] stack of a [`Report`].
 ///
 /// Use [`Report::request_ref()`] to create this iterator.
+///
+/// [`Report`]: crate::Report
+/// [`Report::request_ref()`]: crate::Report::request_ref
 #[must_use]
 #[cfg(nightly)]
 pub struct RequestRef<'r, T: ?Sized> {
@@ -92,9 +187,9 @@ pub struct RequestRef<'r, T: ?Sized> {
 
 #[cfg(nightly)]
 impl<'r, T: ?Sized> RequestRef<'r, T> {
-    pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
+    pub(super) fn new(frames: &'r [Frame]) -> Self {
         Self {
-            frames: report.frames(),
+            frames: Frames::new(frames),
             _marker: PhantomData,
         }
     }
@@ -138,6 +233,9 @@ where
 /// Iterator over requested values in the [`Frame`] stack of a [`Report`].
 ///
 /// Use [`Report::request_value()`] to create this iterator.
+///
+/// [`Report`]: crate::Report
+/// [`Report::request_value()`]: crate::Report::request_value
 #[must_use]
 #[cfg(nightly)]
 pub struct RequestValue<'r, T> {
@@ -147,9 +245,9 @@ pub struct RequestValue<'r, T> {
 
 #[cfg(nightly)]
 impl<'r, T> RequestValue<'r, T> {
-    pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
+    pub(super) fn new(frames: &'r [Frame]) -> Self {
         Self {
-            frames: report.frames(),
+            frames: Frames::new(frames),
             _marker: PhantomData,
         }
     }

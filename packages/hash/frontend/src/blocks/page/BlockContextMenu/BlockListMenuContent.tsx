@@ -8,7 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
-import { useRef, useState, VFC } from "react";
+import { useRef, useState, FunctionComponent } from "react";
 import { TextField, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
@@ -20,14 +20,13 @@ type BlockListMenuContentProps = {
   blockSuggesterProps: BlockSuggesterProps;
 };
 
-export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
-  blockSuggesterProps,
-  popupState,
-}) => {
+export const BlockListMenuContent: FunctionComponent<
+  BlockListMenuContentProps
+> = ({ blockSuggesterProps, popupState }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { value: userBlocks } = useUserBlocks();
-  const blocks = useFilteredBlocks(searchQuery, userBlocks);
+  const blocks = useFilteredBlocks(searchQuery, userBlocks, true);
 
   // The essence of this is to autoFocus the input when
   // the blocklist menu comes up. We have a listener for

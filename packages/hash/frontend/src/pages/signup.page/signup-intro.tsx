@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useRef, VFC } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  FunctionComponent,
+  FormEvent,
+} from "react";
 import { tw } from "twind";
 import { useRouter } from "next/router";
 
@@ -16,7 +22,7 @@ type SignupIntroProps = {
   invitationInfo: InvitationInfo | null;
 };
 
-export const SignupIntro: VFC<SignupIntroProps> = ({
+export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
   handleSubmit,
   loading,
   errorMessage,
@@ -37,7 +43,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
     }
   }, [user, router]);
 
-  const onSubmit = (evt: React.FormEvent) => {
+  const onSubmit = (evt: FormEvent) => {
     evt.preventDefault();
     handleSubmit(email);
   };

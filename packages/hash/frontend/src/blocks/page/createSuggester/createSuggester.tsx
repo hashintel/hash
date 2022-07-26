@@ -1,4 +1,4 @@
-import type { BlockVariant } from "blockprotocol";
+import type { BlockVariant } from "@blockprotocol/core";
 import {
   blockComponentRequiresText,
   BlockMeta,
@@ -11,7 +11,7 @@ import {
   PluginKey,
   TextSelection,
 } from "prosemirror-state";
-import React, { CSSProperties } from "react";
+import { CSSProperties, ReactElement } from "react";
 import { RenderPortal } from "../usePortals";
 import { ensureMounted } from "../../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
@@ -41,12 +41,12 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   let text = "";
 
   parentContent.forEach((node) => {
-    // replace hard breaks with a space so that regex stops
+    // replace non-text nodes with a space so that regex stops
     // matching at that point
-    if (node.type.name === "hardBreak") {
-      text += " ";
-    } else if (node.text) {
+    if (node.text) {
       text += node.text;
+    } else {
+      text += " ";
     }
   });
 
@@ -59,15 +59,17 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   const match = /\B(@|\/)\S*$/.exec(text.substring(0, cursorPos));
   if (!match) return null;
 
-  const from = match.index;
+  const from = parentPos + match.index;
 
   // match upto the first whitespace character or the end of the node
-  const to = cursorPos + text.substring(cursorPos).search(/\s|$/g);
+  const to = cursor.pos + text.substring(cursorPos).search(/\s|$/g);
+
+  const search = state.doc.textBetween(from + 1, to);
 
   return {
-    search: text.substring(from, to),
-    from: parentPos + from,
-    to: parentPos + to,
+    search,
+    from,
+    to,
     char: match[1] as Trigger["char"],
   };
 };
@@ -180,13 +182,12 @@ export const createSuggester = (
             getManager()
               .createRemoteBlockTr(blockMeta.componentId, null, variant)
               .then(([tr, node, meta]) => {
-                const $end = view.state.doc.resolve(to);
-                const endPosition = $end.end(1);
+                const endPosition = view.state.doc.resolve(to).pos;
                 tr.insert(endPosition, node);
 
                 if (blockComponentRequiresText(meta.componentSchema)) {
                   tr.setSelection(
-                    TextSelection.create<Schema>(tr.doc, endPosition),
+                    TextSelection.create<Schema>(tr.doc, endPosition + 1),
                   );
                 }
                 tr.replaceWith(from, to, []);
@@ -212,7 +213,7 @@ export const createSuggester = (
             view.dispatch(tr);
           };
 
-          let jsx: JSX.Element | null = null;
+          let jsx: ReactElement | null = null;
 
           switch (triggerChar) {
             case "/":

@@ -10,14 +10,14 @@ import { useTheme } from "@mui/system";
 import type { NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
-import { ComponentProps, FC, ReactNode, VFC } from "react";
+import { ComponentProps, FunctionComponent, ReactNode } from "react";
 import { Button } from "../components/Button";
 import { GradientContainer } from "../components/GradientContainer";
 import { FaIcon } from "../components/icons/FaIcon";
 import { Link } from "../components/Link";
 import { SITE_DESCRIPTION } from "../config";
 
-const StylishDivider: VFC<
+const StylishDivider: FunctionComponent<
   ComponentProps<typeof Stack> & { wide?: boolean }
 > = ({ wide = false, ...props }) => {
   const bgcolor = "orange.400";
@@ -38,7 +38,7 @@ const StylishDivider: VFC<
   );
 };
 
-const Hero: VFC = () => (
+const Hero: FunctionComponent = () => (
   <GradientContainer>
     <Container>
       <Box width={{ xs: 1, md: 873 }}>
@@ -73,11 +73,12 @@ const Hero: VFC = () => (
   </GradientContainer>
 );
 
-const Project: FC<{
-  title: ReactNode;
+const Project: FunctionComponent<{
   buttons: ReactNode;
+  children?: ReactNode;
   image: ReactNode;
   mobileImage: ReactNode;
+  title: ReactNode;
 }> = ({ buttons, children, title, image, mobileImage }) => {
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -130,7 +131,7 @@ const Project: FC<{
   );
 };
 
-const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
+const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
   return (
     <Container component="section">
       <Stack {...props} direction={{ xs: "column", lg: "row" }} spacing={6}>

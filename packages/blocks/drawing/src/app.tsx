@@ -1,12 +1,16 @@
-import React, {
+import {
   useState,
   useCallback,
   useRef,
   useEffect,
   useLayoutEffect,
+  SyntheticEvent,
 } from "react";
 
-import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
 import { Resizable, ResizeCallbackData } from "react-resizable";
 import {
@@ -204,16 +208,19 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     }
   }, [localState.serializedDocument, entityId, localState.darkMode]);
 
-  const updateDimensions = useCallback((_, { size }: ResizeCallbackData) => {
-    setLocalState((prev) => ({
-      ...prev,
-      width: size.width,
-      height: size.height,
-    }));
-  }, []);
+  const updateDimensions = useCallback(
+    (_: SyntheticEvent, { size }: ResizeCallbackData) => {
+      setLocalState((prev) => ({
+        ...prev,
+        width: size.width,
+        height: size.height,
+      }));
+    },
+    [],
+  );
 
   const updateRemoteDimensions = useCallback(
-    (_, { size }: ResizeCallbackData) => {
+    (_: SyntheticEvent, { size }: ResizeCallbackData) => {
       updateRemoteData({
         width: size.width,
         height: size.height,

@@ -1,6 +1,6 @@
-import React from "react";
+import { FunctionComponent } from "react";
 
-const Pencil: React.VoidFunctionComponent = () => {
+const Pencil: FunctionComponent = () => {
   return (
     <svg
       width="24"

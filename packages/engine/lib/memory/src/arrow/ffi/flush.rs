@@ -34,8 +34,8 @@ pub struct Changes {
 #[no_mangle]
 unsafe extern "C" fn flush_changes(
     c_segment: *mut CSegment,
-    dynamic_meta: *mut meta::Dynamic,
-    static_meta: *const meta::Static,
+    dynamic_meta: *mut meta::DynamicMetadata,
+    static_meta: *const meta::StaticMetadata,
     changes: *const Changes,
 ) -> Flag {
     let changes = &*changes;
@@ -123,7 +123,7 @@ unsafe extern "C" fn flush_changes(
 // Assumes all buffers are properly aligned
 unsafe fn node_into_prepared_array_data(
     arrow_array: *const ArrowArray,
-    static_meta: &meta::Static,
+    static_meta: &meta::StaticMetadata,
     node_index: usize,
 ) -> Result<(PreparedArrayData<'_>, usize)> {
     let arrow_array_ref = &*arrow_array;
@@ -280,21 +280,21 @@ impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
 
 /// Batch used by Python FFI.
 pub struct PreparedBatch<'a> {
-    static_meta: *const meta::Static,
-    dynamic_meta: &'a mut meta::Dynamic,
+    static_meta: *const meta::StaticMetadata,
+    dynamic_meta: &'a mut meta::DynamicMetadata,
     segment: &'a mut Segment,
 }
 
 impl<'a> GrowableBatch<PreparedArrayData<'a>, PreparedColumn<'a>> for PreparedBatch<'a> {
-    fn static_meta(&self) -> &meta::Static {
+    fn static_meta(&self) -> &meta::StaticMetadata {
         unsafe { &*self.static_meta }
     }
 
-    fn dynamic_meta(&self) -> &meta::Dynamic {
+    fn dynamic_meta(&self) -> &meta::DynamicMetadata {
         self.dynamic_meta
     }
 
-    fn dynamic_meta_mut(&mut self) -> &mut meta::Dynamic {
+    fn dynamic_meta_mut(&mut self) -> &mut meta::DynamicMetadata {
         self.dynamic_meta
     }
 

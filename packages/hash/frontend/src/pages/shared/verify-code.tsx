@@ -1,10 +1,11 @@
-import React, {
+import {
   useCallback,
   useEffect,
   useRef,
   useState,
-  VFC,
+  FunctionComponent,
   ClipboardEventHandler,
+  FormEvent,
 } from "react";
 import { tw } from "twind";
 
@@ -34,7 +35,7 @@ const doesVerificationCodeLookValid = (code: string) => {
   return units.length >= 4 && units?.[3]!.length > 0;
 };
 
-export const VerifyCode: VFC<VerifyCodeProps> = ({
+export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
   defaultCode,
   goBack,
   errorMessage,
@@ -54,7 +55,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
   const { text, emailResent, syntheticLoading } = state;
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const updateState = useCallback((newState) => {
+  const updateState = useCallback((newState: Partial<typeof state>) => {
     setState((prevState) => ({
       ...prevState,
       ...newState,
@@ -70,7 +71,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
     [text],
   );
 
-  const onSubmit = (evt: React.FormEvent) => {
+  const onSubmit = (evt: FormEvent) => {
     evt.preventDefault();
     handleSubmit(text);
   };

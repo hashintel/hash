@@ -1,5 +1,11 @@
 import { useRouter } from "next/router";
-import { createContext, VFC, useContext, useMemo, ReactNode } from "react";
+import {
+  createContext,
+  FunctionComponent,
+  useContext,
+  useMemo,
+  ReactNode,
+} from "react";
 
 type RouteAccountInfo = {
   accountId: string;
@@ -14,9 +20,9 @@ const RouteAccountInfoContext = createContext<RouteAccountInfo | undefined>(
  * although this wouldn't work when we switch to using slugs instead of accountIds in the url.
  * When that happens the accountId should be pulled properly in this component
  */
-export const RouteAccountInfoProvider: VFC<{ children?: ReactNode }> = ({
-  children,
-}) => {
+export const RouteAccountInfoProvider: FunctionComponent<{
+  children?: ReactNode;
+}> = ({ children }) => {
   const router = useRouter();
 
   const accountSlug = router.query["account-slug"];

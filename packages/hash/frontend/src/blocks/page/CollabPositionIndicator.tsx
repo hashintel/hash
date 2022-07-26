@@ -1,17 +1,16 @@
 import { motion } from "framer-motion";
-import { FC } from "react";
+import { FunctionComponent, ReactNode } from "react";
 import { tw } from "twind";
 
 interface CollabPositionIndicatorProps {
   backgroundColor: string;
   title: string;
+  children?: ReactNode;
 }
 
-export const CollabPositionIndicator: FC<CollabPositionIndicatorProps> = ({
-  backgroundColor,
-  title,
-  children,
-}) => (
+export const CollabPositionIndicator: FunctionComponent<
+  CollabPositionIndicatorProps
+> = ({ backgroundColor, title, children }) => (
   <motion.div
     initial={{
       opacity: 0,

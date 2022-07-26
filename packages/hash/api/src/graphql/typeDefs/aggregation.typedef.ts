@@ -11,7 +11,7 @@ export const aggregationTypedef = gql`
   }
 
   type AggregationResponse {
-    operation: AggregateOperation
+    operation: AggregateOperation!
     results: [UnknownEntity!]!
   }
 

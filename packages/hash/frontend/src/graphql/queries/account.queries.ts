@@ -9,6 +9,13 @@ export const getAccounts = gql`
         accountId
       }
       ... on User {
+        memberOf {
+          entityId
+          org {
+            entityId
+            accountId
+          }
+        }
         properties {
           shortname
           preferredName
@@ -34,6 +41,7 @@ export const getAccountPages = gql`
     accountPages(accountId: $accountId) {
       entityId
       properties {
+        pageEntityId
         title
         summary
       }
@@ -47,6 +55,7 @@ export const getAccountPagesTree = gql`
       entityId
       properties {
         title
+        pageEntityId
       }
       parentPageEntityId
     }
@@ -56,13 +65,16 @@ export const getAccountPagesTree = gql`
 export const getAccountEntityTypes = gql`
   query getAccountEntityTypes(
     $accountId: ID!
+    $includeAllTypes: Boolean = false
     $includeOtherTypesInUse: Boolean = false
   ) {
     getAccountEntityTypes(
       accountId: $accountId
+      includeAllTypes: $includeAllTypes
       includeOtherTypesInUse: $includeOtherTypesInUse
     ) {
       entityId
+      entityTypeId
       entityVersionId
       properties
     }

@@ -1,5 +1,5 @@
-import { BlockComponent } from "blockprotocol/react";
-import React, { RefCallback } from "react";
+import { BlockComponent } from "@blockprotocol/graph/react";
+import { RefCallback } from "react";
 
 type BlockEntityProperties = {
   color?: string;
@@ -9,11 +9,17 @@ type BlockEntityProperties = {
 };
 
 export const App: BlockComponent<BlockEntityProperties> = ({
-  color,
-  level = 1,
-  editableRef,
-  text,
+  graph: {
+    blockEntity: {
+      properties: { color, level = 1, text },
+    },
+  },
+  ...others
 }) => {
+  const editableRef = (others as any).editableRef as
+    | RefCallback<HTMLDivElement>
+    | undefined;
+
   // @todo set type correctly
   const Header = `h${level}` as any;
 

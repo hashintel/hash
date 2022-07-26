@@ -1,10 +1,10 @@
 import { ApolloError } from "apollo-server-express";
 
-import { MutationUpdatePageArgs, Resolver } from "../../apiTypes.gen";
+import { MutationUpdatePageArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { Entity, UnresolvedGQLEntity } from "../../../model";
 
-export const updatePage: Resolver<
+export const updatePage: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,

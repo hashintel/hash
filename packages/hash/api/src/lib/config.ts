@@ -29,5 +29,5 @@ export const FRONTEND_URL = `http${
 
 export const CORS_CONFIG: corsMiddleware.CorsOptions = {
   credentials: true,
-  origin: [/-hashintel\.vercel\.app$/, FRONTEND_URL],
+  origin: [/-hashintel\.vercel\.app$/, /\.stage\.hash\.ai$/, FRONTEND_URL],
 };

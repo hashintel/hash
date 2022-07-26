@@ -1,12 +1,14 @@
 [announcement post]: https://hash.dev/blog/announcing-error-stack
 [crates.io]: https://crates.io/crates/error-stack
 [libs.rs]: https://lib.rs/crates/error-stack
+[rust-version]: https://www.rust-lang.org
 [documentation]: https://docs.rs/error-stack
 [license]: ./LICENSE.md
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
+[![rust-version](https://img.shields.io/badge/Rust-1.61.0-orange)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
@@ -109,3 +111,17 @@ Caused by:
 ```
 
 Please see the [documentation] for a full description.
+
+## Troubleshooting
+
+### Emacs [rust-mode](https://github.com/rust-lang/rust-mode) workaround
+
+Due to [rust-lang/rust-mode#452](https://github.com/rust-lang/rust-mode/issues/452), errors messages are improperly parsed. As a result, the error messages show incorrect highlighting but also yield an incorrect hyperlink.
+
+The one workaround is to modify the regular expression used to format the string and create a hyperlink.
+
+```emacs-lisp
+(setq cargo-compilation-regexps
+      '("\\(?:at\\|',\\) \\(\\([^:\s]+\\):\\([0-9]+\\)\\)"
+        2 3 nil nil 1))
+```
