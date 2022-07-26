@@ -46,11 +46,6 @@ type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
 type ComponentNodeViewFactory = (meta: BlockConfig) => NodeViewFactory;
 
-const blockComponentRequiresText = (
-  componentSchema: BlockMeta["componentSchema"],
-) =>
-  !!componentSchema.properties && "editableRef" in componentSchema.properties;
-
 /**
  * Manages the creation and editing of the ProseMirror schema.
  * Editing the ProseMirror schema on the fly involves unsupported hacks flagged below.
@@ -121,7 +116,7 @@ export class ProsemirrorSchemaManager {
    *
    * @todo support taking a signal
    */
-  async defineRemoteBlock(
+  async defineBlockByComponentId(
     componentId: string,
     options?: { bustCache: boolean },
   ): Promise<BlockMeta> {
@@ -140,7 +135,7 @@ export class ProsemirrorSchemaManager {
   async ensureBlocksDefined(componentIds: string[] = []) {
     return Promise.all(
       componentIds.map(
-        (componentId) => this.defineRemoteBlock(componentId),
+        (componentId) => this.defineBlockByComponentId(componentId),
         this,
       ),
     );
@@ -152,7 +147,7 @@ export class ProsemirrorSchemaManager {
    *
    * @todo rewrite for clarity
    */
-  async renderRemoteBlock(
+  async renderBlock(
     targetComponentId: string,
     entityStore?: EntityStore,
     // @todo this needs to be mandatory otherwises properties may get lost
@@ -177,7 +172,7 @@ export class ProsemirrorSchemaManager {
       }
     }
 
-    await this.defineRemoteBlock(targetComponentId);
+    await this.defineBlockByComponentId(targetComponentId);
 
     return this.renderPredefinedBlock(
       entityStore,
@@ -242,7 +237,7 @@ export class ProsemirrorSchemaManager {
           blockEntity.entityId,
         );
 
-        return this.renderRemoteBlock(
+        return this.renderBlock(
           blockEntity.properties.componentId,
           store,
           draftEntity.draftId,
@@ -261,7 +256,6 @@ export class ProsemirrorSchemaManager {
 
   /**
    * @todo consider removing the old block from the entity store
-   * @todo need to support variants here
    */
   async replaceNode(
     draftBlockId: string,
@@ -277,7 +271,7 @@ export class ProsemirrorSchemaManager {
       throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
     }
 
-    const [tr, newNode] = await this.createRemoteBlockTr(
+    const [tr, newNode] = await this.createBlock(
       targetComponentId,
       draftBlockId,
       targetVariant,
@@ -289,14 +283,12 @@ export class ProsemirrorSchemaManager {
 
   /**
    * @todo consider removing the old block from the entity store
-   * @todo need to support variants here (copied from
-   *   {@link replaceNode} - is this still relevant?
    */
   async deleteNode(node: ProsemirrorNode<Schema>, pos: number) {
     const { view } = this;
 
     if (!view) {
-      throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
+      throw new Error("Cannot trigger deleteNode without view");
     }
 
     const { tr } = view.state;
@@ -306,20 +298,20 @@ export class ProsemirrorSchemaManager {
   }
 
   /**
-   * @deprecated
-   * @todo remove this
+   * @todo This probably creates entities where it could/should reuse existing entities
    */
-  private async createRemoteBlockTr(
+  async createBlock(
     targetComponentId: string,
     draftBlockId: string | null,
     targetVariant: BlockVariant,
   ) {
     if (!this.view) {
-      throw new Error("Cannot trigger createRemoteBlockTr without view");
+      throw new Error("Cannot trigger createBlock without view");
     }
 
+    await this.defineBlockByComponentId(targetComponentId);
+
     const { tr } = this.view.state;
-    const meta = await this.defineRemoteBlock(targetComponentId);
 
     let blockIdForNode = draftBlockId;
 
@@ -335,7 +327,7 @@ export class ProsemirrorSchemaManager {
 
       if (targetComponentId === blockEntity.properties.componentId) {
         if (
-          !blockComponentRequiresText(meta.componentSchema) ||
+          !isBlockSwappable(targetComponentId) ||
           isTextContainingEntityProperties(
             blockEntity.properties.entity.properties,
           )
@@ -379,7 +371,7 @@ export class ProsemirrorSchemaManager {
       } else {
         // we're swapping a block to a different component
         let entityProperties = targetVariant?.properties ?? {};
-        if (blockComponentRequiresText(meta.componentSchema)) {
+        if (isBlockSwappable(targetComponentId)) {
           const textEntityLink = isDraftTextContainingEntityProperties(
             blockEntity.properties.entity.properties,
           )
@@ -413,7 +405,7 @@ export class ProsemirrorSchemaManager {
     }
 
     const updated = entityStorePluginStateFromTransaction(tr, this.view.state);
-    const newNode = await this.renderRemoteBlock(
+    const newNode = await this.renderBlock(
       targetComponentId,
       updated.store,
       blockIdForNode,
@@ -428,11 +420,7 @@ export class ProsemirrorSchemaManager {
     to: number,
     from: number,
   ) {
-    const [tr, node] = await this.createRemoteBlockTr(
-      targetComponentId,
-      null,
-      variant,
-    );
+    const [tr, node] = await this.createBlock(targetComponentId, null, variant);
 
     tr.insert(to, node);
     tr.replaceWith(from, to, []);
@@ -554,7 +542,6 @@ export class ProsemirrorSchemaManager {
     this.view.dispatch(tr);
   }
 
-  // @todo rename this
   private async createNewDraftBlock(
     tr: Transaction<Schema>,
     entityProperties: {},

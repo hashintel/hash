@@ -67,6 +67,10 @@ const isLegacyLink = (data: unknown): data is LegacyLink => {
   );
 };
 
+/**
+ * @todo this can be used when a text entity could exist on any property
+ * @deprecated
+ */
 export const isTextContainingEntityProperties = (
   entityProperties: unknown,
 ): entityProperties is { text: LegacyLink<Text> } => {
@@ -78,7 +82,10 @@ export const isTextContainingEntityProperties = (
   );
 };
 
-// @todo use in more places
+/**
+ * @todo this can be used when a text entity could exist on any property
+ * @deprecated
+ */
 export const isDraftTextContainingEntityProperties = (
   entityProperties: unknown,
 ): entityProperties is { text: LegacyLink<DraftEntity<Text>> } => {
@@ -88,6 +95,10 @@ export const isDraftTextContainingEntityProperties = (
   );
 };
 
+/**
+ * @todo this can be used when a text entity could exist on any property
+ * @deprecated
+ */
 export const getChildDraftEntityFromTextBlock = (
   draftBlockId: string,
   entityStore: EntityStore,
