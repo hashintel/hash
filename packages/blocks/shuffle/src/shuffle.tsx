@@ -39,7 +39,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
 
-  const [list, setList] = useState(
+  const [list, setList] = useState(() =>
     createItems(items?.length ? items : initialItems),
   );
 
