@@ -43,9 +43,11 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     createItems(items?.length ? items : initialItems),
   );
 
-  useEffect(() => {
+  const [prevItems, setPrevItems] = useState(items);
+
+  if (items && !isEqual(items, prevItems)) {
+    setPrevItems(items);
     if (
-      items &&
       !isEqual(
         items,
         list.map((item) => item.value),
@@ -53,8 +55,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     ) {
       setList(createItems(items));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  }
 
   const publishChanges = (newItems: Items) => {
     void graphService?.updateEntity({
