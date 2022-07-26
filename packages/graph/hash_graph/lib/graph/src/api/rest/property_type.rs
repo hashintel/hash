@@ -118,7 +118,7 @@ async fn get_property_type<S: StorePool>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
-    let mut store = pool.acquire().await.map_err(|report| {
+    let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;

@@ -198,10 +198,8 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(
-        &mut self,
-        version_id: VersionId,
-    ) -> Result<Persisted<DataType>, QueryError>;
+    async fn get_data_type(&self, version_id: VersionId)
+    -> Result<Persisted<DataType>, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -234,7 +232,7 @@ pub trait Store {
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
     async fn get_property_type(
-        &mut self,
+        &self,
         version_id: VersionId,
     ) -> Result<Persisted<PropertyType>, QueryError>;
 
@@ -269,7 +267,7 @@ pub trait Store {
     ///
     /// - if the requested [`EntityType`] doesn't exist.
     async fn get_entity_type(
-        &mut self,
+        &self,
         version_id: VersionId,
     ) -> Result<Persisted<EntityType>, QueryError>;
 
@@ -305,10 +303,8 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type(
-        &mut self,
-        version_id: VersionId,
-    ) -> Result<Persisted<LinkType>, QueryError>;
+    async fn get_link_type(&self, version_id: VersionId)
+    -> Result<Persisted<LinkType>, QueryError>;
 
     /// Update the definition of an existing [`LinkType`].
     ///
@@ -340,7 +336,7 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&mut self, entity_id: EntityId) -> Result<Entity, QueryError>;
+    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError>;
 
     /// Update an existing [`Entity`].
     ///
