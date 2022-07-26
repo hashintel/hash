@@ -22,7 +22,7 @@
     "duration-fns": "3.0.1"
   },
   "devDependencies": {
-    "block-scripts": "0.0.13",
+    "block-scripts": "0.0.14",
     "mock-block-dock": "0.0.15",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
