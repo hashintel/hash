@@ -358,7 +358,7 @@ pub trait Store {
         updated_by: AccountId,
     ) -> Result<(), UpdateError>;
 
-    /// Get a [`Link`] target identified by an [`EntityId`] and a Link Type
+    /// Get a [`Link`] target identified by an [`EntityId`] and a Link Type [`VersionedUri`].
     ///
     /// # Errors
     ///
@@ -369,7 +369,7 @@ pub trait Store {
         link_type_uri: VersionedUri,
     ) -> Result<Link, QueryError>;
 
-    /// Get [`Links`] of an [`Entity`] identified by [`EntityId`]
+    /// Get [`Links`] of an [`Entity`] identified by an [`EntityId`].
     ///
     /// # Errors
     ///
