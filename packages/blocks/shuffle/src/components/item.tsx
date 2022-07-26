@@ -1,8 +1,8 @@
 import React, { FunctionComponent, useState } from "react";
-import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import { Box, IconButton, ListItem, TextField } from "@mui/material";
+import { Box, IconButton, ListItem, TextField, Paper } from "@mui/material";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -42,38 +42,82 @@ export const Item: FunctionComponent<ItemProps> = ({
       sx={{ marginBottom: 1 }}
       disablePadding
       ref={setNodeRef}
-      style={{ ...style, opacity: isDragging ? 0 : 1 }}
+      style={{
+        ...style,
+        opacity: isDragging ? 0 : 1,
+      }}
       {...attributes}
     >
-      <Box
+      <Paper
         sx={{
-          marginRight: 1,
-          opacity: isHovered || isDragging ? 1 : 0,
+          display: "flex",
+          width: 1,
+          paddingX: 2,
+          paddingY: 1,
+          background: ({ palette }) => palette.grey[50],
         }}
-        {...listeners}
+        elevation={2}
       >
-        <DragIndicatorIcon fontSize="small" color="action" />
-      </Box>
-      <TextField
-        multiline
-        fullWidth
-        variant="standard"
-        sx={{ border: "none", outline: "none" }}
-        value={value}
-        onChange={(event) => onValueChange?.(event.target.value)}
-        onBlur={() => onItemBlur?.()}
-        InputProps={{
-          disableUnderline: true,
-        }}
-      />
-      <Box sx={{ display: "flex", opacity: isHovered || isDragging ? 1 : 0 }}>
-        <IconButton onClick={() => onAdd?.()}>
-          <AddIcon fontSize="small" color="primary" />
-        </IconButton>
-        <IconButton onClick={() => onDelete?.()}>
-          <DeleteIcon fontSize="small" color="warning" />
-        </IconButton>
-      </Box>
+        <TextField
+          multiline
+          fullWidth
+          variant="standard"
+          sx={{ border: "none", outline: "none" }}
+          value={value}
+          onChange={(event) => onValueChange?.(event.target.value)}
+          onBlur={() => onItemBlur?.()}
+          InputProps={{
+            disableUnderline: true,
+          }}
+        />
+
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              opacity: isDragging || isHovered ? 1 : 0,
+              transition: ({ transitions }) => transitions.create("opacity"),
+            }}
+          >
+            <IconButton
+              sx={{
+                paddingX: 0.5,
+                paddingY: 1,
+                borderRadius: 1,
+                maxHeight: 40,
+              }}
+              onClick={() => onAdd?.()}
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+
+            <IconButton
+              onClick={() => onDelete?.()}
+              sx={{
+                paddingX: 0.5,
+                paddingY: 1,
+                borderRadius: 1,
+                maxHeight: 40,
+              }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <IconButton
+            sx={{
+              paddingX: 0.5,
+              paddingY: 1,
+              borderRadius: 1,
+              marginLeft: 1,
+              maxHeight: 40,
+            }}
+            {...listeners}
+          >
+            <DragIndicatorIcon fontSize="small" color="action" />
+          </IconButton>
+        </Box>
+      </Paper>
     </ListItem>
   );
 };

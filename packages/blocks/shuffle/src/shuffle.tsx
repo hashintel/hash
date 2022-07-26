@@ -9,6 +9,7 @@ import Box from "@mui/material/Box";
 import produce from "immer";
 import { v4 as uuid } from "uuid";
 import isEqual from "lodash.isequal";
+import ShuffleIcon from "@mui/icons-material/Shuffle";
 import { ItemList } from "./components/item-list";
 
 export type Item = {
@@ -127,9 +128,17 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   };
 
   return (
-    <Box ref={blockRootRef}>
-      <Button disabled={list.length <= 1} onClick={() => onShuffle()}>
-        Shuffle
+    <Box
+      ref={blockRootRef}
+      sx={{ display: "flex", flexDirection: "column", paddingX: 1 }}
+    >
+      <Button
+        variant="outlined"
+        sx={{ alignSelf: "end" }}
+        disabled={list.length <= 1}
+        onClick={() => onShuffle()}
+      >
+        <ShuffleIcon />
       </Button>
       <ItemList
         list={list}
