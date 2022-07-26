@@ -2,6 +2,6 @@
   "kind": "linkType",
   "$id": "https://blockprotocol.org/@alice/types/link-type/acquaintance-of/v/1",
   "title": "Acquaintance Of",
-  "description": "Someone who known but not a close friend",
+  "description": "Someone who is known but not a close friend",
   "relatedKeywords": []
 }
