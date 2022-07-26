@@ -368,7 +368,7 @@ async fn remove_account_id(connection: &mut PgConnection, account_id: AccountId)
 async fn remove_by_base_uri(connection: &impl AsClient, base_uri: &BaseUri) {
     let result = connection
         .as_client()
-        .query(
+        .execute(
             r#"
                 DELETE FROM version_ids
                 USING ids
@@ -387,7 +387,7 @@ async fn remove_by_base_uri(connection: &impl AsClient, base_uri: &BaseUri) {
     }
     let result = connection
         .as_client()
-        .query(
+        .execute(
             r#"
                 DELETE FROM base_uris
                 WHERE base_uri = $1;
@@ -407,13 +407,13 @@ async fn remove_by_base_uri(connection: &impl AsClient, base_uri: &BaseUri) {
 
 async fn remove_by_entity_id(connection: &mut PgConnection, entity_id: EntityId) {
     let result = connection
+        .as_client()
         .execute(
-            sqlx::query(
-                r#"
+            r#"
                 DELETE FROM entity_ids
-                WHERE entity_id = $1;"#,
-            )
-            .bind(entity_id),
+                WHERE entity_id = $1;
+            "#,
+            &[&entity_id],
         )
         .await;
 
