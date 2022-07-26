@@ -53,13 +53,9 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      onDragStart={({ active }) => {
-        if (!active) {
-          return;
-        }
-
-        setActiveIndex(findItemIndexById(list, active.id));
-      }}
+      onDragStart={({ active }) =>
+        setActiveIndex(findItemIndexById(list, active.id))
+      }
       onDragEnd={({ active, over }) => {
         setActiveIndex(null);
 
