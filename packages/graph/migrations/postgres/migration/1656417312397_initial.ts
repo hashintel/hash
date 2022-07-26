@@ -278,10 +278,25 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 
   pgm.createTable(
+    "entity_ids",
+    {
+      entity_id: {
+        type: "UUID",
+        primaryKey: true,
+      },
+    },
+    {
+      ifNotExists: true,
+    },
+  );
+
+  pgm.createTable(
     "entities",
     {
       entity_id: {
         type: "UUID",
+        references: "entity_ids",
+        onDelete: "CASCADE",
         notNull: true,
       },
       version: {
@@ -326,6 +341,7 @@ DROP TABLE IF EXISTS entity_type_property_type_references CASCADE;
 DROP TABLE IF EXISTS entity_type_link_type_references CASCADE;
 DROP TABLE IF EXISTS entity_type_entity_type_links CASCADE;
 DROP TABLE IF EXISTS link_types CASCADE;
+DROP TABLE IF EXISTS entity_ids CASCADE;
 DROP TABLE IF EXISTS entities CASCADE;
 DROP TABLE IF EXISTS accounts CASCADE;
 DROP TABLE IF EXISTS ids CASCADE;

@@ -28,6 +28,7 @@ use uuid::Uuid;
 pub struct DatabaseTestWrapper {
     pool: PostgresStorePool,
     created_base_uris: Vec<BaseUri>,
+    created_entity_ids: Vec<EntityId>,
     account_id: AccountId,
     // `PostgresDatabase` does not expose functionality to remove entries, so a direct connection
     // to the database is used.
@@ -79,6 +80,7 @@ impl DatabaseTestWrapper {
         Self {
             pool: postgres,
             created_base_uris: Vec::new(),
+            created_entity_ids: Vec::new(),
             account_id,
             connection: Some(connection),
             rt,
@@ -294,10 +296,15 @@ impl DatabaseTestWrapper {
         entity_type_uri: VersionedUri,
     ) -> Result<EntityId, InsertionError> {
         self.rt.block_on(async {
-            self.database()
+            let entity_id = self
+                .pool
+                .acquire()
                 .await
+                .expect("could not acquire a database connection")
                 .create_entity(entity, entity_type_uri, self.account_id)
-                .await
+                .await?;
+            self.created_entity_ids.push(entity_id);
+            Ok(entity_id)
         })
     }
 
@@ -326,10 +333,14 @@ impl Drop for DatabaseTestWrapper {
         let mut connection = self.connection.take().unwrap();
         let account_id = self.account_id;
         let created_base_uris = self.created_base_uris.clone();
+        let created_entity_ids = self.created_entity_ids.clone();
 
         self.rt.block_on(async move {
             for base_uri in created_base_uris {
                 remove_by_base_uri(&mut connection, &base_uri).await;
+            }
+            for entity_id in created_entity_ids {
+                remove_by_entity_id(&mut connection, entity_id).await;
             }
             remove_account_id(&mut connection, account_id).await;
         });
@@ -349,9 +360,9 @@ async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
         .execute(
             sqlx::query(
                 r#"
-        DELETE FROM version_ids 
-        USING ids 
-        WHERE ids.version_id = version_ids.version_id AND base_uri = $1;"#,
+                DELETE FROM version_ids 
+                USING ids 
+                WHERE ids.version_id = version_ids.version_id AND base_uri = $1;"#,
             )
             .bind(base_uri),
         )
@@ -369,8 +380,8 @@ async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
         .execute(
             sqlx::query(
                 r#"
-        DELETE FROM base_uris 
-        WHERE base_uri = $1;"#,
+                DELETE FROM base_uris 
+                WHERE base_uri = $1;"#,
             )
             .bind(base_uri),
         )
@@ -381,6 +392,27 @@ async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
             eprintln!("could not remove base_uri: {result:?}")
         } else {
             panic!("could not remove base_uri: {result:?}")
+        }
+    }
+}
+
+async fn remove_by_entity_id(connection: &mut PgConnection, entity_id: EntityId) {
+    let result = connection
+        .execute(
+            sqlx::query(
+                r#"
+                DELETE FROM entity_ids 
+                WHERE entity_id = $1;"#,
+            )
+            .bind(entity_id),
+        )
+        .await;
+
+    if let Err(result) = result {
+        if thread::panicking() {
+            eprintln!("could not remove entity_id: {result:?}")
+        } else {
+            panic!("could not remove entity_id: {result:?}")
         }
     }
 }

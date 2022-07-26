@@ -122,6 +122,34 @@ impl PostgresStore {
             .get(0))
     }
 
+    /// Inserts the specified [`EntityId`] into the database.
+    ///
+    /// # Errors
+    ///
+    /// - if inserting the [`EntityId`] failed.
+    async fn insert_entity_id(
+        transaction: &mut Transaction<'_, Postgres>,
+        entity_id: EntityId,
+    ) -> Result<(), InsertionError> {
+        transaction
+            .fetch_one(
+                sqlx::query(
+                    r#"
+                    INSERT INTO entity_ids (entity_id) 
+                    VALUES ($1)
+                    RETURNING entity_id;
+                    "#,
+                )
+                .bind(entity_id),
+            )
+            .await
+            .report()
+            .change_context(InsertionError)
+            .attach_printable(entity_id)?;
+
+        Ok(())
+    }
+
     /// Checks if the specified [`Entity`] exists in the database.
     ///
     /// # Errors
@@ -137,7 +165,7 @@ impl PostgresStore {
                     r#"
                     SELECT EXISTS(
                         SELECT 1
-                        FROM entities
+                        FROM entity_ids
                         WHERE entity_id = $1
                     );"#,
                 )
@@ -954,6 +982,9 @@ impl Store for PostgresStore {
             .change_context(InsertionError)?;
 
         let entity_id = EntityId::new(Uuid::new_v4());
+
+        Self::insert_entity_id(&mut transaction, entity_id).await?;
+
         Self::insert_entity(
             &mut transaction,
             entity_id,
