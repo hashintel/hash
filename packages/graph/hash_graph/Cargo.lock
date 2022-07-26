@@ -421,6 +421,7 @@ dependencies = [
  "error-stack",
  "graph",
  "tokio",
+ "tokio-postgres",
  "tracing",
  "uuid",
 ]

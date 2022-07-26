@@ -26,7 +26,7 @@ use crate::{
 };
 
 /// A Postgres-backed store
-pub struct PostgresStore<C: AsClient> {
+pub struct PostgresStore<C> {
     client: C,
 }
 

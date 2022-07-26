@@ -1,15 +1,22 @@
 use async_trait::async_trait;
 use bb8_postgres::{
-    bb8::{ErrorSink, Pool, PooledConnection, RunError},
+    bb8::{ErrorSink, ManageConnection, Pool, PooledConnection, RunError},
     PostgresConnectionManager,
 };
 use error_stack::{IntoReport, Result, ResultExt};
-use tokio_postgres::{Client, Config, Error, GenericClient, NoTls, Transaction};
+use tokio_postgres::{
+    tls::{MakeTlsConnect, TlsConnect},
+    Client, Config, Error, GenericClient, Socket, Transaction,
+};
 
 use crate::store::{DatabaseConnectionInfo, PostgresStore, StoreError, StorePool};
 
-pub struct PostgresStorePool {
-    pool: Pool<PostgresConnectionManager<NoTls>>,
+pub struct PostgresStorePool<Tls>
+where
+    Tls: MakeTlsConnect<Socket>,
+    PostgresConnectionManager<Tls>: ManageConnection,
+{
+    pool: Pool<PostgresConnectionManager<Tls>>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -25,13 +32,20 @@ impl ErrorSink<Error> for ErrorLogger {
     }
 }
 
-impl PostgresStorePool {
+#[allow(clippy::trait_duplication_in_bounds, reason = "false positive")]
+impl<Tls> PostgresStorePool<Tls>
+where
+    Tls: MakeTlsConnect<Socket> + Clone + Send + Sync + 'static,
+    <Tls as MakeTlsConnect<Socket>>::Stream: Send + Sync,
+    <Tls as MakeTlsConnect<Socket>>::TlsConnect: Send,
+    <<Tls as MakeTlsConnect<Socket>>::TlsConnect as TlsConnect<Socket>>::Future: Send,
+{
     /// Creates a new `PostgresDatabasePool`.
     ///
     /// # Errors
     ///
     /// - if creating a connection returns an error.
-    pub async fn new(db_info: &DatabaseConnectionInfo) -> Result<Self, StoreError> {
+    pub async fn new(db_info: &DatabaseConnectionInfo, tls: Tls) -> Result<Self, StoreError> {
         tracing::debug!("Creating connection pool to Postgres");
         let mut config = Config::new();
         config
@@ -44,7 +58,7 @@ impl PostgresStorePool {
         Ok(Self {
             pool: Pool::builder()
                 .error_sink(Box::new(ErrorLogger))
-                .build(PostgresConnectionManager::new(config, NoTls))
+                .build(PostgresConnectionManager::new(config, tls))
                 .await
                 .report()
                 .change_context(StoreError)
@@ -53,10 +67,17 @@ impl PostgresStorePool {
     }
 }
 
+#[allow(clippy::trait_duplication_in_bounds, reason = "false positive")]
 #[async_trait]
-impl StorePool for PostgresStorePool {
+impl<Tls> StorePool for PostgresStorePool<Tls>
+where
+    Tls: MakeTlsConnect<Socket> + Clone + Send + Sync + 'static,
+    <Tls as MakeTlsConnect<Socket>>::Stream: Send + Sync,
+    <Tls as MakeTlsConnect<Socket>>::TlsConnect: Send,
+    <<Tls as MakeTlsConnect<Socket>>::TlsConnect as TlsConnect<Socket>>::Future: Send,
+{
     type Error = RunError<Error>;
-    type Store<'pool> = PostgresStore<PooledConnection<'pool, PostgresConnectionManager<NoTls>>>;
+    type Store<'pool> = PostgresStore<PooledConnection<'pool, PostgresConnectionManager<Tls>>>;
 
     async fn acquire(&self) -> Result<Self::Store<'_>, Self::Error> {
         Ok(PostgresStore::new(self.pool.get().await?))
@@ -74,7 +95,14 @@ pub trait AsClient: Send + Sync {
     fn as_mut_client(&mut self) -> &mut Self::Client;
 }
 
-impl AsClient for PooledConnection<'_, PostgresConnectionManager<NoTls>> {
+#[allow(clippy::trait_duplication_in_bounds, reason = "false positive")]
+impl<Tls> AsClient for PooledConnection<'_, PostgresConnectionManager<Tls>>
+where
+    Tls: MakeTlsConnect<Socket> + Clone + Send + Sync + 'static,
+    <Tls as MakeTlsConnect<Socket>>::Stream: Send + Sync,
+    <Tls as MakeTlsConnect<Socket>>::TlsConnect: Send,
+    <<Tls as MakeTlsConnect<Socket>>::TlsConnect as TlsConnect<Socket>>::Future: Send,
+{
     type Client = Client;
 
     fn as_client(&self) -> &Self::Client {
