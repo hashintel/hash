@@ -28,6 +28,8 @@ export const initialItems = ["Thing 1", "Thing 2"];
 const createItems = (items: string[]) =>
   items.map((item) => ({ id: uuid(), value: item }));
 
+const getItemValues = (items: Items) => items.map((item) => item.value);
+
 export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   graph: {
     blockEntity: {
@@ -47,12 +49,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
 
   if (items && !isEqual(items, prevItems)) {
     setPrevItems(items);
-    if (
-      !isEqual(
-        items,
-        draftItems.map((item) => item.value),
-      )
-    ) {
+    if (!isEqual(items, getItemValues(draftItems))) {
       setDraftItems(createItems(items));
     }
   }
@@ -61,7 +58,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     void graphService?.updateEntity({
       data: {
         entityId,
-        properties: { items: newItems.map((item) => item.value) },
+        properties: { items: getItemValues(newItems) },
       },
     });
   };
