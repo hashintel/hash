@@ -9,6 +9,7 @@ import produce from "immer";
 import { v4 as uuid } from "uuid";
 import isEqual from "lodash.isequal";
 import ShuffleIcon from "@mui/icons-material/Shuffle";
+import AddIcon from "@mui/icons-material/Add";
 import { ItemList } from "./components/item-list";
 
 export type Item = {
@@ -92,10 +93,10 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
 
   const onItemBlur = () => publishItems(draftItems);
 
-  const onAdd = (index: number) =>
+  const onAdd = () =>
     updateItems(
       produce(draftItems, (newItems) => {
-        newItems.splice(index, 0, {
+        newItems.push({
           id: uuid(),
           value: `Thing ${draftItems.length + 1}`,
         });
@@ -127,20 +128,27 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       ref={blockRootRef}
       sx={{ display: "flex", flexDirection: "column", paddingX: 1 }}
     >
-      <Button
-        variant="outlined"
-        sx={{ alignSelf: "end" }}
-        disabled={draftItems.length <= 1}
-        onClick={() => onShuffle()}
-      >
-        <ShuffleIcon />
-      </Button>
+      <Box sx={{ display: "flex", alignSelf: "end" }}>
+        <Button
+          variant="outlined"
+          sx={{ marginRight: 1 }}
+          onClick={() => onAdd()}
+        >
+          <AddIcon fontSize="small" />
+        </Button>
+        <Button
+          variant="outlined"
+          disabled={draftItems.length <= 1}
+          onClick={() => onShuffle()}
+        >
+          <ShuffleIcon />
+        </Button>
+      </Box>
       <ItemList
         list={draftItems}
         onReorder={onReorder}
         onValueChange={onValueChange}
         onItemBlur={onItemBlur}
-        onAdd={onAdd}
         onDelete={onDelete}
       />
     </Box>

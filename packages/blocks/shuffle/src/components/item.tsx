@@ -1,97 +1,103 @@
-import React, { FunctionComponent, useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import React, {
+  forwardRef,
+  useState,
+  useEffect,
+  CSSProperties,
+  RefObject,
+} from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, IconButton, ListItem, TextField, Paper } from "@mui/material";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { DraggableAttributes } from "@dnd-kit/core";
 
-type ItemProps = {
+export type ItemProps = {
   id: string;
   value: string;
   isDragging?: boolean;
   onValueChange?: (value: string) => void;
   onItemBlur?: () => void;
-  onAdd?: () => void;
   onDelete?: () => void;
+  paperStyle?: CSSProperties;
+  attributes?: DraggableAttributes;
+  listeners?: Record<string, Function>;
+  style?: CSSProperties;
+  dragOverlay?: RefObject<HTMLDivElement>;
+  ref?: (node: HTMLElement | null) => void;
 };
 
-export const Item: FunctionComponent<ItemProps> = ({
-  id,
-  value,
-  isDragging,
-  onValueChange,
-  onItemBlur,
-  onAdd,
-  onDelete,
-}) => {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id });
+export const Item = forwardRef<HTMLLIElement, ItemProps>(
+  (
+    {
+      value,
+      isDragging,
+      onValueChange,
+      onItemBlur,
+      onDelete,
+      paperStyle,
+      attributes,
+      style,
+      listeners,
+      dragOverlay,
+    },
+    ref,
+  ) => {
+    const [isHovered, setIsHovered] = useState(false);
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+    useEffect(() => {
+      if (dragOverlay?.current) {
+        dragOverlay.current.animate(
+          [
+            {
+              transform: "scale(1)",
+            },
+            {
+              transform: "scale(1.05)",
+            },
+          ],
+          {
+            duration: 250,
+            easing: "ease",
+            fill: "forwards",
+          },
+        );
+      }
+    }, [dragOverlay]);
 
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <ListItem
-      onMouseOver={() => setIsHovered(true)}
-      onMouseOut={() => setIsHovered(false)}
-      sx={{ marginBottom: 1 }}
-      disablePadding
-      ref={setNodeRef}
-      style={{
-        ...style,
-        opacity: isDragging ? 0 : 1,
-      }}
-      {...attributes}
-    >
-      <Paper
-        sx={{
-          display: "flex",
-          width: 1,
-          paddingX: 2,
-          paddingY: 1,
-          background: ({ palette }) => palette.grey[50],
-        }}
-        elevation={2}
+    return (
+      <ListItem
+        ref={ref}
+        onMouseOver={() => setIsHovered(true)}
+        onMouseOut={() => setIsHovered(false)}
+        sx={{ marginBottom: 2 }}
+        disablePadding
+        style={{ ...style, opacity: isDragging ? 0 : 1 }}
+        {...attributes}
       >
-        <TextField
-          multiline
-          fullWidth
-          variant="standard"
-          sx={{ border: "none", outline: "none" }}
-          value={value}
-          onChange={(event) => onValueChange?.(event.target.value)}
-          onBlur={() => onItemBlur?.()}
-          InputProps={{
-            disableUnderline: true,
+        <Paper
+          sx={{
+            display: "flex",
+            width: 1,
+            paddingX: 2,
+            paddingY: 1,
+            background: ({ palette }) => palette.grey[50],
+            ...paperStyle,
           }}
-        />
-
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              opacity: isDragging || isHovered ? 1 : 0,
-              transition: ({ transitions }) => transitions.create("opacity"),
+          ref={dragOverlay}
+        >
+          <TextField
+            multiline
+            fullWidth
+            variant="standard"
+            sx={{ border: "none", outline: "none" }}
+            value={value}
+            onChange={(event) => onValueChange?.(event.target.value)}
+            onBlur={() => onItemBlur?.()}
+            InputProps={{
+              disableUnderline: true,
             }}
-          >
-            <IconButton
-              sx={{
-                paddingX: 0.5,
-                paddingY: 1,
-                borderRadius: 1,
-                maxHeight: 40,
-              }}
-              onClick={() => onAdd?.()}
-            >
-              <AddIcon fontSize="small" />
-            </IconButton>
+          />
 
+          <Box sx={{ display: "flex", alignItems: "center" }}>
             <IconButton
               onClick={() => onDelete?.()}
               sx={{
@@ -99,25 +105,28 @@ export const Item: FunctionComponent<ItemProps> = ({
                 paddingY: 1,
                 borderRadius: 1,
                 maxHeight: 40,
+                opacity: dragOverlay || isHovered ? 1 : 0,
+                transition: ({ transitions }) => transitions.create("opacity"),
               }}
             >
               <CloseIcon fontSize="small" />
             </IconButton>
+
+            <IconButton
+              sx={{
+                paddingX: 0.5,
+                paddingY: 1,
+                borderRadius: 1,
+                marginLeft: 1,
+                maxHeight: 40,
+              }}
+              {...listeners}
+            >
+              <DragIndicatorIcon fontSize="small" color="action" />
+            </IconButton>
           </Box>
-          <IconButton
-            sx={{
-              paddingX: 0.5,
-              paddingY: 1,
-              borderRadius: 1,
-              marginLeft: 1,
-              maxHeight: 40,
-            }}
-            {...listeners}
-          >
-            <DragIndicatorIcon fontSize="small" color="action" />
-          </IconButton>
-        </Box>
-      </Paper>
-    </ListItem>
-  );
-};
+        </Paper>
+      </ListItem>
+    );
+  },
+);
