@@ -3,7 +3,6 @@ import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-// eslint-disable-next-line no-restricted-imports
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import produce from "immer";

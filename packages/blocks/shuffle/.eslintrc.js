@@ -5,6 +5,17 @@ module.exports = {
     project: ["tsconfig.json"],
   },
   rules: {
+    "no-restricted-imports": [
+      "error",
+      {
+        paths: [
+          {
+            name: "@mui/material/Button",
+            importNames: [],
+          },
+        ],
+      },
+    ],
     "unicorn/import-style": [
       "error",
       {
