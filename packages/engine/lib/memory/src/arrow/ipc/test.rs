@@ -2,8 +2,9 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use arrow2::{
     array::{
-        BooleanArray, FixedSizeListArray, ListArray, MutableFixedSizeListArray, MutableListArray,
-        MutablePrimitiveArray, PrimitiveArray, TryExtend, Utf8Array,
+        BooleanArray, FixedSizeBinaryArray, FixedSizeListArray, ListArray,
+        MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray, PrimitiveArray,
+        TryExtend, Utf8Array,
     },
     chunk::Chunk,
     datatypes::{DataType, Field, Schema},
@@ -133,6 +134,29 @@ fn list_roundtrip() {
         });
 
     let record_batch = RecordBatch::new(schema.clone(), Chunk::new(vec![list_array.arced()]));
+
+    round_trip(schema, record_batch)
+}
+
+#[test]
+fn fixed_size_binary_roundrip() {
+    let schema = Arc::new(Schema {
+        fields: vec![Field::new("field1", DataType::FixedSizeBinary(5), false)],
+        metadata: BTreeMap::new(),
+    });
+
+    let record_batch = RecordBatch {
+        schema: schema.clone(),
+        columns: Chunk::new(vec![
+            FixedSizeBinaryArray::from_slice(&[
+                [0u8, 1u8, 12u8, 59u8, 212u8],
+                [0u8, 121u8, 12u8, 59u8, 212u8],
+                [0u8, 104u8, 202u8, 59u8, 212u8],
+                [0u8, 122u8, 12u8, 59u8, 212u8],
+            ])
+            .arced(),
+        ]),
+    };
 
     round_trip(schema, record_batch)
 }
