@@ -632,7 +632,7 @@ where
         self.as_client().query_one(
                 r#"
                     INSERT INTO entities (entity_id, version, entity_type_version_id, properties, created_by) 
-                    VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4)
+                    VALUES ($1, clock_timestamp(), $2, $3, $4)
                     RETURNING entity_id;
                 "#,
                 &[&entity_id, &entity_type_id, &value, &account_id]
