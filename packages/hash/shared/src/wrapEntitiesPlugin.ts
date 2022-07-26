@@ -1,3 +1,12 @@
+import {
+  getChildDraftEntityFromTextBlock,
+  isTextEntity,
+} from "@hashintel/hash-shared/entity";
+import { entityStorePluginState } from "@hashintel/hash-shared/entityStorePlugin";
+import {
+  isComponentNode,
+  isEntityNode,
+} from "@hashintel/hash-shared/prosemirror";
 import { mapValues } from "lodash";
 import { Command } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
@@ -144,6 +153,8 @@ const prepareCommandForWrappedEntities =
     // I think this ought to be a map
     const wrappers: WrapperNodesList = [];
 
+    const { store } = entityStorePluginState(state);
+
     /**
      * First we apply changes to the transaction to unwrap blocks
      */
@@ -151,29 +162,45 @@ const prepareCommandForWrappedEntities =
       if ([schema.nodes.block, schema.nodes.entity].includes(node.type)) {
         return true;
       }
-      // @todo is it a problem this is now always true for all component nodes
-      if (node.isTextblock) {
-        const range = getRangeForNodeAtMappedPosition(pos, node, tr);
 
-        if (!range) {
-          throw new Error("Cannot unwrap");
+      if (isComponentNode(node)) {
+        const blockNode = state.doc.resolve(pos).node(1);
+        const blockEntityNode = blockNode?.firstChild;
+
+        if (!blockEntityNode || !isEntityNode(blockEntityNode)) {
+          throw new Error("Unexpected structure");
         }
 
-        const wrapperNodes: ProsemirrorNode<Schema>[] = [];
+        if (blockEntityNode.attrs.draftId) {
+          const childEntity = getChildDraftEntityFromTextBlock(
+            blockEntityNode.attrs.draftId,
+            store,
+          );
 
-        const $originalStart = state.doc.resolve(pos);
+          if (childEntity && isTextEntity(childEntity)) {
+            const range = getRangeForNodeAtMappedPosition(pos, node, tr);
 
-        for (let depth = $originalStart.depth; depth > 0; depth--) {
-          /**
-           * The order of wrapperNodes will be the parent order of the
-           * replacement wrappers, and as we're traversing up, we need to add
-           * to the start of the array
-           */
-          wrapperNodes.unshift($originalStart.node(depth));
+            if (!range) {
+              throw new Error("Cannot unwrap");
+            }
+
+            const wrapperNodes: ProsemirrorNode<Schema>[] = [];
+
+            const $originalStart = state.doc.resolve(pos);
+
+            for (let depth = $originalStart.depth; depth > 0; depth--) {
+              /**
+               * The order of wrapperNodes will be the parent order of the
+               * replacement wrappers, and as we're traversing up, we need to add
+               * to the start of the array
+               */
+              wrapperNodes.unshift($originalStart.node(depth));
+            }
+
+            wrappers.push([pos, wrapperNodes]);
+            tr.lift(range, 0);
+          }
         }
-
-        wrappers.push([pos, wrapperNodes]);
-        tr.lift(range, 0);
       }
 
       return false;
