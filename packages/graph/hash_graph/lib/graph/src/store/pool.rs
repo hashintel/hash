@@ -19,7 +19,7 @@ pub trait StorePool: Send + Sync {
 
     /// Retrieves an owned [`Store`] from the pool.
     ///
-    /// Using an owning [`Store`] makes it easier to leak the connection pool. Therefore,
+    /// Using an owned [`Store`] makes it easier to leak the connection pool. Therefore,
     /// [`StorePool::acquire`] (which stores a lifetime-bound reference to the `StorePool`) should
     /// be preferred whenever possible.
     async fn acquire_owned(&self) -> Result<Self::Store<'static>, Self::Error>;
