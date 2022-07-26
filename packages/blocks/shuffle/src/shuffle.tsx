@@ -107,9 +107,6 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     updateItems(
       produce(draftItems, (newItems) => {
         newItems.splice(index, 1);
-        if (newItems.length === 0) {
-          newItems.push({ id: uuid(), value: "Thing 1" });
-        }
       }),
     );
 
