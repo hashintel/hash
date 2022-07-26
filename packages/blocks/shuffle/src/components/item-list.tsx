@@ -8,6 +8,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  UniqueIdentifier,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -25,6 +26,9 @@ type ItemListProps = {
   onAdd: (index: number) => void;
   onDelete: (index: number) => void;
 };
+
+const findItemIndexById = (list: Items, id: UniqueIdentifier) =>
+  list.findIndex((item) => item.id === id);
 
 export const ItemList: FunctionComponent<ItemListProps> = ({
   list,
@@ -54,16 +58,14 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
           return;
         }
 
-        setActiveIndex(list.findIndex((item) => item.id === active.id));
+        setActiveIndex(findItemIndexById(list, active.id));
       }}
       onDragEnd={({ active, over }) => {
         setActiveIndex(null);
 
         if (over?.id && active.id !== over?.id) {
-          const sourceIndex = list.findIndex((item) => item.id === active.id);
-          const destinationIndex = list.findIndex(
-            (item) => item.id === over.id,
-          );
+          const sourceIndex = findItemIndexById(list, active.id);
+          const destinationIndex = findItemIndexById(list, over.id);
           onReorder(sourceIndex, destinationIndex);
         }
       }}
