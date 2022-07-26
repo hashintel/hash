@@ -4,24 +4,27 @@
 //! This is inspired by [miette](https://docs.rs/miette/latest/miette/index.html)
 
 mod hook;
-#[cfg(nightly)]
+#[cfg(all(nightly, feature = "experimental"))]
 mod nightly;
 
 use alloc::{borrow::ToOwned, collections::VecDeque, format, string::String, vec, vec::Vec};
 use core::{
     fmt,
-    fmt::{Debug, Display, Formatter, Write},
+    fmt::{Debug, Display, Formatter},
 };
 
 #[cfg(feature = "hooks")]
 pub(crate) use hook::ErasedHooks;
-pub use hook::{Builtin, Hook, HookContext, Hooks};
-#[cfg(nightly)]
+use hook::HookContextImpl;
+pub use hook::{Builtin, Hook};
+#[cfg(feature = "hooks")]
+pub use hook::{HookContext, Hooks};
+#[cfg(all(nightly, feature = "experimental"))]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
 use owo_colors::{colored::Color, colors::Red, OwoColorize, Stream::Stdout};
 
-use crate::{fmt::hook::HookContextImpl, AttachmentKind, Frame, FrameKind, Report, Result};
+use crate::{AttachmentKind, Frame, FrameKind, Report, Result};
 
 /// Different types of `Line` that exist during rendering.
 ///
@@ -43,6 +46,23 @@ pub enum Line {
     /// Going to be emitted immediately as the next line in the chain of
     /// attachments and contexts.
     Next(String),
+}
+
+impl Line {
+    /// Create a new [`Next`] line, which is emitted immediately in the tree.
+    ///
+    /// [`Next`]: Self::Next
+    pub fn next<T: ToOwned<Owned = String>>(line: T) -> Self {
+        Self::Next(line.to_owned())
+    }
+
+    /// Create a new [`Defer`] line, which is deferred until the end of the current chain of
+    /// attachments and contexts.
+    ///
+    /// [`Defer`]: Self::Defer
+    pub fn defer<T: ToOwned<Owned = String>>(line: T) -> Self {
+        Self::Defer(line.to_owned())
+    }
 }
 
 /// The display of content is using an instruction style architecture,
@@ -101,7 +121,7 @@ fn debug_frame(frame: &Frame, ctx: &mut HookContextImpl) -> Option<Line> {
     match frame.kind() {
         FrameKind::Context(context) => Some(context.to_string()).map(Line::Next),
         FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-            #[cfg(nightly)]
+            #[cfg(all(nightly, feature = "experimental"))]
             if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
                 for text in debug.text() {
                     ctx.text(text.clone());

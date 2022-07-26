@@ -32,29 +32,41 @@ impl HookContextImpl {
             _marker: PhantomData::default(),
         }
     }
-
-    pub(crate) fn text(&mut self, value: String) {
-        self.text
-            .push(value.lines().map(ToOwned::to_owned).collect())
-    }
 }
 
+/// Every hook can request their corresponding `HookContext`, which can be used to emit
+/// `text` (which will be appended if extended [`Debug`] format (`:#?`) has been requested)
+/// or can be used for data which is shared among invocations of the same hook over the whole
+/// rendering, meaning that two frames of the same type can share common data during rendering. This
+/// is especially helpful for counters.
 pub struct HookContext<'a, T> {
     parent: &'a mut HookContextImpl,
     _marker: PhantomData<T>,
 }
 
 impl<T> HookContext<'_, T> {
+    /// If [`Debug`] requests, this text (can include line breaks) will be appended to the main
+    /// message.
+    /// This is especially useful for dense information like backtraces,
+    /// which one might want to omit from the tree rendering or omit from the normal debug.  
     pub fn text(&mut self, value: String) {
-        self.text_lines(value.lines().map(ToOwned::to_owned));
+        self.text_lines(value.lines());
     }
 
-    pub fn text_lines<L: IntoIterator<Item = String>>(&mut self, lines: L) {
-        self.parent.text.push(lines.into_iter().collect())
+    /// Same as [`Self::text`], but only accepts lines (the internal representation used during
+    /// rendering)
+    pub fn text_lines(&mut self, lines: core::str::Lines) {
+        self.parent
+            .text
+            .push(lines.map(ToOwned::to_owned).collect())
     }
 }
 
 impl<'a, T> HookContext<'a, T> {
+    /// Cast the `HookContext` to a new type.
+    ///
+    /// This binds the parent context to a different value,
+    /// which allows to access the data stored for the type this is casted to.
     pub fn cast<U>(self) -> HookContext<'a, U> {
         HookContext {
             parent: self.parent,
@@ -62,36 +74,111 @@ impl<'a, T> HookContext<'a, T> {
         }
     }
 
+    #[cfg(feature = "hooks")]
     fn into_impl(self) -> &'a mut HookContextImpl {
         self.parent
     }
 }
 
 impl<T: 'static> HookContext<'_, T> {
+    /// Returns a reference to the value corresponding to the currently bound type `T`.
+    ///
+    /// This will downcast the stored value to `U`, if not possible, it will return [`None`]
     pub fn get<U: 'static>(&self) -> Option<&U> {
-        let id = TypeId::of::<T>();
+        let inner = self.parent.inner.get(&TypeId::of::<T>())?;
 
-        let inner = self.parent.inner.get(&id)?;
         inner.downcast_ref()
     }
 
+    /// Returns a mutable reference to the value corresponding to the currently bound type `T`.
+    ///
+    /// This will downcast the stored value to `U`, if not possible, it will return [`None`]
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
-        let id = TypeId::of::<T>();
+        let inner = self.parent.inner.get_mut(&TypeId::of::<T>())?;
 
-        let inner = self.parent.inner.get_mut(&id)?;
         inner.downcast_mut()
     }
 
+    /// Insert a value into the context of the currently bound type `T`.
+    ///
+    /// Returns the previously stored value, downcast to `U`, if no previous value was stored, or
+    /// the downcast was not possible will return [`None`]
     pub fn insert<U: 'static>(&mut self, value: U) -> Option<Box<U>> {
-        let id = TypeId::of::<T>();
+        let inner = self
+            .parent
+            .inner
+            .insert(TypeId::of::<T>(), Box::new(value))?;
 
-        let inner = self.parent.inner.insert(id, Box::new(value))?;
         inner.downcast().ok()
+    }
+
+    /// One of the most common interactions with [`HookContext`] is a counter to reference previous
+    /// frames or the content emitted during [`text()`].
+    ///
+    /// This is a utility method, which uses the other primitive methods provided to automatically
+    /// increment a counter, if the counter wasn't initialized this method will return `0`.
+    ///
+    /// [`text()`]: Self::text
+    pub fn incr(&mut self) -> isize {
+        let counter: Option<&mut isize> = self
+            .parent
+            .inner
+            .get_mut(&TypeId::of::<T>())
+            .and_then(|any| any.downcast_mut());
+
+        match counter {
+            None => {
+                // if the counter hasn't been set yet, default to `0`
+                self.parent
+                    .inner
+                    .insert(TypeId::of::<T>(), Box::new(0isize));
+                0
+            }
+            Some(ctr) => {
+                *ctr += 1;
+
+                *ctr
+            }
+        }
+    }
+
+    /// One of the most common interactions with [`HookContext`] is a counter
+    /// to reference previous frames or the content emitted during [`text()`].
+    ///
+    /// This is a utility method, which uses the other primitive method provided to automatically
+    /// decrement a counter, if the counter wasn't initialized this method will return `-1` to stay
+    /// consistent with [`incr()`].
+    ///
+    /// [`incr()`]: Self::incr
+    pub fn decr(&mut self) -> isize {
+        let counter: Option<&mut isize> = self
+            .parent
+            .inner
+            .get_mut(&TypeId::of::<T>())
+            .and_then(|any| any.downcast_mut());
+
+        match counter {
+            None => {
+                // given that increment starts with `0` (which is therefore the implicit default
+                // value) decrementing the default value results in `-1`,
+                // which is why we output that value.
+                self.parent
+                    .inner
+                    .insert(TypeId::of::<T>(), Box::new(-1isize));
+                -1
+            }
+            Some(ctr) => {
+                *ctr -= 1;
+                *ctr
+            }
+        }
     }
 }
 
 type UInt0 = ();
+#[cfg(feature = "hooks")]
 type UInt1 = ((), UInt0);
+#[cfg(feature = "hooks")]
 type UInt2 = ((), UInt1);
 
 /// A Hook which potentially outputs a line, if conditions met in [`call()`] are met for a specific
@@ -112,6 +199,7 @@ pub trait Hook<T, U> {
     fn call(&self, frame: &T, ctx: HookContext<T>) -> Option<Line>;
 }
 
+#[cfg(feature = "hooks")]
 impl<F, T> Hook<T, UInt2> for F
 where
     F: Fn(&T, &mut HookContext<T>) -> Line,
@@ -122,6 +210,7 @@ where
     }
 }
 
+#[cfg(feature = "hooks")]
 impl<F, T> Hook<T, UInt1> for F
 where
     F: Fn(&T) -> Line,
@@ -151,12 +240,14 @@ where
 ///
 /// [`call()`]: Hook::call
 /// [`downcast_ref`]: Frame::downcast_ref
+#[cfg(feature = "hooks")]
 pub struct Stack<L, T, R> {
     left: L,
     right: R,
     _marker: PhantomData<T>,
 }
 
+#[cfg(feature = "hooks")]
 impl<L, T, R> Stack<L, T, R> {
     /// Create a new stack
     pub fn new(left: L, right: R) -> Self {
@@ -168,6 +259,7 @@ impl<L, T, R> Stack<L, T, R> {
     }
 }
 
+#[cfg(feature = "hooks")]
 impl<L, T, U, R> Hook<Frame, UInt0> for Stack<L, (T, U), R>
 where
     L: Hook<T, U>,
@@ -210,11 +302,13 @@ where
 ///     >
 /// >
 /// ```
+#[cfg(feature = "hooks")]
 pub struct Combine<L, R> {
     left: L,
     right: R,
 }
 
+#[cfg(feature = "hooks")]
 impl<L, R> Combine<L, R> {
     /// Create a new combine
     pub fn new(left: L, right: R) -> Self {
@@ -222,6 +316,7 @@ impl<L, R> Combine<L, R> {
     }
 }
 
+#[cfg(feature = "hooks")]
 impl<L, R> Hook<Frame, UInt0> for Combine<L, R>
 where
     L: Hook<Frame, UInt0>,
@@ -236,6 +331,7 @@ where
     }
 }
 
+#[cfg(feature = "hooks")]
 impl Hook<Frame, UInt0> for Box<dyn Hook<Frame, UInt0> + Send + Sync> {
     fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
         let hook = self.as_ref();
@@ -244,6 +340,7 @@ impl Hook<Frame, UInt0> for Box<dyn Hook<Frame, UInt0> + Send + Sync> {
     }
 }
 
+#[cfg(feature = "hooks")]
 impl<T> Hook<T, UInt0> for () {
     fn call(&self, _: &T, _: HookContext<T>) -> Option<Line> {
         None
@@ -262,8 +359,10 @@ impl<T> Hook<T, UInt0> for () {
 ///
 /// The default implementation provides supports for [`Backtrace`] and [`SpanTrace`],
 /// if their necessary features have been enabled.
+#[cfg(feature = "hooks")]
 pub struct Hooks<T: Hook<Frame, UInt0>>(T);
 
+#[cfg(feature = "hooks")]
 impl Hooks<Builtin> {
     /// Create a new instance of `Hooks`, which is preloaded with [`Builtin`] hooks
     /// to display [`Backtrace`] and [`SpanTrace`] if those features have been enabled.
@@ -272,6 +371,7 @@ impl Hooks<Builtin> {
     }
 }
 
+#[cfg(feature = "hooks")]
 impl Hooks<()> {
     /// Create a new bare instance of `Hooks`, which does not have the [`Builtin`] hooks
     /// pre-installed, use [`new()`] to get an instance with [`Builtin`] hook support.
@@ -282,11 +382,46 @@ impl Hooks<()> {
     }
 }
 
+#[cfg(feature = "hooks")]
 impl<T: Hook<Frame, UInt0>> Hooks<T> {
     fn new_with(hook: T) -> Self {
         Self(hook)
     }
 
+    /// Push a new [`Hook`] onto the stack.
+    /// [`Hook`] is implemented for [`Fn(&T) -> Line + Send + Sync + 'static`]
+    /// and [`Fn(&T, &mut HookContext<T>) -> Line + Send + Sync + 'static`].
+    ///
+    /// # Implementation Notes
+    ///
+    /// This functions consumes `self`, because we change the inner type from `T` to `Stack<H, T>`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::io::{Error, ErrorKind};
+    ///
+    /// use error_stack::{
+    ///     fmt::{HookContext, Hooks, Line},
+    ///     report, Report,
+    /// };
+    ///
+    /// let hooks = Hooks::new() //
+    ///     .push(|val: &u32| Line::next("u32"))
+    ///     .push(|val: &u64, ctx: &mut HookContext<u64>| {
+    ///         Line::defer(format!("u64 No. {}", ctx.incr()))
+    ///     });
+    ///
+    /// Report::install_hook(hooks).unwrap();
+    ///
+    /// let report = report!(Error::from(ErrorKind::InvalidInput))
+    ///     .attach(1u32)
+    ///     .attach(2u64)
+    ///     .attach(3u64)
+    ///     .attach(4u32);
+    ///
+    /// println!("{:?}", report);
+    /// ```
     // TODO: potentially rename to `add()` instead.
     pub fn push<H: Hook<F, U>, F: Send + Sync + 'static, U>(
         self,
@@ -301,6 +436,43 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
         Hooks::new_with(stack)
     }
 
+    /// Combine multiple [`Hooks`] together, where the argument will be processed **after** the
+    /// current stack.
+    /// This means that the current stack of [`Hook`]s has a higher priority than the hooks of the
+    /// argument.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::io::{Error, ErrorKind};
+    ///
+    /// use error_stack::{
+    ///     fmt::{HookContext, Hooks, Line},
+    ///     report, Report,
+    /// };
+    ///
+    /// let other = Hooks::new()
+    ///     .push(|val: &u32| Line::next("unsigned integer"))
+    ///     .push(|val: &&str| Line::next("You should have used `.attach_printable` ..."));
+    ///
+    /// let hooks = Hooks::new() //
+    ///     .push(|val: &u32| Line::next("u32"))
+    ///     .push(|val: &u64, ctx: &mut HookContext<u64>| {
+    ///         Line::defer(format!("u64 No. {}", ctx.incr()))
+    ///     })
+    ///     .combine(other);
+    ///
+    /// Report::install_hook(hooks).unwrap();
+    ///
+    /// let report = report!(Error::from(ErrorKind::InvalidInput))
+    ///     .attach(1u32)
+    ///     .attach(2u64)
+    ///     .attach(3u64)
+    ///     .attach(4u32)
+    ///     .attach("5");
+    ///
+    /// println!("{:?}", report);
+    /// ```
     pub fn combine<U: Hook<Frame, UInt0>>(self, other: Hooks<U>) -> Hooks<Combine<T, U>> {
         let both = Combine {
             left: self.0,
@@ -311,14 +483,17 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     }
 }
 
+#[cfg(feature = "hooks")]
 impl<T: Hook<Frame, UInt0> + Send + Sync + 'static> Hooks<T> {
     pub fn erase(self) -> ErasedHooks {
         Hooks::new_with(Box::new(self.0))
     }
 }
 
+#[cfg(feature = "hooks")]
 pub(crate) type ErasedHooks = Hooks<Box<dyn Hook<Frame, UInt0> + Send + Sync>>;
 
+#[cfg(feature = "hooks")]
 impl ErasedHooks {
     pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContextImpl) -> Option<Line> {
         self.0.call(frame, ctx.cast())
@@ -334,7 +509,7 @@ mod builtin {
 
     use crate::{
         fmt::{
-            hook::{Hook, HookContext, HookContextImpl, UInt0},
+            hook::{Hook, HookContext, UInt0},
             Line,
         },
         Frame,
@@ -342,13 +517,7 @@ mod builtin {
 
     #[cfg(all(nightly, feature = "std"))]
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Line {
-        let idx = match ctx.get::<usize>().copied() {
-            None => {
-                ctx.insert(0);
-                0
-            }
-            Some(idx) => idx,
-        };
+        let idx = ctx.incr();
 
         ctx.text(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
         ctx.insert(idx + 1);
@@ -362,13 +531,7 @@ mod builtin {
 
     #[cfg(feature = "spantrace")]
     fn spantrace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Line {
-        let idx = match ctx.get::<usize>().copied() {
-            None => {
-                ctx.insert(0);
-                0
-            }
-            Some(idx) => idx,
-        };
+        let idx = ctx.incr();
 
         let mut span = 0;
         spantrace.with_spans(|_, _| {

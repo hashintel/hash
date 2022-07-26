@@ -2,7 +2,10 @@ use std::{error::Error, fmt};
 
 use once_cell::sync::OnceCell;
 
-use crate::{fmt::ErasedHooks, Report, Result};
+use crate::{
+    fmt::{ErasedHooks, Hook, Hooks},
+    Frame, Report, Result,
+};
 
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
@@ -36,10 +39,13 @@ pub trait Install: sealed::Sealed {
     fn install(self) -> Result<(), HookAlreadySet>;
 }
 
-impl sealed::Sealed for ErasedHooks {}
+impl<T, U> sealed::Sealed for Hooks<T> where T: Hook<Frame, U> {}
 
-impl Install for ErasedHooks {
-    fn install(self) -> crate::Result<(), HookAlreadySet> {
+impl<T, U> Install for Hooks<T>
+where
+    T: Hook<Frame, U>,
+{
+    fn install(self) -> Result<(), HookAlreadySet> {
         FMT_HOOK.set(self).map_err(|_| Report::new(HookAlreadySet))
     }
 }
