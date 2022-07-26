@@ -8,6 +8,7 @@ import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import produce from "immer";
 import { v4 as uuid } from "uuid";
+import isEqual from "lodash.isequal";
 import { ItemList } from "./components/item-list";
 
 export type Item = {
@@ -42,9 +43,16 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   );
 
   useEffect(() => {
-    if (items) {
+    if (
+      items &&
+      !isEqual(
+        items,
+        list.map((item) => item.value),
+      )
+    ) {
       setList(createItems(items));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
 
   const publishChanges = (newItems: Items) => {
