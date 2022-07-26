@@ -125,7 +125,7 @@ async fn get_entity<S: StorePool>(
 ) -> Result<Json<QualifiedEntity>, impl IntoResponse> {
     let Path(entity_id) = entity_id;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
