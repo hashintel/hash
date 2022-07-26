@@ -317,7 +317,7 @@ export class ComponentView implements NodeView<Schema> {
           this.editorView.state.tr.setSelection(
             TextSelection.create<Schema>(
               this.editorView.state.doc,
-              this.getPos(),
+              this.getPos() + 1,
             ),
           ),
         );
