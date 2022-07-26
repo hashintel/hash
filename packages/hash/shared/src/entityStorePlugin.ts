@@ -570,7 +570,6 @@ class ProsemirrorStateChangeHandler {
     if (
       "properties" in draftTextEntity &&
       node.firstChild &&
-      // @todo how do new blocks *become* text blocks
       isTextEntity(draftTextEntity)
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);

@@ -1,12 +1,19 @@
 import { BlockConfig } from "@hashintel/hash-shared/blocks";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
+import {
+  BlockEntity,
+  getChildDraftEntityFromTextBlock,
+  isTextEntity,
+} from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
   EntityStore,
   isDraftBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import {
+  addEntityStoreAction,
   entityStorePluginState,
+  entityStorePluginStateFromTransaction,
+  generateDraftIdForEntity,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
@@ -132,11 +139,9 @@ export class ComponentView implements NodeView<Schema> {
       isComponentNode(node) &&
       componentNodeToId(node) === this.config.componentId
     ) {
-      const blockDraftId: string = this.editorView.state.doc
-        .resolve(this.getPos())
-        .node(2).attrs.draftId;
+      const entity = this.getDraftBlockEntity();
 
-      const entity = this.store.draft[blockDraftId]!;
+      const blockDraftId = entity?.draftId;
 
       // @todo handle entity id not being defined
       const entityId = entity.entityId ?? "";
@@ -207,6 +212,23 @@ export class ComponentView implements NodeView<Schema> {
     }
   }
 
+  private getDraftBlockEntity() {
+    const draftId = this.getBlockDraftId();
+
+    const entity = this.store.draft[draftId];
+
+    if (!entity || !isDraftBlockEntity(entity)) {
+      throw new Error("Component view can't find block entity");
+    }
+
+    return entity;
+  }
+
+  private getBlockDraftId() {
+    return this.editorView.state.doc.resolve(this.getPos()).node(2).attrs
+      .draftId;
+  }
+
   private onBlockLoaded = () => {
     /**
      * After two calls to setImmediate, we know the block will have had the
@@ -226,7 +248,61 @@ export class ComponentView implements NodeView<Schema> {
     }
   };
 
-  editableRef = (editableNode: HTMLElement | null) => {
+  // @todo consider combining transactions
+  private editableRef = (editableNode: HTMLElement | null) => {
+    const childTextEntity = getChildDraftEntityFromTextBlock(
+      this.getBlockDraftId(),
+      this.store,
+    );
+
+    if (!childTextEntity) {
+      throw new Error("Cannot active editableRef");
+    }
+
+    if (!isTextEntity(childTextEntity)) {
+      const state = this.editorView.state;
+      const tr = state.tr;
+
+      const newTextDraftId = generateDraftIdForEntity(null);
+
+      addEntityStoreAction(state, tr, {
+        type: "newDraftEntity",
+        payload: {
+          accountId: childTextEntity.accountId,
+          draftId: newTextDraftId,
+          entityId: null,
+        },
+      });
+
+      // @todo should we use the text entity directly, or just copy the content?
+      addEntityStoreAction(state, tr, {
+        type: "updateEntityProperties",
+        payload: {
+          draftId: newTextDraftId,
+          // @todo indicate the entity type?
+          properties: { tokens: [] },
+          merge: false,
+        },
+      });
+
+      addEntityStoreAction(state, tr, {
+        type: "updateEntityProperties",
+        payload: {
+          draftId: childTextEntity.draftId,
+          properties: {
+            text: {
+              __linkedData: {},
+              data: entityStorePluginStateFromTransaction(tr, state).store
+                .draft[newTextDraftId]!,
+            },
+          },
+          merge: true,
+        },
+      });
+
+      this.editorView.dispatch(tr);
+    }
+
     if (editableNode) {
       if (!editableNode.contains(this.contentDOM)) {
         editableNode.appendChild(this.contentDOM);
