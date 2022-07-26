@@ -13,6 +13,7 @@ clap = { version = "3.2.10", features = ["cargo", "derive", "env", "wrap_help"] 
 clap_complete = "3.2.3"
 error-stack = { version = "0.1.1", features = ["futures"] }
 graph = { path = "../../lib/graph", features = ["clap"] }
-tokio = { version = "1.18.2", features = ["rt", "macros"] }
+tokio = { version = "1.18.2", features = ["rt-multi-thread", "macros"] }
+tokio-postgres = { version = "0.7.6", default-features = false }
 tracing = "0.1.35"
 uuid = "1.1.2"

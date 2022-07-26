@@ -72,7 +72,7 @@ impl<T: OntologyType> Persisted<T> {
         &self.inner
     }
 
-    pub const fn account_id(&self) -> AccountId {
-        self.created_by
+    pub const fn account_id(&self) -> &AccountId {
+        &self.created_by
     }
 }

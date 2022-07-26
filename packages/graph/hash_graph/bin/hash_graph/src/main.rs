@@ -9,6 +9,7 @@ use graph::{
     ontology::AccountId,
     store::{PostgresStorePool, StorePool},
 };
+use tokio_postgres::NoTls;
 use uuid::Uuid;
 
 use crate::args::Args;
@@ -33,7 +34,7 @@ async fn main() -> Result<(), GraphError> {
         &args.log_config.log_file_prefix,
     );
 
-    let pool = PostgresStorePool::new(&args.db_info)
+    let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
         .change_context(GraphError)
         .map_err(|err| {
@@ -44,7 +45,7 @@ async fn main() -> Result<(), GraphError> {
     // TODO: Revisit, once authentication is in place
     let account_id = AccountId::new(Uuid::nil());
 
-    let mut connection = pool
+    let connection = pool
         .acquire()
         .await
         .change_context(GraphError)
@@ -63,6 +64,8 @@ async fn main() -> Result<(), GraphError> {
     } else {
         tracing::info!(%account_id, "created account id");
     }
+
+    drop(connection);
 
     let rest_router = rest_api_router(Arc::new(pool));
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

@@ -1,32 +1,64 @@
 use async_trait::async_trait;
+use bb8_postgres::{
+    bb8::{ErrorSink, ManageConnection, Pool, PooledConnection, RunError},
+    PostgresConnectionManager,
+};
 use error_stack::{IntoReport, Result, ResultExt};
-use sqlx::{postgres::PgConnectOptions, ConnectOptions, PgPool};
-use tracing::log::LevelFilter;
+use tokio_postgres::{
+    tls::{MakeTlsConnect, TlsConnect},
+    Client, Config, Error, GenericClient, Socket, Transaction,
+};
 
 use crate::store::{DatabaseConnectionInfo, PostgresStore, StoreError, StorePool};
 
-pub struct PostgresStorePool {
-    pool: PgPool,
+pub struct PostgresStorePool<Tls>
+where
+    Tls: MakeTlsConnect<Socket>,
+    PostgresConnectionManager<Tls>: ManageConnection,
+{
+    pool: Pool<PostgresConnectionManager<Tls>>,
 }
 
-impl PostgresStorePool {
+#[derive(Debug, Copy, Clone)]
+struct ErrorLogger;
+
+impl ErrorSink<Error> for ErrorLogger {
+    fn sink(&self, error: Error) {
+        tracing::error!(%error, "Store connection pool has encountered an error");
+    }
+
+    fn boxed_clone(&self) -> Box<dyn ErrorSink<Error>> {
+        Box::new(*self)
+    }
+}
+
+#[allow(clippy::trait_duplication_in_bounds, reason = "false positive")]
+impl<Tls> PostgresStorePool<Tls>
+where
+    Tls: MakeTlsConnect<Socket> + Clone + Send + Sync + 'static,
+    <Tls as MakeTlsConnect<Socket>>::Stream: Send + Sync,
+    <Tls as MakeTlsConnect<Socket>>::TlsConnect: Send,
+    <<Tls as MakeTlsConnect<Socket>>::TlsConnect as TlsConnect<Socket>>::Future: Send,
+{
     /// Creates a new `PostgresDatabasePool`.
     ///
     /// # Errors
     ///
     /// - if creating a connection returns an error.
-    pub async fn new(db_info: &DatabaseConnectionInfo) -> Result<Self, StoreError> {
+    pub async fn new(db_info: &DatabaseConnectionInfo, tls: Tls) -> Result<Self, StoreError> {
         tracing::debug!("Creating connection pool to Postgres");
-        let mut connection_options = PgConnectOptions::default()
-            .username(db_info.user())
+        let mut config = Config::new();
+        config
+            .user(db_info.user())
             .password(db_info.password())
             .host(db_info.host())
             .port(db_info.port())
-            .database(db_info.database());
-        connection_options.log_statements(LevelFilter::Trace);
+            .dbname(db_info.database());
 
         Ok(Self {
-            pool: PgPool::connect_with(connection_options)
+            pool: Pool::builder()
+                .error_sink(Box::new(ErrorLogger))
+                .build(PostgresConnectionManager::new(config, tls))
                 .await
                 .report()
                 .change_context(StoreError)
@@ -35,12 +67,85 @@ impl PostgresStorePool {
     }
 }
 
+#[allow(clippy::trait_duplication_in_bounds, reason = "false positive")]
 #[async_trait]
-impl StorePool for PostgresStorePool {
-    type Error = sqlx::Error;
-    type Store = PostgresStore;
+impl<Tls> StorePool for PostgresStorePool<Tls>
+where
+    Tls: MakeTlsConnect<Socket> + Clone + Send + Sync + 'static,
+    <Tls as MakeTlsConnect<Socket>>::Stream: Send + Sync,
+    <Tls as MakeTlsConnect<Socket>>::TlsConnect: Send,
+    <<Tls as MakeTlsConnect<Socket>>::TlsConnect as TlsConnect<Socket>>::Future: Send,
+{
+    type Error = RunError<Error>;
+    type Store<'pool> = PostgresStore<PooledConnection<'pool, PostgresConnectionManager<Tls>>>;
 
-    async fn acquire(&self) -> Result<Self::Store, Self::Error> {
-        Ok(PostgresStore::new(self.pool.acquire().await?))
+    async fn acquire(&self) -> Result<Self::Store<'_>, Self::Error> {
+        Ok(PostgresStore::new(self.pool.get().await?))
+    }
+
+    async fn acquire_owned(&self) -> Result<Self::Store<'static>, Self::Error> {
+        Ok(PostgresStore::new(self.pool.get_owned().await?))
+    }
+}
+
+pub trait AsClient: Send + Sync {
+    type Client: GenericClient + Send + Sync;
+
+    fn as_client(&self) -> &Self::Client;
+    fn as_mut_client(&mut self) -> &mut Self::Client;
+}
+
+#[allow(clippy::trait_duplication_in_bounds, reason = "false positive")]
+impl<Tls> AsClient for PooledConnection<'_, PostgresConnectionManager<Tls>>
+where
+    Tls: MakeTlsConnect<Socket> + Clone + Send + Sync + 'static,
+    <Tls as MakeTlsConnect<Socket>>::Stream: Send + Sync,
+    <Tls as MakeTlsConnect<Socket>>::TlsConnect: Send,
+    <<Tls as MakeTlsConnect<Socket>>::TlsConnect as TlsConnect<Socket>>::Future: Send,
+{
+    type Client = Client;
+
+    fn as_client(&self) -> &Self::Client {
+        self
+    }
+
+    fn as_mut_client(&mut self) -> &mut Self::Client {
+        self
+    }
+}
+
+impl AsClient for Client {
+    type Client = Self;
+
+    fn as_client(&self) -> &Self::Client {
+        self
+    }
+
+    fn as_mut_client(&mut self) -> &mut Self::Client {
+        self
+    }
+}
+
+impl AsClient for Transaction<'_> {
+    type Client = Self;
+
+    fn as_client(&self) -> &Self::Client {
+        self
+    }
+
+    fn as_mut_client(&mut self) -> &mut Self::Client {
+        self
+    }
+}
+
+impl<T: AsClient> AsClient for PostgresStore<T> {
+    type Client = T::Client;
+
+    fn as_client(&self) -> &Self::Client {
+        self.client.as_client()
+    }
+
+    fn as_mut_client(&mut self) -> &mut Self::Client {
+        self.client.as_mut_client()
     }
 }

@@ -10,7 +10,7 @@ use error_stack::{Context, Result};
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     pool::StorePool,
-    postgres::{PostgresStore, PostgresStorePool},
+    postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
     knowledge::{Entity, EntityId},
@@ -178,7 +178,7 @@ pub trait Store {
     /// # Errors:
     ///
     /// - if the entry referred to by `uri` does not exist.
-    async fn version_id_by_uri(&mut self, uri: &VersionedUri) -> Result<VersionId, QueryError>;
+    async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError>;
     /// Creates a new [`DataType`].
     ///
     /// # Errors:

@@ -6,6 +6,7 @@ mod property_type;
 
 use std::thread;
 
+use bb8_postgres::{bb8::PooledConnection, PostgresConnectionManager};
 use error_stack::Result;
 use graph::{
     knowledge::{Entity, EntityId},
@@ -17,16 +18,18 @@ use graph::{
         AccountId, VersionId,
     },
     store::{
-        DatabaseConnectionInfo, DatabaseType, InsertionError, PostgresStore, PostgresStorePool,
-        QueryError, Store, StorePool, UpdateError,
+        AsClient, DatabaseConnectionInfo, DatabaseType, InsertionError, PostgresStore,
+        PostgresStorePool, QueryError, Store, StorePool, UpdateError,
     },
 };
-use sqlx::{Connection, Executor, PgConnection};
 use tokio::runtime::Runtime;
+use tokio_postgres::{GenericClient, NoTls};
 use uuid::Uuid;
 
+type PgConnection = PostgresStore<PooledConnection<'static, PostgresConnectionManager<NoTls>>>;
+
 pub struct DatabaseTestWrapper {
-    pool: PostgresStorePool,
+    pool: PostgresStorePool<NoTls>,
     created_base_uris: Vec<BaseUri>,
     created_entity_ids: Vec<EntityId>,
     account_id: AccountId,
@@ -58,7 +61,7 @@ impl DatabaseTestWrapper {
 
         let rt = Runtime::new().expect("Could not create a test runtime");
         let (postgres, connection, account_id) = rt.block_on(async {
-            let pool = PostgresStorePool::new(&connection_info)
+            let pool = PostgresStorePool::new(&connection_info, NoTls)
                 .await
                 .expect("could not connect to database");
 
@@ -70,9 +73,10 @@ impl DatabaseTestWrapper {
                 .await
                 .expect("Could not insert account id");
 
-            let connection = PgConnection::connect(&connection_info.url())
+            let connection = pool
+                .acquire_owned()
                 .await
-                .expect("could not connect to database");
+                .expect("could not acquire a database connection");
 
             (pool, connection, account_id)
         });
@@ -87,9 +91,9 @@ impl DatabaseTestWrapper {
         }
     }
 
-    pub async fn database(&self) -> PostgresStore {
+    pub async fn database(&self) -> PgConnection {
         self.pool
-            .acquire()
+            .acquire_owned()
             .await
             .expect("could not acquire a database connection")
     }
@@ -348,23 +352,29 @@ impl Drop for DatabaseTestWrapper {
 }
 
 async fn remove_account_id(connection: &mut PgConnection, account_id: AccountId) {
-    sqlx::query(r#"DELETE FROM accounts WHERE account_id = $1;"#)
-        .bind(account_id)
-        .execute(connection)
+    connection
+        .as_client()
+        .query(
+            r#"
+                DELETE FROM accounts
+                WHERE account_id = $1;
+            "#,
+            &[&account_id],
+        )
         .await
         .expect("could not remove account id");
 }
 
-async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
+async fn remove_by_base_uri(connection: &impl AsClient, base_uri: &BaseUri) {
     let result = connection
+        .as_client()
         .execute(
-            sqlx::query(
-                r#"
-                DELETE FROM version_ids 
-                USING ids 
-                WHERE ids.version_id = version_ids.version_id AND base_uri = $1;"#,
-            )
-            .bind(base_uri),
+            r#"
+                DELETE FROM version_ids
+                USING ids
+                WHERE ids.version_id = version_ids.version_id AND base_uri = $1;
+            "#,
+            &[&base_uri],
         )
         .await;
 
@@ -375,15 +385,14 @@ async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
             panic!("could not remove version_id for base uri: {result:?}")
         }
     }
-
     let result = connection
+        .as_client()
         .execute(
-            sqlx::query(
-                r#"
-                DELETE FROM base_uris 
-                WHERE base_uri = $1;"#,
-            )
-            .bind(base_uri),
+            r#"
+                DELETE FROM base_uris
+                WHERE base_uri = $1;
+            "#,
+            &[&base_uri],
         )
         .await;
 
@@ -398,13 +407,13 @@ async fn remove_by_base_uri(connection: &mut PgConnection, base_uri: &BaseUri) {
 
 async fn remove_by_entity_id(connection: &mut PgConnection, entity_id: EntityId) {
     let result = connection
+        .as_client()
         .execute(
-            sqlx::query(
-                r#"
-                DELETE FROM entity_ids 
-                WHERE entity_id = $1;"#,
-            )
-            .bind(entity_id),
+            r#"
+                DELETE FROM entity_ids
+                WHERE entity_id = $1;
+            "#,
+            &[&entity_id],
         )
         .await;
 

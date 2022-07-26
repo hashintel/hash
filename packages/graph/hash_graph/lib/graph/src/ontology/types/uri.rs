@@ -2,10 +2,11 @@ use std::{fmt, result::Result as StdResult, str::FromStr};
 
 use error_stack::{Context, IntoReport, Report, Result, ResultExt};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use tokio_postgres::types::{FromSql, ToSql};
 
-#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, FromSql, ToSql)]
 #[serde(transparent)]
-#[sqlx(transparent)]
+#[postgres(transparent)]
 pub struct BaseUri(String);
 
 impl fmt::Debug for BaseUri {
