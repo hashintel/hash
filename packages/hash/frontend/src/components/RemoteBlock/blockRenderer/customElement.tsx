@@ -1,5 +1,11 @@
 import { createComponent } from "@lit-labs/react";
-import React from "react";
+// eslint-disable-next-line unicorn/import-style -- React is used in createComponent()
+import React, {
+  FunctionComponent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { CustomElementDefinition } from "../util";
 
 type CustomElementLoaderProps = {
@@ -9,19 +15,15 @@ type CustomElementLoaderProps = {
 /**
  * Registers (if not already registered) and loads a custom element.
  */
-export const CustomElementLoader: React.VFC<CustomElementLoaderProps> = ({
-  elementClass,
-  properties,
-  tagName,
-}) => {
-  const [CustomElement, setCustomElement] = React.useState<React.VFC | null>(
+export const CustomElementLoader: FunctionComponent<
+  CustomElementLoaderProps
+> = ({ elementClass, properties, tagName }) => {
+  const [CustomElement, setCustomElement] = useState<FunctionComponent | null>(
     null,
   );
-  const existingDefinitionRef = React.useRef<CustomElementDefinition | null>(
-    null,
-  );
+  const existingDefinitionRef = useRef<CustomElementDefinition | null>(null);
 
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     if (
       existingDefinitionRef.current?.elementClass === elementClass &&
       existingDefinitionRef.current?.tagName === tagName

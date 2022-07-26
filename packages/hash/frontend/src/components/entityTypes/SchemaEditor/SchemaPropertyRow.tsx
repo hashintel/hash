@@ -1,4 +1,4 @@
-import { VoidFunctionComponent } from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
@@ -18,9 +18,7 @@ type SchemaPropertyRowProps = {
   required: boolean;
 };
 
-export const SchemaPropertyRow: VoidFunctionComponent<
-  SchemaPropertyRowProps
-> = ({
+export const SchemaPropertyRow: FunctionComponent<SchemaPropertyRowProps> = ({
   dispatchSchemaUpdate,
   GoToSchemaElement,
   name,

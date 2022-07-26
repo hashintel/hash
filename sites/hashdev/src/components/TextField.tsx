@@ -1,8 +1,7 @@
-import { ReactNode, useEffect, useState, VFC } from "react";
+import { ReactNode, useEffect, useState, FunctionComponent } from "react";
 import {
   Box,
   Collapse,
-  // eslint-disable-next-line no-restricted-imports
   TextField as MuiTextField,
   TextFieldProps as MuiTextFieldProps,
 } from "@mui/material";
@@ -14,7 +13,7 @@ type TextFieldProps = {
   displayErrorOnTouched?: boolean;
 } & MuiTextFieldProps;
 
-export const TextField: VFC<TextFieldProps> = ({
+export const TextField: FunctionComponent<TextFieldProps> = ({
   helperText,
   sx,
   ...textFieldProps

@@ -1,5 +1,5 @@
 import { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
-import React, { VoidFunctionComponent } from "react";
+import { ReactElement, FunctionComponent } from "react";
 
 import { CustomElementLoader } from "./blockRenderer/customElement";
 import { HtmlLoader } from "./blockRenderer/html";
@@ -12,7 +12,7 @@ type BlockRendererProps = {
   sourceUrl: string;
 };
 
-export const BlockRenderer: VoidFunctionComponent<BlockRendererProps> = ({
+export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
   blockSource,
   blockType,
   properties,
@@ -55,7 +55,7 @@ export const BlockRenderer: VoidFunctionComponent<BlockRendererProps> = ({
         `'react' entryPoint expects parsed source to be a function, but got: ${typeof blockSource}`,
       );
     }
-    const BlockComponent = blockSource as (...props: any[]) => JSX.Element;
+    const BlockComponent = blockSource as (...props: any[]) => ReactElement;
     return <BlockComponent {...properties} />;
   }
 

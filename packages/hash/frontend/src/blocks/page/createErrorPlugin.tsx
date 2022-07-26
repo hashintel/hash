@@ -1,14 +1,14 @@
 import { Box, Dialog, Stack, Typography } from "@mui/material";
 import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
-import { VFC } from "react";
+import { FunctionComponent } from "react";
 import { Button } from "@hashintel/hash-design-system";
 import { ensureMounted } from "../../lib/dom";
 import { RenderPortal } from "./usePortals";
 
 type ErrorProps = { errored: boolean };
 
-const ErrorView: VFC<ErrorProps> = ({ errored }) => {
+const ErrorView: FunctionComponent<ErrorProps> = ({ errored }) => {
   return (
     <Dialog open={errored} maxWidth="md">
       <Box p={10} textAlign="center">

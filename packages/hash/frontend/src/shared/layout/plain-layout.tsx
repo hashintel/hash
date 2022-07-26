@@ -1,8 +1,8 @@
 import Head from "next/head";
-import { ReactElement, ReactNode, VFC } from "react";
+import { ReactElement, ReactNode, FunctionComponent } from "react";
 import { isProduction } from "../../lib/config";
 
-export const PlainLayout: VFC<{
+export const PlainLayout: FunctionComponent<{
   children?: ReactNode;
 }> = ({ children }) => {
   return (

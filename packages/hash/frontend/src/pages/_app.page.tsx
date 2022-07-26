@@ -3,7 +3,7 @@
 require("setimmediate");
 
 import { ApolloProvider } from "@apollo/client/react";
-import { useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
@@ -33,7 +33,7 @@ type AppProps = {
   Component: NextPageWithLayout;
 } & NextAppProps;
 
-const App: React.VoidFunctionComponent<AppProps> = ({
+const App: FunctionComponent<AppProps> = ({
   Component,
   pageProps,
   emotionCache = clientSideEmotionCache,

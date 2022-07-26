@@ -1,0 +1,10 @@
+{
+  // comments should be allowed here (this comment tests this)
+  "comments": {
+    "type": "values",
+    "field": "n",
+    /* as well as here */
+    "values": [1],
+    "steps": 1
+  }
+}

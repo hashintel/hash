@@ -1,4 +1,4 @@
-import React, {
+import {
   ChangeEventHandler,
   FocusEventHandler,
   KeyboardEventHandler,
@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useRef,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { clamp } from "./clamp";
 
@@ -59,7 +59,7 @@ const convertInputTextsToDurationInMs = (inputTexts: InputTexts): number => {
   return clamp(minutes, [0, 99]) * 60_000 + clamp(seconds, [0, 59]) * 1000;
 };
 
-export const DurationInput: VoidFunctionComponent<DurationInputProps> = ({
+export const DurationInput: FunctionComponent<DurationInputProps> = ({
   value,
   disabled,
   onChange,

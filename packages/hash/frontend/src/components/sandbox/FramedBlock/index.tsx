@@ -1,10 +1,10 @@
-import React from "react";
-import ReactDOM from "react-dom";
+import { StrictMode } from "react";
+import { render } from "react-dom";
 import { FramedBlock } from "./FramedBlock";
 
-ReactDOM.render(
-  <React.StrictMode>
+render(
+  <StrictMode>
     <FramedBlock />
-  </React.StrictMode>,
+  </StrictMode>,
   document.getElementById("root"),
 );

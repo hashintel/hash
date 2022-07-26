@@ -1,4 +1,4 @@
-import React, { ChangeEvent, useEffect, useRef, VFC } from "react";
+import { ChangeEvent, useEffect, useRef, FunctionComponent } from "react";
 
 type CountdownTitleProps = {
   value: string | undefined;
@@ -6,7 +6,7 @@ type CountdownTitleProps = {
   onBlur: () => void;
 };
 
-export const CountdownTitle: VFC<CountdownTitleProps> = ({
+export const CountdownTitle: FunctionComponent<CountdownTitleProps> = ({
   value,
   onChangeText,
   onBlur,

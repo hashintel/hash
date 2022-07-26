@@ -5,7 +5,6 @@ import { DbAdapter } from "../../db";
 import { User as UserModel } from "../../model";
 
 declare global {
-  // eslint-disable-next-line no-shadow
   namespace Express {
     interface User extends UserModel {}
   }

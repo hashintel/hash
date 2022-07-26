@@ -1,10 +1,10 @@
-import React from "react";
+import { FunctionComponent } from "react";
 
 type IconProps = {
   className: string;
 };
 
-export const SearchIcon: React.VFC<IconProps> = ({ className }) => {
+export const SearchIcon: FunctionComponent<IconProps> = ({ className }) => {
   return (
     <svg
       width="24"
@@ -33,7 +33,7 @@ export const SearchIcon: React.VFC<IconProps> = ({ className }) => {
   );
 };
 
-export const AddIcon: React.VFC<IconProps> = ({ className }) => {
+export const AddIcon: FunctionComponent<IconProps> = ({ className }) => {
   return (
     <svg
       width="24"

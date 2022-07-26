@@ -1,7 +1,7 @@
-import * as React from "react";
+import { FunctionComponent } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 
-export const RadioCheckedIcon: React.FC<SvgIconProps> = ({
+export const RadioCheckedIcon: FunctionComponent<SvgIconProps> = ({
   sx = [],
   ...otherProps
 }) => {

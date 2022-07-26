@@ -7,7 +7,7 @@ import {
   BlockProtocolUpdateEntitiesFunction,
 } from "blockprotocol";
 import "iframe-resizer/js/iframeResizer.contentWindow";
-import { useCallback, useEffect, useState, VoidFunctionComponent } from "react";
+import { useCallback, useEffect, useState, FunctionComponent } from "react";
 
 import { FetchEmbedCodeFn } from "../../BlockLoader/fetchEmbedCode";
 // import { ErrorBlock } from "../../ErrorBlock/ErrorBlock";
@@ -20,7 +20,7 @@ import { sendMessage, settlePromiseFromResponse } from "./util";
 
 const params = new URL(window.location.href).searchParams;
 
-export const FramedBlock: VoidFunctionComponent = () => {
+export const FramedBlock: FunctionComponent = () => {
   const sourceUrl = params.get("sourceUrl");
   const properties = params.get("properties");
 

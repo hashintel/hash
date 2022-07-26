@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useReducer } from "react";
+import { useEffect, useRef, useReducer, Reducer } from "react";
 import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 import { useUser } from "../components/hooks/useUser";
@@ -136,7 +136,7 @@ const Page: NextPageWithLayout = () => {
       createOrgInfo,
     },
     dispatch,
-  ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
+  ] = useReducer<Reducer<State, Actions>>(reducer, initialState);
   const { invitationInfo, invitationInfoLoading } = useGetInvitationInfo();
   const accountUsageType = useRef<WayToUseHash | null>(null);
 
