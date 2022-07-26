@@ -13,7 +13,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId},
+    knowledge::{Entity, EntityId, Link, LinkId, Links},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
@@ -357,4 +357,73 @@ pub trait Store {
         entity_type_uri: VersionedUri,
         updated_by: AccountId,
     ) -> Result<(), UpdateError>;
+
+    /// Get a [`Link`] target identified by an [`EntityId`] and a Link Type
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entity`] doesn't exist
+    async fn get_link_target(
+        &self,
+        source_entity_id: EntityId,
+        link_type_uri: VersionedUri,
+    ) -> Result<Link, QueryError>;
+
+    /// Get [`Links`] of an [`Entity`] identified by [`EntityId`]
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entity`] doesn't exist
+    async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError>;
+
+    /// Creates a new [`Link`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the [`LinkType`] doesn't exist
+    /// - if the [`Link`] is not valid with respect to the specified [`LinkType`]
+    /// - if the account referred to by `created_by` does not exist
+    async fn create_link(
+        &mut self,
+        source_entity: EntityId,
+        target_entity: EntityId,
+        link_type_uri: VersionedUri,
+        created_by: AccountId,
+    ) -> Result<LinkId, InsertionError>;
+
+    /// Removes a [`Link`] between a source and target [`Entity`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the [`Link`] doesn't exist
+    /// - if the account referred to by `created_by` does not exist
+    async fn remove_link(
+        &mut self,
+        source_entity: EntityId,
+        target_entity: EntityId,
+        link_type_uri: VersionedUri,
+    ) -> Result<(), InsertionError>;
+
+    // /// Get the a [`Link`] identified by [`LinkId`].
+    // ///
+    // /// # Errors
+    // ///
+    // /// - if the requested [`Link`] doesn't exist
+    // async fn get_link(&mut self, link_id: LinkId) -> Result<Link, QueryError>;
+
+    // /// Update an existing [`Link`].
+    // ///
+    // /// # Errors
+    // ///
+    // /// - if the [`Link`] doesn't exist
+    // /// - if the [`LinkType`] doesn't exist
+    // /// - if the [`Link`] is not valid with respect to its [`LinkType`]
+    // /// - if the account referred to by `updated_by` does not exist
+    // async fn update_link(
+    //     &mut self,
+    //     link_id: LinkId,
+    //     link: &Link,
+    //     link_type_uri: VersionedUri,
+    //     updated_by: AccountId,
+    // ) -> Result<(), UpdateError>;
 }
