@@ -13,10 +13,6 @@ export interface BlockConfig extends BlockMetadata {
   variants: NonNullable<BlockMetadata["variants"]>;
 }
 
-/**
- * @deprecated
- * @todo remove this
- */
 export type BlockMeta = {
   componentMetadata: BlockConfig;
   componentSchema: JsonSchema;
@@ -238,6 +234,12 @@ export const fetchBlockMeta = async (
   return await promise;
 };
 
+const textBlocks = [
+  "https://blockprotocol.org/blocks/@hash/paragraph",
+  "https://blockprotocol.org/blocks/@hash/header",
+  "https://blockprotocol.org/blocks/@hash/callout",
+];
+
 /**
  * Default blocks loaded for every user.
  *
@@ -247,9 +249,7 @@ export const fetchBlockMeta = async (
  *    we currently store this in localStorage - see UserBlockProvider.
  */
 export const defaultBlocks = [
-  "https://blockprotocol.org/blocks/@hash/paragraph",
-  "https://blockprotocol.org/blocks/@hash/header",
-  "https://blockprotocol.org/blocks/@hash/callout",
+  ...textBlocks,
   "https://blockprotocol.org/blocks/@hash/person",
   "https://blockprotocol.org/blocks/@hash/image",
   "https://blockprotocol.org/blocks/@hash/table",
@@ -259,12 +259,5 @@ export const defaultBlocks = [
   "https://blockprotocol.org/blocks/@hash/video",
 ];
 
-const SWAPPABLE_BLOCKS = [
-  "https://blockprotocol.org/blocks/@hash/paragraph",
-  "https://blockprotocol.org/blocks/@hash/header",
-  "https://blockprotocol.org/blocks/@hash/callout",
-];
-
-// @todo this should work even when using local blocks
-export const isBlockSwappable = (blockId: string = "") =>
-  SWAPPABLE_BLOCKS.includes(blockId);
+export const isTextBlock = (componentId: string = "") =>
+  textBlocks.includes(componentId);

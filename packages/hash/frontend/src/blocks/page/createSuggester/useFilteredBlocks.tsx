@@ -1,4 +1,4 @@
-import { BlockMeta, isBlockSwappable } from "@hashintel/hash-shared/blocks";
+import { BlockMeta, isTextBlock } from "@hashintel/hash-shared/blocks";
 import { BlockVariant } from "@blockprotocol/core";
 import { useMemo } from "react";
 
@@ -19,8 +19,7 @@ export const useFilteredBlocks = (
     const allOptions: Option[] = Object.values(blocksMetaMap)
       .filter(
         (block) =>
-          !textBlocksOnly ||
-          isBlockSwappable(block.componentMetadata.componentId),
+          !textBlocksOnly || isTextBlock(block.componentMetadata.componentId),
       )
       .flatMap(({ componentMetadata: blockMeta }) =>
         // Assumes that variants have been built for all blocks in toBlockConfig

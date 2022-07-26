@@ -7,7 +7,7 @@ import {
   BlockConfig,
   BlockMeta,
   fetchBlockMeta,
-  isBlockSwappable,
+  isTextBlock,
   prepareBlockMetaCache,
 } from "./blocks";
 import {
@@ -164,8 +164,8 @@ export class ProsemirrorSchemaManager {
 
       if (blockEntity.properties.componentId !== targetComponentId) {
         if (
-          !isBlockSwappable(blockEntity.properties.componentId) ||
-          !isBlockSwappable(targetComponentId)
+          !isTextBlock(blockEntity.properties.componentId) ||
+          !isTextBlock(targetComponentId)
         ) {
           draftBlockId = null;
         }
@@ -327,7 +327,7 @@ export class ProsemirrorSchemaManager {
 
       if (targetComponentId === blockEntity.properties.componentId) {
         if (
-          !isBlockSwappable(targetComponentId) ||
+          !isTextBlock(targetComponentId) ||
           isTextContainingEntityProperties(
             blockEntity.properties.entity.properties,
           )
@@ -371,7 +371,7 @@ export class ProsemirrorSchemaManager {
       } else {
         // we're swapping a block to a different component
         let entityProperties = targetVariant?.properties ?? {};
-        if (isBlockSwappable(targetComponentId)) {
+        if (isTextBlock(targetComponentId)) {
           const textEntityLink = isDraftTextContainingEntityProperties(
             blockEntity.properties.entity.properties,
           )
