@@ -511,7 +511,7 @@ fn write_bitmap(
             if slice_offset != 0 {
                 // case where we can't slice the bitmap as the offsets are not multiple of 8
                 let bytes = Bitmap::from_trusted_len_iter(bitmap.iter());
-                let (slice, _, _) = bytes.as_slice();
+                let (slice, ..) = bytes.as_slice();
                 write_bytes(slice, buffers, arrow_data_len, offset)
             } else {
                 write_bytes(slice, buffers, arrow_data_len, offset)

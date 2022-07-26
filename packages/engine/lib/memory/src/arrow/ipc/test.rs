@@ -23,7 +23,18 @@ fn round_trip(schema: Arc<Schema>, record_batch: RecordBatch) {
 
     let read_record_batch =
         read_record_batch(&segment, schema).expect("failed to read the written record batch");
-    assert_eq!(record_batch.columns, read_record_batch.columns);
+    // we could just use the `PartialEq` method on `RecordBatch`, but this results in nicer error
+    // messages (sometimes the `Debug` representations of different arrays are identical, because
+    // their datatypes are different.)
+    assert_eq!(record_batch.schema(), read_record_batch.schema());
+    for (after, before) in record_batch
+        .columns()
+        .iter()
+        .zip(read_record_batch.columns())
+    {
+        assert_eq!(after.data_type(), before.data_type());
+        assert_eq!(after, before);
+    }
 }
 
 #[test]
@@ -102,7 +113,7 @@ fn list_roundtrip() {
     let schema = Arc::new(Schema {
         fields: vec![Field::new(
             "field1",
-            DataType::List(Box::new(Field::new("list_field1", DataType::Int32, true))),
+            DataType::List(Box::new(Field::new("item", DataType::Int32, true))),
             true,
         )],
         metadata: BTreeMap::new(),
@@ -133,7 +144,7 @@ fn multiple_columns() {
             Field::new("field2", DataType::Boolean, false),
             Field::new(
                 "field1",
-                DataType::List(Box::new(Field::new("list_field1", DataType::Int32, false))),
+                DataType::List(Box::new(Field::new("item", DataType::Int32, true))),
                 false,
             ),
         ],

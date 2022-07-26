@@ -10,15 +10,24 @@ fn write_primitive<T: NativeType>(
     array: &PrimitiveArray<T>,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     offset: &mut i64,
     is_little_endian: bool,
 ) {
-    write_bitmap(array.validity(), array.len(), buffers, arrow_data, offset);
+    write_bitmap(
+        array.validity(),
+        array.len(),
+        buffers,
+        arrow_data,
+        arrow_data_len,
+        offset,
+    );
 
     write_buffer(
         array.values(),
         buffers,
         arrow_data,
+        arrow_data_len,
         offset,
         is_little_endian,
     )
@@ -28,15 +37,24 @@ fn write_boolean(
     array: &BooleanArray,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     offset: &mut i64,
     _: bool,
 ) {
-    write_bitmap(array.validity(), array.len(), buffers, arrow_data, offset);
+    write_bitmap(
+        array.validity(),
+        array.len(),
+        buffers,
+        arrow_data,
+        arrow_data_len,
+        offset,
+    );
     write_bitmap(
         Some(&array.values().clone()),
         array.len(),
         buffers,
         arrow_data,
+        arrow_data_len,
         offset,
     );
 }
@@ -48,20 +66,36 @@ fn write_generic_binary<O: Offset>(
     values: &[u8],
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     offset: &mut i64,
     is_little_endian: bool,
 ) {
-    write_bitmap(validity, offsets.len() - 1, buffers, arrow_data, offset);
+    write_bitmap(
+        validity,
+        offsets.len() - 1,
+        buffers,
+        arrow_data,
+        arrow_data_len,
+        offset,
+    );
 
     let first = *offsets.first().unwrap();
     let last = *offsets.last().unwrap();
     if first == O::default() {
-        write_buffer(offsets, buffers, arrow_data, offset, is_little_endian);
+        write_buffer(
+            offsets,
+            buffers,
+            arrow_data,
+            arrow_data_len,
+            offset,
+            is_little_endian,
+        );
     } else {
         write_buffer_from_iter(
             offsets.iter().map(|x| *x - first),
             buffers,
             arrow_data,
+            arrow_data_len,
             offset,
             is_little_endian,
         );
@@ -71,6 +105,7 @@ fn write_generic_binary<O: Offset>(
         &values[first.to_usize()..last.to_usize()],
         buffers,
         arrow_data,
+        arrow_data_len,
         offset,
     );
 }
@@ -79,6 +114,7 @@ fn write_binary<O: Offset>(
     array: &BinaryArray<O>,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     offset: &mut i64,
     is_little_endian: bool,
 ) {
@@ -88,6 +124,7 @@ fn write_binary<O: Offset>(
         array.values(),
         buffers,
         arrow_data,
+        arrow_data_len,
         offset,
         is_little_endian,
     );
@@ -97,6 +134,7 @@ fn write_utf8<O: Offset>(
     array: &Utf8Array<O>,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     offset: &mut i64,
     is_little_endian: bool,
 ) {
@@ -106,6 +144,7 @@ fn write_utf8<O: Offset>(
         array.values(),
         buffers,
         arrow_data,
+        arrow_data_len,
         offset,
         is_little_endian,
     );
@@ -115,17 +154,26 @@ fn write_fixed_size_binary(
     array: &FixedSizeBinaryArray,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     offset: &mut i64,
     _is_little_endian: bool,
 ) {
-    write_bitmap(array.validity(), array.len(), buffers, arrow_data, offset);
-    write_bytes(array.values(), buffers, arrow_data, offset);
+    write_bitmap(
+        array.validity(),
+        array.len(),
+        buffers,
+        arrow_data,
+        arrow_data_len,
+        offset,
+    );
+    write_bytes(array.values(), buffers, arrow_data, arrow_data_len, offset);
 }
 
 fn write_list<O: Offset>(
     array: &ListArray<O>,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     nodes: &mut Vec<ipc::FieldNode>,
     offset: &mut i64,
     is_little_endian: bool,
@@ -133,17 +181,32 @@ fn write_list<O: Offset>(
     let offsets = array.offsets();
     let validity = array.validity();
 
-    write_bitmap(validity, offsets.len() - 1, buffers, arrow_data, offset);
+    write_bitmap(
+        validity,
+        offsets.len() - 1,
+        buffers,
+        arrow_data,
+        arrow_data_len,
+        offset,
+    );
 
     let first = *offsets.first().unwrap();
     let last = *offsets.last().unwrap();
     if first == O::default() {
-        write_buffer(offsets, buffers, arrow_data, offset, is_little_endian);
+        write_buffer(
+            offsets,
+            buffers,
+            arrow_data,
+            arrow_data_len,
+            offset,
+            is_little_endian,
+        );
     } else {
         write_buffer_from_iter(
             offsets.iter().map(|x| *x - first),
             buffers,
             arrow_data,
+            arrow_data_len,
             offset,
             is_little_endian,
         );
@@ -156,6 +219,7 @@ fn write_list<O: Offset>(
             .as_ref(),
         buffers,
         arrow_data,
+        arrow_data_len,
         nodes,
         offset,
         is_little_endian,
@@ -166,16 +230,25 @@ pub fn write_struct(
     array: &StructArray,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     nodes: &mut Vec<ipc::FieldNode>,
     offset: &mut i64,
     is_little_endian: bool,
 ) {
-    write_bitmap(array.validity(), array.len(), buffers, arrow_data, offset);
+    write_bitmap(
+        array.validity(),
+        array.len(),
+        buffers,
+        arrow_data,
+        arrow_data_len,
+        offset,
+    );
     array.values().iter().for_each(|array| {
         write(
             array.as_ref(),
             buffers,
             arrow_data,
+            arrow_data_len,
             nodes,
             offset,
             is_little_endian,
@@ -187,20 +260,36 @@ pub fn write_union(
     array: &UnionArray,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     nodes: &mut Vec<ipc::FieldNode>,
     offset: &mut i64,
     is_little_endian: bool,
 ) {
-    write_buffer(array.types(), buffers, arrow_data, offset, is_little_endian);
+    write_buffer(
+        array.types(),
+        buffers,
+        arrow_data,
+        arrow_data_len,
+        offset,
+        is_little_endian,
+    );
 
     if let Some(offsets) = array.offsets() {
-        write_buffer(offsets, buffers, arrow_data, offset, is_little_endian);
+        write_buffer(
+            offsets,
+            buffers,
+            arrow_data,
+            arrow_data_len,
+            offset,
+            is_little_endian,
+        );
     }
     array.fields().iter().for_each(|array| {
         write(
             array.as_ref(),
             buffers,
             arrow_data,
+            arrow_data_len,
             nodes,
             offset,
             is_little_endian,
@@ -212,6 +301,7 @@ fn write_map(
     array: &MapArray,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     nodes: &mut Vec<ipc::FieldNode>,
     offset: &mut i64,
     is_little_endian: bool,
@@ -219,17 +309,32 @@ fn write_map(
     let offsets = array.offsets();
     let validity = array.validity();
 
-    write_bitmap(validity, offsets.len() - 1, buffers, arrow_data, offset);
+    write_bitmap(
+        validity,
+        offsets.len() - 1,
+        buffers,
+        arrow_data,
+        arrow_data_len,
+        offset,
+    );
 
     let first = *offsets.first().unwrap();
     let last = *offsets.last().unwrap();
     if first == 0 {
-        write_buffer(offsets, buffers, arrow_data, offset, is_little_endian);
+        write_buffer(
+            offsets,
+            buffers,
+            arrow_data,
+            arrow_data_len,
+            offset,
+            is_little_endian,
+        );
     } else {
         write_buffer_from_iter(
             offsets.iter().map(|x| *x - first),
             buffers,
             arrow_data,
+            arrow_data_len,
             offset,
             is_little_endian,
         );
@@ -242,6 +347,7 @@ fn write_map(
             .as_ref(),
         buffers,
         arrow_data,
+        arrow_data_len,
         nodes,
         offset,
         is_little_endian,
@@ -252,15 +358,24 @@ fn write_fixed_size_list(
     array: &FixedSizeListArray,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     nodes: &mut Vec<ipc::FieldNode>,
     offset: &mut i64,
     is_little_endian: bool,
 ) {
-    write_bitmap(array.validity(), array.len(), buffers, arrow_data, offset);
+    write_bitmap(
+        array.validity(),
+        array.len(),
+        buffers,
+        arrow_data,
+        arrow_data_len,
+        offset,
+    );
     write(
         array.values().as_ref(),
         buffers,
         arrow_data,
+        arrow_data_len,
         nodes,
         offset,
         is_little_endian,
@@ -273,6 +388,7 @@ pub(super) fn write_dictionary<K: DictionaryKey>(
     array: &DictionaryArray<K>,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     nodes: &mut Vec<ipc::FieldNode>,
     offset: &mut i64,
     is_little_endian: bool,
@@ -280,13 +396,21 @@ pub(super) fn write_dictionary<K: DictionaryKey>(
     write_keys: bool,
 ) -> usize {
     if write_keys {
-        write_primitive(array.keys(), buffers, arrow_data, offset, is_little_endian);
+        write_primitive(
+            array.keys(),
+            buffers,
+            arrow_data,
+            arrow_data_len,
+            offset,
+            is_little_endian,
+        );
         array.keys().len()
     } else {
         write(
             array.values().as_ref(),
             buffers,
             arrow_data,
+            arrow_data_len,
             nodes,
             offset,
             is_little_endian,
@@ -300,6 +424,7 @@ pub fn write(
     array: &dyn Array,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     nodes: &mut Vec<ipc::FieldNode>,
     offset: &mut i64,
     is_little_endian: bool,
@@ -315,17 +440,19 @@ pub fn write(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data,
+            arrow_data_len,
             offset,
             is_little_endian,
         ),
         Primitive(primitive) => crate::with_match_primitive_type!(primitive, |$T| {
             let array = array.as_any().downcast_ref().unwrap();
-            write_primitive::<$T>(array, buffers, arrow_data, offset, is_little_endian, )
+            write_primitive::<$T>(array, buffers, arrow_data, arrow_data_len, offset, is_little_endian)
         }),
         Binary => write_binary::<i32>(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data,
+            arrow_data_len,
             offset,
             is_little_endian,
         ),
@@ -333,6 +460,7 @@ pub fn write(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data,
+            arrow_data_len,
             offset,
             is_little_endian,
         ),
@@ -340,6 +468,7 @@ pub fn write(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data,
+            arrow_data_len,
             offset,
             is_little_endian,
         ),
@@ -347,6 +476,7 @@ pub fn write(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data,
+            arrow_data_len,
             offset,
             is_little_endian,
         ),
@@ -354,6 +484,7 @@ pub fn write(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data,
+            arrow_data_len,
             offset,
             is_little_endian,
         ),
@@ -361,6 +492,7 @@ pub fn write(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data,
+            arrow_data_len,
             nodes,
             offset,
             is_little_endian,
@@ -369,6 +501,7 @@ pub fn write(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data,
+            arrow_data_len,
             nodes,
             offset,
             is_little_endian,
@@ -377,6 +510,7 @@ pub fn write(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data,
+            arrow_data_len,
             nodes,
             offset,
             is_little_endian,
@@ -385,6 +519,7 @@ pub fn write(
             array.as_any().downcast_ref().unwrap(),
             buffers,
             arrow_data,
+            arrow_data_len,
             nodes,
             offset,
             is_little_endian,
@@ -394,10 +529,10 @@ pub fn write(
                 array.as_any().downcast_ref().unwrap(),
                 buffers,
                 arrow_data,
+                arrow_data_len,
                 nodes,
                 offset,
                 is_little_endian,
-
                 true,
             );
         }),
@@ -406,6 +541,7 @@ pub fn write(
                 array.as_any().downcast_ref().unwrap(),
                 buffers,
                 arrow_data,
+                arrow_data_len,
                 nodes,
                 offset,
                 is_little_endian,
@@ -416,6 +552,7 @@ pub fn write(
                 array.as_any().downcast_ref().unwrap(),
                 buffers,
                 arrow_data,
+                arrow_data_len,
                 nodes,
                 offset,
                 is_little_endian,
@@ -425,9 +562,10 @@ pub fn write(
 }
 
 #[inline]
-fn pad_buffer_to_8(buffer: &mut [u8], length: usize, offset: i64) {
+fn pad_buffer_to_8(buffer: &mut [u8], arrow_data_len: &mut usize, length: usize) {
     let pad_len = pad_to_8(length);
-    buffer[offset as usize..offset as usize + pad_len].copy_from_slice(&vec![0u8; pad_len]);
+    buffer[*arrow_data_len..*arrow_data_len + pad_len].copy_from_slice(&vec![0u8; pad_len]);
+    *arrow_data_len += pad_len;
 }
 
 /// writes `bytes` to `arrow_data` updating `buffers` and `offset` and guaranteeing a 8 byte
@@ -436,13 +574,15 @@ fn write_bytes(
     bytes: &[u8],
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     offset: &mut i64,
 ) {
-    let start = arrow_data.len();
+    let start = *arrow_data_len;
 
-    arrow_data[*offset as usize..*offset as usize + bytes.len()].copy_from_slice(bytes);
+    arrow_data[*arrow_data_len..*arrow_data_len + bytes.len()].copy_from_slice(bytes);
+    *arrow_data_len += bytes.len();
 
-    buffers.push(finish_buffer(arrow_data, start, offset));
+    buffers.push(finish_buffer(arrow_data, arrow_data_len, start, offset));
 }
 
 fn write_bitmap(
@@ -450,6 +590,7 @@ fn write_bitmap(
     length: usize,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     offset: &mut i64,
 ) {
     match bitmap {
@@ -459,10 +600,10 @@ fn write_bitmap(
             if slice_offset != 0 {
                 // case where we can't slice the bitmap as the offsets are not multiple of 8
                 let bytes = Bitmap::from_trusted_len_iter(bitmap.iter());
-                let (slice, _, _) = bytes.as_slice();
-                write_bytes(slice, buffers, arrow_data, offset)
+                let (slice, ..) = bytes.as_slice();
+                write_bytes(slice, buffers, arrow_data, arrow_data_len, offset)
             } else {
-                write_bytes(slice, buffers, arrow_data, offset)
+                write_bytes(slice, buffers, arrow_data, arrow_data_len, offset)
             }
         }
         None => {
@@ -480,36 +621,39 @@ fn write_buffer<T: NativeType>(
     buffer: &[T],
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     offset: &mut i64,
     is_little_endian: bool,
 ) {
-    let start = arrow_data.len();
+    let start = *arrow_data_len;
 
-    _write_buffer(buffer, arrow_data, is_little_endian, *offset);
+    _write_buffer(buffer, arrow_data, arrow_data_len, is_little_endian);
 
-    buffers.push(finish_buffer(arrow_data, start, offset));
+    buffers.push(finish_buffer(arrow_data, arrow_data_len, start, offset));
 }
 
 #[inline]
 fn _write_buffer_from_iter<T: NativeType, I: TrustedLen<Item = T>>(
     buffer: I,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     is_little_endian: bool,
-    offset: i64,
 ) {
     if is_little_endian {
         buffer
             .map(|x| T::to_le_bytes(&x))
-            .fold(offset as usize, |offset, next| {
+            .fold(*arrow_data_len, |offset, next| {
                 arrow_data[offset..offset + next.as_ref().len()].copy_from_slice(next.as_ref());
-                offset as usize + next.as_ref().len()
+                *arrow_data_len += next.as_ref().len();
+                *arrow_data_len + next.as_ref().len()
             });
     } else {
         buffer
             .map(|x| T::to_be_bytes(&x))
-            .fold(offset as usize, |offset, next| {
+            .fold(*arrow_data_len, |offset, next| {
                 arrow_data[offset..offset + next.as_ref().len()].copy_from_slice(next.as_ref());
-                offset as usize + next.as_ref().len()
+                *arrow_data_len += next.as_ref().len();
+                *arrow_data_len + next.as_ref().len()
             });
     }
 }
@@ -517,15 +661,21 @@ fn _write_buffer_from_iter<T: NativeType, I: TrustedLen<Item = T>>(
 fn _write_buffer<T: NativeType>(
     buffer: &[T],
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     is_little_endian: bool,
-    offset: i64,
 ) {
     if is_little_endian == cfg!(target_endian = "little") {
         // in native endianess we can use the bytes directly.
         let buffer = bytemuck::cast_slice(buffer);
-        arrow_data[offset as usize..offset as usize + buffer.len()].copy_from_slice(buffer);
+        arrow_data[*arrow_data_len..*arrow_data_len + buffer.len()].copy_from_slice(buffer);
+        *arrow_data_len += buffer.len();
     } else {
-        _write_buffer_from_iter(buffer.iter().copied(), arrow_data, is_little_endian, offset)
+        _write_buffer_from_iter(
+            buffer.iter().copied(),
+            arrow_data,
+            arrow_data_len,
+            is_little_endian,
+        )
     }
 }
 
@@ -536,21 +686,27 @@ fn write_buffer_from_iter<T: NativeType, I: TrustedLen<Item = T>>(
     buffer: I,
     buffers: &mut Vec<ipc::Buffer>,
     arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
     offset: &mut i64,
     is_little_endian: bool,
 ) {
-    let start = arrow_data.len();
+    let start = *arrow_data_len;
 
-    _write_buffer_from_iter(buffer, arrow_data, is_little_endian, *offset);
+    _write_buffer_from_iter(buffer, arrow_data, arrow_data_len, is_little_endian);
 
-    buffers.push(finish_buffer(arrow_data, start, offset));
+    buffers.push(finish_buffer(arrow_data, arrow_data_len, start, offset));
 }
 
-fn finish_buffer(arrow_data: &mut [u8], start: usize, offset: &mut i64) -> ipc::Buffer {
-    let buffer_len = (arrow_data.len() - start) as i64;
+fn finish_buffer(
+    arrow_data: &mut [u8],
+    arrow_data_len: &mut usize,
+    start: usize,
+    offset: &mut i64,
+) -> ipc::Buffer {
+    let buffer_len = (*arrow_data_len - start) as i64;
 
-    pad_buffer_to_8(arrow_data, arrow_data.len() - start, *offset);
-    let total_len = (arrow_data.len() - start) as i64;
+    pad_buffer_to_8(arrow_data, arrow_data_len, *arrow_data_len - start);
+    let total_len = (*arrow_data_len - start) as i64;
 
     let buffer = ipc::Buffer {
         offset: *offset,

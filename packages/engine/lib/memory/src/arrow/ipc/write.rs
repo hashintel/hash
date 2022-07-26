@@ -99,19 +99,24 @@ pub fn write_record_batch_message_header(
     Ok(())
 }
 
-pub fn write_record_batch_body(record_batch: &RecordBatch, buf: &mut [u8]) -> crate::Result<()> {
+pub fn write_record_batch_body(
+    record_batch: &RecordBatch,
+    buf: &mut [u8],
+    metadata: &IpcDataMetadata,
+) -> crate::Result<()> {
     let mut nodes = vec![];
     let mut buffers = vec![];
     let mut offset = 0;
+    let mut data_len = 0;
 
     for col in record_batch.columns() {
         let before_offset = offset;
-        dbg!(col.data_type());
 
         super::serialize::write::write(
             col.as_ref(),
             &mut buffers,
             buf,
+            &mut data_len,
             &mut nodes,
             &mut offset,
             cfg!(target_endian = "little"),
@@ -125,6 +130,9 @@ pub fn write_record_batch_body(record_batch: &RecordBatch, buf: &mut [u8]) -> cr
             )
         }
     }
+
+    debug_assert_eq!(buffers, metadata.buffers);
+    debug_assert_eq!(nodes, metadata.nodes);
 
     Ok(())
 }
@@ -159,7 +167,7 @@ pub fn write_record_batch_to_segment(
 
     // write the data
     let data_buffer = segment.get_mut_data_buffer()?;
-    write_record_batch_body(record_batch, data_buffer)?;
+    write_record_batch_body(record_batch, data_buffer, &data_metadata)?;
 
     Ok(segment)
 }

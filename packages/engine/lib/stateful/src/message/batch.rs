@@ -138,7 +138,7 @@ impl MessageBatch {
 
         let data_buffer = batch.segment_mut().get_mut_data_buffer()?;
         // Write new data
-        ipc::write_record_batch_body(&record_batch, data_buffer)?;
+        ipc::write_record_batch_body(&record_batch, data_buffer, &write_metadata)?;
 
         // TODO: reloading batch could be faster if we persisted
         //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
@@ -186,7 +186,7 @@ impl MessageBatch {
         debug_assert!(!change.resized() && !change.shifted());
 
         let data_buffer = segment.get_mut_data_buffer()?;
-        ipc::write_record_batch_body(&record_batch, data_buffer)?;
+        ipc::write_record_batch_body(&record_batch, data_buffer, &info)?;
         let change = segment.set_header(&header)?;
         debug_assert!(!change.resized() && !change.shifted());
         Self::from_segment(segment, schema)
@@ -212,7 +212,7 @@ impl MessageBatch {
         write_record_batch_message_header(&mut metadata, &info)?;
 
         let mut body = vec![];
-        ipc::write_record_batch_body(record_batch, &mut body)?;
+        ipc::write_record_batch_body(record_batch, &mut body, &info)?;
 
         let segment = Segment::from_batch_buffers(
             memory_id,

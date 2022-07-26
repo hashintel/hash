@@ -58,7 +58,7 @@ impl ContextBatch {
         write_record_batch_message_header(&mut metadata, &info)?;
 
         let mut body_data = vec![];
-        write_record_batch_body(record_batch, &mut body_data)?;
+        write_record_batch_body(record_batch, &mut body_data, &info)?;
 
         let segment =
             Segment::from_batch_buffers(memory_id, &[], &header, &metadata, &body_data, false)?;
