@@ -17,7 +17,7 @@ struct ErrorLogger;
 
 impl ErrorSink<Error> for ErrorLogger {
     fn sink(&self, error: Error) {
-        tracing::error!(%error, "Store pool has encountered an error");
+        tracing::error!(%error, "Store connection pool has encountered an error");
     }
 
     fn boxed_clone(&self) -> Box<dyn ErrorSink<Error>> {
